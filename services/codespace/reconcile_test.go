@@ -23,8 +23,8 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 	now := time.Now().Unix()
 	queuedUUID := "12121212-1212-4212-8212-121212121212"
 	runningUUID := "13131313-1313-4313-8313-131313131313"
+	runningStopUUID := "13131313-1313-4313-8313-131313131314"
 	failedUUID := "14141414-1414-4414-8414-141414141414"
-	freshFailedUUID := "15151515-1515-4515-8515-151515151515"
 
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:                 queuedUUID,
@@ -34,6 +34,13 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: now - int64(setting.Codespace.QueueTimeout/time.Second) - 1,
+	})
+	stopCreatedUnix := now - 120
+	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+		UUID: runningStopUUID, Status: codespace_model.StatusRunning, OperationRVersion: 6,
+		OperationType: codespace_model.OperationStop, OperationStatus: codespace_model.OperationStatusRunning,
+		OperationTrigger: codespace_model.OperationTriggerUser, OperationCreatedUnix: stopCreatedUnix,
+		OperationStartedUnix: now - 60, OperationDeadlineUnix: now - 1,
 	})
 	insertServiceCredentials(t, queuedUUID)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
@@ -57,34 +64,44 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 	})
 	require.NoError(t, err)
 	insertServiceCredentials(t, failedUUID)
-	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:        freshFailedUUID,
-		Status:      codespace_model.StatusFailed,
-		UpdatedUnix: now,
-	})
-	_, err = db.GetEngine(t.Context()).Where("uuid = ?", freshFailedUUID).Cols("updated_unix").Update(&codespace_model.Codespace{UpdatedUnix: now})
+	unboundFailed := &codespace_model.Codespace{
+		UserID: 1, RepoID: 2, RefType: "branch", RefName: "main", EnvironmentTag: "default",
+		CommitSHA: "0123456789abcdef0123456789abcdef01234567", DevContainerSource: codespace_model.DevContainerSourceTemplate,
+		DevContainerContent: `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`, Status: codespace_model.StatusFailed,
+		OperationRVersion: 5, AutoStopMode: codespace_model.AutoStopModeDefault, CreatedUnix: 1,
+		UpdatedUnix: now - int64((2*time.Hour)/time.Second),
+	}
+	require.NoError(t, db.Insert(t.Context(), unboundFailed))
+	_, err = db.GetEngine(t.Context()).ID(unboundFailed.ID).Cols("updated_unix").Update(&codespace_model.Codespace{UpdatedUnix: unboundFailed.UpdatedUnix})
 	require.NoError(t, err)
 
 	result, err := ReconcileCodespaces(t.Context(), ReconcileCodespacesOptions{FailedOlderThan: time.Hour})
 	require.NoError(t, err)
-	assert.Equal(t, 1, result.QueuedTimedOut)
-	assert.Equal(t, 1, result.RunningTimedOut)
+	assert.Zero(t, result.QueuedTimedOut)
+	assert.Equal(t, 2, result.RunningTimedOut)
 	assert.Equal(t, 1, result.FailedDeleted)
 
 	queued := loadServiceCodespace(t, queuedUUID)
 	assert.Equal(t, codespace_model.StatusRunning, queued.Status)
-	assert.Empty(t, queued.OperationStatus)
+	assert.Equal(t, codespace_model.OperationStatusQueued, queued.OperationStatus)
 	assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", queuedUUID)
 	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", queuedUUID)
 
 	running := loadServiceCodespace(t, runningUUID)
 	assert.Equal(t, codespace_model.StatusFailed, running.Status)
 	assert.Empty(t, running.OperationStatus)
+	retriedStop := loadServiceCodespace(t, runningStopUUID)
+	assert.Equal(t, codespace_model.StatusRunning, retriedStop.Status)
+	assert.EqualValues(t, 7, retriedStop.OperationRVersion)
+	assert.Equal(t, codespace_model.OperationStatusQueued, retriedStop.OperationStatus)
+	assert.Equal(t, stopCreatedUnix, retriedStop.OperationCreatedUnix)
+	assert.Zero(t, retriedStop.OperationStartedUnix)
+	assert.Zero(t, retriedStop.OperationDeadlineUnix)
 
-	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", failedUUID)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
-	assertServiceExists(t, new(codespace_model.Codespace), "uuid = ?", freshFailedUUID)
+	assertServiceExists(t, new(codespace_model.Codespace), "uuid = ?", failedUUID)
+	assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
+	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
+	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", unboundFailed.ID)
 }
 
 func TestReconcileCodespacesRequiresPositiveRetention(t *testing.T) {

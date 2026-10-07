@@ -62,8 +62,8 @@ func governanceTarget(ctx *context.Context) (codespace_service.GovernanceActionO
 		}, base + "/" + strconv.FormatInt(managerID, 10)
 	}
 	return codespace_service.GovernanceActionOptions{
-		CodespaceUUID: ctx.PathParam("uuid"),
-		Unassigned:    true,
+		CodespaceID: ctx.PathParamInt64("id"),
+		Unassigned:  true,
 	}, base
 }
 

@@ -93,11 +93,7 @@ func validateProtocolVersion(message any) error {
 	return nil
 }
 
-func failureError(code connect.Code, category string, err error) error {
-	return failureErrorBase(code, category, err)
-}
-
-func failureErrorBase(code connect.Code, category string, err error) *connect.Error {
+func failureError(code connect.Code, category string, err error) *connect.Error {
 	connectErr := connect.NewError(code, err)
 	detail, detailErr := connect.NewErrorDetail(&codespacev1.FailureDetail{Category: category})
 	if detailErr == nil {
@@ -107,7 +103,7 @@ func failureErrorBase(code connect.Code, category string, err error) *connect.Er
 }
 
 func failureErrorWithStaleGeneration(code connect.Code, category string, currentGeneration int64, err error) error {
-	connectErr := failureErrorBase(code, category, err)
+	connectErr := failureError(code, category, err)
 	staleDetail, staleDetailErr := connect.NewErrorDetail(&codespacev1.StaleGenerationDetail{CurrentGeneration: currentGeneration})
 	if staleDetailErr == nil {
 		connectErr.AddDetail(staleDetail)
@@ -116,7 +112,7 @@ func failureErrorWithStaleGeneration(code connect.Code, category string, current
 }
 
 func failureErrorWithLogOffset(code connect.Code, category string, currentOffset int64, err error) error {
-	connectErr := failureErrorBase(code, category, err)
+	connectErr := failureError(code, category, err)
 	offsetDetail, offsetDetailErr := connect.NewErrorDetail(&codespacev1.LogOffsetDetail{CurrentOffset: currentOffset})
 	if offsetDetailErr == nil {
 		connectErr.AddDetail(offsetDetail)

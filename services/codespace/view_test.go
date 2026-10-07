@@ -228,8 +228,8 @@ func TestGetCreatorCodespaceKeepsQueuedIdleStopInteractive(t *testing.T) {
 		OperationCreatedUnix: time.Now().Unix(),
 	})
 	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 18, []map[string]any{
-		{"endpoint_id": "private-app", "label": "Private app", "public": false},
-		{"endpoint_id": "public-app", "label": "Public app", "public": true},
+		{"endpoint_id": "private-app", "label": "Private app", "public": false, "port": 3000},
+		{"endpoint_id": "public-app", "label": "Public app", "public": true, "port": 8080},
 	})))
 
 	view, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
@@ -244,6 +244,8 @@ func TestGetCreatorCodespaceKeepsQueuedIdleStopInteractive(t *testing.T) {
 	require.Len(t, view.Endpoints, 2)
 	assert.True(t, view.Endpoints[0].CanOpen)
 	assert.False(t, view.Endpoints[1].CanOpen)
+	assert.EqualValues(t, 3000, view.Endpoints[0].Port)
+	assert.EqualValues(t, 8080, view.Endpoints[1].Port)
 	require.NotNil(t, view.SSH)
 	assert.Equal(t, "ssh -p 2222 cs-"+codespaceUUID+"@ssh.example.com", view.SSH.Command)
 	assert.Equal(t, "ssh-ed25519", view.SSH.HostKeyAlgorithm)

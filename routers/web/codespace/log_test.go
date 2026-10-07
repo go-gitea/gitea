@@ -128,7 +128,7 @@ func TestLogPageAndDownloadUseStoredContent(t *testing.T) {
 	manager := insertWebOpenManager(t, "https://gateway.example.com")
 	codespaceUUID := "95909090-9090-4090-8090-909090909090"
 	insertWebLogCodespace(t, manager.ID, codespaceUUID, 96)
-	_, err := codespace_service.UpdateLog(t.Context(), manager, codespace_service.UpdateLogOptions{
+	result, err := codespace_service.UpdateLog(t.Context(), manager, codespace_service.UpdateLogOptions{
 		CodespaceUUID:     codespaceUUID,
 		OperationRVersion: 96,
 		Offset:            0,
@@ -145,6 +145,7 @@ func TestLogPageAndDownloadUseStoredContent(t *testing.T) {
 	Detail(detailCtx)
 	require.Equal(t, http.StatusOK, detailResp.Code)
 	assert.Contains(t, detailResp.Body.String(), "data-log-next-offset=\"0\"")
+	assert.Contains(t, detailResp.Body.String(), "data-log-revision=\"96:"+strconv.FormatInt(result.NextOffset, 10)+"\"")
 	assert.Contains(t, detailResp.Body.String(), "/-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs/download")
 
 	downloadCtx, downloadResp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs/download")

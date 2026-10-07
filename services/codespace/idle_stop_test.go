@@ -204,7 +204,7 @@ func TestRequestIdleStopNotApplicableAndVersionExhausted(t *testing.T) {
 	assert.Empty(t, loadServiceCodespace(t, exhaustedUUID).OperationType)
 }
 
-func TestRequestIdleStopCreatesNewVersionAfterQueuedIdleTimeout(t *testing.T) {
+func TestRequestIdleStopKeepsQueuedCleanupOperation(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
@@ -225,23 +225,14 @@ func TestRequestIdleStopCreatesNewVersionAfterQueuedIdleTimeout(t *testing.T) {
 		CleanupCapacityAvailable: 1,
 	})
 	require.NoError(t, err)
-	assert.Empty(t, fetch.Operations)
+	require.Len(t, fetch.Operations, 1)
+	assert.NotNil(t, fetch.Operations[0].GetStop())
 	row := loadServiceCodespace(t, codespaceUUID)
 	require.Equal(t, codespace_model.StatusRunning, row.Status)
-	require.Empty(t, row.OperationType)
+	require.Equal(t, codespace_model.OperationStop, row.OperationType)
+	require.Equal(t, codespace_model.OperationStatusRunning, row.OperationStatus)
 	require.EqualValues(t, 12, row.OperationRVersion)
 
-	result, err := RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
-		CodespaceUUID:                 codespaceUUID,
-		ObservedAutoStopEnabled:       true,
-		ObservedIdleTimeoutSeconds:    int64(setting.Codespace.AutoStopDefaultTimeout / time.Second),
-		ObservedInteractionGeneration: 6,
-	})
-	require.NoError(t, err)
-	assert.EqualValues(t, 13, result.GetPending().GetOperationRversion())
-	row = loadServiceCodespace(t, codespaceUUID)
-	assert.Equal(t, codespace_model.OperationStop, row.OperationType)
-	assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
 	assert.Equal(t, codespace_model.OperationTriggerIdle, row.OperationTrigger)
 }
 

@@ -122,19 +122,25 @@ test('initCodespaceLiveState closes the source modal after opening a new tab', {
 test('initCodespaceLiveState refreshes state and preserves expanded host verification', {concurrent: false}, async () => {
   try {
     vi.useFakeTimers();
-    document.body.innerHTML = '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="10"><span>old</span><details id="verification" open><summary>SSH</summary>fingerprint</details></div>';
+    document.body.innerHTML = '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="10" data-log-revision="1:0"><span>old</span><details id="verification" open><summary>SSH</summary>fingerprint</details></div>';
     const fetchMock = vi.fn().mockResolvedValue(new Response(
-      '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="0"><span>new</span><details id="verification"><summary>SSH</summary>fingerprint</details></div>',
+      '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="0" data-log-revision="2:20"><span>new</span><details id="verification"><summary>SSH</summary>fingerprint</details></div>',
       {status: 200},
     ));
     vi.stubGlobal('fetch', fetchMock);
 
     initCodespaceLiveState();
+    const logView = document.createElement('div');
+    logView.id = 'codespace-log-view';
+    const wakeLog = vi.fn();
+    logView.addEventListener('codespace-log-update', wakeLog);
+    document.body.append(logView);
     await vi.advanceTimersByTimeAsync(10);
     await vi.waitFor(() => expect(document.querySelector('#codespace-live-state')!.textContent).toContain('new'));
 
     expect(fetchMock).toHaveBeenCalledWith('/-/codespaces/uuid/state', expect.objectContaining({method: 'GET'}));
     expect(document.querySelector<HTMLDetailsElement>('#verification')!.open).toBe(true);
+    expect(wakeLog).toHaveBeenCalledTimes(1);
   } finally {
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -215,270 +221,206 @@ test('codespace settings button fills and opens the shared auto-stop modal', () 
   document.body.replaceChildren();
 });
 
-function codespaceLogHTML(offset = '0', lineCount = '0', empty = 'true') {
+function codespaceLogHTML() {
   return `
     <section class="codespace-log-panel">
-      <span class="tw-hidden" data-codespace-log-loading>Loading…</span>
-      <button data-codespace-log-toggle-timestamps><span class="tw-invisible" data-codespace-log-timestamp-check></span></button>
-      <button data-codespace-log-fullscreen data-enter-label="Enter" data-exit-label="Exit"><span>Enter</span></button>
-      <div id="codespace-log-view" data-log-url="/-/codespaces/uuid/logs" data-log-next-offset="${offset}"
-        data-log-refresh-after-ms="10" data-log-line-count="${lineCount}" data-log-empty="${empty}"
-        data-log-error-message="Log unavailable">
-        ${empty === 'true' ? '<div data-log-empty-message>Empty</div>' : ''}
+      <span class="tw-invisible" data-codespace-log-loading>Loading</span>
+      <div id="codespace-log-view" data-log-url="/-/codespaces/1/logs" data-log-next-offset="0" data-log-refresh-after-ms="10">
+        <div data-log-empty-message>Empty</div>
+        <pre data-log-content></pre>
       </div>
+      <div class="tw-hidden" data-log-error>Log unavailable<button data-log-retry>Retry</button></div>
     </section>
   `;
 }
 
-function codespaceLogResponse(body: Record<string, unknown>) {
+function codespaceLogResponse(nextOffset: number, messages: string[] = [], eof = true, active = false) {
   const response = new Response();
-  // Native response body reads run outside fake timers, so mock decoding for scheduling tests.
-  vi.spyOn(response, 'json').mockResolvedValue(body);
+  // Native response body reads run outside fake timers.
+  vi.spyOn(response, 'json').mockResolvedValue({
+    next_offset: nextOffset, eof, operation_active: active,
+    lines: messages.map((message) => ({timestamp: 1785037200, message})),
+  });
   return response;
 }
 
-test('initCodespaceLiveState immediately appends structured log lines', {concurrent: false}, async () => {
-  try {
+describe('codespace log', () => {
+  let logView: HTMLElement;
+  let content: HTMLElement;
+  let height: number;
+
+  beforeEach(() => {
     vi.useFakeTimers();
     document.body.innerHTML = codespaceLogHTML();
-    const fetchMock = vi.fn().mockResolvedValue(codespaceLogResponse({
-      next_offset: 12,
-      eof: true,
-      operation_active: true,
-      lines: [
-        {timestamp: 1785037200, message: 'first'},
-        {timestamp: 1785037201, message: 'second'},
-      ],
-    }));
-    vi.stubGlobal('fetch', fetchMock);
-    const logView = document.querySelector<HTMLElement>('#codespace-log-view')!;
+    logView = document.querySelector<HTMLElement>('#codespace-log-view')!;
+    content = logView.querySelector<HTMLElement>('[data-log-content]')!;
+    height = 400;
     Object.defineProperties(logView, {
       clientHeight: {value: 100},
-      scrollHeight: {value: 200},
-      scrollTop: {value: 100, writable: true},
+      scrollHeight: {get: () => height, configurable: true},
+      scrollTop: {value: 0, writable: true},
     });
+  });
 
-    initCodespaceLiveState();
-    await vi.advanceTimersByTimeAsync(0);
-    await vi.waitFor(() => expect(logView.querySelectorAll('.codespace-log-line-message')).toHaveLength(2));
-
-    expect(fetchMock).toHaveBeenCalledWith('/-/codespaces/uuid/logs?offset=0', expect.objectContaining({method: 'GET'}));
-    expect(Array.from(logView.querySelectorAll('.codespace-log-line-number'), (el) => el.textContent)).toEqual(['1', '2']);
-    expect(Array.from(logView.querySelectorAll('.codespace-log-line-message'), (el) => el.textContent)).toEqual(['first', 'second']);
-    expect(logView.querySelectorAll('.codespace-log-line-timestamp')).toHaveLength(2);
-    expect(logView.getAttribute('data-log-next-offset')).toBe('12');
-    expect(logView.getAttribute('data-log-empty')).toBe('false');
-    expect(logView.scrollTop).toBe(200);
-
-    document.querySelector<HTMLButtonElement>('[data-codespace-log-toggle-timestamps]')!.click();
-    expect(logView.classList.contains('show-timestamps')).toBe(true);
-    expect(document.querySelector<HTMLElement>('[data-codespace-log-timestamp-check]')!.classList.contains('tw-invisible')).toBe(false);
-  } finally {
+  afterEach(() => {
+    window.dispatchEvent(new PageTransitionEvent('pagehide'));
+    document.body.replaceChildren();
     vi.useRealTimers();
     vi.unstubAllGlobals();
-    document.body.replaceChildren();
-  }
-});
+  });
 
-test('codespace log refresh preserves a reader position away from the bottom', {concurrent: false}, async () => {
-  try {
-    vi.useFakeTimers();
-    document.body.innerHTML = codespaceLogHTML('12', '2', 'false');
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(codespaceLogResponse({
-      next_offset: 18,
-      eof: true,
-      operation_active: true,
-      lines: [{timestamp: 1785037202, message: 'third'}],
-    })));
-    const logView = document.querySelector<HTMLElement>('#codespace-log-view')!;
-    Object.defineProperties(logView, {
-      clientHeight: {value: 100},
-      scrollHeight: {value: 300},
-      scrollTop: {value: 80, writable: true},
-    });
-
-    initCodespaceLiveState();
-    await vi.advanceTimersByTimeAsync(0);
-    await vi.waitFor(() => expect(logView.querySelector('.codespace-log-line-message')).not.toBeNull());
-
-    expect(logView.querySelector('.codespace-log-line-message')!.textContent).toBe('third');
-    expect(logView.scrollTop).toBe(80);
-  } finally {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-    document.body.replaceChildren();
-  }
-});
-
-test('codespace log renders Actions groups, severities, commands, links, and ANSI messages', {concurrent: false}, async () => {
-  try {
-    vi.useFakeTimers();
-    document.body.innerHTML = codespaceLogHTML();
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(codespaceLogResponse({
-      next_offset: 32,
-      eof: true,
-      operation_active: false,
-      lines: [
-        {timestamp: 1785037200, message: '##[group]Create #1'},
-        {timestamp: 1785037201, message: '\u001b[32mready\u001b[0m'},
-        {timestamp: 1785037202, message: '##[warning]check https://example.com/log'},
-        {timestamp: 1785037203, message: '##[command]make build'},
-        {timestamp: 1785037204, message: '##[error]failed'},
-        {timestamp: 1785037205, message: '##[endgroup]'},
-      ],
-    })));
-
-    initCodespaceLiveState();
-    await vi.advanceTimersByTimeAsync(0);
-
-    const group = document.querySelector<HTMLDetailsElement>('.codespace-log-group')!;
-    expect(group.querySelector('summary')!.textContent).toBe('Create #1');
-    expect(group.open).toBe(true);
-    expect(group.getAttribute('data-log-error')).toBe('true');
-    expect(group.querySelector('.codespace-log-line-message')!.textContent).toBe('ready');
-    expect(group.querySelector('.codespace-log-line-warning .log-msg-label')!.textContent).toBe('Warning:');
-    expect(group.querySelector<HTMLAnchorElement>('.codespace-log-line-warning a')!.href).toBe('https://example.com/log');
-    expect(group.querySelector('.codespace-log-line-message.log-cmd-command')!.textContent).toBe('make build');
-    expect(group.querySelector('.codespace-log-line-error .log-msg-label')!.textContent).toBe('Error:');
-  } finally {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-    document.body.replaceChildren();
-  }
-});
-
-test('codespace log reloads once after an offset conflict', {concurrent: false}, async () => {
-  try {
-    vi.useFakeTimers();
-    document.body.innerHTML = codespaceLogHTML('12', '2', 'false');
+  test('loads history only on demand and uses the server byte offset', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(null, {status: 409}))
-      .mockResolvedValueOnce(codespaceLogResponse({next_offset: 4, eof: true, operation_active: false, lines: [{timestamp: 1785037200, message: 'reloaded'}]}));
+      .mockResolvedValueOnce(codespaceLogResponse(101, ['中文'], false))
+      .mockResolvedValueOnce(codespaceLogResponse(205, ['next page']));
     vi.stubGlobal('fetch', fetchMock);
-
     initCodespaceLiveState();
     await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(10);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(content.textContent).toBe('中文\n');
+    expect(logView.scrollTop).toBe(0);
+    logView.scrollTop = 300;
+    logView.dispatchEvent(new Event('scroll'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/-/codespaces/1/logs?offset=101&limit=65536', expect.objectContaining({method: 'GET', signal: expect.any(AbortSignal)}));
+    expect(content.textContent).toBe('中文\nnext page\n');
+    expect(logView.scrollTop).toBe(300);
+  });
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, '/-/codespaces/uuid/logs?offset=12', expect.anything());
-    expect(fetchMock).toHaveBeenNthCalledWith(2, '/-/codespaces/uuid/logs?offset=0', expect.anything());
-    expect(document.querySelector('.codespace-log-line-message')!.textContent).toBe('reloaded');
-  } finally {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-    document.body.replaceChildren();
-  }
-});
-
-test('codespace log catches up pages without the polling delay and preserves groups', {concurrent: false}, async () => {
-  try {
-    vi.useFakeTimers();
-    document.body.innerHTML = codespaceLogHTML();
+  test('fills a short viewport and renders untrusted output as plain text', async () => {
+    height = 50;
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(codespaceLogResponse({
-        next_offset: 12,
-        eof: false,
-        operation_active: true,
-        lines: [
-          {timestamp: 1785037200, message: '##[group]Build'},
-          {timestamp: 1785037201, message: 'first page'},
-        ],
-      }))
-      .mockResolvedValueOnce(codespaceLogResponse({
-        next_offset: 24,
-        eof: true,
-        operation_active: true,
-        lines: [
-          {timestamp: 1785037202, message: 'second page'},
-          {timestamp: 1785037203, message: '##[endgroup]'},
-        ],
-      }));
+      .mockResolvedValueOnce(codespaceLogResponse(20, ['\u001b[32mready\u001b[0m'], false))
+      .mockImplementationOnce(() => {
+        height = 400;
+        return Promise.resolve(codespaceLogResponse(100, ['<img src=x onerror=alert(1)>', '\u001b]8;;https://example.com\u0007link\u001b]8;;\u0007']));
+      });
     vi.stubGlobal('fetch', fetchMock);
-
     initCodespaceLiveState();
-    await vi.advanceTimersByTimeAsync(16);
-
+    await vi.advanceTimersByTimeAsync(1);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock).toHaveBeenNthCalledWith(1, '/-/codespaces/uuid/logs?offset=0', expect.anything());
-    expect(fetchMock).toHaveBeenNthCalledWith(2, '/-/codespaces/uuid/logs?offset=12', expect.anything());
-    expect(Array.from(document.querySelectorAll('.codespace-log-line-message'), (el) => el.textContent)).toEqual(['first page', 'second page']);
-    expect(document.querySelector<HTMLDetailsElement>('.codespace-log-group')!.open).toBe(false);
-    expect(document.querySelector<HTMLElement>('[data-codespace-log-loading]')!.classList.contains('tw-hidden')).toBe(true);
-  } finally {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-    document.body.replaceChildren();
-  }
-});
+    expect(content.textContent).toBe('ready\n<img src=x onerror=alert(1)>\nlink\n');
+    expect(content.childElementCount).toBe(0);
+  });
 
-test('codespace log yields while rendering a large page', {concurrent: false}, async () => {
-  try {
-    vi.useFakeTimers();
-    document.body.innerHTML = codespaceLogHTML();
-    const lines = Array.from({length: 501}, (_, index) => ({timestamp: 1785037200 + index, message: `line ${index + 1}`}));
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(codespaceLogResponse({next_offset: 501, eof: true, operation_active: false, lines})));
-
-    initCodespaceLiveState();
-    await vi.advanceTimersByTimeAsync(0);
-    expect(document.querySelectorAll('.codespace-log-line')).toHaveLength(500);
-
-    await vi.advanceTimersByTimeAsync(16);
-    expect(document.querySelectorAll('.codespace-log-line')).toHaveLength(501);
-  } finally {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-    document.body.replaceChildren();
-  }
-});
-
-test('codespace log confirms an inactive EOF once and then stops polling', {concurrent: false}, async () => {
-  try {
-    vi.useFakeTimers();
-    document.body.innerHTML = codespaceLogHTML();
-    const fetchMock = vi.fn().mockResolvedValue(codespaceLogResponse({next_offset: 12, eof: true, operation_active: false, lines: []}));
+  test('follows the live tail but preserves the position if the reader scrolls up', async () => {
+    logView.scrollTop = 300;
+    Object.defineProperty(logView, 'scrollHeight', {get: () => content.textContent.includes('second') ? 500 : 400});
+    const page = Promise.withResolvers<Response>();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(codespaceLogResponse(10, ['first'], true, true))
+      .mockResolvedValueOnce(codespaceLogResponse(20, ['second'], true, true))
+      .mockReturnValueOnce(page.promise);
     vi.stubGlobal('fetch', fetchMock);
-
     initCodespaceLiveState();
     await vi.advanceTimersByTimeAsync(10);
+    expect(logView.scrollTop).toBe(500);
+    // Match the browser's clamped scroll position after the mocked scrollHeight assignment.
+    logView.scrollTop = 400;
+    logView.dispatchEvent(new Event('scroll'));
+    await vi.advanceTimersByTimeAsync(10);
+    logView.scrollTop = 100;
+    page.resolve(codespaceLogResponse(30, ['third'], true, true));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(content.textContent).toBe('first\nsecond\nthird\n');
+    expect(logView.scrollTop).toBe(100);
     await vi.advanceTimersByTimeAsync(100);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  } finally {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-    document.body.replaceChildren();
-  }
-});
-
-test('codespace log backs off without progress and pauses while hidden', {concurrent: false}, async () => {
-  try {
-    vi.useFakeTimers();
-    document.body.innerHTML = codespaceLogHTML('12');
-    const fetchMock = vi.fn().mockResolvedValue(codespaceLogResponse({next_offset: 12, eof: false, operation_active: true, lines: []}));
+  test('confirms final EOF and wakes when the state fragment reports new output', async () => {
+    height = 50;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(codespaceLogResponse(10, ['finished']))
+      .mockResolvedValueOnce(codespaceLogResponse(10))
+      .mockResolvedValue(codespaceLogResponse(20, ['resume started'], true, true));
     vi.stubGlobal('fetch', fetchMock);
-
     initCodespaceLiveState();
-    await vi.advanceTimersByTimeAsync(0);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-
-    await vi.advanceTimersByTimeAsync(10);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    await vi.advanceTimersByTimeAsync(10);
+    await vi.advanceTimersByTimeAsync(100);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    logView.dispatchEvent(new Event('codespace-log-update'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(content.textContent).toBe('finished\nresume started\n');
+  });
 
+  test('backs off on no progress and pauses while the page is hidden', async () => {
+    height = 50;
+    const fetchMock = vi.fn().mockResolvedValue(codespaceLogResponse(0, [], false, true));
+    vi.stubGlobal('fetch', fetchMock);
+    initCodespaceLiveState();
+    await vi.advanceTimersByTimeAsync(19);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
-    await vi.advanceTimersByTimeAsync(100);
+    document.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(1000);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     document.dispatchEvent(new Event('visibilitychange'));
-    await vi.advanceTimersByTimeAsync(39);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    await vi.advanceTimersByTimeAsync(1);
+    await vi.advanceTimersByTimeAsync(0);
     expect(fetchMock).toHaveBeenCalledTimes(3);
-  } finally {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-    document.body.replaceChildren();
-  }
+    expect(logView.getAttribute('data-log-next-offset')).toBe('0');
+  });
+
+  test.each([500, 404, 409])('preserves loaded text when a request fails with %i', async (status) => {
+    height = 50;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(codespaceLogResponse(10, ['diagnostic'], true, true))
+      .mockResolvedValueOnce(new Response(null, {status}))
+      .mockResolvedValue(codespaceLogResponse(20, ['recovered'], true, true));
+    vi.stubGlobal('fetch', fetchMock);
+    initCodespaceLiveState();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(content.textContent).toBe('diagnostic\n');
+    expect(document.querySelector('[data-log-error]')!.classList.contains('tw-hidden')).toBe(false);
+    const retry = document.querySelector<HTMLButtonElement>('[data-log-retry]')!;
+    if (status === 500) {
+      retry.click();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(content.textContent).toBe('diagnostic\nrecovered\n');
+      expect(document.querySelector('[data-log-error]')!.classList.contains('tw-hidden')).toBe(true);
+    } else {
+      expect(retry.disabled).toBe(true);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    }
+  });
+
+  test('serializes requests and aborts on navigation', async () => {
+    height = 50;
+    const page = Promise.withResolvers<Response>();
+    const fetchMock = vi.fn().mockReturnValue(page.promise);
+    vi.stubGlobal('fetch', fetchMock);
+    initCodespaceLiveState();
+    initCodespaceLiveState();
+    logView.dispatchEvent(new Event('scroll'));
+    logView.dispatchEvent(new Event('codespace-log-update'));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const signal = fetchMock.mock.calls[0][1].signal as AbortSignal;
+    window.dispatchEvent(new PageTransitionEvent('pagehide'));
+    expect(signal.aborted).toBe(true);
+    page.resolve(codespaceLogResponse(10, ['late']));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(content.textContent).toBe('');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('continues from the rendered offset after browser history restores the page', async () => {
+    height = 50;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(codespaceLogResponse(10, ['before']))
+      .mockResolvedValueOnce(codespaceLogResponse(20, ['after']));
+    vi.stubGlobal('fetch', fetchMock);
+    initCodespaceLiveState();
+    await vi.advanceTimersByTimeAsync(0);
+    window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: true}));
+    window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted: true}));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/-/codespaces/1/logs?offset=10&limit=65536', expect.anything());
+    expect(content.textContent).toBe('before\nafter\n');
+  });
 });

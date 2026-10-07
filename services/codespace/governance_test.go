@@ -4,9 +4,12 @@
 package codespace
 
 import (
+	"fmt"
+	"strconv"
 	"testing"
 
 	codespace_model "gitea.dev/models/codespace"
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -19,18 +22,20 @@ func TestListGovernanceCodespacesAndActions(t *testing.T) {
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	runningUUID := "31313131-3131-4131-8131-313131313131"
-	unboundUUID := "33333333-3333-4333-8333-333333333333"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:              runningUUID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 31,
 	})
-	insertServiceCodespace(t, 0, &codespace_model.Codespace{
-		UUID:            unboundUUID,
-		Status:          codespace_model.StatusCreating,
-		OperationType:   codespace_model.OperationCreate,
-		OperationStatus: codespace_model.OperationStatusQueued,
-	})
+	unbound := &codespace_model.Codespace{
+		Status:               codespace_model.StatusCreating,
+		OperationRVersion:    1,
+		OperationType:        codespace_model.OperationCreate,
+		OperationStatus:      codespace_model.OperationStatusQueued,
+		OperationTrigger:     codespace_model.OperationTriggerUser,
+		OperationCreatedUnix: 1,
+	}
+	insertServiceCodespace(t, 0, unbound)
 
 	list, err := ListGovernanceCodespaces(t.Context(), GovernanceListOptions{
 		ManagerID: manager.ID,
@@ -53,17 +58,30 @@ func TestListGovernanceCodespacesAndActions(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, unassigned.Rows, 1)
-	assert.Equal(t, unboundUUID, unassigned.Rows[0].UUID)
+	assert.Empty(t, unassigned.Rows[0].UUID)
+	assert.Equal(t, strconv.FormatInt(unbound.ID, 10), unassigned.Rows[0].ActionIdentifier)
+	assert.Equal(t, fmt.Sprintf("#%d", unbound.ID), unassigned.Rows[0].DisplayIdentifier)
 	assert.True(t, unassigned.Rows[0].CanDelete)
 	assert.True(t, unassigned.Rows[0].CanForceDelete)
 	assert.Equal(t, managerDisplayPending, unassigned.Rows[0].ManagerRuntimeState)
+	_, err = DeleteGovernanceCodespace(t.Context(), GovernanceActionOptions{CodespaceID: unbound.ID, Unassigned: true})
+	require.NoError(t, err)
+	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", unbound.ID)
 
-	_, err = StopGovernanceCodespace(t.Context(), GovernanceActionOptions{CodespaceUUID: runningUUID})
+	_, err = StopGovernanceCodespace(t.Context(), GovernanceActionOptions{CodespaceUUID: runningUUID, ManagerID: manager.ID})
 	require.NoError(t, err)
 	row := loadServiceCodespace(t, runningUUID)
 	assert.Equal(t, codespace_model.OperationStop, row.OperationType)
 	assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
 	assert.EqualValues(t, 32, row.OperationRVersion)
+	_, err = db.DeleteByID[codespace_model.Manager](t.Context(), manager.ID)
+	require.NoError(t, err)
+	orphaned, err := ListGovernanceCodespaces(t.Context(), GovernanceListOptions{Unassigned: true, Page: 1, PageSize: 30})
+	require.NoError(t, err)
+	require.Len(t, orphaned.Rows, 1)
+	assert.False(t, orphaned.Rows[0].CanStop)
+	assert.False(t, orphaned.Rows[0].CanDelete)
+	assert.True(t, orphaned.Rows[0].CanForceDelete)
 }
 
 func TestGovernanceActionRequiresListedManager(t *testing.T) {
@@ -100,7 +118,7 @@ func TestForceDeleteCodespaceRemovesLocalState(t *testing.T) {
 	})
 	insertServiceCredentials(t, codespaceUUID)
 
-	err := ForceDeleteCodespace(t.Context(), GovernanceActionOptions{CodespaceUUID: codespaceUUID})
+	err := ForceDeleteCodespace(t.Context(), GovernanceActionOptions{CodespaceUUID: codespaceUUID, ManagerID: manager.ID})
 	require.NoError(t, err)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
 	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)

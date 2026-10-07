@@ -252,6 +252,9 @@ func CreateCodespace(ctx context.Context, opts CreateCodespaceOptions) (*CreateC
 					}
 				}
 				codespace := newCreateCodespaceRow(user.ID, repo.ID, environmentTag, prepared.sourceRef, prepared.devContainer, authorizationID)
+				if err := codespace_model.ValidateCodespace(codespace); err != nil {
+					return err
+				}
 				if _, err := db.GetEngine(ctx).Insert(codespace); err != nil {
 					return err
 				}

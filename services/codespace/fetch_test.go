@@ -59,6 +59,8 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 	assert.True(t, create.GetRuntimeSettings().GetAutoStopEnabled())
 	assert.EqualValues(t, setting.Codespace.AutoStopDefaultTimeout/time.Second, create.GetRuntimeSettings().GetIdleTimeoutSeconds())
 	row := loadServiceCodespace(t, codespaceUUID)
+	assert.Equal(t, row.RepoID, repository.GetRepositoryId())
+	assert.Equal(t, row.UserID, create.GetGitIdentity().GetUserId())
 	assert.Equal(t, manager.ID, row.ManagerID)
 	assert.Equal(t, codespace_model.OperationStatusRunning, row.OperationStatus)
 	assert.Positive(t, row.OperationStartedUnix)
@@ -402,23 +404,6 @@ func TestApplyQueuedTimeoutUsesQueuedStateMapping(t *testing.T) {
 			expectedStatus: codespace_model.StatusStopped,
 			expectKey:      true,
 		},
-		{
-			name:           "stop",
-			uuid:           "16161616-1616-4616-8616-161616161613",
-			status:         codespace_model.StatusRunning,
-			operationType:  codespace_model.OperationStop,
-			withCredential: true,
-			expectedStatus: codespace_model.StatusRunning,
-			expectToken:    true,
-			expectKey:      true,
-		},
-		{
-			name:           "delete",
-			uuid:           "16161616-1616-4616-8616-161616161614",
-			status:         codespace_model.StatusDeleting,
-			operationType:  codespace_model.OperationDelete,
-			expectedStatus: codespace_model.StatusFailed,
-		},
 	}
 
 	for _, tc := range cases {
@@ -456,6 +441,11 @@ func TestApplyQueuedTimeoutUsesQueuedStateMapping(t *testing.T) {
 			}
 		})
 	}
+	for _, operationType := range []string{codespace_model.OperationStop, codespace_model.OperationDelete} {
+		assert.False(t, isQueuedExpired(&codespace_model.Codespace{
+			OperationType: operationType, OperationCreatedUnix: now - int64(setting.Codespace.QueueTimeout/time.Second) - 1,
+		}, time.Unix(now, 0)))
+	}
 }
 
 func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
@@ -489,6 +479,26 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 	assert.EqualValues(t, 32, result.RenewedLeases[0].GetOperationRversion())
 	assert.EqualValues(t, setting.Codespace.OperationLeaseTimeout/time.Millisecond, result.RenewedLeases[0].GetLeaseValidForMilliseconds())
 	assert.Greater(t, loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix, time.Now().Unix()+1)
+
+	_, err = db.GetEngine(t.Context()).ID(manager.ID).Cols("runtime_state").Update(&codespace_model.Manager{RuntimeState: codespace_model.ManagerRuntimeStateRecovering})
+	require.NoError(t, err)
+	queuedUUID := "30303030-3030-4030-8030-303030303030"
+	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+		UUID: queuedUUID, Status: codespace_model.StatusRunning,
+		OperationRVersion: 1, OperationType: codespace_model.OperationStop,
+		OperationStatus: codespace_model.OperationStatusQueued, OperationTrigger: codespace_model.OperationTriggerUser,
+		OperationCreatedUnix: time.Now().Unix(),
+	})
+	result, err = FetchOperations(t.Context(), manager, FetchOperationsOptions{
+		StartupCapacityAvailable: 1, CleanupCapacityAvailable: 1,
+		AcceptedOperationTypes: []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
+		AcceptedCreateTags:     []string{"default"},
+		ObservedOperations:     []*codespacev1.ObservedOperation{{RuntimeUuid: codespaceUUID, OperationRversion: 32}},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, result.Operations)
+	require.Len(t, result.RenewedLeases, 1)
+	assert.Equal(t, codespace_model.OperationStatusQueued, loadServiceCodespace(t, queuedUUID).OperationStatus)
 }
 
 func TestFetchOperationsRejectsStateHistoryConflictBeforeWrites(t *testing.T) {
@@ -642,6 +652,19 @@ func TestFetchOperationsRejectsStateHistoryConflict(t *testing.T) {
 		}},
 	})
 	require.ErrorIs(t, err, ErrFetchStateHistoryConflict)
+}
+
+func TestFetchOperationsWaitsWhenNoWorkIsAvailable(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	manager := insertServiceManager(t)
+	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
+	started := time.Now()
+	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{WaitTimeoutMilliseconds: 20})
+	require.NoError(t, err)
+	assert.Empty(t, result.Operations)
+	assert.Empty(t, result.RenewedLeases)
+	assert.GreaterOrEqual(t, time.Since(started), 20*time.Millisecond)
 }
 
 func markServiceManagerOnline(t *testing.T, manager *codespace_model.Manager, tagsJSON string) {

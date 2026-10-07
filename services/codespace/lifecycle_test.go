@@ -12,6 +12,7 @@ import (
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -86,7 +87,7 @@ func TestFinalizeOperationRejectsWrongManagerAsStale(t *testing.T) {
 	assert.Equal(t, codespace_model.OperationStatusRunning, loadServiceCodespace(t, codespaceUUID).OperationStatus)
 }
 
-func TestFinalizeOperationStopTimeoutDoesNotMarkStopped(t *testing.T) {
+func TestFinalizeOperationAcceptsConvergentCompletionAfterDeadline(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
@@ -112,12 +113,33 @@ func TestFinalizeOperationStopTimeoutDoesNotMarkStopped(t *testing.T) {
 	})
 	require.NoError(t, err)
 	codespace := loadServiceCodespace(t, codespaceUUID)
-	assert.Equal(t, codespace_model.StatusFailed, codespace.Status)
+	assert.Equal(t, codespace_model.StatusStopped, codespace.Status)
 	assert.Empty(t, codespace.OperationType)
 	assert.Empty(t, codespace.OperationStatus)
 	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
-	assert.Contains(t, readServiceLog(t, codespaceLogFilename(codespace.UUID)), "Gitea recorded operation stop#41 timeout as failed.")
+	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+}
+
+func TestFinalizeOperationRejectsConvergentFailure(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	manager := insertServiceManager(t)
+	codespaceUUID := "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbd"
+	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+		UUID: codespaceUUID, Status: codespace_model.StatusDeleting, OperationRVersion: 42,
+		OperationType: codespace_model.OperationDelete, OperationStatus: codespace_model.OperationStatusRunning,
+		OperationTrigger: codespace_model.OperationTriggerUser, OperationCreatedUnix: 10,
+		OperationStartedUnix: 11, OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
+	})
+
+	_, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
+		CodespaceUUID: codespaceUUID, OperationRVersion: 42,
+		OperationType: codespacev1.OperationType_OPERATION_TYPE_DELETE,
+		FinalStatus:   codespacev1.FinalStatus_FINAL_STATUS_FAILED,
+	})
+	require.Error(t, err)
+	row := loadServiceCodespace(t, codespaceUUID)
+	assert.Equal(t, codespace_model.StatusDeleting, row.Status)
+	assert.Equal(t, codespace_model.OperationStatusRunning, row.OperationStatus)
 }
 
 func TestReportRuntimeMetadataRejectsStageRegression(t *testing.T) {
@@ -154,6 +176,54 @@ func TestReportRuntimeMetadataRejectsStageRegression(t *testing.T) {
 	hasReady, err := HasReadyRuntimeMetadata(t.Context(), codespaceUUID, 5)
 	require.NoError(t, err)
 	assert.True(t, hasReady)
+}
+
+func TestReportRuntimeMetadataResourceUsageRefresh(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	manager := insertServiceManager(t)
+	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
+	codespaceUUID := "dededede-dede-4ded-8ded-dededededede"
+	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+		UUID: codespaceUUID, Status: codespace_model.StatusCreating,
+		OperationRVersion: 5, OperationType: codespace_model.OperationCreate,
+		OperationStatus: codespace_model.OperationStatusRunning, OperationTrigger: codespace_model.OperationTriggerUser,
+		OperationCreatedUnix: 10, OperationStartedUnix: 11, OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
+	})
+	metadata := serviceRuntimeMetadataProto(t, 5, bootStageReady, nil)
+	metadata.ResourceUsage = nil
+	options := ReportRuntimeMetadataOptions{CodespaceUUID: codespaceUUID, Metadata: metadata, MetadataGeneration: 1}
+	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, options))
+	ready, err := HasReadyRuntimeMetadata(t.Context(), codespaceUUID, 5)
+	require.NoError(t, err)
+	assert.True(t, ready)
+
+	metadata.ResourceUsage = serviceRuntimeMetadataResourceUsage()
+	metadata.ResourceUsage.ObservedUnix = time.Now().Unix() - 10
+	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, options))
+	metadata.ResourceUsage.ObservedUnix++
+	metadata.ResourceUsage.Cpu.UsedMillicores = 250
+	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, options))
+	metadata.ResourceUsage.ObservedUnix--
+	metadata.ResourceUsage.Cpu.UsedMillicores = 100
+	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, options))
+	entry, exists, err := getRuntimeMetadataEntry(codespaceUUID)
+	require.NoError(t, err)
+	require.True(t, exists)
+	assert.EqualValues(t, 1, entry.Generation)
+	assert.EqualValues(t, 250, entry.Metadata.ResourceUsage.CPU.UsedMillicores)
+	assert.NotNil(t, creatorResourceUsageView(entry.Metadata.ResourceUsage))
+
+	entry.Metadata.ResourceUsage.ObservedUnix = time.Now().Add(-setting.Codespace.ManagerOfflineTimeout*2 - time.Second).Unix()
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, entry))
+	metadata.ResourceUsage = nil
+	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, options))
+	entry, exists, err = getRuntimeMetadataEntry(codespaceUUID)
+	require.NoError(t, err)
+	require.True(t, exists)
+	assert.Nil(t, creatorResourceUsageView(entry.Metadata.ResourceUsage))
+	ready, err = HasReadyRuntimeMetadata(t.Context(), codespaceUUID, 5)
+	require.NoError(t, err)
+	assert.True(t, ready)
 }
 
 func TestReportRuntimeMetadataRejectsGenerationExhaustion(t *testing.T) {

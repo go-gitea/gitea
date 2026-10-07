@@ -37,7 +37,7 @@ func UserSecretSettingsPost(ctx *context.Context) {
 		err = codespace_service.CreateUserSecret(ctx, ctx.Doer, ctx.FormString("name"), ctx.FormString("value"), ctx.FormBool("all_repositories"), repoIDs)
 	}
 	if err != nil {
-		codespaceSettingsJSONError(ctx, err)
+		handleSecretSettingsError(ctx, err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("codespace.secret_updated"))
@@ -48,7 +48,7 @@ func UserSecretSettingsPost(ctx *context.Context) {
 func UserSecretSettingsValue(ctx *context.Context) {
 	err := codespace_service.UpdateUserSecretValue(ctx, ctx.Doer.ID, ctx.PathParamInt64("secret_id"), ctx.FormString("value"))
 	if err != nil {
-		codespaceSettingsJSONError(ctx, err)
+		handleSecretSettingsError(ctx, err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("codespace.secret_updated"))
@@ -62,7 +62,7 @@ func UserSecretSettingsAccess(ctx *context.Context) {
 		err = codespace_service.UpdateUserSecretRepositoryAccess(ctx, ctx.Doer, ctx.PathParamInt64("secret_id"), ctx.FormBool("all_repositories"), repoIDs)
 	}
 	if err != nil {
-		codespaceSettingsJSONError(ctx, err)
+		handleSecretSettingsError(ctx, err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("codespace.secret_updated"))
@@ -73,7 +73,7 @@ func UserSecretSettingsAccess(ctx *context.Context) {
 func UserSecretSettingsDelete(ctx *context.Context) {
 	err := codespace_service.DeleteUserSecret(ctx, ctx.Doer.ID, ctx.PathParamInt64("secret_id"))
 	if err != nil {
-		codespaceSettingsJSONError(ctx, err)
+		handleSecretSettingsError(ctx, err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("codespace.secret_updated"))
@@ -84,7 +84,7 @@ func UserSecretSettingsDelete(ctx *context.Context) {
 func UserSecretRepositorySearch(ctx *context.Context) {
 	repositories, err := codespace_service.SearchWritableSecretRepositories(ctx, ctx.Doer, ctx.FormTrim("q"))
 	if err != nil {
-		ctx.ServerError("SearchWritableSecretRepositories", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	type repositoryResult struct {
@@ -111,7 +111,7 @@ func codespaceSecretRepositoryIDsFromForm(ctx *context.Context) ([]int64, error)
 	return result, nil
 }
 
-func codespaceSettingsJSONError(ctx *context.Context, err error) {
+func handleSecretSettingsError(ctx *context.Context, err error) {
 	switch {
 	case errors.Is(err, codespace_service.ErrUserSecretNotFound):
 		ctx.JSONErrorNotFound()
@@ -130,6 +130,6 @@ func codespaceSettingsJSONError(ctx *context.Context, err error) {
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.JSONError(ctx.Tr("codespace.secret_update_failed"))
 	default:
-		ctx.ServerError("UpdateCodespaceSettings", err)
+		ctx.JSONErrorAuto(err)
 	}
 }

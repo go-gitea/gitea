@@ -159,12 +159,3 @@ func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, unitType un
 	}
 	CheckTokenScopes(ctx, repo, auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)...)
 }
-
-// CodespaceTokenRepoID returns the repository bound to the current Codespace Token.
-func CodespaceTokenRepoID(ctx *Context) (int64, bool) {
-	snapshot, ok := codespaceTokenSnapshotFromData(ctx.Data)
-	if !ok {
-		return 0, false
-	}
-	return snapshot.CodespaceTokenRepoID(), true
-}

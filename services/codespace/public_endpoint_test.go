@@ -153,10 +153,17 @@ func serviceRuntimeMetadataProto(t *testing.T, operationRVersion int64, stage st
 		require.True(t, ok)
 		public, ok := endpoint["public"].(bool)
 		require.True(t, ok)
+		var port uint32
+		if value, found := endpoint["port"]; found {
+			number, ok := value.(int)
+			require.True(t, ok)
+			port = uint32(number)
+		}
 		metadataEndpoints = append(metadataEndpoints, &codespacev1.RuntimeEndpoint{
 			EndpointId: endpointID,
 			Label:      label,
 			Public:     public,
+			Port:       port,
 		})
 	}
 	if stage == bootStagePublishReady || stage == bootStageReady {

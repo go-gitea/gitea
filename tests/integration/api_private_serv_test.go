@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/private"
 	asymkey_service "gitea.dev/services/asymkey"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -203,7 +204,7 @@ func insertIntegrationCodespaceKey(ctx context.Context, t *testing.T, userID, re
 	fingerprint, err := asymkey_model.CalcFingerprint(publicKeyContent)
 	require.NoError(t, err)
 
-	codespaceUUID := codespace_model.NewUUID()
+	codespaceUUID := uuid.NewString()
 	key := &asymkey_model.PublicKey{
 		OwnerID:     userID,
 		Name:        "codespace-" + codespaceUUID,

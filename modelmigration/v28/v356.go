@@ -34,7 +34,6 @@ type codespace struct {
 	OperationCreatedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
 	OperationStartedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
 	OperationDeadlineUnix     int64  `xorm:"NOT NULL DEFAULT 0"`
-	RuntimeGeneration         int64  `xorm:"NOT NULL DEFAULT 0"`
 	LastActiveUnix            int64  `xorm:"NOT NULL DEFAULT 0"`
 	AutoStopMode              string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'default'"`
 	AutoStopTimeoutSeconds    int64  `xorm:"NOT NULL DEFAULT 0"`

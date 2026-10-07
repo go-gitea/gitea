@@ -23,6 +23,7 @@
 
 .codespace-action-bar,
 .codespace-log-header {
+  flex-wrap: wrap;
   display: flex;
   gap: var(--gap-block);
 }
@@ -379,194 +380,38 @@
 }
 
 .codespace-log-panel {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
   width: 100%;
-  max-width: 100%;
   min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  color: var(--color-console-fg-subtle);
-  background: var(--color-console-bg);
-  border: 1px solid var(--color-light-border);
+  border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-}
-
-.codespace-log-panel.fullscreen {
-  flex: 1;
-  min-height: 0;
-  border-radius: 0;
+  overflow: hidden;
 }
 
 .codespace-log-title {
-  flex: 1;
-  min-width: 0;
   margin: 0;
-  color: var(--color-console-fg);
   font-size: 16px;
 }
 
 .codespace-log-loading {
-  color: var(--color-console-fg-subtle);
+  color: var(--color-text-light);
   font-size: 12px;
   font-weight: var(--font-weight-normal);
 }
 
-.codespace-log-panel .ui.button,
-.codespace-log-panel .ui.button:focus {
-  margin: 0;
-  color: var(--color-console-fg-subtle);
-  background: transparent;
-}
-
-.codespace-log-panel .ui.button:hover {
-  color: var(--color-console-fg);
-  background: var(--color-console-hover-bg);
-}
-
-.codespace-log-panel .ui.dropdown .menu > .item {
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.codespace-log-menu-check {
-  display: inline-flex;
-  flex: 0 0 16px;
-  margin-right: 0.78rem;
-}
-
 .codespace-log-view {
   height: clamp(360px, 55dvh, 720px);
-  padding: 10px 0;
+  padding: 12px;
   overflow: auto;
+  overflow-anchor: none;
   border-radius: 0;
+}
+
+.codespace-log-view pre {
+  margin: 0;
   font-family: var(--fonts-monospace);
   font-size: 12px;
   line-height: 1.5;
-}
-
-.codespace-log-line {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  min-width: 0;
-}
-
-.codespace-log-view.show-timestamps .codespace-log-line {
-  grid-template-columns: 52px max-content minmax(0, 1fr);
-}
-
-.codespace-log-line:hover {
-  background: var(--color-console-hover-bg);
-}
-
-.codespace-log-line-error {
-  background: var(--color-error-bg);
-}
-
-.codespace-log-line-warning {
-  background: var(--color-warning-bg);
-}
-
-.codespace-log-line-notice {
-  background: var(--color-info-bg);
-}
-
-.codespace-log-line-debug {
-  background: var(--color-secondary-alpha-30);
-}
-
-.codespace-log-line-number {
-  padding-right: 12px;
-  color: var(--color-text-light-3);
-  text-align: right;
-  user-select: none;
-}
-
-.codespace-log-line-timestamp {
-  display: none;
-  padding-right: 16px;
-  color: var(--color-console-fg-subtle);
-  white-space: nowrap;
-}
-
-.codespace-log-view.show-timestamps .codespace-log-line-timestamp {
-  display: inline;
-}
-
-.codespace-log-line-message {
-  min-width: 0;
-  padding-right: 12px;
-  overflow-wrap: anywhere;
-  white-space: break-spaces;
-}
-
-.codespace-log-line-message a {
-  color: var(--color-console-link) !important;
-  text-decoration: underline;
-}
-
-.codespace-log-line-message.log-cmd-command {
-  color: var(--color-ansi-blue);
-}
-
-.codespace-log-line-message .log-msg-label {
-  font-weight: var(--font-weight-semibold);
-}
-
-.codespace-log-line-message.log-cmd-error > .log-msg-label {
-  color: var(--color-error-text);
-}
-
-.codespace-log-line-message.log-cmd-warning > .log-msg-label {
-  color: var(--color-warning-text);
-}
-
-.codespace-log-line-message.log-cmd-notice > .log-msg-label {
-  color: var(--color-info-text);
-}
-
-.codespace-log-line-message.log-cmd-debug > .log-msg-label {
-  color: var(--color-violet);
-}
-
-.codespace-log-group {
-  margin: 2px 0;
-}
-
-.codespace-log-group-summary {
-  padding: 4px 12px;
-  color: var(--color-console-fg);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  background: var(--color-console-hover-bg);
-}
-
-.codespace-log-group[data-log-error="true"] > .codespace-log-group-summary {
-  color: var(--color-red);
-}
-
-.codespace-log-group-body .codespace-log-group-summary {
-  padding-left: 28px;
-}
-
-.codespace-log-empty {
-  padding: 2px 52px;
-  color: var(--color-console-fg-subtle);
-}
-
-.full.height > .codespace-log-panel.fullscreen {
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  border-radius: 0;
-}
-
-.full.height > .codespace-log-panel.fullscreen > .codespace-log-view {
-  flex: 1;
-  height: auto;
-  min-height: 0;
+  white-space: pre;
 }
 
 .codespace-create-page .ui.attached.segment + .ui.attached.segment {

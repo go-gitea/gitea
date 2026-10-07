@@ -107,6 +107,8 @@ type CreatorCodespaceView struct {
 	LastActiveUnix       int64
 	CreatedUnix          int64
 	UpdatedUnix          int64
+	LogSize              int64
+	OperationRVersion    int64
 	AutoStop             CreatorAutoStopView
 	RefreshAfterMillis   int
 	Workspace            *CreatorEndpointView
@@ -271,20 +273,22 @@ func creatorCodespaceView(ctx context.Context, codespace *codespace_model.Codesp
 		}
 	}
 	view := &CreatorCodespaceView{
-		ID:             codespace.ID,
-		UUID:           codespace.UUID,
-		ShortUUID:      shortCodespaceUUID(codespace.UUID),
-		RepoID:         codespace.RepoID,
-		RefType:        codespace.RefType,
-		RefName:        codespace.RefName,
-		RefDisplayName: refDisplayName,
-		CommitSHA:      codespace.CommitSHA,
-		EnvironmentTag: codespace.EnvironmentTag,
-		Status:         codespace.Status,
-		LastActiveUnix: codespace.LastActiveUnix,
-		CreatedUnix:    codespace.CreatedUnix,
-		UpdatedUnix:    codespace.UpdatedUnix,
-		AutoStop:       creatorAutoStopView(codespace),
+		ID:                codespace.ID,
+		UUID:              codespace.UUID,
+		ShortUUID:         shortCodespaceUUID(codespace.UUID),
+		RepoID:            codespace.RepoID,
+		RefType:           codespace.RefType,
+		RefName:           codespace.RefName,
+		RefDisplayName:    refDisplayName,
+		CommitSHA:         codespace.CommitSHA,
+		EnvironmentTag:    codespace.EnvironmentTag,
+		Status:            codespace.Status,
+		LastActiveUnix:    codespace.LastActiveUnix,
+		CreatedUnix:       codespace.CreatedUnix,
+		UpdatedUnix:       codespace.UpdatedUnix,
+		LogSize:           codespace.LogSize,
+		OperationRVersion: codespace.OperationRVersion,
+		AutoStop:          creatorAutoStopView(codespace),
 	}
 	if codespace.RepoID > 0 {
 		if repo := cache.repositories[codespace.RepoID]; repo != nil {
@@ -446,15 +450,10 @@ func runningDisplayStatus(ctx context.Context, codespace *codespace_model.Codesp
 		if !includeDetailData {
 			continue
 		}
-		portText, hasPortPrefix := strings.CutPrefix(endpoint.EndpointID, "port-")
-		var port uint64
-		if hasPortPrefix {
-			port, _ = strconv.ParseUint(portText, 10, 16)
-		}
 		view.Endpoints = append(view.Endpoints, CreatorEndpointView{
 			EndpointID: endpoint.EndpointID,
 			Label:      endpoint.Label,
-			Port:       uint16(port),
+			Port:       uint16(endpoint.Port),
 			Public:     endpoint.Public,
 			OpenPath:   codespaceDetailPath(codespace.ID) + "/open/" + endpoint.EndpointID,
 		})
@@ -494,6 +493,9 @@ func creatorSSHView(ctx context.Context, codespace *codespace_model.Codespace, m
 }
 
 func creatorResourceUsageView(usage runtimeMetadataResourceUsage) *CreatorResourceUsageView {
+	if usage.ObservedUnix <= 0 || time.Now().Unix()-usage.ObservedUnix >= int64(setting.Codespace.ManagerOfflineTimeout*2/time.Second) {
+		return nil
+	}
 	return &CreatorResourceUsageView{
 		CPU: CreatorResourceMetricView{
 			Used:         usage.CPU.UsedMillicores,

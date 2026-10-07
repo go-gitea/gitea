@@ -51,6 +51,7 @@ func reconcileQueuedOperationTimeouts(ctx context.Context, now int64, result *Re
 	if err := db.GetEngine(ctx).
 		Where("operation_status = ? AND operation_created_unix > 0 AND operation_created_unix <= ?",
 			codespace_model.OperationStatusQueued, now-int64(setting.Codespace.QueueTimeout/time.Second)).
+		In("operation_type", codespace_model.OperationCreate, codespace_model.OperationResume).
 		Asc("operation_created_unix", "id").
 		Limit(reconcileCodespacesBatchSize).
 		Find(&rows); err != nil {
@@ -130,6 +131,9 @@ func reconcileRunningOperationTimeout(ctx context.Context, codespaceUUID string,
 				return nil
 			}
 			summary = operationTimeoutSummary(codespace, timeoutStatus(codespace.OperationType))
+			if isConvergentOperation(codespace.OperationType) {
+				summary = operationRetrySummary(codespace)
+			}
 			if err := applyRunningTimeout(ctx, codespace, now); err != nil {
 				return err
 			}
@@ -148,7 +152,8 @@ func reconcileFailedCodespaces(ctx context.Context, now int64, olderThan time.Du
 	cutoff := now - int64(olderThan/time.Second)
 	var rows []*codespace_model.Codespace
 	if err := db.GetEngine(ctx).
-		Where("status = ? AND updated_unix > 0 AND updated_unix <= ?", codespace_model.StatusFailed, cutoff).
+		Where("status = ? AND manager_id = ? AND uuid = ? AND operation_type = ? AND operation_status = ? AND operation_trigger = ? AND updated_unix > 0 AND updated_unix <= ?",
+			codespace_model.StatusFailed, 0, "", "", "", "", cutoff).
 		Asc("updated_unix", "id").
 		Limit(reconcileCodespacesBatchSize).
 		Find(&rows); err != nil {
@@ -157,26 +162,27 @@ func reconcileFailedCodespaces(ctx context.Context, now int64, olderThan time.Du
 
 	var errs []error
 	for _, row := range rows {
-		if err := reconcileFailedCodespace(ctx, row.UUID, cutoff, result); err != nil {
-			log.Error("Failed to delete expired failed Codespace %s: %v", row.UUID, err)
-			errs = append(errs, fmt.Errorf("failed codespace %s: %w", row.UUID, err))
+		if err := reconcileFailedCodespace(ctx, row.ID, cutoff, result); err != nil {
+			log.Error("Failed to delete expired failed Codespace %d: %v", row.ID, err)
+			errs = append(errs, fmt.Errorf("failed codespace %d: %w", row.ID, err))
 		}
 	}
 	return errors.Join(errs...)
 }
 
-func reconcileFailedCodespace(ctx context.Context, codespaceUUID string, cutoff int64, result *ReconcileCodespacesResult) error {
-	return globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
+func reconcileFailedCodespace(ctx context.Context, codespaceID, cutoff int64, result *ReconcileCodespacesResult) error {
+	return globallock.LockAndDo(ctx, codespaceRowLockKey(codespaceID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).ID(codespaceID).Get(codespace)
 			if err != nil || !has {
 				return err
 			}
-			if codespace.Status != codespace_model.StatusFailed || codespace.UpdatedUnix <= 0 || codespace.UpdatedUnix > cutoff {
+			if codespace.Status != codespace_model.StatusFailed || codespace.ManagerID != 0 || codespace.UUID != "" || hasActiveOperation(codespace) ||
+				codespace.UpdatedUnix <= 0 || codespace.UpdatedUnix > cutoff {
 				return nil
 			}
-			if err := deleteCodespaceForFinal(ctx, codespace.UUID); err != nil {
+			if err := deleteCodespaceRowForFinal(ctx, codespace); err != nil {
 				return err
 			}
 			result.FailedDeleted++

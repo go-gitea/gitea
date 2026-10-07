@@ -49,6 +49,12 @@ func TestNormalizeRuntimeMetadataProtoValidation(t *testing.T) {
 			},
 		},
 		{
+			name: "workspace endpoint port",
+			mutate: func(metadata *codespacev1.RuntimeMetadata) {
+				metadata.Endpoints[len(metadata.Endpoints)-1].Port = 13337
+			},
+		},
+		{
 			name: "duplicate endpoint id",
 			mutate: func(metadata *codespacev1.RuntimeMetadata) {
 				metadata.Endpoints = append(metadata.Endpoints, &codespacev1.RuntimeEndpoint{
@@ -64,9 +70,9 @@ func TestNormalizeRuntimeMetadataProtoValidation(t *testing.T) {
 			},
 		},
 		{
-			name: "missing resource usage",
+			name: "invalid endpoint port",
 			mutate: func(metadata *codespacev1.RuntimeMetadata) {
-				metadata.ResourceUsage = nil
+				metadata.Endpoints[0].Port = 65536
 			},
 		},
 		{
@@ -146,14 +152,14 @@ func TestNormalizeRuntimeMetadataLabelBoundaries(t *testing.T) {
 
 func TestNormalizeRuntimeMetadataCanonicalizesEndpointOrder(t *testing.T) {
 	first, firstHash, err := normalizeRuntimeMetadata(metadataProtoForTest(t, 1, bootStageReady, []map[string]any{
-		{"endpoint_id": "z-api", "label": "Z API", "public": true},
-		{"endpoint_id": "app", "label": "App", "public": true},
+		{"endpoint_id": "z-api", "label": "Z API", "public": true, "port": 8080},
+		{"endpoint_id": "app", "label": "App", "public": true, "port": 3000},
 	}))
 	require.NoError(t, err)
 
 	second, secondHash, err := normalizeRuntimeMetadata(metadataProtoForTest(t, 1, bootStageReady, []map[string]any{
-		{"endpoint_id": "app", "label": "App", "public": true},
-		{"endpoint_id": "z-api", "label": "Z API", "public": true},
+		{"endpoint_id": "app", "label": "App", "public": true, "port": 3000},
+		{"endpoint_id": "z-api", "label": "Z API", "public": true, "port": 8080},
 	}))
 	require.NoError(t, err)
 
@@ -164,15 +170,26 @@ func TestNormalizeRuntimeMetadataCanonicalizesEndpointOrder(t *testing.T) {
 	})
 	assert.Equal(t, first, second)
 	assert.Equal(t, firstHash, secondHash)
+	assert.EqualValues(t, 3000, first.Endpoints[0].Port)
 }
 
 func TestNormalizeRuntimeMetadataBootAndResourceUsage(t *testing.T) {
-	metadata, _, err := normalizeRuntimeMetadata(metadataProtoForTest(t, 1, bootStagePublishReady, []map[string]any{}))
+	input := metadataProtoForTest(t, 1, bootStagePublishReady, []map[string]any{})
+	metadata, hash, err := normalizeRuntimeMetadata(input)
 	require.NoError(t, err)
 	assert.Equal(t, bootStagePublishReady, metadata.Boot.Stage)
 	assert.EqualValues(t, 125, metadata.ResourceUsage.CPU.UsedMillicores)
 	assert.EqualValues(t, 256*1024*1024, metadata.ResourceUsage.Memory.UsedBytes)
 	assert.EqualValues(t, 512*1024*1024, metadata.ResourceUsage.Disk.UsedBytes)
+	input.ResourceUsage.Cpu.UsedMillicores++
+	_, nextHash, err := normalizeRuntimeMetadata(input)
+	require.NoError(t, err)
+	assert.Equal(t, hash, nextHash)
+	input.ResourceUsage = nil
+	metadata, nextHash, err = normalizeRuntimeMetadata(input)
+	require.NoError(t, err)
+	assert.Equal(t, hash, nextHash)
+	assert.Zero(t, metadata.ResourceUsage.ObservedUnix)
 }
 
 func metadataProtoForTest(t *testing.T, operationRVersion int64, stage string, endpoints []map[string]any) *codespacev1.RuntimeMetadata {

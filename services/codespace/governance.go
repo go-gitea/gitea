@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	codespace_model "gitea.dev/models/codespace"
@@ -34,6 +35,7 @@ var (
 
 // GovernanceActionOptions identifies one governance lifecycle request.
 type GovernanceActionOptions struct {
+	CodespaceID   int64
 	CodespaceUUID string
 	ManagerID     int64
 	Unassigned    bool
@@ -73,6 +75,8 @@ type GovernanceView struct {
 	CanStop             bool
 	CanDelete           bool
 	CanForceDelete      bool
+	ActionIdentifier    string
+	DisplayIdentifier   string
 }
 
 // ListGovernanceCodespaces returns one scoped page without exposing creator-only runtime access data.
@@ -111,6 +115,11 @@ func ListGovernanceCodespaces(ctx context.Context, opts GovernanceListOptions) (
 		if err != nil {
 			return nil, err
 		}
+		if opts.Unassigned {
+			view.ActionIdentifier = strconv.FormatInt(row.ID, 10)
+		} else {
+			view.ActionIdentifier = row.UUID
+		}
 		result.Rows = append(result.Rows, view)
 	}
 	return result, nil
@@ -128,19 +137,20 @@ func DeleteGovernanceCodespace(ctx context.Context, opts GovernanceActionOptions
 
 // ForceDeleteCodespace physically deletes one Codespace from the site governance list.
 func ForceDeleteCodespace(ctx context.Context, opts GovernanceActionOptions) error {
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
+	lockKey, err := governanceLockKey(opts)
+	if err != nil {
 		return err
 	}
-	return globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	return globallock.LockAndDo(ctx, lockKey, func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace, err := loadGovernanceCodespace(ctx, opts.CodespaceUUID)
+			codespace, err := loadGovernanceCodespace(ctx, opts)
 			if err != nil {
 				return err
 			}
 			if err := validateGovernanceTarget(ctx, codespace, opts); err != nil {
 				return err
 			}
-			return deleteCodespaceForFinal(ctx, opts.CodespaceUUID)
+			return deleteCodespaceRowForFinal(ctx, codespace)
 		})
 	})
 }
@@ -158,16 +168,20 @@ func governanceCodespaceView(ctx context.Context, codespace *codespace_model.Cod
 	applyCreatorDisplayState(ctx, codespace, view, manager, false)
 
 	result := &GovernanceView{
-		ID:            codespace.ID,
-		UUID:          codespace.UUID,
-		ShortUUID:     shortCodespaceUUID(codespace.UUID),
-		DisplayStatus: view.DisplayStatus,
-		StatusSummary: view.StatusSummary,
-		UpdatedUnix:   codespace.UpdatedUnix,
-		UserID:        codespace.UserID,
-		RepoID:        codespace.RepoID,
-		RefName:       codespace.RefName,
-		ManagerID:     codespace.ManagerID,
+		ID:                codespace.ID,
+		UUID:              codespace.UUID,
+		ShortUUID:         shortCodespaceUUID(codespace.UUID),
+		DisplayIdentifier: shortCodespaceUUID(codespace.UUID),
+		DisplayStatus:     view.DisplayStatus,
+		StatusSummary:     view.StatusSummary,
+		UpdatedUnix:       codespace.UpdatedUnix,
+		UserID:            codespace.UserID,
+		RepoID:            codespace.RepoID,
+		RefName:           codespace.RefName,
+		ManagerID:         codespace.ManagerID,
+	}
+	if result.DisplayIdentifier == "" {
+		result.DisplayIdentifier = fmt.Sprintf("#%d", codespace.ID)
 	}
 	if displayName, err := governanceUserDisplayName(ctx, users, codespace.UserID); err != nil {
 		return nil, err
@@ -184,7 +198,7 @@ func governanceCodespaceView(ctx context.Context, codespace *codespace_model.Cod
 	} else {
 		applyGovernanceManagerFields(result, nil)
 	}
-	applyGovernanceActions(result)
+	applyGovernanceActions(result, managerFound)
 	return result, nil
 }
 
@@ -229,7 +243,11 @@ func applyGovernanceManagerFields(view *GovernanceView, manager *codespace_model
 	}
 }
 
-func applyGovernanceActions(view *GovernanceView) {
+func applyGovernanceActions(view *GovernanceView, managerFound bool) {
+	if view.ManagerID > 0 && !managerFound {
+		view.CanForceDelete = true
+		return
+	}
 	switch view.DisplayStatus {
 	case DisplayRunning, DisplayRecovering, DisplayMetadataRebuilding:
 		view.CanStop = true
@@ -244,14 +262,15 @@ func applyGovernanceActions(view *GovernanceView) {
 }
 
 func applyGovernanceLifecycleAction(ctx context.Context, opts GovernanceActionOptions, operationType string) (*LifecycleActionResult, error) {
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
+	lockKey, err := governanceLockKey(opts)
+	if err != nil {
 		return nil, err
 	}
 
 	var result *LifecycleActionResult
-	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	err = globallock.LockAndDo(ctx, lockKey, func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace, err := loadGovernanceCodespace(ctx, opts.CodespaceUUID)
+			codespace, err := loadGovernanceCodespace(ctx, opts)
 			if err != nil {
 				return err
 			}
@@ -265,7 +284,7 @@ func applyGovernanceLifecycleAction(ctx context.Context, opts GovernanceActionOp
 			view := &CreatorCodespaceView{}
 			applyCreatorDisplayState(ctx, codespace, view, manager, false)
 			governanceView := &GovernanceView{DisplayStatus: view.DisplayStatus}
-			applyGovernanceActions(governanceView)
+			applyGovernanceActions(governanceView, manager != nil)
 			switch operationType {
 			case codespace_model.OperationStop:
 				if !governanceView.CanStop {
@@ -309,9 +328,31 @@ func validateGovernanceTarget(ctx context.Context, codespace *codespace_model.Co
 	return nil
 }
 
-func loadGovernanceCodespace(ctx context.Context, codespaceUUID string) (*codespace_model.Codespace, error) {
+func governanceLockKey(opts GovernanceActionOptions) (string, error) {
+	if opts.Unassigned {
+		if opts.CodespaceID <= 0 || opts.CodespaceUUID != "" || opts.ManagerID != 0 {
+			return "", errors.New("invalid unassigned Codespace governance target")
+		}
+		return codespaceRowLockKey(opts.CodespaceID), nil
+	}
+	if opts.CodespaceID != 0 || opts.ManagerID <= 0 {
+		return "", errors.New("invalid Manager Codespace governance target")
+	}
+	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
+		return "", err
+	}
+	return codespaceStateLockKey(opts.CodespaceUUID), nil
+}
+
+func loadGovernanceCodespace(ctx context.Context, opts GovernanceActionOptions) (*codespace_model.Codespace, error) {
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+	query := db.GetEngine(ctx)
+	if opts.Unassigned {
+		query = query.ID(opts.CodespaceID)
+	} else {
+		query = query.Where("uuid = ?", opts.CodespaceUUID)
+	}
+	has, err := query.Get(codespace)
 	if err != nil {
 		return nil, err
 	}

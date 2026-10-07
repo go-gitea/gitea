@@ -319,7 +319,7 @@ func TestRuntimeGitSSHKeyAllowsHTTPCloneWithoutKnownHosts(t *testing.T) {
 	assert.NotZero(t, loadServiceSSHKeyRelation(t, codespaceUUID).KeyID)
 }
 
-func TestRuntimeGitSSHKeyReturnsSSHKnownHostsForHTTPPreferredFallback(t *testing.T) {
+func TestRuntimeGitSSHKeyReturnsConfiguredSSHKnownHostsForHTTPClone(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	configureGitTransportTestSettings(t, codespace_model.GitProtocolHTTP, false, false, []string{
 		"gitea.example.com " + testGitSSHPublicKey,

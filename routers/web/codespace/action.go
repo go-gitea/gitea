@@ -4,6 +4,7 @@
 package codespace
 
 import (
+	gocontext "context"
 	"errors"
 	"math"
 	"net/http"
@@ -18,44 +19,22 @@ import (
 
 // Stop queues a user stop operation for the creator's Codespace.
 func Stop(ctx *context.Context) {
-	if ctx.Doer == nil {
-		ctx.NotFound(nil)
-		return
-	}
-	codespaceID, ok := codespaceIDParam(ctx)
-	if !ok {
-		return
-	}
-	returnPath := codespaceActionReturnPath(codespaceID, ctx.FormString("return_to"), codespaceDetailPath(codespaceID))
-	_, err := codespace_service.StopCodespace(ctx, lifecycleActionOptions(ctx))
-	if err != nil {
-		handleLifecycleActionError(ctx, "StopCodespace", err, returnPath)
-		return
-	}
-	ctx.Redirect(returnPath, http.StatusSeeOther)
+	lifecycleAction(ctx, codespace_service.StopCodespace, "")
 }
 
 // Resume queues a user resume operation for the creator's Codespace.
 func Resume(ctx *context.Context) {
-	if ctx.Doer == nil {
-		ctx.NotFound(nil)
-		return
-	}
-	codespaceID, ok := codespaceIDParam(ctx)
-	if !ok {
-		return
-	}
-	returnPath := codespaceActionReturnPath(codespaceID, ctx.FormString("return_to"), codespaceDetailPath(codespaceID))
-	_, err := codespace_service.ResumeCodespace(ctx, lifecycleActionOptions(ctx))
-	if err != nil {
-		handleLifecycleActionError(ctx, "ResumeCodespace", err, returnPath)
-		return
-	}
-	ctx.Redirect(returnPath, http.StatusSeeOther)
+	lifecycleAction(ctx, codespace_service.ResumeCodespace, "")
 }
 
 // Delete deletes or queues deletion for the creator's Codespace.
 func Delete(ctx *context.Context) {
+	lifecycleAction(ctx, codespace_service.DeleteCodespace, codespaceListPath("", 1))
+}
+
+type lifecycleActionFunc func(gocontext.Context, codespace_service.LifecycleActionOptions) (*codespace_service.LifecycleActionResult, error)
+
+func lifecycleAction(ctx *context.Context, action lifecycleActionFunc, fallback string) {
 	if ctx.Doer == nil {
 		ctx.NotFound(nil)
 		return
@@ -64,10 +43,16 @@ func Delete(ctx *context.Context) {
 	if !ok {
 		return
 	}
-	returnPath := codespaceActionReturnPath(codespaceID, ctx.FormString("return_to"), codespaceListPath("", 1))
-	_, err := codespace_service.DeleteCodespace(ctx, lifecycleActionOptions(ctx))
+	if fallback == "" {
+		fallback = codespaceDetailPath(codespaceID)
+	}
+	returnPath := codespaceActionReturnPath(codespaceID, ctx.FormString("return_to"), fallback)
+	_, err := action(ctx, codespace_service.LifecycleActionOptions{
+		UserID:      ctx.Doer.ID,
+		CodespaceID: codespaceID,
+	})
 	if err != nil {
-		handleLifecycleActionError(ctx, "DeleteCodespace", err, returnPath)
+		handleLifecycleActionError(ctx, "CodespaceLifecycleAction", err, returnPath)
 		return
 	}
 	ctx.Redirect(returnPath, http.StatusSeeOther)
@@ -180,14 +165,6 @@ func handleLifecycleActionError(ctx *context.Context, name string, err error, re
 		return
 	}
 	ctx.Redirect(returnPath, http.StatusSeeOther)
-}
-
-func lifecycleActionOptions(ctx *context.Context) codespace_service.LifecycleActionOptions {
-	codespaceID, _ := codespaceIDParam(ctx)
-	return codespace_service.LifecycleActionOptions{
-		UserID:      ctx.Doer.ID,
-		CodespaceID: codespaceID,
-	}
 }
 
 func codespaceIDParam(ctx *context.Context) (int64, bool) {

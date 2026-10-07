@@ -89,6 +89,7 @@ type runtimeMetadataEndpoint struct {
 	EndpointID string `json:"endpoint_id"`
 	Label      string `json:"label"`
 	Public     bool   `json:"public"`
+	Port       uint32 `json:"port,omitempty"`
 }
 
 func (m runtimeMetadata) endpointByID(endpointID string) (runtimeMetadataEndpoint, bool) {
@@ -200,6 +201,9 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 			if err := validateRuntimeMetadataStageForward(current.Metadata, metadata); err != nil {
 				return err
 			}
+			if metadata.Boot.OperationRVersion == current.Metadata.Boot.OperationRVersion && metadata.ResourceUsage.ObservedUnix <= current.Metadata.ResourceUsage.ObservedUnix {
+				metadata.ResourceUsage = current.Metadata.ResourceUsage
+			}
 		}
 
 		return putRuntimeMetadataEntry(opts.CodespaceUUID, runtimeMetadataCacheEntry{
@@ -286,7 +290,10 @@ func normalizeRuntimeMetadata(input *codespacev1.RuntimeMetadata) (runtimeMetada
 		return strings.Compare(a.EndpointID, b.EndpointID)
 	})
 
-	canonical, err := json.Marshal(metadata)
+	// Samples can refresh without changing the endpoint and boot publication.
+	publication := metadata
+	publication.ResourceUsage = runtimeMetadataResourceUsage{}
+	canonical, err := json.Marshal(publication)
 	if err != nil {
 		return runtimeMetadata{}, "", fmt.Errorf("encode canonical runtime metadata: %w", err)
 	}
@@ -312,8 +319,12 @@ func normalizeRuntimeMetadataEndpoint(endpoint *codespacev1.RuntimeEndpoint) (ru
 		EndpointID: endpoint.GetEndpointId(),
 		Label:      label,
 		Public:     endpoint.GetPublic(),
+		Port:       endpoint.GetPort(),
 	}
-	if normalized.EndpointID == workspaceEndpointID && (normalized.Label != workspaceEndpointLabel || normalized.Public) {
+	if normalized.Port > 65535 {
+		return runtimeMetadataEndpoint{}, fmt.Errorf("invalid endpoint port %d", normalized.Port)
+	}
+	if normalized.EndpointID == workspaceEndpointID && (normalized.Label != workspaceEndpointLabel || normalized.Public || normalized.Port != 0) {
 		return runtimeMetadataEndpoint{}, errors.New("runtime metadata workspace endpoint is invalid")
 	}
 	return normalized, nil
@@ -321,7 +332,7 @@ func normalizeRuntimeMetadataEndpoint(endpoint *codespacev1.RuntimeEndpoint) (ru
 
 func normalizeRuntimeMetadataResourceUsage(input *codespacev1.RuntimeResourceUsage) (runtimeMetadataResourceUsage, error) {
 	if input == nil {
-		return runtimeMetadataResourceUsage{}, errors.New("runtime metadata resource_usage is required")
+		return runtimeMetadataResourceUsage{}, nil
 	}
 	if input.GetCpu() == nil {
 		return runtimeMetadataResourceUsage{}, errors.New("runtime metadata cpu usage is required")
@@ -352,6 +363,9 @@ func normalizeRuntimeMetadataResourceUsage(input *codespacev1.RuntimeResourceUsa
 		usage.Disk.UsedBytes < 0 || usage.Disk.LimitBytes < 0 ||
 		usage.ObservedUnix < 0 {
 		return runtimeMetadataResourceUsage{}, errors.New("runtime metadata resource usage must not be negative")
+	}
+	if usage.ObservedUnix > time.Now().Unix()+30 {
+		return runtimeMetadataResourceUsage{}, errors.New("runtime metadata observation time is too far in the future")
 	}
 	return usage, nil
 }

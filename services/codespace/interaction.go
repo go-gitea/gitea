@@ -116,9 +116,11 @@ func UpdateAutoStop(ctx context.Context, opts UpdateAutoStopOptions) (*UpdateAut
 			codespace.AutoStopMode = mode
 			codespace.AutoStopTimeoutSeconds = customTimeoutSeconds
 			newSettings := effectiveRuntimeSettings(codespace)
+			policyChanged := oldSettings.AutoStopEnabled != newSettings.AutoStopEnabled ||
+				oldSettings.IdleTimeoutSeconds != newSettings.IdleTimeoutSeconds
 
 			cols := []string{"auto_stop_mode", "auto_stop_timeout_seconds"}
-			if settingsRuntimePolicyChanged(oldSettings, newSettings) && isQueuedIdleStop(codespace) {
+			if policyChanged && isQueuedIdleStop(codespace) {
 				codespace.UpdatedUnix = time.Now().Unix()
 				clearActiveOperation(codespace)
 				cols = append(cols,
@@ -191,9 +193,4 @@ func normalizeAutoStopOptions(mode string, customTimeoutSeconds int64) (string, 
 	default:
 		return "", 0, fmt.Errorf("%w: invalid auto-stop mode", ErrInteractionInvalidArgument)
 	}
-}
-
-func settingsRuntimePolicyChanged(oldSettings, newSettings RuntimeSettings) bool {
-	return oldSettings.AutoStopEnabled != newSettings.AutoStopEnabled ||
-		oldSettings.IdleTimeoutSeconds != newSettings.IdleTimeoutSeconds
 }

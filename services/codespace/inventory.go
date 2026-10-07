@@ -52,7 +52,7 @@ func ReportInstances(ctx context.Context, manager *codespace_model.Manager, opts
 		if err := ensureInventoryGenerationCurrent(ctx, manager.ID, opts.InventoryGeneration); err != nil {
 			return nil, err
 		}
-		result, err := processReportedRuntimeInstance(ctx, manager.ID, instance)
+		result, err := processReportedRuntimeInstance(ctx, manager.ID, opts.InventoryGeneration, instance)
 		if err != nil {
 			return nil, err
 		}
@@ -100,8 +100,7 @@ func validRuntimeInstanceState(state codespacev1.RuntimeState) bool {
 	switch state {
 	case codespacev1.RuntimeState_RUNTIME_STATE_CREATING,
 		codespacev1.RuntimeState_RUNTIME_STATE_RUNNING,
-		codespacev1.RuntimeState_RUNTIME_STATE_STOPPED,
-		codespacev1.RuntimeState_RUNTIME_STATE_FAILED:
+		codespacev1.RuntimeState_RUNTIME_STATE_STOPPED:
 		return true
 	default:
 		return false
@@ -168,7 +167,7 @@ func ensureInventoryGenerationCurrent(ctx context.Context, managerID, inventoryG
 	return nil
 }
 
-func processReportedRuntimeInstance(ctx context.Context, managerID int64, instance *codespacev1.RuntimeInstanceRef) (*codespacev1.RuntimeInstanceResult, error) {
+func processReportedRuntimeInstance(ctx context.Context, managerID, inventoryGeneration int64, instance *codespacev1.RuntimeInstanceRef) (*codespacev1.RuntimeInstanceResult, error) {
 	codespace := new(codespace_model.Codespace)
 	has, err := db.GetEngine(ctx).Where("uuid = ?", instance.GetRuntimeUuid()).Get(codespace)
 	if err != nil {
@@ -190,6 +189,9 @@ func processReportedRuntimeInstance(ctx context.Context, managerID int64, instan
 		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME
 		return result, nil
 	}
+	if err := codespace_model.ValidateCodespace(codespace); err != nil {
+		return nil, fmt.Errorf("invalid persisted Codespace: %w", err)
+	}
 
 	result.RuntimeSettings = runtimeSettingsMessage(effectiveRuntimeSettings(codespace))
 	if hasActiveOperation(codespace) {
@@ -207,11 +209,34 @@ func processReportedRuntimeInstance(ctx context.Context, managerID int64, instan
 	}
 	switch {
 	case codespace.Status == codespace_model.StatusRunning && instance.GetRuntimeState() == codespacev1.RuntimeState_RUNTIME_STATE_STOPPED:
-		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_REPORT_RUNTIME_TRANSITION
-		result.CurrentOperationRversion = codespace.OperationRVersion
-	case (codespace.Status == codespace_model.StatusRunning || codespace.Status == codespace_model.StatusStopped) && instance.GetRuntimeState() == codespacev1.RuntimeState_RUNTIME_STATE_FAILED:
-		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_REPORT_RUNTIME_TRANSITION
-		result.CurrentOperationRversion = codespace.OperationRVersion
+		var summary *internalStateSummary
+		err := globallock.LockAndDo(ctx, codespaceStateLockKey(codespace.UUID), func(ctx context.Context) error {
+			return db.WithTx(ctx, func(ctx context.Context) error {
+				if err := ensureInventoryGenerationCurrent(ctx, managerID, inventoryGeneration); err != nil {
+					return err
+				}
+				current := new(codespace_model.Codespace)
+				has, err := db.GetEngine(ctx).Where("uuid = ?", codespace.UUID).Get(current)
+				if err != nil || !has {
+					return err
+				}
+				if current.ManagerID != managerID || current.Status != codespace_model.StatusRunning || hasActiveOperation(current) {
+					return nil
+				}
+				if err := codespace_model.ValidateCodespace(current); err != nil {
+					return fmt.Errorf("invalid persisted Codespace: %w", err)
+				}
+				summary = &internalStateSummary{
+					CodespaceUUID: current.UUID,
+					Message:       "Gitea recorded the reported runtime as stopped.",
+				}
+				return applyFinalState(ctx, current, codespace_model.StatusStopped, time.Now().Unix())
+			})
+		})
+		if err != nil {
+			return nil, err
+		}
+		appendInternalStateSummary(ctx, summary)
 	case codespace.Status == codespace_model.StatusStopped && instance.GetRuntimeState() == codespacev1.RuntimeState_RUNTIME_STATE_RUNNING:
 		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_STOP_LOCAL_RUNTIME
 		result.CurrentOperationRversion = codespace.OperationRVersion

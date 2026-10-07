@@ -85,6 +85,7 @@ func (s *Service) FetchOperations(
 		AcceptedCreateTags:       req.Msg.GetAcceptedCreateTags(),
 		ObservedOperations:       req.Msg.GetObservedOperations(),
 		CleanupCapacityAvailable: req.Msg.GetCleanupCapacityAvailable(),
+		WaitTimeoutMilliseconds:  req.Msg.GetWaitTimeoutMilliseconds(),
 	})
 	if err != nil {
 		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
@@ -212,26 +213,11 @@ func (s *Service) ReportRuntimeMetadata(
 	return connect.NewResponse(&codespacev1.ReportRuntimeMetadataResponse{}), nil
 }
 
-// ReportRuntimeTransition stores the authenticated Manager's local stopped or failed fact.
-func (s *Service) ReportRuntimeTransition(
-	ctx context.Context,
-	req *connect.Request[codespacev1.ReportRuntimeTransitionRequest],
-) (*connect.Response[codespacev1.ReportRuntimeTransitionResponse], error) {
-	manager := GetManager(ctx)
-	err := codespace_service.ReportRuntimeTransition(ctx, manager, codespace_service.ReportRuntimeTransitionOptions{
-		CodespaceUUID:             req.Msg.GetRuntimeUuid(),
-		RuntimeGeneration:         req.Msg.GetRuntimeGeneration(),
-		ObservedOperationRVersion: req.Msg.GetObservedOperationRversion(),
-		RuntimeState:              req.Msg.GetRuntimeState(),
-	})
-	if err != nil {
-		return nil, reportRuntimeTransitionError(err)
-	}
-	return connect.NewResponse(&codespacev1.ReportRuntimeTransitionResponse{}), nil
-}
-
 func reportRuntimeMetadataError(err error) error {
-	return reportRuntimeError(err, []serviceErrorCase{
+	if staleGeneration, ok := errors.AsType[*codespace_service.StaleGenerationError](err); ok {
+		return failureErrorWithStaleGeneration(connect.CodeFailedPrecondition, "stale_generation", staleGeneration.CurrentGeneration, err)
+	}
+	return serviceFailureError(err, "invalid_argument", []serviceErrorCase{
 		{target: codespace_service.ErrRuntimeMetadataGenerationConflict, code: connect.CodeFailedPrecondition, category: "generation_conflict"},
 		{target: codespace_service.ErrRuntimeMetadataVersionExhausted, code: connect.CodeFailedPrecondition, category: "version_exhausted"},
 		{target: codespace_service.ErrRuntimeMetadataManagerMismatch, code: connect.CodeFailedPrecondition, category: "manager_mismatch"},
@@ -241,28 +227,10 @@ func reportRuntimeMetadataError(err error) error {
 	})
 }
 
-func reportRuntimeTransitionError(err error) error {
-	return reportRuntimeError(err, []serviceErrorCase{
-		{target: codespace_service.ErrRuntimeTransitionNotFound, code: connect.CodeNotFound, category: "codespace_not_found"},
-		{target: codespace_service.ErrRuntimeTransitionManagerMismatch, code: connect.CodeFailedPrecondition, category: "manager_mismatch"},
-		{target: codespace_service.ErrRuntimeTransitionCurrentOperationConflict, code: connect.CodeAborted, category: "current_operation_conflict"},
-		{target: codespace_service.ErrRuntimeTransitionManagerOffline, code: connect.CodeUnavailable, category: "manager_offline"},
-		{target: codespace_service.ErrRuntimeTransitionStaleOperation, code: connect.CodeFailedPrecondition, category: "stale_operation"},
-		{target: codespace_service.ErrRuntimeTransitionGenerationConflict, code: connect.CodeFailedPrecondition, category: "generation_conflict"},
-	})
-}
-
 type serviceErrorCase struct {
 	target   error
 	code     connect.Code
 	category string
-}
-
-func reportRuntimeError(err error, cases []serviceErrorCase) error {
-	if staleGeneration, ok := errors.AsType[*codespace_service.StaleGenerationError](err); ok {
-		return failureErrorWithStaleGeneration(connect.CodeFailedPrecondition, "stale_generation", staleGeneration.CurrentGeneration, err)
-	}
-	return serviceFailureError(err, "invalid_argument", cases)
 }
 
 func serviceFailureError(err error, fallbackCategory string, cases []serviceErrorCase) error {

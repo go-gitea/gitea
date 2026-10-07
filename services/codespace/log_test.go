@@ -89,7 +89,7 @@ func TestUpdateLogRedactsCommonCredentials(t *testing.T) {
 	token := "gcs_" + strings.Repeat("a", 64)
 	lines := []*codespacev1.LogLine{{
 		TimestampUnixNano: time.Date(2026, 7, 22, 1, 2, 5, 0, time.UTC).UnixNano(),
-		Message:           "token=" + token + " Authorization: Bearer header-secret https://user:password@example.com/repo?access_token=query-secret\x01",
+		Message:           "\x1b[32mready\x1b[0m token=" + token + " Authorization: Bearer header-secret https://user:password@example.com/repo?access_token=query-secret\x01 \x1b]8;;https://example.com\x07link\x1b]8;;\x07",
 	}}
 
 	result, err := UpdateLog(t.Context(), manager, UpdateLogOptions{
@@ -105,6 +105,8 @@ func TestUpdateLogRedactsCommonCredentials(t *testing.T) {
 	assert.NotContains(t, content, "query-secret")
 	assert.NotContains(t, content, "\x01")
 	assert.Contains(t, content, "token=[redacted]")
+	assert.Contains(t, content, "ready token=[redacted]")
+	assert.True(t, strings.HasSuffix(content, " link\n"))
 
 	replay, err := UpdateLog(t.Context(), manager, UpdateLogOptions{
 		CodespaceUUID:     codespaceUUID,

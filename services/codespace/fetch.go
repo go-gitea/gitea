@@ -31,12 +31,14 @@ const (
 	fetchMaxOperations         = 256
 	fetchMaxObservedOperations = 10000
 	fetchMaxQueuedCandidates   = 1024
+	fetchMaxWaitMilliseconds   = int64((10 * time.Second) / time.Millisecond)
+	fetchRetryInterval         = time.Second
 )
 
 var (
 	// ErrFetchStateHistoryConflict is returned when observed operation history is ahead of Gitea.
 	ErrFetchStateHistoryConflict = errors.New("codespace operation history conflict")
-	// ErrFetchManagerUnavailable is returned when the Manager is not currently online.
+	// ErrFetchManagerUnavailable is returned when the Manager has no active coordination state or heartbeat.
 	ErrFetchManagerUnavailable = errors.New("codespace manager unavailable")
 )
 
@@ -47,6 +49,7 @@ type FetchOperationsOptions struct {
 	AcceptedCreateTags       []string
 	ObservedOperations       []*codespacev1.ObservedOperation
 	CleanupCapacityAvailable int32
+	WaitTimeoutMilliseconds  int64
 }
 
 // RuntimeSettings contains the effective runtime policy sent to Manager.
@@ -64,7 +67,28 @@ func FetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 	if err := validateFetchOptions(opts); err != nil {
 		return nil, err
 	}
+	waitTimeout := time.Duration(opts.WaitTimeoutMilliseconds) * time.Millisecond
+	deadline := time.Now().Add(waitTimeout)
+	for {
+		result, err := fetchOperations(ctx, manager, opts)
+		if err != nil || len(result.Operations) != 0 || len(result.RenewedLeases) != 0 || waitTimeout == 0 {
+			return result, err
+		}
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return result, nil
+		}
+		timer := time.NewTimer(min(fetchRetryInterval, remaining))
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+	}
+}
 
+func fetchOperations(ctx context.Context, manager *codespace_model.Manager, opts FetchOperationsOptions) (*codespacev1.FetchOperationsResponse, error) {
 	var result *codespacev1.FetchOperationsResponse
 	var summaries []*internalStateSummary
 	err := globallock.LockAndDo(ctx, fetchManagerLockKey(manager.ID), func(ctx context.Context) error {
@@ -72,7 +96,7 @@ func FetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 		if err != nil {
 			return err
 		}
-		if currentManager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(currentManager) {
+		if (currentManager.RuntimeState != codespace_model.ManagerRuntimeStateOnline && currentManager.RuntimeState != codespace_model.ManagerRuntimeStateRecovering) || isManagerOffline(currentManager) {
 			return ErrFetchManagerUnavailable
 		}
 		managerEnvironments, err := decodeManagerEnvironments(currentManager)
@@ -91,6 +115,9 @@ func FetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 		maxOperations := max(int32(1), min(fetchMaxOperations, opts.StartupCapacityAvailable+opts.CleanupCapacityAvailable))
 		if err := appendRunningOperations(ctx, currentManager.ID, observedVersions, maxOperations, result, &summaries); err != nil {
 			return err
+		}
+		if currentManager.RuntimeState == codespace_model.ManagerRuntimeStateRecovering {
+			return nil // Recovery may renew observed work, but cannot claim queued operations.
 		}
 		if int32(len(result.Operations)) >= maxOperations {
 			return nil
@@ -131,6 +158,9 @@ func FetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 }
 
 func validateFetchOptions(opts FetchOperationsOptions) error {
+	if opts.WaitTimeoutMilliseconds < 0 || opts.WaitTimeoutMilliseconds > fetchMaxWaitMilliseconds {
+		return errors.New("wait timeout must be between 0 and 10 seconds")
+	}
 	if opts.StartupCapacityAvailable < 0 || opts.StartupCapacityAvailable > 10000 {
 		return errors.New("startup_capacity_available must be between 0 and 10000")
 	}
@@ -274,9 +304,15 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 				if codespace.ManagerID != managerID || codespace.OperationStatus != codespace_model.OperationStatusRunning {
 					return nil
 				}
+				if err := codespace_model.ValidateCodespace(codespace); err != nil {
+					return fmt.Errorf("invalid persisted Codespace: %w", err)
+				}
 				leaseMillis, deadlineUnix, ok := grantLease(codespace.OperationStartedUnix, grantTime)
 				if !ok {
 					summary := operationTimeoutSummary(codespace, timeoutStatus(codespace.OperationType))
+					if isConvergentOperation(codespace.OperationType) {
+						summary = operationRetrySummary(codespace)
+					}
 					if err := applyRunningTimeout(ctx, codespace, grantTime.Unix()); err != nil {
 						return err
 					}
@@ -460,10 +496,15 @@ func queuedOperationCandidateStatuses(operationTypes []string) []string {
 }
 
 func isQueuedExpired(codespace *codespace_model.Codespace, now time.Time) bool {
-	return codespace.OperationCreatedUnix > 0 && now.Unix() >= codespace.OperationCreatedUnix+int64(setting.Codespace.QueueTimeout/time.Second)
+	return !isConvergentOperation(codespace.OperationType) &&
+		codespace.OperationCreatedUnix > 0 &&
+		now.Unix() >= codespace.OperationCreatedUnix+int64(setting.Codespace.QueueTimeout/time.Second)
 }
 
 func applyQueuedTimeout(ctx context.Context, codespace *codespace_model.Codespace, now int64) error {
+	if isConvergentOperation(codespace.OperationType) {
+		return nil
+	}
 	return applyFinalState(ctx, codespace, queuedTimeoutStatus(codespace.OperationType), now)
 }
 
@@ -471,14 +512,15 @@ func queuedTimeoutStatus(operationType string) string {
 	switch operationType {
 	case codespace_model.OperationResume:
 		return codespace_model.StatusStopped
-	case codespace_model.OperationStop:
-		return codespace_model.StatusRunning
 	default:
 		return codespace_model.StatusFailed
 	}
 }
 
 func applyRunningTimeout(ctx context.Context, codespace *codespace_model.Codespace, now int64) error {
+	if isConvergentOperation(codespace.OperationType) {
+		return retryConvergentOperation(ctx, codespace, now)
+	}
 	return applyFinalState(ctx, codespace, timeoutStatus(codespace.OperationType), now)
 }
 
@@ -508,6 +550,9 @@ func ceilUnix(t time.Time) int64 {
 }
 
 func buildOperationPayload(ctx context.Context, codespace *codespace_model.Codespace, leaseMillis int64) (*codespacev1.OperationPayload, error) {
+	if err := codespace_model.ValidateCodespace(codespace); err != nil {
+		return nil, fmt.Errorf("invalid persisted Codespace: %w", err)
+	}
 	payload := &codespacev1.OperationPayload{
 		OperationRversion:         codespace.OperationRVersion,
 		CodespaceId:               codespace.ID,
@@ -643,6 +688,7 @@ func buildCreatePayload(ctx context.Context, codespace *codespace_model.Codespac
 	}
 	return &codespacev1.CreateOperationPayload{
 		Repository: &codespacev1.RepositoryCheckout{
+			RepositoryId:      repository.ID,
 			FullName:          repository.FullName(),
 			CloneHttpUrl:      httpCloneURL,
 			CloneSshUrl:       sshCloneURL,
@@ -652,6 +698,7 @@ func buildCreatePayload(ctx context.Context, codespace *codespace_model.Codespac
 		},
 		EnvironmentTag: codespace.EnvironmentTag,
 		GitIdentity: &codespacev1.GitIdentity{
+			UserId:        codespaceOwner.ID,
 			GiteaUsername: codespaceOwner.Name,
 			GitUserEmail:  codespaceOwner.GetEmail(),
 		},

@@ -54,7 +54,7 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 		ProtocolVersion:                    1,
 		GatewayUrl:                         "https://WorkSpace.EXAMPLE.com:443/",
 		GatewaySshAddr:                     "WorkSpace.EXAMPLE.com:0022",
-		Environments:                       []*codespacev1.EnvironmentTag{{Tag: "Default", Description: "Default environment"}, {Tag: "incus"}},
+		Environments:                       []*codespacev1.EnvironmentTag{{Tag: "Default", Description: "Default environment"}, {Tag: "large"}},
 		Version:                            " 0.1.0 ",
 		ManagerRuntimeState:                codespacev1.ManagerRuntimeState_MANAGER_RUNTIME_STATE_ONLINE,
 		GatewaySshHostKeyAlgorithm:         " ssh-ed25519 ",
@@ -90,7 +90,7 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, has)
 	assert.Equal(t, "Gitea Manager", manager.Name)
-	assert.JSONEq(t, `[{"tag":"default","description":"Default environment"},{"tag":"incus"}]`, manager.TagsJSON)
+	assert.JSONEq(t, `[{"tag":"default","description":"Default environment"},{"tag":"large"}]`, manager.TagsJSON)
 	assert.Equal(t, "0.1.0", manager.Version)
 	assert.Equal(t, "ssh-ed25519", manager.GatewaySSHHostKeyAlgorithm)
 	assert.Equal(t, "SHA256:test", manager.GatewaySSHHostKeyFingerprintSHA256)
@@ -119,7 +119,6 @@ func TestManagerServiceRequestProtocolVersionFieldNumbers(t *testing.T) {
 		&codespacev1.FinalizeOperationRequest{},
 		&codespacev1.UpdateLogRequest{},
 		&codespacev1.ReportRuntimeMetadataRequest{},
-		&codespacev1.ReportRuntimeTransitionRequest{},
 		&codespacev1.RequestRuntimeAccessRequest{},
 		&codespacev1.RequestIdleStopRequest{},
 		&codespacev1.ValidatePublicEndpointRequest{},
@@ -294,7 +293,7 @@ func TestManagerServiceStructuredErrorDetails(t *testing.T) {
 	assert.Equal(t, written.Msg.GetNextOffset(), logOffsetCurrent(t, err))
 }
 
-func TestManagerServiceManagerOfflineCategory(t *testing.T) {
+func TestManagerServiceManagerAvailability(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	manager, secret := insertManagerTestIdentity(t, 0)
 	manager.RuntimeState = codespace_model.ManagerRuntimeStateRecovering
@@ -303,12 +302,11 @@ func TestManagerServiceManagerOfflineCategory(t *testing.T) {
 	client, cleanup := newManagerTestClient(t)
 	defer cleanup()
 
-	_, err = client.FetchOperations(t.Context(), managerRequest(manager.ID, secret, &codespacev1.FetchOperationsRequest{
+	fetched, err := client.FetchOperations(t.Context(), managerRequest(manager.ID, secret, &codespacev1.FetchOperationsRequest{
 		ProtocolVersion: 1,
 	}))
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
-	assert.Equal(t, "manager_offline", failureCategory(t, err))
+	require.NoError(t, err)
+	assert.Empty(t, fetched.Msg.Operations)
 
 	_, err = client.RequestIdleStop(t.Context(), managerRequest(manager.ID, secret, &codespacev1.RequestIdleStopRequest{
 		ProtocolVersion: 1,
@@ -326,6 +324,13 @@ func TestManagerServiceManagerOfflineCategory(t *testing.T) {
 	offlineManager.RuntimeState = ""
 	_, err = db.GetEngine(t.Context()).ID(offlineManager.ID).Cols("runtime_state").Update(offlineManager)
 	require.NoError(t, err)
+
+	_, err = client.FetchOperations(t.Context(), managerRequest(offlineManager.ID, offlineSecret, &codespacev1.FetchOperationsRequest{
+		ProtocolVersion: 1,
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+	assert.Equal(t, "manager_offline", failureCategory(t, err))
 
 	_, err = client.ReportRuntimeMetadata(t.Context(), managerRequest(offlineManager.ID, offlineSecret, &codespacev1.ReportRuntimeMetadataRequest{
 		ProtocolVersion:    1,

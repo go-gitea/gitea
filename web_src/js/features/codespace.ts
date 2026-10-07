@@ -2,25 +2,19 @@ import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
-import {toggleFullScreen} from '../utils.ts';
-import {formatDatetime} from '../utils/time.ts';
-import {AnsiLineRenderer} from '../render/ansi.ts';
-import {createLogLineMessage, decodeLineMessage, parseLogLineCommand, type LogLine} from '../render/log.ts';
+import stripAnsi from 'strip-ansi';
 import {Idiomorph} from 'idiomorph';
 import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
 
 const liveStateSelector = '#codespace-live-state, #codespace-list-state';
 const logViewSelector = '#codespace-log-view';
 const maxRefreshBackoff = 30000;
-const logRenderBatchLines = 500;
 
 type CodespaceLogLine = {
   timestamp: number;
   message: string;
 };
 
-const openCodespaceLogGroupBodies = new WeakMap<HTMLElement, HTMLElement[]>();
-const codespaceLogAnsiRenderers = new WeakMap<HTMLElement, AnsiLineRenderer>();
 const stateRefreshTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
 const initializedSettingsButtons = new WeakSet<HTMLElement>();
 
@@ -104,8 +98,7 @@ export function initCodespaceLiveState() {
 
   const logEl = document.querySelector<HTMLElement>(logViewSelector);
   if (logEl) {
-    initCodespaceLogControls(logEl);
-    refreshCodespaceLog(logEl, 0);
+    initCodespaceLog(logEl);
   }
 }
 
@@ -241,8 +234,12 @@ async function refreshCodespaceState(stateEl: HTMLElement, failureCount: number)
     const nextDetails = nextStateEl.querySelector<HTMLDetailsElement>(`#${CSS.escape(details.id)}`);
     if (nextDetails) nextDetails.open = details.open;
   }
+  const logRevision = stateEl.getAttribute('data-log-revision');
   Idiomorph.morph(stateEl, nextStateEl, {morphStyle: 'outerHTML'});
   const currentStateEl = document.querySelector<HTMLElement>(liveStateSelector)!;
+  if (logRevision !== currentStateEl.getAttribute('data-log-revision')) {
+    document.querySelector(logViewSelector)?.dispatchEvent(new Event('codespace-log-update'));
+  }
   const settingsForm = document.querySelector<HTMLFormElement>('#codespace-settings-modal');
   if (settingsForm) initCodespaceSettingsButtons(currentStateEl, settingsForm);
   if (settingsForm?.classList.contains('visible')) {
@@ -255,207 +252,124 @@ async function refreshCodespaceState(stateEl: HTMLElement, failureCount: number)
   scheduleCodespaceStateRefresh(currentStateEl, 0);
 }
 
-function initCodespaceLogControls(logEl: HTMLElement) {
+function initCodespaceLog(logEl: HTMLElement) {
+  if (logEl.getAttribute('data-log-initialized') === 'true') return;
+  logEl.setAttribute('data-log-initialized', 'true');
   const panel = logEl.closest<HTMLElement>('.codespace-log-panel')!;
-  const timestampButton = panel.querySelector<HTMLButtonElement>('[data-codespace-log-toggle-timestamps]')!;
-  timestampButton.addEventListener('click', () => {
-    const visible = logEl.classList.toggle('show-timestamps');
-    timestampButton.setAttribute('aria-pressed', String(visible));
-    panel.querySelector<HTMLElement>('[data-codespace-log-timestamp-check]')!.classList.toggle('tw-invisible', !visible);
-  });
-
-  const fullScreenButton = panel.querySelector<HTMLButtonElement>('[data-codespace-log-fullscreen]')!;
-  fullScreenButton.addEventListener('click', () => {
-    const fullScreen = !panel.classList.contains('fullscreen');
-    toggleFullScreen(panel, fullScreen, '.codespace-detail-layout');
-    fullScreenButton.setAttribute('aria-pressed', String(fullScreen));
-    fullScreenButton.querySelector('span')!.textContent = fullScreen ? fullScreenButton.getAttribute('data-exit-label')! : fullScreenButton.getAttribute('data-enter-label')!;
-  });
-}
-
-function scheduleCodespaceLogRefresh(logEl: HTMLElement, failureCount: number) {
+  const content = logEl.querySelector<HTMLElement>('[data-log-content]')!;
+  const empty = logEl.querySelector<HTMLElement>('[data-log-empty-message]')!;
+  const loading = panel.querySelector<HTMLElement>('[data-codespace-log-loading]')!;
+  const error = panel.querySelector<HTMLElement>('[data-log-error]')!;
+  const retry = panel.querySelector<HTMLButtonElement>('[data-log-retry]')!;
+  const lifetime = new AbortController();
   const refreshAfter = Number(logEl.getAttribute('data-log-refresh-after-ms'));
-  if (!Number.isFinite(refreshAfter) || refreshAfter <= 0) return;
-  setTimeout(() => {
-    if (document.visibilityState === 'hidden') {
-      waitForVisible(() => scheduleCodespaceLogRefresh(logEl, failureCount));
-      return;
+  const logURL = logEl.getAttribute('data-log-url')!;
+  let offset = Number(logEl.getAttribute('data-log-next-offset'));
+  let eof = false;
+  let settled = false;
+  let pending = false;
+  let failures = 0;
+  let revision = 0;
+  let inactiveOffset: number | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const atBottom = () => logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight <= 32;
+  const schedule = (delay: number) => {
+    clearTimeout(timer);
+    if (!settled && logEl.isConnected && document.visibilityState !== 'hidden') {
+      timer = setTimeout(load, delay);
     }
-    refreshCodespaceLog(logEl, failureCount);
-  }, refreshDelay(refreshAfter, failureCount));
-}
-
-function finishCodespaceLogRefresh(logEl: HTMLElement, loadingEl: HTMLElement) {
-  logEl.removeAttribute('data-refreshing');
-  loadingEl.classList.add('tw-hidden');
-}
-
-async function refreshCodespaceLog(logEl: HTMLElement, failureCount: number) {
-  if (!logEl.isConnected || logEl.getAttribute('data-refreshing') === 'true') return;
-  const logUrl = logEl.getAttribute('data-log-url');
-  const offset = logEl.getAttribute('data-log-next-offset');
-  if (!logUrl || offset === null) return;
-  const loadingEl = logEl.closest<HTMLElement>('.codespace-log-panel')!.querySelector<HTMLElement>('[data-codespace-log-loading]')!;
-  logEl.setAttribute('data-refreshing', 'true');
-  loadingEl.classList.remove('tw-hidden');
-
-  let response: Response;
-  try {
-    response = await GET(`${logUrl}?offset=${encodeURIComponent(offset)}`);
-  } catch {
-    finishCodespaceLogRefresh(logEl, loadingEl);
-    scheduleCodespaceLogRefresh(logEl, failureCount + 1);
-    return;
-  }
-  if (!response.ok) {
-    finishCodespaceLogRefresh(logEl, loadingEl);
-    if (response.status === 409 && logEl.getAttribute('data-log-reset') !== 'true') {
-      logEl.replaceChildren();
-      logEl.setAttribute('data-log-next-offset', '0');
-      logEl.setAttribute('data-log-line-count', '0');
-      logEl.setAttribute('data-log-reset', 'true');
-      openCodespaceLogGroupBodies.delete(logEl);
-      codespaceLogAnsiRenderers.delete(logEl);
-      scheduleCodespaceLogRefresh(logEl, 0);
-      return;
-    }
-    if (response.status === 403 || response.status === 404 || response.status === 409) {
-      showCodespaceLogError(logEl);
-      return;
-    }
-    scheduleCodespaceLogRefresh(logEl, failureCount + 1);
-    return;
-  }
-
-  let result: {lines?: CodespaceLogLine[]; next_offset?: number; eof?: boolean; operation_active?: boolean};
-  try {
-    result = await response.json();
-  } catch {
-    finishCodespaceLogRefresh(logEl, loadingEl);
-    scheduleCodespaceLogRefresh(logEl, failureCount + 1);
-    return;
-  }
-  if (Array.isArray(result.lines) && result.lines.length > 0) {
-    const followNewLines = isLogScrolledToBottom(logEl);
-    if (logEl.getAttribute('data-log-empty') === 'true') {
-      logEl.querySelector('[data-log-empty-message]')?.remove();
-      logEl.setAttribute('data-log-empty', 'false');
-    }
-    await appendCodespaceLogLines(logEl, result.lines);
-    if (followNewLines) logEl.scrollTop = logEl.scrollHeight;
-  }
-  const currentOffset = Number(offset);
-  const nextOffset = Number(result.next_offset);
-  if (Number.isFinite(nextOffset)) logEl.setAttribute('data-log-next-offset', String(nextOffset));
-  logEl.removeAttribute('data-log-reset');
-  logEl.setAttribute('data-log-eof', String(Boolean(result.eof)));
-
-  if (!result.eof) {
-    if (Number.isFinite(currentOffset) && nextOffset > currentOffset) {
-      logEl.removeAttribute('data-refreshing');
-      requestAnimationFrame(() => refreshCodespaceLog(logEl, 0));
-      return;
-    }
-    finishCodespaceLogRefresh(logEl, loadingEl);
-    scheduleCodespaceLogRefresh(logEl, failureCount + 1);
-    return;
-  }
-
-  finishCodespaceLogRefresh(logEl, loadingEl);
-  if (result.operation_active) {
-    logEl.removeAttribute('data-log-inactive-eof');
-  } else if (logEl.getAttribute('data-log-inactive-eof') === String(nextOffset)) {
-    return;
-  } else {
-    // A control-plane state change can commit before its diagnostic line is appended.
-    logEl.setAttribute('data-log-inactive-eof', String(nextOffset));
-  }
-  scheduleCodespaceLogRefresh(logEl, 0);
-}
-
-async function appendCodespaceLogLines(logEl: HTMLElement, lines: CodespaceLogLine[]) {
-  let lineNumber = Number(logEl.getAttribute('data-log-line-count')) || 0;
-  let fragment = document.createDocumentFragment();
-  const groupBodies = openCodespaceLogGroupBodies.get(logEl) ?? [];
-  const ansi = codespaceLogAnsiRenderers.get(logEl) ?? new AnsiLineRenderer();
-  codespaceLogAnsiRenderers.set(logEl, ansi);
-  for (const [index, logLine] of lines.entries()) {
-    const parsedLine: LogLine = {index: lineNumber + 1, timestamp: logLine.timestamp, message: logLine.message};
-    const command = parseLogLineCommand(parsedLine);
-    if (command?.name === 'group') {
-      const details = document.createElement('details');
-      details.className = 'codespace-log-group';
-      details.open = true;
-      const summary = document.createElement('summary');
-      summary.className = 'codespace-log-group-summary';
-      summary.textContent = decodeLineMessage(parsedLine, command).trim();
-      const body = document.createElement('div');
-      body.className = 'codespace-log-group-body';
-      details.append(summary, body);
-      (groupBodies.at(-1) ?? fragment).append(details);
-      groupBodies.push(body);
-    } else if (command?.name === 'endgroup') {
-      const body = groupBodies.pop();
-      const details = body?.parentElement as HTMLDetailsElement | null;
-      if (details) details.open = details.getAttribute('data-log-error') === 'true';
-    } else if (command?.name !== 'hidden') {
-      lineNumber += 1;
-      const line = document.createElement('div');
-      line.className = 'codespace-log-line';
-      switch (command?.name) {
-        case undefined:
-        case 'command':
-          break;
-        case 'error':
-        case 'warning':
-        case 'notice':
-        case 'debug':
-          line.classList.add(`codespace-log-line-${command.name}`);
+  };
+  async function load() {
+    if (pending || settled || !logEl.isConnected || lifetime.signal.aborted || document.visibilityState === 'hidden') return;
+    clearTimeout(timer);
+    timer = undefined;
+    pending = true;
+    loading.classList.remove('tw-invisible');
+    const requestRevision = revision;
+    const following = eof && atBottom();
+    try {
+      const response = await GET(`${logURL}?offset=${offset}&limit=65536`, {signal: lifetime.signal});
+      if (!response.ok || response.redirected) {
+        settled = response.redirected || response.status === 401 || response.status === 403 || response.status === 404 || response.status === 409;
+        throw new Error('Log request failed');
+      }
+      const result: {lines: CodespaceLogLine[], next_offset: number, eof: boolean, operation_active: boolean} = await response.json();
+      if (!logEl.isConnected || lifetime.signal.aborted) return;
+      if (!Array.isArray(result.lines) || !Number.isSafeInteger(result.next_offset) || result.next_offset < offset ||
+          typeof result.eof !== 'boolean' || typeof result.operation_active !== 'boolean' ||
+          result.lines.some((line) => typeof line.message !== 'string') ||
+          (result.lines.length > 0 && result.next_offset === offset) || (!result.eof && result.next_offset === offset)) {
+        throw new Error('Log offset did not advance');
       }
 
-      const number = document.createElement('span');
-      number.className = 'codespace-log-line-number';
-      number.setAttribute('aria-hidden', 'true');
-      number.textContent = String(lineNumber);
-
-      const timestamp = document.createElement('time');
-      timestamp.className = 'codespace-log-line-timestamp';
-      timestamp.dateTime = new Date(logLine.timestamp * 1000).toISOString();
-      timestamp.textContent = formatDatetime(logLine.timestamp * 1000);
-
-      const message = createLogLineMessage(ansi, {...parsedLine, index: lineNumber}, command);
-      message.classList.add('codespace-log-line-message');
-      if (command?.name === 'error') {
-        for (const body of groupBodies) body.parentElement!.setAttribute('data-log-error', 'true');
+      if (result.lines.length > 0) {
+        const followNewLines = following && atBottom();
+        // One text node per page keeps large logs cheap without interpreting log commands or HTML.
+        content.append(result.lines.map((line) => `${stripAnsi(line.message)}\n`).join(''));
+        hideElem(empty);
+        if (followNewLines) logEl.scrollTop = logEl.scrollHeight;
+      }
+      offset = result.next_offset;
+      logEl.setAttribute('data-log-next-offset', String(offset));
+      eof = result.eof;
+      failures = 0;
+      hideElem(error);
+      if (eof && !result.operation_active && requestRevision === revision) {
+        // State transitions may commit before their final diagnostic line is appended.
+        settled = inactiveOffset === offset;
+        inactiveOffset = offset;
+      } else {
+        inactiveOffset = undefined;
       }
 
-      line.append(number, timestamp, message);
-      (groupBodies.at(-1) ?? fragment).append(line);
-    }
-    if ((index + 1) % logRenderBatchLines === 0 && index + 1 < lines.length) {
-      logEl.append(fragment);
-      fragment = document.createDocumentFragment();
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      if (!eof) {
+        if (logEl.scrollHeight <= logEl.clientHeight) schedule(0);
+      } else if (atBottom()) {
+        schedule(refreshAfter);
+      }
+    } catch {
+      if (lifetime.signal.aborted || !logEl.isConnected) return;
+      showElem(error);
+      retry.disabled = settled;
+      if (atBottom()) schedule(refreshDelay(refreshAfter, ++failures));
+    } finally {
+      pending = false;
+      loading.classList.add('tw-invisible');
     }
   }
-  logEl.append(fragment);
-  openCodespaceLogGroupBodies.set(logEl, groupBodies);
-  logEl.setAttribute('data-log-line-count', String(lineNumber));
-}
 
-function showCodespaceLogError(logEl: HTMLElement) {
-  logEl.replaceChildren();
-  const error = document.createElement('div');
-  error.className = 'codespace-log-empty';
-  error.textContent = logEl.getAttribute('data-log-error-message')!;
-  logEl.append(error);
-  logEl.setAttribute('data-log-empty', 'false');
-  openCodespaceLogGroupBodies.delete(logEl);
-  codespaceLogAnsiRenderers.delete(logEl);
-}
-
-function isLogScrolledToBottom(logEl: HTMLElement) {
-  return logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight <= 32;
+  logEl.addEventListener('scroll', () => {
+    if (!atBottom()) {
+      clearTimeout(timer);
+      timer = undefined;
+    } else if (!pending && timer === undefined) {
+      schedule(0);
+    }
+  }, {signal: lifetime.signal});
+  retry.addEventListener('click', () => {
+    if (!pending) schedule(0);
+  }, {signal: lifetime.signal});
+  logEl.addEventListener('codespace-log-update', () => {
+    revision++;
+    settled = false;
+    inactiveOffset = undefined;
+    if (atBottom() && !pending) schedule(0);
+  }, {signal: lifetime.signal});
+  document.addEventListener('visibilitychange', () => {
+    clearTimeout(timer);
+    timer = undefined;
+    if (document.visibilityState !== 'hidden' && atBottom()) schedule(0);
+  }, {signal: lifetime.signal});
+  window.addEventListener('pagehide', (event) => {
+    clearTimeout(timer);
+    lifetime.abort();
+    logEl.removeAttribute('data-log-initialized');
+    if (event.persisted) {
+      window.addEventListener('pageshow', () => initCodespaceLog(logEl), {once: true});
+    }
+  }, {once: true, signal: lifetime.signal});
+  load();
 }
 
 function refreshDelay(baseDelay: number, failureCount: number) {

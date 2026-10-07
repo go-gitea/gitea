@@ -31,6 +31,7 @@ import (
 	codespace_service "gitea.dev/services/codespace"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -86,11 +87,8 @@ func TestCodespaceRoutes(t *testing.T) {
 		require.True(t, strings.HasPrefix(location, "/-/codespaces/"))
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, location), http.StatusOK)
 		loginUser(t, "user4").MakeRequest(t, NewRequest(t, http.MethodGet, location), http.StatusNotFound)
-		forceDeleteUUID := codespace_model.NewUUID()
-		insertIntegrationCodespace(t, 0, &codespace_model.Codespace{
-			UUID:   forceDeleteUUID,
-			Status: codespace_model.StatusFailed,
-		})
+		forceDeleteCodespace := &codespace_model.Codespace{Status: codespace_model.StatusFailed, OperationRVersion: 1}
+		insertIntegrationCodespace(t, 0, forceDeleteCodespace)
 
 		adminSession := loginUser(t, "user1")
 		adminSession.MakeRequest(t, NewRequest(t, http.MethodGet, "/-/admin/codespaces/managers"), http.StatusOK)
@@ -99,7 +97,7 @@ func TestCodespaceRoutes(t *testing.T) {
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, "/-/admin/codespaces/managers"), http.StatusForbidden)
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, "/org/org3/settings/codespaces"), http.StatusNotFound)
 
-		forceDeleteURL := "/-/admin/codespaces/managers/unassigned/" + forceDeleteUUID + "/force-delete"
+		forceDeleteURL := fmt.Sprintf("/-/admin/codespaces/managers/unassigned/%d/force-delete", forceDeleteCodespace.ID)
 		adminSession.MakeRequest(t, NewRequest(t, http.MethodPost, forceDeleteURL), http.StatusSeeOther)
 		adminSession.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, forceDeleteURL, map[string]string{
 			"confirm": "force-delete",
@@ -162,6 +160,17 @@ func TestCodespaceManagerSettings(t *testing.T) {
 		adminURL := strings.Replace(created.Redirect, base, "/-/admin/codespaces/managers", 1)
 		admin.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, adminURL, map[string]string{"name": "Admin renamed"}), http.StatusOK)
 		admin.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, adminURL+"/secret", map[string]string{"confirm": "reset-secret"}), http.StatusOK)
+		response = session.MakeRequest(t, NewRequest(t, http.MethodPost, created.Redirect+"/delete").SetHeader("X-Gitea-Fetch-Action", "1"), http.StatusBadRequest)
+		var deletionError struct{ ErrorMessage string }
+		DecodeJSON(t, response, &deletionError)
+		assert.NotEmpty(t, deletionError.ErrorMessage)
+		other.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect+"/delete", map[string]string{"confirm": "delete-manager"}).SetHeader("X-Gitea-Fetch-Action", "1"), http.StatusNotFound)
+		session.MakeRequest(t, NewRequest(t, http.MethodGet, created.Redirect), http.StatusOK)
+		response = session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect+"/delete", map[string]string{"confirm": "delete-manager"}).SetHeader("X-Gitea-Fetch-Action", "1"), http.StatusOK)
+		var deleted struct{ Redirect string }
+		DecodeJSON(t, response, &deleted)
+		assert.Equal(t, base, deleted.Redirect)
+		session.MakeRequest(t, NewRequest(t, http.MethodGet, created.Redirect), http.StatusNotFound)
 	})
 }
 
@@ -309,7 +318,7 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		require.Len(t, fetched.Msg.GetOperations(), 1)
 		operation := fetched.Msg.GetOperations()[0]
 		assert.NotNil(t, operation.GetCreate())
-		codespaceUUID := codespace_model.NewUUID()
+		codespaceUUID := uuid.NewString()
 		bound, err := client.BindRuntimeIdentity(t.Context(), codespaceManagerRequest(manager.ID, secret, &codespacev1.BindRuntimeIdentityRequest{
 			ProtocolVersion:   1,
 			CodespaceId:       operation.GetCodespaceId(),
@@ -338,11 +347,13 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 		assert.Equal(t, "metadata_required", integrationFailureDetailCategory(t, err))
 
+		readyMetadata := integrationRuntimeMetadata(1)
+		readyMetadata.ResourceUsage = nil
 		_, err = client.ReportRuntimeMetadata(t.Context(), codespaceManagerRequest(manager.ID, secret, &codespacev1.ReportRuntimeMetadataRequest{
 			ProtocolVersion:    1,
 			RuntimeUuid:        codespaceUUID,
 			MetadataGeneration: 1,
-			Metadata:           integrationRuntimeMetadata(1),
+			Metadata:           readyMetadata,
 		}))
 		require.NoError(t, err)
 
@@ -541,71 +552,54 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 		)
 		now := time.Now().Unix()
 
-		runningUUID := codespace_model.NewUUID()
+		runningUUID := uuid.NewString()
 		insertIntegrationCodespace(t, manager.ID, &codespace_model.Codespace{
 			UUID:                  runningUUID,
 			Status:                codespace_model.StatusRunning,
 			OperationRVersion:     11,
 			InteractionGeneration: 21,
 		})
-		refetchUUID := codespace_model.NewUUID()
+		refetchUUID := uuid.NewString()
 		insertIntegrationCodespace(t, manager.ID, &codespace_model.Codespace{
-			UUID:                  refetchUUID,
-			Status:                codespace_model.StatusRunning,
-			OperationRVersion:     12,
-			OperationType:         codespace_model.OperationStop,
-			OperationStatus:       codespace_model.OperationStatusQueued,
-			OperationTrigger:      codespace_model.OperationTriggerUser,
-			OperationCreatedUnix:  now,
-			OperationDeadlineUnix: now + int64(time.Hour/time.Second),
+			UUID:                 refetchUUID,
+			Status:               codespace_model.StatusRunning,
+			OperationRVersion:    12,
+			OperationType:        codespace_model.OperationStop,
+			OperationStatus:      codespace_model.OperationStatusQueued,
+			OperationTrigger:     codespace_model.OperationTriggerUser,
+			OperationCreatedUnix: now,
 		})
-		clearUUID := codespace_model.NewUUID()
+		clearUUID := uuid.NewString()
 		insertIntegrationCodespace(t, manager.ID, &codespace_model.Codespace{
 			UUID:              clearUUID,
 			Status:            codespace_model.StatusRunning,
 			OperationRVersion: 13,
 		})
-		reportStoppedUUID := codespace_model.NewUUID()
+		reportStoppedUUID := uuid.NewString()
 		insertIntegrationCodespace(t, manager.ID, &codespace_model.Codespace{
 			UUID:              reportStoppedUUID,
 			Status:            codespace_model.StatusRunning,
 			OperationRVersion: 14,
 		})
-		reportFailedUUID := codespace_model.NewUUID()
-		insertIntegrationCodespace(t, manager.ID, &codespace_model.Codespace{
-			UUID:              reportFailedUUID,
-			Status:            codespace_model.StatusStopped,
-			OperationRVersion: 15,
-		})
-		stopUUID := codespace_model.NewUUID()
+		stopUUID := uuid.NewString()
 		insertIntegrationCodespace(t, manager.ID, &codespace_model.Codespace{
 			UUID:              stopUUID,
 			Status:            codespace_model.StatusStopped,
 			OperationRVersion: 16,
 		})
-		failedCleanupUUID := codespace_model.NewUUID()
+		failedCleanupUUID := uuid.NewString()
 		insertIntegrationCodespace(t, manager.ID, &codespace_model.Codespace{
 			UUID:              failedCleanupUUID,
 			Status:            codespace_model.StatusFailed,
 			OperationRVersion: 17,
 		})
-		otherBindingUUID := codespace_model.NewUUID()
+		otherBindingUUID := uuid.NewString()
 		insertIntegrationCodespace(t, otherManager.ID, &codespace_model.Codespace{
 			UUID:              otherBindingUUID,
 			Status:            codespace_model.StatusRunning,
 			OperationRVersion: 18,
 		})
-		unboundCreatingUUID := codespace_model.NewUUID()
-		insertIntegrationCodespace(t, 0, &codespace_model.Codespace{
-			UUID:                 unboundCreatingUUID,
-			Status:               codespace_model.StatusCreating,
-			OperationRVersion:    19,
-			OperationType:        codespace_model.OperationCreate,
-			OperationStatus:      codespace_model.OperationStatusQueued,
-			OperationTrigger:     codespace_model.OperationTriggerUser,
-			OperationCreatedUnix: now,
-		})
-		activeNoContextUUID := codespace_model.NewUUID()
+		activeNoContextUUID := uuid.NewString()
 		insertIntegrationCodespace(t, manager.ID, &codespace_model.Codespace{
 			UUID:                 activeNoContextUUID,
 			Status:               codespace_model.StatusRunning,
@@ -615,17 +609,7 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 			OperationTrigger:     codespace_model.OperationTriggerUser,
 			OperationCreatedUnix: now,
 		})
-		activeSameFailedUUID := codespace_model.NewUUID()
-		insertIntegrationCodespace(t, manager.ID, &codespace_model.Codespace{
-			UUID:                 activeSameFailedUUID,
-			Status:               codespace_model.StatusRunning,
-			OperationRVersion:    21,
-			OperationType:        codespace_model.OperationStop,
-			OperationStatus:      codespace_model.OperationStatusRunning,
-			OperationTrigger:     codespace_model.OperationTriggerUser,
-			OperationCreatedUnix: now,
-		})
-		absentUUID := codespace_model.NewUUID()
+		absentUUID := uuid.NewString()
 
 		inventory, err := client.ReportInstances(t.Context(), codespaceManagerRequest(manager.ID, secret, &codespacev1.ReportInstancesRequest{
 			ProtocolVersion:     1,
@@ -635,18 +619,15 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 				{RuntimeUuid: refetchUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 11},
 				{RuntimeUuid: clearUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 13},
 				{RuntimeUuid: reportStoppedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
-				{RuntimeUuid: reportFailedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
 				{RuntimeUuid: stopUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-				{RuntimeUuid: failedCleanupUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
+				{RuntimeUuid: failedCleanupUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
 				{RuntimeUuid: otherBindingUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-				{RuntimeUuid: unboundCreatingUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_CREATING},
 				{RuntimeUuid: activeNoContextUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-				{RuntimeUuid: activeSameFailedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED, ObservedOperationRversion: 21},
-				{RuntimeUuid: absentUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
+				{RuntimeUuid: absentUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
 			},
 		}))
 		require.NoError(t, err)
-		require.Len(t, inventory.Msg.GetResults(), 12)
+		require.Len(t, inventory.Msg.GetResults(), 9)
 		assert.Equal(t, runningUUID, inventory.Msg.GetResults()[0].GetRuntimeUuid())
 		assert.NotNil(t, inventory.Msg.GetResults()[0].GetRuntimeSettings())
 		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_UNSPECIFIED, inventory.Msg.GetResults()[0].GetAction())
@@ -655,22 +636,16 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 		assert.EqualValues(t, 12, inventory.Msg.GetResults()[1].GetCurrentOperationRversion())
 		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEAR_OPERATION_CONTEXT, inventory.Msg.GetResults()[2].GetAction())
 		assert.EqualValues(t, 13, inventory.Msg.GetResults()[2].GetCurrentOperationRversion())
-		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_REPORT_RUNTIME_TRANSITION, inventory.Msg.GetResults()[3].GetAction())
-		assert.EqualValues(t, 14, inventory.Msg.GetResults()[3].GetCurrentOperationRversion())
-		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_REPORT_RUNTIME_TRANSITION, inventory.Msg.GetResults()[4].GetAction())
-		assert.EqualValues(t, 15, inventory.Msg.GetResults()[4].GetCurrentOperationRversion())
-		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_STOP_LOCAL_RUNTIME, inventory.Msg.GetResults()[5].GetAction())
-		assert.EqualValues(t, 16, inventory.Msg.GetResults()[5].GetCurrentOperationRversion())
+		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_UNSPECIFIED, inventory.Msg.GetResults()[3].GetAction())
+		assert.Equal(t, codespace_model.StatusStopped, loadIntegrationCodespace(t, reportStoppedUUID).Status)
+		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_STOP_LOCAL_RUNTIME, inventory.Msg.GetResults()[4].GetAction())
+		assert.EqualValues(t, 16, inventory.Msg.GetResults()[4].GetCurrentOperationRversion())
+		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME, inventory.Msg.GetResults()[5].GetAction())
+		assert.Nil(t, inventory.Msg.GetResults()[5].GetRuntimeSettings())
 		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME, inventory.Msg.GetResults()[6].GetAction())
-		assert.Nil(t, inventory.Msg.GetResults()[6].GetRuntimeSettings())
-		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME, inventory.Msg.GetResults()[7].GetAction())
-		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_UNSPECIFIED, inventory.Msg.GetResults()[8].GetAction())
-		assert.Nil(t, inventory.Msg.GetResults()[8].GetRuntimeSettings())
-		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_UNSPECIFIED, inventory.Msg.GetResults()[9].GetAction())
-		assert.NotNil(t, inventory.Msg.GetResults()[9].GetRuntimeSettings())
-		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_UNSPECIFIED, inventory.Msg.GetResults()[10].GetAction())
-		assert.NotNil(t, inventory.Msg.GetResults()[10].GetRuntimeSettings())
-		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME, inventory.Msg.GetResults()[11].GetAction())
+		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_UNSPECIFIED, inventory.Msg.GetResults()[7].GetAction())
+		assert.NotNil(t, inventory.Msg.GetResults()[7].GetRuntimeSettings())
+		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME, inventory.Msg.GetResults()[8].GetAction())
 		assert.EqualValues(t, 1, loadIntegrationManager(t, manager.ID).InventoryGeneration)
 
 		_, err = client.ReportInstances(t.Context(), codespaceManagerRequest(manager.ID, secret, &codespacev1.ReportInstancesRequest{
@@ -716,7 +691,7 @@ func createCodespaceFromRepository(t *testing.T, session *TestSession, path, ref
 func createRunningCodespaceTokenForRepo(t *testing.T, repo *repo_model.Repository) (string, string) {
 	t.Helper()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	codespaceUUID := codespace_model.NewUUID()
+	codespaceUUID := uuid.NewString()
 	manager := &codespace_model.Manager{
 		Name:           "codespace-token-manager-" + codespaceUUID[:8],
 		RuntimeState:   codespace_model.ManagerRuntimeStateOnline,
@@ -777,6 +752,10 @@ func insertIntegrationCodespace(t *testing.T, managerID int64, codespace *codesp
 	}
 	if codespace.CommitSHA == "" {
 		codespace.CommitSHA = "0123456789abcdef0123456789abcdef01234567"
+	}
+	if codespace.DevContainerSource == "" {
+		codespace.DevContainerSource = codespace_model.DevContainerSourceRepository
+		codespace.DevContainerPath = ".devcontainer/devcontainer.json"
 	}
 	codespace.ManagerID = managerID
 	if codespace.AutoStopMode == "" {

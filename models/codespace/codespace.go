@@ -105,7 +105,6 @@ type Codespace struct {
 	OperationCreatedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
 	OperationStartedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
 	OperationDeadlineUnix     int64  `xorm:"NOT NULL DEFAULT 0"`
-	RuntimeGeneration         int64  `xorm:"NOT NULL DEFAULT 0"`
 	LastActiveUnix            int64  `xorm:"NOT NULL DEFAULT 0"`
 	AutoStopMode              string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'default'"`
 	AutoStopTimeoutSeconds    int64  `xorm:"NOT NULL DEFAULT 0"`
@@ -227,11 +226,6 @@ func init() {
 	db.RegisterModel(new(DevContainerTemplate))
 }
 
-// NewUUID returns a canonical lower-case RFC 4122 UUID v4 string.
-func NewUUID() string {
-	return uuid.NewString()
-}
-
 // GenerateManagerSecret fills the salted Manager secret verifier and returns the plaintext secret.
 func (m *Manager) GenerateManagerSecret() string {
 	secret := hex.EncodeToString(util.CryptoRandomBytes(32))
@@ -283,7 +277,7 @@ func NextVersion(current int64) (int64, error) {
 	return current + 1, nil
 }
 
-// ValidateCodespace validates enum-like fields stored on a Codespace row.
+// ValidateCodespace validates the persisted lifecycle invariants of a Codespace row.
 func ValidateCodespace(codespace *Codespace) error {
 	if codespace == nil {
 		return errors.New("codespace is nil")
@@ -299,6 +293,12 @@ func ValidateCodespace(codespace *Codespace) error {
 	if !validAutoStopMode(codespace.AutoStopMode) {
 		return fmt.Errorf("invalid auto stop mode %q", codespace.AutoStopMode)
 	}
+	if codespace.OperationRVersion <= 0 {
+		return errors.New("operation_r_version must be positive")
+	}
+	if codespace.UUID != "" && codespace.ManagerID <= 0 {
+		return errors.New("bound codespace requires a manager")
+	}
 	switch codespace.DevContainerSource {
 	case DevContainerSourceRepository:
 		if strings.TrimSpace(codespace.DevContainerPath) == "" || strings.TrimSpace(codespace.DevContainerContent) != "" {
@@ -311,7 +311,14 @@ func ValidateCodespace(codespace *Codespace) error {
 	default:
 		return errors.New("invalid Dev Container configuration")
 	}
-	if codespace.OperationType == "" && codespace.OperationStatus == "" && codespace.OperationTrigger == "" {
+	hasOperation := codespace.OperationType != "" || codespace.OperationStatus != "" || codespace.OperationTrigger != ""
+	if !hasOperation {
+		if codespace.OperationCreatedUnix != 0 || codespace.OperationStartedUnix != 0 || codespace.OperationDeadlineUnix != 0 {
+			return errors.New("inactive operation has timestamps")
+		}
+		if codespace.Status == StatusCreating || codespace.Status == StatusDeleting {
+			return fmt.Errorf("codespace status %q requires an active operation", codespace.Status)
+		}
 		return nil
 	}
 	if !validOperationType(codespace.OperationType) {
@@ -322,6 +329,37 @@ func ValidateCodespace(codespace *Codespace) error {
 	}
 	if !validOperationTrigger(codespace.OperationTrigger) {
 		return fmt.Errorf("invalid operation trigger %q", codespace.OperationTrigger)
+	}
+	if codespace.OperationCreatedUnix <= 0 {
+		return errors.New("active operation requires creation time")
+	}
+	if codespace.OperationTrigger == OperationTriggerIdle && codespace.OperationType != OperationStop {
+		return errors.New("idle trigger is only valid for stop operations")
+	}
+	expectedStatus := map[string]string{
+		OperationCreate: StatusCreating,
+		OperationResume: StatusStopped,
+		OperationStop:   StatusRunning,
+		OperationDelete: StatusDeleting,
+	}[codespace.OperationType]
+	if codespace.Status != expectedStatus {
+		return fmt.Errorf("operation %q is not valid for codespace status %q", codespace.OperationType, codespace.Status)
+	}
+	switch codespace.OperationStatus {
+	case OperationStatusQueued:
+		if codespace.OperationStartedUnix != 0 || codespace.OperationDeadlineUnix != 0 {
+			return errors.New("queued operation has running timestamps")
+		}
+		if codespace.OperationType != OperationCreate && (codespace.ManagerID <= 0 || codespace.UUID == "") {
+			return errors.New("queued lifecycle operation requires a bound runtime")
+		}
+	case OperationStatusRunning:
+		if codespace.ManagerID <= 0 || codespace.OperationStartedUnix <= 0 || codespace.OperationDeadlineUnix < codespace.OperationStartedUnix {
+			return errors.New("running operation has invalid ownership or deadline")
+		}
+		if codespace.OperationType != OperationCreate && codespace.UUID == "" {
+			return errors.New("running lifecycle operation requires a bound runtime")
+		}
 	}
 	return nil
 }

@@ -7,13 +7,14 @@ import (
 	"math"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm/schemas"
 )
 
 func TestUUIDValidation(t *testing.T) {
-	generated := NewUUID()
+	generated := uuid.NewString()
 	require.NoError(t, ValidateUUID(generated))
 
 	uuid32, err := UUID32(generated)
@@ -69,7 +70,7 @@ func TestManagerTableIndices(t *testing.T) {
 }
 
 func TestValidateCodespace(t *testing.T) {
-	for _, status := range []string{StatusCreating, StatusRunning, StatusStopped, StatusDeleting, StatusFailed} {
+	for _, status := range []string{StatusRunning, StatusStopped, StatusFailed} {
 		t.Run("status/"+status, func(t *testing.T) {
 			row := validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
 			row.Status = status
@@ -83,6 +84,17 @@ func TestValidateCodespace(t *testing.T) {
 			row.OperationType = operationType
 			row.OperationStatus = OperationStatusQueued
 			row.OperationTrigger = OperationTriggerUser
+			row.OperationCreatedUnix = 1
+			switch operationType {
+			case OperationCreate:
+				row.Status = StatusCreating
+			case OperationResume:
+				row.Status = StatusStopped
+			case OperationStop:
+				row.Status = StatusRunning
+			case OperationDelete:
+				row.Status = StatusDeleting
+			}
 			require.NoError(t, ValidateCodespace(row))
 		})
 	}
@@ -90,9 +102,11 @@ func TestValidateCodespace(t *testing.T) {
 	for _, trigger := range []string{OperationTriggerUser, OperationTriggerIdle} {
 		t.Run("operation trigger/"+trigger, func(t *testing.T) {
 			row := validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
-			row.OperationType = OperationCreate
+			row.OperationType = OperationStop
 			row.OperationStatus = OperationStatusQueued
 			row.OperationTrigger = trigger
+			row.OperationCreatedUnix = 1
+			row.Status = StatusRunning
 			require.NoError(t, ValidateCodespace(row))
 		})
 	}
@@ -113,6 +127,8 @@ func TestValidateCodespace(t *testing.T) {
 	row.OperationType = OperationCreate
 	row.OperationStatus = OperationStatusQueued
 	row.OperationTrigger = OperationTriggerUser
+	row.OperationCreatedUnix = 1
+	row.Status = StatusCreating
 	require.NoError(t, ValidateCodespace(row))
 
 	row.OperationStatus = "leased"
@@ -122,12 +138,14 @@ func TestValidateCodespace(t *testing.T) {
 	row.OperationType = "snapshot"
 	row.OperationStatus = OperationStatusQueued
 	row.OperationTrigger = OperationTriggerUser
+	row.OperationCreatedUnix = 1
 	assert.Error(t, ValidateCodespace(row))
 
 	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
 	row.OperationType = OperationCreate
 	row.OperationStatus = OperationStatusQueued
 	row.OperationTrigger = "timer"
+	row.OperationCreatedUnix = 1
 	assert.Error(t, ValidateCodespace(row))
 
 	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
@@ -186,7 +204,9 @@ func validCodespace(codespaceUUID string) *Codespace {
 		CommitSHA:           "0123456789abcdef0123456789abcdef01234567",
 		DevContainerSource:  DevContainerSourceTemplate,
 		DevContainerContent: `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`,
-		Status:              StatusCreating,
+		OperationRVersion:   1,
+		ManagerID:           1,
+		Status:              StatusStopped,
 		AutoStopMode:        AutoStopModeDefault,
 		CreatedUnix:         1,
 		UpdatedUnix:         1,

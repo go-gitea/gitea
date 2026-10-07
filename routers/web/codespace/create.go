@@ -26,15 +26,6 @@ type createConfigurationGroup struct {
 	Options []codespace_service.CreateDevContainerOption
 }
 
-// RepositoryRedirect redirects repository Codespace collection reads to the repository code page.
-func RepositoryRedirect(ctx *context.Context) {
-	if ctx.Repo == nil || ctx.Repo.Repository == nil {
-		ctx.NotFound(nil)
-		return
-	}
-	ctx.Redirect(ctx.Repo.RepoLink, http.StatusSeeOther)
-}
-
 // New renders the creation confirmation for a repository and ref.
 func New(ctx *context.Context) {
 	if ctx.Doer == nil || ctx.Repo == nil || ctx.Repo.Repository == nil {

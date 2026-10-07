@@ -48,7 +48,7 @@ func ValidatePublicEndpoint(ctx context.Context, manager *codespace_model.Manage
 	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
 		return nil, err
 	}
-	if !validPublicEndpointID(opts.EndpointID) {
+	if opts.EndpointID == workspaceEndpointID || !endpointIDPattern.MatchString(opts.EndpointID) {
 		return denyPublicEndpoint(PublicEndpointDeniedInvalidEndpoint), nil
 	}
 	access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, opts.CodespaceUUID, false)
@@ -76,10 +76,6 @@ func ValidatePublicEndpoint(ctx context.Context, manager *codespace_model.Manage
 	return &codespacev1.ValidatePublicEndpointResponse{
 		Outcome: &codespacev1.ValidatePublicEndpointResponse_Allowed{Allowed: &codespacev1.PublicEndpointAllowed{}},
 	}, nil
-}
-
-func validPublicEndpointID(endpointID string) bool {
-	return endpointID != workspaceEndpointID && endpointIDPattern.MatchString(endpointID)
 }
 
 func denyPublicEndpoint(category string) *codespacev1.ValidatePublicEndpointResponse {

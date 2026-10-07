@@ -914,9 +914,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/managers/{manager_id}/codespaces/{uuid}/stop", web_codespace.AdminStop)
 			m.Post("/managers/{manager_id}/codespaces/{uuid}/delete", web_codespace.AdminDelete)
 			m.Post("/managers/{manager_id}/codespaces/{uuid}/force-delete", web_codespace.AdminForceDelete)
-			m.Post("/managers/unassigned/{uuid}/stop", web_codespace.AdminStop)
-			m.Post("/managers/unassigned/{uuid}/delete", web_codespace.AdminDelete)
-			m.Post("/managers/unassigned/{uuid}/force-delete", web_codespace.AdminForceDelete)
+			m.Post("/managers/unassigned/{id}/stop", web_codespace.AdminStop)
+			m.Post("/managers/unassigned/{id}/delete", web_codespace.AdminDelete)
+			m.Post("/managers/unassigned/{id}/force-delete", web_codespace.AdminForceDelete)
 		})
 
 		m.Group("/packages", func() {
@@ -1355,7 +1355,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	// user/org home, including rss feeds like "/{username}/{reponame}.rss"
 	m.Get("/{username}/{reponame}", optSignIn, webAuth.AllowBasic, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
-	m.Get("/{username}/{reponame}/codespaces", reqSignIn, context.RepoAssignment, reqUnitCodeReader, web_codespace.RepositoryRedirect)
 	m.Get("/{username}/{reponame}/codespaces/new", reqSignIn, context.RepoAssignment, reqUnitCodeReader, web_codespace.New)
 	m.Post("/{username}/{reponame}/codespaces", reqSignIn, context.RepoAssignment, reqUnitCodeReader, web_codespace.Create)
 

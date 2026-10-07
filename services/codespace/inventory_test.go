@@ -89,10 +89,10 @@ func TestReportInstancesReturnsSettingsAndActions(t *testing.T) {
 			{RuntimeUuid: runningUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
 			{RuntimeUuid: activeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 81},
 			{RuntimeUuid: stoppedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-			{RuntimeUuid: failedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
+			{RuntimeUuid: failedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
 			{RuntimeUuid: otherUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
 			{RuntimeUuid: unboundUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_CREATING},
-			{RuntimeUuid: absentUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
+			{RuntimeUuid: absentUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
 		},
 	})
 	require.NoError(t, err)
@@ -142,7 +142,7 @@ func TestReportInstancesReturnsDisabledRuntimeSettings(t *testing.T) {
 	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_UNSPECIFIED, result.Results[0].GetAction())
 }
 
-func TestReportInstancesTransitionAndClearActions(t *testing.T) {
+func TestReportInstancesAppliesStoppedFactAndClearsOperationContext(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
@@ -152,12 +152,6 @@ func TestReportInstancesTransitionAndClearActions(t *testing.T) {
 		UUID:              stoppedRuntimeUUID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 91,
-	})
-	failedRuntimeUUID := "b2b2b2b2-b2b2-4b2b-8b2b-b2b2b2b2b2b2"
-	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              failedRuntimeUUID,
-		Status:            codespace_model.StatusStopped,
-		OperationRVersion: 92,
 	})
 	clearUUID := "b3b3b3b3-b3b3-4b3b-8b3b-b3b3b3b3b3b3"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
@@ -170,18 +164,15 @@ func TestReportInstancesTransitionAndClearActions(t *testing.T) {
 		InventoryGeneration: 2,
 		Instances: []*codespacev1.RuntimeInstanceRef{
 			{RuntimeUuid: stoppedRuntimeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
-			{RuntimeUuid: failedRuntimeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
 			{RuntimeUuid: clearUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 93},
 		},
 	})
 	require.NoError(t, err)
-	require.Len(t, result.Results, 3)
-	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_REPORT_RUNTIME_TRANSITION, result.Results[0].GetAction())
-	assert.EqualValues(t, 91, result.Results[0].GetCurrentOperationRversion())
-	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_REPORT_RUNTIME_TRANSITION, result.Results[1].GetAction())
-	assert.EqualValues(t, 92, result.Results[1].GetCurrentOperationRversion())
-	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEAR_OPERATION_CONTEXT, result.Results[2].GetAction())
-	assert.EqualValues(t, 93, result.Results[2].GetCurrentOperationRversion())
+	require.Len(t, result.Results, 2)
+	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_UNSPECIFIED, result.Results[0].GetAction())
+	assert.Equal(t, codespace_model.StatusStopped, loadServiceCodespace(t, stoppedRuntimeUUID).Status)
+	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEAR_OPERATION_CONTEXT, result.Results[1].GetAction())
+	assert.EqualValues(t, 93, result.Results[1].GetCurrentOperationRversion())
 }
 
 func TestReportInstancesGenerationAndMissingState(t *testing.T) {

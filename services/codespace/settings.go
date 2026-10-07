@@ -119,18 +119,12 @@ func ListManagerSettings(ctx context.Context, opts ManagerSettingsOptions) (*Man
 
 // GetManagerDetail returns one Manager only when it belongs to the requested settings scope.
 func GetManagerDetail(ctx context.Context, opts ManagerDetailOptions) (*ManagerDetail, error) {
-	if err := validateManagerSettingsScope(ctx, opts.ManagerSettingsOptions); err != nil {
-		return nil, err
-	}
 	if opts.ManagerID <= 0 || opts.Page <= 0 || opts.PageSize <= 0 {
 		return nil, ErrManagerSettingsNotFound
 	}
-	manager, err := loadSettingsManager(ctx, opts.ManagerID)
+	manager, err := loadScopedSettingsManager(ctx, opts.ManagerSettingsOptions, opts.ManagerID)
 	if err != nil {
 		return nil, err
-	}
-	if manager == nil || !managerInSettingsScope(manager, opts.Scope, opts.UserID) {
-		return nil, ErrManagerSettingsNotFound
 	}
 	views, err := settingsManagerViews(ctx, []*codespace_model.Manager{manager}, opts.UserID)
 	if err != nil {

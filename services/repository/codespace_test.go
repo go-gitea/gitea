@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +50,7 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 	sourceSecretRepository := &codespace_model.UserSecretRepository{SecretID: secret.ID, RepoID: repo.ID}
 	require.NoError(t, db.Insert(t.Context(), sourceSecretRepository))
 
-	codespaceUUID := codespace_model.NewUUID()
+	codespaceUUID := uuid.NewString()
 	codespace := &codespace_model.Codespace{
 		UUID:                      codespaceUUID,
 		UserID:                    user.ID,
@@ -66,7 +67,6 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 		LastActiveUnix:            150,
 		AutoStopMode:              codespace_model.AutoStopModeDefault,
 		InteractionGeneration:     3,
-		RuntimeGeneration:         4,
 		OperationCreatedUnix:      0,
 		OperationStartedUnix:      0,
 		OperationDeadlineUnix:     0,
@@ -101,7 +101,6 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 	assert.Equal(t, codespace_model.StatusRunning, persistedCodespace.Status)
 	assert.EqualValues(t, 200, persistedCodespace.UpdatedUnix)
 	assert.EqualValues(t, 3, persistedCodespace.InteractionGeneration)
-	assert.EqualValues(t, 4, persistedCodespace.RuntimeGeneration)
 	token := new(codespace_model.GiteaToken)
 	has, err = db.GetEngine(t.Context()).ID(codespace.ID).Get(token)
 	require.NoError(t, err)

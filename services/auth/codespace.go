@@ -112,10 +112,4 @@ func storeCodespaceTokenAuth(store DataStore, codespaceToken *codespace_service.
 	store.GetData()[codespace_model.GiteaTokenAuthDataKey] = codespaceToken
 }
 
-// CodespaceTokenSnapshot returns the Codespace Token auth snapshot stored on the request.
-func CodespaceTokenSnapshot(store DataStore) (*codespace_service.GiteaTokenAuthSnapshot, bool) {
-	snapshot, ok := store.GetData()[codespace_model.GiteaTokenAuthDataKey].(*codespace_service.GiteaTokenAuthSnapshot)
-	return snapshot, ok && snapshot != nil
-}
-
 var _ Method = &CodespaceToken{}

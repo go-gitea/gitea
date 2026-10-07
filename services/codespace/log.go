@@ -37,6 +37,8 @@ const (
 const LogReadMaxBytes = int64(512 * 1024)
 
 var (
+	// Strip terminal sequences before filtering controls, which would otherwise leave their parameters visible.
+	codespaceLogANSIPattern          = regexp.MustCompile(`\x1b(?:\[[0-?]*[ -/]*[@-~]|[\]P^_X][^\x07\x1b]*(?:\x07|\x1b\\|$)|[ -/]*[@-Z\\-_])`)
 	codespaceLogTokenPattern         = regexp.MustCompile(`\bgcs_[0-9a-f]{64}\b`)
 	codespaceLogAuthorizationPattern = regexp.MustCompile(`(?i)(authorization:\s*(?:bearer|basic)\s+)[^\s]+`)
 	codespaceLogBearerBasicPattern   = regexp.MustCompile(`(?i)\b((?:bearer|basic)\s+)[A-Za-z0-9._~+/=-]+`)
@@ -283,7 +285,7 @@ func encodeLogLines(lines []*codespacev1.LogLine) ([]byte, error) {
 		if int64(len(line.GetMessage())) > codespaceLogMaxLineSize {
 			return nil, errors.New("log message exceeds maximum line size")
 		}
-		message := line.GetMessage()
+		message := codespaceLogANSIPattern.ReplaceAllString(line.GetMessage(), "")
 		message = codespaceLogTokenPattern.ReplaceAllString(message, "[redacted]")
 		message = codespaceLogAuthorizationPattern.ReplaceAllString(message, "${1}[redacted]")
 		message = codespaceLogBearerBasicPattern.ReplaceAllString(message, "${1}[redacted]")
@@ -373,6 +375,14 @@ func operationTimeoutSummary(codespace *codespace_model.Codespace, resultStatus 
 		CodespaceUUID: codespace.UUID,
 		Message: fmt.Sprintf("Gitea recorded operation %s#%d timeout as %s.",
 			codespace.OperationType, codespace.OperationRVersion, resultStatus),
+	}
+}
+
+func operationRetrySummary(codespace *codespace_model.Codespace) *internalStateSummary {
+	return &internalStateSummary{
+		CodespaceUUID: codespace.UUID,
+		Message: fmt.Sprintf("Gitea requeued operation %s#%d after its execution deadline expired.",
+			codespace.OperationType, codespace.OperationRVersion),
 	}
 }
 
