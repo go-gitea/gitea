@@ -46,7 +46,13 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		wikiRemoteURL := repository.WikiRemoteURL(ctx, addr)
+		// the agent must exist before probing, otherwise an SSH wiki looks inaccessible
+		sshEnvs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, addr, 0)
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+		wikiRemoteURL := repository.WikiRemoteURL(ctx, addr, gitEnvsWithSSH(sshEnvs))
 		if len(wikiRemoteURL) > 0 {
 			if err := addRemoteAndConfig(m.Repo.WikiStorageRepo(), wikiRemoteURL); err != nil {
 				return err

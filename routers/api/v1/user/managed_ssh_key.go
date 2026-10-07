@@ -4,11 +4,11 @@
 package user
 
 import (
+	"errors"
 	"net/http"
 
-	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
-	ssh_module "gitea.dev/modules/ssh"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
 
@@ -32,9 +32,10 @@ func GetManagedSSHKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	keypair, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctx.Doer.ID)
+	// a GET must not create anything, so look the keypair up read-only
+	keypair, err := user_model.GetSSHKeypairByOwner(ctx, ctx.Doer.ID)
 	if err != nil {
-		if db.IsErrNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, "SSH keypair not found")
 			return
 		}

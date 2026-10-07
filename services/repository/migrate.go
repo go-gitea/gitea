@@ -28,6 +28,16 @@ import (
 	"gitea.dev/modules/util"
 )
 
+// gitEnvsWithSSH builds the environment for a migration git command that may need
+// the managed SSH key. Returning nil keeps gitcmd's default of inheriting the
+// process environment; ssh remotes never get proxy env, so that default is enough.
+func gitEnvsWithSSH(sshEnvs []string) []string {
+	if len(sshEnvs) == 0 {
+		return nil
+	}
+	return append(os.Environ(), sshEnvs...)
+}
+
 func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, storageRepo git.RepositoryFacade, cloneOpts git.CloneRepoOptions, sshKeyOwnerID int64) error {
 	sshEnvs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL, sshKeyOwnerID)
 	if err != nil {
@@ -35,14 +45,20 @@ func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Reposito
 	}
 	defer cleanup()
 
-	if len(sshEnvs) > 0 {
-		cloneOpts.Env = append(os.Environ(), sshEnvs...) // ssh remotes never get proxy env, so Clone's default is just os.Environ()
-	}
+	cloneOpts.Env = gitEnvsWithSSH(sshEnvs)
 	return git.CloneExternalRepo(ctx, remoteURL, storageRepo, cloneOpts)
 }
 
 func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.MigrateOptions, migrateTimeout time.Duration) (string, error) {
-	wikiRemoteURL := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
+	// the agent must exist before probing, otherwise an SSH wiki looks inaccessible and is skipped
+	sshEnvs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, opts.CloneAddr, opts.SSHKeyOwnerID)
+	if err != nil {
+		return "", err
+	}
+	defer cleanup()
+	envs := gitEnvsWithSSH(sshEnvs)
+
+	wikiRemoteURL := repo_module.WikiRemoteURL(ctx, opts.CloneAddr, envs)
 	if wikiRemoteURL == "" {
 		return "", nil
 	}
@@ -63,9 +79,10 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 		Quiet:         true,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
+		Env:           envs,
 	}
 
-	if err := cloneExternalRepoWithSSHAuth(ctx, repo, wikiRemoteURL, storageRepo, cloneOpts, opts.SSHKeyOwnerID); err != nil {
+	if err := git.CloneExternalRepo(ctx, wikiRemoteURL, storageRepo, cloneOpts); err != nil {
 		log.Error("Clone wiki failed, err: %v", err)
 		cleanIncompleteWikiPath()
 		return "", err

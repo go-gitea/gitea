@@ -49,7 +49,13 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
+		// the agent must exist before probing, otherwise an SSH wiki looks inaccessible
+		sshEnvs, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, repo, addr, 0)
+		if sshErr != nil {
+			return sshErr
+		}
+		defer cleanup()
+		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr, gitEnvsWithSSH(sshEnvs))
 		// Remove old remote of wiki
 		err = git.ManagedRemoteRemove(ctx, repo.WikiStorageRepo(), remoteName)
 		if err != nil && !git.IsRemoteNotExistError(err) {

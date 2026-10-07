@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
+	ssh_module "gitea.dev/modules/ssh"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -115,6 +116,19 @@ func Migrate(ctx *context.APIContext) {
 	}
 
 	gitServiceType := convert.ToGitServiceType(form.Service)
+
+	if ssh_module.IsSSHURL(remoteAddr) {
+		// Managed SSH keys are only wired up for the plain Git migration, same as the web flow:
+		// forge migrations authenticate the API with a token, which must not reach an SSH remote.
+		if gitServiceType != api.PlainGitService {
+			ctx.APIError(http.StatusUnprocessableEntity, "SSH clone addresses are only supported for the plain Git migration")
+			return
+		}
+		if form.AuthToken != "" {
+			ctx.APIError(http.StatusUnprocessableEntity, "token authentication is not supported for SSH addresses, authentication uses the managed SSH key")
+			return
+		}
+	}
 
 	if form.Mirror && setting.Mirror.DisableNewPull {
 		ctx.APIError(http.StatusForbidden, "the site administrator has disabled the creation of new pull mirrors")

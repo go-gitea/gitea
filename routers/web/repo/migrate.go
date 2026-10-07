@@ -226,10 +226,17 @@ func MigratePost(ctx *context.Context) {
 	// Managed SSH keys are only wired up for the plain Git migration form.
 	// Forge migrations (GitHub/GitLab/etc.) authenticate against both the
 	// git remote and the forge API with a token, so reject ssh:// here.
-	if form.Service != structs.PlainGitService && ssh_module.IsSSHURL(strings.TrimSpace(form.CloneAddr)) {
-		ctx.Data["Err_CloneAddr"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.ssh_not_supported_for_forge"), tpl, form)
-		return
+	if ssh_module.IsSSHURL(strings.TrimSpace(form.CloneAddr)) {
+		if form.Service != structs.PlainGitService {
+			ctx.Data["Err_CloneAddr"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.ssh_not_supported_for_forge"), tpl, form)
+			return
+		}
+		// a token would be injected into the clone URL and persisted in the remote
+		if form.AuthToken != "" {
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.ssh_token_not_supported"), tpl, form)
+			return
+		}
 	}
 
 	// The managed SSH key must belong to the doer or the migration target owner,

@@ -63,6 +63,12 @@ func TestParseRemoteAddr(t *testing.T) {
 			shouldError: true,
 		},
 		{
+			// a password in the URL would otherwise be persisted in the stored remote
+			name:        "SSH URL rejects credentials embedded in the address",
+			remoteAddr:  "ssh://git:secret@github.com/user/repo.git",
+			shouldError: true,
+		},
+		{
 			name:       "HTTPS URL with auth gets credentials injected",
 			remoteAddr: "https://github.com/user/repo.git",
 			authUser:   "user",
