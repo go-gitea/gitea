@@ -11,6 +11,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
 	npm_module "gitea.dev/modules/packages/npm"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/hashicorp/go-version"
@@ -18,6 +20,7 @@ import (
 )
 
 func TestCreatePackageMetadataResponse(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "https://gitea.dev/")()
 	repository := npm_module.Repository{Type: "git", URL: "https://gitea.dev/alice/test.git"}
 	descriptor := func(v string, publishedUnix int64, repo npm_module.Repository) *packages_model.PackageDescriptor {
 		return &packages_model.PackageDescriptor{
@@ -33,7 +36,7 @@ func TestCreatePackageMetadataResponse(t *testing.T) {
 		}
 	}
 
-	result := createPackageMetadataResponse("https://gitea.dev/api/packages/alice/npm", []*packages_model.PackageDescriptor{
+	result := createPackageMetadataResponse("http://gitea.internal:3000/api/packages/alice/npm", []*packages_model.PackageDescriptor{
 		descriptor("1.1.0", 1000, npm_module.Repository{}),
 		descriptor("2.0.0-rc.1", 1500, repository),
 		descriptor("1.0.0", 2000, repository),
