@@ -28780,6 +28780,11 @@
           "type": "boolean",
           "x-go-name": "IncludesAllRepositories"
         },
+        "is_security_team": {
+          "description": "Whether the members see and edit the private reports and draft security advisories of the team's repositories",
+          "type": "boolean",
+          "x-go-name": "IsSecurityTeam"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -30178,6 +30183,11 @@
           "description": "Whether the team has access to all repositories in the organization",
           "type": "boolean",
           "x-go-name": "IncludesAllRepositories"
+        },
+        "is_security_team": {
+          "description": "Whether the members see and edit the private reports and draft security advisories of the team's repositories",
+          "type": "boolean",
+          "x-go-name": "IsSecurityTeam"
         },
         "name": {
           "type": "string",
@@ -34092,6 +34102,11 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "is_internal": {
+          "description": "Whether the comment is hidden from the reporter and read-only collaborators",
+          "type": "boolean",
+          "x-go-name": "IsInternal"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -34113,6 +34128,11 @@
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "is_internal": {
+          "description": "Hides the comment from the reporter and read-only collaborators, ignored when editing",
+          "type": "boolean",
+          "x-go-name": "IsInternal"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -34540,6 +34560,11 @@
           "description": "Whether the team has access to all repositories in the organization",
           "type": "boolean",
           "x-go-name": "IncludesAllRepositories"
+        },
+        "is_security_team": {
+          "description": "Whether the members see and edit the private reports and draft security advisories of the team's repositories",
+          "type": "boolean",
+          "x-go-name": "IsSecurityTeam"
         },
         "name": {
           "description": "The name of the team",

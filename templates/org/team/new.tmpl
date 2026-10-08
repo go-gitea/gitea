@@ -89,6 +89,14 @@
 										<span class="help">{{ctx.Locale.Tr "org.teams.can_create_org_repo_helper"}}</span>
 									</div>
 								</div>
+
+								<div class="field">
+									<div class="ui checkbox">
+										<label for="is_security_team">{{ctx.Locale.Tr "org.teams.is_security_team"}}</label>
+										<input id="is_security_team" name="is_security_team" type="checkbox" {{if .Team.IsSecurityTeam}}checked{{end}}>
+										<span class="help">{{ctx.Locale.Tr "org.teams.is_security_team_helper"}}</span>
+									</div>
+								</div>
 							</div>
 							<div class="grouped field">
 								<label>{{ctx.Locale.Tr "org.team_permission_desc"}}</label>
@@ -150,7 +158,7 @@
 													</td>
 													<td class="tw-text-center">
 														<div class="ui radio checkbox">
-															<input type="radio" name="unit_{{$unit.Type.Value}}" value="1"{{if eq ($.Team.UnitAccessMode ctx $unit.Type) 1}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
+															<input type="radio" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode ctx $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
 														</div>
 													</td>
 													<td class="tw-text-center">
@@ -167,7 +175,7 @@
 									{{if lt $unit.MaxPerm 2}}
 										<div {{if $unit.Type.UnitGlobalDisabled}}class="field" data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
 											<div class="ui checkbox">
-												<input type="checkbox" name="unit_{{$unit.Type.Value}}" value="1"{{if eq ($.Team.UnitAccessMode ctx $unit.Type) 1}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
+												<input type="checkbox" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode ctx $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
 												<label>{{ctx.Locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{ctx.Locale.Tr "org.team_unit_disabled"}}{{end}}</label>
 												<span class="help">{{ctx.Locale.Tr $unit.DescKey}}</span>
 											</div>

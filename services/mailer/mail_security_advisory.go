@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 	sender_service "gitea.dev/services/mailer/sender"
 )
 
@@ -34,8 +35,18 @@ func generateMessageIDForAdvisory(a *advisory_model.Advisory, suffix string) str
 	return fmt.Sprintf("<%s/security/advisories/%s%s@%s>", a.Repo.FullName(), a.Identifier, suffix, setting.AppDomain)
 }
 
+// advisoryAdminIDs are the repository admins and the members of its security teams
 func advisoryAdminIDs(ctx context.Context, a *advisory_model.Advisory) (container.Set[int64], error) {
-	return access_model.GetUserIDsWithAnyUnitAccess(ctx, a.Repo, perm.AccessModeAdmin, unit.TypeCode)
+	ids, err := access_model.GetUserIDsWithAnyUnitAccess(ctx, a.Repo, perm.AccessModeAdmin, unit.TypeCode)
+	if err != nil {
+		return nil, err
+	}
+	memberIDs, err := organization.GetSecurityTeamMemberIDs(ctx, a.RepoID)
+	if err != nil {
+		return nil, err
+	}
+	ids.AddMultiple(memberIDs...)
+	return ids, nil
 }
 
 // MailSecurityAdvisoryReported notifies the repository admins about a private vulnerability report
@@ -68,7 +79,7 @@ func MailSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *
 		return
 	}
 	ids.AddMultiple(adminIDs.Values()...)
-	recipients := advisoryMailRecipients(ctx, doer, a, ids, false, canSeeDiscussion)
+	recipients := advisoryMailRecipients(ctx, doer, a, ids, false, util.Iif[advisoryAccessCheck](c.IsInternal, canSeeInternal, canSeeDiscussion))
 	sendAdvisoryMail(ctx, doer, a, recipients, "mail.security_advisory.comment", c.Content, fmt.Sprintf("/comments/%d", c.ID))
 }
 
@@ -124,11 +135,19 @@ func loadAdvisoryRepo(ctx context.Context, a *advisory_model.Advisory) bool {
 type advisoryAccessCheck func(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool
 
 func canSeeDiscussion(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool {
-	ok, err := advisory_model.UserCanSeeDiscussion(ctx, u, a)
+	perms, err := advisory_model.UserPermissions(ctx, u, a)
 	if err != nil {
-		log.Error("UserCanSeeDiscussion(%d, %d): %v", u.ID, a.ID, err)
+		log.Error("UserPermissions(%d, %d): %v", u.ID, a.ID, err)
 	}
-	return ok
+	return perms.CanSeeDiscussion
+}
+
+func canSeeInternal(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool {
+	perms, err := advisory_model.UserPermissions(ctx, u, a)
+	if err != nil {
+		log.Error("UserPermissions(%d, %d): %v", u.ID, a.ID, err)
+	}
+	return perms.CanSeeInternal
 }
 
 func canReadPublished(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool {
@@ -173,7 +192,7 @@ func sendAdvisoryMail(ctx context.Context, doer *user_model.User, a *advisory_mo
 
 func mailAdvisoryToLang(doer *user_model.User, a *advisory_model.Advisory, localeKey string, content template.HTML, threadSuffix, lang string, tos []*user_model.User) {
 	locale := translation.NewLocale(lang)
-	subject := locale.TrString(localeKey+".subject", a.Repo.FullName(), a.Summary)
+	subject := locale.TrString(localeKey+".subject", a.Repo.FullName(), fmt.Sprintf("%s (#%d)", a.Summary, a.Index))
 	mailMeta := map[string]any{
 		"locale":   locale,
 		"Subject":  subject,

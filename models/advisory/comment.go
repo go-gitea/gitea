@@ -36,6 +36,7 @@ type Comment struct {
 	PosterID        int64              `xorm:"INDEX NOT NULL"`
 	Poster          *user_model.User   `xorm:"-"`
 	Content         string             `xorm:"LONGTEXT"`
+	IsInternal      bool               `xorm:"NOT NULL DEFAULT false"` // hidden from the reporter and read-only collaborators
 	RenderedContent template.HTML      `xorm:"-"`
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
@@ -51,11 +52,20 @@ func (Comment) TableName() string {
 
 type FindCommentsOptions struct {
 	db.ListOptions
-	AdvisoryID int64
+	AdvisoryID      int64
+	IncludeInternal bool
+}
+
+func commentConds(advisoryID int64, includeInternal bool) builder.Cond {
+	cond := builder.Eq{"advisory_id": advisoryID}
+	if !includeInternal {
+		cond["is_internal"] = false
+	}
+	return cond
 }
 
 func (opts FindCommentsOptions) ToConds() builder.Cond {
-	return builder.Eq{"advisory_id": opts.AdvisoryID}
+	return commentConds(opts.AdvisoryID, opts.IncludeInternal)
 }
 
 func (opts FindCommentsOptions) ToOrders() string {
@@ -75,8 +85,8 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 	return nil
 }
 
-func GetCommentByID(ctx context.Context, advisoryID, id int64) (*Comment, error) {
-	c, has, err := db.Get[Comment](ctx, builder.Eq{"id": id, "advisory_id": advisoryID})
+func GetCommentByID(ctx context.Context, advisoryID, id int64, includeInternal bool) (*Comment, error) {
+	c, has, err := db.Get[Comment](ctx, commentConds(advisoryID, includeInternal).And(builder.Eq{"id": id}))
 	if err != nil {
 		return nil, err
 	} else if !has {

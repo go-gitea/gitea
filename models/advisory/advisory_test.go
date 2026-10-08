@@ -48,6 +48,13 @@ func TestCreateAndDeleteAdvisory(t *testing.T) {
 	}
 	require.NoError(t, advisory_model.CreateAdvisory(t.Context(), a))
 	assert.Regexp(t, `^[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}$`, a.Identifier)
+	assert.EqualValues(t, 1, a.Index)
+	next := &advisory_model.Advisory{RepoID: 1, Summary: "next", State: advisory_model.StateDraft, ReporterID: 2}
+	require.NoError(t, advisory_model.CreateAdvisory(t.Context(), next))
+	assert.EqualValues(t, 2, next.Index)
+	other := &advisory_model.Advisory{RepoID: 2, Summary: "other repository", State: advisory_model.StateDraft, ReporterID: 2}
+	require.NoError(t, advisory_model.CreateAdvisory(t.Context(), other))
+	assert.EqualValues(t, 1, other.Index)
 
 	got, err := advisory_model.GetAdvisoryByIdentifier(t.Context(), 1, a.Identifier)
 	require.NoError(t, err)
@@ -125,11 +132,12 @@ func TestViewerAccess(t *testing.T) {
 		visibleTriage bool
 	}{
 		{"anonymous", advisory_model.Viewer{}, advisory_model.Permissions{}, false, false},
-		{"repo admin", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true, CanManage: true}, true, true},
+		{"repo admin", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: true, CanManage: true}, true, true},
+		{"security team member", advisory_model.Viewer{Doer: user(8), IsSecurityTeamMember: true}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: true}, false, true},
 		{"repo admin with public-only token", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true, PublicOnly: true}, advisory_model.Permissions{}, false, false},
 		{"reporter", advisory_model.Viewer{Doer: user(4)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true}, false, true},
-		{"user collaborator", advisory_model.Viewer{Doer: user(5)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true}, false, true},
-		{"team collaborator", advisory_model.Viewer{Doer: user(15)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true}, false, true},
+		{"user collaborator", advisory_model.Viewer{Doer: user(5)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: true}, false, true},
+		{"team collaborator", advisory_model.Viewer{Doer: user(15)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: true}, false, true},
 		{"read-only collaborator", advisory_model.Viewer{Doer: user(10)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true}, false, true},
 		{"outsider", advisory_model.Viewer{Doer: user(8)}, advisory_model.Permissions{}, false, false},
 		{"actions user", advisory_model.Viewer{Doer: user_model.NewActionsUser(), IsRepoAdmin: true}, advisory_model.Permissions{}, false, false},

@@ -74,6 +74,14 @@ func TestSecurityAdvisoryWeb(t *testing.T) {
 	assert.Contains(t, resp.Body.String(), comment)
 	assert.NotContains(t, resp.Body.String(), "data-mentions-url", "mentions would suggest users who cannot see the advisory")
 
+	const internalComment = "The reporter asked for a bounty twice."
+	admin.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/comments", map[string]string{"content": internalComment, "is_internal": "on"}), http.StatusOK)
+	resp = admin.MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusOK)
+	assert.Contains(t, resp.Body.String(), internalComment)
+	resp = reporter.MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusOK)
+	assert.Contains(t, resp.Body.String(), comment)
+	assert.NotContains(t, resp.Body.String(), internalComment)
+
 	admin.MakeRequest(t, NewRequest(t, "GET", advisoriesURL+"/new"), http.StatusOK)
 	outsider.MakeRequest(t, NewRequest(t, "GET", advisoriesURL+"/new"), http.StatusForbidden)
 	resp = reporter.MakeRequest(t, NewRequest(t, "GET", advisoryURL+"/edit"), http.StatusOK)

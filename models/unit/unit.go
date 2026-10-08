@@ -335,7 +335,7 @@ var (
 		"/security",
 		"repo.security_advisories.desc",
 		8,
-		perm.AccessModeRead, // advisories are managed by repository admins, the unit only grants reading published ones
+		perm.AccessModeRead, // read: see published advisories and report privately, non-public ones need repo admin, a security team or an invitation
 	}
 
 	// Units contains all the units

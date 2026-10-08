@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -17,11 +18,27 @@ import (
 	"xorm.io/builder"
 )
 
-// Viewer is a user who can read the advisories unit of a repository, only its admins and the participants see non-public advisories
+// Viewer is a user who can read the advisories unit of a repository, only its admins, security teams and the participants see non-public advisories
 type Viewer struct {
-	Doer        *user_model.User
-	IsRepoAdmin bool
-	PublicOnly  bool // the request is authenticated by a token restricted to public resources
+	Doer                 *user_model.User
+	IsRepoAdmin          bool
+	IsSecurityTeamMember bool
+	PublicOnly           bool // the request is authenticated by a token restricted to public resources
+}
+
+func NewViewer(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, isRepoAdmin, publicOnly bool) (Viewer, error) {
+	v := Viewer{Doer: doer, IsRepoAdmin: isRepoAdmin, PublicOnly: publicOnly}
+	if !v.canSeeNonPublic() || isRepoAdmin {
+		return v, nil
+	}
+	var err error
+	v.IsSecurityTeamMember, err = organization.IsSecurityTeamMember(ctx, doer.ID, repo.ID)
+	return v, err
+}
+
+// seesAllNonPublic excludes the reporters and collaborators, who only see their advisories
+func (v Viewer) seesAllNonPublic() bool {
+	return v.IsRepoAdmin || v.IsSecurityTeamMember
 }
 
 // canSeeNonPublic excludes anonymous users, bots like the Actions user and public-only tokens
@@ -69,7 +86,7 @@ func (v Viewer) visibilityCond() builder.Cond {
 	if !v.canSeeNonPublic() {
 		return public
 	}
-	if v.IsRepoAdmin {
+	if v.seesAllNonPublic() {
 		return builder.NewCond()
 	}
 	return builder.Or(
@@ -87,7 +104,7 @@ func (v Viewer) DiscussionIDs(ctx context.Context, list List) (container.Set[int
 	}
 	var others []int64
 	for _, a := range list {
-		if v.IsRepoAdmin || v.isOwnReport(a) {
+		if v.seesAllNonPublic() || v.isOwnReport(a) {
 			ids.Add(a.ID)
 		} else {
 			others = append(others, a.ID)
@@ -106,6 +123,7 @@ func (v Viewer) DiscussionIDs(ctx context.Context, list List) (container.Set[int
 type Permissions struct {
 	CanView          bool
 	CanSeeDiscussion bool
+	CanSeeInternal   bool // internal comments are hidden from the reporter and read-only collaborators
 	CanEdit          bool // participants can edit until the advisory is published, except read-only collaborators
 	CanManage        bool // see Viewer.CanManage
 }
@@ -115,7 +133,10 @@ func (v Viewer) Permissions(ctx context.Context, a *Advisory) (Permissions, erro
 		return Permissions{CanView: a.IsPublic()}, nil
 	}
 	if v.IsRepoAdmin {
-		return Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true, CanManage: true}, nil
+		return Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: true, CanManage: true}, nil
+	}
+	if v.IsSecurityTeamMember {
+		return Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: !a.IsPublic()}, nil
 	}
 	if v.isOwnReport(a) {
 		return Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: !a.IsPublic()}, nil
@@ -128,6 +149,7 @@ func (v Viewer) Permissions(ctx context.Context, a *Advisory) (Permissions, erro
 	return Permissions{
 		CanView:          a.IsPublic() || isCollaborator,
 		CanSeeDiscussion: isCollaborator,
+		CanSeeInternal:   writable,
 		CanEdit:          writable && !a.IsPublic(),
 	}, nil
 }
@@ -205,18 +227,21 @@ func ParticipantIDs(ctx context.Context, a *Advisory) (container.Set[int64], err
 	return ids, nil
 }
 
-// UserCanSeeDiscussion checks the current permission of a user, who might have lost access since being notified before
-func UserCanSeeDiscussion(ctx context.Context, user *user_model.User, a *Advisory) (bool, error) {
+// UserPermissions checks the current permissions of a user, who might have lost access since being notified before
+func UserPermissions(ctx context.Context, user *user_model.User, a *Advisory) (Permissions, error) {
 	if err := a.LoadRepo(ctx); err != nil {
-		return false, err
+		return Permissions{}, err
 	}
 	perm, err := access_model.GetIndividualUserRepoPermission(ctx, a.Repo, user)
 	if err != nil {
-		return false, err
+		return Permissions{}, err
 	}
 	if !perm.CanRead(unit.TypeSecurityAdvisories) {
-		return false, nil
+		return Permissions{}, nil
 	}
-	p, err := Viewer{Doer: user, IsRepoAdmin: perm.IsAdmin()}.Permissions(ctx, a)
-	return p.CanSeeDiscussion, err
+	v, err := NewViewer(ctx, user, a.Repo, perm.IsAdmin(), false)
+	if err != nil {
+		return Permissions{}, err
+	}
+	return v.Permissions(ctx, a)
 }

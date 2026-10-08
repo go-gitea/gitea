@@ -102,8 +102,22 @@ func updateState(ctx context.Context, doer *user_model.User, a *advisory_model.A
 			a.DuplicateOfID = opts.DuplicateOf.ID
 		}
 		cols = []string{"closed_unix", "close_reason", "duplicate_of_id"}
+		if keepOriginalReport(a, opts) {
+			cols = append(cols, "report_description")
+		}
 	}
 	return change, advisory_model.UpdateAdvisoryState(ctx, a, change.oldState, cols...)
+}
+
+// keepOriginalReport saves the description of a report when it is accepted, a later edit replaces only the description
+func keepOriginalReport(a *advisory_model.Advisory, opts StateOptions) bool {
+	if opts.State != advisory_model.StateDraft || !a.IsReport {
+		return false
+	}
+	if a.ReportDescription == "" {
+		a.ReportDescription = a.Description
+	}
+	return true
 }
 
 // notify also lets the reporter of a duplicate follow the original advisory

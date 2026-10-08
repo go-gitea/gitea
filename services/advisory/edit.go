@@ -77,6 +77,9 @@ func EditAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.
 			return err
 		}
 	}
+	if newState != nil {
+		keepOriginalReport(a, *newState) // before an edit in the same request
+	}
 	contentChanged := opts.editsContent() || opts.managesContent()
 	if contentChanged {
 		if err := applyContentEdit(ctx, doer, a, perms, opts); err != nil {

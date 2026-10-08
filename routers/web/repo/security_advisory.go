@@ -18,6 +18,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/cvss"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/reqctx"
@@ -36,8 +37,19 @@ const (
 	tplSecurityAdvisoryForm templates.TplName = "repo/security_advisory/form"
 )
 
+type securityAdvisoryViewerKey struct{}
+
+// securityAdvisoryViewer looks up the security teams once per request, a failed lookup only hides the non-public advisories
 func securityAdvisoryViewer(ctx *context.Context) advisory_model.Viewer {
-	return advisory_model.Viewer{Doer: ctx.Doer, IsRepoAdmin: ctx.Repo.Permission.IsAdmin()}
+	if v, ok := ctx.GetContextValue(securityAdvisoryViewerKey{}).(advisory_model.Viewer); ok {
+		return v
+	}
+	v, err := advisory_model.NewViewer(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission.IsAdmin(), false)
+	if err != nil {
+		log.Error("NewViewer: %v", err)
+	}
+	ctx.SetContextValue(securityAdvisoryViewerKey{}, v)
+	return v
 }
 
 func PrepareSecurityAdvisories(ctx *context.Context) {
@@ -351,8 +363,14 @@ func ViewSecurityAdvisory(ctx *context.Context) {
 		ctx.ServerError("RenderString", err)
 		return
 	}
+	if perms.CanSeeDiscussion && a.ReportDescription != "" && a.ReportDescription != a.Description {
+		if ctx.Data["RenderedReportDescription"], err = renderSecurityAdvisoryMarkdown(ctx, "report", a.ReportDescription); err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+	}
 	if perms.CanSeeDiscussion {
-		prepareSecurityAdvisoryComments(ctx, a)
+		prepareSecurityAdvisoryComments(ctx, a, perms)
 		if ctx.Written() {
 			return
 		}
@@ -475,8 +493,8 @@ func securityAdvisoryStateActions(current advisory_model.State) []securityAdviso
 	return actions
 }
 
-func prepareSecurityAdvisoryComments(ctx *context.Context, a *advisory_model.Advisory) {
-	comments, err := db.Find[advisory_model.Comment](ctx, advisory_model.FindCommentsOptions{AdvisoryID: a.ID})
+func prepareSecurityAdvisoryComments(ctx *context.Context, a *advisory_model.Advisory, perms advisory_model.Permissions) {
+	comments, err := db.Find[advisory_model.Comment](ctx, advisory_model.FindCommentsOptions{AdvisoryID: a.ID, IncludeInternal: perms.CanSeeInternal})
 	if err != nil {
 		ctx.ServerError("FindComments", err)
 		return
@@ -614,12 +632,12 @@ func RemoveSecurityAdvisoryCollaborator(ctx *context.Context) {
 }
 
 func NewSecurityAdvisoryComment(ctx *context.Context) {
-	a, _ := getSecurityAdvisory(ctx)
+	a, perms := getSecurityAdvisory(ctx)
 	form := context.GetFetchActionForm[*forms.SecurityAdvisoryCommentForm](ctx)
 	if ctx.Written() {
 		return
 	}
-	c, err := advisory_service.CreateComment(ctx, ctx.Doer, a, form.Content)
+	c, err := advisory_service.CreateComment(ctx, ctx.Doer, a, perms, form.Content, form.IsInternal)
 	if err != nil {
 		jsonSecurityAdvisoryError(ctx, err)
 		return
@@ -628,8 +646,8 @@ func NewSecurityAdvisoryComment(ctx *context.Context) {
 }
 
 func getSecurityAdvisoryComment(ctx *context.Context) *advisory_model.Comment {
-	a, _ := getSecurityAdvisory(ctx)
-	c, err := advisory_model.GetCommentByID(ctx, a.ID, ctx.PathParamInt64("id"))
+	a, perms := getSecurityAdvisory(ctx)
+	c, err := advisory_model.GetCommentByID(ctx, a.ID, ctx.PathParamInt64("id"), perms.CanSeeInternal)
 	if err != nil {
 		ctx.ServerError("GetCommentByID", err)
 		return nil

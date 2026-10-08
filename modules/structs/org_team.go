@@ -38,6 +38,8 @@ type Team struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
+	// Whether the members see and edit the private reports and draft security advisories of the team's repositories
+	IsSecurityTeam bool `json:"is_security_team"`
 	// Team visibility within the organization. "private" teams are only
 	// listable by members and org owners; "limited" teams are listable by
 	// any organization member; "public" teams are listable by any signed-in
@@ -62,6 +64,8 @@ type CreateTeamOption struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
+	// Whether the members see and edit the private reports and draft security advisories of the team's repositories
+	IsSecurityTeam bool `json:"is_security_team"`
 	// Team visibility within the organization. Defaults to "private".
 	Visibility TeamVisibility `json:"visibility" binding:"In(public,limited,private)"`
 }
@@ -83,6 +87,8 @@ type EditTeamOption struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo *bool `json:"can_create_org_repo"`
+	// Whether the members see and edit the private reports and draft security advisories of the team's repositories
+	IsSecurityTeam *bool `json:"is_security_team"`
 	// Team visibility within the organization. When omitted, visibility is
 	// left unchanged.
 	Visibility *TeamVisibility `json:"visibility" binding:"In(public,limited,private)"`

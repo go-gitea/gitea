@@ -35,5 +35,6 @@ type SecurityAdvisoryForm struct {
 // SecurityAdvisoryCommentForm is the form for a comment on a security advisory
 type SecurityAdvisoryCommentForm struct {
 	middleware.FormDefaultValidator
-	Content string `binding:"Required"`
+	Content    string `binding:"Required"`
+	IsInternal bool
 }

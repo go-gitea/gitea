@@ -59,6 +59,8 @@
 							{{range .Labels}}{{ctx.RenderUtils.RenderLabel .}}{{end}}
 						</div>
 						<div class="item-body flex-text-inline tw-flex-wrap">
+							<span>#{{.Index}}</span>
+							<span>·</span>
 							<span class="tw-font-mono">{{.Identifier}}</span>
 							{{if .CveID}}<span>·</span><span>{{.CveID}}</span>{{end}}
 							<span>·</span>

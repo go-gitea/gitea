@@ -321,13 +321,7 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
-	team := &org_model.Team{}
-	for tp := range unit_model.Units {
-		if tp != unit_model.TypeSecurityAdvisories { // advisories may contain undisclosed vulnerabilities, so access must be granted explicitly
-			team.Units = append(team.Units, &org_model.TeamUnit{Type: tp, AccessMode: perm.AccessModeRead})
-		}
-	}
-	ctx.Data["Team"] = team
+	ctx.Data["Team"] = &org_model.Team{}
 	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
@@ -359,6 +353,7 @@ func NewTeamPost(ctx *context.Context) {
 		AccessMode:              teamPermission,
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
+		IsSecurityTeam:          form.IsSecurityTeam,
 		Visibility:              org_model.NormalizeTeamVisibility(form.Visibility),
 	}
 
@@ -537,6 +532,7 @@ func EditTeamPost(ctx *context.Context) {
 			t.IncludesAllRepositories = includesAllRepositories
 		}
 		t.CanCreateOrgRepo = form.CanCreateOrgRepo
+		t.IsSecurityTeam = form.IsSecurityTeam
 		t.Visibility = org_model.NormalizeTeamVisibility(form.Visibility)
 	} else {
 		t.CanCreateOrgRepo = true

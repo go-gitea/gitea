@@ -16,9 +16,11 @@ type SecurityAdvisory struct {
 	ID                int64              `xorm:"pk autoincr"`
 	RepoID            int64              `xorm:"UNIQUE(s) NOT NULL"`
 	Identifier        string             `xorm:"VARCHAR(14) UNIQUE(s) NOT NULL"`
+	Index             int64              `xorm:"INDEX NOT NULL DEFAULT 0"`
 	CveID             string             `xorm:"VARCHAR(32)"`
 	Summary           string             `xorm:"VARCHAR(1024) NOT NULL"`
 	Description       string             `xorm:"LONGTEXT"`
+	ReportDescription string             `xorm:"LONGTEXT"`
 	Severity          int                `xorm:"NOT NULL DEFAULT 0"`
 	CvssV3Vector      string             `xorm:"VARCHAR(255)"`
 	CvssV3ScoreTenths int                `xorm:"NOT NULL DEFAULT 0"`
@@ -37,6 +39,11 @@ type SecurityAdvisory struct {
 	WithdrawnUnix     timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
 	CloseReason       int                `xorm:"NOT NULL DEFAULT 0"`
 	DuplicateOfID     int64              `xorm:"NOT NULL DEFAULT 0"`
+}
+
+type SecurityAdvisoryIndex struct {
+	GroupID  int64 `xorm:"pk"`
+	MaxIndex int64 `xorm:"index"`
 }
 
 type SecurityAdvisoryVulnerability struct {
@@ -75,14 +82,19 @@ type SecurityAdvisoryComment struct {
 	AdvisoryID  int64              `xorm:"INDEX NOT NULL"`
 	PosterID    int64              `xorm:"INDEX NOT NULL"`
 	Content     string             `xorm:"LONGTEXT"`
+	IsInternal  bool               `xorm:"NOT NULL DEFAULT false"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
+type Team struct {
+	IsSecurityTeam bool `xorm:"NOT NULL DEFAULT false"`
+}
+
 // AddSecurityAdvisoryTables adds the advisory tables and enables the advisories unit for existing repositories and teams
 func AddSecurityAdvisoryTables(_ context.Context, x base.EngineMigration) error {
-	if err := x.Sync(new(SecurityAdvisory), new(SecurityAdvisoryVulnerability), new(SecurityAdvisoryCredit),
-		new(SecurityAdvisoryCollaborator), new(SecurityAdvisoryLabel), new(SecurityAdvisoryComment)); err != nil {
+	if err := x.Sync(new(SecurityAdvisory), new(SecurityAdvisoryIndex), new(SecurityAdvisoryVulnerability), new(SecurityAdvisoryCredit),
+		new(SecurityAdvisoryCollaborator), new(SecurityAdvisoryLabel), new(SecurityAdvisoryComment), new(Team)); err != nil {
 		return err
 	}
 	defaultUnits := setting.Repository.DefaultRepoUnits

@@ -5,11 +5,13 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
+		<a class="muted flex-text-inline tw-mb-2" href="{{.RepoLink}}/security/advisories">{{svg "octicon-arrow-left" 14}}{{ctx.Locale.Tr "repo.security_advisories.back_to_list"}}</a>
 		<div class="issue-title-header">
 			<div class="issue-title">
 				<h1>
 					{{$advisory.Summary}}
-					<span class="index">{{$advisory.Identifier}}</span>
+					<span class="index">#{{$advisory.Index}}</span>
+					<span class="index tw-font-mono">{{$advisory.Identifier}}</span>
 				</h1>
 				<div class="issue-title-buttons">
 					{{if $perms.CanEdit}}
@@ -48,6 +50,18 @@
 						</div>
 					</div>
 
+					{{if .RenderedReportDescription}}
+						<div class="timeline-item comment">
+							<a class="timeline-avatar" href="{{$advisory.Reporter.HomeLink}}">{{ctx.AvatarUtils.Avatar $advisory.Reporter 40}}</a>
+							<div class="content comment-container">
+								<details class="ui attached segment comment-body">
+									<summary>{{ctx.Locale.Tr "repo.security_advisories.original_report"}}</summary>
+									<div class="render-content markup tw-mt-2">{{.RenderedReportDescription}}</div>
+								</details>
+							</div>
+						</div>
+					{{end}}
+
 					{{if $perms.CanSeeDiscussion}}
 						<div class="timeline-item event">
 							<span class="badge">{{svg "octicon-lock"}}</span>
@@ -68,6 +82,9 @@
 											</span>
 										</div>
 										<div class="comment-header-right">
+											{{if .IsInternal}}
+												<span class="ui basic label" data-tooltip-content="{{ctx.Locale.Tr "repo.security_advisories.internal_comment_desc"}}">{{svg "octicon-lock" 12}} {{ctx.Locale.Tr "repo.security_advisories.internal_comment"}}</span>
+											{{end}}
 											<div class="item action ui dropdown jump pointing top right context-dropdown">
 												<a class="context-menu muted">{{svg "octicon-kebab-horizontal"}}</a>
 												<div class="menu">
@@ -112,6 +129,12 @@
 											</div>
 											<div class="field footer">
 												<div class="flex-text-block tw-justify-end">
+													{{if $perms.CanSeeInternal}}
+														<div class="ui checkbox" data-tooltip-content="{{ctx.Locale.Tr "repo.security_advisories.internal_comment_desc"}}">
+															<input type="checkbox" name="is_internal" id="advisory-comment-internal">
+															<label for="advisory-comment-internal">{{ctx.Locale.Tr "repo.security_advisories.internal_comment"}}</label>
+														</div>
+													{{end}}
 													<button type="submit" id="comment-button" class="ui primary button">{{ctx.Locale.Tr "repo.issues.create_comment"}}</button>
 												</div>
 											</div>

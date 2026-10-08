@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cvss"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/reqctx"
 	api "gitea.dev/modules/structs"
@@ -23,8 +24,19 @@ import (
 	"gitea.dev/services/convert"
 )
 
+type advisoryViewerKey struct{}
+
+// advisoryViewer looks up the security teams once per request, a failed lookup only hides the non-public advisories
 func advisoryViewer(ctx *context.APIContext) advisory_model.Viewer {
-	return advisory_model.Viewer{Doer: ctx.Doer, IsRepoAdmin: ctx.Repo.Permission.IsAdmin(), PublicOnly: ctx.PublicOnly}
+	if v, ok := ctx.GetContextValue(advisoryViewerKey{}).(advisory_model.Viewer); ok {
+		return v
+	}
+	v, err := advisory_model.NewViewer(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission.IsAdmin(), ctx.PublicOnly)
+	if err != nil {
+		log.Error("NewViewer: %v", err)
+	}
+	ctx.SetContextValue(advisoryViewerKey{}, v)
+	return v
 }
 
 type securityAdvisoryContextKey struct{}
@@ -594,8 +606,8 @@ func setPrivateVulnerabilityReporting(ctx *context.APIContext, enabled bool) {
 }
 
 func getAdvisoryComment(ctx *context.APIContext) *advisory_model.Comment {
-	a, _ := getSecurityAdvisory(ctx)
-	c, err := advisory_model.GetCommentByID(ctx, a.ID, ctx.PathParamInt64("id"))
+	a, perms := getSecurityAdvisory(ctx)
+	c, err := advisory_model.GetCommentByID(ctx, a.ID, ctx.PathParamInt64("id"), perms.CanSeeInternal)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return nil
@@ -643,9 +655,9 @@ func ListSecurityAdvisoryComments(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryAdvisoryCommentList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	a, _ := getSecurityAdvisory(ctx)
+	a, perms := getSecurityAdvisory(ctx)
 	listOptions := utils.GetListOptions(ctx)
-	comments, total, err := db.FindAndCount[advisory_model.Comment](ctx, advisory_model.FindCommentsOptions{ListOptions: listOptions, AdvisoryID: a.ID})
+	comments, total, err := db.FindAndCount[advisory_model.Comment](ctx, advisory_model.FindCommentsOptions{ListOptions: listOptions, AdvisoryID: a.ID, IncludeInternal: perms.CanSeeInternal})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -704,8 +716,8 @@ func CreateSecurityAdvisoryComment(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm[*api.RepositoryAdvisoryCommentOption](ctx)
-	a, _ := getSecurityAdvisory(ctx)
-	c, err := advisory_service.CreateComment(ctx, ctx.Doer, a, form.Body)
+	a, perms := getSecurityAdvisory(ctx)
+	c, err := advisory_service.CreateComment(ctx, ctx.Doer, a, perms, form.Body, form.IsInternal)
 	if err != nil {
 		apiAdvisoryError(ctx, err)
 		return

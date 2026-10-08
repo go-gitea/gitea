@@ -89,11 +89,12 @@ func ToAPIRepositoryAdvisoryWithPrivateDetails(ctx context.Context, a *advisory_
 
 func ToAPIRepositoryAdvisoryComment(ctx context.Context, a *advisory_model.Advisory, c *advisory_model.Comment, doer *user_model.User) *api.RepositoryAdvisoryComment {
 	return &api.RepositoryAdvisoryComment{
-		ID:        c.ID,
-		HTMLURL:   fmt.Sprintf("%s#advisory-comment-%d", a.HTMLURL(), c.ID),
-		User:      ToUser(ctx, c.Poster, doer),
-		Body:      c.Content,
-		CreatedAt: c.CreatedUnix.AsTime(),
-		UpdatedAt: c.UpdatedUnix.AsTime(),
+		ID:         c.ID,
+		HTMLURL:    fmt.Sprintf("%s#advisory-comment-%d", a.HTMLURL(), c.ID),
+		User:       ToUser(ctx, c.Poster, doer),
+		Body:       c.Content,
+		IsInternal: c.IsInternal,
+		CreatedAt:  c.CreatedUnix.AsTime(),
+		UpdatedAt:  c.UpdatedUnix.AsTime(),
 	}
 }

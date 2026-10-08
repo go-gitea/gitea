@@ -179,9 +179,11 @@ type Advisory struct {
 	RepoID            int64                  `xorm:"UNIQUE(s) NOT NULL"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	Identifier        string                 `xorm:"VARCHAR(14) UNIQUE(s) NOT NULL"`
+	Index             int64                  `xorm:"INDEX NOT NULL DEFAULT 0"` // short number for discussions, URLs keep the identifier
 	CveID             string                 `xorm:"VARCHAR(32)"`
 	Summary           string                 `xorm:"VARCHAR(1024) NOT NULL"`
 	Description       string                 `xorm:"LONGTEXT"`
+	ReportDescription string                 `xorm:"LONGTEXT"` // the description of a report when it was accepted, never public
 	Severity          Severity               `xorm:"NOT NULL DEFAULT 0"`
 	CvssV3Vector      string                 `xorm:"VARCHAR(255)"`
 	CvssV3ScoreTenths int                    `xorm:"NOT NULL DEFAULT 0"` // stored in tenths to be exact on all databases
@@ -211,12 +213,20 @@ type Advisory struct {
 	CollaboratorTeams []*organization.Team  `xorm:"-"`
 }
 
+// Index numbers the advisories of a repository
+type Index db.ResourceIndex
+
 func init() {
 	db.RegisterModel(new(Advisory))
+	db.RegisterModel(new(Index))
 }
 
 func (Advisory) TableName() string {
 	return "security_advisory"
+}
+
+func (Index) TableName() string {
+	return "security_advisory_index"
 }
 
 // IsPublic reports whether everyone who can read the advisories unit can see the advisory
@@ -269,7 +279,10 @@ func generateIdentifier() string {
 
 func CreateAdvisory(ctx context.Context, a *Advisory) error {
 	a.Identifier = generateIdentifier()
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) (err error) {
+		if a.Index, err = db.GetNextResourceIndex(ctx, "security_advisory_index", a.RepoID); err != nil {
+			return err
+		}
 		if err := db.Insert(ctx, a); err != nil {
 			return err
 		}
@@ -478,8 +491,10 @@ func DeleteAdvisory(ctx context.Context, a *Advisory) error {
 }
 
 func DeleteAdvisoriesByRepoID(ctx context.Context, repoID int64) error {
-	_, err := deleteAdvisories(ctx, builder.Eq{"repo_id": repoID})
-	return err
+	if _, err := deleteAdvisories(ctx, builder.Eq{"repo_id": repoID}); err != nil {
+		return err
+	}
+	return db.DeleteResourceIndex(ctx, "security_advisory_index", repoID)
 }
 
 // deleteAdvisories selects the details by a subquery because a list of IDs can exceed the parameter limit of some databases,

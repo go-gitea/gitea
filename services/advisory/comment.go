@@ -28,11 +28,14 @@ func checkComment(ctx context.Context, doer *user_model.User, a *advisory_model.
 }
 
 // CreateComment adds a comment to the private discussion, the caller must check Permissions.CanSeeDiscussion
-func CreateComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, content string) (*advisory_model.Comment, error) {
+func CreateComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, perms advisory_model.Permissions, content string, isInternal bool) (*advisory_model.Comment, error) {
+	if isInternal && !perms.CanSeeInternal {
+		return nil, util.NewPermissionDeniedErrorf("only the maintainers can write internal comments")
+	}
 	if err := checkComment(ctx, doer, a, content); err != nil {
 		return nil, err
 	}
-	c := &advisory_model.Comment{AdvisoryID: a.ID, PosterID: doer.ID, Poster: doer, Content: content}
+	c := &advisory_model.Comment{AdvisoryID: a.ID, PosterID: doer.ID, Poster: doer, Content: content, IsInternal: isInternal}
 	if err := advisory_model.CreateComment(ctx, c); err != nil {
 		return nil, err
 	}

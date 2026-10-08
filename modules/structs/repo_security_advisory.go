@@ -241,6 +241,8 @@ type RepositoryAdvisoryComment struct {
 	HTMLURL string `json:"html_url"`
 	User    *User  `json:"user"`
 	Body    string `json:"body"`
+	// Whether the comment is hidden from the reporter and read-only collaborators
+	IsInternal bool `json:"is_internal"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -251,6 +253,8 @@ type RepositoryAdvisoryComment struct {
 type RepositoryAdvisoryCommentOption struct {
 	// required: true
 	Body string `json:"body" binding:"Required"`
+	// Hides the comment from the reporter and read-only collaborators, ignored when editing
+	IsInternal bool `json:"is_internal"`
 }
 
 // RepositoryAdvisoryCloseReason tells wrong reports and duplicates apart
