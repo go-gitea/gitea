@@ -33,6 +33,7 @@ type globalVarsType struct {
 	hashCurrentPattern      *regexp.Regexp
 	shortLinkPattern        *regexp.Regexp
 	anyHashPattern          *regexp.Regexp
+	commitRoutePattern      *regexp.Regexp
 	comparePattern          *regexp.Regexp
 	emailRegex              *regexp.Regexp
 	emojiShortCodeRegex     *regexp.Regexp
@@ -61,11 +62,13 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	v.shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
-	// anyHashPattern finds candidate commit/archive URLs; anyHashPatternExtract validates shape via ParseGiteaSiteURL.
-	v.anyHashPattern = regexp.MustCompile(`https?://\S+/(?:commit|archive)/([0-9a-f]{7,64})((?:\.\w+)*)(/[-+~%./\w]+)?(?:\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
+	// anyHashPattern splits url containing SHA into parts
+	v.anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})((\.\w+)*)(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
 
-	// comparePattern finds candidate compare URLs; comparePatternExtract validates shape via ParseGiteaSiteURL.
-	v.comparePattern = regexp.MustCompile(`https?://\S+/compare/([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
+	v.commitRoutePattern = regexp.MustCompile(`^/commit/([0-9a-f]{7,64})(\.patch|\.diff)?$`) // repo sub-path of the commit routes
+
+	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
+	v.comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	// emailRegex is definitely not perfect with edge cases,
 	// it is still accepted by the CommonMark specification, as well as the HTML5 spec:
