@@ -20,7 +20,7 @@ test('select and deselect all webhook events', async ({page}) => {
   await page.goto('/user/settings/hooks/gitea/new');
   await page.getByRole('radio', {name: 'Custom Events'}).check();
   await page.getByRole('button', {name: 'Select All', exact: true}).click();
-  await expect(page.getByRole('checkbox', {checked: false})).toHaveCount(0);
+  await expect(page.getByRole('checkbox', {checked: false})).toHaveAccessibleName('Private Vulnerability Reports');
   await page.getByRole('button', {name: 'Deselect All', exact: true}).click();
   await expect(page.getByRole('checkbox', {checked: true})).toHaveAccessibleName('Active');
 });

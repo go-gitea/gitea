@@ -14,7 +14,7 @@ import (
 
 func TestAddSecurityAdvisoryTables(t *testing.T) {
 	type Repository struct {
-		ID       int64 `xorm:"pk autoincr"`
+		ID       int64 `xorm:"pk"`
 		IsFork   bool
 		IsMirror bool
 	}
@@ -28,7 +28,7 @@ func TestAddSecurityAdvisoryTables(t *testing.T) {
 		EveryoneAccessMode  int `xorm:"NOT NULL DEFAULT 0"`
 	}
 	type Team struct {
-		ID        int64 `xorm:"pk autoincr"`
+		ID        int64 `xorm:"pk"`
 		OrgID     int64
 		Authorize int
 	}
