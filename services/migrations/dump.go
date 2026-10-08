@@ -172,7 +172,7 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 		if err != nil {
 			return err
 		}
-		wikiRemotePath := repository.WikiRemoteURL(ctx, remoteAddr)
+		wikiRemotePath := repository.WikiRemoteURL(ctx, remoteAddr, nil)
 		if len(wikiRemotePath) > 0 {
 			if err := os.MkdirAll(wikiAbsPath, os.ModePerm); err != nil {
 				return fmt.Errorf("failed to create %s: %w", wikiAbsPath, err)

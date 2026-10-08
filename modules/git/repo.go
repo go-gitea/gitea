@@ -112,8 +112,10 @@ func (repo *Repository) Close() error {
 }
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
-func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, _, err := gitcmd.NewCommand("ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(ctx)
+// envs carries the authentication context (eg: the managed SSH agent) the probe needs,
+// nil means inherit the process environment.
+func IsRepoURLAccessible(ctx context.Context, url string, envs []string) bool {
+	_, _, err := gitcmd.NewCommand("ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").WithEnv(envs).RunStdString(ctx)
 	return err == nil
 }
 

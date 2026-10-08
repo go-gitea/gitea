@@ -13,6 +13,7 @@ require (
 	github.com/42wim/httpsig v1.2.4
 	github.com/42wim/sshsig v0.0.0-20260317195500-b9f38cf0d432
 	github.com/Azure/go-ntlmssp v0.1.1
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347
 	github.com/ProtonMail/go-crypto v1.5.2
 	github.com/PuerkitoBio/goquery v1.13.0

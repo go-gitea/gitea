@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"gitea.dev/models/db"
@@ -22,12 +23,42 @@ import (
 	"gitea.dev/modules/migration"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 )
 
+// gitEnvsWithSSH builds the environment for a migration git command that may need
+// the managed SSH key. Returning nil keeps gitcmd's default of inheriting the
+// process environment; ssh remotes never get proxy env, so that default is enough.
+func gitEnvsWithSSH(sshEnvs []string) []string {
+	if len(sshEnvs) == 0 {
+		return nil
+	}
+	return append(os.Environ(), sshEnvs...)
+}
+
+func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, storageRepo git.RepositoryFacade, cloneOpts git.CloneRepoOptions, sshKeyOwnerID int64) error {
+	sshEnvs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL, sshKeyOwnerID)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+
+	cloneOpts.Env = gitEnvsWithSSH(sshEnvs)
+	return git.CloneExternalRepo(ctx, remoteURL, storageRepo, cloneOpts)
+}
+
 func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.MigrateOptions, migrateTimeout time.Duration) (string, error) {
-	wikiRemoteURL := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
+	// the agent must exist before probing, otherwise an SSH wiki looks inaccessible and is skipped
+	sshEnvs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, opts.CloneAddr, opts.SSHKeyOwnerID)
+	if err != nil {
+		return "", err
+	}
+	defer cleanup()
+	envs := gitEnvsWithSSH(sshEnvs)
+
+	wikiRemoteURL := repo_module.WikiRemoteURL(ctx, opts.CloneAddr, envs)
 	if wikiRemoteURL == "" {
 		return "", nil
 	}
@@ -43,12 +74,15 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 			log.Error("Failed to remove incomplete wiki for repo %q, err: %v", repo.FullName(), err)
 		}
 	}
-	if err := git.CloneExternalRepo(ctx, wikiRemoteURL, storageRepo, git.CloneRepoOptions{
+	cloneOpts := git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
-	}); err != nil {
+		Env:           envs,
+	}
+
+	if err := git.CloneExternalRepo(ctx, wikiRemoteURL, storageRepo, cloneOpts); err != nil {
 		log.Error("Clone wiki failed, err: %v", err)
 		cleanIncompleteWikiPath()
 		return "", err
@@ -89,12 +123,14 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("failed to remove existing repo dir %q, err: %w", repo.FullName(), err)
 	}
 
-	if err := git.CloneExternalRepo(ctx, opts.CloneAddr, repo, git.CloneRepoOptions{
+	cloneOpts := git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
-	}); err != nil {
+	}
+
+	if err := cloneExternalRepoWithSSHAuth(ctx, repo, opts.CloneAddr, repo, cloneOpts, opts.SSHKeyOwnerID); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return repo, fmt.Errorf("clone timed out, consider increasing [git.timeout] MIGRATE in app.ini, underlying err: %w", err)
 		}
