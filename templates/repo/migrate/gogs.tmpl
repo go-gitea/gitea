@@ -7,7 +7,7 @@
 		<div class="ui attached segment">
 			{{template "base/alert" .}}
 			<form class="ui form left-right-form form-fetch-action" action="{{.Link}}" method="post">
-				{{template "repo/migrate/common-hidden" (dict "ServiceType" .service)}}
+				{{template "repo/migrate/common-init" (dict "ServiceType" .service)}}
 
 				<div class="inline required field">
 					<label>{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
