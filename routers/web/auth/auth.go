@@ -124,6 +124,9 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 		return false, err
 	}
 
+	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
+	deleteCookie = false
+
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
@@ -135,8 +138,6 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 		log.Error("Failed to reset locale for user %d: %v", u.ID, err)
 	}
 
-	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
-	deleteCookie = false
 	return true, nil
 }
 
