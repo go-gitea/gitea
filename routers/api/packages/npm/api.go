@@ -15,7 +15,6 @@ import (
 
 	packages_model "gitea.dev/models/packages"
 	npm_module "gitea.dev/modules/packages/npm"
-	"gitea.dev/modules/util"
 )
 
 func createPackageMetadataResponse(registryURL string, pds []*packages_model.PackageDescriptor) *npm_module.PackageMetadata {
@@ -84,12 +83,9 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 
 	metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](pd)
 
-	// Versions published before v28.2.0 lack GiteaHasStandardTarballURL and get
-	// the former URL format because lockfiles pin it. Newer ones use the standard
-	// <name>/-/<file> URL.
-	tarball := fmt.Sprintf("%s/%s/-/%s/%s", registryURL, url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName))
-	if metadata.GiteaHasStandardTarballURL {
-		tarball = fmt.Sprintf("%s/%s/-/%s", registryURL, util.PathEscapeSegments(pd.Package.Name), url.PathEscape(pd.Files[0].File.LowerName))
+	tarballPath := metadata.GiteaTarballPath
+	if tarballPath == "" { // uploaded before GiteaTarballPath existed, lockfiles pin this former path
+		tarballPath = fmt.Sprintf("%s/-/%s/%s", url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName))
 	}
 
 	return &npm_module.PackageMetadataVersion{
@@ -123,7 +119,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		Dist: npm_module.PackageDistribution{
 			Shasum:    pd.Files[0].Blob.HashSHA1,
 			Integrity: "sha512-" + base64.StdEncoding.EncodeToString(hashBytes),
-			Tarball:   tarball,
+			Tarball:   registryURL + "/" + tarballPath,
 		},
 	}
 }

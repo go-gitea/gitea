@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -336,8 +337,6 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 				Funding:                 meta.Funding,
 				AcceptDependencies:      meta.AcceptDependencies,
 				Deprecated:              meta.Deprecated,
-
-				GiteaHasStandardTarballURL: true,
 			},
 		}
 
@@ -345,7 +344,9 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 			p.DistTags = append(p.DistTags, tag)
 		}
 
-		p.Filename = strings.ToLower(fmt.Sprintf("%s-%s.tgz", name, p.Version))
+		filename := fmt.Sprintf("%s-%s.tgz", name, p.Version)
+		p.Filename = strings.ToLower(filename)
+		p.Metadata.GiteaTarballPath = util.PathEscapeSegments(p.Name) + "/-/" + url.PathEscape(filename) // npm's casing, file lookups ignore case
 
 		attachment := upload.Attachments[meta.Name+"-"+meta.Version+".tgz"] // not the sigstore bundle of `npm publish --provenance`
 		if attachment == nil && len(upload.Attachments) == 1 {
