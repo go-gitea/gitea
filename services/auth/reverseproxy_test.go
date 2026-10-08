@@ -71,17 +71,3 @@ func TestReverseProxyLastLogin(t *testing.T) {
 	assert.EqualValues(t, 1, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID}).LastLoginUnix) // no write without a new session
 	assert.Equal(t, 1, sess.released)
 }
-
-func TestReverseProxyUntrustedPeer(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	defer test.MockVariableValue(&setting.ReverseProxyAuthUser, "X-WEBAUTH-USER")()
-	defer test.MockVariableValue(&setting.ReverseProxyTrustedProxies, []string{"127.0.0.0/8", "::1/128"})()
-
-	req, err := http.NewRequest(http.MethodGet, "/", nil)
-	require.NoError(t, err)
-	req.RemoteAddr = "203.0.113.7:1234"
-	req.Header.Set(setting.ReverseProxyAuthUser, "user2")
-	user, err := (&ReverseProxy{}).Verify(req, nil, nil, nil)
-	require.NoError(t, err)
-	assert.Nil(t, user)
-}

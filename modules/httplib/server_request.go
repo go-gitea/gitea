@@ -46,7 +46,7 @@ func MarkRequestSupportPublicURL(ctx reqctx.RequestContext) {
 // MarkRequestPeerAddr remembers the address of the immediate peer, it must be called before req.RemoteAddr is
 // replaced by the client address from the X-Forwarded-For or X-Real-IP headers.
 func MarkRequestPeerAddr(ctx reqctx.RequestContext, req *http.Request) {
-	ctx.SetContextValue(contextKeyPeerAddr, req.RemoteAddr)
+	ctx.SetContextValue(contextKeyPeerAddr, RemoteHost(req))
 }
 
 // IsRequestFromTrustedProxy reports whether the immediate peer of the request is one of REVERSE_PROXY_TRUSTED_PROXIES.
@@ -55,13 +55,9 @@ func IsRequestFromTrustedProxy(req *http.Request) bool {
 	case setting.HTTPUnix, setting.FCGIUnix, setting.FCGI:
 		return true // the peer is always the local web server, FastCGI even reports the client address as RemoteAddr
 	}
-	peerAddr, ok := req.Context().Value(contextKeyPeerAddr).(string)
+	host, ok := req.Context().Value(contextKeyPeerAddr).(string)
 	if !ok {
-		peerAddr = req.RemoteAddr
-	}
-	host, _, err := net.SplitHostPort(peerAddr)
-	if err != nil {
-		host = peerAddr
+		host = RemoteHost(req)
 	}
 	ip := net.ParseIP(host)
 	for _, trusted := range setting.ReverseProxyTrustedProxies {
