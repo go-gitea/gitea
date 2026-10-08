@@ -24,9 +24,8 @@ func getStarredRepos(ctx *context.APIContext, user *user_model.User, private boo
 		ListOptions:    utils.GetListOptions(ctx),
 		StarrerID:      user.ID,
 		IncludePrivate: private,
-		Actor:          user,
+		Actor:          ctx.Doer,
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	starredRepos, err := repo_model.GetStarredRepos(ctx, opts)
 	if err != nil {

@@ -137,10 +137,9 @@ func SearchIssues(ctx *context.APIContext) {
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
 	repoIDs, allPublic, err := common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{
-		Doer:       ctx.Doer,
-		PublicOnly: ctx.PublicOnly,
-		OwnerName:  ctx.FormString("owner"),
-		TeamName:   ctx.FormString("team"),
+		Doer:      ctx.Doer,
+		OwnerName: ctx.FormString("owner"),
+		TeamName:  ctx.FormString("team"),
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {

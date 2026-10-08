@@ -521,6 +521,10 @@ func TestIsUserVisibleToViewer(t *testing.T) {
 	test(user20, user1, true)
 	test(user31, user1, true)
 	test(user33, user1, true)
+	publicOnlyAdmin := *user1
+	publicOnlyAdmin.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:user")
+	test(user31, &publicOnlyAdmin, false)
+	test(user33, &publicOnlyAdmin, false)
 
 	// non admin viewer
 	test(user4, user4, true)

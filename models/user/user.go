@@ -175,7 +175,8 @@ type User struct {
 	// When the user model is used as a doer (all existing code does so), the doer can have extra details.
 	// * Actions task doer needs to bind to the task
 	// * Deploy-key doer needs to bind to the key
-	ExtDoerData ExtDoerData `xorm:"-"`
+	// * Real user doer authenticated by an API token needs to bind to the token and its scope
+	ExtDoerData ExtDoerData `xorm:"-" json:"-"`
 }
 
 // Meta defines the meta information of a user, to be stored in the K/V table
@@ -443,11 +444,6 @@ func (u *User) IsIndividual() bool {
 // IsTypeBot returns whether the user is of type bot
 func (u *User) IsTypeBot() bool {
 	return u.Type == UserTypeBot
-}
-
-// IsTokenAccessAllowed returns whether the user is an individual or a bot (which allows for token access)
-func (u *User) IsTokenAccessAllowed() bool {
-	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
 }
 
 // EmailTo returns a string suitable to be put into a e-mail `To:` header.
@@ -1387,11 +1383,11 @@ func GetAdminUser(ctx context.Context) (*User, error) {
 }
 
 func isUserVisibleToViewerCond(viewer *User) builder.Cond {
-	if viewer != nil && viewer.IsAdmin {
+	if viewer != nil && viewer.IsAdmin && !IsPublicOnlyDoer(viewer) {
 		return builder.NewCond()
 	}
 
-	if viewer == nil || viewer.IsRestricted {
+	if viewer == nil || viewer.IsRestricted || IsPublicOnlyDoer(viewer) {
 		return builder.Eq{
 			"`user`.visibility": structs.VisibleTypePublic,
 		}
@@ -1425,6 +1421,9 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
+	if !DoerTokenAllowsOwner(viewer, u) {
+		return false
+	}
 	if viewer != nil && (viewer.IsAdmin || viewer.ID == u.ID) {
 		return true
 	}

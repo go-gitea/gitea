@@ -32,10 +32,10 @@ func TestAPIPublicOnlySelfUserRoutes(t *testing.T) {
 		auth_model.AccessTokenScopeWriteUser,
 	)
 
-	t.Run("PrivateProfileForbidden", func(t *testing.T) {
+	t.Run("PrivateProfileUnreachable", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/user31").AddTokenAuth(privateReadUserToken), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/user31").AddTokenAuth(privateReadUserToken), http.StatusNotFound)
 		MakeRequest(t, NewRequest(t, "GET", "/api/v1/user").AddTokenAuth(privateReadUserToken), http.StatusForbidden)
 	})
 

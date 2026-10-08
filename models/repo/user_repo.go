@@ -31,12 +31,6 @@ func (opts *StarredReposOptions) ToOrders() string {
 	return "`repository`.id"
 }
 
-func (opts *StarredReposOptions) ApplyPublicOnly(publicOnly bool) {
-	if publicOnly {
-		opts.IncludePrivate = false
-	}
-}
-
 func (opts *StarredReposOptions) ToConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{
 		"star.uid": opts.StarrerID,
@@ -82,12 +76,6 @@ type WatchedReposOptions struct {
 
 func (opts *WatchedReposOptions) ToOrders() string {
 	return "`repository`.id"
-}
-
-func (opts *WatchedReposOptions) ApplyPublicOnly(publicOnly bool) {
-	if publicOnly {
-		opts.IncludePrivate = false
-	}
 }
 
 func (opts *WatchedReposOptions) ToConds() builder.Cond {

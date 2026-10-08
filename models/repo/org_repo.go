@@ -31,8 +31,7 @@ func GetOrgRepositoryIDs(ctx context.Context, orgID int64) (repoIDs []int64, _ e
 type SearchTeamRepoOptions struct {
 	db.ListOptions
 	TeamID int64
-	// PublicOnly restricts the result (and count) to non-private repositories.
-	PublicOnly bool
+	Actor  *user_model.User
 }
 
 func (opts *SearchTeamRepoOptions) toCond() builder.Cond {
@@ -44,10 +43,7 @@ func (opts *SearchTeamRepoOptions) toCond() builder.Cond {
 				Where(builder.Eq{"team_id": opts.TeamID}),
 		))
 	}
-	if opts.PublicOnly {
-		cond = cond.And(builder.Eq{"is_private": false})
-	}
-	return cond
+	return cond.And(DoerTokenRepoCond(opts.Actor))
 }
 
 // GetTeamRepositories returns paginated repositories in team of organization.

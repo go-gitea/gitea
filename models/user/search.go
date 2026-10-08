@@ -60,12 +60,6 @@ func (opts *SearchUserOptions) ToOrders() string {
 	return "id"
 }
 
-func (opts *SearchUserOptions) ApplyPublicOnly(publicOnly bool) {
-	if publicOnly {
-		opts.Visible = []structs.VisibleType{structs.VisibleTypePublic}
-	}
-}
-
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) db.Session {
 	var cond builder.Cond
 	cond = builder.In("type", opts.Types)
@@ -177,7 +171,7 @@ func SearchUsers(ctx context.Context, opts SearchUserOptions) (users []*User, _ 
 
 // BuildCanSeeUserCondition creates a condition which can be used to restrict results to users/orgs the actor can see
 func BuildCanSeeUserCondition(actor *User) builder.Cond {
-	if actor != nil {
+	if actor != nil && !IsPublicOnlyDoer(actor) {
 		// If Admin - they see all users!
 		if !actor.IsAdmin {
 			// Users can see an organization they are a member of

@@ -493,14 +493,21 @@ func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {
 	// org3 is a public org owning repo3 (private) and repo32 (public), both with the actions unit
 	const orgID = 3
 
-	all, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user, false))
+	all, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user))
 	require.NoError(t, err)
 	assert.Contains(t, all, int64(3), "without public-only the private repo's actions are listed")
 
-	publicOnly, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user, true))
+	scopedUser := *user
+	scopedUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:repository")
+	publicOnly, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, &scopedUser))
 	require.NoError(t, err)
 	assert.NotContains(t, publicOnly, int64(3), "a public-only token must not list a private repo's actions")
 	assert.Contains(t, publicOnly, int64(32), "a public repo under a public owner stays listed")
+
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.Nil(t, repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(orgID, admin))
+	admin.ExtDoerData = scopedUser.ExtDoerData
+	assert.NotNil(t, repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(orgID, admin))
 }
 
 // TestUserOrgUnitRepoCondTeamAuthorize pins team.authorize vs team_unit.access_mode

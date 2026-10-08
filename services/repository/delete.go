@@ -398,7 +398,6 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 			},
 			Private: true,
 			OwnerID: owner.ID,
-			Actor:   owner,
 		})
 		if err != nil {
 			return fmt.Errorf("GetUserRepositories: %w", err)

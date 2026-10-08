@@ -21,20 +21,7 @@ import (
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
-
-	"xorm.io/builder"
 )
-
-// actionsOwnerAccessibleRepoIDsSubQuery returns the sub-query restricting an owner-scoped actions
-// listing to the repos whose actions the caller can read, or nil when no restriction applies. A bare
-// org member must not be able to enumerate runs/jobs of repos they have no access to. A site admin may
-// skip the access filter, but a public-only token must stay confined to public repos even for an admin.
-func actionsOwnerAccessibleRepoIDsSubQuery(ctx *context.APIContext, ownerID int64) *builder.Builder {
-	if ownerID > 0 && (ctx.Doer == nil || !ctx.Doer.IsAdmin || ctx.PublicOnly) {
-		return repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(ownerID, ctx.Doer, ctx.PublicOnly)
-	}
-	return nil
-}
 
 // ListJobs lists jobs for api route validated ownerID and repoID
 // ownerID == 0 and repoID == 0 means all jobs
@@ -73,7 +60,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		opts.Statuses = append(opts.Statuses, values...)
 	}
 
-	opts.AccessibleRepoIDsSubQuery = actionsOwnerAccessibleRepoIDsSubQuery(ctx, opts.OwnerID)
+	opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer)
 
 	jobs, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, opts)
 	if err != nil {
@@ -196,7 +183,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	}
 	excludePullRequests := ctx.FormBool("exclude_pull_requests")
 
-	opts.AccessibleRepoIDsSubQuery = actionsOwnerAccessibleRepoIDsSubQuery(ctx, opts.OwnerID)
+	opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer)
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {

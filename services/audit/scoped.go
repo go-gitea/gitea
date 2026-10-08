@@ -115,7 +115,7 @@ func RecordScoped(ctx context.Context, owner *user_model.User, repo *repository_
 	writeEvent(ctx, RecordParams{
 		Action:          action,
 		Actor:           actorRef(doer),
-		ActorCredential: actorCredential(ctx, doer),
+		ActorCredential: user_model.GetDoerCredential(doer),
 		Scope:           scope,
 		Metadata:        metaPairs(metadata...),
 	})

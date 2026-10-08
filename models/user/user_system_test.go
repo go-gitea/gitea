@@ -6,6 +6,8 @@ package user
 import (
 	"testing"
 
+	"gitea.dev/models/unittest"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,4 +38,16 @@ func TestSystemUser(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(-1), uid)
 	assert.Equal(t, "Ghost", u.Name)
+}
+
+func TestGetDoerPermissionUserCarriesToken(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	u, err := GetDoerPermissionUser(t.Context(), 2, NewTokenExtDoerData(CredentialAccessToken, 9, "public-only,read:repository").EncodeToString())
+	require.NoError(t, err)
+	assert.True(t, IsPublicOnlyDoer(u))
+	assert.Equal(t, "access-token:9", GetDoerCredential(u))
+
+	_, err = GetDoerPermissionUser(t.Context(), 2, "access-token:9|bogus")
+	assert.Error(t, err)
 }

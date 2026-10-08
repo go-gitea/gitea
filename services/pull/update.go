@@ -145,6 +145,9 @@ func CheckUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullReques
 	if err := pull.LoadHeadRepo(ctx); err != nil {
 		return ret, err
 	}
+	if !repo_model.DoerTokenAllowsRepo(ctx, user, pull.HeadRepo) { // the branch whitelist and maintainer edits below do not consult the doer's repo permission
+		return ret, nil
+	}
 
 	// 1. check whether pull request enabled.
 	prBaseUnit, err := pull.BaseRepo.GetUnit(ctx, unit.TypePullRequests)

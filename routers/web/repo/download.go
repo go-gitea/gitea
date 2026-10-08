@@ -20,7 +20,7 @@ import (
 )
 
 func checkDownloadTokenScope(ctx *context.Context) bool {
-	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	return !ctx.Written()
 }
 
