@@ -101,8 +101,6 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 			}
 			now := time.Now().Unix()
 			codespace.OperationRVersion = nextVersion
-			codespace.OperationType = codespace_model.OperationStop
-			codespace.OperationStatus = codespace_model.OperationStatusQueued
 			codespace.OperationTrigger = codespace_model.OperationTriggerIdle
 			codespace.OperationCreatedUnix = now
 			codespace.OperationStartedUnix = 0
@@ -110,8 +108,6 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 			codespace.UpdatedUnix = now
 			if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols(
 				"operation_r_version",
-				"operation_type",
-				"operation_status",
 				"operation_trigger",
 				"operation_created_unix",
 				"operation_started_unix",
@@ -147,8 +143,8 @@ func validateObservedRuntimeSettings(opts RequestIdleStopOptions) error {
 }
 
 func isQueuedIdleStop(codespace *codespace_model.Codespace) bool {
-	return codespace.OperationType == codespace_model.OperationStop &&
-		codespace.OperationStatus == codespace_model.OperationStatusQueued &&
+	return codespace_model.ActiveOperationType(codespace) == codespace_model.OperationStop &&
+		codespace_model.IsOperationQueued(codespace) &&
 		codespace.OperationTrigger == codespace_model.OperationTriggerIdle
 }
 

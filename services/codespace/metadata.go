@@ -454,8 +454,8 @@ func validateRuntimeMetadataStageForward(current, next runtimeMetadata) error {
 
 func currentOperationMatches(codespace *codespace_model.Codespace, operationType string, operationRVersion int64) bool {
 	return codespace.OperationRVersion == operationRVersion &&
-		codespace.OperationType == operationType &&
-		codespace.OperationStatus == codespace_model.OperationStatusRunning
+		codespace_model.ActiveOperationType(codespace) == operationType &&
+		codespace_model.IsOperationRunning(codespace)
 }
 
 func createOrResumeOperationActive(codespace *codespace_model.Codespace, now int64) bool {

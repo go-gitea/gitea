@@ -47,7 +47,6 @@ type DeclareManagerOptions struct {
 	RuntimeState                       codespacev1.ManagerRuntimeState
 	GatewaySSHHostKeyAlgorithm         string
 	GatewaySSHHostKeyFingerprintSHA256 string
-	GatewaySSHHostKeyUpdatedUnix       int64
 }
 
 // BindRuntimeIdentityOptions contains the manager-created runtime identity for one create operation.
@@ -79,7 +78,7 @@ func BindRuntimeIdentity(ctx context.Context, manager *codespace_model.Manager, 
 				return err
 			}
 			if !has || codespace.ManagerID != manager.ID || codespace.OperationRVersion != opts.OperationRVersion ||
-				codespace.OperationType != codespace_model.OperationCreate || codespace.OperationStatus != codespace_model.OperationStatusRunning {
+				codespace_model.ActiveOperationType(codespace) != codespace_model.OperationCreate || !codespace_model.IsOperationRunning(codespace) {
 				return ErrBindRuntimeIdentityNotFound
 			}
 			if codespace.UUID == opts.RuntimeUUID {
@@ -163,29 +162,20 @@ func DeclareManager(ctx context.Context, manager *codespace_model.Manager, opts 
 				RuntimeState:                       managerRuntimeStateName(opts.RuntimeState),
 				LastOnlineUnix:                     now,
 				Version:                            opts.Version,
+				GatewayURL:                         opts.GatewayURL,
+				GatewaySSHAddr:                     opts.GatewaySSHAddr,
 				GatewaySSHHostKeyAlgorithm:         opts.GatewaySSHHostKeyAlgorithm,
 				GatewaySSHHostKeyFingerprintSHA256: opts.GatewaySSHHostKeyFingerprintSHA256,
-				GatewaySSHHostKeyUpdatedUnix:       opts.GatewaySSHHostKeyUpdatedUnix,
 			}
 			affected, err := db.GetEngine(ctx).ID(currentManager.ID).Cols(
 				"tags_json", "runtime_state", "last_online_unix", "version",
-				"gateway_ssh_host_key_algorithm", "gateway_ssh_host_key_fingerprint_sha256", "gateway_ssh_host_key_updated_unix",
+				"gateway_url", "gateway_ssh_addr", "gateway_ssh_host_key_algorithm", "gateway_ssh_host_key_fingerprint_sha256",
 			).Update(updates)
 			if err != nil {
 				return err
 			}
 			if affected == 0 {
 				return ErrManagerUnregistered
-			}
-			if _, err := db.GetEngine(ctx).Where("manager_id = ?", currentManager.ID).Delete(new(codespace_model.ManagerAddress)); err != nil {
-				return err
-			}
-			addresses := []*codespace_model.ManagerAddress{
-				{ManagerID: currentManager.ID, Kind: codespace_model.ManagerAddressGateway, Address: opts.GatewayURL},
-				{ManagerID: currentManager.ID, Kind: codespace_model.ManagerAddressSSH, Address: opts.GatewaySSHAddr},
-			}
-			if _, err := db.GetEngine(ctx).Insert(addresses); err != nil {
-				return err
 			}
 			return nil
 		})
@@ -223,9 +213,6 @@ func normalizeDeclareManagerOptions(opts DeclareManagerOptions) (DeclareManagerO
 	opts.GatewaySSHHostKeyFingerprintSHA256 = strings.TrimSpace(opts.GatewaySSHHostKeyFingerprintSHA256)
 	if !sshHostKeyFingerprintRegexp.MatchString(opts.GatewaySSHHostKeyFingerprintSHA256) {
 		return opts, errors.New("invalid gateway ssh host key fingerprint")
-	}
-	if opts.GatewaySSHHostKeyUpdatedUnix < 0 {
-		return opts, errors.New("gateway ssh host key updated time must not be negative")
 	}
 	return opts, nil
 }

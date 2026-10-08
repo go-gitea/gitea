@@ -25,8 +25,6 @@ func TestContinueCodespaceCancelsQueuedIdleStop(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     11,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusQueued,
 		OperationTrigger:      codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix:  time.Now().Unix(),
 		InteractionGeneration: 4,
@@ -40,8 +38,7 @@ func TestContinueCodespaceCancelsQueuedIdleStop(t *testing.T) {
 	assert.EqualValues(t, 5, result.InteractionGeneration)
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.EqualValues(t, 5, row.InteractionGeneration)
-	assert.Empty(t, row.OperationType)
-	assert.Empty(t, row.OperationStatus)
+	assert.False(t, hasActiveOperation(row))
 	assert.Empty(t, row.OperationTrigger)
 	assert.Positive(t, row.LastActiveUnix)
 }
@@ -78,8 +75,6 @@ func TestContinueCodespaceRejectsRunningStopAndVersionExhausted(t *testing.T) {
 		UUID:                  runningStopUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     12,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix:  time.Now().Unix(),
 		OperationStartedUnix:  time.Now().Unix(),
@@ -113,8 +108,6 @@ func TestUpdateAutoStopCancelsQueuedIdleOnlyWhenRuntimePolicyChanges(t *testing.
 		UUID:                 changedUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    13,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -129,8 +122,7 @@ func TestUpdateAutoStopCancelsQueuedIdleOnlyWhenRuntimePolicyChanges(t *testing.
 	assert.EqualValues(t, 600, result.CustomTimeoutSeconds)
 	assert.EqualValues(t, 600, result.RuntimeSettings.IdleTimeoutSeconds)
 	row := loadServiceCodespace(t, changedUUID)
-	assert.Empty(t, row.OperationType)
-	assert.Empty(t, row.OperationStatus)
+	assert.False(t, hasActiveOperation(row))
 	assert.Greater(t, row.UpdatedUnix, int64(1))
 
 	samePolicyUUID := "60606060-6060-4606-8606-606060606060"
@@ -138,8 +130,6 @@ func TestUpdateAutoStopCancelsQueuedIdleOnlyWhenRuntimePolicyChanges(t *testing.
 		UUID:                 samePolicyUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    14,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -151,8 +141,8 @@ func TestUpdateAutoStopCancelsQueuedIdleOnlyWhenRuntimePolicyChanges(t *testing.
 	})
 	require.NoError(t, err)
 	row = loadServiceCodespace(t, samePolicyUUID)
-	assert.Equal(t, codespace_model.OperationStop, row.OperationType)
-	assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
+	assert.Equal(t, codespace_model.OperationStop, codespace_model.ActiveOperationType(row))
+	assert.True(t, codespace_model.IsOperationQueued(row))
 	assert.Equal(t, codespace_model.OperationTriggerIdle, row.OperationTrigger)
 }
 

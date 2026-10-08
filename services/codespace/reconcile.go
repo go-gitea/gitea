@@ -49,9 +49,9 @@ func ReconcileCodespaces(ctx context.Context, opts ReconcileCodespacesOptions) (
 func reconcileQueuedOperationTimeouts(ctx context.Context, now int64, result *ReconcileCodespacesResult) error {
 	var rows []*codespace_model.Codespace
 	if err := db.GetEngine(ctx).
-		Where("operation_status = ? AND operation_created_unix > 0 AND operation_created_unix <= ?",
-			codespace_model.OperationStatusQueued, now-int64(setting.Codespace.QueueTimeout/time.Second)).
-		In("operation_type", codespace_model.OperationCreate, codespace_model.OperationResume).
+		Where("operation_created_unix > 0 AND operation_created_unix <= ? AND operation_started_unix = 0 AND operation_deadline_unix = 0",
+			now-int64(setting.Codespace.QueueTimeout/time.Second)).
+		In("status", codespace_model.StatusCreating, codespace_model.StatusStopped).
 		Asc("operation_created_unix", "id").
 		Limit(reconcileCodespacesBatchSize).
 		Find(&rows); err != nil {
@@ -77,10 +77,10 @@ func reconcileQueuedOperationTimeout(ctx context.Context, codespaceUUID string, 
 			if err != nil || !has {
 				return err
 			}
-			if codespace.OperationStatus != codespace_model.OperationStatusQueued || !isQueuedExpired(codespace, time.Unix(now, 0)) {
+			if !codespace_model.IsOperationQueued(codespace) || !isQueuedExpired(codespace, time.Unix(now, 0)) {
 				return nil
 			}
-			summary = operationTimeoutSummary(codespace, queuedTimeoutStatus(codespace.OperationType))
+			summary = operationTimeoutSummary(codespace, queuedTimeoutStatus(codespace_model.ActiveOperationType(codespace)))
 			if err := applyQueuedTimeout(ctx, codespace, now); err != nil {
 				return err
 			}
@@ -98,8 +98,7 @@ func reconcileQueuedOperationTimeout(ctx context.Context, codespaceUUID string, 
 func reconcileRunningOperationTimeouts(ctx context.Context, now int64, result *ReconcileCodespacesResult) error {
 	var rows []*codespace_model.Codespace
 	if err := db.GetEngine(ctx).
-		Where("operation_status = ? AND operation_deadline_unix > 0 AND operation_deadline_unix <= ?",
-			codespace_model.OperationStatusRunning, now).
+		Where("operation_created_unix > 0 AND operation_started_unix > 0 AND operation_deadline_unix > 0 AND operation_deadline_unix <= ?", now).
 		Asc("operation_deadline_unix", "id").
 		Limit(reconcileCodespacesBatchSize).
 		Find(&rows); err != nil {
@@ -125,13 +124,14 @@ func reconcileRunningOperationTimeout(ctx context.Context, codespaceUUID string,
 			if err != nil || !has {
 				return err
 			}
-			if codespace.OperationStatus != codespace_model.OperationStatusRunning ||
+			if !codespace_model.IsOperationRunning(codespace) ||
 				codespace.OperationDeadlineUnix <= 0 ||
 				codespace.OperationDeadlineUnix > now {
 				return nil
 			}
-			summary = operationTimeoutSummary(codespace, timeoutStatus(codespace.OperationType))
-			if isConvergentOperation(codespace.OperationType) {
+			operationType := codespace_model.ActiveOperationType(codespace)
+			summary = operationTimeoutSummary(codespace, timeoutStatus(operationType))
+			if isConvergentOperation(operationType) {
 				summary = operationRetrySummary(codespace)
 			}
 			if err := applyRunningTimeout(ctx, codespace, now); err != nil {
@@ -152,8 +152,8 @@ func reconcileFailedCodespaces(ctx context.Context, now int64, olderThan time.Du
 	cutoff := now - int64(olderThan/time.Second)
 	var rows []*codespace_model.Codespace
 	if err := db.GetEngine(ctx).
-		Where("status = ? AND manager_id = ? AND uuid = ? AND operation_type = ? AND operation_status = ? AND operation_trigger = ? AND updated_unix > 0 AND updated_unix <= ?",
-			codespace_model.StatusFailed, 0, "", "", "", "", cutoff).
+		Where("status = ? AND manager_id = ? AND uuid = ? AND operation_trigger = ? AND operation_created_unix = 0 AND operation_started_unix = 0 AND operation_deadline_unix = 0 AND updated_unix > 0 AND updated_unix <= ?",
+			codespace_model.StatusFailed, 0, "", "", cutoff).
 		Asc("updated_unix", "id").
 		Limit(reconcileCodespacesBatchSize).
 		Find(&rows); err != nil {

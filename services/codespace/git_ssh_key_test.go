@@ -113,9 +113,10 @@ func TestResolveGitSSHKeyUserUsesCodespaceBinding(t *testing.T) {
 	require.NoError(t, err)
 	_, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols(
 		"status",
-		"operation_type",
-		"operation_status",
 		"operation_trigger",
+		"operation_created_unix",
+		"operation_started_unix",
+		"operation_deadline_unix",
 	).Update(&codespace_model.Codespace{Status: codespace_model.StatusRunning})
 	require.NoError(t, err)
 	publicKey := loadServicePublicKey(t, loadServiceSSHKeyRelation(t, codespaceUUID).KeyID)
@@ -482,8 +483,6 @@ func insertActiveCreateCodespaceForGitSSHKey(t *testing.T, managerID int64, code
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     operationRVersion,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,

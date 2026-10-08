@@ -118,13 +118,13 @@ func ResolveGitSSHKeyUser(ctx context.Context, key *asymkey_model.PublicKey, rep
 func codespaceGitSSHCommandAllowed(codespace *codespace_model.Codespace, now int64) bool {
 	switch codespace.Status {
 	case codespace_model.StatusCreating:
-		return codespace.OperationType == codespace_model.OperationCreate &&
+		return codespace_model.ActiveOperationType(codespace) == codespace_model.OperationCreate &&
 			codespace.OperationRVersion > 0 &&
 			codespace.OperationDeadlineUnix > now
 	case codespace_model.StatusRunning:
 		return true
 	case codespace_model.StatusStopped:
-		return codespace.OperationType == codespace_model.OperationResume &&
+		return codespace_model.ActiveOperationType(codespace) == codespace_model.OperationResume &&
 			codespace.OperationRVersion > 0 &&
 			codespace.OperationDeadlineUnix > now
 	default:

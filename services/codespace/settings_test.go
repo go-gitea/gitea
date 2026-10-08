@@ -81,24 +81,23 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 
 	globalManager := insertServiceManager(t)
 	globalManager.TagsJSON = `[{"tag":"default","description":"Site environment"}]`
-	_, err := db.GetEngine(t.Context()).ID(globalManager.ID).Cols("tags_json").Update(globalManager)
+	globalManager.GatewayURL = "https://global-gateway.example.com"
+	_, err := db.GetEngine(t.Context()).ID(globalManager.ID).Cols("tags_json", "gateway_url").Update(globalManager)
 	require.NoError(t, err)
 	userManager := insertServiceManager(t)
 	userManager.UserID = 1
 	userManager.Name = "user-manager"
 	userManager.Version = "0.2.0"
 	userManager.TagsJSON = `[{"tag":"default","description":"Personal environment"},{"tag":"gpu"}]`
+	userManager.GatewayURL = "https://user-gateway.example.com"
+	userManager.GatewaySSHAddr = "ssh.example.com:2222"
 	userManager.GatewaySSHHostKeyAlgorithm = "ssh-ed25519"
 	userManager.GatewaySSHHostKeyFingerprintSHA256 = "SHA256:settings"
-	userManager.GatewaySSHHostKeyUpdatedUnix = 123
 	_, err = db.GetEngine(t.Context()).ID(userManager.ID).Cols(
-		"user_id", "name", "version", "tags_json", "gateway_ssh_host_key_algorithm",
-		"gateway_ssh_host_key_fingerprint_sha256", "gateway_ssh_host_key_updated_unix",
+		"user_id", "name", "version", "tags_json", "gateway_url", "gateway_ssh_addr",
+		"gateway_ssh_host_key_algorithm", "gateway_ssh_host_key_fingerprint_sha256",
 	).Update(userManager)
 	require.NoError(t, err)
-	insertSettingsManagerAddress(t, globalManager.ID, codespace_model.ManagerAddressGateway, "https://global-gateway.example.com")
-	insertSettingsManagerAddress(t, userManager.ID, codespace_model.ManagerAddressGateway, "https://user-gateway.example.com")
-	insertSettingsManagerAddress(t, userManager.ID, codespace_model.ManagerAddressSSH, "ssh.example.com:2222")
 
 	codespaceUUID := "51515151-5151-4151-8151-515151515151"
 	insertServiceCodespace(t, userManager.ID, &codespace_model.Codespace{
@@ -135,7 +134,6 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 	assert.Equal(t, []ManagerEnvironmentDeclaration{{Tag: "default", Description: "Personal environment"}, {Tag: "gpu"}}, userSettings.Managers[0].Environments)
 	assert.Equal(t, "ssh-ed25519", userSettings.Managers[0].GatewaySSHHostKeyAlgorithm)
 	assert.Equal(t, "SHA256:settings", userSettings.Managers[0].GatewaySSHHostKeyFingerprintSHA256)
-	assert.EqualValues(t, 123, userSettings.Managers[0].GatewaySSHHostKeyUpdatedUnix)
 	detail, err := GetManagerDetail(t.Context(), ManagerDetailOptions{
 		ManagerSettingsOptions: ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 1},
 		ManagerID:              userManager.ID,
@@ -177,7 +175,6 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 		Confirm:   true,
 	}))
 	assertServiceNotExists(t, new(codespace_model.Manager), "id = ?", userManager.ID)
-	assertServiceNotExists(t, new(codespace_model.ManagerAddress), "manager_id = ?", userManager.ID)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
 	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
@@ -214,13 +211,4 @@ func TestManagerSettingsRequireIndividualUser(t *testing.T) {
 		Name: "Manager",
 	})
 	require.ErrorContains(t, err, "not an individual")
-}
-
-func insertSettingsManagerAddress(t *testing.T, managerID int64, kind, address string) {
-	t.Helper()
-	require.NoError(t, db.Insert(t.Context(), &codespace_model.ManagerAddress{
-		ManagerID: managerID,
-		Kind:      kind,
-		Address:   address,
-	}))
 }

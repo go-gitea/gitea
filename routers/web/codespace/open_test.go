@@ -112,16 +112,12 @@ func insertWebOpenManager(t *testing.T, gatewayURL string) *codespace_model.Mana
 		UserID:         0,
 		RuntimeState:   codespace_model.ManagerRuntimeStateOnline,
 		TagsJSON:       "[]",
+		GatewayURL:     gatewayURL,
 		CreatedUnix:    time.Now().Unix(),
 		LastOnlineUnix: time.Now().Unix(),
 	}
 	manager.GenerateManagerSecret()
 	require.NoError(t, db.Insert(t.Context(), manager))
-	require.NoError(t, db.Insert(t.Context(), &codespace_model.ManagerAddress{
-		ManagerID: manager.ID,
-		Kind:      codespace_model.ManagerAddressGateway,
-		Address:   gatewayURL,
-	}))
 	return manager
 }
 

@@ -59,23 +59,39 @@ func DeleteCodespace(ctx context.Context, opts LifecycleActionOptions) (*Lifecyc
 }
 
 func applyCreatorLifecycleAction(ctx context.Context, opts LifecycleActionOptions, operationType string) (*LifecycleActionResult, error) {
-	if err := validateLifecycleActionOptions(opts); err != nil {
-		return nil, err
+	if opts.UserID <= 0 {
+		return nil, errors.New("user_id must be positive")
+	}
+	if opts.CodespaceID <= 0 {
+		return nil, errors.New("codespace_id must be positive")
 	}
 
 	var result *LifecycleActionResult
 	err := globallock.LockAndDo(ctx, codespaceRowLockKey(opts.CodespaceID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace, err := loadLifecycleActionCodespace(ctx, opts)
+			codespace := new(codespace_model.Codespace)
+			has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
 			if err != nil {
 				return err
+			}
+			if !has {
+				return ErrLifecycleActionNotFound
+			}
+			if codespace.UserID != opts.UserID {
+				return ErrLifecycleActionPermissionDenied
 			}
 			now := time.Now().Unix()
 			switch operationType {
 			case codespace_model.OperationStop:
 				result, err = applyStopAction(ctx, codespace, now)
 			case codespace_model.OperationResume:
-				result, err = applyResumeAction(ctx, codespace, now)
+				if codespace.Status != codespace_model.StatusStopped || hasActiveOperation(codespace) || codespace.ManagerID <= 0 {
+					return ErrLifecycleActionStateUnavailable
+				}
+				if err := queueLifecycleOperation(ctx, codespace, codespace_model.StatusStopped, now, true); err != nil {
+					return err
+				}
+				result = lifecycleActionResult(codespace)
 			case codespace_model.OperationDelete:
 				result, err = applyDeleteAction(ctx, codespace, now)
 			default:
@@ -104,17 +120,7 @@ func applyStopAction(ctx context.Context, codespace *codespace_model.Codespace, 
 		}
 		return lifecycleActionResult(codespace), nil
 	}
-	if err := queueLifecycleOperation(ctx, codespace, codespace_model.OperationStop, codespace_model.StatusRunning, now, false); err != nil {
-		return nil, err
-	}
-	return lifecycleActionResult(codespace), nil
-}
-
-func applyResumeAction(ctx context.Context, codespace *codespace_model.Codespace, now int64) (*LifecycleActionResult, error) {
-	if codespace.Status != codespace_model.StatusStopped || hasActiveOperation(codespace) || codespace.ManagerID <= 0 {
-		return nil, ErrLifecycleActionStateUnavailable
-	}
-	if err := queueLifecycleOperation(ctx, codespace, codespace_model.OperationResume, codespace_model.StatusStopped, now, true); err != nil {
+	if err := queueLifecycleOperation(ctx, codespace, codespace_model.StatusRunning, now, false); err != nil {
 		return nil, err
 	}
 	return lifecycleActionResult(codespace), nil
@@ -134,20 +140,20 @@ func applyDeleteAction(ctx context.Context, codespace *codespace_model.Codespace
 		}
 		return &LifecycleActionResult{Deleted: true}, nil
 	}
-	if codespace.Status == codespace_model.StatusDeleting && codespace.OperationType == codespace_model.OperationDelete {
+	if codespace.Status == codespace_model.StatusDeleting && hasActiveOperation(codespace) {
 		return lifecycleActionResult(codespace), nil
 	}
 	if err := cleanupCredentialsForStatus(ctx, codespace, codespace_model.StatusDeleting); err != nil {
 		return nil, err
 	}
-	if err := queueLifecycleOperation(ctx, codespace, codespace_model.OperationDelete, codespace_model.StatusDeleting, now, false); err != nil {
+	if err := queueLifecycleOperation(ctx, codespace, codespace_model.StatusDeleting, now, false); err != nil {
 		return nil, err
 	}
 	deleteRuntimeMetadata(codespace.UUID)
 	return lifecycleActionResult(codespace), nil
 }
 
-func queueLifecycleOperation(ctx context.Context, codespace *codespace_model.Codespace, operationType, status string, now int64, advanceInteraction bool) error {
+func queueLifecycleOperation(ctx context.Context, codespace *codespace_model.Codespace, status string, now int64, advanceInteraction bool) error {
 	nextVersion, err := codespace_model.NextVersion(codespace.OperationRVersion)
 	if err != nil {
 		return ErrLifecycleActionVersionExhausted
@@ -155,8 +161,6 @@ func queueLifecycleOperation(ctx context.Context, codespace *codespace_model.Cod
 	cols := []string{
 		"status",
 		"operation_r_version",
-		"operation_type",
-		"operation_status",
 		"operation_trigger",
 		"operation_created_unix",
 		"operation_started_unix",
@@ -174,8 +178,6 @@ func queueLifecycleOperation(ctx context.Context, codespace *codespace_model.Cod
 	}
 	codespace.Status = status
 	codespace.OperationRVersion = nextVersion
-	codespace.OperationType = operationType
-	codespace.OperationStatus = codespace_model.OperationStatusQueued
 	codespace.OperationTrigger = codespace_model.OperationTriggerUser
 	codespace.OperationCreatedUnix = now
 	codespace.OperationStartedUnix = 0
@@ -187,14 +189,15 @@ func queueLifecycleOperation(ctx context.Context, codespace *codespace_model.Cod
 
 func deleteUnboundCodespaceIfCurrent(ctx context.Context, codespace *codespace_model.Codespace) (bool, error) {
 	affected, err := db.GetEngine(ctx).
-		Where("id = ? AND user_id = ? AND manager_id = 0 AND status = ? AND operation_r_version = ? AND operation_type = ? AND operation_status = ? AND operation_trigger = ?",
+		Where("id = ? AND user_id = ? AND manager_id = 0 AND status = ? AND operation_r_version = ? AND operation_trigger = ? AND operation_created_unix = ? AND operation_started_unix = ? AND operation_deadline_unix = ?",
 			codespace.ID,
 			codespace.UserID,
 			codespace.Status,
 			codespace.OperationRVersion,
-			codespace.OperationType,
-			codespace.OperationStatus,
 			codespace.OperationTrigger,
+			codespace.OperationCreatedUnix,
+			codespace.OperationStartedUnix,
+			codespace.OperationDeadlineUnix,
 		).
 		Delete(new(codespace_model.Codespace))
 	if err != nil || affected == 0 {
@@ -213,35 +216,10 @@ func deleteUnboundCodespaceIfCurrent(ctx context.Context, codespace *codespace_m
 	return true, nil
 }
 
-func validateLifecycleActionOptions(opts LifecycleActionOptions) error {
-	if opts.UserID <= 0 {
-		return errors.New("user_id must be positive")
-	}
-	if opts.CodespaceID <= 0 {
-		return errors.New("codespace_id must be positive")
-	}
-	return nil
-}
-
-func loadLifecycleActionCodespace(ctx context.Context, opts LifecycleActionOptions) (*codespace_model.Codespace, error) {
-	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, ErrLifecycleActionNotFound
-	}
-	if codespace.UserID != opts.UserID {
-		return nil, ErrLifecycleActionPermissionDenied
-	}
-	return codespace, nil
-}
-
 func lifecycleActionResult(codespace *codespace_model.Codespace) *LifecycleActionResult {
 	return &LifecycleActionResult{
 		Status:            codespace.Status,
-		OperationType:     codespace.OperationType,
+		OperationType:     codespace_model.ActiveOperationType(codespace),
 		OperationRVersion: codespace.OperationRVersion,
 	}
 }

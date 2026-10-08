@@ -65,18 +65,18 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 			}
 
 			// A stale final ends Manager work but must not overwrite a newer operation, so acknowledge it without changing state.
-			if !isCurrentRunningOperation(codespace, manager.ID, opts.OperationRVersion) || codespace.OperationType != operationType {
+			if !isCurrentRunningOperation(codespace, manager.ID, opts.OperationRVersion) || codespace_model.ActiveOperationType(codespace) != operationType {
 				return nil
 			}
 			now := time.Now().Unix()
-			if isConvergentOperation(codespace.OperationType) {
+			if isConvergentOperation(operationType) {
 				if opts.FinalStatus == codespacev1.FinalStatus_FINAL_STATUS_FAILED {
 					return errors.New("stop and delete operations must converge or let their lease expire")
 				}
 				return applyFinalOperation(ctx, codespace, opts, now)
 			}
 			if codespace.OperationDeadlineUnix > 0 && now >= codespace.OperationDeadlineUnix {
-				resultStatus := timeoutStatus(codespace.OperationType)
+				resultStatus := timeoutStatus(operationType)
 				stateSummary = operationTimeoutSummary(codespace, resultStatus)
 				return applyFinalState(ctx, codespace, resultStatus, now)
 			}
@@ -99,11 +99,11 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 func isCurrentRunningOperation(codespace *codespace_model.Codespace, managerID, operationRVersion int64) bool {
 	return codespace.ManagerID == managerID &&
 		codespace.OperationRVersion == operationRVersion &&
-		codespace.OperationStatus == codespace_model.OperationStatusRunning
+		codespace_model.IsOperationRunning(codespace)
 }
 
 func hasActiveOperation(codespace *codespace_model.Codespace) bool {
-	return codespace.OperationType != "" || codespace.OperationStatus != "" || codespace.OperationTrigger != ""
+	return codespace_model.ActiveOperationType(codespace) != ""
 }
 
 func requireFinalizeReadyPrerequisites(ctx context.Context, codespace *codespace_model.Codespace, operationRVersion int64) error {
@@ -154,7 +154,7 @@ func isConvergentOperation(operationType string) bool {
 }
 
 func retryConvergentOperation(ctx context.Context, codespace *codespace_model.Codespace, now int64) error {
-	if !isConvergentOperation(codespace.OperationType) {
+	if !isConvergentOperation(codespace_model.ActiveOperationType(codespace)) {
 		return errors.New("operation is not convergent")
 	}
 	nextVersion, err := codespace_model.NextVersion(codespace.OperationRVersion)
@@ -162,13 +162,11 @@ func retryConvergentOperation(ctx context.Context, codespace *codespace_model.Co
 		return err
 	}
 	codespace.OperationRVersion = nextVersion
-	codespace.OperationStatus = codespace_model.OperationStatusQueued
 	codespace.OperationStartedUnix = 0
 	codespace.OperationDeadlineUnix = 0
 	codespace.UpdatedUnix = now
 	_, err = db.GetEngine(ctx).ID(codespace.ID).Cols(
 		"operation_r_version",
-		"operation_status",
 		"operation_started_unix",
 		"operation_deadline_unix",
 		"updated_unix",
@@ -212,8 +210,6 @@ func applyFinalState(ctx context.Context, codespace *codespace_model.Codespace, 
 	}
 	_, err := db.GetEngine(ctx).ID(codespace.ID).Cols(
 		"status",
-		"operation_type",
-		"operation_status",
 		"operation_trigger",
 		"operation_created_unix",
 		"operation_started_unix",
@@ -225,8 +221,6 @@ func applyFinalState(ctx context.Context, codespace *codespace_model.Codespace, 
 }
 
 func clearActiveOperation(codespace *codespace_model.Codespace) {
-	codespace.OperationType = ""
-	codespace.OperationStatus = ""
 	codespace.OperationTrigger = ""
 	codespace.OperationCreatedUnix = 0
 	codespace.OperationStartedUnix = 0

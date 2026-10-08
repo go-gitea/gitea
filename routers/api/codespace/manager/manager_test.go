@@ -59,7 +59,6 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 		ManagerRuntimeState:                codespacev1.ManagerRuntimeState_MANAGER_RUNTIME_STATE_ONLINE,
 		GatewaySshHostKeyAlgorithm:         " ssh-ed25519 ",
 		GatewaySshHostKeyFingerprintSha256: " SHA256:test ",
-		GatewaySshHostKeyUpdatedUnix:       1,
 	}
 	_, err = client.DeclareManager(t.Context(), managerRequest(managerID, "bad-secret", declaration))
 	require.Error(t, err)
@@ -94,19 +93,8 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	assert.Equal(t, "0.1.0", manager.Version)
 	assert.Equal(t, "ssh-ed25519", manager.GatewaySSHHostKeyAlgorithm)
 	assert.Equal(t, "SHA256:test", manager.GatewaySSHHostKeyFingerprintSHA256)
-	assert.EqualValues(t, 1, manager.GatewaySSHHostKeyUpdatedUnix)
-
-	count, err := db.GetEngine(t.Context()).Where("manager_id = ?", manager.ID).Count(new(codespace_model.ManagerAddress))
-	require.NoError(t, err)
-	assert.EqualValues(t, 2, count)
-	addresses := make([]*codespace_model.ManagerAddress, 0, 2)
-	require.NoError(t, db.GetEngine(t.Context()).Where("manager_id = ?", manager.ID).Find(&addresses))
-	addressByKind := map[string]string{}
-	for _, address := range addresses {
-		addressByKind[address.Kind] = address.Address
-	}
-	assert.Equal(t, "https://workspace.example.com", addressByKind[codespace_model.ManagerAddressGateway])
-	assert.Equal(t, "workspace.example.com:22", addressByKind[codespace_model.ManagerAddressSSH])
+	assert.Equal(t, "https://workspace.example.com", manager.GatewayURL)
+	assert.Equal(t, "workspace.example.com:22", manager.GatewaySSHAddr)
 }
 
 func TestManagerServiceRequestProtocolVersionFieldNumbers(t *testing.T) {
@@ -156,9 +144,12 @@ func TestManagerServiceDeclareAllowsSharedGatewayAddresses(t *testing.T) {
 		managerTestDeclaration("https://other-gateway.example.com", "workspace.example.com:22")))
 	require.NoError(t, err)
 
-	count, err := db.GetEngine(t.Context()).Where("manager_id = ?", secondManager.ID).Count(new(codespace_model.ManagerAddress))
+	stored := new(codespace_model.Manager)
+	has, err := db.GetEngine(t.Context()).ID(secondManager.ID).Get(stored)
 	require.NoError(t, err)
-	assert.EqualValues(t, 2, count)
+	require.True(t, has)
+	assert.Equal(t, "https://other-gateway.example.com", stored.GatewayURL)
+	assert.Equal(t, "workspace.example.com:22", stored.GatewaySSHAddr)
 }
 
 func TestManagerServiceDeclareAcceptsCookieScopeWarning(t *testing.T) {
@@ -173,9 +164,12 @@ func TestManagerServiceDeclareAcceptsCookieScopeWarning(t *testing.T) {
 		managerTestDeclaration("https://workspace.example.com", "workspace.example.com:22")))
 	require.NoError(t, err)
 
-	count, err := db.GetEngine(t.Context()).Where("manager_id = ?", manager.ID).Count(new(codespace_model.ManagerAddress))
+	stored := new(codespace_model.Manager)
+	has, err := db.GetEngine(t.Context()).ID(manager.ID).Get(stored)
 	require.NoError(t, err)
-	assert.EqualValues(t, 2, count)
+	require.True(t, has)
+	assert.Equal(t, "https://workspace.example.com", stored.GatewayURL)
+	assert.Equal(t, "workspace.example.com:22", stored.GatewaySSHAddr)
 }
 
 func TestManagerServiceFetchPayloadAndLease(t *testing.T) {
@@ -197,8 +191,6 @@ func TestManagerServiceFetchPayloadAndLease(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     41,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusQueued,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  time.Now().Unix(),
 		InteractionGeneration: 7,
@@ -258,8 +250,6 @@ func TestManagerServiceStructuredErrorDetails(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     25,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,
@@ -364,8 +354,6 @@ func TestManagerServiceReportRuntimeMetadataVersionExhausted(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     31,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,
@@ -439,7 +427,6 @@ func managerTestDeclaration(gatewayURL, gatewaySSHAddr string) *codespacev1.Decl
 		ManagerRuntimeState:                codespacev1.ManagerRuntimeState_MANAGER_RUNTIME_STATE_ONLINE,
 		GatewaySshHostKeyAlgorithm:         "ssh-ed25519",
 		GatewaySshHostKeyFingerprintSha256: "SHA256:test",
-		GatewaySshHostKeyUpdatedUnix:       1,
 	}
 }
 
@@ -467,7 +454,6 @@ func insertManagerTestCodespace(t *testing.T, managerID int64, codespace *codesp
 	codespace.RefName = "main"
 	codespace.EnvironmentTag = "default"
 	codespace.CommitSHA = "0123456789abcdef0123456789abcdef01234567"
-	codespace.DevContainerSource = codespace_model.DevContainerSourceTemplate
 	codespace.DevContainerContent = `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`
 	codespace.AutoStopMode = codespace_model.AutoStopModeDefault
 	codespace.CreatedUnix = 1

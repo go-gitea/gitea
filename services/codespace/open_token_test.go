@@ -22,14 +22,12 @@ func TestOpenEndpointTokenAllowsAndConsumes(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	insertServiceManagerGatewayAddress(t, manager, "https://gateway.example.com")
+	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
 	codespaceUUID := "91919191-9191-4919-8919-919191919191"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     81,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusQueued,
 		OperationTrigger:      codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix:  time.Now().Unix(),
 		InteractionGeneration: 5,
@@ -52,8 +50,7 @@ func TestOpenEndpointTokenAllowsAndConsumes(t *testing.T) {
 
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.EqualValues(t, 6, row.InteractionGeneration)
-	assert.Empty(t, row.OperationType)
-	assert.Empty(t, row.OperationStatus)
+	assert.False(t, hasActiveOperation(row))
 
 	validated, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: issued.code})
 	require.NoError(t, err)
@@ -74,7 +71,7 @@ func TestOpenEndpointHidesOtherCreatorCodespace(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	insertServiceManagerGatewayAddress(t, manager, "https://gateway.example.com")
+	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
 	codespaceUUID := "98979797-9797-4979-8979-979797979797"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:              codespaceUUID,
@@ -95,7 +92,7 @@ func TestValidateOpenTokenDeniesAndPreservesTemporarilyInvalidCode(t *testing.T)
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	insertServiceManagerGatewayAddress(t, manager, "https://gateway.example.com")
+	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
 	codespaceUUID := "92929292-9292-4929-8929-929292929292"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:              codespaceUUID,
@@ -125,7 +122,7 @@ func TestValidateOpenTokenDeletesExpiredOrMalformedCache(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	insertServiceManagerGatewayAddress(t, manager, "https://gateway.example.com")
+	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
 	codespaceUUID := "93939393-9393-4939-8939-939393939393"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:              codespaceUUID,
@@ -163,7 +160,7 @@ func TestValidateOpenTokenEndpointMustRemainPrivate(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	insertServiceManagerGatewayAddress(t, manager, "https://gateway.example.com")
+	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
 	codespaceUUID := "94949494-9494-4949-8949-949494949494"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:              codespaceUUID,
@@ -194,7 +191,7 @@ func TestValidateOpenTokenVersionExhaustedConsumesCode(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	insertServiceManagerGatewayAddress(t, manager, "https://gateway.example.com")
+	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
 	codespaceUUID := "95959595-9595-4959-8959-959595959595"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:                  codespaceUUID,
@@ -226,7 +223,7 @@ func TestOpenEndpointPublicRedirectDoesNotIssueCodeOrAdvance(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	insertServiceManagerGatewayAddress(t, manager, "https://gateway.example.com")
+	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
 	codespaceUUID := "97979797-9797-4979-8979-979797979797"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:                  codespaceUUID,
@@ -251,11 +248,9 @@ func TestOpenEndpointPublicRedirectDoesNotIssueCodeOrAdvance(t *testing.T) {
 	assert.Zero(t, row.LastActiveUnix)
 }
 
-func insertServiceManagerGatewayAddress(t *testing.T, manager *codespace_model.Manager, gatewayURL string) {
+func setServiceManagerGatewayURL(t *testing.T, manager *codespace_model.Manager, gatewayURL string) {
 	t.Helper()
-	require.NoError(t, db.Insert(t.Context(), &codespace_model.ManagerAddress{
-		ManagerID: manager.ID,
-		Kind:      codespace_model.ManagerAddressGateway,
-		Address:   gatewayURL,
-	}))
+	manager.GatewayURL = gatewayURL
+	_, err := db.GetEngine(t.Context()).ID(manager.ID).Cols("gateway_url").Update(manager)
+	require.NoError(t, err)
 }

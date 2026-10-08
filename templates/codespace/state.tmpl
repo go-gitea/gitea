@@ -128,10 +128,6 @@
 											<span class="tw-break-anywhere tw-font-mono">{{$cs.SSH.HostKeyFingerprint}}</span>
 											<button class="ui compact basic icon button" type="button" data-clipboard-text="{{$cs.SSH.HostKeyFingerprint}}" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
 										</dd>
-										{{if $cs.SSH.HostKeyUpdatedUnix}}
-											<dt>{{ctx.Locale.Tr "codespace.ssh_host_key_updated"}}</dt>
-											<dd>{{DateUtils.AbsoluteShort $cs.SSH.HostKeyUpdatedUnix}}</dd>
-										{{end}}
 									</dl>
 								</details>
 							</section>

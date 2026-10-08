@@ -324,7 +324,7 @@ func appendEncodedLogLines(ctx context.Context, codespace *codespace_model.Codes
 	codespace.LogSize = previousSize + int64(len(encoded))
 	query := db.GetEngine(ctx).Where("id = ? AND log_size = ?", codespace.ID, previousSize)
 	if expectedManagerID > 0 {
-		query = query.And("manager_id = ? AND operation_r_version = ? AND operation_status = ?", expectedManagerID, expectedOperationRVersion, codespace_model.OperationStatusRunning)
+		query = query.And("manager_id = ? AND operation_r_version = ? AND operation_created_unix > 0 AND operation_started_unix > 0", expectedManagerID, expectedOperationRVersion)
 	}
 	affected, err := query.Cols("log_size").Update(codespace)
 	if err != nil {
@@ -374,7 +374,7 @@ func operationTimeoutSummary(codespace *codespace_model.Codespace, resultStatus 
 	return &internalStateSummary{
 		CodespaceUUID: codespace.UUID,
 		Message: fmt.Sprintf("Gitea recorded operation %s#%d timeout as %s.",
-			codespace.OperationType, codespace.OperationRVersion, resultStatus),
+			codespace_model.ActiveOperationType(codespace), codespace.OperationRVersion, resultStatus),
 	}
 }
 
@@ -382,7 +382,7 @@ func operationRetrySummary(codespace *codespace_model.Codespace) *internalStateS
 	return &internalStateSummary{
 		CodespaceUUID: codespace.UUID,
 		Message: fmt.Sprintf("Gitea requeued operation %s#%d after its execution deadline expired.",
-			codespace.OperationType, codespace.OperationRVersion),
+			codespace_model.ActiveOperationType(codespace), codespace.OperationRVersion),
 	}
 }
 

@@ -25,17 +25,17 @@ var dnsLabelPattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$
 
 // WarnManagerGatewayAddressConflicts reports stored Gateway base domains that overlap the current site cookie scope.
 func WarnManagerGatewayAddressConflicts(ctx context.Context) error {
-	var addresses []*codespace_model.ManagerAddress
-	if err := db.GetEngine(ctx).Where("kind = ?", codespace_model.ManagerAddressGateway).Find(&addresses); err != nil {
+	var managers []*codespace_model.Manager
+	if err := db.GetEngine(ctx).Where("gateway_url <> ?", "").Find(&managers); err != nil {
 		return err
 	}
-	for _, address := range addresses {
-		normalized, err := normalizeGatewayURL(address.Address)
+	for _, manager := range managers {
+		normalized, err := normalizeGatewayURL(manager.GatewayURL)
 		if err != nil {
-			log.Warn("Codespace Manager Gateway address is invalid in database: manager_id=%d gateway_url=%q error=%v. This stored declaration is ignored for startup validation; fix or delete the Manager from the Codespace settings page.", address.ManagerID, address.Address, err)
+			log.Warn("Codespace Manager Gateway address is invalid in database: manager_id=%d gateway_url=%q error=%v. This stored declaration is ignored for startup validation; fix or delete the Manager from the Codespace settings page.", manager.ID, manager.GatewayURL, err)
 			continue
 		}
-		warnGatewayCookieScopeConflict(address.ManagerID, normalized)
+		warnGatewayCookieScopeConflict(manager.ID, normalized)
 	}
 	return nil
 }

@@ -209,21 +209,18 @@ func TestGetCreatorCodespaceKeepsQueuedIdleStopInteractive(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	_, err := db.GetEngine(t.Context()).ID(manager.ID).Cols("gateway_ssh_host_key_algorithm", "gateway_ssh_host_key_fingerprint_sha256", "gateway_ssh_host_key_updated_unix").Update(&codespace_model.Manager{
+	_, err := db.GetEngine(t.Context()).ID(manager.ID).Cols("gateway_ssh_addr", "gateway_ssh_host_key_algorithm", "gateway_ssh_host_key_fingerprint_sha256").Update(&codespace_model.Manager{
+		GatewaySSHAddr:                     "ssh.example.com:2222",
 		GatewaySSHHostKeyAlgorithm:         "ssh-ed25519",
 		GatewaySSHHostKeyFingerprintSHA256: "SHA256:view",
-		GatewaySSHHostKeyUpdatedUnix:       123,
 	})
 	require.NoError(t, err)
-	insertSettingsManagerAddress(t, manager.ID, codespace_model.ManagerAddressSSH, "ssh.example.com:2222")
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	codespaceUUID := "18181818-1818-4818-8818-181818181818"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:                 codespaceUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    18,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -250,7 +247,6 @@ func TestGetCreatorCodespaceKeepsQueuedIdleStopInteractive(t *testing.T) {
 	assert.Equal(t, "ssh -p 2222 cs-"+codespaceUUID+"@ssh.example.com", view.SSH.Command)
 	assert.Equal(t, "ssh-ed25519", view.SSH.HostKeyAlgorithm)
 	assert.Equal(t, "SHA256:view", view.SSH.HostKeyFingerprint)
-	assert.EqualValues(t, 123, view.SSH.HostKeyUpdatedUnix)
 }
 
 func TestGetCreatorCodespaceShowsTransitionsAndPermissions(t *testing.T) {
@@ -258,10 +254,10 @@ func TestGetCreatorCodespaceShowsTransitionsAndPermissions(t *testing.T) {
 
 	codespaceUUID := "19191919-1919-4919-8919-191919191919"
 	insertServiceCodespace(t, 0, &codespace_model.Codespace{
-		UUID:            codespaceUUID,
-		Status:          codespace_model.StatusCreating,
-		OperationType:   codespace_model.OperationCreate,
-		OperationStatus: codespace_model.OperationStatusQueued,
+		UUID:                 codespaceUUID,
+		Status:               codespace_model.StatusCreating,
+		OperationTrigger:     codespace_model.OperationTriggerUser,
+		OperationCreatedUnix: 1,
 	})
 
 	view, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
@@ -285,8 +281,6 @@ func TestGetCreatorCodespaceShowsCurrentBootStage(t *testing.T) {
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:              codespaceUUID,
 		Status:            codespace_model.StatusCreating,
-		OperationType:     codespace_model.OperationCreate,
-		OperationStatus:   codespace_model.OperationStatusRunning,
 		OperationRVersion: 29,
 	})
 	entry := serviceRuntimeMetadataEntry(t, 29, nil)

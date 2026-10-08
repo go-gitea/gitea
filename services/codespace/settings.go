@@ -93,7 +93,6 @@ type ManagerSettingsView struct {
 	GatewaySSHAddr                     string
 	GatewaySSHHostKeyAlgorithm         string
 	GatewaySSHHostKeyFingerprintSHA256 string
-	GatewaySSHHostKeyUpdatedUnix       int64
 	BoundCodespaces                    int64
 }
 
@@ -346,9 +345,6 @@ func deleteManagerIdentityLocked(ctx context.Context, managerID int64, batchSize
 			if hasCodespace {
 				return fmt.Errorf("manager %d still has bound codespaces", current.ID)
 			}
-			if _, err := db.GetEngine(ctx).Where("manager_id = ?", current.ID).Delete(new(codespace_model.ManagerAddress)); err != nil {
-				return err
-			}
 			_, err = db.GetEngine(ctx).ID(current.ID).Delete(new(codespace_model.Manager))
 			return err
 		})
@@ -378,30 +374,10 @@ func settingsManagerViews(ctx context.Context, managers []*codespace_model.Manag
 		return nil, err
 	}
 
-	type managerAddresses struct {
-		gatewayURL     string
-		gatewaySSHAddr string
-	}
-	addressesByManager := make(map[int64]managerAddresses, len(managers))
 	boundCodespacesByManager := make(map[int64]int64, len(managers))
 	for start := 0; start < len(managerIDs); start += db.DefaultMaxInSize {
 		end := min(start+db.DefaultMaxInSize, len(managerIDs))
 		ids := managerIDs[start:end]
-
-		var addresses []*codespace_model.ManagerAddress
-		if err := db.GetEngine(ctx).In("manager_id", ids).Asc("manager_id", "kind").Find(&addresses); err != nil {
-			return nil, err
-		}
-		for _, address := range addresses {
-			values := addressesByManager[address.ManagerID]
-			switch address.Kind {
-			case codespace_model.ManagerAddressGateway:
-				values.gatewayURL = address.Address
-			case codespace_model.ManagerAddressSSH:
-				values.gatewaySSHAddr = address.Address
-			}
-			addressesByManager[address.ManagerID] = values
-		}
 
 		counts := make([]*struct {
 			ManagerID int64
@@ -440,7 +416,6 @@ func settingsManagerViews(ctx context.Context, managers []*codespace_model.Manag
 		if runtimeState == "" {
 			runtimeState = codespace_model.ManagerRuntimeStateRecovering
 		}
-		addresses := addressesByManager[manager.ID]
 		view := &ManagerSettingsView{
 			ID:                                 manager.ID,
 			Name:                               manager.Name,
@@ -452,11 +427,10 @@ func settingsManagerViews(ctx context.Context, managers []*codespace_model.Manag
 			Environments:                       environments,
 			LastOnlineUnix:                     manager.LastOnlineUnix,
 			CreatedUnix:                        manager.CreatedUnix,
-			GatewayURL:                         addresses.gatewayURL,
-			GatewaySSHAddr:                     addresses.gatewaySSHAddr,
+			GatewayURL:                         manager.GatewayURL,
+			GatewaySSHAddr:                     manager.GatewaySSHAddr,
 			GatewaySSHHostKeyAlgorithm:         manager.GatewaySSHHostKeyAlgorithm,
 			GatewaySSHHostKeyFingerprintSHA256: manager.GatewaySSHHostKeyFingerprintSHA256,
-			GatewaySSHHostKeyUpdatedUnix:       manager.GatewaySSHHostKeyUpdatedUnix,
 			BoundCodespaces:                    boundCodespacesByManager[manager.ID],
 		}
 		if manager.LastOnlineUnix == 0 {

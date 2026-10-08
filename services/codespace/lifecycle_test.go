@@ -27,8 +27,6 @@ func TestFinalizeOperationResumeFailedTransaction(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusStopped,
 		OperationRVersion:     3,
-		OperationType:         codespace_model.OperationResume,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,
@@ -47,8 +45,7 @@ func TestFinalizeOperationResumeFailedTransaction(t *testing.T) {
 
 	codespace := loadServiceCodespace(t, codespaceUUID)
 	assert.Equal(t, codespace_model.StatusStopped, codespace.Status)
-	assert.Empty(t, codespace.OperationType)
-	assert.Empty(t, codespace.OperationStatus)
+	assert.False(t, hasActiveOperation(codespace))
 	assert.Positive(t, codespace.UpdatedUnix)
 	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
@@ -69,8 +66,6 @@ func TestFinalizeOperationRejectsWrongManagerAsStale(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     4,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,
@@ -84,7 +79,7 @@ func TestFinalizeOperationRejectsWrongManagerAsStale(t *testing.T) {
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_DONE,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, codespace_model.OperationStatusRunning, loadServiceCodespace(t, codespaceUUID).OperationStatus)
+	assert.True(t, codespace_model.IsOperationRunning(loadServiceCodespace(t, codespaceUUID)))
 }
 
 func TestFinalizeOperationAcceptsConvergentCompletionAfterDeadline(t *testing.T) {
@@ -96,8 +91,6 @@ func TestFinalizeOperationAcceptsConvergentCompletionAfterDeadline(t *testing.T)
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     41,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,
@@ -114,8 +107,7 @@ func TestFinalizeOperationAcceptsConvergentCompletionAfterDeadline(t *testing.T)
 	require.NoError(t, err)
 	codespace := loadServiceCodespace(t, codespaceUUID)
 	assert.Equal(t, codespace_model.StatusStopped, codespace.Status)
-	assert.Empty(t, codespace.OperationType)
-	assert.Empty(t, codespace.OperationStatus)
+	assert.False(t, hasActiveOperation(codespace))
 	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 }
@@ -126,7 +118,6 @@ func TestFinalizeOperationRejectsConvergentFailure(t *testing.T) {
 	codespaceUUID := "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbd"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID: codespaceUUID, Status: codespace_model.StatusDeleting, OperationRVersion: 42,
-		OperationType: codespace_model.OperationDelete, OperationStatus: codespace_model.OperationStatusRunning,
 		OperationTrigger: codespace_model.OperationTriggerUser, OperationCreatedUnix: 10,
 		OperationStartedUnix: 11, OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
@@ -139,7 +130,7 @@ func TestFinalizeOperationRejectsConvergentFailure(t *testing.T) {
 	require.Error(t, err)
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.Equal(t, codespace_model.StatusDeleting, row.Status)
-	assert.Equal(t, codespace_model.OperationStatusRunning, row.OperationStatus)
+	assert.True(t, codespace_model.IsOperationRunning(row))
 }
 
 func TestReportRuntimeMetadataRejectsStageRegression(t *testing.T) {
@@ -152,8 +143,6 @@ func TestReportRuntimeMetadataRejectsStageRegression(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     5,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,
@@ -185,8 +174,7 @@ func TestReportRuntimeMetadataResourceUsageRefresh(t *testing.T) {
 	codespaceUUID := "dededede-dede-4ded-8ded-dededededede"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID: codespaceUUID, Status: codespace_model.StatusCreating,
-		OperationRVersion: 5, OperationType: codespace_model.OperationCreate,
-		OperationStatus: codespace_model.OperationStatusRunning, OperationTrigger: codespace_model.OperationTriggerUser,
+		OperationRVersion: 5, OperationTrigger: codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: 10, OperationStartedUnix: 11, OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
 	metadata := serviceRuntimeMetadataProto(t, 5, bootStageReady, nil)
@@ -236,8 +224,6 @@ func TestReportRuntimeMetadataRejectsGenerationExhaustion(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     7,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,
@@ -266,8 +252,6 @@ func TestReportRuntimeMetadataUsesCurrentManagerAvailability(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     6,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,
@@ -315,8 +299,6 @@ func TestFinalizeOperationCreateDoneRejectsDamagedGiteaToken(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     6,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,
@@ -343,7 +325,7 @@ func TestFinalizeOperationCreateDoneRejectsDamagedGiteaToken(t *testing.T) {
 	})
 	require.ErrorIs(t, err, ErrFinalizeGiteaTokenRequired)
 	assert.Empty(t, outcome)
-	assert.Equal(t, codespace_model.OperationStatusRunning, loadServiceCodespace(t, codespaceUUID).OperationStatus)
+	assert.True(t, codespace_model.IsOperationRunning(loadServiceCodespace(t, codespaceUUID)))
 }
 
 func TestFinalizeStopClearsRuntimeMetadata(t *testing.T) {
@@ -356,8 +338,6 @@ func TestFinalizeStopClearsRuntimeMetadata(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     6,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,
@@ -413,8 +393,7 @@ func insertServiceCodespace(t *testing.T, managerID int64, codespace *codespace_
 		codespace.EnvironmentTag = "default"
 	}
 	codespace.CommitSHA = "0123456789abcdef0123456789abcdef01234567"
-	if codespace.DevContainerSource == "" && codespace.DevContainerPath == "" && codespace.DevContainerContent == "" {
-		codespace.DevContainerSource = codespace_model.DevContainerSourceTemplate
+	if codespace.DevContainerPath == "" && codespace.DevContainerContent == "" {
 		codespace.DevContainerContent = `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`
 	}
 	if codespace.AutoStopMode == "" {

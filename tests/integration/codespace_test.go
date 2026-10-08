@@ -298,11 +298,10 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		row := loadIntegrationCodespaceByID(t, codespaceID)
 		require.Empty(t, row.UUID)
 		require.Equal(t, codespace_model.StatusCreating, row.Status)
-		require.Equal(t, codespace_model.OperationCreate, row.OperationType)
-		require.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
+		require.Equal(t, codespace_model.OperationCreate, codespace_model.ActiveOperationType(row))
+		require.True(t, codespace_model.IsOperationQueued(row))
 		require.Equal(t, codespace_model.OperationTriggerUser, row.OperationTrigger)
 		require.EqualValues(t, 1, row.OperationRVersion)
-		require.Equal(t, codespace_model.DevContainerSourceTemplate, row.DevContainerSource)
 		require.Empty(t, row.DevContainerPath)
 		require.JSONEq(t, `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`, row.DevContainerContent)
 
@@ -362,7 +361,7 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		assert.False(t, finalCreate.Msg.GetResourceAbsent())
 		row = loadIntegrationCodespace(t, codespaceUUID)
 		assert.Equal(t, codespace_model.StatusRunning, row.Status)
-		assert.Empty(t, row.OperationType)
+		assert.Empty(t, codespace_model.ActiveOperationType(row))
 		assertIntegrationExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 
 		autoStopResponse := user2Session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, codespacePath+"/auto-stop", map[string]string{
@@ -396,7 +395,7 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodPost, codespacePath+"/continue"), http.StatusSeeOther)
 		row = loadIntegrationCodespace(t, codespaceUUID)
 		assert.Equal(t, codespace_model.StatusRunning, row.Status)
-		assert.Empty(t, row.OperationType)
+		assert.Empty(t, codespace_model.ActiveOperationType(row))
 		assert.EqualValues(t, 1, row.InteractionGeneration)
 
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodPost, codespacePath+"/stop"), http.StatusSeeOther)
@@ -413,12 +412,12 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		assert.False(t, finalStop.Msg.GetResourceAbsent())
 		row = loadIntegrationCodespace(t, codespaceUUID)
 		assert.Equal(t, codespace_model.StatusStopped, row.Status)
-		assert.Empty(t, row.OperationType)
+		assert.Empty(t, codespace_model.ActiveOperationType(row))
 		assertIntegrationNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodPost, codespacePath+"/resume"), http.StatusSeeOther)
 		row = loadIntegrationCodespace(t, codespaceUUID)
-		assert.Equal(t, codespace_model.OperationResume, row.OperationType)
+		assert.Equal(t, codespace_model.OperationResume, codespace_model.ActiveOperationType(row))
 		assert.EqualValues(t, 2, row.InteractionGeneration)
 		fetched, err = client.FetchOperations(t.Context(), codespaceManagerRequest(manager.ID, secret, &codespacev1.FetchOperationsRequest{
 			ProtocolVersion:          1,
@@ -475,12 +474,12 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		assert.False(t, finalIdleStop.Msg.GetResourceAbsent())
 		row = loadIntegrationCodespace(t, codespaceUUID)
 		assert.Equal(t, codespace_model.StatusStopped, row.Status)
-		assert.Empty(t, row.OperationType)
+		assert.Empty(t, codespace_model.ActiveOperationType(row))
 		assertIntegrationNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodPost, codespacePath+"/resume"), http.StatusSeeOther)
 		row = loadIntegrationCodespace(t, codespaceUUID)
-		assert.Equal(t, codespace_model.OperationResume, row.OperationType)
+		assert.Equal(t, codespace_model.OperationResume, codespace_model.ActiveOperationType(row))
 		assert.EqualValues(t, 3, row.InteractionGeneration)
 		fetched, err = client.FetchOperations(t.Context(), codespaceManagerRequest(manager.ID, secret, &codespacev1.FetchOperationsRequest{
 			ProtocolVersion:          1,
@@ -564,8 +563,6 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 			UUID:                 refetchUUID,
 			Status:               codespace_model.StatusRunning,
 			OperationRVersion:    12,
-			OperationType:        codespace_model.OperationStop,
-			OperationStatus:      codespace_model.OperationStatusQueued,
 			OperationTrigger:     codespace_model.OperationTriggerUser,
 			OperationCreatedUnix: now,
 		})
@@ -604,8 +601,6 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 			UUID:                 activeNoContextUUID,
 			Status:               codespace_model.StatusRunning,
 			OperationRVersion:    20,
-			OperationType:        codespace_model.OperationStop,
-			OperationStatus:      codespace_model.OperationStatusQueued,
 			OperationTrigger:     codespace_model.OperationTriggerUser,
 			OperationCreatedUnix: now,
 		})
@@ -753,8 +748,7 @@ func insertIntegrationCodespace(t *testing.T, managerID int64, codespace *codesp
 	if codespace.CommitSHA == "" {
 		codespace.CommitSHA = "0123456789abcdef0123456789abcdef01234567"
 	}
-	if codespace.DevContainerSource == "" {
-		codespace.DevContainerSource = codespace_model.DevContainerSourceRepository
+	if codespace.DevContainerPath == "" && codespace.DevContainerContent == "" {
 		codespace.DevContainerPath = ".devcontainer/devcontainer.json"
 	}
 	codespace.ManagerID = managerID

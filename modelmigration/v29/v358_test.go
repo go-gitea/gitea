@@ -28,7 +28,6 @@ func Test_AddCodespaceTables(t *testing.T) {
 	for _, table := range []string{
 		"codespace",
 		"codespace_manager",
-		"codespace_manager_address",
 		"codespace_gitea_token",
 		"codespace_ssh_key",
 		"codespace_permission_authorization",
@@ -47,20 +46,17 @@ func Test_AddCodespaceTables(t *testing.T) {
 	assert.True(t, hasIndex(codespaceIndexes, "repo_id"))
 	assert.True(t, hasIndex(codespaceIndexes, "uuid"))
 	assertPrimaryKeyColumns(t, x, "codespace", "id")
-	assert.True(t, hasIndex(codespaceIndexes, "status", "operation_type", "operation_status", "manager_id", "environment_tag", "operation_created_unix", "id"))
-	assert.True(t, hasIndex(codespaceIndexes, "manager_id", "operation_status", "operation_created_unix", "id"))
-	assert.True(t, hasIndex(codespaceIndexes, "operation_status", "operation_created_unix", "id"))
-	assert.True(t, hasIndex(codespaceIndexes, "operation_status", "operation_deadline_unix", "id"))
+	assert.True(t, hasIndex(codespaceIndexes, "operation_started_unix", "status", "manager_id", "environment_tag", "operation_created_unix", "id"))
+	assert.True(t, hasIndex(codespaceIndexes, "manager_id", "operation_started_unix", "operation_created_unix", "id"))
+	assert.True(t, hasIndex(codespaceIndexes, "operation_started_unix", "operation_created_unix", "id"))
+	assert.True(t, hasIndex(codespaceIndexes, "operation_deadline_unix", "id"))
 	assert.True(t, hasIndex(codespaceIndexes, "status", "updated_unix", "id"))
 
 	managerIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_manager")
 	require.NoError(t, err)
 	assert.True(t, hasIndex(managerIndexes, "user_id"))
-
-	addressIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_manager_address")
-	require.NoError(t, err)
-	assert.True(t, hasIndex(addressIndexes, "kind", "address"))
-	assertPrimaryKeyColumns(t, x, "codespace_manager_address", "manager_id", "kind")
+	assert.True(t, hasIndex(managerIndexes, "gateway_url"))
+	assert.True(t, hasIndex(managerIndexes, "gateway_ssh_addr"))
 
 	giteaTokenIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_gitea_token")
 	require.NoError(t, err)

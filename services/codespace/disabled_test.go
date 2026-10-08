@@ -23,7 +23,7 @@ func TestGatewayAndRuntimeRPCsRejectDisabledCodespace(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	insertServiceManagerGatewayAddress(t, manager, "https://gateway.example.com")
+	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
 	insertServiceUserSSHKey(t, 1, testGitSSHPublicKey)
 
 	runningUUID := "91919191-9191-4919-8919-919191919191"
@@ -86,8 +86,6 @@ func TestGatewayAndRuntimeRPCsRejectDisabledCodespace(t *testing.T) {
 		UUID:                  creatingUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     92,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  10,
 		OperationStartedUnix:  11,
@@ -140,7 +138,7 @@ func TestDisabledCodespaceRejectsStartupEntrypoints(t *testing.T) {
 
 	_, err := ResumeCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, stoppedUUID)})
 	require.ErrorIs(t, err, ErrLifecycleActionStateUnavailable)
-	assert.Empty(t, loadServiceCodespace(t, stoppedUUID).OperationType)
+	assert.False(t, hasActiveOperation(loadServiceCodespace(t, stoppedUUID)))
 
 	_, err = ContinueCodespace(t.Context(), ContinueCodespaceOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, runningUUID)})
 	require.ErrorIs(t, err, ErrInteractionStateUnavailable)

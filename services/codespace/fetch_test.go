@@ -30,8 +30,6 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 		UUID:                 codespaceUUID,
 		Status:               codespace_model.StatusCreating,
 		OperationRVersion:    31,
-		OperationType:        codespace_model.OperationCreate,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -62,7 +60,7 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 	assert.Equal(t, row.RepoID, repository.GetRepositoryId())
 	assert.Equal(t, row.UserID, create.GetGitIdentity().GetUserId())
 	assert.Equal(t, manager.ID, row.ManagerID)
-	assert.Equal(t, codespace_model.OperationStatusRunning, row.OperationStatus)
+	assert.True(t, codespace_model.IsOperationRunning(row))
 	assert.Positive(t, row.OperationStartedUnix)
 	assert.Positive(t, row.OperationDeadlineUnix)
 }
@@ -78,8 +76,6 @@ func TestFetchOperationsReleasesCreateClaimWhenPayloadInvalid(t *testing.T) {
 		UUID:                 codespaceUUID,
 		Status:               codespace_model.StatusCreating,
 		OperationRVersion:    32,
-		OperationType:        codespace_model.OperationCreate,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -94,7 +90,7 @@ func TestFetchOperationsReleasesCreateClaimWhenPayloadInvalid(t *testing.T) {
 	require.Error(t, err)
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.Zero(t, row.ManagerID)
-	assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
+	assert.True(t, codespace_model.IsOperationQueued(row))
 	assert.Zero(t, row.OperationStartedUnix)
 	assert.Zero(t, row.OperationDeadlineUnix)
 }
@@ -111,8 +107,6 @@ func TestFetchOperationsClaimsOnlyAcceptedCreateTag(t *testing.T) {
 			EnvironmentTag:       tag,
 			Status:               codespace_model.StatusCreating,
 			OperationRVersion:    1,
-			OperationType:        codespace_model.OperationCreate,
-			OperationStatus:      codespace_model.OperationStatusQueued,
 			OperationTrigger:     codespace_model.OperationTriggerUser,
 			OperationCreatedUnix: time.Now().Unix(),
 		})
@@ -139,8 +133,6 @@ func TestFetchOperationsResumeUsesExistingManagerBinding(t *testing.T) {
 		EnvironmentTag:       "default",
 		Status:               codespace_model.StatusStopped,
 		OperationRVersion:    2,
-		OperationType:        codespace_model.OperationResume,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -183,7 +175,6 @@ func TestBuildCreatePayloadUsesPullRequestHeadBranch(t *testing.T) {
 		RefType:             "pull",
 		RefName:             "refs/pull/3/head",
 		CommitSHA:           "985f0301dba5e7b34be866819cd15ad3d8f508ee",
-		DevContainerSource:  codespace_model.DevContainerSourceTemplate,
 		DevContainerContent: `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`,
 		AutoStopMode:        codespace_model.AutoStopModeDefault,
 	})
@@ -205,7 +196,6 @@ func TestBuildCreatePayloadUsesForkPullRequestRepository(t *testing.T) {
 		RefType:             "pull",
 		RefName:             "refs/pull/1/head",
 		CommitSHA:           "0abcb056019adb83",
-		DevContainerSource:  codespace_model.DevContainerSourceTemplate,
 		DevContainerContent: `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`,
 		AutoStopMode:        codespace_model.AutoStopModeDefault,
 	})
@@ -229,8 +219,6 @@ func TestFetchOperationsReturnsSSHCloneURLWhenEnabled(t *testing.T) {
 		UUID:                 codespaceUUID,
 		Status:               codespace_model.StatusCreating,
 		OperationRVersion:    32,
-		OperationType:        codespace_model.OperationCreate,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -274,8 +262,6 @@ func TestFetchOperationsSkipsCreateOutsideManagerUserScope(t *testing.T) {
 		UUID:                 codespaceUUID,
 		Status:               codespace_model.StatusCreating,
 		OperationRVersion:    35,
-		OperationType:        codespace_model.OperationCreate,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -289,7 +275,7 @@ func TestFetchOperationsSkipsCreateOutsideManagerUserScope(t *testing.T) {
 	assert.Empty(t, result.Operations)
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.Zero(t, row.ManagerID)
-	assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
+	assert.True(t, codespace_model.IsOperationQueued(row))
 }
 
 func TestFetchOperationsDisabledDrainsWithoutClaimingStartup(t *testing.T) {
@@ -308,8 +294,6 @@ func TestFetchOperationsDisabledDrainsWithoutClaimingStartup(t *testing.T) {
 		UUID:                  runningCreateUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     51,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  now.Add(-time.Minute).Unix(),
 		OperationStartedUnix:  now.Add(-time.Minute).Unix(),
@@ -319,8 +303,6 @@ func TestFetchOperationsDisabledDrainsWithoutClaimingStartup(t *testing.T) {
 		UUID:                  runningStopUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     52,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  now.Add(-time.Minute).Unix(),
 		OperationStartedUnix:  now.Add(-time.Minute).Unix(),
@@ -330,8 +312,6 @@ func TestFetchOperationsDisabledDrainsWithoutClaimingStartup(t *testing.T) {
 		UUID:                 queuedCreateUUID,
 		Status:               codespace_model.StatusCreating,
 		OperationRVersion:    53,
-		OperationType:        codespace_model.OperationCreate,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: now.Unix(),
 	})
@@ -339,8 +319,6 @@ func TestFetchOperationsDisabledDrainsWithoutClaimingStartup(t *testing.T) {
 		UUID:                 queuedStopUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    54,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: now.Unix(),
 	})
@@ -368,8 +346,8 @@ func TestFetchOperationsDisabledDrainsWithoutClaimingStartup(t *testing.T) {
 
 	assert.Equal(t, originalCreateDeadline, loadServiceCodespace(t, runningCreateUUID).OperationDeadlineUnix)
 	assert.Zero(t, loadServiceCodespace(t, queuedCreateUUID).ManagerID)
-	assert.Equal(t, codespace_model.OperationStatusQueued, loadServiceCodespace(t, queuedCreateUUID).OperationStatus)
-	assert.Equal(t, codespace_model.OperationStatusRunning, loadServiceCodespace(t, queuedStopUUID).OperationStatus)
+	assert.True(t, codespace_model.IsOperationQueued(loadServiceCodespace(t, queuedCreateUUID)))
+	assert.True(t, codespace_model.IsOperationRunning(loadServiceCodespace(t, queuedStopUUID)))
 }
 
 func TestApplyQueuedTimeoutUsesQueuedStateMapping(t *testing.T) {
@@ -381,7 +359,6 @@ func TestApplyQueuedTimeoutUsesQueuedStateMapping(t *testing.T) {
 		name           string
 		uuid           string
 		status         string
-		operationType  string
 		withCredential bool
 		expectedStatus string
 		expectToken    bool
@@ -391,7 +368,6 @@ func TestApplyQueuedTimeoutUsesQueuedStateMapping(t *testing.T) {
 			name:           "create",
 			uuid:           "16161616-1616-4616-8616-161616161611",
 			status:         codespace_model.StatusCreating,
-			operationType:  codespace_model.OperationCreate,
 			withCredential: true,
 			expectedStatus: codespace_model.StatusFailed,
 		},
@@ -399,7 +375,6 @@ func TestApplyQueuedTimeoutUsesQueuedStateMapping(t *testing.T) {
 			name:           "resume",
 			uuid:           "16161616-1616-4616-8616-161616161612",
 			status:         codespace_model.StatusStopped,
-			operationType:  codespace_model.OperationResume,
 			withCredential: true,
 			expectedStatus: codespace_model.StatusStopped,
 			expectKey:      true,
@@ -412,8 +387,6 @@ func TestApplyQueuedTimeoutUsesQueuedStateMapping(t *testing.T) {
 				UUID:                 tc.uuid,
 				Status:               tc.status,
 				OperationRVersion:    40,
-				OperationType:        tc.operationType,
-				OperationStatus:      codespace_model.OperationStatusQueued,
 				OperationTrigger:     codespace_model.OperationTriggerUser,
 				OperationCreatedUnix: now - int64(setting.Codespace.QueueTimeout/time.Second) - 1,
 			})
@@ -425,8 +398,7 @@ func TestApplyQueuedTimeoutUsesQueuedStateMapping(t *testing.T) {
 
 			row := loadServiceCodespace(t, tc.uuid)
 			assert.Equal(t, tc.expectedStatus, row.Status)
-			assert.Empty(t, row.OperationType)
-			assert.Empty(t, row.OperationStatus)
+			assert.False(t, hasActiveOperation(row))
 			assert.Empty(t, row.OperationTrigger)
 			assert.Greater(t, row.UpdatedUnix, int64(1))
 			if tc.expectToken {
@@ -441,9 +413,10 @@ func TestApplyQueuedTimeoutUsesQueuedStateMapping(t *testing.T) {
 			}
 		})
 	}
-	for _, operationType := range []string{codespace_model.OperationStop, codespace_model.OperationDelete} {
+	for _, status := range []string{codespace_model.StatusRunning, codespace_model.StatusDeleting} {
 		assert.False(t, isQueuedExpired(&codespace_model.Codespace{
-			OperationType: operationType, OperationCreatedUnix: now - int64(setting.Codespace.QueueTimeout/time.Second) - 1,
+			Status: status, OperationTrigger: codespace_model.OperationTriggerUser,
+			OperationCreatedUnix: now - int64(setting.Codespace.QueueTimeout/time.Second) - 1,
 		}, time.Unix(now, 0)))
 	}
 }
@@ -458,8 +431,6 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     32,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  time.Now().Add(-time.Minute).Unix(),
 		OperationStartedUnix:  time.Now().Add(-time.Minute).Unix(),
@@ -485,8 +456,7 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 	queuedUUID := "30303030-3030-4030-8030-303030303030"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID: queuedUUID, Status: codespace_model.StatusRunning,
-		OperationRVersion: 1, OperationType: codespace_model.OperationStop,
-		OperationStatus: codespace_model.OperationStatusQueued, OperationTrigger: codespace_model.OperationTriggerUser,
+		OperationRVersion: 1, OperationTrigger: codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
 	result, err = FetchOperations(t.Context(), manager, FetchOperationsOptions{
@@ -498,7 +468,7 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, result.Operations)
 	require.Len(t, result.RenewedLeases, 1)
-	assert.Equal(t, codespace_model.OperationStatusQueued, loadServiceCodespace(t, queuedUUID).OperationStatus)
+	assert.True(t, codespace_model.IsOperationQueued(loadServiceCodespace(t, queuedUUID)))
 }
 
 func TestFetchOperationsRejectsStateHistoryConflictBeforeWrites(t *testing.T) {
@@ -512,8 +482,6 @@ func TestFetchOperationsRejectsStateHistoryConflictBeforeWrites(t *testing.T) {
 		UUID:                  renewedUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     36,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  time.Now().Add(-time.Minute).Unix(),
 		OperationStartedUnix:  time.Now().Add(-time.Minute).Unix(),
@@ -524,8 +492,6 @@ func TestFetchOperationsRejectsStateHistoryConflictBeforeWrites(t *testing.T) {
 		UUID:                  conflictUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     37,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  time.Now().Unix(),
 		OperationStartedUnix:  time.Now().Unix(),
@@ -553,8 +519,6 @@ func TestFetchOperationsWaitsForUnobservedRunningOperation(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     38,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  time.Now().Add(-time.Minute).Unix(),
 		OperationStartedUnix:  time.Now().Add(-time.Minute).Unix(),
@@ -578,8 +542,6 @@ func TestFetchOperationsReturnsCurrentPayloadForLowerObservedVersion(t *testing.
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     39,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  time.Now().Add(-time.Minute).Unix(),
 		OperationStartedUnix:  time.Now().Add(-time.Minute).Unix(),
@@ -611,8 +573,6 @@ func TestFetchOperationsClaimsCleanupStop(t *testing.T) {
 		UUID:                 codespaceUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    33,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -624,7 +584,7 @@ func TestFetchOperationsClaimsCleanupStop(t *testing.T) {
 	require.Len(t, result.Operations, 1)
 	assert.NotNil(t, result.Operations[0].GetStop())
 	assert.Equal(t, codespaceUUID, result.Operations[0].GetRuntimeUuid())
-	assert.Equal(t, codespace_model.OperationStatusRunning, loadServiceCodespace(t, codespaceUUID).OperationStatus)
+	assert.True(t, codespace_model.IsOperationRunning(loadServiceCodespace(t, codespaceUUID)))
 }
 
 func TestFetchOperationsRejectsStateHistoryConflict(t *testing.T) {
@@ -637,8 +597,6 @@ func TestFetchOperationsRejectsStateHistoryConflict(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     34,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  time.Now().Unix(),
 		OperationStartedUnix:  time.Now().Unix(),

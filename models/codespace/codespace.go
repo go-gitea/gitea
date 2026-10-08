@@ -36,12 +36,6 @@ const (
 	OperationDelete = "delete"
 )
 
-// Codespace operation statuses.
-const (
-	OperationStatusQueued  = "queued"
-	OperationStatusRunning = "running"
-)
-
 // Codespace operation triggers.
 const (
 	OperationTriggerUser = "user"
@@ -52,12 +46,6 @@ const (
 const (
 	GitProtocolHTTP = "http"
 	GitProtocolSSH  = "ssh"
-)
-
-// Codespace Dev Container sources.
-const (
-	DevContainerSourceRepository = "repository"
-	DevContainerSourceTemplate   = "template"
 )
 
 // Codespace auto-stop modes.
@@ -73,12 +61,6 @@ const (
 	ManagerRuntimeStateRecovering = "recovering"
 )
 
-// Manager address kinds.
-const (
-	ManagerAddressGateway = "gateway"
-	ManagerAddressSSH     = "ssh"
-)
-
 // GiteaTokenAuthDataKey stores the Codespace Token auth snapshot in request data.
 const GiteaTokenAuthDataKey = "CodespaceToken"
 
@@ -92,15 +74,12 @@ type Codespace struct {
 	RefName                   string `xorm:"TEXT NOT NULL"`
 	EnvironmentTag            string `xorm:"VARCHAR(64) NOT NULL"`
 	CommitSHA                 string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	DevContainerSource        string `xorm:"VARCHAR(32) NOT NULL DEFAULT ''"`
 	DevContainerPath          string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
 	DevContainerContent       string `xorm:"TEXT NOT NULL"`
 	PermissionAuthorizationID int64  `xorm:"NOT NULL DEFAULT 0 index"`
 	ManagerID                 int64  `xorm:"NOT NULL DEFAULT 0"`
 	Status                    string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
 	OperationRVersion         int64  `xorm:"NOT NULL DEFAULT 0"`
-	OperationType             string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
-	OperationStatus           string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
 	OperationTrigger          string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
 	OperationCreatedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
 	OperationStartedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
@@ -127,16 +106,10 @@ type Manager struct {
 	InventoryGeneration                int64  `xorm:"NOT NULL DEFAULT 0"`
 	CreatedUnix                        int64  `xorm:"NOT NULL DEFAULT 0"`
 	Version                            string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	GatewayURL                         string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' index"`
+	GatewaySSHAddr                     string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' index"`
 	GatewaySSHHostKeyAlgorithm         string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 	GatewaySSHHostKeyFingerprintSHA256 string `xorm:"gateway_ssh_host_key_fingerprint_sha256 VARCHAR(255) NOT NULL DEFAULT ''"`
-	GatewaySSHHostKeyUpdatedUnix       int64  `xorm:"NOT NULL DEFAULT 0"`
-}
-
-// ManagerAddress stores current routable addresses declared by a Manager.
-type ManagerAddress struct {
-	ManagerID int64  `xorm:"pk NOT NULL DEFAULT 0"`
-	Kind      string `xorm:"pk VARCHAR(16) NOT NULL DEFAULT '' index(kind_address)"`
-	Address   string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' index(kind_address)"`
 }
 
 // GiteaToken stores the current Gitea API/Git HTTP token for one Codespace.
@@ -177,16 +150,16 @@ func (*Codespace) TableIndices() []*schemas.Index {
 	repo.AddColumn("repo_id")
 
 	createClaim := schemas.NewIndex("create_claim", schemas.IndexType)
-	createClaim.AddColumn("status", "operation_type", "operation_status", "manager_id", "environment_tag", "operation_created_unix", "id")
+	createClaim.AddColumn("operation_started_unix", "status", "manager_id", "environment_tag", "operation_created_unix", "id")
 
 	managerActive := schemas.NewIndex("manager_active", schemas.IndexType)
-	managerActive.AddColumn("manager_id", "operation_status", "operation_created_unix", "id")
+	managerActive.AddColumn("manager_id", "operation_started_unix", "operation_created_unix", "id")
 
 	queuedTimeout := schemas.NewIndex("queued_timeout", schemas.IndexType)
-	queuedTimeout.AddColumn("operation_status", "operation_created_unix", "id")
+	queuedTimeout.AddColumn("operation_started_unix", "operation_created_unix", "id")
 
 	runningTimeout := schemas.NewIndex("running_timeout", schemas.IndexType)
-	runningTimeout.AddColumn("operation_status", "operation_deadline_unix", "id")
+	runningTimeout.AddColumn("operation_deadline_unix", "id")
 
 	failedRetention := schemas.NewIndex("failed_retention", schemas.IndexType)
 	failedRetention.AddColumn("status", "updated_unix", "id")
@@ -199,10 +172,6 @@ func (*Manager) TableIndices() []*schemas.Index {
 	user := schemas.NewIndex("user", schemas.IndexType)
 	user.AddColumn("user_id")
 	return []*schemas.Index{user}
-}
-
-func (*ManagerAddress) TableName() string {
-	return "codespace_manager_address"
 }
 
 func (*GiteaToken) TableName() string {
@@ -220,7 +189,6 @@ func (*DevContainerTemplate) TableName() string {
 func init() {
 	db.RegisterModel(new(Codespace))
 	db.RegisterModel(new(Manager))
-	db.RegisterModel(new(ManagerAddress))
 	db.RegisterModel(new(GiteaToken))
 	db.RegisterModel(new(SSHKey))
 	db.RegisterModel(new(DevContainerTemplate))
@@ -299,65 +267,43 @@ func ValidateCodespace(codespace *Codespace) error {
 	if codespace.UUID != "" && codespace.ManagerID <= 0 {
 		return errors.New("bound codespace requires a manager")
 	}
-	switch codespace.DevContainerSource {
-	case DevContainerSourceRepository:
-		if strings.TrimSpace(codespace.DevContainerPath) == "" || strings.TrimSpace(codespace.DevContainerContent) != "" {
-			return errors.New("invalid Dev Container configuration")
-		}
-	case DevContainerSourceTemplate:
-		if strings.TrimSpace(codespace.DevContainerPath) != "" || strings.TrimSpace(codespace.DevContainerContent) == "" {
-			return errors.New("invalid Dev Container configuration")
-		}
-	default:
+	hasDevContainerPath := strings.TrimSpace(codespace.DevContainerPath) != ""
+	hasDevContainerContent := strings.TrimSpace(codespace.DevContainerContent) != ""
+	if hasDevContainerPath == hasDevContainerContent {
 		return errors.New("invalid Dev Container configuration")
 	}
-	hasOperation := codespace.OperationType != "" || codespace.OperationStatus != "" || codespace.OperationTrigger != ""
+	hasOperation := codespace.OperationCreatedUnix > 0
 	if !hasOperation {
-		if codespace.OperationCreatedUnix != 0 || codespace.OperationStartedUnix != 0 || codespace.OperationDeadlineUnix != 0 {
-			return errors.New("inactive operation has timestamps")
+		if codespace.OperationTrigger != "" || codespace.OperationCreatedUnix != 0 || codespace.OperationStartedUnix != 0 || codespace.OperationDeadlineUnix != 0 {
+			return errors.New("inactive operation has state")
 		}
 		if codespace.Status == StatusCreating || codespace.Status == StatusDeleting {
 			return fmt.Errorf("codespace status %q requires an active operation", codespace.Status)
 		}
 		return nil
 	}
-	if !validOperationType(codespace.OperationType) {
-		return fmt.Errorf("invalid operation type %q", codespace.OperationType)
-	}
-	if !validOperationStatus(codespace.OperationStatus) {
-		return fmt.Errorf("invalid operation status %q", codespace.OperationStatus)
-	}
 	if !validOperationTrigger(codespace.OperationTrigger) {
 		return fmt.Errorf("invalid operation trigger %q", codespace.OperationTrigger)
 	}
-	if codespace.OperationCreatedUnix <= 0 {
-		return errors.New("active operation requires creation time")
+	operationType := ActiveOperationType(codespace)
+	if operationType == "" {
+		return fmt.Errorf("codespace status %q cannot own an active operation", codespace.Status)
 	}
-	if codespace.OperationTrigger == OperationTriggerIdle && codespace.OperationType != OperationStop {
+	if codespace.OperationTrigger == OperationTriggerIdle && operationType != OperationStop {
 		return errors.New("idle trigger is only valid for stop operations")
 	}
-	expectedStatus := map[string]string{
-		OperationCreate: StatusCreating,
-		OperationResume: StatusStopped,
-		OperationStop:   StatusRunning,
-		OperationDelete: StatusDeleting,
-	}[codespace.OperationType]
-	if codespace.Status != expectedStatus {
-		return fmt.Errorf("operation %q is not valid for codespace status %q", codespace.OperationType, codespace.Status)
-	}
-	switch codespace.OperationStatus {
-	case OperationStatusQueued:
-		if codespace.OperationStartedUnix != 0 || codespace.OperationDeadlineUnix != 0 {
+	if codespace.OperationStartedUnix == 0 {
+		if codespace.OperationDeadlineUnix != 0 {
 			return errors.New("queued operation has running timestamps")
 		}
-		if codespace.OperationType != OperationCreate && (codespace.ManagerID <= 0 || codespace.UUID == "") {
+		if operationType != OperationCreate && (codespace.ManagerID <= 0 || codespace.UUID == "") {
 			return errors.New("queued lifecycle operation requires a bound runtime")
 		}
-	case OperationStatusRunning:
+	} else {
 		if codespace.ManagerID <= 0 || codespace.OperationStartedUnix <= 0 || codespace.OperationDeadlineUnix < codespace.OperationStartedUnix {
 			return errors.New("running operation has invalid ownership or deadline")
 		}
-		if codespace.OperationType != OperationCreate && codespace.UUID == "" {
+		if operationType != OperationCreate && codespace.UUID == "" {
 			return errors.New("running lifecycle operation requires a bound runtime")
 		}
 	}
@@ -384,22 +330,33 @@ func validStatus(status string) bool {
 	}
 }
 
-func validOperationType(operationType string) bool {
-	switch operationType {
-	case OperationCreate, OperationResume, OperationStop, OperationDelete:
-		return true
+// ActiveOperationType derives the command owned by an active Codespace row.
+func ActiveOperationType(codespace *Codespace) string {
+	if codespace == nil || codespace.OperationCreatedUnix <= 0 {
+		return ""
+	}
+	switch codespace.Status {
+	case StatusCreating:
+		return OperationCreate
+	case StatusStopped:
+		return OperationResume
+	case StatusRunning:
+		return OperationStop
+	case StatusDeleting:
+		return OperationDelete
 	default:
-		return false
+		return ""
 	}
 }
 
-func validOperationStatus(operationStatus string) bool {
-	switch operationStatus {
-	case OperationStatusQueued, OperationStatusRunning:
-		return true
-	default:
-		return false
-	}
+// IsOperationQueued reports whether an active operation has not started.
+func IsOperationQueued(codespace *Codespace) bool {
+	return ActiveOperationType(codespace) != "" && codespace.OperationStartedUnix == 0
+}
+
+// IsOperationRunning reports whether an active operation owns a lease.
+func IsOperationRunning(codespace *Codespace) bool {
+	return ActiveOperationType(codespace) != "" && codespace.OperationStartedUnix > 0
 }
 
 func validOperationTrigger(operationTrigger string) bool {

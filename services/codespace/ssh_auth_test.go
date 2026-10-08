@@ -31,8 +31,6 @@ func TestVerifySSHPublicKeyAllowsAndCancelsQueuedIdleStop(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     51,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusQueued,
 		OperationTrigger:      codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix:  time.Now().Unix(),
 		InteractionGeneration: 9,
@@ -51,8 +49,7 @@ func TestVerifySSHPublicKeyAllowsAndCancelsQueuedIdleStop(t *testing.T) {
 
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.EqualValues(t, 10, row.InteractionGeneration)
-	assert.Empty(t, row.OperationType)
-	assert.Empty(t, row.OperationStatus)
+	assert.False(t, hasActiveOperation(row))
 	assert.Empty(t, row.OperationTrigger)
 	assert.Positive(t, row.LastActiveUnix)
 }
@@ -130,8 +127,6 @@ func TestVerifySSHPublicKeyDeniesStateAndMetadata(t *testing.T) {
 		UUID:                 activeUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    53,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusRunning,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})

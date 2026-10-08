@@ -37,8 +37,6 @@ func TestReportInstancesReturnsSettingsAndActions(t *testing.T) {
 		UUID:                 activeUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    82,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -65,8 +63,6 @@ func TestReportInstancesReturnsSettingsAndActions(t *testing.T) {
 		UUID:                 unboundUUID,
 		Status:               codespace_model.StatusCreating,
 		OperationRVersion:    86,
-		OperationType:        codespace_model.OperationCreate,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -191,10 +187,9 @@ func TestReportInstancesGenerationAndMissingState(t *testing.T) {
 		UUID:                  missingCreateUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     102,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  time.Now().Unix(),
+		OperationStartedUnix:  time.Now().Unix(),
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
 

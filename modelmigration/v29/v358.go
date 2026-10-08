@@ -21,15 +21,12 @@ type codespace struct {
 	RefName                   string `xorm:"TEXT NOT NULL"`
 	EnvironmentTag            string `xorm:"VARCHAR(64) NOT NULL"`
 	CommitSHA                 string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	DevContainerSource        string `xorm:"VARCHAR(32) NOT NULL DEFAULT ''"`
 	DevContainerPath          string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
 	DevContainerContent       string `xorm:"TEXT NOT NULL"`
 	PermissionAuthorizationID int64  `xorm:"NOT NULL DEFAULT 0 index"`
 	ManagerID                 int64  `xorm:"NOT NULL DEFAULT 0"`
 	Status                    string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
 	OperationRVersion         int64  `xorm:"NOT NULL DEFAULT 0"`
-	OperationType             string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
-	OperationStatus           string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
 	OperationTrigger          string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
 	OperationCreatedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
 	OperationStartedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
@@ -55,16 +52,16 @@ func (*codespace) TableIndices() []*schemas.Index {
 	repo.AddColumn("repo_id")
 
 	createClaim := schemas.NewIndex("create_claim", schemas.IndexType)
-	createClaim.AddColumn("status", "operation_type", "operation_status", "manager_id", "environment_tag", "operation_created_unix", "id")
+	createClaim.AddColumn("operation_started_unix", "status", "manager_id", "environment_tag", "operation_created_unix", "id")
 
 	managerActive := schemas.NewIndex("manager_active", schemas.IndexType)
-	managerActive.AddColumn("manager_id", "operation_status", "operation_created_unix", "id")
+	managerActive.AddColumn("manager_id", "operation_started_unix", "operation_created_unix", "id")
 
 	queuedTimeout := schemas.NewIndex("queued_timeout", schemas.IndexType)
-	queuedTimeout.AddColumn("operation_status", "operation_created_unix", "id")
+	queuedTimeout.AddColumn("operation_started_unix", "operation_created_unix", "id")
 
 	runningTimeout := schemas.NewIndex("running_timeout", schemas.IndexType)
-	runningTimeout.AddColumn("operation_status", "operation_deadline_unix", "id")
+	runningTimeout.AddColumn("operation_deadline_unix", "id")
 
 	failedRetention := schemas.NewIndex("failed_retention", schemas.IndexType)
 	failedRetention.AddColumn("status", "updated_unix", "id")
@@ -84,9 +81,10 @@ type codespaceManager struct {
 	InventoryGeneration                int64  `xorm:"NOT NULL DEFAULT 0"`
 	CreatedUnix                        int64  `xorm:"NOT NULL DEFAULT 0"`
 	Version                            string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	GatewayURL                         string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' index"`
+	GatewaySSHAddr                     string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' index"`
 	GatewaySSHHostKeyAlgorithm         string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 	GatewaySSHHostKeyFingerprintSHA256 string `xorm:"gateway_ssh_host_key_fingerprint_sha256 VARCHAR(255) NOT NULL DEFAULT ''"`
-	GatewaySSHHostKeyUpdatedUnix       int64  `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func (*codespaceManager) TableName() string {
@@ -100,12 +98,6 @@ func (*codespaceManager) TableIndices() []*schemas.Index {
 }
 
 func AddCodespaceTables(_ context.Context, x base.EngineMigration) error {
-	type codespaceManagerAddress struct {
-		ManagerID int64  `xorm:"pk NOT NULL DEFAULT 0"`
-		Kind      string `xorm:"pk VARCHAR(16) NOT NULL DEFAULT '' index(kind_address)"`
-		Address   string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' index(kind_address)"`
-	}
-
 	type codespaceGiteaToken struct {
 		CodespaceID    int64  `xorm:"pk"`
 		TokenHash      string `xorm:"VARCHAR(100) NOT NULL UNIQUE"`
@@ -170,7 +162,6 @@ func AddCodespaceTables(_ context.Context, x base.EngineMigration) error {
 	if err := sess.Sync(
 		new(codespace),
 		new(codespaceManager),
-		new(codespaceManagerAddress),
 		new(codespaceGiteaToken),
 		new(codespaceSSHKey),
 		new(codespacePermissionAuthorization),

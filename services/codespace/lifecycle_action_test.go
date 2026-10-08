@@ -31,7 +31,7 @@ func TestStopCodespaceQueuesUserStopAndTakesQueuedIdleStop(t *testing.T) {
 	assert.Equal(t, codespace_model.OperationStop, result.OperationType)
 	assert.EqualValues(t, 16, result.OperationRVersion)
 	row := loadServiceCodespace(t, codespaceUUID)
-	assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
+	assert.True(t, codespace_model.IsOperationQueued(row))
 	assert.Equal(t, codespace_model.OperationTriggerUser, row.OperationTrigger)
 
 	idleUUID := "68686868-6868-4686-8686-686868686868"
@@ -39,8 +39,6 @@ func TestStopCodespaceQueuesUserStopAndTakesQueuedIdleStop(t *testing.T) {
 		UUID:                 idleUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    17,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -62,8 +60,6 @@ func TestStopCodespaceRejectsActiveUserStop(t *testing.T) {
 		UUID:                 queuedUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    17,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -75,8 +71,6 @@ func TestStopCodespaceRejectsActiveUserStop(t *testing.T) {
 		UUID:                  runningUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     18,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  time.Now().Unix(),
 		OperationStartedUnix:  time.Now().Unix(),
@@ -103,7 +97,7 @@ func TestResumeCodespaceQueuesResume(t *testing.T) {
 	assert.Equal(t, codespace_model.OperationResume, result.OperationType)
 	assert.EqualValues(t, 19, result.OperationRVersion)
 	row := loadServiceCodespace(t, codespaceUUID)
-	assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
+	assert.True(t, codespace_model.IsOperationQueued(row))
 	assert.Equal(t, codespace_model.OperationTriggerUser, row.OperationTrigger)
 	assert.EqualValues(t, 8, row.InteractionGeneration)
 	assert.Positive(t, row.LastActiveUnix)
@@ -117,8 +111,6 @@ func TestDeleteCodespacePhysicalForUnboundCreatingAndFailed(t *testing.T) {
 		UUID:                 creatingUUID,
 		Status:               codespace_model.StatusCreating,
 		OperationRVersion:    20,
-		OperationType:        codespace_model.OperationCreate,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -167,28 +159,24 @@ func TestDeleteCodespaceQueuesBoundDeleteAndReplacesOperation(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	for _, tc := range []struct {
-		name          string
-		uuid          string
-		status        string
-		operationType string
+		name   string
+		uuid   string
+		status string
 	}{
 		{
-			name:          "create",
-			uuid:          "72727272-7272-4727-8727-727272727271",
-			status:        codespace_model.StatusCreating,
-			operationType: codespace_model.OperationCreate,
+			name:   "create",
+			uuid:   "72727272-7272-4727-8727-727272727271",
+			status: codespace_model.StatusCreating,
 		},
 		{
-			name:          "resume",
-			uuid:          "72727272-7272-4727-8727-727272727272",
-			status:        codespace_model.StatusStopped,
-			operationType: codespace_model.OperationResume,
+			name:   "resume",
+			uuid:   "72727272-7272-4727-8727-727272727272",
+			status: codespace_model.StatusStopped,
 		},
 		{
-			name:          "stop",
-			uuid:          "72727272-7272-4727-8727-727272727273",
-			status:        codespace_model.StatusRunning,
-			operationType: codespace_model.OperationStop,
+			name:   "stop",
+			uuid:   "72727272-7272-4727-8727-727272727273",
+			status: codespace_model.StatusRunning,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -196,8 +184,6 @@ func TestDeleteCodespaceQueuesBoundDeleteAndReplacesOperation(t *testing.T) {
 				UUID:                  tc.uuid,
 				Status:                tc.status,
 				OperationRVersion:     21,
-				OperationType:         tc.operationType,
-				OperationStatus:       codespace_model.OperationStatusRunning,
 				OperationTrigger:      codespace_model.OperationTriggerUser,
 				OperationCreatedUnix:  time.Now().Unix(),
 				OperationStartedUnix:  time.Now().Unix(),
@@ -213,8 +199,8 @@ func TestDeleteCodespaceQueuesBoundDeleteAndReplacesOperation(t *testing.T) {
 			assert.EqualValues(t, 22, result.OperationRVersion)
 			row := loadServiceCodespace(t, tc.uuid)
 			assert.Equal(t, codespace_model.StatusDeleting, row.Status)
-			assert.Equal(t, codespace_model.OperationDelete, row.OperationType)
-			assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
+			assert.Equal(t, codespace_model.OperationDelete, codespace_model.ActiveOperationType(row))
+			assert.True(t, codespace_model.IsOperationQueued(row))
 			assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
 			assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
 		})
@@ -230,8 +216,6 @@ func TestLifecycleActionValidation(t *testing.T) {
 		UUID:                 runningUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    math.MaxInt64,
-		OperationType:        codespace_model.OperationDelete,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -256,6 +240,5 @@ func TestLifecycleActionsRequireCreator(t *testing.T) {
 	require.ErrorIs(t, err, ErrLifecycleActionPermissionDenied)
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.Equal(t, codespace_model.StatusRunning, row.Status)
-	assert.Empty(t, row.OperationType)
-	assert.Empty(t, row.OperationStatus)
+	assert.False(t, hasActiveOperation(row))
 }

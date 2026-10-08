@@ -27,10 +27,8 @@ func TestListRendersCreatorCodespaces(t *testing.T) {
 
 	codespaceUUID := "22222222-2222-4222-8222-222222222222"
 	insertWebViewCodespace(t, &codespace_model.Codespace{
-		UUID:            codespaceUUID,
-		Status:          codespace_model.StatusCreating,
-		OperationType:   codespace_model.OperationCreate,
-		OperationStatus: codespace_model.OperationStatusQueued,
+		UUID:   codespaceUUID,
+		Status: codespace_model.StatusCreating,
 	})
 
 	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-list")})
@@ -77,10 +75,8 @@ func TestDetailRendersCreatorCodespaceNoStore(t *testing.T) {
 
 	codespaceUUID := "24242424-2424-4424-8424-242424242424"
 	insertWebViewCodespace(t, &codespace_model.Codespace{
-		UUID:            codespaceUUID,
-		Status:          codespace_model.StatusCreating,
-		OperationType:   codespace_model.OperationCreate,
-		OperationStatus: codespace_model.OperationStatusQueued,
+		UUID:   codespaceUUID,
+		Status: codespace_model.StatusCreating,
 	})
 	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 
@@ -105,10 +101,8 @@ func TestDetailPreservesExplicitOverviewTab(t *testing.T) {
 
 	codespaceUUID := "30303030-3030-4030-8030-303030303030"
 	insertWebViewCodespace(t, &codespace_model.Codespace{
-		UUID:            codespaceUUID,
-		Status:          codespace_model.StatusCreating,
-		OperationType:   codespace_model.OperationCreate,
-		OperationStatus: codespace_model.OperationStatusQueued,
+		UUID:   codespaceUUID,
+		Status: codespace_model.StatusCreating,
 	})
 	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 

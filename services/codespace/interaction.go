@@ -124,8 +124,6 @@ func UpdateAutoStop(ctx context.Context, opts UpdateAutoStopOptions) (*UpdateAut
 				codespace.UpdatedUnix = time.Now().Unix()
 				clearActiveOperation(codespace)
 				cols = append(cols,
-					"operation_type",
-					"operation_status",
 					"operation_trigger",
 					"operation_created_unix",
 					"operation_started_unix",

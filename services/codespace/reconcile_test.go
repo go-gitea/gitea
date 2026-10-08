@@ -30,15 +30,12 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 		UUID:                 queuedUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    3,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: now - int64(setting.Codespace.QueueTimeout/time.Second) - 1,
 	})
 	stopCreatedUnix := now - 120
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID: runningStopUUID, Status: codespace_model.StatusRunning, OperationRVersion: 6,
-		OperationType: codespace_model.OperationStop, OperationStatus: codespace_model.OperationStatusRunning,
 		OperationTrigger: codespace_model.OperationTriggerUser, OperationCreatedUnix: stopCreatedUnix,
 		OperationStartedUnix: now - 60, OperationDeadlineUnix: now - 1,
 	})
@@ -47,8 +44,6 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 		UUID:                  runningUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     4,
-		OperationType:         codespace_model.OperationCreate,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  1,
 		OperationStartedUnix:  now - int64(setting.Codespace.OperationMaxDuration/time.Second) - 1,
@@ -66,7 +61,7 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 	insertServiceCredentials(t, failedUUID)
 	unboundFailed := &codespace_model.Codespace{
 		UserID: 1, RepoID: 2, RefType: "branch", RefName: "main", EnvironmentTag: "default",
-		CommitSHA: "0123456789abcdef0123456789abcdef01234567", DevContainerSource: codespace_model.DevContainerSourceTemplate,
+		CommitSHA:           "0123456789abcdef0123456789abcdef01234567",
 		DevContainerContent: `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`, Status: codespace_model.StatusFailed,
 		OperationRVersion: 5, AutoStopMode: codespace_model.AutoStopModeDefault, CreatedUnix: 1,
 		UpdatedUnix: now - int64((2*time.Hour)/time.Second),
@@ -83,17 +78,17 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 
 	queued := loadServiceCodespace(t, queuedUUID)
 	assert.Equal(t, codespace_model.StatusRunning, queued.Status)
-	assert.Equal(t, codespace_model.OperationStatusQueued, queued.OperationStatus)
+	assert.True(t, codespace_model.IsOperationQueued(queued))
 	assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", queuedUUID)
 	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", queuedUUID)
 
 	running := loadServiceCodespace(t, runningUUID)
 	assert.Equal(t, codespace_model.StatusFailed, running.Status)
-	assert.Empty(t, running.OperationStatus)
+	assert.False(t, hasActiveOperation(running))
 	retriedStop := loadServiceCodespace(t, runningStopUUID)
 	assert.Equal(t, codespace_model.StatusRunning, retriedStop.Status)
 	assert.EqualValues(t, 7, retriedStop.OperationRVersion)
-	assert.Equal(t, codespace_model.OperationStatusQueued, retriedStop.OperationStatus)
+	assert.True(t, codespace_model.IsOperationQueued(retriedStop))
 	assert.Equal(t, stopCreatedUnix, retriedStop.OperationCreatedUnix)
 	assert.Zero(t, retriedStop.OperationStartedUnix)
 	assert.Zero(t, retriedStop.OperationDeadlineUnix)
@@ -112,16 +107,15 @@ func TestReconcileCodespacesRequiresPositiveRetention(t *testing.T) {
 	assert.Nil(t, result)
 }
 
-func TestReconcileCodespacesSkipsChangedRows(t *testing.T) {
+func TestReconcileCodespacesLeavesStableRowsUnchanged(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
 	codespaceUUID := "16161616-1616-4616-8616-161616161616"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:            codespaceUUID,
-		Status:          codespace_model.StatusRunning,
-		OperationStatus: codespace_model.OperationStatusQueued,
-		UpdatedUnix:     1,
+		UUID:        codespaceUUID,
+		Status:      codespace_model.StatusRunning,
+		UpdatedUnix: 1,
 	})
 
 	result, err := ReconcileCodespaces(t.Context(), ReconcileCodespacesOptions{FailedOlderThan: time.Hour})

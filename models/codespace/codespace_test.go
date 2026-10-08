@@ -58,10 +58,10 @@ func TestManagerSecretVerifier(t *testing.T) {
 func TestCodespaceTableIndices(t *testing.T) {
 	assertIndexColumns(t, (&Codespace{}).TableIndices(), "user_updated", "user_id", "updated_unix", "created_unix", "id")
 	assertIndexColumns(t, (&Codespace{}).TableIndices(), "repo", "repo_id")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "create_claim", "status", "operation_type", "operation_status", "manager_id", "environment_tag", "operation_created_unix", "id")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "manager_active", "manager_id", "operation_status", "operation_created_unix", "id")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "queued_timeout", "operation_status", "operation_created_unix", "id")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "running_timeout", "operation_status", "operation_deadline_unix", "id")
+	assertIndexColumns(t, (&Codespace{}).TableIndices(), "create_claim", "operation_started_unix", "status", "manager_id", "environment_tag", "operation_created_unix", "id")
+	assertIndexColumns(t, (&Codespace{}).TableIndices(), "manager_active", "manager_id", "operation_started_unix", "operation_created_unix", "id")
+	assertIndexColumns(t, (&Codespace{}).TableIndices(), "queued_timeout", "operation_started_unix", "operation_created_unix", "id")
+	assertIndexColumns(t, (&Codespace{}).TableIndices(), "running_timeout", "operation_deadline_unix", "id")
 	assertIndexColumns(t, (&Codespace{}).TableIndices(), "failed_retention", "status", "updated_unix", "id")
 }
 
@@ -78,32 +78,26 @@ func TestValidateCodespace(t *testing.T) {
 		})
 	}
 
-	for _, operationType := range []string{OperationCreate, OperationResume, OperationStop, OperationDelete} {
+	for status, operationType := range map[string]string{
+		StatusCreating: OperationCreate,
+		StatusStopped:  OperationResume,
+		StatusRunning:  OperationStop,
+		StatusDeleting: OperationDelete,
+	} {
 		t.Run("operation type/"+operationType, func(t *testing.T) {
 			row := validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
-			row.OperationType = operationType
-			row.OperationStatus = OperationStatusQueued
 			row.OperationTrigger = OperationTriggerUser
 			row.OperationCreatedUnix = 1
-			switch operationType {
-			case OperationCreate:
-				row.Status = StatusCreating
-			case OperationResume:
-				row.Status = StatusStopped
-			case OperationStop:
-				row.Status = StatusRunning
-			case OperationDelete:
-				row.Status = StatusDeleting
-			}
+			row.Status = status
 			require.NoError(t, ValidateCodespace(row))
+			assert.Equal(t, operationType, ActiveOperationType(row))
+			assert.True(t, IsOperationQueued(row))
 		})
 	}
 
 	for _, trigger := range []string{OperationTriggerUser, OperationTriggerIdle} {
 		t.Run("operation trigger/"+trigger, func(t *testing.T) {
 			row := validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
-			row.OperationType = OperationStop
-			row.OperationStatus = OperationStatusQueued
 			row.OperationTrigger = trigger
 			row.OperationCreatedUnix = 1
 			row.Status = StatusRunning
@@ -124,28 +118,24 @@ func TestValidateCodespace(t *testing.T) {
 	assert.Error(t, ValidateCodespace(row))
 
 	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
-	row.OperationType = OperationCreate
-	row.OperationStatus = OperationStatusQueued
 	row.OperationTrigger = OperationTriggerUser
 	row.OperationCreatedUnix = 1
 	row.Status = StatusCreating
 	require.NoError(t, ValidateCodespace(row))
 
-	row.OperationStatus = "leased"
+	row.OperationStartedUnix = 2
 	assert.Error(t, ValidateCodespace(row))
 
 	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
-	row.OperationType = "snapshot"
-	row.OperationStatus = OperationStatusQueued
 	row.OperationTrigger = OperationTriggerUser
 	row.OperationCreatedUnix = 1
+	row.Status = StatusFailed
 	assert.Error(t, ValidateCodespace(row))
 
 	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
-	row.OperationType = OperationCreate
-	row.OperationStatus = OperationStatusQueued
 	row.OperationTrigger = "timer"
 	row.OperationCreatedUnix = 1
+	row.Status = StatusCreating
 	assert.Error(t, ValidateCodespace(row))
 
 	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
@@ -157,13 +147,11 @@ func TestValidateCodespace(t *testing.T) {
 	assert.Error(t, ValidateCodespace(row))
 
 	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
-	row.DevContainerSource = DevContainerSourceRepository
 	row.DevContainerPath = ".devcontainer/devcontainer.json"
 	row.DevContainerContent = ""
 	require.NoError(t, ValidateCodespace(row))
 
 	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
-	row.DevContainerSource = DevContainerSourceTemplate
 	row.DevContainerPath = ""
 	row.DevContainerContent = `{"image":"debian:12"}`
 	require.NoError(t, ValidateCodespace(row))
@@ -202,7 +190,6 @@ func validCodespace(codespaceUUID string) *Codespace {
 		RefName:             "main",
 		EnvironmentTag:      "default",
 		CommitSHA:           "0123456789abcdef0123456789abcdef01234567",
-		DevContainerSource:  DevContainerSourceTemplate,
 		DevContainerContent: `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`,
 		OperationRVersion:   1,
 		ManagerID:           1,

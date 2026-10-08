@@ -47,7 +47,6 @@ var ErrCreateConfigurationInvalid = errors.New("selected Dev Container configura
 
 // createDevContainerPlan contains the immutable runtime choice and confirmation data.
 type createDevContainerPlan struct {
-	Source                 string
 	Selection              string
 	Path                   string
 	Content                string
@@ -245,7 +244,6 @@ func loadRepositoryDevContainer(ctx context.Context, gitRepo *git.Repository, co
 		return nil, fmt.Errorf("%w: parse Dev Container configuration %q: %w", ErrCreateConfigurationInvalid, configPath, err)
 	}
 	return &createDevContainerPlan{
-		Source:                 codespace_model.DevContainerSourceRepository,
 		Selection:              configPath,
 		Path:                   configPath,
 		PermissionRepositories: repositories,
@@ -271,7 +269,6 @@ func loadTemplateDevContainer(template *codespace_model.DevContainerTemplate) (*
 		return nil, fmt.Errorf("parse Dev Container template %q: %w", template.Name, err)
 	}
 	return &createDevContainerPlan{
-		Source:                 codespace_model.DevContainerSourceTemplate,
 		Selection:              devContainerTemplateSelectionPrefix + strconv.FormatInt(template.ID, 10),
 		Content:                content,
 		PermissionRepositories: repositories,

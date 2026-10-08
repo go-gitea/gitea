@@ -172,13 +172,11 @@ func TestWarnManagerGatewayAddressConflicts(t *testing.T) {
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.Enabled, true))
 
 	manager := insertServiceManager(t)
-	insertServiceManagerGatewayAddress(t, manager, "https://workspace.example.com")
+	setServiceManagerGatewayURL(t, manager, "https://workspace.example.com")
 	invalidManager := insertServiceManager(t)
-	require.NoError(t, db.Insert(t.Context(), &codespace_model.ManagerAddress{
-		ManagerID: invalidManager.ID,
-		Kind:      codespace_model.ManagerAddressGateway,
-		Address:   "http://127.0.0.1:18081",
-	}))
+	invalidManager.GatewayURL = "http://127.0.0.1:18081"
+	_, err := db.GetEngine(t.Context()).ID(invalidManager.ID).Cols("gateway_url").Update(invalidManager)
+	require.NoError(t, err)
 
 	require.NoError(t, WarnManagerGatewayAddressConflicts(t.Context()))
 
@@ -191,10 +189,12 @@ func TestBindRuntimeIdentityAssignsManagerRuntimeUUID(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		Status:            codespace_model.StatusCreating,
-		OperationRVersion: 3,
-		OperationType:     codespace_model.OperationCreate,
-		OperationStatus:   codespace_model.OperationStatusRunning,
+		Status:                codespace_model.StatusCreating,
+		OperationRVersion:     3,
+		OperationTrigger:      codespace_model.OperationTriggerUser,
+		OperationCreatedUnix:  1,
+		OperationStartedUnix:  2,
+		OperationDeadlineUnix: 3,
 	})
 	codespace := new(codespace_model.Codespace)
 	has, err := db.GetEngine(t.Context()).Where("manager_id = ? AND uuid = ?", manager.ID, "").Get(codespace)
@@ -220,10 +220,12 @@ func TestBindRuntimeIdentityAssignsManagerRuntimeUUID(t *testing.T) {
 	assert.Equal(t, runtimeUUID, boundUUID)
 
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		Status:            codespace_model.StatusCreating,
-		OperationRVersion: 4,
-		OperationType:     codespace_model.OperationCreate,
-		OperationStatus:   codespace_model.OperationStatusRunning,
+		Status:                codespace_model.StatusCreating,
+		OperationRVersion:     4,
+		OperationTrigger:      codespace_model.OperationTriggerUser,
+		OperationCreatedUnix:  1,
+		OperationStartedUnix:  2,
+		OperationDeadlineUnix: 3,
 	})
 	otherCodespace := new(codespace_model.Codespace)
 	has, err = db.GetEngine(t.Context()).Where("manager_id = ? AND uuid = ? AND id <> ?", manager.ID, "", codespace.ID).Get(otherCodespace)
@@ -266,8 +268,9 @@ func TestBindRuntimeIdentityRejectsInvalidOperationState(t *testing.T) {
 			name: "queued operation",
 			setup: func(t *testing.T, manager *codespace_model.Manager) (*codespace_model.Codespace, *codespace_model.Manager, int64) {
 				codespace := insertRuntimeIdentityTarget(t, manager, "")
-				codespace.OperationStatus = codespace_model.OperationStatusQueued
-				_, err := db.GetEngine(t.Context()).ID(codespace.ID).Cols("operation_status").Update(codespace)
+				codespace.OperationStartedUnix = 0
+				codespace.OperationDeadlineUnix = 0
+				_, err := db.GetEngine(t.Context()).ID(codespace.ID).Cols("operation_started_unix", "operation_deadline_unix").Update(codespace)
 				require.NoError(t, err)
 				return codespace, manager, codespace.OperationRVersion
 			},
@@ -277,8 +280,8 @@ func TestBindRuntimeIdentityRejectsInvalidOperationState(t *testing.T) {
 			name: "stop operation",
 			setup: func(t *testing.T, manager *codespace_model.Manager) (*codespace_model.Codespace, *codespace_model.Manager, int64) {
 				codespace := insertRuntimeIdentityTarget(t, manager, "")
-				codespace.OperationType = codespace_model.OperationStop
-				_, err := db.GetEngine(t.Context()).ID(codespace.ID).Cols("operation_type").Update(codespace)
+				codespace.Status = codespace_model.StatusRunning
+				_, err := db.GetEngine(t.Context()).ID(codespace.ID).Cols("status").Update(codespace)
 				require.NoError(t, err)
 				return codespace, manager, codespace.OperationRVersion
 			},
@@ -312,11 +315,13 @@ func insertRuntimeIdentityTarget(t *testing.T, manager *codespace_model.Manager,
 	t.Helper()
 
 	codespace := &codespace_model.Codespace{
-		UUID:              runtimeUUID,
-		Status:            codespace_model.StatusCreating,
-		OperationRVersion: 3,
-		OperationType:     codespace_model.OperationCreate,
-		OperationStatus:   codespace_model.OperationStatusRunning,
+		UUID:                  runtimeUUID,
+		Status:                codespace_model.StatusCreating,
+		OperationRVersion:     3,
+		OperationTrigger:      codespace_model.OperationTriggerUser,
+		OperationCreatedUnix:  10,
+		OperationStartedUnix:  11,
+		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	}
 	insertServiceCodespace(t, manager.ID, codespace)
 	return codespace
@@ -328,7 +333,7 @@ func TestCodespaceInitSkipsGatewayAddressValidationWhenDisabled(t *testing.T) {
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.Enabled, false))
 
 	manager := insertServiceManager(t)
-	insertServiceManagerGatewayAddress(t, manager, "https://workspace.example.com")
+	setServiceManagerGatewayURL(t, manager, "https://workspace.example.com")
 
 	require.NoError(t, Init(t.Context()))
 }
@@ -387,7 +392,7 @@ func TestDeclareManagerRejectsDeletedManager(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	require.NoError(t, DeclareManager(t.Context(), manager, validDeclareManagerOptions()))
-	assertServiceExists(t, new(codespace_model.ManagerAddress), "manager_id = ?", manager.ID)
+	assert.NotEmpty(t, loadServiceManager(t, manager.ID).GatewayURL)
 
 	require.NoError(t, DeleteManager(t.Context(), DeleteManagerOptions{
 		Scope:     ManagerSettingsScopeSite,
@@ -397,7 +402,7 @@ func TestDeclareManagerRejectsDeletedManager(t *testing.T) {
 
 	err := DeclareManager(t.Context(), manager, validDeclareManagerOptions())
 	require.ErrorIs(t, err, ErrManagerUnregistered)
-	assertServiceNotExists(t, new(codespace_model.ManagerAddress), "manager_id = ?", manager.ID)
+	assertServiceNotExists(t, new(codespace_model.Manager), "id = ?", manager.ID)
 }
 
 func validDeclareManagerOptions() DeclareManagerOptions {
@@ -409,7 +414,6 @@ func validDeclareManagerOptions() DeclareManagerOptions {
 		RuntimeState:                       codespacev1.ManagerRuntimeState_MANAGER_RUNTIME_STATE_ONLINE,
 		GatewaySSHHostKeyAlgorithm:         "ssh-ed25519",
 		GatewaySSHHostKeyFingerprintSHA256: "SHA256:abc",
-		GatewaySSHHostKeyUpdatedUnix:       1,
 	}
 }
 

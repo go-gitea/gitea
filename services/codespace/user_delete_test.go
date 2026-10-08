@@ -21,9 +21,9 @@ func TestDeleteUserResourcesOnlyCleansPersonalResources(t *testing.T) {
 	userID := int64(2)
 	userManager := insertServiceManager(t)
 	userManager.UserID = userID
-	_, err := db.GetEngine(t.Context()).ID(userManager.ID).Cols("user_id").Update(userManager)
+	userManager.GatewayURL = "https://user-delete.example.com"
+	_, err := db.GetEngine(t.Context()).ID(userManager.ID).Cols("user_id", "gateway_url").Update(userManager)
 	require.NoError(t, err)
-	insertSettingsManagerAddress(t, userManager.ID, codespace_model.ManagerAddressGateway, "https://user-delete.example.com")
 
 	ownedUUID := "67676767-6767-4767-8767-676767676767"
 	insertServiceCodespace(t, userManager.ID, &codespace_model.Codespace{
@@ -59,7 +59,6 @@ func TestDeleteUserResourcesOnlyCleansPersonalResources(t *testing.T) {
 	require.NoError(t, DeleteUserResources(t.Context(), userID))
 
 	assertServiceNotExists(t, new(codespace_model.Manager), "id = ?", userManager.ID)
-	assertServiceNotExists(t, new(codespace_model.ManagerAddress), "manager_id = ?", userManager.ID)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", ownedUUID)
 	assertServiceExists(t, new(codespace_model.Codespace), "uuid = ?", repositoryOwnedUUID)
 	assertServiceNotExists(t, new(codespace_model.PermissionAuthorization), "id = ?", authorization.ID)

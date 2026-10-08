@@ -287,7 +287,7 @@ func validateObservedOperationHistory(ctx context.Context, managerID int64, obse
 func appendRunningOperations(ctx context.Context, managerID int64, observedVersions map[string]int64, maxOperations int32, result *codespacev1.FetchOperationsResponse, summaries *[]*internalStateSummary) error {
 	var rows []*codespace_model.Codespace
 	if err := db.GetEngine(ctx).
-		Where("manager_id = ? AND operation_status = ?", managerID, codespace_model.OperationStatusRunning).
+		Where("manager_id = ? AND operation_created_unix > 0 AND operation_started_unix > 0", managerID).
 		Asc("operation_created_unix", "id").
 		Find(&rows); err != nil {
 		return err
@@ -301,7 +301,7 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 				if err != nil || !has {
 					return err
 				}
-				if codespace.ManagerID != managerID || codespace.OperationStatus != codespace_model.OperationStatusRunning {
+				if codespace.ManagerID != managerID || !codespace_model.IsOperationRunning(codespace) {
 					return nil
 				}
 				if err := codespace_model.ValidateCodespace(codespace); err != nil {
@@ -309,8 +309,9 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 				}
 				leaseMillis, deadlineUnix, ok := grantLease(codespace.OperationStartedUnix, grantTime)
 				if !ok {
-					summary := operationTimeoutSummary(codespace, timeoutStatus(codespace.OperationType))
-					if isConvergentOperation(codespace.OperationType) {
+					operationType := codespace_model.ActiveOperationType(codespace)
+					summary := operationTimeoutSummary(codespace, timeoutStatus(operationType))
+					if isConvergentOperation(operationType) {
 						summary = operationRetrySummary(codespace)
 					}
 					if err := applyRunningTimeout(ctx, codespace, grantTime.Unix()); err != nil {
@@ -326,7 +327,8 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 				if observedVersion > codespace.OperationRVersion {
 					return ErrFetchStateHistoryConflict
 				}
-				if !setting.Codespace.Enabled && (codespace.OperationType == codespace_model.OperationCreate || codespace.OperationType == codespace_model.OperationResume) {
+				operationType := codespace_model.ActiveOperationType(codespace)
+				if !setting.Codespace.Enabled && (operationType == codespace_model.OperationCreate || operationType == codespace_model.OperationResume) {
 					if int32(len(result.Operations)) < maxOperations {
 						result.Operations = append(result.Operations, buildAbortOperationPayload(codespace))
 					}
@@ -368,8 +370,7 @@ func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, 
 	limit := min(fetchMaxQueuedCandidates, remaining*4, capacity*4)
 	var candidates []*codespace_model.Codespace
 	query := db.GetEngine(ctx).
-		Where("operation_status = ?", codespace_model.OperationStatusQueued).
-		In("operation_type", operationTypes).
+		Where("operation_created_unix > 0 AND operation_started_unix = 0 AND operation_deadline_unix = 0").
 		In("status", queuedOperationCandidateStatuses(operationTypes)).
 		Asc("operation_created_unix", "id").
 		Limit(limit)
@@ -398,10 +399,10 @@ func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, 
 					if err != nil || !has {
 						return err
 					}
-					if current.OperationRVersion != candidate.OperationRVersion || current.OperationStatus != codespace_model.OperationStatusQueued || !isQueuedExpired(current, grantTime) {
+					if current.OperationRVersion != candidate.OperationRVersion || !codespace_model.IsOperationQueued(current) || !isQueuedExpired(current, grantTime) {
 						return nil
 					}
-					summary = operationTimeoutSummary(current, queuedTimeoutStatus(current.OperationType))
+					summary = operationTimeoutSummary(current, queuedTimeoutStatus(codespace_model.ActiveOperationType(current)))
 					return applyQueuedTimeout(ctx, current, grantTime.Unix())
 				})
 			})
@@ -435,12 +436,13 @@ func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, 
 		}
 		payload, err := buildOperationPayload(ctx, codespace, leaseMillis)
 		if err != nil {
+			operationType := codespace_model.ActiveOperationType(codespace)
 			query := db.GetEngine(ctx).
-				Where("id = ? AND manager_id = ? AND operation_r_version = ? AND operation_type = ? AND operation_status = ? AND operation_trigger = ?",
-					codespace.ID, managerID, codespace.OperationRVersion, codespace.OperationType, codespace_model.OperationStatusRunning, codespace.OperationTrigger)
-			columns := []string{"operation_status", "operation_started_unix", "operation_deadline_unix"}
-			updates := &codespace_model.Codespace{OperationStatus: codespace_model.OperationStatusQueued}
-			if codespace.OperationType == codespace_model.OperationCreate {
+				Where("id = ? AND manager_id = ? AND operation_r_version = ? AND status = ? AND operation_trigger = ? AND operation_started_unix = ? AND operation_deadline_unix = ?",
+					codespace.ID, managerID, codespace.OperationRVersion, codespace.Status, codespace.OperationTrigger, codespace.OperationStartedUnix, codespace.OperationDeadlineUnix)
+			columns := []string{"operation_started_unix", "operation_deadline_unix"}
+			updates := &codespace_model.Codespace{}
+			if operationType == codespace_model.OperationCreate {
 				query = query.And("status = ?", codespace_model.StatusCreating)
 				updates.ManagerID = 0
 				columns = append(columns, "manager_id")
@@ -459,15 +461,14 @@ func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, 
 func claimQueuedOperation(ctx context.Context, candidate *codespace_model.Codespace, managerID, managerUserID, startedUnix, deadlineUnix int64) (int64, error) {
 	updates := &codespace_model.Codespace{
 		ManagerID:             managerID,
-		OperationStatus:       codespace_model.OperationStatusRunning,
 		OperationStartedUnix:  startedUnix,
 		OperationDeadlineUnix: deadlineUnix,
 	}
 	// Keep every scheduling predicate in the UPDATE so concurrent Managers cannot both claim a stale candidate.
 	query := db.GetEngine(ctx).
-		Where("id = ? AND operation_r_version = ? AND operation_type = ? AND operation_status = ? AND operation_trigger = ?",
-			candidate.ID, candidate.OperationRVersion, candidate.OperationType, codespace_model.OperationStatusQueued, candidate.OperationTrigger)
-	if candidate.OperationType == codespace_model.OperationCreate {
+		Where("id = ? AND operation_r_version = ? AND status = ? AND operation_trigger = ? AND operation_created_unix = ? AND operation_started_unix = 0 AND operation_deadline_unix = 0",
+			candidate.ID, candidate.OperationRVersion, candidate.Status, candidate.OperationTrigger, candidate.OperationCreatedUnix)
+	if codespace_model.ActiveOperationType(candidate) == codespace_model.OperationCreate {
 		query = query.And("status = ? AND manager_id = ? AND environment_tag = ? AND repo_id = ?", codespace_model.StatusCreating, 0, candidate.EnvironmentTag, candidate.RepoID)
 		if managerUserID > 0 {
 			query = query.And("user_id = ?", managerUserID)
@@ -475,7 +476,7 @@ func claimQueuedOperation(ctx context.Context, candidate *codespace_model.Codesp
 	} else {
 		query = query.And("manager_id = ?", managerID)
 	}
-	return query.Cols("manager_id", "operation_status", "operation_started_unix", "operation_deadline_unix").Update(updates)
+	return query.Cols("manager_id", "operation_started_unix", "operation_deadline_unix").Update(updates)
 }
 
 func queuedOperationCandidateStatuses(operationTypes []string) []string {
@@ -496,16 +497,18 @@ func queuedOperationCandidateStatuses(operationTypes []string) []string {
 }
 
 func isQueuedExpired(codespace *codespace_model.Codespace, now time.Time) bool {
-	return !isConvergentOperation(codespace.OperationType) &&
+	return !isConvergentOperation(codespace_model.ActiveOperationType(codespace)) &&
+		codespace_model.IsOperationQueued(codespace) &&
 		codespace.OperationCreatedUnix > 0 &&
 		now.Unix() >= codespace.OperationCreatedUnix+int64(setting.Codespace.QueueTimeout/time.Second)
 }
 
 func applyQueuedTimeout(ctx context.Context, codespace *codespace_model.Codespace, now int64) error {
-	if isConvergentOperation(codespace.OperationType) {
+	operationType := codespace_model.ActiveOperationType(codespace)
+	if isConvergentOperation(operationType) {
 		return nil
 	}
-	return applyFinalState(ctx, codespace, queuedTimeoutStatus(codespace.OperationType), now)
+	return applyFinalState(ctx, codespace, queuedTimeoutStatus(operationType), now)
 }
 
 func queuedTimeoutStatus(operationType string) string {
@@ -518,10 +521,11 @@ func queuedTimeoutStatus(operationType string) string {
 }
 
 func applyRunningTimeout(ctx context.Context, codespace *codespace_model.Codespace, now int64) error {
-	if isConvergentOperation(codespace.OperationType) {
+	operationType := codespace_model.ActiveOperationType(codespace)
+	if isConvergentOperation(operationType) {
 		return retryConvergentOperation(ctx, codespace, now)
 	}
-	return applyFinalState(ctx, codespace, timeoutStatus(codespace.OperationType), now)
+	return applyFinalState(ctx, codespace, timeoutStatus(operationType), now)
 }
 
 func grantLease(operationStartedUnix int64, grantTime time.Time) (int64, int64, bool) {
@@ -560,7 +564,8 @@ func buildOperationPayload(ctx context.Context, codespace *codespace_model.Codes
 		LogOffset:                 codespace.LogSize,
 		LeaseValidForMilliseconds: leaseMillis,
 	}
-	switch codespace.OperationType {
+	operationType := codespace_model.ActiveOperationType(codespace)
+	switch operationType {
 	case codespace_model.OperationCreate:
 		create, err := buildCreatePayload(ctx, codespace)
 		if err != nil {
@@ -576,7 +581,7 @@ func buildOperationPayload(ctx context.Context, codespace *codespace_model.Codes
 	case codespace_model.OperationDelete:
 		payload.Command = &codespacev1.OperationPayload_Delete{Delete: &codespacev1.DeleteOperationPayload{}}
 	default:
-		return nil, fmt.Errorf("unsupported operation type %q", codespace.OperationType)
+		return nil, fmt.Errorf("unsupported operation type %q", operationType)
 	}
 	return payload, nil
 }
@@ -588,7 +593,7 @@ func buildAbortOperationPayload(codespace *codespace_model.Codespace) *codespace
 		RuntimeUuid:       codespace.UUID,
 		LogOffset:         codespace.LogSize,
 	}
-	if codespace.OperationType == codespace_model.OperationResume {
+	if codespace_model.ActiveOperationType(codespace) == codespace_model.OperationResume {
 		payload.Command = &codespacev1.OperationPayload_AbortResume{AbortResume: &codespacev1.AbortResumeOperationPayload{}}
 	} else {
 		payload.Command = &codespacev1.OperationPayload_AbortCreate{AbortCreate: &codespacev1.AbortCreateOperationPayload{}}
@@ -672,18 +677,11 @@ func buildCreatePayload(ctx context.Context, codespace *codespace_model.Codespac
 		return nil, err
 	}
 	devContainer := &codespacev1.DevContainerConfiguration{}
-	switch codespace.DevContainerSource {
-	case codespace_model.DevContainerSourceRepository:
-		if strings.TrimSpace(codespace.DevContainerPath) == "" || strings.TrimSpace(codespace.DevContainerContent) != "" {
-			return nil, errors.New("invalid persisted Dev Container configuration")
-		}
+	if strings.TrimSpace(codespace.DevContainerPath) != "" && strings.TrimSpace(codespace.DevContainerContent) == "" {
 		devContainer.Source = &codespacev1.DevContainerConfiguration_RepositoryPath{RepositoryPath: codespace.DevContainerPath}
-	case codespace_model.DevContainerSourceTemplate:
-		if strings.TrimSpace(codespace.DevContainerPath) != "" || strings.TrimSpace(codespace.DevContainerContent) == "" {
-			return nil, errors.New("invalid persisted Dev Container configuration")
-		}
+	} else if strings.TrimSpace(codespace.DevContainerPath) == "" && strings.TrimSpace(codespace.DevContainerContent) != "" {
 		devContainer.Source = &codespacev1.DevContainerConfiguration_TemplateContent{TemplateContent: codespace.DevContainerContent}
-	default:
+	} else {
 		return nil, errors.New("invalid persisted Dev Container configuration")
 	}
 	return &codespacev1.CreateOperationPayload{

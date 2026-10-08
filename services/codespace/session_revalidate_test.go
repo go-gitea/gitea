@@ -98,8 +98,6 @@ func TestRevalidateGatewaySessionDeniesChangedEndpointAndState(t *testing.T) {
 		UUID:                 activeUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    63,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix: time.Now().Unix(),
 	})

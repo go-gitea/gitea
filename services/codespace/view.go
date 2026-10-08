@@ -157,7 +157,6 @@ type CreatorSSHView struct {
 	Command            string
 	HostKeyAlgorithm   string
 	HostKeyFingerprint string
-	HostKeyUpdatedUnix int64
 }
 
 // CreatorResourceMetricView contains one runtime resource usage measurement.
@@ -230,7 +229,7 @@ func ListCreatorCodespaces(ctx context.Context, opts CreatorListOptions) (*Creat
 	}
 	result := &CreatorCodespaceList{Rows: make([]*CreatorCodespaceView, 0, len(rows)), Total: total}
 	for _, row := range rows {
-		view, err := creatorCodespaceView(ctx, row, cache, false)
+		view, err := creatorCodespaceView(row, cache, false)
 		if err != nil {
 			return nil, err
 		}
@@ -262,10 +261,10 @@ func GetCreatorCodespace(ctx context.Context, opts CreatorDetailOptions) (*Creat
 	if err != nil {
 		return nil, err
 	}
-	return creatorCodespaceView(ctx, codespace, cache, true)
+	return creatorCodespaceView(codespace, cache, true)
 }
 
-func creatorCodespaceView(ctx context.Context, codespace *codespace_model.Codespace, cache *creatorViewCache, includeDetailData bool) (*CreatorCodespaceView, error) {
+func creatorCodespaceView(codespace *codespace_model.Codespace, cache *creatorViewCache, includeDetailData bool) (*CreatorCodespaceView, error) {
 	refDisplayName := codespace.RefName
 	if codespace.RefType == "pull" {
 		if index, err := pullIndexFromCanonicalRef(codespace.RefName); err == nil {
@@ -298,7 +297,7 @@ func creatorCodespaceView(ctx context.Context, codespace *codespace_model.Codesp
 		}
 	}
 	manager := cache.managers[codespace.ManagerID]
-	applyCreatorDisplayState(ctx, codespace, view, manager, includeDetailData)
+	applyCreatorDisplayState(codespace, view, manager, includeDetailData)
 	switch view.DisplayStatus {
 	case DisplayRunning, DisplayStopped, DisplayRecovering, DisplayMetadataRebuilding:
 		view.DetailMode = DetailModeOverview
@@ -394,19 +393,19 @@ func creatorDurationView(seconds int64) CreatorDurationView {
 	return CreatorDurationView{Value: seconds, Unit: "seconds", TranslationKey: "tool.seconds"}
 }
 
-func applyCreatorDisplayState(ctx context.Context, codespace *codespace_model.Codespace, view *CreatorCodespaceView, manager *codespace_model.Manager, includeDetailData bool) {
+func applyCreatorDisplayState(codespace *codespace_model.Codespace, view *CreatorCodespaceView, manager *codespace_model.Manager, includeDetailData bool) {
 	view.DisplayStatus = codespace.Status
 	switch codespace.Status {
 	case codespace_model.StatusCreating:
-		if codespace.OperationStatus == codespace_model.OperationStatusQueued {
+		if codespace_model.IsOperationQueued(codespace) {
 			view.DisplayStatus = DisplayQueued
 		} else {
 			view.DisplayStatus = DisplayBooting
 		}
 	case codespace_model.StatusRunning:
-		view.DisplayStatus = runningDisplayStatus(ctx, codespace, view, manager, includeDetailData)
+		view.DisplayStatus = runningDisplayStatus(codespace, view, manager, includeDetailData)
 	case codespace_model.StatusStopped:
-		if codespace.OperationType == codespace_model.OperationResume {
+		if codespace_model.ActiveOperationType(codespace) == codespace_model.OperationResume {
 			view.DisplayStatus = DisplayResuming
 		}
 	case codespace_model.StatusDeleting:
@@ -427,8 +426,8 @@ func applyCreatorDisplayState(ctx context.Context, codespace *codespace_model.Co
 	}
 }
 
-func runningDisplayStatus(ctx context.Context, codespace *codespace_model.Codespace, view *CreatorCodespaceView, manager *codespace_model.Manager, includeDetailData bool) string {
-	if codespace.OperationType == codespace_model.OperationStop && !isQueuedIdleStop(codespace) {
+func runningDisplayStatus(codespace *codespace_model.Codespace, view *CreatorCodespaceView, manager *codespace_model.Manager, includeDetailData bool) string {
+	if codespace_model.ActiveOperationType(codespace) == codespace_model.OperationStop && !isQueuedIdleStop(codespace) {
 		return DisplayStopping
 	}
 	if manager == nil || manager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(manager) {
@@ -463,20 +462,16 @@ func runningDisplayStatus(ctx context.Context, codespace *codespace_model.Codesp
 	}
 	if includeDetailData {
 		view.ResourceUsage = creatorResourceUsageView(entry.Metadata.ResourceUsage)
-		view.SSH = creatorSSHView(ctx, codespace, manager)
+		view.SSH = creatorSSHView(codespace, manager)
 	}
 	return DisplayRunning
 }
 
-func creatorSSHView(ctx context.Context, codespace *codespace_model.Codespace, manager *codespace_model.Manager) *CreatorSSHView {
-	address := new(codespace_model.ManagerAddress)
-	has, err := db.GetEngine(ctx).
-		Where("manager_id = ? AND kind = ?", codespace.ManagerID, codespace_model.ManagerAddressSSH).
-		Get(address)
-	if err != nil || !has || address.Address == "" {
+func creatorSSHView(codespace *codespace_model.Codespace, manager *codespace_model.Manager) *CreatorSSHView {
+	if manager.GatewaySSHAddr == "" {
 		return nil
 	}
-	host, port, err := net.SplitHostPort(address.Address)
+	host, port, err := net.SplitHostPort(manager.GatewaySSHAddr)
 	if err != nil {
 		return nil
 	}
@@ -488,7 +483,6 @@ func creatorSSHView(ctx context.Context, codespace *codespace_model.Codespace, m
 		Command:            command,
 		HostKeyAlgorithm:   strings.TrimSpace(manager.GatewaySSHHostKeyAlgorithm),
 		HostKeyFingerprint: strings.TrimSpace(manager.GatewaySSHHostKeyFingerprintSHA256),
-		HostKeyUpdatedUnix: manager.GatewaySSHHostKeyUpdatedUnix,
 	}
 }
 

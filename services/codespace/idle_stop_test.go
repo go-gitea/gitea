@@ -41,8 +41,8 @@ func TestRequestIdleStopCreatesAndConfirmsPending(t *testing.T) {
 	assert.EqualValues(t, 7, result.GetPending().GetOperationRversion())
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.EqualValues(t, 7, row.OperationRVersion)
-	assert.Equal(t, codespace_model.OperationStop, row.OperationType)
-	assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
+	assert.Equal(t, codespace_model.OperationStop, codespace_model.ActiveOperationType(row))
+	assert.True(t, codespace_model.IsOperationQueued(row))
 	assert.Equal(t, codespace_model.OperationTriggerIdle, row.OperationTrigger)
 	assert.Positive(t, row.UpdatedUnix)
 
@@ -82,7 +82,7 @@ func TestRequestIdleStopReturnsObservationChanged(t *testing.T) {
 	assert.True(t, settings.GetAutoStopEnabled())
 	assert.EqualValues(t, 600, settings.GetIdleTimeoutSeconds())
 	assert.EqualValues(t, 4, settings.GetInteractionGeneration())
-	assert.Empty(t, loadServiceCodespace(t, codespaceUUID).OperationType)
+	assert.False(t, hasActiveOperation(loadServiceCodespace(t, codespaceUUID)))
 }
 
 func TestRequestIdleStopDisabledReturnsObservationChangedAndKeepsPending(t *testing.T) {
@@ -111,7 +111,7 @@ func TestRequestIdleStopDisabledReturnsObservationChangedAndKeepsPending(t *test
 	assert.Zero(t, settings.GetIdleTimeoutSeconds())
 	assert.EqualValues(t, 5, settings.GetInteractionGeneration())
 	row := loadServiceCodespace(t, runningUUID)
-	assert.Empty(t, row.OperationType)
+	assert.False(t, hasActiveOperation(row))
 	assert.EqualValues(t, 11, row.OperationRVersion)
 
 	pendingUUID := "57575757-5757-4575-8575-575757575757"
@@ -119,8 +119,6 @@ func TestRequestIdleStopDisabledReturnsObservationChangedAndKeepsPending(t *test
 		UUID:                 pendingUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    12,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -144,8 +142,6 @@ func TestRequestIdleStopNotApplicableAndVersionExhausted(t *testing.T) {
 		UUID:                 conflictUUID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    8,
-		OperationType:        codespace_model.OperationStop,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
@@ -201,7 +197,7 @@ func TestRequestIdleStopNotApplicableAndVersionExhausted(t *testing.T) {
 		ObservedInteractionGeneration: 0,
 	})
 	require.ErrorIs(t, err, ErrRequestIdleStopVersionExhausted)
-	assert.Empty(t, loadServiceCodespace(t, exhaustedUUID).OperationType)
+	assert.False(t, hasActiveOperation(loadServiceCodespace(t, exhaustedUUID)))
 }
 
 func TestRequestIdleStopKeepsQueuedCleanupOperation(t *testing.T) {
@@ -214,8 +210,6 @@ func TestRequestIdleStopKeepsQueuedCleanupOperation(t *testing.T) {
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     12,
-		OperationType:         codespace_model.OperationStop,
-		OperationStatus:       codespace_model.OperationStatusQueued,
 		OperationTrigger:      codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix:  time.Now().Add(-setting.Codespace.QueueTimeout - time.Second).Unix(),
 		InteractionGeneration: 6,
@@ -229,8 +223,8 @@ func TestRequestIdleStopKeepsQueuedCleanupOperation(t *testing.T) {
 	assert.NotNil(t, fetch.Operations[0].GetStop())
 	row := loadServiceCodespace(t, codespaceUUID)
 	require.Equal(t, codespace_model.StatusRunning, row.Status)
-	require.Equal(t, codespace_model.OperationStop, row.OperationType)
-	require.Equal(t, codespace_model.OperationStatusRunning, row.OperationStatus)
+	require.Equal(t, codespace_model.OperationStop, codespace_model.ActiveOperationType(row))
+	require.True(t, codespace_model.IsOperationRunning(row))
 	require.EqualValues(t, 12, row.OperationRVersion)
 
 	assert.Equal(t, codespace_model.OperationTriggerIdle, row.OperationTrigger)

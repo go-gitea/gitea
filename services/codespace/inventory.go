@@ -317,8 +317,6 @@ func applyInventoryMissingFailed(ctx context.Context, codespace *codespace_model
 	deleteRuntimeMetadata(codespace.UUID)
 	_, err := db.GetEngine(ctx).ID(codespace.ID).Cols(
 		"status",
-		"operation_type",
-		"operation_status",
 		"operation_trigger",
 		"operation_created_unix",
 		"operation_started_unix",

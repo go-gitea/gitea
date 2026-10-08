@@ -30,8 +30,6 @@ func TestListGovernanceCodespacesAndActions(t *testing.T) {
 	unbound := &codespace_model.Codespace{
 		Status:               codespace_model.StatusCreating,
 		OperationRVersion:    1,
-		OperationType:        codespace_model.OperationCreate,
-		OperationStatus:      codespace_model.OperationStatusQueued,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: 1,
 	}
@@ -71,8 +69,8 @@ func TestListGovernanceCodespacesAndActions(t *testing.T) {
 	_, err = StopGovernanceCodespace(t.Context(), GovernanceActionOptions{CodespaceUUID: runningUUID, ManagerID: manager.ID})
 	require.NoError(t, err)
 	row := loadServiceCodespace(t, runningUUID)
-	assert.Equal(t, codespace_model.OperationStop, row.OperationType)
-	assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
+	assert.Equal(t, codespace_model.OperationStop, codespace_model.ActiveOperationType(row))
+	assert.True(t, codespace_model.IsOperationQueued(row))
 	assert.EqualValues(t, 32, row.OperationRVersion)
 	_, err = db.DeleteByID[codespace_model.Manager](t.Context(), manager.ID)
 	require.NoError(t, err)
@@ -113,8 +111,6 @@ func TestForceDeleteCodespaceRemovesLocalState(t *testing.T) {
 		UUID:              codespaceUUID,
 		Status:            codespace_model.StatusDeleting,
 		OperationRVersion: 36,
-		OperationType:     codespace_model.OperationDelete,
-		OperationStatus:   codespace_model.OperationStatusRunning,
 	})
 	insertServiceCredentials(t, codespaceUUID)
 

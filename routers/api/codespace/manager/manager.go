@@ -60,7 +60,6 @@ func (s *Service) DeclareManager(
 		RuntimeState:                       req.Msg.GetManagerRuntimeState(),
 		GatewaySSHHostKeyAlgorithm:         req.Msg.GetGatewaySshHostKeyAlgorithm(),
 		GatewaySSHHostKeyFingerprintSHA256: req.Msg.GetGatewaySshHostKeyFingerprintSha256(),
-		GatewaySSHHostKeyUpdatedUnix:       req.Msg.GetGatewaySshHostKeyUpdatedUnix(),
 	}); err != nil {
 		return nil, serviceFailureError(err, "invalid_declaration", nil)
 	}

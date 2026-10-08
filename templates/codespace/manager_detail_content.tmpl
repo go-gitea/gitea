@@ -54,7 +54,6 @@
 							<span id="manager-host-key-fingerprint" class="tw-font-mono tw-min-w-0">{{.Manager.GatewaySSHHostKeyFingerprintSHA256}}</span>
 							<button class="btn interact-bg tw-p-1 tw-shrink-0" type="button" data-clipboard-target="#manager-host-key-fingerprint" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" aria-label="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy"}}</button>
 						</div>
-						{{if .Manager.GatewaySSHHostKeyUpdatedUnix}}<div class="tw-text-text-light-2">{{ctx.Locale.Tr "codespace.ssh_host_key_updated"}}: {{DateUtils.AbsoluteShort .Manager.GatewaySSHHostKeyUpdatedUnix}}</div>{{end}}
 					</dd>
 				{{end}}
 			</dl>

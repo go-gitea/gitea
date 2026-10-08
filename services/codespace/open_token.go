@@ -395,8 +395,6 @@ func advanceCodespaceInteraction(ctx context.Context, codespace *codespace_model
 		codespace.UpdatedUnix = now
 		clearActiveOperation(codespace)
 		cols = append(cols,
-			"operation_type",
-			"operation_status",
 			"operation_trigger",
 			"operation_created_unix",
 			"operation_started_unix",
@@ -446,17 +444,15 @@ func validateOpenEndpointID(endpointID string) error {
 }
 
 func loadManagerGatewayURL(ctx context.Context, managerID int64) (string, error) {
-	address := new(codespace_model.ManagerAddress)
-	has, err := db.GetEngine(ctx).
-		Where("manager_id = ? AND kind = ?", managerID, codespace_model.ManagerAddressGateway).
-		Get(address)
+	manager := new(codespace_model.Manager)
+	has, err := db.GetEngine(ctx).ID(managerID).Cols("gateway_url").Get(manager)
 	if err != nil {
 		return "", err
 	}
-	if !has {
+	if !has || manager.GatewayURL == "" {
 		return "", errors.New("manager gateway address not found")
 	}
-	return address.Address, nil
+	return manager.GatewayURL, nil
 }
 
 func gatewayOpenURL(rawGatewayURL, codespaceUUID, endpointID, code string) (string, error) {

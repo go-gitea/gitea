@@ -165,7 +165,7 @@ func governanceCodespaceView(ctx context.Context, codespace *codespace_model.Cod
 		Status:      codespace.Status,
 		UpdatedUnix: codespace.UpdatedUnix,
 	}
-	applyCreatorDisplayState(ctx, codespace, view, manager, false)
+	applyCreatorDisplayState(codespace, view, manager, false)
 
 	result := &GovernanceView{
 		ID:                codespace.ID,
@@ -282,7 +282,7 @@ func applyGovernanceLifecycleAction(ctx context.Context, opts GovernanceActionOp
 				return err
 			}
 			view := &CreatorCodespaceView{}
-			applyCreatorDisplayState(ctx, codespace, view, manager, false)
+			applyCreatorDisplayState(codespace, view, manager, false)
 			governanceView := &GovernanceView{DisplayStatus: view.DisplayStatus}
 			applyGovernanceActions(governanceView, manager != nil)
 			switch operationType {
