@@ -77,9 +77,9 @@ func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 
 // autoSignIn reads cookie and try to auto-login.
 func autoSignIn(ctx *context.Context) (bool, error) {
-	isSucceed := false
+	keepRememberCookie := false
 	defer func() {
-		if !isSucceed {
+		if !keepRememberCookie {
 			ctx.DeleteSiteCookie(setting.CookieRememberName)
 		}
 	}()
@@ -113,6 +113,10 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 	}
 
 	nt, token, err := auth_service.RegenerateAuthToken(ctx, t)
+	if errors.Is(err, auth_service.ErrAuthTokenRotationConflict) {
+		keepRememberCookie = true // A late response must not clear the winner's cookie.
+		return false, nil
+	}
 	if errors.Is(err, auth_service.ErrAuthTokenExpired) {
 		return false, nil
 	}
@@ -121,7 +125,7 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 	}
 
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
-	isSucceed = true
+	keepRememberCookie = true
 
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,

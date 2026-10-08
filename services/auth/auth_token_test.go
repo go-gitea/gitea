@@ -108,7 +108,7 @@ func TestRegenerateAuthToken(t *testing.T) {
 
 	// Only one request may rotate the same validated cookie.
 	competing, competingToken, err := RegenerateAuthToken(t.Context(), at)
-	require.ErrorIs(t, err, ErrAuthTokenExpired)
+	require.ErrorIs(t, err, ErrAuthTokenRotationConflict)
 	require.Nil(t, competing)
 	require.Empty(t, competingToken)
 	current, err := CheckAuthToken(t.Context(), at2.ID+":"+token2)
