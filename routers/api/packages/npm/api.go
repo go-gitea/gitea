@@ -16,6 +16,7 @@ import (
 	packages_model "gitea.dev/models/packages"
 	npm_module "gitea.dev/modules/packages/npm"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 func createPackageMetadataResponse(registryURL string, pds []*packages_model.PackageDescriptor) *npm_module.PackageMetadata {
@@ -89,7 +90,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 	// <name>/-/<file> URL, which clients derive from their registry config.
 	tarball := fmt.Sprintf("%sapi/packages/%s/npm/%s/-/%s/%s", setting.AppURL, pd.Owner.Name, url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName))
 	if metadata.HasStandardTarballURL {
-		tarball = fmt.Sprintf("%s/%s/-/%s", registryURL, pd.Package.Name, pd.Files[0].File.LowerName)
+		tarball = fmt.Sprintf("%s/%s/-/%s", registryURL, util.PathEscapeSegments(pd.Package.Name), url.PathEscape(pd.Files[0].File.LowerName))
 	}
 
 	return &npm_module.PackageMetadataVersion{
