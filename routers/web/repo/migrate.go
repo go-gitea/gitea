@@ -53,7 +53,7 @@ func Migrate(ctx *context.Context) {
 	}
 
 	ctx.Data["private"] = getRepoPrivate(ctx)
-	ctx.Data["mirror"] = ctx.FormBool("mirror") // from "#2037": "new mirror" button on org's home page
+	ctx.Data["mirror"] = ctx.FormBool("mirror") // from "gogs#2037": "new mirror" button on org's home page
 
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
