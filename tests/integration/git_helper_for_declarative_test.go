@@ -38,13 +38,13 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	assert.NoError(t, err)
 
 	err = os.WriteFile(filepath.Join(tmpDir, "ssh"), []byte("#!/bin/bash\n"+
-		"ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\" \"$@\""), 0o700)
+		"ssh -F none -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\" \"$@\""), 0o700)
 	assert.NoError(t, err)
 
 	// Setup ssh wrapper
 	t.Setenv("GIT_SSH", filepath.Join(tmpDir, "ssh"))
 	t.Setenv("GIT_SSH_COMMAND",
-		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
+		"ssh -F none -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
 	t.Setenv("GIT_SSH_VARIANT", "ssh")
 
 	callback(keyFile)
@@ -169,12 +169,7 @@ func doGitCloneFail(u *url.URL) func(*testing.T) {
 func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
-		assert.NoError(t, git.InitRepositoryLocal(t.Context(), dstPath, false, git.Sha1ObjectFormat.Name()))
-		// forcibly set default branch to master
-		_, _, err := gitcmd.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").
-			WithDir(dstPath).
-			RunStdString(t.Context())
-		assert.NoError(t, err)
+		assert.NoError(t, git.InitRepositoryLocal(t.Context(), dstPath, false, git.Sha1ObjectFormat.Name(), "master"))
 		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte("# Testing Repository\n\nOriginally created in: "+dstPath), 0o644))
 		assert.NoError(t, gitAddChangesDeprecated(t.Context(), dstPath, true))
 		signature := git.Signature{

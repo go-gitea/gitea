@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 
-	uid, exists := htmlDoc.doc.Find("#uid").Attr("value")
+	uid, exists := htmlDoc.doc.Find(`input[name="uid"]`).Attr("value")
 	assert.True(t, exists, "The template has changed")
 
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
@@ -32,7 +33,7 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 		"repo_name":  repoName,
 		"service":    fmt.Sprintf("%d", structs.PlainGitService),
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	return resp
 }
@@ -40,7 +41,8 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 func TestRepoMigrate(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	testRepoMigrate(t, session, "https://github.com/go-gitea/test_repo.git", "git")
+	resp := testRepoMigrate(t, session, "https://github.com/go-gitea/test_repo.git", "git")
+	assert.Equal(t, "/user2/git", *test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
 }
 
 // TestRepoMigrationUI verifies the per-service migration forms render, including the
@@ -59,7 +61,7 @@ func TestRepoMigrationUI(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		serviceValue, exists := htmlDoc.doc.Find(`#service_type`).Attr("value")
+		serviceValue, exists := htmlDoc.doc.Find(`input[name="service"]`).Attr("value")
 		assert.True(t, exists, "service_type input missing for %s", service.Title())
 		assert.Equal(t, fmt.Sprintf("%d", service), serviceValue)
 	}

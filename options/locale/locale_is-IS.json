@@ -370,7 +370,6 @@
   "settings.key_id": "Lykilauðkenni",
   "settings.key_content": "Innihald",
   "settings.principal_content": "Innihald",
-  "settings.delete_key": "Fjarlægja",
   "settings.ssh_key_deletion": "Fjarlæga SSH Lykil",
   "settings.gpg_key_deletion": "Fjarlæga GPG Lykil",
   "settings.ssh_key_deletion_success": "SSH lykillinn hefur verið fjarlægður.",
