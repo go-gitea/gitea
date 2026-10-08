@@ -84,11 +84,11 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 
 	metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](pd)
 
-	// Versions from before NpmjsTarballURL keep their former URL, ROOT_URL host
-	// included, because lockfiles pin it. Newer versions use the standard
+	// Versions from before HasStandardTarballURL keep their former URL, ROOT_URL
+	// host included, because lockfiles pin it. Newer versions use the standard
 	// <name>/-/<file> URL, which clients derive from their registry config.
 	tarball := fmt.Sprintf("%sapi/packages/%s/npm/%s/-/%s/%s", setting.AppURL, pd.Owner.Name, url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName))
-	if metadata.NpmjsTarballURL {
+	if metadata.HasStandardTarballURL {
 		tarball = fmt.Sprintf("%s/%s/-/%s", registryURL, pd.Package.Name, pd.Files[0].File.LowerName)
 	}
 
