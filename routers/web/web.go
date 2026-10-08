@@ -1092,7 +1092,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/create", repo.Create)
 		m.Post("/create", web.Bind[*forms.CreateRepoForm](), repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
-		m.Post("/migrate", web.Bind[*forms.MigrateRepoForm](), repo.MigratePost)
+		m.Post("/migrate", repo.MigratePost)
 		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
 	// end "/repo": create, migrate, search
