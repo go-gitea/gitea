@@ -11,8 +11,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
 	npm_module "gitea.dev/modules/packages/npm"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/hashicorp/go-version"
@@ -20,7 +18,6 @@ import (
 )
 
 func TestCreatePackageMetadataResponse(t *testing.T) {
-	defer test.MockVariableValue(&setting.AppURL, "https://gitea.dev/")()
 	repository := npm_module.Repository{Type: "git", URL: "https://gitea.dev/alice/test.git"}
 	descriptor := func(v string, publishedUnix int64, repo npm_module.Repository, standardTarballURL bool) *packages_model.PackageDescriptor {
 		return &packages_model.PackageDescriptor{
@@ -36,7 +33,7 @@ func TestCreatePackageMetadataResponse(t *testing.T) {
 		}
 	}
 
-	result := createPackageMetadataResponse("http://gitea.internal:3000/api/packages/alice/npm", []*packages_model.PackageDescriptor{
+	result := createPackageMetadataResponse("https://gitea.dev/api/packages/alice/npm", []*packages_model.PackageDescriptor{
 		descriptor("1.1.0", 1000, npm_module.Repository{}, true),
 		descriptor("2.0.0-rc.1", 1500, repository, false),
 		descriptor("1.0.0", 2000, repository, false),
@@ -61,7 +58,7 @@ func TestCreatePackageMetadataResponse(t *testing.T) {
 		result.Versions["1.0.0"].Dist.Tarball,
 	)
 	assert.Equal(t,
-		"http://gitea.internal:3000/api/packages/alice/npm/@scope/test/-/test-1.1.0.tgz",
+		"https://gitea.dev/api/packages/alice/npm/@scope/test/-/test-1.1.0.tgz",
 		result.Versions["1.1.0"].Dist.Tarball,
 	)
 	assert.Equal(t, repository, result.Versions["1.0.0"].Repository)
