@@ -152,7 +152,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 
 	// Webhooks
 	if opts.Webhooks {
-		if err = GenerateWebhooks(ctx, templateRepo, generateRepo); err != nil {
+		if err = GenerateWebhooks(ctx, doer, templateRepo, generateRepo); err != nil {
 			return nil, err
 		}
 	}

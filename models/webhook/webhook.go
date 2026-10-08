@@ -125,6 +125,7 @@ type Webhook struct {
 	RepoID                    int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
 	OwnerID                   int64 `xorm:"INDEX"`
 	IsSystemWebhook           bool
+	CreatedByID               int64  `xorm:"INDEX NOT NULL DEFAULT 0"` // whoever last saved the config; 0 for hooks predating this column
 	URL                       string `xorm:"url TEXT"`
 	Name                      string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	HTTPMethod                string `xorm:"http_method"`
@@ -312,6 +313,12 @@ func (opts ListWebhookOptions) ToConds() builder.Cond {
 // UpdateWebhook updates information of webhook.
 func UpdateWebhook(ctx context.Context, w *Webhook) error {
 	_, err := db.GetEngine(ctx).ID(w.ID).AllCols().Update(w)
+	return err
+}
+
+// DeactivateWebhook disables delivery of the webhook without touching its other columns.
+func DeactivateWebhook(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).ID(id).Cols("is_active").Update(&Webhook{IsActive: false})
 	return err
 }
 

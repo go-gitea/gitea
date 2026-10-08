@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
@@ -84,7 +85,7 @@ func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 }
 
 // GenerateWebhooks generates webhooks from a template repository
-func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
+func GenerateWebhooks(ctx context.Context, doer *user_model.User, templateRepo, generateRepo *repo_model.Repository) error {
 	templateWebhooks, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{RepoID: templateRepo.ID})
 	if err != nil {
 		return err
@@ -104,6 +105,7 @@ func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 			OwnerID:     templateWebhook.OwnerID,
 			Events:      templateWebhook.Events,
 			Meta:        templateWebhook.Meta,
+			CreatedByID: doer.ID,
 		})
 	}
 	return webhook.CreateWebhooks(ctx, ws)

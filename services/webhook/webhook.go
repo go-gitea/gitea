@@ -241,8 +241,9 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_modu
 	}
 	ws = append(ws, systemHooks...)
 
-	if len(ws) == 0 {
-		return nil
+	ws, err = filterRevokedWebhooks(ctx, ws, source.Repository)
+	if err != nil {
+		return err
 	}
 
 	for _, w := range ws {

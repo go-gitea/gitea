@@ -221,6 +221,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 		Secret:          form.Config["secret"],
 		HTTPMethod:      "POST",
 		IsSystemWebhook: isSystemWebhook,
+		CreatedByID:     ctx.Doer.ID,
 		HookEvent: &webhook_module.HookEvent{
 			ChooseEvents: true,
 			HookEvents:   updateHookEvents(form.Events),
@@ -396,6 +397,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	if form.Name != nil {
 		w.Name = strings.TrimSpace(*form.Name)
 	}
+	w.CreatedByID = ctx.Doer.ID
 
 	if err := webhook.UpdateWebhook(ctx, w); err != nil {
 		ctx.APIErrorInternal(err)

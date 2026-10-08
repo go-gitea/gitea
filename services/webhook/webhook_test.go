@@ -31,6 +31,7 @@ func TestWebhookService(t *testing.T) {
 	t.Run("WebhookUserMail", testWebhookUserMail)
 	t.Run("CheckBranchFilter", testWebhookCheckBranchFilter)
 	t.Run("PrepareTestWebhookIgnoresGates", testPrepareTestWebhookIgnoresGates)
+	t.Run("PrepareRevokedCreator", testWebhookPrepareRevokedCreator)
 }
 
 func testWebhookGetSlackHook(t *testing.T) {
@@ -166,4 +167,40 @@ func testPrepareTestWebhookIgnoresGates(t *testing.T) {
 	// Manual test delivery always queues so the endpoint can be verified.
 	require.NoError(t, PrepareTestWebhook(t.Context(), hook, webhook_module.HookEventPush, payload))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
+}
+
+func testWebhookPrepareRevokedCreator(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}) // private repo of org3, user2 is an owner and user4 a plain member
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 5, ProhibitLogin: true}, "prohibit_login"))
+
+	cases := []struct {
+		name      string
+		hook      webhook_model.Webhook
+		delivered bool
+	}{
+		{"LegacyHook", webhook_model.Webhook{RepoID: repo.ID}, true},
+		{"RepoHookByOrgOwner", webhook_model.Webhook{RepoID: repo.ID, CreatedByID: 2}, true},
+		{"RepoHookByNonAdmin", webhook_model.Webhook{RepoID: repo.ID, CreatedByID: 4}, false},
+		{"RepoHookByDeletedUser", webhook_model.Webhook{RepoID: repo.ID, CreatedByID: 9999}, false},
+		{"RepoHookByProhibitedUser", webhook_model.Webhook{RepoID: repo.ID, CreatedByID: 5}, false},
+		{"OrgHookByOwner", webhook_model.Webhook{OwnerID: 3, CreatedByID: 2}, true},
+		{"OrgHookByMember", webhook_model.Webhook{OwnerID: 3, CreatedByID: 4}, false},
+		{"SystemHookBySiteAdmin", webhook_model.Webhook{IsSystemWebhook: true, CreatedByID: 1}, true},
+		{"SystemHookByNonAdmin", webhook_model.Webhook{IsSystemWebhook: true, CreatedByID: 2}, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			hook := c.hook
+			hook.URL = "http://localhost/gitea-webhook-test-revoked-creator"
+			hook.ContentType = webhook_model.ContentTypeJSON
+			hook.Events = `{"send_everything":true}`
+			hook.IsActive = true
+			require.NoError(t, db.Insert(t.Context(), &hook))
+
+			require.NoError(t, PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventIssues, &api.IssuePayload{}))
+			assert.Equal(t, c.delivered, unittest.GetCount(t, &webhook_model.HookTask{HookID: hook.ID}) == 1)
+			assert.Equal(t, c.delivered, unittest.AssertExistsAndLoadBean(t, &webhook_model.Webhook{ID: hook.ID}).IsActive)
+			require.NoError(t, webhook_model.DeleteWebhookByID(t.Context(), hook.ID))
+		})
+	}
 }

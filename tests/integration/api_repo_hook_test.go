@@ -12,6 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	webhook_model "gitea.dev/models/webhook"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
@@ -95,4 +96,29 @@ func TestAPICreateHook(t *testing.T) {
 	clearResp := MakeRequest(t, clearReq, http.StatusOK)
 	cleared := DecodeJSON(t, clearResp, &api.Hook{})
 	assert.Empty(t, cleared.Name)
+}
+
+func TestAPIRepoHookRevokedCollaborator(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}) // private repo of user2
+	ownerToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteIssue)
+	repoURL := "/api/v1/repos/user2/" + repo.Name
+
+	MakeRequest(t, NewRequestWithJSON(t, "PUT", repoURL+"/collaborators/user4", api.AddCollaboratorOption{Permission: new(api.RepoWritePermissionAdmin)}).AddTokenAuth(ownerToken), http.StatusNoContent)
+	collaboratorToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteRepository)
+	resp := MakeRequest(t, NewRequestWithJSON(t, "POST", repoURL+"/hooks", api.CreateHookOption{
+		Type:   "gitea",
+		Config: api.CreateHookOptionConfig{"content_type": "json", "url": "http://example.com/"},
+		Events: []string{"issues"},
+		Active: true,
+	}).AddTokenAuth(collaboratorToken), http.StatusCreated)
+	hookID := DecodeJSON(t, resp, &api.Hook{}).ID
+	assert.EqualValues(t, 4, unittest.AssertExistsAndLoadBean(t, &webhook_model.Webhook{ID: hookID}).CreatedByID)
+
+	MakeRequest(t, NewRequest(t, "DELETE", repoURL+"/collaborators/user4").AddTokenAuth(ownerToken), http.StatusNoContent)
+	MakeRequest(t, NewRequestWithJSON(t, "POST", repoURL+"/issues", api.CreateIssueOption{Title: "after revocation"}).AddTokenAuth(ownerToken), http.StatusCreated)
+
+	unittest.AssertNotExistsBean(t, &webhook_model.HookTask{HookID: hookID})
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &webhook_model.Webhook{ID: hookID}).IsActive)
 }
