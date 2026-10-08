@@ -51,9 +51,6 @@
     grid-row: 3;
     padding-left: 0;
   }
-  .repo-home-sidebar-bottom .flex-list > :first-child {
-    border-top: 0;
-  }
 }
 
 .repo-view-container {

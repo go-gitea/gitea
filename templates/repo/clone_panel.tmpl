@@ -4,7 +4,7 @@
 {{$showCloneLinks := or $cloneLink.SupportHTTPS $cloneLink.SupportSSH}}
 {{$showOpenWithEditorApps := and $showCloneLinks $openWithEditorApps}}{{/* the editor apps need the clone link */}}
 {{if or $showCloneLinks $showOpenWithEditorApps $downloadArchiveLinkPrefix}}
-<button class="ui compact primary button" data-global-init="initRepoClonePanel">
+<button type="button" class="ui compact primary button" data-global-init="initRepoClonePanel">
 	{{svg "octicon-code" 16}}
 	<span>{{ctx.Locale.Tr "repo.code"}}</span>
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -15,13 +15,13 @@
 		<div class="clone-panel-tab">
 			<!-- tea clone also uses the git HTTPS/SSH transports, so the whole clone section is hidden when both are disabled -->
 			{{if $cloneLink.SupportHTTPS}}
-				<button class="item repo-clone-https" data-link="{{$cloneLink.HTTPS}}">HTTPS</button>
+				<button type="button" class="item repo-clone-https" data-link="{{$cloneLink.HTTPS}}">HTTPS</button>
 			{{end}}
 			{{if $cloneLink.SupportSSH}}
-				<button class="item repo-clone-ssh" data-link="{{$cloneLink.SSH}}">SSH</button>
+				<button type="button" class="item repo-clone-ssh" data-link="{{$cloneLink.SSH}}">SSH</button>
 			{{end}}
 			{{if not $cloneLink.IsWikiRepo}}
-				<button class="item repo-clone-tea" data-link="{{$cloneLink.Tea}}">Tea CLI</button>
+				<button type="button" class="item repo-clone-tea" data-link="{{$cloneLink.Tea}}">Tea CLI</button>
 			{{end}}
 		</div>
 		<div class="divider"></div>

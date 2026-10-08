@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strings"
 	"time"
 
 	activities_model "gitea.dev/models/activities"
@@ -29,6 +28,7 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
@@ -158,14 +158,14 @@ func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, r
 
 	done := make(chan struct{})
 	go func() {
-		sb := &strings.Builder{}
+		sb := &htmlutil.HTMLBuilder{}
 		if markup.RendererNeedPostProcess(renderer) {
 			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.EscapeOptionsForView())
 		} else {
 			escaped = &charset.EscapeStatus{}
-			_, _ = io.Copy(sb, markupRd)
+			_, _ = io.Copy(sb.OriginWriter(), markupRd)
 		}
-		output = template.HTML(sb.String())
+		output = sb.HTMLString()
 		close(done)
 	}()
 

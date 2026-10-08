@@ -13,11 +13,13 @@ import (
 	"net/url"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/password"
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/imagecaptcha"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/session"
@@ -27,6 +29,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/context"
@@ -68,7 +71,7 @@ func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 		ctx.Data["McaptchaURL"] = strings.TrimSuffix(setting.Service.McaptchaURL, "/")
 		ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 		if setting.Service.CaptchaType == setting.ImageCaptcha {
-			ctx.Data["Captcha"] = context.GetImageCaptcha()
+			ctx.Data["CreateImageCaptcha"] = imagecaptcha.CreateNew
 		}
 	}
 }
@@ -296,8 +299,7 @@ func SignInPost(ctx *context.Context) {
 	form := web.GetForm[*forms.SignInForm](ctx)
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
-		context.VerifyCaptcha(ctx, tplSignIn, form)
-		if ctx.Written() {
+		if !context.VerifyCaptcha(ctx, tplSignIn, form) {
 			return
 		}
 	}
@@ -442,7 +444,9 @@ func extractUserNameFromOAuth2(gothUser *goth.User) (string, error) {
 // HandleSignOut resets the session and sets the cookies
 func HandleSignOut(ctx *context.Context) {
 	_ = ctx.Session.Flush()
-	_ = ctx.Session.Destroy(ctx.Resp, ctx.Req)
+	if err := ctx.Session.Destroy(ctx.Resp, ctx.Req); err != nil {
+		log.Error("Unable to destroy session: %v", err)
+	}
 	ctx.DeleteSiteCookie(setting.CookieRememberName)
 	middleware.DeleteRedirectToCookie(ctx.Resp)
 }
@@ -453,12 +457,15 @@ func SignOut(ctx *context.Context) {
 		websocket_service.PublishLogout(ctx.Doer.ID, ctx.Session.ID())
 	}
 
+	impersonator := audit.ImpersonatorFromContext(ctx)
+
 	exitedImpersonated, err := auth_service.ExitImpersonatedUser(ctx.Session)
 	if err != nil {
 		ctx.ServerError("ExitImpersonatedUser", err)
 		return
 	}
 	if exitedImpersonated {
+		audit.RecordAs(ctx, impersonator, audit_model.UserImpersonationExit, ctx.Doer)
 		ctx.Redirect(setting.AppSubURL + "/-/admin")
 		return
 	}
@@ -548,8 +555,7 @@ func SignUpPost(ctx *context.Context) {
 		return
 	}
 
-	context.VerifyCaptcha(ctx, tplSignUp, form)
-	if ctx.Written() {
+	if !context.VerifyCaptcha(ctx, tplSignUp, form) {
 		return
 	}
 
@@ -654,6 +660,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 		var errNameReserved db.ErrNameReserved
 		var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 		var errNameCharsNotAllowed db.ErrNameCharsNotAllowed
+		var errEmailInvalid user_model.ErrEmailInvalid
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -661,10 +668,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 		case user_model.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tpl, form)
-		case user_model.IsErrEmailCharIsNotSupported(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tpl, form)
-		case user_model.IsErrEmailInvalid(err):
+		case errors.As(err, &errEmailInvalid):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tpl, form)
 		case errors.As(err, &errNameReserved):
@@ -929,10 +933,8 @@ func ActivateEmail(ctx *context.Context) {
 }
 
 func regenerateSession(ctx *context.Context, updates map[string]any) error {
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
-		return fmt.Errorf("regenerate session: %w", err)
-	}
 	sess := ctx.Session
+	sess.Regenerate(ctx.Resp, ctx.Req)
 	sessID := sess.ID()
 	for k, v := range updates {
 		if err := sess.Set(k, v); err != nil {

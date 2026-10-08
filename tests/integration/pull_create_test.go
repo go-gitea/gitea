@@ -187,7 +187,7 @@ func testUIDeleteBranch(t *testing.T, session *TestSession, ownerName, repoName,
 func testDeleteRepository(t *testing.T, session *TestSession, ownerName, repoName string) {
 	relURL := "/" + path.Join(ownerName, repoName, "settings")
 	req := NewRequestWithValues(t, "POST", relURL+"?action=delete", map[string]string{
-		"repo_name": repoName,
+		"repo_name": ownerName + "/" + repoName,
 	})
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.NotNil(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)

@@ -6,7 +6,7 @@ export function initFomanticTransition() {
     'set duration', 'save conditions', 'restore conditions',
   ]);
   // stand-in for removed transition module
-  $.fn.transition = function (arg0: any, arg1: any, arg2: any) {
+  $.fn.transition = function (arg0: any, arg1?: number, arg2?: (this: HTMLElement) => void) {
     if (arg0 === 'is supported') return true;
     if (arg0 === 'is animating') return false;
     if (arg0 === 'is inward') return false;

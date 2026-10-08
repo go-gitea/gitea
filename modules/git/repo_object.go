@@ -11,6 +11,10 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 )
 
+// MaxGitObjectSize is used to avoid OOM when reading a large git object.
+// GitHub has a limit (100M) for pushing, but Gitea doesn't have such a limit yet.
+var MaxGitObjectSize int64 = 100 * 1024 * 1024
+
 // ObjectType git object type
 type ObjectType string
 

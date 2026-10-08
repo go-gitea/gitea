@@ -29,6 +29,7 @@ type Metadata struct {
 	Engines                 map[string]string `json:"engines,omitempty"`
 	CPU                     []string          `json:"cpu,omitempty"`
 	OS                      []string          `json:"os,omitempty"`
+	Libc                    []string          `json:"libc,omitempty"`
 	Directories             map[string]string `json:"directories,omitempty"`
 	Funding                 any               `json:"funding,omitempty"`
 	AcceptDependencies      map[string]string `json:"accept_dependencies,omitempty"`

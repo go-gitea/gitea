@@ -17,6 +17,8 @@ import (
 
 	"github.com/gogs/chardet"
 	"golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/unicode/utf32"
 	"golang.org/x/text/transform"
 )
 
@@ -28,11 +30,25 @@ var globalVars = sync.OnceValue(func() (ret struct {
 	invisibleRangeTable *unicode.RangeTable
 },
 ) {
-	ret.utf8Bom = []byte{'\xef', '\xbb', '\xbf'}
+	ret.utf8Bom = []byte("\xef\xbb\xbf")
 	ret.ambiguousTableMap = newAmbiguousTableMap()
 	ret.invisibleRangeTable = newInvisibleRangeTable()
 	return ret
 })
+
+func Lookup(label string) (e encoding.Encoding, name string) {
+	e, name = charset.Lookup(label)
+	if e != nil {
+		return e, name
+	}
+	switch {
+	case strings.EqualFold(label, "UTF-32BE"):
+		return utf32.UTF32(utf32.BigEndian, utf32.IgnoreBOM), "UTF-32BE"
+	case strings.EqualFold(label, "UTF-32LE"):
+		return utf32.UTF32(utf32.LittleEndian, utf32.IgnoreBOM), "UTF-32LE"
+	}
+	return nil, ""
+}
 
 type ConvertOpts struct {
 	KeepBOM           bool
@@ -57,7 +73,7 @@ func ToUTF8WithFallbackReader(rd io.Reader, opts ConvertOpts) io.Reader {
 		return io.MultiReader(bytes.NewReader(maybeRemoveBOM(buf[:n], opts)), rd)
 	}
 
-	encoding, _ := charset.Lookup(charsetLabel)
+	encoding, _ := Lookup(charsetLabel)
 	if encoding == nil {
 		// unknown charset, don't do any processing
 		return io.MultiReader(bytes.NewReader(buf[:n]), rd)
@@ -86,7 +102,7 @@ func ToUTF8(content []byte, opts ConvertOpts) []byte {
 		return maybeRemoveBOM(content, opts)
 	}
 
-	encoding, _ := charset.Lookup(charsetLabel)
+	encoding, _ := Lookup(charsetLabel)
 	if encoding == nil {
 		setting.PanicInDevOrTesting("unsupported detected charset %q, it shouldn't happen", charsetLabel)
 		if opts.ErrorReturnOrigin {

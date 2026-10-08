@@ -1,5 +1,5 @@
 name: Step with leading new line
-"on":
+'on':
   push:
 jobs:
   test:
@@ -7,9 +7,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: extract_tag
-        name: |2-
-
-          Extract tag for variant
-        run: |2
-
-          echo Test
+        name: "\nExtract tag for variant"
+        run: "\necho Test\n"

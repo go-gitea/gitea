@@ -8,18 +8,21 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
 
 const (
 	tplSettingsApplications templates.TplName = "user/settings/applications"
+	tplAccessTokens         templates.TplName = "shared/user/access_tokens"
 )
 
 // Applications render manage access token page
@@ -32,11 +35,40 @@ func Applications(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSettingsApplications)
 }
 
-// ApplicationsPost response for add user's access token
-func ApplicationsPost(ctx *context.Context) {
-	form := web.GetForm[*forms.NewAccessTokenForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("settings_title")
-	ctx.Data["PageIsSettingsApplications"] = true
+type AccessTokensPanel struct {
+	Tokens          []*auth_model.AccessToken
+	ScopeCategories []string
+	ScopePublicOnly auth_model.AccessTokenScope
+	Link            string
+	IsBot           bool
+	NewTokenValue   string
+}
+
+func NewAccessTokensPanel(ctx *context.Context, owner *user_model.User, link string) *AccessTokensPanel {
+	tokens, err := db.Find[auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{UserID: owner.ID})
+	if err != nil {
+		ctx.ServerError("ListAccessTokens", err)
+		return nil
+	}
+	panel := &AccessTokensPanel{
+		Tokens:          tokens,
+		ScopeCategories: auth_model.GetAccessTokenCategories(),
+		ScopePublicOnly: auth_model.AccessTokenScopePublicOnly,
+		Link:            link,
+		IsBot:           owner.IsTypeBot(),
+	}
+	if !owner.IsAdmin {
+		panel.ScopeCategories = util.SliceRemoveAll(panel.ScopeCategories, "admin")
+	}
+	return panel
+}
+
+// CreateAccessToken handles the panel's create form, which posts to the panel link
+func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
+	form := context.GetFetchActionForm[*forms.NewAccessTokenForm](ctx)
+	if form == nil {
+		return
+	}
 
 	_ = ctx.Req.ParseForm()
 	var scopeNames []string
@@ -53,17 +85,12 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 	if !scope.HasPermissionScope() {
-		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"), true)
-	}
-
-	if ctx.HasError() {
-		loadApplicationsData(ctx)
-		ctx.HTML(http.StatusOK, tplSettingsApplications)
+		ctx.JSONError(ctx.Tr("settings.at_least_one_permission"))
 		return
 	}
 
 	t := &auth_model.AccessToken{
-		UID:   ctx.Doer.ID,
+		UID:   owner.ID,
 		Name:  form.Name,
 		Scope: scope,
 	}
@@ -74,8 +101,7 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 	if exist {
-		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", t.Name))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
+		ctx.JSONErrorWithField(ctx.Tr("settings.generate_token_name_duplicate", t.Name), "name")
 		return
 	}
 
@@ -104,21 +130,41 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
-	ctx.Flash.Info(t.Token)
+	audit.Record(ctx, audit_model.UserAccessTokenAdd, owner, "token", t.Name, "token_scope", t.Scope)
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
+	panel := NewAccessTokensPanel(ctx, owner, ctx.Link)
+	if ctx.Written() {
+		return
+	}
+	panel.NewTokenValue = t.Token
+	if err := ctx.Render.HTML(ctx.Resp, http.StatusOK, tplAccessTokens, panel, ctx.TemplateContext); err != nil {
+		ctx.ServerError("Render", err)
+	}
+}
+
+// ApplicationsPost response for add user's access token
+func ApplicationsPost(ctx *context.Context) {
+	CreateAccessToken(ctx, ctx.Doer)
 }
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
-	if err := auth_model.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
+	DeleteAccessToken(ctx, ctx.Doer)
+}
+
+func DeleteAccessToken(ctx *context.Context, owner *user_model.User) {
+	t, err := auth_model.GetAccessTokenByID(ctx, ctx.FormInt64("id"), owner.ID)
+	if err != nil {
+		ctx.Flash.Error("GetAccessTokenByID: " + err.Error())
+	} else if err := auth_model.DeleteAccessTokenByID(ctx, t.ID, owner.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.UserAccessTokenRemove, owner, "token", t.Name)
+
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
 
-	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
+	ctx.JSONRedirect("")
 }
 
 // RegenerateAccessToken response for regenerating a user's access token
@@ -134,23 +180,14 @@ func RegenerateAccessToken(ctx *context.Context) {
 }
 
 func loadApplicationsData(ctx *context.Context) {
-	ctx.Data["AccessTokenScopePublicOnly"] = auth_model.AccessTokenScopePublicOnly
-	tokens, err := db.Find[auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
-	if err != nil {
-		ctx.ServerError("ListAccessTokens", err)
+	ctx.Data["AccessTokens"] = NewAccessTokensPanel(ctx, ctx.Doer, ctx.Link)
+	if ctx.Written() {
 		return
 	}
-	ctx.Data["Tokens"] = tokens
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enabled
 
-	// Handle specific ordered token categories for admin or non-admin users
-	tokenCategoryNames := auth_model.GetAccessTokenCategories()
-	if !ctx.Doer.IsAdmin {
-		tokenCategoryNames = util.SliceRemoveAll(tokenCategoryNames, "admin")
-	}
-	ctx.Data["TokenCategories"] = tokenCategoryNames
-
 	if setting.OAuth2.Enabled {
+		var err error
 		ctx.Data["Applications"], err = db.Find[auth_model.OAuth2Application](ctx, auth_model.FindOAuth2ApplicationsOptions{
 			OwnerID: ctx.Doer.ID,
 		})

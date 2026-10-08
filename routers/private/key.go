@@ -37,12 +37,9 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	ctx.PlainText(http.StatusOK, "success")
 }
 
-// AuthorizedPublicKeyByContent searches content as prefix (without comment part)
-// and returns public key found.
-func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
+func AuthorizedPublicKeyForSSH(ctx *context.PrivateContext) {
 	content := ctx.FormString("content")
-
-	publicKey, err := asymkey_model.SearchPublicKeyByContent(ctx, content)
+	publicKey, err := asymkey_model.SearchPublicKeyForSSH(ctx, content)
 	if err != nil {
 		ctx.PrivateInternalErrorf("%v", err)
 		return

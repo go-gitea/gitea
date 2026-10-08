@@ -73,12 +73,6 @@ func (repo *Repository) ReadTreeToTemporaryIndex(ctx context.Context, treeish st
 	return tmpIndexFilename, tmpDir, cancel, nil
 }
 
-// EmptyIndex empties the index
-func (repo *Repository) EmptyIndex(ctx context.Context) error {
-	_, _, err := gitcmd.NewCommand("read-tree", "--empty").WithRepo(repo).RunStdString(ctx)
-	return err
-}
-
 // LsFiles checks if the given filenames are in the index
 func (repo *Repository) LsFiles(ctx context.Context, filenames ...string) ([]string, error) {
 	cmd := gitcmd.NewCommand("ls-files", "-z").AddDashesAndList(filenames...)

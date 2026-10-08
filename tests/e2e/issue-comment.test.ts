@@ -24,3 +24,27 @@ test('comment on and close an issue', async ({page, request}) => {
   await page.getByRole('button', {name: 'Close Issue'}).click();
   await expect(page.getByRole('button', {name: 'Reopen Issue'})).toBeVisible();
 });
+
+test('emoji autocompletion in issue description', async ({page, request}) => {
+  const repoName = `e2e-emoji-${randomString(8)}`;
+  await Promise.all([apiCreateRepo(request, {name: repoName, autoInit: false}), login(page)]);
+  await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/new`);
+  const textarea = page.getByPlaceholder('Leave a comment');
+  await textarea.focus();
+  await textarea.pressSequentially(':tada');
+  await expect(page.getByRole('option', {name: '🎉 tada'})).toBeVisible();
+  await textarea.press('Tab');
+  await expect(textarea).toHaveValue('🎉');
+});
+
+test('unsaved issue description prompts before leaving', async ({page, request}) => {
+  const repoName = `e2e-are-you-sure-${randomString(8)}`;
+  await Promise.all([apiCreateRepo(request, {name: repoName, autoInit: false}), login(page)]);
+  await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/new`);
+  await page.getByPlaceholder('Leave a comment').press('a');
+  const dialogPromise = page.waitForEvent('dialog');
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await page.getByRole('link', {name: 'Dashboard'}).click();
+  expect((await dialogPromise).type()).toBe('beforeunload');
+  await expect(page).toHaveURL(/\/issues\/new$/);
+});

@@ -40,18 +40,13 @@ func Init() {
 // handleSignInNonInteractive clears existing session variables and stores new ones for the specified user object
 // it is mainly for middleware sign-in which doesn't need user's interaction.
 func handleSignInNonInteractive(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
-	// We need to regenerate the session...
-	newSess, err := session.RegenerateSession(resp, req)
-	if err != nil {
-		log.Error(fmt.Sprintf("Error regenerating session: %v", err))
-	} else {
-		sess = newSess
-	}
-
+	sess.Regenerate(resp, req)
 	ClearSessionKeysForSignIn(sess)
-	err = sess.Set(session.KeyUID, user.ID)
-	if err != nil {
+	if err := sess.Set(session.KeyUID, user.ID); err != nil {
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+	if err := sess.Release(); err != nil { // save before a long-lived handler like a websocket runs
+		log.Error("Error saving session: %v", err)
 	}
 
 	opts := &user_service.UpdateOptions{SetLastLogin: true}

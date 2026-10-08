@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/db"
@@ -187,7 +188,7 @@ func EmailPost(ctx *context.Context) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
-		} else if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
+		} else if errors.Is(err, util.ErrInvalidArgument) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)

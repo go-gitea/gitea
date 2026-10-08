@@ -1,0 +1,4 @@
+Content-Length: 600
+Content-Type: application/x-amz-json-1.1
+
+{"repositoryMetadata":{"Arn":"arn:aws:codecommit:us-east-1:123456789012:test_repo","accountId":"123456789012","cloneUrlHttp":"https://git-codecommit.us-east-1.amazonaws.com/v1/repos/test_repo","cloneUrlSsh":"ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/test_repo","creationDate":1.789574698542E9,"defaultBranch":"main","kmsKeyId":"arn:aws:kms:us-east-1:123456789012:key/00000000-0000-0000-0000-000000000000","lastModifiedDate":1.789574713936E9,"repositoryDescription":"Test repository for Gitea migrations","repositoryId":"00000000-0000-0000-0000-000000000000","repositoryName":"test_repo"}}

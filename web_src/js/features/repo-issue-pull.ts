@@ -3,6 +3,7 @@ import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
+import type {JQueryElem} from '../types.ts';
 
 export function initRepoPullRequestUpdate(el: HTMLElement) {
   const elDropdown = el.querySelector(':scope > .ui.dropdown');
@@ -10,10 +11,10 @@ export function initRepoPullRequestUpdate(el: HTMLElement) {
   const elButton = el.querySelector<HTMLButtonElement>(':scope > button')!;
 
   fomanticQuery(elDropdown).dropdown({
-    onChange(_text: string, _value: string, $choice: any) {
+    onChange(_text: string, _value: string, $choice: JQueryElem) {
       const choiceEl = $choice[0];
       elButton.textContent = choiceEl.textContent;
-      elButton.setAttribute('data-url', choiceEl.getAttribute('data-update-url'));
+      elButton.setAttribute('data-url', choiceEl.getAttribute('data-update-url')!);
     },
   });
 }
