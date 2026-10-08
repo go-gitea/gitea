@@ -34,5 +34,5 @@ type Metadata struct {
 	Funding                 any               `json:"funding,omitempty"`
 	AcceptDependencies      map[string]string `json:"accept_dependencies,omitempty"`
 	Deprecated              string            `json:"deprecated,omitempty"`
-	NpmjsTarballURL         bool              `json:"npmjs_tarball_url,omitempty"`
+	HasStandardTarballURL   bool              `json:"has_standard_tarball_url,omitempty"`
 }
