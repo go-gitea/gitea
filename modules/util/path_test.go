@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitea.dev/modules/consts"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -182,7 +184,7 @@ func TestCleanPath(t *testing.T) {
 	}
 
 	// for POSIX only, but the result is similar on Windows, because the first element must be an absolute path
-	if isOSWindows {
+	if consts.IsWindows {
 		cases = []struct {
 			elems    []string
 			expected string

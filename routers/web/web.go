@@ -11,6 +11,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/imagecaptcha"
@@ -118,7 +119,7 @@ func newWebAuthMiddleware() *AuthMiddleware {
 	webAuth.AllowOAuth2 = middlewareSetContextValue(keyAllowOAuth2{}, true)
 	webAuth.AllowDeployToken = middlewareSetContextValue(keyAllowDeployToken{}, true)
 
-	enableSSPI := setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
+	enableSSPI := consts.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
 	webAuth.MiddlewareHandler = func(ctx *context.Context) {
 		allowBasic := ctx.GetContextValue(keyAllowBasic{}) == true
 		allowOAuth2 := ctx.GetContextValue(keyAllowOAuth2{}) == true
@@ -199,7 +200,6 @@ func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.C
 						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
 						return
 					}
-					middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 					ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 					return
 				}
@@ -660,6 +660,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("/webauthn", func() {
 				m.Post("/request_register", web.Bind[*forms.WebauthnRegistrationForm](), security.WebAuthnRegister)
 				m.Post("/register", security.WebauthnRegisterPost)
+				m.Post("/rename", security.WebauthnRename)
 				m.Post("/delete", security.WebauthnDelete)
 			})
 			m.Group("/openid", func() {
@@ -1091,7 +1092,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/create", repo.Create)
 		m.Post("/create", web.Bind[*forms.CreateRepoForm](), repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
-		m.Post("/migrate", web.Bind[*forms.MigrateRepoForm](), repo.MigratePost)
+		m.Post("/migrate", repo.MigratePost)
 		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
 	// end "/repo": create, migrate, search

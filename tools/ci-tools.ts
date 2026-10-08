@@ -18,6 +18,7 @@ const allowedTypes = [
 type CommitType = typeof allowedTypes[number];
 
 const allowedTypesList = allowedTypes.join(', ');
+const nonBreakingTypes = new Set<CommitType>(['build', 'chore', 'ci', 'docs', 'style', 'test']);
 const titlePattern = new RegExp(`^(${allowedTypes.join('|')})(\\([\\w/.-]+\\))?(!)?: .+$`);
 
 function parsePrTitle(title: string): {type: CommitType, scope: string, breaking: boolean} | null {
@@ -86,10 +87,15 @@ function lintPrTitle(): void {
     console.error('Missing PR_TITLE');
     exit(1);
   }
-  if (!parsePrTitle(env.PR_TITLE)) {
+  const parsed = parsePrTitle(env.PR_TITLE);
+  if (!parsed) {
     console.error(`Invalid PR title: ${env.PR_TITLE}`);
     console.error('Expected format: type(scope): subject (scope optional, append "!" for breaking changes)');
     console.error(`Allowed types: ${allowedTypesList}`);
+    exit(1);
+  }
+  if (parsed.breaking && nonBreakingTypes.has(parsed.type)) {
+    console.error(`Type "${parsed.type}" cannot be marked as breaking (remove "!" from the title)`);
     exit(1);
   }
 }

@@ -33,8 +33,16 @@ func TestCheckAddr(t *testing.T) {
 		{name: "allow host", allow: "example.com", host: "example.com", ip: "8.8.8.8", want: true},
 		{name: "allow cidr", allow: "10.0.0.0/8", ip: "10.0.0.5", want: true},
 		{name: "block overrides allow", allow: "10.0.0.0/8", block: "10.0.0.5/32", ip: "10.0.0.5"},
-		{name: "reserved denied by cidr", allow: "169.254.0.0/16", ip: "169.254.169.254"},
-		{name: "reserved denied ipv4-mapped", allow: "169.254.0.0/16", ip: "::ffff:169.254.169.254"},
+		{name: "non cloud link-local is default denied", ip: "::ffff:169.254.1.2"},
+		{name: "link-local allowed by cidr", allow: "169.254.0.0/16", ip: "169.254.169.254", want: true},
+		{name: "link-local allowed ipv4-mapped", allow: "169.254.0.0/16", ip: "::ffff:169.254.169.254", want: true},
+		{name: "restricted range allowed by cidr", allow: "192.0.2.0/24", ip: "192.0.2.1", want: true},
+		{name: "ula metadata allowed by private", allow: "private", ip: "fd00:ec2::254", want: true},
+		{name: "reserved denied despite allow", allow: "168.63.129.16/32", ip: "168.63.129.16"},
+		{name: "reserved denied ipv4-mapped", allow: "168.63.129.16/32", ip: "::ffff:168.63.129.16"},
+		{name: "nat64 reserved denied despite allow", allow: "64:ff9b::/96", ip: "64:ff9b::a9fe:a9fe"},
+		{name: "teredo reserved denied despite allow", allow: "2001::/23", ip: "2001::1"},
+		{name: "protocol assignment allowed by cidr", allow: "2001::/23", ip: "2001:3::1", want: true},
 		{name: "local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5", localNeedsIPAllow: true},
 		{name: "local gate accepts builtin", allow: "private", ip: "100.64.0.1", localNeedsIPAllow: true, want: true},
 		{name: "local gate accepts cidr", allow: "10.0.0.0/24", ip: "10.0.0.5", localNeedsIPAllow: true, want: true},
@@ -46,7 +54,8 @@ func TestCheckAddr(t *testing.T) {
 		{name: "strict rejects unmatched host", allow: "example.com", host: "other.com", ip: "8.8.8.8", strict: true},
 		{name: "strict allows matched host", allow: "example.com", host: "example.com", ip: "8.8.8.8", strict: true, want: true},
 		{name: "strict block overrides allow", allow: "10.0.0.0/8", block: "10.0.0.5/32", ip: "10.0.0.5", strict: true},
-		{name: "strict reserved denied by cidr", allow: "169.254.0.0/16", ip: "169.254.169.254", strict: true},
+		{name: "strict reserved denied despite allow", allow: "168.63.129.16/32", ip: "168.63.129.16", strict: true},
+		{name: "strict link-local allowed by cidr", allow: "169.254.0.0/16", ip: "169.254.169.254", strict: true, want: true},
 		{name: "strict local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5", localNeedsIPAllow: true, strict: true},
 		{name: "strict local gate accepts builtin", allow: "private", ip: "100.64.0.1", localNeedsIPAllow: true, strict: true, want: true},
 	} {
@@ -63,7 +72,7 @@ func TestCheckAddr(t *testing.T) {
 			mode = Strict
 		}
 		err := NewPolicy("test", mode, opts...).checkAddr(tc.host, netip.AddrPortFrom(addr, 80))
-		assert.Equal(t, tc.want, err == nil, "%s: %v", tc.name, err)
+		assert.Equal(t, tc.want, err == nil, "%s (%s): %v", tc.name, tc.ip, err)
 	}
 }
 
@@ -115,8 +124,9 @@ func TestCheckHostIPs(t *testing.T) {
 
 	builtins := NewPolicy("test", Lax, WithAllow("private, loopback", ""))
 	assert.NoError(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips("8.8.8.8", "100.64.0.1", "::1")))
+	assert.NoError(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips("100.100.100.200"))) // cloud metadata is opt-in with its containing range
 	for _, ip := range []string{
-		"0.1.2.3", "100.100.100.200", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",
+		"0.1.2.3", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",
 		"198.51.100.1", "203.0.113.1", "::7f00:1", "::ffff:0:a00:5", "64:ff9b::a9fe:a9fe", "64:ff9b::808:808", "2001::1", "2001:db8::1",
 		"2002::1", "fe80::1",
 	} {
