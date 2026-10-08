@@ -1,13 +1,12 @@
-<!-- Keep in sync with templates/repo/icons/action_status.tmpl.
-    action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, cancelling, unknown.
--->
+<!-- Keep in sync with templates/repo/icons/action_status.tmpl. -->
 <script lang="ts" setup>
 import {computed} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {getActionStatusIcon, type ActionStatusIconVariant} from '../modules/action-status-icon.ts';
+import type {ActionsStatus} from '../modules/gitea-actions.ts';
 
 const props = withDefaults(defineProps<{
-  status: 'success' | 'skipped' | 'waiting' | 'blocked' | 'running' | 'failure' | 'cancelled' | 'cancelling' | 'unknown',
+  status: ActionsStatus,
   size?: number,
   className?: string,
   localeStatus?: string,

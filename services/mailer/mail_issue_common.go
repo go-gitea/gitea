@@ -188,7 +188,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 					msg.ReplyTo = replyAddress
 					msg.SetHeader("List-Post", fmt.Sprintf("<mailto:%s>", replyAddress))
 
-					references = append(references, fmt.Sprintf("<reply-%s@%s>", token, setting.Domain))
+					references = append(references, fmt.Sprintf("<reply-%s@%s>", token, setting.AppDomain))
 				}
 			}
 
@@ -301,7 +301,7 @@ func generateMessageIDForIssue(issue *issues_model.Issue, comment *issues_model.
 		}
 	}
 
-	return fmt.Sprintf("<%s/%s/%d%s@%s>", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
+	return fmt.Sprintf("<%s/%s/%d%s@%s>", issue.Repo.FullName(), path, issue.Index, extra, setting.AppDomain)
 }
 
 func generateAdditionalHeadersForIssue(ctx context.Context, comment *mailComment, reason string, recipient *user_model.User) map[string]string {

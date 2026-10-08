@@ -96,10 +96,13 @@ func MustEnableIssues(ctx *context.Context) {
 		return
 	}
 
-	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
+	unitExtTracker, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 	if err == nil {
-		ctx.Redirect(unit.ExternalTrackerConfig().ExternalTrackerURL)
-		return
+		extURL := unitExtTracker.ExternalTrackerConfig().ExternalTrackerURL
+		if extURL != "" {
+			ctx.Redirect(extURL)
+			return
+		}
 	}
 }
 

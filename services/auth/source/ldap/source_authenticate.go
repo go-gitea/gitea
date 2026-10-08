@@ -31,8 +31,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 	sr := source.SearchEntry(loginName, password, source.AuthSource.Type == auth.DLDAP)
 	if sr == nil {
-		// User not in LDAP, do nothing
-		return nil, user_model.ErrUserNotExist{Name: loginName}
+		// User is not in LDAP database, or password is invalid (direct bind)
+		return nil, user_model.ErrUserNotExist{Name: loginName, ExtraMsg: "not in LDAP database or invalid password"}
 	}
 	// Fallback.
 	// FIXME: this fallback would cause problems when the "Username" attribute is not set and a user inputs their email.

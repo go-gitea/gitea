@@ -10,6 +10,7 @@ linters:
     - depguard
     - dupl
     - errcheck
+    - exhaustruct_v5
     - forbidigo
     - forcetypeassert
     - gocheckcompilerdirectives
@@ -133,6 +134,8 @@ linters:
       enable:
         - nilness
         - unusedwrite
+    exhaustruct_v5:
+      explicit-mode: true
   exclusions:
     generated: lax
     presets:

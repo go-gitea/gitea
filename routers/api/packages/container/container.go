@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -55,20 +56,16 @@ type containerHeaders struct {
 	UploadUUID    string
 	Range         string
 	Location      string
-	ContentType   string
 	ContentLength optional.Option[int64]
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#legacy-docker-support-http-headers
-func setResponseHeaders(resp http.ResponseWriter, h *containerHeaders) {
+func writeResponseHeaders(resp http.ResponseWriter, h *containerHeaders) {
 	if h.Location != "" {
 		resp.Header().Set("Location", h.Location)
 	}
 	if h.Range != "" {
 		resp.Header().Set("Range", h.Range)
-	}
-	if h.ContentType != "" {
-		resp.Header().Set("Content-Type", h.ContentType)
 	}
 	if h.ContentLength.Has() {
 		resp.Header().Set("Content-Length", strconv.FormatInt(h.ContentLength.Value(), 10))
@@ -85,18 +82,14 @@ func setResponseHeaders(resp http.ResponseWriter, h *containerHeaders) {
 }
 
 func jsonResponse(ctx *context.Context, status int, obj any) {
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status:      status,
-		ContentType: "application/json",
-	})
+	ctx.Resp.Header().Set("Content-Type", "application/json")
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: status})
 	_ = json.NewEncoder(ctx.Resp).Encode(obj) // ignore network errors
 }
 
 func apiError(ctx *context.Context, status int, err error) {
 	_ = helper.ProcessErrorForUser(ctx, status, err)
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status: status,
-	})
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: status})
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#error-codes
@@ -153,9 +146,7 @@ func VerifyImageName(ctx *context.Context) {
 // DetermineSupport is used to test if the registry supports OCI
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#determining-support
 func DetermineSupport(ctx *context.Context) {
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status: http.StatusOK,
-	})
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: http.StatusOK})
 }
 
 // Authenticate creates a token for the current user
@@ -265,7 +256,7 @@ func PostBlobsUploads(ctx *context.Context) {
 					return
 				}
 
-				setResponseHeaders(ctx.Resp, &containerHeaders{
+				writeResponseHeaders(ctx.Resp, &containerHeaders{
 					Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
 					ContentDigest: mount,
 					Status:        http.StatusCreated,
@@ -308,7 +299,7 @@ func PostBlobsUploads(ctx *context.Context) {
 			return
 		}
 
-		setResponseHeaders(ctx.Resp, &containerHeaders{
+		writeResponseHeaders(ctx.Resp, &containerHeaders{
 			Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, digest),
 			ContentDigest: digest,
 			Status:        http.StatusCreated,
@@ -322,7 +313,7 @@ func PostBlobsUploads(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
 		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, upload.ID),
 		UploadUUID: upload.ID,
 		Status:     http.StatusAccepted,
@@ -353,7 +344,7 @@ func GetBlobsUpload(ctx *context.Context) {
 	if upload.BytesReceived > 0 {
 		respHeaders.Range = fmt.Sprintf("0-%d", upload.BytesReceived-1)
 	}
-	setResponseHeaders(ctx.Resp, respHeaders)
+	writeResponseHeaders(ctx.Resp, respHeaders)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#single-post
@@ -402,7 +393,7 @@ func PatchBlobsUpload(ctx *context.Context) {
 	if uploader.Size() > 0 {
 		respHeaders.Range = fmt.Sprintf("0-%d", uploader.Size()-1)
 	}
-	setResponseHeaders(ctx.Resp, respHeaders)
+	writeResponseHeaders(ctx.Resp, respHeaders)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
@@ -467,7 +458,7 @@ func PutBlobsUpload(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
 		Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, digest),
 		ContentDigest: digest,
 		Status:        http.StatusCreated,
@@ -493,9 +484,7 @@ func DeleteBlobsUpload(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status: http.StatusNoContent,
-	})
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: http.StatusNoContent})
 }
 
 func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescriptor, error) {
@@ -522,8 +511,8 @@ func HeadBlob(ctx *context.Context) {
 		}
 		return
 	}
-
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
 		ContentDigest: blob.Properties.GetByName(container_module.PropertyDigest),
 		ContentLength: optional.Some(blob.Blob.Size),
 		Status:        http.StatusOK,
@@ -541,8 +530,9 @@ func GetBlob(ctx *context.Context) {
 		}
 		return
 	}
-
-	serveBlob(ctx, blob)
+	// "/v2/<name>/blobs/<digest>" : no need to use descriptor.mediaType, just respond as binary content.
+	// don't trust or use the blob's media type, it is not validated.
+	serveBlob(ctx, blob, "application/octet-stream")
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#deleting-blobs
@@ -558,9 +548,7 @@ func DeleteBlob(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status: http.StatusAccepted,
-	})
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: http.StatusAccepted})
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-manifests
@@ -608,7 +596,7 @@ func PutManifest(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
 		Location:      fmt.Sprintf("/v2/%s/%s/manifests/%s", ctx.Package.Owner.LowerName, mci.Image, reference),
 		ContentDigest: digest,
 		Status:        http.StatusCreated,
@@ -635,18 +623,24 @@ func getBlobSearchOptionsFromContext(ctx *context.Context) (*container_model.Blo
 	return opts, nil
 }
 
-func getManifestFromContext(ctx *context.Context) (*packages_model.PackageFileDescriptor, error) {
+func getManifestFromContext(ctx *context.Context) (_ *packages_model.PackageFileDescriptor, contentType string, _ error) {
 	opts, err := getBlobSearchOptionsFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-
-	return getExistingContainerBlob(ctx, opts)
+	pfd, err := getExistingContainerBlob(ctx, opts)
+	if err != nil {
+		return nil, "", err
+	}
+	// "/v2/<name>/manifests/<reference>": must use valid manifest.mediaType as HTTP Content-Type
+	mediaType := pfd.Properties.GetByName(container_module.PropertyMediaType)
+	mediaType = util.Iif(container_module.IsMediaTypeValid(mediaType), mediaType, "application/octet-stream")
+	return pfd, mediaType, nil
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#checking-if-content-exists-in-the-registry
 func HeadManifest(ctx *context.Context) {
-	manifest, err := getManifestFromContext(ctx)
+	manifest, contentType, err := getManifestFromContext(ctx)
 	if err != nil {
 		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errManifestUnknown)
@@ -655,10 +649,9 @@ func HeadManifest(ctx *context.Context) {
 		}
 		return
 	}
-
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	ctx.Resp.Header().Set("Content-Type", contentType)
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
 		ContentDigest: manifest.Properties.GetByName(container_module.PropertyDigest),
-		ContentType:   manifest.Properties.GetByName(container_module.PropertyMediaType),
 		ContentLength: optional.Some(manifest.Blob.Size),
 		Status:        http.StatusOK,
 	})
@@ -666,7 +659,7 @@ func HeadManifest(ctx *context.Context) {
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pulling-manifests
 func GetManifest(ctx *context.Context) {
-	manifest, err := getManifestFromContext(ctx)
+	manifest, contentType, err := getManifestFromContext(ctx)
 	if err != nil {
 		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errManifestUnknown)
@@ -675,8 +668,7 @@ func GetManifest(ctx *context.Context) {
 		}
 		return
 	}
-
-	serveBlob(ctx, manifest)
+	serveBlob(ctx, manifest, contentType)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#deleting-tags
@@ -706,38 +698,34 @@ func DeleteManifest(ctx *context.Context) {
 		}
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status: http.StatusAccepted,
-	})
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: http.StatusAccepted})
 }
 
-func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
+func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor, contentType string) {
 	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, &storage.ServeDirectOptions{
-		ContentType: pfd.Properties.GetByName(container_module.PropertyMediaType),
+		ContentType: contentType,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-
-	headers := &containerHeaders{
-		ContentDigest: pfd.Properties.GetByName(container_module.PropertyDigest),
-		ContentType:   pfd.Properties.GetByName(container_module.PropertyMediaType),
-		ContentLength: optional.Some(pfd.Blob.Size),
-		Status:        http.StatusOK,
-	}
-
 	if u != nil {
-		headers.Status = http.StatusTemporaryRedirect
-		headers.Location = u.String()
-		headers.ContentLength = optional.None[int64]() // do not set Content-Length for redirect responses
-		setResponseHeaders(ctx.Resp, headers)
+		writeResponseHeaders(ctx.Resp, &containerHeaders{
+			ContentDigest: pfd.Properties.GetByName(container_module.PropertyDigest), // legacy logic: not sure whether it is right when redirecting
+			Location:      u.String(),
+			Status:        http.StatusTemporaryRedirect,
+		})
 		return
 	}
 
 	defer s.Close()
 
-	setResponseHeaders(ctx.Resp, headers)
+	ctx.Resp.Header().Set("Content-Type", contentType)
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
+		ContentDigest: pfd.Properties.GetByName(container_module.PropertyDigest),
+		ContentLength: optional.Some(pfd.Blob.Size),
+		Status:        http.StatusOK,
+	})
 	_, _ = io.Copy(ctx.Resp, s)
 }
 

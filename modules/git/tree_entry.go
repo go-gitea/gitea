@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 )
 
@@ -123,6 +124,9 @@ func EntryFollowLinks(ctx context.Context, gitRepo *Repository, commit *Commit, 
 	if treeEntry.IsLink() {
 		return res, util.ErrorWrap(util.ErrUnprocessableContent, "%q has too many links", firstFullPath)
 	}
+	if res == nil {
+		res = &EntryFollowResult{TargetEntry: treeEntry, TargetFullPath: fullPath} // in case limit=0
+	}
 	return res, nil
 }
 
@@ -168,4 +172,39 @@ func (tes Entries) CustomSort(cmp func(s1, s2 string) int) {
 		}
 		return cmp(a.Name(), b.Name())
 	})
+}
+
+func (te *TreeEntry) GetSize(ctx context.Context, gitRepo *Repository) int64 {
+	if te.IsDir() {
+		return 0
+	} else if te.sized {
+		return te.size
+	}
+
+	batch, cancel, err := gitRepo.CatFileBatch()
+	if err != nil {
+		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), gitRepo.LogString(), err)
+		return 0
+	}
+	defer cancel()
+	info, err := batch.QueryInfo(te.ID.String())
+	if err != nil {
+		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), gitRepo.LogString(), err)
+		return 0
+	}
+
+	te.size = info.Size
+	te.sized = true
+	return te.size
+}
+
+// Blob returns the blob object the entry
+func (te *TreeEntry) Blob(gitRepo *Repository) *Blob {
+	return &Blob{
+		ID:      te.ID,
+		name:    te.Name(),
+		size:    te.size,
+		gotSize: te.sized,
+		repo:    gitRepo,
+	}
 }

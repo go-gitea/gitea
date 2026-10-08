@@ -15,7 +15,7 @@ function syncDarkModeClass(): void {
   document.documentElement.classList.toggle('dark-mode', isDark);
 }
 
-export async function initSwaggerUI(container: HTMLElement, opts: {specText: string}): Promise<void> {
+export function initSwaggerUI(container: HTMLElement, opts: {specText: string}): void {
   // swagger-ui has built-in dark mode triggered by html.dark-mode class
   syncDarkModeClass();
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncDarkModeClass);

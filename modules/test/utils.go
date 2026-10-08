@@ -64,7 +64,7 @@ func ParseJSONRedirect(buf []byte) (ret struct {
 }
 
 func IsNormalPageCompleted(s string) bool {
-	return strings.Contains(s, `<footer class="page-footer"`) && strings.Contains(s, `</html>`)
+	return strings.Contains(s, `<footer class="page-footer"`) && strings.HasSuffix(strings.TrimSpace(s), `</html>`)
 }
 
 func MockVariableValue[T any](p *T, v ...T) (reset func()) {
