@@ -76,8 +76,12 @@ func RegenerateAuthToken(ctx context.Context, t *auth_model.AuthToken) (*auth_mo
 		ExpiresUnix: timeutil.TimeStampNow().AddDuration(time.Duration(setting.LogInRememberDays*24) * time.Hour),
 	}
 
-	if err := auth_model.UpdateAuthTokenByID(ctx, newToken); err != nil {
+	updated, err := auth_model.UpdateAuthTokenByID(ctx, newToken, t.TokenHash)
+	if err != nil {
 		return nil, "", err
+	}
+	if !updated {
+		return nil, "", ErrAuthTokenExpired
 	}
 
 	return newToken, token, nil

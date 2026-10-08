@@ -112,14 +112,16 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 		return false, fmt.Errorf("HasTwoFactorOrWebAuthn: %w", err)
 	}
 
-	isSucceed = true
-
 	nt, token, err := auth_service.RegenerateAuthToken(ctx, t)
+	if errors.Is(err, auth_service.ErrAuthTokenExpired) {
+		return false, nil
+	}
 	if err != nil {
 		return false, err
 	}
 
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
+	isSucceed = true
 
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,

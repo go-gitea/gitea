@@ -44,9 +44,10 @@ func GetAuthTokenByID(ctx context.Context, id string) (*AuthToken, error) {
 	return at, nil
 }
 
-func UpdateAuthTokenByID(ctx context.Context, t *AuthToken) error {
-	_, err := db.GetEngine(ctx).ID(t.ID).Cols("token_hash", "expires_unix").Update(t)
-	return err
+func UpdateAuthTokenByID(ctx context.Context, t *AuthToken, oldHash string) (bool, error) {
+	affected, err := db.GetEngine(ctx).ID(t.ID).Where("token_hash = ?", oldHash).
+		Cols("token_hash", "expires_unix").Update(t)
+	return affected == 1, err
 }
 
 func DeleteAuthTokenByID(ctx context.Context, id string) error {

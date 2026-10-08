@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckAuthToken(t *testing.T) {
@@ -105,5 +106,25 @@ func TestRegenerateAuthToken(t *testing.T) {
 	assert.NotEqual(t, token, token2)
 	assert.NotEqual(t, at.ExpiresUnix, at2.ExpiresUnix)
 
+	// Only one request may rotate the same validated cookie.
+	competing, competingToken, err := RegenerateAuthToken(t.Context(), at)
+	require.ErrorIs(t, err, ErrAuthTokenExpired)
+	require.Nil(t, competing)
+	require.Empty(t, competingToken)
+	current, err := CheckAuthToken(t.Context(), at2.ID+":"+token2)
+	require.NoError(t, err)
+	require.Equal(t, at2.TokenHash, current.TokenHash)
+
 	assert.NoError(t, auth_model.DeleteAuthTokenByID(t.Context(), at.ID))
+}
+
+func TestRegenerateRevokedAuthToken(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	at, _, err := CreateAuthTokenForUserID(t.Context(), 2)
+	require.NoError(t, err)
+	require.NoError(t, auth_model.DeleteAuthTokenByID(t.Context(), at.ID))
+	rotated, token, err := RegenerateAuthToken(t.Context(), at)
+	require.ErrorIs(t, err, ErrAuthTokenExpired)
+	require.Nil(t, rotated)
+	require.Empty(t, token)
 }
