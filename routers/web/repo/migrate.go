@@ -53,14 +53,7 @@ func Migrate(ctx *context.Context) {
 	}
 
 	ctx.Data["private"] = getRepoPrivate(ctx)
-	ctx.Data["mirror"] = ctx.FormString("mirror") == "1"
-	ctx.Data["lfs"] = ctx.FormString("lfs") == "1"
-	ctx.Data["wiki"] = ctx.FormString("wiki") == "1"
-	ctx.Data["milestones"] = ctx.FormString("milestones") == "1"
-	ctx.Data["labels"] = ctx.FormString("labels") == "1"
-	ctx.Data["issues"] = ctx.FormString("issues") == "1"
-	ctx.Data["pull_requests"] = ctx.FormString("pull_requests") == "1"
-	ctx.Data["releases"] = ctx.FormString("releases") == "1"
+	ctx.Data["mirror"] = ctx.FormBool("mirror") // from "#2037": "new mirror" button on org's home page
 
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
