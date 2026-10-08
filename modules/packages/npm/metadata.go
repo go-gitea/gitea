@@ -35,5 +35,5 @@ type Metadata struct {
 	AcceptDependencies      map[string]string `json:"accept_dependencies,omitempty"`
 	Deprecated              string            `json:"deprecated,omitempty"`
 
-	GiteaHasStandardTarballURL bool `json:"gitea_has_standard_tarball_url,omitempty"` // Gitea-internal, set on new uploads so older versions keep their former non-standard tarball URL
+	GiteaHasStandardTarballURL bool `json:"gitea_has_standard_tarball_url,omitempty"` // Gitea-internal, set on uploads since v28.2.0
 }
