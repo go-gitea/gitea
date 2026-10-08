@@ -72,6 +72,7 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 			profDesc := fmt.Sprintf("HTTP: %s %s", req.Method, req.RequestURI)
 			ctx, finished := reqctx.NewRequestContext(req.Context(), profDesc)
 			defer finished()
+			httplib.MarkRequestPeerAddr(reqctx.FromContext(ctx), req)
 
 			ctx, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanHTTP)
 			req = req.WithContext(ctx)
