@@ -85,7 +85,9 @@ func TestShouldPersistLastActive(t *testing.T) {
 func TestCanRunJob(t *testing.T) {
 	runner := &ActionRunner{AgentLabels: []string{"self-hosted", "Linux", "X64"}, Group: &ActionRunnerGroup{Name: "GPU"}}
 	assert.True(t, runner.CanRunJob("gpu", []string{"SELF-HOSTED", "linux"}))
+	assert.True(t, runner.CanRunJob("gpu", nil))
 	assert.False(t, runner.CanRunJob("", []string{"linux", "arm64"}))
+	assert.False(t, runner.CanRunJob("", nil))
 	assert.False(t, runner.CanRunJob("cpu", nil))
 	assert.False(t, (&ActionRunner{}).CanRunJob("gpu", nil))
 }

@@ -12,9 +12,11 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
+	"gitea.dev/routers"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -35,6 +37,35 @@ func TestSignup(t *testing.T) {
 	// should be able to view new user's page
 	req = NewRequest(t, "GET", "/exampleUser")
 	MakeRequest(t, req, http.StatusOK)
+
+	t.Run("ImageCaptcha", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.EnableCaptcha, true)()
+		defer test.MockVariableValue(&setting.Service.CaptchaType, setting.ImageCaptcha)()
+		defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
+
+		resp := MakeRequest(t, NewRequest(t, "GET", "/user/sign_up"), http.StatusOK)
+		captchaID := NewHTMLParser(t, resp.Body).GetInputValueByName("captcha_id")
+		resp = MakeRequest(t, NewRequest(t, "GET", "/captcha?id="+captchaID), http.StatusOK)
+		assert.Equal(t, "image/png", resp.Header().Get("Content-Type"))
+		assert.Equal(t, "no-store", resp.Header().Get("Cache-Control"))
+
+		values := map[string]string{
+			"user_name":  "captchaUser",
+			"email":      "captchaUser@example.com",
+			"password":   "examplePassword!1",
+			"retype":     "examplePassword!1",
+			"captcha_id": captchaID,
+			"captcha":    "wrong",
+		}
+		resp = MakeRequest(t, NewRequestWithValues(t, "POST", "/user/sign_up", values), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, translation.NewLocale("en-US").TrString("form.captcha_incorrect"), strings.TrimSpace(htmlDoc.Find(".ui.message").Text()))
+
+		values["captcha_id"] = htmlDoc.GetInputValueByName("captcha_id")
+		captchaCode, _ := cache.GetCache().Get("captcha_" + values["captcha_id"])
+		values["captcha"] = captchaCode
+		MakeRequest(t, NewRequestWithValues(t, "POST", "/user/sign_up", values), http.StatusSeeOther)
+	})
 }
 
 func TestSignupAsRestricted(t *testing.T) {

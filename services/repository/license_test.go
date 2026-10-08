@@ -102,7 +102,7 @@ func Test_resolveLicenses(t *testing.T) {
 	require.NoError(t, err)
 
 	repoDir := filepath.Join(t.TempDir(), "repo.git")
-	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, true, "sha1"))
+	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, true, "sha1", ""))
 	gitRepo, err := git.OpenRepositoryLocal(t.Context(), repoDir)
 	require.NoError(t, err)
 	defer gitRepo.Close()

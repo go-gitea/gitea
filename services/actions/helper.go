@@ -183,6 +183,18 @@ func upsertJobErrorSummary(ctx context.Context, job *actions_model.ActionRunJob,
 	return actions_model.UpsertActionRunJobSummary(ctx, job.RepoID, job.RunID, job.RunAttemptID, job.ID, 0, actions_model.JobSummaryContentTypeMarkdown, []byte(content))
 }
 
+// invalidRunsOn returns github.com's error for the job's evaluated runs-on.
+func invalidRunsOn(job *actions_model.ActionRunJob) error {
+	parsed, err := job.ParseJob()
+	if err != nil {
+		return err
+	}
+	if problem := parsed.RunsOnProblem(); problem != "" {
+		return errors.New(problem)
+	}
+	return nil
+}
+
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {
 	taskNeeds, jobsByID, err := FindTaskNeeds(ctx, job)
 	if err != nil {

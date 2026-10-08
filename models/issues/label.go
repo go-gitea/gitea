@@ -433,12 +433,13 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 	case "reversealphabetically":
 		sess.Desc("name")
 	case "leastissues":
-		sess.Asc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues ASC")
 	case "mostissues":
-		sess.Desc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues DESC")
 	default:
 		sess.Asc("name")
 	}
+	sess.Asc("id")
 
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)
@@ -508,12 +509,13 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 	case "reversealphabetically":
 		sess.Desc("name")
 	case "leastissues":
-		sess.Asc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues ASC")
 	case "mostissues":
-		sess.Desc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues DESC")
 	default:
 		sess.Asc("name")
 	}
+	sess.Asc("id")
 
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)

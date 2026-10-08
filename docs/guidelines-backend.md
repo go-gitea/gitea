@@ -62,6 +62,10 @@ Operations that must roll back together should run inside `db.WithTx()` (or
 Functions that participate in a transaction take a `context.Context` as their first
 parameter so the transaction can be propagated.
 
+PostgreSQL, MySQL and MSSQL (via `READ_COMMITTED_SNAPSHOT`) read the last committed
+row version, so reads never wait for writers. Guard read-then-write logic with a
+conditional `UPDATE` or a lock.
+
 ### XORM gotchas
 
 - Never call `x.Update(exemplar)` without an explicit `WHERE` clause — it updates

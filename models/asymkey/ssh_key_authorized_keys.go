@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -135,7 +136,7 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	defer f.Close()
 
 	// Note: chmod command does not support in Windows.
-	if !setting.IsWindows {
+	if !consts.IsWindows {
 		fi, err := f.Stat()
 		if err != nil {
 			return err

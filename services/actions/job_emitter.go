@@ -362,13 +362,48 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 
 	result.UpdatedJobs = append(result.UpdatedJobs, resolver.matrixUpdatedJobs...)
-	// Caller and matrix expansion insert Pending or Blocked jobs and a deferred gate leaves a job Blocked, only a follow-up pass resolves them.
+	hasFinishedCaller, err := reloadCallersFinishedByChildren(ctx, run.ID, resolver.jobMap, result.UpdatedJobs)
+	if err != nil {
+		return nil, err
+	}
+	// Only a follow-up pass resolves:
+	//   - the children a caller expansion inserted, or the dependents of a caller that failed to expand
+	//   - the siblings a matrix expansion inserted and the expanded job's dependents, or the dependents of a placeholder that failed to expand
+	//   - a job the deferred gate left Blocked
+	//   - the dependents of a caller finished by its children, which was still unfinished to the resolver
 	// Like the caller's children, matrix siblings are left out of result.Jobs and picked up there.
-	if expandedAnyCaller || resolver.matrixChanged || resolver.gateDeferred {
+	if expandedAnyCaller || resolver.matrixChanged || resolver.gateDeferred || hasFinishedCaller {
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
 	}
 	result.CancelledJobs = append(result.CancelledJobs, resolver.cancelledJobs...)
 	return result, nil
+}
+
+// reloadCallersFinishedByChildren reloads the callers the children's cascade finished in this pass,
+// so this pass's commit statuses and run notification see the callers finished.
+// They are kept out of result.UpdatedJobs, so no workflow_job webhook is sent for them, as for callers finished through a runner.
+func reloadCallersFinishedByChildren(ctx context.Context, runID int64, jobMap map[int64]*actions_model.ActionRunJob, updatedJobs []*actions_model.ActionRunJob) (bool, error) {
+	hasFinishedCaller := false
+	checkedCallers := make(container.Set[int64])
+	finishedJobs := slices.Clone(updatedJobs)
+	for i := 0; i < len(finishedJobs); i++ {
+		child := finishedJobs[i]
+		caller := jobMap[child.ParentJobID]
+		if caller == nil || !child.Status.IsDone() || caller.Status.IsDone() || !checkedCallers.Add(caller.ID) {
+			continue
+		}
+		freshCaller, err := actions_model.GetRunJobByRunAndID(ctx, runID, caller.ID)
+		if err != nil {
+			return false, fmt.Errorf("reloadCallersFinishedByChildren: reload caller %d: %w", caller.ID, err)
+		}
+		if !freshCaller.Status.IsDone() {
+			continue
+		}
+		caller.Status, caller.Started, caller.Stopped = freshCaller.Status, freshCaller.Started, freshCaller.Stopped
+		finishedJobs = append(finishedJobs, caller)
+		hasFinishedCaller = true
+	}
+	return hasFinishedCaller, nil
 }
 
 func cancelFailedMatrixSiblings(ctx context.Context, jobs actions_model.ActionJobList) ([]*actions_model.ActionRunJob, error) {
@@ -587,6 +622,14 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 
 		// A slot-starved job cannot start, skip the following checks.
 		if !slots.available(actionRunJob) {
+			continue
+		}
+
+		if err := invalidRunsOn(actionRunJob); err != nil {
+			if err := upsertJobErrorSummary(ctx, actionRunJob, "runs-on", err); err != nil {
+				return nil, err
+			}
+			ret[id] = actions_model.StatusFailure
 			continue
 		}
 

@@ -648,7 +648,6 @@
   "settings.add_key_success": "Ключ SSH '%s' додано.",
   "settings.add_gpg_key_success": "Ключ GPG '%s' додано.",
   "settings.add_principal_success": "Було додано SSH сертифікат ідентичності '%s'.",
-  "settings.delete_key": "Видалити",
   "settings.ssh_key_deletion": "Видалити ключ SSH",
   "settings.gpg_key_deletion": "Видалити ключ GPG",
   "settings.ssh_principal_deletion": "Видалити ідентичність сертифікату SSH",
