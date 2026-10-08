@@ -391,7 +391,8 @@ func ComposeGoGetImport(ctx context.Context, owner, repo string) string {
 
 // ComposeGoGetCloneURL returns the clone URL for the go-import meta content.
 func ComposeGoGetCloneURL(ctx *Context, owner, repo string) string {
-	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
+	useSSH := setting.Repository.GoGetCloneURLProtocol == "ssh" || (setting.Repository.DisableHTTPGit && !setting.SSH.Disabled)
+	if useSSH {
 		return repo_model.ComposeSSHCloneURI(ctx.Doer, owner, repo)
 	}
 	return repo_model.ComposeHTTPSCloneURL(ctx, owner, repo)
