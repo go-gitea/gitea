@@ -69,13 +69,7 @@ func goGet(ctx *context.Context) {
 
 	goGetImport := context.ComposeGoGetImport(ctx, ownerName, trimmedRepoName)
 
-	var cloneURL string
-	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, ownerName, repoName)
-	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, ownerName, repoName)
-	}
-	goImportContent := fmt.Sprintf("%s git %s", goGetImport, cloneURL /*CloneLink*/)
+	goImportContent := fmt.Sprintf("%s git %s", goGetImport, context.ComposeGoGetCloneURL(ctx, ownerName, trimmedRepoName))
 	goSourceContent := fmt.Sprintf("%s _ %s %s", goGetImport, prefix+"{/dir}" /*GoDocDirectory*/, prefix+"{/dir}/{file}#L{line}" /*GoDocFile*/)
 	goGetCli := fmt.Sprintf("go get %s%s", insecure, goGetImport)
 
