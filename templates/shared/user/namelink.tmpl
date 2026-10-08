@@ -1,1 +1,6 @@
-<a{{if gt .ID 0}} href="{{.HomeLink}}"{{end}}>{{.GetDisplayName}}</a>{{template "shared/user/user_type_label" .}}
+{{$user := . -}}
+{{if $user -}}
+<a {{if gt $user.ID 0}}href="{{$user.HomeLink}}"{{end}}>{{$user.GetDisplayName}}</a>{{template "shared/user/user_type_label" $user}}
+{{else -}}
+<span>(nil user)</span>
+{{end}}

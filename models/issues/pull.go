@@ -216,7 +216,10 @@ func (pr *PullRequest) OptionalHeadUserName(ctx context.Context) string {
 // LoadAttributes loads pull request attributes from database
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
-	if pr.Merger == nil && pr.MergerID != 0 {
+	// Merger should always be loaded no matter whether the PR is merged,
+	// because "restoreInterruptedMerge" needs to use the loaded merger to mark the interrupted PR as merged.
+	// Also, for a merged PR, always load the Merger even if its ID is 0, in such case the PR might be a migrated one.
+	if pr.Merger == nil && (pr.HasMerged || pr.MergerID != 0) {
 		pr.MergerID, pr.Merger, err = user_model.GetPossibleUserByID(ctx, pr.MergerID)
 		return err
 	}
