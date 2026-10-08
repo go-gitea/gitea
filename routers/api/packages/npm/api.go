@@ -15,6 +15,7 @@ import (
 
 	packages_model "gitea.dev/models/packages"
 	npm_module "gitea.dev/modules/packages/npm"
+	"gitea.dev/modules/setting"
 )
 
 func createPackageMetadataResponse(registryURL string, pds []*packages_model.PackageDescriptor) *npm_module.PackageMetadata {
@@ -83,7 +84,10 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 
 	metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](pd)
 
-	tarball := fmt.Sprintf("%s/%s/-/%s/%s", registryURL, url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName)) // exact former URL, pnpm rejects lockfiles whose pinned tarball URL changed
+	// Versions from before NpmjsTarballURL keep their former URL, ROOT_URL host
+	// included, because lockfiles pin it. Newer versions use the standard
+	// <name>/-/<file> URL, which clients derive from their registry config.
+	tarball := fmt.Sprintf("%sapi/packages/%s/npm/%s/-/%s/%s", setting.AppURL, pd.Owner.Name, url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName))
 	if metadata.NpmjsTarballURL {
 		tarball = fmt.Sprintf("%s/%s/-/%s", registryURL, pd.Package.Name, pd.Files[0].File.LowerName)
 	}
