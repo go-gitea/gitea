@@ -6,34 +6,32 @@
 		</h3>
 		<div class="ui attached segment">
 			{{template "base/alert" .}}
-			<form class="ui form left-right-form" action="{{.Link}}" method="post">
-				{{template "base/disable_form_autofill"}}
+			<form class="ui form left-right-form form-fetch-action" action="{{.Link}}" method="post">
+				{{template "repo/migrate/common-init" (dict "ServiceType" .service)}}
 
-				<input id="service_type" type="hidden" name="service" value="{{.service}}">
-
-				<div class="inline required field {{if .Err_CloneAddr}}error{{end}}">
-					<label for="clone_addr">{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
-					<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
+				<div class="inline required field">
+					<label>{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
+					<input name="clone_addr" autofocus required>
 					<span class="help">
 					{{ctx.Locale.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate.clone_local_path"}}{{end}}
 					</span>
 				</div>
 
 				<div class="inline field">
-					<label for="auth_username">{{ctx.Locale.Tr "username"}}</label>
-					<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
+					<label>{{ctx.Locale.Tr "username"}}</label>
+					<input name="auth_username">
 				</div>
 				<div class="inline field">
-					<label for="auth_password">{{ctx.Locale.Tr "password"}}</label>
-					<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
+					<label>{{ctx.Locale.Tr "password"}}</label>
+					<input name="auth_password" type="password">
 				</div>
 
-				{{template "repo/migrate/options" .}}
+				{{template "repo/migrate/common-options" .}}
 
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.migrate_items"}}</label>
 					<div class="ui checkbox">
-						<input name="wiki" type="checkbox" {{if .wiki}}checked{{end}}>
+						<input name="wiki" type="checkbox">
 						<label>{{ctx.Locale.Tr "repo.migrate_items_wiki"}}</label>
 					</div>
 				</div>
@@ -43,29 +41,29 @@
 					<div class="inline field">
 						<label></label>
 						<div class="ui checkbox">
-							<input name="labels" type="checkbox" {{if .labels}}checked{{end}}>
+							<input name="labels" type="checkbox">
 							<label>{{ctx.Locale.Tr "repo.migrate_items_labels"}}</label>
 						</div>
 						<div class="ui checkbox">
-							<input name="issues" type="checkbox" {{if .issues}}checked{{end}}>
+							<input name="issues" type="checkbox">
 							<label>{{ctx.Locale.Tr "repo.migrate_items_issues"}}</label>
 						</div>
 					</div>
 					<div class="inline field">
 						<label></label>
 						<div class="ui checkbox">
-							<input name="pull_requests" type="checkbox" {{if .pull_requests}}checked{{end}}>
+							<input name="pull_requests" type="checkbox">
 							<label>{{ctx.Locale.Tr "repo.migrate_items_pullrequests"}}</label>
 						</div>
 						<div class="ui checkbox">
-							<input name="releases" type="checkbox" {{if .releases}}checked{{end}}>
+							<input name="releases" type="checkbox">
 							<label>{{ctx.Locale.Tr "repo.migrate_items_releases"}}</label>
 						</div>
 					</div>
 					<div class="inline field">
 						<label></label>
 						<div class="ui checkbox">
-							<input name="milestones" type="checkbox" {{if .milestones}}checked{{end}}>
+							<input name="milestones" type="checkbox">
 							<label>{{ctx.Locale.Tr "repo.migrate_items_milestones"}}</label>
 						</div>
 					</div>
@@ -73,57 +71,7 @@
 
 				<div class="divider"></div>
 
-				<div class="inline required field {{if .Err_Owner}}error{{end}}">
-					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
-					<div class="ui selection owner dropdown ellipsis-text-items">
-						<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
-						<span class="text" title="{{.ContextUser.Name}}">
-							{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}}
-							{{.ContextUser.ShortName 40}}
-						</span>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu" title="{{.SignedUser.Name}}">
-							<div class="item" data-value="{{.SignedUser.ID}}">
-								{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
-								{{.SignedUser.ShortName 40}}
-							</div>
-							{{range .Orgs}}
-								<div class="item" data-value="{{.ID}}" title="{{.Name}}">
-									{{ctx.AvatarUtils.Avatar . 28 "mini"}}
-									{{.ShortName 40}}
-								</div>
-							{{end}}
-						</div>
-					</div>
-				</div>
-
-				<div class="inline required field {{if .Err_RepoName}}error{{end}}">
-					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input id="repo_name" name="repo_name" value="{{.repo_name}}" required maxlength="100">
-				</div>
-				<div class="inline field">
-					<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
-					<div class="ui checkbox">
-						{{if .IsForcedPrivate}}
-							<input name="private" type="checkbox" checked disabled>
-							<label>{{ctx.Locale.Tr "repo.visibility_helper_forced"}}</label>
-						{{else}}
-							<input name="private" type="checkbox" {{if .private}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "repo.visibility_helper"}}</label>
-						{{end}}
-					</div>
-				</div>
-				<div class="inline field {{if .Err_Description}}error{{end}}">
-					<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
-					<textarea id="description" name="description" maxlength="2048">{{.description}}</textarea>
-				</div>
-
-				<div class="inline field">
-					<label></label>
-					<button type="submit" class="ui primary button">
-						{{ctx.Locale.Tr "repo.migrate_repo"}}
-					</button>
-				</div>
+				{{template "repo/migrate/common-migrated-repo"}}
 			</form>
 		</div>
 	</div>
