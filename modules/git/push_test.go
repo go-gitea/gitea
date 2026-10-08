@@ -21,7 +21,7 @@ func TestPushToExternalAddress(t *testing.T) {
 	for _, supportConfigEnv := range []bool{true, false} {
 		defer test.MockVariableValue(&DefaultFeatures().SupportConfigEnv, supportConfigEnv)()
 		dstPath := t.TempDir()
-		require.NoError(t, InitRepositoryLocal(t.Context(), dstPath, true, Sha1ObjectFormat.Name()))
+		require.NoError(t, InitRepositoryLocal(t.Context(), dstPath, true, Sha1ObjectFormat.Name(), "master"))
 		require.NoError(t, PushToExternalAddress(t.Context(), src, dstPath, []string{"+refs/heads/*:refs/heads/*"}, PushOptions{Mirror: true}))
 		dstCommitID, err := GetBranchCommitID(t.Context(), mockRepository(dstPath), "master")
 		require.NoError(t, err)
