@@ -108,7 +108,7 @@ func TestOAuth2(t *testing.T) {
 		t.Run("AuthorizeNoClientID", testAuthorizeNoClientID)
 		t.Run("AuthorizeUnregisteredRedirect", testAuthorizeUnregisteredRedirect)
 		t.Run("AuthorizeUnsupportedResponseType", testAuthorizeUnsupportedResponseType)
-		t.Run("AuthorizedUnsupportedResponseTypeIDToken", testAuthorizeUnsupportedResponseTypeIDToken)
+		t.Run("AuthorizeUnsupportedResponseTypeIDToken", testAuthorizeUnsupportedResponseTypeIDToken)
 		t.Run("AuthorizeUnsupportedCodeChallengeMethod", testAuthorizeUnsupportedCodeChallengeMethod)
 		t.Run("AuthorizeLoginRedirect", testAuthorizeLoginRedirect)
 		t.Run("AuthorizeShow", testAuthorizeShow)
