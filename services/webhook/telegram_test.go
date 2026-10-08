@@ -27,6 +27,12 @@ func TestTelegramPayload(t *testing.T) {
 		}, p)
 	})
 
+	t.Run("Line breaks are kept in rich messages", func(t *testing.T) {
+		// Rich messages collapse bare newlines, so they must become <br>.
+		p := createTelegramPayloadHTML("first line\r\nsecond line\nthird line")
+		assert.Equal(t, "first line<br>second line<br>third line", p.RichMessage.HTML)
+	})
+
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()
 
@@ -60,9 +66,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Push(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>:<a href="http://localhost:3000/test/repo/src/test" rel="nofollow">test</a>] 2 new commits
-[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1
-[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1`, pl.RichMessage.HTML)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>:<a href="http://localhost:3000/test/repo/src/test" rel="nofollow">test</a>] 2 new commits<br>[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1<br>[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1`, pl.RichMessage.HTML)
 	})
 
 	t.Run("Issue", func(t *testing.T) {
@@ -72,9 +76,7 @@ func TestTelegramPayload(t *testing.T) {
 		pl, err := tc.Issue(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Issue opened: <a href="http://localhost:3000/test/repo/issues/2" rel="nofollow">#2 crash</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>
-
-issue body`, pl.RichMessage.HTML)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Issue opened: <a href="http://localhost:3000/test/repo/issues/2" rel="nofollow">#2 crash</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a><br><br>issue body`, pl.RichMessage.HTML)
 
 		p.Action = api.HookIssueClosed
 		pl, err = tc.Issue(p)
@@ -89,8 +91,7 @@ issue body`, pl.RichMessage.HTML)
 		pl, err := tc.IssueComment(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] New comment on issue <a href="http://localhost:3000/test/repo/issues/2" rel="nofollow">#2 crash</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>
-more info needed`, pl.RichMessage.HTML)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] New comment on issue <a href="http://localhost:3000/test/repo/issues/2" rel="nofollow">#2 crash</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a><br>more info needed`, pl.RichMessage.HTML)
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -99,8 +100,7 @@ more info needed`, pl.RichMessage.HTML)
 		pl, err := tc.PullRequest(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Pull request opened: <a href="http://localhost:3000/test/repo/pulls/12" rel="nofollow">#12 Fix bug</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>
-fixes bug #2`, pl.RichMessage.HTML)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Pull request opened: <a href="http://localhost:3000/test/repo/pulls/12" rel="nofollow">#12 Fix bug</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a><br>fixes bug #2`, pl.RichMessage.HTML)
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
@@ -109,8 +109,7 @@ fixes bug #2`, pl.RichMessage.HTML)
 		pl, err := tc.IssueComment(p)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] New comment on pull request <a href="http://localhost:3000/test/repo/pulls/12" rel="nofollow">#12 Fix bug</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>
-changes requested`, pl.RichMessage.HTML)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] New comment on pull request <a href="http://localhost:3000/test/repo/pulls/12" rel="nofollow">#12 Fix bug</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a><br>changes requested`, pl.RichMessage.HTML)
 	})
 
 	t.Run("Review", func(t *testing.T) {
@@ -120,8 +119,7 @@ changes requested`, pl.RichMessage.HTML)
 		pl, err := tc.Review(p, webhook_module.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 
-		assert.Equal(t, `[test/repo] Pull request review approved: #12 Fix bug
-good job`, pl.RichMessage.HTML)
+		assert.Equal(t, `[test/repo] Pull request review approved: #12 Fix bug<br>good job`, pl.RichMessage.HTML)
 	})
 
 	t.Run("Repository", func(t *testing.T) {
@@ -206,7 +204,5 @@ func TestTelegramJSONPayload(t *testing.T) {
 	var body TelegramPayload
 	err = json.NewDecoder(req.Body).Decode(&body)
 	assert.NoError(t, err)
-	assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>:<a href="http://localhost:3000/test/repo/src/test" rel="nofollow">test</a>] 2 new commits
-[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1
-[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1`, body.RichMessage.HTML)
+	assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>:<a href="http://localhost:3000/test/repo/src/test" rel="nofollow">test</a>] 2 new commits<br>[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1<br>[<a href="http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778" rel="nofollow">2020558</a>] commit message - user1`, body.RichMessage.HTML)
 }
