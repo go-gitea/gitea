@@ -135,6 +135,14 @@ type ActionRunJob struct {
 	Updated timeutil.TimeStamp `xorm:"updated index index(pickup)"`
 }
 
+// RunsOnLabelsWithGroup keeps the API labels as they were before runner groups, when the group was a label
+func (job *ActionRunJob) RunsOnLabelsWithGroup() []string {
+	if job.RunsOnGroup == "" {
+		return job.RunsOn
+	}
+	return append(slices.Clone(job.RunsOn), job.RunsOnGroup)
+}
+
 func (job *ActionRunJob) RunsOnDisplay() []string {
 	if job.RunsOnGroup == "" {
 		return job.RunsOn

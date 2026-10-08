@@ -263,6 +263,8 @@ func TestActionsRunnerModify(t *testing.T) {
 		assign(t, strconv.FormatInt(runner.ID, 10))
 		assert.Equal(t, group.ID, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: runner.ID}).GroupID)
 		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerAccess{GroupID: group.ID, RepoID: repo1.ID})
+		setRepos(t, adminGroupsURL, group.ID, "1,x", http.StatusBadRequest)
+		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerAccess{GroupID: group.ID, RepoID: repo1.ID})
 
 		sessionAdmin.MakeRequest(t, NewRequest(t, "POST", fmt.Sprintf("%s/%d/delete", adminGroupsURL, group.ID)), http.StatusBadRequest)
 

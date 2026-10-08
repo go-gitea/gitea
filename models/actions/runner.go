@@ -205,7 +205,7 @@ func (r *ActionRunner) CanRunJob(runsOnGroup string, runsOnLabels []string) bool
 	if runsOnGroup == "" && len(runsOnLabels) == 0 {
 		return false
 	}
-	if runsOnGroup != "" && (r.Group == nil || !strings.EqualFold(r.Group.Name, runsOnGroup)) {
+	if runsOnGroup != "" && (r.Group == nil || !strings.EqualFold(r.Group.LowerName, runsOnGroup)) {
 		return false
 	}
 	return !slices.ContainsFunc(runsOnLabels, func(label string) bool { return !util.SliceContainsString(r.AgentLabels, label, true) })

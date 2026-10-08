@@ -28,7 +28,8 @@ func AddRunnerGroups(_ context.Context, x base.EngineMigration) error {
 	type ActionRunnerGroup struct {
 		ID                      int64  `xorm:"pk autoincr"`
 		OwnerID                 int64  `xorm:"UNIQUE(owner_name) NOT NULL DEFAULT 0"`
-		Name                    string `xorm:"VARCHAR(255) UNIQUE(owner_name) NOT NULL"`
+		Name                    string `xorm:"VARCHAR(255) NOT NULL"`
+		LowerName               string `xorm:"VARCHAR(255) UNIQUE(owner_name) NOT NULL"`
 		IncludesAllRepositories bool   `xorm:"NOT NULL DEFAULT false"`
 	}
 	type ActionRunnerAccess struct {

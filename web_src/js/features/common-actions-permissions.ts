@@ -1,10 +1,7 @@
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {queryElems, toggleElem, toggleElemClass} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-
-const {appSubUrl} = window.config;
-
-type RepoSearchResponse = {data: Array<{repository: {id: number; full_name: string}}>};
+import {repoSearchUrl, type RepoSearchResponse} from './comp/SearchRepoBox.ts';
 
 export function initActionsPermissionsForm(): void {
   registerGlobalInitFunc('initRepoActionsPermissionsForm', initRepoActionsPermissionsForm);
@@ -21,7 +18,7 @@ function initRunnerRepoAccess(section: HTMLElement) {
   fomanticQuery(dropdown).dropdown({
     preserveHTML: false,
     apiSettings: {
-      url: `${appSubUrl}/repo/search?q={query}&uid=${uid}&exclusive=${uid !== '0'}`,
+      url: repoSearchUrl(uid, uid !== '0'),
       throttle: 500,
       onResponse: (res: RepoSearchResponse) => ({success: true, results: res.data.map((item) => ({value: String(item.repository.id), name: item.repository.full_name}))}),
     },

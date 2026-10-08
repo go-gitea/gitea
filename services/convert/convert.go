@@ -526,7 +526,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		// Missing api endpoint for this location, artifacts are available under a nested url
 		RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(ctx), job.RunID),
 		Name:        job.Name,
-		Labels:      job.RunsOn,
+		Labels:      job.RunsOnLabelsWithGroup(),
 		RunAttempt:  job.Attempt,
 		HeadSha:     job.Run.CommitSHA,
 		HeadBranch:  git.RefName(job.Run.Ref).BranchName(),

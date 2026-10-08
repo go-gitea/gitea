@@ -4,10 +4,10 @@
 package actions
 
 import (
-	stdctx "context"
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"unicode/utf8"
 
 	actions_model "gitea.dev/models/actions"
@@ -112,18 +112,23 @@ func RunnerGroupEditPost(ctx *context.Context) {
 	if group == nil {
 		return
 	}
-	err := db.WithTx(ctx, func(txCtx stdctx.Context) error {
-		if err := actions_model.SetRunnerAccess(txCtx, group, ctx.FormString("repo_access") == "all", ctx.FormStringInt64s("repos")); err != nil {
-			return err
-		}
-		return actions_model.SetRunnerGroupMembers(txCtx, group, ctx.FormStringInt64s("runners"))
-	})
+	repoIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("repos"), ","))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "invalid repos")
+		return
+	}
+	runnerIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("runners"), ","))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "invalid runners")
+		return
+	}
+	err = actions_model.UpdateRunnerGroup(ctx, group, ctx.FormString("repo_access") == "all", repoIDs, runnerIDs)
 	switch {
 	case err == nil:
 		ctx.Flash.Success(ctx.Tr("actions.runners.groups.update_success"))
 	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.Flash.Error(ctx.Tr("actions.runners.groups.target_invalid"))
-	case errors.Is(err, util.ErrInvalidArgument):
+	case errors.Is(err, util.ErrNotExist):
 		ctx.NotFound(err)
 		return
 	default:
@@ -142,6 +147,9 @@ func RunnerGroupDelete(ctx *context.Context) {
 	case err == nil:
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.JSONError(ctx.Tr("actions.runners.groups.delete_not_empty"))
+		return
+	case errors.Is(err, util.ErrNotExist):
+		ctx.NotFound(err)
 		return
 	default:
 		ctx.ServerError("DeleteRunnerGroup", err)

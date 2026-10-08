@@ -275,11 +275,13 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
 			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions}))
 	}
+	if err := (RunnerList{runner}).LoadGroups(ctx); err != nil {
+		return nil, false, err
+	}
 	var groupCond builder.Cond = builder.Eq{"runs_on_group": ""}
 	accessCond := builder.NewCond()
 	if runner.GroupID != 0 {
-		groupCond = groupCond.Or(builder.In("LOWER(runs_on_group)",
-			builder.Select("LOWER(name)").From("action_runner_group").Where(builder.Eq{"id": runner.GroupID})))
+		groupCond = builder.NewCond() // matched case-insensitively in Go, SQL LOWER differs between databases
 		accessCond = builder.Exists(builder.Select("1").From("action_runner_group").
 			Where(builder.Eq{"id": runner.GroupID, "includes_all_repositories": true})).
 			Or(builder.In("repo_id", builder.Select("repo_id").From("action_runner_access").
@@ -316,7 +318,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		}
 
 		for _, v := range jobs {
-			if !runner.CanRunJob("", v.RunsOn) { // the runs-on group is already matched in SQL
+			if !runner.CanRunJob(v.RunsOnGroup, v.RunsOn) {
 				continue
 			}
 			task, ok, err := claimJobForRunner(ctx, runner, v, accessCond)

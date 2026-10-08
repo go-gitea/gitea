@@ -180,7 +180,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 
 	if err := actions_model.PruneRunnerAccessOutsideOwner(ctx, repo.ID); err != nil {
-		return fmt.Errorf("PruneRunnerAccessOutsideOwner: %w", err)
+		return fmt.Errorf("prune runner access: %w", err)
 	}
 
 	// Remove redundant collaborators.
