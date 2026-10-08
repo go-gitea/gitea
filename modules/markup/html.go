@@ -53,10 +53,8 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 
 	// valid chars in encoded path and parameter: [-+~_%.a-zA-Z0-9/]
 
-	// hashCurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
-	// Although SHA1 hashes are 40 chars long, SHA256 are 64, the regex matches the hash from 7 to 64 chars in length
-	// so that abbreviated hash links can be used as well. This matches git and GitHub usability.
-	v.hashCurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,64})(?:\s|$|\)|\]|[.,:](\s|$))`)
+	// hashCurrentPattern matches a full or abbreviated commit ID or an "A...B" range with GitHub's boundaries, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
+	v.hashCurrentPattern = regexp.MustCompile(`(?:^|\s|[(\[{]|\.\.)([0-9a-f]{7,64})(?:\.\.\.([0-9a-f]{7,64}))?(?:$|[^\pL\pN_])`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	v.shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)

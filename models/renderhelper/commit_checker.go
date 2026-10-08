@@ -14,7 +14,7 @@ import (
 
 type commitChecker struct {
 	ctx          context.Context
-	commitCache  map[string]bool
+	commitCache  map[string]string
 	repoOptional *repo_model.Repository
 
 	gitRepo       *git.Repository
@@ -22,7 +22,7 @@ type commitChecker struct {
 }
 
 func newCommitChecker(ctx context.Context, repo *repo_model.Repository) *commitChecker {
-	return &commitChecker{ctx: ctx, commitCache: make(map[string]bool), repoOptional: repo}
+	return &commitChecker{ctx: ctx, commitCache: make(map[string]string), repoOptional: repo}
 }
 
 func (c *commitChecker) Close() error {
@@ -32,25 +32,27 @@ func (c *commitChecker) Close() error {
 	return nil
 }
 
-func (c *commitChecker) IsCommitIDExisting(commitID string) bool {
+func (c *commitChecker) ResolveCommitID(commitID string) string {
 	if c.repoOptional == nil {
-		return false
+		return ""
 	}
-	exist, inCache := c.commitCache[commitID]
-	if inCache {
-		return exist
+	if fullID, inCache := c.commitCache[commitID]; inCache {
+		return fullID
 	}
 
 	if c.gitRepo == nil {
 		r, closer, err := git.RepositoryFromContextOrOpen(c.ctx, c.repoOptional)
 		if err != nil {
 			log.Error("Unable to open repository: %s, error: %v", c.repoOptional.FullName(), err)
-			return false
+			return ""
 		}
 		c.gitRepo, c.gitRepoCloser = r, closer
 	}
 
-	exist = c.gitRepo.IsReferenceExist(c.ctx, commitID)
-	c.commitCache[commitID] = exist
-	return exist
+	fullID, err := c.gitRepo.ResolveCommitID(c.ctx, commitID)
+	if err != nil && !git.IsErrNotExist(err) {
+		log.Error("Unable to resolve commit ID %s in repository %s, error: %v", commitID, c.repoOptional.FullName(), err)
+	}
+	c.commitCache[commitID] = fullID
+	return fullID
 }

@@ -25,8 +25,8 @@ func (r *RepoFile) CleanUp() {
 	_ = r.commitChecker.Close()
 }
 
-func (r *RepoFile) IsCommitIDExisting(commitID string) bool {
-	return r.commitChecker.IsCommitIDExisting(commitID)
+func (r *RepoFile) ResolveCommitID(commitID string) string {
+	return r.commitChecker.ResolveCommitID(commitID)
 }
 
 func (r *RepoFile) ResolveLink(link, preferLinkType string) (finalLink string) {
