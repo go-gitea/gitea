@@ -35,4 +35,14 @@ func TestSet(t *testing.T) {
 	assert.False(t, s.Contains("key1"))
 	assert.True(t, s.Contains("key6"))
 	assert.True(t, s.Contains("key7"))
+
+	s = SetOf("a", "b", "c")
+	n := s.RemoveFromSet(SetOf("b", "c", "d"))
+	assert.Equal(t, 2, n)
+	assert.ElementsMatch(t, []string{"a"}, s.Values())
+
+	s = SetOf("a", "b", "c")
+	n = s.RemoveFromSlice([]string{"b", "c", "d"})
+	assert.Equal(t, 2, n)
+	assert.ElementsMatch(t, []string{"a"}, s.Values())
 }

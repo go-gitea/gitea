@@ -5,9 +5,12 @@ package lfs
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+
+	"gitea.dev/modules/util"
 )
 
 // DownloadCallback gets called for every requested LFS object to process its content
@@ -23,10 +26,23 @@ type Client interface {
 	Upload(ctx context.Context, objects []Pointer, callback UploadCallback) error
 }
 
-// NewClient creates a LFS client
-func NewClient(endpoint *url.URL, httpTransport *http.Transport) Client {
+// newClient creates a LFS client
+func newClient(endpoint *url.URL, httpTransport *http.Transport) Client {
 	if endpoint.Scheme == "file" {
 		return newFilesystemClient(endpoint)
 	}
 	return newHTTPClient(endpoint, httpTransport)
+}
+
+// NewClientFromEndpoint creates a LFS client after resolving its endpoint.
+func NewClientFromEndpoint(cloneurl, lfsurl string, httpTransport *http.Transport) (Client, error) {
+	endpoint := DetermineEndpoint(cloneurl, lfsurl)
+	if endpoint == nil {
+		source := cloneurl
+		if lfsurl != "" {
+			source = lfsurl
+		}
+		return nil, fmt.Errorf("unable to determine LFS endpoint from %q", util.SanitizeCredentialURLs(source))
+	}
+	return newClient(endpoint, httpTransport), nil
 }

@@ -6,14 +6,13 @@ package repo
 import (
 	"html/template"
 
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 type pullMergeBoxInfoItem struct {
-	ItemClass   string
 	SvgIconHTML template.HTML
 	InfoHTML    template.HTML
 	ListItems   []template.HTML
@@ -42,10 +41,9 @@ func (c *pullMergeBoxInfoItemCollection) AddInfoItem(svg, info template.HTML, op
 	})
 }
 
-func (c *pullMergeBoxInfoItemCollection) AddErrorItem(svg, info template.HTML, optItems ...[]template.HTML) {
+func (c *pullMergeBoxInfoItemCollection) AddErrorItem(info template.HTML, optItems ...[]template.HTML) {
 	c.items = append(c.items, &pullMergeBoxInfoItem{
-		ItemClass:   "tw-text-red",
-		SvgIconHTML: svg,
+		SvgIconHTML: svg.RenderHTML("octicon-x", 16, "tw-text-red"),
 		InfoHTML:    info,
 		ListItems:   util.OptionalArg(optItems),
 	})
@@ -65,7 +63,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxIconColor() {
 
 		showAsWarningColor = showAsWarningColor ||
 			statusCheckData.pullCommitStatusState.IsWarning() || statusCheckData.pullCommitStatusState.IsPending() ||
-			(mergeBoxData.enableStatusCheck && (statusCheckData.RequiredChecksState.IsWarning() || statusCheckData.RequiredChecksState.IsPending()))
+			((mergeBoxData.enableStatusCheck || mergeBoxData.hasRequiredStatusContexts) && (statusCheckData.RequiredChecksState.IsWarning() || statusCheckData.RequiredChecksState.IsPending()))
 	}
 
 	hasBlockers := len(mergeBoxData.infoCommitBlockers.items) > 0 || len(mergeBoxData.infoProtectionBlockers.items) > 0
@@ -151,10 +149,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 				ctx.Locale.Tr("repo.pulls.is_empty"),
 			)
 		} else {
-			prInfo.MergeBoxData.infoProtectionBlockers.AddErrorItem(
-				svg.RenderHTML("octicon-x"),
-				ctx.Locale.Tr("repo.pulls.cannot_auto_merge_desc"),
-			)
+			prInfo.MergeBoxData.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.cannot_auto_merge_desc"))
 			prInfo.MergeBoxData.infoProtectionBlockers.AddInfoItem(
 				svg.RenderHTML("octicon-info"),
 				ctx.Locale.Tr("repo.pulls.cannot_auto_merge_helper"),
@@ -162,18 +157,22 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		}
 	}
 
-	if !data.allowMerge {
+	if !data.hasPermToMerge {
 		prInfo.MergeBoxData.infoProtectionBlockers.AddInfoItem(
 			svg.RenderHTML("octicon-info"),
 			ctx.Locale.Tr("repo.pulls.no_merge_access"),
 		)
 	}
 
-	if data.CanMergeNow {
-		if data.HasOverridableBlockers {
+	if data.canMergeNow {
+		if data.hasOverridableBlockers {
+			prompt := ctx.Locale.Tr("repo.pulls.required_status_check_bypass_allowlist")
+			if data.canBypassProtectionAsAdmin {
+				prompt = ctx.Locale.Tr("repo.pulls.required_status_check_administrator")
+			}
 			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
 				svg.RenderHTML("octicon-dot-fill"),
-				ctx.Locale.Tr("repo.pulls.required_status_check_administrator"),
+				prompt,
 			)
 		} else if pull.IsStatusMergeable() || pull.IsEmpty() {
 			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(

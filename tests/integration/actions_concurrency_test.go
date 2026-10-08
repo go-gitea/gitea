@@ -11,20 +11,20 @@ import (
 	"testing"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	actions_web "code.gitea.io/gitea/routers/web/repo/actions"
-	actions_service "code.gitea.io/gitea/services/actions"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	webhook_module "gitea.dev/modules/webhook"
+	actions_web "gitea.dev/routers/web/repo/actions"
+	actions_service "gitea.dev/services/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -486,14 +486,18 @@ jobs:
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user4-fix2")),
 		})(t)
-		doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":do-not-cancel/ccc")(t)
-		// cannot fetch the task because cancel-in-progress is false
+		pr3, _ := doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":do-not-cancel/ccc")(t)
+		// cannot fetch the task: approval still required (user4 has no merged PR) and cancel-in-progress is false
 		runner.fetchNoTask(t)
 		runner.execTask(t, pr2Task1, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
 		pr2Run1 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: pr2Run1.ID})
 		assert.Equal(t, actions_model.StatusSuccess, pr2Run1.Status)
+		// user2 approves the third PR's run (user4 still has no merged PR, approval still required)
+		pr3Run1Pending := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, TriggerUserID: user4.ID, Ref: fmt.Sprintf("refs/pull/%d/head", pr3.Index)})
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/approve", baseRepo.OwnerName, baseRepo.Name, pr3Run1Pending.ID))
+		user2Session.MakeRequest(t, req, http.StatusOK)
 		// fetch the task
 		pr3Task1 := runner.fetchTask(t)
 		_, _, pr3Run1 := getTaskAndJobAndRunByTaskID(t, pr3Task1.Id)
@@ -599,6 +603,11 @@ jobs:
 		})
 		// cannot fetch wf2-job2 because wf1-job1 is running
 		runner1.fetchNoTask(t)
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs?status=pending", user2.Name, repo.Name)).AddTokenAuth(token)
+		pendingJobs := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionWorkflowJobsResponse{})
+		require.Len(t, pendingJobs.Entries, 1)
+		assert.Equal(t, "wf2-job2", pendingJobs.Entries[0].Name)
+		assert.Equal(t, "pending", pendingJobs.Entries[0].Status)
 		// exec wf1-job1
 		runner1.execTask(t, wf1Job1Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
@@ -968,14 +977,13 @@ jobs:
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run3.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
+		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run3.ID}).Status)
+		runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 		task6 := runner.fetchTask(t)
 		_, _, run3_2 := getTaskAndJobAndRunByTaskID(t, task6.Id)
 		assert.Equal(t, run3.ID, run3_2.ID)
 		assert.Equal(t, actions_model.StatusRunning, run3_2.Status)
 		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run3))
-
-		run2_2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2_2.ID})
-		assert.Equal(t, actions_model.StatusCancelled, run2_2.Status) // cancelled by run3
 	})
 }
 
@@ -1109,12 +1117,11 @@ jobs:
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run3.ID, job3.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
+		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run3.ID}).Status)
+		runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 		task6 := runner.fetchTask(t)
 		_, _, run3 = getTaskAndJobAndRunByTaskID(t, task6.Id)
 		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run3))
-
-		run2_2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2_2.ID})
-		assert.Equal(t, actions_model.StatusCancelled, run2_2.Status) // cancelled by run3
 	})
 }
 
@@ -1351,9 +1358,8 @@ jobs:
 		w3Run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "concurrent-workflow-3.yml"})
 		w3j1Job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: w3Run.ID, JobID: "wf3-job1"})
 		assert.Equal(t, actions_model.StatusBlocked, w3j1Job.Status)
-		// wf2-job1 is cancelled by wf3-job1
 		w2j1Job = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: w2j1Job.ID})
-		assert.Equal(t, actions_model.StatusCancelled, w2j1Job.Status)
+		assert.Equal(t, actions_model.StatusBlocked, w2j1Job.Status)
 
 		// exec wf1-job1
 		runner1.execTask(t, w1j1Task, &mockTaskOutcome{
@@ -1394,6 +1400,8 @@ jobs:
 
 		// fetch wf4-job1
 		w4j1Task := runner2.fetchTask(t)
+		_, w2j1Job, _ = getTaskAndJobAndRunByTaskID(t, runner1.fetchTask(t).Id)
+		assert.Equal(t, "wf2-job1", w2j1Job.JobID)
 		// all tasks have been fetched
 		runner1.fetchNoTask(t)
 		runner2.fetchNoTask(t)
@@ -1401,7 +1409,7 @@ jobs:
 		_, w2j2Job, w2Run = getTaskAndJobAndRunByTaskID(t, w2j2Task.Id)
 		// wf2-job2 is cancelled because wf4-job1's cancel-in-progress is true
 		assert.Equal(t, actions_model.StatusCancelled, w2j2Job.Status)
-		assert.Equal(t, actions_model.StatusCancelled, w2Run.Status)
+		assert.Equal(t, actions_model.StatusRunning, w2Run.Status)
 		_, w4j1Job, w4Run := getTaskAndJobAndRunByTaskID(t, w4j1Task.Id)
 		assert.Equal(t, "job-group-2", w4j1Job.ConcurrencyGroup)
 		assert.Equal(t, "workflow-group-2", getRunConcurrencyGroup(t, w4Run))
@@ -1559,6 +1567,9 @@ jobs:
 		run2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "workflow-2.yml"})
 		// run2 is blocked because it is blocked by workflow1's concurrency group "test-group"
 		assert.Equal(t, actions_model.StatusBlocked, run2.Status)
+
+		// complete wf1-job1
+		runner.execTask(t, w1j1Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 
 		// mock time
 		fakeNow := now.Add(setting.Actions.AbandonedJobTimeout)

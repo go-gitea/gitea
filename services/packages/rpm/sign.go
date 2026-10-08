@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	packages_module "code.gitea.io/gitea/modules/packages"
+	packages_module "gitea.dev/modules/packages"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/sassoftware/go-rpmutils"

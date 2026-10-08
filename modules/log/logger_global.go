@@ -34,10 +34,6 @@ func Debug(format string, v ...any) {
 	Log(1, DEBUG, format, v...)
 }
 
-func IsDebug() bool {
-	return GetLevel() <= DEBUG
-}
-
 func Info(format string, v ...any) {
 	Log(1, INFO, format, v...)
 }
@@ -52,10 +48,6 @@ func Error(format string, v ...any) {
 
 func ErrorWithSkip(skip int, format string, v ...any) {
 	Log(skip+1, ERROR, format, v...)
-}
-
-func Critical(format string, v ...any) {
-	Log(1, ERROR, format, v...)
 }
 
 var OsExiter = os.Exit

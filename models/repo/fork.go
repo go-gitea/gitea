@@ -6,8 +6,8 @@ package repo
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 
 	"xorm.io/builder"
 )

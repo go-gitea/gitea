@@ -11,8 +11,8 @@ import (
 	"io"
 	"os"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/storage"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/storage"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 
 // ContentStore provides a simple file system based storage.
 type ContentStore struct {
-	storage.ObjectStorage
+	ObjectStorage storage.ObjectStorage
 }
 
 // NewContentStore creates the default ContentStore
@@ -36,7 +36,7 @@ func NewContentStore() *ContentStore {
 // Get takes a Meta object and retrieves the content from the store, returning
 // it as an io.ReadSeekCloser.
 func (s *ContentStore) Get(pointer Pointer) (storage.Object, error) {
-	f, err := s.Open(pointer.RelativePath())
+	f, err := s.ObjectStorage.Open(pointer.RelativePath())
 	if err != nil {
 		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", pointer.Oid, err)
 		return nil, err
@@ -53,7 +53,7 @@ func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 
 	// now pass the wrapped reader to Save - if there is a size mismatch or hash mismatch then
 	// the errors returned by the newHashingReader should percolate up to here
-	written, err := s.Save(p, wrappedRd, pointer.Size)
+	written, err := s.ObjectStorage.Save(p, wrappedRd, pointer.Size)
 	if err != nil {
 		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", pointer.Oid, p, err)
 		return err
@@ -69,7 +69,7 @@ func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 
 	// if the upload failed, try to delete the file
 	if err != nil {
-		if errDel := s.Delete(p); errDel != nil {
+		if errDel := s.ObjectStorage.Delete(p); errDel != nil {
 			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, errDel)
 		}
 	}
@@ -77,16 +77,18 @@ func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 	return err
 }
 
-// Exists returns true if the object exists in the content store.
+func (s *ContentStore) Stat(pointer Pointer) (os.FileInfo, error) {
+	return s.ObjectStorage.Stat(pointer.RelativePath())
+}
+
 func (s *ContentStore) Exists(pointer Pointer) (bool, error) {
-	_, err := s.ObjectStorage.Stat(pointer.RelativePath())
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
+	_, err := s.Stat(pointer)
+	if os.IsNotExist(err) {
+		return false, nil
+	} else if err == nil {
+		return true, nil
 	}
-	return true, nil
+	return false, err
 }
 
 // Verify returns true if the object exists in the content store and size is correct.

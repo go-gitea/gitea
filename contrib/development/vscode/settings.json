@@ -1,0 +1,4 @@
+{
+    "go.buildTags": "",
+    "go.testFlags": ["-v"]
+}

@@ -8,18 +8,18 @@ import (
 	"strings"
 	"testing"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/tests"
+	asymkey_model "gitea.dev/models/asymkey"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -84,6 +84,7 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	org22 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
 	req := NewRequest(t, "GET", "/"+org22.Name)
 	MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/"+org22.Name).SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
 
 	session := loginUser(t, "user1")
 	oldName := org22.Name
@@ -106,6 +107,8 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	org23 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
 	req = NewRequest(t, "GET", "/"+org23.Name)
 	MakeRequest(t, req, http.StatusNotFound)
+	strangerSession := loginUser(t, "user4")
+	strangerSession.MakeRequest(t, NewRequest(t, "POST", "/"+org23.Name+"?action=follow"), http.StatusNotFound)
 
 	oldName = org23.Name
 	newName = "org23_renamed"
@@ -127,6 +130,8 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	user31 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31})
 	req = NewRequest(t, "GET", "/"+user31.Name)
 	MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/"+user31.Name).SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
+	strangerSession.MakeRequest(t, NewRequest(t, "POST", "/"+user31.Name+"?action=follow"), http.StatusNotFound)
 
 	oldName = user31.Name
 	newName = "user31_renamed"
@@ -184,7 +189,7 @@ func testRenameInvalidUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").TrString("form.username_error"),
+			translation.NewLocale("en-US").TrString("form.username_error", "Name"),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
@@ -330,6 +335,10 @@ func testGetUserRss(t *testing.T) {
 	session := loginUser(t, "user2")
 	req = NewRequestf(t, "GET", "/non-existent-user.rss")
 	session.MakeRequest(t, req, http.StatusNotFound)
+
+	defer test.MockVariableValue(&setting.Other.EnableFeed, false)()
+	MakeRequest(t, NewRequestf(t, "GET", "/%s.rss", user34), http.StatusNotFound)
+	MakeRequest(t, NewRequestf(t, "GET", "/%s", user34).SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
 }
 
 func testUserListStopWatches(t *testing.T) {

@@ -24,10 +24,10 @@
 							{{svg "octicon-pencil"}}
 							{{ctx.Locale.Tr "settings.oauth2_application_edit"}}
 						</a>
-						<button class="ui red tiny button delete-button" data-modal-id="remove-gitea-oauth2-application"
+						<button type="button" class="ui red tiny button link-action" data-modal-confirm="#remove-gitea-oauth2-application"
 								data-url="{{$.Link}}/oauth2/{{.ID}}/delete">
 							{{svg "octicon-trash"}}
-							{{ctx.Locale.Tr "settings.delete_key"}}
+							{{ctx.Locale.Tr "remove"}}
 						</button>
 					{{end}}
 				</div>
@@ -35,7 +35,7 @@
 		{{end}}
 	</div>
 
-	<div class="ui g-modal-confirm delete modal" id="remove-gitea-oauth2-application">
+	<div class="ui small modal" id="remove-gitea-oauth2-application">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.remove_oauth2_application"}}
@@ -71,7 +71,7 @@
 					<input type="checkbox" name="skip_secondary_authorization">
 				</div>
 			</div>
-			<button class="ui primary button">
+			<button type="submit" class="ui primary button">
 				{{ctx.Locale.Tr "settings.create_oauth2_application_button"}}
 			</button>
 		</form>

@@ -1,8 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package cmd provides subcommands to the gitea binary - such as "web" or
-// "admin".
 package cmd
 
 import (
@@ -15,15 +13,15 @@ import (
 	"strings"
 	"syscall"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
 
-// argsSet checks that all the required arguments are set. args is a list of
-// arguments that must be set in the passed Context.
+// argsSet checks that all the required arguments are set.
+// args is a list of arguments that must be set in the command context.
 func argsSet(c *cli.Command, args ...string) error {
 	for _, a := range args {
 		if !c.IsSet(a) {
@@ -38,22 +36,15 @@ func argsSet(c *cli.Command, args ...string) error {
 }
 
 // confirm waits for user input which confirms an action
-func confirm() (bool, error) {
+func confirm(stdin io.Reader, stdout io.Writer, msg string, args ...any) bool {
 	var response string
-
-	_, err := fmt.Scanln(&response)
-	if err != nil {
-		return false, err
-	}
-
+	_, _ = fmt.Fprintf(stdout, msg, args...)
+	_, _ = fmt.Fscanln(stdin, &response)
 	switch strings.ToLower(response) {
 	case "y", "yes":
-		return true, nil
-	case "n", "no":
-		return false, nil
-	default:
-		return false, errors.New(response + " isn't a correct confirmation string")
+		return true
 	}
+	return false
 }
 
 func initDB(ctx context.Context) error {
@@ -142,9 +133,17 @@ func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(context.Context, *cl
 func isValidDefaultSubCommand(cmd *cli.Command) (string, bool) {
 	// Dirty patch for urfave/cli's strange design.
 	// "./gitea bad-cmd" should not start the web server.
-	rootArgs := cmd.Root().Args().Slice()
-	if len(rootArgs) != 0 && rootArgs[0] != cmd.Name {
-		return rootArgs[0], false
+	args := cmd.Args().Slice()
+	if len(args) != 0 {
+		return args[0], false
 	}
 	return "", true
+}
+
+func cprintf(c *cli.Command, format string, args ...any) {
+	_, _ = fmt.Fprintf(c.Writer, format, args...)
+}
+
+func cprintln(c *cli.Command, args ...any) {
+	_, _ = fmt.Fprintln(c.Writer, args...)
 }

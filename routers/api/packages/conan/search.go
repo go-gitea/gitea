@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"strings"
 
-	conan_model "code.gitea.io/gitea/models/packages/conan"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	conan_module "code.gitea.io/gitea/modules/packages/conan"
-	"code.gitea.io/gitea/services/context"
+	conan_model "gitea.dev/models/packages/conan"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	conan_module "gitea.dev/modules/packages/conan"
+	"gitea.dev/services/context"
 )
 
 // SearchResult contains the found recipe names
@@ -72,7 +72,7 @@ func SearchPackagesV2(ctx *context.Context) {
 }
 
 func searchPackages(ctx *context.Context, searchAllRevisions bool) {
-	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
+	rref := getRecipeReference(ctx)
 
 	if !searchAllRevisions && rref.Revision == "" {
 		lastRevision, err := conan_model.GetLastRecipeRevision(ctx, ctx.Package.Owner.ID, rref)

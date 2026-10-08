@@ -9,18 +9,20 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHandleGenericETagCache(t *testing.T) {
 	matchedEtag := `"matched-etag"`
+	weakEtag := `W/"matched-etag"`
 	lastModifiedTime := new(time.Date(2021, time.January, 2, 15, 4, 5, 0, time.FixedZone("test-zone", 8*3600)))
 	lastModified := lastModifiedTime.UTC().Format(http.TimeFormat)
-	cacheControl := "max-age=0, private, must-revalidate, no-transform"
+	cacheControl := "max-age=0, private, must-revalidate"
 	type testCase struct {
 		name        string
+		respEtag    string
 		reqHeaders  map[string]string
 		wantHandled bool
 		wantHeaders map[string]string
@@ -52,6 +54,42 @@ func TestHandleGenericETagCache(t *testing.T) {
 			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": cacheControl, "Etag": matchedEtag},
 		},
 		{
+			name:        "Wildcard If-None-Match matches any current representation",
+			reqHeaders:  map[string]string{"If-None-Match": "*"},
+			wantHandled: true,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": "", "Etag": matchedEtag},
+			wantStatus:  http.StatusNotModified,
+		},
+		{
+			name:        "Weak response tag matched by a strong request tag",
+			respEtag:    weakEtag,
+			reqHeaders:  map[string]string{"If-None-Match": matchedEtag},
+			wantHandled: true,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": "", "Etag": weakEtag},
+			wantStatus:  http.StatusNotModified,
+		},
+		{
+			name:        "Weak response tag matched by a weak request tag",
+			respEtag:    weakEtag,
+			reqHeaders:  map[string]string{"If-None-Match": weakEtag},
+			wantHandled: true,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": "", "Etag": weakEtag},
+			wantStatus:  http.StatusNotModified,
+		},
+		{
+			name:        "If-Modified-Since without If-None-Match",
+			reqHeaders:  map[string]string{"If-Modified-Since": lastModified},
+			wantHandled: true,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": "", "Etag": matchedEtag},
+			wantStatus:  http.StatusNotModified,
+		},
+		{
+			name:        "Mismatched If-None-Match takes precedence over If-Modified-Since",
+			reqHeaders:  map[string]string{"If-None-Match": `"mismatched-etag"`, "If-Modified-Since": lastModified},
+			wantHandled: false,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": cacheControl, "Etag": matchedEtag},
+		},
+		{
 			name:        "Multiple Matched If-None-Match",
 			reqHeaders:  map[string]string{"If-None-Match": `"mismatched-etag", ` + matchedEtag},
 			wantHandled: true,
@@ -67,7 +105,7 @@ func TestHandleGenericETagCache(t *testing.T) {
 				req.Header.Set(k, v)
 			}
 			w := httptest.NewRecorder()
-			assert.Equal(t, tc.wantHandled, HandleGenericETagPrivateCache(req, w, matchedEtag, lastModifiedTime))
+			assert.Equal(t, tc.wantHandled, HandleGenericETagPrivateCache(req, w, util.IfZero(tc.respEtag, matchedEtag), lastModifiedTime))
 			resp := w.Result()
 			for k, v := range tc.wantHeaders {
 				assert.Equal(t, v, resp.Header.Get(k))

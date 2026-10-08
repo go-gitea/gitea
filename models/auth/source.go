@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"reflect"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -98,20 +98,12 @@ type RegisterableSource interface {
 
 var registeredConfigs = map[Type]func() Config{}
 
-// RegisterTypeConfig register a config for a provided type
-func RegisterTypeConfig(typ Type, exemplar Config) {
-	if reflect.TypeOf(exemplar).Kind() == reflect.Ptr {
-		// Pointer:
-		registeredConfigs[typ] = func() Config {
-			return reflect.New(reflect.ValueOf(exemplar).Elem().Type()).Interface().(Config)
-		}
-		return
-	}
-
-	// Not a Pointer
-	registeredConfigs[typ] = func() Config {
-		return reflect.New(reflect.TypeOf(exemplar)).Elem().Interface().(Config)
-	}
+// RegisterTypeConfig register a config for a provided type, the exemplar argument only serves type inference
+func RegisterTypeConfig[T interface {
+	*E
+	Config
+}, E any](typ Type, _ T) {
+	registeredConfigs[typ] = func() Config { return T(new(E)) }
 }
 
 // Source represents an external way for authorizing users.
@@ -188,6 +180,16 @@ func (source *Source) IsSSPI() bool {
 	return source.Type == SSPI
 }
 
+// MustSourceCfg returns the source's config as T. The registry populates Cfg from the
+// source type, so a mismatch is a programming error the caller can't recover from.
+func MustSourceCfg[T Config](source *Source) T {
+	cfg, ok := source.Cfg.(T)
+	if !ok {
+		panic(fmt.Errorf("auth source %q (id=%d, type=%s) has config %T, expected %s", source.Name, source.ID, source.Type, source.Cfg, reflect.TypeFor[T]()))
+	}
+	return cfg
+}
+
 // HasTLS returns true of this source supports TLS.
 func (source *Source) HasTLS() bool {
 	hasTLSer, ok := source.Cfg.(HasTLSer)
@@ -255,6 +257,10 @@ type FindSourcesOptions struct {
 	db.ListOptions
 	IsActive  optional.Option[bool]
 	LoginType Type
+}
+
+func (opts FindSourcesOptions) ToOrders() string {
+	return "name"
 }
 
 func (opts FindSourcesOptions) ToConds() builder.Cond {
@@ -369,12 +375,6 @@ func (err ErrSourceNotExist) Unwrap() error {
 // ErrSourceAlreadyExist represents a "SourceAlreadyExist" kind of error.
 type ErrSourceAlreadyExist struct {
 	Name string
-}
-
-// IsErrSourceAlreadyExist checks if an error is a ErrSourceAlreadyExist.
-func IsErrSourceAlreadyExist(err error) bool {
-	_, ok := err.(ErrSourceAlreadyExist)
-	return ok
 }
 
 func (err ErrSourceAlreadyExist) Error() string {

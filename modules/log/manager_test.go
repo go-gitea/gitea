@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSharedWorker(t *testing.T) {
@@ -37,6 +38,8 @@ func TestSharedWorker(t *testing.T) {
 
 	m.Close()
 
-	logs := w.(*dummyWriter).FetchLogs()
+	dw, ok := w.(*dummyWriter)
+	require.True(t, ok)
+	logs := dw.FetchLogs()
 	assert.Equal(t, []string{"msg-1\n", "msg-2\n", "msg-3\n"}, logs)
 }

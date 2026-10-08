@@ -16,15 +16,15 @@ import (
 	"regexp"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/typesniffer"
-	sender_service "code.gitea.io/gitea/services/mailer/sender"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/typesniffer"
+	sender_service "gitea.dev/services/mailer/sender"
 
 	"golang.org/x/net/html"
 )
@@ -162,7 +162,7 @@ func fromDisplayName(u *user_model.User) string {
 		err := setting.MailService.FromDisplayNameFormatTemplate.Execute(&buf, map[string]any{
 			"DisplayName": u.DisplayName(),
 			"AppName":     setting.AppName,
-			"Domain":      setting.Domain,
+			"Domain":      setting.AppDomain,
 		})
 		if err == nil {
 			return mime.QEncoding.Encode("utf-8", buf.String())
@@ -180,7 +180,7 @@ func fromDisplayName(u *user_model.User) string {
 func generateMetadataHeaders(repo *repo_model.Repository) map[string]string {
 	return map[string]string{
 		// https://datatracker.ietf.org/doc/html/rfc2919
-		"List-ID": fmt.Sprintf("%s <%s.%s.%s>", repo.FullName(), repo.Name, repo.OwnerName, setting.Domain),
+		"List-ID": fmt.Sprintf("%s <%s.%s.%s>", repo.FullName(), repo.Name, repo.OwnerName, setting.AppDomain),
 
 		// https://datatracker.ietf.org/doc/html/rfc2369
 		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),

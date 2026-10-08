@@ -308,12 +308,12 @@ $.fn.dropdown = function(parameters) {
           firstUnfiltered: function() {
             module.verbose('Selecting first non-filtered element');
             module.remove.selectedItem();
-            $item
+            const $selectable = $item
               .not(selector.unselectable)
-              .not(selector.addition + selector.hidden)
-                .eq(0)
-                .addClass(className.selected)
-            ;
+              .not(selector.addition + selector.hidden);
+            let $selectedItem = $selectable.filter(`[data-value="${CSS.escape($input.val())}"]`); // GITEA-PATCH: try to re-select the last selected item for single selection
+            if (!$selectedItem.length) $selectedItem = $item.eq(0);
+            $selectedItem.addClass(className.selected);
           },
           nextAvailable: function($selected) {
             $selected = $selected.eq(0);
@@ -431,7 +431,12 @@ $.fn.dropdown = function(parameters) {
             module.refresh();
           },
           menu: function(values) {
-            $menu.html( templates.menu(values, fields,settings.preserveHTML,settings.className));
+            const $menuItems = $(templates.menu(values, fields,settings.preserveHTML,settings.className));
+            $menuItems.attr('data-item-dynamic', '');
+            $menu.find('[data-item-dynamic]').remove();
+            $menu.append(...$menuItems);
+            settings.onMenuUpdated();
+
             $item    = $menu.find(selector.item);
             $divider = settings.hideDividers ? $item.parent().children(selector.divider) : $();
           },
@@ -515,9 +520,15 @@ $.fn.dropdown = function(parameters) {
             ? callback
             : function(){}
           ;
-          if(!module.can.show() && module.is.remote()) {
+          const dataKeyRemoteQueried = 'remote-queried';
+          // if the dropdown uses remote API, then it needs to query if:
+          // * its content is empty (can not show: no menu item)
+          // * it has not queried before (it has content, but we still need to query the remote API, e.g.: issue author list)
+          if(module.is.remote() && (!module.can.show() || !$module.data(dataKeyRemoteQueried))) {
             module.debug('No API results retrieved, searching before show');
+            $module.data(dataKeyRemoteQueried, true)
             module.queryRemote(module.get.query(), module.show);
+            // can continue to "show" if there are menu items to avoid the lag of waiting for the remote API response
           }
           if( module.can.show() && !module.is.active() ) {
             module.debug('Showing dropdown');
@@ -772,11 +783,13 @@ $.fn.dropdown = function(parameters) {
                 if(!Array.isArray(preSelected)) {
                     preSelected = preSelected && preSelected!=="" ? preSelected.split(settings.delimiter) : [];
                 }
-                $.each(preSelected,function(index,value){
-                  $item.filter('[data-value="'+CSS.escape(value)+'"]') // GITEA-PATCH: use "CSS.escape" for query selector
+                if (module.is.multiple()) { // GITEA-PATCH: only hide selected items when the dropdown is "multiple selection"
+                  $.each(preSelected, function (index, value) {
+                    $item.filter('[data-value="' + CSS.escape(value) + '"]') // GITEA-PATCH: use "CSS.escape" for query selector
                       .addClass(className.filtered)
-                  ;
-                });
+                    ;
+                  });
+                }
                 afterFiltered();
               });
             }
@@ -791,6 +804,9 @@ $.fn.dropdown = function(parameters) {
         },
 
         queryRemote: function(query, callback) {
+          const dataKeyRemoteQuerying = 'remote-querying';
+          if ($module.data(dataKeyRemoteQuerying) === query) return;
+          $module.data(dataKeyRemoteQuerying, query);
           var
             apiSettings = {
               errorDuration : false,
@@ -798,6 +814,11 @@ $.fn.dropdown = function(parameters) {
               throttle      : settings.throttle,
               urlData       : {
                 query: query
+              },
+              onComplete: function() {
+                if ($module.data(dataKeyRemoteQuerying) === query) {
+                  $module.removeData(dataKeyRemoteQuerying);
+                }
               },
               onError: function() {
                 module.add.message(message.serverError);
@@ -1951,8 +1972,8 @@ $.fn.dropdown = function(parameters) {
                 $choice.find(selector.menu).remove();
                 $choice.find(selector.menuIcon).remove();
               }
-              return ($choice.data(metadata.text) !== undefined)
-                ? $choice.data(metadata.text)
+              return ($choice.attr('data-' + metadata.text) !== undefined) // GITEA-PATCH: use "attr" but not "data", don't decode JSON like "false"
+                ? $choice.attr('data-' + metadata.text)
                 : (preserveHTML)
                   ? $choice.html().trim()
                   : $choice.text().trim()
@@ -2005,8 +2026,8 @@ $.fn.dropdown = function(parameters) {
                     value    = ( $option.attr('value') !== undefined )
                       ? $option.attr('value')
                       : name,
-                    text     = ( $option.data(metadata.text) !== undefined )
-                      ? $option.data(metadata.text)
+                    text     = ( $option.attr('data-' + metadata.text) !== undefined ) // GITEA-PATCH: use "attr" but not "data", don't decode JSON like "false"
+                      ? $option.attr('data-' + metadata.text)
                       : name,
                     group = $option.parent('optgroup')
                   ;
@@ -3928,7 +3949,8 @@ $.fn.dropdown.settings = {
   minCharacters          : 0,          // Minimum characters required to trigger API call
 
   filterRemoteData       : false,      // Whether API results should be filtered after being returned for query term
-  saveRemoteData         : true,       // Whether remote name/value pairs should be stored in sessionStorage to allow remote data to be restored on page refresh
+  saveRemoteData         : false,      // Whether remote name/value pairs should be stored in sessionStorage to allow remote data to be restored on page refresh
+                                       // saveRemoteData is a wrong design and buggy, don't use it.
 
   throttle               : 200,        // How long to wait after last user input to search remotely
 
@@ -3994,6 +4016,7 @@ $.fn.dropdown.settings = {
   onLabelCreate : function(value, text) { return $(this); },
   onLabelRemove : function(value) { return true; },
   onNoResults   : function(searchTerm) { return true; },
+  onMenuUpdated : function(){},
   onShow        : function(){},
   onHide        : function(){},
 
@@ -4220,6 +4243,8 @@ $.fn.dropdown.settings.templates = {
         if(option[fields.divider]){
           html += '<div class="'+className.divider+'"></div>';
         }
+      } else if( itemType === 'html' ) {
+        html += option.html;
       }
     });
     return html;

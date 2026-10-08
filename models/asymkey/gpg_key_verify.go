@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/log"
 )
 
 // This file provides functions relating verifying gpg keys
@@ -40,29 +40,17 @@ func VerifyGPGKey(ctx context.Context, ownerID int64, keyID, token, signature st
 			}
 		}
 
-		signer, err := hashAndVerifyWithSubKeys(sig, token, key)
-		if err != nil {
-			return "", ErrGPGInvalidTokenSignature{
-				ID:      key.KeyID,
-				Wrapped: err,
-			}
-		}
-		if signer == nil {
-			signer, err = hashAndVerifyWithSubKeys(sig, token+"\n", key)
+		var signer *GPGKey
+		for _, tokenCandidate := range []string{token, token + "\n", token + "\n\n", token + "\r\n", token + "\r\n\r\n"} {
+			signer, err = hashAndVerifyWithSubKeys(sig, tokenCandidate, key)
 			if err != nil {
 				return "", ErrGPGInvalidTokenSignature{
 					ID:      key.KeyID,
 					Wrapped: err,
 				}
 			}
-		}
-		if signer == nil {
-			signer, err = hashAndVerifyWithSubKeys(sig, token+"\n\n", key)
-			if err != nil {
-				return "", ErrGPGInvalidTokenSignature{
-					ID:      key.KeyID,
-					Wrapped: err,
-				}
+			if signer != nil {
+				break
 			}
 		}
 

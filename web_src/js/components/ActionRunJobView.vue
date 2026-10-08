@@ -1,46 +1,60 @@
 <script setup lang="ts">
-import {nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
-import {SvgIcon} from '../svg.ts';
-import ActionRunStatus from './ActionRunStatus.vue';
-import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
-import {formatDatetime} from '../utils/time.ts';
+import {computed, nextTick, onBeforeUnmount, onMounted, ref, toRefs, useTemplateRef, watch} from 'vue';
+import SvgIcon from './SvgIcon.vue';
+import ActionStatusIcon from './ActionStatusIcon.vue';
+import {addDelegatedEventListener, createElementFromAttrs} from '../utils/dom.ts';
+import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
+import {createTippy} from '../modules/tippy.ts';
+import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
+import type {Instance} from 'tippy.js';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
-import type {ActionsArtifact, ActionsRun, ActionsRunStatus} from '../modules/gitea-actions.ts';
-import {
-  type ActionRunViewStore,
-  createLogLineMessage,
-  type LogLine,
-  type LogLineCommand,
-  parseLogLineCommand
-} from './ActionRunView.ts';
+import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
+import {AnsiLineRenderer} from '../render/ansi.ts';
+import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
+import type {ActionRunViewStore, LogLine, LogLineCommand} from './ActionRunView.ts';
 
-function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
+function isLogElementInViewport(el: Element, {extraViewPortHeight} = {extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
   // only check whether bottom is in viewport, because the log element can be a log group which is usually tall
-  return 0 <= rect.bottom && rect.bottom <= window.innerHeight + extraViewPortHeight;
+  return rect.bottom >= 0 && rect.bottom <= window.innerHeight + extraViewPortHeight;
 }
+
+export type ActionRunJobViewLocale = {
+  status: Record<ActionsStatus, string>,
+  showTimeStamps: string,
+  showLogSeconds: string,
+  showFullScreen: string,
+  logsAlwaysAutoScroll: string,
+  logsAlwaysExpandRunning: string,
+  downloadLogs: string,
+  copyOutput: string,
+};
 
 type Step = {
   summary: string,
   duration: string,
-  status: ActionsRunStatus,
-}
+  status: ActionsStatus,
+};
 
 type JobStepState = {
-  cursor: string|null,
+  cursor: string | null,
   expanded: boolean,
   manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
-}
+  firstLogTime?: number, // the step's first log line time, what "Show seconds" counts from
+};
+
+// one ANSI renderer per step, so an unterminated color carries between that step's lines only
+const stepAnsiRenderers: AnsiLineRenderer[] = [];
 
 type StepContainerElement = HTMLElement & {
   // To remember the last active logs container, for example: a batch of logs only starts a group but doesn't end it,
   // then the following batches of logs should still use the same group (active logs container).
   // maybe it can be refactored to decouple from the HTML element in the future.
   _stepLogsActiveContainer?: HTMLElement;
-}
+};
 
 type LocaleStorageOptions = {
   autoScroll: boolean;
@@ -65,7 +79,6 @@ type JobData = {
     stepsLog?: Array<{
       step: number;
       cursor: string | null;
-      started: number;
       lines: LogLine[];
     }>;
   },
@@ -79,7 +92,7 @@ const props = defineProps<{
   store: ActionRunViewStore,
   jobId: number;
   actionsViewUrl: string;
-  locale: Record<string, any>;
+  locale: ActionRunJobViewLocale;
 }>();
 const store = props.store;
 const {currentRun: run} = toRefs(store.viewData);
@@ -91,15 +104,18 @@ const defaultViewOptions: LocaleStorageOptions = {
   actionsLogShowTimestamps: false,
 };
 
-const savedViewOptions = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
-const {autoScroll, expandRunning, actionsLogShowSeconds, actionsLogShowTimestamps} = savedViewOptions;
+const {
+  autoScroll,
+  expandRunning,
+  actionsLogShowSeconds,
+  actionsLogShowTimestamps,
+} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
 
 // internal state
 let loadingAbortController: AbortController | null = null;
 let intervalID: IntervalId | null = null;
 
 const currentJobStepsStates = ref<Array<JobStepState>>([]);
-const menuVisible = ref(false);
 const isFullScreen = ref(false);
 const timeVisible = ref<Record<string, boolean>>({
   'log-time-stamp': actionsLogShowTimestamps,
@@ -114,6 +130,15 @@ const currentJob = ref<CurrentJob>({
 });
 const stepsContainer = ref<HTMLElement | null>(null);
 const jobStepLogs = ref<Array<StepContainerElement | undefined>>([]);
+const menuTriggerEl = useTemplateRef<HTMLButtonElement>('menuTriggerEl');
+const menuPanelEl = useTemplateRef<HTMLDivElement>('menuPanelEl');
+let menuTippy: Instance;
+
+// Reusable workflow caller view: the right pane shows just the header (name + uses path +
+// status). Callers don't run on a runner, and the dependency graph for their children lives
+// in the run summary's WorkflowGraph, not here — matching GitHub Actions.
+const selectedJob = computed<ActionsJob | undefined>(() => (run.value.jobs || []).find((it) => it.id === props.jobId));
+const isCallerJob = computed(() => Boolean(selectedJob.value?.isReusableCaller));
 
 watch(optionAlwaysAutoScroll, () => {
   saveLocaleStorageOptions();
@@ -124,6 +149,16 @@ watch(optionAlwaysExpandRunning, () => {
 });
 
 onMounted(async () => {
+  menuTippy = createTippy(menuTriggerEl.value!, {
+    content: menuPanelEl.value!,
+    trigger: 'click',
+    interactive: true,
+    hideOnClick: true,
+    placement: 'bottom-end',
+    theme: 'menu',
+    arrow: false,
+  });
+
   // load job data and then auto-reload periodically
   // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
   await loadJob();
@@ -140,14 +175,13 @@ onMounted(async () => {
     }, 0);
   });
 
-  intervalID = setInterval(() => void loadJob(), 1000);
-  document.body.addEventListener('click', closeDropdown);
-  void hashChangeListener();
+  intervalID = setInterval(() => loadJob(), 1000);
+  hashChangeListener();
   window.addEventListener('hashchange', hashChangeListener);
 });
 
 onBeforeUnmount(() => {
-  document.body.removeEventListener('click', closeDropdown);
+  menuTippy.destroy();
   window.removeEventListener('hashchange', hashChangeListener);
   // clear the interval timer when the component is unmounted
   // even our page is rendered once, not spa style
@@ -196,17 +230,32 @@ function beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd:
 }
 
 // end a log group
-function endLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
+function endLogGroup(stepIndex: number) {
   const el = getJobStepLogsContainer(stepIndex);
   el._stepLogsActiveContainer = undefined;
-  el.append(createLogLine(stepIndex, startTime, line, cmd));
+}
+
+async function copyStepOutput(event: MouseEvent, stepIndex: number) {
+  await copyToClipboardWithFeedback(event.currentTarget as HTMLElement, async () => {
+    const data = await fetchJobData([{step: stepIndex, cursor: null, expanded: true}]);
+    const stepLog = data.logs.stepsLog?.find((s) => s.step === stepIndex);
+    const lines: string[] = [];
+    const ansi = new AnsiLineRenderer();
+    for (const line of stepLog?.lines ?? []) {
+      const cmd = parseLogLineCommand(line);
+      if (cmd?.name === 'hidden' || cmd?.name === 'endgroup') continue;
+      const msg = createLogLineMessage(ansi, line, cmd).textContent ?? '';
+      lines.push(timeVisible.value['log-time-stamp'] ? `${formatDatetimeISO(line.timestamp)} ${msg}` : msg);
+    }
+    return lines.join('\n');
+  });
 }
 
 // show/hide the step logs for a step
 function toggleStepLogs(idx: number) {
   currentJobStepsStates.value[idx].expanded = !currentJobStepsStates.value[idx].expanded;
   if (currentJobStepsStates.value[idx].expanded) {
-    void loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
+    loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
   } else if (currentJob.value.steps[idx].status === 'running') {
     currentJobStepsStates.value[idx].manuallyCollapsed = true;
   }
@@ -217,16 +266,13 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
     String(line.index),
   );
   const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
-    formatDatetime(new Date(line.timestamp * 1000)), // for "Show timestamps"
+    formatDatetime(line.timestamp * 1000), // for "Show timestamps"
   );
-  const logMsg = createLogLineMessage(line, cmd);
+  const logMsg = createLogLineMessage(stepAnsiRenderers[stepIndex] ??= new AnsiLineRenderer(), line, cmd);
   const seconds = Math.floor(line.timestamp - startTime);
   const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
     `${seconds}s`, // for "Show seconds"
   );
-
-  toggleElem(logTimeStamp, timeVisible.value['log-time-stamp']);
-  toggleElem(logTimeSeconds, timeVisible.value['log-time-seconds']);
 
   const lineClass = cmd?.name ? `job-log-line log-line-${cmd.name}` : 'job-log-line';
   return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: lineClass},
@@ -246,33 +292,25 @@ function shouldAutoScroll(stepIndex: number): boolean {
 function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
   for (const line of logLines) {
     const cmd = parseLogLineCommand(line);
-    switch (cmd?.name) {
-      case 'hidden':
-        continue;
-      case 'group':
-        beginLogGroup(stepIndex, startTime, line, cmd);
-        continue;
-      case 'endgroup':
-        endLogGroup(stepIndex, startTime, line, cmd);
-        continue;
+    if (cmd?.name === 'group') {
+      beginLogGroup(stepIndex, startTime, line, cmd);
+    } else if (cmd?.name === 'endgroup') {
+      endLogGroup(stepIndex);
+    } else if (cmd?.name !== 'hidden') {
+      // the active logs container may change during the loop, for example: entering and leaving a group
+      getActiveLogsContainer(stepIndex).append(createLogLine(stepIndex, startTime, line, cmd));
     }
-    // the active logs container may change during the loop, for example: entering and leaving a group
-    const el = getActiveLogsContainer(stepIndex);
-    el.append(createLogLine(stepIndex, startTime, line, cmd));
   }
 }
 
-async function fetchJobData(abortController: AbortController): Promise<JobData> {
-  const logCursors = currentJobStepsStates.value.map((it, idx) => {
-    // cursor is used to indicate the last position of the logs
-    // it's only used by backend, frontend just reads it and passes it back, it can be any type.
-    // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
-    return {step: idx, cursor: it.cursor, expanded: it.expanded};
-  });
-  const resp = await POST(props.actionsViewUrl, {
-    signal: abortController.signal,
-    data: {logCursors},
-  });
+// "cursor" is used to indicate the last position of the logs.
+// It's only used by backend, frontend just reads it and passes it back, it can be any type.
+// Frontend knows nothing about its type, never uses its value.
+// For example: backend can make cursor=null means the first time to fetch logs, cursor=1234 for a position, cursor=eof for no more logs, etc.
+type LogCursor = {step: number, cursor: any, expanded: boolean};
+
+async function fetchJobData(logCursors: LogCursor[], signal?: AbortSignal): Promise<JobData> {
+  const resp = await POST(props.actionsViewUrl, {signal, data: {logCursors}});
   return await resp.json();
 }
 
@@ -287,7 +325,8 @@ async function loadJob() {
   const abortController = new AbortController();
   loadingAbortController = abortController;
   try {
-    const runJobResp = await fetchJobData(abortController);
+    const logCursors = currentJobStepsStates.value.map((it, idx) => ({step: idx, cursor: it.cursor, expanded: it.expanded}));
+    const runJobResp = await fetchJobData(logCursors, abortController.signal);
     if (loadingAbortController !== abortController) return;
 
     // FIXME: this logic is quite hacky and dirty, it should be refactored in a better way in the future
@@ -323,9 +362,12 @@ async function loadJob() {
 
     // append logs to the UI
     for (const stepLogs of jobLogs) {
+      const stepState = currentJobStepsStates.value[stepLogs.step];
       // save the cursor, it will be passed to backend next time
-      currentJobStepsStates.value[stepLogs.step].cursor = stepLogs.cursor;
-      appendLogs(stepLogs.step, stepLogs.started, stepLogs.lines);
+      stepState.cursor = stepLogs.cursor;
+      if (!stepLogs.lines.length) continue;
+      stepState.firstLogTime ??= stepLogs.lines[0].timestamp;
+      appendLogs(stepLogs.step, stepState.firstLogTime, stepLogs.lines);
     }
 
     // auto-scroll to the last log line of the last step
@@ -353,16 +395,12 @@ async function loadJob() {
   }
 }
 
-function isDone(status: ActionsRunStatus) {
+function isDone(status: ActionsStatus) {
   return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
 }
 
-function isExpandable(status: ActionsRunStatus) {
+function isExpandable(status: ActionsStatus) {
   return ['success', 'running', 'failure', 'cancelled'].includes(status);
-}
-
-function closeDropdown() {
-  if (menuVisible.value) menuVisible.value = false;
 }
 
 function elStepsContainer(): HTMLElement {
@@ -371,9 +409,6 @@ function elStepsContainer(): HTMLElement {
 
 function toggleTimeDisplay(type: 'seconds' | 'stamp') {
   timeVisible.value[`log-time-${type}`] = !timeVisible.value[`log-time-${type}`];
-  for (const el of elStepsContainer().querySelectorAll(`.log-time-${type}`)) {
-    toggleElem(el, timeVisible.value[`log-time-${type}`]);
-  }
   saveLocaleStorageOptions();
 }
 
@@ -403,51 +438,63 @@ async function hashChangeListener() {
 <template>
   <div class="job-info-header">
     <div class="job-info-header-left gt-ellipsis">
-      <h3 class="job-info-header-title gt-ellipsis">
-        {{ currentJob.title }}
-      </h3>
+      <div class="job-info-header-title-row">
+        <h3 class="job-info-header-title gt-ellipsis">
+          {{ isCallerJob ? selectedJob?.name : currentJob.title }}
+        </h3>
+        <span v-if="isCallerJob && selectedJob?.callUses" class="ui label job-info-header-uses">
+          <span>uses:</span>
+          <span class="gt-ellipsis">{{ selectedJob.callUses }}</span>
+        </span>
+      </div>
       <p class="job-info-header-detail">
-        {{ currentJob.detail }}
+        {{ isCallerJob && selectedJob ? locale.status[selectedJob.status] : currentJob.detail }}
       </p>
     </div>
     <div class="job-info-header-right">
-      <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-        <button class="ui button tw-px-3">
-          <SvgIcon name="octicon-gear" :size="18"/>
-        </button>
-        <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
-          <a class="item" @click="toggleTimeDisplay('seconds')">
-            <i class="icon"><SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
-            {{ locale.showLogSeconds }}
-          </a>
-          <a class="item" @click="toggleTimeDisplay('stamp')">
-            <i class="icon"><SvgIcon :name="timeVisible['log-time-stamp'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
-            {{ locale.showTimeStamps }}
-          </a>
-          <a class="item" @click="toggleFullScreenMode()">
-            <i class="icon"><SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
-            {{ locale.showFullScreen }}
-          </a>
-          <div class="divider"/>
-          <a class="item" @click="optionAlwaysAutoScroll = !optionAlwaysAutoScroll">
-            <i class="icon"><SvgIcon :name="optionAlwaysAutoScroll ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
-            {{ locale.logsAlwaysAutoScroll }}
-          </a>
-          <a class="item" @click="optionAlwaysExpandRunning = !optionAlwaysExpandRunning">
-            <i class="icon"><SvgIcon :name="optionAlwaysExpandRunning ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
-            {{ locale.logsAlwaysExpandRunning }}
-          </a>
-          <div class="divider"/>
-          <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link + '/jobs/' + jobId + '/logs'" download>
-            <i class="icon"><SvgIcon name="octicon-download"/></i>
-            {{ locale.downloadLogs }}
-          </a>
-        </div>
+      <button ref="menuTriggerEl" type="button" class="btn interact-bg tw-p-2">
+        <SvgIcon name="octicon-gear" :size="18"/>
+      </button>
+      <div ref="menuPanelEl" class="tippy-target" @click="menuTippy.hide()">
+        <a class="item" role="menuitemcheckbox" :aria-checked="timeVisible['log-time-seconds']" @click="toggleTimeDisplay('seconds')">
+          <SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'gitea-empty-checkbox'"/>
+          {{ locale.showLogSeconds }}
+        </a>
+        <a class="item" role="menuitemcheckbox" :aria-checked="timeVisible['log-time-stamp']" @click="toggleTimeDisplay('stamp')">
+          <SvgIcon :name="timeVisible['log-time-stamp'] ? 'octicon-check' : 'gitea-empty-checkbox'"/>
+          {{ locale.showTimeStamps }}
+        </a>
+        <a class="item" role="menuitemcheckbox" :aria-checked="isFullScreen" @click="toggleFullScreenMode()">
+          <SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/>
+          {{ locale.showFullScreen }}
+        </a>
+        <div class="divider"/>
+        <a class="item" role="menuitemcheckbox" :aria-checked="optionAlwaysAutoScroll" @click="optionAlwaysAutoScroll = !optionAlwaysAutoScroll">
+          <SvgIcon :name="optionAlwaysAutoScroll ? 'octicon-check' : 'gitea-empty-checkbox'"/>
+          {{ locale.logsAlwaysAutoScroll }}
+        </a>
+        <a class="item" role="menuitemcheckbox" :aria-checked="optionAlwaysExpandRunning" @click="optionAlwaysExpandRunning = !optionAlwaysExpandRunning">
+          <SvgIcon :name="optionAlwaysExpandRunning ? 'octicon-check' : 'gitea-empty-checkbox'"/>
+          {{ locale.logsAlwaysExpandRunning }}
+        </a>
+        <div class="divider"/>
+        <a class="item" role="menuitem" :class="{disabled: !currentJob.steps.length}" :href="run.link + '/jobs/' + jobId + '/logs'" download>
+          <SvgIcon name="octicon-download"/>
+          {{ locale.downloadLogs }}
+        </a>
       </div>
     </div>
   </div>
   <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
-  <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
+  <div
+    class="job-step-container"
+    ref="stepsContainer"
+    v-show="!isCallerJob && currentJob.steps.length"
+    :class="{
+      'log-line-show-timestamps': timeVisible['log-time-stamp'],
+      'log-line-show-seconds': timeVisible['log-time-seconds']
+    }"
+  >
     <div class="job-step-section" v-for="(jobStep, stepIdx) in currentJob.steps" :key="stepIdx">
       <div
         class="job-step-summary"
@@ -460,15 +507,25 @@ async function hashChangeListener() {
         <SvgIcon
           v-if="isDone(run.status) && currentJobStepsStates[stepIdx].expanded && currentJobStepsStates[stepIdx].cursor === null"
           name="gitea-running"
-          class="tw-mr-2 rotate-clockwise"
+          class="rotate-clockwise"
         />
         <SvgIcon
           v-else
-          :name="currentJobStepsStates[stepIdx].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
-          :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"
+          name="octicon-chevron-right"
+          class="step-summary-chevron"
+          :class="{'tw-invisible': !isExpandable(jobStep.status)}"
         />
-        <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
+        <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill"/>
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
+        <button
+          v-if="isExpandable(jobStep.status)"
+          class="btn interact-fg step-copy-btn"
+          :aria-label="locale.copyOutput"
+          :data-tooltip-content="locale.copyOutput"
+          @click.stop="copyStepOutput($event, stepIdx)"
+        >
+          <SvgIcon name="octicon-copy" :size="14"/>
+        </button>
         <span class="step-summary-duration">{{ jobStep.duration }}</span>
       </div>
       <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM,
@@ -478,38 +535,6 @@ async function hashChangeListener() {
   </div>
 </template>
 <style scoped>
-/* begin fomantic dropdown menu overrides */
-
-.action-view-right .ui.dropdown .menu {
-  background: var(--color-console-menu-bg);
-  border-color: var(--color-console-menu-border);
-}
-
-.action-view-right .ui.dropdown .menu > .item {
-  color: var(--color-console-fg);
-}
-
-.action-view-right .ui.dropdown .menu > .item:hover {
-  color: var(--color-console-fg);
-  background: var(--color-console-hover-bg);
-}
-
-.action-view-right .ui.dropdown .menu > .item:active {
-  color: var(--color-console-fg);
-  background: var(--color-console-active-bg);
-}
-
-.action-view-right .ui.dropdown .menu > .divider {
-  border-top-color: var(--color-console-menu-border);
-}
-
-.action-view-right .ui.pointing.dropdown > .menu:not(.hidden)::after {
-  background: var(--color-console-menu-bg);
-  box-shadow: -1px -1px 0 0 var(--color-console-menu-border);
-}
-
-/* end fomantic dropdown menu overrides */
-
 .job-info-header {
   display: flex;
   justify-content: space-between;
@@ -525,6 +550,7 @@ async function hashChangeListener() {
 
 .job-info-header:has(+ .job-step-container) {
   border-radius: var(--border-radius) var(--border-radius) 0 0;
+  border-bottom: 1px solid var(--color-secondary);
 }
 
 .job-info-header .job-info-header-title {
@@ -540,19 +566,33 @@ async function hashChangeListener() {
 
 .job-info-header-left {
   flex: 1;
+  min-width: 0;
+}
+
+.job-info-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.job-info-header-uses {
+  display: inline-flex !important;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
 }
 
 .job-step-container {
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
-  border-top: 1px solid var(--color-console-border);
-  z-index: 0;
 }
 
 .job-step-container .job-step-summary {
   padding: 5px 10px;
   display: flex;
   align-items: center;
+  gap: 8px;
   border-radius: var(--border-radius);
 }
 
@@ -565,12 +605,32 @@ async function hashChangeListener() {
   background: var(--color-console-hover-bg);
 }
 
+.job-step-container .job-step-summary .step-summary-chevron {
+  transition: transform 0.1s ease;
+}
+
+.job-step-container .job-step-summary.selected .step-summary-chevron {
+  transform: rotate(90deg);
+}
+
 .job-step-container .job-step-summary .step-summary-msg {
   flex: 1;
 }
 
-.job-step-container .job-step-summary .step-summary-duration {
-  margin-left: 16px;
+.job-step-container .job-step-summary .step-copy-btn {
+  visibility: hidden;
+  margin: 0 4px;
+}
+
+.job-step-container .job-step-summary:hover .step-copy-btn,
+.job-step-container .job-step-summary.selected .step-copy-btn {
+  visibility: visible;
+}
+
+@media (hover: none) {
+  .job-step-container .job-step-summary:focus-within .step-copy-btn {
+    visibility: visible;
+  }
 }
 
 .job-step-container .job-step-summary.selected {
@@ -578,9 +638,6 @@ async function hashChangeListener() {
   background-color: var(--color-console-active-bg);
   position: sticky;
   top: 60px;
-  /* workaround ansi_up issue related to faintStyle generating a CSS stacking context via `opacity`
-     inline style which caused such elements to render above the .job-step-summary header. */
-  z-index: 1;
 }
 </style>
 
@@ -609,8 +666,22 @@ async function hashChangeListener() {
   scroll-margin-top: 95px;
 }
 
+.job-log-line .log-time-stamp,
+.job-log-line .log-time-seconds {
+  display: none;
+}
+
+.log-line-show-timestamps .job-log-line .log-time-stamp {
+  display: inline;
+}
+
+.log-line-show-seconds .job-log-line .log-time-seconds {
+  display: inline;
+}
+
 /* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
-.job-log-line .line-num, .log-time-seconds {
+.job-log-line .line-num,
+.job-log-line .log-time-seconds {
   width: 48px;
   color: var(--color-text-light-3);
   text-align: right;
@@ -627,16 +698,16 @@ async function hashChangeListener() {
 }
 
 .job-log-line .log-time,
-.log-time-stamp {
+.job-log-line .log-time-stamp {
   color: var(--color-text-light-3);
-  margin-left: 10px;
+  margin-left: 12px;
   white-space: nowrap;
 }
 
 .job-step-logs .job-log-line .log-msg {
   flex: 1;
-  white-space: break-spaces;
-  margin-left: 10px;
+  white-space: break-spaces; /* decoded commands like "::error::foo%0Abar" contain "\n" */
+  margin-left: 12px;
   overflow-wrap: anywhere;
 }
 
@@ -703,18 +774,28 @@ async function hashChangeListener() {
   border-radius: 0;
 }
 
-.job-log-group .job-log-list .job-log-line .log-msg {
-  margin-left: 2em;
-}
-
 .job-log-group-summary {
-  position: relative;
+  cursor: pointer;
+  list-style: none; /* hide the standard disclosure marker (Chrome, Edge, Firefox) */
 }
 
-.job-log-group-summary > .job-log-line {
-  position: absolute;
-  inset: 0;
-  z-index: -1; /* to avoid hiding the triangle of the "details" element */
-  overflow: hidden;
+.job-log-group-summary::-webkit-details-marker { /* hide the disclosure marker on Safari */
+  display: none;
+}
+
+.log-line-group .log-msg::before {
+  content: "";
+  display: inline-block;
+  vertical-align: middle;
+  margin-top: -2.5px;
+  margin-right: 8px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--color-text-light-3);
+  transition: transform 0.1s ease;
+}
+
+.job-log-group[open] .log-line-group .log-msg::before {
+  transform: rotate(90deg);
 }
 </style>

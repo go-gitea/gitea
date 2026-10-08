@@ -1,49 +1,30 @@
-import {htmlEscape} from '../../utils/html.ts';
-import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {attachSearchBox, type SearchResult} from '../../modules/search.ts';
 
 const {appSubUrl} = window.config;
 const looksLikeEmailAddressCheck = /^\S+@\S+$/;
 
+type UserSearchResponse = {data: Array<{login: string; avatar_url: string; full_name: string}>};
+
 export function initCompSearchUserBox() {
-  const searchUserBox = document.querySelector('#search-user-box');
-  if (!searchUserBox) return;
+  const box = document.querySelector<HTMLElement>('#search-user-box');
+  if (!box) return;
 
-  const allowEmailInput = searchUserBox.getAttribute('data-allow-email') === 'true';
-  const allowEmailDescription = searchUserBox.getAttribute('data-allow-email-description') ?? undefined;
-  const includeOrgs = searchUserBox.getAttribute('data-include-orgs') === 'true';
-  fomanticQuery(searchUserBox).search({
-    minCharacters: 2,
-    apiSettings: {
-      url: `${appSubUrl}/user/search_candidates?q={query}&orgs=${includeOrgs}`,
-      onResponse(response: any) {
-        const resultItems = [];
-        const searchQuery = searchUserBox.querySelector('input')!.value;
-        const searchQueryUppercase = searchQuery.toUpperCase();
-        for (const item of response.data) {
-          const resultItem = {
-            title: item.login,
-            image: item.avatar_url,
-            description: htmlEscape(item.full_name),
-          };
-          if (searchQueryUppercase === item.login.toUpperCase()) {
-            resultItems.unshift(resultItem); // add the exact match to the top
-          } else {
-            resultItems.push(resultItem);
-          }
-        }
+  const allowEmailInput = box.getAttribute('data-allow-email') === 'true';
+  const allowEmailDescription = box.getAttribute('data-allow-email-description') ?? undefined;
+  const includeOrgs = box.getAttribute('data-include-orgs') === 'true';
+  const url = `${appSubUrl}/user/search_candidates?q={query}&orgs=${includeOrgs}`;
 
-        if (allowEmailInput && !resultItems.length && looksLikeEmailAddressCheck.test(searchQuery)) {
-          const resultItem = {
-            title: searchQuery,
-            description: allowEmailDescription,
-          };
-          resultItems.push(resultItem);
-        }
-
-        return {results: resultItems};
-      },
-    },
-    searchFields: ['login', 'full_name'],
-    showNoResults: false,
+  attachSearchBox(box, url, (response: UserSearchResponse, query) => {
+    const items: SearchResult[] = [];
+    const queryUpper = query.toUpperCase();
+    for (const item of response.data) {
+      const result: SearchResult = {title: item.login, image: item.avatar_url, description: item.full_name};
+      if (queryUpper === item.login.toUpperCase()) items.unshift(result); // exact match floats to top
+      else items.push(result);
+    }
+    if (allowEmailInput && !items.length && looksLikeEmailAddressCheck.test(query)) {
+      items.push({title: query, description: allowEmailDescription});
+    }
+    return items;
   });
 }

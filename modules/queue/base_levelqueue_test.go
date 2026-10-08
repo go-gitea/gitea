@@ -6,8 +6,8 @@ package queue
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/queue/lqinternal"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/queue/lqinternal"
+	"gitea.dev/modules/setting"
 
 	"gitea.com/lunny/levelqueue"
 	"github.com/stretchr/testify/assert"
@@ -22,8 +22,10 @@ func TestBaseLevelDB(t *testing.T) {
 	_, err = newBaseLevelQueueGeneric(&BaseConfig{DataFullDir: "relative"}, false)
 	assert.ErrorContains(t, err, "invalid leveldb data dir")
 
-	testQueueBasic(t, newBaseLevelQueueSimple, toBaseConfig("baseLevelQueue", setting.QueueSettings{Datadir: t.TempDir() + "/queue-test", Length: 10}), false)
-	testQueueBasic(t, newBaseLevelQueueUnique, toBaseConfig("baseLevelQueueUnique", setting.QueueSettings{ConnStr: "leveldb://" + t.TempDir() + "/queue-test", Length: 10}), true)
+	optsSimple := testQueueBasicOptions{NotifiableQueue: true}
+	optsUnique := testQueueBasicOptions{UniqueQueue: true, NotifiableQueue: true}
+	testQueueBasic(t, newBaseLevelQueueSimple, toBaseConfig("baseLevelQueue", setting.QueueSettings{Datadir: t.TempDir() + "/queue-test", Length: 10}), optsSimple)
+	testQueueBasic(t, newBaseLevelQueueUnique, toBaseConfig("baseLevelQueueUnique", setting.QueueSettings{ConnStr: "leveldb://" + t.TempDir() + "/queue-test", Length: 10}), optsUnique)
 }
 
 func TestCorruptedLevelQueue(t *testing.T) {

@@ -7,11 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/contexttest"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/contexttest"
 
-	_ "code.gitea.io/gitea/models/actions"
+	_ "gitea.dev/models/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,6 +21,22 @@ import (
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m)
+}
+
+func TestArchiveQueueItemJSON(t *testing.T) {
+	orig := &archiveQueueItem{
+		RepoID:              7,
+		Type:                repo_model.ArchiveZip,
+		CommitID:            "abc123",
+		Paths:               []string{"agents"},
+		ArchiveRefShortName: "main",
+	}
+	bs, err := json.Marshal(orig)
+	require.NoError(t, err)
+
+	var decoded archiveQueueItem
+	require.NoError(t, json.Unmarshal(bs, &decoded))
+	assert.Equal(t, *orig, decoded)
 }
 
 func TestArchive_Basic(t *testing.T) {
@@ -31,47 +49,47 @@ func TestArchive_Basic(t *testing.T) {
 	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
-	bogusReq, err := NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".zip", nil)
+	bogusReq, err := NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".zip", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, bogusReq)
 	assert.Equal(t, firstCommit+".zip", bogusReq.GetArchiveName())
 
 	// Check a series of bogus requests.
 	// Step 1, valid commit with a bad extension.
-	bogusReq, err = NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".unknown", nil)
+	bogusReq, err = NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".unknown", nil)
 	assert.Error(t, err)
 	assert.Nil(t, bogusReq)
 
 	// Step 2, missing commit.
-	bogusReq, err = NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, "dbffff.zip", nil)
+	bogusReq, err = NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, "dbffff.zip", nil)
 	assert.Error(t, err)
 	assert.Nil(t, bogusReq)
 
 	// Step 3, doesn't look like branch/tag/commit.
-	bogusReq, err = NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, "db.zip", nil)
+	bogusReq, err = NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, "db.zip", nil)
 	assert.Error(t, err)
 	assert.Nil(t, bogusReq)
 
-	bogusReq, err = NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, "master.zip", nil)
+	bogusReq, err = NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, "master.zip", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, bogusReq)
 	assert.Equal(t, "master.zip", bogusReq.GetArchiveName())
 
-	bogusReq, err = NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, "test/archive.zip", nil)
+	bogusReq, err = NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, "test/archive.zip", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, bogusReq)
 	assert.Equal(t, "test-archive.zip", bogusReq.GetArchiveName())
 
 	// Now two valid requests, firstCommit with valid extensions.
-	zipReq, err := NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".zip", nil)
+	zipReq, err := NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".zip", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, zipReq)
 
-	tgzReq, err := NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".tar.gz", nil)
+	tgzReq, err := NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".tar.gz", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, tgzReq)
 
-	secondReq, err := NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, secondCommit+".bundle", nil)
+	secondReq, err := NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, secondCommit+".bundle", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, secondReq)
 
@@ -91,7 +109,7 @@ func TestArchive_Basic(t *testing.T) {
 	// Sleep two seconds to make sure the queue doesn't change.
 	time.Sleep(2 * time.Second)
 
-	zipReq2, err := NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".zip", nil)
+	zipReq2, err := NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".zip", nil)
 	assert.NoError(t, err)
 	// This zipReq should match what's sitting in the queue, as we haven't
 	// let it release yet.  From the consumer's point of view, this looks like
@@ -106,12 +124,12 @@ func TestArchive_Basic(t *testing.T) {
 	// Now we'll submit a request and TimedWaitForCompletion twice, before and
 	// after we release it.  We should trigger both the timeout and non-timeout
 	// cases.
-	timedReq, err := NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, secondCommit+".tar.gz", nil)
+	timedReq, err := NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, secondCommit+".tar.gz", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, timedReq)
 	doArchive(t.Context(), timedReq)
 
-	zipReq2, err = NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".zip", nil)
+	zipReq2, err = NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".zip", nil)
 	assert.NoError(t, err)
 	// Now, we're guaranteed to have released the original zipReq from the queue.
 	// Ensure that we don't get handed back the released entry somehow, but they
@@ -128,7 +146,7 @@ func TestArchive_Basic(t *testing.T) {
 	assert.NotEqual(t, zipReq.GetArchiveName(), secondReq.GetArchiveName())
 
 	t.Run("BadPath", func(t *testing.T) {
-		badRequest, err := NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".tar.gz", []string{"not-a-path"})
+		badRequest, err := NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".tar.gz", []string{"not-a-path"})
 		require.NoError(t, err)
 		err = ServeRepoArchive(ctx.Base, badRequest)
 		require.Error(t, err)

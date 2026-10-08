@@ -5,7 +5,7 @@ import "google/protobuf/wrappers.proto";
 
 package github.actions.results.api.v1;
 
-option go_package = "code.gitea.io/gitea/routers/api/actions";
+option go_package = "gitea.dev/routers/api/actions";
 
 message CreateArtifactRequest {
     string workflow_run_backend_id = 1;

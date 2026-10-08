@@ -1,5 +1,6 @@
 import type {EditorView, ViewUpdate} from '@codemirror/view';
 import type {CodemirrorModules} from './main.ts';
+import {trimUrlPunctuation, urlRawRegex} from '../../utils/url.ts';
 
 /** Remove trailing whitespace from all lines in the editor. */
 export function trimTrailingWhitespaceFromView(view: EditorView): void {
@@ -15,22 +16,9 @@ export function trimTrailingWhitespaceFromView(view: EditorView): void {
   if (changes.length) view.dispatch({changes});
 }
 
-/** Matches URLs, excluding characters that are never valid unencoded in URLs per RFC 3986. */
-export const urlRawRegex = /\bhttps?:\/\/[^\s<>[\]]+/gi;
-
-/** Strip trailing punctuation that is likely not part of the URL. */
-export function trimUrlPunctuation(url: string): string {
-  url = url.replace(/[.,;:'"]+$/, '');
-  // Strip trailing closing parens only if unbalanced (not part of the URL like Wikipedia links)
-  while (url.endsWith(')') && (url.match(/\(/g) || []).length < (url.match(/\)/g) || []).length) {
-    url = url.slice(0, -1);
-  }
-  return url;
-}
-
 /** Find the URL at the given character position in a document string, or null if none. */
 export function findUrlAtPosition(doc: string, pos: number): string | null {
-  for (const match of doc.matchAll(urlRawRegex)) {
+  for (const match of doc.matchAll(urlRawRegex())) {
     const url = trimUrlPunctuation(match[0]);
     if (match.index !== undefined && pos >= match.index && pos < match.index + url.length) {
       return url;
@@ -67,7 +55,7 @@ export function goToDefinitionAt(cm: CodemirrorModules, view: EditorView, pos: n
 export function clickableUrls(cm: CodemirrorModules) {
   const urlMark = cm.view.Decoration.mark({class: 'cm-url'});
   const urlDecorator = new cm.view.MatchDecorator({
-    regexp: urlRawRegex,
+    regexp: urlRawRegex(),
     decorate: (add, from, _to, match) => {
       const trimmed = trimUrlPunctuation(match[0]);
       add(from, from + trimmed.length, urlMark);

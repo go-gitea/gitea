@@ -6,8 +6,8 @@ package auth_test
 import (
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/stretchr/testify/assert"
@@ -16,11 +16,15 @@ import (
 func TestGetWebAuthnCredentialByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	res, err := auth_model.GetWebAuthnCredentialByID(t.Context(), 1)
+	res, err := auth_model.GetWebAuthnCredentialByID(t.Context(), 32, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, "WebAuthn credential", res.Name)
 
-	_, err = auth_model.GetWebAuthnCredentialByID(t.Context(), 342432)
+	_, err = auth_model.GetWebAuthnCredentialByID(t.Context(), 99999, 1)
+	assert.Error(t, err)
+	assert.True(t, auth_model.IsErrWebAuthnCredentialNotExist(err))
+
+	_, err = auth_model.GetWebAuthnCredentialByID(t.Context(), 32, 99999)
 	assert.Error(t, err)
 	assert.True(t, auth_model.IsErrWebAuthnCredentialNotExist(err))
 }

@@ -34,7 +34,7 @@
 					{{end}}
 				{{else}}
 					{{if $entry.IsDir}}
-						{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
+						{{$subJumpablePathName := call $.GetSubJumpablePathName $entry}}
 						<a class="entry-name" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 							{{$subJumpablePathFields := StringUtils.Split $subJumpablePathName "/"}}
 							{{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}
@@ -56,7 +56,7 @@
 			<div class="repo-file-cell message commit-summary {{if not $commit}}notready{{end}}">
 				{{if $commit}}
 					{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
-					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.Message $commitLink $.Repository}}
+					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.MessageUTF8 $commitLink $.Repository}}
 				{{else}}
 					… {{/* will be loaded again by LastCommitLoaderURL */}}
 				{{end}}

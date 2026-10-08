@@ -4,15 +4,24 @@
 package auth
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/services/oauth2_provider"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/egress/policy"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/forms"
+	"gitea.dev/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2_provider.OIDCToken {
@@ -72,4 +81,55 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
 	assert.Equal(t, user.Email, oidcToken.Email)
 	assert.Equal(t, user.IsActive, oidcToken.EmailVerified)
+}
+
+func TestOAuth2AvatarClientBlocksLoopback(t *testing.T) {
+	var hit atomic.Bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hit.Store(true)
+		_, _ = w.Write([]byte("img"))
+	}))
+	defer srv.Close()
+
+	// the httptest server binds a loopback address, which the SSRF-protected dialer must refuse
+	resp, err := oauth2AvatarHTTPClient().Get(srv.URL)
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
+	require.Error(t, err)
+	assert.False(t, hit.Load(), "avatar client must refuse to dial a loopback address")
+}
+
+func TestOAuth2AvatarClientBlocksCloudMetadata(t *testing.T) {
+	resp, err := oauth2AvatarHTTPClient().Get("http://169.254.169.254/latest/meta-data/")
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
+	require.Error(t, err)
+	assert.ErrorIs(t, err, policy.ErrDenied,
+		"avatar client must refuse a link-local cloud-metadata address")
+}
+
+func TestOAuth2ScopeChange(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("oauth2-scope-change")}
+	authorize := func(scope string) int {
+		ctx, resp := contexttest.MockContext(t, "/login/oauth/authorize", mockOpt)
+		ctx.Doer = doer
+		web.SetForm(ctx, &forms.AuthorizationForm{ResponseType: "code", ClientID: app.ClientID, RedirectURI: app.RedirectURIs[0], State: "state", Scope: scope})
+		AuthorizeOAuth(ctx)
+		return resp.Code
+	}
+	assert.Equal(t, http.StatusSeeOther, authorize(""))
+	assert.Equal(t, http.StatusSeeOther, authorize("profile openid"))
+	assert.Equal(t, http.StatusOK, authorize("openid profile email"))
+
+	ctx, resp := contexttest.MockContext(t, "/login/oauth/grant", mockOpt)
+	ctx.Doer = doer
+	web.SetForm(ctx, &forms.GrantApplicationForm{ClientID: app.ClientID, Granted: true, RedirectURI: app.RedirectURIs[0], State: "state", Scope: "openid profile email"})
+	GrantApplicationOAuth(ctx)
+	assert.Equal(t, http.StatusSeeOther, resp.Code)
+	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, Scope: "openid profile email"})
 }

@@ -6,12 +6,13 @@ package issues_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,6 +52,47 @@ func TestLabel_ExclusiveScope(t *testing.T) {
 
 	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 9})
 	assert.Equal(t, "scope/subscope", label.ExclusiveScope())
+}
+
+func TestSortLabelsForDisplay(t *testing.T) {
+	labels := []*issues_model.Label{
+		{Name: "priority/low", Exclusive: true, ExclusiveOrder: 4},
+		{Name: "priority/critical", Exclusive: true, ExclusiveOrder: 1},
+		{Name: "priority/medium", Exclusive: true, ExclusiveOrder: 3},
+		{Name: "priority/high", Exclusive: true, ExclusiveOrder: 2},
+		{Name: "bug"},
+		{Name: "enhancement"},
+		{Name: "kind/question", Exclusive: true},
+	}
+	issues_model.SortLabelsForDisplay(labels)
+
+	names := make([]string, 0, len(labels))
+	for _, l := range labels {
+		names = append(names, l.Name)
+	}
+	assert.Equal(t, []string{
+		"bug",
+		"enhancement",
+		"kind/question",
+		"priority/critical",
+		"priority/high",
+		"priority/medium",
+		"priority/low",
+	}, names)
+
+	// labels without an exclusive order in the same scope are listed last, ordered by name
+	labels = []*issues_model.Label{
+		{Name: "scope/unordered-b", Exclusive: true},
+		{Name: "scope/ordered", Exclusive: true, ExclusiveOrder: 1},
+		{Name: "scope/unordered-a", Exclusive: true},
+	}
+	issues_model.SortLabelsForDisplay(labels)
+
+	names = names[:0]
+	for _, l := range labels {
+		names = append(names, l.Name)
+	}
+	assert.Equal(t, []string{"scope/ordered", "scope/unordered-a", "scope/unordered-b"}, names)
 }
 
 func TestNewLabels(t *testing.T) {
@@ -94,10 +136,10 @@ func TestGetLabelInRepoByName(t *testing.T) {
 	assert.Equal(t, "label1", label.Name)
 
 	_, err = issues_model.GetLabelInRepoByName(t.Context(), 1, "")
-	assert.True(t, issues_model.IsErrRepoLabelNotExist(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 
 	_, err = issues_model.GetLabelInRepoByName(t.Context(), unittest.NonexistentID, "nonexistent")
-	assert.True(t, issues_model.IsErrRepoLabelNotExist(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 }
 
 func TestGetLabelInRepoByNames(t *testing.T) {
@@ -131,10 +173,10 @@ func TestGetLabelInRepoByID(t *testing.T) {
 	assert.EqualValues(t, 1, label.ID)
 
 	_, err = issues_model.GetLabelInRepoByID(t.Context(), 1, -1)
-	assert.True(t, issues_model.IsErrRepoLabelNotExist(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 
 	_, err = issues_model.GetLabelInRepoByID(t.Context(), unittest.NonexistentID, unittest.NonexistentID)
-	assert.True(t, issues_model.IsErrRepoLabelNotExist(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 }
 
 func TestGetLabelsInRepoByIDs(t *testing.T) {
@@ -149,6 +191,8 @@ func TestGetLabelsInRepoByIDs(t *testing.T) {
 
 func TestGetLabelsByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	_, err := db.GetEngine(t.Context()).ID(2).Cols("num_issues", "num_closed_issues").Update(&issues_model.Label{NumIssues: 3, NumClosedIssues: 3})
+	assert.NoError(t, err)
 	testSuccess := func(repoID int64, sortType string, expectedIssueIDs []int64) {
 		labels, err := issues_model.GetLabelsByRepoID(t.Context(), repoID, sortType, db.ListOptions{})
 		assert.NoError(t, err)
@@ -216,6 +260,8 @@ func TestGetLabelsInOrgByIDs(t *testing.T) {
 
 func TestGetLabelsByOrgID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	_, err := db.GetEngine(t.Context()).ID(3).Cols("num_issues", "num_closed_issues").Update(&issues_model.Label{NumIssues: 3, NumClosedIssues: 3})
+	assert.NoError(t, err)
 	testSuccess := func(orgID int64, sortType string, expectedIssueIDs []int64) {
 		labels, err := issues_model.GetLabelsByOrgID(t.Context(), orgID, sortType, db.ListOptions{})
 		assert.NoError(t, err)
@@ -229,7 +275,7 @@ func TestGetLabelsByOrgID(t *testing.T) {
 	testSuccess(3, "reversealphabetically", []int64{4, 3})
 	testSuccess(3, "default", []int64{3, 4})
 
-	_, err := issues_model.GetLabelsByOrgID(t.Context(), 0, "leastissues", db.ListOptions{})
+	_, err = issues_model.GetLabelsByOrgID(t.Context(), 0, "leastissues", db.ListOptions{})
 	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
 
 	_, err = issues_model.GetLabelsByOrgID(t.Context(), -1, "leastissues", db.ListOptions{})

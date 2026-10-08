@@ -16,15 +16,14 @@ import (
 	"strings"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/tests"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -96,6 +95,42 @@ func testEditorProtectedBranch(t *testing.T) {
 
 	// Try to commit a file to the "master" branch and it should fail
 	resp := testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/", map[string]string{"tree_path": "test-protected-branch.txt", "commit_choice": "direct"})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+
+	// Change "master" branch to mark files under "docs/" as unprotected
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+		"rule_name":                 "master",
+		"protected_file_patterns":   "",
+		"unprotected_file_patterns": "docs/*.md",
+		"enable_push":               "true",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	flashMsg = session.GetCookieFlashMessage()
+	assert.Equal(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
+
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/docs/new.md", map[string]string{"tree_path": "docs/new.md", "commit_choice": "direct"})
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/new.md"`)
+
+	// Form's destination (renamed.md) is decided by the pre-receive hook, not the controller.
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/docs/new.md", map[string]string{
+		"content":       "renamed via editor",
+		"commit_choice": "direct",
+		"tree_path":     "docs/renamed.md",
+	})
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/renamed.md"`)
+
+	// Protected source path: controller rejects up-front regardless of unprotected destination.
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/README.md", map[string]string{
+		"commit_choice": "direct",
+		"tree_path":     "docs/from-readme.md",
+	})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_delete/master/README.md", map[string]string{"commit_choice": "direct"})
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 }
@@ -185,10 +220,10 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 	require.True(t, user.KeepEmailPrivate)
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
+	gitRepo, _ := git.OpenRepository(t.Context(), repo1)
 	defer gitRepo.Close()
 	getLastCommit := func(t *testing.T) *git.Commit {
-		c, err := gitRepo.GetBranchCommit("master")
+		c, err := gitRepo.GetBranchCommit(t.Context(), "master")
 		require.NoError(t, err)
 		return c
 	}
@@ -313,9 +348,9 @@ index 0000000000..bbbbbbbbbb
 			},
 		)
 
-		commit1, err := gitRepo.GetCommitByPath("patch-file-1.txt")
+		commit1, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-1.txt")
 		require.NoError(t, err)
-		commit2, err := gitRepo.GetCommitByPath("patch-file-2.txt")
+		commit2, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-2.txt")
 		require.NoError(t, err)
 		resp1, _ := testWebGit(t,
 			"/user2/repo1/_cherrypick/"+commit1.ID.String()+"/master", map[string]string{"revert": "true"},
@@ -353,7 +388,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		// Archive the repository
 		req := NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "settings"),
 			map[string]string{
-				"repo_name": repo,
+				"repo_name": user + "/" + repo,
 				"action":    "archive",
 			},
 		)
@@ -367,7 +402,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		// Unfork the repository
 		req = NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "settings"),
 			map[string]string{
-				"repo_name": repo,
+				"repo_name": user + "/" + repo,
 				"action":    "convert_fork",
 			},
 		)
@@ -385,10 +420,10 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		uploadForm := htmlDoc.doc.Find(".form-fetch-action")
+		uploadForm := htmlDoc.doc.Find(".repo-file-upload.form-fetch-action")
 		formAction := uploadForm.AttrOr("action", "")
 		assert.Equal(t, fmt.Sprintf("/%s/%s-1/_upload/%s/%s?from_base_branch=%s&foo=bar", user, repo, branch, filePath, branch), formAction)
-		uploadLink := uploadForm.Find(".dropzone").AttrOr("data-link-url", "")
+		uploadLink := uploadForm.Find(".dropzone").AttrOr("data-upload-url", "")
 		assert.Equal(t, fmt.Sprintf("/%s/%s-1/upload-file", user, repo), uploadLink)
 		newBranchName := uploadForm.Find("input[name=new_branch_name]").AttrOr("value", "")
 		assert.Equal(t, user+"-patch-1", newBranchName)

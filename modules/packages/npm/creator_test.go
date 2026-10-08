@@ -5,12 +5,15 @@ package npm
 
 import (
 	"bytes"
+	"compress/gzip"
+	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,29 +28,33 @@ func TestParsePackage(t *testing.T) {
 	packageAuthor := "KN4CK3R"
 	packageBin := "gitea"
 	packageDescription := "Test Description"
-	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
-	integrity := "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg=="
 	repository := Repository{
-		Type: "gitea",
-		URL:  "http://localhost:3000/gitea/test.git",
+		Type:      "gitea",
+		URL:       "http://localhost:3000/gitea/test.git",
+		Directory: "packages/test-package",
 	}
 
+	dataBytes := buildTarball(map[string]string{
+		"package/package.json": `{"name": "@scope/test-package","version": "1.0.1-pre","description": "Test Description","author": "KN4CK3R"}`,
+	})
+	data := base64.StdEncoding.EncodeToString(dataBytes)
+	integrity := "sha512-" + base64Sha512(dataBytes)
+
 	t.Run("InvalidUpload", func(t *testing.T) {
-		p, err := ParsePackage(bytes.NewReader([]byte{0}))
+		p, _, err := ParseUpload(bytes.NewReader([]byte{0}))
 		assert.Nil(t, p)
 		assert.Error(t, err)
 	})
 
 	t.Run("InvalidUploadNoData", func(t *testing.T) {
-		b, _ := json.Marshal(packageUpload{})
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, err := parseUploadPackage(&packageUpload{})
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidPackage)
 	})
 
 	t.Run("InvalidPackageName", func(t *testing.T) {
 		test := func(t *testing.T, name string) {
-			b, _ := json.Marshal(packageUpload{
+			p, err := parseUploadPackage(&packageUpload{
 				PackageMetadata: PackageMetadata{
 					ID:   name,
 					Name: name,
@@ -58,8 +65,6 @@ func TestParsePackage(t *testing.T) {
 					},
 				},
 			})
-
-			p, err := ParsePackage(bytes.NewReader(b))
 			assert.Nil(t, p)
 			assert.ErrorIs(t, err, ErrInvalidPackageName)
 		}
@@ -86,7 +91,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("ValidPackageName", func(t *testing.T) {
 		test := func(t *testing.T, name string) {
-			b, _ := json.Marshal(packageUpload{
+			p, err := parseUploadPackage(&packageUpload{
 				PackageMetadata: PackageMetadata{
 					ID:   name,
 					Name: name,
@@ -97,8 +102,6 @@ func TestParsePackage(t *testing.T) {
 					},
 				},
 			})
-
-			p, err := ParsePackage(bytes.NewReader(b))
 			assert.Nil(t, p)
 			assert.ErrorIs(t, err, ErrInvalidPackageVersion)
 		}
@@ -117,7 +120,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("InvalidPackageVersion", func(t *testing.T) {
 		version := "first-version"
-		b, _ := json.Marshal(packageUpload{
+		p, err := parseUploadPackage(&packageUpload{
 			PackageMetadata: PackageMetadata{
 				ID:   packageFullName,
 				Name: packageFullName,
@@ -129,8 +132,6 @@ func TestParsePackage(t *testing.T) {
 				},
 			},
 		})
-
-		p, err := ParsePackage(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidPackageVersion)
 	})
@@ -152,7 +153,7 @@ func TestParsePackage(t *testing.T) {
 			},
 		})
 
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, _, err := ParseUpload(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidAttachment)
 	})
@@ -177,7 +178,7 @@ func TestParsePackage(t *testing.T) {
 			},
 		})
 
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, _, err := ParseUpload(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidAttachment)
 	})
@@ -205,7 +206,7 @@ func TestParsePackage(t *testing.T) {
 			},
 		})
 
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, _, err := ParseUpload(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidIntegrity)
 	})
@@ -233,7 +234,7 @@ func TestParsePackage(t *testing.T) {
 			},
 		})
 
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, _, err := ParseUpload(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidIntegrity)
 	})
@@ -273,10 +274,13 @@ func TestParsePackage(t *testing.T) {
 				filename: {
 					Data: data,
 				},
+				packageFullName + "-" + packageVersion + ".sigstore": {
+					Data: "{}",
+				},
 			},
 		})
 
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, _, err := ParseUpload(bytes.NewReader(b))
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
@@ -298,6 +302,7 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, "1.2.0", p.Metadata.Dependencies["package"])
 		assert.Equal(t, repository.Type, p.Metadata.Repository.Type)
 		assert.Equal(t, repository.URL, p.Metadata.Repository.URL)
+		assert.Equal(t, repository.Directory, p.Metadata.Repository.Directory)
 	})
 
 	t.Run("ValidLicenseMap", func(t *testing.T) {
@@ -320,8 +325,149 @@ func TestParsePackage(t *testing.T) {
 		}
 	}
 }`
-		p, err := ParsePackage(strings.NewReader(packageJSON))
+		p, _, err := ParseUpload(strings.NewReader(packageJSON))
 		require.NoError(t, err)
 		require.Equal(t, "MIT", string(p.Metadata.License))
 	})
+
+	t.Run("ValidRepositoryAndBinAsString", func(t *testing.T) {
+		// npm allows "repository" and "bin" to be plain strings, not only objects.
+		packageJSON := `{
+  "versions": {
+		"0.1.1": {
+			"name": "dev-null",
+			"version": "0.1.1",
+			"bin": "./cli.js",
+			"repository": "https://gitea.io/gitea/test.git",
+			"dist": {
+				"integrity": "sha256-"
+			}
+		}
+	},
+	"_attachments": {
+		"foo": {
+			"data": "AAAA"
+		}
+	}
+}`
+		p, _, err := ParseUpload(strings.NewReader(packageJSON))
+		require.NoError(t, err)
+		require.Equal(t, "https://gitea.io/gitea/test.git", p.Metadata.Repository.URL)
+		// a string bin is named after the package
+		require.Equal(t, "./cli.js", p.Metadata.Bin["dev-null"])
+	})
+}
+
+// buildTarball assembles a gzipped tar with the given entries.
+func buildTarball(files map[string]string) []byte {
+	return test.WriteTarCompression(gzip.NewWriter, files).Bytes()
+}
+
+func TestInspectTarball(t *testing.T) {
+	cases := []struct {
+		name                          string
+		files                         map[string]string
+		wantShrinkwrap, wantInstaller bool
+	}{
+		{
+			name:  "empty",
+			files: map[string]string{},
+		},
+		{
+			name:           "shrinkwrap only",
+			files:          map[string]string{"package/npm-shrinkwrap.json": "{}"},
+			wantShrinkwrap: true,
+		},
+		{
+			name:          "postinstall only",
+			files:         map[string]string{"package/package.json": `{"scripts":{"postinstall":"echo hi"}}`},
+			wantInstaller: true,
+		},
+		{
+			name:          "preinstall",
+			files:         map[string]string{"package/package.json": `{"scripts":{"preinstall":"noop"}}`},
+			wantInstaller: true,
+		},
+		{
+			name:          "install",
+			files:         map[string]string{"package/package.json": `{"scripts":{"install":"noop"}}`},
+			wantInstaller: true,
+		},
+		{
+			name:  "whitespace-only script does not count",
+			files: map[string]string{"package/package.json": `{"scripts":{"postinstall":"   "}}`},
+		},
+		{
+			name:  "unrelated lifecycle script ignored",
+			files: map[string]string{"package/package.json": `{"scripts":{"test":"jest"}}`},
+		},
+		{
+			name: "both",
+			files: map[string]string{
+				"package/npm-shrinkwrap.json": "{}",
+				"package/package.json":        `{"scripts":{"install":"go"}}`,
+			},
+			wantShrinkwrap: true,
+			wantInstaller:  true,
+		},
+		{
+			name: "nested shrinkwrap ignored",
+			files: map[string]string{
+				"package/subdir/npm-shrinkwrap.json": "{}",
+			},
+		},
+		{
+			name:  "leading ./ prefix stripped",
+			files: map[string]string{"./package/npm-shrinkwrap.json": "{}"},
+			// npm pack sometimes emits "./package/..." entries.
+			wantShrinkwrap: true,
+		},
+		{
+			name:          "gyp file implies node-gyp install",
+			files:         map[string]string{"package/binding.gyp": "{}"},
+			wantInstaller: true,
+		},
+		{
+			name:  "gypfile false disables gyp install",
+			files: map[string]string{"package/binding.gyp": "{}", "package/package.json": `{"gypfile":false}`},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			data := buildTarball(c.files)
+			gotShrink, gotInstaller := inspectTarball(data)
+			assert.Equal(t, c.wantShrinkwrap, gotShrink, "shrinkwrap")
+			assert.Equal(t, c.wantInstaller, gotInstaller, "installScript")
+		})
+	}
+
+	t.Run("malformed gzip returns false", func(t *testing.T) {
+		hasShrinkwrap, hasInstaller := inspectTarball([]byte("not a gzip"))
+		assert.False(t, hasShrinkwrap)
+		assert.False(t, hasInstaller)
+	})
+
+	t.Run("malformed package.json falls through", func(t *testing.T) {
+		data := buildTarball(map[string]string{"package/package.json": "{ this is not json"})
+		_, hasInstaller := inspectTarball(data)
+		assert.False(t, hasInstaller)
+	})
+}
+
+func TestParseUpload(t *testing.T) {
+	pkg := "@scope/test-package"
+
+	t.Run("dispatches deprecate on missing _attachments", func(t *testing.T) {
+		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"deprecated":"gone"},"1.0.1":{"deprecated":""},"1.0.2":{},"1.0.3":null}}`, pkg)
+		p, dep, err := ParseUpload(strings.NewReader(body))
+		require.NoError(t, err)
+		assert.Nil(t, p)
+		require.NotNil(t, dep)
+		assert.Equal(t, map[string]string{"1.0.0": "gone", "1.0.1": ""}, dep.Versions)
+	})
+}
+
+func base64Sha512(data []byte) string {
+	h := sha512.Sum512(data)
+	return base64.StdEncoding.EncodeToString(h[:])
 }

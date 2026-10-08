@@ -6,33 +6,46 @@ package actions
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
-// StopZombieTasks stops the task which have running status, but haven't been updated for a long time
+// StopZombieTasks stops tasks in running/cancelling status that haven't been updated for a long time
 func StopZombieTasks(ctx context.Context) error {
-	return stopTasks(ctx, actions_model.FindTaskOptions{
-		Status:        actions_model.StatusRunning,
+	return stopTasksByStatuses(ctx, actions_model.FindTaskOptions{
 		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.ZombieTaskTimeout).Unix()),
-	})
+	}, actions_model.StatusRunning, actions_model.StatusCancelling)
 }
 
-// StopEndlessTasks stops the tasks which have running status and continuous updates, but don't end for a long time
+// StopEndlessTasks stops running tasks with continuous updates that don't end for a long time.
+// StatusRunning only: the threshold is the task's *start* time, so including StatusCancelling would kill a
+// task mid post-cancel cleanup. StopZombieTasks covers a stalled one, keying off the last update instead.
 func StopEndlessTasks(ctx context.Context) error {
-	return stopTasks(ctx, actions_model.FindTaskOptions{
-		Status:        actions_model.StatusRunning,
+	return stopTasksByStatuses(ctx, actions_model.FindTaskOptions{
 		StartedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.EndlessTaskTimeout).Unix()),
-	})
+	}, actions_model.StatusRunning)
+}
+
+func stopTasksByStatuses(ctx context.Context, opts actions_model.FindTaskOptions, statuses ...actions_model.Status) error {
+	for _, status := range statuses {
+		optsByStatus := opts
+		optsByStatus.Status = status
+		if err := stopTasks(ctx, optsByStatus); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
@@ -55,60 +68,65 @@ func shouldBlockJobByConcurrency(ctx context.Context, job *actions_model.ActionR
 		return true, nil
 	}
 
-	if job.ConcurrencyGroup == "" || job.ConcurrencyCancel {
+	if job.ConcurrencyGroup == "" {
 		return false, nil
 	}
 
-	attempts, jobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, []actions_model.Status{actions_model.StatusRunning})
+	attempts, jobs, err := actions_model.GetConcurrencyHolders(ctx, job.RepoID, job.ConcurrencyGroup)
 	if err != nil {
-		return false, fmt.Errorf("GetConcurrentRunAttemptsAndJobs: %w", err)
+		return false, fmt.Errorf("GetConcurrencyHolders: %w", err)
 	}
-
-	return len(attempts) > 0 || len(jobs) > 0, nil
+	callerIDs, err := actions_model.GetAncestorCallerIDs(ctx, job)
+	if err != nil {
+		return false, err
+	}
+	// the job's own attempt and callers may declare the same group, they must not block their own job
+	return slices.ContainsFunc(attempts, func(a *actions_model.ActionRunAttempt) bool { return a.ID != job.RunAttemptID }) ||
+		slices.ContainsFunc(jobs, func(j *actions_model.ActionRunJob) bool { return !callerIDs.Contains(j.ID) }), nil
 }
 
 // PrepareToStartJobWithConcurrency prepares a job to start by its evaluated concurrency group and cancelling previous jobs if necessary.
 // It returns the new status of the job (either StatusBlocked or StatusWaiting), any cancelled jobs, and any error encountered during the process.
 func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.ActionRunJob) (actions_model.Status, []*actions_model.ActionRunJob, error) {
-	shouldBlock, err := shouldBlockJobByConcurrency(ctx, job)
-	if err != nil {
-		return actions_model.StatusBlocked, nil, err
-	}
-
-	// even if the current job is blocked, we still need to cancel previous "waiting/blocked" jobs in the same concurrency group
+	// cancel before checking, so the jobs this cancellation finishes no longer hold the group
 	jobs, err := actions_model.CancelPreviousJobsByJobConcurrency(ctx, job)
 	if err != nil {
 		return actions_model.StatusBlocked, nil, fmt.Errorf("CancelPreviousJobsByJobConcurrency: %w", err)
+	}
+
+	shouldBlock, err := shouldBlockJobByConcurrency(ctx, job)
+	if err != nil {
+		return actions_model.StatusBlocked, nil, err
 	}
 
 	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), jobs, nil
 }
 
 func shouldBlockRunByConcurrency(ctx context.Context, attempt *actions_model.ActionRunAttempt) (bool, error) {
-	if attempt.ConcurrencyGroup == "" || attempt.ConcurrencyCancel {
+	if attempt.ConcurrencyGroup == "" {
 		return false, nil
 	}
 
-	attempts, jobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, attempt.RepoID, attempt.ConcurrencyGroup, []actions_model.Status{actions_model.StatusRunning})
+	attempts, jobs, err := actions_model.GetConcurrencyHolders(ctx, attempt.RepoID, attempt.ConcurrencyGroup)
 	if err != nil {
 		return false, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
-
-	return len(attempts) > 0 || len(jobs) > 0, nil
+	// the run's own attempt and jobs may declare the same group, they must not block their own run
+	return slices.ContainsFunc(attempts, func(a *actions_model.ActionRunAttempt) bool { return a.RunID != attempt.RunID }) ||
+		slices.ContainsFunc(jobs, func(j *actions_model.ActionRunJob) bool { return j.RunID != attempt.RunID }), nil
 }
 
 // PrepareToStartRunWithConcurrency prepares a run attempt to start by its evaluated concurrency group and cancelling previous jobs if necessary.
 // It returns the new status of the run attempt (either StatusBlocked or StatusWaiting), any cancelled jobs, and any error encountered during the process.
 func PrepareToStartRunWithConcurrency(ctx context.Context, attempt *actions_model.ActionRunAttempt) (actions_model.Status, []*actions_model.ActionRunJob, error) {
-	shouldBlock, err := shouldBlockRunByConcurrency(ctx, attempt)
-	if err != nil {
-		return actions_model.StatusBlocked, nil, err
-	}
-
-	// even if the current run is blocked, we still need to cancel previous "waiting/blocked" jobs in the same concurrency group
 	jobs, err := actions_model.CancelPreviousJobsByRunConcurrency(ctx, attempt)
 	if err != nil {
 		return actions_model.StatusBlocked, nil, fmt.Errorf("CancelPreviousJobsByRunConcurrency: %w", err)
+	}
+
+	shouldBlock, err := shouldBlockRunByConcurrency(ctx, attempt)
+	if err != nil {
+		return actions_model.StatusBlocked, nil, err
 	}
 
 	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), jobs, nil
@@ -123,7 +141,11 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 	jobs := make([]*actions_model.ActionRunJob, 0, len(tasks))
 	for _, task := range tasks {
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			if err := actions_model.StopTask(ctx, task.ID, actions_model.StatusFailure); err != nil {
+			stopStatus := actions_model.StatusFailure
+			if task.Status == actions_model.StatusCancelling {
+				stopStatus = actions_model.StatusCancelled
+			}
+			if err := actions_model.StopTask(ctx, task.ID, stopStatus); err != nil {
 				return err
 			}
 			if err := task.LoadJob(ctx); err != nil {
@@ -157,44 +179,18 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 
 // CancelAbandonedJobs cancels jobs that have not been picked by any runner for a long time
 func CancelAbandonedJobs(ctx context.Context) error {
-	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
-		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked},
+	abandonedJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
+		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending},
 		UpdatedBefore: timeutil.TimeStampNow().AddDuration(-setting.Actions.AbandonedJobTimeout),
 	})
 	if err != nil {
-		log.Warn("find abandoned tasks: %v", err)
+		log.Warn("find abandoned jobs: %v", err)
 		return err
 	}
 
-	now := timeutil.TimeStampNow()
-
-	updatedJobs := []*actions_model.ActionRunJob{}
-
-	for _, job := range jobs {
-		job.Status = actions_model.StatusCancelled
-		job.Stopped = now
-		updated := false
-		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			n, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
-			if err != nil {
-				return err
-			}
-			if err := job.LoadAttributes(ctx); err != nil {
-				return err
-			}
-			updated = n > 0
-			return nil
-		}); err != nil {
-			log.Warn("cancel abandoned job %v: %v", job.ID, err)
-			// go on
-		}
-		if job.Run == nil || job.Run.Repo == nil {
-			continue // error occurs during loading attributes, the following code that depends on "Run.Repo" will fail, so ignore and skip
-		}
-		if updated {
-			CreateCommitStatusForRunJobs(ctx, job.Run, job)
-			updatedJobs = append(updatedJobs, job)
-		}
+	updatedJobs, err := actions_model.CancelJobs(ctx, abandonedJobs, false)
+	if err != nil {
+		log.Warn("cancel abandoned jobs: %v", err)
 	}
 
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, updatedJobs)

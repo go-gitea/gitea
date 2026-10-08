@@ -5,10 +5,9 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/private"
+	"gitea.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -49,6 +48,6 @@ func runGenerateActionsRunnerToken(ctx context.Context, c *cli.Command) error {
 	if extra.HasError() {
 		return handleCliResponseExtra(extra)
 	}
-	_, _ = fmt.Printf("%s\n", respText.Text)
+	cprintln(c, respText.Text)
 	return nil
 }

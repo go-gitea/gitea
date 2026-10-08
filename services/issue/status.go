@@ -6,16 +6,17 @@ package issue
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	notify_service "code.gitea.io/gitea/services/notify"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	notify_service "gitea.dev/services/notify"
 )
 
 // CloseIssue close an issue.
 func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
 	var comment *issues_model.Comment
+	var stopwatchFinished bool
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		var err error
 		comment, err = issues_model.CloseIssue(ctx, issue, doer)
@@ -28,10 +29,15 @@ func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model
 			return err
 		}
 
-		_, err = issues_model.FinishIssueStopwatch(ctx, doer, issue)
+		stopwatchFinished, err = issues_model.FinishIssueStopwatch(ctx, doer, issue)
 		return err
 	}); err != nil {
 		return err
+	}
+
+	// after the tx: publishing inside it would announce a change a rollback undoes
+	if stopwatchFinished {
+		notify_service.StopwatchChanged(ctx, doer)
 	}
 
 	notify_service.IssueChangeStatus(ctx, doer, commitID, issue, comment, true)

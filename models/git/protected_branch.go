@@ -9,17 +9,17 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -43,6 +43,9 @@ type ProtectedBranch struct {
 	WhitelistDeployKeys           bool     `xorm:"NOT NULL DEFAULT false"`
 	MergeWhitelistUserIDs         []int64  `xorm:"JSON TEXT"`
 	MergeWhitelistTeamIDs         []int64  `xorm:"JSON TEXT"`
+	EnableBypassAllowlist         bool     `xorm:"NOT NULL DEFAULT false"`
+	BypassAllowlistUserIDs        []int64  `xorm:"JSON TEXT"`
+	BypassAllowlistTeamIDs        []int64  `xorm:"JSON TEXT"`
 	CanForcePush                  bool     `xorm:"NOT NULL DEFAULT false"`
 	EnableForcePushAllowlist      bool     `xorm:"NOT NULL DEFAULT false"`
 	ForcePushAllowlistUserIDs     []int64  `xorm:"JSON TEXT"`
@@ -56,6 +59,7 @@ type ProtectedBranch struct {
 	RequiredApprovals             int64    `xorm:"NOT NULL DEFAULT 0"`
 	BlockOnRejectedReviews        bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOfficialReviewRequests bool     `xorm:"NOT NULL DEFAULT false"`
+	BlockOnCodeownerReviews       bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOutdatedBranch         bool     `xorm:"NOT NULL DEFAULT false"`
 	DismissStaleApprovals         bool     `xorm:"NOT NULL DEFAULT false"`
 	IgnoreStaleApprovals          bool     `xorm:"NOT NULL DEFAULT false"`
@@ -119,23 +123,13 @@ func (protectBranch *ProtectedBranch) LoadRepo(ctx context.Context) (err error) 
 }
 
 // CanUserPush returns if some user could push to this protected branch
-func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *user_model.User) bool {
+func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *user_model.User, permissionInRepo access_model.Permission) bool {
 	if !protectBranch.CanPush {
 		return false
 	}
 
 	if !protectBranch.EnableWhitelist {
-		if err := protectBranch.LoadRepo(ctx); err != nil {
-			log.Error("LoadRepo: %v", err)
-			return false
-		}
-
-		writeAccess, err := access_model.HasAccessUnit(ctx, user, protectBranch.Repo, unit.TypeCode, perm.AccessModeWrite)
-		if err != nil {
-			log.Error("HasAccessUnit: %v", err)
-			return false
-		}
-		return writeAccess
+		return permissionInRepo.CanWrite(unit.TypeCode)
 	}
 
 	if slices.Contains(protectBranch.WhitelistUserIDs, user.ID) {
@@ -156,17 +150,17 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *use
 
 // CanUserForcePush returns if some user could force push to this protected branch
 // Since force-push extends normal push, we also check if user has regular push access
-func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user *user_model.User) bool {
+func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user *user_model.User, permissionInRepo access_model.Permission) bool {
 	if !protectBranch.CanForcePush {
 		return false
 	}
 
 	if !protectBranch.EnableForcePushAllowlist {
-		return protectBranch.CanUserPush(ctx, user)
+		return protectBranch.CanUserPush(ctx, user, permissionInRepo)
 	}
 
 	if slices.Contains(protectBranch.ForcePushAllowlistUserIDs, user.ID) {
-		return protectBranch.CanUserPush(ctx, user)
+		return protectBranch.CanUserPush(ctx, user, permissionInRepo)
 	}
 
 	if len(protectBranch.ForcePushAllowlistTeamIDs) == 0 {
@@ -178,7 +172,7 @@ func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user
 		log.Error("IsUserInTeams: %v", err)
 		return false
 	}
-	return in && protectBranch.CanUserPush(ctx, user)
+	return in && protectBranch.CanUserPush(ctx, user, permissionInRepo)
 }
 
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
@@ -199,6 +193,29 @@ func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch,
 	in, err := organization.IsUserInTeams(ctx, userID, protectBranch.MergeWhitelistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
+		return false
+	}
+	return in
+}
+
+// CanBypassBranchProtection reports whether the user can bypass branch protection checks (status checks, approvals, protected files)
+// Either a repo admin (when not blocked) or a user/team on the bypass allowlist can bypass.
+func CanBypassBranchProtection(ctx context.Context, protectBranch *ProtectedBranch, user *user_model.User, isRepoAdmin bool) bool {
+	if isRepoAdmin && !protectBranch.BlockAdminMergeOverride {
+		return true
+	}
+	if !protectBranch.EnableBypassAllowlist {
+		return false
+	}
+	if slices.Contains(protectBranch.BypassAllowlistUserIDs, user.ID) {
+		return true
+	}
+	if len(protectBranch.BypassAllowlistTeamIDs) == 0 {
+		return false
+	}
+	in, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.BypassAllowlistTeamIDs)
+	if err != nil {
+		log.Error("IsUserInTeams failed: userID=%d, repoID=%d, allowlistTeamIDs=%v, err=%v", user.ID, protectBranch.RepoID, protectBranch.BypassAllowlistTeamIDs, err)
 		return false
 	}
 	return in
@@ -347,6 +364,9 @@ type WhitelistOptions struct {
 
 	ApprovalsUserIDs []int64
 	ApprovalsTeamIDs []int64
+
+	BypassUserIDs []int64
+	BypassTeamIDs []int64
 }
 
 // UpdateProtectBranch saves branch protection options of repository.
@@ -387,6 +407,12 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.ApprovalsWhitelistUserIDs = whitelist
 
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.BypassAllowlistUserIDs, opts.BypassUserIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.BypassAllowlistUserIDs = whitelist
+
 	// if the repo is in an organization
 	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.WhitelistTeamIDs, opts.TeamIDs)
 	if err != nil {
@@ -411,6 +437,12 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 		return err
 	}
 	protectBranch.ApprovalsWhitelistTeamIDs = whitelist
+
+	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.BypassAllowlistTeamIDs, opts.BypassTeamIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.BypassAllowlistTeamIDs = whitelist
 
 	// Looks like it's a new rule
 	if protectBranch.ID == 0 {
@@ -466,7 +498,7 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 		return currentWhitelist, nil
 	}
 
-	prUserIDs, err := access_model.GetUserIDsWithUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
+	prUserIDs, err := access_model.GetUserIDsWithAnyUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
 	if err != nil {
 		return nil, err
 	}

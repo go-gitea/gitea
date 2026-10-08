@@ -10,25 +10,24 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/tempdir"
-	"code.gitea.io/gitea/modules/testlogger"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/tempdir"
+	"gitea.dev/modules/testlogger"
 
 	"github.com/hashicorp/go-version"
 )
 
-const RequiredVersion = "2.6.0" // the minimum Git version required
+const RequiredVersion = "2.34.0" // the minimum Git version required
 
 type Features struct {
 	gitVersion *version.Version
 
-	UsingGogit                 bool
-	SupportProcReceive         bool           // >= 2.29
 	SupportHashSha256          bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
 	SupportedObjectFormats     []ObjectFormat // sha1, sha256
 	SupportCheckAttrOnBare     bool           // >= 2.40
@@ -36,7 +35,14 @@ type Features struct {
 	SupportGitMergeTree        bool           // >= 2.40 // we also need "--merge-base"
 }
 
-var defaultFeatures *Features
+type GlobalConfigStruct struct {
+	DiffOrderFile string
+}
+
+var (
+	defaultFeatures *Features
+	GlobalConfig    *GlobalConfigStruct
+)
 
 func (f *Features) CheckVersionAtLeast(atLeast string) bool {
 	return f.gitVersion.Compare(version.Must(version.NewVersion(atLeast))) >= 0
@@ -70,9 +76,8 @@ func loadGitVersionFeatures() (*Features, error) {
 		return nil, err
 	}
 
-	features := &Features{gitVersion: ver, UsingGogit: isGogit}
-	features.SupportProcReceive = features.CheckVersionAtLeast("2.29")
-	features.SupportHashSha256 = features.CheckVersionAtLeast("2.42") && !isGogit
+	features := &Features{gitVersion: ver}
+	features.SupportHashSha256 = features.CheckVersionAtLeast("2.42")
 	features.SupportedObjectFormats = []ObjectFormat{Sha1ObjectFormat}
 	if features.SupportHashSha256 {
 		features.SupportedObjectFormats = append(features.SupportedObjectFormats, Sha256ObjectFormat)
@@ -120,16 +125,8 @@ func checkGitVersionCompatibility(gitVer *version.Version) error {
 func ensureGitVersion() error {
 	if !DefaultFeatures().CheckVersionAtLeast(RequiredVersion) {
 		moreHint := "get git: https://git-scm.com/downloads"
-		if runtime.GOOS == "linux" {
-			// there are a lot of CentOS/RHEL users using old git, so we add a special hint for them
-			if _, err := os.Stat("/etc/redhat-release"); err == nil {
-				// ius.io is the recommended official(git-scm.com) method to install git
-				moreHint = "get git: https://git-scm.com/downloads/linux and https://ius.io"
-			}
-		}
 		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", DefaultFeatures().gitVersion.Original(), RequiredVersion, moreHint)
 	}
-
 	if err := checkGitVersionCompatibility(DefaultFeatures().gitVersion); err != nil {
 		return fmt.Errorf("installed git version %s has a known compatibility issue with Gitea: %w, please upgrade (or downgrade) git", DefaultFeatures().gitVersion.String(), err)
 	}
@@ -173,13 +170,6 @@ func InitFull() (err error) {
 	if err = InitSimple(); err != nil {
 		return err
 	}
-
-	if setting.LFS.StartServer {
-		if !DefaultFeatures().CheckVersionAtLeast("2.1.2") {
-			return errors.New("LFS server support requires Git >= 2.1.2")
-		}
-	}
-
 	return syncGitConfig(context.Background())
 }
 
@@ -190,6 +180,7 @@ func RunGitTests(m interface{ Run() int }) {
 }
 
 func runGitTests(m interface{ Run() int }) int {
+	_ = cache.Init()
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
 		return testlogger.MainErrorf("unable to create temp dir: %v", err)
@@ -201,4 +192,8 @@ func runGitTests(m interface{ Run() int }) int {
 		return testlogger.MainErrorf("failed to call Init: %v", err)
 	}
 	return m.Run()
+}
+
+func LockConfigAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
+	return globallock.LockAndDo(ctx, "repo-config:"+repo.GitRepoManagedID(), fn)
 }

@@ -8,11 +8,11 @@ import (
 	"slices"
 	"sort"
 
-	"code.gitea.io/gitea/models/db"
-	organization_model "code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/models/db"
+	organization_model "gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
 
 	"xorm.io/builder"
 )
@@ -121,7 +121,7 @@ func FindReviews(ctx context.Context, opts FindReviewOptions) (ReviewList, error
 	reviews := make([]*Review, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.toCond())
 	if opts.Page > 0 && !opts.IsListAll() {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 	}
 	return reviews, sess.
 		Asc("created_unix").
@@ -135,7 +135,7 @@ func FindLatestReviews(ctx context.Context, opts FindReviewOptions) (ReviewList,
 	cond := opts.toCond()
 	sess := db.GetEngine(ctx).Where(cond)
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 	}
 
 	sess.In("id", builder.

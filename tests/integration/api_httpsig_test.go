@@ -9,13 +9,14 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/42wim/httpsig"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -112,7 +113,9 @@ func TestHTTPSigCert(t *testing.T) {
 	keyID := "gitea"
 
 	// create our certificate signer using the ssh signer and our certificate
-	certSigner, err := ssh.NewCertSigner(pkcert.(*ssh.Certificate), sshSigner)
+	cert, ok := pkcert.(*ssh.Certificate)
+	require.True(t, ok)
+	certSigner, err := ssh.NewCertSigner(cert, sshSigner)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +124,7 @@ func TestHTTPSigCert(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/admin/users")
 
 	// add our cert to the request
-	certString := base64.RawStdEncoding.EncodeToString(pkcert.(*ssh.Certificate).Marshal())
+	certString := base64.RawStdEncoding.EncodeToString(cert.Marshal())
 	req.SetHeader("x-ssh-certificate", certString)
 
 	signer, _, err := httpsig.NewSSHSigner(certSigner, httpsig.DigestSha512, []string{httpsig.RequestTarget, "(created)", "(expires)", "x-ssh-certificate"}, httpsig.Signature, 10)

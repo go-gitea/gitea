@@ -12,15 +12,15 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/templates/eval"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/gitdiff"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/templates/eval"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/gitdiff"
 )
 
 func newFuncMapWebPage() template.FuncMap {
@@ -56,10 +56,10 @@ func newFuncMapWebPage() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// time / number / format
-		"ShortSha": base.ShortSha,
-		"FileSize": base.FileSize,
-		"CountFmt": countFmt,
-		"Sec2Hour": util.SecToHours,
+		"ShortSha":       base.ShortSha,
+		"FormatByteSize": util.FormatByteSize,
+		"CountFmt":       countFmt,
+		"Sec2Hour":       util.SecToHours,
 
 		"TimeEstimateString": timeEstimateString,
 
@@ -67,7 +67,8 @@ func newFuncMapWebPage() template.FuncMap {
 			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
 
-		"AssetURI": public.AssetURI,
+		"AssetURI":      public.AssetURI,
+		"AssetCSSLinks": public.AssetCSSLinks,
 
 		// -----------------------------------------------------------------
 		// setting
@@ -84,7 +85,7 @@ func newFuncMapWebPage() template.FuncMap {
 			return setting.AppVer
 		},
 		"AppDomain": func() string { // TODO: helm registry still uses it, need to use current request host in the future
-			return setting.Domain
+			return setting.AppDomain
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
@@ -94,9 +95,6 @@ func newFuncMapWebPage() template.FuncMap {
 		},
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
-		},
-		"CustomEmojis": func() map[string]string {
-			return setting.UI.CustomEmojisMap
 		},
 		"MetaAuthor": func() string {
 			return setting.UI.Meta.Author
@@ -113,17 +111,6 @@ func newFuncMapWebPage() template.FuncMap {
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
 		},
-		"NotificationSettings": func() map[string]any {
-			return map[string]any{
-				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
-				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
-				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
-				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
-			}
-		},
-		"MermaidMaxSourceCharacters": func() int {
-			return setting.MermaidMaxSourceCharacters
-		},
 
 		// -----------------------------------------------------------------
 		// render
@@ -132,10 +119,9 @@ func newFuncMapWebPage() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// misc (TODO: move them to MiscUtils to avoid bloating the main func map)
-		"ActionContent2Commits":    ActionContent2Commits,
-		"IsMultilineCommitMessage": isMultilineCommitMessage,
-		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
-		"MirrorRemoteAddress":      mirrorRemoteAddress,
+		"ActionContent2Commits": ActionContent2Commits,
+		"CommentMustAsDiff":     gitdiff.CommentMustAsDiff,
+		"MirrorRemoteAddress":   mirrorRemoteAddress,
 
 		"FilenameIsImage": filenameIsImage,
 		"TabSizeClass":    tabSizeClass,

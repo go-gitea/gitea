@@ -13,11 +13,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/routing"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/routing"
 )
 
 const viteDevPortFile = "public/assets/.vite/dev-port"
@@ -89,7 +89,7 @@ func getViteDevProxy() *httputil.ReverseProxy {
 func ViteDevMiddleware(next http.Handler) http.Handler {
 	markLongPolling := routing.MarkLongPolling()
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		if !isViteDevRequest(req) {
+		if !IsViteDevRequest(req) {
 			next.ServeHTTP(resp, req)
 			return
 		}
@@ -115,7 +115,7 @@ func IsViteDevMode() bool {
 
 	now := time.Now()
 	lastCheck := viteDevModeCheck.Load()
-	if lastCheck != nil && time.Now().Sub(lastCheck.time) < time.Second {
+	if lastCheck != nil && now.Sub(lastCheck.time) < time.Second {
 		return lastCheck.isDev
 	}
 
@@ -124,7 +124,7 @@ func IsViteDevMode() bool {
 		return false
 	}
 
-	req := httplib.NewRequest(viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check", "GET")
+	req := httplib.NewClientRequest(http.MethodGet, viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check")
 	resp, _ := req.Response()
 	if resp != nil {
 		_ = resp.Body.Close()
@@ -140,36 +140,21 @@ func IsViteDevMode() bool {
 	return isDev
 }
 
-func detectWebSrcPath(webSrcPath string) string {
-	localPath := util.FilePathJoinAbs(setting.StaticRootPath, "web_src", webSrcPath)
-	if _, err := os.Stat(localPath); err == nil {
-		return setting.AppSubURL + "/web_src/" + webSrcPath
+// viteDevSourceURL returns the dev server URL for a source file, or "" if it doesn't exist.
+func viteDevSourceURL(srcPath string) string {
+	if _, err := os.Stat(viteDevModuleID(srcPath)); err != nil {
+		return ""
 	}
-	return ""
+	return setting.AppSubURL + "/" + srcPath
 }
 
-func viteDevSourceURL(name string) string {
-	if strings.HasPrefix(name, "css/theme-") {
-		// Only redirect built-in themes to Vite source; custom themes are served from custom/public/assets/css/
-		themeFilePath := "css/themes/" + strings.TrimPrefix(name, "css/")
-		if srcPath := detectWebSrcPath(themeFilePath); srcPath != "" {
-			return srcPath
-		}
-	}
-	// try to map ".js" files to ".ts" files
-	pathPrefix, ok := strings.CutSuffix(name, ".js")
-	if ok {
-		if srcPath := detectWebSrcPath(pathPrefix + ".ts"); srcPath != "" {
-			return srcPath
-		}
-	}
-	// for all others that the names match
-	return detectWebSrcPath(name)
+func viteDevModuleID(srcPath string) string {
+	return filepath.ToSlash(util.FilePathJoinAbs(setting.StaticRootPath, srcPath))
 }
 
-// isViteDevRequest returns true if the request should be proxied to the Vite dev server.
+// IsViteDevRequest returns true if the request should be proxied to the Vite dev server.
 // Ref: Vite source packages/vite/src/node/constants.ts and packages/vite/src/shared/constants.ts
-func isViteDevRequest(req *http.Request) bool {
+func IsViteDevRequest(req *http.Request) bool {
 	if req.Header.Get("Upgrade") == "websocket" {
 		wsProtocol := req.Header.Get("Sec-WebSocket-Protocol")
 		return wsProtocol == "vite-hmr" || wsProtocol == "vite-ping"
@@ -192,12 +177,13 @@ func isViteDevRequest(req *http.Request) bool {
 
 	// Vite uses a path relative to project root and adds "?import" to non-JS/CSS asset imports:
 	// - {WebSite}/public/assets/... (e.g. SVG icons from "{RepoRoot}/public/assets/img/svg/")
-	// - {WebSite}/assets/emoji.json: it is an exception for the frontend assets, it is imported by JS code, but:
+	// - {WebSite}/assets/<file>.json: exception for frontend-imported repo-root assets:
 	//   - KEEP IN MIND: all static frontend assets are served from "{AssetFS}/assets" to "{WebSite}/assets" by Gitea Web Server
 	//   - "{AssetFS}" is a layered filesystem from "{RepoRoot}/public" or embedded assets, and user's custom files in "{CustomPath}/public"
-	//   - "{RepoRoot}/assets/emoji.json" just happens to have the dir name "assets", it is not related to frontend assets
+	//   - "{RepoRoot}/assets/*.json" just happens to live under the dir name "assets"; it is not related to frontend assets
 	//   - BAD DESIGN: indeed it is a "conflicted and polluted name" sample
-	if path == "/assets/emoji.json" {
+	switch path {
+	case "/assets/codemirror-languages.json":
 		return true
 	}
 	return false

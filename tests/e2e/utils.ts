@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
-import type {APIRequestContext, Locator, Page} from '@playwright/test';
+import type {APIRequestContext, APIResponse, Locator, Page} from '@playwright/test';
 
 /** Generate a random alphanumeric string. */
 export function randomString(length: number): string {
@@ -11,8 +11,6 @@ export function randomString(length: number): string {
   }
   return result;
 }
-
-export const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
 
 export function baseUrl() {
   return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
@@ -26,11 +24,11 @@ export function apiHeaders() {
   return apiAuthHeader(env.GITEA_TEST_E2E_USER, env.GITEA_TEST_E2E_PASSWORD);
 }
 
-async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => number; text: () => Promise<string>}>, label: string) {
+async function apiRetry(fn: () => Promise<APIResponse>, label: string): Promise<APIResponse> {
   const maxAttempts = 5;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const response = await fn();
-    if (response.ok()) return;
+    if (response.ok()) return response;
     if ([500, 502, 503].includes(response.status()) && attempt < maxAttempts - 1) {
       const jitter = Math.random() * 500;
       await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1) + jitter));
@@ -38,6 +36,7 @@ async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => numb
     }
     throw new Error(`${label} failed: ${response.status()} ${await response.text()}`);
   }
+  throw new Error(`${label} failed after ${maxAttempts} attempts`);
 }
 
 export async function apiCreateRepo(requestContext: APIRequestContext, {name, autoInit = true, headers}: {name: string; autoInit?: boolean; headers?: Record<string, string>}) {
@@ -47,46 +46,67 @@ export async function apiCreateRepo(requestContext: APIRequestContext, {name, au
   }), 'apiCreateRepo');
 }
 
+export async function apiAddCollaborator(requestContext: APIRequestContext, owner: string, repo: string, collaborator: string, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.put(`${baseUrl()}/api/v1/repos/${owner}/${repo}/collaborators/${collaborator}`, {
+    headers: headers || apiHeaders(),
+    data: {permission: 'write'},
+  }), 'apiAddCollaborator');
+}
+
+export async function apiCreateOrg(requestContext: APIRequestContext, name: string, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/orgs`, {
+    headers: headers || apiHeaders(),
+    data: {username: name},
+  }), 'apiCreateOrg');
+}
+
+export async function apiCreateTeam(requestContext: APIRequestContext, org: string, name: string, {permission = 'read', units = ['repo.code'], headers}: {permission?: string; units?: Array<string>; headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/orgs/${org}/teams`, {
+    headers: headers || apiHeaders(),
+    data: {name, permission, units},
+  }), 'apiCreateTeam');
+}
+
 export async function apiStartStopwatch(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}/stopwatch/start`, {
     headers: headers || apiHeaders(),
   }), 'apiStartStopwatch');
 }
 
-export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string, {branch, newBranch, message}: {branch?: string; newBranch?: string; message?: string} = {}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
-    headers: apiHeaders(),
-    data: {content: Buffer.from(content, 'utf8').toString('base64'), branch, new_branch: newBranch, message},
-  }), 'apiCreateFile');
+/** Commit one or more files in a single API call. */
+export async function apiCreateFiles(requestContext: APIRequestContext, owner: string, repo: string, files: Array<{path: string; content: string}>, {branch, newBranch, headers}: {branch?: string; newBranch?: string; headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents`, {
+    headers: headers || apiHeaders(),
+    data: {
+      branch, new_branch: newBranch,
+      files: files.map((file) => ({operation: 'create', path: file.path, content: Buffer.from(file.content, 'utf8').toString('base64')})),
+    },
+  }), 'apiCreateFiles');
 }
 
-export async function apiCreateBranch(requestContext: APIRequestContext, owner: string, repo: string, newBranch: string) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branches`, {
-    headers: apiHeaders(),
-    data: {new_branch_name: newBranch},
-  }), 'apiCreateBranch');
+export async function apiCloseIssue(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.patch(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}`, {
+    headers: headers || apiHeaders(),
+    data: {state: 'closed'},
+  }), 'apiCloseIssue');
 }
 
 /** Create a PR via API. Returns the PR index for subsequent operations. */
 export async function apiCreatePR(requestContext: APIRequestContext, owner: string, repo: string, head: string, base: string, title: string, {headers}: {headers?: Record<string, string>} = {}): Promise<number> {
-  let prIndex = 0;
-  await apiRetry(async () => {
-    const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
-      headers: headers || apiHeaders(),
-      data: {head, base, title},
-    });
-    if (response.ok()) prIndex = (await response.json()).number;
-    return response;
-  }, 'apiCreatePR');
-  return prIndex;
+  const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
+    headers: headers || apiHeaders(),
+    data: {head, base, title},
+  }), 'apiCreatePR');
+  return (await response.json()).number;
 }
 
 /** Create a review on a PR. `event: "COMMENT"` submits immediately without a pending review. */
 export async function apiCreateReview(requestContext: APIRequestContext, owner: string, repo: string, index: number, {event = 'COMMENT', body, comments = [], headers}: {event?: string; body?: string; comments?: Array<{path: string; body: string; new_position?: number; old_position?: number}>; headers?: Record<string, string>} = {}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/reviews`, {
+  const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/reviews`, {
     headers: headers || apiHeaders(),
     data: {event, body, comments},
   }), 'apiCreateReview');
+  return response.json();
 }
 
 export async function createProjectColumn(requestContext: APIRequestContext, owner: string, repo: string, projectID: string, title: string) {
@@ -109,7 +129,7 @@ export async function apiDeleteOrg(requestContext: APIRequestContext, name: stri
 }
 
 /** Password shared by all test users — used for both API user creation and browser login. */
-const testUserPassword = 'e2e-password!aA1';
+export const testUserPassword = 'e2e-password!aA1';
 
 export function apiUserHeaders(username: string) {
   return apiAuthHeader(username, testUserPassword);
@@ -145,7 +165,7 @@ export async function createProject(
   await page.waitForURL(new RegExp(`/${owner}/${repo}/projects$`));
 
   // Extract the project ID from the project link in the list
-  const projectLink = page.locator('.milestone-list .milestone-card').filter({hasText: title}).locator('a').first();
+  const projectLink = page.locator('.milestone-list > .item').filter({hasText: title}).locator('a').first();
   const href = await projectLink.getAttribute('href');
   const match = /\/projects\/(\d+)/.exec(href || '');
   const id = match ? parseInt(match[1]) : 0;

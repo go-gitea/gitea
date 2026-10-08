@@ -13,15 +13,18 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/structs"
 
 	"github.com/hashicorp/go-version"
 )
 
-const OneDevRequiredVersion = "12.0.1"
+const (
+	OneDevRequiredVersion        = "12.0.1"
+	maxOneDevVersionResponseSize = 1024
+)
 
 var (
 	_ base.Downloader        = &OneDevDownloader{}
@@ -85,10 +88,11 @@ func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, passwo
 		client: &http.Client{
 			Transport: roundTripperFunc(
 				func(req *http.Request) (*http.Response, error) {
+					req = req.Clone(ctx)
 					if username != "" && password != "" {
 						req.SetBasicAuth(username, password)
 					}
-					return httpTransport.RoundTrip(req.WithContext(ctx))
+					return httpTransport.RoundTrip(req)
 				}),
 		},
 		userMap:      make(map[int64]*onedevUser),
@@ -137,9 +141,12 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 
 	// special case to read OneDev server version, which is not valid JSON
 	if presult, ok := result.(**version.Version); ok {
-		bytes, err := io.ReadAll(resp.Body)
+		bytes, err := io.ReadAll(io.LimitReader(resp.Body, maxOneDevVersionResponseSize+1))
 		if err != nil {
 			return err
+		}
+		if len(bytes) > maxOneDevVersionResponseSize {
+			return fmt.Errorf("OneDev server version response exceeds %d bytes", maxOneDevVersionResponseSize)
 		}
 		vers, err := version.NewVersion(string(bytes))
 		if err != nil {

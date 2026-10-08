@@ -103,7 +103,7 @@ func (p *Parser) parseRef(refBlock string) (map[string]string, error) {
 		return nil, nil //nolint:nilnil // return nil to signal EOF
 	}
 
-	fieldValues := make(map[string]string)
+	fieldValues := make(map[string]string, len(p.format.fieldNames))
 
 	fields := strings.Split(refBlock, p.format.fieldDelimStr)
 	if len(fields) != len(p.format.fieldNames) {
@@ -111,8 +111,6 @@ func (p *Parser) parseRef(refBlock string) (map[string]string, error) {
 			len(fields), len(p.format.fieldNames))
 	}
 	for i, field := range fields {
-		field = strings.TrimSpace(field)
-
 		var fieldKey string
 		var fieldVal string
 		before, after, ok := strings.Cut(field, " ")

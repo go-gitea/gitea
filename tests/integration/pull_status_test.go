@@ -11,18 +11,20 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/services/pull"
+	auth_model "gitea.dev/models/auth"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPullCreate_CommitStatus(t *testing.T) {
@@ -134,26 +136,52 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
 		assert.Contains(t, text, "The changes on this branch are already on the target branch. This will be an empty commit.")
 		assert.Contains(t, text, "This pull request can be merged automatically.")
+		mergeFormProps, exists := doc.doc.Find("#pull-request-merge-form").Attr("data-merge-form-props")
+		require.True(t, exists)
+		var mergeForm struct {
+			EmptyCommit bool `json:"emptyCommit"`
+			CanMergeNow bool `json:"canMergeNow"`
+			MergeStyles []struct {
+				Name    string `json:"name"`
+				Allowed bool   `json:"allowed"`
+			} `json:"mergeStyles"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(mergeFormProps), &mergeForm))
+		assert.True(t, mergeForm.EmptyCommit)
+		assert.True(t, mergeForm.CanMergeNow)
+		assert.Contains(t, mergeForm.MergeStyles, struct {
+			Name    string `json:"name"`
+			Allowed bool   `json:"allowed"`
+		}{Name: "merge", Allowed: true})
 	})
 }
 
 func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
-		testCreateBranch(t, session, "user1", "repo1", "branch/master", "status1", http.StatusSeeOther)
-		req := NewRequestWithValues(t, "POST", "/user1/repo1/compare/master...status1",
-			map[string]string{
-				"title": "pull request from status1",
-			},
-		)
-		session.MakeRequest(t, req, http.StatusOK)
-		req = NewRequest(t, "GET", "/user1/repo1/pulls/1")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
 
+		testCreateBranch(t, session, "user2", "repo1", "branch/master", "empty-pr-branch", http.StatusSeeOther)
+		resp := testPullCreateDirectly(t, session, createPullRequestOptions{
+			BaseRepoOwner: "user2",
+			BaseRepoName:  "repo1",
+			BaseBranch:    "master",
+			HeadBranch:    "empty-pr-branch",
+			Title:         "empty pr test",
+		})
+		prURL := test.RedirectURL(resp)
+
+		// check the "merge box" text
+		req := NewRequest(t, "GET", prURL)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
 		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
 		assert.Contains(t, text, "This branch is already included in the target branch. There is nothing to merge.")
+
+		// check the "files" tab content
+		req = NewRequest(t, "GET", prURL+"/files")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		doc = NewHTMLParser(t, resp.Body)
+		assert.Equal(t, "Diff Content Not Available", strings.TrimSpace(doc.Find("#diff-container").Text()))
 	})
 }
 
@@ -201,7 +229,7 @@ func TestPullStatusDelayCheck(t *testing.T) {
 		})
 		assert.Equal(t, issues.PullRequestStatusChecking, issue3.PullRequest.Status)
 		assert.Zero(t, checkedPrID)
-		assertReloadingInterval(t, "2000") // the PR status is "checking", so try to reload the merge box
+		assertReloadingInterval(t, "5000") // the PR status is "checking", so try to reload the merge box
 
 		// view a PR with status=checking, it starts the real check
 		issue3, checkedPrID = run(t, func(t *testing.T) {

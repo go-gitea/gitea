@@ -6,25 +6,28 @@ package user
 import (
 	"net/http"
 
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
-	repos, count, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
+	searchOpts := repo_model.SearchRepoOptions{
 		Actor:       u,
 		Private:     private,
 		ListOptions: opts,
 		OrderBy:     "id ASC",
-	})
+	}
+	searchOpts.ApplyPublicOnly(ctx.PublicOnly)
+
+	repos, count, err := repo_model.GetUserRepositories(ctx, searchOpts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -79,8 +82,7 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	private := ctx.IsSigned
-	listUserRepos(ctx, ctx.ContextUser, private)
+	listUserRepos(ctx, ctx.ContextUser, ctx.IsSigned)
 }
 
 // ListMyRepos - list the repositories you own or have access to.
@@ -110,6 +112,7 @@ func ListMyRepos(ctx *context.APIContext) {
 		Private:            ctx.IsSigned,
 		IncludeDescription: true,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {

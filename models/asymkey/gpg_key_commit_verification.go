@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"hash"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/models/gituser"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
 
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
@@ -32,11 +33,13 @@ type CommitVerification struct {
 
 // SignCommit represents a commit with validation of signature.
 type SignCommit struct {
-	Verification *CommitVerification
-	*user_model.UserCommit
+	Verification        *CommitVerification
+	*gituser.UserCommit // TODO: need to use a explicit field name, avoid anonymous field
 }
 
 const (
+	VerificationReasonCommitNotSigned = "gpg.error.not_signed_commit"
+
 	// BadSignature is used as the reason when the signature has a KeyID that is in the db
 	// but no key that has that ID verifies the signature. This is a suspicious failure.
 	BadSignature = "gpg.error.probable_bad_signature"
@@ -181,4 +184,8 @@ func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_
 	}
 
 	return err
+}
+
+func (cv *CommitVerification) IsCommitNotSigned() bool {
+	return !cv.Verified && cv.Reason == VerificationReasonCommitNotSigned
 }

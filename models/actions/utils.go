@@ -12,10 +12,10 @@ import (
 	"io"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 func generateSaltedToken() (string, string, string, string) {
@@ -87,7 +87,7 @@ func calculateDuration(started, stopped timeutil.TimeStamp, status Status, fallb
 		}
 		return end.AsTime().Sub(s)
 	}
-	return timeSince(s).Truncate(time.Second)
+	return max(timeSince(s), 0).Truncate(time.Second)
 }
 
 // best effort function to convert an action schedule to action run, to be used in GenerateGiteaContext

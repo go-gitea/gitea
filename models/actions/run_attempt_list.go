@@ -6,9 +6,9 @@ package actions
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 )
 
 type ActionRunAttemptList []*ActionRunAttempt
@@ -27,14 +27,7 @@ func (attempts ActionRunAttemptList) LoadTriggerUser(ctx context.Context) error 
 		return err
 	}
 	for _, attempt := range attempts {
-		if attempt.TriggerUserID == user_model.ActionsUserID {
-			attempt.TriggerUser = user_model.NewActionsUser()
-		} else {
-			attempt.TriggerUser = users[attempt.TriggerUserID]
-			if attempt.TriggerUser == nil {
-				attempt.TriggerUser = user_model.NewGhostUser()
-			}
-		}
+		attempt.TriggerUser = user_model.GetPossibleUserFromMap(attempt.TriggerUserID, users)
 	}
 	return nil
 }

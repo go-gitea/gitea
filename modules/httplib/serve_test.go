@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/typesniffer"
+	"gitea.dev/modules/typesniffer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -131,7 +131,8 @@ func TestServeSetHeaderContentRelated(t *testing.T) {
 	}
 
 	// make sure sandboxed
-	require.Contains(t, serveHeaderCspDefault, "; sandbox")
+	require.Contains(t, serveHeaderCspDefault, "sandbox")
+	require.NotContains(t, serveHeaderCspDefault, "allow-same-origin")
 }
 
 func TestServeSetHeaders(t *testing.T) {

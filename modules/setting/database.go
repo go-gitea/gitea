@@ -8,11 +8,13 @@ import (
 	"time"
 )
 
+const DefaultSQLiteBusyTimeout = 20 * 1000
+
 var (
-	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by `database_sqlite3.go`
+	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by the tag-controlled drivers
 	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql"}
 	// DatabaseTypeNames contains the friendly names for all database types
-	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", DatabaseTypeSQLite3: "SQLite3"}
 
 	// Database holds the database settings
 	Database = struct {
@@ -39,8 +41,8 @@ var (
 		AutoMigration      bool
 		SlowQueryThreshold time.Duration
 	}{
-		SQLiteBusyTimeout: 500,
-		IterateBufferSize: 50,
+		IterateBufferSize:  50,
+		SlowQueryThreshold: 5 * time.Second,
 	}
 )
 
@@ -63,7 +65,13 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.CharsetCollation = sec.Key("CHARSET_COLLATION").String()
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
-	Database.SQLiteBusyTimeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
+
+	Database.SQLiteBusyTimeout = sec.Key("SQLITE_TIMEOUT").MustInt(DefaultSQLiteBusyTimeout)
+	// mattn driver isn't really affected by this timeout, but other drivers are affected
+	// the default value was 500 (0.5s), to avoid breaking existing users, make sure the timeout is long enough (at least, 5 seconds)
+	if Database.SQLiteBusyTimeout < 5000 {
+		Database.SQLiteBusyTimeout = DefaultSQLiteBusyTimeout
+	}
 	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("")
 
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
@@ -79,14 +87,16 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
-	Database.SlowQueryThreshold = sec.Key("SLOW_QUERY_THRESHOLD").MustDuration(5 * time.Second)
+	Database.SlowQueryThreshold = sec.Key("SLOW_QUERY_THRESHOLD").MustDuration(Database.SlowQueryThreshold)
 }
 
 // DatabaseType FIXME: it is also used directly with "schemas.DBType", so the names must be consistent
 type DatabaseType string
 
+const DatabaseTypeSQLite3 = "sqlite3"
+
 func (t DatabaseType) IsSQLite3() bool {
-	return t == "sqlite3"
+	return t == DatabaseTypeSQLite3
 }
 
 func (t DatabaseType) IsMySQL() bool {

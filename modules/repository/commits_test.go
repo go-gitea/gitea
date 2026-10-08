@@ -4,14 +4,12 @@
 package repository
 
 import (
-	"strconv"
 	"testing"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -99,38 +97,6 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.Equal(t, []string{"readme.md"}, headCommit.Modified)
 }
 
-func TestPushCommits_AvatarLink(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pushCommits := NewPushCommits()
-	pushCommits.Commits = []*PushCommit{
-		{
-			Sha1:           "abcdef1",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user4@example.com",
-			AuthorName:     "User Four",
-			Message:        "message1",
-		},
-		{
-			Sha1:           "abcdef2",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user2@example.com",
-			AuthorName:     "User Two",
-			Message:        "message2",
-		},
-	}
-
-	assert.Equal(t,
-		"/avatars/ab53a2911ddf9b4817ac01ddcd3d975f?size="+strconv.Itoa(28*setting.Avatar.RenderedSizeFactor),
-		pushCommits.AvatarLink(t.Context(), "user2@example.com"))
-
-	assert.Equal(t,
-		"/assets/img/avatar_default.png",
-		pushCommits.AvatarLink(t.Context(), "nonexistent@example.com"))
-}
-
 func TestCommitToPushCommit(t *testing.T) {
 	now := time.Now()
 	sig := &git.Signature{
@@ -145,7 +111,7 @@ func TestCommitToPushCommit(t *testing.T) {
 		ID:            sha1,
 		Author:        sig,
 		Committer:     sig,
-		CommitMessage: "Commit Message",
+		CommitMessage: git.CommitMessage{MessageRaw: "Commit Message"},
 	})
 	assert.Equal(t, hexString, pushCommit.Sha1)
 	assert.Equal(t, "Commit Message", pushCommit.Message)
@@ -176,13 +142,13 @@ func TestListToPushCommits(t *testing.T) {
 			ID:            hash1,
 			Author:        sig,
 			Committer:     sig,
-			CommitMessage: "Message1",
+			CommitMessage: git.CommitMessage{MessageRaw: "Message1"},
 		},
 		{
 			ID:            hash2,
 			Author:        sig,
 			Committer:     sig,
-			CommitMessage: "Message2",
+			CommitMessage: git.CommitMessage{MessageRaw: "Message2"},
 		},
 	}
 

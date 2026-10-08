@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +27,7 @@ func testOrgCounts(t *testing.T) {
 	orgOwner := "user2"
 	orgName := "testOrg"
 	orgCollaborator := "user4"
-	ctx := NewAPITestContext(t, orgOwner, "repo1", auth_model.AccessTokenScopeWriteOrganization)
+	ctx := NewAPITestContext(t, orgOwner, "repo1", auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
 
 	var ownerCountRepos map[string]int
 	var collabCountRepos map[string]int

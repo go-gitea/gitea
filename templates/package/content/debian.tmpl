@@ -4,10 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.debian.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>sudo curl {{ctx.AppFullLink}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian/repository.key -o /etc/apt/keyrings/gitea-{{$.PackageDescriptor.Owner.Name}}.asc
-echo "deb [signed-by=/etc/apt/keyrings/gitea-{{$.PackageDescriptor.Owner.Name}}.asc] {{ctx.AppFullLink}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian $distribution $component" | sudo tee -a /etc/apt/sources.list.d/gitea.list
-sudo apt update</code></pre></div>
-				<p>{{ctx.Locale.Tr "packages.debian.registry.info"}}</p>
+				{{$.PackageVersionSetupManual}}
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.debian.install"}}</label>
@@ -21,21 +18,22 @@ sudo apt update</code></pre></div>
 		</div>
 	</div>
 
+	{{$viewData := $.PackageVersionViewData}}
 	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.debian.repository"}}</h4>
 	<div class="ui attached segment">
 		<table class="ui single line very basic table">
 			<tbody>
 				<tr>
 					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.debian.repository.distributions"}}</h5></td>
-					<td>{{StringUtils.Join .Distributions ", "}}</td>
+					<td>{{StringUtils.Join $viewData.Distributions ", "}}</td>
 				</tr>
 				<tr>
 					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.debian.repository.components"}}</h5></td>
-					<td>{{StringUtils.Join .Components ", "}}</td>
+					<td>{{StringUtils.Join $viewData.Components ", "}}</td>
 				</tr>
 				<tr>
 					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.debian.repository.architectures"}}</h5></td>
-					<td>{{StringUtils.Join .Architectures ", "}}</td>
+					<td>{{StringUtils.Join $viewData.Architectures ", "}}</td>
 				</tr>
 			</tbody>
 		</table>

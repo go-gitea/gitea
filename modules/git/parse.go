@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/modules/optional"
 )
 
 var sepSpace = []byte{' '}

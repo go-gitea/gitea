@@ -6,14 +6,14 @@ package access
 import (
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	perm_model "code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	perm_model "gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -226,12 +226,12 @@ func testGetIndividualUserRepoPermission(t *testing.T) {
 		assert.Equal(t, perm_model.AccessModeNone, perm.unitsMode[unit.TypeCode])
 		assert.Equal(t, perm_model.AccessModeRead, perm.unitsMode[unit.TypeIssues])
 
-		users, err := GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeRead, unit.TypeIssues)
+		users, err := GetUsersWithAnyUnitAccess(ctx, repo3, perm_model.AccessModeRead, unit.TypeIssues)
 		require.NoError(t, err)
 		require.Len(t, users, 1)
 		assert.Equal(t, user.ID, users[0].ID)
 
-		users, err = GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
+		users, err = GetUsersWithAnyUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
 		require.NoError(t, err)
 		require.Empty(t, users)
 	})
@@ -245,7 +245,7 @@ func testGetIndividualUserRepoPermission(t *testing.T) {
 		assert.Equal(t, perm_model.AccessModeWrite, perm.unitsMode[unit.TypeCode])
 		assert.Equal(t, perm_model.AccessModeWrite, perm.unitsMode[unit.TypeIssues])
 
-		users, err := GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
+		users, err := GetUsersWithAnyUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
 		require.NoError(t, err)
 		require.Len(t, users, 1)
 		assert.Equal(t, user.ID, users[0].ID)

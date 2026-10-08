@@ -4,16 +4,17 @@
 package git
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
-
-const (
-	testReposDir = "tests/repos/"
 )
 
 func cloneRepo(tb testing.TB, url string) (string, error) {
@@ -84,17 +85,16 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		}, "feaf4ba6bc635fec442f46ddd4512416ec43c2c2"},
 	}
 	for _, testCase := range testCases {
-		commit, err := repo1.GetCommit(testCase.CommitID)
+		commit, err := repo1.GetCommit(t.Context(), testCase.CommitID)
 		if err != nil {
 			assert.NoError(t, err, "Unable to get commit: %s from testcase due to error: %v", testCase.CommitID, err)
 			// no point trying to do anything else for this test.
 			continue
 		}
 		assert.NotNil(t, commit)
-		assert.NotNil(t, commit.Tree)
-		assert.NotNil(t, commit.Tree.repo)
+		assert.NotNil(t, commit.TreeID)
 
-		tree, err := commit.Tree.SubTree(testCase.Path)
+		tree, err := commit.SubTree(t.Context(), repo1, testCase.Path)
 		if err != nil {
 			assert.NoError(t, err, "Unable to get subtree: %s of commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 			// no point trying to do anything else for this test.
@@ -102,17 +102,15 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		}
 
 		assert.NotNil(t, tree, "tree is nil for testCase CommitID %s in Path %s", testCase.CommitID, testCase.Path)
-		assert.NotNil(t, tree.repo, "repo is nil for testCase CommitID %s in Path %s", testCase.CommitID, testCase.Path)
 
-		entries, err := tree.ListEntries()
+		entries, err := tree.ListEntries(t.Context(), repo1)
 		if err != nil {
 			assert.NoError(t, err, "Unable to get entries of subtree: %s in commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 			// no point trying to do anything else for this test.
 			continue
 		}
 
-		// FIXME: Context.TODO() - if graceful has started we should use its Shutdown context otherwise use install signals in TestMain.
-		commitsInfo, treeCommit, err := entries.GetCommitsInfo(t.Context(), "/any/repo-link", commit, testCase.Path)
+		commitsInfo, treeCommit, err := entries.GetCommitsInfo(t.Context(), time.Second, "/any/repo-link", repo1, commit, testCase.Path)
 		assert.NoError(t, err, "Unable to get commit information for entries of subtree: %s in commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 		if err != nil {
 			t.FailNow()
@@ -127,15 +125,15 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 				continue
 			}
 			assert.Equal(t, expectedInfo.CommitID, commit.ID.String())
-			assert.Equal(t, expectedInfo.Size, entry.Size(), entry.Name())
+			assert.Equal(t, expectedInfo.Size, entry.GetSize(t.Context(), repo1), entry.Name())
 		}
 	}
 }
 
 func TestEntries_GetCommitsInfo(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
-	assert.NoError(t, err)
+	bareRepo1Path, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
+	bareRepo1, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("repo1_bare", bareRepo1Path))
+	require.NoError(t, err)
 	defer bareRepo1.Close()
 
 	testGetCommitsInfo(t, bareRepo1)
@@ -144,7 +142,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	if err != nil {
 		assert.NoError(t, err)
 	}
-	clonedRepo1, err := OpenRepository(t.Context(), clonedPath)
+	clonedRepo1, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("repo1_bare-clone", clonedPath))
 	if err != nil {
 		assert.NoError(t, err)
 	}
@@ -153,11 +151,11 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	testGetCommitsInfo(t, clonedRepo1)
 
 	t.Run("NonExistingSubmoduleAsNil", func(t *testing.T) {
-		commit, err := bareRepo1.GetCommit("HEAD")
+		commit, err := bareRepo1.GetCommit(t.Context(), "HEAD")
 		require.NoError(t, err)
-		treeEntry, err := commit.GetTreeEntryByPath("file1.txt")
+		treeEntry, err := commit.GetTreeEntryByPath(t.Context(), bareRepo1, "file1.txt")
 		require.NoError(t, err)
-		cisf, err := GetCommitInfoSubmoduleFile("/any/repo-link", "file1.txt", commit, treeEntry.ID)
+		cisf, err := GetCommitInfoSubmoduleFile(t.Context(), "/any/repo-link", "file1.txt", bareRepo1, commit, treeEntry.ID)
 		require.NoError(t, err)
 		assert.Equal(t, &CommitSubmoduleFile{
 			repoLink: "/any/repo-link",
@@ -170,51 +168,39 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	})
 }
 
-func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
-	type benchmarkType struct {
-		url  string
-		name string
-	}
+func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
+	repoPath, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
+	repo, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("dummy", repoPath))
+	require.NoError(t, err)
+	defer repo.Close()
 
-	benchmarks := []benchmarkType{
-		{url: "https://github.com/go-gitea/gitea.git", name: "gitea"},
-		{url: "https://github.com/ethantkoenig/manyfiles.git", name: "manyfiles"},
-		{url: "https://github.com/moby/moby.git", name: "moby"},
-		{url: "https://github.com/golang/go.git", name: "go"},
-		{url: "https://github.com/torvalds/linux.git", name: "linux"},
-	}
+	commit, err := repo.GetCommit(t.Context(), "feaf4ba6bc635fec442f46ddd4512416ec43c2c2")
+	require.NoError(t, err)
+	entries, err := commit.Tree().ListEntries(t.Context(), repo)
+	require.NoError(t, err)
 
-	doBenchmark := func(benchmark benchmarkType) {
-		var commit *Commit
-		var entries Entries
-		var repo *Repository
-		repoPath, err := cloneRepo(b, benchmark.url)
-		if err != nil {
-			b.Fatal(err)
+	countCommitInfosCommit := func(infos []CommitInfo) (nilCommits, nonNilCommits int) {
+		for _, info := range infos {
+			nilCommits += util.Iif(info.Commit == nil, 1, 0)
+			nonNilCommits += util.Iif(info.Commit != nil, 1, 0)
 		}
-
-		if repo, err = OpenRepository(b.Context(), repoPath); err != nil {
-			b.Fatal(err)
-		}
-		defer repo.Close()
-
-		if commit, err = repo.GetBranchCommit("master"); err != nil {
-			b.Fatal(err)
-		} else if entries, err = commit.Tree.ListEntries(); err != nil {
-			b.Fatal(err)
-		}
-		b.ResetTimer()
-		b.Run(benchmark.name, func(b *testing.B) {
-			for b.Loop() {
-				_, _, err := entries.GetCommitsInfo(b.Context(), "/any/repo-link", commit, "")
-				if err != nil {
-					b.Fatal(err)
-				}
-			}
-		})
+		return nilCommits, nonNilCommits
 	}
 
-	for _, benchmark := range benchmarks {
-		doBenchmark(benchmark)
-	}
+	ctx, cancel := context.WithCancel(t.Context())
+	defer test.MockVariableValue(&walkGitLogDebugBeforeNext)()
+
+	walkGitLogDebugBeforeNext = cancel
+	commitInfos, _, err := entries.GetCommitsInfo(ctx, time.Second, "/any/repo-link", repo, commit, "")
+	assert.NoError(t, err)
+	nilCommits, nonNilCommits := countCommitInfosCommit(commitInfos)
+	assert.Equal(t, 0, nonNilCommits) // no commit info due to canceled (or deadline-exceeded) context
+	assert.Equal(t, 3, nilCommits)
+
+	walkGitLogDebugBeforeNext = nil
+	commitInfos, _, err = entries.GetCommitsInfo(t.Context(), time.Second, "/any/repo-link", repo, commit, "")
+	assert.NoError(t, err)
+	nilCommits, nonNilCommits = countCommitInfosCommit(commitInfos)
+	assert.Equal(t, 3, nonNilCommits)
+	assert.Equal(t, 0, nilCommits)
 }

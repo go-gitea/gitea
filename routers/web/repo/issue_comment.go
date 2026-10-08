@@ -10,24 +10,21 @@ import (
 	"net/http"
 	"strconv"
 
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/renderhelper"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/services/forms"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/renderhelper"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	"gitea.dev/services/forms"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
 )
 
 // NewComment create a comment for issue
@@ -42,7 +39,7 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.CreateCommentForm)
+	form := web.GetForm[*forms.CreateCommentForm](ctx)
 	issueType := util.Iif(issue.IsPull, "pulls", "issues")
 
 	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {
@@ -88,6 +85,7 @@ func NewComment(ctx *context.Context) {
 	if (ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
 		(form.Status == "reopen" || form.Status == "close") &&
 		!(issue.IsPull && issue.PullRequest.HasMerged) {
+		// TODO: move the code to services package, don't make route handler logic so complex
 		// Duplication and conflict check should apply to reopen pull request.
 		var branchOtherUnmergedPR *issues_model.PullRequest
 		var err error
@@ -103,59 +101,20 @@ func NewComment(ctx *context.Context) {
 			if branchOtherUnmergedPR != nil {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.open_unmerged_pull_exists", branchOtherUnmergedPR.Index))
 			} else {
-				// Regenerate patch and test conflict.
-				issue.PullRequest.HeadCommitID = ""
-				pull_service.StartPullRequestCheckImmediately(ctx, issue.PullRequest)
-			}
-
-			// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
-			// get head commit of PR
-			if branchOtherUnmergedPR != nil && pull.Flow == issues_model.PullRequestFlowGithub {
-				prHeadRef := pull.GetGitHeadRefName()
-				if err := pull.LoadBaseRepo(ctx); err != nil {
-					ctx.ServerError("Unable to load base repo", err)
-					return
-				}
-				prHeadCommitID, err := gitrepo.GetFullCommitID(ctx, pull.BaseRepo, prHeadRef)
-				if err != nil {
-					ctx.ServerError("Get head commit Id of pr fail", err)
-					return
-				}
-
-				// get head commit of branch in the head repo
-				if err := pull.LoadHeadRepo(ctx); err != nil {
-					ctx.ServerError("Unable to load head repo", err)
-					return
-				}
-				if exist, _ := git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.BaseBranch); !exist {
-					ctx.Flash.Error("The origin branch is delete, cannot reopen.")
-					return
-				}
-				headBranchRef := git.RefNameFromBranch(pull.HeadBranch)
-				headBranchCommitID, err := gitrepo.GetFullCommitID(ctx, pull.HeadRepo, headBranchRef.String())
-				if err != nil {
-					ctx.ServerError("Get head commit Id of head branch fail", err)
-					return
-				}
-
-				err = pull.LoadIssue(ctx)
-				if err != nil {
-					ctx.ServerError("load the issue of pull request error", err)
-					return
-				}
-
-				if prHeadCommitID != headBranchCommitID {
-					// force push to base repo
-					err := gitrepo.Push(ctx, pull.HeadRepo, pull.BaseRepo, git.PushOptions{
-						Branch: pull.HeadBranch + ":" + prHeadRef,
-						Force:  true,
-						Env:    repo_module.InternalPushingEnvironment(pull.Issue.Poster, pull.BaseRepo),
-					})
-					if err != nil {
-						ctx.ServerError("force push error", err)
+				// sync ref of PR <refs/pulls/pr_index/head> in base repo for a reopened PR
+				if pull.Flow == issues_model.PullRequestFlowGithub {
+					if exist, _ := git_model.IsBranchExist(ctx, pull.HeadRepoID, pull.HeadBranch); !exist {
+						ctx.Flash.Error("The origin branch is delete, cannot reopen.")
+						return
+					}
+					if err := pull_service.PushToBaseRepo(ctx, pull); err != nil {
+						ctx.ServerError("PushToBaseRepo", err)
 						return
 					}
 				}
+				// Regenerate patch and test conflict.
+				issue.PullRequest.HeadCommitID = ""
+				pull_service.StartPullRequestCheckImmediately(ctx, issue.PullRequest)
 			}
 		}
 
@@ -307,7 +266,7 @@ func DeleteComment(ctx *context.Context) {
 
 // ChangeCommentReaction create a reaction for comment
 func ChangeCommentReaction(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.ReactionForm)
+	form := web.GetForm[*forms.ReactionForm](ctx)
 	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
@@ -445,7 +404,7 @@ func GetCommentAttachments(ctx *context.Context) {
 		return
 	}
 	for i := 0; i < len(comment.Attachments); i++ {
-		attachments = append(attachments, convert.ToAttachment(ctx.Repo.Repository, comment.Attachments[i]))
+		attachments = append(attachments, convert.ToAttachment(ctx, ctx.Repo.Repository, comment.Attachments[i]))
 	}
 	ctx.JSON(http.StatusOK, attachments)
 }

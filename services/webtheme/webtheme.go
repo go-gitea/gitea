@@ -14,11 +14,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 type themeCollectionStruct struct {
@@ -45,7 +45,7 @@ type ThemeMetaInfo struct {
 }
 
 func (info *ThemeMetaInfo) PublicAssetURI() string {
-	return public.AssetURI("css/theme-" + url.PathEscape(info.InternalName) + ".css")
+	return public.AssetURI("web_src/css/themes/theme-" + url.PathEscape(info.InternalName) + ".css")
 }
 
 func (info *ThemeMetaInfo) GetDescription() string {
@@ -149,8 +149,8 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 	return themeInfo
 }
 
-func collectThemeFiles(dirFS fs.ReadDirFS, fsPath string) (themes []*ThemeMetaInfo, _ error) {
-	files, err := dirFS.ReadDir(fsPath)
+func collectThemeFiles(dirFS fs.FS, fsPath string) (themes []*ThemeMetaInfo, _ error) {
+	files, err := fs.ReadDir(dirFS, fsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -170,12 +170,12 @@ func collectThemeFiles(dirFS fs.ReadDirFS, fsPath string) (themes []*ThemeMetaIn
 }
 
 func loadThemesFromAssets(isViteDevMode bool) (themeList []*ThemeMetaInfo, themeMap map[string]*ThemeMetaInfo) {
-	var themeDir fs.ReadDirFS
+	var themeDir fs.FS
 	var themePath string
 
 	if isViteDevMode {
 		// In vite dev mode, Vite serves themes directly from source files.
-		themeDir, themePath = os.DirFS(setting.StaticRootPath).(fs.ReadDirFS), "web_src/css/themes"
+		themeDir, themePath = os.DirFS(setting.StaticRootPath), "web_src/css/themes"
 	} else {
 		// Without vite dev server, use built assets from AssetFS.
 		themeDir, themePath = public.AssetFS(), "assets/css"

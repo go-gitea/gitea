@@ -7,20 +7,26 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 
-	"github.com/nektos/act/pkg/model"
+	"gitea.dev/actionslib/pkg/expreval"
+	"gitea.dev/actionslib/pkg/exprparser"
+	"gitea.dev/actionslib/pkg/model"
+	"gitea.dev/modules/util"
+
+	"github.com/robfig/cron/v3"
 	"go.yaml.in/yaml/v4"
 )
 
 // SingleWorkflow is a workflow with single job and single matrix
 type SingleWorkflow struct {
-	Name           string            `yaml:"name,omitempty"`
-	RawOn          yaml.Node         `yaml:"on,omitempty"`
-	Env            map[string]string `yaml:"env,omitempty"`
-	RawJobs        yaml.Node         `yaml:"jobs,omitempty"`
-	Defaults       Defaults          `yaml:"defaults,omitempty"`
-	RawPermissions yaml.Node         `yaml:"permissions,omitempty"`
-	RunName        string            `yaml:"run-name,omitempty"`
+	Name           string    `yaml:"name,omitempty"`
+	RawOn          yaml.Node `yaml:"on,omitempty"`
+	Env            yaml.Node `yaml:"env,omitempty"`
+	RawJobs        yaml.Node `yaml:"jobs,omitempty"`
+	Defaults       Defaults  `yaml:"defaults,omitempty"`
+	RawPermissions yaml.Node `yaml:"permissions,omitempty"`
+	RunName        string    `yaml:"run-name,omitempty"`
 }
 
 func (w *SingleWorkflow) Job() (string, *Job) {
@@ -29,6 +35,11 @@ func (w *SingleWorkflow) Job() (string, *Job) {
 		return ids[0], jobs[0]
 	}
 	return "", nil
+}
+
+// WorkflowDispatchConfig returns the `on: workflow_dispatch` declaration, nil if there is none.
+func (w *SingleWorkflow) WorkflowDispatchConfig() *model.WorkflowDispatch {
+	return (&model.Workflow{RawOn: w.RawOn}).WorkflowDispatchConfig()
 }
 
 func (w *SingleWorkflow) jobs() ([]string, []*Job, error) {
@@ -74,27 +85,58 @@ func (w *SingleWorkflow) SetJob(id string, job *Job) error {
 }
 
 func (w *SingleWorkflow) Marshal() ([]byte, error) {
-	return yaml.Marshal(w)
+	// Encode with the same indentation SetJob uses (2). yaml.Marshal's default
+	// indentation (4) makes the encoder emit multi-line block scalars (e.g. a
+	// `run:` step that begins with blank lines) with a wrong explicit indentation
+	// indicator (`run: |4`) that then fails to re-parse, which silently strands
+	// the job during concurrency evaluation. Keeping both encoders at indent 2
+	// makes the serialized single workflow round-trip.
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	payload := *w
+	payload.RunName = "" // already interpolated into the run title, a runner would parse it as a template again
+	if err := enc.Encode(&payload); err != nil {
+		return nil, err
+	}
+	if err := enc.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 type Job struct {
-	Name           string                    `yaml:"name,omitempty"`
-	RawNeeds       yaml.Node                 `yaml:"needs,omitempty"`
-	RawRunsOn      yaml.Node                 `yaml:"runs-on,omitempty"`
-	Env            yaml.Node                 `yaml:"env,omitempty"`
-	If             yaml.Node                 `yaml:"if,omitempty"`
-	Steps          []*Step                   `yaml:"steps,omitempty"`
-	TimeoutMinutes string                    `yaml:"timeout-minutes,omitempty"`
-	Services       map[string]*ContainerSpec `yaml:"services,omitempty"`
-	Strategy       Strategy                  `yaml:"strategy,omitempty"`
-	RawContainer   yaml.Node                 `yaml:"container,omitempty"`
-	Defaults       Defaults                  `yaml:"defaults,omitempty"`
-	Outputs        map[string]string         `yaml:"outputs,omitempty"`
-	Uses           string                    `yaml:"uses,omitempty"`
-	With           map[string]any            `yaml:"with,omitempty"`
-	RawSecrets     yaml.Node                 `yaml:"secrets,omitempty"`
-	RawConcurrency *model.RawConcurrency     `yaml:"concurrency,omitempty"`
-	RawPermissions yaml.Node                 `yaml:"permissions,omitempty"`
+	Name               string                `yaml:"name,omitempty"`
+	RawNeeds           yaml.Node             `yaml:"needs,omitempty"`
+	RawRunsOn          yaml.Node             `yaml:"runs-on,omitempty"`
+	Env                yaml.Node             `yaml:"env,omitempty"`
+	If                 yaml.Node             `yaml:"if,omitempty"`
+	Steps              []*Step               `yaml:"steps,omitempty"`
+	TimeoutMinutes     string                `yaml:"timeout-minutes,omitempty"`
+	RawContinueOnError yaml.Node             `yaml:"continue-on-error,omitempty"`
+	Services           yaml.Node             `yaml:"services,omitempty"`
+	Strategy           Strategy              `yaml:"strategy,omitempty"`
+	RawContainer       yaml.Node             `yaml:"container,omitempty"`
+	Defaults           yaml.Node             `yaml:"defaults,omitempty"`
+	Outputs            map[string]string     `yaml:"outputs,omitempty"`
+	Uses               string                `yaml:"uses,omitempty"`
+	With               yaml.Node             `yaml:"with,omitempty"`
+	RawSecrets         yaml.Node             `yaml:"secrets,omitempty"`
+	RawConcurrency     *model.RawConcurrency `yaml:"concurrency,omitempty"`
+	RawPermissions     yaml.Node             `yaml:"permissions,omitempty"`
+}
+
+// GetContinueOnError decodes the continue-on-error field to a bool.
+// The field may be a literal bool or an already-evaluated expression node.
+func (j *Job) GetContinueOnError() bool {
+	if j.RawContinueOnError.Kind == 0 {
+		return false
+	}
+	var v bool
+	if err := j.RawContinueOnError.Decode(&v); err != nil {
+		return false
+	}
+	return v
 }
 
 func (j *Job) Clone() *Job {
@@ -102,23 +144,24 @@ func (j *Job) Clone() *Job {
 		return nil
 	}
 	return &Job{
-		Name:           j.Name,
-		RawNeeds:       j.RawNeeds,
-		RawRunsOn:      j.RawRunsOn,
-		Env:            j.Env,
-		If:             j.If,
-		Steps:          j.Steps,
-		TimeoutMinutes: j.TimeoutMinutes,
-		Services:       j.Services,
-		Strategy:       j.Strategy,
-		RawContainer:   j.RawContainer,
-		Defaults:       j.Defaults,
-		Outputs:        j.Outputs,
-		Uses:           j.Uses,
-		With:           j.With,
-		RawSecrets:     j.RawSecrets,
-		RawConcurrency: j.RawConcurrency,
-		RawPermissions: j.RawPermissions,
+		Name:               j.Name,
+		RawNeeds:           j.RawNeeds,
+		RawRunsOn:          j.RawRunsOn,
+		Env:                j.Env,
+		If:                 j.If,
+		Steps:              j.Steps,
+		TimeoutMinutes:     j.TimeoutMinutes,
+		RawContinueOnError: j.RawContinueOnError,
+		Services:           j.Services,
+		Strategy:           j.Strategy,
+		RawContainer:       j.RawContainer,
+		Defaults:           j.Defaults,
+		Outputs:            j.Outputs,
+		Uses:               j.Uses,
+		With:               j.With,
+		RawSecrets:         j.RawSecrets,
+		RawConcurrency:     j.RawConcurrency,
+		RawPermissions:     j.RawPermissions,
 	}
 }
 
@@ -131,22 +174,63 @@ func (j *Job) EraseNeeds() *Job {
 	return j
 }
 
+// RunsOnProblem returns github.com's error for the job's runs-on, "" if valid.
+func (j *Job) RunsOnProblem() string {
+	if j.RawRunsOn.Kind == 0 {
+		return ""
+	}
+	return runsOnProblem(&j.RawRunsOn)
+}
+
+// RunsOn returns the labels Gitea matches runners against, unescaped like DisplayName.
 func (j *Job) RunsOn() []string {
-	return (&model.Job{RawRunsOn: j.RawRunsOn}).RunsOn()
+	runsOn := model.RunsOnFromNode(j.RawRunsOn)
+	for i, label := range runsOn {
+		runsOn[i] = unescapeExpressions(label)
+	}
+	return runsOn
+}
+
+// DisplayName is the name Gitea stores, without the escaping the payload keeps for runners.
+func (j *Job) DisplayName() string {
+	return util.EllipsisDisplayString(unescapeExpressions(j.Name), 255)
+}
+
+// BlockSafeString works around https://github.com/yaml/go-yaml/issues/399, quoting a value whose
+// leading newline would cost a literal block scalar its indentation indicator.
+type BlockSafeString string
+
+func (s BlockSafeString) MarshalYAML() (any, error) {
+	if !strings.HasPrefix(string(s), "\n") {
+		return string(s), nil
+	}
+	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Style: yaml.DoubleQuotedStyle, Value: string(s)}, nil
 }
 
 type Step struct {
-	ID               string            `yaml:"id,omitempty"`
-	If               yaml.Node         `yaml:"if,omitempty"`
-	Name             string            `yaml:"name,omitempty"`
-	Uses             string            `yaml:"uses,omitempty"`
-	Run              string            `yaml:"run,omitempty"`
-	WorkingDirectory string            `yaml:"working-directory,omitempty"`
-	Shell            string            `yaml:"shell,omitempty"`
-	Env              yaml.Node         `yaml:"env,omitempty"`
-	With             map[string]string `yaml:"with,omitempty"`
-	ContinueOnError  bool              `yaml:"continue-on-error,omitempty"`
-	TimeoutMinutes   string            `yaml:"timeout-minutes,omitempty"`
+	ID                 string          `yaml:"id,omitempty"`
+	If                 yaml.Node       `yaml:"if,omitempty"`
+	Name               BlockSafeString `yaml:"name,omitempty"`
+	Uses               string          `yaml:"uses,omitempty"`
+	Run                BlockSafeString `yaml:"run,omitempty"`
+	WorkingDirectory   string          `yaml:"working-directory,omitempty"`
+	Shell              string          `yaml:"shell,omitempty"`
+	Env                yaml.Node       `yaml:"env,omitempty"`
+	With               yaml.Node       `yaml:"with,omitempty"`
+	RawContinueOnError yaml.Node       `yaml:"continue-on-error,omitempty"` // raw: the runner evaluates it with the steps context
+	TimeoutMinutes     string          `yaml:"timeout-minutes,omitempty"`
+}
+
+// UnmarshalYAML canonicalizes booleans like continue-on-error
+func (s *Step) UnmarshalYAML(node *yaml.Node) error {
+	type rawStep Step
+	if err := node.Decode((*rawStep)(s)); err != nil {
+		return err
+	}
+	if raw := &s.RawContinueOnError; raw.Tag == "!!bool" {
+		raw.Value = strings.ToLower(raw.Value)
+	}
+	return nil
 }
 
 // String gets the name of step
@@ -156,26 +240,51 @@ func (s *Step) String() string {
 	}
 	return (&model.Step{
 		ID:   s.ID,
-		Name: s.Name,
+		Name: string(s.Name),
 		Uses: s.Uses,
-		Run:  s.Run,
+		Run:  string(s.Run),
 	}).String()
-}
-
-type ContainerSpec struct {
-	Image       string            `yaml:"image,omitempty"`
-	Env         map[string]string `yaml:"env,omitempty"`
-	Ports       []string          `yaml:"ports,omitempty"`
-	Volumes     []string          `yaml:"volumes,omitempty"`
-	Options     string            `yaml:"options,omitempty"`
-	Credentials map[string]string `yaml:"credentials,omitempty"`
-	Cmd         []string          `yaml:"cmd,omitempty"`
 }
 
 type Strategy struct {
 	FailFastString    string    `yaml:"fail-fast,omitempty"`
 	MaxParallelString string    `yaml:"max-parallel,omitempty"`
 	RawMatrix         yaml.Node `yaml:"matrix,omitempty"`
+	JobIndex          int       `yaml:"job-index,omitempty"` // set by buildMatrixCombos, read back from its payload
+	JobTotal          int       `yaml:"job-total,omitempty"`
+	RawExpression     yaml.Node `yaml:"-"` // a whole-value `strategy: ${{ }}`, see Strategy.resolve
+}
+
+type rawStrategy Strategy
+
+func (s *Strategy) UnmarshalYAML(node *yaml.Node) error {
+	if node.Kind == yaml.ScalarNode {
+		*s = Strategy{RawExpression: *node}
+		return nil
+	}
+	return node.Decode((*rawStrategy)(s))
+}
+
+func (s Strategy) MarshalYAML() (any, error) {
+	if s.RawExpression.Kind != 0 {
+		return &s.RawExpression, nil
+	}
+	return rawStrategy(s), nil
+}
+
+func (s Strategy) actStrategy() *model.Strategy {
+	return &model.Strategy{FailFastString: s.FailFastString, MaxParallelString: s.MaxParallelString, RawMatrix: s.RawMatrix}
+}
+
+// context is the strategy context, combination 0 of 1 without a matrix as on GitHub, and without job-index for an unexpanded matrix.
+func (s *Strategy) context() map[string]any {
+	switch {
+	case s == nil:
+		return exprparser.StrategyContext(nil, 0, 0)
+	case s.RawMatrix.Kind == 0 && s.RawExpression.Kind == 0:
+		return exprparser.StrategyContext(s.actStrategy(), 0, 1)
+	}
+	return exprparser.StrategyContext(s.actStrategy(), s.JobIndex, s.JobTotal)
 }
 
 type Defaults struct {
@@ -187,20 +296,10 @@ type RunDefaults struct {
 	WorkingDirectory string `yaml:"working-directory,omitempty"`
 }
 
-type WorkflowDispatchInput struct {
-	Name        string   `yaml:"name"`
-	Description string   `yaml:"description"`
-	Required    bool     `yaml:"required"`
-	Default     string   `yaml:"default"`
-	Type        string   `yaml:"type"`
-	Options     []string `yaml:"options"`
-}
-
 type Event struct {
 	Name      string
 	acts      map[string][]string
 	schedules []map[string]string
-	inputs    []WorkflowDispatchInput
 }
 
 func (evt *Event) IsSchedule() bool {
@@ -215,38 +314,38 @@ func (evt *Event) Schedules() []map[string]string {
 	return evt.schedules
 }
 
-func (evt *Event) Inputs() []WorkflowDispatchInput {
-	return evt.inputs
+func ReadWorkflowRawConcurrency(content []byte) (*model.RawConcurrency, error) {
+	w, err := ReadWorkflow(content)
+	if err != nil {
+		return nil, err
+	}
+	return w.RawConcurrency, nil
 }
 
-func ReadWorkflowRawConcurrency(content []byte) (*model.RawConcurrency, error) {
-	w := new(model.Workflow)
-	err := yaml.NewDecoder(bytes.NewReader(content)).Decode(w)
-	return w.RawConcurrency, err
+// newJobEvaluator evaluates against a stored job's contexts, with its single matrix combination.
+func newJobEvaluator(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (expreval.Evaluator, error) {
+	var strategy *Strategy
+	var matrix map[string]any
+	if job != nil {
+		strategy = &job.Strategy
+		rawMatrix := model.CloneYamlNode(job.Strategy.RawMatrix)
+		replaceScalars(&rawMatrix, unescapeExpressions)
+		matrixes, err := (&model.Job{Strategy: &model.Strategy{RawMatrix: rawMatrix}}).GetMatrixes()
+		if err != nil {
+			return expreval.Evaluator{}, err
+		}
+		if len(matrixes[0]) > 0 {
+			matrix = matrixes[0]
+		}
+	}
+	return expreval.New(NewInterpeter(jobID, strategy, matrix, model.GithubContextFromMap(gitCtx), results, vars, inputs).Evaluate), nil
 }
 
 func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (string, bool, error) {
-	actJob := &model.Job{}
-	if job != nil {
-		actJob.Strategy = &model.Strategy{
-			FailFastString:    job.Strategy.FailFastString,
-			MaxParallelString: job.Strategy.MaxParallelString,
-			RawMatrix:         job.Strategy.RawMatrix,
-		}
-		actJob.Strategy.FailFast = actJob.Strategy.GetFailFast()
-		actJob.Strategy.MaxParallel = actJob.Strategy.GetMaxParallel()
-	}
-
-	matrix := make(map[string]any)
-	matrixes, err := actJob.GetMatrixes()
+	evaluator, err := newJobEvaluator(jobID, job, gitCtx, results, vars, inputs)
 	if err != nil {
 		return "", false, err
 	}
-	if len(matrixes) > 0 {
-		matrix = matrixes[0]
-	}
-
-	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
 	var node yaml.Node
 	if err := node.Encode(rc); err != nil {
 		return "", false, fmt.Errorf("failed to encode concurrency: %w", err)
@@ -261,42 +360,11 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 	if evaluated.RawExpression != "" {
 		return evaluated.RawExpression, false, nil
 	}
-	return evaluated.Group, evaluated.CancelInProgress == "true", nil
+	return evaluated.Group, util.ParseYamlBool(evaluated.CancelInProgress), nil
 }
 
-func toGitContext(input map[string]any) *model.GithubContext {
-	gitContext := &model.GithubContext{
-		EventPath:        asString(input["event_path"]),
-		Workflow:         asString(input["workflow"]),
-		RunID:            asString(input["run_id"]),
-		RunNumber:        asString(input["run_number"]),
-		Actor:            asString(input["actor"]),
-		Repository:       asString(input["repository"]),
-		EventName:        asString(input["event_name"]),
-		Sha:              asString(input["sha"]),
-		Ref:              asString(input["ref"]),
-		RefName:          asString(input["ref_name"]),
-		RefType:          asString(input["ref_type"]),
-		HeadRef:          asString(input["head_ref"]),
-		BaseRef:          asString(input["base_ref"]),
-		Token:            asString(input["token"]),
-		Workspace:        asString(input["workspace"]),
-		Action:           asString(input["action"]),
-		ActionPath:       asString(input["action_path"]),
-		ActionRef:        asString(input["action_ref"]),
-		ActionRepository: asString(input["action_repository"]),
-		Job:              asString(input["job"]),
-		RepositoryOwner:  asString(input["repository_owner"]),
-		RetentionDays:    asString(input["retention_days"]),
-	}
-
-	event, ok := input["event"].(map[string]any)
-	if ok {
-		gitContext.Event = event
-	}
-
-	return gitContext
-}
+// workflowCallEvent is only fired by another workflow's `uses:`, so it is excluded from trigger detection.
+const workflowCallEvent = "workflow_call"
 
 func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	switch rawOn.Kind {
@@ -305,6 +373,12 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		err := rawOn.Decode(&val)
 		if err != nil {
 			return nil, err
+		}
+		if rawOn.ShortTag() != "!!str" || val == "" {
+			return nil, fmt.Errorf("invalid event %q", val)
+		}
+		if val == workflowCallEvent {
+			return []*Event{}, nil
 		}
 		return []*Event{
 			{Name: val},
@@ -319,6 +393,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		for _, v := range val {
 			switch t := v.(type) {
 			case string:
+				if t == workflowCallEvent {
+					continue
+				}
 				res = append(res, &Event{Name: t})
 			default:
 				return nil, fmt.Errorf("invalid type %T", t)
@@ -332,6 +409,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		}
 		res := make([]*Event, 0, len(events))
 		for i, k := range events {
+			if k == workflowCallEvent {
+				continue
+			}
 			v := triggers[i]
 			switch v.Kind {
 			case yaml.ScalarNode:
@@ -346,17 +426,23 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 				}
 				schedules := make([]map[string]string, len(t))
 				if k == "schedule" {
+					if len(t) == 0 {
+						return nil, errors.New("schedule must contain at least one cron entry")
+					}
 					for i, tt := range t {
 						vv, ok := tt.(map[string]any)
 						if !ok {
-							return nil, fmt.Errorf("unknown on type(schedule): %#v", v)
+							return nil, errors.New("unknown on type(schedule)")
 						}
 						schedules[i] = make(map[string]string, len(vv))
 						for k, vvv := range vv {
 							var ok bool
 							if schedules[i][k], ok = vvv.(string); !ok {
-								return nil, fmt.Errorf("unknown on type(schedule): %#v", v)
+								return nil, errors.New("unknown on type(schedule)")
 							}
+						}
+						if _, err := cron.ParseStandard(schedules[i]["cron"]); err != nil {
+							return nil, fmt.Errorf("invalid cron %q: %w", schedules[i]["cron"], err)
 						}
 					}
 				}
@@ -369,14 +455,14 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 					schedules: schedules,
 				})
 			case yaml.MappingNode:
+				// Keep combined include and ignore filters for existing Gitea workflows, although GitHub rejects them.
 				acts := make(map[string][]string, len(v.Content)/2)
-				var inputs []WorkflowDispatchInput
 				expectedKey := true
 				var act string
 				for _, content := range v.Content {
 					if expectedKey {
 						if content.Kind != yaml.ScalarNode {
-							return nil, fmt.Errorf("key type not string: %#v", content)
+							return nil, errors.New("key type not string")
 						}
 						act = ""
 						err := content.Decode(&act)
@@ -401,48 +487,23 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 							acts[act] = []string{t}
 						case yaml.MappingNode:
 							if k != "workflow_dispatch" || act != "inputs" {
-								return nil, fmt.Errorf("map should only for workflow_dispatch but %s: %#v", act, content)
+								return nil, fmt.Errorf("map should only for workflow_dispatch but %s", act)
 							}
-
-							var key string
-							for i, vv := range content.Content {
-								if i%2 == 0 {
-									if vv.Kind != yaml.ScalarNode {
-										return nil, fmt.Errorf("key type not string: %#v", vv)
-									}
-									key = ""
-									if err := vv.Decode(&key); err != nil {
-										return nil, err
-									}
-								} else {
-									if vv.Kind != yaml.MappingNode {
-										return nil, fmt.Errorf("key type not map(%s): %#v", key, vv)
-									}
-
-									input := WorkflowDispatchInput{}
-									if err := vv.Decode(&input); err != nil {
-										return nil, err
-									}
-									input.Name = key
-									inputs = append(inputs, input)
-								}
+							if err := content.Decode(new(map[string]model.WorkflowDispatchInput)); err != nil {
+								return nil, err
 							}
 						default:
-							return nil, fmt.Errorf("unknown on type: %#v", content)
+							return nil, fmt.Errorf("unknown on type for %s", act)
 						}
 					}
 					expectedKey = !expectedKey
-				}
-				if len(inputs) == 0 {
-					inputs = nil
 				}
 				if len(acts) == 0 {
 					acts = nil
 				}
 				res = append(res, &Event{
-					Name:   k,
-					acts:   acts,
-					inputs: inputs,
+					Name: k,
+					acts: acts,
 				})
 			default:
 				return nil, fmt.Errorf("unknown on type: %v", v.Kind)
@@ -452,6 +513,15 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	default:
 		return nil, fmt.Errorf("unknown on type: %v", rawOn.Kind)
 	}
+}
+
+// EvaluateJobIfExpression evaluates a job's `if:`, which github.com decides before the matrix, so without the matrix and strategy contexts.
+func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (bool, error) {
+	if unavailable := unavailableContext(IfExpression(job.If.Value), jobConditionContexts); unavailable != "" { // only a job stored before its conditions were validated
+		return false, fmt.Errorf("job %s: Unrecognized named-value: '%s', update the workflow and trigger a new run", jobID, unavailable)
+	}
+	evaluator := expreval.New(NewInterpeter(jobID, nil, nil, model.GithubContextFromMap(gitCtx), results, vars, inputs).Evaluate)
+	return evaluator.EvalBool(job.If.Value, exprparser.DefaultStatusCheckSuccess)
 }
 
 // parseMappingNode parse a mapping node and preserve order.
@@ -485,13 +555,4 @@ func parseMappingNode[T any](node *yaml.Node) ([]string, []T, error) {
 	}
 
 	return scalars, datas, nil
-}
-
-func asString(v any) string {
-	if v == nil {
-		return ""
-	} else if s, ok := v.(string); ok {
-		return s
-	}
-	return ""
 }

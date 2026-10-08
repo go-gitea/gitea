@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
 
 	"golang.org/x/net/html"
 )
@@ -56,6 +56,9 @@ func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosSt
 }
 
 func codePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
+	if ctx.RenderOptions.FeedExcerpt {
+		return
+	}
 	nodeStop := node.NextSibling
 	for node != nodeStop {
 		if node.Type != html.TextNode {

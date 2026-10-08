@@ -16,13 +16,16 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/tests"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
+	"gitea.dev/tests"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,6 +45,148 @@ func prepareTestEnvActionsArtifacts(t *testing.T) func() {
 	f := tests.PrepareTestEnv(t, 1)
 	tests.PrepareArtifactsStorage(t)
 	return f
+}
+
+func getArtifactFixtureTask(t *testing.T) *actions_model.ActionTask {
+	t.Helper()
+
+	task, err := actions_model.GetRunningTaskByToken(t.Context(), "8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	require.NoError(t, err)
+	require.NoError(t, task.LoadJob(t.Context()))
+	ensureArtifactFixtureTaskSteps(t, task)
+	return task
+}
+
+func ensureArtifactFixtureTaskSteps(t *testing.T, task *actions_model.ActionTask) {
+	t.Helper()
+
+	steps, err := actions_model.GetTaskStepsByTaskID(t.Context(), task.ID)
+	require.NoError(t, err)
+
+	existingIndexes := make(map[int64]bool, len(steps))
+	for _, step := range steps {
+		existingIndexes[step.Index] = true
+	}
+
+	var stepsToInsert []*actions_model.ActionTaskStep
+	for _, idx := range []int64{0, 1} {
+		if existingIndexes[idx] {
+			continue
+		}
+		stepsToInsert = append(stepsToInsert, &actions_model.ActionTaskStep{
+			TaskID: task.ID,
+			Index:  idx,
+			RepoID: task.RepoID,
+			Status: actions_model.StatusWaiting,
+		})
+	}
+	if len(stepsToInsert) == 0 {
+		return
+	}
+
+	_, err = db.GetEngine(t.Context()).Insert(stepsToInsert)
+	require.NoError(t, err)
+}
+
+func TestActionsJobSummaryUpload(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	const runnerToken = "8061e833a55f6fc0157c98b883e91fcfeeb1a71a"
+	task := getArtifactFixtureTask(t)
+	summaryURL := func(stepIndex int64) string {
+		return fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/steps/%d/summary", task.Job.RunID, task.Job.ID, stepIndex)
+	}
+	putSummary := func(stepIndex int64, body, contentType string) *RequestWrapper {
+		return NewRequestWithBody(t, "PUT", summaryURL(stepIndex), strings.NewReader(body)).
+			AddTokenAuth(runnerToken).
+			SetHeader("Content-Type", contentType)
+	}
+
+	t.Run("success", func(t *testing.T) {
+		body := "### Uploaded summary\n\n- line one\n"
+		MakeRequest(t, putSummary(0, body, "text/markdown; charset=utf-8"), http.StatusOK)
+
+		summary, err := actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0)
+		require.NoError(t, err)
+		assert.Equal(t, actions_model.JobSummaryContentTypeMarkdown, summary.ContentType)
+		assert.Equal(t, body, summary.Content)
+
+		staleUpdated := summary.Updated - 60
+		_, err = db.GetEngine(t.Context()).ID(summary.ID).Cols("updated").Update(&actions_model.ActionRunJobSummary{Updated: staleUpdated})
+		require.NoError(t, err)
+
+		updatedBody := "### Updated summary\n\n- refreshed\n"
+		MakeRequest(t, putSummary(0, updatedBody, actions_model.JobSummaryContentTypeMarkdown), http.StatusOK)
+
+		summary, err = actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0)
+		require.NoError(t, err)
+		assert.Equal(t, updatedBody, summary.Content)
+		assert.Greater(t, summary.Updated, staleUpdated)
+
+		stepTwoBody := "### Second step summary\n\n- another step\n"
+		MakeRequest(t, putSummary(1, stepTwoBody, actions_model.JobSummaryContentTypeMarkdown), http.StatusOK)
+
+		summary, err = actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 1)
+		require.NoError(t, err)
+		assert.Equal(t, stepTwoBody, summary.Content)
+
+		summaries, err := actions_model.ListActionRunJobSummaries(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, 0)
+		require.NoError(t, err)
+		require.Len(t, summaries, 2)
+		assert.Equal(t, int64(0), summaries[0].StepIndex)
+		assert.Equal(t, int64(1), summaries[1].StepIndex)
+	})
+
+	t.Run("invalid-content-type", func(t *testing.T) {
+		resp := MakeRequest(t, putSummary(0, "summary", "text/html"), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "invalid summary content type")
+	})
+
+	t.Run("size-limit", func(t *testing.T) {
+		resp := MakeRequest(t, putSummary(0, strings.Repeat("a", actions_model.MaxJobSummarySize+1), actions_model.JobSummaryContentTypeMarkdown), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "invalid summary")
+	})
+
+	t.Run("aggregate-size-limit", func(t *testing.T) {
+		require.NoError(t, actions_model.UpsertActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0,
+			actions_model.JobSummaryContentTypeMarkdown, []byte(strings.Repeat("a", actions_model.MaxJobSummaryAggregateSize-1024))))
+		resp := MakeRequest(t, putSummary(1, strings.Repeat("b", 4096), actions_model.JobSummaryContentTypeMarkdown), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "aggregate size exceeded")
+	})
+
+	t.Run("job-mismatch", func(t *testing.T) {
+		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/steps/0/summary", task.Job.RunID, task.Job.ID+1), strings.NewReader("summary")).
+			AddTokenAuth(runnerToken).
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "job_id mismatch")
+	})
+
+	t.Run("run-mismatch", func(t *testing.T) {
+		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/steps/0/summary", task.Job.RunID+1, task.Job.ID), strings.NewReader("summary")).
+			AddTokenAuth(runnerToken).
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "run-id does not match")
+	})
+
+	t.Run("invalid-step-index", func(t *testing.T) {
+		resp := MakeRequest(t, putSummary(-1, "summary", actions_model.JobSummaryContentTypeMarkdown), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "invalid step_index")
+	})
+
+	t.Run("step-index-mismatch", func(t *testing.T) {
+		resp := MakeRequest(t, putSummary(999, "summary", actions_model.JobSummaryContentTypeMarkdown), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "step_index mismatch")
+	})
+
+	t.Run("empty-body-clears", func(t *testing.T) {
+		MakeRequest(t, putSummary(0, "### keep me", actions_model.JobSummaryContentTypeMarkdown), http.StatusOK)
+		MakeRequest(t, putSummary(0, "", actions_model.JobSummaryContentTypeMarkdown), http.StatusOK)
+
+		_, err := actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0)
+		require.ErrorIs(t, err, util.ErrNotExist)
+	})
 }
 
 func TestActionsArtifactUploadSingleFile(t *testing.T) {
@@ -438,6 +583,10 @@ jobs:
 		t.Run("testActionRunAttemptArtifactV4", func(t *testing.T) {
 			testActionRunAttemptArtifactV4(t, repo, session, runner)
 		})
+
+		t.Run("testPartialRerunArtifactInheritance", func(t *testing.T) {
+			testPartialRerunArtifactInheritance(t, user2, token, repo, session, runner)
+		})
 	})
 }
 
@@ -480,6 +629,107 @@ func testActionRunAttemptArtifactV3(t *testing.T, repo *repo_model.Repository, s
 	assert.Equal(t, strings.Repeat("C", 32), sharedContent1)
 	sharedContent2 := downloadArtifactFileContentByAttempt(t, session, repo.OwnerName, repo.Name, run.ID, "artifact-shared", 2, "shared.txt")
 	assert.Equal(t, strings.Repeat("D", 32), sharedContent2)
+}
+
+func testPartialRerunArtifactInheritance(t *testing.T, user *user_model.User, token string, repo *repo_model.Repository, session *TestSession, runner *mockRunner) {
+	wfTreePath := ".gitea/workflows/partial-rerun-artifact.yml"
+	wfFileContent := `name: partial-rerun-artifact
+on:
+  workflow_dispatch:
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job1'
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    steps:
+      - run: echo 'job2'
+`
+	opts := getWorkflowCreateFileOptions(user, repo.DefaultBranch, "create "+wfTreePath, wfFileContent)
+	createWorkflowFile(t, token, user.Name, repo.Name, wfTreePath, opts)
+
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/run?workflow=%s", repo.OwnerName, repo.Name, "partial-rerun-artifact.yml"), map[string]string{
+		"ref": "refs/heads/main",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// job1 uploads the artifacts and succeeds
+	task1 := runner.fetchTask(t)
+	_, job1, run := getTaskAndJobAndRunByTaskID(t, task1.Id)
+	taskToken1 := task1.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "job1-only", strings.Repeat("A", 32))
+	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "job1-shared", strings.Repeat("B", 32))
+	// a v3 artifact is one row per file, so this one spans two rows
+	uploadTestArtifactFile(t, run.ID, taskToken1, "job1-v3", "a.txt", strings.Repeat("D", 32))
+	uploadTestArtifactFile(t, run.ID, taskToken1, "job1-v3", "b.txt", strings.Repeat("E", 32))
+	runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+
+	// job2 fails
+	task2 := runner.fetchTask(t)
+	_, job2, _ := getTaskAndJobAndRunByTaskID(t, task2.Id)
+	runner.execTask(t, task2, &mockTaskOutcome{result: runnerv1.Result_RESULT_FAILURE})
+
+	// re-run only the failed job, so job1 is passed through and never uploads its artifacts again
+	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun-failed", repo.OwnerName, repo.Name, run.ID))
+	session.MakeRequest(t, req, http.StatusOK)
+
+	task3 := runner.fetchTask(t)
+	_, job3, _ := getTaskAndJobAndRunByTaskID(t, task3.Id)
+	require.Equal(t, job2.JobID, job3.JobID)
+	require.NotEqual(t, job2.RunAttemptID, job3.RunAttemptID)
+	taskToken3 := task3.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+
+	// the new attempt inherits what the previous attempt uploaded
+	assert.ElementsMatch(t, []string{"job1-only", "job1-shared"}, listArtifactNamesForRunV4(t, run.ID, job3.ID, taskToken3))
+	assert.Equal(t, strings.Repeat("A", 32), downloadArtifactContentV4ByTask(t, run.ID, job3.ID, taskToken3, "job1-only"))
+	assert.Contains(t, listArtifactNamesForRun(t, run.ID, taskToken3), "job1-v3")
+
+	// a pending upload of this attempt must not shadow the confirmed copy it inherited
+	createTestArtifactV4(t, run.ID, job3.ID, taskToken3, "job1-only")
+	assert.Equal(t, strings.Repeat("A", 32), downloadArtifactContentV4ByTask(t, run.ID, job3.ID, taskToken3, "job1-only"))
+
+	// both rows of the inherited v3 artifact are readable
+	inheritedV3 := getArtifactDownloadItemsForRun(t, run.ID, taskToken3, "job1-v3")
+	require.Len(t, inheritedV3, 2)
+	assert.Equal(t, strings.Repeat("D", 32), downloadArtifactItemContent(t, taskToken3, inheritedV3[0]))
+
+	// uploading an inherited name in this attempt shadows the inherited artifact
+	inheritedSharedID := listArtifactIDForRunV4(t, run.ID, job3.ID, taskToken3, "job1-shared")
+	require.Len(t, listArtifactsByIDV4(t, run.ID, job3.ID, inheritedSharedID, taskToken3), 1)
+	uploadTestArtifactFileV4(t, run.ID, job3.ID, taskToken3, "job1-shared", strings.Repeat("C", 32))
+	assert.ElementsMatch(t, []string{"job1-only", "job1-shared"}, listArtifactNamesForRunV4(t, run.ID, job3.ID, taskToken3))
+	assert.Equal(t, strings.Repeat("C", 32), downloadArtifactContentV4ByTask(t, run.ID, job3.ID, taskToken3, "job1-shared"))
+
+	// a shadowed artifact is not listed by id either: a download resolves by name
+	assert.Empty(t, listArtifactsByIDV4(t, run.ID, job3.ID, inheritedSharedID, taskToken3))
+
+	// the shadowed v3 artifact is dropped as a whole, its b.txt row must not survive next to the new a.txt
+	uploadTestArtifactFile(t, run.ID, taskToken3, "job1-v3", "a.txt", strings.Repeat("F", 32))
+	shadowedV3 := getArtifactDownloadItemsForRun(t, run.ID, taskToken3, "job1-v3")
+	require.Len(t, shadowedV3, 1)
+	assert.Equal(t, strings.Repeat("F", 32), downloadArtifactItemContent(t, taskToken3, shadowedV3[0]))
+
+	runner.execTask(t, task3, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+}
+
+func getArtifactDownloadItemsForRun(t *testing.T, runID int64, taskToken, artifactName string) []downloadArtifactResponseItem {
+	t.Helper()
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/artifacts/%x/download_url?itemPath=%s", runID, md5.Sum([]byte(artifactName)), artifactName)).
+		AddTokenAuth(taskToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	return DecodeJSON(t, resp, &downloadArtifactResponse{}).Value
+}
+
+func downloadArtifactItemContent(t *testing.T, taskToken string, item downloadArtifactResponseItem) string {
+	t.Helper()
+
+	idx := strings.Index(item.ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
+	require.NotEqual(t, -1, idx)
+	req := NewRequest(t, "GET", item.ContentLocation[idx:]).AddTokenAuth(taskToken)
+	return MakeRequest(t, req, http.StatusOK).Body.String()
 }
 
 func uploadTestArtifactFile(t *testing.T, runID int64, authToken, artifactName, fileName, content string) {

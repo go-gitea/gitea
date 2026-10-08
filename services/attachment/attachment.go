@@ -10,15 +10,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"uuid"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context/upload"
-
-	"github.com/google/uuid"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context/upload"
 )
 
 // NewAttachment creates a new attachment object, but do not verify.
@@ -85,8 +84,7 @@ func uploadAttachment(ctx context.Context, file *UploaderFile, allowedTypes stri
 	}
 
 	attach, err := NewAttachment(ctx, attach, io.MultiReader(bytes.NewReader(buf), src), file.size)
-	var maxBytesError *http.MaxBytesError
-	if errors.As(err, &maxBytesError) {
+	if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 		return nil, util.ErrorWrap(util.ErrContentTooLarge, "attachment exceeds limit %d", maxFileSize)
 	}
 	return attach, err

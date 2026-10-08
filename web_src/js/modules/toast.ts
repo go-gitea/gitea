@@ -1,5 +1,5 @@
-import {htmlEscape} from '../utils/html.ts';
-import {svg} from '../svg.ts';
+import {html, htmlEscape, htmlRaw} from '../utils/html.ts';
+import {svgRaw} from '../svg.ts';
 import {animateOnce, queryElems, showElem} from '../utils/dom.ts';
 import Toastify from 'toastify-js'; // don't use "async import", because when network error occurs, the "async import" also fails and nothing is shown
 import type {Intent} from '../types.ts';
@@ -12,25 +12,25 @@ export type Toast = ReturnType<typeof StartToastifyInstance>;
 type ToastLevels = {
   [intent in Intent]: {
     icon: SvgName,
-    background: string,
     duration: number,
   }
 };
 
 const levels: ToastLevels = {
-  info: {
+  success: {
     icon: 'octicon-check',
-    background: 'var(--color-green)',
     duration: 2500,
+  },
+  info: {
+    icon: 'octicon-info',
+    duration: 5000,
   },
   warning: {
     icon: 'gitea-exclamation',
-    background: 'var(--color-orange)',
     duration: -1, // requires dismissal to hide
   },
   error: {
     icon: 'gitea-exclamation',
-    background: 'var(--color-red)',
     duration: -1, // requires dismissal to hide
   },
 };
@@ -43,10 +43,9 @@ type ToastOpts = {
 type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast};
 
 /** See https://github.com/apvarun/toastify-js#api for options */
-function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast | null {
-  const body = useHtmlBody ? message : htmlEscape(message);
+function showToast(message: string, level: Intent = 'info', {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast | null {
   const parent = document.querySelector('.ui.dimmer.active') ?? document.body;
-  const duplicateKey = preventDuplicates ? (preventDuplicates === true ? `${level}-${body}` : preventDuplicates) : '';
+  const duplicateKey = preventDuplicates ? (typeof preventDuplicates === 'string' ? preventDuplicates : `${level}-${message}`) : '';
 
   // prevent showing duplicate toasts with the same level and message, and give visual feedback for end users
   if (preventDuplicates) {
@@ -60,19 +59,20 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
     }
   }
 
-  const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
+  const {icon, duration: levelDuration} = levels[level];
+  const bodyHtml = useHtmlBody ? message : htmlEscape(message);
   const toast = Toastify({
     selector: parent,
-    text: `
-      <div class='toast-icon'>${svg(icon)}</div>
-      <div class='toast-body'><span class="toast-duplicate-number tw-hidden">1</span>${body}</div>
-      <button class='btn toast-close'>${svg('octicon-x')}</button>
+    text: html`
+      <div class='toast-icon'>${svgRaw(icon)}</div>
+      <div class='toast-body'><span class="toast-duplicate-number tw-hidden">1</span>${htmlRaw(bodyHtml)}</div>
+      <button class='btn toast-close'>${svgRaw('octicon-x')}</button>
     `,
     escapeMarkup: false,
+    className: `toast-${level}`,
     gravity: gravity ?? 'top',
     position: position ?? 'center',
     duration: duration ?? levelDuration,
-    style: {background},
     ...other,
   });
 
@@ -82,6 +82,10 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
   el.setAttribute('data-toast-unique-key', duplicateKey);
   el._giteaToastifyInstance = toast;
   return toast;
+}
+
+export function showSuccessToast(message: string, opts?: ToastOpts): Toast | null {
+  return showToast(message, 'success', opts);
 }
 
 export function showInfoToast(message: string, opts?: ToastOpts): Toast | null {

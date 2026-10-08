@@ -7,11 +7,11 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -36,6 +36,10 @@ type PushMirrorOptions struct {
 	ID         int64
 	RepoID     int64
 	RemoteName string
+}
+
+func (opts PushMirrorOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts PushMirrorOptions) ToConds() builder.Cond {
@@ -74,13 +78,13 @@ func (m *PushMirror) GetRemoteName() string {
 	return m.RemoteName
 }
 
-// UpdatePushMirror updates the push-mirror
-func UpdatePushMirror(ctx context.Context, m *PushMirror) error {
-	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
+// UpdatePushMirrorSyncStatus updates the sync status (last update time and last error) of the push-mirror
+func UpdatePushMirrorSyncStatus(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("last_update", "last_error").Update(m)
 	return err
 }
 
-// UpdatePushMirrorInterval updates the push-mirror
+// UpdatePushMirrorInterval updates the sync interval of the push-mirror
 func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
 	_, err := db.GetEngine(ctx).ID(m.ID).Cols("interval").Update(m)
 	return err
@@ -98,6 +102,10 @@ type findPushMirrorOptions struct {
 	db.ListOptions
 	RepoID       int64
 	SyncOnCommit optional.Option[bool]
+}
+
+func (opts findPushMirrorOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts findPushMirrorOptions) ToConds() builder.Cond {

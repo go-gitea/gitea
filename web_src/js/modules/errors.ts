@@ -1,9 +1,22 @@
 // keep this file lightweight, it's imported into IIFE chunk in bootstrap
 import {html} from '../utils/html.ts';
+import isNetworkError from 'is-network-error';
 import type {Intent} from '../types.ts';
 
+// The code in this module might be executed before window.config is initialized,
+// Don't access window.config directly.
+function windowConfig(): typeof window.config | undefined {
+  return window.config;
+}
+
+/** Extract a message string from an unknown caught value. */
 export function errorMessage(err: unknown): string {
   return (err as Error)?.message || String(err);
+}
+
+/** Extract a name string from an unknown caught value. */
+export function errorName(err: unknown): string {
+  return (err as Error)?.name ?? '';
 }
 
 export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', details?: string) {
@@ -14,11 +27,11 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
   }
   // compact the message to a data attribute to avoid too many duplicated messages
   const msgCompact = `${msgType}-${msg.trim()}`.replace(/[^-\w\u{80}-\u{10FFFF}]+/gu, '');
-  let msgContainer = parentContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
+  let msgContainer = parentContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${CSS.escape(msgCompact)}"]`);
   if (!msgContainer) {
     const el = document.createElement('div');
     el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><details class="ui ${msgType} message"><summary></summary></details></div>`;
-    msgContainer = el.childNodes[0] as HTMLDivElement;
+    msgContainer = el.firstElementChild as HTMLDivElement;
   }
 
   // merge duplicated messages into "the message (count)" format
@@ -43,10 +56,10 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
 const extensionRe = /(chrome|moz|safari(-web)?)-extension:\/\//;
 export function isGiteaError(filename: string, stack: string): boolean {
   if (extensionRe.test(filename) || extensionRe.test(stack)) return false;
-  const assetBaseUrl = new URL(`${window.config.assetUrlPrefix}/`, window.location.origin).href;
+  const assetBaseUrl = new URL(`${windowConfig()?.assetUrlPrefix}/`, window.location.origin).href;
   if (filename && !filename.startsWith(assetBaseUrl) && !filename.startsWith(window.location.origin)) return false;
-  if (stack && !stack.includes(assetBaseUrl)) return false;
-  return true;
+  if (!windowConfig()?.runModeIsProd && stack.includes(`${window.location.origin}/web_src/`)) return true;
+  return !stack || stack.includes(assetBaseUrl);
 }
 
 export function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}: ErrorEvent & PromiseRejectionEvent) {
@@ -58,8 +71,12 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
   // - https://github.com/go-gitea/gitea/issues/20240
   if (!err) {
     if (message) console.error(new Error(message));
-    if (window.config.runModeIsProd) return;
+    if (windowConfig()?.runModeIsProd) return;
   }
+
+  // Don't show network errors, happens on ref-issue when clicking on the
+  // issue link while the fetch request is still running.
+  if (isNetworkError(err)) return;
 
   // Filter out errors from browser extensions or other non-Gitea scripts.
   if (!isGiteaError(filename ?? '', err?.stack ?? '')) return;

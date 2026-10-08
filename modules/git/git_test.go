@@ -10,10 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMain(m *testing.M) {
-	RunGitTests(m)
-}
-
 func TestParseGitVersion(t *testing.T) {
 	v, err := parseGitVersionLine("git version 2.29.3")
 	assert.NoError(t, err)

@@ -9,7 +9,7 @@ import (
 )
 
 func fieldByName(v reflect.Value, field string) reflect.Value {
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 	f := v.FieldByName(field)

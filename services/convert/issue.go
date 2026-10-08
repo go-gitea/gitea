@@ -9,16 +9,16 @@ import (
 	"net/url"
 	"strings"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/label"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/label"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
@@ -33,7 +33,7 @@ func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.
 	return toIssue(ctx, doer, issue, APIAssetDownloadURL)
 }
 
-func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
+func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(ctx context.Context, repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
@@ -53,7 +53,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		Poster:      ToUser(ctx, issue.Poster, doer),
 		Title:       issue.Title,
 		Body:        issue.Content,
-		Attachments: toAttachments(issue.Repo, issue.Attachments, getDownloadURL),
+		Attachments: toAttachments(ctx, issue.Repo, issue.Attachments, getDownloadURL),
 		Ref:         issue.Ref,
 		State:       issue.State(),
 		IsLocked:    issue.IsLocked,
@@ -99,7 +99,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		return &api.Issue{}
 	}
 	if len(issue.Projects) > 0 {
-		apiIssue.Projects = ToAPIProjectList(issue.Projects)
+		apiIssue.Projects = ToProjectList(ctx, issue.Projects, doer)
 	}
 
 	if err := issue.LoadAssignees(ctx); err != nil {

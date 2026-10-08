@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -72,6 +72,14 @@ func Test_calculateDuration(t *testing.T) {
 				status:  StatusRunning,
 			},
 			want: 500 * time.Second,
+		},
+		{
+			name: "running started in the future",
+			args: args{
+				started: 1005,
+				status:  StatusRunning,
+			},
+			want: 0,
 		},
 		{
 			name: "done",

@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	issues_model "gitea.dev/models/issues"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // AddIssueSubscription Subscribe user to issue
@@ -128,7 +128,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 
 	// only admin and user for itself can change subscription
 	if user.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
-		ctx.APIError(http.StatusForbidden, fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.Doer.Name, user.Name))
+		ctx.APIError(http.StatusForbidden, fmt.Sprintf("%s is not permitted to change subscriptions for %s", ctx.Doer.Name, user.Name))
 		return
 	}
 

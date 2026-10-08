@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +19,6 @@ func TestGenerateMessageID(t *testing.T) {
 	}
 
 	setting.MailService = &mailService
-	setting.Domain = "localhost"
 
 	date := time.Date(2000, 1, 2, 3, 4, 5, 6, time.UTC)
 	m := NewMessageFrom("", "display-name", "from-address", "subject", "body")

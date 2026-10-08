@@ -5,22 +5,19 @@
 package admin
 
 import (
-	"errors"
 	"net/http"
 
-	system_model "code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/setting/config"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/mailer"
-
-	"gitea.com/go-chi/session"
+	system_model "gitea.dev/models/system"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/setting/config"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/mailer"
 )
 
 const (
@@ -94,20 +91,6 @@ func Config(ctx *context.Context) {
 	ctx.Data["CacheItemTTL"] = setting.CacheService.TTL
 
 	sessionCfg := setting.SessionConfig
-	if sessionCfg.Provider == "VirtualSession" {
-		var realSession session.Options
-		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
-			log.Error("Unable to unmarshall session config for virtual provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
-		}
-		sessionCfg.Provider = realSession.Provider
-		sessionCfg.ProviderConfig = realSession.ProviderConfig
-		sessionCfg.CookieName = realSession.CookieName
-		sessionCfg.CookiePath = realSession.CookiePath
-		sessionCfg.Gclifetime = realSession.Gclifetime
-		sessionCfg.Maxlifetime = realSession.Maxlifetime
-		sessionCfg.Secure = realSession.Secure
-		sessionCfg.Domain = realSession.Domain
-	}
 	sessionCfg.ProviderConfig = ""
 	ctx.Data["SessionConfig"] = sessionCfg
 
@@ -161,11 +144,7 @@ loop:
 
 		err := validateConfigKeyValue(key, value)
 		if err != nil {
-			if errors.Is(err, util.ErrInvalidArgument) {
-				ctx.JSONError(err.Error())
-			} else {
-				ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
-			}
+			ctx.JSONErrorAuto(err)
 			break loop
 		}
 		configSettings[key] = value

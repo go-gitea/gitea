@@ -8,18 +8,18 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	issue_service "code.gitea.io/gitea/services/issue"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	issue_service "gitea.dev/services/issue"
 )
 
 // AddTimeManually tracks time manually
 func AddTimeManually(c *context.Context) {
-	form := web.GetForm(c).(*forms.AddTimeManuallyForm)
+	form := web.GetForm[*forms.AddTimeManuallyForm](c)
 	issue := GetActionIssue(c)
 	if c.Written() {
 		return
