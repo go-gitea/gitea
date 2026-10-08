@@ -201,9 +201,12 @@ func (telegramConvertor) WorkflowJob(p *api.WorkflowJobPayload) (TelegramPayload
 
 func createTelegramPayloadHTML(msgHTML string) TelegramPayload {
 	// https://core.telegram.org/bots/api#formatting-options
+	sanitized := strings.TrimSpace(string(markup.Sanitize(msgHTML)))
+	// Rich messages collapse bare newlines like HTML, so keep line breaks as <br>.
+	sanitized = strings.NewReplacer("\r\n", "<br>", "\r", "<br>", "\n", "<br>").Replace(sanitized)
 	return TelegramPayload{
 		RichMessage: InputRichMessage{
-			HTML: strings.TrimSpace(string(markup.Sanitize(msgHTML))),
+			HTML: sanitized,
 		},
 	}
 }
