@@ -185,6 +185,13 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		}
 	}
 
+	if ok, err := creatorCanManageWebhook(ctx, w); err != nil {
+		return fmt.Errorf("PrepareWebhook: check creator of webhook %d: %w", w.ID, err)
+	} else if !ok {
+		log.Info("Deactivating webhook %d: its creator %d can no longer manage it", w.ID, w.CreatedByID)
+		return webhook_model.DeactivateWebhook(ctx, w.ID)
+	}
+
 	payload, err := p.JSONPayload()
 	if err != nil {
 		return fmt.Errorf("JSONPayload for %s: %w", event, err)
@@ -241,9 +248,8 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_modu
 	}
 	ws = append(ws, systemHooks...)
 
-	ws, err = filterRevokedWebhooks(ctx, ws, source.Repository)
-	if err != nil {
-		return err
+	if len(ws) == 0 {
+		return nil
 	}
 
 	for _, w := range ws {

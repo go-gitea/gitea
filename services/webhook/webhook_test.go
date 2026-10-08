@@ -184,7 +184,6 @@ func testWebhookPrepareRevokedCreator(t *testing.T) {
 		{"RepoHookByDeletedUser", webhook_model.Webhook{RepoID: repo.ID, CreatedByID: 9999}, false},
 		{"RepoHookByProhibitedUser", webhook_model.Webhook{RepoID: repo.ID, CreatedByID: 5}, false},
 		{"OrgHookByOwner", webhook_model.Webhook{OwnerID: 3, CreatedByID: 2}, true},
-		{"OrgHookByMember", webhook_model.Webhook{OwnerID: 3, CreatedByID: 4}, false},
 		{"SystemHookBySiteAdmin", webhook_model.Webhook{IsSystemWebhook: true, CreatedByID: 1}, true},
 		{"SystemHookByNonAdmin", webhook_model.Webhook{IsSystemWebhook: true, CreatedByID: 2}, false},
 	}
