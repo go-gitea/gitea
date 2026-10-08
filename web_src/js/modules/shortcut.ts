@@ -2,7 +2,6 @@ import {registerGlobalInitFunc} from './observer.ts';
 import {createElementFromHTML, hideElem, toggleElem} from '../utils/dom.ts';
 import {showFomanticModal} from './fomantic/modal.ts';
 import {html} from '../utils/html.ts';
-import {svgRaw} from '../svg.ts';
 
 type ShortcutHandler = (el: HTMLElement) => boolean;
 
@@ -76,7 +75,7 @@ function showShortcutHelp() {
       <div id="global-shortcut-help" class="ui small modal" role="dialog" aria-modal="true">
         <div class="header">
           Keyboard Shortcuts
-          ${svgRaw('octicon-x', 16, 'close-modal')}
+          <button type="button" class="close-modal"></button>
         </div>
         <div class="scrolling content">
           <table class="ui very basic compact unstackable table">
