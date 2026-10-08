@@ -55,6 +55,8 @@ func TestRender_Commits(t *testing.T) {
 	commitCompare := repo + "compare/" + sha + "..." + sha
 	commitCompareWithHash := commitCompare + "#L2"
 
+	test(sha, `<p><a href="`+commitPath+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
+	test(sha[:7], `<p><a href="`+commitPath+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
 	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
 	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>65f1bf2/src</code></a></p>`)
 
@@ -65,14 +67,21 @@ func TestRender_Commits(t *testing.T) {
 	test(commitCompare, `<p><a href="`+commitCompare+`" rel="nofollow"><code>65f1bf2...65f1bf2</code></a></p>`)
 	test(commitCompareWithHash, `<p><a href="`+commitCompareWithHash+`" rel="nofollow"><code>65f1bf2...65f1bf2 (L2)</code></a></p>`)
 
-	sha2 := "4a357436d925b5c974181ff12a994538ddc5a269"
+	test("commit "+sha, `<p>commit <a href="`+commitPath+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
+	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
+	test("deadbeef", `<p>deadbeef</p>`)
+	test("d27ace93", `<p>d27ace93</p>`)
+
 	linked := `<a href="` + commitPath + `" rel="nofollow"><code>65f1bf2</code></a>`
+	test(sha[:14]+".x", `<p>`+linked+`.x</p>`)
+	test(sha[:14]+".", `<p>`+linked+`.</p>`)
+	test(sha[:14]+",", `<p>`+linked+`,</p>`)
+	test("["+sha[:14]+"]", `<p>[`+linked+`]</p>`)
+	test("{"+sha[:7]+"}! x"+sha[:7]+" "+sha[:7]+"_x", `<p>{`+linked+`}! x65f1bf2 65f1bf2_x</p>`)
+
+	sha2 := "4a357436d925b5c974181ff12a994538ddc5a269"
 	linked2 := `<a href="/user13/repo11/commit/` + sha2 + `" rel="nofollow"><code>4a35743</code></a>`
 	compared := `<a href="/user13/repo11/compare/` + sha + `...` + sha2 + `" rel="nofollow"><code>65f1bf2...4a35743</code></a>`
-
-	test("commit "+sha, `<p>commit `+linked+`</p>`)
-	test(sha[:7]+".x ("+sha[:14]+"), {"+sha[:7]+"}!", `<p>`+linked+`.x (`+linked+`), {`+linked+`}!</p>`)
-	test("/home/gitea/"+sha+" x"+sha[:7]+" "+sha[:7]+"_x deadbeef", "<p>/home/gitea/"+sha+" x65f1bf2 65f1bf2_x deadbeef</p>")
 	test(sha[:7]+"..."+sha2+"..."+sha[:7], `<p>`+compared+`...`+linked+`</p>`)
 	test("x"+sha[:7]+"..."+sha2[:7]+" "+sha[:7]+"..."+sha2[:7]+"x", `<p>x65f1bf2...`+linked2+` `+linked+`...4a35743x</p>`)
 	test("deadbee..."+sha[:7]+" "+sha[:7]+"...deadbee", `<p>deadbee...65f1bf2 65f1bf2...deadbee</p>`)

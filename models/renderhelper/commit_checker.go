@@ -6,6 +6,7 @@ package renderhelper
 import (
 	"context"
 	"io"
+	"strings"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -36,7 +37,8 @@ func (c *commitChecker) ResolveCommitID(commitID string) string {
 	if c.repoOptional == nil {
 		return ""
 	}
-	if fullID, inCache := c.commitCache[commitID]; inCache {
+	fullID, inCache := c.commitCache[commitID]
+	if inCache {
 		return fullID
 	}
 
@@ -49,9 +51,8 @@ func (c *commitChecker) ResolveCommitID(commitID string) string {
 		c.gitRepo, c.gitRepoCloser = r, closer
 	}
 
-	fullID, err := c.gitRepo.ResolveCommitID(c.ctx, commitID)
-	if err != nil && !git.IsErrNotExist(err) {
-		log.Error("Unable to resolve commit ID %s in repository %s, error: %v", commitID, c.repoOptional.FullName(), err)
+	if commit, err := c.gitRepo.GetCommit(c.ctx, commitID); err == nil && strings.HasPrefix(commit.ID.String(), commitID) { // GetCommit resolves refs and peels tags too
+		fullID = commit.ID.String()
 	}
 	c.commitCache[commitID] = fullID
 	return fullID

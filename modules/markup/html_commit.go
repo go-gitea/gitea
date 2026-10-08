@@ -190,13 +190,12 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 	}
 }
 
-// hashCurrentPatternProcessor links commit IDs and "A...B" ranges of the current repository by their full commit IDs
+// hashCurrentPatternProcessor renders SHA1 strings to corresponding links that
+// are assumed to be in the same repository.
 func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
-	metas := ctx.RenderOptions.Metas
-	if metas == nil || metas["user"] == "" || metas["repo"] == "" || ctx.RenderHelper == nil {
+	if ctx.RenderOptions.Metas == nil || ctx.RenderOptions.Metas["user"] == "" || ctx.RenderOptions.Metas["repo"] == "" || ctx.RenderHelper == nil {
 		return
 	}
-	repoLink := "/:root/" + metas["user"] + "/" + metas["repo"]
 
 	start := 0
 	next := node.NextSibling
@@ -211,7 +210,7 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 			}
 		}
 		end := max(m[3], m[5]) // not m[1], the consumed boundary char may lead the next match
-		link := createHashLink(ctx, repoLink, node.Data, m)
+		link := createHashLink(ctx, node.Data, m)
 		if link == nil {
 			start = end
 			continue
@@ -223,7 +222,7 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 }
 
 // createHashLink returns nil if a matched ID doesn't resolve or the match sits inside a URL or email that a later processor links
-func createHashLink(ctx *RenderContext, repoLink, text string, m []int) *html.Node {
+func createHashLink(ctx *RenderContext, text string, m []int) *html.Node {
 	if isInLinkOrEmail(text, m[2]) {
 		return nil
 	}
@@ -231,20 +230,26 @@ func createHashLink(ctx *RenderContext, repoLink, text string, m []int) *html.No
 	if fullID == "" {
 		return nil
 	}
+	repoLink := fmt.Sprintf("/:root/%s/%s/", ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"])
 	if m[4] < 0 {
-		return createCodeLink(repoLink+"/commit/"+fullID, base.ShortSha(fullID), "commit")
+		return createCodeLink(repoLink+"commit/"+fullID, base.ShortSha(fullID), "commit")
 	}
 	fullID2 := ctx.RenderHelper.ResolveCommitID(text[m[4]:m[5]])
 	if fullID2 == "" {
 		return nil
 	}
-	return createCodeLink(repoLink+"/compare/"+fullID+"..."+fullID2, base.ShortSha(fullID)+"..."+base.ShortSha(fullID2), "compare")
+	return createCodeLink(repoLink+"compare/"+fullID+"..."+fullID2, base.ShortSha(fullID)+"..."+base.ShortSha(fullID2), "compare")
 }
 
 func isInLinkOrEmail(text string, pos int) bool {
+	wordStart := strings.LastIndexAny(text[:pos], " \t\n\f\r") + 1 // URLs and emails never span whitespace
+	word := text[wordStart:]
+	if wordEnd := strings.IndexAny(word, " \t\n\f\r"); wordEnd >= 0 {
+		word = word[:wordEnd]
+	}
 	for _, re := range []*regexp.Regexp{common.GlobalVars().LinkifyRegex, globalVars().emailRegex} {
-		for _, loc := range re.FindAllStringIndex(text, -1) {
-			if loc[0] <= pos && pos < loc[1] {
+		for _, loc := range re.FindAllStringIndex(word, -1) {
+			if loc[0] <= pos-wordStart && pos-wordStart < loc[1] {
 				return true
 			}
 		}

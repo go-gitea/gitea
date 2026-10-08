@@ -476,23 +476,6 @@ func (repo *Repository) GetRefCommitID(ctx context.Context, name string) (string
 	return info.ID, nil
 }
 
-// ResolveCommitID expands a full or abbreviated commit ID, rejecting other object types and hex-like ref names that cat-file prefers
-func (repo *Repository) ResolveCommitID(_ context.Context, commitID string) (string, error) {
-	batch, cancel, err := repo.CatFileBatch()
-	if err != nil {
-		return "", err
-	}
-	defer cancel()
-	info, err := batch.QueryInfo(commitID)
-	if err != nil {
-		return "", err
-	}
-	if info.Type != "commit" || !strings.HasPrefix(info.ID, commitID) {
-		return "", ErrNotExist{ID: commitID}
-	}
-	return info.ID, nil
-}
-
 func (repo *Repository) getCommit(_ context.Context, id ObjectID) (*Commit, error) {
 	batch, cancel, err := repo.CatFileBatch()
 	if err != nil {
