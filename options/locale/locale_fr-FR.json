@@ -1837,7 +1837,7 @@
   "repo.pulls.merge_pull_request": "Fusionner",
   "repo.pulls.rebase_merge_pull_request": "Rebaser puis rattraper",
   "repo.pulls.rebase_merge_commit_pull_request": "Rebaser puis fusionner",
-  "repo.pulls.squash_merge_pull_request": "Aplatir",
+  "repo.pulls.squash_merge_pull_request": "Aplatir puis fusionner",
   "repo.pulls.fast_forward_only_merge_pull_request": "Avance rapide uniquement",
   "repo.pulls.merge_manually": "Fusionner manuellement",
   "repo.pulls.merge_commit_id": "L'ID de la révision de fusion",

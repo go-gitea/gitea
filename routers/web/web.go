@@ -200,7 +200,6 @@ func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.C
 						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
 						return
 					}
-					middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 					ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 					return
 				}
@@ -1101,7 +1100,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/create", repo.Create)
 		m.Post("/create", web.Bind[*forms.CreateRepoForm](), repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
-		m.Post("/migrate", web.Bind[*forms.MigrateRepoForm](), repo.MigratePost)
+		m.Post("/migrate", repo.MigratePost)
 		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
 	// end "/repo": create, migrate, search
