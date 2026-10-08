@@ -336,6 +336,7 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 				Funding:                 meta.Funding,
 				AcceptDependencies:      meta.AcceptDependencies,
 				Deprecated:              meta.Deprecated,
+				NpmjsTarballURL:         true,
 			},
 		}
 
