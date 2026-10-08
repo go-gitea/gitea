@@ -571,12 +571,6 @@ type AddTimeManuallyForm struct {
 	Minutes int `binding:"Range(0,1000)"`
 }
 
-// SaveTopicForm form for save topics for repository
-type SaveTopicForm struct {
-	middleware.FormDefaultValidator
-	Topics []string `binding:"topics;Required;"`
-}
-
 // AddDeployTokenForm form for adding a deploy token to a repository
 type AddDeployTokenForm struct {
 	middleware.FormDefaultValidator
