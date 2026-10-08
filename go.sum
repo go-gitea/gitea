@@ -14,8 +14,8 @@ gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGq
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 gitea.dev/actionslib v1.3.0 h1:xZRoTL1+sK/PaglT9uXkZJ9g0nk1WLMEH4FUXdXpKKw=
 gitea.dev/actionslib v1.3.0/go.mod h1:svCefEsavx4jmn8vJ4wTG7Q0KBcGfrFmGUjrhxuNUAQ=
-gitea.dev/codespace-proto-go v0.0.0-20261008111529-aadfa2e1b2f8 h1:Z05XkiXYmBIEzjPnIbYKus0g+idn8c3X1wDJmWLLauE=
-gitea.dev/codespace-proto-go v0.0.0-20261008111529-aadfa2e1b2f8/go.mod h1:HYAE81idAawJyuWFLref9Das+loyey9+q7gY/J1DZWw=
+gitea.dev/codespace-proto-go v0.0.0-20261008155322-5b416106de03 h1:8Wd9SNmlx30L/7GqdmKoGD26aDw2ewGivl7pXomZWew=
+gitea.dev/codespace-proto-go v0.0.0-20261008155322-5b416106de03/go.mod h1:HYAE81idAawJyuWFLref9Das+loyey9+q7gY/J1DZWw=
 gitea.dev/sdk v1.2.0 h1:avRtJl/nKCGispgSalo9czoZM9Rto1awnE0caNAoXGo=
 gitea.dev/sdk v1.2.0/go.mod h1:rfh5oNdIK24cbCREwIn1tqWKQW+IICXFGWJyebuOAOE=
 github.com/42wim/httpsig v1.2.4 h1:mI5bH0nm4xn7K18fo1K3okNDRq8CCJ0KbBYWyA6r8lU=
