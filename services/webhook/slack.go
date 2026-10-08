@@ -129,7 +129,7 @@ func (s slackConvertor) Issue(p *api.IssuePayload) (SlackPayload, error) {
 		attachments = append(attachments, SlackAttachment{
 			Color:      fmt.Sprintf("%x", color),
 			AuthorName: p.Sender.UserName,
-			AuthorLink: setting.AppURL + p.Sender.UserName,
+			AuthorLink: p.Sender.HTMLURL,
 			AuthorIcon: p.Sender.AvatarURL,
 			Title:      issueTitle,
 			TitleLink:  p.Issue.HTMLURL,
@@ -147,7 +147,7 @@ func (s slackConvertor) IssueComment(p *api.IssueCommentPayload) (SlackPayload, 
 	return s.createPayload(text, []SlackAttachment{{
 		Color:      fmt.Sprintf("%x", color),
 		AuthorName: p.Sender.UserName,
-		AuthorLink: setting.AppURL + p.Sender.UserName,
+		AuthorLink: p.Sender.HTMLURL,
 		AuthorIcon: p.Sender.AvatarURL,
 		Title:      issueTitle,
 		TitleLink:  p.Comment.HTMLURL,
@@ -229,7 +229,7 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 	return s.createPayload(text, []SlackAttachment{{
 		Color:      s.Color,
 		AuthorName: p.Pusher.UserName,
-		AuthorLink: setting.AppURL + p.Pusher.UserName,
+		AuthorLink: p.Pusher.HTMLURL,
 		AuthorIcon: p.Pusher.AvatarURL,
 		Title:      p.Repo.HTMLURL,
 		TitleLink:  p.Repo.HTMLURL,
@@ -248,7 +248,7 @@ func (s slackConvertor) PullRequest(p *api.PullRequestPayload) (SlackPayload, er
 		attachments = append(attachments, SlackAttachment{
 			Color:      fmt.Sprintf("%x", color),
 			AuthorName: p.Sender.UserName,
-			AuthorLink: setting.AppURL + p.Sender.UserName,
+			AuthorLink: p.Sender.HTMLURL,
 			AuthorIcon: p.Sender.AvatarURL,
 			Title:      issueTitle,
 			TitleLink:  p.PullRequest.HTMLURL,

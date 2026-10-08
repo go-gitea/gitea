@@ -55,6 +55,7 @@ func TestSlackPayload(t *testing.T) {
 		require.Len(t, pl.Attachments, 1)
 		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
 		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
+		assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
 	})
 
 	t.Run("Issue", func(t *testing.T) {
@@ -68,6 +69,7 @@ func TestSlackPayload(t *testing.T) {
 		require.Len(t, pl.Attachments, 1)
 		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
 		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
+		assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
 
 		p.Action = api.HookIssueClosed
 		pl, err = sc.Issue(p)
@@ -86,6 +88,7 @@ func TestSlackPayload(t *testing.T) {
 		require.Len(t, pl.Attachments, 1)
 		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
 		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
+		assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -98,6 +101,7 @@ func TestSlackPayload(t *testing.T) {
 		require.Len(t, pl.Attachments, 1)
 		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
 		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
+		assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
