@@ -379,6 +379,9 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 
 func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 	if remember {
+		if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
+			log.Error("Failed to delete expired auth tokens: %v", err)
+		}
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
 			ctx.ServerError("CreateAuthTokenForUserID", err)
