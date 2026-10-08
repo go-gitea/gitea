@@ -1,3 +1,3 @@
 {{if .Severity.String}}
-	<span class="ui label {{if eq .Severity.String "critical"}}red{{else if eq .Severity.String "high"}}orange{{else if eq .Severity.String "medium"}}yellow{{end}}">{{ctx.Locale.Tr (print "repo.security_advisories.severity." .Severity.String)}}</span>
+	<span class="ui label {{.Severity.Color}}">{{ctx.Locale.Tr .Severity.LocaleKey}}</span>
 {{end}}

@@ -1,6 +1,6 @@
 {{template "base/head" .}}
-{{$state := .AdvisoryState}}
-{{$advisory := $state.Advisory}}
+{{$perms := .AdvisoryPerms}}
+{{$advisory := .Advisory}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository view issue security-advisory">
 	{{template "repo/header" .}}
 	<div class="ui container">
@@ -12,34 +12,21 @@
 					<span class="index">{{$advisory.Identifier}}</span>
 				</h1>
 				<div class="issue-title-buttons">
-					{{if $state.CanEdit}}
+					{{if $perms.CanEdit}}
 						<a role="button" class="ui small basic button" href="{{$advisory.Link}}/edit">{{ctx.Locale.Tr "repo.security_advisories.edit"}}</a>
 					{{end}}
 				</div>
 			</div>
 			<div class="issue-title-meta flex-text-block">
 				{{template "repo/security_advisory/state_label" $advisory}}
-				<span class="time-desc">
-					{{if $advisory.DuplicateOf}}
-						{{ctx.Locale.Tr "repo.security_advisories.closed_as_duplicate" $advisory.DuplicateOf.Link $advisory.DuplicateOf.Identifier}}
-					{{else if eq $advisory.CloseReason.String "duplicate"}}
-						{{ctx.Locale.Tr "repo.security_advisories.closed_as_duplicate_hidden"}}
-					{{else if eq $advisory.CloseReason.String "invalid"}}
-						{{ctx.Locale.Tr "repo.security_advisories.closed_as_invalid"}}
-					{{else if $advisory.Publisher}}
-						{{ctx.Locale.Tr "repo.security_advisories.published_by" (DateUtils.TimeSince $advisory.PublishedUnix) $advisory.Publisher.HomeLink $advisory.Publisher.GetDisplayName}}
-					{{else if $state.CanSeeDiscussion}}
-						{{ctx.Locale.Tr (Iif $advisory.IsReport "repo.security_advisories.reported_by" "repo.security_advisories.opened_by") (DateUtils.TimeSince $advisory.CreatedUnix) $advisory.Reporter.HomeLink $advisory.Reporter.GetDisplayName}}
-					{{end}}
-				</span>
+				<span class="time-desc">{{.StatusText}}</span>
 			</div>
 		</div>
 
 		<div class="issue-content">
 			<div class="issue-content-left">
 				<div class="comment-list">
-					{{$author := $advisory.Publisher}}
-					{{if $state.CanSeeDiscussion}}{{$author = $advisory.Reporter}}{{end}}
+					{{$author := .DescriptionAuthor}}
 					<div class="timeline-item comment">
 						{{if $author}}
 							<a class="timeline-avatar" href="{{$author.HomeLink}}">{{ctx.AvatarUtils.Avatar $author 40}}</a>
@@ -61,7 +48,7 @@
 						</div>
 					</div>
 
-					{{if $state.CanSeeDiscussion}}
+					{{if $perms.CanSeeDiscussion}}
 						<div class="timeline-item event">
 							<span class="badge">{{svg "octicon-lock"}}</span>
 							<span class="comment-text-line">{{ctx.Locale.Tr "repo.security_advisories.discussion_desc"}}</span>
@@ -163,16 +150,10 @@
 						<span class="empty-list">{{ctx.Locale.Tr "repo.security_advisories.severity.unknown"}}</span>
 					{{end}}
 				</div>
-				{{if $advisory.CvssV4Vector}}
+				{{range .CVSSScores}}
 					<div class="tw-mt-2">
-						<div class="flex-text-inline">CVSS 4.0 <strong>{{printf "%.1f" $advisory.CvssV4Score}}</strong></div>
-						<div><code class="tw-text-12 tw-break-anywhere">{{$advisory.CvssV4Vector}}</code></div>
-					</div>
-				{{end}}
-				{{if $advisory.CvssV3Vector}}
-					<div class="tw-mt-2">
-						<div class="flex-text-inline">CVSS 3.1 <strong>{{printf "%.1f" $advisory.CvssV3Score}}</strong></div>
-						<div><code class="tw-text-12 tw-break-anywhere">{{$advisory.CvssV3Vector}}</code></div>
+						<div class="flex-text-inline">CVSS {{.Version}} <strong>{{printf "%.1f" .Score}}</strong></div>
+						<div><code class="tw-text-12 tw-break-anywhere">{{.Vector}}</code></div>
 					</div>
 				{{end}}
 
@@ -192,9 +173,9 @@
 					{{range $advisory.Vulnerabilities}}
 						<div class="item">
 							<div class="flex-text-block"><span class="ui basic label">{{.Ecosystem}}</span><span class="tw-break-anywhere">{{.PackageName}}</span></div>
-							{{if .VulnerableVersionRange}}<div class="tw-text-text-light">{{ctx.Locale.Tr "repo.security_advisories.vulnerable_versions"}}: <code>{{.VulnerableVersionRange}}</code></div>{{end}}
+							{{if .VulnerableVersionRange}}<div class="tw-text-text-light">{{ctx.Locale.Tr "repo.security_advisories.affected_versions"}}: <code>{{.VulnerableVersionRange}}</code></div>{{end}}
 							{{if .PatchedVersions}}<div class="tw-text-text-light">{{ctx.Locale.Tr "repo.security_advisories.patched_versions"}}: <code>{{.PatchedVersions}}</code></div>{{end}}
-							{{if .VulnerableFunctions}}<div class="tw-text-text-light">{{ctx.Locale.Tr "repo.security_advisories.vulnerable_functions"}}: <code>{{StringUtils.Join .VulnerableFunctions ", "}}</code></div>{{end}}
+							{{if .VulnerableFunctions}}<div class="tw-text-text-light">{{ctx.Locale.Tr "repo.security_advisories.affected_functions"}}: <code>{{StringUtils.Join .VulnerableFunctions ", "}}</code></div>{{end}}
 						</div>
 					{{else}}
 						<span class="item empty-list">{{ctx.Locale.Tr "repo.security_advisories.none"}}</span>
@@ -231,64 +212,52 @@
 					{{end}}
 				</div>
 
-				{{if $state.CanSeeDiscussion}}
+				{{if $perms.CanSeeDiscussion}}
 					<div class="divider"></div>
 					<span class="text"><strong>{{ctx.Locale.Tr "repo.security_advisories.collaborators"}}</strong></span>
 					<div class="ui relaxed list">
-						{{range $advisory.CollaboratorUsers}}
+						{{range .Collaborators}}
 							<div class="item flex-text-block">
-								{{ctx.AvatarUtils.Avatar . 20}}
-								<span class="tw-flex-1">{{template "shared/user/authorlink" .}}</span>
+								{{if .User}}
+									{{ctx.AvatarUtils.Avatar .User 20}}
+									<span class="tw-flex-1">{{template "shared/user/authorlink" .User}}</span>
+								{{else}}
+									{{svg "octicon-people" 20}}
+									<span class="tw-flex-1">{{.Team.Name}}</span>
+								{{end}}
 								{{if $.CanManageSecurityAdvisories}}
-									<button type="button" class="ui mini basic icon button link-action" data-url="{{$advisory.Link}}/collaborators/delete?user_id={{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "remove"}}" aria-label="{{ctx.Locale.Tr "remove"}}">{{svg "octicon-x"}}</button>
+									<button type="button" class="ui mini basic icon button link-action" data-url="{{.RemoveLink}}" data-tooltip-content="{{ctx.Locale.Tr "remove"}}" aria-label="{{ctx.Locale.Tr "remove"}}">{{svg "octicon-x"}}</button>
 								{{end}}
 							</div>
-						{{end}}
-						{{range $advisory.CollaboratorTeams}}
-							<div class="item flex-text-block">
-								{{svg "octicon-people" 20}}
-								<span class="tw-flex-1">{{.Name}}</span>
-								{{if $.CanManageSecurityAdvisories}}
-									<button type="button" class="ui mini basic icon button link-action" data-url="{{$advisory.Link}}/collaborators/delete?team_id={{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "remove"}}" aria-label="{{ctx.Locale.Tr "remove"}}">{{svg "octicon-x"}}</button>
-								{{end}}
-							</div>
-						{{end}}
-						{{if not (or $advisory.CollaboratorUsers $advisory.CollaboratorTeams)}}
+						{{else}}
 							<span class="item empty-list">{{ctx.Locale.Tr "repo.security_advisories.none"}}</span>
 						{{end}}
 					</div>
 					{{if .CanManageSecurityAdvisories}}
-						<form class="ui form form-fetch-action" action="{{$advisory.Link}}/collaborators" method="post">
-							<input type="hidden" name="type" value="user">
-							<div class="field">
-								<div class="ui search fluid input" data-global-init="initSecurityAdvisoryUserSearch">
-									<input class="prompt" name="collaborator" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" aria-label="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
-								</div>
-							</div>
-							<button type="submit" class="fluid ui button">{{svg "octicon-person-add"}} {{ctx.Locale.Tr "repo.security_advisories.collaborator.add_user"}}</button>
-						</form>
-						{{if .Repository.Owner.IsOrganization}}
-							<form class="ui form form-fetch-action tw-mt-2" action="{{$advisory.Link}}/collaborators" method="post">
-								<input type="hidden" name="type" value="team">
-								<div class="field">
-									<div class="ui search fluid input" data-global-init="initSecurityAdvisoryTeamSearch" data-org-name="{{.Repository.Owner.Name}}">
-										<input class="prompt" name="collaborator" placeholder="{{ctx.Locale.Tr "search.team_kind"}}" aria-label="{{ctx.Locale.Tr "search.team_kind"}}" autocomplete="off" required>
+						<div class="flex-relaxed-list">
+							{{range .CollaboratorForms}}
+								{{$placeholder := ctx.Locale.Tr .PlaceholderKey}}
+								<form class="ui form form-fetch-action" action="{{$advisory.Link}}/collaborators" method="post">
+									<input type="hidden" name="type" value="{{.Type}}">
+									<div class="field">
+										<div class="ui search fluid input" data-global-init="{{.SearchInit}}"{{with .OrgName}} data-org-name="{{.}}"{{end}}>
+											<input class="prompt" name="collaborator" placeholder="{{$placeholder}}" aria-label="{{$placeholder}}" autocomplete="off" required>
+										</div>
 									</div>
-								</div>
-								<button type="submit" class="fluid ui button">{{svg "octicon-people"}} {{ctx.Locale.Tr "repo.security_advisories.collaborator.add_team"}}</button>
-							</form>
-						{{end}}
+									<button type="submit" class="fluid ui button">{{svg .Icon}} {{ctx.Locale.Tr .SubmitKey}}</button>
+								</form>
+							{{end}}
+						</div>
 					{{end}}
 				{{end}}
 
 				{{if .CanManageSecurityAdvisories}}
 					<div class="divider"></div>
-					{{range .StateTargets}}
+					{{range .StateActions}}
 						<form class="tw-mt-1 form-fetch-action single-button-form" method="post" action="{{$advisory.Link}}/state">
-							<input type="hidden" name="state" value="{{.String}}">
-							<button type="submit" class="fluid ui {{if eq .String "published"}}primary{{else if eq .String "withdrawn"}}red{{end}} button"{{if or (eq .String "published") (eq .String "withdrawn")}} data-modal-confirm="{{ctx.Locale.Tr (print "repo.security_advisories.action." .String "_confirm")}}"{{end}}>
-								{{if eq .String "published"}}{{svg "octicon-shield-check"}}{{else if eq .String "draft"}}{{svg "octicon-pencil"}}{{else if eq .String "withdrawn"}}{{svg "octicon-shield-x"}}{{else}}{{svg "octicon-x-circle"}}{{end}}
-								{{if and (eq .String "draft") (eq $advisory.State.String "closed")}}{{ctx.Locale.Tr "repo.security_advisories.action.reopen"}}{{else}}{{ctx.Locale.Tr (print "repo.security_advisories.action." .String)}}{{end}}
+							<input type="hidden" name="state" value="{{.State}}">
+							<button type="submit" class="fluid ui {{.ButtonClass}} button"{{with .ConfirmKey}} data-modal-confirm="{{ctx.Locale.Tr .}}"{{end}}>
+								{{svg .State.Icon}} {{ctx.Locale.Tr .LabelKey}}
 							</button>
 						</form>
 					{{end}}

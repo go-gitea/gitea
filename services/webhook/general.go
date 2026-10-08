@@ -228,14 +228,6 @@ func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, w
 	return text, color
 }
 
-// repositoryAdvisorySender doesn't reveal who reported an undisclosed vulnerability in chat messages
-func repositoryAdvisorySender(p *api.RepositoryAdvisoryPayload) *api.User {
-	if p.Action == api.HookRepositoryAdvisoryReported {
-		return &api.User{UserName: user_model.GhostUserName, FullName: user_model.GhostUserName}
-	}
-	return p.Sender
-}
-
 func getRepositoryAdvisoryPayloadInfo(p *api.RepositoryAdvisoryPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	switch p.Action {

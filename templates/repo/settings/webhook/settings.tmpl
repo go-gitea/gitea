@@ -178,7 +178,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="repository_advisory_reported" type="checkbox" data-explicit-select-only {{if .Webhook.HookEvents.Get "repository_advisory_reported"}}checked{{end}}>
+					<input name="repository_advisory_reported" type="checkbox" {{if .Webhook.HookEvents.Get "repository_advisory_reported"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_repository_advisory_reported"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_repository_advisory_reported_desc"}}</span>
 				</div>

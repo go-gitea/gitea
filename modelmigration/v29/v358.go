@@ -85,21 +85,32 @@ func AddSecurityAdvisoryTables(_ context.Context, x base.EngineMigration) error 
 		new(SecurityAdvisoryCollaborator), new(SecurityAdvisoryLabel), new(SecurityAdvisoryComment)); err != nil {
 		return err
 	}
-
-	const typeSecurityAdvisories, typeCode, accessModeRead = 11, 1, 1
 	defaultUnits := setting.Repository.DefaultRepoUnits
 	if len(defaultUnits) > 0 && !slices.Contains(defaultUnits, "repo.security_advisories") {
 		return nil // the instance doesn't want the unit by default
 	}
-	if _, err := x.Exec(`INSERT INTO repo_unit (repo_id, type, config, created_unix, anonymous_access_mode, everyone_access_mode)
-SELECT id, ?, '{}', ?, 0, 0 FROM repository
-WHERE is_fork = ? AND is_mirror = ? AND NOT EXISTS (SELECT 1 FROM repo_unit ru WHERE ru.repo_id = repository.id AND ru.type = ?)`,
-		typeSecurityAdvisories, timeutil.TimeStampNow(), false, false, typeSecurityAdvisories); err != nil {
+	if err := enableAdvisoriesUnitForRepos(x); err != nil {
 		return err
 	}
+	return grantAdvisoriesReadToCodeTeams(x)
+}
 
-	// teams with per-unit permissions which can read the code get read access to published advisories, other units
-	// like the external wiki don't grant access to the repositories, teams with a general permission already cover new units
+func enableAdvisoriesUnitForRepos(x base.EngineMigration) error {
+	const typeSecurityAdvisories = 11
+	_, err := x.Exec(`INSERT INTO repo_unit (repo_id, type, config, created_unix, anonymous_access_mode, everyone_access_mode)
+SELECT id, ?, '{}', ?, 0, 0 FROM repository
+WHERE is_fork = ? AND is_mirror = ? AND NOT EXISTS (SELECT 1 FROM repo_unit ru WHERE ru.repo_id = repository.id AND ru.type = ?)`,
+		typeSecurityAdvisories, timeutil.TimeStampNow(), false, false, typeSecurityAdvisories)
+	return err
+}
+
+// grantAdvisoriesReadToCodeTeams only changes teams with per-unit permissions, a general permission already covers new units
+func grantAdvisoriesReadToCodeTeams(x base.EngineMigration) error {
+	const (
+		typeCode               = 1
+		typeSecurityAdvisories = 11
+		accessModeRead         = 1
+	)
 	_, err := x.Exec(`INSERT INTO team_unit (org_id, team_id, type, access_mode)
 SELECT org_id, id, ?, ? FROM team
 WHERE authorize = 0

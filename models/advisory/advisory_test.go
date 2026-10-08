@@ -28,6 +28,12 @@ func TestStateTransitions(t *testing.T) {
 	}
 }
 
+func TestSeverityLocaleKey(t *testing.T) {
+	assert.Equal(t, "repo.security_advisories.severity.moderate", advisory_model.SeverityMedium.LocaleKey())
+	assert.Equal(t, "repo.security_advisories.severity.unknown", advisory_model.SeverityUnknown.LocaleKey())
+	assert.Equal(t, "repo.security_advisories.severity.high", advisory_model.SeverityHigh.LocaleKey())
+}
+
 func TestCreateAndDeleteAdvisory(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
@@ -64,16 +70,13 @@ func TestCreateAndDeleteAdvisory(t *testing.T) {
 	// a concurrent request must not apply the same transition again
 	beforePublish := *got
 	a.State = advisory_model.StatePublished
-	changed, err := advisory_model.UpdateAdvisoryState(t.Context(), a, advisory_model.StateDraft)
-	require.NoError(t, err)
-	assert.True(t, changed)
-	changed, err = advisory_model.UpdateAdvisoryState(t.Context(), a, advisory_model.StateDraft)
-	require.NoError(t, err)
-	assert.False(t, changed)
+	require.NoError(t, advisory_model.UpdateAdvisoryState(t.Context(), a, advisory_model.StateDraft))
+	assert.ErrorIs(t, advisory_model.UpdateAdvisoryState(t.Context(), a, advisory_model.StateDraft), advisory_model.ErrAdvisoryChanged)
 	assert.ErrorIs(t, advisory_model.UpdateAdvisory(t.Context(), &beforePublish, "summary"), advisory_model.ErrAdvisoryChanged, "an edit permitted before publishing must fail")
 
 	for _, c := range []*advisory_model.Collaborator{{UserID: 4}, {UserID: 5}, {TeamID: 7}} {
-		_, err = advisory_model.AddCollaborator(t.Context(), a.ID, c.UserID, c.TeamID, false)
+		c.AdvisoryID = a.ID
+		_, err := advisory_model.AddCollaborator(t.Context(), c)
 		require.NoError(t, err)
 	}
 	require.NoError(t, advisory_model.DeleteTeamCollaboratorsByRepoID(t.Context(), 1))
@@ -104,11 +107,11 @@ func TestViewerAccess(t *testing.T) {
 	}
 	triage := newAdvisory(advisory_model.StateTriage)
 	published := newAdvisory(advisory_model.StatePublished)
-	_, err := advisory_model.AddCollaborator(ctx, triage.ID, 5, 0, false)
+	_, err := advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: triage.ID, UserID: 5})
 	require.NoError(t, err)
-	_, err = advisory_model.AddCollaborator(ctx, triage.ID, 0, 7, false) // team 7 has member user15
+	_, err = advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: triage.ID, TeamID: 7}) // team 7 has member user15
 	require.NoError(t, err)
-	_, err = advisory_model.AddCollaborator(ctx, triage.ID, 10, 0, true)
+	_, err = advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: triage.ID, UserID: 10, ReadOnly: true})
 	require.NoError(t, err)
 	// a draft created by user 9 while being an admin, who is no admin anymore
 	draft := &advisory_model.Advisory{RepoID: repo.ID, Summary: "draft", State: advisory_model.StateDraft, ReporterID: 9}
@@ -122,7 +125,7 @@ func TestViewerAccess(t *testing.T) {
 		visibleTriage bool
 	}{
 		{"anonymous", advisory_model.Viewer{}, advisory_model.Permissions{}, false, false},
-		{"repo admin", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true}, true, true},
+		{"repo admin", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true, CanManage: true}, true, true},
 		{"repo admin with public-only token", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true, PublicOnly: true}, advisory_model.Permissions{}, false, false},
 		{"reporter", advisory_model.Viewer{Doer: user(4)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true}, false, true},
 		{"user collaborator", advisory_model.Viewer{Doer: user(5)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true}, false, true},

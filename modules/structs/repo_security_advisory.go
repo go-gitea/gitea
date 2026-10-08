@@ -136,7 +136,7 @@ type RepositoryAdvisoryCreditDetailed struct {
 // CreateRepositoryAdvisoryOption options for creating a draft advisory
 type CreateRepositoryAdvisoryOption struct {
 	// required: true
-	Summary string `json:"summary" binding:"Required;MaxSize(1024)"`
+	Summary string `json:"summary" binding:"Required"`
 	// required: true
 	Description string `json:"description" binding:"Required"`
 	CveID       string `json:"cve_id"`
@@ -156,7 +156,7 @@ type CreateRepositoryAdvisoryOption struct {
 // CreatePrivateVulnerabilityReportOption options for reporting a vulnerability privately
 type CreatePrivateVulnerabilityReportOption struct {
 	// required: true
-	Summary string `json:"summary" binding:"Required;MaxSize(1024)"`
+	Summary string `json:"summary" binding:"Required"`
 	// required: true
 	Description string `json:"description" binding:"Required"`
 	// The packages affected by the vulnerability
@@ -171,7 +171,7 @@ type CreatePrivateVulnerabilityReportOption struct {
 
 // EditRepositoryAdvisoryOption options for updating an advisory, only set fields are changed
 type EditRepositoryAdvisoryOption struct {
-	Summary     *string `json:"summary" binding:"MaxSize(1024)"`
+	Summary     *string `json:"summary"`
 	Description *string `json:"description"`
 	CveID       *string `json:"cve_id"`
 	// The packages affected by the vulnerability, replaces all existing ones

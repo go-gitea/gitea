@@ -50,7 +50,7 @@ func TestMailSecurityAdvisory(t *testing.T) {
 	}
 	require.NoError(t, advisory_model.CreateAdvisory(ctx, a))
 	a.Credits = nil
-	_, err := advisory_model.AddCollaborator(ctx, a.ID, collaborator.ID, 0, false)
+	_, err := advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: a.ID, UserID: collaborator.ID})
 	require.NoError(t, err)
 
 	// only repository admins get the report, not the advisory collaborator

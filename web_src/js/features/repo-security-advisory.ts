@@ -64,19 +64,22 @@ function initCvssCalculator(container: HTMLElement) {
     }
   };
 
-  addDelegatedEventListener(container, 'click', '[data-cvss-metric] .button', (btn) => {
-    for (const sibling of btn.parentElement!.children) selectButton(sibling, sibling === btn);
-    // the vector stays empty until all base metrics are chosen, so the chosen ones are kept by the active buttons
-    const metrics = parseCvssVector(input.value, prefix);
+  const activeButtonMetrics = () => {
+    const metrics = new Map<string, string>();
     for (const group of groups) {
       const active = group.querySelector('.button.active');
       if (active) metrics.set(group.getAttribute('data-cvss-metric')!, active.getAttribute('data-value')!);
     }
+    return metrics;
+  };
+
+  addDelegatedEventListener(container, 'click', '[data-cvss-metric] .button', (btn) => {
+    for (const sibling of btn.parentElement!.children) selectButton(sibling, sibling === btn);
+    const metrics = new Map([...parseCvssVector(input.value, prefix), ...activeButtonMetrics()]);
     const vector = composeCvssVector(prefix, baseKeys, metrics);
-    if (vector) {
-      input.value = vector;
-      updatePreview();
-    }
+    if (!vector) return;
+    input.value = vector;
+    updatePreview();
   });
   input.addEventListener('input', () => {
     syncButtons();

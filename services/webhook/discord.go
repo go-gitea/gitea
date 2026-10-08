@@ -273,7 +273,7 @@ func (d discordConvertor) Release(p *api.ReleasePayload) (DiscordPayload, error)
 func (d discordConvertor) RepositoryAdvisory(p *api.RepositoryAdvisoryPayload) (DiscordPayload, error) {
 	text, color := getRepositoryAdvisoryPayloadInfo(p, noneLinkFormatter, false)
 
-	return d.createPayload(repositoryAdvisorySender(p), text, "", p.RepositoryAdvisory.HTMLURL, color), nil
+	return d.createPayload(p.Sender, text, "", p.RepositoryAdvisory.HTMLURL, color), nil
 }
 
 func (d discordConvertor) Package(p *api.PackagePayload) (DiscordPayload, error) {

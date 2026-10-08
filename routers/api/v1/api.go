@@ -1492,17 +1492,19 @@ func Routes() *web.Router {
 				}, reqRepoReader(unit.TypeReleases))
 				m.Group("/security-advisories", func() {
 					m.Combo("").Get(repo.ListSecurityAdvisories).
-						Post(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.CreateRepositoryAdvisoryOption{}), repo.CreateSecurityAdvisory)
+						Post(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.CreateRepositoryAdvisoryOption{}), repo.MustManageSecurityAdvisories, repo.CreateSecurityAdvisory)
 					m.Post("/reports", reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.CreatePrivateVulnerabilityReportOption{}), repo.CreatePrivateVulnerabilityReport)
-					m.Combo("/{identifier}").Get(repo.GetSecurityAdvisory).
-						Patch(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.EditRepositoryAdvisoryOption{}), repo.EditSecurityAdvisory)
-					m.Group("/{identifier}/comments", func() {
-						m.Combo("").Get(repo.ListSecurityAdvisoryComments).
-							Post(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.RepositoryAdvisoryCommentOption{}), repo.CreateSecurityAdvisoryComment)
-						m.Combo("/{id}", reqToken(), rejectPublicOnly(), mustNotBeArchived).
-							Patch(bind(api.RepositoryAdvisoryCommentOption{}), repo.EditSecurityAdvisoryComment).
-							Delete(repo.DeleteSecurityAdvisoryComment)
-					})
+					m.Group("/{identifier}", func() {
+						m.Combo("").Get(repo.GetSecurityAdvisory).
+							Patch(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.EditRepositoryAdvisoryOption{}), repo.EditSecurityAdvisory)
+						m.Group("/comments", func() {
+							m.Combo("").Get(repo.ListSecurityAdvisoryComments).
+								Post(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.RepositoryAdvisoryCommentOption{}), repo.CreateSecurityAdvisoryComment)
+							m.Combo("/{id}", reqToken(), rejectPublicOnly(), mustNotBeArchived).
+								Patch(bind(api.RepositoryAdvisoryCommentOption{}), repo.EditSecurityAdvisoryComment).
+								Delete(repo.DeleteSecurityAdvisoryComment)
+						}, repo.MustSeeSecurityAdvisoryDiscussion)
+					}, repo.LoadSecurityAdvisory)
 				}, mustEnableSecurityAdvisories)
 				m.Combo("/private-vulnerability-reporting", mustEnableSecurityAdvisories).
 					Get(repo.GetPrivateVulnerabilityReporting).

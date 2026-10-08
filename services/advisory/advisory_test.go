@@ -8,11 +8,11 @@ import (
 
 	advisory_model "gitea.dev/models/advisory"
 	"gitea.dev/models/db"
-	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -56,28 +56,25 @@ func TestCollaboratorAndCreditRules(t *testing.T) {
 
 	// the reporter's blocks count like the owner's because a report is their content
 	require.NoError(t, db.Insert(ctx, &user_model.Blocking{BlockerID: 4, BlockeeID: 5}))
-	assert.ErrorIs(t, AddCollaborator(ctx, admin, report, user(5), nil), user_model.ErrBlockedUser)
+	assert.ErrorIs(t, AddCollaborator(ctx, admin, report, user(5).Name, false), user_model.ErrBlockedUser)
 
 	// published credits are public, so private users cannot be credited
-	opts := ContentFromAdvisory(report)
-	opts.Credits = []*advisory_model.Credit{{UserID: 31, Type: "finder"}}
-	assert.ErrorIs(t, UpdateAdvisory(ctx, admin, report, opts, true), util.ErrInvalidArgument)
+	adminPerms := advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true, CanManage: true}
+	opts := EditOptions{Credits: optional.Some([]*advisory_model.Credit{{UserID: 31, Type: "finder"}})}
+	assert.ErrorIs(t, EditAdvisory(ctx, admin, report, adminPerms, opts), util.ErrInvalidArgument)
 
 	// adding a read-only collaborator again grants write access
-	_, err := advisory_model.AddCollaborator(ctx, report.ID, 8, 0, true)
+	_, err := advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: report.ID, UserID: 8, ReadOnly: true})
 	require.NoError(t, err)
-	require.NoError(t, AddCollaborator(ctx, admin, report, user(8), nil))
+	require.NoError(t, AddCollaborator(ctx, admin, report, user(8).Name, false))
 	perms, err := advisory_model.Viewer{Doer: user(8)}.Permissions(ctx, report)
 	require.NoError(t, err)
 	assert.True(t, perms.CanEdit)
 
 	// teams need access to a private repository
 	draft := newAdvisory(3, &advisory_model.Advisory{State: advisory_model.StateDraft, ReporterID: 2})
-	team := func(id int64) *organization.Team {
-		return unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: id})
-	}
-	assert.ErrorIs(t, AddCollaborator(ctx, admin, draft, nil, team(7)), util.ErrInvalidArgument)
-	require.NoError(t, AddCollaborator(ctx, admin, draft, nil, team(2)))
+	assert.ErrorIs(t, AddCollaborator(ctx, admin, draft, "test_team", true), util.ErrInvalidArgument)
+	require.NoError(t, AddCollaborator(ctx, admin, draft, "team1", true))
 
 	// an original cannot be deleted while duplicates refer to it
 	duplicate := newAdvisory(3, &advisory_model.Advisory{State: advisory_model.StateClosed, ReporterID: 2, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOfID: draft.ID})

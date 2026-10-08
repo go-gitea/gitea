@@ -65,35 +65,48 @@ func Parse(vector string) (*Result, error) {
 	return res, nil
 }
 
-// Metric is a base metric, used to render the calculator
+// Metric is a base metric, used to render the calculator. Names are the untranslated CVSS specification terms.
 type Metric struct {
 	Key    string
-	Values []string
+	Name   string
+	Values []MetricValue
 }
+
+type MetricValue struct {
+	Key  string
+	Name string
+}
+
+var (
+	noneLowHigh        = []MetricValue{{"N", "None"}, {"L", "Low"}, {"H", "High"}}
+	attackVector       = Metric{Key: "AV", Name: "Attack Vector", Values: []MetricValue{{"N", "Network"}, {"A", "Adjacent"}, {"L", "Local"}, {"P", "Physical"}}}
+	attackComplexity   = Metric{Key: "AC", Name: "Attack Complexity", Values: []MetricValue{{"L", "Low"}, {"H", "High"}}}
+	privilegesRequired = Metric{Key: "PR", Name: "Privileges Required", Values: noneLowHigh}
+)
 
 var baseMetrics = map[Version][]Metric{
 	Version31: {
-		{Key: "AV", Values: []string{"N", "A", "L", "P"}},
-		{Key: "AC", Values: []string{"L", "H"}},
-		{Key: "PR", Values: []string{"N", "L", "H"}},
-		{Key: "UI", Values: []string{"N", "R"}},
-		{Key: "S", Values: []string{"U", "C"}},
-		{Key: "C", Values: []string{"N", "L", "H"}},
-		{Key: "I", Values: []string{"N", "L", "H"}},
-		{Key: "A", Values: []string{"N", "L", "H"}},
+		attackVector,
+		attackComplexity,
+		privilegesRequired,
+		{Key: "UI", Name: "User Interaction", Values: []MetricValue{{"N", "None"}, {"R", "Required"}}},
+		{Key: "S", Name: "Scope", Values: []MetricValue{{"U", "Unchanged"}, {"C", "Changed"}}},
+		{Key: "C", Name: "Confidentiality", Values: noneLowHigh},
+		{Key: "I", Name: "Integrity", Values: noneLowHigh},
+		{Key: "A", Name: "Availability", Values: noneLowHigh},
 	},
 	Version40: {
-		{Key: "AV", Values: []string{"N", "A", "L", "P"}},
-		{Key: "AC", Values: []string{"L", "H"}},
-		{Key: "AT", Values: []string{"N", "P"}},
-		{Key: "PR", Values: []string{"N", "L", "H"}},
-		{Key: "UI", Values: []string{"N", "P", "A"}},
-		{Key: "VC", Values: []string{"N", "L", "H"}},
-		{Key: "VI", Values: []string{"N", "L", "H"}},
-		{Key: "VA", Values: []string{"N", "L", "H"}},
-		{Key: "SC", Values: []string{"N", "L", "H"}},
-		{Key: "SI", Values: []string{"N", "L", "H"}},
-		{Key: "SA", Values: []string{"N", "L", "H"}},
+		attackVector,
+		attackComplexity,
+		{Key: "AT", Name: "Attack Requirements", Values: []MetricValue{{"N", "None"}, {"P", "Present"}}},
+		privilegesRequired,
+		{Key: "UI", Name: "User Interaction", Values: []MetricValue{{"N", "None"}, {"P", "Passive"}, {"A", "Active"}}},
+		{Key: "VC", Name: "Vulnerable System Confidentiality", Values: noneLowHigh},
+		{Key: "VI", Name: "Vulnerable System Integrity", Values: noneLowHigh},
+		{Key: "VA", Name: "Vulnerable System Availability", Values: noneLowHigh},
+		{Key: "SC", Name: "Subsequent System Confidentiality", Values: noneLowHigh},
+		{Key: "SI", Name: "Subsequent System Integrity", Values: noneLowHigh},
+		{Key: "SA", Name: "Subsequent System Availability", Values: noneLowHigh},
 	},
 }
 

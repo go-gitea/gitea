@@ -4,10 +4,10 @@
 		<div class="flex-relaxed-list">
 			{{range $m := .Metrics}}
 				<div class="flex-text-block tw-flex-wrap">
-					<span class="tw-w-72 tw-shrink-0">{{ctx.Locale.Tr (print "repo.security_advisories.cvss.metric." $m.Key)}}</span>
-					<div class="ui small basic buttons" data-cvss-metric="{{$m.Key}}" role="group" aria-label="{{ctx.Locale.Tr (print "repo.security_advisories.cvss.metric." $m.Key)}}">
+					<span class="tw-w-72 tw-shrink-0">{{$m.Name}}</span>
+					<div class="ui small basic buttons" data-cvss-metric="{{$m.Key}}" role="group" aria-label="{{$m.Name}}">
 						{{range $m.Values}}
-							<button type="button" class="ui button" data-value="{{.}}" aria-pressed="false">{{ctx.Locale.Tr (print "repo.security_advisories.cvss.value." $m.Key "." .)}}</button>
+							<button type="button" class="ui button" data-value="{{.Key}}" aria-pressed="false">{{.Name}}</button>
 						{{end}}
 					</div>
 				</div>

@@ -321,7 +321,13 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
-	ctx.Data["Team"] = &org_model.Team{}
+	team := &org_model.Team{}
+	for tp := range unit_model.Units {
+		if tp != unit_model.TypeSecurityAdvisories { // advisories may contain undisclosed vulnerabilities, so access must be granted explicitly
+			team.Units = append(team.Units, &org_model.TeamUnit{Type: tp, AccessMode: perm.AccessModeRead})
+		}
+	}
+	ctx.Data["Team"] = team
 	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }

@@ -13,9 +13,8 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// ToAPIRepositoryAdvisory converts an advisory with loaded attributes,
-// the private parts are only included if full is set and need the loaded collaborators
-func ToAPIRepositoryAdvisory(ctx context.Context, a *advisory_model.Advisory, doer *user_model.User, full bool) (*api.RepositoryAdvisory, error) {
+// ToAPIRepositoryAdvisory converts the public parts of an advisory with loaded attributes
+func ToAPIRepositoryAdvisory(ctx context.Context, a *advisory_model.Advisory, doer *user_model.User) *api.RepositoryAdvisory {
 	res := &api.RepositoryAdvisory{
 		Identifier:      a.Identifier,
 		CveID:           a.CveID,
@@ -69,10 +68,13 @@ func ToAPIRepositoryAdvisory(ctx context.Context, a *advisory_model.Advisory, do
 		res.Credits = append(res.Credits, &api.RepositoryAdvisoryCredit{Login: c.User.Name, Type: c.Type})
 		res.CreditsDetailed = append(res.CreditsDetailed, &api.RepositoryAdvisoryCreditDetailed{User: ToUser(ctx, c.User, doer), Type: c.Type, State: "accepted"})
 	}
+	return res
+}
 
-	if !full {
-		return res, nil
-	}
+// ToAPIRepositoryAdvisoryWithPrivateDetails also includes the reporter and the collaborators, which must be loaded,
+// for those who can see the discussion
+func ToAPIRepositoryAdvisoryWithPrivateDetails(ctx context.Context, a *advisory_model.Advisory, doer *user_model.User) (*api.RepositoryAdvisory, error) {
+	res := ToAPIRepositoryAdvisory(ctx, a, doer)
 	res.Author = ToUser(ctx, a.Reporter, doer)
 	if a.IsReport {
 		res.Submission = &api.RepositoryAdvisorySubmission{Accepted: a.State != advisory_model.StateTriage && a.State != advisory_model.StateClosed}

@@ -29,30 +29,34 @@ func (Collaborator) TableName() string {
 	return "security_advisory_collaborator"
 }
 
-// AddCollaborator returns false if the user (teamID 0) or team (userID 0) already collaborates with at least this access
-func AddCollaborator(ctx context.Context, advisoryID, userID, teamID int64, readOnly bool) (bool, error) {
-	existing := new(Collaborator)
-	has, err := db.GetEngine(ctx).Where("advisory_id = ? AND user_id = ? AND team_id = ?", advisoryID, userID, teamID).Get(existing)
-	if err != nil {
+func (c *Collaborator) identityCond() builder.Cond {
+	return builder.Eq{"advisory_id": c.AdvisoryID, "user_id": c.UserID, "team_id": c.TeamID}
+}
+
+// AddCollaborator returns false if the user or team already collaborates, also with another access
+func AddCollaborator(ctx context.Context, c *Collaborator) (bool, error) {
+	has, err := db.Exist[Collaborator](ctx, c.identityCond())
+	if err != nil || has {
 		return false, err
-	} else if !has {
-		return true, db.Insert(ctx, &Collaborator{AdvisoryID: advisoryID, UserID: userID, TeamID: teamID, ReadOnly: readOnly})
-	} else if readOnly || !existing.ReadOnly {
-		return false, nil
 	}
-	_, err = db.GetEngine(ctx).ID(existing.ID).Cols("read_only").Update(&Collaborator{ReadOnly: false})
-	return true, err
+	return true, db.Insert(ctx, c)
+}
+
+// SetCollaboratorWritable returns false if the user or team is no read-only collaborator
+func SetCollaboratorWritable(ctx context.Context, c *Collaborator) (bool, error) {
+	n, err := db.GetEngine(ctx).Where(c.identityCond().And(builder.Eq{"read_only": true})).Cols("read_only").Update(&Collaborator{ReadOnly: false})
+	return n > 0, err
+}
+
+// RemoveCollaborator returns false if the user or team didn't collaborate
+func RemoveCollaborator(ctx context.Context, c *Collaborator) (bool, error) {
+	n, err := db.GetEngine(ctx).Where(c.identityCond()).Delete(new(Collaborator))
+	return n > 0, err
 }
 
 // RemoveReadOnlyCollaborator keeps a user who has been granted write access in the meantime
 func RemoveReadOnlyCollaborator(ctx context.Context, advisoryID, userID int64) (bool, error) {
 	n, err := db.GetEngine(ctx).Where("advisory_id = ? AND user_id = ? AND read_only = ?", advisoryID, userID, true).Delete(new(Collaborator))
-	return n > 0, err
-}
-
-// RemoveCollaborator returns false if the user (teamID 0) or team (userID 0) didn't collaborate
-func RemoveCollaborator(ctx context.Context, advisoryID, userID, teamID int64) (bool, error) {
-	n, err := db.GetEngine(ctx).Where("advisory_id = ? AND user_id = ? AND team_id = ?", advisoryID, userID, teamID).Delete(new(Collaborator))
 	return n > 0, err
 }
 

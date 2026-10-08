@@ -231,7 +231,10 @@ func (u Unit) IsLessThan(unit Unit) bool {
 
 // MaxPerm returns the max perms of this unit
 func (u Unit) MaxPerm() perm.AccessMode {
-	return min(u.MaxAccessMode, perm.AccessModeAdmin)
+	if u.Type == TypeExternalTracker || u.Type == TypeExternalWiki || u.Type == TypeSecurityAdvisories {
+		return perm.AccessModeRead
+	}
+	return perm.AccessModeAdmin
 }
 
 // Enumerate all the units
@@ -314,7 +317,7 @@ var (
 		"/packages",
 		"packages.desc",
 		6,
-		perm.AccessModeOwner,
+		perm.AccessModeRead,
 	}
 
 	UnitActions = Unit{

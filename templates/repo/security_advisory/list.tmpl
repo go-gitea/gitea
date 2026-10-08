@@ -39,7 +39,7 @@
 					<div class="menu">
 						<a class="item" href="{{QueryBuild $queryLink "severity" NIL}}">{{ctx.Locale.Tr "repo.security_advisories.severity.all"}}</a>
 						{{range .Severities}}
-							<a class="{{if eq $.SelectedSeverity .}}active selected {{end}}item" href="{{QueryBuild $queryLink "severity" .String}}">{{ctx.Locale.Tr (print "repo.security_advisories.severity." .String)}}</a>
+							<a class="{{if eq $.SelectedSeverity .}}active selected {{end}}item" href="{{QueryBuild $queryLink "severity" .String}}">{{ctx.Locale.Tr .LocaleKey}}</a>
 						{{end}}
 					</div>
 				</div>

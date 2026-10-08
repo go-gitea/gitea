@@ -310,7 +310,7 @@ func (m msteamsConvertor) RepositoryAdvisory(p *api.RepositoryAdvisoryPayload) (
 
 	return createMSTeamsPayload(
 		p.Repository,
-		repositoryAdvisorySender(p),
+		p.Sender,
 		title,
 		"",
 		p.RepositoryAdvisory.HTMLURL,

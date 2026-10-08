@@ -15,7 +15,6 @@ function initCompWebHookEditorForm(el: HTMLElement) {
   queryElems(el, 'button[data-events-select-all]', (btn) => btn.addEventListener('click', () => {
     const checked = btn.getAttribute('data-events-select-all') === 'true';
     queryElems<HTMLInputElement>(elCustomEvents, 'input[type=checkbox]', (input) => {
-      if (checked && input.hasAttribute('data-explicit-select-only')) return;
       input.checked = checked;
       input.dispatchEvent(new Event('change', {bubbles: true})); // for the areYouSure dirty tracking
     });

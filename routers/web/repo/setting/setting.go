@@ -33,6 +33,7 @@ import (
 	"gitea.dev/modules/web"
 	repo_router "gitea.dev/routers/web/repo"
 	actions_service "gitea.dev/services/actions"
+	advisory_service "gitea.dev/services/advisory"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -664,7 +665,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 	}
 
-	oldPrivateReporting := repo.MustGetUnit(ctx, unit_model.TypeSecurityAdvisories).SecurityAdvisoriesConfig().PrivateVulnerabilityReporting
+	oldPrivateReporting := advisory_service.IsPrivateReportingConfigured(ctx, repo)
 	newPrivateReporting := oldPrivateReporting
 	if !unit_model.TypeSecurityAdvisories.UnitGlobalDisabled() {
 		newPrivateReporting = form.EnableSecurityAdvisories && form.PrivateVulnerabilityReporting
@@ -712,9 +713,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		ctx.ServerError("UpdateRepositoryUnits", err)
 		return
 	}
-	if newPrivateReporting != oldPrivateReporting {
-		audit.Record(ctx, audit_model.SecurityAdvisoryPrivateReporting, repo, "enabled", newPrivateReporting)
-	}
+	advisory_service.RecordPrivateReportingChange(ctx, ctx.Doer, repo, oldPrivateReporting, newPrivateReporting)
 	if repoChanged {
 		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 			ctx.ServerError("UpdateRepository", err)

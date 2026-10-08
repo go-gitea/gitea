@@ -11,12 +11,12 @@ import (
 // the vulnerability and credit fields are repeated once per row
 type SecurityAdvisoryForm struct {
 	middleware.FormDefaultValidator
-	Summary      string `binding:"Required;MaxSize(1024)"`
+	Summary      string `binding:"Required"`
 	Content      string `binding:"Required"`
-	CveID        string `form:"cve_id" binding:"MaxSize(32)"`
+	CveID        string `form:"cve_id"`
 	Severity     string
-	CvssV3Vector string `form:"cvss_v3_vector" binding:"MaxSize(255)"`
-	CvssV4Vector string `form:"cvss_v4_vector" binding:"MaxSize(255)"`
+	CvssV3Vector string `form:"cvss_v3_vector"`
+	CvssV4Vector string `form:"cvss_v4_vector"`
 	CweIDs       string `form:"cwe_ids"`
 	LabelIDs     string `form:"label_ids"`
 	// ContentVersion detects concurrent edits

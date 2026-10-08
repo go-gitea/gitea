@@ -1,10 +1,10 @@
 {{$c := .Credit}}
 <div class="flex-text-block security-advisory-row">
 	<div class="ui search input tw-flex-1" data-global-init="initSecurityAdvisoryUserSearch">
-		<input class="prompt" name="credit_user" value="{{if $c}}{{$c.User.Name}}{{end}}" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" aria-label="{{ctx.Locale.Tr "repo.security_advisories.credit_user"}}" autocomplete="off">
+		<input class="prompt" name="credit_user" value="{{$c.User.Name}}" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" aria-label="{{ctx.Locale.Tr "repo.security_advisories.credit_user"}}" autocomplete="off">
 	</div>
 	<div class="ui selection dropdown" aria-label="{{ctx.Locale.Tr "repo.security_advisories.credit_type"}}">
-		<input type="hidden" name="credit_type" value="{{if $c}}{{$c.Type}}{{else}}finder{{end}}">
+		<input type="hidden" name="credit_type" value="{{$c.Type}}">
 		<div class="text"></div>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">

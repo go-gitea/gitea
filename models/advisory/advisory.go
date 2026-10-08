@@ -4,6 +4,7 @@
 package advisory
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"slices"
@@ -57,6 +58,23 @@ func ParseState(name string) State {
 	return parseName(stateNames, name)
 }
 
+var stateStyles = map[State]struct{ icon, color string }{
+	StateTriage:    {"octicon-report", "yellow"},
+	StateDraft:     {"octicon-pencil", "grey"},
+	StatePublished: {"octicon-shield-check", "green"},
+	StateClosed:    {"octicon-x-circle", "red"},
+	StateWithdrawn: {"octicon-shield-x", "grey"},
+}
+
+func (s State) Icon() string {
+	return stateStyles[s].icon
+}
+
+// Color is the label color of the state in the web UI
+func (s State) Color() string {
+	return stateStyles[s].color
+}
+
 var stateTransitions = map[State][]State{
 	StateTriage:    {StateDraft, StateClosed},
 	StateDraft:     {StatePublished, StateClosed},
@@ -66,6 +84,11 @@ var stateTransitions = map[State][]State{
 
 func (s State) CanTransitionTo(target State) bool {
 	return slices.Contains(stateTransitions[s], target)
+}
+
+// Transitions returns the states the advisory can change to without a close reason
+func (s State) Transitions() []State {
+	return slices.DeleteFunc(slices.Clone(stateTransitions[s]), func(t State) bool { return t == StateClosed })
 }
 
 // CloseReason tells wrong reports and duplicates apart
@@ -118,6 +141,26 @@ func ParseSeverity(name string) Severity {
 	return parseName(severityNames, name)
 }
 
+var severityColors = map[Severity]string{
+	SeverityMedium:   "yellow",
+	SeverityHigh:     "orange",
+	SeverityCritical: "red",
+}
+
+// Color is the label color of the severity in the web UI
+func (s Severity) Color() string {
+	return severityColors[s]
+}
+
+// LocaleKey names medium "moderate" in the web UI like GitHub, the API keeps "medium"
+func (s Severity) LocaleKey() string {
+	name := cmp.Or(s.String(), "unknown")
+	if s == SeverityMedium {
+		name = "moderate"
+	}
+	return "repo.security_advisories.severity." + name
+}
+
 type ErrAdvisoryNotExist struct {
 	RepoID     int64
 	Identifier string
@@ -166,7 +209,6 @@ type Advisory struct {
 	Credits           []*Credit             `xorm:"-"`
 	CollaboratorUsers []*user_model.User    `xorm:"-"`
 	CollaboratorTeams []*organization.Team  `xorm:"-"`
-	loadedAttributes  bool
 }
 
 func init() {
@@ -209,7 +251,7 @@ func (a *Advisory) HTMLURL() string {
 	return a.Repo.HTMLURL() + "/security/advisories/" + a.Identifier
 }
 
-// LoadAttributes loads everything but the collaborators, only once per advisory
+// LoadAttributes loads everything but the collaborators
 func (a *Advisory) LoadAttributes(ctx context.Context) error {
 	return List{a}.LoadAttributes(ctx)
 }
@@ -253,44 +295,47 @@ func UpdateAdvisory(ctx context.Context, a *Advisory, cols ...string) error {
 
 // UpdateAdvisoryState only updates the advisory if it is still in the old state, to not apply a transition twice.
 // The content version changes too because the edit permissions depend on the state.
-func UpdateAdvisoryState(ctx context.Context, a *Advisory, oldState State, cols ...string) (bool, error) {
+func UpdateAdvisoryState(ctx context.Context, a *Advisory, oldState State, cols ...string) error {
 	n, err := db.GetEngine(ctx).Where("id = ? AND state = ?", a.ID, oldState).Cols(append(cols, "state")...).Incr("content_version").Update(a)
-	if n > 0 {
-		a.ContentVersion++
+	if err != nil {
+		return err
+	} else if n == 0 {
+		return ErrAdvisoryChanged
 	}
-	return n > 0, err
+	a.ContentVersion++
+	return nil
 }
 
+// detailBeans are the rows which are replaced together with the content of an advisory
+func detailBeans() []any {
+	return []any{new(Vulnerability), new(Credit), new(LabelLink)}
+}
+
+// childBeans are all rows which belong to an advisory, also the ones changed independently of its content
+func childBeans() []any {
+	return append(detailBeans(), new(Collaborator), new(Comment))
+}
+
+// replaceDetails inserts the vulnerabilities and credits of the advisory as new rows, they get the new IDs
 func replaceDetails(ctx context.Context, a *Advisory) error {
-	for _, bean := range []any{new(Vulnerability), new(Credit), new(LabelLink)} {
+	for _, bean := range detailBeans() {
 		if _, err := db.GetEngine(ctx).Where("advisory_id = ?", a.ID).Delete(bean); err != nil {
 			return err
 		}
 	}
+	var rows []any
 	for _, v := range a.Vulnerabilities {
 		v.ID, v.AdvisoryID = 0, a.ID
+		rows = append(rows, v)
 	}
 	for _, c := range a.Credits {
 		c.ID, c.AdvisoryID = 0, a.ID
+		rows = append(rows, c)
 	}
-	links := make([]*LabelLink, 0, len(a.Labels))
 	for _, l := range a.Labels {
-		links = append(links, &LabelLink{AdvisoryID: a.ID, LabelID: l.ID})
+		rows = append(rows, &LabelLink{AdvisoryID: a.ID, LabelID: l.ID})
 	}
-	if err := insertRows(ctx, a.Vulnerabilities); err != nil {
-		return err
-	}
-	if err := insertRows(ctx, a.Credits); err != nil {
-		return err
-	}
-	return insertRows(ctx, links)
-}
-
-func insertRows[T any](ctx context.Context, rows []T) error {
-	if len(rows) == 0 {
-		return nil
-	}
-	return db.Insert(ctx, rows)
+	return db.Insert(ctx, rows...)
 }
 
 // GetAdvisoryByIdentifier ignores the case like case-insensitive database collations do
@@ -309,6 +354,7 @@ func GetAdvisoryByIdentifier(ctx context.Context, repoID int64, identifier strin
 type FindAdvisoriesOptions struct {
 	db.ListOptions
 	RepoID      int64
+	ExcludeID   int64
 	States      []State
 	Viewer      Viewer
 	Keyword     string // matches the summary, description, identifier, CVE ID and package names
@@ -323,6 +369,9 @@ type FindAdvisoriesOptions struct {
 
 func (opts FindAdvisoriesOptions) ToConds() builder.Cond {
 	cond := builder.Eq{"repo_id": opts.RepoID}.And(opts.Viewer.visibilityCond())
+	if opts.ExcludeID != 0 {
+		cond = cond.And(builder.Neq{"id": opts.ExcludeID})
+	}
 	if len(opts.States) > 0 {
 		cond = cond.And(builder.In("state", opts.States))
 	}
@@ -332,34 +381,51 @@ func (opts FindAdvisoriesOptions) ToConds() builder.Cond {
 			db.BuildCaseInsensitiveLike("description", keyword),
 			builder.Eq{"identifier": strings.ToLower(keyword)},
 			builder.Eq{"cve_id": strings.ToUpper(keyword)},
-			builder.In("id", builder.Select("advisory_id").From("security_advisory_vulnerability").Where(db.BuildCaseInsensitiveLike("package_name", keyword))),
+			builder.In("id", advisoryIDsFrom("security_advisory_vulnerability", db.BuildCaseInsensitiveLike("package_name", keyword))),
 		))
 	}
 	if opts.Severity != SeverityUnknown {
 		cond = cond.And(builder.Eq{"severity": opts.Severity})
 	}
-	// like the issue filter: a negative ID excludes the label, 0 means no label at all
-	for _, labelID := range opts.LabelIDs {
-		linked := builder.Select("advisory_id").From("security_advisory_label")
-		switch {
-		case labelID > 0:
-			cond = cond.And(builder.In("id", linked.Where(builder.Eq{"label_id": labelID})))
-		case labelID < 0:
-			cond = cond.And(builder.NotIn("id", linked.Where(builder.Eq{"label_id": -labelID})))
-		default:
-			cond = cond.And(builder.NotIn("id", linked))
-		}
+	if len(opts.LabelIDs) > 0 {
+		cond = cond.And(labelsCond(opts.LabelIDs))
 	}
 	if opts.Ecosystem != "" {
-		cond = cond.And(builder.In("id", builder.Select("advisory_id").From("security_advisory_vulnerability").Where(builder.Eq{"ecosystem": opts.Ecosystem})))
+		cond = cond.And(builder.In("id", advisoryIDsFrom("security_advisory_vulnerability", builder.Eq{"ecosystem": opts.Ecosystem})))
 	}
 	if opts.CweID != "" {
-		cond = cond.And(builder.Like{"cwe_ids", `"` + strings.ToUpper(opts.CweID) + `"`})
+		cond = cond.And(cweIDCond(opts.CweID))
 	}
 	if opts.CloseReason != CloseReasonNone {
 		cond = cond.And(builder.Eq{"close_reason": opts.CloseReason})
 	}
 	return cond
+}
+
+// advisoryIDsFrom selects the advisory IDs of the matching rows of a child table
+func advisoryIDsFrom(table string, cond builder.Cond) *builder.Builder {
+	return builder.Select("advisory_id").From(table).Where(cond)
+}
+
+// labelsCond works like the issue filter: a negative ID excludes the label, 0 means no label at all
+func labelsCond(labelIDs []int64) builder.Cond {
+	cond := builder.NewCond()
+	for _, labelID := range labelIDs {
+		switch {
+		case labelID > 0:
+			cond = cond.And(builder.In("id", advisoryIDsFrom("security_advisory_label", builder.Eq{"label_id": labelID})))
+		case labelID < 0:
+			cond = cond.And(builder.NotIn("id", advisoryIDsFrom("security_advisory_label", builder.Eq{"label_id": -labelID})))
+		default:
+			cond = cond.And(builder.NotIn("id", builder.Select("advisory_id").From("security_advisory_label")))
+		}
+	}
+	return cond
+}
+
+// cweIDCond matches the quoted JSON array element, so that CWE-79 doesn't match CWE-790
+func cweIDCond(cweID string) builder.Cond {
+	return builder.Like{"cwe_ids", `"` + strings.ToUpper(cweID) + `"`}
 }
 
 func (opts FindAdvisoriesOptions) ToOrders() string {
@@ -402,10 +468,12 @@ func DeleteAdvisory(ctx context.Context, a *Advisory) error {
 			return util.NewInvalidArgumentErrorf("advisories with duplicates cannot be deleted")
 		}
 		n, err := deleteAdvisories(ctx, builder.Eq{"id": a.ID}.And(builder.NotIn("state", StatePublished, StateWithdrawn)))
-		if err == nil && n == 0 {
+		if err != nil {
+			return err
+		} else if n == 0 {
 			return util.NewInvalidArgumentErrorf("published advisories cannot be deleted, withdraw them instead")
 		}
-		return err
+		return nil
 	})
 }
 
@@ -419,7 +487,7 @@ func DeleteAdvisoriesByRepoID(ctx context.Context, repoID int64) error {
 func deleteAdvisories(ctx context.Context, cond builder.Cond) (int64, error) {
 	e := db.GetEngine(ctx)
 	ids := builder.Select("id").From("security_advisory").Where(cond)
-	for _, bean := range []any{new(Vulnerability), new(Credit), new(Collaborator), new(Comment), new(LabelLink)} {
+	for _, bean := range childBeans() {
 		if _, err := e.Where(builder.In("advisory_id", ids)).Delete(bean); err != nil {
 			return 0, err
 		}
@@ -480,57 +548,94 @@ func (list List) LoadLabels(ctx context.Context) error {
 }
 
 func (list List) LoadAttributes(ctx context.Context) error {
-	if err := list.loadRepos(ctx); err != nil {
-		return err
-	}
-	pending := slices.DeleteFunc(slices.Clone(list), func(a *Advisory) bool { return a.loadedAttributes })
-	if len(pending) == 0 {
+	if len(list) == 0 {
 		return nil
 	}
-	if err := pending.LoadLabels(ctx); err != nil {
-		return err
+	if err := list.loadRepos(ctx); err != nil {
+		return fmt.Errorf("LoadAttributes: loadRepos: %w", err)
 	}
-	ids := pending.ids()
-	var vulns []*Vulnerability
-	if err := db.GetEngine(ctx).In("advisory_id", ids).OrderBy("id").Find(&vulns); err != nil {
-		return err
+	if err := list.LoadLabels(ctx); err != nil {
+		return fmt.Errorf("LoadAttributes: LoadLabels: %w", err)
 	}
-	var credits []*Credit
-	if err := db.GetEngine(ctx).In("advisory_id", ids).OrderBy("id").Find(&credits); err != nil {
-		return err
+	if err := list.loadVulnerabilities(ctx); err != nil {
+		return fmt.Errorf("LoadAttributes: loadVulnerabilities: %w", err)
 	}
-	duplicateOf := make(map[int64]*Advisory)
-	if duplicateOfIDs := container.FilterSlice(pending, func(a *Advisory) (int64, bool) { return a.DuplicateOfID, a.DuplicateOfID != 0 }); len(duplicateOfIDs) > 0 {
-		if err := db.GetEngine(ctx).In("id", duplicateOfIDs).Find(&duplicateOf); err != nil {
-			return err
-		}
+	if err := list.loadCredits(ctx); err != nil {
+		return fmt.Errorf("LoadAttributes: loadCredits: %w", err)
 	}
+	if err := list.loadUsers(ctx); err != nil {
+		return fmt.Errorf("LoadAttributes: loadUsers: %w", err)
+	}
+	if err := list.loadDuplicateOf(ctx); err != nil {
+		return fmt.Errorf("LoadAttributes: loadDuplicateOf: %w", err)
+	}
+	return nil
+}
 
-	userIDs := container.FilterSlice(credits, func(c *Credit) (int64, bool) { return c.UserID, true })
-	for _, a := range pending {
+func (list List) loadVulnerabilities(ctx context.Context) error {
+	var vulns []*Vulnerability
+	if err := db.GetEngine(ctx).In("advisory_id", list.ids()).OrderBy("id").Find(&vulns); err != nil {
+		return err
+	}
+	byID := list.byID()
+	for _, a := range list {
+		a.Vulnerabilities = []*Vulnerability{}
+	}
+	for _, v := range vulns {
+		byID[v.AdvisoryID].Vulnerabilities = append(byID[v.AdvisoryID].Vulnerabilities, v)
+	}
+	return nil
+}
+
+func (list List) loadCredits(ctx context.Context) error {
+	var credits []*Credit
+	if err := db.GetEngine(ctx).In("advisory_id", list.ids()).OrderBy("id").Find(&credits); err != nil {
+		return err
+	}
+	byID := list.byID()
+	for _, a := range list {
+		a.Credits = []*Credit{}
+	}
+	for _, c := range credits {
+		byID[c.AdvisoryID].Credits = append(byID[c.AdvisoryID].Credits, c)
+	}
+	return nil
+}
+
+// loadUsers loads the reporters, publishers and credited users, the credits must be loaded
+func (list List) loadUsers(ctx context.Context) error {
+	var userIDs []int64
+	for _, a := range list {
 		userIDs = append(userIDs, a.ReporterID, a.PublisherID)
+		for _, c := range a.Credits {
+			userIDs = append(userIDs, c.UserID)
+		}
 	}
 	users, err := user_model.GetUsersMapByIDs(ctx, userIDs)
 	if err != nil {
 		return err
 	}
-
-	byID := pending.byID()
-	for _, a := range pending {
+	for _, a := range list {
 		a.Reporter = user_model.GetPossibleUserFromMap(a.ReporterID, users)
 		a.Publisher = user_model.GetPossibleUserFromMap(a.PublisherID, users)
-		a.Vulnerabilities, a.Credits = []*Vulnerability{}, []*Credit{}
-		if a.DuplicateOf = duplicateOf[a.DuplicateOfID]; a.DuplicateOf != nil {
-			a.DuplicateOf.Repo = a.Repo
+		for _, c := range a.Credits {
+			c.User = user_model.GetPossibleUserFromMap(c.UserID, users)
 		}
-		a.loadedAttributes = true
 	}
-	for _, v := range vulns {
-		byID[v.AdvisoryID].Vulnerabilities = append(byID[v.AdvisoryID].Vulnerabilities, v)
+	return nil
+}
+
+func (list List) loadDuplicateOf(ctx context.Context) error {
+	duplicateOf := make(map[int64]*Advisory)
+	if ids := container.FilterSlice(list, func(a *Advisory) (int64, bool) { return a.DuplicateOfID, a.DuplicateOfID != 0 }); len(ids) > 0 {
+		if err := db.GetEngine(ctx).In("id", ids).Find(&duplicateOf); err != nil {
+			return err
+		}
 	}
-	for _, c := range credits {
-		c.User = user_model.GetPossibleUserFromMap(c.UserID, users)
-		byID[c.AdvisoryID].Credits = append(byID[c.AdvisoryID].Credits, c)
+	for _, a := range list {
+		if a.DuplicateOf = duplicateOf[a.DuplicateOfID]; a.DuplicateOf != nil {
+			a.DuplicateOf.Repo = a.Repo // the original belongs to the same repository
+		}
 	}
 	return nil
 }

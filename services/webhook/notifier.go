@@ -896,43 +896,51 @@ func (m *webhookNotifier) DeleteRelease(ctx context.Context, doer *user_model.Us
 	sendReleaseHook(ctx, doer, rel, api.HookReleaseDeleted)
 }
 
-// sendRepositoryAdvisoryHook sends the private parts of an advisory only for reports, see HookEventRepositoryAdvisoryReported
-func sendRepositoryAdvisoryHook(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, action api.HookRepositoryAdvisoryAction) {
-	if err := a.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
-		return
-	}
-	event, full := webhook_module.HookEventRepositoryAdvisory, false
-	if action == api.HookRepositoryAdvisoryReported {
-		event, full = webhook_module.HookEventRepositoryAdvisoryReported, true
-	}
-	apiAdvisory, err := convert.ToAPIRepositoryAdvisory(ctx, a, nil, full)
-	if err != nil {
-		log.Error("ToAPIRepositoryAdvisory: %v", err)
-		return
-	}
+func sendRepositoryAdvisoryHook(ctx context.Context, event webhook_module.HookEventType, doer *user_model.User, a *advisory_model.Advisory, p *api.RepositoryAdvisoryPayload) {
 	permission, _ := access_model.GetDoerRepoPermission(ctx, a.Repo, doer)
-	if err := PrepareWebhooks(ctx, EventSource{Repository: a.Repo}, event, &api.RepositoryAdvisoryPayload{
-		Action:             action,
-		RepositoryAdvisory: apiAdvisory,
-		Repository:         convert.ToRepo(ctx, a.Repo, permission),
-		Sender:             convert.ToUser(ctx, doer, nil),
-	}); err != nil {
+	p.Repository = convert.ToRepo(ctx, a.Repo, permission)
+	if err := PrepareWebhooks(ctx, EventSource{Repository: a.Repo}, event, p); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
 }
 
+// NewSecurityAdvisoryReport sends the private details only to the hooks which have chosen HookEventRepositoryAdvisoryReported
 func (m *webhookNotifier) NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
-	sendRepositoryAdvisoryHook(ctx, doer, a, api.HookRepositoryAdvisoryReported)
+	if err := a.LoadAttributes(ctx); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+	apiAdvisory, err := convert.ToAPIRepositoryAdvisoryWithPrivateDetails(ctx, a, nil)
+	if err != nil {
+		log.Error("ToAPIRepositoryAdvisoryWithPrivateDetails: %v", err)
+		return
+	}
+	sendRepositoryAdvisoryHook(ctx, webhook_module.HookEventRepositoryAdvisoryReported, doer, a, &api.RepositoryAdvisoryPayload{
+		Action:             api.HookRepositoryAdvisoryReported,
+		RepositoryAdvisory: apiAdvisory,
+		Sender:             convert.ToUser(ctx, user_model.NewGhostUser(), nil), // chat messages don't reveal who reported an undisclosed vulnerability
+	})
 }
 
 func (m *webhookNotifier) SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, _ advisory_model.State) {
+	var action api.HookRepositoryAdvisoryAction
 	switch a.State {
 	case advisory_model.StatePublished:
-		sendRepositoryAdvisoryHook(ctx, doer, a, api.HookRepositoryAdvisoryPublished)
+		action = api.HookRepositoryAdvisoryPublished
 	case advisory_model.StateWithdrawn:
-		sendRepositoryAdvisoryHook(ctx, doer, a, api.HookRepositoryAdvisoryWithdrawn)
+		action = api.HookRepositoryAdvisoryWithdrawn
+	default:
+		return
 	}
+	if err := a.LoadAttributes(ctx); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+	sendRepositoryAdvisoryHook(ctx, webhook_module.HookEventRepositoryAdvisory, doer, a, &api.RepositoryAdvisoryPayload{
+		Action:             action,
+		RepositoryAdvisory: convert.ToAPIRepositoryAdvisory(ctx, a, nil),
+		Sender:             convert.ToUser(ctx, doer, nil),
+	})
 }
 
 func (m *webhookNotifier) SyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {

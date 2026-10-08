@@ -4,7 +4,7 @@
 	<div class="ui container">
 		<h2 class="ui dividing header">
 			{{.Title}}
-			<div class="sub header">{{ctx.Locale.Tr (Iif .IsReport "repo.security_advisories.report_desc" "repo.security_advisories.form_desc")}}</div>
+			<div class="sub header">{{ctx.Locale.Tr .DescriptionKey}}</div>
 		</h2>
 		{{template "base/alert" .}}
 		<form class="ui form form-fetch-action" action="{{.Link}}" method="post" data-global-init="initSecurityAdvisoryForm">
@@ -30,7 +30,7 @@
 				{{end}}
 			</div>
 			<template data-row-template="vulnerability">
-				{{template "repo/security_advisory/form_vulnerability" dict "Ecosystems" $.Ecosystems "Vulnerability" nil}}
+				{{template "repo/security_advisory/form_vulnerability" dict "Ecosystems" $.Ecosystems "Vulnerability" .NewVulnerability}}
 			</template>
 			<div class="field tw-mt-2">
 				<button type="button" class="ui small button" data-add-row="vulnerability">{{svg "octicon-plus"}} {{ctx.Locale.Tr "repo.security_advisories.add_package"}}</button>
@@ -46,7 +46,7 @@
 					<div class="menu">
 						<div class="item" data-value="">{{ctx.Locale.Tr "repo.security_advisories.severity.unknown"}}</div>
 						{{range .Severities}}
-							<div class="item" data-value="{{.}}">{{ctx.Locale.Tr (print "repo.security_advisories.severity." .)}}</div>
+							<div class="item" data-value="{{.}}">{{ctx.Locale.Tr .LocaleKey}}</div>
 						{{end}}
 					</div>
 				</div>
@@ -86,7 +86,7 @@
 					{{end}}
 				</div>
 				<template data-row-template="credit">
-					{{template "repo/security_advisory/form_credit" dict "CreditTypes" $.CreditTypes "Credit" nil}}
+					{{template "repo/security_advisory/form_credit" dict "CreditTypes" $.CreditTypes "Credit" .NewCredit}}
 				</template>
 				<div class="field tw-mt-2">
 					<button type="button" class="ui small button" data-add-row="credit">{{svg "octicon-plus"}} {{ctx.Locale.Tr "repo.security_advisories.add_credit"}}</button>
@@ -95,10 +95,8 @@
 
 			<div class="divider"></div>
 			<div class="flex-text-block tw-justify-end">
-				<a class="ui cancel button" href="{{if .Advisory}}{{.Advisory.Link}}{{else}}{{.RepoLink}}/security/advisories{{end}}">{{ctx.Locale.Tr "cancel"}}</a>
-				<button type="submit" class="ui primary button">
-					{{if .IsReport}}{{ctx.Locale.Tr "repo.security_advisories.report_submit"}}{{else if .Advisory}}{{ctx.Locale.Tr "save"}}{{else}}{{ctx.Locale.Tr "repo.security_advisories.create"}}{{end}}
-				</button>
+				<a class="ui cancel button" href="{{.CancelLink}}">{{ctx.Locale.Tr "cancel"}}</a>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr .SubmitKey}}</button>
 			</div>
 		</form>
 	</div>

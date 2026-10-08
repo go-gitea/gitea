@@ -6,15 +6,14 @@ package repo
 import (
 	"errors"
 	"net/http"
-	"slices"
 	"strings"
 
 	advisory_model "gitea.dev/models/advisory"
 	"gitea.dev/models/db"
-	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/cvss"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/reqctx"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -25,7 +24,42 @@ import (
 )
 
 func advisoryViewer(ctx *context.APIContext) advisory_model.Viewer {
-	return advisory_model.NewViewer(ctx.Doer, ctx.Repo.Permission, ctx.PublicOnly)
+	return advisory_model.Viewer{Doer: ctx.Doer, IsRepoAdmin: ctx.Repo.Permission.IsAdmin(), PublicOnly: ctx.PublicOnly}
+}
+
+type securityAdvisoryContextKey struct{}
+
+type loadedSecurityAdvisory struct {
+	advisory *advisory_model.Advisory
+	perms    advisory_model.Permissions
+}
+
+// LoadSecurityAdvisory responds with 404 if the doer cannot see the advisory, like for advisories that don't exist
+func LoadSecurityAdvisory(ctx *context.APIContext) {
+	a, perms, err := advisoryViewer(ctx).GetAdvisory(ctx, ctx.Repo.Repository, ctx.PathParam("identifier"))
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+	ctx.SetContextValue(securityAdvisoryContextKey{}, &loadedSecurityAdvisory{advisory: a, perms: perms})
+}
+
+func getSecurityAdvisory(ctx *context.APIContext) (*advisory_model.Advisory, advisory_model.Permissions) {
+	loaded := reqctx.MustContextValue[*loadedSecurityAdvisory](ctx, securityAdvisoryContextKey{})
+	return loaded.advisory, loaded.perms
+}
+
+func MustManageSecurityAdvisories(ctx *context.APIContext) {
+	if !advisoryViewer(ctx).CanManage() {
+		ctx.APIError(http.StatusForbidden, "only repository admins can create security advisories")
+	}
+}
+
+// MustSeeSecurityAdvisoryDiscussion responds with 404 like for advisories the doer cannot see at all
+func MustSeeSecurityAdvisoryDiscussion(ctx *context.APIContext) {
+	if _, perms := getSecurityAdvisory(ctx); !perms.CanSeeDiscussion {
+		ctx.APIErrorNotFound()
+	}
 }
 
 // apiAdvisoryError responds with 422 for validation errors like GitHub does
@@ -37,24 +71,18 @@ func apiAdvisoryError(ctx *context.APIContext, err error) {
 	ctx.APIErrorAuto(err)
 }
 
-func toAPIAdvisories(ctx *context.APIContext, viewer advisory_model.Viewer, list advisory_model.List) ([]*api.RepositoryAdvisory, error) {
-	if err := list.LoadAttributes(ctx); err != nil {
-		return nil, err
-	}
-	if err := viewer.HideUnviewableOriginals(ctx, list); err != nil {
-		return nil, err
-	}
-	fullIDs, err := viewer.DiscussionIDs(ctx, list)
+func toAPIAdvisories(ctx *context.APIContext, list advisory_model.List) ([]*api.RepositoryAdvisory, error) {
+	withPrivateDetails, err := advisoryViewer(ctx).LoadForDisplay(ctx, list)
 	if err != nil {
-		return nil, err
-	}
-	full := container.FilterSlice(list, func(a *advisory_model.Advisory) (*advisory_model.Advisory, bool) { return a, fullIDs.Contains(a.ID) })
-	if err := advisory_model.List(full).LoadCollaborators(ctx); err != nil {
 		return nil, err
 	}
 	res := make([]*api.RepositoryAdvisory, 0, len(list))
 	for _, a := range list {
-		apiAdvisory, err := convert.ToAPIRepositoryAdvisory(ctx, a, ctx.Doer, fullIDs.Contains(a.ID))
+		if !withPrivateDetails.Contains(a.ID) {
+			res = append(res, convert.ToAPIRepositoryAdvisory(ctx, a, ctx.Doer))
+			continue
+		}
+		apiAdvisory, err := convert.ToAPIRepositoryAdvisoryWithPrivateDetails(ctx, a, ctx.Doer)
 		if err != nil {
 			return nil, err
 		}
@@ -63,22 +91,13 @@ func toAPIAdvisories(ctx *context.APIContext, viewer advisory_model.Viewer, list
 	return res, nil
 }
 
-func respondAdvisory(ctx *context.APIContext, viewer advisory_model.Viewer, a *advisory_model.Advisory, status int) {
-	res, err := toAPIAdvisories(ctx, viewer, advisory_model.List{a})
+func respondAdvisory(ctx *context.APIContext, a *advisory_model.Advisory, status int) {
+	res, err := toAPIAdvisories(ctx, advisory_model.List{a})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(status, res[0])
-}
-
-// getVisibleAdvisory loads the advisory of the path, it responds with 404 if the doer cannot see it
-func getVisibleAdvisory(ctx *context.APIContext, viewer advisory_model.Viewer) (*advisory_model.Advisory, advisory_model.Permissions) {
-	a, perms, err := viewer.GetAdvisory(ctx, ctx.Repo.Repository, ctx.PathParam("identifier"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
-	}
-	return a, perms
 }
 
 func toAdvisoryVulnerabilities(vulns []*api.RepositoryAdvisoryVulnerability) []*advisory_model.Vulnerability {
@@ -110,35 +129,26 @@ func toAdvisoryCredits(ctx *context.APIContext, credits []*api.RepositoryAdvisor
 	return advisory_service.CreditsByLogins(ctx, logins, types)
 }
 
-// labelIDsByNames prefers repository labels over organization labels of the same name, an unknown name matches nothing
-func labelIDsByNames(ctx *context.APIContext, names []string) ([]int64, error) {
-	labels, err := advisory_service.RepoAndOrgLabels(ctx, ctx.Repo.Repository)
-	if err != nil {
-		return nil, err
+// cvssVectorOptions sets the vector of its CVSS version, an empty vector removes both versions,
+// unsupported vectors are passed on to be rejected by the service
+func cvssVectorOptions(vector string) (v3, v4 optional.Option[string]) {
+	vector = strings.TrimSpace(vector)
+	switch {
+	case vector == "":
+		return optional.Some(""), optional.Some("")
+	case cvss.DetectVersion(vector) == cvss.Version40:
+		return optional.None[string](), optional.Some(vector)
+	default:
+		return optional.Some(vector), optional.None[string]()
 	}
-	byName := make(map[string]int64, len(labels))
-	for _, l := range slices.Backward(labels) {
-		byName[l.Name] = l.ID
-	}
-	ids := make([]int64, 0, len(names))
-	for _, name := range names {
-		id, ok := byName[strings.TrimSpace(name)]
-		if !ok {
-			return nil, nil
-		}
-		ids = append(ids, id)
-	}
-	return ids, nil
 }
 
-// setCVSSVector replaces the vector of the same CVSS version, unsupported vectors are passed on to be rejected by the service
-func setCVSSVector(opts *advisory_service.ContentOptions, vector string) {
-	vector = strings.TrimSpace(vector)
-	if cvss.DetectVersion(vector) == cvss.Version40 {
-		opts.CvssV4Vector = vector
-	} else {
-		opts.CvssV3Vector = vector
+// optionalList tells an omitted JSON list from an empty one
+func optionalList[T any](list []T) optional.Option[[]T] {
+	if list == nil {
+		return optional.None[[]T]()
 	}
+	return optional.Some(list)
 }
 
 // ListSecurityAdvisories lists the security advisories of a repository
@@ -217,51 +227,36 @@ func ListSecurityAdvisories(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	listOptions := utils.GetListOptions(ctx)
-	viewer := advisoryViewer(ctx)
-	stateName, severity, closeReason, direction := ctx.FormString("state"), ctx.FormString("severity"), ctx.FormString("close_reason"), ctx.FormString("direction")
-	opts := advisory_model.FindAdvisoriesOptions{
-		ListOptions: listOptions,
-		RepoID:      ctx.Repo.Repository.ID,
-		Viewer:      viewer,
+	opts, err := advisory_service.ParseListFilters(advisory_service.ListFilters{
+		State:       ctx.FormString("state"),
 		Keyword:     ctx.FormTrim("q"),
-		Severity:    advisory_model.ParseSeverity(severity),
+		Severity:    ctx.FormString("severity"),
 		Ecosystem:   ctx.FormTrim("ecosystem"),
-		CweID:       strings.ToUpper(ctx.FormTrim("cwe")),
-		CloseReason: advisory_model.ParseCloseReason(closeReason),
+		CweID:       ctx.FormTrim("cwe"),
+		CloseReason: ctx.FormString("close_reason"),
 		SortBy:      ctx.FormString("sort"),
-		Ascending:   direction == "asc",
-	}
-	state := advisory_model.ParseState(stateName)
-	for name, invalid := range map[string]bool{
-		"state":        stateName != "" && state == 0,
-		"severity":     severity != "" && opts.Severity == advisory_model.SeverityUnknown,
-		"close_reason": closeReason != "" && opts.CloseReason == advisory_model.CloseReasonNone,
-		"sort":         !slices.Contains([]string{"", "created", "updated", "published"}, opts.SortBy),
-		"direction":    !slices.Contains([]string{"", "asc", "desc"}, direction),
-		"ecosystem":    opts.Ecosystem != "" && !slices.Contains(advisory_model.Ecosystems, opts.Ecosystem),
-		"cwe":          opts.CweID != "" && !advisory_service.IsValidCweID(opts.CweID), // also keeps LIKE wildcards out
-	} {
-		if invalid {
-			ctx.APIError(http.StatusUnprocessableEntity, "invalid "+name)
-			return
-		}
-	}
-	if state != 0 {
-		opts.States = []advisory_model.State{state}
+		Direction:   ctx.FormString("direction"),
+	})
+	if err != nil {
+		apiAdvisoryError(ctx, err)
+		return
 	}
 	if names := ctx.FormTrim("labels"); names != "" {
-		var err error
-		if opts.LabelIDs, err = labelIDsByNames(ctx, strings.Split(names, ",")); err != nil {
+		labelIDs, allFound, err := advisory_service.LabelIDsByNames(ctx, ctx.Repo.Repository, strings.Split(names, ","))
+		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		if len(opts.LabelIDs) == 0 {
+		if !allFound {
 			ctx.SetTotalCountHeader(0)
 			ctx.JSON(http.StatusOK, []*api.RepositoryAdvisory{})
 			return
 		}
+		opts.LabelIDs = labelIDs
 	}
+	opts.ListOptions = utils.GetListOptions(ctx)
+	opts.RepoID = ctx.Repo.Repository.ID
+	opts.Viewer = advisoryViewer(ctx)
 
 	advisories, total, err := db.FindAndCount[advisory_model.Advisory](ctx, opts)
 	if err != nil {
@@ -271,12 +266,12 @@ func ListSecurityAdvisories(ctx *context.APIContext) {
 	for _, a := range advisories {
 		a.Repo = ctx.Repo.Repository
 	}
-	res, err := toAPIAdvisories(ctx, viewer, advisories)
+	res, err := toAPIAdvisories(ctx, advisories)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.SetLinkHeader(total, listOptions.PageSize)
+	ctx.SetLinkHeader(total, opts.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, res)
 }
@@ -309,12 +304,8 @@ func GetSecurityAdvisory(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryAdvisory"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	viewer := advisoryViewer(ctx)
-	a, _ := getVisibleAdvisory(ctx, viewer)
-	if ctx.Written() {
-		return
-	}
-	respondAdvisory(ctx, viewer, a, http.StatusOK)
+	a, _ := getSecurityAdvisory(ctx)
+	respondAdvisory(ctx, a, http.StatusOK)
 }
 
 // CreateSecurityAdvisory creates a draft security advisory
@@ -353,33 +344,29 @@ func CreateSecurityAdvisory(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm[*api.CreateRepositoryAdvisoryOption](ctx)
-	viewer := advisoryViewer(ctx)
-	if !viewer.CanManage() {
-		ctx.APIError(http.StatusForbidden, "only repository admins can create security advisories")
-		return
-	}
 	credits, err := toAdvisoryCredits(ctx, form.Credits)
 	if err != nil {
 		apiAdvisoryError(ctx, err)
 		return
 	}
-	opts := &advisory_service.ContentOptions{
+	v3, v4 := cvssVectorOptions(form.CVSSVectorString)
+	a, err := advisory_service.CreateAdvisory(ctx, ctx.Doer, ctx.Repo.Repository, &advisory_service.ContentOptions{
 		Summary:         form.Summary,
 		Description:     form.Description,
 		CveID:           form.CveID,
 		Severity:        form.Severity,
+		CvssV3Vector:    v3.Value(),
+		CvssV4Vector:    v4.Value(),
 		CweIDs:          form.CweIDs,
 		Vulnerabilities: toAdvisoryVulnerabilities(form.Vulnerabilities),
 		Credits:         credits,
 		LabelIDs:        form.Labels,
-	}
-	setCVSSVector(opts, form.CVSSVectorString)
-	a, err := advisory_service.CreateAdvisory(ctx, ctx.Doer, ctx.Repo.Repository, opts)
+	})
 	if err != nil {
 		apiAdvisoryError(ctx, err)
 		return
 	}
-	respondAdvisory(ctx, viewer, a, http.StatusCreated)
+	respondAdvisory(ctx, a, http.StatusCreated)
 }
 
 // CreatePrivateVulnerabilityReport reports a vulnerability privately
@@ -418,20 +405,21 @@ func CreatePrivateVulnerabilityReport(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm[*api.CreatePrivateVulnerabilityReportOption](ctx)
-	opts := &advisory_service.ContentOptions{
+	v3, v4 := cvssVectorOptions(form.CVSSVectorString)
+	a, err := advisory_service.ReportVulnerability(ctx, ctx.Doer, ctx.Repo.Repository, &advisory_service.ContentOptions{
 		Summary:         form.Summary,
 		Description:     form.Description,
 		Severity:        form.Severity,
+		CvssV3Vector:    v3.Value(),
+		CvssV4Vector:    v4.Value(),
 		CweIDs:          form.CweIDs,
 		Vulnerabilities: toAdvisoryVulnerabilities(form.Vulnerabilities),
-	}
-	setCVSSVector(opts, form.CVSSVectorString)
-	a, err := advisory_service.ReportVulnerability(ctx, ctx.Doer, ctx.Repo.Repository, opts)
+	})
 	if err != nil {
 		apiAdvisoryError(ctx, err)
 		return
 	}
-	respondAdvisory(ctx, advisoryViewer(ctx), a, http.StatusCreated)
+	respondAdvisory(ctx, a, http.StatusCreated)
 }
 
 // EditSecurityAdvisory updates a security advisory
@@ -476,158 +464,43 @@ func EditSecurityAdvisory(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm[*api.EditRepositoryAdvisoryOption](ctx)
-	viewer := advisoryViewer(ctx)
-	a, perms := getVisibleAdvisory(ctx, viewer)
-	if ctx.Written() {
-		return
-	}
+	a, perms := getSecurityAdvisory(ctx)
 	if err := a.LoadAttributes(ctx); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-
-	editContent := form.Summary != nil || form.Description != nil || form.Vulnerabilities != nil ||
-		form.CweIDs != nil || form.Severity != nil || form.CVSSVectorString != nil
-	manageContent := form.CveID != nil || form.Credits != nil || form.Labels != nil
-	setCollaborators := form.CollaboratingUsers != nil || form.CollaboratingTeams != nil
-	manageOther := form.State != nil || form.CloseReason != nil || form.DuplicateOf != nil || setCollaborators
-	if (manageContent || manageOther) && !viewer.CanManage() {
-		ctx.APIError(http.StatusForbidden, "only repository admins can change the CVE ID, credits, labels, state and collaborators")
-		return
+	opts := advisory_service.EditOptions{
+		Summary:           optional.FromPtr(form.Summary),
+		Description:       optional.FromPtr(form.Description),
+		Severity:          optional.FromPtr(form.Severity),
+		CweIDs:            optionalList(form.CweIDs),
+		CveID:             optional.FromPtr(form.CveID),
+		LabelIDs:          optionalList(form.Labels),
+		CollaboratorUsers: optionalList(form.CollaboratingUsers),
+		CollaboratorTeams: optionalList(form.CollaboratingTeams),
+		State:             optional.FromPtr(form.State),
+		CloseReason:       optional.FromPtr(form.CloseReason),
+		DuplicateOf:       optional.FromPtr(form.DuplicateOf),
 	}
-	if editContent && !perms.CanEdit {
-		ctx.APIError(http.StatusForbidden, "you cannot edit this advisory")
-		return
+	if form.CVSSVectorString != nil {
+		opts.CvssV3Vector, opts.CvssV4Vector = cvssVectorOptions(*form.CVSSVectorString)
 	}
-
-	// everything is validated before the first change is saved
-	stateOpts, err := stateOptionsFromForm(ctx, a, form)
-	if err != nil {
+	if form.Vulnerabilities != nil {
+		opts.Vulnerabilities = optional.Some(toAdvisoryVulnerabilities(form.Vulnerabilities))
+	}
+	if form.Credits != nil {
+		credits, err := toAdvisoryCredits(ctx, form.Credits)
+		if err != nil {
+			apiAdvisoryError(ctx, err)
+			return
+		}
+		opts.Credits = optional.Some(credits)
+	}
+	if err := advisory_service.EditAdvisory(ctx, ctx.Doer, a, perms, opts); err != nil {
 		apiAdvisoryError(ctx, err)
 		return
 	}
-	users, teams, err := resolveCollaborators(ctx, a, form)
-	if err != nil {
-		apiAdvisoryError(ctx, err)
-		return
-	}
-	if setCollaborators {
-		if err := advisory_service.ValidateNewCollaborators(ctx, a, users, teams); err != nil {
-			apiAdvisoryError(ctx, err)
-			return
-		}
-	}
-
-	if editContent || manageContent {
-		opts := advisory_service.ContentFromAdvisory(a)
-		if form.Summary != nil {
-			opts.Summary = *form.Summary
-		}
-		if form.Description != nil {
-			opts.Description = *form.Description
-		}
-		if form.CveID != nil {
-			opts.CveID = *form.CveID
-		}
-		if form.Vulnerabilities != nil {
-			opts.Vulnerabilities = toAdvisoryVulnerabilities(form.Vulnerabilities)
-		}
-		if form.CweIDs != nil {
-			opts.CweIDs = form.CweIDs
-		}
-		if form.Credits != nil {
-			if opts.Credits, err = toAdvisoryCredits(ctx, form.Credits); err != nil {
-				apiAdvisoryError(ctx, err)
-				return
-			}
-		}
-		if form.Labels != nil {
-			opts.LabelIDs = form.Labels
-		}
-		if form.CVSSVectorString != nil {
-			if *form.CVSSVectorString == "" {
-				opts.CvssV3Vector, opts.CvssV4Vector = "", ""
-			} else {
-				opts.Severity = ""
-				setCVSSVector(opts, *form.CVSSVectorString)
-			}
-		}
-		if form.Severity != nil {
-			opts.Severity = *form.Severity
-		}
-		if err := advisory_service.UpdateAdvisory(ctx, ctx.Doer, a, opts, viewer.CanManage()); err != nil {
-			apiAdvisoryError(ctx, err)
-			return
-		}
-	}
-	if setCollaborators {
-		if err := advisory_service.SetCollaborators(ctx, ctx.Doer, a, users, teams); err != nil {
-			apiAdvisoryError(ctx, err)
-			return
-		}
-	}
-	if stateOpts != nil {
-		if err := advisory_service.ChangeState(ctx, ctx.Doer, a, *stateOpts); err != nil {
-			apiAdvisoryError(ctx, err)
-			return
-		}
-	}
-	respondAdvisory(ctx, viewer, a, http.StatusOK)
-}
-
-// stateOptionsFromForm returns nil if the state doesn't change
-func stateOptionsFromForm(ctx *context.APIContext, a *advisory_model.Advisory, form *api.EditRepositoryAdvisoryOption) (*advisory_service.StateOptions, error) {
-	if form.State == nil || advisory_model.ParseState(*form.State) == a.State {
-		if form.CloseReason != nil || form.DuplicateOf != nil {
-			return nil, util.NewInvalidArgumentErrorf("the close reason can only be set when closing the advisory")
-		}
-		return nil, nil //nolint:nilnil // the state doesn't change
-	}
-	var closeReason, duplicateOf string
-	if form.CloseReason != nil {
-		closeReason = *form.CloseReason
-	}
-	if form.DuplicateOf != nil {
-		duplicateOf = *form.DuplicateOf
-	}
-	opts, err := advisory_service.NewStateOptions(ctx, a, *form.State, closeReason, duplicateOf)
-	return &opts, err
-}
-
-// resolveCollaborators keeps the current users or teams if only the other list is changed
-func resolveCollaborators(ctx *context.APIContext, a *advisory_model.Advisory, form *api.EditRepositoryAdvisoryOption) ([]*user_model.User, []*organization.Team, error) {
-	if form.CollaboratingUsers == nil && form.CollaboratingTeams == nil {
-		return nil, nil, nil
-	}
-	if err := a.LoadCollaborators(ctx); err != nil {
-		return nil, nil, err
-	}
-	users, teams := a.CollaboratorUsers, a.CollaboratorTeams
-	if form.CollaboratingUsers != nil {
-		users = make([]*user_model.User, 0, len(form.CollaboratingUsers))
-		for _, login := range form.CollaboratingUsers {
-			u, err := user_model.GetUserByName(ctx, login)
-			if user_model.IsErrUserNotExist(err) {
-				return nil, nil, util.NewInvalidArgumentErrorf("user %q does not exist", login)
-			} else if err != nil {
-				return nil, nil, err
-			}
-			users = append(users, u)
-		}
-	}
-	if form.CollaboratingTeams != nil {
-		teams = make([]*organization.Team, 0, len(form.CollaboratingTeams))
-		for _, name := range form.CollaboratingTeams {
-			t, err := organization.GetTeam(ctx, ctx.Repo.Repository.OwnerID, name)
-			if organization.IsErrTeamNotExist(err) {
-				return nil, nil, util.NewInvalidArgumentErrorf("team %q does not exist", name)
-			} else if err != nil {
-				return nil, nil, err
-			}
-			teams = append(teams, t)
-		}
-	}
-	return users, teams, nil
+	respondAdvisory(ctx, a, http.StatusOK)
 }
 
 // GetPrivateVulnerabilityReporting checks whether private vulnerability reporting is enabled
@@ -720,33 +593,18 @@ func setPrivateVulnerabilityReporting(ctx *context.APIContext, enabled bool) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// getAdvisoryDiscussion loads the advisory of the path, it responds with 404 if the doer cannot see its discussion
-func getAdvisoryDiscussion(ctx *context.APIContext) *advisory_model.Advisory {
-	a, perms := getVisibleAdvisory(ctx, advisoryViewer(ctx))
-	if ctx.Written() {
-		return nil
-	}
-	if !perms.CanSeeDiscussion {
-		ctx.APIErrorNotFound()
-		return nil
-	}
-	return a
-}
-
-func getAdvisoryComment(ctx *context.APIContext) (*advisory_model.Advisory, *advisory_model.Comment) {
-	a := getAdvisoryDiscussion(ctx)
-	if ctx.Written() {
-		return nil, nil
-	}
+func getAdvisoryComment(ctx *context.APIContext) *advisory_model.Comment {
+	a, _ := getSecurityAdvisory(ctx)
 	c, err := advisory_model.GetCommentByID(ctx, a.ID, ctx.PathParamInt64("id"))
-	if err == nil {
-		_, c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
-	}
 	if err != nil {
 		ctx.APIErrorAuto(err)
-		return nil, nil
+		return nil
 	}
-	return a, c
+	if _, c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID); err != nil {
+		ctx.APIErrorAuto(err)
+		return nil
+	}
+	return c
 }
 
 // ListSecurityAdvisoryComments lists the comments of the private discussion of an advisory
@@ -785,16 +643,14 @@ func ListSecurityAdvisoryComments(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryAdvisoryCommentList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	a := getAdvisoryDiscussion(ctx)
-	if ctx.Written() {
-		return
-	}
+	a, _ := getSecurityAdvisory(ctx)
 	listOptions := utils.GetListOptions(ctx)
 	comments, total, err := db.FindAndCount[advisory_model.Comment](ctx, advisory_model.FindCommentsOptions{ListOptions: listOptions, AdvisoryID: a.ID})
-	if err == nil {
-		err = advisory_model.CommentList(comments).LoadPosters(ctx)
-	}
 	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if err := advisory_model.CommentList(comments).LoadPosters(ctx); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -848,10 +704,7 @@ func CreateSecurityAdvisoryComment(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm[*api.RepositoryAdvisoryCommentOption](ctx)
-	a := getAdvisoryDiscussion(ctx)
-	if ctx.Written() {
-		return
-	}
+	a, _ := getSecurityAdvisory(ctx)
 	c, err := advisory_service.CreateComment(ctx, ctx.Doer, a, form.Body)
 	if err != nil {
 		apiAdvisoryError(ctx, err)
@@ -907,7 +760,8 @@ func EditSecurityAdvisoryComment(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm[*api.RepositoryAdvisoryCommentOption](ctx)
-	a, c := getAdvisoryComment(ctx)
+	a, _ := getSecurityAdvisory(ctx)
+	c := getAdvisoryComment(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -954,11 +808,12 @@ func DeleteSecurityAdvisoryComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
-	_, c := getAdvisoryComment(ctx)
+	_, perms := getSecurityAdvisory(ctx)
+	c := getAdvisoryComment(ctx)
 	if ctx.Written() {
 		return
 	}
-	if err := advisory_service.DeleteComment(ctx, ctx.Doer, c, advisoryViewer(ctx).CanManage()); err != nil {
+	if err := advisory_service.DeleteComment(ctx, ctx.Doer, perms, c); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}

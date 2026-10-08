@@ -47,9 +47,9 @@ func TestTransferOwnership(t *testing.T) {
 
 	advisory := &advisory_model.Advisory{RepoID: sourceRepo.ID, Summary: "s", State: advisory_model.StateDraft, ReporterID: 2}
 	require.NoError(t, advisory_model.CreateAdvisory(t.Context(), advisory))
-	_, err := advisory_model.AddCollaborator(t.Context(), advisory.ID, 4, 0, false)
+	_, err := advisory_model.AddCollaborator(t.Context(), &advisory_model.Collaborator{AdvisoryID: advisory.ID, UserID: 4})
 	require.NoError(t, err)
-	_, err = advisory_model.AddCollaborator(t.Context(), advisory.ID, 0, 2, false)
+	_, err = advisory_model.AddCollaborator(t.Context(), &advisory_model.Collaborator{AdvisoryID: advisory.ID, TeamID: 2})
 	require.NoError(t, err)
 
 	assert.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, doer))

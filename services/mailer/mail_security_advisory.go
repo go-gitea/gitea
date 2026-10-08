@@ -29,19 +29,9 @@ import (
 
 const tplSecurityAdvisory templates.TplName = "mail/repo/security_advisory"
 
-// generateMessageIDForAdvisory returns the ID of the report mail, the other mails reply to it
+// generateMessageIDForAdvisory without a suffix is the ID of the report mail, which the other mails reply to
 func generateMessageIDForAdvisory(a *advisory_model.Advisory, suffix string) string {
 	return fmt.Sprintf("<%s/security/advisories/%s%s@%s>", a.Repo.FullName(), a.Identifier, suffix, setting.AppDomain)
-}
-
-type advisoryMail struct {
-	doer     *user_model.User
-	advisory *advisory_model.Advisory
-	kind     string // reported, comment, published or invited
-	content  string // markdown rendered into the mail body
-	idSuffix string // empty for the report mail
-	direct   bool   // the mail concerns the recipient directly like a mention
-	public   bool   // the recipients only need to be able to read published advisories
 }
 
 func advisoryAdminIDs(ctx context.Context, a *advisory_model.Advisory) (container.Set[int64], error) {
@@ -50,97 +40,123 @@ func advisoryAdminIDs(ctx context.Context, a *advisory_model.Advisory) (containe
 
 // MailSecurityAdvisoryReported notifies the repository admins about a private vulnerability report
 func MailSecurityAdvisoryReported(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
-	sendAdvisoryMail(ctx, &advisoryMail{doer: doer, advisory: a, kind: "reported", content: a.Description, direct: true}, func() (container.Set[int64], error) {
-		return advisoryAdminIDs(ctx, a)
-	})
+	if setting.MailService == nil || !loadAdvisoryRepo(ctx, a) {
+		return
+	}
+	adminIDs, err := advisoryAdminIDs(ctx, a)
+	if err != nil {
+		log.Error("advisoryAdminIDs(%d): %v", a.ID, err)
+		return
+	}
+	recipients := advisoryMailRecipients(ctx, doer, a, adminIDs, true, canSeeDiscussion)
+	sendAdvisoryMail(ctx, doer, a, recipients, "mail.security_advisory.reported", a.Description, "")
 }
 
 // MailSecurityAdvisoryComment notifies the participants and repository admins about a new comment
 func MailSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, c *advisory_model.Comment) {
-	m := &advisoryMail{doer: doer, advisory: a, kind: "comment", content: c.Content, idSuffix: fmt.Sprintf("/comments/%d", c.ID)}
-	sendAdvisoryMail(ctx, m, func() (container.Set[int64], error) {
-		ids, err := advisory_model.ParticipantIDs(ctx, a)
-		if err != nil {
-			return nil, err
-		}
-		adminIDs, err := advisoryAdminIDs(ctx, a)
-		ids.AddMultiple(adminIDs.Values()...)
-		return ids, err
-	})
+	if setting.MailService == nil || !loadAdvisoryRepo(ctx, a) {
+		return
+	}
+	ids, err := advisory_model.ParticipantIDs(ctx, a)
+	if err != nil {
+		log.Error("ParticipantIDs(%d): %v", a.ID, err)
+		return
+	}
+	adminIDs, err := advisoryAdminIDs(ctx, a)
+	if err != nil {
+		log.Error("advisoryAdminIDs(%d): %v", a.ID, err)
+		return
+	}
+	ids.AddMultiple(adminIDs.Values()...)
+	recipients := advisoryMailRecipients(ctx, doer, a, ids, false, canSeeDiscussion)
+	sendAdvisoryMail(ctx, doer, a, recipients, "mail.security_advisory.comment", c.Content, fmt.Sprintf("/comments/%d", c.ID))
 }
 
 // MailSecurityAdvisoryPublished notifies the participants and credited users about a published advisory
 func MailSecurityAdvisoryPublished(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
-	sendAdvisoryMail(ctx, &advisoryMail{doer: doer, advisory: a, kind: "published", idSuffix: "/published", public: true}, func() (container.Set[int64], error) {
-		if err := a.LoadAttributes(ctx); err != nil {
-			return nil, err
-		}
-		ids, err := advisory_model.ParticipantIDs(ctx, a)
-		if err != nil {
-			return nil, err
-		}
-		for _, c := range a.Credits {
-			ids.Add(c.UserID)
-		}
-		return ids, nil
-	})
+	if setting.MailService == nil {
+		return
+	}
+	if err := a.LoadAttributes(ctx); err != nil {
+		log.Error("LoadAttributes(%d): %v", a.ID, err)
+		return
+	}
+	ids, err := advisory_model.ParticipantIDs(ctx, a)
+	if err != nil {
+		log.Error("ParticipantIDs(%d): %v", a.ID, err)
+		return
+	}
+	for _, c := range a.Credits {
+		ids.Add(c.UserID)
+	}
+	recipients := advisoryMailRecipients(ctx, doer, a, ids, false, canReadPublished)
+	sendAdvisoryMail(ctx, doer, a, recipients, "mail.security_advisory.published", "", "/published")
 }
 
 // MailSecurityAdvisoryCollaboratorAdded notifies a user or the members of a team granted access to an advisory
 func MailSecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, u *user_model.User, team *organization.Team) {
-	m := &advisoryMail{doer: doer, advisory: a, kind: "invited", idSuffix: fmt.Sprintf("/invited/%d", time.Now().UnixNano()), direct: true}
-	sendAdvisoryMail(ctx, m, func() (container.Set[int64], error) {
-		if u != nil {
-			return container.SetOf(u.ID), nil
-		}
+	if setting.MailService == nil || !loadAdvisoryRepo(ctx, a) {
+		return
+	}
+	ids := make(container.Set[int64])
+	if u != nil {
+		ids.Add(u.ID)
+	} else {
 		if err := team.LoadMembers(ctx); err != nil {
-			return nil, err
+			log.Error("LoadMembers(%d): %v", team.ID, err)
+			return
 		}
-		return container.SetOf(user_model.UserList(team.Members).GetUserIDs()...), nil
+		ids.AddMultiple(user_model.UserList(team.Members).GetUserIDs()...)
+	}
+	recipients := advisoryMailRecipients(ctx, doer, a, ids, true, canSeeDiscussion)
+	sendAdvisoryMail(ctx, doer, a, recipients, "mail.security_advisory.invited", "", fmt.Sprintf("/invited/%d", time.Now().UnixNano()))
+}
+
+func loadAdvisoryRepo(ctx context.Context, a *advisory_model.Advisory) bool {
+	if err := a.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo(%d): %v", a.ID, err)
+		return false
+	}
+	return true
+}
+
+// advisoryAccessCheck is checked again for each mail because users can lose access after they have been added
+type advisoryAccessCheck func(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool
+
+func canSeeDiscussion(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool {
+	ok, err := advisory_model.UserCanSeeDiscussion(ctx, u, a)
+	if err != nil {
+		log.Error("UserCanSeeDiscussion(%d, %d): %v", u.ID, a.ID, err)
+	}
+	return ok
+}
+
+func canReadPublished(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool {
+	return access_model.CheckRepoUnitUser(ctx, a.Repo, u, unit.TypeSecurityAdvisories)
+}
+
+// advisoryMailRecipients returns the mailable users without the doer, isDirect mails concern the recipients directly like mentions
+func advisoryMailRecipients(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, ids container.Set[int64], isDirect bool, canRead advisoryAccessCheck) []*user_model.User {
+	recipients, err := user_model.GetMailableUsersByIDs(ctx, ids.Values(), isDirect)
+	if err != nil {
+		log.Error("GetMailableUsersByIDs: %v", err)
+		return nil
+	}
+	return slices.DeleteFunc(recipients, func(u *user_model.User) bool {
+		return u.ID == doer.ID || !canRead(ctx, a, u)
 	})
 }
 
-func sendAdvisoryMail(ctx context.Context, m *advisoryMail, recipientIDs func() (container.Set[int64], error)) {
-	if setting.MailService == nil {
-		return
-	}
-	a := m.advisory
-	if err := a.LoadRepo(ctx); err != nil {
-		log.Error("LoadRepo: %v", err)
-		return
-	}
-	ids, err := recipientIDs()
-	if err != nil {
-		log.Error("security advisory %d %s mail recipients: %v", a.ID, m.kind, err)
-		return
-	}
-	recipients, err := user_model.GetMailableUsersByIDs(ctx, ids.Values(), m.direct)
-	if err != nil {
-		log.Error("GetMailableUsersByIDs: %v", err)
-		return
-	}
-	// access is checked again because users can lose it after they have been added
-	recipients = slices.DeleteFunc(recipients, func(u *user_model.User) bool {
-		if u.ID == m.doer.ID {
-			return true
-		}
-		if m.public {
-			return !access_model.CheckRepoUnitUser(ctx, a.Repo, u, unit.TypeSecurityAdvisories)
-		}
-		ok, err := advisory_model.UserCanSeeDiscussion(ctx, u, a)
-		if err != nil {
-			log.Error("UserCanSeeDiscussion(%d, %d): %v", u.ID, a.ID, err)
-		}
-		return !ok
-	})
+// sendAdvisoryMail renders the markdown content into the mail, the mail with an empty threadSuffix starts the thread
+func sendAdvisoryMail(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, recipients []*user_model.User, localeKey, markdownContent, threadSuffix string) {
 	if len(recipients) == 0 {
 		return
 	}
-
 	var content template.HTML
-	if m.content != "" {
+	if markdownContent != "" {
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, a.Repo).WithUseAbsoluteLink(true)
-		if content, err = markdown.RenderString(rctx, m.content); err != nil {
+		var err error
+		if content, err = markdown.RenderString(rctx, markdownContent); err != nil {
 			log.Error("markdown.RenderString(%d): %v", a.RepoID, err)
 			return
 		}
@@ -151,20 +167,19 @@ func sendAdvisoryMail(ctx context.Context, m *advisoryMail, recipientIDs func() 
 		langMap[u.Language] = append(langMap[u.Language], u)
 	}
 	for lang, tos := range langMap {
-		mailAdvisoryToLang(m, content, lang, tos)
+		mailAdvisoryToLang(doer, a, localeKey, content, threadSuffix, lang, tos)
 	}
 }
 
-func mailAdvisoryToLang(m *advisoryMail, content template.HTML, lang string, tos []*user_model.User) {
-	a := m.advisory
+func mailAdvisoryToLang(doer *user_model.User, a *advisory_model.Advisory, localeKey string, content template.HTML, threadSuffix, lang string, tos []*user_model.User) {
 	locale := translation.NewLocale(lang)
-	subject := locale.TrString("mail.security_advisory."+m.kind+".subject", a.Repo.FullName(), a.Summary)
+	subject := locale.TrString(localeKey+".subject", a.Repo.FullName(), a.Summary)
 	mailMeta := map[string]any{
 		"locale":   locale,
 		"Subject":  subject,
-		"TextKey":  "mail.security_advisory." + m.kind + ".text",
+		"TextKey":  localeKey + ".text",
 		"Language": locale.Language(),
-		"DoerName": m.doer.Name,
+		"DoerName": doer.Name,
 		"Summary":  a.Summary,
 		"Content":  content,
 		"Link":     a.HTMLURL(),
@@ -178,15 +193,15 @@ func mailAdvisoryToLang(m *advisoryMail, content template.HTML, lang string, tos
 		return
 	}
 
-	rootID, messageID := generateMessageIDForAdvisory(a, ""), generateMessageIDForAdvisory(a, m.idSuffix)
+	threadID, messageID := generateMessageIDForAdvisory(a, ""), generateMessageIDForAdvisory(a, threadSuffix)
 	msgs := make([]*sender_service.Message, 0, len(tos))
 	for _, to := range tos {
-		msg := sender_service.NewMessageFrom(to.EmailTo(), fromDisplayName(m.doer), setting.MailService.FromEmail, subject, mailBody.String())
+		msg := sender_service.NewMessageFrom(to.EmailTo(), fromDisplayName(doer), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = subject
 		msg.SetHeader("Message-ID", messageID)
-		if m.idSuffix != "" {
-			msg.SetHeader("In-Reply-To", rootID)
-			msg.SetHeader("References", rootID)
+		if messageID != threadID {
+			msg.SetHeader("In-Reply-To", threadID)
+			msg.SetHeader("References", threadID)
 		}
 		msgs = append(msgs, msg)
 	}
