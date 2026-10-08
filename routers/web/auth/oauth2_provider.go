@@ -331,6 +331,41 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
+	// An application flagged SkipSecondaryAuthorization is trusted outright:
+	// the consent screen is skipped on the first authorization as well as
+	// every one after it, and the grant is created here rather than by a
+	// Doer clicking a button.
+	//
+	// This is for the first-party client that *is* the site being signed in
+	// to. Asking somebody to authorize the application they are already
+	// looking at tells them nothing they can act on -- there is no third
+	// party, and declining leaves them unable to use the product they just
+	// opened. RFC 6749 Section 10.2 asks for consent to protect a user from
+	// a client they have not chosen, which is not this case; the operator
+	// chose it when they set the flag, and only an administrator can.
+	//
+	// Confidential clients without the flag keep the old behaviour, consent
+	// on first use, because confidentiality alone does not say first-party.
+	if app.SkipSecondaryAuthorization && grant == nil {
+		grant, err = app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
+		if err != nil {
+			handleAuthorizeError(ctx, AuthorizeError{
+				State:            form.State,
+				ErrorDescription: "cannot create grant for user",
+				ErrorCode:        ErrorCodeServerError,
+			}, form.RedirectURI)
+			return
+		}
+	} else if app.SkipSecondaryAuthorization && grant != nil && grant.Scope != form.Scope {
+		// The scope changed. A trusted application is still trusted, so this
+		// widens the grant rather than asking -- the alternative is a consent
+		// screen appearing once per release that touches scopes.
+		if err := grant.SetScope(ctx, form.Scope); err != nil {
+			handleServerError(ctx, form.State, form.RedirectURI)
+			return
+		}
+	}
+
 	// Redirect if user already granted access and the application is confidential or trusted otherwise
 	// I.e. always require authorization for untrusted public clients as recommended by RFC 6749 Section 10.2
 	//
