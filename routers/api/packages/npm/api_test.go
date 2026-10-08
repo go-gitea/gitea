@@ -28,7 +28,7 @@ func TestCreatePackageMetadataResponse(t *testing.T) {
 			Owner:    &user_model.User{Name: "alice"},
 			Version:  &packages_model.PackageVersion{Version: v, CreatedUnix: timeutil.TimeStamp(publishedUnix)},
 			SemVer:   version.Must(version.NewVersion(v)),
-			Metadata: &npm_module.Metadata{Readme: v, Keywords: []string{"gitea"}, Repository: repo, HasStandardTarballURL: standardTarballURL},
+			Metadata: &npm_module.Metadata{Readme: v, Keywords: []string{"gitea"}, Repository: repo, GiteaHasStandardTarballURL: standardTarballURL},
 			Files: []*packages_model.PackageFileDescriptor{{
 				File: &packages_model.PackageFile{LowerName: "test-" + v + ".tgz"},
 				Blob: &packages_model.PackageBlob{},

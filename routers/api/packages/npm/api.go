@@ -85,11 +85,11 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 
 	metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](pd)
 
-	// Versions from before HasStandardTarballURL keep their former URL, ROOT_URL
+	// Versions without GiteaHasStandardTarballURL keep their former URL, ROOT_URL
 	// host included, because lockfiles pin it. Newer versions use the standard
 	// <name>/-/<file> URL, which clients derive from their registry config.
 	tarball := fmt.Sprintf("%sapi/packages/%s/npm/%s/-/%s/%s", setting.AppURL, pd.Owner.Name, url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName))
-	if metadata.HasStandardTarballURL {
+	if metadata.GiteaHasStandardTarballURL {
 		tarball = fmt.Sprintf("%s/%s/-/%s", registryURL, util.PathEscapeSegments(pd.Package.Name), url.PathEscape(pd.Files[0].File.LowerName))
 	}
 
