@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,14 +17,13 @@ func TestPushToExternalAddress(t *testing.T) {
 	srcCommitID, err := GetBranchCommitID(t.Context(), src, "master")
 	require.NoError(t, err)
 
-	for _, supportConfigEnv := range []bool{true, false} {
-		defer test.MockVariableValue(&DefaultFeatures().SupportConfigEnv, supportConfigEnv)()
+	{
 		dstPath := t.TempDir()
 		require.NoError(t, InitRepositoryLocal(t.Context(), dstPath, true, Sha1ObjectFormat.Name(), "master"))
 		require.NoError(t, PushToExternalAddress(t.Context(), src, dstPath, []string{"+refs/heads/*:refs/heads/*"}, PushOptions{Mirror: true}))
 		dstCommitID, err := GetBranchCommitID(t.Context(), mockRepository(dstPath), "master")
 		require.NoError(t, err)
-		assert.Equal(t, srcCommitID, dstCommitID, "SupportConfigEnv=%v", supportConfigEnv)
+		assert.Equal(t, srcCommitID, dstCommitID)
 		refs, _, err := gitcmd.NewCommand("for-each-ref", "--format=%(refname)").WithDir(dstPath).RunStdString(t.Context())
 		require.NoError(t, err)
 		assert.Equal(t, "refs/heads/branch1\nrefs/heads/branch2\nrefs/heads/master\n", refs, "only the given refspecs are pushed")

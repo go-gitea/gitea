@@ -28,11 +28,7 @@ func PushToExternalAddress(ctx context.Context, repo RepositoryFacade, addr stri
 		configs = append(configs, ConfigEntry{Key: "remote." + tempRemoteName + ".push", Value: refSpec})
 	}
 	opts.Remote = tempRemoteName
-	if DefaultFeatures().SupportConfigEnv {
-		opts.Env = appendConfigEnv(opts.Env, configs...) // keep credentials in the address out of the process arguments
-	} else {
-		opts.Configs = configs
-	}
+	opts.Env = appendConfigEnv(opts.Env, configs...) // keep credentials in the address out of the process arguments
 	return PushToExternal(ctx, repo, opts)
 }
 
