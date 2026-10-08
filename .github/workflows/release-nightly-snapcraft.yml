@@ -37,8 +37,10 @@ jobs:
       # retry snapcraft uploads which can be flaky
       - name: Publish snap
         run: |
+          # part-gitea-pull.sh decides what is built, see the comments there:
+          # * grade devel (main or a prerelease tag) goes to latest/edge
+          # * grade stable (a new release tag) goes to latest/stable, and to latest/candidate which marks it as released
           channel=latest/edge
-          # part-gitea-pull.sh builds an unreleased tag with grade stable; candidate is what it checks against
           if unsquashfs -cat "$SNAP" meta/snap.yaml | grep -qx 'grade: stable'; then
             channel=latest/stable,latest/candidate
           fi
