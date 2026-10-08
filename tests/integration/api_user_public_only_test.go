@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
@@ -36,6 +37,8 @@ func TestAPIPublicOnlySelfUserRoutes(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/user31").AddTokenAuth(privateReadUserToken), http.StatusNotFound)
+		require.NoError(t, db.Insert(t.Context(), &user_model.Redirect{LowerName: "old-user31", RedirectUserID: privateUser.ID}))
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/old-user31").AddTokenAuth(privateReadUserToken), http.StatusNotFound)
 		MakeRequest(t, NewRequest(t, "GET", "/api/v1/user").AddTokenAuth(privateReadUserToken), http.StatusForbidden)
 	})
 
