@@ -4,10 +4,12 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	access_model "gitea.dev/models/perm/access"
@@ -15,6 +17,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -158,6 +161,13 @@ func TestAPISearchRepo(t *testing.T) {
 		}},
 	}
 
+	repoCache := cache.NewEphemeralCache(time.Hour)
+	getRepo := func(t *testing.T, id int64) *repo_model.Repository {
+		r, _ := cache.GetWithEphemeralCache(t.Context(), repoCache, "cache-group-test", fmt.Sprintf("repo:%d", id), func(context.Context, string) (*repo_model.Repository, error) {
+			return unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: id}), nil
+		})
+		return r
+	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			for userToLogin, expected := range testCase.expectedResults {
@@ -211,15 +221,6 @@ func TestAPISearchRepo(t *testing.T) {
 			}
 		})
 	}
-}
-
-var repoCache = make(map[int64]*repo_model.Repository)
-
-func getRepo(t *testing.T, repoID int64) *repo_model.Repository {
-	if _, ok := repoCache[repoID]; !ok {
-		repoCache[repoID] = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-	}
-	return repoCache[repoID]
 }
 
 func TestAPIViewRepo(t *testing.T) {
