@@ -185,3 +185,50 @@ func visitNodeVideo(ctx *RenderContext, node *html.Node) (next *html.Node) {
 	}
 	return next
 }
+
+func visitNodeSource(ctx *RenderContext, node *html.Node) (next *html.Node) {
+	next = node.NextSibling
+	for i, attr := range node.Attr {
+		if attr.Key != "srcset" {
+			continue
+		}
+		attr.Val = resolveSrcSetLinks(attr.Val, func(link string) string {
+			return camoHandleLink(ctx.RenderHelper.ResolveLink(link, LinkTypeMedia))
+		})
+		node.Attr[i] = attr
+	}
+	return next
+}
+
+const srcSetSpaces = " \t\n\r\f" // the ASCII whitespace that delimits a "srcset" candidate URL
+
+// resolveSrcSetLinks rewrites every candidate URL of a "srcset" value, keeping the separators
+// and descriptors in place. A candidate URL is the leading run of non-space chars, except that
+// commas at its end close the candidate instead of belonging to the URL.
+// https://html.spec.whatwg.org/multipage/images.html#parse-a-srcset-attribute
+func resolveSrcSetLinks(srcSet string, resolve func(link string) string) string {
+	var sb strings.Builder
+	for rest := srcSet; ; {
+		candidate := strings.TrimLeft(rest, srcSetSpaces+",")
+		sb.WriteString(rest[:len(rest)-len(candidate)])
+		if candidate == "" {
+			return sb.String()
+		}
+		linkEnd := strings.IndexAny(candidate, srcSetSpaces)
+		if linkEnd < 0 {
+			linkEnd = len(candidate)
+		}
+		link := strings.TrimRight(candidate[:linkEnd], ",")
+		sb.WriteString(resolve(link))
+		sb.WriteString(candidate[len(link):linkEnd])
+		rest = candidate[linkEnd:]
+		if len(link) == linkEnd { // no comma closed the URL, so a descriptor may follow
+			descEnd := strings.IndexByte(rest, ',')
+			if descEnd < 0 {
+				descEnd = len(rest)
+			}
+			sb.WriteString(rest[:descEnd])
+			rest = rest[descEnd:]
+		}
+	}
+}

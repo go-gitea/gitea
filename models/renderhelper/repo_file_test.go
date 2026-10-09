@@ -80,6 +80,15 @@ func TestRepoFile(t *testing.T) {
 <video src="/user2/repo1/media/commit/1234/my%20dir/LINK">
 </video>`, rendered)
 	})
+
+	t.Run("PictureSource", func(t *testing.T) {
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{CurrentRefSubURL: "branch/main"}).
+			WithMarkupType(markdown.MarkupName)
+		rendered, err := testRenderString(rctx, `<picture><source media="(prefers-color-scheme: dark)" srcset="dark.svg"><img src="light.svg"></picture>`)
+		assert.NoError(t, err)
+		assert.Equal(t, `<p><picture><source media="(prefers-color-scheme: dark)" srcset="/user2/repo1/media/branch/main/dark.svg"/><a href="/user2/repo1/src/branch/main/light.svg" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/main/light.svg"/></a></picture></p>
+`, rendered)
+	})
 }
 
 func TestRepoFileOrgMode(t *testing.T) {
