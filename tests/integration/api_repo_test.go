@@ -27,6 +27,48 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestAPIUserRepos(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	userOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	userOther := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	targetUser := userOwner
+
+	testCases := []struct {
+		name         string
+		doer         *user_model.User
+		count        int
+		privateCount int
+	}{
+		{name: "Anonymous", doer: nil, count: 7},
+		{name: "UserOwner", doer: userOwner, count: 14, privateCount: 7},
+		{name: "UserOther", doer: userOther, count: 7},
+	}
+
+	for _, tc := range testCases {
+		var token string
+		if tc.doer != nil {
+			session := loginUser(t, tc.doer.Name)
+			token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
+		}
+
+		t.Run(tc.name, func(t *testing.T) {
+			req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", targetUser.Name).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			apiRepos := DecodeJSON(t, resp, []*api.Repository{})
+			assert.Len(t, apiRepos, tc.count)
+			privateCount := 0
+			for _, repo := range apiRepos {
+				assert.Equal(t, targetUser.ID, repo.Owner.ID)
+				if repo.Private {
+					privateCount++
+				}
+			}
+			assert.Equal(t, tc.privateCount, privateCount)
+		})
+	}
+}
+
 func TestAPISearchRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const keyword = "test"
