@@ -397,3 +397,60 @@ func TestForceCancelJobs(t *testing.T) {
 		assert.Equal(t, StatusCancelled, callerAfter.Status)
 	})
 }
+
+func TestUpdateRunJob_CancelledCallerSettlesRun(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run := &ActionRun{
+		Title:         "cancelled-caller",
+		RepoID:        4,
+		Index:         9811,
+		OwnerID:       1,
+		WorkflowID:    "test.yaml",
+		TriggerUserID: 1,
+		Ref:           "refs/heads/master",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		EventPayload:  "{}",
+		Status:        StatusCancelling,
+	}
+	require.NoError(t, db.Insert(ctx, run))
+	attempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: 1, Status: StatusCancelling}
+	require.NoError(t, db.Insert(ctx, attempt))
+	run.LatestAttemptID = attempt.ID
+	require.NoError(t, UpdateRun(ctx, run, "latest_attempt_id"))
+
+	newJob := func(name string, status Status) *ActionRunJob {
+		return &ActionRunJob{
+			RunID:        run.ID,
+			RunAttemptID: attempt.ID,
+			RepoID:       run.RepoID,
+			OwnerID:      run.OwnerID,
+			CommitSHA:    run.CommitSHA,
+			Name:         name,
+			JobID:        name,
+			Attempt:      1,
+			Status:       status,
+		}
+	}
+	caller := newJob("caller", StatusCancelled)
+	caller.IsReusableCaller = true
+	caller.IsExpanded = true
+	require.NoError(t, db.Insert(ctx, caller))
+	child := newJob("child", StatusCancelling)
+	child.ParentJobID = caller.ID
+	require.NoError(t, db.Insert(ctx, child))
+
+	// the runner acknowledges the cancel after cancelling already wrote the caller as cancelled
+	child.Status = StatusCancelled
+	child.Stopped = timeutil.TimeStampNow()
+	_, err := UpdateRunJob(ctx, child, nil, "status", "stopped")
+	require.NoError(t, err)
+
+	gotAttempt := unittest.AssertExistsAndLoadBean(t, &ActionRunAttempt{ID: attempt.ID})
+	assert.Equal(t, StatusCancelled, gotAttempt.Status)
+	gotRun := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID})
+	assert.Equal(t, StatusCancelled, gotRun.Status)
+}

@@ -24,8 +24,7 @@ import (
 )
 
 type mockRunner struct {
-	client       *mockRunnerClient
-	capabilities []string // advertised at registration, e.g. "cancelling"
+	client *mockRunnerClient
 }
 
 type mockRunnerClient struct {
@@ -72,12 +71,11 @@ func (r *mockRunner) doPing(t *testing.T) {
 func (r *mockRunner) doRegister(t *testing.T, name, token string, labels []string, ephemeral bool) {
 	r.doPing(t)
 	resp, err := r.client.runnerServiceClient.Register(t.Context(), connect.NewRequest(&runnerv1.RegisterRequest{
-		Name:         name,
-		Token:        token,
-		Version:      "mock-runner-version",
-		Labels:       labels,
-		Ephemeral:    ephemeral,
-		Capabilities: r.capabilities,
+		Name:      name,
+		Token:     token,
+		Version:   "mock-runner-version",
+		Labels:    labels,
+		Ephemeral: ephemeral,
 	}))
 	assert.NoError(t, err)
 	r.client = newMockRunnerClient(resp.Msg.Runner.Uuid, resp.Msg.Runner.Token)
