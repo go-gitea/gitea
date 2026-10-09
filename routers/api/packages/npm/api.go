@@ -84,8 +84,8 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 	metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](pd)
 
 	tarballPath := metadata.GiteaTarballPath
-	if tarballPath == "" { // preserve 1.27 lockfile URLs, scoped 28.0/28.1 pnpm pins need `tarball:` removed
-		tarballPath = fmt.Sprintf("%s/-/%s/%s", url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName))
+	if tarballPath == "" {
+		tarballPath = fmt.Sprintf("%s/-/%s/%s", url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName)) // 1.27 URL, pinned by older lockfiles
 	}
 
 	return &npm_module.PackageMetadataVersion{
