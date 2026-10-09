@@ -25,33 +25,12 @@
 								</div>
 								<div class="whitelist field">
 									<label>{{ctx.Locale.Tr "repo.settings.tags.protection.allowed.users"}}</label>
-									<div class="ui multiple search selection dropdown">
-										<input type="hidden" name="allowlist_users" value="{{.allowlist_users}}">
-										<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
-										<div class="menu">
-											{{range .Users}}
-												<div class="item" data-value="{{.ID}}">
-													{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
-												</div>
-											{{end}}
-										</div>
-									</div>
+									{{template "repo/settings/user_dropdown" (dict "Name" "allowlist_users" "Value" .allowlist_users "Users" .Users)}}
 								</div>
 								{{if .Owner.IsOrganization}}
 									<div class="whitelist field">
 										<label>{{ctx.Locale.Tr "repo.settings.tags.protection.allowed.teams"}}</label>
-										<div class="ui multiple search selection dropdown">
-											<input type="hidden" name="allowlist_teams" value="{{.allowlist_teams}}">
-											<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
-											<div class="menu">
-												{{range .Teams}}
-													<div class="item" data-value="{{.ID}}">
-														{{svg "octicon-people"}}
-														{{.Name}}
-													</div>
-												{{end}}
-											</div>
-										</div>
+										{{template "repo/settings/team_dropdown" (dict "Name" "allowlist_teams" "Value" .allowlist_teams "Teams" .Teams)}}
 									</div>
 								{{end}}
 								<div class="field">
