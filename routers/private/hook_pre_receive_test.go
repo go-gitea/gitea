@@ -28,10 +28,10 @@ func TestPreReceiveActionsProtectedBranch(t *testing.T) {
 		forcePush  bool
 		allowed    bool
 	}{
-		{name: "push", protection: git_model.ProtectedBranch{CanPush: true}, allowed: true},
-		{name: "push allowlist", protection: git_model.ProtectedBranch{CanPush: true, EnableWhitelist: true}},
-		{name: "force push", protection: git_model.ProtectedBranch{CanPush: true, CanForcePush: true}, forcePush: true, allowed: true},
-		{name: "force push allowlist", protection: git_model.ProtectedBranch{CanPush: true, CanForcePush: true, EnableForcePushAllowlist: true}, forcePush: true},
+		{name: "push", protection: git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true}}, allowed: true},
+		{name: "push allowlist", protection: git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true, EnableWhitelist: true}}},
+		{name: "force push", protection: git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true}}, forcePush: true, allowed: true},
+		{name: "force push allowlist", protection: git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true, EnableForcePushAllowlist: true}}, forcePush: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtx, resp := contexttest.MockPrivateContext(t, "/")

@@ -168,10 +168,12 @@ jobs:
 
 		// require the workflow's status check on the base branch, so a filtered-out run posts a skipped status to satisfy it
 		require.NoError(t, git_model.UpdateProtectBranch(t.Context(), baseRepo, &git_model.ProtectedBranch{
-			RepoID:              baseRepo.ID,
-			RuleName:            "main",
-			EnableStatusCheck:   true,
-			StatusCheckContexts: []string{"*"},
+			RepoID:   baseRepo.ID,
+			RuleName: "main",
+			ProtectedBranchConfig: git_model.ProtectedBranchConfig{
+				EnableStatusCheck:   true,
+				StatusCheckContexts: []string{"*"},
+			},
 		}, git_model.WhitelistOptions{}))
 
 		// add another file whose name cannot match the specified path

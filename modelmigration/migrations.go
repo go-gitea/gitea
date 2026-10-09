@@ -434,7 +434,7 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(356, "Add index on action_run commit_sha", v29.AddActionRunCommitSHAIndex),
 		newMigration(357, "Normalize legacy team authorize values", v29.NormalizeLegacyTeamAuthorize),
-		newMigration(358, "Add deletion allowlist to branch protection", v29.AddDeletionAllowlistToBranchProtection),
+		newMigration(358, "Move branch protection settings to JSON", v29.MoveBranchProtectionConfigToJSON),
 	}
 	return preparedMigrations
 }

@@ -45,10 +45,12 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 	t.Run("RespectsProtectedBranch", func(t *testing.T) {
 		pr2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 		protectedBranch := &git_model.ProtectedBranch{
-			RepoID:       pr2.HeadRepoID,
-			RuleName:     pr2.HeadBranch,
-			CanPush:      false,
-			CanForcePush: false,
+			RepoID:   pr2.HeadRepoID,
+			RuleName: pr2.HeadBranch,
+			ProtectedBranchConfig: git_model.ProtectedBranchConfig{
+				CanPush:      false,
+				CanForcePush: false,
+			},
 		}
 		_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
 		require.NoError(t, err)
@@ -105,10 +107,12 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 	t.Run("ProtectedBranchAllowsPushWithoutRebase", func(t *testing.T) {
 		pr2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 		protectedBranch := &git_model.ProtectedBranch{
-			RepoID:       pr2.HeadRepoID,
-			RuleName:     pr2.HeadBranch,
-			CanPush:      true,
-			CanForcePush: false,
+			RepoID:   pr2.HeadRepoID,
+			RuleName: pr2.HeadBranch,
+			ProtectedBranchConfig: git_model.ProtectedBranchConfig{
+				CanPush:      true,
+				CanForcePush: false,
+			},
 		}
 		_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
 		require.NoError(t, err)
@@ -135,10 +139,12 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 		pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
 		pr3.AllowMaintainerEdit = true
 		protectedBranch := &git_model.ProtectedBranch{
-			RepoID:       pr3.HeadRepoID,
-			RuleName:     pr3.HeadBranch,
-			CanPush:      true,
-			CanForcePush: true,
+			RepoID:   pr3.HeadRepoID,
+			RuleName: pr3.HeadBranch,
+			ProtectedBranchConfig: git_model.ProtectedBranchConfig{
+				CanPush:      true,
+				CanForcePush: true,
+			},
 		}
 		_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
 		require.NoError(t, err)
@@ -165,10 +171,12 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 		pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
 		pr3.AllowMaintainerEdit = true
 		protectedBranch := &git_model.ProtectedBranch{
-			RepoID:       pr3.HeadRepoID,
-			RuleName:     pr3.HeadBranch,
-			CanPush:      true,
-			CanForcePush: true,
+			RepoID:   pr3.HeadRepoID,
+			RuleName: pr3.HeadBranch,
+			ProtectedBranchConfig: git_model.ProtectedBranchConfig{
+				CanPush:      true,
+				CanForcePush: true,
+			},
 		}
 		_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
 		require.NoError(t, err)

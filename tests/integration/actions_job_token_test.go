@@ -67,8 +67,12 @@ func TestActionsProtectedBranchDeletion(t *testing.T) {
 					require.NoError(t, err, "%s", stderr)
 				}
 				require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{
-					RepoID: repo.ID, RuleName: branchPrefix + "-*", CanPush: tt.canPush, CanDelete: tt.canDelete,
-					EnableWhitelist: tt.pushAllowlist, EnableDeletionAllowlist: tt.deleteAllowlist,
+					RepoID: repo.ID, RuleName: branchPrefix + "-*",
+					ProtectedBranchConfig: git_model.ProtectedBranchConfig{
+						CanPush:         tt.canPush,
+						EnableWhitelist: tt.pushAllowlist,
+						CanDelete:       tt.canDelete, EnableDeletionAllowlist: tt.deleteAllowlist,
+					},
 				}))
 
 				_, stderr, err := gitcmd.NewCommand("push", "--delete").AddDynamicArguments(u.String(), branchPrefix+"-git").

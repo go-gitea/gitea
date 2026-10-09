@@ -165,8 +165,10 @@ func TestCanBypassBranchProtection(t *testing.T) {
 	teamMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	pb := &ProtectedBranch{
-		EnableBypassAllowlist:  true,
-		BypassAllowlistUserIDs: []int64{user.ID},
+		ProtectedBranchConfig: ProtectedBranchConfig{
+			EnableBypassAllowlist:  true,
+			BypassAllowlistUserIDs: []int64{user.ID},
+		},
 	}
 
 	testBypass := func(t *testing.T, expected bool, pb *ProtectedBranch, doer *user_model.User, isAdmin bool) {
@@ -220,9 +222,9 @@ func TestProtectedBranchCanUserDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	pb := &ProtectedBranch{
-		RepoID:  repo.ID,
-		Repo:    repo,
-		CanPush: true,
+		RepoID:                repo.ID,
+		Repo:                  repo,
+		ProtectedBranchConfig: ProtectedBranchConfig{CanPush: true},
 	}
 
 	assert.False(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
@@ -247,12 +249,55 @@ func TestProtectedBranchCanUserDelete(t *testing.T) {
 	assert.False(t, pb.CanUserDelete(t.Context(), user, userPermission))
 }
 
+func TestProtectedBranchConfig(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	pb := &ProtectedBranch{
+		RepoID: repo.ID, RuleName: "config-test",
+		ProtectedBranchConfig: ProtectedBranchConfig{
+			CanPush:             true,
+			WhitelistUserIDs:    []int64{2, 4},
+			StatusCheckContexts: []string{},
+
+			CanDelete: true, EnableDeletionAllowlist: true, DeletionAllowlistDeployKeys: true,
+			DeletionAllowlistUserIDs: []int64{2, 4}, DeletionAllowlistTeamIDs: []int64{1, 2},
+		},
+	}
+	require.NoError(t, db.Insert(ctx, pb))
+	loaded := unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{ID: pb.ID})
+	assert.Equal(t, pb.ProtectedBranchConfig, loaded.ProtectedBranchConfig)
+
+	require.NoError(t, RemoveUserIDFromProtectedBranch(ctx, loaded, 2))
+	loaded = unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{ID: pb.ID})
+	assert.Equal(t, []int64{4}, loaded.WhitelistUserIDs)
+	assert.Equal(t, []int64{4}, loaded.DeletionAllowlistUserIDs)
+	assert.Equal(t, pb.DeletionAllowlistTeamIDs, loaded.DeletionAllowlistTeamIDs)
+
+	require.NoError(t, RemoveTeamIDFromProtectedBranch(ctx, loaded, 1))
+	loaded = unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{ID: pb.ID})
+	assert.Equal(t, []int64{2}, loaded.DeletionAllowlistTeamIDs)
+	assert.Equal(t, []int64{4}, loaded.DeletionAllowlistUserIDs)
+	assert.True(t, loaded.CanDelete)
+	assert.True(t, loaded.EnableDeletionAllowlist)
+	assert.True(t, loaded.DeletionAllowlistDeployKeys)
+
+	loaded.ProtectedBranchConfig = ProtectedBranchConfig{}
+	require.NoError(t, UpdateProtectBranch(ctx, repo, loaded, WhitelistOptions{UserIDs: loaded.WhitelistUserIDs}))
+	loaded = unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{ID: pb.ID})
+	assert.Equal(t, ProtectedBranchConfig{}, loaded.ProtectedBranchConfig)
+	assert.False(t, loaded.CanPush)
+}
+
 func TestProtectedBranchCanUserDeleteWithPermission(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	actionsUser := user_model.NewActionsUserWithTaskID(47)
-	pb := &ProtectedBranch{RepoID: repo.ID, Repo: repo, CanPush: true, CanDelete: true}
+	pb := &ProtectedBranch{
+		RepoID: repo.ID, Repo: repo,
+		ProtectedBranchConfig: ProtectedBranchConfig{CanPush: true, CanDelete: true},
+	}
 
 	ownerPermission, err := access_model.GetDoerRepoPermission(t.Context(), repo, owner)
 	require.NoError(t, err)
