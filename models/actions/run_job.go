@@ -516,7 +516,9 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		if err != nil {
 			return affected, fmt.Errorf("load parent caller %d: %w", job.ParentJobID, err)
 		}
-		return affected, RefreshReusableCallerStatus(ctx, parent)
+		if err := RefreshReusableCallerStatus(ctx, parent); err != nil {
+			return affected, err
+		}
 	}
 
 	if err := refreshRunStatus(ctx, job.RepoID, job.RunID, job.RunAttemptID, StatusUnknown); err != nil {
