@@ -6,85 +6,50 @@ package v29
 import (
 	"testing"
 
-	"gitea.dev/modelmigration/base"
 	"gitea.dev/modelmigration/migrationtest"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/secret"
-	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestMoveMirrorCredentialsToDatabase(t *testing.T) {
-	type Repository struct {
-		ID        int64 `xorm:"pk autoincr"`
-		OwnerName string
-		Name      string
+func TestNormalizeLegacyTeamAuthorize(t *testing.T) {
+	type Team struct {
+		ID        int64 `xorm:"pk"`
+		Authorize int
 	}
-	type Mirror struct {
-		ID     int64 `xorm:"pk autoincr"`
-		RepoID int64
-	}
-	type PushMirror struct {
-		ID         int64 `xorm:"pk autoincr"`
-		RepoID     int64
-		RemoteName string
+	type TeamUnit struct {
+		ID     int64 `xorm:"pk"`
+		TeamID int64 `xorm:"INDEX"`
 	}
 
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(Repository), new(Mirror), new(PushMirror))
-	defer deferable()
+	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(Team), new(TeamUnit))
+	defer deferrable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	// let the DB assign IDs: MSSQL rejects explicit values for identity columns
-	repo1Row, repo2Row := &Repository{OwnerName: "user2", Name: "repo1"}, &Repository{OwnerName: "user2", Name: "repo2"}
-	_, err := x.Insert(repo1Row, repo2Row)
+	_, err := x.Insert(
+		&Team{ID: 1, Authorize: 4},
+		&Team{ID: 2, Authorize: 3},
+		&Team{ID: 3, Authorize: 2},
+		&Team{ID: 4, Authorize: 1},
+		&Team{ID: 5, Authorize: 0},
+
+		&TeamUnit{TeamID: 3},
+	)
 	require.NoError(t, err)
-	mirror := &Mirror{RepoID: repo1Row.ID}
-	pushA := &PushMirror{RepoID: repo1Row.ID, RemoteName: "remote_mirror_a"}
-	pushB := &PushMirror{RepoID: repo2Row.ID, RemoteName: "remote_mirror_b"}
-	pushMissing := &PushMirror{RepoID: repo2Row.ID, RemoteName: "missing"}
-	_, err = x.Insert(mirror, pushA, pushB, pushMissing)
-	require.NoError(t, err)
+	require.NoError(t, NormalizeLegacyTeamAuthorize(t.Context(), x))
 
-	setRemote := func(repo gitrepo.RepositoryFacade, name, addr string) {
-		_, _, err := gitcmd.NewCommand("config").AddDynamicArguments("remote."+name+".url", addr).WithRepo(repo).RunStdString(t.Context())
+	get := func(id int64) int {
+		tBean := &Team{ID: id}
+		has, err := x.Get(tBean)
 		require.NoError(t, err)
+		require.True(t, has)
+		return tBean.Authorize
 	}
-	getRemote := func(repo gitrepo.RepositoryFacade, name string) string {
-		addr, err := remoteAddress(t.Context(), repo, name)
-		require.NoError(t, err)
-		return addr
-	}
-	repo1, wiki1, repo2 := base.LocalCodeGitRepo("user2", "repo1"), base.LocalWikiGitRepo("user2", "repo1"), base.LocalCodeGitRepo("user2", "repo2")
-	setRemote(repo1, "origin", "https://u:p@example.com/o/r.git")
-	setRemote(wiki1, "origin", "https://u:p@example.com/o/r.wiki.git")
-	setRemote(repo1, "remote_mirror_a", "https://:token@example.com/o/a.git")
-	setRemote(repo2, "remote_mirror_b", "git@example.com:o/b.git")
-
-	require.NoError(t, MoveMirrorCredentialsToDatabase(t.Context(), x))
-
-	encrypted := func(table string, id int64) string {
-		var s string
-		_, err := x.Table(table).Where("id = ?", id).Cols("remote_address_encrypted").Get(&s)
-		require.NoError(t, err)
-		if s == "" {
-			return ""
-		}
-		s, err = secret.DecryptSecret(setting.SecretKey, s)
-		require.NoError(t, err)
-		return s
-	}
-	assert.Equal(t, "https://u:p@example.com/o/r.git", encrypted("mirror", mirror.ID))
-	assert.Equal(t, "https://:token@example.com/o/a.git", encrypted("push_mirror", pushA.ID))
-	assert.Empty(t, encrypted("push_mirror", pushB.ID))
-	assert.Empty(t, encrypted("push_mirror", pushMissing.ID))
-
-	assert.Equal(t, "https://example.com/o/r.git", getRemote(repo1, "origin"))
-	assert.Equal(t, "https://example.com/o/r.wiki.git", getRemote(wiki1, "origin"))
-	assert.Equal(t, "https://example.com/o/a.git", getRemote(repo1, "remote_mirror_a"))
-	assert.Equal(t, "git@example.com:o/b.git", getRemote(repo2, "remote_mirror_b"))
+	assert.Equal(t, 4, get(1))
+	assert.Equal(t, 3, get(2))
+	assert.Equal(t, 0, get(3)) // has team unit, reset to none
+	assert.Equal(t, 1, get(4)) // no team unit, kept
+	assert.Equal(t, 0, get(5))
 }

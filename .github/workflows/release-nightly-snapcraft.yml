@@ -37,8 +37,15 @@ jobs:
       # retry snapcraft uploads which can be flaky
       - name: Publish snap
         run: |
+          # part-gitea-pull.sh decides what is built, see the comments there:
+          # * grade devel (main or a prerelease tag) goes to latest/edge
+          # * grade stable (a new release tag) goes to latest/stable, and to latest/candidate which marks it as released
+          channel=latest/edge
+          if unsquashfs -cat "$SNAP" meta/snap.yaml | grep -qx 'grade: stable'; then
+            channel=latest/stable,latest/candidate
+          fi
           for attempt in 1 2 3 4 5; do
-            snapcraft upload "$SNAP" --release latest/edge && exit 0
+            snapcraft upload "$SNAP" --release "$channel" && exit 0
             echo "::warning::snap upload attempt $attempt failed, retrying in 15s"
             sleep 15
           done

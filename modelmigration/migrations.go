@@ -432,8 +432,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(355, "Add AutoMerge merged_commit_id column", v28.AddAutoMergeMergedCommitID),
 		// Gitea 28.0.0 ends at migration ID number 355 (database version 356)
 
-		newMigration(356, "Add index on action_run commit_sha", v28.AddActionRunCommitSHAIndex),
-		newMigration(357, "Move mirror credentials from git config to database", v29.MoveMirrorCredentialsToDatabase),
+		newMigration(356, "Add index on action_run commit_sha", v29.AddActionRunCommitSHAIndex),
+		newMigration(357, "Normalize legacy team authorize values", v29.NormalizeLegacyTeamAuthorize),
+		newMigration(358, "Move mirror credentials from git config to database", v29.MoveMirrorCredentialsToDatabase),
 	}
 	return preparedMigrations
 }

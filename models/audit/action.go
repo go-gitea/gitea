@@ -84,6 +84,7 @@ var (
 	UserTwoFactorRegenerate         = define("user:twofactor:regenerate", "Regenerated two-factor authentication secret for user {scope}.")
 	UserTwoFactorDisable            = define("user:twofactor:disable", "Disabled two-factor authentication for user {scope}.")
 	UserWebAuthAdd                  = define("user:webauth:add", "Added WebAuthn key {credential} for user {scope}.")
+	UserWebAuthRename               = define("user:webauth:rename", "Renamed WebAuthn key {previous_credential} of user {scope} to {credential}.")
 	UserWebAuthRemove               = define("user:webauth:remove", "Removed WebAuthn key {credential} from user {scope}.")
 	UserExternalLoginAdd            = define("user:externallogin:add", "Added external login {external_id} for user {scope} using provider {provider}.")
 	UserExternalLoginRemove         = define("user:externallogin:remove", "Removed external login from authentication source {auth_source_id} for user {scope}.")

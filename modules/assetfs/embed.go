@@ -102,11 +102,11 @@ func NewEmbeddedFS(data []byte) fs.ReadDirFS {
 	efs := &embeddedFS{data: data, files: make(map[string]*embeddedFileInfo)}
 	efs.meta = sync.OnceValue(func() *EmbeddedMeta {
 		var meta EmbeddedMeta
-		p := bytes.LastIndexByte(data, '\n')
-		if p < 0 {
+		_, metaJSON, ok := bytes.CutLast(data, []byte{'\n'})
+		if !ok {
 			return &meta
 		}
-		if err := json.Unmarshal(data[p+1:], &meta); err != nil {
+		if err := json.Unmarshal(metaJSON, &meta); err != nil {
 			panic("embedded file is not valid")
 		}
 		return &meta
