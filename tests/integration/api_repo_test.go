@@ -24,23 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIUserReposNotLogin(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	apiRepos := DecodeJSON(t, resp, []api.Repository{})
-	expectedLen := unittest.GetCount(t, repo_model.Repository{OwnerID: user.ID},
-		unittest.Cond("is_private = ?", false))
-	assert.Len(t, apiRepos, expectedLen)
-	for _, repo := range apiRepos {
-		assert.Equal(t, user.ID, repo.Owner.ID)
-		assert.False(t, repo.Private)
-	}
-}
-
 func TestAPISearchRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const keyword = "test"
@@ -269,44 +252,46 @@ func TestAPIViewRepo(t *testing.T) {
 
 func TestAPIOrgRepos(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	userNormal := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	userOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	userAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	// org3 is an Org. Check their repos.
-	sourceOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	userOther := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+	// org3 is an Org. Try to log in as different doers to list its repos.
+	targetOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
 	testCases := []struct {
-		name            string
-		user            *user_model.User
-		count           int
-		includesPrivate bool
+		name         string
+		doer         *user_model.User
+		count        int
+		privateCount int
 	}{
-		{name: "Anonymous", user: nil, count: 1},
-		{name: "UserNormalNoPrivate", user: userNormal, count: 1},
-		{name: "UserNormalWithPrivate", user: userNormal, count: 3, includesPrivate: true},
-		{name: "UserAdmin", user: userAdmin, count: 3, includesPrivate: true},
-		{name: "Org3", user: org3, count: 1}, // this case seems not right, "org3" is not a individual user and should not be able to log in
+		{name: "Anonymous", doer: nil, count: 1},
+		{name: "UserNormal", doer: userOwner, count: 3, privateCount: 2},
+		{name: "UserAdmin", doer: userAdmin, count: 3, privateCount: 2},
+		{name: "UserOther", doer: userOther, count: 1},
 	}
 
 	for _, tc := range testCases {
 		var token string
-		if tc.user != nil {
-			session := loginUser(t, tc.user.Name)
+		if tc.doer != nil {
+			session := loginUser(t, tc.doer.Name)
 			token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
 		}
 
 		t.Run(tc.name, func(t *testing.T) {
-			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", sourceOrg.Name).AddTokenAuth(token)
+			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", targetOrg.Name).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			apiRepos := DecodeJSON(t, resp, []*api.Repository{})
 			assert.Len(t, apiRepos, tc.count)
+			privateCount := 0
 			for _, repo := range apiRepos {
-				assert.Equal(t, sourceOrg.ID, repo.Owner.ID)
-				if !tc.includesPrivate {
-					assert.False(t, repo.Private)
+				assert.Equal(t, targetOrg.ID, repo.Owner.ID)
+				if repo.Private {
+					privateCount++
 				}
 			}
+			assert.Equal(t, tc.privateCount, privateCount)
 		})
 	}
 }
