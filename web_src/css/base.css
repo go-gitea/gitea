@@ -286,13 +286,17 @@ relative-time::part(root)::selection {
 }
 
 a {
-  color: var(--color-primary);
+  color: var(--color-link);
   cursor: pointer;
   text-decoration-line: none;
 }
 
 a:hover {
   text-decoration-line: underline;
+}
+
+a:visited {
+  color: var(--color-link-visited);
 }
 
 /* a = always colored, underlined on hover */
@@ -310,7 +314,13 @@ a.silenced,
 a:hover,
 a.muted:hover,
 .muted-links a:hover {
-  color: var(--color-primary);
+  color: var(--color-link);
+}
+
+a:visited:hover,
+a.muted:visited:hover,
+.muted-links a:visited:hover {
+  color: var(--color-link-visited);
 }
 
 a.silenced:hover,
@@ -323,7 +333,7 @@ a:focus-visible,
 button:focus-visible,
 .ui.button:focus-visible,
 [role="button"]:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-link);
   outline-offset: -2px;
 }
 
