@@ -396,6 +396,10 @@ func TestPostProcess(t *testing.T) {
 		{"Some text with 😄 in the middle", `Some text with <span class="emoji" data-alias="smile">😄</span> in the middle`},
 		{"http://localhost:3000/person/repo/issues/4#issuecomment-1234", `<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`},
 		{"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>", "<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>"},
+		{
+			`<math><mtd id="c"><mtext><a href="#c">:gitea:</a> <a href="x.md">x</a> <img src="x.png"/></mtext></mtd></math>`,
+			`<math><mtd id="user-content-c"><mtext><a href="#user-content-c">:gitea:</a> <a href="http://localhost:3000/x.md">x</a> <a href="http://localhost:3000/x.png" target="_blank"><img src="http://localhost:3000/x.png"/></a></mtext></mtd></math>`,
+		},
 
 		// special tags, GitHub's behavior, and for unclosed tags, output as text content as much as possible
 		{"<script>a", `&lt;script&gt;a`},
