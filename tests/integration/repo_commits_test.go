@@ -263,3 +263,76 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 	sel := doc.doc.Find(`#commits-table .message [data-global-init="initCommitStatuses"] .commit-status`)
 	assert.Equal(t, 1, sel.Length())
 }
+
+func TestRepoCommitsStatusTokenScopes(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	commitURL, exists := NewHTMLParser(t, resp.Body).doc.Find("#commits-table .commit-id-short").Attr("href")
+	require.True(t, exists)
+	commitID := path.Base(commitURL)
+
+	statusOption := api.CreateStatusOption{
+		State:     commitstatus.CommitStatusSuccess,
+		TargetURL: "http://test.ci/",
+		Context:   "token-scopes",
+	}
+
+	createCases := []struct {
+		scopes []auth_model.AccessTokenScope
+		code   int
+	}{
+		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeWriteCommitStatus}, http.StatusCreated},
+		// write:repository includes write:commitstatus, so existing repository-scoped tokens keep working
+		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeWriteRepository}, http.StatusCreated},
+		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeAll}, http.StatusCreated},
+		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeReadCommitStatus}, http.StatusForbidden},
+		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeReadRepository}, http.StatusForbidden},
+		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeWriteIssue}, http.StatusForbidden},
+	}
+	t.Run("CreateStatus", func(t *testing.T) {
+		link := "/api/v1/repos/user2/repo1/statuses/" + commitID
+		for _, c := range createCases {
+			t.Run(string(c.scopes[0]), func(t *testing.T) {
+				ctx := NewAPITestContext(t, "user2", "repo1", c.scopes...)
+				req := NewRequestWithJSON(t, http.MethodPost, link, statusOption).AddTokenAuth(ctx.Token)
+				ctx.Session.MakeRequest(t, req, c.code)
+			})
+		}
+	})
+
+	// token scopes only apply to token auth, other auth is governed by repository permissions
+	t.Run("CreateStatusBasicAuth", func(t *testing.T) {
+		req := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user2/repo1/statuses/"+commitID, statusOption).AddBasicAuth("user2")
+		session.MakeRequest(t, req, http.StatusCreated)
+	})
+
+	// the commitstatus scope alone does not grant access to a repository the user cannot see
+	t.Run("CreateStatusWithoutRepoAccess", func(t *testing.T) {
+		ctx := NewAPITestContext(t, "user4", "repo2", auth_model.AccessTokenScopeWriteCommitStatus)
+		req := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user2/repo2/statuses/"+commitID, statusOption).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	listCases := []struct {
+		scopes []auth_model.AccessTokenScope
+		code   int
+	}{
+		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeReadCommitStatus}, http.StatusOK},
+		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeReadRepository}, http.StatusOK},
+		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeWriteIssue}, http.StatusForbidden},
+	}
+	t.Run("ListStatuses", func(t *testing.T) {
+		link := "/api/v1/repos/user2/repo1/statuses/" + commitID
+		for _, c := range listCases {
+			t.Run(string(c.scopes[0]), func(t *testing.T) {
+				ctx := NewAPITestContext(t, "user2", "repo1", c.scopes...)
+				req := NewRequest(t, "GET", link).AddTokenAuth(ctx.Token)
+				ctx.Session.MakeRequest(t, req, c.code)
+			})
+		}
+	})
+}
