@@ -9,18 +9,20 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestForceCancelRun_WakesConcurrencyWaiters(t *testing.T) {
+func TestForceCancelRun_SettledRunWakesConcurrencyWaiters(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
+	// a run left cancelling although its caller and child are all cancelled already
 	run := &actions_model.ActionRun{
-		Title:         "all-jobs-done",
+		Title:         "settled-run",
 		RepoID:        4,
 		Index:         9821,
 		OwnerID:       1,
@@ -38,28 +40,37 @@ func TestForceCancelRun_WakesConcurrencyWaiters(t *testing.T) {
 	require.NoError(t, db.Insert(ctx, attempt))
 	run.LatestAttemptID = attempt.ID
 	require.NoError(t, actions_model.UpdateRun(ctx, run, "latest_attempt_id"))
-	job := &actions_model.ActionRunJob{
-		RunID:        run.ID,
-		RunAttemptID: attempt.ID,
-		RepoID:       run.RepoID,
-		OwnerID:      run.OwnerID,
-		CommitSHA:    run.CommitSHA,
-		Name:         "job1",
-		JobID:        "job1",
-		Attempt:      1,
-		Status:       actions_model.StatusCancelled,
-		Stopped:      timeutil.TimeStampNow(),
+
+	newJob := func(name string, parentID int64, isCaller bool) *actions_model.ActionRunJob {
+		job := &actions_model.ActionRunJob{
+			RunID:            run.ID,
+			RunAttemptID:     attempt.ID,
+			RepoID:           run.RepoID,
+			OwnerID:          run.OwnerID,
+			CommitSHA:        run.CommitSHA,
+			Name:             name,
+			JobID:            name,
+			Attempt:          1,
+			Status:           actions_model.StatusCancelled,
+			Stopped:          timeutil.TimeStampNow(),
+			ParentJobID:      parentID,
+			IsReusableCaller: isCaller,
+			IsExpanded:       isCaller,
+		}
+		require.NoError(t, db.Insert(ctx, job))
+		return job
 	}
-	require.NoError(t, db.Insert(ctx, job))
+	caller := newJob("caller", 0, true)
+	child := newJob("child", caller.ID, false)
 
 	var emitted []int64
-	defer func(orig func(int64) error) { EmitJobsIfReadyByRun = orig }(EmitJobsIfReadyByRun)
-	EmitJobsIfReadyByRun = func(runID int64) error {
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(runID int64) error {
 		emitted = append(emitted, runID)
 		return nil
-	}
+	})()
 
-	_, err := ForceCancelRun(ctx, run, []*actions_model.ActionRunJob{job})
+	got, err := ForceCancelRun(ctx, run, []*actions_model.ActionRunJob{caller, child})
 	require.NoError(t, err)
+	assert.Equal(t, actions_model.StatusCancelled, got.Status)
 	assert.Equal(t, []int64{run.ID}, emitted)
 }
