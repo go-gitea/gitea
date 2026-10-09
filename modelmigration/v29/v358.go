@@ -14,7 +14,7 @@ import (
 
 type codespace struct {
 	ID                        int64
-	UUID                      string `xorm:"VARCHAR(36) UNIQUE"`
+	UUID                      string `xorm:"VARCHAR(36)"`
 	UserID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RepoID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RefType                   string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
@@ -180,6 +180,17 @@ func AddCodespaceTables(_ context.Context, x base.EngineMigration) error {
 		new(codespaceUserSecretRepository),
 		new(codespaceDevContainerTemplate),
 	); err != nil {
+		_ = sess.Rollback()
+		return err
+	}
+	// A Codespace has no runtime UUID until a Manager starts its create operation.
+	// SQL Server treats NULL as a value in a unique index, so it needs a filtered
+	// index to permit multiple queued Codespaces while preserving runtime identity.
+	uuidIndexSQL := "CREATE UNIQUE INDEX UQE_codespace_uuid ON codespace (uuid)"
+	if x.Dialect().URI().DBType == schemas.MSSQL {
+		uuidIndexSQL += " WHERE uuid IS NOT NULL"
+	}
+	if _, err := sess.Exec(uuidIndexSQL); err != nil {
 		_ = sess.Rollback()
 		return err
 	}
