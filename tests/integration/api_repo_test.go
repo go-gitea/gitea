@@ -279,16 +279,20 @@ func TestAPIOrgRepos(t *testing.T) {
 		count           int
 		includesPrivate bool
 	}{
-		user:  {count: 1},
+		nil:   {count: 1},
 		user:  {count: 3, includesPrivate: true},
 		user2: {count: 3, includesPrivate: true},
 		org3:  {count: 1},
 	}
 
 	for userToLogin, expected := range expectedResults {
-		testName := fmt.Sprintf("LoggedUser%d", userToLogin.ID)
-		session := loginUser(t, userToLogin.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
+		testName := "NotLoggedIn"
+		var token string
+		if userToLogin != nil {
+			testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
+			session := loginUser(t, userToLogin.Name)
+			token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
+		}
 
 		t.Run(testName, func(t *testing.T) {
 			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", sourceOrg.Name).
@@ -298,6 +302,7 @@ func TestAPIOrgRepos(t *testing.T) {
 			apiRepos := DecodeJSON(t, resp, []*api.Repository{})
 			assert.Len(t, apiRepos, expected.count)
 			for _, repo := range apiRepos {
+				assert.Equal(t, sourceOrg.ID, repo.Owner.ID)
 				if !expected.includesPrivate {
 					assert.False(t, repo.Private)
 				}
