@@ -125,12 +125,15 @@ func TestDeleteCodespacePhysicalForUnboundCreatingAndFailed(t *testing.T) {
 		Status: codespace_model.StatusFailed,
 	})
 	insertServiceCredentials(t, failedUUID)
+	openCode := generateOpenTokenCode()
+	insertOpenToken(t, openCode, failedUUID, "workspace", 0, time.Now().Add(time.Minute).Unix())
 	result, err = DeleteCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, failedUUID)})
 	require.NoError(t, err)
 	assert.True(t, result.Deleted)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", failedUUID)
 	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
 	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
+	assertOpenTokenExists(t, openCode, false)
 }
 
 func TestDeleteUnboundCodespaceRequiresCurrentRow(t *testing.T) {
@@ -148,9 +151,8 @@ func TestDeleteUnboundCodespaceRequiresCurrentRow(t *testing.T) {
 	_, err := unittest.GetXORMEngine().Where("uuid = ?", codespaceUUID).Cols("operation_r_version").Update(row)
 	require.NoError(t, err)
 
-	deleted, err := deleteUnboundCodespaceIfCurrent(t.Context(), stale)
-	require.NoError(t, err)
-	assert.False(t, deleted)
+	err = deleteCodespaceRowForFinal(t.Context(), stale)
+	require.ErrorIs(t, err, errCodespaceStateChanged)
 	assertServiceExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
 }
 

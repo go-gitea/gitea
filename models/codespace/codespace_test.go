@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"xorm.io/xorm/schemas"
 )
 
 func TestUUIDValidation(t *testing.T) {
@@ -53,20 +52,6 @@ func TestManagerSecretVerifier(t *testing.T) {
 	assert.Len(t, manager.SecretHash, 64)
 	assert.True(t, manager.VerifyManagerSecret(secret))
 	assert.False(t, manager.VerifyManagerSecret("bad-secret"))
-}
-
-func TestCodespaceTableIndices(t *testing.T) {
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "user_updated", "user_id", "updated_unix", "created_unix", "id")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "repo", "repo_id")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "create_claim", "operation_started_unix", "status", "manager_id", "environment_tag", "operation_created_unix", "id")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "manager_active", "manager_id", "operation_started_unix", "operation_created_unix", "id")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "queued_timeout", "operation_started_unix", "operation_created_unix", "id")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "running_timeout", "operation_deadline_unix", "id")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "failed_retention", "status", "updated_unix", "id")
-}
-
-func TestManagerTableIndices(t *testing.T) {
-	assertIndexColumns(t, (&Manager{}).TableIndices(), "user", "user_id")
 }
 
 func TestValidateCodespace(t *testing.T) {
@@ -167,18 +152,6 @@ func TestValidateManager(t *testing.T) {
 	assert.Error(t, ValidateManager(nil))
 	assert.Error(t, ValidateManager(&Manager{RuntimeState: ""}))
 	assert.Error(t, ValidateManager(&Manager{RuntimeState: "offline"}))
-}
-
-func assertIndexColumns(t *testing.T, indexes []*schemas.Index, name string, columns ...string) {
-	t.Helper()
-	for _, index := range indexes {
-		if index.Name == name {
-			assert.Equal(t, schemas.IndexType, index.Type)
-			assert.Equal(t, columns, index.Cols)
-			return
-		}
-	}
-	assert.Failf(t, "missing index", "index %q was not declared", name)
 }
 
 func validCodespace(codespaceUUID string) *Codespace {

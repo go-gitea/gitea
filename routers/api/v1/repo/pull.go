@@ -1169,29 +1169,6 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	return &compareInfo, closer
 }
 
-func repositoriesShareForkTree(ctx *context.APIContext, first, second *repo_model.Repository) (bool, error) {
-	rootID := func(repo *repo_model.Repository) (int64, error) {
-		const maxForkDepth = 10
-		for range maxForkDepth {
-			if !repo.IsFork {
-				return repo.ID, nil
-			}
-			base, err := repo_model.GetRepositoryByID(ctx, repo.ForkID)
-			if err != nil {
-				return 0, err
-			}
-			repo = base
-		}
-		return 0, errors.New("repository fork tree is too deep")
-	}
-	firstRootID, err := rootID(first)
-	if err != nil {
-		return false, err
-	}
-	secondRootID, err := rootID(second)
-	return firstRootID == secondRootID, err
-}
-
 func requireCodespacePullHeadPermission(ctx *context.APIContext, baseRepo, headRepo *repo_model.Repository, mode perm.AccessMode) (*access_model.Permission, bool) {
 	if baseRepo.ID == headRepo.ID {
 		return nil, true
@@ -1216,7 +1193,7 @@ func requireCodespacePullHeadPermission(ctx *context.APIContext, baseRepo, headR
 		ctx.APIError(http.StatusForbidden, "user does not have access to the pull request head repository")
 		return nil, false
 	}
-	related, err := repositoriesShareForkTree(ctx, baseRepo, headRepo)
+	related, err := repo_model.ShareForkTree(ctx, baseRepo, headRepo)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, false

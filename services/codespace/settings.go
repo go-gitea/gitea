@@ -530,14 +530,12 @@ func managerInSettingsScope(manager *codespace_model.Manager, scope string, user
 }
 
 func deleteManagerCodespace(ctx context.Context, managerID int64, codespaceUUID string) error {
-	return globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
-			if err != nil || !has || codespace.ManagerID != managerID {
-				return err
-			}
-			return deleteCodespaceForFinal(ctx, codespaceUUID)
-		})
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		codespace := new(codespace_model.Codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+		if err != nil || !has || codespace.ManagerID != managerID {
+			return err
+		}
+		return deleteCodespaceRowForFinal(ctx, codespace)
 	})
 }

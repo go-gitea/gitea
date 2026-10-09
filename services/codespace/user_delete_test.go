@@ -41,6 +41,12 @@ func TestDeleteUserResourcesOnlyCleansPersonalResources(t *testing.T) {
 		Status:            codespace_model.StatusStopped,
 		OperationRVersion: 68,
 	})
+	unbound := &codespace_model.Codespace{
+		UserID: userID,
+		RepoID: 2,
+		Status: codespace_model.StatusFailed,
+	}
+	insertServiceCodespace(t, 0, unbound)
 	authorization := &codespace_model.PermissionAuthorization{
 		UserID: userID, SourceRepoID: 1, RequestHash: "user-delete",
 		CreatedUnix: 1, UpdatedUnix: 1,
@@ -60,6 +66,7 @@ func TestDeleteUserResourcesOnlyCleansPersonalResources(t *testing.T) {
 
 	assertServiceNotExists(t, new(codespace_model.Manager), "id = ?", userManager.ID)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", ownedUUID)
+	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", unbound.ID)
 	assertServiceExists(t, new(codespace_model.Codespace), "uuid = ?", repositoryOwnedUUID)
 	assertServiceNotExists(t, new(codespace_model.PermissionAuthorization), "id = ?", authorization.ID)
 	assertServiceNotExists(t, new(codespace_model.PermissionRepository), "authorization_id = ? AND target_repo_id = ? AND unit_type = ?", rule.AuthorizationID, rule.TargetRepoID, rule.UnitType)

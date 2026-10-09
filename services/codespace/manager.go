@@ -70,40 +70,48 @@ func BindRuntimeIdentity(ctx context.Context, manager *codespace_model.Manager, 
 	if err := codespace_model.ValidateUUID(opts.RuntimeUUID); err != nil {
 		return "", err
 	}
-	return opts.RuntimeUUID, globallock.LockAndDo(ctx, codespaceStateLockKey(opts.RuntimeUUID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
-			if err != nil {
-				return err
-			}
-			if !has || codespace.ManagerID != manager.ID || codespace.OperationRVersion != opts.OperationRVersion ||
-				codespace_model.ActiveOperationType(codespace) != codespace_model.OperationCreate || !codespace_model.IsOperationRunning(codespace) {
-				return ErrBindRuntimeIdentityNotFound
-			}
-			if codespace.UUID == opts.RuntimeUUID {
-				return nil
-			}
-			if codespace.UUID != "" {
-				return ErrBindRuntimeIdentityStateConflict
-			}
-			used, err := db.GetEngine(ctx).Where("uuid = ? AND id <> ?", opts.RuntimeUUID, codespace.ID).Exist(new(codespace_model.Codespace))
-			if err != nil {
-				return err
-			}
-			if used {
-				return ErrBindRuntimeIdentityConflict
-			}
-			affected, err := db.GetEngine(ctx).Where("id = ? AND uuid = ?", codespace.ID, "").Cols("uuid", "updated_unix").Update(&codespace_model.Codespace{
-				UUID:        opts.RuntimeUUID,
-				UpdatedUnix: time.Now().Unix(),
-			})
-			if err == nil && affected == 0 {
-				return ErrBindRuntimeIdentityStateConflict
-			}
+	var updateErr error
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		codespace := new(codespace_model.Codespace)
+		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
+		if err != nil {
 			return err
+		}
+		if !has || codespace.ManagerID != manager.ID || codespace.OperationRVersion != opts.OperationRVersion ||
+			codespace_model.ActiveOperationType(codespace) != codespace_model.OperationCreate || !codespace_model.IsOperationRunning(codespace) {
+			return ErrBindRuntimeIdentityNotFound
+		}
+		if codespace.UUID == opts.RuntimeUUID {
+			return nil
+		}
+		if codespace.UUID != "" {
+			return ErrBindRuntimeIdentityStateConflict
+		}
+		affected, err := db.GetEngine(ctx).Where(
+			"id = ? AND uuid IS NULL AND manager_id = ? AND status = ? AND operation_r_version = ? AND operation_started_unix > 0",
+			codespace.ID, manager.ID, codespace_model.StatusCreating, opts.OperationRVersion,
+		).Cols("uuid", "updated_unix").Update(&codespace_model.Codespace{
+			UUID:        opts.RuntimeUUID,
+			UpdatedUnix: time.Now().Unix(),
 		})
+		if err != nil {
+			updateErr = err
+			return err
+		}
+		if affected == 0 {
+			return ErrBindRuntimeIdentityStateConflict
+		}
+		return nil
 	})
+	if updateErr != nil {
+		// A unique-constraint error aborts the transaction on PostgreSQL, so
+		// identify the conflicting runtime only after WithTx has rolled it back.
+		used, queryErr := db.GetEngine(ctx).Where("uuid = ?", opts.RuntimeUUID).Exist(new(codespace_model.Codespace))
+		if queryErr == nil && used {
+			return "", ErrBindRuntimeIdentityConflict
+		}
+	}
+	return opts.RuntimeUUID, err
 }
 
 // AuthenticateManager verifies a Manager id and plaintext secret.

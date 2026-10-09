@@ -28,7 +28,7 @@ func requestRuntimeCredentials(ctx context.Context, manager *codespace_model.Man
 		return nil, err
 	}
 	var result *requestRuntimeCredentialsResult
-	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	err := globallock.LockAndDo(ctx, runtimeAccessLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
 		prepared, err := prepareRuntimeAccessLocked(ctx, manager, opts)
 		if err == nil {
 			result = prepared.credentials

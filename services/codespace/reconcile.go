@@ -11,7 +11,6 @@ import (
 
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 )
@@ -70,23 +69,25 @@ func reconcileQueuedOperationTimeouts(ctx context.Context, now int64, result *Re
 
 func reconcileQueuedOperationTimeout(ctx context.Context, codespaceUUID string, now int64, result *ReconcileCodespacesResult) error {
 	var summary *internalStateSummary
-	err := globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
-			if err != nil || !has {
-				return err
-			}
-			if !codespace_model.IsOperationQueued(codespace) || !isQueuedExpired(codespace, time.Unix(now, 0)) {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		codespace := new(codespace_model.Codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+		if err != nil || !has {
+			return err
+		}
+		if !codespace_model.IsOperationQueued(codespace) || !isQueuedExpired(codespace, time.Unix(now, 0)) {
+			return nil
+		}
+		summary = operationTimeoutSummary(codespace, queuedTimeoutStatus(codespace_model.ActiveOperationType(codespace)))
+		if err := applyQueuedTimeout(ctx, codespace, now); err != nil {
+			if errors.Is(err, errCodespaceStateChanged) {
+				summary = nil
 				return nil
 			}
-			summary = operationTimeoutSummary(codespace, queuedTimeoutStatus(codespace_model.ActiveOperationType(codespace)))
-			if err := applyQueuedTimeout(ctx, codespace, now); err != nil {
-				return err
-			}
-			result.QueuedTimedOut++
-			return nil
-		})
+			return err
+		}
+		result.QueuedTimedOut++
+		return nil
 	})
 	if err != nil {
 		return err
@@ -117,29 +118,31 @@ func reconcileRunningOperationTimeouts(ctx context.Context, now int64, result *R
 
 func reconcileRunningOperationTimeout(ctx context.Context, codespaceUUID string, now int64, result *ReconcileCodespacesResult) error {
 	var summary *internalStateSummary
-	err := globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
-			if err != nil || !has {
-				return err
-			}
-			if !codespace_model.IsOperationRunning(codespace) ||
-				codespace.OperationDeadlineUnix <= 0 ||
-				codespace.OperationDeadlineUnix > now {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		codespace := new(codespace_model.Codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+		if err != nil || !has {
+			return err
+		}
+		if !codespace_model.IsOperationRunning(codespace) ||
+			codespace.OperationDeadlineUnix <= 0 ||
+			codespace.OperationDeadlineUnix > now {
+			return nil
+		}
+		operationType := codespace_model.ActiveOperationType(codespace)
+		summary = operationTimeoutSummary(codespace, timeoutStatus(operationType))
+		if isConvergentOperation(operationType) {
+			summary = operationRetrySummary(codespace)
+		}
+		if err := applyRunningTimeout(ctx, codespace, now); err != nil {
+			if errors.Is(err, errCodespaceStateChanged) {
+				summary = nil
 				return nil
 			}
-			operationType := codespace_model.ActiveOperationType(codespace)
-			summary = operationTimeoutSummary(codespace, timeoutStatus(operationType))
-			if isConvergentOperation(operationType) {
-				summary = operationRetrySummary(codespace)
-			}
-			if err := applyRunningTimeout(ctx, codespace, now); err != nil {
-				return err
-			}
-			result.RunningTimedOut++
-			return nil
-		})
+			return err
+		}
+		result.RunningTimedOut++
+		return nil
 	})
 	if err != nil {
 		return err
@@ -152,8 +155,8 @@ func reconcileFailedCodespaces(ctx context.Context, now int64, olderThan time.Du
 	cutoff := now - int64(olderThan/time.Second)
 	var rows []*codespace_model.Codespace
 	if err := db.GetEngine(ctx).
-		Where("status = ? AND manager_id = ? AND uuid = ? AND operation_trigger = ? AND operation_created_unix = 0 AND operation_started_unix = 0 AND operation_deadline_unix = 0 AND updated_unix > 0 AND updated_unix <= ?",
-			codespace_model.StatusFailed, 0, "", "", cutoff).
+		Where("status = ? AND manager_id = ? AND uuid IS NULL AND operation_trigger = ? AND operation_created_unix = 0 AND operation_started_unix = 0 AND operation_deadline_unix = 0 AND updated_unix > 0 AND updated_unix <= ?",
+			codespace_model.StatusFailed, 0, "", cutoff).
 		Asc("updated_unix", "id").
 		Limit(reconcileCodespacesBatchSize).
 		Find(&rows); err != nil {
@@ -171,22 +174,23 @@ func reconcileFailedCodespaces(ctx context.Context, now int64, olderThan time.Du
 }
 
 func reconcileFailedCodespace(ctx context.Context, codespaceID, cutoff int64, result *ReconcileCodespacesResult) error {
-	return globallock.LockAndDo(ctx, codespaceRowLockKey(codespaceID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(codespaceID).Get(codespace)
-			if err != nil || !has {
-				return err
-			}
-			if codespace.Status != codespace_model.StatusFailed || codespace.ManagerID != 0 || codespace.UUID != "" || hasActiveOperation(codespace) ||
-				codespace.UpdatedUnix <= 0 || codespace.UpdatedUnix > cutoff {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		codespace := new(codespace_model.Codespace)
+		has, err := db.GetEngine(ctx).ID(codespaceID).Get(codespace)
+		if err != nil || !has {
+			return err
+		}
+		if codespace.Status != codespace_model.StatusFailed || codespace.ManagerID != 0 || codespace.UUID != "" || hasActiveOperation(codespace) ||
+			codespace.UpdatedUnix <= 0 || codespace.UpdatedUnix > cutoff {
+			return nil
+		}
+		if err := deleteCodespaceRowForFinal(ctx, codespace); err != nil {
+			if errors.Is(err, errCodespaceStateChanged) {
 				return nil
 			}
-			if err := deleteCodespaceRowForFinal(ctx, codespace); err != nil {
-				return err
-			}
-			result.FailedDeleted++
-			return nil
-		})
+			return err
+		}
+		result.FailedDeleted++
+		return nil
 	})
 }

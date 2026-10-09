@@ -9,7 +9,7 @@ require (
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
 	gitea.dev/actionslib v1.3.0
-	gitea.dev/codespace-proto-go v0.0.0-20261008155322-5b416106de03
+	gitea.dev/codespace-proto-go v0.0.0-20261009114814-ddc78012a301
 	gitea.dev/sdk v1.2.0
 	github.com/42wim/httpsig v1.2.4
 	github.com/42wim/sshsig v0.0.0-20260317195500-b9f38cf0d432

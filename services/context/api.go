@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -50,6 +49,8 @@ type APIContext struct {
 	Org        *APIOrganization
 	Package    *Package
 	PublicOnly bool // Whether the request is for a public endpoint
+
+	CodespacePublicReadRepoID int64 // this repository uses anonymous public-read permissions while retaining the authenticated actor
 }
 
 // TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
@@ -58,6 +59,9 @@ type APIContext struct {
 // For other tokens, a public-only token cannot reach a private repo or a repo owned by a
 // non-public (limited or private) owner; any other token is unrestricted by this check.
 func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
+	if repo != nil && ctx.CodespacePublicReadRepoID == repo.ID {
+		return true
+	}
 	if snapshot, ok := codespaceTokenSnapshotFromData(ctx.GetData()); ok {
 		return codespaceTokenCanAccessRepo(repo, snapshot)
 	}
@@ -75,18 +79,24 @@ func (ctx *APIContext) CodespaceTokenRepoID() (int64, bool) {
 
 // CodespaceTokenAllowsRepository reports whether the current Codespace Token grants a repository unit permission.
 func (ctx *APIContext) CodespaceTokenAllowsRepository(unitType unit.Type, mode perm.AccessMode) bool {
+	if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.CodespacePublicReadRepoID == ctx.Repo.Repository.ID {
+		return mode <= perm.AccessModeRead
+	}
 	snapshot, ok := codespaceTokenSnapshotFromData(ctx.GetData())
 	return !ok || ctx.Repo != nil && ctx.Repo.Repository != nil && snapshot.CodespaceTokenAllowsRepository(ctx.Repo.Repository.ID, unitType, mode)
 }
 
 // CodespaceTokenAllowsRepositoryID reports whether the current Codespace Token grants a unit permission for a repository ID.
 func (ctx *APIContext) CodespaceTokenAllowsRepositoryID(repoID int64, unitType unit.Type, mode perm.AccessMode) bool {
+	if ctx.CodespacePublicReadRepoID == repoID {
+		return mode <= perm.AccessModeRead
+	}
 	snapshot, ok := codespaceTokenSnapshotFromData(ctx.GetData())
 	return !ok || snapshot.CodespaceTokenAllowsRepository(repoID, unitType, mode)
 }
 
-// UseAnonymousForPublicCodespaceRead drops Codespace identity for an ungranted public repository read.
-func (ctx *APIContext) UseAnonymousForPublicCodespaceRead(repo *repo_model.Repository) bool {
+// UsePublicPermissionForCodespaceRead selects anonymous repository permissions for an ungranted public read.
+func (ctx *APIContext) UsePublicPermissionForCodespaceRead(repo *repo_model.Repository) bool {
 	snapshot, ok := codespaceTokenSnapshotFromData(ctx.GetData())
 	if !ok || repo == nil || snapshot.CodespaceTokenAllowsAnyRepository(repo.ID) || ctx.Req == nil {
 		return false
@@ -97,11 +107,7 @@ func (ctx *APIContext) UseAnonymousForPublicCodespaceRead(repo *repo_model.Repos
 	if publicOnlyTokenDeniedRepo(ctx, repo) {
 		return false
 	}
-	delete(ctx.GetData(), codespace_model.GiteaTokenAuthDataKey)
-	delete(ctx.GetData(), "ApiTokenScope")
-	ctx.GetData()["IsApiToken"] = false
-	ctx.Doer = nil
-	ctx.IsSigned = false
+	ctx.CodespacePublicReadRepoID = repo.ID
 	return true
 }
 

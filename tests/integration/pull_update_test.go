@@ -109,6 +109,10 @@ func TestAPIPullUpdateCodespaceTokenAllowsForkHead(t *testing.T) {
 		require.NotEqual(t, pr.BaseRepoID, pr.HeadRepoID)
 
 		token, codespaceUUID := createRunningCodespaceTokenForRepo(t, pr.BaseRepo)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+
 		now := time.Now().Unix()
 		authorization := &codespace_model.PermissionAuthorization{
 			UserID: user.ID, SourceRepoID: pr.BaseRepoID, RequestHash: "pull-update-integration",
@@ -124,7 +128,18 @@ func TestAPIPullUpdateCodespaceTokenAllowsForkHead(t *testing.T) {
 		}))
 		_, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
 		require.NoError(t, err)
-		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+		originalForkID := pr.HeadRepo.ForkID
+		updated, err := db.GetEngine(t.Context()).ID(pr.HeadRepoID).Cols("is_fork", "fork_id").Update(&repo_model.Repository{})
+		require.NoError(t, err)
+		require.EqualValues(t, 1, updated)
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+
+		updated, err = db.GetEngine(t.Context()).ID(pr.HeadRepoID).Cols("is_fork", "fork_id").Update(&repo_model.Repository{IsFork: true, ForkID: originalForkID})
+		require.NoError(t, err)
+		require.EqualValues(t, 1, updated)
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
 

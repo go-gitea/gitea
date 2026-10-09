@@ -177,7 +177,13 @@ func insertWebViewCodespace(t *testing.T, codespace *codespace_model.Codespace) 
 	codespace.AutoStopMode = codespace_model.AutoStopModeDefault
 	codespace.CreatedUnix = 1
 	codespace.UpdatedUnix = 1
-	require.NoError(t, db.Insert(t.Context(), codespace))
+	var err error
+	if codespace.UUID == "" {
+		_, err = db.GetEngine(t.Context()).Table(codespace).Omit("uuid").Insert(codespace)
+	} else {
+		err = db.Insert(t.Context(), codespace)
+	}
+	require.NoError(t, err)
 }
 
 func webCodespaceIDByUUID(t *testing.T, codespaceUUID string) int64 {

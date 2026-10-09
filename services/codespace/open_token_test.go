@@ -11,7 +11,6 @@ import (
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/cache"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,7 +45,7 @@ func TestOpenEndpointTokenAllowsAndConsumes(t *testing.T) {
 	assert.Equal(t, manager.ID, issued.managerID)
 	assert.EqualValues(t, 6, issued.interactionGeneration)
 	assert.Regexp(t, `^https://app-3000-91919191919149198919919191919191\.gateway\.example\.com/\.gitea-codespace/open\?code=[0-9a-f]{64}$`, issued.redirectURL)
-	assert.True(t, cache.GetCache().IsExist(openTokenCacheKey(issued.code)))
+	assertOpenTokenExists(t, issued.code, true)
 
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.EqualValues(t, 6, row.InteractionGeneration)
@@ -59,7 +58,7 @@ func TestOpenEndpointTokenAllowsAndConsumes(t *testing.T) {
 	assert.Equal(t, codespaceUUID, validated.GetAllowed().GetRuntimeUuid())
 	assert.Equal(t, "app-3000", validated.GetAllowed().GetEndpointId())
 	assert.EqualValues(t, 7, validated.GetAllowed().GetInteractionGeneration())
-	assert.False(t, cache.GetCache().IsExist(openTokenCacheKey(issued.code)))
+	assertOpenTokenExists(t, issued.code, false)
 
 	again, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: issued.code})
 	require.NoError(t, err)
@@ -114,10 +113,10 @@ func TestValidateOpenTokenDeniesAndPreservesTemporarilyInvalidCode(t *testing.T)
 	result, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: issued.code})
 	require.NoError(t, err)
 	assert.Equal(t, OpenTokenDeniedCodespaceNotRunning, result.GetDenied().GetCategory())
-	assert.True(t, cache.GetCache().IsExist(openTokenCacheKey(issued.code)))
+	assertOpenTokenExists(t, issued.code, true)
 }
 
-func TestValidateOpenTokenDeletesExpiredOrMalformedCache(t *testing.T) {
+func TestValidateOpenTokenDeletesExpiredCode(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
@@ -132,27 +131,11 @@ func TestValidateOpenTokenDeletesExpiredOrMalformedCache(t *testing.T) {
 	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 83, []map[string]any{})))
 
 	expiredCode := generateOpenTokenCode()
-	expiredKey := openTokenCacheKey(expiredCode)
-	require.NoError(t, putOpenTokenCacheEntry(expiredKey, openTokenCacheEntry{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		EndpointID:    "workspace",
-		ManagerID:     manager.ID,
-		IssuedUnix:    time.Now().Unix() - int64(openTokenExpire/time.Second) - 1,
-		ExpiresUnix:   time.Now().Unix() - 1,
-	}))
+	insertOpenToken(t, expiredCode, codespaceUUID, "workspace", manager.ID, time.Now().Unix()-1)
 	expired, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: expiredCode})
 	require.NoError(t, err)
 	assert.Equal(t, OpenTokenDeniedInvalidCredentials, expired.GetDenied().GetCategory())
-	assert.False(t, cache.GetCache().IsExist(expiredKey))
-
-	malformedCode := generateOpenTokenCode()
-	malformedKey := openTokenCacheKey(malformedCode)
-	require.NoError(t, cache.GetCache().Put(malformedKey, "{bad", int64(openTokenExpire/time.Second)))
-	malformed, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: malformedCode})
-	require.NoError(t, err)
-	assert.Equal(t, OpenTokenDeniedInvalidCredentials, malformed.GetDenied().GetCategory())
-	assert.False(t, cache.GetCache().IsExist(malformedKey))
+	assertOpenTokenExists(t, expiredCode, false)
 }
 
 func TestValidateOpenTokenEndpointMustRemainPrivate(t *testing.T) {
@@ -183,7 +166,7 @@ func TestValidateOpenTokenEndpointMustRemainPrivate(t *testing.T) {
 	result, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: issued.code})
 	require.NoError(t, err)
 	assert.Equal(t, OpenTokenDeniedEndpointNotFound, result.GetDenied().GetCategory())
-	assert.True(t, cache.GetCache().IsExist(openTokenCacheKey(issued.code)))
+	assertOpenTokenExists(t, issued.code, true)
 }
 
 func TestValidateOpenTokenVersionExhaustedConsumesCode(t *testing.T) {
@@ -202,20 +185,12 @@ func TestValidateOpenTokenVersionExhaustedConsumesCode(t *testing.T) {
 	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 85, []map[string]any{})))
 
 	code := generateOpenTokenCode()
-	key := openTokenCacheKey(code)
 	now := time.Now().Unix()
-	require.NoError(t, putOpenTokenCacheEntry(key, openTokenCacheEntry{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		EndpointID:    "workspace",
-		ManagerID:     manager.ID,
-		IssuedUnix:    now,
-		ExpiresUnix:   now + int64(openTokenExpire/time.Second),
-	}))
+	insertOpenToken(t, code, codespaceUUID, "workspace", manager.ID, now+int64(openTokenExpire/time.Second))
 	result, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: code})
 	require.NoError(t, err)
 	assert.Equal(t, OpenTokenDeniedVersionExhausted, result.GetDenied().GetCategory())
-	assert.False(t, cache.GetCache().IsExist(key))
+	assertOpenTokenExists(t, code, false)
 }
 
 func TestOpenEndpointPublicRedirectDoesNotIssueCodeOrAdvance(t *testing.T) {
@@ -253,4 +228,23 @@ func setServiceManagerGatewayURL(t *testing.T, manager *codespace_model.Manager,
 	manager.GatewayURL = gatewayURL
 	_, err := db.GetEngine(t.Context()).ID(manager.ID).Cols("gateway_url").Update(manager)
 	require.NoError(t, err)
+}
+
+func insertOpenToken(t *testing.T, code, codespaceUUID, endpointID string, managerID, expiresUnix int64) {
+	t.Helper()
+	require.NoError(t, db.Insert(t.Context(), &codespace_model.OpenToken{
+		CodeHash:    openTokenCodeHash(code),
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		UserID:      1,
+		ManagerID:   managerID,
+		EndpointID:  endpointID,
+		ExpiresUnix: expiresUnix,
+	}))
+}
+
+func assertOpenTokenExists(t *testing.T, code string, expected bool) {
+	t.Helper()
+	exists, err := db.GetEngine(t.Context()).ID(openTokenCodeHash(code)).Exist(new(codespace_model.OpenToken))
+	require.NoError(t, err)
+	assert.Equal(t, expected, exists)
 }

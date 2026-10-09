@@ -14,7 +14,6 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/globallock"
 
 	"xorm.io/builder"
 )
@@ -137,21 +136,18 @@ func DeleteGovernanceCodespace(ctx context.Context, opts GovernanceActionOptions
 
 // ForceDeleteCodespace physically deletes one Codespace from the site governance list.
 func ForceDeleteCodespace(ctx context.Context, opts GovernanceActionOptions) error {
-	lockKey, err := governanceLockKey(opts)
-	if err != nil {
+	if err := validateGovernanceActionOptions(opts); err != nil {
 		return err
 	}
-	return globallock.LockAndDo(ctx, lockKey, func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace, err := loadGovernanceCodespace(ctx, opts)
-			if err != nil {
-				return err
-			}
-			if err := validateGovernanceTarget(ctx, codespace, opts); err != nil {
-				return err
-			}
-			return deleteCodespaceRowForFinal(ctx, codespace)
-		})
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		codespace, err := loadGovernanceCodespace(ctx, opts)
+		if err != nil {
+			return err
+		}
+		if err := validateGovernanceTarget(ctx, codespace, opts); err != nil {
+			return err
+		}
+		return deleteCodespaceRowForFinal(ctx, codespace)
 	})
 }
 
@@ -262,48 +258,45 @@ func applyGovernanceActions(view *GovernanceView, managerFound bool) {
 }
 
 func applyGovernanceLifecycleAction(ctx context.Context, opts GovernanceActionOptions, operationType string) (*LifecycleActionResult, error) {
-	lockKey, err := governanceLockKey(opts)
-	if err != nil {
+	if err := validateGovernanceActionOptions(opts); err != nil {
 		return nil, err
 	}
 
 	var result *LifecycleActionResult
-	err = globallock.LockAndDo(ctx, lockKey, func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace, err := loadGovernanceCodespace(ctx, opts)
-			if err != nil {
-				return err
-			}
-			if err := validateGovernanceTarget(ctx, codespace, opts); err != nil {
-				return err
-			}
-			manager, _, err := governanceManager(ctx, make(map[int64]*codespace_model.Manager), codespace.ManagerID)
-			if err != nil {
-				return err
-			}
-			view := &CreatorCodespaceView{}
-			applyCreatorDisplayState(codespace, view, manager, false)
-			governanceView := &GovernanceView{DisplayStatus: view.DisplayStatus}
-			applyGovernanceActions(governanceView, manager != nil)
-			switch operationType {
-			case codespace_model.OperationStop:
-				if !governanceView.CanStop {
-					return ErrGovernanceStateUnavailable
-				}
-				result, err = applyStopAction(ctx, codespace, time.Now().Unix())
-			case codespace_model.OperationDelete:
-				if !governanceView.CanDelete {
-					return ErrGovernanceStateUnavailable
-				}
-				result, err = applyDeleteAction(ctx, codespace, time.Now().Unix())
-			default:
-				err = fmt.Errorf("unsupported governance operation %q", operationType)
-			}
-			if errors.Is(err, ErrLifecycleActionStateUnavailable) {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		codespace, err := loadGovernanceCodespace(ctx, opts)
+		if err != nil {
+			return err
+		}
+		if err := validateGovernanceTarget(ctx, codespace, opts); err != nil {
+			return err
+		}
+		manager, _, err := governanceManager(ctx, make(map[int64]*codespace_model.Manager), codespace.ManagerID)
+		if err != nil {
+			return err
+		}
+		view := &CreatorCodespaceView{}
+		applyCreatorDisplayState(codespace, view, manager, false)
+		governanceView := &GovernanceView{DisplayStatus: view.DisplayStatus}
+		applyGovernanceActions(governanceView, manager != nil)
+		switch operationType {
+		case codespace_model.OperationStop:
+			if !governanceView.CanStop {
 				return ErrGovernanceStateUnavailable
 			}
-			return err
-		})
+			result, err = applyStopAction(ctx, codespace, time.Now().Unix())
+		case codespace_model.OperationDelete:
+			if !governanceView.CanDelete {
+				return ErrGovernanceStateUnavailable
+			}
+			result, err = applyDeleteAction(ctx, codespace, time.Now().Unix())
+		default:
+			err = fmt.Errorf("unsupported governance operation %q", operationType)
+		}
+		if errors.Is(err, ErrLifecycleActionStateUnavailable) {
+			return ErrGovernanceStateUnavailable
+		}
+		return err
 	})
 	return result, err
 }
@@ -328,20 +321,17 @@ func validateGovernanceTarget(ctx context.Context, codespace *codespace_model.Co
 	return nil
 }
 
-func governanceLockKey(opts GovernanceActionOptions) (string, error) {
+func validateGovernanceActionOptions(opts GovernanceActionOptions) error {
 	if opts.Unassigned {
 		if opts.CodespaceID <= 0 || opts.CodespaceUUID != "" || opts.ManagerID != 0 {
-			return "", errors.New("invalid unassigned Codespace governance target")
+			return errors.New("invalid unassigned Codespace governance target")
 		}
-		return codespaceRowLockKey(opts.CodespaceID), nil
+		return nil
 	}
 	if opts.CodespaceID != 0 || opts.ManagerID <= 0 {
-		return "", errors.New("invalid Manager Codespace governance target")
+		return errors.New("invalid Manager Codespace governance target")
 	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return "", err
-	}
-	return codespaceStateLockKey(opts.CodespaceUUID), nil
+	return codespace_model.ValidateUUID(opts.CodespaceUUID)
 }
 
 func loadGovernanceCodespace(ctx context.Context, opts GovernanceActionOptions) (*codespace_model.Codespace, error) {

@@ -212,10 +212,14 @@ func repoAssignment() func(ctx *context.APIContext) {
 
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
-		ctx.UseAnonymousForPublicCodespaceRead(repo)
+		publicCodespaceRead := ctx.UsePublicPermissionForCodespaceRead(repo)
 
 		{
-			needTwoFactor, err := doerNeedTwoFactorAuth(ctx, ctx.Doer)
+			permissionDoer := ctx.Doer
+			if publicCodespaceRead {
+				permissionDoer = nil
+			}
+			needTwoFactor, err := doerNeedTwoFactorAuth(ctx, permissionDoer)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -223,7 +227,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			if needTwoFactor {
 				ctx.Repo.Permission = access_model.PermissionNoAccess()
 			} else {
-				ctx.Repo.Permission, err = access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+				ctx.Repo.Permission, err = access_model.GetDoerRepoPermission(ctx, repo, permissionDoer)
 				if err != nil {
 					ctx.APIErrorInternal(err)
 					return
@@ -1024,6 +1028,7 @@ func bind[T any](tmpl T) any {
 
 func buildAuthGroup() *auth.Group {
 	group := auth.NewGroup(
+		&auth.CodespaceToken{},
 		&auth.OAuth2{},
 		&auth.HTTPSign{},
 		&auth.Basic{}, // FIXME: this should be removed once we don't allow basic auth in API

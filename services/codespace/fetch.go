@@ -294,67 +294,73 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 	}
 	grantTime := time.Now()
 	for _, row := range rows {
-		err := globallock.LockAndDo(ctx, codespaceRowLockKey(row.ID), func(ctx context.Context) error {
-			return db.WithTx(ctx, func(ctx context.Context) error {
-				codespace := new(codespace_model.Codespace)
-				has, err := db.GetEngine(ctx).ID(row.ID).Get(codespace)
-				if err != nil || !has {
-					return err
-				}
-				if codespace.ManagerID != managerID || !codespace_model.IsOperationRunning(codespace) {
-					return nil
-				}
-				if err := codespace_model.ValidateCodespace(codespace); err != nil {
-					return fmt.Errorf("invalid persisted Codespace: %w", err)
-				}
-				leaseMillis, deadlineUnix, ok := grantLease(codespace.OperationStartedUnix, grantTime)
-				if !ok {
-					operationType := codespace_model.ActiveOperationType(codespace)
-					summary := operationTimeoutSummary(codespace, timeoutStatus(operationType))
-					if isConvergentOperation(operationType) {
-						summary = operationRetrySummary(codespace)
-					}
-					if err := applyRunningTimeout(ctx, codespace, grantTime.Unix()); err != nil {
-						return err
-					}
-					*summaries = append(*summaries, summary)
-					return nil
-				}
-				observedVersion, hasObserved := observedVersions[codespace.UUID]
-				if !hasObserved {
-					return nil
-				}
-				if observedVersion > codespace.OperationRVersion {
-					return ErrFetchStateHistoryConflict
-				}
-				operationType := codespace_model.ActiveOperationType(codespace)
-				if !setting.Codespace.Enabled && (operationType == codespace_model.OperationCreate || operationType == codespace_model.OperationResume) {
-					if int32(len(result.Operations)) < maxOperations {
-						result.Operations = append(result.Operations, buildAbortOperationPayload(codespace))
-					}
-					return nil
-				}
-				if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols("operation_deadline_unix").Update(&codespace_model.Codespace{OperationDeadlineUnix: deadlineUnix}); err != nil {
-					return err
-				}
-				if observedVersion == codespace.OperationRVersion {
-					result.RenewedLeases = append(result.RenewedLeases, &codespacev1.RenewedOperationLease{
-						RuntimeUuid:               codespace.UUID,
-						OperationRversion:         codespace.OperationRVersion,
-						LeaseValidForMilliseconds: leaseMillis,
-					})
-					return nil
-				}
-				if int32(len(result.Operations)) >= maxOperations {
-					return nil
-				}
-				payload, err := buildOperationPayload(ctx, codespace, leaseMillis)
-				if err != nil {
-					return err
-				}
-				result.Operations = append(result.Operations, payload)
+		err := db.WithTx(ctx, func(ctx context.Context) error {
+			codespace := new(codespace_model.Codespace)
+			has, err := db.GetEngine(ctx).ID(row.ID).Get(codespace)
+			if err != nil || !has {
+				return err
+			}
+			if codespace.ManagerID != managerID || !codespace_model.IsOperationRunning(codespace) {
 				return nil
-			})
+			}
+			if err := codespace_model.ValidateCodespace(codespace); err != nil {
+				return fmt.Errorf("invalid persisted Codespace: %w", err)
+			}
+			leaseMillis, deadlineUnix, ok := grantLease(codespace.OperationStartedUnix, grantTime)
+			if !ok {
+				operationType := codespace_model.ActiveOperationType(codespace)
+				summary := operationTimeoutSummary(codespace, timeoutStatus(operationType))
+				if isConvergentOperation(operationType) {
+					summary = operationRetrySummary(codespace)
+				}
+				if err := applyRunningTimeout(ctx, codespace, grantTime.Unix()); err != nil {
+					if errors.Is(err, errCodespaceStateChanged) {
+						return nil
+					}
+					return err
+				}
+				*summaries = append(*summaries, summary)
+				return nil
+			}
+			observedVersion, hasObserved := observedVersions[codespace.UUID]
+			if !hasObserved {
+				return nil
+			}
+			if observedVersion > codespace.OperationRVersion {
+				return ErrFetchStateHistoryConflict
+			}
+			operationType := codespace_model.ActiveOperationType(codespace)
+			if !setting.Codespace.Enabled && (operationType == codespace_model.OperationCreate || operationType == codespace_model.OperationResume) {
+				if int32(len(result.Operations)) < maxOperations {
+					result.Operations = append(result.Operations, buildAbortOperationPayload(codespace))
+				}
+				return nil
+			}
+			expected := snapshotCodespaceState(codespace)
+			codespace.OperationDeadlineUnix = deadlineUnix
+			if err := updateCodespaceIfCurrent(ctx, expected, codespace, "operation_deadline_unix"); err != nil {
+				if errors.Is(err, errCodespaceStateChanged) {
+					return nil
+				}
+				return err
+			}
+			if observedVersion == codespace.OperationRVersion {
+				result.RenewedLeases = append(result.RenewedLeases, &codespacev1.RenewedOperationLease{
+					RuntimeUuid:               codespace.UUID,
+					OperationRversion:         codespace.OperationRVersion,
+					LeaseValidForMilliseconds: leaseMillis,
+				})
+				return nil
+			}
+			if int32(len(result.Operations)) >= maxOperations {
+				return nil
+			}
+			payload, err := buildOperationPayload(ctx, codespace, leaseMillis)
+			if err != nil {
+				return err
+			}
+			result.Operations = append(result.Operations, payload)
+			return nil
 		})
 		if err != nil {
 			return err
@@ -392,19 +398,17 @@ func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, 
 		}
 		if isQueuedExpired(candidate, grantTime) {
 			var summary *internalStateSummary
-			err := globallock.LockAndDo(ctx, codespaceRowLockKey(candidate.ID), func(ctx context.Context) error {
-				return db.WithTx(ctx, func(ctx context.Context) error {
-					current := new(codespace_model.Codespace)
-					has, err := db.GetEngine(ctx).ID(candidate.ID).Get(current)
-					if err != nil || !has {
-						return err
-					}
-					if current.OperationRVersion != candidate.OperationRVersion || !codespace_model.IsOperationQueued(current) || !isQueuedExpired(current, grantTime) {
-						return nil
-					}
-					summary = operationTimeoutSummary(current, queuedTimeoutStatus(codespace_model.ActiveOperationType(current)))
-					return applyQueuedTimeout(ctx, current, grantTime.Unix())
-				})
+			err := db.WithTx(ctx, func(ctx context.Context) error {
+				current := new(codespace_model.Codespace)
+				has, err := db.GetEngine(ctx).ID(candidate.ID).Get(current)
+				if err != nil || !has {
+					return err
+				}
+				if current.OperationRVersion != candidate.OperationRVersion || !codespace_model.IsOperationQueued(current) || !isQueuedExpired(current, grantTime) {
+					return nil
+				}
+				summary = operationTimeoutSummary(current, queuedTimeoutStatus(codespace_model.ActiveOperationType(current)))
+				return applyQueuedTimeout(ctx, current, grantTime.Unix())
 			})
 			if err != nil {
 				return claimed, err

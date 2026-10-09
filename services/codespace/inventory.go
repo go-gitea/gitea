@@ -12,7 +12,6 @@ import (
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/globallock"
 )
 
 const maxRuntimeInstancesPerInventory = 10000
@@ -210,30 +209,32 @@ func processReportedRuntimeInstance(ctx context.Context, managerID, inventoryGen
 	switch {
 	case codespace.Status == codespace_model.StatusRunning && instance.GetRuntimeState() == codespacev1.RuntimeState_RUNTIME_STATE_STOPPED:
 		var summary *internalStateSummary
-		err := globallock.LockAndDo(ctx, codespaceStateLockKey(codespace.UUID), func(ctx context.Context) error {
-			return db.WithTx(ctx, func(ctx context.Context) error {
-				if err := ensureInventoryGenerationCurrent(ctx, managerID, inventoryGeneration); err != nil {
-					return err
-				}
-				current := new(codespace_model.Codespace)
-				has, err := db.GetEngine(ctx).Where("uuid = ?", codespace.UUID).Get(current)
-				if err != nil || !has {
-					return err
-				}
-				if current.ManagerID != managerID || current.Status != codespace_model.StatusRunning || hasActiveOperation(current) {
-					return nil
-				}
-				if err := codespace_model.ValidateCodespace(current); err != nil {
-					return fmt.Errorf("invalid persisted Codespace: %w", err)
-				}
-				summary = &internalStateSummary{
-					CodespaceUUID: current.UUID,
-					Message:       "Gitea recorded the reported runtime as stopped.",
-				}
-				return applyFinalState(ctx, current, codespace_model.StatusStopped, time.Now().Unix())
-			})
+		err := db.WithTx(ctx, func(ctx context.Context) error {
+			if err := ensureInventoryGenerationCurrent(ctx, managerID, inventoryGeneration); err != nil {
+				return err
+			}
+			current := new(codespace_model.Codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", codespace.UUID).Get(current)
+			if err != nil || !has {
+				return err
+			}
+			if current.ManagerID != managerID || current.Status != codespace_model.StatusRunning || hasActiveOperation(current) {
+				return nil
+			}
+			if err := codespace_model.ValidateCodespace(current); err != nil {
+				return fmt.Errorf("invalid persisted Codespace: %w", err)
+			}
+			summary = &internalStateSummary{
+				CodespaceUUID: current.UUID,
+				Message:       "Gitea recorded the reported runtime as stopped.",
+			}
+			return applyFinalState(ctx, current, codespace_model.StatusStopped, time.Now().Unix())
 		})
 		if err != nil {
+			if errors.Is(err, errCodespaceStateChanged) {
+				summary = nil
+				return result, nil
+			}
 			return nil, err
 		}
 		appendInternalStateSummary(ctx, summary)
@@ -269,38 +270,39 @@ func processMissingRuntimeInstances(ctx context.Context, managerID, inventoryGen
 
 func processMissingRuntimeInstance(ctx context.Context, managerID, inventoryGeneration int64, codespaceUUID string, now int64) error {
 	var summary *internalStateSummary
-	err := globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			if err := ensureInventoryGenerationCurrent(ctx, managerID, inventoryGeneration); err != nil {
-				return err
-			}
-			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
-			if err != nil || !has {
-				return err
-			}
-			if codespace.ManagerID != managerID {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := ensureInventoryGenerationCurrent(ctx, managerID, inventoryGeneration); err != nil {
+			return err
+		}
+		codespace := new(codespace_model.Codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+		if err != nil || !has {
+			return err
+		}
+		if codespace.ManagerID != managerID {
+			return nil
+		}
+		switch codespace.Status {
+		case codespace_model.StatusCreating:
+			if currentOperationMatches(codespace, codespace_model.OperationCreate, codespace.OperationRVersion) &&
+				codespace.OperationDeadlineUnix > now {
 				return nil
 			}
-			switch codespace.Status {
-			case codespace_model.StatusCreating:
-				if currentOperationMatches(codespace, codespace_model.OperationCreate, codespace.OperationRVersion) &&
-					codespace.OperationDeadlineUnix > now {
-					return nil
-				}
-				summary = runtimeMissingSummary(codespace)
-				return applyInventoryMissingFailed(ctx, codespace, now)
-			case codespace_model.StatusRunning, codespace_model.StatusStopped:
-				summary = runtimeMissingSummary(codespace)
-				return applyInventoryMissingFailed(ctx, codespace, now)
-			case codespace_model.StatusDeleting:
-				return deleteCodespaceForFinal(ctx, codespace.UUID)
-			default:
-				return nil
-			}
-		})
+			summary = runtimeMissingSummary(codespace)
+			return applyInventoryMissingFailed(ctx, codespace, now)
+		case codespace_model.StatusRunning, codespace_model.StatusStopped:
+			summary = runtimeMissingSummary(codespace)
+			return applyInventoryMissingFailed(ctx, codespace, now)
+		case codespace_model.StatusDeleting:
+			return deleteCodespaceRowForFinal(ctx, codespace)
+		default:
+			return nil
+		}
 	})
 	if err != nil {
+		if errors.Is(err, errCodespaceStateChanged) {
+			return nil
+		}
 		return err
 	}
 	appendInternalStateSummary(ctx, summary)
@@ -308,20 +310,23 @@ func processMissingRuntimeInstance(ctx context.Context, managerID, inventoryGene
 }
 
 func applyInventoryMissingFailed(ctx context.Context, codespace *codespace_model.Codespace, now int64) error {
+	expected := snapshotCodespaceState(codespace)
 	codespace.Status = codespace_model.StatusFailed
 	codespace.UpdatedUnix = now
 	clearActiveOperation(codespace)
 	if err := cleanupCredentialsForStatus(ctx, codespace, codespace_model.StatusFailed); err != nil {
 		return err
 	}
-	deleteRuntimeMetadata(codespace.UUID)
-	_, err := db.GetEngine(ctx).ID(codespace.ID).Cols(
+	err := updateCodespaceIfCurrent(ctx, expected, codespace,
 		"status",
 		"operation_trigger",
 		"operation_created_unix",
 		"operation_started_unix",
 		"operation_deadline_unix",
 		"updated_unix",
-	).Update(codespace)
+	)
+	if err == nil {
+		deleteRuntimeMetadata(codespace.UUID)
+	}
 	return err
 }

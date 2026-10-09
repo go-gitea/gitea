@@ -4,6 +4,7 @@
 package codespace
 
 import (
+	"context"
 	"math"
 	"testing"
 	"time"
@@ -367,6 +368,36 @@ func TestFinalizeStopClearsRuntimeMetadata(t *testing.T) {
 	assert.False(t, hasReady)
 }
 
+func TestLifecycleTransitionDoesNotConflictWithUserActivity(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	manager := insertServiceManager(t)
+	codespaceUUID := "dededede-dede-4ded-8ded-dededededede"
+	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+		UUID:                  codespaceUUID,
+		Status:                codespace_model.StatusRunning,
+		OperationRVersion:     7,
+		OperationTrigger:      codespace_model.OperationTriggerUser,
+		OperationCreatedUnix:  10,
+		OperationStartedUnix:  11,
+		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
+		InteractionGeneration: 2,
+	})
+	staleInteraction := loadServiceCodespace(t, codespaceUUID)
+	updated, err := db.GetEngine(t.Context()).ID(staleInteraction.ID).
+		Cols("interaction_generation").
+		Update(&codespace_model.Codespace{InteractionGeneration: 3})
+	require.NoError(t, err)
+	require.EqualValues(t, 1, updated)
+
+	require.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
+		return applyFinalState(ctx, staleInteraction, codespace_model.StatusStopped, time.Now().Unix())
+	}))
+	current := loadServiceCodespace(t, codespaceUUID)
+	assert.Equal(t, codespace_model.StatusStopped, current.Status)
+	assert.EqualValues(t, 3, current.InteractionGeneration)
+}
+
 func insertServiceManager(t *testing.T) *codespace_model.Manager {
 	t.Helper()
 	manager := &codespace_model.Manager{
@@ -385,7 +416,9 @@ func insertServiceManager(t *testing.T) *codespace_model.Manager {
 func insertServiceCodespace(t *testing.T, managerID int64, codespace *codespace_model.Codespace) {
 	t.Helper()
 	codespace.ManagerID = managerID
-	codespace.UserID = 1
+	if codespace.UserID == 0 {
+		codespace.UserID = 1
+	}
 	codespace.RepoID = 2
 	codespace.RefType = "branch"
 	codespace.RefName = "main"
@@ -401,7 +434,13 @@ func insertServiceCodespace(t *testing.T, managerID int64, codespace *codespace_
 	}
 	codespace.CreatedUnix = 1
 	codespace.UpdatedUnix = 1
-	require.NoError(t, db.Insert(t.Context(), codespace))
+	var err error
+	if codespace.UUID == "" {
+		_, err = db.GetEngine(t.Context()).Table(codespace).Omit("uuid").Insert(codespace)
+	} else {
+		err = db.Insert(t.Context(), codespace)
+	}
+	require.NoError(t, err)
 }
 
 func insertServiceCredentials(t *testing.T, codespaceUUID string) {

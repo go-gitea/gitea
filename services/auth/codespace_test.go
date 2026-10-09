@@ -33,7 +33,7 @@ func TestCodespaceTokenBasicAuth(t *testing.T) {
 	req.SetBasicAuth(token, "x-oauth-basic")
 	store := make(reqctx.ContextData)
 
-	u, err := new(Basic).Verify(req, nil, store, nil)
+	u, err := NewGroup(&CodespaceToken{}, &Basic{}).Verify(req, nil, store, nil)
 	require.NoError(t, err)
 	require.NotNil(t, u)
 	assert.EqualValues(t, 1, u.ID)
@@ -57,7 +57,7 @@ func TestCodespaceTokenBearerAuth(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	store := make(reqctx.ContextData)
 
-	u, err := new(OAuth2).Verify(req, nil, store, nil)
+	u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, store, nil)
 	require.NoError(t, err)
 	require.NotNil(t, u)
 	assert.EqualValues(t, 1, u.ID)
@@ -75,59 +75,10 @@ func TestCodespaceTokenQueryAuthIsIgnored(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://example.test/api/v1/user?"+queryName+"="+token, nil)
 		require.NoError(t, err)
 
-		u, err := new(OAuth2).Verify(req, nil, make(reqctx.ContextData), nil)
+		u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, make(reqctx.ContextData), nil)
 		require.NoError(t, err)
 		assert.Nil(t, u)
 	}
-}
-
-func TestCodespaceTokenBasicAuthHonorsWebRoutePermission(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	token, _ := createAuthCodespaceToken(t)
-	req, err := http.NewRequest(http.MethodGet, "https://example.test/user2/repo1/releases/download/v1/file.zip", nil)
-	require.NoError(t, err)
-	req = req.WithContext(reqctx.NewRequestContextForTest(t))
-	req.SetBasicAuth(token, "x-oauth-basic")
-	SetCodespaceTokenAuthAllowed(req.Context(), false)
-
-	u, err := new(Basic).Verify(req, nil, make(reqctx.ContextData), nil)
-	assert.Nil(t, u)
-	require.Error(t, err)
-	assert.True(t, IsCodespaceTokenForbidden(err))
-}
-
-func TestCodespaceTokenBasicAuthAllowsMarkedWebRoute(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	token, _ := createAuthCodespaceToken(t)
-	req, err := http.NewRequest(http.MethodGet, "https://example.test/user2/repo1.git/info/refs", nil)
-	require.NoError(t, err)
-	req = req.WithContext(reqctx.NewRequestContextForTest(t))
-	req.SetBasicAuth(token, "x-oauth-basic")
-	SetCodespaceTokenAuthAllowed(req.Context(), true)
-
-	u, err := new(Basic).Verify(req, nil, make(reqctx.ContextData), nil)
-	require.NoError(t, err)
-	require.NotNil(t, u)
-	assert.EqualValues(t, 1, u.ID)
-}
-
-func TestCodespaceTokenBearerAuthAllowsMarkedWebRoute(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	token, _ := createAuthCodespaceToken(t)
-	req, err := http.NewRequest(http.MethodGet, "https://example.test/user2/repo1.git/info/lfs/objects/batch", nil)
-	require.NoError(t, err)
-	req = req.WithContext(reqctx.NewRequestContextForTest(t))
-	req.Header.Set("Authorization", "Bearer "+token)
-	SetCodespaceTokenAuthAllowed(req.Context(), true)
-	group := NewGroup(&Basic{}, &CodespaceToken{})
-
-	u, err := group.Verify(req, nil, make(reqctx.ContextData), nil)
-	require.NoError(t, err)
-	require.NotNil(t, u)
-	assert.EqualValues(t, 1, u.ID)
 }
 
 func TestCodespaceTokenQueryAuthHonorsDisableQueryToken(t *testing.T) {
@@ -140,7 +91,7 @@ func TestCodespaceTokenQueryAuthHonorsDisableQueryToken(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "https://example.test/api/v1/user?token="+token, nil)
 	require.NoError(t, err)
 
-	u, err := new(OAuth2).Verify(req, nil, make(reqctx.ContextData), nil)
+	u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, make(reqctx.ContextData), nil)
 	require.NoError(t, err)
 	assert.Nil(t, u)
 }
@@ -151,10 +102,7 @@ func TestCodespaceTokenQueryAuthIgnoredForWebAuth(t *testing.T) {
 	token, _ := createAuthCodespaceToken(t)
 	req, err := http.NewRequest(http.MethodGet, "https://example.test/user2/repo1?token="+token, nil)
 	require.NoError(t, err)
-	req = req.WithContext(reqctx.NewRequestContextForTest(t))
-	SetCodespaceTokenAuthAllowed(req.Context(), true)
-
-	u, err := new(OAuth2).Verify(req, nil, make(reqctx.ContextData), nil)
+	u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, make(reqctx.ContextData), nil)
 	require.NoError(t, err)
 	assert.Nil(t, u)
 
@@ -168,7 +116,7 @@ func TestCodespaceTokenRejectedStopsAuthGroupFallback(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer gcs_bad")
 	fallback := &fallbackAuthMethod{}
-	group := NewGroup(&OAuth2{}, fallback)
+	group := NewGroup(&CodespaceToken{}, &OAuth2{}, fallback)
 
 	u, err := group.Verify(req, nil, make(reqctx.ContextData), nil)
 	assert.Nil(t, u)
@@ -207,7 +155,7 @@ func TestCodespaceTokenUnavailableStateIsForbidden(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	u, err := new(OAuth2).Verify(req, nil, make(reqctx.ContextData), nil)
+	u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, make(reqctx.ContextData), nil)
 	assert.Nil(t, u)
 	require.Error(t, err)
 	assert.True(t, IsCodespaceTokenForbidden(err))

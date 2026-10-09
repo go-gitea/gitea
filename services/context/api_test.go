@@ -73,7 +73,7 @@ func TestAPIContextTokenCanAccessRepoForCodespaceToken(t *testing.T) {
 	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 2, IsPrivate: false}))
 }
 
-func TestUseAnonymousForPublicCodespaceRead(t *testing.T) {
+func TestUsePublicPermissionForCodespaceRead(t *testing.T) {
 	ctx := &APIContext{Base: &Base{RequestContext: reqctx.NewRequestContextForTest(t)}}
 	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/repos/public/repo", nil)
 	ctx.Doer = &user_model.User{ID: 2}
@@ -81,11 +81,18 @@ func TestUseAnonymousForPublicCodespaceRead(t *testing.T) {
 	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
 	ctx.GetData()["IsApiToken"] = true
 
-	assert.True(t, ctx.UseAnonymousForPublicCodespaceRead(&repo_model.Repository{ID: 2, Owner: &user_model.User{}}))
-	assert.Nil(t, ctx.Doer)
-	assert.False(t, ctx.IsSigned)
+	assert.True(t, ctx.UsePublicPermissionForCodespaceRead(&repo_model.Repository{ID: 2, Owner: &user_model.User{}}))
+	assert.EqualValues(t, 2, ctx.Doer.ID)
+	assert.True(t, ctx.IsSigned)
+	ctx.Repo = &Repository{Repository: &repo_model.Repository{ID: 2}}
 	_, hasSnapshot := ctx.CodespaceTokenRepoID()
-	assert.False(t, hasSnapshot)
+	assert.True(t, hasSnapshot)
+	assert.True(t, ctx.TokenCanAccessRepo(ctx.Repo.Repository))
+	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 3}))
+	assert.True(t, ctx.CodespaceTokenAllowsRepository(unit.TypeCode, perm.AccessModeRead))
+	assert.False(t, ctx.CodespaceTokenAllowsRepository(unit.TypeCode, perm.AccessModeWrite))
+	assert.True(t, ctx.CodespaceTokenAllowsRepositoryID(2, unit.TypeCode, perm.AccessModeRead))
+	assert.False(t, ctx.CodespaceTokenAllowsRepositoryID(3, unit.TypeCode, perm.AccessModeRead))
 }
 
 type testCodespaceTokenSnapshot struct {

@@ -67,7 +67,7 @@ const GiteaTokenAuthDataKey = "CodespaceToken"
 // Codespace stores Gitea-owned lifecycle state for one remote development environment.
 type Codespace struct {
 	ID                        int64
-	UUID                      string `xorm:"VARCHAR(36) NOT NULL DEFAULT '' index"`
+	UUID                      string `xorm:"VARCHAR(36) UNIQUE"`
 	UserID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RepoID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RefType                   string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
@@ -106,8 +106,8 @@ type Manager struct {
 	InventoryGeneration                int64  `xorm:"NOT NULL DEFAULT 0"`
 	CreatedUnix                        int64  `xorm:"NOT NULL DEFAULT 0"`
 	Version                            string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	GatewayURL                         string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' index"`
-	GatewaySSHAddr                     string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' index"`
+	GatewayURL                         string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
+	GatewaySSHAddr                     string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
 	GatewaySSHHostKeyAlgorithm         string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 	GatewaySSHHostKeyFingerprintSHA256 string `xorm:"gateway_ssh_host_key_fingerprint_sha256 VARCHAR(255) NOT NULL DEFAULT ''"`
 }
@@ -125,6 +125,16 @@ type GiteaToken struct {
 type SSHKey struct {
 	CodespaceID int64 `xorm:"pk"`
 	KeyID       int64 `xorm:"NOT NULL UNIQUE"`
+}
+
+// OpenToken stores one short-lived, single-use private endpoint authorization code.
+type OpenToken struct {
+	CodeHash    string `xorm:"CHAR(64) pk"`
+	CodespaceID int64  `xorm:"NOT NULL index"`
+	UserID      int64  `xorm:"NOT NULL"`
+	ManagerID   int64  `xorm:"NOT NULL"`
+	EndpointID  string `xorm:"VARCHAR(64) NOT NULL"`
+	ExpiresUnix int64  `xorm:"NOT NULL index"`
 }
 
 // DevContainerTemplate stores a manually named non-repository Dev Container configuration.
@@ -182,6 +192,10 @@ func (*SSHKey) TableName() string {
 	return "codespace_ssh_key"
 }
 
+func (*OpenToken) TableName() string {
+	return "codespace_open_token"
+}
+
 func (*DevContainerTemplate) TableName() string {
 	return "codespace_dev_container_template"
 }
@@ -191,6 +205,7 @@ func init() {
 	db.RegisterModel(new(Manager))
 	db.RegisterModel(new(GiteaToken))
 	db.RegisterModel(new(SSHKey))
+	db.RegisterModel(new(OpenToken))
 	db.RegisterModel(new(DevContainerTemplate))
 }
 

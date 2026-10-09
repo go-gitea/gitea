@@ -66,7 +66,8 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 		OperationRVersion: 5, AutoStopMode: codespace_model.AutoStopModeDefault, CreatedUnix: 1,
 		UpdatedUnix: now - int64((2*time.Hour)/time.Second),
 	}
-	require.NoError(t, db.Insert(t.Context(), unboundFailed))
+	_, err = db.GetEngine(t.Context()).Table(unboundFailed).Omit("uuid").Insert(unboundFailed)
+	require.NoError(t, err)
 	_, err = db.GetEngine(t.Context()).ID(unboundFailed.ID).Cols("updated_unix").Update(&codespace_model.Codespace{UpdatedUnix: unboundFailed.UpdatedUnix})
 	require.NoError(t, err)
 

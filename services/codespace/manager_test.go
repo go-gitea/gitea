@@ -197,7 +197,7 @@ func TestBindRuntimeIdentityAssignsManagerRuntimeUUID(t *testing.T) {
 		OperationDeadlineUnix: 3,
 	})
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(t.Context()).Where("manager_id = ? AND uuid = ?", manager.ID, "").Get(codespace)
+	has, err := db.GetEngine(t.Context()).Where("manager_id = ? AND uuid IS NULL", manager.ID).Get(codespace)
 	require.NoError(t, err)
 	require.True(t, has)
 
@@ -228,7 +228,7 @@ func TestBindRuntimeIdentityAssignsManagerRuntimeUUID(t *testing.T) {
 		OperationDeadlineUnix: 3,
 	})
 	otherCodespace := new(codespace_model.Codespace)
-	has, err = db.GetEngine(t.Context()).Where("manager_id = ? AND uuid = ? AND id <> ?", manager.ID, "", codespace.ID).Get(otherCodespace)
+	has, err = db.GetEngine(t.Context()).Where("manager_id = ? AND uuid IS NULL AND id <> ?", manager.ID, codespace.ID).Get(otherCodespace)
 	require.NoError(t, err)
 	require.True(t, has)
 	_, err = BindRuntimeIdentity(t.Context(), manager, BindRuntimeIdentityOptions{

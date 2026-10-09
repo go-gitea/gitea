@@ -126,22 +126,16 @@ func deleteUserCodespacesLocked(ctx context.Context, userID int64) error {
 			return nil
 		}
 		for _, row := range rows {
-			if err := deleteUserCodespace(ctx, userID, row.UUID); err != nil {
+			if err := db.WithTx(ctx, func(ctx context.Context) error {
+				codespace := new(codespace_model.Codespace)
+				has, err := db.GetEngine(ctx).ID(row.ID).Get(codespace)
+				if err != nil || !has || codespace.UserID != userID {
+					return err
+				}
+				return deleteCodespaceRowForFinal(ctx, codespace)
+			}); err != nil {
 				return err
 			}
 		}
 	}
-}
-
-func deleteUserCodespace(ctx context.Context, userID int64, codespaceUUID string) error {
-	return globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
-			if err != nil || !has || codespace.UserID != userID {
-				return err
-			}
-			return deleteCodespaceForFinal(ctx, codespaceUUID)
-		})
-	})
 }

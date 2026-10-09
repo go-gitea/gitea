@@ -128,10 +128,9 @@ func newWebAuthMiddleware() *AuthMiddleware {
 		allowBasic := ctx.GetContextValue(keyAllowBasic{}) == true
 		allowOAuth2 := ctx.GetContextValue(keyAllowOAuth2{}) == true
 		allowCodespaceToken := ctx.GetContextValue(keyAllowCodespaceToken{}) == true
-		auth_service.SetCodespaceTokenAuthAllowed(ctx.Req.Context(), allowCodespaceToken)
 		allowDeployToken := ctx.GetContextValue(keyAllowDeployToken{}) == true
 
-		group := auth_service.NewGroup()
+		group := auth_service.NewGroup(&auth_service.CodespaceToken{RejectValid: !allowCodespaceToken})
 
 		// Most auth methods should ignore the user id stored in the session.
 		// If the auth succeeds, it must use the user id from the auth method to make sure the new login succeeds.
@@ -144,12 +143,6 @@ func newWebAuthMiddleware() *AuthMiddleware {
 		if allowBasic {
 			group.Add(&auth_service.Basic{})
 		}
-		if allowCodespaceToken {
-			group.Add(&auth_service.CodespaceToken{})
-		} else {
-			group.Add(&auth_service.CodespaceToken{RejectValid: true})
-		}
-
 		// Sessionless means the route's auth can be done without web ui, then it doesn't need to create a session
 		// For example: accessing git via http, access rss feeds, downloading attachments, etc
 		isSessionless := allowOAuth2 || allowBasic || allowDeployToken

@@ -11,7 +11,6 @@ import (
 
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/setting"
 )
 
@@ -64,28 +63,29 @@ func ContinueCodespace(ctx context.Context, opts ContinueCodespaceOptions) (*Con
 	}
 
 	var result *ContinueCodespaceResult
-	err := globallock.LockAndDo(ctx, codespaceRowLockKey(opts.CodespaceID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace, err := loadCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
-			if err != nil {
-				return err
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		codespace, err := loadCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
+		if err != nil {
+			return err
+		}
+		if codespace.Status != codespace_model.StatusRunning || (hasActiveOperation(codespace) && !isQueuedIdleStop(codespace)) {
+			return ErrInteractionStateUnavailable
+		}
+		now := time.Now().Unix()
+		nextGeneration, err := advanceCodespaceInteraction(ctx, codespace, now)
+		if err != nil {
+			if err == errInteractionVersionExhausted {
+				return ErrInteractionVersionExhausted
 			}
-			if codespace.Status != codespace_model.StatusRunning || (hasActiveOperation(codespace) && !isQueuedIdleStop(codespace)) {
-				return ErrInteractionStateUnavailable
-			}
-			now := time.Now().Unix()
-			nextGeneration, err := advanceCodespaceInteraction(ctx, codespace, now)
-			if err != nil {
-				if err == errInteractionVersionExhausted {
-					return ErrInteractionVersionExhausted
-				}
-				return err
-			}
-			result = &ContinueCodespaceResult{InteractionGeneration: nextGeneration}
-			return nil
-		})
+			return err
+		}
+		result = &ContinueCodespaceResult{InteractionGeneration: nextGeneration}
+		return nil
 	})
 	if err != nil {
+		if errors.Is(err, errCodespaceStateChanged) {
+			return nil, ErrInteractionStateUnavailable
+		}
 		return nil, err
 	}
 	return result, nil
@@ -102,49 +102,51 @@ func UpdateAutoStop(ctx context.Context, opts UpdateAutoStopOptions) (*UpdateAut
 	}
 
 	var result *UpdateAutoStopResult
-	err = globallock.LockAndDo(ctx, codespaceRowLockKey(opts.CodespaceID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace, err := loadCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
-			if err != nil {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		codespace, err := loadCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
+		if err != nil {
+			return err
+		}
+		if codespace.Status != codespace_model.StatusRunning && codespace.Status != codespace_model.StatusStopped {
+			return ErrInteractionStateUnavailable
+		}
+		expected := snapshotCodespaceState(codespace)
+		oldSettings := effectiveRuntimeSettings(codespace)
+		changed := codespace.AutoStopMode != mode || codespace.AutoStopTimeoutSeconds != customTimeoutSeconds
+		codespace.AutoStopMode = mode
+		codespace.AutoStopTimeoutSeconds = customTimeoutSeconds
+		newSettings := effectiveRuntimeSettings(codespace)
+		policyChanged := oldSettings.AutoStopEnabled != newSettings.AutoStopEnabled ||
+			oldSettings.IdleTimeoutSeconds != newSettings.IdleTimeoutSeconds
+
+		cols := []string{"auto_stop_mode", "auto_stop_timeout_seconds"}
+		if policyChanged && isQueuedIdleStop(codespace) {
+			codespace.UpdatedUnix = time.Now().Unix()
+			clearActiveOperation(codespace)
+			cols = append(cols,
+				"operation_trigger",
+				"operation_created_unix",
+				"operation_started_unix",
+				"operation_deadline_unix",
+				"updated_unix",
+			)
+		}
+		if changed || len(cols) > 2 {
+			if err := updateCodespaceIfCurrent(ctx, expected, codespace, cols...); err != nil {
 				return err
 			}
-			if codespace.Status != codespace_model.StatusRunning && codespace.Status != codespace_model.StatusStopped {
-				return ErrInteractionStateUnavailable
-			}
-			oldSettings := effectiveRuntimeSettings(codespace)
-			changed := codespace.AutoStopMode != mode || codespace.AutoStopTimeoutSeconds != customTimeoutSeconds
-			codespace.AutoStopMode = mode
-			codespace.AutoStopTimeoutSeconds = customTimeoutSeconds
-			newSettings := effectiveRuntimeSettings(codespace)
-			policyChanged := oldSettings.AutoStopEnabled != newSettings.AutoStopEnabled ||
-				oldSettings.IdleTimeoutSeconds != newSettings.IdleTimeoutSeconds
-
-			cols := []string{"auto_stop_mode", "auto_stop_timeout_seconds"}
-			if policyChanged && isQueuedIdleStop(codespace) {
-				codespace.UpdatedUnix = time.Now().Unix()
-				clearActiveOperation(codespace)
-				cols = append(cols,
-					"operation_trigger",
-					"operation_created_unix",
-					"operation_started_unix",
-					"operation_deadline_unix",
-					"updated_unix",
-				)
-			}
-			if changed || len(cols) > 2 {
-				if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols(cols...).Update(codespace); err != nil {
-					return err
-				}
-			}
-			result = &UpdateAutoStopResult{
-				Mode:                 codespace.AutoStopMode,
-				CustomTimeoutSeconds: codespace.AutoStopTimeoutSeconds,
-				RuntimeSettings:      newSettings,
-			}
-			return nil
-		})
+		}
+		result = &UpdateAutoStopResult{
+			Mode:                 codespace.AutoStopMode,
+			CustomTimeoutSeconds: codespace.AutoStopTimeoutSeconds,
+			RuntimeSettings:      newSettings,
+		}
+		return nil
 	})
 	if err != nil {
+		if errors.Is(err, errCodespaceStateChanged) {
+			return nil, ErrInteractionStateUnavailable
+		}
 		return nil, err
 	}
 	return result, nil

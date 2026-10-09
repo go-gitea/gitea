@@ -6,13 +6,11 @@ package codespace
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/globallock"
 )
 
 var (
@@ -47,78 +45,81 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 	}
 
 	var response *codespacev1.RequestIdleStopResponse
-	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			currentManager, err := loadCodespaceManager(ctx, manager.ID)
-			if err != nil {
-				return err
-			}
-			if currentManager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(currentManager) {
-				return ErrRequestIdleStopManagerUnavailable
-			}
-			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
-			if err != nil {
-				return err
-			}
-			if !has {
-				return ErrRequestIdleStopNotFound
-			}
-			if codespace.ManagerID != manager.ID {
-				return ErrRequestIdleStopManagerMismatch
-			}
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		currentManager, err := loadCodespaceManager(ctx, manager.ID)
+		if err != nil {
+			return err
+		}
+		if currentManager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(currentManager) {
+			return ErrRequestIdleStopManagerUnavailable
+		}
+		codespace := new(codespace_model.Codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
+		if err != nil {
+			return err
+		}
+		if !has {
+			return ErrRequestIdleStopNotFound
+		}
+		if codespace.ManagerID != manager.ID {
+			return ErrRequestIdleStopManagerMismatch
+		}
 
-			if isQueuedIdleStop(codespace) {
-				response = idleStopPendingResponse(codespace.OperationRVersion)
-				return nil
+		if isQueuedIdleStop(codespace) {
+			response = idleStopPendingResponse(codespace.OperationRVersion)
+			return nil
+		}
+		if hasActiveOperation(codespace) {
+			response = notApplicableIdleStop(codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_OPERATION_CONFLICT)
+			return nil
+		}
+		switch codespace.Status {
+		case codespace_model.StatusStopped:
+			response = notApplicableIdleStop(codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_ALREADY_STOPPED)
+			return nil
+		case codespace_model.StatusRunning:
+		default:
+			response = notApplicableIdleStop(codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_STATE_UNAVAILABLE)
+			return nil
+		}
+
+		settings := effectiveRuntimeSettings(codespace)
+		if !settings.AutoStopEnabled || settingsChanged(settings, opts) {
+			response = &codespacev1.RequestIdleStopResponse{
+				Outcome: &codespacev1.RequestIdleStopResponse_ObservationChanged{
+					ObservationChanged: &codespacev1.IdleStopObservationChanged{RuntimeSettings: runtimeSettingsMessage(settings)},
+				},
 			}
-			if hasActiveOperation(codespace) {
+			return nil
+		}
+		expected := snapshotCodespaceState(codespace)
+		nextVersion, err := codespace_model.NextVersion(codespace.OperationRVersion)
+		if err != nil {
+			return ErrRequestIdleStopVersionExhausted
+		}
+		now := time.Now().Unix()
+		codespace.OperationRVersion = nextVersion
+		codespace.OperationTrigger = codespace_model.OperationTriggerIdle
+		codespace.OperationCreatedUnix = now
+		codespace.OperationStartedUnix = 0
+		codespace.OperationDeadlineUnix = 0
+		codespace.UpdatedUnix = now
+		if err := updateCodespaceIfCurrent(ctx, expected, codespace,
+			"operation_r_version",
+			"operation_trigger",
+			"operation_created_unix",
+			"operation_started_unix",
+			"operation_deadline_unix",
+			"updated_unix",
+		); err != nil {
+			if errors.Is(err, errCodespaceStateChanged) {
 				response = notApplicableIdleStop(codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_OPERATION_CONFLICT)
 				return nil
 			}
-			switch codespace.Status {
-			case codespace_model.StatusStopped:
-				response = notApplicableIdleStop(codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_ALREADY_STOPPED)
-				return nil
-			case codespace_model.StatusRunning:
-			default:
-				response = notApplicableIdleStop(codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_STATE_UNAVAILABLE)
-				return nil
-			}
-
-			settings := effectiveRuntimeSettings(codespace)
-			if !settings.AutoStopEnabled || settingsChanged(settings, opts) {
-				response = &codespacev1.RequestIdleStopResponse{
-					Outcome: &codespacev1.RequestIdleStopResponse_ObservationChanged{
-						ObservationChanged: &codespacev1.IdleStopObservationChanged{RuntimeSettings: runtimeSettingsMessage(settings)},
-					},
-				}
-				return nil
-			}
-			nextVersion, err := codespace_model.NextVersion(codespace.OperationRVersion)
-			if err != nil {
-				return ErrRequestIdleStopVersionExhausted
-			}
-			now := time.Now().Unix()
-			codespace.OperationRVersion = nextVersion
-			codespace.OperationTrigger = codespace_model.OperationTriggerIdle
-			codespace.OperationCreatedUnix = now
-			codespace.OperationStartedUnix = 0
-			codespace.OperationDeadlineUnix = 0
-			codespace.UpdatedUnix = now
-			if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols(
-				"operation_r_version",
-				"operation_trigger",
-				"operation_created_unix",
-				"operation_started_unix",
-				"operation_deadline_unix",
-				"updated_unix",
-			).Update(codespace); err != nil {
-				return err
-			}
-			response = idleStopPendingResponse(nextVersion)
-			return nil
-		})
+			return err
+		}
+		response = idleStopPendingResponse(nextVersion)
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -168,12 +169,4 @@ func settingsChanged(settings RuntimeSettings, opts RequestIdleStopOptions) bool
 	return settings.AutoStopEnabled != opts.ObservedAutoStopEnabled ||
 		settings.IdleTimeoutSeconds != opts.ObservedIdleTimeoutSeconds ||
 		settings.InteractionGeneration != opts.ObservedInteractionGeneration
-}
-
-func codespaceStateLockKey(codespaceUUID string) string {
-	return "codespace_interaction_" + codespaceUUID
-}
-
-func codespaceRowLockKey(codespaceID int64) string {
-	return fmt.Sprintf("codespace_interaction_id_%d", codespaceID)
 }

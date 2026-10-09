@@ -4,14 +4,12 @@
 package auth
 
 import (
-	"context"
 	"errors"
 	"net/http"
 
 	codespace_model "gitea.dev/models/codespace"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/httpauth"
-	"gitea.dev/modules/reqctx"
 	codespace_service "gitea.dev/services/codespace"
 )
 
@@ -43,22 +41,6 @@ func codespaceTokenAuthError(err error) error {
 // CodespaceToken recognizes Codespace Tokens on routes that do not otherwise allow token auth.
 type CodespaceToken struct {
 	RejectValid bool
-}
-
-type (
-	codespaceTokenAuthAllowedKey struct{}
-)
-
-// SetCodespaceTokenAuthAllowed records whether the current Web route may authenticate Codespace Tokens.
-func SetCodespaceTokenAuthAllowed(ctx context.Context, allowed bool) {
-	if store := reqctx.GetRequestDataStore(ctx); store != nil {
-		store.SetContextValue(codespaceTokenAuthAllowedKey{}, allowed)
-	}
-}
-
-func codespaceTokenAuthAllowed(ctx context.Context) bool {
-	store := reqctx.GetRequestDataStore(ctx)
-	return store == nil || store.GetContextValue(codespaceTokenAuthAllowedKey{}) != false
 }
 
 func (m *CodespaceToken) Name() string {

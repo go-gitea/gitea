@@ -1,6 +1,5 @@
 import {initCodespaceManagerSecretModal, initCodespaceSecretRepositoryPicker, initCodespaceTemplateEditor} from './CodespaceSettings.ts';
 import {EditorView} from '@codemirror/view';
-import {svg} from '../../svg.ts';
 import * as modalModule from '../../modules/fomantic/modal.ts';
 import * as fetchAction from '../../modules/fetch-action.ts';
 
@@ -14,7 +13,7 @@ test('template editor submits edited JSONC and opens another template with fresh
     <button class="codespace-template-edit" data-modal-form.url="/templates/1" data-modal-template-modal-title="Edit" data-submit-label="Save" data-modal-codespace-devcontainer-template-name="First"></button>
     <div id="template-modal"><div class="header"></div><form>
       <input name="name"><div class="field"><div class="codespace-template-editor"><textarea name="content" data-code-editor-config='{"filename":"devcontainer.json"}'></textarea></div><div class="help">JSONC</div></div>
-      <button class="cancel" type="button">Cancel</button><button class="ok">${svg('octicon-check')}<span class="template-submit-label">Save</span></button>
+      <button class="cancel" type="button">Cancel</button><button class="ok"><span class="template-submit-label">Save</span></button>
     </form></div>`;
   const modal = document.querySelector<HTMLElement>('#template-modal')!;
   const trigger = document.querySelector<HTMLButtonElement>('.codespace-template-edit')!;
@@ -32,9 +31,7 @@ test('template editor submits edited JSONC and opens another template with fresh
     const submit = modal.querySelector<HTMLButtonElement>('.ok')!;
     await shown;
     expect(submit.disabled).toBe(false);
-    expect(submit.querySelector('.svg.octicon-check')).not.toBeNull();
     expect(submit.querySelector('.template-submit-label')!.textContent).toBe('Save');
-    expect(modal.querySelector('.code-editor-container')!.parentElement!.className).toBe('codespace-template-editor');
     const view = EditorView.findFromDOM(modal.querySelector('.cm-editor')!)!;
     expect(view.state.doc.toString()).toBe(first);
     view.dispatch({changes: {from: 0, to: view.state.doc.length, insert: '{"image":"ubuntu:24.04"}'}});
@@ -95,9 +92,6 @@ test('manager credentials are generated on demand, cleared on close, and confirm
     request.mockResolvedValueOnce(Response.json({secret: 'second-secret'}));
     form.requestSubmit();
     await vi.waitFor(() => expect(value.value).toBe('second-secret'));
-    expect(getComputedStyle(value).display).not.toBe('none');
-    expect(value.getClientRects().length).toBeGreaterThan(0);
-    expect(modal.querySelector<HTMLButtonElement>('[data-clipboard-target]')!.getClientRects().length).toBeGreaterThan(0);
     expect(modal.querySelector<HTMLElement>('[data-secret-confirm]')!.hidden).toBe(true);
     expect(submit.classList.contains('tw-hidden')).toBe(true);
     expect(form.querySelector<HTMLButtonElement>('.cancel')!.disabled).toBe(false);

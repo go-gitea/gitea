@@ -17,8 +17,6 @@ import (
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
@@ -113,97 +111,96 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 
 	var result *openEndpointResult
 	var unavailableCategory string
-	var tokenCacheKey string
-	err := globallock.LockAndDo(ctx, codespaceRowLockKey(opts.CodespaceID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
-			if err != nil {
-				return err
-			}
-			if !has {
-				return ErrOpenEndpointNotFound
-			}
-			if codespace.UserID != opts.UserID {
-				return ErrOpenEndpointNotFound
-			}
-			if codespace.UUID == "" {
-				unavailableCategory = OpenTokenDeniedMetadataRebuilding
-				return nil
-			}
-			if codespace.Status != codespace_model.StatusRunning {
-				unavailableCategory = OpenTokenDeniedCodespaceNotRunning
-				return nil
-			}
-			manager, err := loadCodespaceManager(ctx, codespace.ManagerID)
-			if err != nil {
-				return err
-			}
-			if manager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(manager) {
-				unavailableCategory = OpenTokenDeniedStateUnavailable
-				return nil
-			}
-			gatewayURL, err := loadManagerGatewayURL(ctx, codespace.ManagerID)
-			if err != nil {
-				return err
-			}
-			if err := checkCodespaceCreatorForOpen(ctx, codespace, opts.UserID); err != nil {
-				return err
-			}
-			entry, hasEntry, err := getRuntimeMetadataEntry(codespace.UUID)
-			if err != nil {
-				return err
-			}
-			if !hasEntry || !runtimeMetadataReadyForRunning(codespace, entry.Metadata) {
-				unavailableCategory = OpenTokenDeniedMetadataRebuilding
-				return nil
-			}
-			target, err := openEndpointInfo(codespace, entry.Metadata, gatewayURL, opts)
-			if err != nil {
-				return err
-			}
-			if !target.available {
-				unavailableCategory = target.unavailableCategory
-				return nil
-			}
-			if target.public {
-				result = &openEndpointResult{redirectURL: target.redirectURL, public: true}
-				return nil
-			}
-
-			code := generateOpenTokenCode()
-			tokenCacheKey = openTokenCacheKey(code)
-			now := time.Now().Unix()
-			if err := putOpenTokenCacheEntry(tokenCacheKey, openTokenCacheEntry{
-				UserID:        opts.UserID,
-				CodespaceUUID: codespace.UUID,
-				EndpointID:    opts.EndpointID,
-				ManagerID:     codespace.ManagerID,
-				IssuedUnix:    now,
-				ExpiresUnix:   now + int64(openTokenExpire/time.Second),
-			}); err != nil {
-				return err
-			}
-			redirectURL, err := gatewayOpenURL(gatewayURL, codespace.UUID, opts.EndpointID, code)
-			if err != nil {
-				return err
-			}
-			nextGeneration, err := advanceCodespaceInteraction(ctx, codespace, now)
-			if err != nil {
-				return err
-			}
-			result = &openEndpointResult{
-				redirectURL:           redirectURL,
-				interactionGeneration: nextGeneration,
-				code:                  code,
-				managerID:             codespace.ManagerID,
-			}
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		codespace := new(codespace_model.Codespace)
+		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
+		if err != nil {
+			return err
+		}
+		if !has {
+			return ErrOpenEndpointNotFound
+		}
+		if codespace.UserID != opts.UserID {
+			return ErrOpenEndpointNotFound
+		}
+		if codespace.UUID == "" {
+			unavailableCategory = OpenTokenDeniedMetadataRebuilding
 			return nil
-		})
+		}
+		if codespace.Status != codespace_model.StatusRunning {
+			unavailableCategory = OpenTokenDeniedCodespaceNotRunning
+			return nil
+		}
+		manager, err := loadCodespaceManager(ctx, codespace.ManagerID)
+		if err != nil {
+			return err
+		}
+		if manager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(manager) {
+			unavailableCategory = OpenTokenDeniedStateUnavailable
+			return nil
+		}
+		gatewayURL, err := loadManagerGatewayURL(ctx, codespace.ManagerID)
+		if err != nil {
+			return err
+		}
+		if err := checkCodespaceCreatorForOpen(ctx, codespace, opts.UserID); err != nil {
+			return err
+		}
+		entry, hasEntry, err := getRuntimeMetadataEntry(codespace.UUID)
+		if err != nil {
+			return err
+		}
+		if !hasEntry || !runtimeMetadataReadyForRunning(codespace, entry.Metadata) {
+			unavailableCategory = OpenTokenDeniedMetadataRebuilding
+			return nil
+		}
+		target, err := openEndpointInfo(codespace, entry.Metadata, gatewayURL, opts)
+		if err != nil {
+			return err
+		}
+		if !target.available {
+			unavailableCategory = target.unavailableCategory
+			return nil
+		}
+		if target.public {
+			result = &openEndpointResult{redirectURL: target.redirectURL, public: true}
+			return nil
+		}
+
+		code := generateOpenTokenCode()
+		now := time.Now().Unix()
+		if _, err := db.GetEngine(ctx).Where("expires_unix <= ?", now).Delete(new(codespace_model.OpenToken)); err != nil {
+			return err
+		}
+		if err := db.Insert(ctx, &codespace_model.OpenToken{
+			CodeHash:    openTokenCodeHash(code),
+			CodespaceID: codespace.ID,
+			UserID:      opts.UserID,
+			EndpointID:  opts.EndpointID,
+			ManagerID:   codespace.ManagerID,
+			ExpiresUnix: now + int64(openTokenExpire/time.Second),
+		}); err != nil {
+			return err
+		}
+		redirectURL, err := gatewayOpenURL(gatewayURL, codespace.UUID, opts.EndpointID, code)
+		if err != nil {
+			return err
+		}
+		nextGeneration, err := advanceCodespaceInteraction(ctx, codespace, now)
+		if err != nil {
+			return err
+		}
+		result = &openEndpointResult{
+			redirectURL:           redirectURL,
+			interactionGeneration: nextGeneration,
+			code:                  code,
+			managerID:             codespace.ManagerID,
+		}
+		return nil
 	})
 	if err != nil {
-		if tokenCacheKey != "" {
-			_ = deleteOpenTokenCacheEntry(tokenCacheKey)
+		if errors.Is(err, errCodespaceStateChanged) {
+			return nil, fmt.Errorf("%w: %s", ErrOpenEndpointUnavailable, OpenTokenDeniedStateUnavailable)
 		}
 		return nil, err
 	}
@@ -218,15 +215,6 @@ type ValidateOpenTokenOptions struct {
 	Code string
 }
 
-type openTokenCacheEntry struct {
-	UserID        int64  `json:"user_id"`
-	CodespaceUUID string `json:"codespace_uuid"`
-	EndpointID    string `json:"endpoint_id"`
-	ManagerID     int64  `json:"manager_id"`
-	IssuedUnix    int64  `json:"issued_unix"`
-	ExpiresUnix   int64  `json:"expires_unix"`
-}
-
 // ValidateOpenToken validates and consumes one Gateway Open Token.
 func ValidateOpenToken(ctx context.Context, manager *codespace_model.Manager, opts ValidateOpenTokenOptions) (*codespacev1.ValidateOpenTokenResponse, error) {
 	if manager == nil || manager.ID <= 0 {
@@ -238,125 +226,114 @@ func ValidateOpenToken(ctx context.Context, manager *codespace_model.Manager, op
 	if !validOpenTokenCode(opts.Code) {
 		return denyOpenToken(OpenTokenDeniedInvalidCredentials), nil
 	}
-	key := openTokenCacheKey(opts.Code)
-	entry, hasEntry, badEntry, err := getOpenTokenCacheEntry(key)
-	if err != nil {
-		return nil, err
-	}
-	if badEntry {
-		_ = deleteOpenTokenCacheEntry(key)
-		return denyOpenToken(OpenTokenDeniedInvalidCredentials), nil
-	}
-	if !hasEntry {
-		return denyOpenToken(OpenTokenDeniedInvalidCredentials), nil
-	}
-
 	var result *codespacev1.ValidateOpenTokenResponse
-	err = globallock.LockAndDo(ctx, codespaceStateLockKey(entry.CodespaceUUID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			currentEntry, hasEntry, badEntry, err := getOpenTokenCacheEntry(key)
-			if err != nil {
-				return err
-			}
-			if badEntry {
-				_ = deleteOpenTokenCacheEntry(key)
-				result = denyOpenToken(OpenTokenDeniedInvalidCredentials)
-				return nil
-			}
-			if !hasEntry || currentEntry != entry {
-				result = denyOpenToken(OpenTokenDeniedInvalidCredentials)
-				return nil
-			}
-			now := time.Now().Unix()
-			if now >= currentEntry.ExpiresUnix {
-				_ = deleteOpenTokenCacheEntry(key)
-				result = denyOpenToken(OpenTokenDeniedInvalidCredentials)
-				return nil
-			}
-			if currentEntry.ManagerID != manager.ID {
-				result = denyOpenToken(OpenTokenDeniedManagerMismatch)
-				return nil
-			}
-			currentManager, err := loadCodespaceManager(ctx, manager.ID)
-			if err != nil {
-				return err
-			}
-			if currentManager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(currentManager) {
-				result = denyOpenToken(OpenTokenDeniedStateUnavailable)
-				return nil
-			}
-
-			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", currentEntry.CodespaceUUID).Get(codespace)
-			if err != nil {
-				return err
-			}
-			if !has {
-				result = denyOpenToken(OpenTokenDeniedCodespaceNotFound)
-				return nil
-			}
-			if codespace.ManagerID != manager.ID {
-				result = denyOpenToken(OpenTokenDeniedManagerMismatch)
-				return nil
-			}
-			if codespace.UserID != currentEntry.UserID {
-				result = denyOpenToken(OpenTokenDeniedPermissionDenied)
-				return nil
-			}
-			if codespace.Status != codespace_model.StatusRunning {
-				result = denyOpenToken(OpenTokenDeniedCodespaceNotRunning)
-				return nil
-			}
-			if hasActiveOperation(codespace) && !isQueuedIdleStop(codespace) {
-				result = denyOpenToken(OpenTokenDeniedStateUnavailable)
-				return nil
-			}
-			if err := checkCodespaceCreatorForOpen(ctx, codespace, currentEntry.UserID); err != nil {
-				if user_model.IsErrUserNotExist(err) || errors.Is(err, errOpenTokenLoginRestricted) {
-					result = denyOpenToken(OpenTokenDeniedLoginRestricted)
-					return nil
-				}
-				return err
-			}
-			entry, hasEntry, err := getRuntimeMetadataEntry(currentEntry.CodespaceUUID)
-			if err != nil {
-				return err
-			}
-			if !hasEntry || !runtimeMetadataReadyForRunning(codespace, entry.Metadata) {
-				result = denyOpenToken(OpenTokenDeniedMetadataRebuilding)
-				return nil
-			}
-			endpoint, found := entry.Metadata.endpointByID(currentEntry.EndpointID)
-			if !found || endpoint.Public {
-				result = denyOpenToken(OpenTokenDeniedEndpointNotFound)
-				return nil
-			}
-			// Consume the code before granting access so concurrent Gateway exchanges remain single-use.
-			if err := deleteOpenTokenCacheEntry(key); err != nil {
-				return err
-			}
-			nextGeneration, err := advanceCodespaceInteraction(ctx, codespace, now)
-			if err != nil {
-				if err == errInteractionVersionExhausted {
-					result = denyOpenToken(OpenTokenDeniedVersionExhausted)
-					return nil
-				}
-				return err
-			}
-			result = &codespacev1.ValidateOpenTokenResponse{
-				Outcome: &codespacev1.ValidateOpenTokenResponse_Allowed{
-					Allowed: &codespacev1.OpenTokenBinding{
-						UserId:                currentEntry.UserID,
-						RuntimeUuid:           currentEntry.CodespaceUUID,
-						EndpointId:            currentEntry.EndpointID,
-						InteractionGeneration: nextGeneration,
-					},
-				},
-			}
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		openToken := new(codespace_model.OpenToken)
+		hasEntry, err := db.GetEngine(ctx).ID(openTokenCodeHash(opts.Code)).Get(openToken)
+		if err != nil {
+			return err
+		}
+		if !hasEntry {
+			result = denyOpenToken(OpenTokenDeniedInvalidCredentials)
 			return nil
-		})
+		}
+		now := time.Now().Unix()
+		if now >= openToken.ExpiresUnix {
+			_, _ = db.GetEngine(ctx).ID(openToken.CodeHash).Delete(new(codespace_model.OpenToken))
+			result = denyOpenToken(OpenTokenDeniedInvalidCredentials)
+			return nil
+		}
+		if openToken.ManagerID != manager.ID {
+			result = denyOpenToken(OpenTokenDeniedManagerMismatch)
+			return nil
+		}
+		currentManager, err := loadCodespaceManager(ctx, manager.ID)
+		if err != nil {
+			return err
+		}
+		if currentManager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(currentManager) {
+			result = denyOpenToken(OpenTokenDeniedStateUnavailable)
+			return nil
+		}
+
+		codespace := new(codespace_model.Codespace)
+		has, err := db.GetEngine(ctx).ID(openToken.CodespaceID).Get(codespace)
+		if err != nil {
+			return err
+		}
+		if !has {
+			result = denyOpenToken(OpenTokenDeniedCodespaceNotFound)
+			return nil
+		}
+		if codespace.ManagerID != manager.ID {
+			result = denyOpenToken(OpenTokenDeniedManagerMismatch)
+			return nil
+		}
+		if codespace.UserID != openToken.UserID {
+			result = denyOpenToken(OpenTokenDeniedPermissionDenied)
+			return nil
+		}
+		if codespace.Status != codespace_model.StatusRunning {
+			result = denyOpenToken(OpenTokenDeniedCodespaceNotRunning)
+			return nil
+		}
+		if hasActiveOperation(codespace) && !isQueuedIdleStop(codespace) {
+			result = denyOpenToken(OpenTokenDeniedStateUnavailable)
+			return nil
+		}
+		if err := checkCodespaceCreatorForOpen(ctx, codespace, openToken.UserID); err != nil {
+			if user_model.IsErrUserNotExist(err) || errors.Is(err, errOpenTokenLoginRestricted) {
+				result = denyOpenToken(OpenTokenDeniedLoginRestricted)
+				return nil
+			}
+			return err
+		}
+		entry, hasEntry, err := getRuntimeMetadataEntry(codespace.UUID)
+		if err != nil {
+			return err
+		}
+		if !hasEntry || !runtimeMetadataReadyForRunning(codespace, entry.Metadata) {
+			result = denyOpenToken(OpenTokenDeniedMetadataRebuilding)
+			return nil
+		}
+		endpoint, found := entry.Metadata.endpointByID(openToken.EndpointID)
+		if !found || endpoint.Public {
+			result = denyOpenToken(OpenTokenDeniedEndpointNotFound)
+			return nil
+		}
+		// Consume the code before granting access so concurrent Gateway exchanges remain single-use.
+		deleted, err := db.GetEngine(ctx).ID(openToken.CodeHash).Delete(new(codespace_model.OpenToken))
+		if err != nil {
+			return err
+		}
+		if deleted != 1 {
+			result = denyOpenToken(OpenTokenDeniedInvalidCredentials)
+			return nil
+		}
+		nextGeneration, err := advanceCodespaceInteraction(ctx, codespace, now)
+		if err != nil {
+			if err == errInteractionVersionExhausted {
+				result = denyOpenToken(OpenTokenDeniedVersionExhausted)
+				return nil
+			}
+			return err
+		}
+		result = &codespacev1.ValidateOpenTokenResponse{
+			Outcome: &codespacev1.ValidateOpenTokenResponse_Allowed{
+				Allowed: &codespacev1.OpenTokenBinding{
+					UserId:                openToken.UserID,
+					RuntimeUuid:           codespace.UUID,
+					EndpointId:            openToken.EndpointID,
+					InteractionGeneration: nextGeneration,
+				},
+			},
+		}
+		return nil
 	})
 	if err != nil {
+		if errors.Is(err, errCodespaceStateChanged) {
+			return denyOpenToken(OpenTokenDeniedStateUnavailable), nil
+		}
 		return nil, err
 	}
 	return result, nil
@@ -383,6 +360,7 @@ func checkCodespaceCreatorForOpen(ctx context.Context, codespace *codespace_mode
 var errInteractionVersionExhausted = errors.New("interaction generation exhausted")
 
 func advanceCodespaceInteraction(ctx context.Context, codespace *codespace_model.Codespace, now int64) (int64, error) {
+	expected := snapshotCodespaceState(codespace)
 	nextGeneration, err := codespace_model.NextVersion(codespace.InteractionGeneration)
 	if err != nil {
 		return 0, errInteractionVersionExhausted
@@ -402,7 +380,7 @@ func advanceCodespaceInteraction(ctx context.Context, codespace *codespace_model
 			"updated_unix",
 		)
 	}
-	if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols(cols...).Update(codespace); err != nil {
+	if err := updateCodespaceInteractionIfCurrent(ctx, expected, codespace, cols...); err != nil {
 		return 0, err
 	}
 	return nextGeneration, nil
@@ -513,35 +491,9 @@ func validOpenTokenCode(code string) bool {
 	return err == nil
 }
 
-func openTokenCacheKey(code string) string {
+func openTokenCodeHash(code string) string {
 	sum := sha256.Sum256([]byte(code))
-	return "codespace:open-code:" + hex.EncodeToString(sum[:])
-}
-
-func putOpenTokenCacheEntry(key string, entry openTokenCacheEntry) error {
-	if cache.GetCache() == nil {
-		return errors.New("cache is not initialized")
-	}
-	return cache.GetCache().PutJSON(key, entry, int64(openTokenExpire/time.Second))
-}
-
-func getOpenTokenCacheEntry(key string) (openTokenCacheEntry, bool, bool, error) {
-	if cache.GetCache() == nil {
-		return openTokenCacheEntry{}, false, false, errors.New("cache is not initialized")
-	}
-	entry := openTokenCacheEntry{}
-	exists, getErr := cache.GetCache().GetJSON(key, &entry)
-	if getErr != nil {
-		return openTokenCacheEntry{}, false, true, nil
-	}
-	return entry, exists, false, nil
-}
-
-func deleteOpenTokenCacheEntry(key string) error {
-	if cache.GetCache() == nil {
-		return errors.New("cache is not initialized")
-	}
-	return cache.GetCache().Delete(key)
+	return hex.EncodeToString(sum[:])
 }
 
 func denyOpenToken(category string) *codespacev1.ValidateOpenTokenResponse {

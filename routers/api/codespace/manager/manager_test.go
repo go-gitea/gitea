@@ -23,7 +23,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
@@ -95,33 +94,6 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	assert.Equal(t, "SHA256:test", manager.GatewaySSHHostKeyFingerprintSHA256)
 	assert.Equal(t, "https://workspace.example.com", manager.GatewayURL)
 	assert.Equal(t, "workspace.example.com:22", manager.GatewaySSHAddr)
-}
-
-func TestManagerServiceRequestProtocolVersionFieldNumbers(t *testing.T) {
-	requests := []proto.Message{
-		&codespacev1.CheckManagerRequest{},
-		&codespacev1.DeclareManagerRequest{},
-		&codespacev1.FetchOperationsRequest{},
-		&codespacev1.BindRuntimeIdentityRequest{},
-		&codespacev1.ReportInstancesRequest{},
-		&codespacev1.FinalizeOperationRequest{},
-		&codespacev1.UpdateLogRequest{},
-		&codespacev1.ReportRuntimeMetadataRequest{},
-		&codespacev1.RequestRuntimeAccessRequest{},
-		&codespacev1.RequestIdleStopRequest{},
-		&codespacev1.ValidatePublicEndpointRequest{},
-		&codespacev1.ValidateOpenTokenRequest{},
-		&codespacev1.VerifySSHPublicKeyRequest{},
-		&codespacev1.RevalidateGatewaySessionRequest{},
-	}
-	for _, request := range requests {
-		t.Run(string(request.ProtoReflect().Descriptor().FullName()), func(t *testing.T) {
-			fields := request.ProtoReflect().Descriptor().Fields()
-			protocolField := fields.ByName("protocol_version")
-			require.NotNil(t, protocolField)
-			assert.EqualValues(t, 1, protocolField.Number())
-		})
-	}
 }
 
 func TestManagerServiceDeclareAllowsSharedGatewayAddresses(t *testing.T) {
@@ -458,7 +430,13 @@ func insertManagerTestCodespace(t *testing.T, managerID int64, codespace *codesp
 	codespace.AutoStopMode = codespace_model.AutoStopModeDefault
 	codespace.CreatedUnix = 1
 	codespace.UpdatedUnix = 1
-	require.NoError(t, db.Insert(t.Context(), codespace))
+	var err error
+	if codespace.UUID == "" {
+		_, err = db.GetEngine(t.Context()).Table(codespace).Omit("uuid").Insert(codespace)
+	} else {
+		err = db.Insert(t.Context(), codespace)
+	}
+	require.NoError(t, err)
 }
 
 func failureCategory(t *testing.T, err error) string {

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	codespace_model "gitea.dev/models/codespace"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 )
 
@@ -32,6 +33,11 @@ func Init(ctx context.Context) error {
 	}
 	if err := ValidateGitTransports(); err != nil {
 		return err
+	}
+	cacheShared := setting.CacheService.Adapter == "redis" || setting.CacheService.Adapter == "memcache"
+	lockShared := setting.GlobalLock.ServiceType == "redis"
+	if cacheShared != lockShared {
+		log.Warn("Codespace runtime metadata uses both [cache] and [global_lock]; configure both as shared services when Gitea runs in multiple processes")
 	}
 	return WarnManagerGatewayAddressConflicts(ctx)
 }

@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	asymkey_model "gitea.dev/models/asymkey"
 	auth_model "gitea.dev/models/auth"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
@@ -142,7 +141,7 @@ func RequestRuntimeAccess(ctx context.Context, manager *codespace_model.Manager,
 		prepared   *runtimeAccessPreparation
 		knownHosts []string
 	)
-	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	err := globallock.LockAndDo(ctx, runtimeAccessLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
 		var err error
 		prepared, err = prepareRuntimeAccessLocked(ctx, manager, requestRuntimeCredentialsOptions{
 			CodespaceUUID:     opts.CodespaceUUID,
@@ -166,10 +165,7 @@ func RequestRuntimeAccess(ctx context.Context, manager *codespace_model.Manager,
 		if !canUseCodespace {
 			return ErrRuntimeGitSSHKeyLoginRestricted
 		}
-		// Share the fingerprint lock with user and deploy key creation so their global uniqueness checks cannot race.
-		return globallock.LockAndDo(ctx, asymkey_model.PublicKeyFingerprintLockKey(key.Fingerprint), func(ctx context.Context) error {
-			return ensureGitSSHKeyBinding(ctx, prepared.codespace, key)
-		})
+		return ensureGitSSHKeyBinding(ctx, prepared.codespace, key)
 	})
 	if err != nil {
 		return nil, err
@@ -498,4 +494,8 @@ func IsGiteaTokenPlaintext(token string) bool {
 // IsGiteaTokenCandidate reports whether token uses the Codespace Token prefix.
 func IsGiteaTokenCandidate(token string) bool {
 	return strings.HasPrefix(token, codespaceTokenPrefix)
+}
+
+func runtimeAccessLockKey(codespaceUUID string) string {
+	return "codespace_runtime_access_" + codespaceUUID
 }

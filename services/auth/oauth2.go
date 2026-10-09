@@ -114,19 +114,6 @@ func parseToken(req *http.Request) (string, bool) {
 // userFromToken returns the user corresponding to the OAuth token.
 // It will set 'ApiTokenScope' to the scope of the access token (TODO: this behavior should be fixed, don't set ctx.Data)
 func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataStore) (*user_model.User, error) {
-	if codespace_service.IsGiteaTokenPlaintext(tokenSHA) && !codespaceTokenAuthAllowed(ctx) {
-		return nil, errors.Join(ErrAuthMethodTerminal, ErrCodespaceTokenForbidden)
-	}
-	codespaceToken, err := codespace_service.ResolveGiteaToken(ctx, tokenSHA)
-	if err != nil {
-		if authErr := codespaceTokenAuthError(err); authErr != nil {
-			return nil, authErr
-		}
-	} else {
-		storeCodespaceTokenAuth(store, codespaceToken)
-		return codespaceToken.User, nil
-	}
-
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
 		// First attempt to decode an actions JWT, returning the actions user

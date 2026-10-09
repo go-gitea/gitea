@@ -255,7 +255,7 @@ func CreateCodespace(ctx context.Context, opts CreateCodespaceOptions) (*CreateC
 				if err := codespace_model.ValidateCodespace(codespace); err != nil {
 					return err
 				}
-				if _, err := db.GetEngine(ctx).Insert(codespace); err != nil {
+				if _, err := db.GetEngine(ctx).Table(codespace).Omit("uuid").Insert(codespace); err != nil {
 					return err
 				}
 				result = &CreateCodespaceResult{

@@ -15,7 +15,6 @@ import (
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/setting"
 
 	"golang.org/x/crypto/ssh"
@@ -68,77 +67,78 @@ func VerifySSHPublicKey(ctx context.Context, manager *codespace_model.Manager, o
 	}
 
 	var result *codespacev1.VerifySSHPublicKeyResponse
-	err = globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, opts.CodespaceUUID, true)
-			if err != nil {
-				return err
-			}
-			switch failure {
-			case gatewayAccessCodespaceNotFound:
-				result = denySSHAuth(SSHAuthDeniedCodespaceNotFound)
-				return nil
-			case gatewayAccessManagerMismatch:
-				result = denySSHAuth(SSHAuthDeniedManagerMismatch)
-				return nil
-			case gatewayAccessCodespaceNotRunning:
-				result = denySSHAuth(SSHAuthDeniedCodespaceNotRunning)
-				return nil
-			case gatewayAccessManagerOffline, gatewayAccessActiveOperation:
-				result = denySSHAuth(SSHAuthDeniedStateUnavailable)
-				return nil
-			case gatewayAccessMetadataRebuilding:
-				result = denySSHAuth(SSHAuthDeniedMetadataRebuilding)
-				return nil
-			}
-			codespace := access.codespace
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, opts.CodespaceUUID, true)
+		if err != nil {
+			return err
+		}
+		switch failure {
+		case gatewayAccessCodespaceNotFound:
+			result = denySSHAuth(SSHAuthDeniedCodespaceNotFound)
+			return nil
+		case gatewayAccessManagerMismatch:
+			result = denySSHAuth(SSHAuthDeniedManagerMismatch)
+			return nil
+		case gatewayAccessCodespaceNotRunning:
+			result = denySSHAuth(SSHAuthDeniedCodespaceNotRunning)
+			return nil
+		case gatewayAccessManagerOffline, gatewayAccessActiveOperation:
+			result = denySSHAuth(SSHAuthDeniedStateUnavailable)
+			return nil
+		case gatewayAccessMetadataRebuilding:
+			result = denySSHAuth(SSHAuthDeniedMetadataRebuilding)
+			return nil
+		}
+		codespace := access.codespace
 
-			user, err := user_model.GetUserByID(ctx, codespace.UserID)
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					result = denySSHAuth(SSHAuthDeniedLoginRestricted)
-					return nil
-				}
-				return err
-			}
-			canUseGateway, err := codespaceUserCanLogIn(ctx, user)
-			if err != nil {
-				return err
-			}
-			if !canUseGateway {
+		user, err := user_model.GetUserByID(ctx, codespace.UserID)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
 				result = denySSHAuth(SSHAuthDeniedLoginRestricted)
 				return nil
 			}
-			verified, err := userOwnsSSHKey(ctx, codespace.UserID, key)
-			if err != nil {
-				return err
-			}
-			if !verified {
-				result = denySSHAuth(SSHAuthDeniedInvalidCredentials)
+			return err
+		}
+		canUseGateway, err := codespaceUserCanLogIn(ctx, user)
+		if err != nil {
+			return err
+		}
+		if !canUseGateway {
+			result = denySSHAuth(SSHAuthDeniedLoginRestricted)
+			return nil
+		}
+		verified, err := userOwnsSSHKey(ctx, codespace.UserID, key)
+		if err != nil {
+			return err
+		}
+		if !verified {
+			result = denySSHAuth(SSHAuthDeniedInvalidCredentials)
+			return nil
+		}
+
+		now := time.Now().Unix()
+		nextGeneration, err := advanceCodespaceInteraction(ctx, codespace, now)
+		if err != nil {
+			if err == errInteractionVersionExhausted {
+				result = denySSHAuth(SSHAuthDeniedVersionExhausted)
 				return nil
 			}
-
-			now := time.Now().Unix()
-			nextGeneration, err := advanceCodespaceInteraction(ctx, codespace, now)
-			if err != nil {
-				if err == errInteractionVersionExhausted {
-					result = denySSHAuth(SSHAuthDeniedVersionExhausted)
-					return nil
-				}
-				return err
-			}
-			result = &codespacev1.VerifySSHPublicKeyResponse{
-				Outcome: &codespacev1.VerifySSHPublicKeyResponse_Allowed{
-					Allowed: &codespacev1.SSHAuthBinding{
-						UserId:                codespace.UserID,
-						InteractionGeneration: nextGeneration,
-					},
+			return err
+		}
+		result = &codespacev1.VerifySSHPublicKeyResponse{
+			Outcome: &codespacev1.VerifySSHPublicKeyResponse_Allowed{
+				Allowed: &codespacev1.SSHAuthBinding{
+					UserId:                codespace.UserID,
+					InteractionGeneration: nextGeneration,
 				},
-			}
-			return nil
-		})
+			},
+		}
+		return nil
 	})
 	if err != nil {
+		if errors.Is(err, errCodespaceStateChanged) {
+			return denySSHAuth(SSHAuthDeniedStateUnavailable), nil
+		}
 		return nil, err
 	}
 	return result, nil
