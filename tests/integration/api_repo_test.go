@@ -285,7 +285,7 @@ func TestAPIOrgRepos(t *testing.T) {
 		{name: "UserNormalNoPrivate", user: userNormal, count: 1},
 		{name: "UserNormalWithPrivate", user: userNormal, count: 3, includesPrivate: true},
 		{name: "UserAdmin", user: userAdmin, count: 3, includesPrivate: true},
-		{name: "Org3", user: org3, count: 1},
+		{name: "Org3", user: org3, count: 1}, // this case seems not right, "org3" is not a individual user and should not be able to log in
 	}
 
 	for _, tc := range testCases {
