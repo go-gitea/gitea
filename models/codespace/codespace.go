@@ -153,6 +153,9 @@ func (*Manager) TableName() string {
 
 // TableIndices returns Codespace indexes in the same order as their main queries.
 func (*Codespace) TableIndices() []*schemas.Index {
+	runtimeUUID := schemas.NewIndex("uuid", schemas.UniqueType)
+	runtimeUUID.AddColumn("uuid")
+
 	userUpdated := schemas.NewIndex("user_updated", schemas.IndexType)
 	userUpdated.AddColumn("user_id", "updated_unix", "created_unix", "id")
 
@@ -174,7 +177,7 @@ func (*Codespace) TableIndices() []*schemas.Index {
 	failedRetention := schemas.NewIndex("failed_retention", schemas.IndexType)
 	failedRetention.AddColumn("status", "updated_unix", "id")
 
-	return []*schemas.Index{userUpdated, repo, createClaim, managerActive, queuedTimeout, runningTimeout, failedRetention}
+	return []*schemas.Index{runtimeUUID, userUpdated, repo, createClaim, managerActive, queuedTimeout, runningTimeout, failedRetention}
 }
 
 // TableIndices returns Manager indexes in the same order as their main queries.
