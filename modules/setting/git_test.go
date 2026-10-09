@@ -47,7 +47,7 @@ func TestGitReflog(t *testing.T) {
 	loadGitFrom(cfg)
 
 	assert.Equal(t, "true", GitConfig.GetOption("core.logAllRefUpdates"))
-	assert.Equal(t, "90.days", GitConfig.GetOption("gc.reflogExpire"))
+	assert.Empty(t, GitConfig.GetOption("gc.reflogExpire"))
 
 	// custom reflog config by legacy options
 	cfg, err = NewConfigProviderFromData(`
@@ -60,5 +60,4 @@ EXPIRATION = 123
 
 	assert.Equal(t, "false", GitConfig.GetOption("core.logAllRefUpdates"))
 	assert.Equal(t, "123.days", GitConfig.GetOption("gc.reflogExpire"))
-	assert.Equal(t, "123.days", GitConfig.GetOption("gc.reflogExpireUnreachable"))
 }

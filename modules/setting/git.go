@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
 )
 
 // Git settings
@@ -88,7 +87,6 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	GitConfig.Options = make(map[string]string)
 	GitConfig.SetOption("diff.algorithm", "histogram")
 	GitConfig.SetOption("core.logAllRefUpdates", "true")
-	GitConfig.SetOption("gc.reflogExpire", "90.days")
 
 	secGitReflog := rootCfg.Section("git.reflog")
 	if secGitReflog.HasKey("ENABLED") {
@@ -103,9 +101,6 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	for _, key := range secGitConfig.Keys() {
 		GitConfig.SetOption(key.Name(), key.String())
 	}
-
-	// git's auto maintenance check ignores reachability, so it only agrees with "reflog expire" when both expiries are equal
-	GitConfig.SetOption("gc.reflogExpireUnreachable", util.IfZero(GitConfig.GetOption("gc.reflogExpireUnreachable"), GitConfig.GetOption("gc.reflogExpire")))
 
 	Git.HomePath = sec.Key("HOME_PATH").MustString("home")
 	if !filepath.IsAbs(Git.HomePath) {
