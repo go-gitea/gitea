@@ -1,0 +1,11 @@
+<div class="ui multiple search selection dropdown">
+	<input type="hidden" name="{{.Name}}" value="{{.Value}}">
+	<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
+	<div class="menu">
+		{{range .Users}}
+			<div class="item" data-value="{{.ID}}">
+				{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
+			</div>
+		{{end}}
+	</div>
+</div>
