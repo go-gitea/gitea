@@ -87,6 +87,13 @@ func BindRuntimeIdentity(ctx context.Context, manager *codespace_model.Manager, 
 		if codespace.UUID != "" {
 			return ErrBindRuntimeIdentityStateConflict
 		}
+		used, err := db.GetEngine(ctx).Where("uuid = ?", opts.RuntimeUUID).Exist(new(codespace_model.Codespace))
+		if err != nil {
+			return err
+		}
+		if used {
+			return ErrBindRuntimeIdentityConflict
+		}
 		affected, err := db.GetEngine(ctx).Where(
 			"id = ? AND uuid IS NULL AND manager_id = ? AND status = ? AND operation_r_version = ? AND operation_started_unix > 0",
 			codespace.ID, manager.ID, codespace_model.StatusCreating, opts.OperationRVersion,
