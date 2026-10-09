@@ -269,41 +269,41 @@ func TestAPIViewRepo(t *testing.T) {
 
 func TestAPIOrgRepos(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	userNormal := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	userAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	// org3 is an Org. Check their repos.
 	sourceOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
-	expectedResults := map[*user_model.User]struct {
+	testCases := []struct {
+		name            string
+		user            *user_model.User
 		count           int
 		includesPrivate bool
 	}{
-		nil:   {count: 1},
-		user:  {count: 3, includesPrivate: true},
-		user2: {count: 3, includesPrivate: true},
-		org3:  {count: 1},
+		{name: "Anonymous", user: nil, count: 1},
+		{name: "UserNormalNoPrivate", user: userNormal, count: 1},
+		{name: "UserNormalWithPrivate", user: userNormal, count: 3, includesPrivate: true},
+		{name: "UserAdmin", user: userAdmin, count: 3, includesPrivate: true},
+		{name: "Org3", user: org3, count: 1},
 	}
 
-	for userToLogin, expected := range expectedResults {
-		testName := "NotLoggedIn"
+	for _, tc := range testCases {
 		var token string
-		if userToLogin != nil {
-			testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
-			session := loginUser(t, userToLogin.Name)
+		if tc.user != nil {
+			session := loginUser(t, tc.user.Name)
 			token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
 		}
 
-		t.Run(testName, func(t *testing.T) {
-			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", sourceOrg.Name).
-				AddTokenAuth(token)
+		t.Run(tc.name, func(t *testing.T) {
+			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", sourceOrg.Name).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			apiRepos := DecodeJSON(t, resp, []*api.Repository{})
-			assert.Len(t, apiRepos, expected.count)
+			assert.Len(t, apiRepos, tc.count)
 			for _, repo := range apiRepos {
 				assert.Equal(t, sourceOrg.ID, repo.Owner.ID)
-				if !expected.includesPrivate {
+				if !tc.includesPrivate {
 					assert.False(t, repo.Private)
 				}
 			}
