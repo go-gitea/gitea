@@ -61,7 +61,7 @@ type Command struct {
 
 	cmdEnv           []string
 	credentialEnvs   []string
-	credentialConfig string
+	credentialConfig [2]string // key and value of a config passed through the environment
 	cmdTimeout       time.Duration
 
 	// only os.Pipe and in-memory buffers can work with Stdin safely, see https://github.com/golang/go/issues/77227 if the command would exit unexpectedly

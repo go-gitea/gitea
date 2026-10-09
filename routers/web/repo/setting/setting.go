@@ -326,7 +326,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 			form.MirrorUsername = u.User.Username()
 		}
 		newURL, parseErr := giturl.ParseGitURL(form.MirrorAddress)
-		sameOrigin := parseErr == nil && newURL.Scheme == u.Scheme && strings.EqualFold(newURL.Host, u.Host)
+		sameOrigin := parseErr == nil && newURL.Scheme == u.Scheme && util.AsciiEqualFold(newURL.Host, u.Host)
 		if form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() && sameOrigin {
 			form.MirrorPassword, _ = u.User.Password()
 		}

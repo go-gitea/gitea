@@ -17,6 +17,21 @@ import (
 	"xorm.io/xorm"
 )
 
+type mirrorRow struct {
+	ID     int64
+	RepoID int64
+}
+
+func (mirrorRow) TableName() string { return "mirror" }
+
+type pushMirrorRow struct {
+	ID         int64
+	RepoID     int64
+	RemoteName string
+}
+
+func (pushMirrorRow) TableName() string { return "push_mirror" }
+
 // MoveMirrorCredentialsToDatabase moves the credentials of mirror remotes from the git config into the database, encrypted
 func MoveMirrorCredentialsToDatabase(ctx context.Context, x base.EngineMigration) error {
 	type Mirror struct {
@@ -29,44 +44,25 @@ func MoveMirrorCredentialsToDatabase(ctx context.Context, x base.EngineMigration
 	}, new(Mirror), new(PushMirror)); err != nil {
 		return err
 	}
-	if err := moveMirrorCredentials(ctx, x, "mirror", "'origin'"); err != nil {
-		return err
-	}
-	return moveMirrorCredentials(ctx, x, "push_mirror", "push_mirror.remote_name")
-}
-
-func moveMirrorCredentials(ctx context.Context, x base.EngineMigration, table, remoteNameExpr string) error {
-	type mirrorRemote struct {
-		ID         int64
-		RemoteName string
-		OwnerName  string
-		RepoName   string
-	}
-	limit := setting.Database.IterateBufferSize
-	if limit <= 0 {
-		limit = 50
-	}
-	var lastID int64
-	for {
-		var mirrors []mirrorRemote
-		if err := x.Table(table).
-			Select(table+".id, "+remoteNameExpr+" AS remote_name, repository.owner_name, repository.name AS repo_name").
-			Join("INNER", "repository", "repository.id = "+table+".repo_id").
-			Where(table+".id > ?", lastID).OrderBy(table + ".id").Limit(limit).
-			Find(&mirrors); err != nil {
+	move := func(ctx context.Context, table string, id, repoID int64, remoteName string) error {
+		var repo struct{ OwnerName, Name string }
+		if has, err := x.Table("repository").Where("id = ?", repoID).Get(&repo); err != nil || !has {
 			return err
 		}
-		if len(mirrors) == 0 {
-			return nil
+		// a broken repository must not block the upgrade, its credentials are still used from the git config
+		if err := moveMirrorRemoteCredentials(ctx, x, table, id, repo.OwnerName, repo.Name, remoteName); err != nil {
+			log.Warn("Unable to move the credentials of %s %d (%s/%s) to the database: %v", table, id, repo.OwnerName, repo.Name, err)
 		}
-		lastID = mirrors[len(mirrors)-1].ID
-		for _, m := range mirrors {
-			// a broken repository must not block the upgrade, its credentials are still used from the git config
-			if err := moveMirrorRemoteCredentials(ctx, x, table, m.ID, m.OwnerName, m.RepoName, m.RemoteName); err != nil {
-				log.Warn("Unable to move the credentials of %s %d (%s/%s) to the database: %v", table, m.ID, m.OwnerName, m.RepoName, err)
-			}
-		}
+		return nil
 	}
+	if err := base.Iterate(ctx, nil, func(ctx context.Context, m *mirrorRow) error {
+		return move(ctx, "mirror", m.ID, m.RepoID, "origin")
+	}); err != nil {
+		return err
+	}
+	return base.Iterate(ctx, nil, func(ctx context.Context, m *pushMirrorRow) error {
+		return move(ctx, "push_mirror", m.ID, m.RepoID, m.RemoteName)
+	})
 }
 
 func moveMirrorRemoteCredentials(ctx context.Context, x base.EngineMigration, table string, id int64, ownerName, repoName, remoteName string) error {

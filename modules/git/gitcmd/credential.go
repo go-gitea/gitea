@@ -5,6 +5,7 @@ package gitcmd
 
 import (
 	"net/url"
+	"strconv"
 	"strings"
 
 	"gitea.dev/modules/util"
@@ -49,9 +50,7 @@ func (c *Command) WithRemoteCredentials(addr string) *Command {
 	if u.User.Username() == "" {
 		// before 2.46 git only sends credentials without a username from the address, so the origin is rewritten to include them, git-remote-http gets them as an argument
 		origin := (&url.URL{Scheme: u.Scheme, Host: u.Host, Path: "/"}).String()
-		userinfo := strings.ReplaceAll(u.User.String(), "=", "%3D")
-		param := "url." + strings.Replace(origin, "://", "://"+userinfo+"@", 1) + ".insteadOf=" + origin
-		c.credentialConfig = "'" + strings.ReplaceAll(param, "'", `'\''`) + "'"
+		c.credentialConfig = [2]string{"url." + strings.Replace(origin, "://", "://"+u.User.String()+"@", 1) + ".insteadOf", origin}
 		return c
 	}
 	c.AddConfig("credential.helper", credentialHelper)
@@ -59,16 +58,22 @@ func (c *Command) WithRemoteCredentials(addr string) *Command {
 	return c
 }
 
-// withCredentialEnvs appends the credential envs last, keeping the inherited config parameters, e.g. the egress proxy's
-func (c *Command) withCredentialEnvs(env []string) []string {
-	if c.credentialConfig == "" {
-		return append(env, c.credentialEnvs...)
-	}
-	params := c.credentialConfig
-	for _, kv := range env {
-		if inherited, ok := strings.CutPrefix(kv, "GIT_CONFIG_PARAMETERS="); ok {
-			params = strings.TrimSpace(inherited + " " + c.credentialConfig)
+// ConfigEnvs returns the envs adding a command scope config on top of the GIT_CONFIG_COUNT ones in base, it keeps the config out of process listings
+func ConfigEnvs(base []string, key, value string) []string {
+	count := 0
+	for _, kv := range base {
+		if v, ok := strings.CutPrefix(kv, "GIT_CONFIG_COUNT="); ok {
+			count, _ = strconv.Atoi(v)
 		}
 	}
-	return append(env, "GIT_CONFIG_PARAMETERS="+params)
+	n := strconv.Itoa(count)
+	return []string{"GIT_CONFIG_COUNT=" + strconv.Itoa(count+1), "GIT_CONFIG_KEY_" + n + "=" + key, "GIT_CONFIG_VALUE_" + n + "=" + value}
+}
+
+// withCredentialEnvs appends the credential envs last, keeping the inherited config envs, e.g. the egress proxy's
+func (c *Command) withCredentialEnvs(env []string) []string {
+	if c.credentialConfig[0] == "" {
+		return append(env, c.credentialEnvs...)
+	}
+	return append(env, ConfigEnvs(env, c.credentialConfig[0], c.credentialConfig[1])...)
 }

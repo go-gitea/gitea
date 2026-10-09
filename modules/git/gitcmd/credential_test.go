@@ -30,11 +30,11 @@ func TestWithRemoteCredentials(t *testing.T) {
 
 	tokenAddr := "https://:to=ken@exämple.com/owner/repo.git"
 	stdout, _, err := NewCommand("ls-remote", "--get-url").AddDynamicArguments(RemoteAddressWithoutCredentials(tokenAddr)).WithRemoteCredentials(tokenAddr).
-		WithEnv(append(os.Environ(), "GIT_CONFIG_PARAMETERS=")).RunStdString(t.Context())
+		WithEnv(append(os.Environ(), "GIT_CONFIG_COUNT=0")).RunStdString(t.Context())
 	require.NoError(t, err)
-	assert.Equal(t, "https://:to%3Dken@ex%C3%A4mple.com/owner/repo.git\n", stdout)
+	assert.Equal(t, "https://:to=ken@ex%C3%A4mple.com/owner/repo.git\n", stdout)
 	stdout, _, err = NewCommand("config", "http.proxy").WithRemoteCredentials(tokenAddr).
-		WithEnv(append(os.Environ(), "GIT_CONFIG_PARAMETERS='http.proxy=http://proxy.example'")).RunStdString(t.Context())
+		WithEnv(append(os.Environ(), "GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=http.proxy", "GIT_CONFIG_VALUE_0=http://proxy.example")).RunStdString(t.Context())
 	require.NoError(t, err)
 	assert.Equal(t, "http://proxy.example\n", stdout)
 
