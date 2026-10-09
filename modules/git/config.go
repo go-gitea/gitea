@@ -119,6 +119,11 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
+	// Gitea used to write "90", which git reads as a date in 1990
+	if err := configUnsetAll(ctx, "gc.reflogExpire", "90"); err != nil {
+		return err
+	}
+
 	// Apply user's git config options last so they take precedence over builtin defaults
 	for k, v := range setting.GitConfig.Options {
 		if err = configSet(ctx, strings.ToLower(k), v); err != nil {
