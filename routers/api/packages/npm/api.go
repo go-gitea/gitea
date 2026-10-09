@@ -84,7 +84,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 	metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](pd)
 
 	tarballPath := metadata.GiteaTarballPath
-	if tarballPath == "" { // uploaded before GiteaTarballPath existed, lockfiles pin this former path
+	if tarballPath == "" { // preserve 1.27 lockfile URLs, scoped 28.0/28.1 pnpm pins need `tarball:` removed
 		tarballPath = fmt.Sprintf("%s/-/%s/%s", url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName))
 	}
 
