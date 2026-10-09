@@ -315,6 +315,15 @@ func TestProtectedBranchCanUserDeleteWithPermission(t *testing.T) {
 	pb.EnableWhitelist = true
 	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
 	pb.WhitelistUserIDs = []int64{actionsUser.ID}
+	assert.True(t, pb.CanUserPush(t.Context(), actionsUser, actionsPermission))
+	assert.False(t, pb.CanUserPush(t.Context(), actionsUser, access_model.Permission{}))
+	assert.False(t, pb.CanUserPush(t.Context(), nil, actionsPermission))
+	pb.CanForcePush = true
+	pb.EnableForcePushAllowlist = true
+	assert.False(t, pb.CanUserForcePush(t.Context(), actionsUser, actionsPermission))
+	pb.ForcePushAllowlistUserIDs = []int64{actionsUser.ID}
+	assert.True(t, pb.CanUserForcePush(t.Context(), actionsUser, actionsPermission))
+	assert.False(t, pb.CanUserForcePush(t.Context(), actionsUser, access_model.Permission{}))
 	assert.True(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
 	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, access_model.Permission{}))
 

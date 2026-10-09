@@ -53,7 +53,7 @@
 					<div id="whitelist_box" class="grouped fields {{if not .Rule.EnableWhitelist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_users"}}</label>
-							{{template "repo/settings/user_dropdown" (dict "Name" "whitelist_users" "Value" .whitelist_users "Users" .Users)}}
+							{{template "repo/settings/user_dropdown" (dict "Name" "whitelist_users" "Value" .whitelist_users "Users" .PushUsers)}}
 						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">
@@ -102,7 +102,7 @@
 					<div id="force_push_allowlist_box" class="grouped fields {{if not .Rule.EnableForcePushAllowlist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_allowlist_users"}}</label>
-							{{template "repo/settings/user_dropdown" (dict "Name" "force_push_allowlist_users" "Value" .force_push_allowlist_users "Users" .Users)}}
+							{{template "repo/settings/user_dropdown" (dict "Name" "force_push_allowlist_users" "Value" .force_push_allowlist_users "Users" .PushUsers)}}
 						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">
@@ -144,7 +144,7 @@
 					<div id="deletion_allowlist_box" class="grouped fields {{if not .Rule.EnableDeletionAllowlist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_deletion_allowlist_users"}}</label>
-							{{template "repo/settings/user_dropdown" (dict "Name" "deletion_allowlist_users" "Value" .deletion_allowlist_users "Users" .Users)}}
+							{{template "repo/settings/user_dropdown" (dict "Name" "deletion_allowlist_users" "Value" .deletion_allowlist_users "Users" .PushUsers)}}
 						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">

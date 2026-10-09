@@ -134,7 +134,10 @@ func (protectBranch *ProtectedBranch) LoadRepo(ctx context.Context) (err error) 
 
 // CanUserPush returns if some user could push to this protected branch
 func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *user_model.User, permissionInRepo access_model.Permission) bool {
-	if !protectBranch.CanPush {
+	if !protectBranch.CanPush || user == nil {
+		return false
+	}
+	if user.ID == user_model.ActionsUserID && !permissionInRepo.CanWrite(unit.TypeCode) {
 		return false
 	}
 
@@ -426,25 +429,25 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 		return fmt.Errorf("LoadOwner: %v", err)
 	}
 
-	whitelist, err := updateUserWhitelist(ctx, repo, protectBranch.WhitelistUserIDs, opts.UserIDs)
+	whitelist, err := updateUserWhitelist(ctx, repo, protectBranch.WhitelistUserIDs, opts.UserIDs, true)
 	if err != nil {
 		return err
 	}
 	protectBranch.WhitelistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.ForcePushAllowlistUserIDs, opts.ForcePushUserIDs)
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.ForcePushAllowlistUserIDs, opts.ForcePushUserIDs, true)
 	if err != nil {
 		return err
 	}
 	protectBranch.ForcePushAllowlistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.DeletionAllowlistUserIDs, opts.DeletionUserIDs)
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.DeletionAllowlistUserIDs, opts.DeletionUserIDs, true)
 	if err != nil {
 		return err
 	}
 	protectBranch.DeletionAllowlistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.MergeWhitelistUserIDs, opts.MergeUserIDs)
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.MergeWhitelistUserIDs, opts.MergeUserIDs, false)
 	if err != nil {
 		return err
 	}
@@ -456,7 +459,7 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.ApprovalsWhitelistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.BypassAllowlistUserIDs, opts.BypassUserIDs)
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.BypassAllowlistUserIDs, opts.BypassUserIDs, false)
 	if err != nil {
 		return err
 	}
@@ -570,7 +573,7 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 
 // updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have write access to the repo.
-func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64, allowActions bool) (whitelist []int64, err error) {
 	hasUsersChanged := !util.SliceSortedEqual(currentWhitelist, newWhitelist)
 	if !hasUsersChanged {
 		return currentWhitelist, nil
@@ -578,6 +581,11 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
+		if allowActions && userID == user_model.ActionsUserID {
+			// Actions token permissions are checked for each operation, not when saving the rule.
+			whitelist = append(whitelist, userID)
+			continue
+		}
 		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)

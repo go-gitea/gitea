@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/json"
@@ -82,6 +84,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		return
 	}
 	c.Data["Users"] = users
+	c.Data["PushUsers"] = append(slices.Clone(users), user_model.NewActionsUser())
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
 	c.Data["force_push_allowlist_users"] = strings.Join(base.Int64sToStrings(rule.ForcePushAllowlistUserIDs), ",")
 	c.Data["deletion_allowlist_users"] = strings.Join(base.Int64sToStrings(rule.DeletionAllowlistUserIDs), ",")

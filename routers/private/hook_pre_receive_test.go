@@ -32,6 +32,10 @@ func TestPreReceiveActionsProtectedBranch(t *testing.T) {
 		{name: "push allowlist", protection: git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true, EnableWhitelist: true}}},
 		{name: "force push", protection: git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true}}, forcePush: true, allowed: true},
 		{name: "force push allowlist", protection: git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true, EnableForcePushAllowlist: true}}, forcePush: true},
+
+		{name: "allowlisted push", protection: git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true, EnableWhitelist: true, WhitelistUserIDs: []int64{user_model.ActionsUserID}}}, allowed: true},
+		{name: "allowlisted force push", protection: git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true, EnableWhitelist: true, WhitelistUserIDs: []int64{user_model.ActionsUserID}, CanForcePush: true, EnableForcePushAllowlist: true, ForcePushAllowlistUserIDs: []int64{user_model.ActionsUserID}}}, forcePush: true, allowed: true},
+		{name: "deploy keys do not allow Actions", protection: git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true, EnableWhitelist: true, WhitelistDeployKeys: true}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtx, resp := contexttest.MockPrivateContext(t, "/")

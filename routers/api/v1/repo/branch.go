@@ -7,6 +7,7 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -618,6 +619,23 @@ func ListBranchProtections(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiBps)
 }
 
+func getBranchProtectionPushUserIDs(ctx *context.APIContext, names []string) ([]int64, error) {
+	ids := make([]int64, 0, len(names))
+	actionsUser := user_model.NewActionsUser()
+	for _, name := range names {
+		if strings.EqualFold(name, actionsUser.Name) {
+			ids = append(ids, actionsUser.ID)
+			continue
+		}
+		user, err := user_model.GetUserByName(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, user.ID)
+	}
+	return ids, nil
+}
+
 // CreateBranchProtection creates a branch protection for a repo
 func CreateBranchProtection(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/branch_protections repository repoCreateBranchProtection
@@ -680,7 +698,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		requiredApprovals = form.RequiredApprovals
 	}
 
-	whitelistUsers, err := user_model.GetUserIDsByNames(ctx, form.PushWhitelistUsernames, false)
+	whitelistUsers, err := getBranchProtectionPushUserIDs(ctx, form.PushWhitelistUsernames)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
@@ -689,7 +707,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	forcePushAllowlistUsers, err := user_model.GetUserIDsByNames(ctx, form.ForcePushAllowlistUsernames, false)
+	forcePushAllowlistUsers, err := getBranchProtectionPushUserIDs(ctx, form.ForcePushAllowlistUsernames)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
@@ -700,7 +718,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	}
 	var deletionAllowlistUsers []int64
 	if form.EnableDeletion && form.EnableDeletionAllowlist {
-		deletionAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.DeletionAllowlistUsernames, false)
+		deletionAllowlistUsers, err = getBranchProtectionPushUserIDs(ctx, form.DeletionAllowlistUsernames)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
@@ -1056,7 +1074,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 
 	var whitelistUsers, forcePushAllowlistUsers, deletionAllowlistUsers, mergeWhitelistUsers, approvalsWhitelistUsers, bypassAllowlistUsers []int64
 	if form.PushWhitelistUsernames != nil {
-		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.PushWhitelistUsernames, false)
+		whitelistUsers, err = getBranchProtectionPushUserIDs(ctx, form.PushWhitelistUsernames)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
@@ -1069,7 +1087,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		whitelistUsers = protectBranch.WhitelistUserIDs
 	}
 	if form.ForcePushAllowlistUsernames != nil {
-		forcePushAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.ForcePushAllowlistUsernames, false)
+		forcePushAllowlistUsers, err = getBranchProtectionPushUserIDs(ctx, form.ForcePushAllowlistUsernames)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
@@ -1082,7 +1100,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		forcePushAllowlistUsers = protectBranch.ForcePushAllowlistUserIDs
 	}
 	if form.DeletionAllowlistUsernames != nil {
-		deletionAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.DeletionAllowlistUsernames, false)
+		deletionAllowlistUsers, err = getBranchProtectionPushUserIDs(ctx, form.DeletionAllowlistUsernames)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())

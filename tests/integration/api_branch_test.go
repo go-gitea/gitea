@@ -18,6 +18,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
@@ -360,6 +361,65 @@ func TestAPIBranchProtection(t *testing.T) {
 	t.Run("BypassAllowlistValidation", testAPIBranchProtectionBypassAllowlistValidation)
 	t.Run("DeletionAllowlistValidation", testAPIBranchProtectionDeletionAllowlistValidation)
 	t.Run("DeletionTeamAllowlist", testAPIBranchProtectionDeletionTeamAllowlist)
+	t.Run("ActionsAllowlist", testAPIBranchProtectionActionsAllowlist)
+}
+
+func testAPIBranchProtectionActionsAllowlist(t *testing.T) {
+	const ruleName = "actions-*"
+	actionsUsernames := []string{"gitea-actions"}
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+	req := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user2/repo1/branch_protections", &api.CreateBranchProtectionOption{
+		RuleName: ruleName, EnablePush: true, EnablePushWhitelist: true, PushWhitelistUsernames: actionsUsernames,
+		EnableForcePush: true, EnableForcePushAllowlist: true, ForcePushAllowlistUsernames: actionsUsernames,
+		EnableDeletion: true, EnableDeletionAllowlist: true, DeletionAllowlistUsernames: actionsUsernames,
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	assertActions := func(bp *api.BranchProtection) {
+		t.Helper()
+		require.NotNil(t, bp)
+		assert.Equal(t, actionsUsernames, bp.PushWhitelistUsernames)
+		assert.Equal(t, actionsUsernames, bp.ForcePushAllowlistUsernames)
+		assert.Equal(t, actionsUsernames, bp.DeletionAllowlistUsernames)
+	}
+	assertActions(DecodeJSON(t, resp, &api.BranchProtection{}))
+	assertActions(testAPIGetBranchProtection(t, ruleName, http.StatusOK))
+
+	session := loginUser(t, "user2")
+	req = NewRequest(t, http.MethodGet, "/user2/repo1/settings/branches/edit?rule_name="+url.QueryEscape(ruleName))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	for _, field := range []string{"whitelist_users", "force_push_allowlist_users", "deletion_allowlist_users"} {
+		input := doc.Find(fmt.Sprintf(`input[name="%s"]`, field))
+		assert.Equal(t, "-2", input.AttrOr("value", ""))
+		assert.Equal(t, 1, input.Parent().Find(`.item[data-value="-2"]`).Length())
+	}
+	for _, field := range []string{"merge_whitelist_users", "approvals_whitelist_users", "bypass_allowlist_users"} {
+		assert.Zero(t, doc.Find(fmt.Sprintf(`input[name="%s"]`, field)).Parent().Find(`.item[data-value="-2"]`).Length())
+	}
+	req = NewRequestWithValues(t, http.MethodPost, "/user2/repo1/settings/branches/edit", map[string]string{
+		"rule_name":   ruleName,
+		"enable_push": "whitelist", "whitelist_users": "-2",
+		"enable_force_push": "whitelist", "force_push_allowlist_users": "-2",
+		"enable_deletion": "whitelist", "deletion_allowlist_users": "-2",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	assertActions(testAPIGetBranchProtection(t, ruleName, http.StatusOK))
+
+	testAPIEditBranchProtection(t, ruleName, &api.EditBranchProtectionOption{
+		PushWhitelistUsernames: []string{}, ForcePushAllowlistUsernames: []string{}, DeletionAllowlistUsernames: []string{},
+	}, http.StatusOK)
+	bp := testAPIGetBranchProtection(t, ruleName, http.StatusOK)
+	assert.Empty(t, bp.PushWhitelistUsernames)
+	assert.Empty(t, bp.ForcePushAllowlistUsernames)
+	assert.Empty(t, bp.DeletionAllowlistUsernames)
+	testAPIEditBranchProtection(t, ruleName, &api.EditBranchProtectionOption{
+		PushWhitelistUsernames: []string{"GITEA-ACTIONS"}, ForcePushAllowlistUsernames: actionsUsernames, DeletionAllowlistUsernames: actionsUsernames,
+	}, http.StatusOK)
+	assertActions(testAPIGetBranchProtection(t, ruleName, http.StatusOK))
+	testAPIEditBranchProtection(t, ruleName, &api.EditBranchProtectionOption{
+		PushWhitelistUsernames: []string{"(deploy-key)"},
+	}, http.StatusUnprocessableEntity)
+	testAPIDeleteBranchProtection(t, ruleName, http.StatusNoContent)
 }
 
 func testAPIBranchProtectionBasic(t *testing.T) {

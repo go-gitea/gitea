@@ -46,18 +46,25 @@ func TestActionsProtectedBranchDeletion(t *testing.T) {
 		dstPath := t.TempDir()
 		require.NoError(t, git.Clone(t.Context(), u.String(), dstPath, git.CloneRepoOptions{}))
 		for _, tt := range []struct {
-			name            string
-			canPush         bool
-			canDelete       bool
-			pushAllowlist   bool
-			deleteAllowlist bool
-			wantAllowed     bool
+			name               string
+			canPush            bool
+			canDelete          bool
+			pushAllowlist      bool
+			deleteAllowlist    bool
+			wantAllowed        bool
+			allowActionsPush   bool
+			allowActionsDelete bool
+			readOnly           bool
 		}{
 			{name: "allowed", canPush: true, canDelete: true, wantAllowed: true},
 			{name: "push-disabled", canDelete: true},
 			{name: "delete-disabled", canPush: true},
 			{name: "push-allowlist", canPush: true, canDelete: true, pushAllowlist: true},
 			{name: "delete-allowlist", canPush: true, canDelete: true, deleteAllowlist: true},
+			{name: "allowlisted", canPush: true, canDelete: true, pushAllowlist: true, deleteAllowlist: true, allowActionsPush: true, allowActionsDelete: true, wantAllowed: true},
+			{name: "deletion-only", canPush: true, canDelete: true, pushAllowlist: true, deleteAllowlist: true, allowActionsDelete: true},
+			{name: "push-only", canPush: true, canDelete: true, pushAllowlist: true, deleteAllowlist: true, allowActionsPush: true},
+			{name: "read-only", canPush: true, canDelete: true, pushAllowlist: true, deleteAllowlist: true, allowActionsPush: true, allowActionsDelete: true, readOnly: true},
 		} {
 			t.Run(tt.name, func(t *testing.T) {
 				branchPrefix := "actions-delete-" + tt.name
@@ -66,14 +73,35 @@ func TestActionsProtectedBranchDeletion(t *testing.T) {
 						WithDir(dstPath).RunStdString(t.Context())
 					require.NoError(t, err, "%s", stderr)
 				}
-				require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{
+
+				var opts git_model.WhitelistOptions
+				if tt.allowActionsPush {
+					opts.UserIDs = []int64{user_model.ActionsUserID}
+				}
+				if tt.allowActionsDelete {
+					opts.DeletionUserIDs = []int64{user_model.ActionsUserID}
+				}
+				require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo, &git_model.ProtectedBranch{
 					RepoID: repo.ID, RuleName: branchPrefix + "-*",
 					ProtectedBranchConfig: git_model.ProtectedBranchConfig{
 						CanPush:         tt.canPush,
 						EnableWhitelist: tt.pushAllowlist,
 						CanDelete:       tt.canDelete, EnableDeletionAllowlist: tt.deleteAllowlist,
 					},
-				}))
+				}, opts))
+
+				if tt.readOnly {
+					job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: task.JobID})
+					originalPermissions := job.TokenPermissions
+					job.TokenPermissions = &repo_model.ActionsTokenPermissions{UnitAccessModes: map[unit_model.Type]perm.AccessMode{unit_model.TypeCode: perm.AccessModeRead}}
+					_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "token_permissions")
+					require.NoError(t, err)
+					defer func() {
+						job.TokenPermissions = originalPermissions
+						_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "token_permissions")
+						require.NoError(t, err)
+					}()
+				}
 
 				_, stderr, err := gitcmd.NewCommand("push", "--delete").AddDynamicArguments(u.String(), branchPrefix+"-git").
 					WithDir(dstPath).RunStdString(t.Context())
@@ -81,7 +109,9 @@ func TestActionsProtectedBranchDeletion(t *testing.T) {
 					require.NoError(t, err, "%s", stderr)
 				} else {
 					require.Error(t, err)
-					assert.Contains(t, stderr, "protected from deletion")
+					if !tt.readOnly {
+						assert.Contains(t, stderr, "protected from deletion")
+					}
 				}
 				assert.Equal(t, !tt.wantAllowed, git.IsBranchExist(t.Context(), repo, branchPrefix+"-git"))
 
@@ -90,7 +120,9 @@ func TestActionsProtectedBranchDeletion(t *testing.T) {
 					MakeRequest(t, req, http.StatusNoContent)
 				} else {
 					resp := MakeRequest(t, req, http.StatusForbidden)
-					assert.Contains(t, resp.Body.String(), "branch protected")
+					if !tt.readOnly {
+						assert.Contains(t, resp.Body.String(), "branch protected")
+					}
 				}
 				assert.Equal(t, !tt.wantAllowed, git.IsBranchExist(t.Context(), repo, branchPrefix+"-api"))
 			})

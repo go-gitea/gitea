@@ -147,9 +147,10 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		log.Error("GetRepoReaders: %v", err)
 	}
 
-	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
-	forcePushAllowlistUsernames := getWhitelistEntities(readers, bp.ForcePushAllowlistUserIDs)
-	deletionAllowlistUsernames := getWhitelistEntities(readers, bp.DeletionAllowlistUserIDs)
+	pushUsers := append(slices.Clone(readers), user_model.NewActionsUser())
+	pushWhitelistUsernames := getWhitelistEntities(pushUsers, bp.WhitelistUserIDs)
+	forcePushAllowlistUsernames := getWhitelistEntities(pushUsers, bp.ForcePushAllowlistUserIDs)
+	deletionAllowlistUsernames := getWhitelistEntities(pushUsers, bp.DeletionAllowlistUserIDs)
 	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
 	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
 	bypassAllowlistUsernames := getWhitelistEntities(readers, bp.BypassAllowlistUserIDs)
