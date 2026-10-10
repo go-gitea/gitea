@@ -5,6 +5,7 @@ package feed
 
 import (
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unit"
 	"gitea.dev/services/context"
 )
 
@@ -12,7 +13,7 @@ import (
 // feed serves private repository content, mirroring checkDownloadTokenScope for
 // downloads. Returns false (and writes the response) when the token is denied.
 func checkRepoFeedTokenScope(ctx *context.Context) bool {
-	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, unit.TypeCode, auth_model.Read)
 	return !ctx.Written()
 }
 

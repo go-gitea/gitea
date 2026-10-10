@@ -26,6 +26,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/routing"
 	actions_router "gitea.dev/routers/api/actions"
+	codespace_router "gitea.dev/routers/api/codespace"
 	packages_router "gitea.dev/routers/api/packages"
 	apiv1 "gitea.dev/routers/api/v1"
 	"gitea.dev/routers/common"
@@ -36,6 +37,7 @@ import (
 	"gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/automerge"
+	codespace_service "gitea.dev/services/codespace"
 	"gitea.dev/services/cron"
 	feed_service "gitea.dev/services/feed"
 	gitproxy_service "gitea.dev/services/gitproxy"
@@ -160,6 +162,10 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, syncAppConfForGit)
 
 	mustInit(ssh.Init)
+	if err := codespace_service.Init(ctx); err != nil {
+		setting.Codespace.Enabled = false
+		log.Error("Codespace is disabled because its configuration is invalid: %v", err)
+	}
 
 	auth.Init()
 	mustInit(svg.Init)
@@ -205,6 +211,9 @@ func NormalRoutes() *web.Router {
 		prefix = actions_router.ArtifactV4RouteBase
 		r.Mount(prefix, actions_router.ArtifactsV4Routes(prefix))
 	}
+
+	prefix := "/api/codespace"
+	r.Mount(prefix, codespace_router.Routes(prefix))
 
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		defer routing.RecordFuncInfo(req.Context(), routing.GetFuncInfo(http.NotFound, "GlobalNotFound"))()

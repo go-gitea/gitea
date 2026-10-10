@@ -33,9 +33,11 @@ const (
 	KeyTypeDeploy
 	// KeyTypePrincipal specifies the authorized principal key
 	KeyTypePrincipal
+	// KeyTypeCodespace specifies a Codespace Git SSH key
+	KeyTypeCodespace
 )
 
-// PublicKey represents a user or deploy SSH public key.
+// PublicKey represents a user, deploy, principal, or Codespace SSH public key.
 type PublicKey struct {
 	ID            int64           `xorm:"pk autoincr"`
 	OwnerID       int64           `xorm:"INDEX NOT NULL"` // deploy-key doesn't have owner

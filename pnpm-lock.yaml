@@ -304,6 +304,9 @@ importers:
       sortablejs:
         specifier: 1.15.7
         version: 1.15.7
+      strip-ansi:
+        specifier: 7.2.0
+        version: 7.2.0
       swagger-ui-dist:
         specifier: 5.33.0
         version: 5.33.0

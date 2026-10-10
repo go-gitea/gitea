@@ -47,6 +47,16 @@ command="/tmp/gitea --config=/tmp/app.ini serv key-0",no-port-forwarding,no-X11-
 `)
 	})
 
+	t.Run("CodespaceKey", func(t *testing.T) {
+		testValid(t, &PublicKey{
+			OwnerID: 123,
+			Content: validKeyContent + " any-comment",
+			Type:    KeyTypeCodespace,
+		}, `# gitea public key
+command="/tmp/gitea --config=/tmp/app.ini serv key-0",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,no-user-rc,restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf user-123
+`)
+	})
+
 	t.Run("PublicKeyWithNewLine", func(t *testing.T) {
 		testValid(t, &PublicKey{
 			OwnerID: 123,
@@ -85,6 +95,14 @@ command="/tmp/gitea --config=/tmp/app.ini serv key-0",no-port-forwarding,no-X11-
 			OwnerID: 123,
 			Content: "a\nb",
 			Type:    KeyTypePrincipal,
+		})
+	})
+
+	t.Run("UnsupportedType", func(t *testing.T) {
+		testInvalid(t, &PublicKey{
+			OwnerID: 123,
+			Content: validKeyContent,
+			Type:    KeyType(999),
 		})
 	})
 }

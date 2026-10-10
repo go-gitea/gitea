@@ -30,3 +30,19 @@ func TestGetUserFork(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, repo)
 }
+
+func TestShareForkTree(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	root := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	fork := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
+	unrelated := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 9})
+
+	related, err := repo_model.ShareForkTree(t.Context(), root, fork)
+	assert.NoError(t, err)
+	assert.True(t, related)
+
+	related, err = repo_model.ShareForkTree(t.Context(), fork, unrelated)
+	assert.NoError(t, err)
+	assert.False(t, related)
+}

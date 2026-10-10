@@ -4,10 +4,17 @@
 package context
 
 import (
+	"net/http"
 	"net/url"
 	"strconv"
 	"testing"
 
+	codespace_model "gitea.dev/models/codespace"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -47,4 +54,59 @@ func TestGenAPILinks(t *testing.T) {
 
 		assert.Equal(t, links, response)
 	}
+}
+
+func TestAPIContextTokenCanAccessRepoForCodespaceToken(t *testing.T) {
+	ctx := &APIContext{Base: &Base{RequestContext: reqctx.NewRequestContextForTest(t)}}
+	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/repos/user5/repo4", nil)
+	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 2}
+
+	assert.True(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 2}))
+	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 3, IsPrivate: false}))
+	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 4, IsPrivate: true}))
+	assert.False(t, ctx.TokenCanAccessRepo(nil))
+
+	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 0}
+	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 2, IsPrivate: false}))
+
+	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodPost, "/api/v1/repos/user5/repo4", nil)
+	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 2, IsPrivate: false}))
+}
+
+func TestUsePublicPermissionForCodespaceRead(t *testing.T) {
+	ctx := &APIContext{Base: &Base{RequestContext: reqctx.NewRequestContextForTest(t)}}
+	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/repos/public/repo", nil)
+	ctx.Doer = &user_model.User{ID: 2}
+	ctx.IsSigned = true
+	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
+	ctx.GetData()["IsApiToken"] = true
+
+	assert.True(t, ctx.UsePublicPermissionForCodespaceRead(&repo_model.Repository{ID: 2, Owner: &user_model.User{}}))
+	assert.EqualValues(t, 2, ctx.Doer.ID)
+	assert.True(t, ctx.IsSigned)
+	ctx.Repo = &Repository{Repository: &repo_model.Repository{ID: 2}}
+	_, hasSnapshot := ctx.CodespaceTokenRepoID()
+	assert.True(t, hasSnapshot)
+	assert.True(t, ctx.TokenCanAccessRepo(ctx.Repo.Repository))
+	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 3}))
+	assert.True(t, ctx.CodespaceTokenAllowsRepository(unit.TypeCode, perm.AccessModeRead))
+	assert.False(t, ctx.CodespaceTokenAllowsRepository(unit.TypeCode, perm.AccessModeWrite))
+	assert.True(t, ctx.CodespaceTokenAllowsRepositoryID(2, unit.TypeCode, perm.AccessModeRead))
+	assert.False(t, ctx.CodespaceTokenAllowsRepositoryID(3, unit.TypeCode, perm.AccessModeRead))
+}
+
+type testCodespaceTokenSnapshot struct {
+	repoID int64
+}
+
+func (s testCodespaceTokenSnapshot) CodespaceTokenRepoID() int64 {
+	return s.repoID
+}
+
+func (s testCodespaceTokenSnapshot) CodespaceTokenAllowsAnyRepository(repoID int64) bool {
+	return repoID == s.repoID
+}
+
+func (s testCodespaceTokenSnapshot) CodespaceTokenAllowsRepository(repoID int64, _ unit.Type, _ perm.AccessMode) bool {
+	return repoID == s.repoID
 }

@@ -11,6 +11,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unit"
 	"gitea.dev/modules/badge"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/util"
@@ -18,7 +19,7 @@ import (
 )
 
 func GetWorkflowBadge(ctx *context.Context) {
-	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, unit.TypeActions, auth_model.Read)
 	if ctx.Written() {
 		return
 	}

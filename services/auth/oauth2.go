@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/actions"
+	codespace_service "gitea.dev/services/codespace"
 	"gitea.dev/services/oauth2_provider"
 )
 
@@ -86,11 +87,15 @@ func parseToken(req *http.Request) (string, bool) {
 	if !setting.DisableQueryAuthToken {
 		// Check token.
 		if token := req.Form.Get("token"); token != "" {
-			return token, true
+			if !codespace_service.IsGiteaTokenCandidate(token) {
+				return token, true
+			}
 		}
 		// Check access token.
 		if token := req.Form.Get("access_token"); token != "" {
-			return token, true
+			if !codespace_service.IsGiteaTokenCandidate(token) {
+				return token, true
+			}
 		}
 	} else if req.Form.Get("token") != "" || req.Form.Get("access_token") != "" {
 		log.Warn("API token sent in query string but DISABLE_QUERY_AUTH_TOKEN=true")
