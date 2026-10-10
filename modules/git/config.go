@@ -167,7 +167,7 @@ func configSet(ctx context.Context, key, value string) error {
 		return nil
 	}
 
-	if _, _, err = gitcmd.NewCommand("config", "--global").
+	if _, _, err = gitcmd.NewCommand("config", "--global", "--replace-all").
 		AddDynamicArguments(key, value).
 		RunStdString(ctx); err != nil {
 		return fmt.Errorf("failed to set git global config %s, err: %w", key, err)
@@ -195,7 +195,7 @@ func configSetNonExist(ctx context.Context, key, value string) error {
 }
 
 func configAddNonExist(ctx context.Context, key, value string) error {
-	_, _, err := gitcmd.NewCommand("config", "--global", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(ctx)
+	_, _, err := gitcmd.NewCommand("config", "--global", "--get").AddDynamicArguments(key, "^"+regexp.QuoteMeta(value)+"$").RunStdString(ctx)
 	if err == nil {
 		// already exist
 		return nil
@@ -212,18 +212,9 @@ func configAddNonExist(ctx context.Context, key, value string) error {
 }
 
 func configUnsetAll(ctx context.Context, key, value string) error {
-	_, _, err := gitcmd.NewCommand("config", "--global", "--get").AddDynamicArguments(key).RunStdString(ctx)
-	if err == nil {
-		// exist, need to remove
-		_, _, err = gitcmd.NewCommand("config", "--global", "--unset-all").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to unset git global config %s, err: %w", key, err)
-		}
-		return nil
+	_, _, err := gitcmd.NewCommand("config", "--global", "--unset-all").AddDynamicArguments(key, "^"+regexp.QuoteMeta(value)+"$").RunStdString(ctx)
+	if err != nil && !gitcmd.IsErrorExitCode(err, 5) { // 5: no such key or no matching value
+		return fmt.Errorf("failed to unset git global config %s, err: %w", key, err)
 	}
-	if gitcmd.IsErrorExitCode(err, 1) {
-		// not exist
-		return nil
-	}
-	return fmt.Errorf("failed to get git config %s, err: %w", key, err)
+	return nil
 }
