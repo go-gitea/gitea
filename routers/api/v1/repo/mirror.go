@@ -252,6 +252,64 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, m)
 }
 
+// ListPushMirrorHistory lists the recent runs of a push mirror
+func ListPushMirrorHistory(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/push_mirrors/{name}/history repository repoListPushMirrorHistory
+	// ---
+	// summary: Get the recent sync history of a push mirror
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: remote name of push mirror
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PushMirrorHistoryList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if !setting.Mirror.Enabled {
+		ctx.APIError(http.StatusBadRequest, "Mirror feature is disabled")
+		return
+	}
+
+	pushMirror, exist, err := db.Get[repo_model.PushMirror](ctx, repo_model.PushMirrorOptions{
+		RepoID:     ctx.Repo.Repository.ID,
+		RemoteName: ctx.PathParam("name"),
+	}.ToConds())
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	} else if !exist {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	list, err := repo_model.GetPushMirrorHistory(ctx, pushMirror.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToPushMirrorHistoryList(list))
+}
+
 // AddPushMirror adds a push mirror to a repository
 func AddPushMirror(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/push_mirrors repository repoAddPushMirror
@@ -376,7 +434,23 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 		return
 	}
 
+	var config repo_model.PushMirrorConfig
+	if c := mirrorOption.Config; c != nil {
+		filters, err := repo_model.ParsePushMirrorBranchFilters(strings.Join(c.BranchFilters, ","))
+		if err != nil {
+			ctx.APIError(http.StatusBadRequest, err.Error())
+			return
+		}
+		config = repo_model.PushMirrorConfig{
+			KeepRemoteBranches: c.KeepRemoteBranches,
+			NoPushTags:         c.NoPushTags,
+			KeepRemoteTags:     c.KeepRemoteTags,
+			BranchFilters:      filters,
+		}
+	}
+
 	pushMirror := &repo_model.PushMirror{
+		Config:        config,
 		RepoID:        repo.ID,
 		Repo:          repo,
 		RemoteName:    "remote_mirror_" + remoteSuffix,

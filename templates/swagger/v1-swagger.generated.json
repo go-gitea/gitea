@@ -18166,6 +18166,55 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/push_mirrors/{name}/history": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the recent sync history of a push mirror",
+        "operationId": "repoListPushMirrorHistory",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "remote name of push mirror",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PushMirrorHistoryList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/raw/{filepath}": {
       "get": {
         "produces": [
@@ -27703,6 +27752,9 @@
       "type": "object",
       "title": "CreatePushMirrorOption represents need information to create a push mirror of a repository.",
       "properties": {
+        "config": {
+          "$ref": "#/definitions/PushMirrorConfig"
+        },
         "interval": {
           "description": "The sync interval for automatic updates",
           "type": "string",
@@ -32300,6 +32352,9 @@
       "description": "PushMirror represents information of a push mirror",
       "type": "object",
       "properties": {
+        "config": {
+          "$ref": "#/definitions/PushMirrorConfig"
+        },
         "created": {
           "type": "string",
           "format": "date-time",
@@ -32339,6 +32394,111 @@
           "description": "Whether to sync on every commit",
           "type": "boolean",
           "x-go-name": "SyncOnCommit"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PushMirrorConfig": {
+      "description": "PushMirrorConfig represents the optional settings of a push mirror",
+      "type": "object",
+      "properties": {
+        "branch_filters": {
+          "description": "Only push the branches matching these names or glob patterns, empty means all branches",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "BranchFilters"
+        },
+        "keep_remote_branches": {
+          "description": "Do not delete remote branches which do not exist in the local repository",
+          "type": "boolean",
+          "x-go-name": "KeepRemoteBranches"
+        },
+        "keep_remote_tags": {
+          "description": "Do not delete remote tags which do not exist in the local repository",
+          "type": "boolean",
+          "x-go-name": "KeepRemoteTags"
+        },
+        "no_push_tags": {
+          "description": "Do not push or delete remote tags",
+          "type": "boolean",
+          "x-go-name": "NoPushTags"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PushMirrorHistory": {
+      "description": "PushMirrorHistory represents one run of a push mirror",
+      "type": "object",
+      "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "deleted": {
+          "description": "The number of remote refs which were deleted",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Deleted"
+        },
+        "duration_ms": {
+          "description": "The duration of the run in milliseconds",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DurationMs"
+        },
+        "error": {
+          "description": "The error message if the whole run failed",
+          "type": "string",
+          "x-go-name": "Error"
+        },
+        "failed": {
+          "description": "The failed refs, the list may be truncated",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PushMirrorRefError"
+          },
+          "x-go-name": "Failed"
+        },
+        "failed_total": {
+          "description": "The total number of refs which failed to be pushed",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "FailedTotal"
+        },
+        "pushed": {
+          "description": "The number of refs which were pushed",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Pushed"
+        },
+        "status": {
+          "description": "The result of the run: success, partial or failed",
+          "type": "string",
+          "x-go-name": "Status"
+        },
+        "up_to_date": {
+          "description": "The number of refs which were already up to date",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "UpToDate"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PushMirrorRefError": {
+      "description": "PushMirrorRefError represents a ref which failed to be pushed",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string",
+          "x-go-name": "Reason"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -34826,6 +34986,15 @@
       "description": "PushMirror",
       "schema": {
         "$ref": "#/definitions/PushMirror"
+      }
+    },
+    "PushMirrorHistoryList": {
+      "description": "PushMirrorHistoryList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/PushMirrorHistory"
+        }
       }
     },
     "PushMirrorList": {

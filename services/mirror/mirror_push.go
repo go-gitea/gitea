@@ -100,11 +100,15 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 	defer finished()
 
 	log.Trace("SyncPushMirror [mirror: %d][repo: %-v]: Running Sync", m.ID, m.Repo)
-	err = runPushSync(ctx, m)
+	startTime := time.Now()
+	result, err := runPushSync(ctx, m)
 	if err != nil {
 		err = util.SanitizeErrorCredentialURLs(err)
 		log.Error("SyncPushMirror [mirror: %d][repo: %-v]: %v", m.ID, m.Repo, err)
 		m.LastError = stripExitStatus.ReplaceAllLiteralString(err.Error(), "")
+		if result.FailedTotal == 0 {
+			result.Error = m.LastError
+		}
 	}
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
@@ -114,15 +118,27 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		return false
 	}
 
+	history := &repo_model.PushMirrorHistory{
+		RepoID:       m.RepoID,
+		PushMirrorID: m.ID,
+		Status:       pushResultStatus(result, err),
+		DurationMs:   time.Since(startTime).Milliseconds(),
+		Result:       *result,
+	}
+	if err := repo_model.AddPushMirrorHistory(ctx, history, setting.Mirror.PushHistoryKeep); err != nil {
+		log.Error("AddPushMirrorHistory [%d]: %v", m.ID, err)
+	}
+
 	log.Trace("SyncPushMirror [mirror: %d][repo: %-v]: Finished", m.ID, m.Repo)
 
 	return err == nil
 }
 
-func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
+func runPushSync(ctx context.Context, m *repo_model.PushMirror) (*repo_model.PushMirrorResult, error) {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
+	result := &repo_model.PushMirrorResult{}
 
-	performPush := func(storageRepo gitrepo.RepositoryFacade) error {
+	performPush := func(storageRepo gitrepo.RepositoryFacade, cfg *repo_model.PushMirrorConfig, refPrefix string) error {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
 			return fmt.Errorf("ParseRemoteAddressURL failed: %w", err)
@@ -155,31 +171,42 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
-		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
-			Remote:  m.RemoteName,
-			Force:   true,
-			Mirror:  true,
-			Timeout: timeout,
-		}); err != nil {
+		pushOpts := git.PushRefsOptions{Remote: m.RemoteName, Mirror: true, Timeout: timeout}
+		if !cfg.IsDefault() {
+			localRefs, err := git.ListRefNames(ctx, storageRepo, git.BranchPrefix, git.TagPrefix)
+			if err != nil {
+				return fmt.Errorf("ListRefNames failed: %w", err)
+			}
+			var remoteRefs []string
+			if needRemoteRefs(cfg) {
+				if remoteRefs, err = git.ListRemoteRefNames(ctx, storageRepo, m.RemoteName, timeout); err != nil {
+					return fmt.Errorf("ListRemoteRefNames failed: %w", err)
+				}
+			}
+			pushOpts.Mirror = false
+			pushOpts.Refspecs = buildPushRefspecs(cfg, localRefs, remoteRefs)
+		}
+		results, err := git.PushRefsToExternal(ctx, storageRepo, pushOpts)
+		addPushResults(result, results, refPrefix)
+		if err != nil {
 			return fmt.Errorf("PushToExternal failed: %w", err)
 		}
-
 		return nil
 	}
 
-	err := performPush(m.Repo.CodeStorageRepo())
-	if err != nil {
-		return fmt.Errorf("performPush(code) failed: %w", err)
+	if err := performPush(m.Repo.CodeStorageRepo(), &m.Config, ""); err != nil {
+		return result, fmt.Errorf("performPush(code) failed: %w", err)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		err := performPush(m.Repo.WikiStorageRepo())
+		// the wiki is always mirrored as a whole
+		err := performPush(m.Repo.WikiStorageRepo(), &repo_model.PushMirrorConfig{}, "wiki: ")
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			return fmt.Errorf("performPush(wiki) failed: %w", err)
+			return result, fmt.Errorf("performPush(wiki) failed: %w", err)
 		}
 	}
 
-	return nil
+	return result, failedRefsError(result)
 }
 
 func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient lfs.Client) error {
