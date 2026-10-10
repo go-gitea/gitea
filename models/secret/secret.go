@@ -70,6 +70,10 @@ func InsertEncryptedSecret(ctx context.Context, scope actions_model.BelongingSco
 		return nil, util.NewInvalidArgumentErrorf("data too long")
 	}
 
+	ownerID, repoID := scope.GetOwnerRepoIDs()
+	if ownerID == 0 && repoID == 0 {
+		return nil, fmt.Errorf("%w: ownerID and repoID cannot be both zero, global secrets are not supported", util.ErrInvalidArgument)
+	}
 	description = util.TruncateRunes(description, SecretDescriptionMaxLength)
 
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
@@ -78,11 +82,12 @@ func InsertEncryptedSecret(ctx context.Context, scope actions_model.BelongingSco
 	}
 
 	secret := &Secret{
+		OwnerID:     ownerID,
+		RepoID:      repoID,
 		Name:        strings.ToUpper(name),
 		Data:        encrypted,
 		Description: description,
 	}
-	secret.OwnerID, secret.RepoID = scope.GetOwnerRepoIDs()
 	return secret, db.Insert(ctx, secret)
 }
 
