@@ -75,11 +75,15 @@ func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
 	// Since this sortType is dynamically created, it has to be treated specially.
 	if after, ok := strings.CutPrefix(sortType, ScopeSortPrefix); ok {
 		scope := after
-		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
-		// "exclusive_order=0" means "no order is set", so exclude it from the JOIN criteria and then "LEFT JOIN" result is also null
-		sess.Join("LEFT", "label", "label.id = issue_label.label_id AND label.exclusive_order <> 0 AND label.name LIKE ?", scope+"/%")
-		// Use COALESCE to make sure we sort NULL last regardless of backend DB (2147483647 == max int)
-		sess.OrderBy("COALESCE(label.exclusive_order, 2147483647) ASC").Desc("issue.id")
+		// Sort with a correlated subquery rather than a JOIN: joining issue_label multiplies the
+		// result rows by the number of labels on each issue, which duplicates and drops issues once
+		// a LIMIT is applied.
+		// "exclusive_order=0" means "no order is set", so exclude it and let COALESCE sort those
+		// issues last regardless of backend DB (2147483647 == max int).
+		sess.OrderBy("COALESCE((SELECT MIN(label.exclusive_order) FROM issue_label"+
+			" INNER JOIN label ON label.id = issue_label.label_id"+
+			" WHERE issue_label.issue_id = issue.id AND label.exclusive_order <> 0 AND label.name LIKE ?), 2147483647) ASC", scope+"/%").
+			Desc("issue.id")
 		return
 	}
 
