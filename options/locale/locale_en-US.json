@@ -1468,6 +1468,7 @@
   "repo.issues.remove_ref_at": "removed reference <b>%s</b> %s",
   "repo.issues.add_ref_at": "added reference <b>%s</b> %s",
   "repo.issues.delete_branch_at": "deleted branch <b>%s</b> %s",
+  "repo.issues.filter_comments_only": "Comments only",
   "repo.issues.filter_label": "Label",
   "repo.issues.filter_label_exclude": "Use <code>alt</code> + <code>click/enter</code> to exclude labels",
   "repo.issues.filter_label_no_select": "All labels",
