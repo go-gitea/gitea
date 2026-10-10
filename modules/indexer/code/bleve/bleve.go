@@ -180,11 +180,11 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	info, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
+	_, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
 	if err != nil {
 		return err
 	}
-	fileContents, err := io.ReadAll(io.LimitReader(batchReader, info.Size))
+	fileContents, err := io.ReadAll(batchReader)
 	if err != nil {
 		return err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
@@ -193,9 +193,6 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 		fileContents = nil
 	}
 
-	if _, err = batchReader.Discard(1); err != nil {
-		return err
-	}
 	id := internal.FilenameIndexerID(repo.ID, update.Filename)
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,

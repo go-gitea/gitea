@@ -125,7 +125,7 @@ type Blob struct {
 }
 
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
-// Calling the Close function on the result will discard all unread output.
+// Reading to EOF or calling Close releases the batch, its next query discards all unread output.
 func (b *Blob) DataAsync(ctx context.Context) (_ io.ReadCloser, retErr error) {
 	batch, cancel, err := b.repo.CatFileBatch()
 	if err != nil {
@@ -147,7 +147,6 @@ func (b *Blob) DataAsync(ctx context.Context) (_ io.ReadCloser, retErr error) {
 	b.size = info.Size
 	return &blobReader{
 		rd:     contentReader,
-		n:      info.Size,
 		cancel: cancel,
 	}, nil
 }
@@ -175,36 +174,25 @@ func (b *Blob) Size(ctx context.Context) int64 {
 }
 
 type blobReader struct {
-	rd     BufferedReader
-	n      int64
+	rd     io.Reader
 	cancel func()
 }
 
-func (b *blobReader) Read(p []byte) (n int, err error) {
-	if b.n <= 0 {
+func (b *blobReader) Read(buf []byte) (int, error) {
+	if b.rd == nil {
 		return 0, io.EOF
 	}
-	if int64(len(p)) > b.n {
-		p = p[0:b.n]
+	read, err := b.rd.Read(buf)
+	if err == io.EOF {
+		_ = b.Close()
 	}
-	n, err = b.rd.Read(p)
-	b.n -= int64(n)
-	return n, err
+	return read, err
 }
 
-// Close implements io.Closer
 func (b *blobReader) Close() error {
-	if b.rd == nil {
-		return nil
+	if b.rd != nil {
+		b.rd = nil
+		b.cancel()
 	}
-
-	defer b.cancel()
-
-	if err := DiscardFull(b.rd, b.n+1); err != nil {
-		return err
-	}
-
-	b.rd = nil
-
 	return nil
 }
