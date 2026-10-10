@@ -177,7 +177,7 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetOAuth2ApplicationByID", auth.IsErrOAuthApplicationNotFound, err)
+		ctx.ServerError("GetOAuth2ApplicationByID", err)
 		return
 	}
 
@@ -208,7 +208,7 @@ func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
 
 	app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetOAuth2ApplicationByID", auth.IsErrOAuthApplicationNotFound, err)
+		ctx.ServerError("GetOAuth2ApplicationByID", err)
 		return
 	}
 

@@ -665,7 +665,7 @@ func (data *actionRunListData) prepareCommon(ctx *context.Context, workflows []W
 		return false
 	}
 	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, data.ActionRuns); err != nil {
-		log.Error("LoadIsRefDeleted", err)
+		log.Error("loadIsRefDeleted: %v", err)
 	}
 
 	if !data.processActionRuns(ctx) {
