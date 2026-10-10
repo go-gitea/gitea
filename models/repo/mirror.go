@@ -9,7 +9,11 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/secret"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -34,7 +38,8 @@ type Mirror struct {
 	LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
-	RemoteAddress string `xorm:"VARCHAR(2048)"`
+	RemoteAddress          string `xorm:"VARCHAR(2048)"`
+	RemoteAddressEncrypted string `xorm:"TEXT"` // only set when the address has credentials, they are kept out of the git config
 }
 
 func init() {
@@ -87,9 +92,56 @@ func GetMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
 	return m, nil
 }
 
+// SetRemoteAddressWithCredentials stores the address including its credentials, encrypted
+func (m *Mirror) SetRemoteAddressWithCredentials(addr string) (err error) {
+	m.RemoteAddressEncrypted, err = encryptRemoteAddress(addr)
+	return err
+}
+
+func (m *Mirror) GetRemoteAddressWithCredentials(ctx context.Context) (string, error) {
+	return decryptRemoteAddress(ctx, m.RemoteAddressEncrypted, m)
+}
+
+func encryptRemoteAddress(addr string) (string, error) {
+	if gitcmd.RemoteAddressWithoutCredentials(addr) == addr {
+		return "", nil
+	}
+	return secret.EncryptSecret(setting.SecretKey, addr)
+}
+
+type remoteMirror interface {
+	GetRepository(ctx context.Context) *Repository
+	GetRemoteName() string
+}
+
+func decryptRemoteAddress(ctx context.Context, encrypted string, m remoteMirror) (string, error) {
+	var decryptErr error
+	if encrypted != "" {
+		addr, err := secret.DecryptSecret(setting.SecretKey, encrypted)
+		if err == nil {
+			return addr, nil
+		}
+		decryptErr = err
+	}
+	repo := m.GetRepository(ctx)
+	if repo == nil {
+		return "", ErrMirrorNotExist
+	}
+	if decryptErr != nil {
+		log.Error("Unable to decrypt the credentials of mirror remote %s of %-v, SECRET_KEY may have changed: %v", m.GetRemoteName(), repo, decryptErr)
+	}
+	// the address has no credentials, or they are not in the database
+	return git.GetRemoteAddress(ctx, repo, m.GetRemoteName())
+}
+
 // UpdateMirror updates the mirror
 func UpdateMirror(ctx context.Context, m *Mirror) error {
-	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
+	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Omit("remote_address_encrypted").Update(m) // a stale copy must not revert the credentials
+	return err
+}
+
+func UpdateMirrorRemoteAddressEncrypted(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("remote_address_encrypted").Update(m)
 	return err
 }
 

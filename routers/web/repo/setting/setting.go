@@ -19,6 +19,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/indexer/code"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/indexer/stats"
@@ -310,7 +311,11 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		return
 	}
 
-	u, err := git.ParseRemoteAddressURL(ctx, ctx.Repo.Repository, pullMirror.GetRemoteName())
+	oldAddress, err := pullMirror.GetRemoteAddressWithCredentials(ctx)
+	var u *giturl.GitURL
+	if err == nil {
+		u, err = giturl.ParseGitURL(oldAddress)
+	}
 	if err != nil {
 		ctx.Data["Err_MirrorAddress"] = true
 		handleSettingRemoteAddrError(ctx, err, form)
@@ -320,7 +325,9 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		if form.MirrorUsername == "" {
 			form.MirrorUsername = u.User.Username()
 		}
-		if form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() {
+		newURL, parseErr := giturl.ParseGitURL(form.MirrorAddress)
+		sameOrigin := parseErr == nil && newURL.Scheme == u.Scheme && util.AsciiEqualFold(newURL.Host, u.Host)
+		if form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() && sameOrigin {
 			form.MirrorPassword, _ = u.User.Password()
 		}
 	}

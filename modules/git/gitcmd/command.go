@@ -59,8 +59,10 @@ type Command struct {
 	parentPipeReaders []*os.File
 	childrenPipeFiles []*os.File
 
-	cmdEnv     []string
-	cmdTimeout time.Duration
+	cmdEnv           []string
+	credentialEnvs   []string
+	credentialConfig [2]string // key and value of a config passed through the environment
+	cmdTimeout       time.Duration
 
 	// only os.Pipe and in-memory buffers can work with Stdin safely, see https://github.com/golang/go/issues/77227 if the command would exit unexpectedly
 	cmdStdin  io.Reader
@@ -457,7 +459,7 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 		c.cmd.Env = c.cmdEnv
 	}
 
-	c.cmd.Env = append(c.cmd.Env, CommonGitCmdEnvs()...)
+	c.cmd.Env = c.withCredentialEnvs(append(c.cmd.Env, CommonGitCmdEnvs()...))
 	c.cmd.Dir = c.gitDir
 	c.cmd.Stdout = c.cmdStdout
 	c.cmd.Stdin = c.cmdStdin

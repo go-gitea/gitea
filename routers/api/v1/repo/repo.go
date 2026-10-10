@@ -23,6 +23,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/label"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
@@ -1065,7 +1066,12 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 	authUpdateRequested := opts.MirrorPassword != nil || opts.MirrorToken != nil || opts.MirrorUsername != nil
 	if authUpdateRequested {
-		remoteURL, err := git.ParseRemoteAddressURL(ctx, repo, mirror.GetRemoteName())
+		remoteAddr, err := mirror.GetRemoteAddressWithCredentials(ctx)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return err
+		}
+		remoteURL, err := giturl.ParseGitURL(remoteAddr)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return err

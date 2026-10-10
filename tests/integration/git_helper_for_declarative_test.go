@@ -135,10 +135,19 @@ func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
 	callback(t, u)
 }
 
+// gitCloneWithCredentials keeps the credentials in the origin URL, which git.Clone strips, so later pushes authenticate
+func gitCloneWithCredentials(ctx context.Context, u *url.URL, dstLocalPath string, opts git.CloneRepoOptions) error {
+	if err := git.Clone(ctx, u.String(), dstLocalPath, opts); err != nil {
+		return err
+	}
+	_, _, err := gitcmd.NewCommand("remote", "set-url", "origin").AddDynamicArguments(u.String()).WithDir(dstLocalPath).RunStdString(ctx)
+	return err
+}
+
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
-		assert.NoError(t, git.Clone(t.Context(), u.String(), dstLocalPath, git.CloneRepoOptions{}))
+		assert.NoError(t, gitCloneWithCredentials(t.Context(), u, dstLocalPath, git.CloneRepoOptions{}))
 		exist, err := util.IsExist(filepath.Join(dstLocalPath, "README.md"))
 		assert.NoError(t, err)
 		assert.True(t, exist)
@@ -147,7 +156,7 @@ func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 
 func doPartialGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		assert.NoError(t, git.Clone(t.Context(), u.String(), dstLocalPath, git.CloneRepoOptions{
+		assert.NoError(t, gitCloneWithCredentials(t.Context(), u, dstLocalPath, git.CloneRepoOptions{
 			Filter: "blob:none",
 		}))
 		exist, err := util.IsExist(filepath.Join(dstLocalPath, "README.md"))

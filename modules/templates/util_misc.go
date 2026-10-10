@@ -15,7 +15,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -140,11 +140,16 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
+func mirrorRemoteAddress(ctx context.Context, m *repo_model.Mirror) remoteAddress {
 	ret := remoteAddress{}
-	u, err := git.ParseRemoteAddressURL(ctx, m, remoteName)
+	addr, err := m.GetRemoteAddressWithCredentials(ctx)
 	if err != nil {
-		log.Error("GetRemoteURL %v", err)
+		log.Error("GetRemoteAddressWithCredentials %v", err)
+		return ret
+	}
+	u, err := giturl.ParseGitURL(addr)
+	if err != nil {
+		log.Error("ParseGitURL %v", err)
 		return ret
 	}
 
@@ -155,16 +160,8 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 		}
 	}
 
-	// The URL stored in the git repo could contain authentication,
-	// erase it, or it will be shown in the UI.
 	u.User = nil
 	ret.Address = u.String()
-	// Why not use m.OriginalURL to set ret.Address?
-	// It should be OK to use it, since m.OriginalURL should be the same as the authentication-erased URL from the Git repository.
-	// However, the old code has already stored authentication in m.OriginalURL when updating mirror settings.
-	// That means we need to use "giturl.Parse" for m.OriginalURL again to ensure authentication is erased.
-	// Instead of doing this, why not directly use the authentication-erased URL from the Git repository?
-	// It should be the same as long as there are no bugs.
 
 	return ret
 }

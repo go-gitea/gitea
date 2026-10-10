@@ -18,11 +18,12 @@ import (
 
 // PushMirror represents mirror information of a repository.
 type PushMirror struct {
-	ID            int64       `xorm:"pk autoincr"`
-	RepoID        int64       `xorm:"INDEX"`
-	Repo          *Repository `xorm:"-"`
-	RemoteName    string
-	RemoteAddress string `xorm:"VARCHAR(2048)"`
+	ID                     int64       `xorm:"pk autoincr"`
+	RepoID                 int64       `xorm:"INDEX"`
+	Repo                   *Repository `xorm:"-"`
+	RemoteName             string
+	RemoteAddress          string `xorm:"VARCHAR(2048)"`
+	RemoteAddressEncrypted string `xorm:"TEXT"` // only set when the address has credentials, they are kept out of the git config
 
 	SyncOnCommit   bool `xorm:"NOT NULL DEFAULT true"`
 	Interval       time.Duration
@@ -78,9 +79,24 @@ func (m *PushMirror) GetRemoteName() string {
 	return m.RemoteName
 }
 
+// SetRemoteAddressWithCredentials stores the address including its credentials, encrypted
+func (m *PushMirror) SetRemoteAddressWithCredentials(addr string) (err error) {
+	m.RemoteAddressEncrypted, err = encryptRemoteAddress(addr)
+	return err
+}
+
+func (m *PushMirror) GetRemoteAddressWithCredentials(ctx context.Context) (string, error) {
+	return decryptRemoteAddress(ctx, m.RemoteAddressEncrypted, m)
+}
+
 // UpdatePushMirrorSyncStatus updates the sync status (last update time and last error) of the push-mirror
 func UpdatePushMirrorSyncStatus(ctx context.Context, m *PushMirror) error {
 	_, err := db.GetEngine(ctx).ID(m.ID).Cols("last_update", "last_error").Update(m)
+	return err
+}
+
+func UpdatePushMirrorRemoteAddressEncrypted(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("remote_address_encrypted").Update(m)
 	return err
 }
 

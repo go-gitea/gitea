@@ -40,6 +40,13 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 		return git.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*")
 	}
 
+	if err := m.SetRemoteAddressWithCredentials(addr); err != nil {
+		return err
+	}
+	if err := repo_model.UpdatePushMirrorRemoteAddressEncrypted(ctx, m); err != nil {
+		return err
+	}
+
 	if err := addRemoteAndConfig(m.Repo.CodeStorageRepo(), addr); err != nil {
 		return err
 	}
@@ -122,6 +129,11 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
+	credentialsAddr, err := m.GetRemoteAddressWithCredentials(ctx)
+	if err != nil {
+		return fmt.Errorf("GetRemoteAddressWithCredentials failed: %w", err)
+	}
+
 	performPush := func(storageRepo gitrepo.RepositoryFacade) error {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
@@ -144,7 +156,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			}
 			defer gitRepo.Close()
 
-			lfsClient, err := lfs.NewClientFromEndpoint(remoteURL.String(), "", migrations.NewMigrationHTTPTransport())
+			lfsClient, err := lfs.NewClientFromEndpoint(addRemoteCredentials(remoteURL.String(), credentialsAddr), "", migrations.NewMigrationHTTPTransport())
 			if err != nil {
 				return fmt.Errorf("NewClientFromEndpoint failed: %w", err)
 			}
@@ -156,10 +168,11 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
 		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
-			Remote:  m.RemoteName,
-			Force:   true,
-			Mirror:  true,
-			Timeout: timeout,
+			Remote:             m.RemoteName,
+			Force:              true,
+			Mirror:             true,
+			Timeout:            timeout,
+			CredentialsAddress: credentialsAddr,
 		}); err != nil {
 			return fmt.Errorf("PushToExternal failed: %w", err)
 		}
@@ -167,7 +180,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return nil
 	}
 
-	err := performPush(m.Repo.CodeStorageRepo())
+	err = performPush(m.Repo.CodeStorageRepo())
 	if err != nil {
 		return fmt.Errorf("performPush(code) failed: %w", err)
 	}
