@@ -137,8 +137,8 @@ func CreateVariable(ctx *context.APIContext) {
 	variableName := ctx.PathParam("variablename")
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ownerID,
-		Name:    variableName,
+		BelongingScope: actions_model.BelongingScopeOwner(ownerID),
+		Name:           variableName,
 	})
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		ctx.APIErrorInternal(err)
@@ -189,8 +189,8 @@ func UpdateVariable(ctx *context.APIContext) {
 	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ctx.Doer.ID,
-		Name:    ctx.PathParam("variablename"),
+		BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID),
+		Name:           ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -266,8 +266,8 @@ func GetVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ctx.Doer.ID,
-		Name:    ctx.PathParam("variablename"),
+		BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID),
+		Name:           ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -310,8 +310,8 @@ func ListVariables(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	listOptions := utils.GetListOptions(ctx)
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
-		OwnerID:     ctx.Doer.ID,
-		ListOptions: listOptions,
+		BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID),
+		ListOptions:    listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)

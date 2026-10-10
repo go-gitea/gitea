@@ -4,6 +4,7 @@
 package actions
 
 // BelongingScope identifies the owner (user/org) or repository an Actions secret or variable belongs to.
+// Both zero values mean "global scope".
 type BelongingScope struct {
 	ownerID int64
 	repoID  int64
@@ -18,10 +19,10 @@ func BelongingScopeRepo(repoID int64) BelongingScope {
 }
 
 func BelongingScopeOwnerOrRepo(ownerID, repoID int64) BelongingScope {
-	if ownerID != 0 {
-		return BelongingScopeOwner(ownerID)
-	} else if repoID != 0 {
+	if repoID != 0 {
 		return BelongingScopeRepo(repoID)
+	} else if ownerID != 0 {
+		return BelongingScopeOwner(ownerID)
 	}
 	return BelongingScope{}
 }

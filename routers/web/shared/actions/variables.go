@@ -97,8 +97,7 @@ func Variables(ctx *context.Context) {
 	}
 
 	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
-		OwnerID: vCtx.OwnerID,
-		RepoID:  vCtx.RepoID,
+		BelongingScope: actions_model.BelongingScopeOwnerOrRepo(vCtx.OwnerID, vCtx.RepoID),
 	})
 	if err != nil {
 		ctx.ServerError("FindVariables", err)
