@@ -88,6 +88,34 @@ func TestSlackPayload(t *testing.T) {
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", pl.Text)
 	})
 
+	t.Run("PullRequestReviewRequest", func(t *testing.T) {
+		p := pullRequestTestPayload()
+		p.Action = api.HookIssueReviewRequested
+		p.RequestedReviewer = &api.User{
+			UserName: "reviewer1",
+			FullName: "Reviewer One",
+		}
+
+		pl, err := sc.PullRequest(p)
+		require.NoError(t, err)
+
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request review requested: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1> (Requested Reviewer: reviewer1 (Reviewer One))", pl.Text)
+	})
+
+	t.Run("PullRequestReviewRequestEscapesReviewerName", func(t *testing.T) {
+		p := pullRequestTestPayload()
+		p.Action = api.HookIssueReviewRequested
+		p.RequestedReviewer = &api.User{
+			UserName: "reviewer1",
+			FullName: "A & B <evil>",
+		}
+
+		pl, err := sc.PullRequest(p)
+		require.NoError(t, err)
+
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request review requested: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1> (Requested Reviewer: reviewer1 (A &amp; B &lt;evil&gt;))", pl.Text)
+	})
+
 	t.Run("PullRequestComment", func(t *testing.T) {
 		p := pullRequestCommentTestPayload()
 
