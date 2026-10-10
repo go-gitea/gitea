@@ -405,7 +405,7 @@ func DeleteFilePost(ctx *context.Context) {
 	// Check if the path is a directory
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, treePath)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetTreeEntryByPath", git.IsErrNotExist, err)
+		ctx.ServerError("GetTreeEntryByPath", err)
 		return
 	}
 

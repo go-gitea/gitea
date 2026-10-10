@@ -190,15 +190,3 @@ func (ctx *Context) serverErrorInternal(skip int, logMsg string, logErr error) {
 	ctx.Data["ErrorMsg"] = userErrorMsg
 	ctx.HTML(http.StatusInternalServerError, tplStatus500)
 }
-
-// NotFoundOrServerError use error check function to determine if the error
-// is about not found. It responds with 404 status code for not found error,
-// or error context description for logging purpose of 500 server error.
-// TODO: remove the "errCheck" and use util.ErrNotFound to check
-func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bool, logErr error) {
-	if errCheck(logErr) {
-		ctx.notFoundInternal(1, logMsg, logErr)
-		return
-	}
-	ctx.serverErrorInternal(1, logMsg, logErr)
-}

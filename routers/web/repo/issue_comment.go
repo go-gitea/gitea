@@ -150,12 +150,12 @@ func NewComment(ctx *context.Context) {
 func UpdateCommentContent(ctx *context.Context) {
 	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
+		ctx.ServerError("GetCommentByID", err)
 		return
 	}
 
 	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
+		ctx.ServerError("LoadIssue", err)
 		return
 	}
 
@@ -234,12 +234,12 @@ func UpdateCommentContent(ctx *context.Context) {
 func DeleteComment(ctx *context.Context) {
 	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
+		ctx.ServerError("GetCommentByID", err)
 		return
 	}
 
 	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
+		ctx.ServerError("LoadIssue", err)
 		return
 	}
 
@@ -269,12 +269,12 @@ func ChangeCommentReaction(ctx *context.Context) {
 	form := web.GetForm[*forms.ReactionForm](ctx)
 	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
+		ctx.ServerError("GetCommentByID", err)
 		return
 	}
 
 	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
+		ctx.ServerError("LoadIssue", err)
 		return
 	}
 
@@ -374,12 +374,12 @@ func ChangeCommentReaction(ctx *context.Context) {
 func GetCommentAttachments(ctx *context.Context) {
 	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
+		ctx.ServerError("GetCommentByID", err)
 		return
 	}
 
 	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
+		ctx.ServerError("LoadIssue", err)
 		return
 	}
 
