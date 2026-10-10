@@ -90,3 +90,19 @@ func TestAddReleaseAttachmentsRejectsRecentZeroRepoID(t *testing.T) {
 	assert.Zero(t, attach.ReleaseID)
 	assert.Zero(t, attach.RepoID)
 }
+
+func TestFindReleasesOrderedByPublication(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// an old-commit release published later must list above a newer-commit one published earlier
+	older := &Release{RepoID: 2, TagName: "order-a", LowerTagName: "order-a", CreatedUnix: 100, PublishedUnix: 5000000000}
+	newer := &Release{RepoID: 2, TagName: "order-b", LowerTagName: "order-b", CreatedUnix: 4000000000, PublishedUnix: 4500000000}
+	assert.NoError(t, db.Insert(t.Context(), older, newer))
+
+	rels, err := db.Find[Release](t.Context(), FindReleasesOptions{ListOptions: db.ListOptions{PageSize: 2, Page: 1}, RepoID: 2, IncludeTags: true})
+	assert.NoError(t, err)
+	if assert.Len(t, rels, 2) {
+		assert.Equal(t, "order-a", rels[0].TagName)
+		assert.Equal(t, "order-b", rels[1].TagName)
+	}
+}
