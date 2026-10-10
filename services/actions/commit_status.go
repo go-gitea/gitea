@@ -17,6 +17,7 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
@@ -70,33 +71,15 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 	}
 }
 
-func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, error) {
-	var repoIDs []int64
-	runIDsByRepo := make(map[int64][]int64)
+func GetRunsFromCommitStatuses(ctx context.Context, repoID int64, statuses []*git_model.CommitStatus) (runs []*actions_model.ActionRun, _ error) {
+	runIDs := container.Set[int64]{}
 	for _, status := range statuses {
 		runID, _, ok := status.ParseGiteaActionsTargetURL(ctx)
-		if !ok {
-			continue
-		}
-		runIDs, exists := runIDsByRepo[status.RepoID]
-		if !exists {
-			repoIDs = append(repoIDs, status.RepoID)
-		}
-		if !slices.Contains(runIDs, runID) {
-			runIDsByRepo[status.RepoID] = append(runIDs, runID)
-		}
+		if ok {
+			runIDs.Add(runID)
 		}
 	}
-	var runs []*actions_model.ActionRun
-	for _, repoID := range repoIDs {
-		// deleted runs are simply absent from the result
-		repoRuns, err := actions_model.GetRunsByRepoAndID(ctx, repoID, runIDsByRepo[repoID])
-		if err != nil {
-			return nil, err
-		}
-		runs = append(runs, repoRuns...)
-	}
-	return runs, nil
+	return actions_model.GetRunsByRepoAndID(ctx, repoID, runIDs.Values())
 }
 
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {

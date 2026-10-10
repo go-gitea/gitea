@@ -1290,7 +1290,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return
 	}
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, repo.ID, commitStatuses)
 	if err != nil {
 		ctx.ServerError("GetRunsFromCommitStatuses", err)
 		return
