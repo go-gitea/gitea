@@ -238,11 +238,7 @@ func (Action) GetVariable(ctx *context.APIContext) {
 		Name:           ctx.PathParam("variablename"),
 	})
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -939,11 +935,7 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	workflowID := ctx.PathParam("workflow_id")
 	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -1088,11 +1080,7 @@ func ActionsDisableWorkflow(ctx *context.APIContext) {
 	workflowID := ctx.PathParam("workflow_id")
 	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, false)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -1241,11 +1229,7 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	workflowID := ctx.PathParam("workflow_id")
 	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, true)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -1434,7 +1418,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 	}
 
 	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, jobs); err != nil {
-		handleWorkflowRerunError(ctx, err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -1494,7 +1478,7 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 	}
 
 	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, failedJobs); err != nil {
-		handleWorkflowRerunError(ctx, err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -1558,7 +1542,7 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	targetJob := jobs[jobIdx]
 	newAttempt, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, []*actions_model.ActionRunJob{targetJob})
 	if err != nil {
-		handleWorkflowRerunError(ctx, err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -1573,7 +1557,7 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	}
 	rerunJob, err := actions_model.GetRunJobByAttemptJobID(ctx, run.ID, newAttempt.ID, targetJob.AttemptJobID)
 	if err != nil {
-		handleWorkflowRerunError(ctx, err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -1583,20 +1567,6 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, convertedJob)
-}
-
-func handleWorkflowRerunError(ctx *context.APIContext, err error) {
-	if errors.Is(err, util.ErrInvalidArgument) {
-		ctx.APIError(http.StatusBadRequest, err.Error())
-		return
-	} else if errors.Is(err, util.ErrAlreadyExist) {
-		ctx.APIError(http.StatusConflict, err.Error())
-		return
-	} else if errors.Is(err, util.ErrNotExist) {
-		ctx.APIError(http.StatusNotFound, err.Error())
-		return
-	}
-	ctx.APIErrorInternal(err)
 }
 
 // ListWorkflowRunJobs Lists all jobs for a workflow run.
@@ -1835,12 +1805,7 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 
 	res.Entries = make([]*api.ActionArtifact, len(artifacts))
 	for i := range artifacts {
-		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		res.Entries[i] = convertedArtifact
+		res.Entries[i] = convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
 	}
 
 	ctx.JSON(http.StatusOK, &res)
@@ -1944,12 +1909,7 @@ func GetArtifacts(ctx *context.APIContext) {
 
 	res.Entries = make([]*api.ActionArtifact, len(artifacts))
 	for i := range artifacts {
-		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		res.Entries[i] = convertedArtifact
+		res.Entries[i] = convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
 	}
 
 	ctx.JSON(http.StatusOK, &res)
@@ -1992,12 +1952,7 @@ func GetArtifact(ctx *context.APIContext) {
 	}
 
 	if actions_service.IsArtifactV4(art) {
-		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, art)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		ctx.JSON(http.StatusOK, convertedArtifact)
+		ctx.JSON(http.StatusOK, convert.ToActionArtifact(ctx.Repo.Repository, art))
 		return
 	}
 	// v3 not supported due to not having one unique id
