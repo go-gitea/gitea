@@ -646,9 +646,10 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 			Size:                    artifact.FileSize,
 		}
 	}
-	for _, artifact := range table {
-		if artifact != nil {
-			list = append(list, artifact)
+	for _, artifact := range artifacts {
+		if item := table[artifact.ArtifactName]; item != nil {
+			list = append(list, item)
+			delete(table, artifact.ArtifactName)
 		}
 	}
 
