@@ -69,6 +69,12 @@ func testAPIActionsGetWorkflowRun(t *testing.T) {
 		MakeRequest(t, req, http.StatusOK)
 	})
 
+	t.Run("ListRunsUnknownActor", func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs?actor=no-such-user", repo.FullName())).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+
 	t.Run("GetJobSteps", func(t *testing.T) {
 		// Insert task steps for task_id 53 (job 198) so the API can return them once the backend loads them
 		_, err := db.GetEngine(t.Context()).Insert(&actions_model.ActionTaskStep{
