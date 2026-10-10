@@ -111,6 +111,7 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		IsPull:             issue.IsPull,
 		IsClosed:           issue.IsClosed,
 		IsArchived:         issue.Repo.IsArchived,
+		IsWIP:              issue_model.HasWorkInProgressPrefix(issue.Title),
 		LabelIDs:           labels,
 		NoLabel:            len(labels) == 0,
 		MilestoneID:        issue.MilestoneID,
