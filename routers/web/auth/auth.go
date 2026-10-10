@@ -78,49 +78,54 @@ func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 
 // autoSignIn reads cookie and try to auto-login.
 func autoSignIn(ctx *context.Context) (bool, error) {
-	isSucceed := false
-	defer func() {
-		if !isSucceed {
-			ctx.DeleteSiteCookie(setting.CookieRememberName)
-		}
-	}()
+	cookieTokenValue := ctx.GetSiteCookie(setting.CookieRememberName)
+	if cookieTokenValue == "" {
+		return false, nil
+	}
 
 	if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
 		log.Error("Failed to delete expired auth tokens: %v", err)
 	}
 
-	t, err := auth_service.CheckAuthToken(ctx, ctx.GetSiteCookie(setting.CookieRememberName))
-	if err != nil {
-		switch err {
-		case auth_service.ErrAuthTokenInvalidFormat, auth_service.ErrAuthTokenExpired:
-			return false, nil
+	deleteCookie := true
+	defer func() {
+		if deleteCookie {
+			ctx.DeleteSiteCookie(setting.CookieRememberName)
 		}
-		return false, err
-	}
-	if t == nil {
+	}()
+
+	t, err := auth_service.CheckAuthToken(ctx, cookieTokenValue)
+	if errors.Is(err, auth_service.ErrAuthTokenStale) {
+		deleteCookie = false
 		return false, nil
+	} else if errors.Is(err, auth_service.ErrAuthTokenInvalidFormat) || errors.Is(err, auth_service.ErrAuthTokenExpired) {
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
 
 	u, err := user_model.GetUserByID(ctx, t.UserID)
-	if err != nil {
-		if !user_model.IsErrUserNotExist(err) {
-			return false, fmt.Errorf("GetUserByID: %w", err)
-		}
+	if user_model.IsErrUserNotExist(err) {
 		return false, nil
+	} else if err != nil {
+		return false, fmt.Errorf("GetUserByID: %w", err)
 	}
+
 	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
 	if err != nil {
 		return false, fmt.Errorf("HasTwoFactorOrWebAuthn: %w", err)
 	}
 
-	isSucceed = true
-
 	nt, token, err := auth_service.RegenerateAuthToken(ctx, t)
-	if err != nil {
+	if errors.Is(err, auth_service.ErrAuthTokenStale) {
+		deleteCookie = false
+		return false, nil
+	} else if err != nil {
 		return false, err
 	}
 
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
+	deleteCookie = false
 
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
@@ -130,7 +135,7 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 	}
 
 	if err := resetLocale(ctx, u); err != nil {
-		return false, err
+		log.Error("Failed to reset locale for user %d: %v", u.ID, err)
 	}
 
 	return true, nil
@@ -374,6 +379,9 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 
 func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 	if remember {
+		if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
+			log.Error("Failed to delete expired auth tokens: %v", err)
+		}
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
 			ctx.ServerError("CreateAuthTokenForUserID", err)

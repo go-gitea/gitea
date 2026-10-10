@@ -25,15 +25,12 @@ import (
 
 var (
 	ErrAuthTokenInvalidFormat = util.NewInvalidArgumentErrorf("auth token has an invalid format")
+	ErrAuthTokenStale         = util.NewInvalidArgumentErrorf("auth token has been rotated")
 	ErrAuthTokenExpired       = util.NewInvalidArgumentErrorf("auth token has expired")
 	ErrAuthTokenInvalidHash   = util.NewInvalidArgumentErrorf("auth token is invalid")
 )
 
 func CheckAuthToken(ctx context.Context, value string) (*auth_model.AuthToken, error) {
-	if len(value) == 0 {
-		return nil, nil //nolint:nilnil // the auth method is not applicable
-	}
-
 	parts := strings.SplitN(value, ":", 2)
 	if len(parts) != 2 {
 		return nil, ErrAuthTokenInvalidFormat
@@ -53,7 +50,12 @@ func CheckAuthToken(ctx context.Context, value string) (*auth_model.AuthToken, e
 
 	hashedToken := sha256.Sum256([]byte(parts[1]))
 
-	if !util.CryptoConstTimeEqual(t.TokenHash, hex.EncodeToString(hashedToken[:])) {
+	hash := hex.EncodeToString(hashedToken[:])
+	if !util.CryptoConstTimeEqual(t.TokenHash, hash) {
+		// Recently rotated cookies can still be in flight, but must not authenticate.
+		if t.RotatedUnix.AddDuration(time.Minute) >= timeutil.TimeStampNow() && util.CryptoConstTimeEqual(t.PreviousTokenHash, hash) {
+			return nil, ErrAuthTokenStale
+		}
 		// If an attacker steals a token and uses the token to create a new session the hash gets updated.
 		// When the victim uses the old token the hashes don't match anymore and the victim should be notified about the compromised token.
 		// Revoke the token so the attacker's rotated token (which shares this ID) can no longer be used.
@@ -70,14 +72,20 @@ func RegenerateAuthToken(ctx context.Context, t *auth_model.AuthToken) (*auth_mo
 	token, hash := generateTokenAndHash()
 
 	newToken := &auth_model.AuthToken{
-		ID:          t.ID,
-		TokenHash:   hash,
-		UserID:      t.UserID,
-		ExpiresUnix: timeutil.TimeStampNow().AddDuration(time.Duration(setting.LogInRememberDays*24) * time.Hour),
+		ID:                t.ID,
+		TokenHash:         hash,
+		PreviousTokenHash: t.TokenHash,
+		RotatedUnix:       timeutil.TimeStampNow(),
+		UserID:            t.UserID,
+		ExpiresUnix:       timeutil.TimeStampNow().AddDuration(time.Duration(setting.LogInRememberDays*24) * time.Hour),
 	}
 
-	if err := auth_model.UpdateAuthTokenByID(ctx, newToken); err != nil {
+	updated, err := auth_model.UpdateAuthTokenByID(ctx, newToken, t.TokenHash)
+	if err != nil {
 		return nil, "", err
+	}
+	if !updated {
+		return nil, "", ErrAuthTokenStale
 	}
 
 	return newToken, token, nil
