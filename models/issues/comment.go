@@ -1164,6 +1164,11 @@ func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *us
 		if affected == 0 {
 			return ErrCommentAlreadyChanged
 		}
+		if c.Type == CommentTypeReview && c.ReviewID != 0 {
+			if _, err := db.GetEngine(ctx).ID(c.ReviewID).Cols("content").Update(&Review{Content: c.Content}); err != nil {
+				return err
+			}
+		}
 		if err := c.LoadIssue(ctx); err != nil {
 			return err
 		}
