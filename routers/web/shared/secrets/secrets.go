@@ -30,18 +30,8 @@ func SetSecretsContext(ctx *context.Context, scope actions_model.BelongingScope)
 	ctx.Data["DescriptionMaxLength"] = secret_model.SecretDescriptionMaxLength
 }
 
-func secretBelongingScope(owner *user_model.User, repo *repo_model.Repository) (scope actions_model.BelongingScope) {
-	if owner != nil {
-		return actions_model.BelongingScopeOwner(owner.ID)
-	} else if repo != nil {
-		return actions_model.BelongingScopeRepo(repo.ID)
-	}
-	return scope
-}
-
-func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
+func PerformSecretsPost(ctx *context.Context, scope actions_model.BelongingScope, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	form := web.GetForm[*forms.AddSecretForm](ctx)
-	scope := secretBelongingScope(owner, repo)
 
 	s, created, err := secret_service.CreateOrUpdateSecret(ctx, scope, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
 	if err != nil {
@@ -59,9 +49,8 @@ func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo
 	ctx.JSONRedirect(redirectURL)
 }
 
-func PerformSecretsDelete(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
+func PerformSecretsDelete(ctx *context.Context, scope actions_model.BelongingScope, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	id := ctx.FormInt64("id")
-	scope := secretBelongingScope(owner, repo)
 
 	s, err := secret_service.DeleteSecretByID(ctx, scope, id)
 	if err != nil {

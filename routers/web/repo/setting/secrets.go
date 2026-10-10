@@ -109,6 +109,7 @@ func SecretsPost(ctx *context.Context) {
 
 	shared.PerformSecretsPost(
 		ctx,
+		sCtx.BelongingScope,
 		sCtx.Owner,
 		sCtx.Repo,
 		sCtx.RedirectLink,
@@ -123,6 +124,7 @@ func SecretsDelete(ctx *context.Context) {
 	}
 	shared.PerformSecretsDelete(
 		ctx,
+		sCtx.BelongingScope,
 		sCtx.Owner,
 		sCtx.Repo,
 		sCtx.RedirectLink,
