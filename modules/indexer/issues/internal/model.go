@@ -109,6 +109,8 @@ type SearchOptions struct {
 
 	SubscriberID optional.Option[int64] // subscriber of the issues
 
+	TimerTrackerID optional.Option[int64] // user ID for filtering issues with an active stopwatch/timer
+
 	UpdatedAfterUnix  optional.Option[int64]
 	UpdatedBeforeUnix optional.Option[int64]
 
