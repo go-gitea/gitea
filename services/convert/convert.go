@@ -502,9 +502,8 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 			runnerID = task.RunnerID
 			runnerName = task.RunnerName
 			if runnerName == "" {
-				if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
-					runnerName = runner.Name
-				}
+				names, _ := actions_model.GetTaskRunnerNames(ctx, []int64{task.ID})
+				runnerName = names[task.ID]
 			}
 			for i, step := range task.Steps {
 				stepStatus, stepConclusion := ToActionsStatus(step.Status)

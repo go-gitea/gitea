@@ -187,6 +187,9 @@ func TestToActionWorkflowJob_RunnerName(t *testing.T) {
 	require.NoError(t, db.Insert(ctx, run))
 	runner := &actions_model.ActionRunner{Name: "live-runner"}
 	require.NoError(t, db.Insert(ctx, runner))
+	deletedRunner := &actions_model.ActionRunner{Name: "deleted-runner", UUID: "deleted-runner", TokenHash: "deleted-runner"}
+	require.NoError(t, db.Insert(ctx, deletedRunner))
+	require.NoError(t, actions_model.DeleteRunner(ctx, deletedRunner.ID))
 
 	for _, tc := range []struct {
 		name         string
@@ -197,6 +200,7 @@ func TestToActionWorkflowJob_RunnerName(t *testing.T) {
 		{"runner removed", &actions_model.ActionTask{RunnerID: 987654321, RunnerName: "removed-runner", TokenHash: "runner-removed"}, 987654321, "removed-runner"},
 		{"never assigned", nil, 0, ""},
 		{"no stored name", &actions_model.ActionTask{RunnerID: runner.ID, TokenHash: "no-stored-name"}, runner.ID, "live-runner"},
+		{"no stored name, runner deleted", &actions_model.ActionTask{RunnerID: deletedRunner.ID, TokenHash: "no-stored-name-deleted"}, deletedRunner.ID, "deleted-runner"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			job := &actions_model.ActionRunJob{RunID: run.ID, RepoID: 2, Name: tc.name, Attempt: 1, JobID: "job", Status: actions_model.StatusSuccess}
