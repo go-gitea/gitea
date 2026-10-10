@@ -132,6 +132,26 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 	}
 }
 
+// commitURLText returns the hash link text for commit URLs of the current instance, including abbreviated SHAs that fullHashPatternProcessor skips
+func commitURLText(ctx *RenderContext, link string) string {
+	if ctx.RenderOptions.Metas == nil || !strings.Contains(link, "/commit/") {
+		return ""
+	}
+	u := httplib.ParseGiteaSiteURL(ctx, link)
+	if u == nil {
+		return ""
+	}
+	m := globalVars().commitRoutePattern.FindStringSubmatch(u.RepoSubPath)
+	if m == nil {
+		return ""
+	}
+	text := base.ShortSha(m[1]) + m[2]
+	if _, fragment, _ := strings.Cut(link, "#"); fragment != "" {
+		text += " (" + fragment + ")"
+	}
+	return text
+}
+
 func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.RenderOptions.Metas == nil {
 		return

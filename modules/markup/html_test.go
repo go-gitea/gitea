@@ -78,6 +78,21 @@ func TestRender_Commits(t *testing.T) {
 	test(sha[:14]+".", `<p>`+expected14+`.</p>`)
 	test(sha[:14]+",", `<p>`+expected14+`,</p>`)
 	test("["+sha[:14]+"]", `<p>[`+expected14+`]</p>`)
+
+	commitShort := repo + "commit/" + sha[:7]
+	commit39 := repo + "commit/" + sha[:39]
+	githubCommit := "https://github.com/a/b/commit/" + sha
+	test(commitShort+"#diff-2.", `<p><a href="`+commitShort+`#diff-2" rel="nofollow"><code>65f1bf2 (diff-2)</code></a>.</p>`)
+	test(commit39+".patch", `<p><a href="`+commit39+`.patch" rel="nofollow"><code>65f1bf27bc.patch</code></a></p>`)
+	test(githubCommit+" "+commitShort+" "+commit, `<p><a href="`+githubCommit+`" rel="nofollow">`+githubCommit+`</a> <a href="`+commitShort+`" rel="nofollow"><code>65f1bf2</code></a> <a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test("[[label|"+commitShort+"]]", `<p><a href="`+commitShort+`" rel="nofollow">label</a></p>`)
+	for _, notCommit := range []string{
+		repo + "commit/" + sha[:6],
+		commitShort + ".txt",
+		repo + "src/branch/main/sub-dir/commit/" + sha[:7],
+	} {
+		test(notCommit, `<p><a href="`+notCommit+`" rel="nofollow">`+notCommit+`</a></p>`)
+	}
 }
 
 func TestRender_CrossReferences(t *testing.T) {
@@ -228,6 +243,9 @@ func TestRender_links(t *testing.T) {
 	test(
 		"ftps://gitea.com",
 		`<p>ftps://gitea.com</p>`)
+	test(
+		markup.TestAppURL+"user13/repo11/commit/65f1bf2",
+		`<p><a href="`+markup.TestAppURL+`user13/repo11/commit/65f1bf2" rel="nofollow">`+markup.TestAppURL+`user13/repo11/commit/65f1bf2</a></p>`)
 
 	t.Run("LinkEllipsis", func(t *testing.T) {
 		input := util.EllipsisDisplayString("http://10.1.2.3", 12)
