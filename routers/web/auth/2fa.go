@@ -80,7 +80,7 @@ func TwoFactorPost(ctx *context.Context) {
 		}
 
 		_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
-		handleSignIn(ctx, u, remember)
+		handleSignInWithMethod(ctx, u, remember, twoFactorSignInMethod(ctx))
 		return
 	}
 
@@ -151,7 +151,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 			return
 		}
 
-		handleSignInFull(ctx, u, remember)
+		handleSignInFull(ctx, u, remember, twoFactorSignInMethod(ctx))
 		if ctx.Written() {
 			return
 		}

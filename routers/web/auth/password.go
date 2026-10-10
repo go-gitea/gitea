@@ -239,7 +239,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			return
 		}
 
-		handleSignInFull(ctx, u, remember)
+		handleSignInFull(ctx, u, remember, "")
 		if ctx.Written() {
 			return
 		}

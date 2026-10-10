@@ -155,7 +155,7 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 	}
 
 	remember := false // TODO: implement remember me
-	handleSignInFull(ctx, user, remember)
+	handleSignInFull(ctx, user, remember, "")
 	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))
 }
 
@@ -267,7 +267,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 
 	remember := ctx.Session.Get("twofaRemember").(bool) //nolint:forcetypeassert // must exist
-	handleSignInFull(ctx, user, remember)
+	handleSignInFull(ctx, user, remember, twoFactorSignInMethod(ctx))
 	_ = ctx.Session.Delete("twofaUid")
 	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))
 }
