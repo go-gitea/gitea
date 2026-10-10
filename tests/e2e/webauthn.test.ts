@@ -62,6 +62,6 @@ test('security key signs in as second factor and as passkey', async ({page, requ
 
   await page.context().clearCookies();
   await page.goto('/user/login');
-  await page.getByText('Sign in with a passkey').click();
+  await page.getByText('Passkey').click();
   await expect(page).toHaveURL(signedIn);
 });
