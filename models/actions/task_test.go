@@ -45,11 +45,9 @@ func TestGetTaskRunnerNames(t *testing.T) {
 	require.NoError(t, db.Insert(ctx, runner))
 	task := &ActionTask{RunnerID: runner.ID, TokenHash: "queue-test-task"}
 	require.NoError(t, db.Insert(ctx, task))
-	removedRunnerTask := &ActionTask{RunnerID: 987654321, RunnerName: "removed-runner", TokenHash: "queue-test-removed-runner"}
-	require.NoError(t, db.Insert(ctx, removedRunnerTask))
-	names, err := GetTaskRunnerNames(ctx, []int64{task.ID, removedRunnerTask.ID, 987654321})
+	names, err := GetTaskRunnerNames(ctx, []int64{task.ID, 987654321})
 	require.NoError(t, err)
-	assert.Equal(t, map[int64]string{task.ID: runner.Name, removedRunnerTask.ID: "removed-runner"}, names)
+	assert.Equal(t, map[int64]string{task.ID: runner.Name}, names)
 }
 
 func TestMakeTaskStepDisplayName(t *testing.T) {

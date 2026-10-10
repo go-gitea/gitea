@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -169,21 +168,18 @@ func GetTaskRunnerNames(ctx context.Context, taskIDs []int64) (map[int64]string,
 		return names, nil
 	}
 	var rows []struct {
-		ID         int64
-		RunnerName string
-		Name       string
+		ID   int64
+		Name string
 	}
 	err := db.GetEngine(ctx).Table("action_task").
-		Join("LEFT", "action_runner", "action_runner.id = action_task.runner_id").
+		Join("INNER", "action_runner", "action_runner.id = action_task.runner_id").
 		In("action_task.id", taskIDs).
-		Select("action_task.id, action_task.runner_name, action_runner.name").Find(&rows)
+		Select("action_task.id, action_runner.name").Find(&rows)
 	if err != nil {
 		return nil, err
 	}
 	for _, row := range rows {
-		if name := cmp.Or(row.RunnerName, row.Name); name != "" {
-			names[row.ID] = name
-		}
+		names[row.ID] = row.Name
 	}
 	return names, nil
 }
