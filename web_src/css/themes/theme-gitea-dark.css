@@ -223,6 +223,8 @@ gitea-theme-meta-info {
   --color-input-border: var(--color-secondary-dark-1);
   --color-light: #0b0b0c28;
   --color-light-border: #f3f3f428;
+  --color-link: var(--color-primary);
+  --color-link-visited: color-mix(in oklab, var(--color-violet) 60%, var(--color-link) 40%);
   --color-hover: #f3f3f419;
   --color-hover-opaque: #232528; /* TODO: color-mix(in srgb, var(--color-body), var(--color-hover)); */
   --color-active: #f3f3f424;
