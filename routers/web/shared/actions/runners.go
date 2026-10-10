@@ -4,7 +4,6 @@
 package actions
 
 import (
-	stdctx "context"
 	"errors"
 	"net/http"
 	"net/url"
@@ -366,25 +365,11 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		return
 	}
 
-	err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
-		for _, r := range runners {
-			switch action {
-			case "delete":
-				if err := actions_model.DeleteRunner(txCtx, r.ID); err != nil {
-					return err
-				}
-			case "disable":
-				if err := actions_model.SetRunnerDisabled(txCtx, r, true); err != nil {
-					return err
-				}
-			case "enable":
-				if err := actions_model.SetRunnerDisabled(txCtx, r, false); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	})
+	if action == "delete" {
+		err = actions_model.DeleteRunners(ctx, runners)
+	} else {
+		err = actions_model.SetRunnersDisabled(ctx, runners, action == "disable")
+	}
 	if err != nil {
 		log.Warn("RunnerBulkActionPost.%s failed: %v, url: %s", action, err, ctx.Req.URL)
 		ctx.Flash.Error(ctx.Tr(failedKey))

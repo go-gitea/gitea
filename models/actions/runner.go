@@ -357,6 +357,30 @@ func SetRunnerDisabled(ctx context.Context, runner *ActionRunner, isDisabled boo
 	})
 }
 
+// SetRunnersDisabled disables or enables all given runners, or none of them on error.
+func SetRunnersDisabled(ctx context.Context, runners []*ActionRunner, isDisabled bool) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, runner := range runners {
+			if err := SetRunnerDisabled(ctx, runner, isDisabled); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// DeleteRunners deletes all given runners, or none of them on error.
+func DeleteRunners(ctx context.Context, runners []*ActionRunner) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, runner := range runners {
+			if err := DeleteRunner(ctx, runner.ID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // DeleteRunner deletes a runner by given ID.
 func DeleteRunner(ctx context.Context, id int64) error {
 	if _, err := GetRunnerByID(ctx, id); err != nil {
