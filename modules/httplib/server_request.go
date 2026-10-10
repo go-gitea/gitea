@@ -22,6 +22,7 @@ type contextKeyType string
 var (
 	contextKeyRequest          = contextKeyType("request")
 	contextKeySupportPublicURL = contextKeyType("support-public-url")
+	contextKeyPeerAddr         = contextKeyType("peer-addr")
 )
 
 // RequestWithContext returns a request with the given context and adds a cleanup function to remove temporary files.
@@ -40,6 +41,41 @@ func RequestWithContext(req *http.Request, ctx reqctx.RequestContext) *http.Requ
 // MarkRequestSupportPublicURL marks the request context to support public URL detection from request headers.
 func MarkRequestSupportPublicURL(ctx reqctx.RequestContext) {
 	ctx.SetContextValue(contextKeySupportPublicURL, true)
+}
+
+// MarkRequestPeerAddr remembers the address of the immediate peer, it must be called before req.RemoteAddr is
+// replaced by the client address from the X-Forwarded-For or X-Real-IP headers.
+func MarkRequestPeerAddr(ctx reqctx.RequestContext, req *http.Request) {
+	ctx.SetContextValue(contextKeyPeerAddr, RemoteHost(req))
+}
+
+// IsRequestFromTrustedProxy reports whether the immediate peer of the request is one of REVERSE_PROXY_TRUSTED_PROXIES.
+func IsRequestFromTrustedProxy(req *http.Request) bool {
+	switch setting.Protocol {
+	case setting.HTTPUnix, setting.FCGIUnix, setting.FCGI:
+		return true // the peer is always the local web server, FastCGI even reports the client address as RemoteAddr
+	}
+	host, ok := req.Context().Value(contextKeyPeerAddr).(string)
+	if !ok {
+		host = RemoteHost(req)
+	}
+	ip := net.ParseIP(host)
+	for _, trusted := range setting.ReverseProxyTrustedProxies {
+		if trusted == "*" {
+			return true
+		}
+		if ip == nil {
+			continue
+		}
+		if strings.Contains(trusted, "/") {
+			if _, network, err := net.ParseCIDR(trusted); err == nil && network.Contains(ip) {
+				return true
+			}
+		} else if ip.Equal(net.ParseIP(trusted)) {
+			return true
+		}
+	}
+	return false
 }
 
 // RemoteHost returns the host part of req.RemoteAddr, or the full address when

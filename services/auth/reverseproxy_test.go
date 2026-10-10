@@ -27,6 +27,7 @@ func TestReverseProxyIgnoresBot(t *testing.T) {
 
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
+	req.RemoteAddr = "127.0.0.1:1234"
 	req.Header.Set(setting.ReverseProxyAuthUser, "user2")
 	req.Header.Set(setting.ReverseProxyAuthEmail, "user2@example.com")
 	user, err := (&ReverseProxy{}).Verify(req, nil, nil, nil)
@@ -53,6 +54,7 @@ func TestReverseProxyLastLogin(t *testing.T) {
 
 	sess := &releaseCountingStore{Store: session.NewMockMemStore("reverse-proxy-last-login")}
 	ctx, resp := contexttest.MockContext(t, "/", contexttest.MockContextOption{SessionStore: sess})
+	ctx.Req.RemoteAddr = "127.0.0.1:1234"
 	ctx.Req.Header.Set(setting.ReverseProxyAuthUser, user.Name)
 	rp := &ReverseProxy{CreateSession: true}
 
