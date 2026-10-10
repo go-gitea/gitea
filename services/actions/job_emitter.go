@@ -103,8 +103,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 			log.Error("re-emit run %d: %v", rid, err)
 		}
 	}
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, result.CancelledJobs)
-	EmitJobsIfReadyByJobs(result.CancelledJobs)
+	notifyAndEmitFinishedJobs(ctx, result.CancelledJobs)
 	if err := createCommitStatusesForJobsByRun(ctx, result.Jobs); err != nil {
 		return err
 	}
@@ -651,7 +650,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 
 		newStatus, cancelledJobs, err := PrepareToStartJobWithConcurrency(ctx, actionRunJob)
 		if err != nil {
-			log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
+			log.Error("PrepareToStartJobWithConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
 		} else {
 			r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
 			for _, cancelled := range cancelledJobs {

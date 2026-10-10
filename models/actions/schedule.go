@@ -104,7 +104,7 @@ func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) ([
 	// If actions disabled when there is schedule task, this will remove the outdated schedule tasks
 	// There is no other place we can do this because the app.ini will be changed manually
 	if err := DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
-		return nil, fmt.Errorf("DeleteCronTaskByRepo: %v", err)
+		return nil, fmt.Errorf("CleanRepoScheduleTasks: %w", err)
 	}
 	// cancel running cron jobs of this repository and delete old schedules
 	jobs, err := CancelPreviousJobs(
@@ -115,7 +115,7 @@ func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) ([
 		webhook_module.HookEventSchedule,
 	)
 	if err != nil {
-		return jobs, fmt.Errorf("CancelPreviousJobs: %v", err)
+		return jobs, fmt.Errorf("CleanRepoScheduleTasks: %w", err)
 	}
 	return jobs, nil
 }
