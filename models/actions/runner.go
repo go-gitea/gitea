@@ -213,6 +213,15 @@ func init() {
 // repoID != 0 and WithAvailable == true means any runner for the given repo, parent user/org, and global runners
 // ownerID != 0 and repoID == 0 and WithAvailable == false means any runner for the given user/org
 // ownerID != 0 and repoID == 0 and WithAvailable == true means any runner for the given user/org and global runners
+// GetRunnersMapByIDs returns the found runners keyed by ID, silently omitting IDs that no longer exist
+func GetRunnersMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionRunner, error) {
+	runners := make(map[int64]*ActionRunner, len(ids))
+	if len(ids) == 0 {
+		return runners, nil
+	}
+	return runners, db.GetEngine(ctx).In("id", ids).Find(&runners)
+}
+
 type FindRunnerOptions struct {
 	db.ListOptions
 	IDs           []int64

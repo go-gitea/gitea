@@ -271,6 +271,37 @@ func GetLatestAttemptJobsByRun(ctx context.Context, run *ActionRun) (ActionJobLi
 	return jobs, nil
 }
 
+// GetLatestAttemptJobsByRuns is the batch version of GetLatestAttemptJobsByRun, keyed by run ID
+func GetLatestAttemptJobsByRuns(ctx context.Context, runs []*ActionRun) (map[int64]ActionJobList, error) {
+	result := make(map[int64]ActionJobList, len(runs))
+	if len(runs) == 0 {
+		return result, nil
+	}
+	var attemptIDs, legacyRunIDs []int64
+	for _, run := range runs {
+		if run.LatestAttemptID > 0 {
+			attemptIDs = append(attemptIDs, run.LatestAttemptID)
+		} else {
+			legacyRunIDs = append(legacyRunIDs, run.ID)
+		}
+	}
+	cond := builder.NewCond()
+	if len(attemptIDs) > 0 {
+		cond = cond.Or(builder.In("run_attempt_id", attemptIDs))
+	}
+	if len(legacyRunIDs) > 0 {
+		cond = cond.Or(builder.In("run_id", legacyRunIDs).And(builder.Eq{"run_attempt_id": 0}))
+	}
+	var jobs []*ActionRunJob
+	if err := db.GetEngine(ctx).Where(cond).OrderBy("id").Find(&jobs); err != nil {
+		return nil, err
+	}
+	for _, job := range jobs {
+		result[job.RunID] = append(result[job.RunID], job)
+	}
+	return result, nil
+}
+
 // GetAllRunJobsByRepoAndRunID returns all jobs for a run across all attempts.
 func GetAllRunJobsByRepoAndRunID(ctx context.Context, repoID, runID int64) (ActionJobList, error) {
 	var jobs []*ActionRunJob
@@ -685,7 +716,7 @@ func hasFailFastMatrixFailure(jobs []*ActionRunJob) bool {
 // It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) ([]*ActionRunJob, error) {
 	// Find all runs in the specified repository, reference, and workflow with non-final status
-	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
+	runs, err := db.Find[ActionRun](ctx, FindRunOptions{
 		RepoID:       repoID,
 		Ref:          ref,
 		WorkflowID:   workflowID,
@@ -695,32 +726,29 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 	if err != nil {
 		return nil, err
 	}
-
-	// If there are no runs found, there's no need to proceed with cancellation, so return nil.
-	if total == 0 {
+	if len(runs) == 0 {
 		return nil, nil
 	}
 
-	cancelledJobs := make([]*ActionRunJob, 0, total)
+	jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
+		RunIDs: container.FilterSlice(runs, func(run *ActionRun) (int64, bool) { return run.ID, true }),
+	})
+	if err != nil {
+		return nil, err
+	}
+	jobsByRun := make(map[int64][]*ActionRunJob, len(runs))
+	for _, job := range jobs {
+		jobsByRun[job.RunID] = append(jobsByRun[job.RunID], job)
+	}
 
-	// Iterate over each found run and cancel its associated jobs.
+	cancelledJobs := make([]*ActionRunJob, 0, len(jobs))
 	for _, run := range runs {
-		// Find all jobs associated with the current run.
-		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
-			RunID: run.ID,
-		})
-		if err != nil {
-			return cancelledJobs, err
-		}
-
-		cjs, err := CancelJobs(ctx, jobs, false)
+		cjs, err := CancelJobs(ctx, jobsByRun[run.ID], false)
 		if err != nil {
 			return cancelledJobs, err
 		}
 		cancelledJobs = append(cancelledJobs, cjs...)
 	}
-
-	// Return nil to indicate successful cancellation of all running and waiting jobs.
 	return cancelledJobs, nil
 }
 
@@ -761,16 +789,12 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group
-	for _, attempt := range attempts {
-		if attempt.ID == job.RunAttemptID {
-			continue
-		}
-		jobs, err := GetRunJobsByRunAndAttemptID(ctx, attempt.RunID, attempt.ID)
-		if err != nil {
-			return nil, fmt.Errorf("find run %d attempt %d jobs: %w", attempt.RunID, attempt.ID, err)
-		}
-		jobsToCancel = append(jobsToCancel, jobs...)
+	attempts = slices.DeleteFunc(attempts, func(a *ActionRunAttempt) bool { return a.ID == job.RunAttemptID })
+	attemptJobs, err := getRunJobsByAttempts(ctx, attempts)
+	if err != nil {
+		return nil, fmt.Errorf("find concurrent attempt jobs: %w", err)
 	}
+	jobsToCancel = append(jobsToCancel, attemptJobs...)
 
 	return CancelJobs(ctx, jobsToCancel, false)
 }

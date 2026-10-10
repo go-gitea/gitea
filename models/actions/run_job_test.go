@@ -467,3 +467,43 @@ func TestCancelJobs_CallerWaitsForCancellingChild(t *testing.T) {
 	}
 	assert.Equal(t, StatusCancelled, unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID}).Status)
 }
+
+func TestGetLatestAttemptJobsByRuns(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	legacyRun := &ActionRun{RepoID: 4, OwnerID: 1, Index: 9600, TriggerUserID: 1, Status: StatusRunning}
+	run := &ActionRun{RepoID: 4, OwnerID: 1, Index: 9601, TriggerUserID: 1, Status: StatusRunning}
+	require.NoError(t, db.Insert(ctx, legacyRun, run))
+	require.NoError(t, db.Insert(ctx, &ActionRunJob{RunID: legacyRun.ID, RepoID: legacyRun.RepoID, OwnerID: legacyRun.OwnerID}))
+	oldAttempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: 1}
+	latestAttempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 2, TriggerUserID: 2}
+	require.NoError(t, db.Insert(ctx, oldAttempt, latestAttempt))
+	for _, attemptID := range []int64{oldAttempt.ID, latestAttempt.ID, latestAttempt.ID} {
+		require.NoError(t, db.Insert(ctx, &ActionRunJob{RunID: run.ID, RunAttemptID: attemptID, RepoID: run.RepoID, OwnerID: run.OwnerID}))
+	}
+	run.LatestAttemptID = latestAttempt.ID
+	require.NoError(t, UpdateRun(ctx, run, "latest_attempt_id"))
+
+	runs := RunList{legacyRun, run}
+	jobsByRun, err := GetLatestAttemptJobsByRuns(ctx, runs)
+	require.NoError(t, err)
+	for _, r := range runs {
+		expected, err := GetLatestAttemptJobsByRun(ctx, r)
+		require.NoError(t, err)
+		require.NotEmpty(t, expected)
+		assert.Equal(t, expected, jobsByRun[r.ID])
+	}
+
+	attempts, err := runs.GetLatestAttempts(ctx)
+	require.NoError(t, err)
+	require.Len(t, attempts, 1)
+	assert.Equal(t, latestAttempt.ID, attempts[run.ID].ID)
+	assert.EqualValues(t, 2, attempts[run.ID].TriggerUser.ID)
+
+	attemptJobs, err := getRunJobsByAttempts(ctx, []*ActionRunAttempt{latestAttempt, oldAttempt})
+	require.NoError(t, err)
+	require.Len(t, attemptJobs, 3)
+	assert.Equal(t, []int64{latestAttempt.ID, latestAttempt.ID, oldAttempt.ID}, []int64{attemptJobs[0].RunAttemptID, attemptJobs[1].RunAttemptID, attemptJobs[2].RunAttemptID})
+	assert.Less(t, attemptJobs[0].ID, attemptJobs[1].ID)
+}
