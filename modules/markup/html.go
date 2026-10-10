@@ -355,6 +355,8 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		return visitNodeImg(ctx, node)
 	} else if node.Data == "video" {
 		return visitNodeVideo(ctx, node)
+	} else if node.Data == "source" {
+		return visitNodeSource(ctx, node)
 	}
 
 	if node.Data == "a" {

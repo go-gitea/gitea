@@ -7,6 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/setting"
+	testModule "gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -100,5 +103,43 @@ func TestProcessNodeAttrID_SkipHeadingIDForComments(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, strings.TrimSpace(result.String()))
 		})
+	}
+}
+
+func TestVisitNodeSource(t *testing.T) {
+	defer testModule.MockVariableValue(&setting.Camo.Enabled, true)()
+	defer testModule.MockVariableValue(&setting.Camo.Always, true)()
+	defer testModule.MockVariableValue(&setting.Camo.ServerURL, "https://image.proxy")()
+	defer testModule.MockVariableValue(&setting.Camo.HMACKey, "key")()
+
+	test := func(input, expected string) {
+		t.Helper()
+		var result strings.Builder
+		err := PostProcessDefault(NewTestRenderContext("/base"), strings.NewReader(input), &result)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, strings.TrimSpace(result.String()))
+	}
+
+	// a relative candidate resolves against the media link, just like "img" and "video" do
+	test(`<picture><source media="(prefers-color-scheme: dark)" srcset="dark.svg"></picture>`,
+		`<picture><source media="(prefers-color-scheme: dark)" srcset="/base/dark.svg"/></picture>`)
+	// an external candidate goes through the media proxy instead of being fetched by the browser
+	test(`<source srcset="http://example.com/img.jpg">`,
+		`<source srcset="https://image.proxy/ot-IzsO3Va2BTuasnEa3Ddw3XC8/aHR0cDovL2V4YW1wbGUuY29tL2ltZy5qcGc"/>`)
+}
+
+func TestResolveSrcSetLinks(t *testing.T) {
+	resolve := func(link string) string { return "/base/" + link }
+	cases := []struct{ input, expected string }{
+		{"a.png", "/base/a.png"},
+		{" a.png 1x, b.png 2x ", " /base/a.png 1x, /base/b.png 2x "},
+		{"a.png, b.png", "/base/a.png, /base/b.png"},
+		{"a.png,b.png", "/base/a.png,b.png"}, // only a trailing comma closes a candidate
+		{"a,b.png 1x", "/base/a,b.png 1x"},
+		{"", ""},
+		{" ,, ", " ,, "},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.expected, resolveSrcSetLinks(c.input, resolve), "input: %q", c.input)
 	}
 }
