@@ -546,6 +546,9 @@ func TestPostProcess(t *testing.T) {
 	test(
 		"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>",
 		"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>")
+	test(
+		`<math><mtd id="c"><mtext><a href="#c">:gitea:</a> <a href="x.md">x</a> <img src="x.png"/></mtext></mtd></math>`,
+		`<math><mtd id="user-content-c"><mtext><a href="#user-content-c">:gitea:</a> <a href="http://localhost:3000/x.md">x</a> <a href="http://localhost:3000/x.png" target="_blank"><img src="http://localhost:3000/x.png"/></a></mtext></mtd></math>`)
 
 	// special tags, GitHub's behavior, and for unclosed tags, output as text content as much as possible
 	test("<script>a", `&lt;script&gt;a`)
