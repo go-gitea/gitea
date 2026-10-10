@@ -48,9 +48,8 @@ func init() {
 	db.RegisterModel(new(ActionVariable))
 }
 
-func InsertVariable(ctx context.Context, scope Scope, name, data, description string) (*ActionVariable, error) {
-	// A repo level variable with OwnerID set accidentally is normalized instead of rejected.
-	scope = scope.Normalized()
+func InsertVariable(ctx context.Context, scope BelongingScope, name, data, description string) (*ActionVariable, error) {
+	scope.AssertValid()
 
 	if utf8.RuneCountInString(data) > VariableDataMaxLength {
 		return nil, util.NewInvalidArgumentErrorf("data too long")

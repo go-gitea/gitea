@@ -124,7 +124,7 @@ func VariableCreate(ctx *context.Context) {
 
 	form := web.GetForm[*forms.EditVariableForm](ctx)
 
-	v, err := actions_service.CreateVariable(ctx, actions_model.Scope{OwnerID: vCtx.OwnerID, RepoID: vCtx.RepoID}, form.Name, form.Data, form.Description)
+	v, err := actions_service.CreateVariable(ctx, actions_model.BelongingScope{OwnerID: vCtx.OwnerID, RepoID: vCtx.RepoID}, form.Name, form.Data, form.Description)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return

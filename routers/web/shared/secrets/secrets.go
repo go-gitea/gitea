@@ -18,7 +18,7 @@ import (
 	secret_service "gitea.dev/services/secrets"
 )
 
-func SetSecretsContext(ctx *context.Context, scope actions_model.Scope) {
+func SetSecretsContext(ctx *context.Context, scope actions_model.BelongingScope) {
 	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{OwnerID: scope.OwnerID, RepoID: scope.RepoID})
 	if err != nil {
 		ctx.ServerError("FindSecrets", err)
@@ -30,7 +30,7 @@ func SetSecretsContext(ctx *context.Context, scope actions_model.Scope) {
 	ctx.Data["DescriptionMaxLength"] = secret_model.SecretDescriptionMaxLength
 }
 
-func secretScope(owner *user_model.User, repo *repo_model.Repository) (scope actions_model.Scope) {
+func secretBelongingScope(owner *user_model.User, repo *repo_model.Repository) (scope actions_model.BelongingScope) {
 	if owner != nil {
 		scope.OwnerID = owner.ID
 	}
@@ -42,7 +42,7 @@ func secretScope(owner *user_model.User, repo *repo_model.Repository) (scope act
 
 func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	form := web.GetForm[*forms.AddSecretForm](ctx)
-	scope := secretScope(owner, repo)
+	scope := secretBelongingScope(owner, repo)
 
 	s, created, err := secret_service.CreateOrUpdateSecret(ctx, scope, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
 	if err != nil {
@@ -62,7 +62,7 @@ func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo
 
 func PerformSecretsDelete(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	id := ctx.FormInt64("id")
-	scope := secretScope(owner, repo)
+	scope := secretBelongingScope(owner, repo)
 
 	s, err := secret_service.DeleteSecretByID(ctx, scope, id)
 	if err != nil {

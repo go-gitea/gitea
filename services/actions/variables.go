@@ -11,7 +11,7 @@ import (
 	secret_service "gitea.dev/services/secrets"
 )
 
-func CreateVariable(ctx context.Context, scope actions_model.Scope, name, data, description string) (*actions_model.ActionVariable, error) {
+func CreateVariable(ctx context.Context, scope actions_model.BelongingScope, name, data, description string) (*actions_model.ActionVariable, error) {
 	if err := secret_service.ValidateName(name); err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func DeleteVariableByID(ctx context.Context, variableID int64) error {
 	return actions_model.DeleteVariable(ctx, variableID)
 }
 
-func DeleteVariableByName(ctx context.Context, scope actions_model.Scope, name string) error {
+func DeleteVariableByName(ctx context.Context, scope actions_model.BelongingScope, name string) error {
 	v, err := GetVariable(ctx, actions_model.FindVariablesOpts{
 		OwnerID: scope.OwnerID,
 		RepoID:  scope.RepoID,
