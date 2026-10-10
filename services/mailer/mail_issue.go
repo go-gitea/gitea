@@ -66,6 +66,7 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
+	normalRepoWatchers := make(container.Set[int64])
 	if !(comment.Issue.IsPull && comment.Issue.PullRequest.IsWorkInProgress(ctx) && comment.ActionType != activities_model.ActionCreatePullRequest) {
 		watchType := util.Iif(comment.Issue.IsPull, repo_model.WatchPullRequests, repo_model.WatchIssues)
 		ids, err = repo_model.GetRepoWatchersIDs(ctx, comment.Issue.RepoID, watchType)
@@ -73,6 +74,13 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %w", comment.Issue.RepoID, err)
 		}
 		unfiltered = append(ids, unfiltered...)
+		if comment.Issue.IsPull {
+			normalIDs, err := repo_model.GetRepoWatchersIDsByMode(ctx, comment.Issue.RepoID, watchType, repo_model.WatchModeNormal)
+			if err != nil {
+				return fmt.Errorf("GetRepoWatchersIDsByMode(%d): %w", comment.Issue.RepoID, err)
+			}
+			normalRepoWatchers.AddMultiple(normalIDs...)
+		}
 	}
 
 	visited := make(container.Set[int64], len(unfiltered)+len(mentions)+1)
@@ -90,7 +98,7 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 	}
 
 	// =========== Mentions ===========
-	if err = mailIssueCommentBatch(ctx, comment, mentions, visited, true); err != nil {
+	if err = mailIssueCommentBatch(ctx, comment, mentions, visited, true, nil); err != nil {
 		return fmt.Errorf("mailIssueCommentBatch() mentions: %w", err)
 	}
 
@@ -101,18 +109,18 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 	}
 	visited.AddMultiple(ids...)
 
-	unfilteredUsers, err := user_model.GetMailableUsersByIDs(ctx, unfiltered, false)
+	unfilteredUsers, err := user_model.GetMailableUsersByIDs(ctx, unfiltered, true)
 	if err != nil {
 		return err
 	}
-	if err = mailIssueCommentBatch(ctx, comment, unfilteredUsers, visited, false); err != nil {
+	if err = mailIssueCommentBatch(ctx, comment, unfilteredUsers, visited, false, normalRepoWatchers); err != nil {
 		return fmt.Errorf("mailIssueCommentBatch(): %w", err)
 	}
 
 	return nil
 }
 
-func mailIssueCommentBatch(ctx context.Context, comment *mailComment, users []*user_model.User, visited container.Set[int64], fromMention bool) error {
+func mailIssueCommentBatch(ctx context.Context, comment *mailComment, users []*user_model.User, visited container.Set[int64], fromMention bool, normalRepoWatchers container.Set[int64]) error {
 	checkUnit := unit.TypeIssues
 	if comment.Issue.IsPull {
 		checkUnit = unit.TypePullRequests
@@ -123,11 +131,11 @@ func mailIssueCommentBatch(ctx context.Context, comment *mailComment, users []*u
 		if !user.IsMailable() {
 			continue
 		}
-		// At this point we exclude:
-		// user that don't have all mails enabled or users only get mail on mention and this is one ...
+		// Ordinary mail requires all mail enabled; onmention also allows mentions and Normal PR repository watches.
 		if !(user.EmailNotificationsPreference == user_model.EmailNotificationsEnabled ||
 			user.EmailNotificationsPreference == user_model.EmailNotificationsAndYourOwn ||
-			fromMention && user.EmailNotificationsPreference == user_model.EmailNotificationsOnMention) {
+			user.EmailNotificationsPreference == user_model.EmailNotificationsOnMention &&
+				(fromMention || normalRepoWatchers.Contains(user.ID))) {
 			continue
 		}
 
