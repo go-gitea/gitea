@@ -8,12 +8,57 @@ import (
 	"fmt"
 
 	"gitea.dev/models/auth"
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
 )
 
 // UserList is a list of user.
 // This type provide valuable methods to retrieve information for a group of users efficiently.
 type UserList []*User //revive:disable-line:exported
+
+// LoadBadges loads achievement badges for all users in the list.
+func (users UserList) LoadBadges(ctx context.Context) error {
+	if len(users) == 0 {
+		return nil
+	}
+	userIDs := users.GetUserIDs()
+	for _, user := range users {
+		if user.Badges == nil {
+			user.Badges = make([]*badges.Badge, 0)
+		}
+	}
+	var userBadges []UserBadge
+	if err := db.GetEngine(ctx).Table("user_badge").In("user_id", userIDs).Find(&userBadges); err != nil {
+		return err
+	}
+	badgeIDs := make([]int64, 0, len(userBadges))
+	for _, ub := range userBadges {
+		badgeIDs = append(badgeIDs, ub.BadgeID)
+	}
+	if len(badgeIDs) == 0 {
+		return nil
+	}
+	badgeList := make([]*badges.Badge, 0, len(badgeIDs))
+	if err := db.GetEngine(ctx).Table("badge").In("id", badgeIDs).Find(&badgeList); err != nil {
+		return err
+	}
+	badgeMap := make(map[int64]*badges.Badge, len(badgeList))
+	for _, badge := range badgeList {
+		badgeMap[badge.ID] = badge
+	}
+	userMap := make(map[int64]*User, len(users))
+	for _, user := range users {
+		userMap[user.ID] = user
+	}
+	for _, ub := range userBadges {
+		if user, ok := userMap[ub.UserID]; ok {
+			if badge, ok := badgeMap[ub.BadgeID]; ok {
+				user.Badges = append(user.Badges, badge)
+			}
+		}
+	}
+	return nil
+}
 
 // GetUserIDs returns a slice of user's id
 func (users UserList) GetUserIDs() []int64 {

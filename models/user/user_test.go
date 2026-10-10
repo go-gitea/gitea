@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"gitea.dev/models/auth"
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/password/hash"
@@ -208,6 +210,35 @@ func TestSearchUsers(t *testing.T) {
 
 	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsTwoFactorEnabled: optional.Some(true)},
 		[]int64{24})
+}
+
+func TestSearchOrganizationsByBadge(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	badge := &badges.Badge{Slug: "org-search-label", Description: "Organization search label"}
+	assert.NoError(t, badges.CreateBadge(t.Context(), badge))
+	assert.NoError(t, organization.AddOrgBadge(t.Context(), (*organization.Organization)(org), badge))
+
+	filtered, filteredCount, err := user_model.SearchUsers(t.Context(), user_model.SearchUserOptions{
+		Types:     []user_model.UserType{user_model.UserTypeOrganization},
+		BadgeSlug: badge.Slug,
+		OrderBy:   "id ASC",
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), filteredCount)
+	assert.Len(t, filtered, 1)
+	assert.Equal(t, org.ID, filtered[0].ID)
+
+	_, withoutFilterCount, err := user_model.SearchUsers(t.Context(), user_model.SearchUserOptions{
+		Types:       []user_model.UserType{user_model.UserTypeOrganization},
+		OrderBy:     "id ASC",
+		ListOptions: db.ListOptions{ListAll: true},
+	})
+	assert.NoError(t, err)
+	assert.Greater(t, withoutFilterCount, filteredCount)
 }
 
 func TestEmailNotificationPreferences(t *testing.T) {

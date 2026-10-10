@@ -21,6 +21,7 @@ import (
 	"unicode"
 
 	"gitea.dev/models/auth"
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/auth/openid"
 	"gitea.dev/modules/auth/password/hash"
@@ -171,6 +172,8 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+
+	Badges []*badges.Badge `xorm:"-"`
 
 	// When the user model is used as a doer (all existing code does so), the doer can have extra details.
 	// * Actions task doer needs to bind to the task

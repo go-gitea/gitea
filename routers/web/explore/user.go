@@ -7,7 +7,9 @@ import (
 	"bytes"
 	"net/http"
 
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
@@ -88,12 +90,38 @@ func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, t
 	}
 
 	opts.Keyword = ctx.FormTrim("q")
+	ctx.Data["BadgeSlug"] = ""
+	if ctx.Data["PageIsExploreOrganizations"] == true {
+		opts.BadgeSlug = ctx.FormTrim("badge")
+		ctx.Data["BadgeSlug"] = opts.BadgeSlug
+		availableBadges, _, err := badges.SearchBadges(ctx, &badges.SearchBadgeOptions{})
+		if err != nil {
+			ctx.ServerError("SearchBadges", err)
+			return
+		}
+		ctx.Data["Badges"] = availableBadges
+	}
 	opts.OrderBy = orderBy
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		users, count, err = user_model.SearchUsers(ctx, opts)
 		if err != nil {
 			ctx.ServerError("SearchUsers", err)
 			return
+		}
+		individuals := make(user_model.UserList, 0, len(users))
+		organizations := make([]*user_model.User, 0, len(users))
+		for _, user := range users {
+			if user.IsOrganization() {
+				organizations = append(organizations, user)
+			} else {
+				individuals = append(individuals, user)
+			}
+		}
+		if err := individuals.LoadBadges(ctx); err != nil {
+			log.Error("Failed loading user badges: %v", err)
+		}
+		if err := org_model.LoadBadges(ctx, organizations); err != nil {
+			log.Error("Failed loading organization badges: %v", err)
 		}
 	}
 	if isSitemap {

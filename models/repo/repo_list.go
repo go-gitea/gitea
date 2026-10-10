@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
@@ -155,6 +156,7 @@ type SearchRepoOptions struct {
 	db.ListOptions
 	Actor           *user_model.User
 	Keyword         string
+	BadgeSlug       string
 	OwnerID         int64
 	PriorityOwnerID int64
 	TeamID          int64
@@ -371,6 +373,10 @@ func UserOrgPublicUnitRepoCond(userID, orgID int64) builder.Cond {
 // SearchRepositoryCondition creates a query condition according search repository options
 func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	cond := builder.NewCond()
+
+	if opts.BadgeSlug != "" {
+		cond = cond.And(builder.In("repository.id", builder.Select("repo_id").From("repo_badge").Join("INNER", "badge", "badge.id = repo_badge.badge_id").Where(builder.Eq{"badge.slug": opts.BadgeSlug})))
+	}
 
 	if opts.Private {
 		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
@@ -837,4 +843,60 @@ func GetOwnerRepositoriesByIDs(ctx context.Context, ownerID int64, repoIDs []int
 	}
 	repos := make(RepositoryList, 0, len(repoIDs))
 	return repos, db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID}).In("id", repoIDs).Find(&repos)
+}
+
+// LoadBadges loads the badges of the repositories
+func (repos RepositoryList) LoadBadges(ctx context.Context) error {
+	if len(repos) == 0 {
+		return nil
+	}
+
+	repoIDs := make([]int64, 0, len(repos))
+	for _, repo := range repos {
+		if repo.Badges == nil {
+			repo.Badges = make([]*badges.Badge, 0)
+			repoIDs = append(repoIDs, repo.ID)
+		}
+	}
+	if len(repoIDs) == 0 {
+		return nil
+	}
+
+	var repoBadges []RepoBadge
+	if err := db.GetEngine(ctx).Table("repo_badge").In("repo_id", repoIDs).Find(&repoBadges); err != nil {
+		return err
+	}
+
+	badgeIDs := make([]int64, 0, len(repoBadges))
+	for _, rb := range repoBadges {
+		badgeIDs = append(badgeIDs, rb.BadgeID)
+	}
+
+	if len(badgeIDs) == 0 {
+		return nil
+	}
+
+	badgesList := make([]*badges.Badge, 0, len(badgeIDs))
+	if err := db.GetEngine(ctx).Table("badge").In("id", badgeIDs).Find(&badgesList); err != nil {
+		return err
+	}
+
+	badgeMap := make(map[int64]*badges.Badge, len(badgesList))
+	for _, b := range badgesList {
+		badgeMap[b.ID] = b
+	}
+
+	repoMap := make(map[int64]*Repository, len(repos))
+	for _, repo := range repos {
+		repoMap[repo.ID] = repo
+	}
+	for _, rb := range repoBadges {
+		if repo, ok := repoMap[rb.RepoID]; ok {
+			if badge, ok := badgeMap[rb.BadgeID]; ok {
+				repo.Badges = append(repo.Badges, badge)
+			}
+		}
+	}
+
+	return nil
 }

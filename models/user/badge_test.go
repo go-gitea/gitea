@@ -6,6 +6,7 @@ package user_test
 import (
 	"testing"
 
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -25,20 +26,20 @@ func TestBadge(t *testing.T) {
 }
 
 func testGetBadgeNotExist(t *testing.T) {
-	badge, err := user_model.GetBadge(t.Context(), "does-not-exist")
+	badge, err := badges.GetBadge(t.Context(), "does-not-exist")
 	assert.Nil(t, badge)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, util.ErrNotExist)
 }
 
 func testCreateBadgeAlreadyExists(t *testing.T) {
-	badge := &user_model.Badge{
+	badge := &badges.Badge{
 		Slug:        "duplicate-badge-slug",
 		Description: "First",
 	}
-	assert.NoError(t, user_model.CreateBadge(t.Context(), badge))
+	assert.NoError(t, badges.CreateBadge(t.Context(), badge))
 
-	err := user_model.CreateBadge(t.Context(), &user_model.Badge{
+	err := badges.CreateBadge(t.Context(), &badges.Badge{
 		Slug:        "duplicate-badge-slug",
 		Description: "Second",
 	})
@@ -48,12 +49,12 @@ func testCreateBadgeAlreadyExists(t *testing.T) {
 
 func testGetBadgeUsers(t *testing.T) {
 	// Create a test badge
-	badge := &user_model.Badge{
+	badge := &badges.Badge{
 		Slug:        "test-badge-users",
 		Description: "Test Badge",
 		ImageURL:    "test.png",
 	}
-	assert.NoError(t, user_model.CreateBadge(t.Context(), badge))
+	assert.NoError(t, badges.CreateBadge(t.Context(), badge))
 
 	// Create test users and assign badges
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
@@ -96,14 +97,14 @@ func testGetBadgeUsers(t *testing.T) {
 }
 
 func testAddAndRemoveUserBadges(t *testing.T) {
-	badge1 := unittest.AssertExistsAndLoadBean(t, &user_model.Badge{ID: 1})
+	badge1 := unittest.AssertExistsAndLoadBean(t, &badges.Badge{ID: 1})
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	// Add a badge to user and verify that it is returned in the list
 	assert.NoError(t, user_model.AddUserBadge(t.Context(), user1, badge1))
-	badges, count, err := user_model.GetUserBadges(t.Context(), user1)
+	gotBadges, count, err := user_model.GetUserBadges(t.Context(), user1)
 	assert.Equal(t, int64(1), count)
-	assert.Equal(t, badge1.Slug, badges[0].Slug)
+	assert.Equal(t, badge1.Slug, gotBadges[0].Slug)
 	assert.NoError(t, err)
 
 	// Confirm that it is impossible to duplicate the same badge
@@ -112,9 +113,9 @@ func testAddAndRemoveUserBadges(t *testing.T) {
 	assert.ErrorIs(t, err, util.ErrAlreadyExist)
 
 	// Nothing happened to the existing badge
-	badges, count, err = user_model.GetUserBadges(t.Context(), user1)
+	gotBadges, count, err = user_model.GetUserBadges(t.Context(), user1)
 	assert.Equal(t, int64(1), count)
-	assert.Equal(t, badge1.Slug, badges[0].Slug)
+	assert.Equal(t, badge1.Slug, gotBadges[0].Slug)
 	assert.NoError(t, err)
 
 	// Remove a badge from user and verify that it is no longer in the list
@@ -125,58 +126,58 @@ func testAddAndRemoveUserBadges(t *testing.T) {
 
 	// Removing empty or missing badge selections should be a no-op.
 	assert.NoError(t, user_model.RemoveUserBadges(t.Context(), user1, nil))
-	assert.NoError(t, user_model.RemoveUserBadges(t.Context(), user1, []*user_model.Badge{{Slug: "does-not-exist"}}))
+	assert.NoError(t, user_model.RemoveUserBadges(t.Context(), user1, []*badges.Badge{{Slug: "does-not-exist"}}))
 }
 
 func testSearchBadgesOrderingAndKeyword(t *testing.T) {
-	createdBadges := []*user_model.Badge{
+	createdBadges := []*badges.Badge{
 		{Slug: "badge-sort-b", Description: "Badge Sort B"},
 		{Slug: "badge-sort-c", Description: "Badge Sort C"},
 		{Slug: "badge-sort-a", Description: "Badge Sort A"},
 		{Slug: "badge-sort-case", Description: "MiXeDCaSeKeyword"},
 	}
 	for _, badge := range createdBadges {
-		assert.NoError(t, user_model.CreateBadge(t.Context(), badge))
+		assert.NoError(t, badges.CreateBadge(t.Context(), badge))
 	}
 
-	opts := &user_model.SearchBadgeOptions{
+	opts := &badges.SearchBadgeOptions{
 		ListOptions: db.ListOptions{ListAll: true},
 		Keyword:     "badge-sort-",
 		OrderBy:     db.SearchOrderBy("`badge`.id ASC"),
 	}
 
-	oldestFirst, count, err := user_model.SearchBadges(t.Context(), opts)
+	oldestFirst, count, err := badges.SearchBadges(t.Context(), opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 4, count)
 	assert.Equal(t, []string{"badge-sort-b", "badge-sort-c", "badge-sort-a", "badge-sort-case"}, collectBadgeSlugs(oldestFirst))
 
 	opts.OrderBy = db.SearchOrderBy("`badge`.id DESC")
-	newestFirst, count, err := user_model.SearchBadges(t.Context(), opts)
+	newestFirst, count, err := badges.SearchBadges(t.Context(), opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 4, count)
 	assert.Equal(t, []string{"badge-sort-case", "badge-sort-a", "badge-sort-c", "badge-sort-b"}, collectBadgeSlugs(newestFirst))
 
 	opts.OrderBy = db.SearchOrderBy("`badge`.slug ASC")
-	alpha, count, err := user_model.SearchBadges(t.Context(), opts)
+	alpha, count, err := badges.SearchBadges(t.Context(), opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 4, count)
 	assert.Equal(t, []string{"badge-sort-a", "badge-sort-b", "badge-sort-c", "badge-sort-case"}, collectBadgeSlugs(alpha))
 
 	opts.OrderBy = db.SearchOrderBy("`badge`.slug DESC")
-	reverseAlpha, count, err := user_model.SearchBadges(t.Context(), opts)
+	reverseAlpha, count, err := badges.SearchBadges(t.Context(), opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 4, count)
 	assert.Equal(t, []string{"badge-sort-case", "badge-sort-c", "badge-sort-b", "badge-sort-a"}, collectBadgeSlugs(reverseAlpha))
 
 	opts.Keyword = "mixedcasekeyword"
 	opts.OrderBy = db.SearchOrderBy("`badge`.slug ASC")
-	caseInsensitive, count, err := user_model.SearchBadges(t.Context(), opts)
+	caseInsensitive, count, err := badges.SearchBadges(t.Context(), opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 	assert.Equal(t, []string{"badge-sort-case"}, collectBadgeSlugs(caseInsensitive))
 }
 
-func collectBadgeSlugs(badges []*user_model.Badge) []string {
+func collectBadgeSlugs(badges []*badges.Badge) []string {
 	slugs := make([]string, 0, len(badges))
 	for _, badge := range badges {
 		slugs = append(slugs, badge.Slug)

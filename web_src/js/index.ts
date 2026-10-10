@@ -51,7 +51,7 @@ import {initRepoCodeFrequency} from './features/code-frequency.ts';
 import {initRepoRecentCommits} from './features/recent-commits.ts';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.ts';
 import {initGlobalSelectorObserver} from './modules/observer.ts';
-import {initRepositorySearch} from './features/repo-search.ts';
+import {initExploreOrganizationSearch, initRepositorySearch} from './features/repo-search.ts';
 import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
@@ -142,6 +142,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepository,
   initRepositoryActions,
   initRepositorySearch,
+  initExploreOrganizationSearch,
   initRepoContributors,
   initRepoCodeFrequency,
   initRepoRecentCommits,

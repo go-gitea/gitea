@@ -38,6 +38,7 @@ type SearchUserOptions struct {
 	db.ListOptions
 
 	Keyword       string
+	BadgeSlug     string
 	Types         []UserType
 	UID           int64
 	LoginName     string                 // this option should be used only for admin user
@@ -69,6 +70,9 @@ func (opts *SearchUserOptions) ApplyPublicOnly(publicOnly bool) {
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) db.Session {
 	var cond builder.Cond
 	cond = builder.In("type", opts.Types)
+	if opts.BadgeSlug != "" {
+		cond = cond.And(builder.In("id", builder.Select("org_id").From("org_badge").Join("INNER", "badge", "badge.id = org_badge.badge_id").Where(builder.Eq{"badge.slug": opts.BadgeSlug})))
+	}
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
