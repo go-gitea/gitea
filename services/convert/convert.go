@@ -501,7 +501,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 			}
 			runnerID = task.RunnerID
 			runnerName = task.RunnerName
-			if runnerName == "" { // tasks claimed before the name was stored
+			if runnerName == "" {
 				if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
 					runnerName = runner.Name
 				}

@@ -33,7 +33,7 @@ type ActionTask struct {
 	Steps      []*ActionTaskStep `xorm:"-"`
 	Attempt    int64
 	RunnerID   int64              `xorm:"index"`
-	RunnerName string             `xorm:"VARCHAR(255)"` // kept on the task because the runner row may be deleted
+	RunnerName string             `xorm:"VARCHAR(255)"`
 	Status     Status             `xorm:"index"`
 	Started    timeutil.TimeStamp `xorm:"index"`
 	Stopped    timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`

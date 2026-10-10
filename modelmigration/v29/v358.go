@@ -11,7 +11,6 @@ import (
 	"xorm.io/xorm"
 )
 
-// AddRunnerNameToActionTask stores the runner name on the task, so it outlives the runner row.
 func AddRunnerNameToActionTask(_ context.Context, x base.EngineMigration) error {
 	type ActionTask struct {
 		RunnerName string `xorm:"VARCHAR(255)"`
