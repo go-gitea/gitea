@@ -82,9 +82,12 @@ func TestShouldPersistLastActive(t *testing.T) {
 	}
 }
 
-func TestCanMatchLabelsCaseInsensitive(t *testing.T) {
-	runner := &ActionRunner{AgentLabels: []string{"self-hosted", "Linux", "X64"}}
-	assert.True(t, runner.CanMatchLabels([]string{"SELF-HOSTED", "linux"}))
-	assert.False(t, runner.CanMatchLabels([]string{"linux", "arm64"}))
-	assert.False(t, runner.CanMatchLabels(nil))
+func TestCanRunJob(t *testing.T) {
+	runner := &ActionRunner{AgentLabels: []string{"self-hosted", "Linux", "X64"}, Group: &ActionRunnerGroup{Name: "GPU", LowerName: "gpu"}}
+	assert.True(t, runner.CanRunJob("gpu", []string{"SELF-HOSTED", "linux"}))
+	assert.True(t, runner.CanRunJob("gpu", nil))
+	assert.False(t, runner.CanRunJob("", []string{"linux", "arm64"}))
+	assert.False(t, runner.CanRunJob("", nil))
+	assert.False(t, runner.CanRunJob("cpu", nil))
+	assert.False(t, (&ActionRunner{}).CanRunJob("gpu", nil))
 }
