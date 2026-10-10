@@ -175,41 +175,25 @@ func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refO
 	return []byte(str), commit.ID.String(), nil
 }
 
-// checkCallerChain walks `caller`'s ancestor chain (via ParentJobID) and:
+// checkCallerChain checks `caller`'s ancestors (nearest first) and:
 //   - rejects cycles (caller.CallUses appearing in any ancestor's CallUses)
 //   - enforces MaxReusableCallLevels on the number of ancestors above `caller`
-func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) error {
-	if caller.ParentJobID == 0 {
-		return nil // top-level caller: depth 0, no ancestors to walk
-	}
-
+func checkCallerChain(caller *actions_model.ActionRunJob, ancestors []*actions_model.ActionRunJob) error {
 	visited := container.SetOf(canonicalCallUses(caller))
-
-	depth := 0
-	current := caller
-	for current.ParentJobID != 0 {
-		next, err := actions_model.GetRunJobByRunAndID(ctx, current.RunID, current.ParentJobID)
-		if err != nil {
-			return fmt.Errorf("walk caller chain: %w", err)
-		}
-		current = next
-		depth++
-		if depth > MaxReusableCallLevels {
+	for i, ancestor := range ancestors {
+		if i+1 > MaxReusableCallLevels {
 			return errCallLevelExceeded(caller.CallUses)
 		}
-		if current.IsReusableCaller && current.CallUses != "" && !visited.Add(canonicalCallUses(current)) {
-			return fmt.Errorf("reusable workflow call cycle detected: %q", current.CallUses)
+		if ancestor.IsReusableCaller && ancestor.CallUses != "" && !visited.Add(canonicalCallUses(ancestor)) {
+			return fmt.Errorf("reusable workflow call cycle detected: %q", ancestor.CallUses)
 		}
 	}
 	return nil
 }
 
-func checkResolvedCallerCycle(ctx context.Context, caller *actions_model.ActionRunJob, sourceRepoID int64, sourceCommitSHA, path string) error {
-	for current := caller; current.ParentJobID != 0; {
-		parent, err := actions_model.GetRunJobByRunAndID(ctx, current.RunID, current.ParentJobID)
-		if err != nil {
-			return fmt.Errorf("walk caller chain: %w", err)
-		}
+func checkResolvedCallerCycle(ctx context.Context, caller *actions_model.ActionRunJob, ancestors []*actions_model.ActionRunJob, sourceRepoID int64, sourceCommitSHA, path string) error {
+	current := caller
+	for _, parent := range ancestors {
 		ref, err := ResolveUses(ctx, parent.CallUses)
 		if err != nil {
 			return fmt.Errorf("resolve ancestor uses %q: %w", parent.CallUses, err)
@@ -249,7 +233,11 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	}
 
 	// 1. Cycle + depth check via the ParentJobID chain.
-	if err := checkCallerChain(ctx, caller); err != nil {
+	ancestors, err := actions_model.GetAncestorCallers(ctx, caller)
+	if err != nil {
+		return err
+	}
+	if err := checkCallerChain(caller, ancestors); err != nil {
 		return err
 	}
 
@@ -268,7 +256,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	if err != nil {
 		return err
 	}
-	if err := checkResolvedCallerCycle(ctx, caller, contentSourceRepoID, contentSourceCommitSHA, ref.Path); err != nil {
+	if err := checkResolvedCallerCycle(ctx, caller, ancestors, contentSourceRepoID, contentSourceCommitSHA, ref.Path); err != nil {
 		return err
 	}
 	if _, err := jobparser.ValidateWorkflowStatic(content); err != nil {
