@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 )
 
@@ -193,6 +194,31 @@ func invalidRunsOn(job *actions_model.ActionRunJob) error {
 		return errors.New(problem)
 	}
 	return nil
+}
+
+// admitJob decides whether a job whose `if:` passed may start. A slot-starved job only gets max-parallel applied,
+// so it neither fails nor cancels its group peers. Otherwise an invalid runs-on fails it, and its concurrency group
+// and max-parallel decide whether it starts; evaluateConcurrency, if set, runs right before the concurrency check.
+func admitJob(ctx context.Context, job *actions_model.ActionRunJob, slots maxParallelSlots, invalidRunsOn error, evaluateConcurrency func() error) (failedRunsOn bool, cancelled []*actions_model.ActionRunJob, err error) {
+	if !slots.available(job) {
+		applyMaxParallel(job, slots)
+		return false, nil, nil
+	}
+	if invalidRunsOn != nil {
+		job.Status, job.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
+		return true, nil, nil
+	}
+	if evaluateConcurrency != nil {
+		if err := evaluateConcurrency(); err != nil {
+			return false, nil, err
+		}
+	}
+	job.Status, cancelled, err = PrepareToStartJobWithConcurrency(ctx, job)
+	if err != nil {
+		return false, nil, fmt.Errorf("prepare to start job with concurrency: %w", err)
+	}
+	applyMaxParallel(job, slots)
+	return false, cancelled, nil
 }
 
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {

@@ -18,7 +18,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
-	shared_user "gitea.dev/routers/web/shared/user"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
 )
@@ -30,53 +29,28 @@ const (
 )
 
 type scopedWorkflowsCtx struct {
-	OwnerID      int64 // 0 = instance-level
-	IsOrg        bool
-	IsUser       bool
-	IsGlobal     bool
+	*settingsScope
 	Template     templates.TplName
 	RedirectLink string
-	// SearchUID is the uid passed to the repo-search box. For org/user it scopes the search to that owner;
-	// for admin (0) it searches all repos and therefore requires admin access on the route.
-	SearchUID int64
 }
 
 func getScopedWorkflowsCtx(ctx *context.Context) (*scopedWorkflowsCtx, error) {
-	if ctx.Data["PageIsOrgSettings"] == true {
-		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-			ctx.ServerError("RenderUserOrgHeader", err)
-			return nil, nil //nolint:nilnil // error is already handled by ctx.ServerError
-		}
-		return &scopedWorkflowsCtx{
-			OwnerID:      ctx.Org.Organization.ID,
-			IsOrg:        true,
-			Template:     tplOrgScopedWorkflows,
-			RedirectLink: ctx.Org.OrgLink + "/settings/actions/scoped-workflows",
-			SearchUID:    ctx.Org.Organization.ID,
-		}, nil
+	scope, err := getSettingsScope(ctx)
+	if err != nil {
+		return nil, err
 	}
-
-	if ctx.Data["PageIsUserSettings"] == true {
-		return &scopedWorkflowsCtx{
-			OwnerID:      ctx.Doer.ID,
-			IsUser:       true,
-			Template:     tplUserScopedWorkflows,
-			RedirectLink: setting.AppSubURL + "/user/settings/actions/scoped-workflows",
-			SearchUID:    ctx.Doer.ID,
-		}, nil
+	swCtx := &scopedWorkflowsCtx{settingsScope: scope, RedirectLink: scope.LinkPrefix + "/scoped-workflows"}
+	switch {
+	case scope.IsOrg:
+		swCtx.Template = tplOrgScopedWorkflows
+	case scope.IsUser:
+		swCtx.Template = tplUserScopedWorkflows
+	case scope.IsAdmin:
+		swCtx.Template = tplAdminScopedWorkflows
+	default:
+		return nil, errors.New("getScopedWorkflowsCtx: scoped workflows are not managed per repository")
 	}
-
-	if ctx.Data["PageIsAdmin"] == true {
-		return &scopedWorkflowsCtx{
-			OwnerID:      0,
-			IsGlobal:     true,
-			Template:     tplAdminScopedWorkflows,
-			RedirectLink: setting.AppSubURL + "/-/admin/actions/scoped-workflows",
-			SearchUID:    0,
-		}, nil
-	}
-
-	return nil, errors.New("unable to set scoped workflows context")
+	return swCtx, nil
 }
 
 // scopedWorkflowInfo is one scoped workflow shown on the settings page, merged with its stored merge-gate config.
@@ -103,9 +77,6 @@ func ScopedWorkflows(ctx *context.Context) {
 	swCtx, err := getScopedWorkflowsCtx(ctx)
 	if err != nil {
 		ctx.ServerError("getScopedWorkflowsCtx", err)
-		return
-	}
-	if ctx.Written() {
 		return
 	}
 
@@ -138,11 +109,11 @@ func ScopedWorkflows(ctx *context.Context) {
 	}
 
 	ctx.Data["ScopedWorkflowSources"] = views
-	ctx.Data["RepoSearchUID"] = swCtx.SearchUID
+	ctx.Data["RepoSearchUID"] = swCtx.OwnerID // 0 searches all repos, the admin route allows it
 	// owner/user scopes the repo search to the owner (exclusive);
 	// instance-level (admin) searches all repos and so must submit owner/name to disambiguate the selection across owners.
-	ctx.Data["ScopedWorkflowsSearchExclusive"] = !swCtx.IsGlobal
-	ctx.Data["ScopedWorkflowsSearchFullName"] = swCtx.IsGlobal
+	ctx.Data["ScopedWorkflowsSearchExclusive"] = !swCtx.IsAdmin
+	ctx.Data["ScopedWorkflowsSearchFullName"] = swCtx.IsAdmin
 	ctx.Data["RedirectLink"] = swCtx.RedirectLink
 	ctx.Data["ScopedWorkflowDirs"] = strings.Join(setting.Actions.ScopedWorkflowDirs, ", ")
 	ctx.HTML(http.StatusOK, swCtx.Template)
@@ -248,13 +219,10 @@ func ScopedWorkflowAdd(ctx *context.Context) {
 		ctx.ServerError("getScopedWorkflowsCtx", err)
 		return
 	}
-	if ctx.Written() {
-		return
-	}
 
 	repoName := ctx.FormString("repo_name")
 	var repo *repo_model.Repository
-	if swCtx.IsGlobal {
+	if swCtx.IsAdmin {
 		// instance-level: the source may be any repo on the instance, identified by owner/name
 		ownerName, name, ok := strings.Cut(repoName, "/")
 		if !ok {
@@ -283,9 +251,6 @@ func ScopedWorkflowSetRequired(ctx *context.Context) {
 	swCtx, err := getScopedWorkflowsCtx(ctx)
 	if err != nil {
 		ctx.ServerError("getScopedWorkflowsCtx", err)
-		return
-	}
-	if ctx.Written() {
 		return
 	}
 
@@ -352,9 +317,6 @@ func ScopedWorkflowRemove(ctx *context.Context) {
 	swCtx, err := getScopedWorkflowsCtx(ctx)
 	if err != nil {
 		ctx.ServerError("getScopedWorkflowsCtx", err)
-		return
-	}
-	if ctx.Written() {
 		return
 	}
 

@@ -4,20 +4,16 @@
 package actions
 
 import (
-	stdctx "context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
-	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -35,66 +31,29 @@ const (
 )
 
 type runnersCtx struct {
-	OwnerID            int64
-	RepoID             int64
-	IsRepo             bool
-	IsOrg              bool
-	IsAdmin            bool
-	IsUser             bool
+	*settingsScope
 	RunnersTemplate    templates.TplName
 	RunnerEditTemplate templates.TplName
 	RedirectLink       string
 }
 
 func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
-	if ctx.Data["PageIsRepoSettings"] == true {
-		return &runnersCtx{
-			RepoID:             ctx.Repo.Repository.ID,
-			OwnerID:            0,
-			IsRepo:             true,
-			RunnersTemplate:    tplRepoRunners,
-			RunnerEditTemplate: tplRepoRunnerEdit,
-			RedirectLink:       ctx.Repo.RepoLink + "/settings/actions/runners/",
-		}, nil
+	scope, err := getSettingsScope(ctx)
+	if err != nil {
+		return nil, err
 	}
-
-	if ctx.Data["PageIsOrgSettings"] == true {
-		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-			return nil, fmt.Errorf("RenderUserOrgHeader: %w", err)
-		}
-		return &runnersCtx{
-			RepoID:             0,
-			OwnerID:            ctx.Org.Organization.ID,
-			IsOrg:              true,
-			RunnersTemplate:    tplOrgRunners,
-			RunnerEditTemplate: tplOrgRunnerEdit,
-			RedirectLink:       ctx.Org.OrgLink + "/settings/actions/runners/",
-		}, nil
+	rCtx := &runnersCtx{settingsScope: scope, RedirectLink: scope.LinkPrefix + "/runners/"}
+	switch {
+	case scope.IsRepo:
+		rCtx.RunnersTemplate, rCtx.RunnerEditTemplate = tplRepoRunners, tplRepoRunnerEdit
+	case scope.IsOrg:
+		rCtx.RunnersTemplate, rCtx.RunnerEditTemplate = tplOrgRunners, tplOrgRunnerEdit
+	case scope.IsUser:
+		rCtx.RunnersTemplate, rCtx.RunnerEditTemplate = tplUserRunners, tplUserRunnerEdit
+	case scope.IsAdmin:
+		rCtx.RunnersTemplate, rCtx.RunnerEditTemplate = tplAdminRunners, tplAdminRunnerEdit
 	}
-
-	if ctx.Data["PageIsAdmin"] == true {
-		return &runnersCtx{
-			RepoID:             0,
-			OwnerID:            0,
-			IsAdmin:            true,
-			RunnersTemplate:    tplAdminRunners,
-			RunnerEditTemplate: tplAdminRunnerEdit,
-			RedirectLink:       setting.AppSubURL + "/-/admin/actions/runners/",
-		}, nil
-	}
-
-	if ctx.Data["PageIsUserSettings"] == true {
-		return &runnersCtx{
-			OwnerID:            ctx.Doer.ID,
-			RepoID:             0,
-			IsUser:             true,
-			RunnersTemplate:    tplUserRunners,
-			RunnerEditTemplate: tplUserRunnerEdit,
-			RedirectLink:       setting.AppSubURL + "/user/settings/actions/runners/",
-		}, nil
-	}
-
-	return nil, errors.New("unable to set Runners context")
+	return rCtx, nil
 }
 
 // Runners render settings/actions/runners page for repo level
@@ -406,25 +365,11 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		return
 	}
 
-	err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
-		for _, r := range runners {
-			switch action {
-			case "delete":
-				if err := actions_model.DeleteRunner(txCtx, r.ID); err != nil {
-					return err
-				}
-			case "disable":
-				if err := actions_model.SetRunnerDisabled(txCtx, r, true); err != nil {
-					return err
-				}
-			case "enable":
-				if err := actions_model.SetRunnerDisabled(txCtx, r, false); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	})
+	if action == "delete" {
+		err = actions_model.DeleteRunners(ctx, runners)
+	} else {
+		err = actions_model.SetRunnersDisabled(ctx, runners, action == "disable")
+	}
 	if err != nil {
 		log.Warn("RunnerBulkActionPost.%s failed: %v, url: %s", action, err, ctx.Req.URL)
 		ctx.Flash.Error(ctx.Tr(failedKey))

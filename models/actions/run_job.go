@@ -724,16 +724,33 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 	return cancelledJobs, nil
 }
 
-// GetAncestorCallerIDs returns the IDs of the reusable workflow callers the job is nested in.
-func GetAncestorCallerIDs(ctx context.Context, job *ActionRunJob) (container.Set[int64], error) {
-	ids := make(container.Set[int64])
+// GetAncestorCallers returns the reusable workflow callers the job is nested in, nearest first.
+func GetAncestorCallers(ctx context.Context, job *ActionRunJob) ([]*ActionRunJob, error) {
+	var callers []*ActionRunJob
+	seen := make(container.Set[int64])
 	for parentID := job.ParentJobID; parentID != 0; {
+		if !seen.Add(parentID) {
+			return nil, fmt.Errorf("GetAncestorCallers: caller chain of job %d loops at %d", job.ID, parentID)
+		}
 		parent, err := GetRunJobByRunAndID(ctx, job.RunID, parentID)
 		if err != nil {
-			return nil, fmt.Errorf("load caller %d: %w", parentID, err)
+			return nil, fmt.Errorf("GetAncestorCallers: load caller %d: %w", parentID, err)
 		}
-		ids.Add(parent.ID)
+		callers = append(callers, parent)
 		parentID = parent.ParentJobID
+	}
+	return callers, nil
+}
+
+// GetAncestorCallerIDs returns the IDs of the reusable workflow callers the job is nested in.
+func GetAncestorCallerIDs(ctx context.Context, job *ActionRunJob) (container.Set[int64], error) {
+	callers, err := GetAncestorCallers(ctx, job)
+	if err != nil {
+		return nil, err
+	}
+	ids := make(container.Set[int64], len(callers))
+	for _, caller := range callers {
+		ids.Add(caller.ID)
 	}
 	return ids, nil
 }

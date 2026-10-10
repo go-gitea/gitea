@@ -657,12 +657,12 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	shared.ListRuns(ctx, ctx.Org.Organization.ID, 0, "")
 }
 
-var _ actions_service.API = new(Action)
+var _ shared.API = new(Action)
 
-// Action implements actions_service.API
+// Action implements shared.API
 type Action struct{}
 
 // NewAction creates a new Action service
-func NewAction() actions_service.API {
+func NewAction() shared.API {
 	return Action{}
 }

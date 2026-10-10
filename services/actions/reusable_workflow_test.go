@@ -30,7 +30,7 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 			"./.gitea/workflows/a.yml",
 			"./.gitea/workflows/a.yml",
 		)
-		err := checkCallerChain(t.Context(), chain[len(chain)-1])
+		err := checkCallerChainOf(t, chain[len(chain)-1])
 		assert.ErrorContains(t, err, "cycle detected")
 	})
 
@@ -42,7 +42,7 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 			"./.gitea/workflows/b.yml",
 			"./.gitea/workflows/a.yml",
 		)
-		err := checkCallerChain(t.Context(), chain[len(chain)-1])
+		err := checkCallerChainOf(t, chain[len(chain)-1])
 		assert.ErrorContains(t, err, "cycle detected")
 	})
 
@@ -53,7 +53,7 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 			"./.gitea/workflows/a.yml",
 			"$/.gitea/workflows/a.yml",
 		)
-		err := checkCallerChain(t.Context(), chain[len(chain)-1])
+		err := checkCallerChainOf(t, chain[len(chain)-1])
 		assert.ErrorContains(t, err, "cycle detected")
 		assert.Equal(t, canonicalCallUses(&actions_model.ActionRunJob{CallUses: "owner/repo/.gitea/workflows/a.yml@v1"}), canonicalCallUses(&actions_model.ActionRunJob{CallUses: "self:owner/repo/.gitea/workflows/a.yml@v1"}))
 	})
@@ -66,7 +66,7 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 			"./.gitea/workflows/b.yml",
 			"./.gitea/workflows/c.yml",
 		)
-		require.NoError(t, checkCallerChain(t.Context(), chain[len(chain)-1]))
+		require.NoError(t, checkCallerChainOf(t, chain[len(chain)-1]))
 	})
 
 	t.Run("SameLocalPathInOtherRepo", func(t *testing.T) {
@@ -78,7 +78,7 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 		)
 		leaf := chain[len(chain)-1]
 		leaf.WorkflowSourceRepoID = 2
-		require.NoError(t, checkCallerChain(t.Context(), leaf))
+		require.NoError(t, checkCallerChainOf(t, leaf))
 	})
 
 	t.Run("ResolvedIdentityCycle", func(t *testing.T) {
@@ -95,9 +95,9 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 		chain[2].WorkflowSourceRepoID = 5
 		chain[2].WorkflowSourceCommitSHA = "second-commit"
 
-		require.NoError(t, checkCallerChain(t.Context(), chain[2]))
-		require.ErrorContains(t, checkResolvedCallerCycle(t.Context(), chain[2], 4, "first-commit", ".gitea/workflows/a.yml"), "cycle detected")
-		require.NoError(t, checkResolvedCallerCycle(t.Context(), chain[2], 4, "other-commit", ".gitea/workflows/a.yml"))
+		require.NoError(t, checkCallerChainOf(t, chain[2]))
+		require.ErrorContains(t, checkResolvedCallerCycle(t.Context(), chain[2], mustGetAncestorCallers(t, chain[2]), 4, "first-commit", ".gitea/workflows/a.yml"), "cycle detected")
+		require.NoError(t, checkResolvedCallerCycle(t.Context(), chain[2], mustGetAncestorCallers(t, chain[2]), 4, "other-commit", ".gitea/workflows/a.yml"))
 	})
 }
 
@@ -114,15 +114,25 @@ func TestCheckCallerChain_DepthLimit(t *testing.T) {
 	t.Run("ExactlyAtLimit", func(t *testing.T) {
 		require.NoError(t, unittest.PrepareTestDatabase())
 		chain := buildCallerChain(t, makeDistinctUses(MaxReusableCallLevels+1)...)
-		require.NoError(t, checkCallerChain(t.Context(), chain[len(chain)-1]))
+		require.NoError(t, checkCallerChainOf(t, chain[len(chain)-1]))
 	})
 
 	t.Run("OneOverLimit", func(t *testing.T) {
 		require.NoError(t, unittest.PrepareTestDatabase())
 		chain := buildCallerChain(t, makeDistinctUses(MaxReusableCallLevels+2)...)
-		err := checkCallerChain(t.Context(), chain[len(chain)-1])
+		err := checkCallerChainOf(t, chain[len(chain)-1])
 		assert.ErrorContains(t, err, "exceeds the maximum nesting level")
 	})
+}
+
+func checkCallerChainOf(t *testing.T, job *actions_model.ActionRunJob) error {
+	return checkCallerChain(job, mustGetAncestorCallers(t, job))
+}
+
+func mustGetAncestorCallers(t *testing.T, job *actions_model.ActionRunJob) []*actions_model.ActionRunJob {
+	ancestors, err := actions_model.GetAncestorCallers(t.Context(), job)
+	require.NoError(t, err)
+	return ancestors
 }
 
 // buildCallerChain inserts a linear chain of reusable caller jobs in a single run+attempt.

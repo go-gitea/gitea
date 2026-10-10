@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"errors"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -17,6 +18,42 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAdmitJob(t *testing.T) {
+	evaluated := 0
+	evaluate := func() error { evaluated++; return nil }
+	slots := maxParallelSlots{}
+	newJob := func() *actions_model.ActionRunJob {
+		return &actions_model.ActionRunJob{JobID: "build", Status: actions_model.StatusWaiting, MaxParallel: 1}
+	}
+
+	first := newJob()
+	failed, cancelled, err := admitJob(t.Context(), first, slots, nil, evaluate)
+	require.NoError(t, err)
+	assert.False(t, failed)
+	assert.Empty(t, cancelled)
+	assert.Equal(t, actions_model.StatusWaiting, first.Status)
+	assert.Equal(t, 1, evaluated)
+
+	// the slot is taken: a starved job neither fails on runs-on nor evaluates its concurrency
+	starved := newJob()
+	failed, _, err = admitJob(t.Context(), starved, slots, errors.New("bad runs-on"), evaluate)
+	require.NoError(t, err)
+	assert.False(t, failed)
+	assert.Equal(t, actions_model.StatusBlocked, starved.Status)
+	assert.Equal(t, 1, evaluated)
+
+	invalid := newJob()
+	failed, _, err = admitJob(t.Context(), invalid, maxParallelSlots{}, errors.New("bad runs-on"), evaluate)
+	require.NoError(t, err)
+	assert.True(t, failed)
+	assert.Equal(t, actions_model.StatusFailure, invalid.Status)
+	assert.NotZero(t, invalid.Stopped)
+	assert.Equal(t, 1, evaluated)
+
+	_, _, err = admitJob(t.Context(), newJob(), maxParallelSlots{}, nil, func() error { return errors.New("bad concurrency") })
+	assert.ErrorContains(t, err, "bad concurrency")
+}
 
 func TestDispatchInputsForRunJobs(t *testing.T) {
 	// a child carries the callee's `on: workflow_call`, so only a top-level job answers for the run
