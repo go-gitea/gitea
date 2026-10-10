@@ -68,6 +68,12 @@ func MakeRestrictedPermissions() ActionsTokenPermissions {
 	return ret
 }
 
+// MakeCrossRepoAccessPermissions returns the permission ceiling applied to Actions tokens for
+// fork pull requests and cross-repository access: read-only across every unit.
+func MakeCrossRepoAccessPermissions() ActionsTokenPermissions {
+	return MakeActionsTokenPermissions(perm.AccessModeRead)
+}
+
 type ActionsConfig struct {
 	DisabledWorkflows []string
 	// DisabledScopedWorkflows maps a scoped workflow's source repository ID to the entry names opted out of in this repository.
