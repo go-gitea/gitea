@@ -322,19 +322,21 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 					return fmt.Errorf("evaluate job if: %w", err)
 				}
 
-				// A slot-starved job must not cancel its group peers.
-				if newJob.RawConcurrency != "" && newJob.Status == actions_model.StatusWaiting && slots.available(newJob) {
-					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil); err != nil {
-						return fmt.Errorf("evaluate job concurrency: %w", err)
-					}
-					newJob.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, newJob)
+				if newJob.Status == actions_model.StatusWaiting {
+					_, jobsToCancel, err = admitJob(ctx, newJob, slots, nil, func() error {
+						if newJob.RawConcurrency == "" {
+							return nil
+						}
+						if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil); err != nil {
+							return fmt.Errorf("evaluate job concurrency: %w", err)
+						}
+						return nil
+					})
 					if err != nil {
-						return fmt.Errorf("prepare to start job with concurrency: %w", err)
+						return err
 					}
 					cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 				}
-
-				applyMaxParallel(newJob, slots)
 				newJobsToRerun = append(newJobsToRerun, newJob)
 			} else {
 				markJobPassThrough(newJob, templateJob, plan.ancestorAttemptJobIDs.Contains(templateJob.AttemptJobID))
