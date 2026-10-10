@@ -124,7 +124,7 @@ func VariableCreate(ctx *context.Context) {
 
 	form := web.GetForm[*forms.EditVariableForm](ctx)
 
-	v, err := actions_service.CreateVariable(ctx, actions_model.BelongingScope{OwnerID: vCtx.OwnerID, RepoID: vCtx.RepoID}, form.Name, form.Data, form.Description)
+	v, err := actions_service.CreateVariable(ctx, actions_model.BelongingScopeOwnerOrRepo(vCtx.OwnerID, vCtx.RepoID), form.Name, form.Data, form.Description)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -171,16 +171,10 @@ func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *ac
 		IDs: []int64{id},
 	}
 	switch {
-	case vCtx.IsRepo:
-		opts.RepoID = vCtx.RepoID
-		if opts.RepoID == 0 {
-			panic("RepoID is 0")
-		}
-	case vCtx.IsOrg, vCtx.IsUser:
-		opts.OwnerID = vCtx.OwnerID
-		if opts.OwnerID == 0 {
-			panic("OwnerID is 0")
-		}
+	case vCtx.IsRepo && vCtx.RepoID != 0:
+		opts.BelongingScope = actions_model.BelongingScopeRepo(vCtx.RepoID)
+	case (vCtx.IsOrg || vCtx.IsUser) && vCtx.OwnerID != 0:
+		opts.BelongingScope = actions_model.BelongingScopeOwner(vCtx.OwnerID)
 	case vCtx.IsGlobal:
 		// do nothing
 	default:

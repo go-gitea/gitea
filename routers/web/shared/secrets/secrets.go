@@ -19,7 +19,7 @@ import (
 )
 
 func SetSecretsContext(ctx *context.Context, scope actions_model.BelongingScope) {
-	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{OwnerID: scope.OwnerID, RepoID: scope.RepoID})
+	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{BelongingScope: scope})
 	if err != nil {
 		ctx.ServerError("FindSecrets", err)
 		return
@@ -32,10 +32,9 @@ func SetSecretsContext(ctx *context.Context, scope actions_model.BelongingScope)
 
 func secretBelongingScope(owner *user_model.User, repo *repo_model.Repository) (scope actions_model.BelongingScope) {
 	if owner != nil {
-		scope.OwnerID = owner.ID
-	}
-	if repo != nil {
-		scope.RepoID = repo.ID
+		return actions_model.BelongingScopeOwner(owner.ID)
+	} else if repo != nil {
+		return actions_model.BelongingScopeRepo(repo.ID)
 	}
 	return scope
 }

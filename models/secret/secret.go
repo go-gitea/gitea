@@ -66,11 +66,6 @@ func (err ErrSecretNotFound) Unwrap() error {
 
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
 func InsertEncryptedSecret(ctx context.Context, scope actions_model.BelongingScope, name, data, description string) (*Secret, error) {
-	scope = scope.Normalized()
-	if scope.OwnerID == 0 && scope.RepoID == 0 {
-		return nil, fmt.Errorf("%w: ownerID and repoID cannot be both zero, global secrets are not supported", util.ErrInvalidArgument)
-	}
-
 	if len(data) > SecretDataMaxLength {
 		return nil, util.NewInvalidArgumentErrorf("data too long")
 	}
@@ -83,12 +78,11 @@ func InsertEncryptedSecret(ctx context.Context, scope actions_model.BelongingSco
 	}
 
 	secret := &Secret{
-		OwnerID:     scope.OwnerID,
-		RepoID:      scope.RepoID,
 		Name:        strings.ToUpper(name),
 		Data:        encrypted,
 		Description: description,
 	}
+	secret.OwnerID, secret.RepoID = scope.GetOwnerRepoIDs()
 	return secret, db.Insert(ctx, secret)
 }
 
@@ -98,10 +92,10 @@ func init() {
 
 type FindSecretsOptions struct {
 	db.ListOptions
-	RepoID   int64
-	OwnerID  int64 // it will be ignored if RepoID is set
 	SecretID int64
 	Name     string
+
+	BelongingScope actions_model.BelongingScope
 }
 
 func (opts FindSecretsOptions) ToOrders() string {
@@ -110,13 +104,13 @@ func (opts FindSecretsOptions) ToOrders() string {
 
 func (opts FindSecretsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-
-	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	if opts.RepoID != 0 { // if RepoID is set
+	ownerID, repoID := opts.BelongingScope.GetOwnerRepoIDs()
+	cond = cond.And(builder.Eq{"repo_id": repoID})
+	if repoID != 0 { // if RepoID is set
 		// ignore OwnerID and treat it as 0
 		cond = cond.And(builder.Eq{"owner_id": 0})
 	} else {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+		cond = cond.And(builder.Eq{"owner_id": ownerID})
 	}
 
 	if opts.SecretID != 0 {
@@ -166,12 +160,12 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 		return baseSecrets, nil
 	}
 
-	ownerSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{OwnerID: task.Job.Run.Repo.OwnerID})
+	ownerSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{BelongingScope: actions_model.BelongingScopeOwner(task.Job.Run.Repo.OwnerID)})
 	if err != nil {
 		log.Error("find secrets of owner %v: %v", task.Job.Run.Repo.OwnerID, err)
 		return nil, err
 	}
-	repoSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{RepoID: task.Job.Run.RepoID})
+	repoSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{BelongingScope: actions_model.BelongingScopeRepo(task.Job.Run.RepoID)})
 	if err != nil {
 		log.Error("find secrets of repo %v: %v", task.Job.Run.RepoID, err)
 		return nil, err

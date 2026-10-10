@@ -3,19 +3,29 @@
 
 package actions
 
-import "gitea.dev/modules/setting"
-
 // BelongingScope identifies the owner (user/org) or repository an Actions secret or variable belongs to.
 type BelongingScope struct {
-	OwnerID int64
-	RepoID  int64
+	ownerID int64
+	repoID  int64
 }
 
-// Normalized drops OwnerID from a repo level scope, a repo level scope must have OwnerID 0.
-func (s BelongingScope) Normalized() BelongingScope {
-	if s.OwnerID != 0 && s.RepoID != 0 {
-		setting.PanicInDevOrTesting("BelongingScope has both OwnerID %d and RepoID %d set", s.OwnerID, s.RepoID)
-		s.OwnerID = 0
+func BelongingScopeOwner(ownerID int64) BelongingScope {
+	return BelongingScope{ownerID: ownerID}
+}
+
+func BelongingScopeRepo(repoID int64) BelongingScope {
+	return BelongingScope{repoID: repoID}
+}
+
+func BelongingScopeOwnerOrRepo(ownerID, repoID int64) BelongingScope {
+	if ownerID != 0 {
+		return BelongingScopeOwner(ownerID)
+	} else if repoID != 0 {
+		return BelongingScopeRepo(repoID)
 	}
-	return s
+	return BelongingScope{}
+}
+
+func (scope BelongingScope) GetOwnerRepoIDs() (ownerID, repoID int64) {
+	return scope.ownerID, scope.repoID
 }

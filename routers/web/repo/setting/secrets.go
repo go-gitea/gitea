@@ -89,7 +89,7 @@ func Secrets(ctx *context.Context) {
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	}
 
-	shared.SetSecretsContext(ctx, actions_model.BelongingScope{OwnerID: sCtx.OwnerID, RepoID: sCtx.RepoID})
+	shared.SetSecretsContext(ctx, actions_model.BelongingScopeOwnerOrRepo(sCtx.OwnerID, sCtx.RepoID))
 	if ctx.Written() {
 		return
 	}

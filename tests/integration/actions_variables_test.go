@@ -27,17 +27,17 @@ func TestActionsVariables(t *testing.T) {
 	require.NoError(t, db.DeleteAllRecords("action_variable"))
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	_, _ = actions_model.InsertVariable(ctx, actions_model.BelongingScope{OwnerID: user2.ID}, "VAR", "user2-var", "user2-var-description")
+	_, _ = actions_model.InsertVariable(ctx, actions_model.BelongingScopeOwner(user2.ID), "VAR", "user2-var", "user2-var-description")
 	user2Var := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{OwnerID: user2.ID, Name: "VAR"})
 	userWebURL := "/user/settings/actions/variables"
 
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3, Type: user_model.UserTypeOrganization})
-	_, _ = actions_model.InsertVariable(ctx, actions_model.BelongingScope{OwnerID: org3.ID}, "VAR", "org3-var", "org3-var-description")
+	_, _ = actions_model.InsertVariable(ctx, actions_model.BelongingScopeOwner(org3.ID), "VAR", "org3-var", "org3-var-description")
 	org3Var := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{OwnerID: org3.ID, Name: "VAR"})
 	orgWebURL := "/org/org3/settings/actions/variables"
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	_, _ = actions_model.InsertVariable(ctx, actions_model.BelongingScope{RepoID: repo1.ID}, "VAR", "repo1-var", "repo1-var-description")
+	_, _ = actions_model.InsertVariable(ctx, actions_model.BelongingScopeRepo(repo1.ID), "VAR", "repo1-var", "repo1-var-description")
 	repo1Var := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{RepoID: repo1.ID, Name: "VAR"})
 	repoWebURL := "/user2/repo1/settings/actions/variables"
 

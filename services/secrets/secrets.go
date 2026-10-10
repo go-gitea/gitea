@@ -16,11 +16,7 @@ func CreateOrUpdateSecret(ctx context.Context, scope actions_model.BelongingScop
 		return nil, false, err
 	}
 
-	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID: scope.OwnerID,
-		RepoID:  scope.RepoID,
-		Name:    name,
-	})
+	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{BelongingScope: scope, Name: name})
 	if err != nil {
 		return nil, false, err
 	}
@@ -41,11 +37,7 @@ func CreateOrUpdateSecret(ctx context.Context, scope actions_model.BelongingScop
 }
 
 func DeleteSecretByID(ctx context.Context, scope actions_model.BelongingScope, secretID int64) (*secret_model.Secret, error) {
-	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID:  scope.OwnerID,
-		RepoID:   scope.RepoID,
-		SecretID: secretID,
-	})
+	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{BelongingScope: scope, SecretID: secretID})
 	if err != nil {
 		return nil, err
 	}
@@ -57,11 +49,7 @@ func DeleteSecretByID(ctx context.Context, scope actions_model.BelongingScope, s
 }
 
 func DeleteSecretByName(ctx context.Context, scope actions_model.BelongingScope, name string) (*secret_model.Secret, error) {
-	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID: scope.OwnerID,
-		RepoID:  scope.RepoID,
-		Name:    name,
-	})
+	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{BelongingScope: scope, Name: name})
 	if err != nil {
 		return nil, err
 	}

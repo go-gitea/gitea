@@ -39,11 +39,7 @@ func DeleteVariableByID(ctx context.Context, variableID int64) error {
 }
 
 func DeleteVariableByName(ctx context.Context, scope actions_model.BelongingScope, name string) error {
-	v, err := GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: scope.OwnerID,
-		RepoID:  scope.RepoID,
-		Name:    name,
-	})
+	v, err := GetVariable(ctx, actions_model.FindVariablesOpts{BelongingScope: scope, Name: name})
 	if err != nil {
 		return err
 	}
