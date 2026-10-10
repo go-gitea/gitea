@@ -314,8 +314,10 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 	require.NoError(t, project_model.NewProject(t.Context(), &project))
 
 	// Add issues to the project
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, []int64{project.ID}))
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, []int64{project.ID}))
+	for _, issue := range []*issues_model.Issue{issue16, issue17} {
+		_, _, err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user1, []int64{project.ID})
+		require.NoError(t, err)
+	}
 
 	sess := loginUser(t, "user1")
 	projectURL := fmt.Sprintf("/org3/-/projects/%d", project.ID)

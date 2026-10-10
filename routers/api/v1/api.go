@@ -845,6 +845,8 @@ func addProjectRoutes(m *web.Router, writeChecks ...any) {
 			m.Get("", shared.GetProjectColumn)
 			m.Get("/issues", shared.ListProjectColumnIssues)
 		})
+		m.Get("/workflows", shared.ListProjectWorkflows)
+		m.Get("/workflows/{workflow_id}", shared.GetProjectWorkflow)
 	})
 	m.Group("", func() {
 		m.Post("", bind(api.CreateProjectOption{}), shared.CreateProject)
@@ -861,6 +863,11 @@ func addProjectRoutes(m *web.Router, writeChecks ...any) {
 				m.Delete("/issues/{issue_id}", shared.RemoveIssueFromProjectColumn)
 			})
 			m.Post("/issues/{issue_id}/move", bind(api.MoveProjectIssueOption{}), shared.MoveProjectIssue)
+			m.Post("/workflows", bind(api.CreateProjectWorkflowOption{}), shared.CreateProjectWorkflow)
+			m.Group("/workflows/{workflow_id}", func() {
+				m.Patch("", bind(api.EditProjectWorkflowOption{}), shared.EditProjectWorkflow)
+				m.Delete("", shared.DeleteProjectWorkflow)
+			})
 		})
 	}, writeChecks...)
 }

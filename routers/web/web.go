@@ -324,6 +324,14 @@ func Routes() *web.Router {
 //     Such requests are not cross-origin requests, so disable CrossOriginProtection.
 var optSignInFromAnyOrigin = verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: true})
 
+// addProjectWorkflowRoutes registers the mutations of a project's workflows, shared by the
+// repository and owner project trees
+func addProjectWorkflowRoutes(m *web.Router) {
+	m.Post("/workflows", project.CreateWorkflow)
+	m.Post("/workflows/{workflow_id}", project.UpdateWorkflow)
+	m.Post("/workflows/{workflow_id}/delete", project.DeleteWorkflow)
+}
+
 // addProjectBoardRoutes registers a board's column and card routes, shared by the
 // repository and owner mount points.
 func addProjectBoardRoutes(m *web.Router) {
@@ -1132,6 +1140,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("", func() {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
+				m.Get("/{id}/workflows", org.ProjectWorkflows)
+				m.Get("/{id}/workflows/data", project.WorkflowsData)
+				m.Get("/{id}/workflows/{workflow_key}", org.ProjectWorkflows)
 			}, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
@@ -1144,6 +1155,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
 					addProjectBoardRoutes(m)
+					addProjectWorkflowRoutes(m)
 				})
 			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
@@ -1534,6 +1546,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/{reponame}/projects", func() {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
+		m.Get("/{id}/workflows", repo.ProjectWorkflows)
+		m.Get("/{id}/workflows/data", project.WorkflowsData)
+		m.Get("/{id}/workflows/{workflow_key}", repo.ProjectWorkflows)
 		m.Group("", func() {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind[*forms.CreateProjectForm](), repo.NewProjectPost)
@@ -1545,6 +1560,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
 				addProjectBoardRoutes(m)
+				addProjectWorkflowRoutes(m)
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 	}, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)

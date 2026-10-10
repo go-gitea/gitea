@@ -10,6 +10,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	packages_model "gitea.dev/models/packages"
+	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -141,6 +142,12 @@ func (*NullNotifier) IssueChangeRef(ctx context.Context, doer *user_model.User, 
 // IssueChangeLabels places a place holder function
 func (*NullNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	addedLabels, removedLabels []*issues_model.Label) {
+}
+
+func (*NullNotifier) IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64) {
+}
+
+func (*NullNotifier) IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID int64, newColumn *project_model.Column) {
 }
 
 // CreateRepository places a place holder function

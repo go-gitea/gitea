@@ -1,0 +1,44 @@
+<div class="ui container">
+	<a class="flex-text-inline" href="{{.ProjectLink}}">{{svg "octicon-arrow-left"}} {{.Project.Title}}</a>
+	<div id="project-workflows" data-global-init="initProjectWorkflow"
+		data-project-link="{{.ProjectLink}}"
+		data-workflow-key="{{.WorkflowKey}}"
+		data-can-write="{{.CanWrite}}"
+		data-locale="{{JsonUtils.EncodeToString (dict
+			"defaultWorkflows" (ctx.Locale.Tr "projects.workflows.default_workflows")
+			"enable" (ctx.Locale.Tr "projects.workflows.enable")
+			"disable" (ctx.Locale.Tr "projects.workflows.disable")
+			"clone" (ctx.Locale.Tr "projects.workflows.clone")
+			"deleteConfirm" (ctx.Locale.Tr "projects.workflows.delete_confirm")
+			"filters" (ctx.Locale.Tr "projects.workflows.filters")
+			"applyTo" (ctx.Locale.Tr "projects.workflows.apply_to")
+			"issuesAndPullRequests" (ctx.Locale.Tr "projects.workflows.issues_and_pull_requests")
+			"issuesOnly" (ctx.Locale.Tr "projects.workflows.issues_only")
+			"pullRequestsOnly" (ctx.Locale.Tr "projects.workflows.pull_requests_only")
+			"whenMovedFromColumn" (ctx.Locale.Tr "projects.workflows.when_moved_from_column")
+			"whenMovedToColumn" (ctx.Locale.Tr "projects.workflows.when_moved_to_column")
+			"anyColumn" (ctx.Locale.Tr "projects.workflows.any_column")
+			"onlyIfHasLabels" (ctx.Locale.Tr "projects.workflows.only_if_has_labels")
+			"anyLabel" (ctx.Locale.Tr "projects.workflows.any_label")
+			"actions" (ctx.Locale.Tr "projects.workflows.actions")
+			"moveToColumn" (ctx.Locale.Tr "projects.workflows.move_to_column")
+			"selectColumn" (ctx.Locale.Tr "projects.workflows.select_column")
+			"addLabels" (ctx.Locale.Tr "projects.workflows.add_labels")
+			"removeLabels" (ctx.Locale.Tr "projects.workflows.remove_labels")
+			"none" (ctx.Locale.Tr "projects.workflows.none")
+			"issueState" (ctx.Locale.Tr "projects.workflows.issue_state")
+			"noChange" (ctx.Locale.Tr "projects.workflows.no_change")
+			"closeIssue" (ctx.Locale.Tr "projects.workflows.close_issue")
+			"reopenIssue" (ctx.Locale.Tr "projects.workflows.reopen_issue")
+			"summarySource" (ctx.Locale.Tr "projects.workflows.summary.source" "%s")
+			"summaryTarget" (ctx.Locale.Tr "projects.workflows.summary.target" "%s")
+			"summaryLabels" (ctx.Locale.Tr "projects.workflows.summary.labels" "%s")
+			"edit" (ctx.Locale.Tr "edit")
+			"save" (ctx.Locale.Tr "save")
+			"cancel" (ctx.Locale.Tr "cancel")
+			"remove" (ctx.Locale.Tr "remove")
+			"enabled" (ctx.Locale.Tr "enabled")
+			"disabled" (ctx.Locale.Tr "disabled")
+		)}}"
+	></div>
+</div>

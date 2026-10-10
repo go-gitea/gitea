@@ -240,7 +240,10 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 
 type SpecialDoerNameType string
 
-const SpecialDoerNameCodeOwners SpecialDoerNameType = "CODEOWNERS"
+const (
+	SpecialDoerNameCodeOwners      SpecialDoerNameType = "CODEOWNERS"
+	SpecialDoerNameProjectWorkflow SpecialDoerNameType = "ProjectWorkflow"
+)
 
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
@@ -248,7 +251,23 @@ type CommentMetaData struct {
 	ProjectColumnTitle string `json:"project_column_title,omitempty"`
 	ProjectTitle       string `json:"project_title,omitempty"`
 
+	ProjectWorkflowEvent project_model.WorkflowEvent `json:"project_workflow_event,omitempty"`
+
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+}
+
+type projectWorkflowContextKey struct{}
+
+// WithProjectWorkflow marks changes made with the returned context as done by a project workflow
+func WithProjectWorkflow(ctx context.Context, event project_model.WorkflowEvent) context.Context {
+	return context.WithValue(ctx, projectWorkflowContextKey{}, &CommentMetaData{
+		SpecialDoerName:      SpecialDoerNameProjectWorkflow,
+		ProjectWorkflowEvent: event,
+	})
+}
+
+func IsProjectWorkflowContext(ctx context.Context) bool {
+	return ctx.Value(projectWorkflowContextKey{}) != nil
 }
 
 // Comment represents a comment in commit and issue page.
@@ -781,10 +800,15 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 	if c.CommentMetaData == nil {
 		return ""
 	}
-	if c.CommentMetaData.SpecialDoerName == SpecialDoerNameCodeOwners {
+	switch c.CommentMetaData.SpecialDoerName {
+	case SpecialDoerNameCodeOwners:
 		return locale.Tr("repo.issues.review.codeowners_rules")
+	case SpecialDoerNameProjectWorkflow:
+		return htmlutil.HTMLFormat(`%s <span class="tw-font-semibold">%s</span>`, locale.Tr("repo.issues.project_workflow"), locale.Tr(c.CommentMetaData.ProjectWorkflowEvent.LangKey()))
+	default:
+		// don't trust the content of SpecialDoerName, it might not be fully controlled by us
+		return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)
 	}
-	return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)
 }
 
 func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr template.HTML) template.HTML {
@@ -813,26 +837,31 @@ func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdSt
 	return locale.Tr("repo.issues.review.add_review_request", assigneePrompt, createdStr)
 }
 
+func buildCreateCommentMetaData(ctx context.Context, opts *CreateCommentOptions) *CommentMetaData {
+	var meta CommentMetaData
+	if workflowMeta, ok := ctx.Value(projectWorkflowContextKey{}).(*CommentMetaData); ok {
+		meta = *workflowMeta
+	}
+	if opts.ProjectColumnTitle != "" {
+		meta.ProjectColumnID = opts.ProjectColumnID
+		meta.ProjectColumnTitle = opts.ProjectColumnTitle
+		meta.ProjectTitle = opts.ProjectTitle
+	}
+	if opts.SpecialDoerName != "" {
+		meta.SpecialDoerName = opts.SpecialDoerName
+	}
+	if meta == (CommentMetaData{}) {
+		return nil
+	}
+	return &meta
+}
+
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
 		var LabelID int64
 		if opts.Label != nil {
 			LabelID = opts.Label.ID
-		}
-
-		var commentMetaData *CommentMetaData
-		if opts.ProjectColumnTitle != "" {
-			commentMetaData = &CommentMetaData{
-				ProjectColumnID:    opts.ProjectColumnID,
-				ProjectColumnTitle: opts.ProjectColumnTitle,
-				ProjectTitle:       opts.ProjectTitle,
-			}
-		}
-		if opts.SpecialDoerName != "" {
-			commentMetaData = &CommentMetaData{
-				SpecialDoerName: opts.SpecialDoerName,
-			}
 		}
 
 		comment := &Comment{
@@ -868,7 +897,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 			RefIsPull:        opts.RefIsPull,
 			IsForcePush:      opts.IsForcePush,
 			Invalidated:      opts.Invalidated,
-			CommentMetaData:  commentMetaData,
+			CommentMetaData:  buildCreateCommentMetaData(ctx, opts),
 		}
 		if err = db.Insert(ctx, comment); err != nil {
 			return nil, err

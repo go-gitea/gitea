@@ -51,7 +51,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 			assigneeCommentMap[assigneeID] = comment
 		}
 		if len(projectIDs) > 0 {
-			err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs)
+			_, _, err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs)
 			if err != nil {
 				return err
 			}
