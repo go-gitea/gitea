@@ -296,7 +296,9 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 }
 
 func GetRunsByRepoAndID(ctx context.Context, repoID int64, runIDs []int64) (runs []*ActionRun, err error) {
-	err = db.GetEngine(ctx).In("id", runIDs).Where("repo_id=?", repoID).OrderBy("id").Find(&runs)
+	if len(runIDs) > 0 {
+		err = db.GetEngine(ctx).In("id", runIDs).Where("repo_id=?", repoID).OrderBy("id").Find(&runs)
+	}
 	return runs, err
 }
 
