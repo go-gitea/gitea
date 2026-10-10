@@ -5,6 +5,7 @@ package actions
 
 // BelongingScope identifies the owner (user/org) or repository an Actions secret or variable belongs to.
 // Both zero values mean "global scope".
+// Always use the functions to create a BelongingScope, rather than creating one directly, to avoid accidentally creating an invalid scope.
 type BelongingScope struct {
 	ownerID int64
 	repoID  int64
