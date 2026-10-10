@@ -901,6 +901,16 @@
         },
         "description": "OAuth2ApplicationList represents a list of OAuth2 applications."
       },
+      "OrgActionsPermissions": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OrgActionsPermissions"
+            }
+          }
+        },
+        "description": "OrgActionsPermissions"
+      },
       "Organization": {
         "content": {
           "application/json": {
@@ -1199,6 +1209,16 @@
           }
         },
         "description": "ReleaseList"
+      },
+      "RepoActionsPermissions": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RepoActionsPermissions"
+            }
+          }
+        },
+        "description": "RepoActionsPermissions"
       },
       "RepoCollaboratorPermission": {
         "content": {
@@ -2478,6 +2498,62 @@
             "x-go-name": "Status"
           }
         },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "ActionsTokenAccessLevel": {
+        "enum": [
+          "none",
+          "read",
+          "write"
+        ],
+        "type": "string"
+      },
+      "ActionsTokenPermissionMode": {
+        "enum": [
+          "permissive",
+          "restricted"
+        ],
+        "type": "string"
+      },
+      "ActionsTokenPermissions": {
+        "description": "ActionsTokenPermissions represents the access level of an Actions job token for each repository unit",
+        "properties": {
+          "actions": {
+            "$ref": "#/components/schemas/ActionsTokenAccessLevel"
+          },
+          "code": {
+            "$ref": "#/components/schemas/ActionsTokenAccessLevel"
+          },
+          "issues": {
+            "$ref": "#/components/schemas/ActionsTokenAccessLevel"
+          },
+          "packages": {
+            "$ref": "#/components/schemas/ActionsTokenAccessLevel"
+          },
+          "projects": {
+            "$ref": "#/components/schemas/ActionsTokenAccessLevel"
+          },
+          "pull_requests": {
+            "$ref": "#/components/schemas/ActionsTokenAccessLevel"
+          },
+          "releases": {
+            "$ref": "#/components/schemas/ActionsTokenAccessLevel"
+          },
+          "wiki": {
+            "$ref": "#/components/schemas/ActionsTokenAccessLevel"
+          }
+        },
+        "required": [
+          "code",
+          "issues",
+          "pull_requests",
+          "packages",
+          "actions",
+          "wiki",
+          "releases",
+          "projects"
+        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -5708,6 +5784,30 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "EditOrgActionsPermissionsOption": {
+        "description": "EditOrgActionsPermissionsOption replaces the Actions job token settings of an organization",
+        "properties": {
+          "allowed_cross_repos": {
+            "description": "AllowedCrossRepos lists the organization's repositories that jobs of its other repositories may read",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "AllowedCrossRepos"
+          },
+          "max_token_permissions": {
+            "$ref": "#/components/schemas/ActionsTokenPermissions"
+          },
+          "token_permission_mode": {
+            "$ref": "#/components/schemas/ActionsTokenPermissionMode"
+          }
+        },
+        "required": [
+          "token_permission_mode"
+        ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "EditOrgOption": {
         "description": "EditOrgOption options for editing an organization",
         "properties": {
@@ -5918,6 +6018,29 @@
             "description": "The new target commitish for the release",
             "type": "string",
             "x-go-name": "Target"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "EditRepoActionsPermissionsOption": {
+        "description": "EditRepoActionsPermissionsOption replaces the Actions job token settings of a repository",
+        "properties": {
+          "max_token_permissions": {
+            "$ref": "#/components/schemas/ActionsTokenPermissions"
+          },
+          "override_owner_config": {
+            "description": "OverrideOwnerConfig must be true for the other fields to take effect",
+            "type": "boolean",
+            "x-go-name": "OverrideOwnerConfig"
+          },
+          "token_permission_mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActionsTokenPermissionMode"
+              }
+            ],
+            "description": "TokenPermissionMode is required when OverrideOwnerConfig is true"
           }
         },
         "type": "object",
@@ -8182,6 +8305,27 @@
         ],
         "type": "string"
       },
+      "OrgActionsPermissions": {
+        "description": "OrgActionsPermissions represents the Actions job token settings of an organization",
+        "properties": {
+          "allowed_cross_repos": {
+            "description": "AllowedCrossRepos lists the organization's repositories that jobs of its other repositories may read",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "AllowedCrossRepos"
+          },
+          "max_token_permissions": {
+            "$ref": "#/components/schemas/ActionsTokenPermissions"
+          },
+          "token_permission_mode": {
+            "$ref": "#/components/schemas/ActionsTokenPermissionMode"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "Organization": {
         "description": "Organization represents an organization",
         "properties": {
@@ -9444,6 +9588,24 @@
         "required": [
           "new_username"
         ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "RepoActionsPermissions": {
+        "description": "RepoActionsPermissions represents the Actions job token settings of a repository",
+        "properties": {
+          "max_token_permissions": {
+            "$ref": "#/components/schemas/ActionsTokenPermissions"
+          },
+          "override_owner_config": {
+            "description": "OverrideOwnerConfig is false when the repository follows its owner's settings, which are then returned",
+            "type": "boolean",
+            "x-go-name": "OverrideOwnerConfig"
+          },
+          "token_permission_mode": {
+            "$ref": "#/components/schemas/ActionsTokenPermissionMode"
+          }
+        },
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -13177,6 +13339,79 @@
           }
         },
         "summary": "Get org-level workflow jobs",
+        "tags": [
+          "organization"
+        ]
+      }
+    },
+    "/orgs/{org}/actions/permissions": {
+      "get": {
+        "operationId": "orgGetActionsPermissions",
+        "parameters": [
+          {
+            "description": "name of the organization",
+            "in": "path",
+            "name": "org",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OrgActionsPermissions"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get the Actions job token settings of an organization",
+        "tags": [
+          "organization"
+        ]
+      },
+      "put": {
+        "operationId": "orgUpdateActionsPermissions",
+        "parameters": [
+          {
+            "description": "name of the organization",
+            "in": "path",
+            "name": "org",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditOrgActionsPermissionsOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OrgActionsPermissions"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Replace the Actions job token settings of an organization",
         "tags": [
           "organization"
         ]
@@ -17336,6 +17571,97 @@
           }
         },
         "summary": "Downloads the job logs for a workflow run",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/actions/permissions": {
+      "get": {
+        "operationId": "repoGetActionsPermissions",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/RepoActionsPermissions"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get the Actions job token settings of a repository",
+        "tags": [
+          "repository"
+        ]
+      },
+      "put": {
+        "operationId": "repoUpdateActionsPermissions",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditRepoActionsPermissionsOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/RepoActionsPermissions"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Replace the Actions job token settings of a repository",
         "tags": [
           "repository"
         ]
