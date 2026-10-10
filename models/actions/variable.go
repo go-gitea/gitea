@@ -57,7 +57,7 @@ func InsertVariable(ctx context.Context, scope BelongingScope, name, data, descr
 
 	variable := &ActionVariable{
 		OwnerID:     scope.internalOwnerID,
-		RepoID:      scope.iternalRepoID,
+		RepoID:      scope.internalRepoID,
 		Name:        strings.ToUpper(name),
 		Data:        data,
 		Description: description,

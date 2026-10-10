@@ -8,7 +8,7 @@ package actions
 // Always use the functions to create a BelongingScope, rather than creating one directly, to avoid accidentally creating an invalid scope.
 type BelongingScope struct {
 	internalOwnerID int64
-	iternalRepoID   int64
+	internalRepoID  int64
 }
 
 func BelongingScopeOwner(ownerID int64) BelongingScope {
@@ -16,7 +16,7 @@ func BelongingScopeOwner(ownerID int64) BelongingScope {
 }
 
 func BelongingScopeRepo(repoID int64) BelongingScope {
-	return BelongingScope{iternalRepoID: repoID}
+	return BelongingScope{internalRepoID: repoID}
 }
 
 func BelongingScopeGlobal() BelongingScope {
@@ -24,5 +24,5 @@ func BelongingScopeGlobal() BelongingScope {
 }
 
 func (scope BelongingScope) GetOwnerRepoIDs() (ownerID, repoID int64) {
-	return scope.internalOwnerID, scope.iternalRepoID
+	return scope.internalOwnerID, scope.internalRepoID
 }
