@@ -139,16 +139,9 @@ func Runners(ctx *context.Context) {
 	}
 
 	// ownid=0,repo_id=0,means this token is used for global
-	var token *actions_model.ActionRunnerToken
-	token, err = actions_model.GetLatestRunnerToken(ctx, opts.OwnerID, opts.RepoID)
-	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
-		token, err = actions_model.NewRunnerToken(ctx, opts.OwnerID, opts.RepoID)
-		if err != nil {
-			ctx.ServerError("CreateRunnerToken", err)
-			return
-		}
-	} else if err != nil {
-		ctx.ServerError("GetLatestRunnerToken", err)
+	token, err := actions_model.GetOrCreateActiveRunnerToken(ctx, opts.OwnerID, opts.RepoID)
+	if err != nil {
+		ctx.ServerError("GetOrCreateActiveRunnerToken", err)
 		return
 	}
 

@@ -20,7 +20,6 @@ import (
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 	pull_service "gitea.dev/services/pull"
 	commitstatus_service "gitea.dev/services/repository/commitstatus"
@@ -36,7 +35,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 
 	event, commitID, err := getCommitStatusEventNameAndCommitID(run)
 	if err != nil {
-		log.Error("GetCommitStatusEventNameAndSHA: %v", err)
+		log.Error("getCommitStatusEventNameAndCommitID: %v", err)
 	}
 	if event == "" || commitID == "" {
 		return // unsupported event, or no commit id, or error occurs, do nothing
@@ -72,28 +71,28 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 }
 
 func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, error) {
-	runMap := make(map[int64]*actions_model.ActionRun)
+	var repoIDs []int64
+	runIDsByRepo := make(map[int64][]int64)
 	for _, status := range statuses {
 		runID, _, ok := status.ParseGiteaActionsTargetURL(ctx)
 		if !ok {
 			continue
 		}
-		_, ok = runMap[runID]
-		if !ok {
-			run, err := actions_model.GetRunByRepoAndID(ctx, status.RepoID, runID)
-			if err != nil {
-				if errors.Is(err, util.ErrNotExist) {
-					// the run may be deleted manually, just skip it
-					continue
-				}
-				return nil, fmt.Errorf("GetRunByRepoAndID: %w", err)
-			}
-			runMap[runID] = run
+		if _, ok := runIDsByRepo[status.RepoID]; !ok {
+			repoIDs = append(repoIDs, status.RepoID)
+		}
+		if !slices.Contains(runIDsByRepo[status.RepoID], runID) {
+			runIDsByRepo[status.RepoID] = append(runIDsByRepo[status.RepoID], runID)
 		}
 	}
-	runs := make([]*actions_model.ActionRun, 0, len(runMap))
-	for _, run := range runMap {
-		runs = append(runs, run)
+	var runs []*actions_model.ActionRun
+	for _, repoID := range repoIDs {
+		// deleted runs are simply absent from the result
+		repoRuns, err := actions_model.GetRunsByRepoAndID(ctx, repoID, runIDsByRepo[repoID])
+		if err != nil {
+			return nil, err
+		}
+		runs = append(runs, repoRuns...)
 	}
 	return runs, nil
 }

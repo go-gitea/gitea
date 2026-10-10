@@ -179,7 +179,7 @@ func UpdateRunAttempt(ctx context.Context, attempt *ActionRunAttempt, cols ...st
 		return err
 	}
 	if run.LatestAttemptID != attempt.ID {
-		log.Warn("run %d cannot be updated by an old attempt %d", run.LatestAttemptID, attempt.ID)
+		log.Warn("run %d cannot be updated by an old attempt %d, latest attempt is %d", run.ID, attempt.ID, run.LatestAttemptID)
 		return nil
 	}
 
