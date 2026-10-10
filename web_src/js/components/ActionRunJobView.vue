@@ -334,8 +334,12 @@ async function loadJob() {
     store.viewData.runArtifacts = runJobResp.artifacts || [];
     store.viewData.currentRun = runJobResp.state.run;
 
+    const previousSteps = currentJob.value.steps;
     currentJob.value = runJobResp.state.currentJob;
-    const jobLogs = runJobResp.logs.stepsLog ?? [];
+    // a runner reporting its own steps can change them while the job runs, which moves the logs of each step position
+    const stepsChanged = previousSteps.length > 0 && !isSameSteps(previousSteps, currentJob.value.steps);
+    if (stepsChanged) resetStepsLogs(previousSteps);
+    const jobLogs = stepsChanged ? [] : runJobResp.logs.stepsLog ?? [];
 
     // sync the currentJobStepsStates to store the job step states
     for (let i = 0; i < currentJob.value.steps.length; i++) {
@@ -381,8 +385,8 @@ async function loadJob() {
       lastLogElem.scrollIntoView({behavior: 'smooth', block: 'end'});
     }
 
-    // clear the interval timer if the job is done
-    if (run.value.done && intervalID) {
+    // clear the interval timer if the job is done, the logs of changed steps still need to be loaded
+    if (run.value.done && intervalID && !stepsChanged) {
       clearInterval(intervalID);
       intervalID = null;
     }
@@ -392,6 +396,21 @@ async function loadJob() {
     throw e;
   } finally {
     if (loadingAbortController === abortController) loadingAbortController = null;
+  }
+}
+
+function isSameSteps(a: Array<Step>, b: Array<Step>) {
+  return a.length === b.length && a.every((step, idx) => step.summary === b[idx].summary);
+}
+
+function resetStepsLogs(previousSteps: Array<Step>) {
+  const expandedSummaries = new Set(previousSteps.filter((_, idx) => currentJobStepsStates.value[idx].expanded).map((step) => step.summary));
+  currentJobStepsStates.value = currentJob.value.steps.map((step) => ({cursor: null, expanded: expandedSummaries.has(step.summary), manuallyCollapsed: false}));
+  stepAnsiRenderers.length = 0;
+  for (const el of jobStepLogs.value) {
+    if (!el) continue;
+    el.replaceChildren();
+    el._stepLogsActiveContainer = undefined;
   }
 }
 

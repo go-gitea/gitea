@@ -853,7 +853,8 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 	}
 
 	for _, cursor := range cursors {
-		if !cursor.Expanded {
+		// the steps reported by a runner can change while the frontend still has the cursors of the previous ones
+		if !cursor.Expanded || cursor.Step < 0 || cursor.Step >= len(steps) {
 			continue
 		}
 

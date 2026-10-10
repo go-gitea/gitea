@@ -407,6 +407,112 @@ func TestUpdateTaskByStateIsAtomic(t *testing.T) {
 	assert.GreaterOrEqual(t, unittest.AssertExistsAndLoadBean(t, &ActionTaskStep{TaskID: task.ID}).Started, before)
 }
 
+func TestUpdateTaskByStateReportedSteps(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	task, _ := newRunningTaskForCancelling(t, "reported-steps-job", true)
+	require.NoError(t, db.Insert(t.Context(), &ActionTaskStep{Name: "Run echo", TaskID: task.ID, RepoID: task.RepoID, Status: StatusWaiting}))
+
+	report := func(t *testing.T, steps []*runnerv1.StepState, reported ...*runnerv1.StepState) []*ActionTaskStep {
+		t.Helper()
+		_, err := UpdateTaskByState(t.Context(), task.RunnerID, &runnerv1.TaskState{Id: task.ID, Steps: steps, ReportedSteps: reported})
+		require.NoError(t, err)
+		got, err := GetTaskStepsByTaskID(t.Context(), task.ID)
+		require.NoError(t, err)
+		return got
+	}
+	started := timestamppb.Now()
+	setup := &runnerv1.StepState{Id: 0, Name: "Set up job", Stage: runnerv1.StepStage_STEP_STAGE_SETUP, StartedAt: started}
+	main := &runnerv1.StepState{Id: 1, Name: "Run echo", Stage: runnerv1.StepStage_STEP_STAGE_MAIN}
+	legacy := []*runnerv1.StepState{{Id: 0, StartedAt: started, LogLength: 3}}
+
+	t.Run("invalid reported steps fall back to the workflow steps", func(t *testing.T) {
+		got := report(t, legacy, setup, &runnerv1.StepState{Id: 1, Stage: runnerv1.StepStage_STEP_STAGE_SETUP})
+		require.Len(t, got, 1)
+		assert.False(t, got[0].IsReported())
+		assert.Equal(t, StatusRunning, got[0].Status)
+		assert.EqualValues(t, 3, got[0].LogLength)
+	})
+
+	t.Run("reported steps replace the workflow steps", func(t *testing.T) {
+		got := report(t, legacy, setup, main)
+		require.Len(t, got, 2)
+		assert.Equal(t, runnerv1.StepStage_STEP_STAGE_SETUP, got[0].StepStage())
+		assert.EqualValues(t, -1, got[0].WorkflowStepIndex())
+		assert.Equal(t, StatusRunning, got[0].Status)
+		assert.NotZero(t, got[0].Started)
+		assert.Equal(t, "Run echo", got[1].Name)
+		assert.Equal(t, StatusWaiting, got[1].Status)
+		assert.EqualValues(t, 0, got[1].WorkflowStepIndex())
+	})
+
+	t.Run("an inserted step keeps the state of the others", func(t *testing.T) {
+		before, err := GetTaskStepsByTaskID(t.Context(), task.ID)
+		require.NoError(t, err)
+		doneSetup := &runnerv1.StepState{Id: 0, Name: "Set up job", Stage: runnerv1.StepStage_STEP_STAGE_SETUP, StartedAt: started, Result: runnerv1.Result_RESULT_SUCCESS, LogLength: 4}
+		pre := &runnerv1.StepState{Id: 1, Name: "Pre Run checkout", Stage: runnerv1.StepStage_STEP_STAGE_PRE, StartedAt: started, LogIndex: 4, LogLength: 2}
+		movedMain := &runnerv1.StepState{Id: 2, Name: "Run echo", Stage: runnerv1.StepStage_STEP_STAGE_MAIN}
+		got := report(t, legacy, doneSetup, pre, movedMain)
+		require.Len(t, got, 3)
+		assert.Equal(t, StatusSuccess, got[0].Status)
+		assert.Equal(t, before[0].Started, got[0].Started)
+		assert.Equal(t, runnerv1.StepStage_STEP_STAGE_PRE, got[1].StepStage())
+		assert.Equal(t, StatusRunning, got[1].Status)
+		assert.EqualValues(t, 4, got[1].LogIndex)
+		assert.EqualValues(t, 2, got[2].Index)
+	})
+
+	t.Run("workflow steps no longer apply once reported", func(t *testing.T) {
+		before, err := GetTaskStepsByTaskID(t.Context(), task.ID)
+		require.NoError(t, err)
+		got := report(t, []*runnerv1.StepState{{Id: 0, Result: runnerv1.Result_RESULT_FAILURE}})
+		assert.Equal(t, before, got)
+	})
+
+	t.Run("unfinished steps stop with the task", func(t *testing.T) {
+		doneSetup := &runnerv1.StepState{Id: 0, Name: "Set up job", Stage: runnerv1.StepStage_STEP_STAGE_SETUP, StartedAt: started, Result: runnerv1.Result_RESULT_SUCCESS}
+		runningMain := &runnerv1.StepState{Id: 1, Name: "Run echo", Stage: runnerv1.StepStage_STEP_STAGE_MAIN, StartedAt: started}
+		cleanup := &runnerv1.StepState{Id: 2, Name: "Complete job", Stage: runnerv1.StepStage_STEP_STAGE_CLEANUP}
+		_, err := UpdateTaskByState(t.Context(), task.RunnerID, &runnerv1.TaskState{
+			Id: task.ID, Result: runnerv1.Result_RESULT_FAILURE,
+			ReportedSteps: []*runnerv1.StepState{doneSetup, runningMain, cleanup},
+		})
+		require.NoError(t, err)
+		got, err := GetTaskStepsByTaskID(t.Context(), task.ID)
+		require.NoError(t, err)
+		require.Len(t, got, 3)
+		assert.Equal(t, StatusSuccess, got[0].Status)
+		for _, step := range got[1:] {
+			assert.Equal(t, StatusFailure, step.Status, step.Name)
+			assert.NotZero(t, step.Started, step.Name)
+			assert.NotZero(t, step.Stopped, step.Name)
+		}
+	})
+}
+
+func TestValidateReportedSteps(t *testing.T) {
+	step := func(id int64, stage runnerv1.StepStage, number int64) *runnerv1.StepState {
+		return &runnerv1.StepState{Id: id, Stage: stage, Number: number}
+	}
+	assert.NoError(t, validateReportedSteps([]*runnerv1.StepState{
+		step(0, runnerv1.StepStage_STEP_STAGE_SETUP, 0),
+		step(1, runnerv1.StepStage_STEP_STAGE_PRE, 0),
+		step(2, runnerv1.StepStage_STEP_STAGE_MAIN, 0),
+		step(3, runnerv1.StepStage_STEP_STAGE_MAIN, 1),
+		step(4, runnerv1.StepStage_STEP_STAGE_CLEANUP, 5), // the number of a job level stage is ignored
+	}))
+	for name, steps := range map[string][]*runnerv1.StepState{
+		"unspecified stage": {step(0, runnerv1.StepStage_STEP_STAGE_UNSPECIFIED, 0)},
+		"unknown stage":     {step(0, runnerv1.StepStage(100), 0)},
+		"id not position":   {step(1, runnerv1.StepStage_STEP_STAGE_SETUP, 0)},
+		"negative number":   {step(0, runnerv1.StepStage_STEP_STAGE_MAIN, -1)},
+		"duplicate main":    {step(0, runnerv1.StepStage_STEP_STAGE_MAIN, 0), step(1, runnerv1.StepStage_STEP_STAGE_MAIN, 0)},
+		"duplicate setup":   {step(0, runnerv1.StepStage_STEP_STAGE_SETUP, 0), step(1, runnerv1.StepStage_STEP_STAGE_SETUP, 1)},
+		"too many":          make([]*runnerv1.StepState, maxReportedSteps+1),
+	} {
+		assert.Error(t, validateReportedSteps(steps), name)
+	}
+}
+
 // newRunningTaskForCancelling inserts a running run/job/task assigned to a fresh runner,
 // which is the state every cancellation test starts from.
 func newRunningTaskForCancelling(t *testing.T, name string, hasCancellingSupport bool) (*ActionTask, *ActionRunJob) {
