@@ -169,8 +169,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		return err
 	}
 
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledConcurrencyJobs)
-	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
+	notifyAndEmitFinishedJobs(ctx, cancelledConcurrencyJobs)
 
 	// Post-commit kick: let the job emitter resolve jobs if needed
 	if needPostCommitEmit {

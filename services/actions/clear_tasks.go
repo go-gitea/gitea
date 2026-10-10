@@ -50,15 +50,13 @@ func stopTasksByStatuses(ctx context.Context, opts actions_model.FindTaskOptions
 
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
 	jobs, err := actions_model.CancelPreviousJobs(ctx, repoID, ref, workflowID, event)
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, jobs)
-	EmitJobsIfReadyByJobs(jobs)
+	notifyAndEmitFinishedJobs(ctx, jobs)
 	return err
 }
 
 func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) error {
 	jobs, err := actions_model.CleanRepoScheduleTasks(ctx, repo)
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, jobs)
-	EmitJobsIfReadyByJobs(jobs)
+	notifyAndEmitFinishedJobs(ctx, jobs)
 	return err
 }
 
@@ -171,8 +169,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 		remove()
 	}
 
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, jobs)
-	EmitJobsIfReadyByJobs(jobs)
+	notifyAndEmitFinishedJobs(ctx, jobs)
 
 	return nil
 }
@@ -193,8 +190,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		log.Warn("cancel abandoned jobs: %v", err)
 	}
 
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, updatedJobs)
-	EmitJobsIfReadyByJobs(updatedJobs)
+	notifyAndEmitFinishedJobs(ctx, updatedJobs)
 
 	return nil
 }
