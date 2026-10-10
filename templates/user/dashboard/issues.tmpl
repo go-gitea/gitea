@@ -102,6 +102,8 @@
 								<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "leastcomment"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
 								<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "nearduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
 								<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "farduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
+								<a class="{{if eq .SortType "name"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "name"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.name"}}</a>
+								<a class="{{if eq .SortType "namedesc"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "namedesc"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.namedesc"}}</a>
 							</div>
 						</div>
 					</div>
