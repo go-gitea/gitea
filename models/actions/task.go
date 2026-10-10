@@ -26,15 +26,16 @@ import (
 
 // ActionTask represents a distribution of job
 type ActionTask struct {
-	ID       int64
-	JobID    int64
-	Job      *ActionRunJob     `xorm:"-"`
-	Steps    []*ActionTaskStep `xorm:"-"`
-	Attempt  int64
-	RunnerID int64              `xorm:"index"`
-	Status   Status             `xorm:"index"`
-	Started  timeutil.TimeStamp `xorm:"index"`
-	Stopped  timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
+	ID         int64
+	JobID      int64
+	Job        *ActionRunJob     `xorm:"-"`
+	Steps      []*ActionTaskStep `xorm:"-"`
+	Attempt    int64
+	RunnerID   int64              `xorm:"index"`
+	RunnerName string             `xorm:"VARCHAR(255)"`
+	Status     Status             `xorm:"index"`
+	Started    timeutil.TimeStamp `xorm:"index"`
+	Stopped    timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
 
 	RepoID            int64  `xorm:"index"`
 	OwnerID           int64  `xorm:"index"`
@@ -347,6 +348,7 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 			JobID:             job.ID,
 			Attempt:           job.Attempt,
 			RunnerID:          runner.ID,
+			RunnerName:        runner.Name,
 			Started:           now,
 			Status:            StatusRunning,
 			RepoID:            job.RepoID,

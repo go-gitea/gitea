@@ -178,6 +178,46 @@ func TestToActionWorkflowJob_StepStatusIsIndependentOfJobStatus(t *testing.T) {
 	assert.Equal(t, "failure", apiJob.Steps[1].Conclusion, "step 1 conclusion")
 }
 
+func TestToActionWorkflowJob_RunnerName(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+
+	run := &actions_model.ActionRun{RepoID: 2, TriggerUserID: 1, WorkflowID: "test.yaml", Index: 12346, Ref: "refs/heads/main", Status: actions_model.StatusSuccess}
+	require.NoError(t, db.Insert(ctx, run))
+	runner := &actions_model.ActionRunner{Name: "live-runner"}
+	require.NoError(t, db.Insert(ctx, runner))
+	deletedRunner := &actions_model.ActionRunner{Name: "deleted-runner", UUID: "deleted-runner", TokenHash: "deleted-runner"}
+	require.NoError(t, db.Insert(ctx, deletedRunner))
+	require.NoError(t, actions_model.DeleteRunner(ctx, deletedRunner.ID))
+
+	for _, tc := range []struct {
+		name         string
+		task         *actions_model.ActionTask
+		expectedID   int64
+		expectedName string
+	}{
+		{"runner removed", &actions_model.ActionTask{RunnerID: 987654321, RunnerName: "removed-runner", TokenHash: "runner-removed"}, 987654321, "removed-runner"},
+		{"never assigned", nil, 0, ""},
+		{"no stored name", &actions_model.ActionTask{RunnerID: runner.ID, TokenHash: "no-stored-name"}, runner.ID, "live-runner"},
+		{"no stored name, runner deleted", &actions_model.ActionTask{RunnerID: deletedRunner.ID, TokenHash: "no-stored-name-deleted"}, deletedRunner.ID, "deleted-runner"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			job := &actions_model.ActionRunJob{RunID: run.ID, RepoID: 2, Name: tc.name, Attempt: 1, JobID: "job", Status: actions_model.StatusSuccess}
+			if tc.task != nil {
+				require.NoError(t, db.Insert(ctx, tc.task))
+				job.TaskID = tc.task.ID
+			}
+			require.NoError(t, db.Insert(ctx, job))
+
+			apiJob, err := ToActionWorkflowJob(ctx, repo, nil, job)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedID, apiJob.RunnerID)
+			assert.Equal(t, tc.expectedName, apiJob.RunnerName)
+		})
+	}
+}
+
 func TestToActionsStatus(t *testing.T) {
 	for status, expected := range map[actions_model.Status]string{
 		actions_model.StatusWaiting:    "queued",
