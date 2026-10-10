@@ -20,30 +20,36 @@ import (
 )
 
 func TestAttachCommentsToLines(t *testing.T) {
-	section := &gitdiff.DiffSection{
-		Lines: []*gitdiff.DiffLine{
+	sections := []*gitdiff.DiffSection{
+		{Lines: []*gitdiff.DiffLine{
 			{LeftIdx: 5, RightIdx: 10},
 			{LeftIdx: 6, RightIdx: 11},
-		},
+		}},
+		{Lines: []*gitdiff.DiffLine{{LeftIdx: 40, RightIdx: 45}}}, // expanding a whole file returns one section per gap
 	}
 
 	lineComments := map[int64][]*issues_model.Comment{
 		-5: {{ID: 100, CreatedUnix: 1000}},                               // left side comment
 		10: {{ID: 200, CreatedUnix: 2000}},                               // right side comment
 		11: {{ID: 300, CreatedUnix: 1500}, {ID: 301, CreatedUnix: 2500}}, // multiple comments
+		45: {{ID: 400, CreatedUnix: 3000}},                               // a comment in a later gap
 	}
 
-	attachCommentsToLines(section, lineComments)
+	attachCommentsToLines(sections, lineComments)
 
 	// First line should have left and right comments
-	assert.Len(t, section.Lines[0].Comments, 2)
-	assert.Equal(t, int64(100), section.Lines[0].Comments[0].ID)
-	assert.Equal(t, int64(200), section.Lines[0].Comments[1].ID)
+	assert.Len(t, sections[0].Lines[0].Comments, 2)
+	assert.Equal(t, int64(100), sections[0].Lines[0].Comments[0].ID)
+	assert.Equal(t, int64(200), sections[0].Lines[0].Comments[1].ID)
 
 	// Second line should have two comments, sorted by creation time
-	assert.Len(t, section.Lines[1].Comments, 2)
-	assert.Equal(t, int64(300), section.Lines[1].Comments[0].ID)
-	assert.Equal(t, int64(301), section.Lines[1].Comments[1].ID)
+	assert.Len(t, sections[0].Lines[1].Comments, 2)
+	assert.Equal(t, int64(300), sections[0].Lines[1].Comments[0].ID)
+	assert.Equal(t, int64(301), sections[0].Lines[1].Comments[1].ID)
+
+	// every gap the request expanded keeps its comments, not just the first
+	assert.Len(t, sections[1].Lines[0].Comments, 1)
+	assert.Equal(t, int64(400), sections[1].Lines[0].Comments[0].ID)
 }
 
 func TestNewPullRequestTitleContent(t *testing.T) {

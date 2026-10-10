@@ -1,3 +1,9 @@
+{{/* FIXME: DIFF-CONVERSATION-DATA: in the future this template should be refactor to avoid called by {{... "." $}}
+At the moment, two kinds of request handler reach this template through {section_unified.tmpl|section_split.tmpl}:
+* ExcerptBlob -> section.tmpl -> ...
+* the compare, commit and pull diff pages -> box.tmpl -> section.tmpl -> ...
+and a review reply with "origin=diff" renders it on its own.
+The variables in "ctx.Data" are different in each case, making this template fragile, hard to read and maintain. */}}
 {{if len .comments}}
 	{{$comment := index .comments 0}}
 	{{$resolved := $comment.IsResolved}}

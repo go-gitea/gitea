@@ -26,7 +26,6 @@ import (
 	pull_model "gitea.dev/models/pull"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/analyze"
-	"gitea.dev/modules/base"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/attribute"
@@ -37,7 +36,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/svg"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
@@ -185,22 +183,6 @@ func (d *DiffLine) GetLineTypeMarker() string {
 	return ""
 }
 
-func (d *DiffLine) getBlobExcerptQuery() string {
-	language := ""
-	if d.SectionInfo.language != nil { // for normal cases, it can't be nil, this check is only for some tests
-		language = d.SectionInfo.language.value
-	}
-	return fmt.Sprintf(
-		"last_left=%d&last_right=%d&"+
-			"left=%d&right=%d&"+
-			"left_hunk_size=%d&right_hunk_size=%d&"+
-			"path=%s&filelang=%s",
-		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
-		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
-		d.SectionInfo.LeftHunkSize, d.SectionInfo.RightHunkSize,
-		url.QueryEscape(d.SectionInfo.Path), url.QueryEscape(language))
-}
-
 func (d *DiffLine) GetExpandDirection() string {
 	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
 		return ""
@@ -228,39 +210,26 @@ const (
 	DiffStyleUnified = "unified"
 )
 
-func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
-	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
-	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
+// What a render has to say about expanding, as "DiffExpandMode" in the template data. A render that
+// says nothing, like the conversation snippet or the editor preview, is neither.
+const (
+	DiffExpandModeExpandable = "expandable" // the diff hides lines here and offers to expand them
+	DiffExpandModeExpanded   = "expanded"   // these rows are lines that were expanded
+)
 
-	makeButton := func(direction, svgName string) template.HTML {
-		style := util.IfZero(data.DiffStyle, "unified")
-		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor)) + "&" + d.getBlobExcerptQuery()
-		if data.PullIssueIndex > 0 {
-			link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
-		}
-		return htmlutil.HTMLFormat(
-			`<button class="code-expander-button" data-fetch-sync="$closest(tr)" data-fetch-url="%s" data-hidden-comment-ids=",%s,">%s</button>`,
-			link, dataHiddenCommentIDs, svg.RenderHTML(svgName),
-		)
+// BlobExcerptBaseURL returns the part of an excerpt request that every gap of this file shares.
+func (diffFile *DiffFile) BlobExcerptBaseURL(data *DiffBlobExcerptData) string {
+	if data == nil {
+		return ""
 	}
-	var content template.HTML
-
-	if len(d.SectionInfo.HiddenCommentIDs) > 0 {
-		tooltip := fmt.Sprintf("%d hidden comment(s)", len(d.SectionInfo.HiddenCommentIDs))
-		content += htmlutil.HTMLFormat(`<span class="code-comment-more" data-tooltip-content="%s">%d</span>`, tooltip, len(d.SectionInfo.HiddenCommentIDs))
+	link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&path=%s&filelang=%s",
+		url.QueryEscape(util.IfZero(data.DiffStyle, DiffStyleUnified)),
+		url.QueryEscape(diffFile.Name),
+		url.QueryEscape(diffFile.language.value))
+	if data.PullIssueIndex > 0 {
+		link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
 	}
-
-	expandDirection := d.GetExpandDirection()
-	if expandDirection == "updown" || expandDirection == "down" {
-		content += makeButton("down", "octicon-fold-down")
-	}
-	if expandDirection == "up" || expandDirection == "updown" {
-		content += makeButton("up", "octicon-fold-up")
-	}
-	if expandDirection == "single" {
-		content += makeButton("single", "octicon-fold")
-	}
-	return htmlutil.HTMLFormat(`<div class="code-expander-buttons" data-expand-direction="%s">%s</div>`, expandDirection, content)
+	return link
 }
 
 // FillHiddenCommentIDsForDiffLine finds comment IDs that are in the hidden range of an expand button
@@ -505,6 +474,27 @@ func (diffFile *DiffFile) CanShowFileViewToggle() bool {
 	return diffFile.IsBlobTypeImage || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines)
 }
 
+// IsRenderedAsDiffLines reports whether the file body shows the diff line table.
+// A file with a rendered view (image, CSV) keeps that table hidden behind the view toggle.
+func (diffFile *DiffFile) IsRenderedAsDiffLines() bool {
+	if diffFile.IsIncomplete || diffFile.IsBin || diffFile.SubmoduleDiffInfo != nil {
+		return false
+	}
+	return len(diffFile.Sections) > 0 && !diffFile.CanShowFileViewToggle()
+}
+
+// HasHiddenLines reports whether any unchanged lines of the file are hidden behind an expander.
+func (diffFile *DiffFile) HasHiddenLines() bool {
+	for _, section := range diffFile.Sections {
+		for _, line := range section.Lines {
+			if line.GetExpandDirection() != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 type DiffRenderDetail struct {
 	needTailSection               bool
 	leftLineCount, rightLineCount int
@@ -573,7 +563,8 @@ func (diffFile *DiffFile) addTailSection(detail DiffRenderDetail) {
 			RightIdx:     detail.rightLineCount,
 		},
 	}
-	tailSection := &DiffSection{FileName: diffFile.Name, Lines: []*DiffLine{tailDiffLine}}
+	tailSection := newDiffSectionForDiffFile(diffFile)
+	tailSection.FileName, tailSection.Lines = diffFile.Name, []*DiffLine{tailDiffLine}
 	diffFile.Sections = append(diffFile.Sections, tailSection)
 }
 
