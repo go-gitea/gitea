@@ -72,10 +72,7 @@ func testAPIActionsGetWorkflowRun(t *testing.T) {
 	t.Run("ListRunsUnknownActor", func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs?actor=no-such-user", repo.FullName())).
 			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-		runList := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
-		assert.Empty(t, runList.Entries)
-		assert.Zero(t, runList.TotalCount)
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("GetJobSteps", func(t *testing.T) {
