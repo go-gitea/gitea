@@ -191,7 +191,10 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	if err := workflowJob.SetJob(id, job.EraseNeeds()); err != nil {
 		return nil, nil, false, err
 	}
-	payload, _ := workflowJob.Marshal()
+	payload, err := workflowJob.Marshal()
+	if err != nil {
+		return nil, nil, false, fmt.Errorf("insertRunJob: marshal job %q: %w", id, err)
+	}
 
 	isReusableWorkflowCaller := job.Uses != ""
 	status := util.Iif(runAttempt.Status == actions_model.StatusBlocked || run.NeedApproval, actions_model.StatusBlocked, actions_model.StatusWaiting)

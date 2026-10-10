@@ -185,7 +185,11 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	}
 	if actor := ctx.FormString("actor"); actor != "" {
 		user, err := user_model.GetUserByName(ctx, actor)
-		if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.SetTotalCountHeader(0)
+			ctx.JSON(http.StatusOK, &api.ActionWorkflowRunsResponse{Entries: []*api.ActionWorkflowRun{}})
+			return
+		} else if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}

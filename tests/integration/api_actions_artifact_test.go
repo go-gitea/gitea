@@ -682,7 +682,7 @@ jobs:
 	taskToken3 := task3.Context.GetFields()["gitea_runtime_token"].GetStringValue()
 
 	// the new attempt inherits what the previous attempt uploaded
-	assert.ElementsMatch(t, []string{"job1-only", "job1-shared"}, listArtifactNamesForRunV4(t, run.ID, job3.ID, taskToken3))
+	assert.Equal(t, []string{"job1-only", "job1-shared"}, listArtifactNamesForRunV4(t, run.ID, job3.ID, taskToken3))
 	assert.Equal(t, strings.Repeat("A", 32), downloadArtifactContentV4ByTask(t, run.ID, job3.ID, taskToken3, "job1-only"))
 	assert.Contains(t, listArtifactNamesForRun(t, run.ID, taskToken3), "job1-v3")
 
@@ -699,7 +699,7 @@ jobs:
 	inheritedSharedID := listArtifactIDForRunV4(t, run.ID, job3.ID, taskToken3, "job1-shared")
 	require.Len(t, listArtifactsByIDV4(t, run.ID, job3.ID, inheritedSharedID, taskToken3), 1)
 	uploadTestArtifactFileV4(t, run.ID, job3.ID, taskToken3, "job1-shared", strings.Repeat("C", 32))
-	assert.ElementsMatch(t, []string{"job1-only", "job1-shared"}, listArtifactNamesForRunV4(t, run.ID, job3.ID, taskToken3))
+	assert.Equal(t, []string{"job1-only", "job1-shared"}, listArtifactNamesForRunV4(t, run.ID, job3.ID, taskToken3))
 	assert.Equal(t, strings.Repeat("C", 32), downloadArtifactContentV4ByTask(t, run.ID, job3.ID, taskToken3, "job1-shared"))
 
 	// a shadowed artifact is not listed by id either: a download resolves by name
