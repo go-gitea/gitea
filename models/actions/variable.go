@@ -56,8 +56,8 @@ func InsertVariable(ctx context.Context, scope BelongingScope, name, data, descr
 	description = util.TruncateRunes(description, VariableDescriptionMaxLength)
 
 	variable := &ActionVariable{
-		OwnerID:     scope.ownerID,
-		RepoID:      scope.repoID,
+		OwnerID:     scope.internalOwnerID,
+		RepoID:      scope.iternalRepoID,
 		Name:        strings.ToUpper(name),
 		Data:        data,
 		Description: description,

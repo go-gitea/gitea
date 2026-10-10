@@ -7,16 +7,16 @@ package actions
 // Both zero values mean "global scope".
 // Always use the functions to create a BelongingScope, rather than creating one directly, to avoid accidentally creating an invalid scope.
 type BelongingScope struct {
-	ownerID int64
-	repoID  int64
+	internalOwnerID int64
+	iternalRepoID   int64
 }
 
 func BelongingScopeOwner(ownerID int64) BelongingScope {
-	return BelongingScope{ownerID: ownerID}
+	return BelongingScope{internalOwnerID: ownerID}
 }
 
 func BelongingScopeRepo(repoID int64) BelongingScope {
-	return BelongingScope{repoID: repoID}
+	return BelongingScope{iternalRepoID: repoID}
 }
 
 func BelongingScopeGlobal() BelongingScope {
@@ -24,5 +24,5 @@ func BelongingScopeGlobal() BelongingScope {
 }
 
 func (scope BelongingScope) GetOwnerRepoIDs() (ownerID, repoID int64) {
-	return scope.ownerID, scope.repoID
+	return scope.internalOwnerID, scope.iternalRepoID
 }
