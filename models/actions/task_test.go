@@ -45,9 +45,11 @@ func TestGetTaskRunnerNames(t *testing.T) {
 	require.NoError(t, db.Insert(ctx, runner))
 	task := &ActionTask{RunnerID: runner.ID, TokenHash: "queue-test-task"}
 	require.NoError(t, db.Insert(ctx, task))
-	names, err := GetTaskRunnerNames(ctx, []int64{task.ID, 987654321})
+	removedRunnerTask := &ActionTask{RunnerID: 987654321, RunnerName: "removed-runner", TokenHash: "queue-test-removed-runner"}
+	require.NoError(t, db.Insert(ctx, removedRunnerTask))
+	names, err := GetTaskRunnerNames(ctx, []int64{task.ID, removedRunnerTask.ID, 987654321})
 	require.NoError(t, err)
-	assert.Equal(t, map[int64]string{task.ID: runner.Name}, names)
+	assert.Equal(t, map[int64]string{task.ID: runner.Name, removedRunnerTask.ID: "removed-runner"}, names)
 }
 
 func TestMakeTaskStepDisplayName(t *testing.T) {
@@ -288,6 +290,7 @@ func TestReleaseTaskForRunner(t *testing.T) {
 	claimed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
 	require.Equal(t, StatusRunning, claimed.Status)
 	require.Equal(t, task.ID, claimed.TaskID)
+	assert.Equal(t, runner.Name, unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID}).RunnerName)
 
 	require.NoError(t, ReleaseTaskForRunner(t.Context(), task))
 

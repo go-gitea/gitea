@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -26,15 +27,16 @@ import (
 
 // ActionTask represents a distribution of job
 type ActionTask struct {
-	ID       int64
-	JobID    int64
-	Job      *ActionRunJob     `xorm:"-"`
-	Steps    []*ActionTaskStep `xorm:"-"`
-	Attempt  int64
-	RunnerID int64              `xorm:"index"`
-	Status   Status             `xorm:"index"`
-	Started  timeutil.TimeStamp `xorm:"index"`
-	Stopped  timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
+	ID         int64
+	JobID      int64
+	Job        *ActionRunJob     `xorm:"-"`
+	Steps      []*ActionTaskStep `xorm:"-"`
+	Attempt    int64
+	RunnerID   int64              `xorm:"index"`
+	RunnerName string             `xorm:"VARCHAR(255)"` // kept on the task because the runner row may be deleted
+	Status     Status             `xorm:"index"`
+	Started    timeutil.TimeStamp `xorm:"index"`
+	Stopped    timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
 
 	RepoID            int64  `xorm:"index"`
 	OwnerID           int64  `xorm:"index"`
@@ -167,18 +169,21 @@ func GetTaskRunnerNames(ctx context.Context, taskIDs []int64) (map[int64]string,
 		return names, nil
 	}
 	var rows []struct {
-		ID   int64
-		Name string
+		ID         int64
+		RunnerName string
+		Name       string
 	}
 	err := db.GetEngine(ctx).Table("action_task").
-		Join("INNER", "action_runner", "action_runner.id = action_task.runner_id").
+		Join("LEFT", "action_runner", "action_runner.id = action_task.runner_id").
 		In("action_task.id", taskIDs).
-		Select("action_task.id, action_runner.name").Find(&rows)
+		Select("action_task.id, action_task.runner_name, action_runner.name").Find(&rows)
 	if err != nil {
 		return nil, err
 	}
 	for _, row := range rows {
-		names[row.ID] = row.Name
+		if name := cmp.Or(row.RunnerName, row.Name); name != "" {
+			names[row.ID] = name
+		}
 	}
 	return names, nil
 }
@@ -347,6 +352,7 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 			JobID:             job.ID,
 			Attempt:           job.Attempt,
 			RunnerID:          runner.ID,
+			RunnerName:        runner.Name,
 			Started:           now,
 			Status:            StatusRunning,
 			RepoID:            job.RepoID,
