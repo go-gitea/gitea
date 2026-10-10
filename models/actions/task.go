@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -482,6 +483,11 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v
 	}
+	reportedSteps := state.ReportedSteps
+	if err := validateReportedSteps(reportedSteps); err != nil {
+		log.Warn("Ignore the steps reported for task %d: %v", state.Id, err)
+		reportedSteps = nil
+	}
 
 	// Only one request can update the task because the final state needs to be calculated with all job states.
 	// Otherwise, concurrent requests with transaction will make the SQL read stale job state and result in wrong final state.
@@ -538,22 +544,14 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			return err
 		}
 
+		if len(reportedSteps) > 0 {
+			return updateReportedSteps(ctx, task, reportedSteps, now)
+		}
+		if slices.ContainsFunc(task.Steps, (*ActionTaskStep).IsReported) {
+			return nil // the indexes of the steps of the workflow file no longer match the stored steps
+		}
 		for _, step := range task.Steps {
-			var result runnerv1.Result
-			if v, ok := stepStates[step.Index]; ok {
-				result = v.Result
-				step.LogIndex = v.LogIndex
-				step.LogLength = v.LogLength
-				if step.Started == 0 && v.StartedAt != nil {
-					step.Started = now
-				}
-			}
-			if result != runnerv1.Result_RESULT_UNSPECIFIED {
-				step.Status = StatusFromResult(result)
-				step.Stopped = util.IfZero(step.Stopped, now)
-			} else if step.Started != 0 {
-				step.Status = StatusRunning
-			}
+			step.applyState(stepStates[step.Index], now)
 			if _, err := db.GetEngine(ctx).ID(step.ID).Update(step); err != nil {
 				return err
 			}

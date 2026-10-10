@@ -6,6 +6,7 @@ package actions
 import (
 	"testing"
 
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 
 	"github.com/stretchr/testify/assert"
@@ -53,6 +54,21 @@ func TestFullSteps(t *testing.T) {
 				{Status: actions_model.StatusFailure, LogIndex: 30, LogLength: 60, Started: 10020, Stopped: 10090},
 				{Status: actions_model.StatusCancelled, LogIndex: 0, LogLength: 0, Started: 0, Stopped: 0},
 				{Name: postStepName, Status: actions_model.StatusFailure, LogIndex: 90, LogLength: 10, Started: 10090, Stopped: 10100},
+			},
+		},
+		{
+			name: "reported by the runner",
+			task: &actions_model.ActionTask{
+				Steps: []*actions_model.ActionTaskStep{
+					{Name: "Set up job", Stage: runnerv1.StepStage_STEP_STAGE_SETUP, Status: actions_model.StatusSuccess, LogLength: 10},
+					{Name: "Run echo", Stage: runnerv1.StepStage_STEP_STAGE_MAIN, Status: actions_model.StatusRunning, LogIndex: 10, LogLength: 5},
+				},
+				Status:    actions_model.StatusRunning,
+				LogLength: 15,
+			},
+			want: []*actions_model.ActionTaskStep{
+				{Name: "Set up job", Stage: runnerv1.StepStage_STEP_STAGE_SETUP, Status: actions_model.StatusSuccess, LogLength: 10},
+				{Name: "Run echo", Stage: runnerv1.StepStage_STEP_STAGE_MAIN, Status: actions_model.StatusRunning, LogIndex: 10, LogLength: 5},
 			},
 		},
 		{
