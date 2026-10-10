@@ -436,7 +436,7 @@ func TestUpdateTaskByStateReportedSteps(t *testing.T) {
 	t.Run("reported steps replace the workflow steps", func(t *testing.T) {
 		got := report(t, legacy, setup, main)
 		require.Len(t, got, 2)
-		assert.Equal(t, runnerv1.StepStage_STEP_STAGE_SETUP, got[0].Stage)
+		assert.Equal(t, runnerv1.StepStage_STEP_STAGE_SETUP, got[0].StepStage())
 		assert.EqualValues(t, -1, got[0].WorkflowStepIndex())
 		assert.Equal(t, StatusRunning, got[0].Status)
 		assert.NotZero(t, got[0].Started)
@@ -455,7 +455,7 @@ func TestUpdateTaskByStateReportedSteps(t *testing.T) {
 		require.Len(t, got, 3)
 		assert.Equal(t, StatusSuccess, got[0].Status)
 		assert.Equal(t, before[0].Started, got[0].Started)
-		assert.Equal(t, runnerv1.StepStage_STEP_STAGE_PRE, got[1].Stage)
+		assert.Equal(t, runnerv1.StepStage_STEP_STAGE_PRE, got[1].StepStage())
 		assert.Equal(t, StatusRunning, got[1].Status)
 		assert.EqualValues(t, 4, got[1].LogIndex)
 		assert.EqualValues(t, 2, got[2].Index)

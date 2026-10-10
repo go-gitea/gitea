@@ -25,8 +25,8 @@ type ActionTaskStep struct {
 	Status    Status `xorm:"index"`
 	LogIndex  int64
 	LogLength int64
-	Stage     runnerv1.StepStage `xorm:"NOT NULL DEFAULT 0"` // unspecified for the steps parsed from the workflow file instead of reported by the runner
-	Number    int64              `xorm:"NOT NULL DEFAULT 0"` // the index in the workflow file of the step a PRE, MAIN or POST stage belongs to
+	Stage     int64 `xorm:"NOT NULL DEFAULT 0"` // a runnerv1.StepStage, unspecified for the steps parsed from the workflow file instead of reported by the runner
+	Number    int64 `xorm:"NOT NULL DEFAULT 0"` // the index in the workflow file of the step a PRE, MAIN or POST stage belongs to
 	Started   timeutil.TimeStamp
 	Stopped   timeutil.TimeStamp
 	Created   timeutil.TimeStamp `xorm:"created"`
@@ -37,14 +37,19 @@ func (step *ActionTaskStep) Duration() time.Duration {
 	return calculateDuration(step.Started, step.Stopped, step.Status, step.Updated)
 }
 
+// StepStage returns the stored stage, which was validated against the enum when the runner reported it
+func (step *ActionTaskStep) StepStage() runnerv1.StepStage {
+	return runnerv1.StepStage(step.Stage)
+}
+
 // IsReported reports whether the runner reported the step instead of Gitea parsing it from the workflow file.
 func (step *ActionTaskStep) IsReported() bool {
-	return step.Stage != runnerv1.StepStage_STEP_STAGE_UNSPECIFIED
+	return step.StepStage() != runnerv1.StepStage_STEP_STAGE_UNSPECIFIED
 }
 
 // WorkflowStepIndex returns the index of the step in the workflow file, or -1 for a step that is not written there.
 func (step *ActionTaskStep) WorkflowStepIndex() int64 {
-	switch step.Stage {
+	switch step.StepStage() {
 	case runnerv1.StepStage_STEP_STAGE_UNSPECIFIED:
 		return step.Index
 	case runnerv1.StepStage_STEP_STAGE_MAIN:
@@ -123,7 +128,7 @@ func updateReportedSteps(ctx context.Context, task *ActionTask, reported []*runn
 	sameLayout := len(task.Steps) == len(reported)
 	for i := 0; sameLayout && i < len(reported); i++ {
 		step := task.Steps[i]
-		sameLayout = step.IsReported() && newReportedStepKey(step.Stage, step.Number) == newReportedStepKey(reported[i].Stage, reported[i].Number)
+		sameLayout = step.IsReported() && newReportedStepKey(step.StepStage(), step.Number) == newReportedStepKey(reported[i].Stage, reported[i].Number)
 	}
 
 	if sameLayout {
@@ -140,7 +145,7 @@ func updateReportedSteps(ctx context.Context, task *ActionTask, reported []*runn
 	known := make(map[reportedStepKey]*ActionTaskStep, len(task.Steps))
 	for _, step := range task.Steps {
 		if step.IsReported() {
-			known[newReportedStepKey(step.Stage, step.Number)] = step
+			known[newReportedStepKey(step.StepStage(), step.Number)] = step
 		}
 	}
 	steps := make([]*ActionTaskStep, len(reported))
@@ -151,7 +156,7 @@ func updateReportedSteps(ctx context.Context, task *ActionTask, reported []*runn
 			TaskID: task.ID,
 			Index:  int64(i),
 			RepoID: task.RepoID,
-			Stage:  key.stage,
+			Stage:  int64(key.stage),
 			Number: key.number,
 			Status: StatusWaiting,
 		}

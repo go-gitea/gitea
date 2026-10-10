@@ -13,7 +13,7 @@ import (
 
 func AddStageAndNumberToActionTaskStep(_ context.Context, x base.EngineMigration) error {
 	type ActionTaskStep struct {
-		Stage  int32 `xorm:"NOT NULL DEFAULT 0"`
+		Stage  int64 `xorm:"NOT NULL DEFAULT 0"`
 		Number int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 

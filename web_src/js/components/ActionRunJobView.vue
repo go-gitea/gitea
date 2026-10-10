@@ -404,7 +404,7 @@ function isSameSteps(a: Array<Step>, b: Array<Step>) {
 }
 
 function resetStepsLogs(previousSteps: Array<Step>) {
-  const expandedSummaries = new Set(previousSteps.filter((_, idx) => currentJobStepsStates.value[idx]?.expanded).map((step) => step.summary));
+  const expandedSummaries = new Set(previousSteps.filter((_, idx) => currentJobStepsStates.value[idx].expanded).map((step) => step.summary));
   currentJobStepsStates.value = currentJob.value.steps.map((step) => ({cursor: null, expanded: expandedSummaries.has(step.summary), manuallyCollapsed: false}));
   stepAnsiRenderers.length = 0;
   for (const el of jobStepLogs.value) {

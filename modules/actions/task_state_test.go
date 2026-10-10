@@ -60,15 +60,15 @@ func TestFullSteps(t *testing.T) {
 			name: "reported by the runner",
 			task: &actions_model.ActionTask{
 				Steps: []*actions_model.ActionTaskStep{
-					{Name: "Set up job", Stage: runnerv1.StepStage_STEP_STAGE_SETUP, Status: actions_model.StatusSuccess, LogLength: 10},
-					{Name: "Run echo", Stage: runnerv1.StepStage_STEP_STAGE_MAIN, Status: actions_model.StatusRunning, LogIndex: 10, LogLength: 5},
+					{Name: "Set up job", Stage: int64(runnerv1.StepStage_STEP_STAGE_SETUP), Status: actions_model.StatusSuccess, LogLength: 10},
+					{Name: "Run echo", Stage: int64(runnerv1.StepStage_STEP_STAGE_MAIN), Status: actions_model.StatusRunning, LogIndex: 10, LogLength: 5},
 				},
 				Status:    actions_model.StatusRunning,
 				LogLength: 15,
 			},
 			want: []*actions_model.ActionTaskStep{
-				{Name: "Set up job", Stage: runnerv1.StepStage_STEP_STAGE_SETUP, Status: actions_model.StatusSuccess, LogLength: 10},
-				{Name: "Run echo", Stage: runnerv1.StepStage_STEP_STAGE_MAIN, Status: actions_model.StatusRunning, LogIndex: 10, LogLength: 5},
+				{Name: "Set up job", Stage: int64(runnerv1.StepStage_STEP_STAGE_SETUP), Status: actions_model.StatusSuccess, LogLength: 10},
+				{Name: "Run echo", Stage: int64(runnerv1.StepStage_STEP_STAGE_MAIN), Status: actions_model.StatusRunning, LogIndex: 10, LogLength: 5},
 			},
 		},
 		{
