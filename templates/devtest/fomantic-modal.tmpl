@@ -64,15 +64,14 @@
 	</div>
 
 	<div class="ui g-modal-confirm modal" id="test-modal-danger">
-		{{svg "octicon-x" 16 "inside close"}}
-		<div class="header">dangerous action dialog</div>
+		<div class="header">dangerous action dialog <button type="button" class="close-modal"></button></div>
 		<div class="content">hello, this is the modal dialog content, this is a dangerous operation</div>
 		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" "I know and must do  this is dangerous operation")}}
 	</div>
 
 	<div class="divider"></div>
 
-	<button class="show-modal" data-modal="#test-modal-fill-values"
+	<button type="button" class="show-modal" data-modal="#test-modal-fill-values"
 		data-modal-fill-by-id="value for id"
 		data-modal-fill-by-name="value for name"
 		data-modal-fill-by-class="value for class"

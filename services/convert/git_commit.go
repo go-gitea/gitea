@@ -172,8 +172,8 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 			},
 			Message: commit.MessageUTF8(),
 			Tree: &api.CommitMeta{
-				URL:     repo.APIURL() + "/git/trees/" + url.PathEscape(commit.ID.String()),
-				SHA:     commit.ID.String(),
+				URL:     repo.APIURL() + "/git/trees/" + url.PathEscape(commit.TreeID.String()),
+				SHA:     commit.TreeID.String(),
 				Created: commit.Committer.When,
 			},
 		},
@@ -209,7 +209,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Get diff stats for commit
 	if opts.Stat {
-		diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepo, "", commit.ID.String())
+		diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepo, &gitdiff.DiffCommonOptions{AfterCommitID: commit.ID.String()})
 		if err != nil {
 			return nil, err
 		}

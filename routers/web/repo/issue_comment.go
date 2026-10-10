@@ -14,10 +14,8 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
-	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -87,6 +85,7 @@ func NewComment(ctx *context.Context) {
 	if (ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
 		(form.Status == "reopen" || form.Status == "close") &&
 		!(issue.IsPull && issue.PullRequest.HasMerged) {
+		// TODO: move the code to services package, don't make route handler logic so complex
 		// Duplication and conflict check should apply to reopen pull request.
 		var branchOtherUnmergedPR *issues_model.PullRequest
 		var err error
@@ -102,59 +101,20 @@ func NewComment(ctx *context.Context) {
 			if branchOtherUnmergedPR != nil {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.open_unmerged_pull_exists", branchOtherUnmergedPR.Index))
 			} else {
-				// Regenerate patch and test conflict.
-				issue.PullRequest.HeadCommitID = ""
-				pull_service.StartPullRequestCheckImmediately(ctx, issue.PullRequest)
-			}
-
-			// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
-			// get head commit of PR
-			if branchOtherUnmergedPR != nil && pull.Flow == issues_model.PullRequestFlowGithub {
-				prHeadRef := pull.GetGitHeadRefName()
-				if err := pull.LoadBaseRepo(ctx); err != nil {
-					ctx.ServerError("Unable to load base repo", err)
-					return
-				}
-				prHeadCommitID, err := git.GetFullCommitID(ctx, pull.BaseRepo, prHeadRef)
-				if err != nil {
-					ctx.ServerError("Get head commit Id of pr fail", err)
-					return
-				}
-
-				// get head commit of branch in the head repo
-				if err := pull.LoadHeadRepo(ctx); err != nil {
-					ctx.ServerError("Unable to load head repo", err)
-					return
-				}
-				if exist, _ := git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.BaseBranch); !exist {
-					ctx.Flash.Error("The origin branch is delete, cannot reopen.")
-					return
-				}
-				headBranchRef := git.RefNameFromBranch(pull.HeadBranch)
-				headBranchCommitID, err := git.GetFullCommitID(ctx, pull.HeadRepo, headBranchRef.String())
-				if err != nil {
-					ctx.ServerError("Get head commit Id of head branch fail", err)
-					return
-				}
-
-				err = pull.LoadIssue(ctx)
-				if err != nil {
-					ctx.ServerError("load the issue of pull request error", err)
-					return
-				}
-
-				if prHeadCommitID != headBranchCommitID {
-					// force push to base repo
-					err := git.PushManaged(ctx, pull.HeadRepo, pull.BaseRepo, git.PushOptions{
-						Branch: pull.HeadBranch + ":" + prHeadRef,
-						Force:  true,
-						Env:    repo_module.InternalPushingEnvironment(pull.Issue.Poster, pull.BaseRepo),
-					})
-					if err != nil {
-						ctx.ServerError("force push error", err)
+				// sync ref of PR <refs/pulls/pr_index/head> in base repo for a reopened PR
+				if pull.Flow == issues_model.PullRequestFlowGithub {
+					if exist, _ := git_model.IsBranchExist(ctx, pull.HeadRepoID, pull.HeadBranch); !exist {
+						ctx.Flash.Error("The origin branch is delete, cannot reopen.")
+						return
+					}
+					if err := pull_service.PushToBaseRepo(ctx, pull); err != nil {
+						ctx.ServerError("PushToBaseRepo", err)
 						return
 					}
 				}
+				// Regenerate patch and test conflict.
+				issue.PullRequest.HeadCommitID = ""
+				pull_service.StartPullRequestCheckImmediately(ctx, issue.PullRequest)
 			}
 		}
 

@@ -125,7 +125,8 @@
 .markup ol,
 .markup dl,
 .markup table,
-.markup pre {
+.markup pre,
+.markup math[display="block" i] {
   margin-top: 0;
   margin-bottom: 16px;
 }
@@ -427,7 +428,7 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   display: block;
   border: none;
   width: 100%;
-  height: var(--height-loading); /* actual height is set in JS after loading */
+  height: var(--height-loading); /* actual height is set in JS */
   overflow: hidden;
   color-scheme: normal; /* match the value inside the iframe to allow it to become transparent */
 }

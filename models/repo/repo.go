@@ -473,9 +473,13 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 			"repo": repo.Name,
 		}
 
-		unitExternalTracker, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
-		if err == nil {
-			metas["format"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerFormat
+		unitInternalTracker, _ := repo.GetUnit(ctx, unit.TypeIssues)
+		unitExternalTracker, _ := repo.GetUnit(ctx, unit.TypeExternalTracker)
+		if unitInternalTracker != nil {
+			metas["internalTrackerEnabled"] = "true"
+		}
+		if unitExternalTracker != nil {
+			metas["externalTrackerLinkFormat"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerFormat
 			switch unitExternalTracker.ExternalTrackerConfig().ExternalTrackerStyle {
 			case markup.IssueNameStyleAlphanumeric:
 				metas["style"] = markup.IssueNameStyleAlphanumeric
@@ -612,6 +616,15 @@ func ComposeHTTPSCloneURL(ctx context.Context, owner, repo string) string {
 
 // ComposeSSHCloneURL returns SSH clone URL based on the given owner and repository name.
 func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) string {
+	return composeSSHCloneURL(doer, ownerName, repoName, setting.Repository.UseCompatSSHURI)
+}
+
+// ComposeSSHCloneURI is like ComposeSSHCloneURL but always returns the "ssh://" form, because "go get" rejects scp-style addresses
+func ComposeSSHCloneURI(doer *user_model.User, ownerName, repoName string) string {
+	return composeSSHCloneURL(doer, ownerName, repoName, true)
+}
+
+func composeSSHCloneURL(doer *user_model.User, ownerName, repoName string, useURI bool) string {
 	sshUser := setting.SSH.User
 	sshDomain := setting.SSH.Domain
 
@@ -638,7 +651,7 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) strin
 	if ip := net.ParseIP(sshHost); ip != nil && ip.To4() == nil {
 		sshHost = "[" + sshHost + "]" // for IPv6 address, wrap it with brackets
 	}
-	if setting.Repository.UseCompatSSHURI {
+	if useURI {
 		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 	}
 	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))

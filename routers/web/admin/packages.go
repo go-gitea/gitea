@@ -5,7 +5,6 @@ package admin
 
 import (
 	"net/http"
-	"net/url"
 	"time"
 
 	"gitea.dev/models/db"
@@ -93,7 +92,7 @@ func DeletePackageVersion(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
-	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")))
+	ctx.JSONRedirect("")
 }
 
 func CleanupExpiredData(ctx *context.Context) {

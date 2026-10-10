@@ -8,88 +8,30 @@ import (
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-// A partial struct declares no indices, and Sync drops every index it does not find in the struct.
-var syncColumnOnly = xorm.SyncOptions{IgnoreConstrains: true, IgnoreDropIndices: true}
+type AuditEvent struct {
+	ID               int64  `xorm:"pk autoincr"`
+	Action           string `xorm:"INDEX NOT NULL"`
+	ActorID          int64  `xorm:"INDEX NOT NULL"`
+	ActorName        string
+	ActorCredential  string
+	ImpersonatorID   int64 `xorm:"INDEX"`
+	ImpersonatorName string
+	ScopeID          int64  `xorm:"INDEX(scope) NOT NULL"`
+	ScopeType        string `xorm:"INDEX INDEX(scope) NOT NULL"`
+	ScopeName        string
+	Origin           string `xorm:"INDEX NOT NULL"`
+	Message          string
+	Metadata         string `xorm:"LONGTEXT JSON"`
+	IPAddress        string
+	TimestampUnix    timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+}
 
-func AddActionEnvironmentSchema(_ context.Context, x base.EngineMigration) error {
-	type ActionEnvironment struct {
-		ID                    int64              `xorm:"pk autoincr"`
-		RepoID                int64              `xorm:"UNIQUE(repo_lower_name) NOT NULL"`
-		Name                  string             `xorm:"NOT NULL"`
-		LowerName             string             `xorm:"UNIQUE(repo_lower_name) NOT NULL"`
-		AllowedBranchPatterns string             `xorm:"TEXT"`
-		CreatedUnix           timeutil.TimeStamp `xorm:"created NOT NULL"`
-		UpdatedUnix           timeutil.TimeStamp `xorm:"updated"`
-	}
+func (*AuditEvent) TableName() string {
+	return "audit_event"
+}
 
-	if err := x.Sync(new(ActionEnvironment)); err != nil {
-		return err
-	}
-
-	// RecreateTable selects the new column set from the existing table, so environment_id has to exist first
-	{
-		type Secret struct {
-			EnvironmentID int64 `xorm:"NOT NULL DEFAULT 0"`
-		}
-		if _, err := x.SyncWithOptions(syncColumnOnly, new(Secret)); err != nil {
-			return err
-		}
-	}
-	{
-		type ActionVariable struct {
-			EnvironmentID int64 `xorm:"NOT NULL DEFAULT 0"`
-		}
-		if _, err := x.SyncWithOptions(syncColumnOnly, new(ActionVariable)); err != nil {
-			return err
-		}
-	}
-
-	type Secret struct {
-		ID            int64              `xorm:"pk autoincr"`
-		OwnerID       int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL"`
-		RepoID        int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
-		EnvironmentID int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
-		Name          string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
-		Data          string             `xorm:"LONGTEXT"`
-		Description   string             `xorm:"TEXT"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created NOT NULL"`
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-	if err := base.RecreateTable(sess, new(Secret)); err != nil {
-		return err
-	}
-
-	type ActionVariable struct {
-		ID            int64              `xorm:"pk autoincr"`
-		OwnerID       int64              `xorm:"UNIQUE(owner_repo_name)"`
-		RepoID        int64              `xorm:"INDEX UNIQUE(owner_repo_name)"`
-		EnvironmentID int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
-		Name          string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
-		Data          string             `xorm:"LONGTEXT NOT NULL"`
-		Description   string             `xorm:"TEXT"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created NOT NULL"`
-		UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
-	}
-
-	if err := base.RecreateTable(sess, new(ActionVariable)); err != nil {
-		return err
-	}
-	if err := sess.Commit(); err != nil {
-		return err
-	}
-
-	type ActionRunJob struct {
-		EnvironmentName string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-	}
-	_, err := x.SyncWithOptions(syncColumnOnly, new(ActionRunJob))
-	return err
+func AddAuditEventTable(_ context.Context, x base.EngineMigration) error {
+	return x.Sync(new(AuditEvent))
 }

@@ -139,12 +139,12 @@ func EnvironmentDelete(ctx *context.Context) {
 
 func EnvironmentSecretPost(ctx *context.Context) {
 	env := contextEnvironment(ctx)
-	shared_secrets.PerformSecretsPost(ctx, 0, ctx.Repo.Repository.ID, env.ID, environmentLink(ctx, env))
+	shared_secrets.PerformSecretsPost(ctx, nil, ctx.Repo.Repository, env.ID, environmentLink(ctx, env))
 }
 
 func EnvironmentSecretDelete(ctx *context.Context) {
 	env := contextEnvironment(ctx)
-	shared_secrets.PerformSecretsDelete(ctx, 0, ctx.Repo.Repository.ID, env.ID, environmentLink(ctx, env))
+	shared_secrets.PerformSecretsDelete(ctx, nil, ctx.Repo.Repository, env.ID, environmentLink(ctx, env))
 }
 
 func EnvironmentVariableCreate(ctx *context.Context) {

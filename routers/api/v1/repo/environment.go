@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 )
 
@@ -305,11 +306,16 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 		return
 	}
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
-	_, created, err := actions_service.CreateOrUpdateEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
+	s, created, err := actions_service.CreateOrUpdateEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
+	action := audit.SecretUpdate
+	if created {
+		action = audit.SecretAdd
+	}
+	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, action, "secret", s.Name)
 	if created {
 		ctx.Status(http.StatusCreated)
 	} else {
@@ -353,10 +359,12 @@ func DeleteEnvSecret(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	if err := actions_service.DeleteEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname")); err != nil {
+	s, err := actions_service.DeleteEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"))
+	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
+	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, audit.SecretRemove, "secret", s.Name)
 	ctx.Status(http.StatusNoContent)
 }
 

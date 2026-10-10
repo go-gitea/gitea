@@ -157,7 +157,7 @@ func CreateOrUpdateEnvSecret(ctx context.Context, repoID, envID int64, name, dat
 	return secret_service.CreateOrUpdateSecret(ctx, 0, repoID, envID, name, data, description)
 }
 
-func DeleteEnvSecret(ctx context.Context, repoID, envID int64, name string) error {
+func DeleteEnvSecret(ctx context.Context, repoID, envID int64, name string) (*secret_model.Secret, error) {
 	return secret_service.DeleteSecretByName(ctx, 0, repoID, envID, name)
 }
 

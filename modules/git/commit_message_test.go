@@ -87,36 +87,13 @@ func TestCommitMessageParticipants(t *testing.T) {
 				// if it is a problem, the caller should fix the problem (provide correct "author")
 				[]*CommitIdentity{idt("c", "c@m.com", roleCoAuthor)},
 			},
-		}
-		for _, c := range cases {
-			assert.Equal(t, c.identities, c.commit.AllAuthorIdentities(), "case: %s", c.name)
-		}
-	})
-	t.Run("CoAuthors", func(t *testing.T) {
-		cases := []testCase{
-			{
-				"GenuineCoAuthor",
-				&Commit{
-					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: x <x@m.com>"},
-				},
-				[]*CommitIdentity{idt("x", "x@m.com", roleCoAuthor)},
-			},
 			{
 				"CoAuthorIsCommitter",
 				&Commit{
 					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
 					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
 				},
-				[]*CommitIdentity{idt("c", "c@m.com", roleCoAuthor)},
-			},
-			{
-				"CoAuthorIsAuthor",
-				&Commit{
-					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: a <a@m.com>"},
-				},
-				[]*CommitIdentity{},
+				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("c", "c@m.com", roleCoAuthor)},
 			},
 			{
 				"CoAuthorNameOnlyAndDuplicate",
@@ -124,7 +101,7 @@ func TestCommitMessageParticipants(t *testing.T) {
 					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
 					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: b\nCo-authored-by: b\nCo-authored-by: c"},
 				},
-				[]*CommitIdentity{idt("b", "", roleCoAuthor), idt("c", "", roleCoAuthor)},
+				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("b", "", roleCoAuthor), idt("c", "", roleCoAuthor)},
 			},
 			{
 				"CoAuthorNameNotAnEmailAddress", // names net/mail rejects, e.g. bots and names with a comma
@@ -133,13 +110,14 @@ func TestCommitMessageParticipants(t *testing.T) {
 					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>\nCo-authored-by: Smith, John <j@m.com>"},
 				},
 				[]*CommitIdentity{
+					idt("a", "a@m.com", roleAuthor),
 					idt("dependabot[bot]", "49699333+dependabot[bot]@users.noreply.github.com", roleCoAuthor),
 					idt("Smith, John", "j@m.com", roleCoAuthor),
 				},
 			},
 		}
 		for _, c := range cases {
-			assert.Equal(t, c.identities, c.commit.CoAuthorIdentities(), "case: %s", c.name)
+			assert.Equal(t, c.identities, c.commit.AllAuthorIdentities(), "case: %s", c.name)
 		}
 	})
 }

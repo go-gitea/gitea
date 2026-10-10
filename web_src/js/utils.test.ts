@@ -126,16 +126,17 @@ test('formatBytes', () => {
 });
 
 test('file detection', () => {
+  const type = null;
   for (const name of ['a.avif', 'a.jpg', '/a.jpeg', '.file.png', '.webp', 'file.svg']) {
-    expect(isImageFile({name})).toBeTruthy();
+    expect(isImageFile({name, type})).toBeTruthy();
   }
   for (const name of ['', 'a.jpg.x', '/path.png/x', 'webp']) {
-    expect(isImageFile({name})).toBeFalsy();
+    expect(isImageFile({name, type})).toBeFalsy();
   }
   for (const name of ['a.mpg', '/a.mpeg', '.file.mp4', '.webm', 'file.mkv']) {
-    expect(isVideoFile({name})).toBeTruthy();
+    expect(isVideoFile({name, type})).toBeTruthy();
   }
   for (const name of ['', 'a.mpg.x', '/path.mp4/x', 'webm']) {
-    expect(isVideoFile({name})).toBeFalsy();
+    expect(isVideoFile({name, type})).toBeFalsy();
   }
 });

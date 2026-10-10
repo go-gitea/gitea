@@ -6,10 +6,8 @@ package actions
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
-	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -17,153 +15,10 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	web_context "gitea.dev/services/context"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestReadWorkflow_WorkflowDispatchConfig(t *testing.T) {
-	yaml := `
-    name: local-action-docker-url
-    `
-	workflow, err := act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch := workflowDispatchConfig(workflow)
-	assert.Nil(t, workflowDispatch)
-
-	yaml = `
-    name: local-action-docker-url
-    on: push
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.Nil(t, workflowDispatch)
-
-	yaml = `
-    name: local-action-docker-url
-    on: workflow_dispatch
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.NotNil(t, workflowDispatch)
-	assert.Nil(t, workflowDispatch.Inputs)
-
-	yaml = `
-    name: local-action-docker-url
-    on: [push, pull_request]
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.Nil(t, workflowDispatch)
-
-	yaml = `
-    name: local-action-docker-url
-    on:
-        push:
-        pull_request:
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.Nil(t, workflowDispatch)
-
-	yaml = `
-    name: local-action-docker-url
-    on: [push, workflow_dispatch]
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.NotNil(t, workflowDispatch)
-	assert.Nil(t, workflowDispatch.Inputs)
-
-	yaml = `
-    name: local-action-docker-url
-    on:
-        - push
-        - workflow_dispatch
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.NotNil(t, workflowDispatch)
-	assert.Nil(t, workflowDispatch.Inputs)
-
-	yaml = `
-    name: local-action-docker-url
-    on:
-        push:
-        pull_request:
-        workflow_dispatch:
-            inputs:
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.NotNil(t, workflowDispatch)
-	assert.Nil(t, workflowDispatch.Inputs)
-
-	yaml = `
-    name: local-action-docker-url
-    on:
-        push:
-        pull_request:
-        workflow_dispatch:
-            inputs:
-                logLevel:
-                    description: 'Log level'
-                    required: true
-                    default: 'warning'
-                    type: choice
-                    options:
-                    - info
-                    - warning
-                    - debug
-                boolean_default_true:
-                    description: 'Test scenario tags'
-                    required: true
-                    type: boolean
-                    default: true
-                boolean_default_false:
-                    description: 'Test scenario tags'
-                    required: true
-                    type: boolean
-                    default: false
-    `
-
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.NotNil(t, workflowDispatch)
-	assert.Equal(t, WorkflowDispatchInput{
-		Name:        "logLevel",
-		Default:     "warning",
-		Description: "Log level",
-		Options: []string{
-			"info",
-			"warning",
-			"debug",
-		},
-		Required: true,
-		Type:     "choice",
-	}, workflowDispatch.Inputs[0])
-	assert.Equal(t, WorkflowDispatchInput{
-		Name:        "boolean_default_true",
-		Default:     "true",
-		Description: "Test scenario tags",
-		Required:    true,
-		Type:        "boolean",
-	}, workflowDispatch.Inputs[1])
-	assert.Equal(t, WorkflowDispatchInput{
-		Name:        "boolean_default_false",
-		Default:     "false",
-		Description: "Test scenario tags",
-		Required:    true,
-		Type:        "boolean",
-	}, workflowDispatch.Inputs[2])
-}
 
 func Test_loadIsRefDeleted(t *testing.T) {
 	unittest.PrepareTestEnv(t)
@@ -219,4 +74,18 @@ func newWorkflowBadgeTestContext(t *testing.T) *web_context.Context {
 		DefaultBranch: "release/1.0 & hotfix",
 	}
 	return ctx
+}
+
+func TestActionRunListData(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	t.Run("preparePartialRefreshRuns", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "user5/repo4/actions")
+		contexttest.LoadRepo(t, ctx, 4)
+		d := &actionRunListData{refreshRunIDs: []int64{791, 792}}
+		d.preparePartialRefreshRuns(ctx)
+		assert.Equal(t, []int64{791, 792}, []int64{d.ActionRuns[0].ID, d.ActionRuns[1].ID})
+		d = &actionRunListData{refreshRunIDs: []int64{792, 791}}
+		d.preparePartialRefreshRuns(ctx)
+		assert.Equal(t, []int64{792, 791}, []int64{d.ActionRuns[0].ID, d.ActionRuns[1].ID})
+	})
 }

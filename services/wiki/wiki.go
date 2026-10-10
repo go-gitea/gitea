@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
@@ -21,6 +22,7 @@ import (
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -39,12 +41,10 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 	}
 
 	// wiki's object format should be the same as repository's
-	if err := git.InitRepository(ctx, repo.WikiStorageRepo(), repo.ObjectFormatName); err != nil {
+	if err := git.InitRepository(ctx, repo.WikiStorageRepo(), repo.ObjectFormatName, repo.DefaultWikiBranch); err != nil {
 		return fmt.Errorf("InitRepository: %w", err)
 	} else if err = git.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
-	} else if err = git.SetDefaultBranch(ctx, repo.WikiStorageRepo(), repo.DefaultWikiBranch); err != nil {
-		return fmt.Errorf("unable to set default wiki branch to %q: %w", repo.DefaultWikiBranch, err)
 	}
 	return nil
 }
@@ -374,6 +374,8 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
+
+	audit.Record(ctx, audit_model.RepositoryWikiDelete, repo)
 
 	return nil
 }

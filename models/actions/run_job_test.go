@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/timeutil"
@@ -308,8 +309,6 @@ jobs:
 `, matrix)
 	}
 
-	// The shape Parse happens to survive, so only the name tells the two paths apart. What Parse makes
-	// of every other shape is asserted in TestParseRawSingleWorkflowRoundTripsDeferredPlaceholder.
 	t.Run("a placeholder is read back, not re-expanded", func(t *testing.T) {
 		job := &ActionRunJob{ID: 1, JobID: "build", IsMatrixDeferred: true, WorkflowPayload: payload("version: ${{ fromJson(needs.setup.outputs.m) }}")}
 		parsed, err := job.ParseJob()
@@ -318,13 +317,11 @@ jobs:
 		assert.Equal(t, "build", parsed.Name)
 	})
 
-	t.Run("an expanded job still goes through the full parse", func(t *testing.T) {
-		job := &ActionRunJob{ID: 1, JobID: "build", WorkflowPayload: payload("version: [1]")}
+	t.Run("an expanded job keeps its stored job-index", func(t *testing.T) {
+		job := &ActionRunJob{ID: 1, JobID: "build", WorkflowPayload: payload("version: [1]\n      job-index: 1\n      job-total: 2")}
 		parsed, err := job.ParseJob()
 		require.NoError(t, err)
-		require.NotNil(t, parsed)
-		// Parse bakes the combination into the name, ParseRawSingleWorkflow would not.
-		assert.Equal(t, "build (1)", parsed.Name)
+		assert.Equal(t, []any{"build", 1, 2}, []any{parsed.Name, parsed.Strategy.JobIndex, parsed.Strategy.JobTotal})
 	})
 }
 
@@ -400,4 +397,73 @@ func TestForceCancelJobs(t *testing.T) {
 		callerAfter := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: caller.ID})
 		assert.Equal(t, StatusCancelled, callerAfter.Status)
 	})
+}
+
+func TestCancelJobs_CallerWaitsForCancellingChild(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run := &ActionRun{
+		Title:         "caller-cancelling-child",
+		RepoID:        4,
+		Index:         9811,
+		OwnerID:       1,
+		WorkflowID:    "test.yaml",
+		TriggerUserID: 1,
+		Ref:           "refs/heads/master",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		EventPayload:  "{}",
+		Status:        StatusRunning,
+	}
+	require.NoError(t, db.Insert(ctx, run))
+	attempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: 1, Status: StatusRunning}
+	require.NoError(t, db.Insert(ctx, attempt))
+	run.LatestAttemptID = attempt.ID
+	require.NoError(t, UpdateRun(ctx, run, "latest_attempt_id"))
+
+	newJob := func(name string, parentID int64, isCaller bool) *ActionRunJob {
+		job := &ActionRunJob{
+			RunID:            run.ID,
+			RunAttemptID:     attempt.ID,
+			RepoID:           run.RepoID,
+			OwnerID:          run.OwnerID,
+			CommitSHA:        run.CommitSHA,
+			Name:             name,
+			JobID:            name,
+			Attempt:          1,
+			Status:           StatusRunning,
+			ParentJobID:      parentID,
+			IsReusableCaller: isCaller,
+			IsExpanded:       isCaller,
+		}
+		require.NoError(t, db.Insert(ctx, job))
+		return job
+	}
+	outer := newJob("outer", 0, true)
+	inner := newJob("inner", outer.ID, true)
+	child := newJob("child", inner.ID, false)
+
+	runner := &ActionRunner{UUID: "caller-cancelling-child", Name: "caller-cancelling-child", HasCancellingSupport: true}
+	require.NoError(t, db.Insert(ctx, runner))
+	task := &ActionTask{JobID: child.ID, Attempt: 1, RunnerID: runner.ID, Status: StatusRunning, Started: timeutil.TimeStampNow(), RepoID: run.RepoID, OwnerID: run.OwnerID, CommitSHA: run.CommitSHA}
+	require.NoError(t, db.Insert(ctx, task))
+	child.TaskID = task.ID
+	_, err := UpdateRunJob(ctx, child, nil, "task_id")
+	require.NoError(t, err)
+
+	cancelled, err := CancelJobs(ctx, []*ActionRunJob{outer}, false)
+	require.NoError(t, err)
+	assert.Len(t, cancelled, 3)
+	for _, job := range []*ActionRunJob{outer, inner, child} {
+		assert.Equal(t, StatusCancelling, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status, job.Name)
+	}
+
+	_, err = UpdateTaskByState(ctx, runner.ID, &runnerv1.TaskState{Id: task.ID, Result: runnerv1.Result_RESULT_CANCELLED})
+	require.NoError(t, err)
+	for _, job := range []*ActionRunJob{outer, inner, child} {
+		assert.Equal(t, StatusCancelled, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status, job.Name)
+	}
+	assert.Equal(t, StatusCancelled, unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID}).Status)
 }

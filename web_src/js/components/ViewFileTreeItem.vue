@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import SvgIcon from './SvgIcon.vue';
 import {isPlainClick} from '../utils/dom.ts';
-import {shouldTriggerAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {shouldTriggerAreYouSure} from '../modules/are-you-sure.ts';
 import {shallowRef} from 'vue';
 import type {createViewFileTreeStore, FileTreeItem} from './ViewFileTreeStore.ts';
 

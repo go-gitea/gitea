@@ -6,7 +6,7 @@
 	{{$commitStatuses := $statusCheckData.PullCommitStatuses}}
 	<div class="item flex-left-right commit-status-toggle">
 		<div>{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}</div>
-		<button data-global-click="onCommitStatusChecksToggle" class="btn interact-fg"
+		<button type="button" data-global-click="onCommitStatusChecksToggle" class="btn interact-fg"
 						data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
 						data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}"
 		>{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
@@ -19,7 +19,7 @@
 			<p>{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals_helper"}}</p>
 		</div>
 		{{if $statusCheckData.CanApprove}}
-		<button class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
+		<button type="button" class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
 			{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
 		</button>
 		{{end}}

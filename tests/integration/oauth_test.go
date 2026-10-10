@@ -108,6 +108,7 @@ func TestOAuth2(t *testing.T) {
 		t.Run("AuthorizeNoClientID", testAuthorizeNoClientID)
 		t.Run("AuthorizeUnregisteredRedirect", testAuthorizeUnregisteredRedirect)
 		t.Run("AuthorizeUnsupportedResponseType", testAuthorizeUnsupportedResponseType)
+		t.Run("AuthorizeUnsupportedResponseTypeIDToken", testAuthorizeUnsupportedResponseTypeIDToken)
 		t.Run("AuthorizeUnsupportedCodeChallengeMethod", testAuthorizeUnsupportedCodeChallengeMethod)
 		t.Run("AuthorizeLoginRedirect", testAuthorizeLoginRedirect)
 		t.Run("AuthorizeShow", testAuthorizeShow)
@@ -155,6 +156,16 @@ func testAuthorizeUnregisteredRedirect(t *testing.T) {
 
 func testAuthorizeUnsupportedResponseType(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=https://example.com&response_type=UNEXPECTED&state=thestate")
+	ctx := loginUser(t, "user1")
+	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
+	u, err := resp.Result().Location()
+	assert.NoError(t, err)
+	assert.Equal(t, "unsupported_response_type", u.Query().Get("error"))
+	assert.Equal(t, "Only code response type is supported.", u.Query().Get("error_description"))
+}
+
+func testAuthorizeUnsupportedResponseTypeIDToken(t *testing.T) {
+	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=https://example.com&response_type=id_token&state=thestate")
 	ctx := loginUser(t, "user1")
 	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
 	u, err := resp.Result().Location()
@@ -570,6 +581,15 @@ func testRefreshTokenInvalidation(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
 	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
 	assert.Equal(t, "unable to parse refresh token", parsedError.ErrorDescription)
+
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "refresh_token",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "https://example.com",
+		"refresh_token": parsed.AccessToken,
+	})
+	MakeRequest(t, req, http.StatusBadRequest)
 
 	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "refresh_token",

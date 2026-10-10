@@ -4,12 +4,12 @@
 package url
 
 import (
-	"context"
 	"net/http"
 	"net/url"
 	"testing"
 
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
@@ -175,11 +175,13 @@ func TestParseRepositoryURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "https://localhost:3000")()
 	defer test.MockVariableValue(&setting.SSH.Domain, "try.gitea.io")()
 
+	ctx := reqctx.NewRequestContextForTest(t)
 	ctxURL, _ := url.Parse("https://gitea")
 	ctxReq := &http.Request{URL: ctxURL, Header: http.Header{}}
 	ctxReq.Host = ctxURL.Host
 	ctxReq.Header.Add("X-Forwarded-Proto", ctxURL.Scheme)
-	ctx := context.WithValue(t.Context(), httplib.RequestContextKey, ctxReq)
+	httplib.RequestWithContext(ctxReq, ctx)
+	httplib.MarkRequestSupportPublicURL(ctx)
 	cases := []struct {
 		input                          string
 		ownerName, repoName, remaining string

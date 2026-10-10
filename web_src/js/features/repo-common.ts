@@ -49,7 +49,7 @@ export function substituteRepoOpenWithUrl(tmpl: string, url: string): string {
   if (pos === -1) return tmpl;
   const posQuestionMark = tmpl.indexOf('?');
   const needEncode = posQuestionMark >= 0 && posQuestionMark < pos;
-  return tmpl.replace('{url}', needEncode ? encodeURIComponent(url) : url);
+  return tmpl.replace('{url}', () => needEncode ? encodeURIComponent(url) : url);
 }
 
 function initRepoCloneButtonsCombo(parent: Element) {

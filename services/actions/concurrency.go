@@ -11,6 +11,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -79,7 +80,7 @@ func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 
 	actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = jobparser.EvaluateConcurrency(&rawConcurrency, actionRunJob.JobID, workflowJob, actionsJobCtx, jobResults, vars, inputs)
 	if err != nil {
-		return fmt.Errorf("evaluate concurrency: %w", err)
+		return util.NewInvalidArgumentErrorf("%v", err)
 	}
 	actionRunJob.IsConcurrencyEvaluated = true
 	return nil

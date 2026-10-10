@@ -79,7 +79,7 @@ type MigrateRepoForm struct {
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
 	middleware.FormDefaultValidator
-	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	RepoName               string `binding:"TrimSpace;Required;AlphaDashDot;MaxSize(100)"`
 	Description            string `binding:"MaxSize(2048)"`
 	Website                string `binding:"ValidUrl;MaxSize(1024)"`
 	Interval               string
@@ -105,12 +105,12 @@ type RepoSettingForm struct {
 	DefaultWikiBranch  string
 	ExternalWikiURL    string
 
-	EnableIssues                          bool
+	EnableInternalTracker                 bool
 	EnableExternalTracker                 bool
-	ExternalTrackerURL                    string
-	TrackerURLFormat                      string
+	ExternalTrackerURL                    string `binding:"TrimSpace"`
+	TrackerURLFormat                      string `binding:"TrimSpace"`
 	TrackerIssueStyle                     string
-	ExternalTrackerRegexpPattern          string
+	ExternalTrackerRegexpPattern          string `binding:"TrimSpace"`
 	EnableCloseIssuesViaCommitInAnyBranch bool
 
 	EnableProjects bool
@@ -264,7 +264,7 @@ type NewSlackHookForm struct {
 
 func (f *NewSlackHookForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
 	if !webhook.IsValidSlackChannel(strings.TrimSpace(f.Channel)) {
-		errs = middleware.AddValidationError(errs, "Channel", ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"))
+		errs = validation.AddValidationError(errs, "Channel", ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"))
 	}
 	return errs
 }
@@ -350,7 +350,7 @@ type CreateIssueForm struct {
 type CreateCommentForm struct {
 	middleware.FormDefaultValidator
 	Content string
-	Status  string `binding:"OmitEmpty;In(reopen,close)"`
+	Status  string `binding:"In(reopen,close)"`
 	Files   []string
 }
 
@@ -569,12 +569,6 @@ type AddTimeManuallyForm struct {
 	middleware.FormDefaultValidator
 	Hours   int `binding:"Range(0,1000)"`
 	Minutes int `binding:"Range(0,1000)"`
-}
-
-// SaveTopicForm form for save topics for repository
-type SaveTopicForm struct {
-	middleware.FormDefaultValidator
-	Topics []string `binding:"topics;Required;"`
 }
 
 // AddDeployTokenForm form for adding a deploy token to a repository
