@@ -417,11 +417,13 @@ func TestRecalculateReviewsOfficial(t *testing.T) {
 	// Protect the (now current) target branch with an approvals whitelist that
 	// does not include the reviewer, mirroring a retarget onto a protected branch.
 	rule := &git_model.ProtectedBranch{
-		RepoID:                    issue.RepoID,
-		RuleName:                  "master",
-		EnableApprovalsWhitelist:  true,
-		ApprovalsWhitelistUserIDs: []int64{2},
-		RequiredApprovals:         1,
+		RepoID:   issue.RepoID,
+		RuleName: "master",
+		ProtectedBranchConfig: git_model.ProtectedBranchConfig{
+			EnableApprovalsWhitelist:  true,
+			ApprovalsWhitelistUserIDs: []int64{2},
+			RequiredApprovals:         1,
+		},
 	}
 	assert.NoError(t, db.Insert(t.Context(), rule))
 
@@ -433,7 +435,7 @@ func TestRecalculateReviewsOfficial(t *testing.T) {
 
 	// Once the reviewer is whitelisted, re-evaluating restores the official flag.
 	rule.ApprovalsWhitelistUserIDs = []int64{2, reviewer.ID}
-	_, err = db.GetEngine(t.Context()).ID(rule.ID).Cols("approvals_whitelist_user_i_ds").Update(rule)
+	_, err = db.GetEngine(t.Context()).ID(rule.ID).Cols("config").Update(rule)
 	assert.NoError(t, err)
 
 	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))

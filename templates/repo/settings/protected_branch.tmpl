@@ -53,7 +53,7 @@
 					<div id="whitelist_box" class="grouped fields {{if not .Rule.EnableWhitelist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_users"}}</label>
-							{{template "repo/settings/user_dropdown" (dict "Name" "whitelist_users" "Value" .whitelist_users "Users" .Users)}}
+							{{template "repo/settings/user_dropdown" (dict "Name" "whitelist_users" "Value" .whitelist_users "Users" .PushUsers)}}
 						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">
@@ -102,7 +102,7 @@
 					<div id="force_push_allowlist_box" class="grouped fields {{if not .Rule.EnableForcePushAllowlist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_allowlist_users"}}</label>
-							{{template "repo/settings/user_dropdown" (dict "Name" "force_push_allowlist_users" "Value" .force_push_allowlist_users "Users" .Users)}}
+							{{template "repo/settings/user_dropdown" (dict "Name" "force_push_allowlist_users" "Value" .force_push_allowlist_users "Users" .PushUsers)}}
 						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">
@@ -114,6 +114,48 @@
 							<div class="ui checkbox">
 								<input type="checkbox" name="force_push_allowlist_deploy_keys" {{if .Rule.ForcePushAllowlistDeployKeys}}checked{{end}}>
 								<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_allowlist_deploy_keys"}}</label>
+							</div>
+						</div>
+					</div>
+				</div>
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_branch_delete"}}</h5>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="enable_deletion" value="none" class="toggle-target-disabled" data-target="#deletion_allowlist_box" {{if not .Rule.CanDelete}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.protect_disable_deletion"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.protect_disable_deletion_desc"}}</p>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="enable_deletion" value="all" class="toggle-target-disabled" data-target="#deletion_allowlist_box" {{if and (.Rule.CanDelete) (not .Rule.EnableDeletionAllowlist)}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.protect_enable_deletion_all"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_deletion_all_desc"}}</p>
+					</div>
+				</div>
+				<div class="grouped fields">
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" name="enable_deletion" value="whitelist" class="toggle-target-enabled" data-target="#deletion_allowlist_box" {{if and (.Rule.CanDelete) (.Rule.EnableDeletionAllowlist)}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_enable_deletion_allowlist"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_deletion_allowlist_desc"}}</p>
+						</div>
+					</div>
+					<div id="deletion_allowlist_box" class="grouped fields {{if not .Rule.EnableDeletionAllowlist}}disabled{{end}}">
+						<div class="checkbox-sub-item field">
+							<label>{{ctx.Locale.Tr "repo.settings.protect_deletion_allowlist_users"}}</label>
+							{{template "repo/settings/user_dropdown" (dict "Name" "deletion_allowlist_users" "Value" .deletion_allowlist_users "Users" .PushUsers)}}
+						</div>
+						{{if .Owner.IsOrganization}}
+							<div class="checkbox-sub-item field">
+								<label>{{ctx.Locale.Tr "repo.settings.protect_deletion_allowlist_teams"}}</label>
+								{{template "repo/settings/team_dropdown" (dict "Name" "deletion_allowlist_teams" "Value" .deletion_allowlist_teams "Teams" .Teams)}}
+							</div>
+						{{end}}
+						<div class="checkbox-sub-item field">
+							<div class="ui checkbox">
+								<input type="checkbox" name="deletion_allowlist_deploy_keys" {{if .Rule.DeletionAllowlistDeployKeys}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "repo.settings.protect_deletion_allowlist_deploy_keys"}}</label>
 							</div>
 						</div>
 					</div>

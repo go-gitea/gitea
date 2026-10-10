@@ -147,8 +147,10 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		log.Error("GetRepoReaders: %v", err)
 	}
 
-	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
-	forcePushAllowlistUsernames := getWhitelistEntities(readers, bp.ForcePushAllowlistUserIDs)
+	pushUsers := append(slices.Clone(readers), user_model.NewActionsUser())
+	pushWhitelistUsernames := getWhitelistEntities(pushUsers, bp.WhitelistUserIDs)
+	forcePushAllowlistUsernames := getWhitelistEntities(pushUsers, bp.ForcePushAllowlistUserIDs)
+	deletionAllowlistUsernames := getWhitelistEntities(pushUsers, bp.DeletionAllowlistUserIDs)
 	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
 	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
 	bypassAllowlistUsernames := getWhitelistEntities(readers, bp.BypassAllowlistUserIDs)
@@ -160,6 +162,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 
 	pushWhitelistTeams := getWhitelistEntities(teamReaders, bp.WhitelistTeamIDs)
 	forcePushAllowlistTeams := getWhitelistEntities(teamReaders, bp.ForcePushAllowlistTeamIDs)
+	deletionAllowlistTeams := getWhitelistEntities(teamReaders, bp.DeletionAllowlistTeamIDs)
 	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
 	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
 	bypassAllowlistTeams := getWhitelistEntities(teamReaders, bp.BypassAllowlistTeamIDs)
@@ -183,6 +186,11 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		ForcePushAllowlistUsernames:   forcePushAllowlistUsernames,
 		ForcePushAllowlistTeams:       forcePushAllowlistTeams,
 		ForcePushAllowlistDeployKeys:  bp.ForcePushAllowlistDeployKeys,
+		EnableDeletion:                bp.CanDelete,
+		EnableDeletionAllowlist:       bp.EnableDeletionAllowlist,
+		DeletionAllowlistUsernames:    deletionAllowlistUsernames,
+		DeletionAllowlistTeams:        deletionAllowlistTeams,
+		DeletionAllowlistDeployKeys:   bp.DeletionAllowlistDeployKeys,
 		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
 		MergeWhitelistUsernames:       mergeWhitelistUsernames,
 		MergeWhitelistTeams:           mergeWhitelistTeams,

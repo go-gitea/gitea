@@ -91,9 +91,9 @@ func TestCheckSigningRequirementsHeadCommits(t *testing.T) {
 
 	// Protected branch without RequireSignedCommits: the check must still pass.
 	require.NoError(t, git_model.UpdateProtectBranch(ctx, pr.BaseRepo, &git_model.ProtectedBranch{
-		RepoID:               pr.BaseRepoID,
-		RuleName:             pr.BaseBranch,
-		RequireSignedCommits: false,
+		RepoID:                pr.BaseRepoID,
+		RuleName:              pr.BaseBranch,
+		ProtectedBranchConfig: git_model.ProtectedBranchConfig{RequireSignedCommits: false},
 	}, git_model.WhitelistOptions{}))
 	require.NoError(t, check())
 

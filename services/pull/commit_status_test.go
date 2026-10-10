@@ -101,7 +101,7 @@ func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 func TestEffectiveRequiredContexts(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	consumer := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}) // owned by user5
-	pbOn := &git_model.ProtectedBranch{EnableStatusCheck: true, StatusCheckContexts: []string{"configured/check"}}
+	pbOn := &git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{EnableStatusCheck: true, StatusCheckContexts: []string{"configured/check"}}}
 
 	t.Run("nil protected branch: nil", func(t *testing.T) {
 		got, err := EffectiveRequiredContexts(t.Context(), consumer, nil)
@@ -110,7 +110,7 @@ func TestEffectiveRequiredContexts(t *testing.T) {
 	})
 
 	t.Run("status checks disabled, no required scoped: nothing required", func(t *testing.T) {
-		pbOff := &git_model.ProtectedBranch{EnableStatusCheck: false, StatusCheckContexts: []string{"configured/check"}}
+		pbOff := &git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{EnableStatusCheck: false, StatusCheckContexts: []string{"configured/check"}}}
 		got, err := EffectiveRequiredContexts(t.Context(), consumer, pbOff)
 		require.NoError(t, err)
 		assert.Empty(t, got) // the rule's own status check is off and no required scoped workflow applies -> nothing gates
@@ -144,7 +144,7 @@ func TestEffectiveRequiredContexts(t *testing.T) {
 	})
 
 	t.Run("status checks disabled, with required scoped: only the scoped patterns gate", func(t *testing.T) {
-		pbOff := &git_model.ProtectedBranch{EnableStatusCheck: false, StatusCheckContexts: []string{"configured/check"}}
+		pbOff := &git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{EnableStatusCheck: false, StatusCheckContexts: []string{"configured/check"}}}
 		got, err := EffectiveRequiredContexts(t.Context(), consumer, pbOff)
 		require.NoError(t, err)
 		// "configured/check" is dropped (the rule's own status check is off); only the required scoped patterns remain.
@@ -156,9 +156,9 @@ func TestEffectiveRequiredContexts(t *testing.T) {
 
 	t.Run("several rules union their enabled contexts, deduplicated; a disabled rule contributes none", func(t *testing.T) {
 		noSourceRepo := &repo_model.Repository{ID: consumer.ID, OwnerID: 99999} // no scoped sources, so only the rules' contexts gate
-		a := &git_model.ProtectedBranch{EnableStatusCheck: true, StatusCheckContexts: []string{"a/check", "shared/check"}}
-		b := &git_model.ProtectedBranch{EnableStatusCheck: true, StatusCheckContexts: []string{"b/check", "shared/check"}}
-		off := &git_model.ProtectedBranch{EnableStatusCheck: false, StatusCheckContexts: []string{"off/check"}}
+		a := &git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{EnableStatusCheck: true, StatusCheckContexts: []string{"a/check", "shared/check"}}}
+		b := &git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{EnableStatusCheck: true, StatusCheckContexts: []string{"b/check", "shared/check"}}}
+		off := &git_model.ProtectedBranch{ProtectedBranchConfig: git_model.ProtectedBranchConfig{EnableStatusCheck: false, StatusCheckContexts: []string{"off/check"}}}
 		got, err := EffectiveRequiredContexts(t.Context(), noSourceRepo, a, b, off)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, []string{"a/check", "b/check", "shared/check"}, got)

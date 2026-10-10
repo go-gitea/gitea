@@ -208,16 +208,16 @@ func TestRenameBranchProtectedRuleConflict(t *testing.T) {
 	assert.NoError(t, db.Insert(t.Context(), devBranch))
 
 	pbDev := git_model.ProtectedBranch{
-		RepoID:   repo1.ID,
-		RuleName: "dev",
-		CanPush:  true,
+		RepoID:                repo1.ID,
+		RuleName:              "dev",
+		ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true},
 	}
 	assert.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo1, &pbDev, git_model.WhitelistOptions{}))
 
 	pbMain := git_model.ProtectedBranch{
-		RepoID:   repo1.ID,
-		RuleName: "main",
-		CanPush:  true,
+		RepoID:                repo1.ID,
+		RuleName:              "main",
+		ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true},
 	}
 	assert.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo1, &pbMain, git_model.WhitelistOptions{}))
 
