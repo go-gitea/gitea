@@ -65,13 +65,10 @@ func (err ErrSecretNotFound) Unwrap() error {
 }
 
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
-func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data, description string) (*Secret, error) {
-	if ownerID != 0 && repoID != 0 {
-		// It's trying to create a secret that belongs to a repository, but OwnerID has been set accidentally.
-		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
-		ownerID = 0
-	}
-	if ownerID == 0 && repoID == 0 {
+func InsertEncryptedSecret(ctx context.Context, scope actions_model.Scope, name, data, description string) (*Secret, error) {
+	// A repo level secret with OwnerID set accidentally is normalized instead of rejected.
+	scope = scope.Normalized()
+	if scope.OwnerID == 0 && scope.RepoID == 0 {
 		return nil, fmt.Errorf("%w: ownerID and repoID cannot be both zero, global secrets are not supported", util.ErrInvalidArgument)
 	}
 
@@ -87,8 +84,8 @@ func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, dat
 	}
 
 	secret := &Secret{
-		OwnerID:     ownerID,
-		RepoID:      repoID,
+		OwnerID:     scope.OwnerID,
+		RepoID:      scope.RepoID,
 		Name:        strings.ToUpper(name),
 		Data:        encrypted,
 		Description: description,

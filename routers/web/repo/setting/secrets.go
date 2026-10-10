@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 
+	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
@@ -88,7 +89,7 @@ func Secrets(ctx *context.Context) {
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	}
 
-	shared.SetSecretsContext(ctx, sCtx.OwnerID, sCtx.RepoID)
+	shared.SetSecretsContext(ctx, actions_model.Scope{OwnerID: sCtx.OwnerID, RepoID: sCtx.RepoID})
 	if ctx.Written() {
 		return
 	}

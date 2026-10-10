@@ -463,7 +463,7 @@ func TestRerunDecidesJobIf(t *testing.T) {
 	ctx := t.Context()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	variable, err := actions_model.InsertVariable(ctx, 0, repo.ID, "DEPLOY", "yes", "")
+	variable, err := actions_model.InsertVariable(ctx, actions_model.Scope{RepoID: repo.ID}, "DEPLOY", "yes", "")
 	require.NoError(t, err)
 
 	run := insertMaxParallelRun(t, `on: push

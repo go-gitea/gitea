@@ -48,12 +48,9 @@ func init() {
 	db.RegisterModel(new(ActionVariable))
 }
 
-func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data, description string) (*ActionVariable, error) {
-	if ownerID != 0 && repoID != 0 {
-		// It's trying to create a variable that belongs to a repository, but OwnerID has been set accidentally.
-		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
-		ownerID = 0
-	}
+func InsertVariable(ctx context.Context, scope Scope, name, data, description string) (*ActionVariable, error) {
+	// A repo level variable with OwnerID set accidentally is normalized instead of rejected.
+	scope = scope.Normalized()
 
 	if utf8.RuneCountInString(data) > VariableDataMaxLength {
 		return nil, util.NewInvalidArgumentErrorf("data too long")
@@ -62,8 +59,8 @@ func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data, desc
 	description = util.TruncateRunes(description, VariableDescriptionMaxLength)
 
 	variable := &ActionVariable{
-		OwnerID:     ownerID,
-		RepoID:      repoID,
+		OwnerID:     scope.OwnerID,
+		RepoID:      scope.RepoID,
 		Name:        strings.ToUpper(name),
 		Data:        data,
 		Description: description,

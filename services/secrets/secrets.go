@@ -6,18 +6,19 @@ package secrets
 import (
 	"context"
 
+	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	secret_model "gitea.dev/models/secret"
 )
 
-func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID int64, name, data, description string) (*secret_model.Secret, bool, error) {
+func CreateOrUpdateSecret(ctx context.Context, scope actions_model.Scope, name, data, description string) (*secret_model.Secret, bool, error) {
 	if err := ValidateName(name); err != nil {
 		return nil, false, err
 	}
 
 	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID: ownerID,
-		RepoID:  repoID,
+		OwnerID: scope.OwnerID,
+		RepoID:  scope.RepoID,
 		Name:    name,
 	})
 	if err != nil {
@@ -25,7 +26,7 @@ func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID int64, name, data
 	}
 
 	if len(s) == 0 {
-		s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, name, data, description)
+		s, err := secret_model.InsertEncryptedSecret(ctx, scope, name, data, description)
 		if err != nil {
 			return nil, false, err
 		}
@@ -39,10 +40,10 @@ func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID int64, name, data
 	return s[0], false, nil
 }
 
-func DeleteSecretByID(ctx context.Context, ownerID, repoID, secretID int64) (*secret_model.Secret, error) {
+func DeleteSecretByID(ctx context.Context, scope actions_model.Scope, secretID int64) (*secret_model.Secret, error) {
 	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID:  ownerID,
-		RepoID:   repoID,
+		OwnerID:  scope.OwnerID,
+		RepoID:   scope.RepoID,
 		SecretID: secretID,
 	})
 	if err != nil {
@@ -55,10 +56,10 @@ func DeleteSecretByID(ctx context.Context, ownerID, repoID, secretID int64) (*se
 	return s[0], deleteSecret(ctx, s[0])
 }
 
-func DeleteSecretByName(ctx context.Context, ownerID, repoID int64, name string) (*secret_model.Secret, error) {
+func DeleteSecretByName(ctx context.Context, scope actions_model.Scope, name string) (*secret_model.Secret, error) {
 	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID: ownerID,
-		RepoID:  repoID,
+		OwnerID: scope.OwnerID,
+		RepoID:  scope.RepoID,
 		Name:    name,
 	})
 	if err != nil {

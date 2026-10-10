@@ -4,6 +4,7 @@
 package secrets
 
 import (
+	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	secret_model "gitea.dev/models/secret"
@@ -17,8 +18,8 @@ import (
 	secret_service "gitea.dev/services/secrets"
 )
 
-func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
-	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{OwnerID: ownerID, RepoID: repoID})
+func SetSecretsContext(ctx *context.Context, scope actions_model.Scope) {
+	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{OwnerID: scope.OwnerID, RepoID: scope.RepoID})
 	if err != nil {
 		ctx.ServerError("FindSecrets", err)
 		return
@@ -29,21 +30,21 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 	ctx.Data["DescriptionMaxLength"] = secret_model.SecretDescriptionMaxLength
 }
 
-func secretOwnerRepoIDs(owner *user_model.User, repo *repo_model.Repository) (ownerID, repoID int64) {
+func secretScope(owner *user_model.User, repo *repo_model.Repository) (scope actions_model.Scope) {
 	if owner != nil {
-		ownerID = owner.ID
+		scope.OwnerID = owner.ID
 	}
 	if repo != nil {
-		repoID = repo.ID
+		scope.RepoID = repo.ID
 	}
-	return ownerID, repoID
+	return scope
 }
 
 func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	form := web.GetForm[*forms.AddSecretForm](ctx)
-	ownerID, repoID := secretOwnerRepoIDs(owner, repo)
+	scope := secretScope(owner, repo)
 
-	s, created, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
+	s, created, err := secret_service.CreateOrUpdateSecret(ctx, scope, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -61,9 +62,9 @@ func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo
 
 func PerformSecretsDelete(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	id := ctx.FormInt64("id")
-	ownerID, repoID := secretOwnerRepoIDs(owner, repo)
+	scope := secretScope(owner, repo)
 
-	s, err := secret_service.DeleteSecretByID(ctx, ownerID, repoID, id)
+	s, err := secret_service.DeleteSecretByID(ctx, scope, id)
 	if err != nil {
 		log.Error("DeleteSecretByID(%d) failed: %v", id, err)
 		ctx.JSONError(ctx.Tr("secrets.deletion.failed"))
