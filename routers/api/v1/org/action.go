@@ -49,8 +49,8 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	opts := &secret_model.FindSecretsOptions{
-		OwnerID:     ctx.Org.Organization.ID,
-		ListOptions: utils.GetListOptions(ctx),
+		BelongingScope: actions_model.BelongingScopeOwner(ctx.Org.Organization.ID),
+		ListOptions:    utils.GetListOptions(ctx),
 	}
 
 	secrets, count, err := db.FindAndCount[secret_model.Secret](ctx, opts)
@@ -109,7 +109,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
-	s, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Org.Organization.ID, 0, ctx.PathParam("secretname"), opt.Data, opt.Description)
+	s, created, err := secret_service.CreateOrUpdateSecret(ctx, actions_model.BelongingScopeOwner(ctx.Org.Organization.ID), ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -156,7 +156,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	s, err := secret_service.DeleteSecretByName(ctx, ctx.Org.Organization.ID, 0, ctx.PathParam("secretname"))
+	s, err := secret_service.DeleteSecretByName(ctx, actions_model.BelongingScopeOwner(ctx.Org.Organization.ID), ctx.PathParam("secretname"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -219,8 +219,8 @@ func (Action) ListVariables(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
-		OwnerID:     ctx.Org.Organization.ID,
-		ListOptions: listOptions,
+		BelongingScope: actions_model.BelongingScopeOwner(ctx.Org.Organization.ID),
+		ListOptions:    listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -269,8 +269,8 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ctx.Org.Organization.ID,
-		Name:    ctx.PathParam("variablename"),
+		BelongingScope: actions_model.BelongingScopeOwner(ctx.Org.Organization.ID),
+		Name:           ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -318,7 +318,7 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := actions_service.DeleteVariableByName(ctx, ctx.Org.Organization.ID, 0, ctx.PathParam("variablename")); err != nil {
+	if err := actions_service.DeleteVariableByName(ctx, actions_model.BelongingScopeOwner(ctx.Org.Organization.ID), ctx.PathParam("variablename")); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
@@ -366,8 +366,8 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	variableName := ctx.PathParam("variablename")
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ownerID,
-		Name:    variableName,
+		BelongingScope: actions_model.BelongingScopeOwner(ownerID),
+		Name:           variableName,
 	})
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		ctx.APIErrorInternal(err)
@@ -378,7 +378,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := actions_service.CreateVariable(ctx, ownerID, 0, variableName, opt.Value, opt.Description); err != nil {
+	if _, err := actions_service.CreateVariable(ctx, actions_model.BelongingScopeOwner(ownerID), variableName, opt.Value, opt.Description); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
@@ -423,8 +423,8 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ctx.Org.Organization.ID,
-		Name:    ctx.PathParam("variablename"),
+		BelongingScope: actions_model.BelongingScopeOwner(ctx.Org.Organization.ID),
+		Name:           ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		ctx.APIErrorAuto(err)
