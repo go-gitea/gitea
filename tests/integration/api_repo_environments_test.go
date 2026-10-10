@@ -37,29 +37,40 @@ func TestAPIRepoEnvironments(t *testing.T) {
 		assert.Equal(t, "production", created.Name)
 		assert.Equal(t, []string{"main"}, created.AllowedBranchPatterns)
 
-		// The same request again updates the existing row rather than conflicting.
-		req = NewRequestWithJSON(t, "PUT", baseURL+"/production", &api.CreateOrUpdateEnvironmentOption{
-			AllowedBranchPatterns: []string{"main", "release/*"},
+		// names are case-insensitive, so this updates the existing row and keeps its spelling
+		req = NewRequestWithJSON(t, "PUT", baseURL+"/PRODUCTION", &api.CreateOrUpdateEnvironmentOption{
+			AllowedBranchPatterns: []string{"main", "refs/tags/v*"},
 		}).AddTokenAuth(token)
 		updated := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionEnvironment{})
 		assert.Equal(t, created.ID, updated.ID)
-		assert.Equal(t, []string{"main", "release/*"}, updated.AllowedBranchPatterns)
+		assert.Equal(t, "production", updated.Name)
+		assert.Equal(t, []string{"main", "refs/tags/v*"}, updated.AllowedBranchPatterns)
+
+		// the body replaces the policy, so omitting the patterns allows every ref
+		req = NewRequestWithJSON(t, "PUT", baseURL+"/production", &api.CreateOrUpdateEnvironmentOption{}).AddTokenAuth(token)
+		cleared := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionEnvironment{})
+		assert.Equal(t, []string{}, cleared.AllowedBranchPatterns)
 	})
 
-	t.Run("NamesAreCaseInsensitive", func(t *testing.T) {
-		req := NewRequest(t, "GET", baseURL+"/PRODUCTION").AddTokenAuth(token)
-		got := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionEnvironment{})
-		assert.Equal(t, "production", got.Name, "the stored spelling is preserved")
-	})
-
-	t.Run("RejectsAnUnusableNameAndPattern", func(t *testing.T) {
-		req := NewRequestWithJSON(t, "PUT", baseURL+"/bad%2Fname", &api.CreateOrUpdateEnvironmentOption{}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusBadRequest)
-
-		req = NewRequestWithJSON(t, "PUT", baseURL+"/staging", &api.CreateOrUpdateEnvironmentOption{
+	t.Run("RejectsAnInvalidPattern", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "PUT", baseURL+"/staging", &api.CreateOrUpdateEnvironmentOption{
 			AllowedBranchPatterns: []string{"["},
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusBadRequest)
+	})
+
+	t.Run("OnlyTheOwnerMayUseIt", func(t *testing.T) {
+		other := getTokenForLoggedInUser(t, loginUser(t, "user4"), auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestWithJSON(t, "PUT", baseURL+"/production", &api.CreateOrUpdateEnvironmentOption{}).AddTokenAuth(other)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+
+	t.Run("UnknownEnvironmentIsNotFound", func(t *testing.T) {
+		for _, path := range []string{"", "/secrets", "/variables"} {
+			MakeRequest(t, NewRequest(t, "GET", baseURL+"/missing"+path).AddTokenAuth(token), http.StatusNotFound)
+		}
+		req := NewRequestWithJSON(t, "POST", baseURL+"/missing/variables/APP_URL", &api.CreateVariableOption{Value: "x"}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("SecretsAndVariablesAreScopedToTheEnvironment", func(t *testing.T) {
@@ -72,6 +83,15 @@ func TestAPIRepoEnvironments(t *testing.T) {
 			Value: "https://prod.example.com",
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
+		req = NewRequestWithJSON(t, "POST", baseURL+"/production/variables/APP_URL", &api.CreateVariableOption{Value: "again"}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusConflict)
+
+		req = NewRequestWithJSON(t, "PUT", baseURL+"/production/variables/APP_URL", &api.UpdateVariableOption{
+			Value: "https://new.example.com",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		assert.Equal(t, "https://new.example.com",
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{RepoID: repo.ID, Name: "APP_URL"}).Data)
 
 		req = NewRequest(t, "GET", baseURL+"/production/secrets").AddTokenAuth(token)
 		var secrets []*api.Secret
@@ -84,6 +104,13 @@ func TestAPIRepoEnvironments(t *testing.T) {
 		var repoSecrets []*api.Secret
 		DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &repoSecrets)
 		assert.Empty(t, repoSecrets)
+
+		MakeRequest(t, NewRequest(t, "DELETE", baseURL+"/production/variables/APP_URL").AddTokenAuth(token), http.StatusNoContent)
+		MakeRequest(t, NewRequest(t, "DELETE", baseURL+"/production/secrets/DEPLOY_TOKEN").AddTokenAuth(token), http.StatusNoContent)
+
+		// recreated so the cascade below has something to remove
+		req = NewRequestWithJSON(t, "PUT", baseURL+"/production/secrets/DEPLOY_TOKEN", &api.CreateOrUpdateSecretOption{Data: "again"}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
 	})
 
 	t.Run("DeleteCascadesToSecretsAndVariables", func(t *testing.T) {

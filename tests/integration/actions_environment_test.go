@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 	"testing"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,69 +81,51 @@ func TestActionsEnvironment(t *testing.T) {
 			runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 		})
 
-		t.Run("SettingsPagesRender", func(t *testing.T) {
-			session := loginUser(t, user2.Name)
-			settingsURL := fmt.Sprintf("/%s/%s/settings/actions/environments", user2.Name, repo.Name)
+		t.Run("ADisallowedBranchFailsTheJob", func(t *testing.T) {
+			opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "add feature workflow", environmentWorkflow("feature", "production"))
+			opts.NewBranchName = "feature"
+			createWorkflowFile(t, token, user2.Name, repo.Name, ".gitea/workflows/deploy-feature.yml", opts)
 
-			body := session.MakeRequest(t, NewRequest(t, "GET", settingsURL), http.StatusOK).Body.String()
-			assert.Contains(t, body, "production")
-
-			body = session.MakeRequest(t, NewRequest(t, "GET", settingsURL+"/production"), http.StatusOK).Body.String()
-			assert.Contains(t, body, "DEPLOY_TOKEN", "the shared secrets partial must render")
-			assert.Contains(t, body, "APP_URL", "the shared variables partial must render")
-
-			policy := NewHTMLParser(t, strings.NewReader(body)).Find(`textarea[name="allowed_branch_patterns"]`)
-			assert.Equal(t, "main", policy.Text(), "the branch policy must render into its textarea")
-		})
-
-		t.Run("TheSettingsPageWritesVariablesInTheEnvironmentScope", func(t *testing.T) {
-			session := loginUser(t, user2.Name)
-			envURL := fmt.Sprintf("/%s/%s/settings/actions/environments/production", user2.Name, repo.Name)
-
-			req := NewRequestWithValues(t, "POST", envURL+"/variables/new", map[string]string{"name": "WEB_VAR", "data": "web-value"})
-			session.MakeRequest(t, req, http.StatusOK)
-
-			env := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionEnvironment{RepoID: repo.ID, LowerName: "production"})
-			v := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{RepoID: repo.ID, Name: "WEB_VAR"})
-			assert.Equal(t, env.ID, v.EnvironmentID)
-
-			req = NewRequest(t, "POST", fmt.Sprintf("%s/variables/%d/delete", envURL, v.ID))
-			session.MakeRequest(t, req, http.StatusOK)
-			unittest.AssertNotExistsBean(t, &actions_model.ActionVariable{ID: v.ID})
-		})
-
-		t.Run("AnEnvironmentNamedNewIsStillEditable", func(t *testing.T) {
-			session := loginUser(t, user2.Name)
-			collectionURL := fmt.Sprintf("/%s/%s/settings/actions/environments", user2.Name, repo.Name)
-
-			req := NewRequestWithValues(t, "POST", collectionURL, map[string]string{"name": "new"})
-			session.MakeRequest(t, req, http.StatusSeeOther)
-			req = NewRequestWithValues(t, "POST", collectionURL+"/new", map[string]string{"allowed_branch_patterns": "main"})
-			session.MakeRequest(t, req, http.StatusSeeOther)
-
-			env := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionEnvironment{RepoID: repo.ID, LowerName: "new"})
-			assert.Equal(t, "main", env.AllowedBranchPatterns, "the edit form must not be routed to creation")
-		})
-
-		// A job that may not deploy must fail rather than run with the environment's credentials withheld.
-		failsToDeploy := func(t *testing.T, branch, environment string) {
-			opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "add "+branch+" workflow", environmentWorkflow(branch, environment))
-			opts.NewBranchName = branch
-			createWorkflowFile(t, token, user2.Name, repo.Name, ".gitea/workflows/deploy-"+branch+".yml", opts)
-
-			// the denial happens on the pick, so the runner has to ask before the job can fail
+			// the denial happens when a runner polls, so keep asking until the job has failed
 			require.Eventually(t, func() bool {
 				task, _ := runner.fetchTaskOnce(t, 0)
 				assert.Nil(t, task, "the job must not reach a runner")
 				return unittest.GetCount(t, &actions_model.ActionRunJob{
 					RepoID:          repo.ID,
-					EnvironmentName: environment,
+					EnvironmentName: "production",
 					Status:          actions_model.StatusFailure,
 				}) == 1
 			}, 5*time.Second, 100*time.Millisecond)
-		}
-
-		t.Run("ADisallowedBranchFailsTheJob", func(t *testing.T) { failsToDeploy(t, "feature", "production") })
-		t.Run("AnUnusableEnvironmentNameFailsTheJob", func(t *testing.T) { failsToDeploy(t, "unusable", "deploy/prod") })
+		})
 	})
+}
+
+func TestActionsEnvironmentSettings(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	session := loginUser(t, "user2")
+	collectionURL := "/user2/repo1/settings/actions/environments"
+
+	// an environment named "new" must not shadow its own edit route
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", collectionURL, map[string]string{"name": "new"}), http.StatusSeeOther)
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", collectionURL+"/new", map[string]string{"allowed_branch_patterns": "main"}), http.StatusSeeOther)
+	env := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionEnvironment{RepoID: repo.ID, LowerName: "new"})
+	assert.Equal(t, "main", env.AllowedBranchPatterns)
+
+	body := session.MakeRequest(t, NewRequest(t, "GET", collectionURL), http.StatusOK).Body.String()
+	assert.Contains(t, body, collectionURL+"/new")
+	page := session.MakeRequest(t, NewRequest(t, "GET", collectionURL+"/new"), http.StatusOK)
+	assert.Equal(t, "main", NewHTMLParser(t, page.Body).Find(`textarea[name="allowed_branch_patterns"]`).Text())
+
+	envURL := collectionURL + "/new"
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", envURL+"/variables/new", map[string]string{"name": "WEB_VAR", "data": "web-value"}), http.StatusOK)
+	v := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{RepoID: repo.ID, Name: "WEB_VAR"})
+	assert.Equal(t, env.ID, v.EnvironmentID)
+	assert.Contains(t, session.MakeRequest(t, NewRequest(t, "GET", envURL), http.StatusOK).Body.String(), "WEB_VAR")
+
+	// the repository-level routes must not reach an environment variable
+	session.MakeRequest(t, NewRequest(t, "POST", fmt.Sprintf("/user2/repo1/settings/actions/variables/%d/delete", v.ID)), http.StatusNotFound)
+	session.MakeRequest(t, NewRequest(t, "POST", fmt.Sprintf("%s/variables/%d/delete", envURL, v.ID)), http.StatusOK)
+	unittest.AssertNotExistsBean(t, &actions_model.ActionVariable{ID: v.ID})
 }

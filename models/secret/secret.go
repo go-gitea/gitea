@@ -10,7 +10,6 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
-	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -107,7 +106,7 @@ type FindSecretsOptions struct {
 	db.ListOptions
 	RepoID        int64
 	OwnerID       int64 // it will be ignored if RepoID is set
-	EnvironmentID int64 // defaults to 0 (repo/org scope) when not set
+	EnvironmentID int64
 	SecretID      int64
 	Name          string
 }
@@ -162,15 +161,13 @@ func UpdateSecret(ctx context.Context, secretID int64, data, description string)
 	return err
 }
 
-// GetSecretsOfTask returns the secrets for a task, overlaying the ones scoped to env, the environment
-// its job deploys to (nil for none).
 func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask, env *actions_model.ActionEnvironment) (map[string]string, error) {
 	baseSecrets := map[string]string{}
 
 	baseSecrets["GITHUB_TOKEN"] = task.Token
 	baseSecrets["GITEA_TOKEN"] = task.Token
 
-	if actions_module.IsUntrustedForkRun(task.Job.Run) {
+	if task.Job.Run.IsUntrustedFork() {
 		// ignore secrets for fork pull request, except GITHUB_TOKEN and GITEA_TOKEN which are automatically generated.
 		// for the tasks triggered by pull_request_target event, they could access the secrets because they will run in the context of the base branch
 		// see the documentation: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target

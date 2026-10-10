@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"unicode/utf8"
 
@@ -23,10 +24,10 @@ type ActionEnvironment struct {
 	ID     int64  `xorm:"pk autoincr"`
 	RepoID int64  `xorm:"UNIQUE(repo_lower_name) NOT NULL"`
 	Name   string `xorm:"NOT NULL"`
-	// carries the unique constraint, so lookups ignore the collation MySQL and MSSQL apply to Name
+	// carries the unique constraint, so lookups ignore the MySQL/MSSQL collation
 	LowerName string `xorm:"UNIQUE(repo_lower_name) NOT NULL"`
 
-	// one glob per line, empty allows every ref; newline-separated because a branch name may contain a comma
+	// newline-separated because a branch name may contain a comma
 	AllowedBranchPatterns string `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
@@ -51,44 +52,6 @@ func (err ErrEnvironmentNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-type ErrEnvironmentAlreadyExists struct {
-	Name string
-}
-
-func (err ErrEnvironmentAlreadyExists) Error() string {
-	return fmt.Sprintf("environment already exists [name: %s]", err.Name)
-}
-
-func (err ErrEnvironmentAlreadyExists) Unwrap() error {
-	return util.ErrAlreadyExist
-}
-
-type ErrInvalidEnvironmentName struct {
-	Name   string
-	Reason string
-}
-
-func (err ErrInvalidEnvironmentName) Error() string {
-	return fmt.Sprintf("invalid environment name %q: %s", err.Name, err.Reason)
-}
-
-func (err ErrInvalidEnvironmentName) Unwrap() error {
-	return util.ErrInvalidArgument
-}
-
-type ErrInvalidBranchPattern struct {
-	Pattern string
-	Reason  string
-}
-
-func (err ErrInvalidBranchPattern) Error() string {
-	return fmt.Sprintf("invalid branch pattern %q: %s", err.Pattern, err.Reason)
-}
-
-func (err ErrInvalidBranchPattern) Unwrap() error {
-	return util.ErrInvalidArgument
-}
-
 type FindEnvironmentsOptions struct {
 	db.ListOptions
 	RepoID int64
@@ -106,32 +69,15 @@ func (opts FindEnvironmentsOptions) ToOrders() string {
 	return "lower_name ASC"
 }
 
-// ValidateEnvironmentName rejects names that cannot round-trip through a URL path segment.
 func ValidateEnvironmentName(name string) error {
-	invalid := func(reason string) error { return ErrInvalidEnvironmentName{Name: name, Reason: reason} }
-	switch {
-	case name == "":
-		return invalid("it cannot be empty")
-	case utf8.RuneCountInString(name) > EnvironmentNameMaxLength: // characters, as the column counts them
-		return invalid(fmt.Sprintf("it is longer than %d characters", EnvironmentNameMaxLength))
-	case name != strings.TrimSpace(name):
-		return invalid("it starts or ends with whitespace")
-	case strings.ContainsAny(name, "/\\?#%"):
-		return invalid(`it contains one of / \ ? # %`)
-	case name == "." || name == "..":
-		return invalid("it is a relative path segment")
-	}
-	for _, r := range name {
-		if r < 0x20 || r == 0x7f {
-			return invalid("it contains a control character")
-		}
+	if name == "" || utf8.RuneCountInString(name) > EnvironmentNameMaxLength {
+		return util.ErrorWrapTranslatable(util.NewInvalidArgumentErrorf("invalid environment name %q", name), "environments.name_invalid", EnvironmentNameMaxLength)
 	}
 	return nil
 }
 
-// SplitBranchPatterns returns the stored patterns as a list.
 func SplitBranchPatterns(patterns string) []string {
-	var result []string
+	result := []string{}
 	for pattern := range strings.SplitSeq(patterns, "\n") {
 		if pattern = strings.TrimSpace(pattern); pattern != "" {
 			result = append(result, pattern)
@@ -140,15 +86,24 @@ func SplitBranchPatterns(patterns string) []string {
 	return result
 }
 
-// JoinBranchPatterns renders a pattern list into its stored form, rejecting anything MatchesRef could not compile.
+// qualifyPattern scopes a bare pattern to branches, so that tags and pull refs need an explicit "refs/..." pattern.
+func qualifyPattern(pattern string) string {
+	negated := strings.HasPrefix(pattern, "!")
+	pattern = strings.TrimPrefix(pattern, "!")
+	if !strings.HasPrefix(pattern, "refs/") {
+		pattern = git.BranchPrefix + pattern
+	}
+	return util.Iif(negated, "!", "") + pattern
+}
+
 func JoinBranchPatterns(patterns []string) (string, error) {
 	var kept []string
 	for _, pattern := range patterns {
 		if pattern = strings.TrimSpace(pattern); pattern == "" {
 			continue
 		}
-		if _, err := workflowpattern.CompilePatterns(pattern); err != nil {
-			return "", ErrInvalidBranchPattern{Pattern: pattern, Reason: err.Error()}
+		if _, err := workflowpattern.CompilePatterns(qualifyPattern(pattern)); err != nil {
+			return "", util.ErrorWrapTranslatable(util.NewInvalidArgumentErrorf("invalid branch pattern %q: %v", pattern, err), "environments.branch_pattern_invalid", pattern)
 		}
 		kept = append(kept, pattern)
 	}
@@ -159,18 +114,24 @@ func (env *ActionEnvironment) BranchPatterns() []string {
 	return SplitBranchPatterns(env.AllowedBranchPatterns)
 }
 
-// MatchesRef reports whether ref may deploy to this environment, using the same glob dialect as the
-// `on:` branch filters. A policy that cannot be compiled denies the ref rather than granting access.
+// MatchesRef takes a full ref name; an uncompilable policy denies rather than grants.
 func (env *ActionEnvironment) MatchesRef(ref string) bool {
 	patterns := env.BranchPatterns()
 	if len(patterns) == 0 {
 		return true
 	}
+	for i, pattern := range patterns {
+		patterns[i] = qualifyPattern(pattern)
+	}
 	compiled, err := workflowpattern.CompilePatterns(patterns...)
 	if err != nil {
 		return false
 	}
-	return !workflowpattern.Skip(compiled, []string{git.RefName(ref).ShortName()})
+	return !workflowpattern.Skip(compiled, []string{ref})
+}
+
+func (env *ActionEnvironment) SettingsLink(repoLink string) string {
+	return repoLink + "/settings/actions/environments/" + url.PathEscape(env.Name)
 }
 
 func GetEnvironmentByRepoAndName(ctx context.Context, repoID int64, name string) (*ActionEnvironment, error) {
@@ -198,23 +159,17 @@ func InsertEnvironment(ctx context.Context, repoID int64, name, allowedBranchPat
 }
 
 func UpdateEnvironment(ctx context.Context, env *ActionEnvironment) error {
-	env.LowerName = strings.ToLower(env.Name)
-	_, err := db.GetEngine(ctx).ID(env.ID).Cols("name", "lower_name", "allowed_branch_patterns").Update(env)
+	_, err := db.GetEngine(ctx).ID(env.ID).Cols("allowed_branch_patterns").Update(env)
 	return err
 }
 
-// DeleteEnvironment removes an environment together with the secrets and variables scoped to it.
 func DeleteEnvironment(ctx context.Context, repoID, envID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if _, err := db.GetEngine(ctx).
-			Table("secret").
-			Where("repo_id = ? AND environment_id = ?", repoID, envID).
-			Delete(); err != nil {
+		cond := builder.Eq{"repo_id": repoID, "environment_id": envID}
+		if _, err := db.GetEngine(ctx).Table("secret").Where(cond).Delete(); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).
-			Where("repo_id = ? AND environment_id = ?", repoID, envID).
-			Delete(new(ActionVariable)); err != nil {
+		if _, err := db.GetEngine(ctx).Where(cond).Delete(new(ActionVariable)); err != nil {
 			return err
 		}
 		_, err := db.GetEngine(ctx).Where("id = ? AND repo_id = ?", envID, repoID).Delete(new(ActionEnvironment))

@@ -537,7 +537,7 @@ func ifNeedApprovalWith(
 	// 1. don't need approval if it's not a fork PR
 	// 2. don't need approval if the event is `pull_request_target` since the workflow will run in the context of base branch
 	// 		see https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks#about-workflow-runs-from-public-forks
-	if !actions_module.IsUntrustedForkRun(run) {
+	if !run.IsUntrustedFork() {
 		return false, nil
 	}
 

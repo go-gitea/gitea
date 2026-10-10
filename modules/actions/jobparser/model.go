@@ -124,7 +124,7 @@ type Job struct {
 	RawSecrets         yaml.Node             `yaml:"secrets,omitempty"`
 	RawConcurrency     *model.RawConcurrency `yaml:"concurrency,omitempty"`
 	RawPermissions     yaml.Node             `yaml:"permissions,omitempty"`
-	RawEnvironment     yaml.Node             `yaml:"environment,omitempty"` // deployment environment
+	RawEnvironment     yaml.Node             `yaml:"environment,omitempty"`
 }
 
 // GetContinueOnError decodes the continue-on-error field to a bool.
@@ -209,21 +209,17 @@ func (s BlockSafeString) MarshalYAML() (any, error) {
 	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Style: yaml.DoubleQuotedStyle, Value: string(s)}, nil
 }
 
-// DeploymentEnvironmentName returns the job's "environment:" name, in either the scalar
-// ("environment: production") or the object form ("environment: {name: production, url: ...}").
-// The "url" is ignored: GitHub evaluates it on the runner.
-// An expression that resolved to nothing decodes as "", so the job deploys to no environment,
-// as on GitHub.
+// DeploymentEnvironmentName reads the scalar or object form of "environment:"; the url is evaluated by the runner.
 func (j *Job) DeploymentEnvironmentName() string {
 	if HasDeferredMatrix(j) {
-		return "" // still holds the raw expression, which only the expanded combinations resolve
+		return "" // only the expanded combinations resolve the raw expression
 	}
-	var name string
 	switch j.RawEnvironment.Kind {
 	case yaml.ScalarNode:
-		if err := j.RawEnvironment.Decode(&name); err != nil {
+		if j.RawEnvironment.Tag == "!!null" {
 			return ""
 		}
+		return j.RawEnvironment.Value
 	case yaml.MappingNode:
 		var envMap struct {
 			Name string `yaml:"name"`
@@ -231,9 +227,9 @@ func (j *Job) DeploymentEnvironmentName() string {
 		if err := j.RawEnvironment.Decode(&envMap); err != nil {
 			return ""
 		}
-		name = envMap.Name
+		return envMap.Name
 	}
-	return name
+	return ""
 }
 
 type Step struct {

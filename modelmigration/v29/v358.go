@@ -12,9 +12,6 @@ import (
 	"xorm.io/xorm"
 )
 
-// A partial struct declares no indices, and Sync drops every index it does not find in the struct.
-var syncColumnOnly = xorm.SyncOptions{IgnoreConstrains: true, IgnoreDropIndices: true}
-
 func AddActionEnvironmentSchema(_ context.Context, x base.EngineMigration) error {
 	type ActionEnvironment struct {
 		ID                    int64              `xorm:"pk autoincr"`
@@ -25,27 +22,8 @@ func AddActionEnvironmentSchema(_ context.Context, x base.EngineMigration) error
 		CreatedUnix           timeutil.TimeStamp `xorm:"created NOT NULL"`
 		UpdatedUnix           timeutil.TimeStamp `xorm:"updated"`
 	}
-
 	if err := x.Sync(new(ActionEnvironment)); err != nil {
 		return err
-	}
-
-	// RecreateTable selects the new column set from the existing table, so environment_id has to exist first
-	{
-		type Secret struct {
-			EnvironmentID int64 `xorm:"NOT NULL DEFAULT 0"`
-		}
-		if _, err := x.SyncWithOptions(syncColumnOnly, new(Secret)); err != nil {
-			return err
-		}
-	}
-	{
-		type ActionVariable struct {
-			EnvironmentID int64 `xorm:"NOT NULL DEFAULT 0"`
-		}
-		if _, err := x.SyncWithOptions(syncColumnOnly, new(ActionVariable)); err != nil {
-			return err
-		}
 	}
 
 	type Secret struct {
@@ -58,13 +36,7 @@ func AddActionEnvironmentSchema(_ context.Context, x base.EngineMigration) error
 		Description   string             `xorm:"TEXT"`
 		CreatedUnix   timeutil.TimeStamp `xorm:"created NOT NULL"`
 	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-	if err := base.RecreateTable(sess, new(Secret)); err != nil {
+	if err := addEnvironmentIDToUniqueName(x, new(Secret)); err != nil {
 		return err
 	}
 
@@ -79,17 +51,31 @@ func AddActionEnvironmentSchema(_ context.Context, x base.EngineMigration) error
 		CreatedUnix   timeutil.TimeStamp `xorm:"created NOT NULL"`
 		UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
 	}
-
-	if err := base.RecreateTable(sess, new(ActionVariable)); err != nil {
-		return err
-	}
-	if err := sess.Commit(); err != nil {
+	if err := addEnvironmentIDToUniqueName(x, new(ActionVariable)); err != nil {
 		return err
 	}
 
+	// a partial struct declares no indices, and a plain Sync would drop every index it does not find
 	type ActionRunJob struct {
-		EnvironmentName string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+		EnvironmentName string `xorm:"TEXT"`
 	}
-	_, err := x.SyncWithOptions(syncColumnOnly, new(ActionRunJob))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreConstrains: true, IgnoreDropIndices: true}, new(ActionRunJob))
 	return err
+}
+
+// addEnvironmentIDToUniqueName adds the column first, as RecreateTable copies the columns of the existing table,
+// then rebuilds the table so that its unique name index covers environment_id.
+func addEnvironmentIDToUniqueName(x base.EngineMigration, table any) error {
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreConstrains: true, IgnoreIndices: true, IgnoreDropIndices: true}, table); err != nil {
+		return err
+	}
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := base.RecreateTable(sess, table); err != nil {
+		return err
+	}
+	return sess.Commit()
 }

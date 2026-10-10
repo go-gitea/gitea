@@ -4,6 +4,7 @@
 package secrets
 
 import (
+	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	secret_model "gitea.dev/models/secret"
@@ -39,6 +40,14 @@ func secretOwnerRepoIDs(owner *user_model.User, repo *repo_model.Repository) (ow
 	return ownerID, repoID
 }
 
+func secretAuditMetadata(ctx *context.Context, environmentID int64, name string) []any {
+	metadata := []any{"secret", name}
+	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok && environmentID != 0 && env.ID == environmentID {
+		metadata = append(metadata, "environment", env.Name)
+	}
+	return metadata
+}
+
 func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository, environmentID int64, redirectURL string) {
 	form := web.GetForm[*forms.AddSecretForm](ctx)
 	ownerID, repoID := secretOwnerRepoIDs(owner, repo)
@@ -53,7 +62,7 @@ func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo
 	if created {
 		actions = audit.SecretAdd
 	}
-	audit.RecordScoped(ctx, owner, repo, actions, "secret", s.Name)
+	audit.RecordScoped(ctx, owner, repo, actions, secretAuditMetadata(ctx, environmentID, s.Name)...)
 
 	ctx.Flash.Success(ctx.Tr("secrets.save_success", s.Name))
 	ctx.JSONRedirect(redirectURL)
@@ -70,7 +79,7 @@ func PerformSecretsDelete(ctx *context.Context, owner *user_model.User, repo *re
 		return
 	}
 
-	audit.RecordScoped(ctx, owner, repo, audit.SecretRemove, "secret", s.Name)
+	audit.RecordScoped(ctx, owner, repo, audit.SecretRemove, secretAuditMetadata(ctx, environmentID, s.Name)...)
 
 	ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
 	ctx.JSONRedirect(redirectURL)

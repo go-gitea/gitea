@@ -104,6 +104,11 @@ func TestCloneRunJobForAttempt(t *testing.T) {
 		clone := cloneRunJobForAttempt(template, attempt)
 		assert.Equal(t, 3, clone.MaxParallel)
 	})
+
+	t.Run("preserves the environment", func(t *testing.T) {
+		clone := cloneRunJobForAttempt(&actions_model.ActionRunJob{EnvironmentName: "production"}, attempt)
+		assert.Equal(t, "production", clone.EnvironmentName)
+	})
 }
 
 func TestRerunValidation(t *testing.T) {

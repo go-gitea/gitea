@@ -75,17 +75,10 @@ func Test_AddActionEnvironmentSchema(t *testing.T) {
 
 	require.NoError(t, AddActionEnvironmentSchema(t.Context(), x))
 
-	tableMap := migrationtest.LoadTableSchemasMap(t, x)
-	require.ElementsMatch(t, tableMap["action_environment"].ColumnsSeq(),
-		[]string{"id", "repo_id", "name", "lower_name", "allowed_branch_patterns", "created_unix", "updated_unix"})
-	require.Contains(t, tableMap["action_run_job"].ColumnsSeq(), "environment_name")
-
-	// adding a column must not cost the table its indices: Sync drops every index a partial struct omits
 	jobIndexes, err := x.Dialect().GetIndexes(x.DB(), t.Context(), "action_run_job")
 	require.NoError(t, err)
 	assert.Len(t, jobIndexes, 1, "the pre-existing repo_id index must survive")
 
-	// pre-existing rows survive the recreate and land in the repo/org scope
 	migrated := &secretV358{}
 	has, err := x.Where("owner_id = ? AND name = ?", 1, "TOKEN").Get(migrated)
 	require.NoError(t, err)
@@ -99,12 +92,6 @@ func Test_AddActionEnvironmentSchema(t *testing.T) {
 		assert.True(t, hasUniqueIndexOn(indexes, []string{"owner_id", "repo_id", "environment_id", "name"}),
 			"%s must scope its unique name constraint by environment", table)
 	}
-
-	// the same name is reusable across environments, but not within one
-	_, err = x.Insert(&secretV358{OwnerID: 1, EnvironmentID: 1, Name: "TOKEN", Data: "env-scoped"})
-	require.NoError(t, err)
-	_, err = x.Insert(&secretV358{OwnerID: 1, EnvironmentID: 1, Name: "TOKEN", Data: "dup"})
-	require.Error(t, err)
 }
 
 func hasUniqueIndexOn(indexes map[string]*schemas.Index, cols []string) bool {

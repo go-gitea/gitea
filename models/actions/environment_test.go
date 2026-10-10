@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,15 +18,15 @@ func TestEnvironmentMatchesRef(t *testing.T) {
 		ref      string
 		want     bool
 	}{
-		{"no policy allows any ref", "", "refs/heads/feature", true},
-		{"branch matches a pattern", "main\nrelease/*", "refs/heads/release/1.0", true},
-		{"branch matches no pattern", "main\nrelease/*", "refs/heads/feature", false},
-		{"tag is matched without its prefix", "v*", "refs/tags/v1.0", true},
-		// The `on:` branch-filter dialect, so a pattern can be copied from one to the other.
-		{"super wildcard spans slashes", "release/**", "refs/heads/release/1/0", true},
-		{"a catch-all allows a pull request ref", "*", "refs/pull/3/head", true},
-		{"a branch policy denies a pull request ref", "main", "refs/pull/3/head", false},
-		// A policy that cannot be evaluated has to deny, or a typo silently grants every ref the rest of the list would refuse.
+		{"no policy allows any ref", "", "refs/pull/3/head", true},
+		{"bare pattern matches a branch", "main\nrelease/*", "refs/heads/release/1.0", true},
+		{"branch matching no pattern is denied", "main\nrelease/*", "refs/heads/feature", false},
+		{"bare pattern does not match a tag of the same name", "main", "refs/tags/main", false},
+		{"bare tag-like pattern does not match a look-alike branch", "v*", "refs/tags/v1.0", false},
+		{"refs/tags pattern matches a tag", "refs/tags/v*", "refs/tags/v1.0", true},
+		{"refs/tags pattern does not match a branch", "refs/tags/v*", "refs/heads/v-evil", false},
+		{"explicit refs/heads pattern matches a branch", "refs/heads/main", "refs/heads/main", true},
+		{"a catch-all bare pattern does not match a pull ref", "*", "refs/pull/3/head", false},
 		{"a malformed pattern denies", "main\n[unterminated", "refs/heads/main", false},
 	}
 	for _, tt := range tests {
@@ -36,23 +37,19 @@ func TestEnvironmentMatchesRef(t *testing.T) {
 	}
 }
 
-func TestValidateEnvironmentName(t *testing.T) {
-	for _, name := range []string{"production", "staging-2", "with space", "Ünicode"} {
+func TestEnvironmentNameAndPatterns(t *testing.T) {
+	for _, name := range []string{"production", "with space", "a/b", strings.Repeat("é", EnvironmentNameMaxLength)} {
 		require.NoError(t, ValidateEnvironmentName(name), name)
 	}
-	// Rejected so the name survives a round trip through a URL path segment and a template link.
-	for _, name := range []string{"", "a/b", "a#b", "a?b", "a%b", "a\\b", " leading", "trailing ", "new\nline", ".", ".."} {
-		require.Error(t, ValidateEnvironmentName(name), "%q must be rejected", name)
+	for _, name := range []string{"", strings.Repeat("é", EnvironmentNameMaxLength+1)} {
+		require.Error(t, ValidateEnvironmentName(name))
 	}
-}
 
-func TestJoinBranchPatterns(t *testing.T) {
-	// Blank entries are dropped, and a comma stays part of the pattern because branch names may contain one.
-	got, err := JoinBranchPatterns([]string{" main ", "", "release/*", "a,b"})
+	got, err := JoinBranchPatterns([]string{" main ", "", "refs/tags/v*", "a,b"})
 	require.NoError(t, err)
-	assert.Equal(t, "main\nrelease/*\na,b", got)
-	assert.Equal(t, []string{"main", "release/*", "a,b"}, SplitBranchPatterns(got))
+	assert.Equal(t, []string{"main", "refs/tags/v*", "a,b"}, SplitBranchPatterns(got))
+	assert.Equal(t, []string{}, SplitBranchPatterns(""))
 
 	_, err = JoinBranchPatterns([]string{"["})
-	require.Error(t, err, "a pattern that cannot compile must be rejected on write")
+	require.Error(t, err)
 }

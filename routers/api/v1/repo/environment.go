@@ -4,10 +4,11 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
-	"strings"
 
 	actions_model "gitea.dev/models/actions"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	secret_model "gitea.dev/models/secret"
 	api "gitea.dev/modules/structs"
@@ -17,6 +18,7 @@ import (
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
+	secret_service "gitea.dev/services/secrets"
 )
 
 // ListEnvironments lists all environments for a repo
@@ -133,6 +135,7 @@ func CreateOrUpdateEnvironment(ctx *context.APIContext) {
 	//   required: true
 	// - name: body
 	//   in: body
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/CreateOrUpdateEnvironmentOption"
 	// responses:
@@ -142,14 +145,28 @@ func CreateOrUpdateEnvironment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Environment"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
 	opt := web.GetForm[*api.CreateOrUpdateEnvironmentOption](ctx)
-	env, created, err := actions_service.CreateOrUpdateEnvironment(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"), opt.AllowedBranchPatterns)
+	env, created, err := actions_service.GetOrCreateEnvironment(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"), opt.AllowedBranchPatterns)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
+	}
+	if created {
+		audit.Record(ctx, audit_model.RepositoryEnvironmentAdd, ctx.Repo.Repository, "environment", env.Name)
+	} else {
+		changed, err := actions_service.UpdateEnvironment(ctx, env, opt.AllowedBranchPatterns)
+		if err != nil {
+			ctx.APIErrorAuto(err)
+			return
+		}
+		if changed {
+			audit.Record(ctx, audit_model.RepositoryEnvironmentUpdate, ctx.Repo.Repository, "environment", env.Name)
+		}
 	}
 	ctx.JSON(util.Iif(created, http.StatusCreated, http.StatusOK), toAPIEnvironment(env))
 }
@@ -178,6 +195,8 @@ func DeleteEnvironment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: No Content
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -189,6 +208,7 @@ func DeleteEnvironment(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryEnvironmentRemove, ctx.Repo.Repository, "environment", env.Name)
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -298,6 +318,8 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 	//     description: secret updated
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -306,7 +328,7 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 		return
 	}
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
-	s, created, err := actions_service.CreateOrUpdateEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
+	s, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -315,7 +337,7 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 	if created {
 		action = audit.SecretAdd
 	}
-	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, action, "secret", s.Name)
+	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, action, "secret", s.Name, "environment", env.Name)
 	if created {
 		ctx.Status(http.StatusCreated)
 	} else {
@@ -352,6 +374,8 @@ func DeleteEnvSecret(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: No Content
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -359,12 +383,12 @@ func DeleteEnvSecret(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	s, err := actions_service.DeleteEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"))
+	s, err := secret_service.DeleteSecretByName(ctx, 0, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, audit.SecretRemove, "secret", s.Name)
+	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, audit.SecretRemove, "secret", s.Name, "environment", env.Name)
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -473,6 +497,8 @@ func CreateEnvVariable(ctx *context.APIContext) {
 	//     description: variable created
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "409":
@@ -483,9 +509,19 @@ func CreateEnvVariable(ctx *context.APIContext) {
 		return
 	}
 	opt := web.GetForm[*api.CreateVariableOption](ctx)
-	variableName := strings.ToUpper(ctx.PathParam("variablename"))
+	variableName := ctx.PathParam("variablename")
 
-	if _, err := actions_service.CreateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, variableName, opt.Value, opt.Description); err != nil {
+	_, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{RepoID: ctx.Repo.Repository.ID, EnvironmentID: env.ID, Name: variableName})
+	if err == nil {
+		ctx.APIError(http.StatusConflict, "variable name already exists")
+		return
+	}
+	if !errors.Is(err, util.ErrNotExist) {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if _, err := actions_service.CreateVariable(ctx, 0, ctx.Repo.Repository.ID, env.ID, variableName, opt.Value, opt.Description); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
@@ -531,6 +567,8 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 	//     description: variable updated
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -538,13 +576,18 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	v, err := actions_service.GetEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("variablename"))
+	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{RepoID: ctx.Repo.Repository.ID, EnvironmentID: env.ID, Name: ctx.PathParam("variablename")})
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
 	opt := web.GetForm[*api.UpdateVariableOption](ctx)
-	if err := actions_service.UpdateEnvVariable(ctx, v, opt.Name, opt.Value, opt.Description); err != nil {
+	if opt.Name != "" {
+		v.Name = opt.Name
+	}
+	v.Data = opt.Value
+	v.Description = opt.Description
+	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
@@ -580,6 +623,8 @@ func DeleteEnvVariable(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: No Content
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -587,7 +632,7 @@ func DeleteEnvVariable(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	if err := actions_service.DeleteEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("variablename")); err != nil {
+	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("variablename")); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
@@ -606,14 +651,10 @@ func getEnvironmentOrError(ctx *context.APIContext) (env *actions_model.ActionEn
 }
 
 func toAPIEnvironment(e *actions_model.ActionEnvironment) *api.ActionEnvironment {
-	patterns := e.BranchPatterns()
-	if patterns == nil {
-		patterns = []string{} // the declared type is an array, so an unrestricted environment must not serialise as null
-	}
 	return &api.ActionEnvironment{
 		ID:                    e.ID,
 		Name:                  e.Name,
-		AllowedBranchPatterns: patterns,
+		AllowedBranchPatterns: e.BranchPatterns(),
 		CreatedAt:             e.CreatedUnix.AsTime(),
 		UpdatedAt:             e.UpdatedUnix.AsTime(),
 	}

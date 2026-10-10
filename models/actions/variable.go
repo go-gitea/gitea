@@ -80,7 +80,7 @@ type FindVariablesOpts struct {
 	IDs           []int64
 	RepoID        int64
 	OwnerID       int64 // it will be ignored if RepoID is set
-	EnvironmentID int64 // defaults to 0 (repo/org/global scope) when not set
+	EnvironmentID int64
 	Name          string
 }
 
@@ -179,8 +179,7 @@ func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, 
 	return variables, nil
 }
 
-// GetVariablesOfJob returns the variables for a job, overlaying the ones scoped to env, the environment
-// it deploys to (nil for none). Precedence (high to low): environment > repo > org/user > global
+// GetVariablesOfJob precedence (high to low): environment > repo > org/user > global
 func GetVariablesOfJob(ctx context.Context, job *ActionRunJob, env *ActionEnvironment) (map[string]string, error) {
 	if err := job.LoadRun(ctx); err != nil {
 		return nil, err

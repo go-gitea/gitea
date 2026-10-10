@@ -1918,7 +1918,7 @@
         "description": "ActionEnvironment represents a deployment environment",
         "properties": {
           "allowed_branch_patterns": {
-            "description": "glob patterns naming the branches and tags allowed to deploy to this environment; empty allows all of them",
+            "description": "branch globs, or \"refs/tags/\u003cglob\u003e\" for tags, allowed to deploy; empty allows every ref",
             "items": {
               "type": "string"
             },
@@ -4433,7 +4433,7 @@
         "description": "CreateOrUpdateEnvironmentOption options for creating or updating a deployment environment",
         "properties": {
           "allowed_branch_patterns": {
-            "description": "glob patterns naming the branches and tags allowed to deploy to this environment; empty allows all of them",
+            "description": "branch globs, or \"refs/tags/\u003cglob\u003e\" for tags, allowed to deploy; omitted or empty replaces the policy with allowing every ref",
             "items": {
               "type": "string"
             },
@@ -21656,6 +21656,9 @@
           "204": {
             "description": "No Content"
           },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/notFound"
           }
@@ -21748,6 +21751,7 @@
               }
             }
           },
+          "required": true,
           "x-originalParamName": "body"
         },
         "responses": {
@@ -21759,6 +21763,9 @@
           },
           "400": {
             "$ref": "#/components/responses/error"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -21877,6 +21884,9 @@
           "204": {
             "description": "No Content"
           },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/notFound"
           }
@@ -21945,6 +21955,9 @@
           },
           "400": {
             "$ref": "#/components/responses/error"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -22063,6 +22076,9 @@
           "204": {
             "description": "No Content"
           },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/notFound"
           }
@@ -22128,6 +22144,9 @@
           },
           "400": {
             "$ref": "#/components/responses/error"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -22197,6 +22216,9 @@
           },
           "400": {
             "$ref": "#/components/responses/error"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"

@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/modules/util"
@@ -19,15 +18,6 @@ func CreateVariable(ctx context.Context, ownerID, repoID, environmentID int64, n
 
 	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, environmentID, name, util.NormalizeStringEOL(data), description)
 	if err != nil {
-		// re-check by name: constraint text differs per driver, and a pre-flight check would still race
-		if _, lookupErr := GetVariable(ctx, actions_model.FindVariablesOpts{
-			OwnerID:       ownerID,
-			RepoID:        repoID,
-			EnvironmentID: environmentID,
-			Name:          name,
-		}); lookupErr == nil {
-			return nil, util.NewAlreadyExistErrorf("variable %s already exists", strings.ToUpper(name))
-		}
 		return nil, err
 	}
 

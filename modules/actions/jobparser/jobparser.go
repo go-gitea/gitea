@@ -16,11 +16,12 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-// HasDeferredMatrix reports whether the job's strategy, name, runs-on or continue-on-error need outputs before they can be resolved.
+// HasDeferredMatrix reports whether the job's strategy, name, runs-on, continue-on-error or environment need outputs before they can be resolved.
 func HasDeferredMatrix(job *Job) bool {
 	return len(job.Needs()) > 0 && (nodeMatches(&job.Strategy.RawMatrix, expressionReadsNeeds) || expressionReadsNeeds(job.Strategy.RawExpression.Value) ||
 		expressionReadsNeeds(job.Strategy.MaxParallelString) || expressionReadsNeeds(job.Strategy.FailFastString) ||
-		expressionReadsNeeds(job.Name) || nodeMatches(&job.RawRunsOn, expressionReadsNeeds) || nodeMatches(&job.RawContinueOnError, expressionReadsNeeds))
+		expressionReadsNeeds(job.Name) || nodeMatches(&job.RawRunsOn, expressionReadsNeeds) || nodeMatches(&job.RawContinueOnError, expressionReadsNeeds) ||
+		nodeMatches(&job.RawEnvironment, expressionReadsNeeds))
 }
 
 func nodeMatches(node *yaml.Node, match func(string) bool) bool {

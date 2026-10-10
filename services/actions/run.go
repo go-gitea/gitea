@@ -225,7 +225,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		WorkflowSourceRepoID:    run.WorkflowRepoID,
 		WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
 		ContinueOnError:         job.GetContinueOnError(),
-		EnvironmentName:         jobEnvironmentName(job),
+		EnvironmentName:         job.DeploymentEnvironmentName(),
 		IsMatrixDeferred:        isMatrixDeferred,
 		MaxParallel:             parseMaxParallel(id, job.Strategy.MaxParallelString),
 	}

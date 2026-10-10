@@ -122,7 +122,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		dst.Name = combo.DisplayName()
 		dst.WorkflowPayload, dst.RunsOn = payload, combo.RunsOn()
 		dst.ContinueOnError = combo.GetContinueOnError()
-		dst.EnvironmentName = jobEnvironmentName(combo)
+		dst.EnvironmentName = combo.DeploymentEnvironmentName()
 		dst.MaxParallel = parseMaxParallel(job.JobID, combo.Strategy.MaxParallelString)
 		return nil
 	}
@@ -214,7 +214,7 @@ func restoreDeferredMatrixPlaceholder(clone *actions_model.ActionRunJob) error {
 	clone.WorkflowPayload = slices.Clone(clone.DeferredMatrixPayload)
 	clone.RunsOn = parsed.RunsOn()
 	clone.ContinueOnError = parsed.GetContinueOnError()
-	clone.EnvironmentName = jobEnvironmentName(parsed)
+	clone.EnvironmentName = parsed.DeploymentEnvironmentName()
 	clone.MaxParallel = parseMaxParallel(clone.JobID, parsed.Strategy.MaxParallelString)
 	clone.IsMatrixDeferred = true
 	return nil
