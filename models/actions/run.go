@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -418,16 +419,33 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group
-	for _, concurrentAttempt := range attempts {
-		if concurrentAttempt.RunID == attempt.RunID {
-			continue
-		}
-		jobs, err := GetRunJobsByRunAndAttemptID(ctx, concurrentAttempt.RunID, concurrentAttempt.ID)
-		if err != nil {
-			return nil, fmt.Errorf("find run %d attempt %d jobs: %w", concurrentAttempt.RunID, concurrentAttempt.ID, err)
-		}
-		jobsToCancel = append(jobsToCancel, jobs...)
+	attempts = slices.DeleteFunc(attempts, func(a *ActionRunAttempt) bool { return a.RunID == attempt.RunID })
+	attemptJobs, err := getRunJobsByAttempts(ctx, attempts)
+	if err != nil {
+		return nil, fmt.Errorf("find concurrent attempt jobs: %w", err)
 	}
+	jobsToCancel = append(jobsToCancel, attemptJobs...)
 
 	return CancelJobs(ctx, jobsToCancel, false)
+}
+
+// getRunJobsByAttempts returns the jobs of the attempts in attempt order, each attempt's jobs ordered by ID
+func getRunJobsByAttempts(ctx context.Context, attempts []*ActionRunAttempt) ([]*ActionRunJob, error) {
+	if len(attempts) == 0 {
+		return nil, nil
+	}
+	attemptIDs := container.FilterSlice(attempts, func(a *ActionRunAttempt) (int64, bool) { return a.ID, true })
+	var jobs []*ActionRunJob
+	if err := db.GetEngine(ctx).In("run_attempt_id", attemptIDs).OrderBy("id").Find(&jobs); err != nil {
+		return nil, err
+	}
+	jobsByAttempt := make(map[int64][]*ActionRunJob, len(attempts))
+	for _, job := range jobs {
+		jobsByAttempt[job.RunAttemptID] = append(jobsByAttempt[job.RunAttemptID], job)
+	}
+	ordered := make([]*ActionRunJob, 0, len(jobs))
+	for _, a := range attempts {
+		ordered = append(ordered, jobsByAttempt[a.ID]...)
+	}
+	return ordered, nil
 }

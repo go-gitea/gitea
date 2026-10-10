@@ -5,6 +5,8 @@ package actions
 
 import (
 	"context"
+	"maps"
+	"slices"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -32,14 +34,53 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 		if run.TriggerUser != nil {
 			continue
 		}
-		run.TriggerUser = users[run.TriggerUserID]
-		if run.TriggerUserID < 0 {
-			run.TriggerUserID, run.TriggerUser, _ = user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
-		} else if run.TriggerUser == nil {
-			run.TriggerUserID, run.TriggerUser, _ = user_model.GetPossibleUserByID(ctx, user_model.GhostUserID)
-		}
+		run.TriggerUserID, run.TriggerUser = resolveLoadedTriggerUser(ctx, users, run.TriggerUserID)
 	}
 	return nil
+}
+
+// resolveLoadedTriggerUser falls back to system users for negative IDs and to the ghost user for missing ones
+func resolveLoadedTriggerUser(ctx context.Context, users map[int64]*user_model.User, userID int64) (int64, *user_model.User) {
+	user := users[userID]
+	if userID < 0 {
+		userID, user, _ = user_model.GetPossibleUserByID(ctx, userID)
+	} else if user == nil {
+		userID, user, _ = user_model.GetPossibleUserByID(ctx, user_model.GhostUserID)
+	}
+	return userID, user
+}
+
+// GetLatestAttempts returns the latest attempts of the runs with their trigger users loaded, keyed by run ID
+func (runs RunList) GetLatestAttempts(ctx context.Context) (map[int64]*ActionRunAttempt, error) {
+	attemptIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.LatestAttemptID, run.LatestAttemptID != 0
+	})
+	result := make(map[int64]*ActionRunAttempt, len(attemptIDs))
+	if len(attemptIDs) == 0 {
+		return result, nil
+	}
+	attempts := make(map[int64]*ActionRunAttempt, len(attemptIDs))
+	if err := db.GetEngine(ctx).In("id", attemptIDs).Find(&attempts); err != nil {
+		return nil, err
+	}
+	userIDs := container.FilterSlice(slices.Collect(maps.Values(attempts)), func(attempt *ActionRunAttempt) (int64, bool) {
+		return attempt.TriggerUserID, attempt.TriggerUserID > 0
+	})
+	users := make(map[int64]*user_model.User, len(userIDs))
+	if err := db.GetEngine(ctx).In("id", userIDs).Find(&users); err != nil {
+		return nil, err
+	}
+	for _, run := range runs {
+		attempt := attempts[run.LatestAttemptID]
+		if attempt == nil || attempt.RepoID != run.RepoID {
+			continue
+		}
+		if attempt.TriggerUser == nil {
+			attempt.TriggerUserID, attempt.TriggerUser = resolveLoadedTriggerUser(ctx, users, attempt.TriggerUserID)
+		}
+		result[run.ID] = attempt
+	}
+	return result, nil
 }
 
 func (runs RunList) LoadRepos(ctx context.Context) error {

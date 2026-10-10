@@ -90,27 +90,16 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		return
 	}
 
-	res.Entries = make([]*api.ActionWorkflowJob, len(jobs))
-
-	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
-	for i := range jobs {
-		var repository *repo_model.Repository
-		if isRepoLevel {
-			repository = ctx.Repo.Repository
-		} else {
-			if jobs[i].Run == nil || jobs[i].Run.Repo == nil {
-				ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", jobs[i].ID))
-				return
-			}
-			repository = jobs[i].Run.Repo
-		}
-
-		convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, repository, nil, jobs[i])
-		if err != nil {
-			ctx.APIErrorInternal(err)
+	for _, job := range jobs {
+		if job.Run == nil || job.Run.Repo == nil {
+			ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", job.ID))
 			return
 		}
-		res.Entries[i] = convertedWorkflowJob
+	}
+	res.Entries, err = convert.ToActionWorkflowJobs(ctx, jobs)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
@@ -224,6 +213,12 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 		return
 	}
 
+	latestAttempts, err := runList.GetLatestAttempts(ctx)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	res.Entries = make([]*api.ActionWorkflowRun, 0, len(runs))
 	for _, run := range runs {
 		if run.Repo == nil {
@@ -232,8 +227,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 			total--
 			continue
 		}
-		// TODO: load run attempts in batch
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, excludePullRequests)
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, latestAttempts[run.ID], excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

@@ -50,6 +50,25 @@ func TestGetTaskRunnerNames(t *testing.T) {
 	assert.Equal(t, map[int64]string{task.ID: runner.Name}, names)
 }
 
+func TestTaskListLoadSteps(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	withSteps := &ActionTask{TokenHash: "load-steps-task-1"}
+	withoutSteps := &ActionTask{TokenHash: "load-steps-task-2"}
+	require.NoError(t, db.Insert(ctx, withSteps, withoutSteps))
+	require.NoError(t, db.Insert(ctx,
+		&ActionTaskStep{TaskID: withSteps.ID, Index: 1, Name: "second"},
+		&ActionTaskStep{TaskID: withSteps.ID, Index: 0, Name: "first"},
+	))
+
+	require.NoError(t, TaskList{withSteps, withoutSteps}.LoadSteps(ctx))
+	require.Len(t, withSteps.Steps, 2)
+	assert.Equal(t, "first", withSteps.Steps[0].Name)
+	assert.Equal(t, "second", withSteps.Steps[1].Name)
+	assert.NotNil(t, withoutSteps.Steps)
+	assert.Empty(t, withoutSteps.Steps)
+}
+
 func TestMakeTaskStepDisplayName(t *testing.T) {
 	tests := []struct {
 		name     string
