@@ -301,6 +301,50 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 			})
 		}
 
+		t.Run("MatchRanges", func(t *testing.T) {
+			_, res, _, err := indexer.Search(t.Context(), &internal.SearchOptions{
+				RepoIDs:    []int64{62},
+				Keyword:    "cucumber",
+				SearchMode: indexer_module.SearchModeWords,
+				Paginator:  &db.ListOptions{Page: 1, PageSize: 10},
+			})
+			require.NoError(t, err)
+			require.Len(t, res, 2)
+
+			byFilename, byContent := res[0], res[1]
+			assert.Equal(t, "cucumber.md", byFilename.Filename)
+			assert.Empty(t, byFilename.ContentMatches)
+			assert.Equal(t, "avocado.md", byContent.Filename)
+			assert.Equal(t, []internal.MatchRange{{Start: 25, End: 33}}, byContent.ContentMatches)
+		})
+
+		t.Run("Path", func(t *testing.T) {
+			for _, c := range []struct {
+				repoIDs  []int64
+				path     string
+				expected []string
+			}{
+				{[]int64{62}, "", []string{"potato/ham.md", "ham.md"}},
+				{[]int64{62}, "potato", []string{"potato/ham.md"}},
+				{nil, "potato", []string{"potato/ham.md"}},
+				{[]int64{62}, "pot", nil},
+				{[]int64{62}, "Potato", nil},
+			} {
+				_, res, _, err := indexer.Search(t.Context(), &internal.SearchOptions{
+					RepoIDs:   c.repoIDs,
+					Keyword:   "cheese",
+					Path:      c.path,
+					Paginator: &db.ListOptions{Page: 1, PageSize: 10},
+				})
+				require.NoError(t, err)
+				var filenames []string
+				for _, r := range res {
+					filenames = append(filenames, r.Filename)
+				}
+				assert.ElementsMatch(t, c.expected, filenames, "repoIDs=%v path=%q", c.repoIDs, c.path)
+			}
+		})
+
 		assert.NoError(t, tearDownRepositoryIndexes(t.Context(), indexer))
 	})
 }

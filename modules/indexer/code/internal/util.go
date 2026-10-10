@@ -4,6 +4,8 @@
 package internal
 
 import (
+	"cmp"
+	"slices"
 	"strings"
 
 	"gitea.dev/modules/indexer/internal"
@@ -45,4 +47,18 @@ func FilenameMatchIndexPos(content string) (int, int) {
 		}
 	}
 	return 0, len(content)
+}
+
+// MergeMatchRanges sorts the ranges and merges the overlapping ones
+func MergeMatchRanges(ranges []MatchRange) []MatchRange {
+	slices.SortFunc(ranges, func(a, b MatchRange) int { return cmp.Compare(a.Start, b.Start) })
+	merged := ranges[:0]
+	for _, r := range ranges {
+		if n := len(merged); n > 0 && r.Start < merged[n-1].End {
+			merged[n-1].End = max(merged[n-1].End, r.End)
+			continue
+		}
+		merged = append(merged, r)
+	}
+	return merged
 }

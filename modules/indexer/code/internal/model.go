@@ -34,6 +34,13 @@ type SearchResult struct {
 	UpdatedUnix timeutil.TimeStamp
 	Language    string
 	Color       string
+
+	ContentMatches []MatchRange // byte ranges into Content
+}
+
+// MatchRange is the byte range [Start, End) of a matched term
+type MatchRange struct {
+	Start, End int
 }
 
 // SearchResultLanguages result of top languages count in search results
