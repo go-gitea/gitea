@@ -1922,6 +1922,11 @@
             "type": "string",
             "x-go-name": "Name"
           },
+          "priority": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Priority"
+          },
           "status": {
             "type": "string",
             "x-go-name": "Status"
@@ -5300,11 +5305,14 @@
           "disabled": {
             "type": "boolean",
             "x-go-name": "Disabled"
+          },
+          "priority": {
+            "description": "higher is preferred, see PREFERRED_RUNNER_GRACE",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Priority"
           }
         },
-        "required": [
-          "disabled"
-        ],
         "title": "EditActionRunnerOption represents the editable fields for a runner.",
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
