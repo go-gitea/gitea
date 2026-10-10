@@ -146,7 +146,7 @@ function clearMergeMessage() {
         <div class="field">
           <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
           <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
-            <button @click.prevent="clearMergeMessage" class="btn tw-mt-1 tw-p-1 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
+            <button type="button" @click.prevent="clearMergeMessage" class="btn tw-mt-1 tw-p-1 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
               {{ mergeForm.textClearMergeMessage }}
             </button>
           </template>
@@ -179,7 +179,7 @@ function clearMergeMessage() {
     <div v-if="!showActionForm" class="tw-flex">
       <!-- the merge button -->
       <div class="ui buttons merge-button" :class="mergeSelectStyleClass" @click="toggleActionForm(true)">
-        <button class="ui button">
+        <button type="button" class="ui button">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">
             {{ mergeStyleDetail.textDoMerge }}
@@ -218,7 +218,7 @@ function clearMergeMessage() {
 
       <!-- the cancel auto merge button -->
       <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="tw-ml-4">
-        <button class="ui button">
+        <button type="submit" class="ui button">
           {{ mergeForm.textAutoMergeCancelSchedule }}
         </button>
       </form>

@@ -26,7 +26,7 @@ function initDevtestPage() {
   const modalButtons = document.querySelector('.modal-buttons');
   if (modalButtons) {
     for (const el of document.querySelectorAll('.ui.modal:not([data-skip-button])')) {
-      const btn = createElementFromHTML(html`<button class="ui button">${el.id}</button`);
+      const btn = createElementFromHTML(html`<button type="button" class="ui button">${el.id}</button>`);
       btn.addEventListener('click', () => showFomanticModal(el));
       modalButtons.append(btn);
     }

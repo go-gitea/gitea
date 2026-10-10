@@ -171,15 +171,15 @@ onBeforeUnmount(() => {
           <span class="action-info-summary-title-index">#{{ run.index }}</span>
         </div>
         <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
-          <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
+          <button type="button" class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
             {{ locale.approve }}
           </button>
-          <button class="ui small compact button tw-text-red" @click="cancelRun()" v-else-if="run.canCancel">
+          <button type="button" class="ui small compact button tw-text-red" @click="cancelRun()" v-else-if="run.canCancel">
             {{ locale.cancel }}
           </button>
           <template v-if="run.canRerun">
             <div v-if="run.canRerunFailed" class="ui small compact buttons">
-              <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun-failed`">
+              <button type="button" class="ui basic small compact button link-action" :data-url="`${run.link}/rerun-failed`">
                 {{ locale.rerun_failed }}
               </button>
               <div class="ui basic small compact dropdown icon button">
@@ -191,7 +191,7 @@ onBeforeUnmount(() => {
                 </div>
               </div>
             </div>
-            <button v-else class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`">
+            <button v-else type="button" class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`">
               {{ locale.rerun_all }}
             </button>
           </template>

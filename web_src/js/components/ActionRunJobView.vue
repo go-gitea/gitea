@@ -518,6 +518,7 @@ async function hashChangeListener() {
         <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill"/>
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
         <button
+          type="button"
           v-if="isExpandable(jobStep.status)"
           class="btn interact-fg step-copy-btn"
           :aria-label="locale.copyOutput"
