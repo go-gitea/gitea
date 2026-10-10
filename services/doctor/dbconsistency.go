@@ -99,6 +99,21 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 		// find releases without existing repository
 		genericOrphanCheck("Orphaned Releases without existing repository",
 			"release", "repository", "`release`.repo_id=repository.id"),
+		// find security advisories without existing repository, then their details without existing advisory
+		genericOrphanCheck("Orphaned SecurityAdvisories without existing repository",
+			"security_advisory", "repository", "security_advisory.repo_id=repository.id"),
+		genericOrphanCheck("Orphaned SecurityAdvisoryVulnerabilities without existing advisory",
+			"security_advisory_vulnerability", "security_advisory", "security_advisory_vulnerability.advisory_id=security_advisory.id"),
+		genericOrphanCheck("Orphaned SecurityAdvisoryCredits without existing advisory",
+			"security_advisory_credit", "security_advisory", "security_advisory_credit.advisory_id=security_advisory.id"),
+		genericOrphanCheck("Orphaned SecurityAdvisoryCollaborators without existing advisory",
+			"security_advisory_collaborator", "security_advisory", "security_advisory_collaborator.advisory_id=security_advisory.id"),
+		genericOrphanCheck("Orphaned SecurityAdvisoryComments without existing advisory",
+			"security_advisory_comment", "security_advisory", "security_advisory_comment.advisory_id=security_advisory.id"),
+		genericOrphanCheck("Orphaned SecurityAdvisoryLabels without existing advisory",
+			"security_advisory_label", "security_advisory", "security_advisory_label.advisory_id=security_advisory.id"),
+		genericOrphanCheck("Orphaned SecurityAdvisoryLabels without existing label",
+			"security_advisory_label", "label", "security_advisory_label.label_id=label.id"),
 		// find pulls without existing issues
 		genericOrphanCheck("Orphaned PullRequests without existing issue",
 			"pull_request", "issue", "pull_request.issue_id=issue.id"),

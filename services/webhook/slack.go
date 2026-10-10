@@ -160,6 +160,12 @@ func (s slackConvertor) Release(p *api.ReleasePayload) (SlackPayload, error) {
 	return s.createPayload(text, nil), nil
 }
 
+func (s slackConvertor) RepositoryAdvisory(p *api.RepositoryAdvisoryPayload) (SlackPayload, error) {
+	text, _ := getRepositoryAdvisoryPayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
 func (s slackConvertor) Package(p *api.PackagePayload) (SlackPayload, error) {
 	text, _ := getPackagePayloadInfo(p, SlackLinkFormatter, true)
 

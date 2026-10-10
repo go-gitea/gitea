@@ -813,6 +813,12 @@ func mustEnableWiki(ctx *context.APIContext) {
 	}
 }
 
+func mustEnableSecurityAdvisories(ctx *context.APIContext) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeSecurityAdvisories) {
+		ctx.APIErrorNotFound()
+	}
+}
+
 // reqProjectsUnitAccess mirrors the web's reqUnitAccess for the Projects unit. Org
 // visibility is too permissive for reads, org ownership too strict for writes.
 func reqProjectsUnitAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) {
@@ -1484,6 +1490,26 @@ func Routes() *web.Router {
 							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, reqRepoReader(unit.TypeReleases))
+				m.Group("/security-advisories", func() {
+					m.Combo("").Get(repo.ListSecurityAdvisories).
+						Post(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.CreateRepositoryAdvisoryOption{}), repo.MustManageSecurityAdvisories, repo.CreateSecurityAdvisory)
+					m.Post("/reports", reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.CreatePrivateVulnerabilityReportOption{}), repo.CreatePrivateVulnerabilityReport)
+					m.Group("/{identifier}", func() {
+						m.Combo("").Get(repo.GetSecurityAdvisory).
+							Patch(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.EditRepositoryAdvisoryOption{}), repo.EditSecurityAdvisory)
+						m.Group("/comments", func() {
+							m.Combo("").Get(repo.ListSecurityAdvisoryComments).
+								Post(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.RepositoryAdvisoryCommentOption{}), repo.CreateSecurityAdvisoryComment)
+							m.Combo("/{id}", reqToken(), rejectPublicOnly(), mustNotBeArchived).
+								Patch(bind(api.RepositoryAdvisoryCommentOption{}), repo.EditSecurityAdvisoryComment).
+								Delete(repo.DeleteSecurityAdvisoryComment)
+						}, repo.MustSeeSecurityAdvisoryDiscussion)
+					}, repo.LoadSecurityAdvisory)
+				}, mustEnableSecurityAdvisories)
+				m.Combo("/private-vulnerability-reporting", mustEnableSecurityAdvisories).
+					Get(repo.GetPrivateVulnerabilityReporting).
+					Put(reqToken(), rejectPublicOnly(), reqAdmin(), mustNotBeArchived, repo.EnablePrivateVulnerabilityReporting).
+					Delete(reqToken(), rejectPublicOnly(), reqAdmin(), mustNotBeArchived, repo.DisablePrivateVulnerabilityReporting)
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
 				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {

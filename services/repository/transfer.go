@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
+	advisory_model "gitea.dev/models/advisory"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -215,6 +216,14 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		// Remove old team-repository relations.
 		if err := organization.RemoveOrgRepo(ctx, oldOwner.ID, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %w", err)
+		}
+
+		// teams and labels of the old organization must not stay on the advisories
+		if err := advisory_model.DeleteTeamCollaboratorsByRepoID(ctx, repo.ID); err != nil {
+			return err
+		}
+		if err := advisory_model.DeleteOrgLabelLinksByRepoID(ctx, repo.ID, oldOwner.ID); err != nil {
+			return err
 		}
 
 		// Remove project's issues that belong to old organization's projects

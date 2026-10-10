@@ -50,6 +50,22 @@ func RemoveTeamRepo(ctx context.Context, teamID, repoID int64) error {
 	return err
 }
 
+func securityTeamIDs(repoID int64) *builder.Builder {
+	return builder.Select("team.id").From("team").
+		Join("INNER", "team_repo", "team_repo.team_id = team.id").
+		Where(builder.Eq{"team_repo.repo_id": repoID, "team.is_security_team": true})
+}
+
+// IsSecurityTeamMember reports whether the user is in a security team which has access to the repository
+func IsSecurityTeamMember(ctx context.Context, userID, repoID int64) (bool, error) {
+	return db.GetEngine(ctx).Where(builder.Eq{"uid": userID}.And(builder.In("team_id", securityTeamIDs(repoID)))).Exist(new(TeamUser))
+}
+
+func GetSecurityTeamMemberIDs(ctx context.Context, repoID int64) (userIDs []int64, err error) {
+	err = db.GetEngine(ctx).Table("team_user").Distinct("uid").Where(builder.In("team_id", securityTeamIDs(repoID))).Find(&userIDs)
+	return userIDs, err
+}
+
 // GetTeamsWithAccessToAnyRepoUnit returns all teams in an organization that have given access level to the repository special unit.
 // This function is only used for finding some teams that can be used as branch protection allowlist or reviewers, it isn't really used for access control.
 func GetTeamsWithAccessToAnyRepoUnit(ctx context.Context, orgID, repoID int64, mode perm.AccessMode, unitType unit.Type, unitTypesMore ...unit.Type) (teams []*Team, err error) {

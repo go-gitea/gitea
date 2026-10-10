@@ -1,0 +1,86 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository security-advisories">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		{{$queryLink := QueryBuild "?" "state" $.State "q" $.Keyword "severity" $.SelectedSeverity.String "labels" $.SelectLabels}}
+		<div class="list-header flex-text-block">
+			<form class="list-header-search ui form ignore-dirty">
+				<div class="ui small search fluid action input">
+					<input type="hidden" name="state" value="{{$.State}}">
+					<input type="hidden" name="severity" value="{{$.SelectedSeverity.String}}">
+					{{if $.SelectLabels}}<input type="hidden" name="labels" value="{{$.SelectLabels}}">{{end}}
+					{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "repo.security_advisories.search_placeholder")}}
+					{{template "shared/search/button"}}
+				</div>
+			</form>
+			{{if .PrivateVulnerabilityReportingEnabled}}
+				<a class="ui small button" href="{{.RepoLink}}/security/advisories/report">{{ctx.Locale.Tr "repo.security_advisories.report"}}</a>
+			{{end}}
+			{{if .CanManageSecurityAdvisories}}
+				<a class="ui small primary button" href="{{.RepoLink}}/security/advisories/new">{{ctx.Locale.Tr "repo.security_advisories.new"}}</a>
+			{{end}}
+		</div>
+
+		<div class="list-header flex-text-block tw-flex-wrap">
+			<div class="small-menu-items ui compact tiny menu list-header-toggle">
+				{{range .StateTabs}}
+					<a class="item{{if eq $.State .Name}} active{{end}}" href="{{QueryBuild $queryLink "state" .Name}}">
+						{{svg .Icon 16 "tw-mr-2"}}
+						{{ctx.Locale.PrettyNumber .Count}}&nbsp;{{ctx.Locale.Tr (print "repo.security_advisories.state." .Name)}}
+					</a>
+				{{end}}
+			</div>
+			<div class="list-header-filters ui secondary menu tw-m-0">
+				{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink}}
+				<div class="item ui dropdown jump">
+					<span class="text">{{ctx.Locale.Tr "repo.security_advisories.severity"}}</span>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="menu">
+						<a class="item" href="{{QueryBuild $queryLink "severity" NIL}}">{{ctx.Locale.Tr "repo.security_advisories.severity.all"}}</a>
+						{{range .Severities}}
+							<a class="{{if eq $.SelectedSeverity .}}active selected {{end}}item" href="{{QueryBuild $queryLink "severity" .String}}">{{ctx.Locale.Tr .LocaleKey}}</a>
+						{{end}}
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="flex-divided-list items-with-main">
+			{{range .Advisories}}
+				<div class="item">
+					<div class="item-leading">{{svg "octicon-shield" 16}}</div>
+					<div class="item-main">
+						<div class="item-title">
+							<a class="muted" href="{{.Link}}">{{.Summary}}</a>
+							{{template "repo/security_advisory/severity_label" .}}
+							{{if eq .State.String "withdrawn"}}<span class="ui label">{{ctx.Locale.Tr "repo.security_advisories.state.withdrawn"}}</span>{{end}}
+							{{if .CloseReason.String}}<span class="ui label">{{ctx.Locale.Tr (print "repo.security_advisories.close_reason." .CloseReason.String)}}</span>{{end}}
+							{{range .Labels}}{{ctx.RenderUtils.RenderLabel .}}{{end}}
+						</div>
+						<div class="item-body flex-text-inline tw-flex-wrap">
+							<span>#{{.Index}}</span>
+							<span>·</span>
+							<span class="tw-font-mono">{{.Identifier}}</span>
+							{{if .CveID}}<span>·</span><span>{{.CveID}}</span>{{end}}
+							<span>·</span>
+							{{if .PublishedUnix}}
+								<span>{{ctx.Locale.Tr "repo.security_advisories.published_at" (DateUtils.TimeSince .PublishedUnix)}}</span>
+							{{else}}
+								<span>{{ctx.Locale.Tr "repo.security_advisories.opened_at" (DateUtils.TimeSince .CreatedUnix)}}</span>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			{{else}}
+				<div class="empty-placeholder">
+					{{svg "octicon-shield-check" 48}}
+					<h2>{{ctx.Locale.Tr "repo.security_advisories.empty"}}</h2>
+					<p>{{ctx.Locale.Tr "repo.security_advisories.empty_description"}}</p>
+				</div>
+			{{end}}
+			{{template "base/paginate" .}}
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

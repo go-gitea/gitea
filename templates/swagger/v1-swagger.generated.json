@@ -15484,6 +15484,116 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/private-vulnerability-reporting": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Check whether private vulnerability reporting is enabled for a repository",
+        "operationId": "repoGetPrivateVulnerabilityReporting",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PrivateVulnerabilityReporting"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Enable private vulnerability reporting for a repository",
+        "operationId": "repoEnablePrivateVulnerabilityReporting",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Disable private vulnerability reporting for a repository",
+        "operationId": "repoDisablePrivateVulnerabilityReporting",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/projects": {
       "get": {
         "produces": [
@@ -18897,6 +19007,588 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/security-advisories": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List the security advisories of a repository the user can see",
+        "operationId": "repoListSecurityAdvisories",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "triage",
+              "draft",
+              "published",
+              "closed",
+              "withdrawn"
+            ],
+            "type": "string",
+            "description": "filter by state",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "search the summary, description, identifier, CVE ID and package names",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "type": "string",
+            "description": "filter by severity",
+            "name": "severity",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "comma separated list of label names, all must be set",
+            "name": "labels",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by the ecosystem of an affected package",
+            "name": "ecosystem",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by CWE ID",
+            "name": "cwe",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "invalid",
+              "duplicate"
+            ],
+            "type": "string",
+            "description": "filter closed advisories by the close reason",
+            "name": "close_reason",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "created",
+              "updated",
+              "published"
+            ],
+            "type": "string",
+            "default": "created",
+            "description": "the property to sort by",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string",
+            "default": "desc",
+            "description": "the sort direction",
+            "name": "direction",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryAdvisoryList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a draft security advisory, requires repository admin permission",
+        "operationId": "repoCreateSecurityAdvisory",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateRepositoryAdvisoryOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/RepositoryAdvisory"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/security-advisories/reports": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Report a vulnerability privately to the maintainers of a repository",
+        "operationId": "repoCreatePrivateVulnerabilityReport",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreatePrivateVulnerabilityReportOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/RepositoryAdvisory"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/security-advisories/{identifier}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a security advisory of a repository",
+        "operationId": "repoGetSecurityAdvisory",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "identifier of the advisory",
+            "name": "identifier",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryAdvisory"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "description": "Repository admins can change everything. The reporter and collaborators can only change the content of non-published advisories.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a security advisory",
+        "operationId": "repoEditSecurityAdvisory",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "identifier of the advisory",
+            "name": "identifier",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditRepositoryAdvisoryOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryAdvisory"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/security-advisories/{identifier}/comments": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List the comments of the private discussion of a security advisory",
+        "operationId": "repoListSecurityAdvisoryComments",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "identifier of the advisory",
+            "name": "identifier",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryAdvisoryCommentList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add a comment to the private discussion of a security advisory",
+        "operationId": "repoCreateSecurityAdvisoryComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "identifier of the advisory",
+            "name": "identifier",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/RepositoryAdvisoryCommentOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/RepositoryAdvisoryComment"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/security-advisories/{identifier}/comments/{id}": {
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a comment of the private discussion of a security advisory, by its poster or a repository admin",
+        "operationId": "repoDeleteSecurityAdvisoryComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "identifier of the advisory",
+            "name": "identifier",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit an own comment of the private discussion of a security advisory",
+        "operationId": "repoEditSecurityAdvisoryComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "identifier of the advisory",
+            "name": "identifier",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/RepositoryAdvisoryCommentOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryAdvisoryComment"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -27498,6 +28190,56 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "CreatePrivateVulnerabilityReportOption": {
+      "description": "CreatePrivateVulnerabilityReportOption options for reporting a vulnerability privately",
+      "type": "object",
+      "required": [
+        "summary",
+        "description"
+      ],
+      "properties": {
+        "cvss_vector_string": {
+          "description": "A CVSS 3.1 or 4.0 vector, the severity is derived from it",
+          "type": "string",
+          "x-go-name": "CVSSVectorString"
+        },
+        "cwe_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "CweIDs"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "severity": {
+          "description": "The severity, cannot be set together with cvss_vector_string",
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "x-go-name": "Severity"
+        },
+        "summary": {
+          "type": "string",
+          "x-go-name": "Summary"
+        },
+        "vulnerabilities": {
+          "description": "The packages affected by the vulnerability",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RepositoryAdvisoryVulnerability"
+          },
+          "x-go-name": "Vulnerabilities"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "CreateProjectColumnOption": {
       "description": "CreateProjectColumnOption represents options for creating a project column",
       "type": "object",
@@ -27857,6 +28599,76 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "CreateRepositoryAdvisoryOption": {
+      "description": "CreateRepositoryAdvisoryOption options for creating a draft advisory",
+      "type": "object",
+      "required": [
+        "summary",
+        "description"
+      ],
+      "properties": {
+        "credits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RepositoryAdvisoryCredit"
+          },
+          "x-go-name": "Credits"
+        },
+        "cve_id": {
+          "type": "string",
+          "x-go-name": "CveID"
+        },
+        "cvss_vector_string": {
+          "description": "A CVSS 3.1 or 4.0 vector, the severity is derived from it",
+          "type": "string",
+          "x-go-name": "CVSSVectorString"
+        },
+        "cwe_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "CweIDs"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "labels": {
+          "description": "The IDs of the repository or organization labels",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Labels"
+        },
+        "severity": {
+          "description": "The severity, cannot be set together with cvss_vector_string",
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "x-go-name": "Severity"
+        },
+        "summary": {
+          "type": "string",
+          "x-go-name": "Summary"
+        },
+        "vulnerabilities": {
+          "description": "The packages affected by the vulnerability",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RepositoryAdvisoryVulnerability"
+          },
+          "x-go-name": "Vulnerabilities"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "CreateStatusOption": {
       "description": "CreateStatusOption holds the information needed to create a new CommitStatus for a Commit",
       "type": "object",
@@ -27968,6 +28780,11 @@
           "type": "boolean",
           "x-go-name": "IncludesAllRepositories"
         },
+        "is_security_team": {
+          "description": "Whether the members see and edit the private reports and draft security advisories of the team's repositories",
+          "type": "boolean",
+          "x-go-name": "IsSecurityTeam"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -28001,7 +28818,8 @@
             "repo.pulls",
             "repo.releases",
             "repo.projects",
-            "repo.ext_wiki"
+            "repo.ext_wiki",
+            "repo.security_advisories"
           ]
         },
         "units_map": {
@@ -28020,6 +28838,7 @@
             "repo.projects": "none",
             "repo.pulls": "owner",
             "repo.releases": "none",
+            "repo.security_advisories": "read",
             "repo.wiki": "admin"
           }
         },
@@ -29140,6 +29959,11 @@
           "type": "boolean",
           "x-go-name": "HasReleases"
         },
+        "has_security_advisories": {
+          "description": "either `true` to enable security advisories unit, or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "HasSecurityAdvisories"
+        },
         "has_wiki": {
           "description": "either `true` to enable the wiki for this repository or `false` to disable it.",
           "type": "boolean",
@@ -29202,6 +30026,114 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "EditRepositoryAdvisoryOption": {
+      "description": "EditRepositoryAdvisoryOption options for updating an advisory, only set fields are changed",
+      "type": "object",
+      "properties": {
+        "close_reason": {
+          "description": "Required when closing the advisory",
+          "type": "string",
+          "enum": [
+            "invalid",
+            "duplicate"
+          ],
+          "x-go-name": "CloseReason"
+        },
+        "collaborating_teams": {
+          "description": "The names of the teams collaborating on the advisory, replaces all existing ones, only repository admins can change them",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "CollaboratingTeams"
+        },
+        "collaborating_users": {
+          "description": "The logins of the users collaborating on the advisory, replaces all existing ones, only repository admins can change them",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "CollaboratingUsers"
+        },
+        "credits": {
+          "description": "Replaces all existing credits, only repository admins can change them",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RepositoryAdvisoryCredit"
+          },
+          "x-go-name": "Credits"
+        },
+        "cve_id": {
+          "type": "string",
+          "x-go-name": "CveID"
+        },
+        "cvss_vector_string": {
+          "description": "A CVSS 3.1 or 4.0 vector, the severity is derived from it. An empty string removes the vectors.",
+          "type": "string",
+          "x-go-name": "CVSSVectorString"
+        },
+        "cwe_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "CweIDs"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "duplicate_of": {
+          "description": "The identifier of the original advisory when closing as duplicate, its reporter gets access to the original",
+          "type": "string",
+          "x-go-name": "DuplicateOf"
+        },
+        "labels": {
+          "description": "Replaces all labels with the repository or organization labels of these IDs, only repository admins can change them",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Labels"
+        },
+        "severity": {
+          "description": "The severity, cannot be set together with cvss_vector_string",
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "x-go-name": "Severity"
+        },
+        "state": {
+          "description": "The new state, only repository admins can change it",
+          "type": "string",
+          "enum": [
+            "draft",
+            "published",
+            "closed",
+            "withdrawn"
+          ],
+          "x-go-name": "State"
+        },
+        "summary": {
+          "type": "string",
+          "x-go-name": "Summary"
+        },
+        "vulnerabilities": {
+          "description": "The packages affected by the vulnerability, replaces all existing ones",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RepositoryAdvisoryVulnerability"
+          },
+          "x-go-name": "Vulnerabilities"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "EditTagProtectionOption": {
       "description": "EditTagProtectionOption options for editing a tag protection",
       "type": "object",
@@ -29252,6 +30184,11 @@
           "type": "boolean",
           "x-go-name": "IncludesAllRepositories"
         },
+        "is_security_team": {
+          "description": "Whether the members see and edit the private reports and draft security advisories of the team's repositories",
+          "type": "boolean",
+          "x-go-name": "IsSecurityTeam"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -29283,7 +30220,8 @@
             "repo.pulls",
             "repo.releases",
             "repo.projects",
-            "repo.ext_wiki"
+            "repo.ext_wiki",
+            "repo.security_advisories"
           ]
         },
         "units_map": {
@@ -29300,6 +30238,7 @@
             "repo.projects": "none",
             "repo.pulls": "owner",
             "repo.releases": "none",
+            "repo.security_advisories": "read",
             "repo.wiki": "admin"
           }
         },
@@ -31617,6 +32556,17 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "PrivateVulnerabilityReporting": {
+      "description": "PrivateVulnerabilityReporting describes whether private vulnerability reporting is enabled",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "x-go-name": "Enabled"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "Project": {
       "description": "Projects track issues and pull requests, standalone note cards are not supported.",
       "type": "object",
@@ -32759,6 +33709,10 @@
           "type": "boolean",
           "x-go-name": "HasReleases"
         },
+        "has_security_advisories": {
+          "type": "boolean",
+          "x-go-name": "HasSecurityAdvisories"
+        },
         "has_wiki": {
           "type": "boolean",
           "x-go-name": "HasWiki"
@@ -32915,6 +33869,422 @@
         "website": {
           "type": "string",
           "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepositoryAdvisory": {
+      "description": "RepositoryAdvisory represents a security advisory of a repository",
+      "type": "object",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/User"
+        },
+        "close_reason": {
+          "description": "Why the advisory was closed",
+          "type": "string",
+          "enum": [
+            "invalid",
+            "duplicate"
+          ],
+          "x-go-name": "CloseReason"
+        },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "ClosedAt"
+        },
+        "collaborating_teams": {
+          "description": "The teams collaborating on the advisory, only visible to repository admins and participants",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Team"
+          },
+          "x-go-name": "CollaboratingTeams"
+        },
+        "collaborating_users": {
+          "description": "The users collaborating on the advisory, only visible to repository admins and participants",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "CollaboratingUsers"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "credits": {
+          "description": "The users credited for the advisory",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RepositoryAdvisoryCredit"
+          },
+          "x-go-name": "Credits"
+        },
+        "credits_detailed": {
+          "description": "The users credited for the advisory with their details",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RepositoryAdvisoryCreditDetailed"
+          },
+          "x-go-name": "CreditsDetailed"
+        },
+        "cve_id": {
+          "description": "The CVE ID assigned to the advisory",
+          "type": "string",
+          "x-go-name": "CveID"
+        },
+        "cvss": {
+          "$ref": "#/definitions/RepositoryAdvisoryCVSS"
+        },
+        "cvss_severities": {
+          "$ref": "#/definitions/RepositoryAdvisoryCVSSSeverities"
+        },
+        "cwe_ids": {
+          "description": "The CWE IDs of the advisory",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "CweIDs"
+        },
+        "description": {
+          "description": "A detailed description of the vulnerability in Markdown",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "duplicate_of": {
+          "description": "The identifier of the original advisory if this one was closed as its duplicate",
+          "type": "string",
+          "x-go-name": "DuplicateOf"
+        },
+        "html_url": {
+          "description": "The HTML URL to view the advisory",
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "identifier": {
+          "description": "The identifier of the advisory, unique within its repository",
+          "type": "string",
+          "x-go-name": "Identifier"
+        },
+        "identifiers": {
+          "description": "The identifiers of the advisory like its CVE ID",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RepositoryAdvisoryIdentifier"
+          },
+          "x-go-name": "Identifiers"
+        },
+        "labels": {
+          "description": "The labels of the advisory",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Label"
+          },
+          "x-go-name": "Labels"
+        },
+        "published_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "PublishedAt"
+        },
+        "publisher": {
+          "$ref": "#/definitions/User"
+        },
+        "severity": {
+          "description": "The severity of the advisory",
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "x-go-name": "Severity"
+        },
+        "state": {
+          "description": "The state of the advisory",
+          "type": "string",
+          "enum": [
+            "triage",
+            "draft",
+            "published",
+            "closed",
+            "withdrawn"
+          ],
+          "x-go-name": "State"
+        },
+        "submission": {
+          "$ref": "#/definitions/RepositoryAdvisorySubmission"
+        },
+        "summary": {
+          "description": "A short summary of the advisory",
+          "type": "string",
+          "x-go-name": "Summary"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "UpdatedAt"
+        },
+        "url": {
+          "description": "The API URL of the advisory",
+          "type": "string",
+          "x-go-name": "URL"
+        },
+        "vulnerabilities": {
+          "description": "The packages affected by the vulnerability",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RepositoryAdvisoryVulnerability"
+          },
+          "x-go-name": "Vulnerabilities"
+        },
+        "withdrawn_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "WithdrawnAt"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepositoryAdvisoryCVSS": {
+      "description": "RepositoryAdvisoryCVSS is a CVSS vector with its score",
+      "type": "object",
+      "properties": {
+        "score": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "Score"
+        },
+        "vector_string": {
+          "type": "string",
+          "x-go-name": "VectorString"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepositoryAdvisoryCVSSSeverities": {
+      "description": "RepositoryAdvisoryCVSSSeverities are the CVSS 3.1 and 4.0 scores of an advisory",
+      "type": "object",
+      "properties": {
+        "cvss_v3": {
+          "$ref": "#/definitions/RepositoryAdvisoryCVSS"
+        },
+        "cvss_v4": {
+          "$ref": "#/definitions/RepositoryAdvisoryCVSS"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepositoryAdvisoryComment": {
+      "description": "RepositoryAdvisoryComment is a comment of the private discussion of an advisory",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "is_internal": {
+          "description": "Whether the comment is hidden from the reporter and read-only collaborators",
+          "type": "boolean",
+          "x-go-name": "IsInternal"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "UpdatedAt"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepositoryAdvisoryCommentOption": {
+      "description": "RepositoryAdvisoryCommentOption options for creating or editing an advisory comment",
+      "type": "object",
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "is_internal": {
+          "description": "Hides the comment from the reporter and read-only collaborators, ignored when editing",
+          "type": "boolean",
+          "x-go-name": "IsInternal"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepositoryAdvisoryCredit": {
+      "description": "RepositoryAdvisoryCredit credits a user for an advisory",
+      "type": "object",
+      "properties": {
+        "login": {
+          "description": "The login of the credited user",
+          "type": "string",
+          "x-go-name": "Login"
+        },
+        "type": {
+          "description": "The type of the contribution",
+          "type": "string",
+          "enum": [
+            "analyst",
+            "finder",
+            "reporter",
+            "coordinator",
+            "remediation_developer",
+            "remediation_reviewer",
+            "remediation_verifier",
+            "tool",
+            "sponsor",
+            "other"
+          ],
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepositoryAdvisoryCreditDetailed": {
+      "description": "RepositoryAdvisoryCreditDetailed credits a user for an advisory",
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "accepted"
+          ],
+          "x-go-name": "State"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "analyst",
+            "finder",
+            "reporter",
+            "coordinator",
+            "remediation_developer",
+            "remediation_reviewer",
+            "remediation_verifier",
+            "tool",
+            "sponsor",
+            "other"
+          ],
+          "x-go-name": "Type"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepositoryAdvisoryIdentifier": {
+      "description": "RepositoryAdvisoryIdentifier is an identifier of an advisory",
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "CVE"
+          ],
+          "x-go-name": "Type"
+        },
+        "value": {
+          "type": "string",
+          "x-go-name": "Value"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepositoryAdvisoryPackage": {
+      "description": "RepositoryAdvisoryPackage is a package of an ecosystem",
+      "type": "object",
+      "properties": {
+        "ecosystem": {
+          "description": "The package ecosystem",
+          "type": "string",
+          "enum": [
+            "actions",
+            "composer",
+            "erlang",
+            "go",
+            "maven",
+            "npm",
+            "nuget",
+            "other",
+            "pip",
+            "pub",
+            "rubygems",
+            "rust",
+            "swift"
+          ],
+          "x-go-name": "Ecosystem"
+        },
+        "name": {
+          "description": "The package name",
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepositoryAdvisorySubmission": {
+      "description": "RepositoryAdvisorySubmission describes a private vulnerability report",
+      "type": "object",
+      "properties": {
+        "accepted": {
+          "description": "Whether the maintainers accepted the report",
+          "type": "boolean",
+          "x-go-name": "Accepted"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepositoryAdvisoryVulnerability": {
+      "description": "RepositoryAdvisoryVulnerability is a package affected by an advisory",
+      "type": "object",
+      "properties": {
+        "package": {
+          "$ref": "#/definitions/RepositoryAdvisoryPackage"
+        },
+        "patched_versions": {
+          "description": "The versions containing the fix, e.g. \"1.2.3\"",
+          "type": "string",
+          "x-go-name": "PatchedVersions"
+        },
+        "vulnerable_functions": {
+          "description": "The affected functions",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "VulnerableFunctions"
+        },
+        "vulnerable_version_range": {
+          "description": "The range of affected versions, e.g. \"\u003c 1.2.3\"",
+          "type": "string",
+          "x-go-name": "VulnerableVersionRange"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -33191,6 +34561,11 @@
           "type": "boolean",
           "x-go-name": "IncludesAllRepositories"
         },
+        "is_security_team": {
+          "description": "Whether the members see and edit the private reports and draft security advisories of the team's repositories",
+          "type": "boolean",
+          "x-go-name": "IsSecurityTeam"
+        },
         "name": {
           "description": "The name of the team",
           "type": "string",
@@ -33227,7 +34602,8 @@
             "repo.pulls",
             "repo.releases",
             "repo.projects",
-            "repo.ext_wiki"
+            "repo.ext_wiki",
+            "repo.security_advisories"
           ]
         },
         "units_map": {
@@ -33244,6 +34620,7 @@
             "repo.projects": "none",
             "repo.pulls": "owner",
             "repo.releases": "none",
+            "repo.security_advisories": "read",
             "repo.wiki": "admin"
           }
         },
@@ -34732,6 +36109,12 @@
         }
       }
     },
+    "PrivateVulnerabilityReporting": {
+      "description": "PrivateVulnerabilityReporting",
+      "schema": {
+        "$ref": "#/definitions/PrivateVulnerabilityReporting"
+      }
+    },
     "Project": {
       "description": "Project",
       "schema": {
@@ -34912,6 +36295,36 @@
       "description": "Repository",
       "schema": {
         "$ref": "#/definitions/Repository"
+      }
+    },
+    "RepositoryAdvisory": {
+      "description": "RepositoryAdvisory",
+      "schema": {
+        "$ref": "#/definitions/RepositoryAdvisory"
+      }
+    },
+    "RepositoryAdvisoryComment": {
+      "description": "RepositoryAdvisoryComment",
+      "schema": {
+        "$ref": "#/definitions/RepositoryAdvisoryComment"
+      }
+    },
+    "RepositoryAdvisoryCommentList": {
+      "description": "RepositoryAdvisoryCommentList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/RepositoryAdvisoryComment"
+        }
+      }
+    },
+    "RepositoryAdvisoryList": {
+      "description": "RepositoryAdvisoryList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/RepositoryAdvisory"
+        }
       }
     },
     "RepositoryList": {

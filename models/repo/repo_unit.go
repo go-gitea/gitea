@@ -278,6 +278,8 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(ActionsConfig)
 		case unit.TypeProjects:
 			r.Config = new(ProjectsConfig)
+		case unit.TypeSecurityAdvisories:
+			r.Config = new(SecurityAdvisoriesConfig)
 		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypePackages:
 			fallthrough
 		default:
@@ -333,6 +335,21 @@ func (r *RepoUnit) IssuesConfig() *IssuesConfig {
 	return unitConfig[*IssuesConfig](r)
 }
 
+// SecurityAdvisoriesConfig describes security advisories config
+type SecurityAdvisoriesConfig struct {
+	PrivateVulnerabilityReporting bool
+}
+
+// FromDB fills up a SecurityAdvisoriesConfig from serialized format.
+func (cfg *SecurityAdvisoriesConfig) FromDB(bs []byte) error {
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+}
+
+// ToDB exports a SecurityAdvisoriesConfig to a serialized format.
+func (cfg *SecurityAdvisoriesConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // ExternalTrackerConfig returns config for unit.TypeExternalTracker
 func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return unitConfig[*ExternalTrackerConfig](r)
@@ -346,6 +363,11 @@ func (r *RepoUnit) ActionsConfig() *ActionsConfig {
 // ProjectsConfig returns config for unit.ProjectsConfig
 func (r *RepoUnit) ProjectsConfig() *ProjectsConfig {
 	return unitConfig[*ProjectsConfig](r)
+}
+
+// SecurityAdvisoriesConfig returns config for unit.TypeSecurityAdvisories
+func (r *RepoUnit) SecurityAdvisoriesConfig() *SecurityAdvisoriesConfig {
+	return unitConfig[*SecurityAdvisoriesConfig](r)
 }
 
 func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err error) {

@@ -218,6 +218,7 @@ func CreateTeam(ctx *context.APIContext) {
 		Description:             form.Description,
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
+		IsSecurityTeam:          form.IsSecurityTeam,
 		Visibility:              organization.NormalizeTeamVisibility(form.Visibility),
 	}
 	_, err := assignTeamPermissionUnits(team, string(form.Permission), form.Units, form.UnitsMap)
@@ -277,6 +278,10 @@ func EditTeam(ctx *context.APIContext) {
 
 	if form.CanCreateOrgRepo != nil {
 		team.CanCreateOrgRepo = team.IsOwnerTeam() || *form.CanCreateOrgRepo
+	}
+
+	if form.IsSecurityTeam != nil {
+		team.IsSecurityTeam = *form.IsSecurityTeam
 	}
 
 	if len(form.Name) > 0 {

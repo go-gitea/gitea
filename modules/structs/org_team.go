@@ -31,13 +31,15 @@ type Team struct {
 	// Whether the team has access to all repositories in the organization
 	IncludesAllRepositories bool            `json:"includes_all_repositories"`
 	Permission              AccessLevelName `json:"permission"`
-	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
+	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki","repo.security_advisories"]
 	// Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.
 	Units []string `json:"units"`
-	// example: {"repo.code":"read","repo.issues":"write","repo.ext_issues":"none","repo.wiki":"admin","repo.pulls":"owner","repo.releases":"none","repo.projects":"none","repo.ext_wiki":"none"}
+	// example: {"repo.code":"read","repo.issues":"write","repo.ext_issues":"none","repo.wiki":"admin","repo.pulls":"owner","repo.releases":"none","repo.projects":"none","repo.ext_wiki":"none","repo.security_advisories":"read"}
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
+	// Whether the members see and edit the private reports and draft security advisories of the team's repositories
+	IsSecurityTeam bool `json:"is_security_team"`
 	// Team visibility within the organization. "private" teams are only
 	// listable by members and org owners; "limited" teams are listable by
 	// any organization member; "public" teams are listable by any signed-in
@@ -55,13 +57,15 @@ type CreateTeamOption struct {
 	IncludesAllRepositories bool `json:"includes_all_repositories"`
 	// All units have this permission (read/write/admin)
 	Permission RepoWritePermission `json:"permission"`
-	// example: ["repo.actions","repo.packages","repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
+	// example: ["repo.actions","repo.packages","repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki","repo.security_advisories"]
 	// Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.
 	Units []string `json:"units"`
-	// example: {"repo.actions":"read","repo.packages":"read","repo.code":"read","repo.issues":"write","repo.ext_issues":"none","repo.wiki":"admin","repo.pulls":"owner","repo.releases":"none","repo.projects":"none","repo.ext_wiki":"none"}
+	// example: {"repo.actions":"read","repo.packages":"read","repo.code":"read","repo.issues":"write","repo.ext_issues":"none","repo.wiki":"admin","repo.pulls":"owner","repo.releases":"none","repo.projects":"none","repo.ext_wiki":"none","repo.security_advisories":"read"}
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
+	// Whether the members see and edit the private reports and draft security advisories of the team's repositories
+	IsSecurityTeam bool `json:"is_security_team"`
 	// Team visibility within the organization. Defaults to "private".
 	Visibility TeamVisibility `json:"visibility" binding:"In(public,limited,private)"`
 }
@@ -76,13 +80,15 @@ type EditTeamOption struct {
 	IncludesAllRepositories *bool `json:"includes_all_repositories"`
 	// All units have this permission (read/write/admin)
 	Permission RepoWritePermission `json:"permission"`
-	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
+	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki","repo.security_advisories"]
 	// Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.
 	Units []string `json:"units"`
-	// example: {"repo.code":"read","repo.issues":"write","repo.ext_issues":"none","repo.wiki":"admin","repo.pulls":"owner","repo.releases":"none","repo.projects":"none","repo.ext_wiki":"none"}
+	// example: {"repo.code":"read","repo.issues":"write","repo.ext_issues":"none","repo.wiki":"admin","repo.pulls":"owner","repo.releases":"none","repo.projects":"none","repo.ext_wiki":"none","repo.security_advisories":"read"}
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo *bool `json:"can_create_org_repo"`
+	// Whether the members see and edit the private reports and draft security advisories of the team's repositories
+	IsSecurityTeam *bool `json:"is_security_team"`
 	// Team visibility within the organization. When omitted, visibility is
 	// left unchanged.
 	Visibility *TeamVisibility `json:"visibility" binding:"In(public,limited,private)"`

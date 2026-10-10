@@ -1,0 +1,104 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository security-advisory edit">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<h2 class="ui dividing header">
+			{{.Title}}
+			<div class="sub header">{{ctx.Locale.Tr .DescriptionKey}}</div>
+		</h2>
+		{{template "base/alert" .}}
+		<form class="ui form form-fetch-action" action="{{.Link}}" method="post" data-global-init="initSecurityAdvisoryForm">
+			<input type="hidden" name="content_version" value="{{.Content.ContentVersion}}">
+			<div class="required field">
+				<label>{{ctx.Locale.Tr "repo.security_advisories.summary"}}</label>
+				<input name="summary" value="{{.Content.Summary}}" maxlength="1024" required autofocus>
+			</div>
+			<div class="required field">
+				<label>{{ctx.Locale.Tr "repo.security_advisories.description"}}</label>
+				{{template "shared/combomarkdowneditor" (dict
+					"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorAdvisory .Repository)
+					"TextareaName" "content"
+					"TextareaContent" .Content.Description
+					"TextareaPlaceholder" (ctx.Locale.Tr "repo.security_advisories.description_placeholder")
+				)}}
+			</div>
+
+			<h4 class="ui dividing header">{{ctx.Locale.Tr "repo.security_advisories.affected_packages"}}</h4>
+			<div class="flex-relaxed-list" data-rows="vulnerability">
+				{{range .Content.Vulnerabilities}}
+					{{template "repo/security_advisory/form_vulnerability" dict "Ecosystems" $.Ecosystems "Vulnerability" .}}
+				{{end}}
+			</div>
+			<template data-row-template="vulnerability">
+				{{template "repo/security_advisory/form_vulnerability" dict "Ecosystems" $.Ecosystems "Vulnerability" .NewVulnerability}}
+			</template>
+			<div class="field tw-mt-2">
+				<button type="button" class="ui small button" data-add-row="vulnerability">{{svg "octicon-plus"}} {{ctx.Locale.Tr "repo.security_advisories.add_package"}}</button>
+			</div>
+
+			<h4 class="ui dividing header">{{ctx.Locale.Tr "repo.security_advisories.severity"}}</h4>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "repo.security_advisories.severity_manual"}}</label>
+				<div class="ui selection dropdown">
+					<input type="hidden" name="severity" value="{{.Content.Severity}}">
+					<div class="text"></div>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="menu">
+						<div class="item" data-value="">{{ctx.Locale.Tr "repo.security_advisories.severity.unknown"}}</div>
+						{{range .Severities}}
+							<div class="item" data-value="{{.}}">{{ctx.Locale.Tr .LocaleKey}}</div>
+						{{end}}
+					</div>
+				</div>
+				<p class="help">{{ctx.Locale.Tr "repo.security_advisories.severity_help"}}</p>
+			</div>
+			{{template "repo/security_advisory/form_cvss" dict "Name" "cvss_v4_vector" "Label" "CVSS 4.0" "Prefix" "CVSS:4.0/" "Vector" .Content.CvssV4Vector "Metrics" .CVSSMetricsV40 "PreviewLink" .CVSSPreviewLink}}
+			{{template "repo/security_advisory/form_cvss" dict "Name" "cvss_v3_vector" "Label" "CVSS 3.1" "Prefix" "CVSS:3.1/" "Vector" .Content.CvssV3Vector "Metrics" .CVSSMetricsV31 "PreviewLink" .CVSSPreviewLink}}
+
+			<h4 class="ui dividing header">{{ctx.Locale.Tr "repo.security_advisories.details"}}</h4>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "repo.security_advisories.cwe_ids"}}</label>
+				<input name="cwe_ids" value="{{.CweIDsText}}" placeholder="CWE-79, CWE-89">
+			</div>
+			{{if .CanManageContent}}
+				{{if .Labels}}
+					<div class="field">
+						<label>{{ctx.Locale.Tr "repo.issues.new.labels"}}</label>
+						<div class="ui fluid multiple search selection dropdown">
+							<input type="hidden" name="label_ids" value="{{.LabelIDsText}}">
+							<div class="default text">{{ctx.Locale.Tr "repo.issues.new.no_labels"}}</div>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								{{range .Labels}}<div class="item" data-value="{{.ID}}">{{ctx.RenderUtils.RenderLabel .}}</div>{{end}}
+							</div>
+						</div>
+					</div>
+				{{end}}
+				<div class="field">
+					<label>{{ctx.Locale.Tr "repo.security_advisories.cve_id"}}</label>
+					<input name="cve_id" value="{{.Content.CveID}}" maxlength="32" placeholder="CVE-2026-12345">
+				</div>
+
+				<h4 class="ui dividing header">{{ctx.Locale.Tr "repo.security_advisories.credits"}}</h4>
+				<div class="flex-relaxed-list" data-rows="credit">
+					{{range .Content.Credits}}
+						{{template "repo/security_advisory/form_credit" dict "CreditTypes" $.CreditTypes "Credit" .}}
+					{{end}}
+				</div>
+				<template data-row-template="credit">
+					{{template "repo/security_advisory/form_credit" dict "CreditTypes" $.CreditTypes "Credit" .NewCredit}}
+				</template>
+				<div class="field tw-mt-2">
+					<button type="button" class="ui small button" data-add-row="credit">{{svg "octicon-plus"}} {{ctx.Locale.Tr "repo.security_advisories.add_credit"}}</button>
+				</div>
+			{{end}}
+
+			<div class="divider"></div>
+			<div class="flex-text-block tw-justify-end">
+				<a class="ui cancel button" href="{{.CancelLink}}">{{ctx.Locale.Tr "cancel"}}</a>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr .SubmitKey}}</button>
+			</div>
+		</form>
+	</div>
+</div>
+{{template "base/footer" .}}

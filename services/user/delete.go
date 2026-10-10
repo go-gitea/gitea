@@ -10,6 +10,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
+	advisory_model "gitea.dev/models/advisory"
 	asymkey_model "gitea.dev/models/asymkey"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -100,6 +101,8 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		&auth_model.WebAuthnCredential{UserID: u.ID},
 		&activities_model.Notification{UserID: u.ID},
 		&issues_model.IssueWatch{UserID: u.ID},
+		&advisory_model.Collaborator{UserID: u.ID},
+		&advisory_model.Credit{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -130,6 +133,10 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 
 		// Delete Reactions
 		if err = issues_model.DeleteReaction(ctx, &issues_model.ReactionOptions{DoerID: u.ID}); err != nil {
+			return err
+		}
+
+		if err = db.DeleteBeans(ctx, &advisory_model.Comment{PosterID: u.ID}); err != nil {
 			return err
 		}
 	}

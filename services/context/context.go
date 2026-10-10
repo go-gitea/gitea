@@ -96,16 +96,17 @@ func NewTemplateContextForWeb(ctx reqctx.RequestContext, req *http.Request, loca
 	tmplCtx["ActionsUtils"] = templates.NewActionsUtils(ctx)
 	tmplCtx["RootData"] = ctx.GetData()
 	tmplCtx["Consts"] = map[string]any{
-		"RepoUnitTypeCode":            unit.TypeCode,
-		"RepoUnitTypeIssues":          unit.TypeIssues,
-		"RepoUnitTypePullRequests":    unit.TypePullRequests,
-		"RepoUnitTypeReleases":        unit.TypeReleases,
-		"RepoUnitTypeWiki":            unit.TypeWiki,
-		"RepoUnitTypeExternalWiki":    unit.TypeExternalWiki,
-		"RepoUnitTypeExternalTracker": unit.TypeExternalTracker,
-		"RepoUnitTypeProjects":        unit.TypeProjects,
-		"RepoUnitTypePackages":        unit.TypePackages,
-		"RepoUnitTypeActions":         unit.TypeActions,
+		"RepoUnitTypeCode":               unit.TypeCode,
+		"RepoUnitTypeIssues":             unit.TypeIssues,
+		"RepoUnitTypePullRequests":       unit.TypePullRequests,
+		"RepoUnitTypeReleases":           unit.TypeReleases,
+		"RepoUnitTypeWiki":               unit.TypeWiki,
+		"RepoUnitTypeExternalWiki":       unit.TypeExternalWiki,
+		"RepoUnitTypeExternalTracker":    unit.TypeExternalTracker,
+		"RepoUnitTypeProjects":           unit.TypeProjects,
+		"RepoUnitTypePackages":           unit.TypePackages,
+		"RepoUnitTypeActions":            unit.TypeActions,
+		"RepoUnitTypeSecurityAdvisories": unit.TypeSecurityAdvisories,
 	}
 	return tmplCtx
 }
