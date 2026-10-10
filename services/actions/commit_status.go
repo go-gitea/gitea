@@ -78,11 +78,13 @@ func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.Commit
 		if !ok {
 			continue
 		}
-		if _, ok := runIDsByRepo[status.RepoID]; !ok {
+		runIDs, exists := runIDsByRepo[status.RepoID]
+		if !exists {
 			repoIDs = append(repoIDs, status.RepoID)
 		}
-		if !slices.Contains(runIDsByRepo[status.RepoID], runID) {
-			runIDsByRepo[status.RepoID] = append(runIDsByRepo[status.RepoID], runID)
+		if !slices.Contains(runIDs, runID) {
+			runIDsByRepo[status.RepoID] = append(runIDs, runID)
+		}
 		}
 	}
 	var runs []*actions_model.ActionRun
