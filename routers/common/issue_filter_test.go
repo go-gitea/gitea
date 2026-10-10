@@ -16,6 +16,8 @@ import (
 
 func TestSearchIssuesRepoIDs(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
+	publicOnlyUser2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	publicOnlyUser2.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:issue")
 
 	// the indexer's is_public covers repo 1 (public under a public owner) but misses repo 38 (public
 	// under a limited org) and repo 40 (public under a private org)
@@ -52,8 +54,7 @@ func TestSearchIssuesRepoIDs(t *testing.T) {
 		},
 		{
 			name:      "public-only token",
-			doerID:    2,
-			opts:      SearchIssuesRepoIDsOptions{PublicOnly: true},
+			opts:      SearchIssuesRepoIDsOptions{Doer: publicOnlyUser2},
 			allPublic: true,
 			want:      []int64{0},
 		},

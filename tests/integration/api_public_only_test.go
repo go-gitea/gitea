@@ -44,6 +44,7 @@ func TestAPIUserReposPublicOnly(t *testing.T) {
 		assert.False(t, repo.Private)
 	}
 	assert.NotContains(t, repoNames(repos), "user2/repo2")
+	assert.Equal(t, strconv.Itoa(len(repos)), resp.Header().Get("X-Total-Count"))
 }
 
 func repoNames(repos []api.Repository) []string {
@@ -78,12 +79,14 @@ func TestAPIActivityFeedsPublicOnly(t *testing.T) {
 	DecodeJSON(t, resp, &activities)
 	assert.NotEmpty(t, activities)
 
-	publicToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
-	req = NewRequest(t, "GET", "/api/v1/users/user2/activities/feeds").
-		AddTokenAuth(publicToken)
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &activities)
-	assertPublicActivitiesOnly(t, activities)
+	for _, tokenOwner := range []string{"user2", "user1"} {
+		publicToken := getUserToken(t, tokenOwner, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
+		req = NewRequest(t, "GET", "/api/v1/users/user2/activities/feeds").
+			AddTokenAuth(publicToken)
+		resp = MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &activities)
+		assertPublicActivitiesOnly(t, activities)
+	}
 
 	orgToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
 	req = NewRequest(t, "GET", "/api/v1/orgs/org3/activities/feeds").

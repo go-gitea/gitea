@@ -106,25 +106,15 @@ func TestBuildEvent(t *testing.T) {
 		e := buildEvent(context.Background(), RecordParams{
 			Action:          audit_model.UserCreate,
 			Actor:           actorRef(actions),
-			ActorCredential: actorCredential(context.Background(), actions),
+			ActorCredential: user_model.GetDoerCredential(actions),
 			Scope:           ScopeFromUser(u),
 		})
 		assert.Equal(t, user_model.ActionsUserID, e.ActorID)
 		assert.Equal(t, "gitea-actions:42", e.ActorCredential)
 
 		key := user_model.NewDeployKeyUserWithKeyID(7)
-		assert.Equal(t, "deploy-key:7", actorCredential(context.Background(), key))
-		assert.Empty(t, actorCredential(context.Background(), doer))
-	})
-
-	t.Run("CredentialFromRequest", func(t *testing.T) {
-		ctx := newRequestContext(t, doer)
-		middleware.GetContextData(ctx)[middleware.ContextDataKeyAuthCredential] = "access-token:9"
-		assert.Equal(t, "access-token:9", actorCredential(ctx, doer))
-
-		// an event recorded for someone other than the signed-in user is not
-		// tied to the credential of that request
-		assert.Empty(t, actorCredential(ctx, u))
+		assert.Equal(t, "deploy-key:7", user_model.GetDoerCredential(key))
+		assert.Empty(t, user_model.GetDoerCredential(doer))
 	})
 
 	t.Run("RequestInfo", func(t *testing.T) {

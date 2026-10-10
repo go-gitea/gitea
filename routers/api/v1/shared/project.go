@@ -1688,10 +1688,6 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 		issuesOpts.Owner = scope.Owner
 		issuesOpts.Doer = ctx.Doer
 		issuesOpts.AllPublic = ctx.Doer == nil
-		if ctx.PublicOnly {
-			issuesOpts.AllPublic = true
-			issuesOpts.Doer = nil // a public-only token must not reach the doer's private repos
-		}
 	}
 
 	count, err := issues_model.CountIssues(ctx, issuesOpts)

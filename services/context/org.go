@@ -91,7 +91,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 		org := ctx.Org.Organization
 
 		// Handle Visibility
-		if org.Visibility != structs.VisibleTypePublic && !ctx.IsSigned {
+		if org.Visibility != structs.VisibleTypePublic && (!ctx.IsSigned || user_model.IsPublicOnlyDoer(ctx.Doer)) {
 			// We must be signed in to see limited or private organizations
 			ctx.NotFound(err)
 			return

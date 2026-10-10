@@ -55,7 +55,12 @@ func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, string)) (
 			} else {
 				errCb(http.StatusInternalServerError, fmt.Sprintf("GetUserByName: %v", err))
 			}
+			return nil
 		}
+	}
+	if !user_model.DoerTokenAllowsOwner(doer, contextUser) {
+		errCb(http.StatusNotFound, user_model.ErrUserRedirectNotExist{Name: username}.Error())
+		return nil
 	}
 	return contextUser
 }

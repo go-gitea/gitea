@@ -151,7 +151,6 @@ func Search(ctx *context.APIContext) {
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	if ctx.FormString("template") != "" {
 		opts.Template = optional.Some(ctx.FormBool("template"))
@@ -557,11 +556,6 @@ func GetByID(ctx *context.APIContext) {
 		}
 		return
 	}
-	if !ctx.TokenCanAccessRepo(repo) {
-		ctx.APIErrorNotFound()
-		return
-	}
-
 	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1300,7 +1294,6 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

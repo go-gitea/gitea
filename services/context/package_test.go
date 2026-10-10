@@ -23,4 +23,9 @@ func TestDeterminePackageAccessModeForLimitedOwner(t *testing.T) {
 	accessMode, err = determineAccessMode(&Base{}, owner, &user.User{ID: 3, IsActive: true, IsRestricted: true})
 	assert.NoError(t, err)
 	assert.Equal(t, perm.AccessModeNone, accessMode)
+
+	publicOnlyAdmin := &user.User{ID: 4, IsActive: true, IsAdmin: true, ExtDoerData: user.NewTokenExtDoerData(user.CredentialAccessToken, 1, "public-only,read:package")}
+	accessMode, err = determineAccessMode(&Base{}, owner, publicOnlyAdmin)
+	assert.NoError(t, err)
+	assert.Equal(t, perm.AccessModeNone, accessMode)
 }

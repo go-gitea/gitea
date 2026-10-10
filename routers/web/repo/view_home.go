@@ -433,7 +433,7 @@ func Home(ctx *context.Context) {
 
 	// a scoped or public-only API token authenticating this web request must still satisfy
 	// the repository read scope before private repo content is served
-	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	if ctx.Written() {
 		return
 	}

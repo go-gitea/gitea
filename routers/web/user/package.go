@@ -303,7 +303,7 @@ func ViewPackageVersion(ctx *context.Context) {
 
 	ctx.Data["PackageVersionViewData"] = viewData
 	ctx.Data["PackageVersionSetupManual"] = pkgSpec.RenderSetupManual(ctx, pd, viewData)
-	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
+	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite
 
 	hasRepositoryAccess := false
 	if pd.Repository != nil {
@@ -417,7 +417,7 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
-	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
+	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite
 
 	if pd.Package.RepoID > 0 {
 		repo, err := repo_model.GetRepositoryByID(ctx, pd.Package.RepoID)

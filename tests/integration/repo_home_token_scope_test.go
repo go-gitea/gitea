@@ -27,7 +27,7 @@ func TestRepoWebTokenScopes(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			assertBasicAuthStatus(t, test.url, miscToken, http.StatusForbidden)
-			assertBasicAuthStatus(t, test.url, publicOnlyToken, http.StatusForbidden)
+			assertBasicAuthStatus(t, test.url, publicOnlyToken, http.StatusNotFound)
 			assertBasicAuthStatus(t, test.url, readToken, http.StatusOK)
 		})
 	}
