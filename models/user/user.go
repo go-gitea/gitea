@@ -266,6 +266,16 @@ func (u *User) IsOAuth2() bool {
 	return u.LoginType == auth.OAuth2
 }
 
+// HasLocalPassword returns true if a local password hash is stored, whatever the login type.
+func (u *User) HasLocalPassword() bool {
+	return u.IsPasswordSet()
+}
+
+// PasswordVerifiedLocally returns true if a submitted password is checked against the local hash.
+func (u *User) PasswordVerifiedLocally() bool {
+	return u.IsLocal() || u.IsOAuth2() // OAuth2 sources delegate password sign-in to the database authenticator
+}
+
 // MaxCreationLimit returns the number of repositories a user or an organization is allowed to create
 func (u *User) MaxCreationLimit() int {
 	if u.MaxRepoCreation > -1 {

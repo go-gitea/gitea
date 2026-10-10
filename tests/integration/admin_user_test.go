@@ -17,6 +17,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/services/auth/source/ldap"
+	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -82,12 +83,27 @@ func TestAdminViewUsersFilterAuthSource(t *testing.T) {
 func TestAdminViewUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	ldapSource := &auth_model.Source{Type: auth_model.LDAP, Name: "test-view-user-ldap", Cfg: &ldap.Source{}}
+	require.NoError(t, auth_model.CreateSource(t.Context(), ldapSource))
+	oauth2Source := &auth_model.Source{Type: auth_model.OAuth2, Name: "test-view-user-oauth2", Cfg: &oauth2.Source{}}
+	require.NoError(t, auth_model.CreateSource(t.Context(), oauth2Source))
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 4, LoginType: auth_model.LDAP, LoginSource: ldapSource.ID}, "login_type", "login_source"))
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 5, LoginType: auth_model.OAuth2, LoginSource: oauth2Source.ID}, "login_type", "login_source", "passwd"))
+
 	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/-/admin/users/1")
-	session.MakeRequest(t, req, http.StatusOK)
+	assertPasswordRows := func(uid int64, hasLocalPassword bool, verifiedBy string) {
+		t.Helper()
+		resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/-/admin/users/%d", uid)), http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, "[data-testid=admin-user-local-password] .octicon-check", hasLocalPassword)
+		assert.Contains(t, doc.Find("[data-testid=admin-user-password-verified-by]").Text(), verifiedBy)
+	}
+	assertPasswordRows(1, true, "Local")
+	assertPasswordRows(4, true, ldapSource.Name) // LDAP verifies despite a stale local hash
+	assertPasswordRows(5, false, "Local")
 
 	session = loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/-/admin/users/1")
+	req := NewRequest(t, "GET", "/-/admin/users/1")
 	session.MakeRequest(t, req, http.StatusForbidden)
 }
 
