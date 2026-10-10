@@ -149,7 +149,7 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 		// Probe the repo-scoped job ID first and only accept it when the job exists and belongs to the same runNum.
 		job, err := actions_model.GetRunJobByRepoAndID(ctx, ctx.Repo.Repository.ID, jobNum)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			ctx.ServerError("GetRunJobByRunAndID", err)
+			ctx.ServerError("GetRunJobByRepoAndID", err)
 			return nil
 		}
 		if job != nil {
