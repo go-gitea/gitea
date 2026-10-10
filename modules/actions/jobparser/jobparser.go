@@ -16,11 +16,12 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-// HasDeferredMatrix reports whether the job's strategy, name, runs-on or continue-on-error need outputs before they can be resolved.
+// HasDeferredMatrix reports whether the job's strategy, name, runs-on, continue-on-error or environment need outputs before they can be resolved.
 func HasDeferredMatrix(job *Job) bool {
 	return len(job.Needs()) > 0 && (nodeMatches(&job.Strategy.RawMatrix, expressionReadsNeeds) || expressionReadsNeeds(job.Strategy.RawExpression.Value) ||
 		expressionReadsNeeds(job.Strategy.MaxParallelString) || expressionReadsNeeds(job.Strategy.FailFastString) ||
-		expressionReadsNeeds(job.Name) || nodeMatches(&job.RawRunsOn, expressionReadsNeeds) || nodeMatches(&job.RawContinueOnError, expressionReadsNeeds))
+		expressionReadsNeeds(job.Name) || nodeMatches(&job.RawRunsOn, expressionReadsNeeds) || nodeMatches(&job.RawContinueOnError, expressionReadsNeeds) ||
+		nodeMatches(&job.RawEnvironment, expressionReadsNeeds))
 }
 
 func nodeMatches(node *yaml.Node, match func(string) bool) bool {
@@ -222,7 +223,7 @@ func replaceScalars(node *yaml.Node, replace func(string) string) {
 }
 
 // buildMatrixCombos builds one Job per matrix combination from src, baking the combination into the
-// strategy and interpolating the name, runs-on and continue-on-error with it.
+// strategy and interpolating the name, runs-on, continue-on-error and environment with it.
 func buildMatrixCombos(jobID string, src *Job, matrixes []model.MatrixCombination, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
 	order, names := make([]int, len(matrixes)), make([]string, len(matrixes))
 	for index, matrix := range matrixes {
@@ -268,6 +269,9 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []model.MatrixCombinatio
 			} else {
 				replaceScalars(&combo.RawContinueOnError, escapeExpressions)
 			}
+		}
+		if err := evaluator.EvaluateYamlNode(&combo.RawEnvironment); err != nil {
+			return nil, fmt.Errorf("evaluate environment for job %q: %w", jobID, err)
 		}
 		combos = append(combos, combo)
 	}

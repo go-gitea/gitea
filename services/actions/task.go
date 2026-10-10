@@ -18,9 +18,11 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 
 	"go.yaml.in/yaml/v4"
 	"google.golang.org/protobuf/types/known/structpb"
+	"xorm.io/builder"
 )
 
 var (
@@ -102,7 +104,20 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, nil
 	}
 
-	task, job, err = buildRunnerTask(ctx, t)
+	env, denyReason, err := ResolveJobEnvironment(ctx, t.Job)
+	if err != nil {
+		releaseTaskForRunnerCleanup(t)
+		return nil, false, fmt.Errorf("resolve environment of job %d: %w", t.Job.ID, err)
+	}
+	if denyReason != "" {
+		if err := denyJobByEnvironment(ctx, t, denyReason); err != nil {
+			releaseTaskForRunnerCleanup(t)
+			return nil, false, err
+		}
+		return nil, false, nil
+	}
+
+	task, job, err = buildRunnerTask(ctx, t, env)
 	if err != nil {
 		// The job was already claimed but assembling its payload failed; release the
 		// claim so the job returns to the waiting queue instead of being stranded in
@@ -130,22 +145,54 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	return task, true, nil
 }
 
-// buildRunnerTask assembles the runner-facing task payload for an already-claimed
-// task. All operations are read-only; on error the caller releases the claim.
-func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv1.Task, *actions_model.ActionRunJob, error) {
-	if err := t.LoadAttributes(ctx); err != nil {
-		return nil, nil, fmt.Errorf("task LoadAttributes: %w", err)
+func denyJobByEnvironment(ctx context.Context, t *actions_model.ActionTask, reason string) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		// release instead of StopTask, which would delete an ephemeral runner that never ran anything
+		if err := actions_model.ReleaseTaskForRunner(ctx, t); err != nil {
+			return err
+		}
+		affected, err := actions_model.UpdateRunJob(ctx, &actions_model.ActionRunJob{
+			ID:      t.JobID,
+			RepoID:  t.RepoID,
+			Status:  actions_model.StatusFailure,
+			Stopped: timeutil.TimeStampNow(),
+		}, builder.Eq{"status": actions_model.StatusWaiting})
+		if err != nil {
+			return err
+		}
+		if affected != 1 {
+			return fmt.Errorf("job %d is no longer waiting", t.JobID)
+		}
+		return actions_model.UpsertActionRunJobSummary(ctx, t.RepoID, t.Job.RunID, t.Job.RunAttemptID, t.Job.ID, 0,
+			actions_model.JobSummaryContentTypeMarkdown, []byte(reason))
+	}); err != nil {
+		return fmt.Errorf("fail job %d on environment policy: %w", t.JobID, err)
 	}
+
+	log.Info("Job %d denied: %s", t.JobID, reason)
+	job, err := actions_model.GetRunJobByRepoAndID(ctx, t.RepoID, t.JobID)
+	if err != nil {
+		return fmt.Errorf("reload denied job %d: %w", t.JobID, err)
+	}
+	job.Run = t.Job.Run
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, []*actions_model.ActionRunJob{job})
+	EmitJobsIfReadyByJobs([]*actions_model.ActionRunJob{job})
+	return nil
+}
+
+// buildRunnerTask assembles the runner-facing task payload for an already-claimed task, whose
+// attributes the claim loaded. All operations are read-only; on error the caller releases the claim.
+func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask, env *actions_model.ActionEnvironment) (*runnerv1.Task, *actions_model.ActionRunJob, error) {
 	job := t.Job
 
-	secrets, err := secret_model.GetSecretsOfTask(ctx, t)
+	secrets, err := secret_model.GetSecretsOfTask(ctx, t, env)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetSecretsOfTask: %w", err)
 	}
 
-	vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
+	vars, err := actions_model.GetVariablesOfJob(ctx, t.Job, env)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetVariablesOfRun: %w", err)
+		return nil, nil, fmt.Errorf("GetVariablesOfJob: %w", err)
 	}
 
 	needs, err := findTaskNeeds(ctx, job)

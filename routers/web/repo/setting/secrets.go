@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 
+	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
@@ -28,6 +29,7 @@ type secretsCtx struct {
 	Repo            *repo_model.Repository
 	OwnerID         int64
 	RepoID          int64
+	EnvironmentID   int64
 	IsRepo          bool
 	IsOrg           bool
 	IsUser          bool
@@ -36,6 +38,16 @@ type secretsCtx struct {
 }
 
 func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
+	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok {
+		return &secretsCtx{
+			Repo:          ctx.Repo.Repository,
+			RepoID:        ctx.Repo.Repository.ID,
+			EnvironmentID: env.ID,
+			IsRepo:        true,
+			RedirectLink:  env.SettingsLink(ctx.Repo.RepoLink),
+		}, nil
+	}
+
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &secretsCtx{
 			Repo:            ctx.Repo.Repository,
@@ -88,7 +100,7 @@ func Secrets(ctx *context.Context) {
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	}
 
-	shared.SetSecretsContext(ctx, sCtx.OwnerID, sCtx.RepoID)
+	shared.SetSecretsContext(ctx, sCtx.OwnerID, sCtx.RepoID, sCtx.EnvironmentID)
 	if ctx.Written() {
 		return
 	}
@@ -111,6 +123,7 @@ func SecretsPost(ctx *context.Context) {
 		ctx,
 		sCtx.Owner,
 		sCtx.Repo,
+		sCtx.EnvironmentID,
 		sCtx.RedirectLink,
 	)
 }
@@ -125,6 +138,7 @@ func SecretsDelete(ctx *context.Context) {
 		ctx,
 		sCtx.Owner,
 		sCtx.Repo,
+		sCtx.EnvironmentID,
 		sCtx.RedirectLink,
 	)
 }

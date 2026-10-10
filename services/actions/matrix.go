@@ -109,7 +109,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		return nil, failTerminal(fmt.Errorf("expand matrix: %w", err))
 	}
 	// Combinations differ only in what the matrix feeds: the name, the payload, and a
-	// runs-on/continue-on-error that may interpolate matrix.*.
+	// runs-on/continue-on-error/environment that may interpolate matrix.*.
 	applyCombo := func(dst *actions_model.ActionRunJob, combo *jobparser.Job) error {
 		swf := baseSWF.CloneHeader()
 		if err := swf.SetJob(job.JobID, combo.EraseNeeds()); err != nil {
@@ -122,6 +122,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		dst.Name = combo.DisplayName()
 		dst.WorkflowPayload, dst.RunsOn = payload, combo.RunsOn()
 		dst.ContinueOnError = combo.GetContinueOnError()
+		dst.EnvironmentName = combo.DeploymentEnvironmentName()
 		dst.MaxParallel = parseMaxParallel(job.JobID, combo.Strategy.MaxParallelString)
 		return nil
 	}
@@ -175,7 +176,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 	job.IsMatrixDeferred = false
 	affected, err := actions_model.UpdateRunJob(ctx, job,
 		builder.Eq{"is_matrix_deferred": true, "status": actions_model.StatusBlocked},
-		"name", "workflow_payload", "runs_on", "continue_on_error", "max_parallel", "is_matrix_deferred")
+		"name", "workflow_payload", "runs_on", "continue_on_error", "environment_name", "max_parallel", "is_matrix_deferred")
 	if err != nil {
 		return nil, fmt.Errorf("claim placeholder of job %d: %w", job.ID, err)
 	}
@@ -213,6 +214,7 @@ func restoreDeferredMatrixPlaceholder(clone *actions_model.ActionRunJob) error {
 	clone.WorkflowPayload = slices.Clone(clone.DeferredMatrixPayload)
 	clone.RunsOn = parsed.RunsOn()
 	clone.ContinueOnError = parsed.GetContinueOnError()
+	clone.EnvironmentName = parsed.DeploymentEnvironmentName()
 	clone.MaxParallel = parseMaxParallel(clone.JobID, parsed.Strategy.MaxParallelString)
 	clone.IsMatrixDeferred = true
 	return nil

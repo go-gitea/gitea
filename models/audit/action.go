@@ -169,6 +169,9 @@ var (
 	RepositorySecretAdd              = define("repository:secret:add", "Added secret {secret} to repository {scope}.")
 	RepositorySecretUpdate           = define("repository:secret:update", "Updated secret {secret} of repository {scope}.")
 	RepositorySecretRemove           = define("repository:secret:remove", "Removed secret {secret} from repository {scope}.")
+	RepositoryEnvironmentAdd         = define("repository:environment:add", "Added environment {environment} to repository {scope}.")
+	RepositoryEnvironmentUpdate      = define("repository:environment:update", "Updated environment {environment} of repository {scope}.")
+	RepositoryEnvironmentRemove      = define("repository:environment:remove", "Removed environment {environment} from repository {scope}.")
 
 	IssueCreate        = define("issue:create", "Created issue {issue} in repository {scope}.")
 	IssueDelete        = define("issue:delete", "Deleted issue {issue} from repository {scope}.")

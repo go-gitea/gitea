@@ -124,6 +124,7 @@ type Job struct {
 	RawSecrets         yaml.Node             `yaml:"secrets,omitempty"`
 	RawConcurrency     *model.RawConcurrency `yaml:"concurrency,omitempty"`
 	RawPermissions     yaml.Node             `yaml:"permissions,omitempty"`
+	RawEnvironment     yaml.Node             `yaml:"environment,omitempty"`
 }
 
 // GetContinueOnError decodes the continue-on-error field to a bool.
@@ -162,6 +163,7 @@ func (j *Job) Clone() *Job {
 		RawSecrets:         j.RawSecrets,
 		RawConcurrency:     j.RawConcurrency,
 		RawPermissions:     j.RawPermissions,
+		RawEnvironment:     j.RawEnvironment,
 	}
 }
 
@@ -205,6 +207,29 @@ func (s BlockSafeString) MarshalYAML() (any, error) {
 		return string(s), nil
 	}
 	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Style: yaml.DoubleQuotedStyle, Value: string(s)}, nil
+}
+
+// DeploymentEnvironmentName reads the scalar or object form of "environment:"; the url is evaluated by the runner.
+func (j *Job) DeploymentEnvironmentName() string {
+	if HasDeferredMatrix(j) {
+		return "" // only the expanded combinations resolve the raw expression
+	}
+	switch j.RawEnvironment.Kind {
+	case yaml.ScalarNode:
+		if j.RawEnvironment.Tag == "!!null" {
+			return ""
+		}
+		return j.RawEnvironment.Value
+	case yaml.MappingNode:
+		var envMap struct {
+			Name string `yaml:"name"`
+		}
+		if err := j.RawEnvironment.Decode(&envMap); err != nil {
+			return ""
+		}
+		return envMap.Name
+	}
+	return ""
 }
 
 type Step struct {

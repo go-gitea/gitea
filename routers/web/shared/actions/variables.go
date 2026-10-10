@@ -29,6 +29,7 @@ const (
 type variablesCtx struct {
 	OwnerID           int64
 	RepoID            int64
+	EnvironmentID     int64
 	IsRepo            bool
 	IsOrg             bool
 	IsUser            bool
@@ -38,6 +39,15 @@ type variablesCtx struct {
 }
 
 func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
+	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok {
+		return &variablesCtx{
+			RepoID:        ctx.Repo.Repository.ID,
+			EnvironmentID: env.ID,
+			IsRepo:        true,
+			RedirectLink:  env.SettingsLink(ctx.Repo.RepoLink),
+		}, nil
+	}
+
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &variablesCtx{
 			OwnerID:           0,
@@ -124,7 +134,7 @@ func VariableCreate(ctx *context.Context) {
 
 	form := web.GetForm[*forms.EditVariableForm](ctx)
 
-	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
+	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, vCtx.EnvironmentID, form.Name, form.Data, form.Description)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -168,7 +178,8 @@ func VariableUpdate(ctx *context.Context) {
 
 func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *actions_model.ActionVariable {
 	opts := actions_model.FindVariablesOpts{
-		IDs: []int64{id},
+		IDs:           []int64{id},
+		EnvironmentID: vCtx.EnvironmentID,
 	}
 	switch {
 	case vCtx.IsRepo:

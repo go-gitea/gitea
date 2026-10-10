@@ -237,6 +237,23 @@ func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, err
 	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
 }
 
+// IsUntrustedFork: a fork workflow must not read repo secrets; pull_request_target is the base repo's own
+func (run *ActionRun) IsUntrustedFork() bool {
+	return run.IsForkPullRequest && run.TriggerEvent != "pull_request_target"
+}
+
+// PullRequestTargetBase returns the base branch a pull_request_target run executes on, nil for other runs.
+func (run *ActionRun) PullRequestTargetBase() *api.PRBranchInfo {
+	if run.TriggerEvent != "pull_request_target" {
+		return nil
+	}
+	payload, err := run.GetPullRequestEventPayload()
+	if err != nil || payload.PullRequest == nil {
+		return nil
+	}
+	return payload.PullRequest.Base
+}
+
 func (run *ActionRun) GetWorkflowRunEventPayload() (*api.WorkflowRunPayload, error) {
 	if run.Event == webhook_module.HookEventWorkflowRun {
 		var payload api.WorkflowRunPayload

@@ -11,12 +11,12 @@ import (
 	secret_service "gitea.dev/services/secrets"
 )
 
-func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data, description string) (*actions_model.ActionVariable, error) {
+func CreateVariable(ctx context.Context, ownerID, repoID, environmentID int64, name, data, description string) (*actions_model.ActionVariable, error) {
 	if err := secret_service.ValidateName(name); err != nil {
 		return nil, err
 	}
 
-	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, name, util.NormalizeStringEOL(data), description)
+	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, environmentID, name, util.NormalizeStringEOL(data), description)
 	if err != nil {
 		return nil, err
 	}
@@ -38,11 +38,12 @@ func DeleteVariableByID(ctx context.Context, variableID int64) error {
 	return actions_model.DeleteVariable(ctx, variableID)
 }
 
-func DeleteVariableByName(ctx context.Context, ownerID, repoID int64, name string) error {
+func DeleteVariableByName(ctx context.Context, ownerID, repoID, environmentID int64, name string) error {
 	v, err := GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    name,
+		OwnerID:       ownerID,
+		RepoID:        repoID,
+		EnvironmentID: environmentID,
+		Name:          name,
 	})
 	if err != nil {
 		return err

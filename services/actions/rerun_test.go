@@ -104,6 +104,11 @@ func TestCloneRunJobForAttempt(t *testing.T) {
 		clone := cloneRunJobForAttempt(template, attempt)
 		assert.Equal(t, 3, clone.MaxParallel)
 	})
+
+	t.Run("preserves the environment", func(t *testing.T) {
+		clone := cloneRunJobForAttempt(&actions_model.ActionRunJob{EnvironmentName: "production"}, attempt)
+		assert.Equal(t, "production", clone.EnvironmentName)
+	})
 }
 
 func TestRerunValidation(t *testing.T) {
@@ -463,7 +468,7 @@ func TestRerunDecidesJobIf(t *testing.T) {
 	ctx := t.Context()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	variable, err := actions_model.InsertVariable(ctx, 0, repo.ID, "DEPLOY", "yes", "")
+	variable, err := actions_model.InsertVariable(ctx, 0, repo.ID, 0, "DEPLOY", "yes", "")
 	require.NoError(t, err)
 
 	run := insertMaxParallelRun(t, `on: push
