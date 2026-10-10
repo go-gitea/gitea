@@ -467,6 +467,26 @@ func TestUpdateTaskByStateReportedSteps(t *testing.T) {
 		got := report(t, []*runnerv1.StepState{{Id: 0, Result: runnerv1.Result_RESULT_FAILURE}})
 		assert.Equal(t, before, got)
 	})
+
+	t.Run("unfinished steps stop with the task", func(t *testing.T) {
+		doneSetup := &runnerv1.StepState{Id: 0, Name: "Set up job", Stage: runnerv1.StepStage_STEP_STAGE_SETUP, StartedAt: started, Result: runnerv1.Result_RESULT_SUCCESS}
+		runningMain := &runnerv1.StepState{Id: 1, Name: "Run echo", Stage: runnerv1.StepStage_STEP_STAGE_MAIN, StartedAt: started}
+		cleanup := &runnerv1.StepState{Id: 2, Name: "Complete job", Stage: runnerv1.StepStage_STEP_STAGE_CLEANUP}
+		_, err := UpdateTaskByState(t.Context(), task.RunnerID, &runnerv1.TaskState{
+			Id: task.ID, Result: runnerv1.Result_RESULT_FAILURE,
+			ReportedSteps: []*runnerv1.StepState{doneSetup, runningMain, cleanup},
+		})
+		require.NoError(t, err)
+		got, err := GetTaskStepsByTaskID(t.Context(), task.ID)
+		require.NoError(t, err)
+		require.Len(t, got, 3)
+		assert.Equal(t, StatusSuccess, got[0].Status)
+		for _, step := range got[1:] {
+			assert.Equal(t, StatusFailure, step.Status, step.Name)
+			assert.NotZero(t, step.Started, step.Name)
+			assert.NotZero(t, step.Stopped, step.Name)
+		}
+	})
 }
 
 func TestValidateReportedSteps(t *testing.T) {

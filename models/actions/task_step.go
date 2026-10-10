@@ -86,6 +86,16 @@ func (step *ActionTaskStep) applyState(state *runnerv1.StepState, now timeutil.T
 	}
 }
 
+// stop finishes a step that had not finished when its task stopped
+func (step *ActionTaskStep) stop(status Status, now timeutil.TimeStamp) {
+	if step.Status.IsDone() {
+		return
+	}
+	step.Status = status
+	step.Started = util.IfZero(step.Started, now)
+	step.Stopped = now
+}
+
 // maxReportedSteps bounds the steps a runner can make Gitea store for one task.
 const maxReportedSteps = 1000
 
@@ -135,6 +145,9 @@ func updateReportedSteps(ctx context.Context, task *ActionTask, reported []*runn
 		for i, step := range task.Steps {
 			step.Name = util.EllipsisDisplayString(reported[i].Name, 255)
 			step.applyState(reported[i], now)
+			if task.Status.IsDone() {
+				step.stop(task.Status, now)
+			}
 			if _, err := e.ID(step.ID).Update(step); err != nil {
 				return err
 			}
@@ -164,6 +177,9 @@ func updateReportedSteps(ctx context.Context, task *ActionTask, reported []*runn
 			step.Status, step.Started, step.Stopped = old.Status, old.Started, old.Stopped
 		}
 		step.applyState(v, now)
+		if task.Status.IsDone() {
+			step.stop(task.Status, now)
+		}
 		steps[i] = step
 	}
 	if _, err := e.Delete(&ActionTaskStep{TaskID: task.ID}); err != nil {
