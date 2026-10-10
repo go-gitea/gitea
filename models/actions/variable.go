@@ -49,7 +49,7 @@ func init() {
 }
 
 func InsertVariable(ctx context.Context, scope BelongingScope, name, data, description string) (*ActionVariable, error) {
-	scope.AssertValid()
+	scope = scope.Normalized()
 
 	if utf8.RuneCountInString(data) > VariableDataMaxLength {
 		return nil, util.NewInvalidArgumentErrorf("data too long")

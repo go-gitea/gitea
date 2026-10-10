@@ -3,7 +3,7 @@
 
 package actions
 
-import "fmt"
+import "gitea.dev/modules/setting"
 
 // BelongingScope identifies the owner (user/org) or repository an Actions secret or variable belongs to.
 type BelongingScope struct {
@@ -11,9 +11,11 @@ type BelongingScope struct {
 	RepoID  int64
 }
 
-// AssertValid panics if both IDs are set, a repo level scope must have OwnerID 0.
-func (s BelongingScope) AssertValid() {
+// Normalized drops OwnerID from a repo level scope, a repo level scope must have OwnerID 0.
+func (s BelongingScope) Normalized() BelongingScope {
 	if s.OwnerID != 0 && s.RepoID != 0 {
-		panic(fmt.Sprintf("BelongingScope has both OwnerID %d and RepoID %d set", s.OwnerID, s.RepoID))
+		setting.PanicInDevOrTesting("BelongingScope has both OwnerID %d and RepoID %d set", s.OwnerID, s.RepoID)
+		s.OwnerID = 0
 	}
+	return s
 }

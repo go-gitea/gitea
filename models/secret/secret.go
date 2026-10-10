@@ -66,7 +66,7 @@ func (err ErrSecretNotFound) Unwrap() error {
 
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
 func InsertEncryptedSecret(ctx context.Context, scope actions_model.BelongingScope, name, data, description string) (*Secret, error) {
-	scope.AssertValid()
+	scope = scope.Normalized()
 	if scope.OwnerID == 0 && scope.RepoID == 0 {
 		return nil, fmt.Errorf("%w: ownerID and repoID cannot be both zero, global secrets are not supported", util.ErrInvalidArgument)
 	}
