@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -169,7 +170,7 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 		if utf8.RuneCountInString(message) > 50 {
 			message = fmt.Sprintf("%.47s...", message)
 		}
-		fmt.Fprintf(&text, "[%s](%s) %s - %s", commit.ID[:7], commit.URL, message, commit.Author.Name)
+		fmt.Fprintf(&text, "[%s](%s) %s - %s", base.ShortSha(commit.ID), commit.URL, message, commit.Author.Name)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
 			text.WriteString("\n")

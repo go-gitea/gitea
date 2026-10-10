@@ -5,11 +5,13 @@ package markup
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/markup/common"
 	"gitea.dev/modules/references"
 
 	"golang.org/x/net/html"
@@ -202,28 +204,57 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		if m == nil {
 			return
 		}
-		m[2] += start
-		m[3] += start
-
-		hash := node.Data[m[2]:m[3]]
-		// The regex does not lie, it matches the hash pattern.
-		// However, a regex cannot know if a hash actually exists or not.
-		// We could assume that a SHA1 hash should probably contain alphas AND numerics
-		// but that is not always the case.
-		// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
-		// as used by git and github for linking and thus we have to do similar.
-		// Because of this, we check to make sure that a matched hash is actually
-		// a commit in the repository before making it a link.
-		if !ctx.RenderHelper.IsCommitIDExisting(hash) {
-			start = m[3]
+		for i := range m {
+			if m[i] >= 0 {
+				m[i] += start
+			}
+		}
+		end := max(m[3], m[5]) // not m[1], the consumed boundary char may lead the next match
+		link := createHashLink(ctx, node.Data, m)
+		if link == nil {
+			start = end
 			continue
 		}
-
-		link := fmt.Sprintf("/:root/%s/%s/commit/%s", ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], hash)
-		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
+		replaceContent(node, m[2], end, link)
 		start = 0
 		node = node.NextSibling.NextSibling
 	}
+}
+
+// createHashLink returns nil if a matched ID doesn't resolve or the match sits inside a URL or email that a later processor links
+func createHashLink(ctx *RenderContext, text string, m []int) *html.Node {
+	if isInLinkOrEmail(text, m[2]) {
+		return nil
+	}
+	fullID := ctx.RenderHelper.ResolveCommitID(text[m[2]:m[3]])
+	if fullID == "" {
+		return nil
+	}
+	repoLink := fmt.Sprintf("/:root/%s/%s/", ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"])
+	if m[4] < 0 {
+		return createCodeLink(repoLink+"commit/"+fullID, base.ShortSha(fullID), "commit")
+	}
+	fullID2 := ctx.RenderHelper.ResolveCommitID(text[m[4]:m[5]])
+	if fullID2 == "" {
+		return nil
+	}
+	return createCodeLink(repoLink+"compare/"+fullID+"..."+fullID2, base.ShortSha(fullID)+"..."+base.ShortSha(fullID2), "compare")
+}
+
+func isInLinkOrEmail(text string, pos int) bool {
+	wordStart := strings.LastIndexAny(text[:pos], " \t\n\f\r") + 1 // URLs and emails never span whitespace
+	word := text[wordStart:]
+	if wordEnd := strings.IndexAny(word, " \t\n\f\r"); wordEnd >= 0 {
+		word = word[:wordEnd]
+	}
+	for _, re := range []*regexp.Regexp{common.GlobalVars().LinkifyRegex, globalVars().emailRegex} {
+		for _, loc := range re.FindAllStringIndex(word, -1) {
+			if loc[0] <= pos-wordStart && pos-wordStart < loc[1] {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {

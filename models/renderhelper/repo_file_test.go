@@ -28,7 +28,7 @@ func TestRepoFile(t *testing.T) {
 `)
 		assert.NoError(t, err)
 		assert.Equal(t,
-			`<p><a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow"><code>65f1bf27bc</code></a>
+			`<p><a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow"><code>65f1bf2</code></a>
 #1
 <a href="/user2" rel="nofollow">@user2</a></p>
 `, rendered)
