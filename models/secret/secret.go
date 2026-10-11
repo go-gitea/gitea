@@ -188,22 +188,24 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask, env *
 		baseSecrets[secret.Name] = v
 	}
 
-	if env != nil {
-		envSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{BelongingScope: actions_model.BelongingScopeEnvironment(task.Job.Run.RepoID, env.ID)})
-		if err != nil {
-			return nil, fmt.Errorf("find secrets of environment %d: %w", env.ID, err)
-		}
-		for _, s := range envSecrets {
-			v, err := secret_module.DecryptSecret(setting.SecretKey, s.Data)
-			if err != nil {
-				log.Error("Unable to decrypt environment secret %v %q: %v", s.ID, s.Name, err)
-				continue
-			}
-			baseSecrets[s.Name] = v
-		}
+	// a caller's secrets policy must not reach the environment the called job deploys to
+	scoped, err := getScopedSecretsForJob(ctx, task.Job, baseSecrets)
+	if err != nil || env == nil {
+		return scoped, err
 	}
-
-	return getScopedSecretsForJob(ctx, task.Job, baseSecrets)
+	envSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{BelongingScope: actions_model.BelongingScopeEnvironment(task.Job.Run.RepoID, env.ID)})
+	if err != nil {
+		return nil, fmt.Errorf("find secrets of environment %d: %w", env.ID, err)
+	}
+	for _, s := range envSecrets {
+		v, err := secret_module.DecryptSecret(setting.SecretKey, s.Data)
+		if err != nil {
+			log.Error("Unable to decrypt environment secret %v %q: %v", s.ID, s.Name, err)
+			continue
+		}
+		scoped[s.Name] = v
+	}
+	return scoped, nil
 }
 
 // getScopedSecretsForJob walks up the caller chain (ParentJobID) and applies
