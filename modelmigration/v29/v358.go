@@ -20,7 +20,7 @@ type protectedBranchConfigV358 struct {
 	WhitelistUserIDs              []int64  `xorm:"JSON TEXT" json:"whitelist_user_ids,omitzero"`
 	WhitelistTeamIDs              []int64  `xorm:"JSON TEXT" json:"whitelist_team_ids,omitzero"`
 	EnableMergeWhitelist          bool     `xorm:"NOT NULL DEFAULT false" json:"enable_merge_whitelist,omitzero"`
-	WhitelistDeployKeys           bool     `xorm:"NOT NULL DEFAULT false" json:"whitelist_deploy_keys,omitzero"`
+	WhitelistDeployKeys           bool     `xorm:"NOT NULL DEFAULT false" json:"-"`
 	MergeWhitelistUserIDs         []int64  `xorm:"JSON TEXT" json:"merge_whitelist_user_ids,omitzero"`
 	MergeWhitelistTeamIDs         []int64  `xorm:"JSON TEXT" json:"merge_whitelist_team_ids,omitzero"`
 	EnableBypassAllowlist         bool     `xorm:"NOT NULL DEFAULT false" json:"enable_bypass_allowlist,omitzero"`
@@ -30,7 +30,7 @@ type protectedBranchConfigV358 struct {
 	EnableForcePushAllowlist      bool     `xorm:"NOT NULL DEFAULT false" json:"enable_force_push_allowlist,omitzero"`
 	ForcePushAllowlistUserIDs     []int64  `xorm:"JSON TEXT" json:"force_push_allowlist_user_ids,omitzero"`
 	ForcePushAllowlistTeamIDs     []int64  `xorm:"JSON TEXT" json:"force_push_allowlist_team_ids,omitzero"`
-	ForcePushAllowlistDeployKeys  bool     `xorm:"NOT NULL DEFAULT false" json:"force_push_allowlist_deploy_keys,omitzero"`
+	ForcePushAllowlistDeployKeys  bool     `xorm:"NOT NULL DEFAULT false" json:"-"`
 	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false" json:"enable_status_check,omitzero"`
 	StatusCheckContexts           []string `xorm:"JSON TEXT" json:"status_check_contexts,omitzero"`
 	EnableApprovalsWhitelist      bool     `xorm:"NOT NULL DEFAULT false" json:"enable_approvals_whitelist,omitzero"`
@@ -82,6 +82,13 @@ func MoveBranchProtectionConfigToJSON(ctx context.Context, x base.EngineMigratio
 		err := base.IterateTableByColumn(ctx, x, sess, "id", nil, func(ctx context.Context, pb *intermediateProtectedBranch) error {
 			if pb.NewConfig != "" {
 				return nil // skip the already migrated fields
+			}
+			const deployKeyUserID int64 = -3 // frozen user.DeployKeyUserID
+			if pb.OldConfig.WhitelistDeployKeys {
+				pb.OldConfig.WhitelistUserIDs = append(pb.OldConfig.WhitelistUserIDs, deployKeyUserID)
+			}
+			if pb.OldConfig.ForcePushAllowlistDeployKeys {
+				pb.OldConfig.ForcePushAllowlistUserIDs = append(pb.OldConfig.ForcePushAllowlistUserIDs, deployKeyUserID)
 			}
 			configJson, err := json.Marshal(pb.OldConfig)
 			util.MustNoError(err)

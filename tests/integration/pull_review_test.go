@@ -68,13 +68,10 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 		// create code owner branch protection
 		protectBranch := git_model.ProtectedBranch{
-			ProtectedBranchConfig: git_model.ProtectedBranchConfig{
-				BlockOnCodeownerReviews: true,
-				CanPush:                 true,
-			},
-
-			RepoID:   repo.ID,
-			RuleName: "master",
+			BlockOnCodeownerReviews: true,
+			RepoID:                  repo.ID,
+			RuleName:                "master",
+			CanPush:                 true,
 		}
 
 		err = pull_service.CreateOrUpdateProtectedBranch(t.Context(), repo, &protectBranch, git_model.WhitelistOptions{})

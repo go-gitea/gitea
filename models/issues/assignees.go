@@ -188,5 +188,5 @@ func MakeIDsFromAPIAssigneesToAdd(ctx context.Context, oneAssignee string, multi
 	}
 
 	// Get the IDs of all assignees
-	return user_model.GetUserIDsByNames(ctx, requestAssignees, false)
+	return user_model.GetDoerUserIDsByNames(ctx, requestAssignees)
 }

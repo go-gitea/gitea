@@ -163,10 +163,8 @@ func TestCanBypassBranchProtection(t *testing.T) {
 	teamMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	pb := &ProtectedBranch{
-		ProtectedBranchConfig: ProtectedBranchConfig{
-			EnableBypassAllowlist:  true,
-			BypassAllowlistUserIDs: []int64{user.ID},
-		},
+		EnableBypassAllowlist:  true,
+		BypassAllowlistUserIDs: []int64{user.ID},
 	}
 
 	testBypass := func(t *testing.T, expected bool, pb *ProtectedBranch, doer *user_model.User, isAdmin bool) {

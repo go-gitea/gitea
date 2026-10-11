@@ -539,12 +539,9 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 
 		// Enable require-signed-commits on master.
 		require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo1, &git_model.ProtectedBranch{
-			ProtectedBranchConfig: git_model.ProtectedBranchConfig{
-				RequireSignedCommits: true,
-			},
-
-			RepoID:   repo1.ID,
-			RuleName: "master",
+			RepoID:               repo1.ID,
+			RuleName:             "master",
+			RequireSignedCommits: true,
 		}, git_model.WhitelistOptions{}))
 
 		prIndex := strconv.FormatInt(pr.Index, 10)

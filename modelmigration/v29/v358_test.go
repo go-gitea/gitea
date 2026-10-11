@@ -37,10 +37,9 @@ func TestMoveBranchProtectionConfigToJSON(t *testing.T) {
 	const configJSON = `{
 "can_push":true,
 "enable_whitelist":true,
-"whitelist_user_ids":[2,4],
+"whitelist_user_ids":[2,4,-3],
 "whitelist_team_ids":[1,2],
 "enable_merge_whitelist":true,
-"whitelist_deploy_keys":true,
 "merge_whitelist_user_ids":[3,5],
 "merge_whitelist_team_ids":[3,4],
 "enable_bypass_allowlist":true,
@@ -48,9 +47,8 @@ func TestMoveBranchProtectionConfigToJSON(t *testing.T) {
 "bypass_allowlist_team_ids":[5,6],
 "can_force_push":true,
 "enable_force_push_allowlist":true,
-"force_push_allowlist_user_ids":[8,9],
+"force_push_allowlist_user_ids":[8,9,-3],
 "force_push_allowlist_team_ids":[7,8],
-"force_push_allowlist_deploy_keys":true,
 "enable_status_check":true,
 "status_check_contexts":["ci/*","lint"],
 "enable_approvals_whitelist":true,
@@ -70,6 +68,10 @@ func TestMoveBranchProtectionConfigToJSON(t *testing.T) {
 }`
 	var config protectedBranchConfigV358
 	require.NoError(t, json.Unmarshal([]byte(configJSON), &config))
+	config.WhitelistUserIDs = []int64{2, 4}
+	config.ForcePushAllowlistUserIDs = []int64{8, 9}
+	config.WhitelistDeployKeys = true
+	config.ForcePushAllowlistDeployKeys = true
 	for i := range 101 {
 		branch := protectedBranchBeforeV358{RepoID: 1, BranchName: fmt.Sprintf("release-%d/*", i), Priority: int64(i), CreatedUnix: 123, UpdatedUnix: 456}
 		if i%2 == 0 {
