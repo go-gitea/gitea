@@ -7,8 +7,10 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/models/db"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/xorm"
 )
@@ -60,6 +62,14 @@ type protectedBranchV358 struct {
 
 func (protectedBranchV358) TableName() string { return "protected_branch" }
 
+type intermediateProtectedBranch struct {
+	ID        int64                     `xorm:"pk autoincr"`
+	NewConfig string                    `xorm:"LONGTEXT config"`
+	OldConfig protectedBranchConfigV358 `xorm:"extends"`
+}
+
+func (intermediateProtectedBranch) TableName() string { return "protected_branch" }
+
 func MoveBranchProtectionConfigToJSON(ctx context.Context, x base.EngineMigration) error {
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(protectedBranchV358)); err != nil {
 		return err
@@ -69,42 +79,26 @@ func MoveBranchProtectionConfigToJSON(ctx context.Context, x base.EngineMigratio
 		return err
 	}
 
-	type legacyProtectedBranch struct {
-		ID     int64
-		Config protectedBranchConfigV358 `xorm:"extends"`
-	}
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-	for lastID := int64(0); ; {
-		var branches []legacyProtectedBranch
-		if err := sess.Table("protected_branch").Where("id > ?", lastID).Asc("id").Limit(100).Find(&branches); err != nil {
+	err = base.EngineTransaction(x, func(sess base.Session) error {
+		err := db.IterateTableByColumn(ctx, x, sess, "id", nil, func(ctx context.Context, pb *intermediateProtectedBranch) error {
+			if pb.NewConfig != "" {
+				return nil // skip the already migrated fields
+			}
+			configJson, err := json.Marshal(pb.OldConfig)
+			util.MustNoError(err)
+			_, err = sess.ID(pb.ID).Cols("config").Update(&protectedBranchV358{Config: string(configJson)})
+			return err
+		})
+		if err != nil {
 			return err
 		}
-		if len(branches) == 0 {
-			break
+		legacyTableInfo, err := x.TableInfo(new(protectedBranchConfigV358))
+		if err != nil {
+			return err
 		}
-		for _, branch := range branches {
-			config, err := json.Marshal(branch.Config)
-			if err != nil {
-				return err
-			}
-			if _, err := sess.ID(branch.ID).Cols("config").Update(&protectedBranchV358{Config: string(config)}); err != nil {
-				return err
-			}
-			lastID = branch.ID
-		}
-	}
-	legacyTable, err := x.TableInfo(new(protectedBranchConfigV358))
+		return base.DropTableColumns(sess, "protected_branch", legacyTableInfo.ColumnsSeq()...)
+	})
 	if err != nil {
-		return err
-	}
-	if err := base.DropTableColumns(sess, "protected_branch", legacyTable.ColumnsSeq()...); err != nil {
-		return err
-	}
-	if err := sess.Commit(); err != nil {
 		return err
 	}
 	// SQLite rebuilds the table when dropping columns, so restore its unique index.

@@ -28,13 +28,46 @@ type protectedBranchBeforeV358 struct {
 func (protectedBranchBeforeV358) TableName() string { return "protected_branch" }
 
 func TestMoveBranchProtectionConfigToJSON(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(protectedBranchBeforeV358))
-	defer deferable()
+	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(protectedBranchBeforeV358))
+	defer deferrable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	const configJSON = `{"can_push":true,"enable_whitelist":true,"whitelist_user_ids":[2,4],"whitelist_team_ids":[1,2],"enable_merge_whitelist":true,"whitelist_deploy_keys":true,"merge_whitelist_user_ids":[3,5],"merge_whitelist_team_ids":[3,4],"enable_bypass_allowlist":true,"bypass_allowlist_user_ids":[6,7],"bypass_allowlist_team_ids":[5,6],"can_force_push":true,"enable_force_push_allowlist":true,"force_push_allowlist_user_ids":[8,9],"force_push_allowlist_team_ids":[7,8],"force_push_allowlist_deploy_keys":true,"enable_status_check":true,"status_check_contexts":["ci/*","lint"],"enable_approvals_whitelist":true,"approvals_whitelist_user_ids":[10,11],"approvals_whitelist_team_ids":[9,10],"required_approvals":2,"block_on_rejected_reviews":true,"block_on_official_review_requests":true,"block_on_codeowner_reviews":true,"block_on_outdated_branch":true,"dismiss_stale_approvals":true,"ignore_stale_approvals":true,"require_signed_commits":true,"protected_file_patterns":"*.go;*.md","unprotected_file_patterns":"docs/**","block_admin_merge_override":true}`
+	const configJSON = `{
+"can_push":true,
+"enable_whitelist":true,
+"whitelist_user_ids":[2,4],
+"whitelist_team_ids":[1,2],
+"enable_merge_whitelist":true,
+"whitelist_deploy_keys":true,
+"merge_whitelist_user_ids":[3,5],
+"merge_whitelist_team_ids":[3,4],
+"enable_bypass_allowlist":true,
+"bypass_allowlist_user_ids":[6,7],
+"bypass_allowlist_team_ids":[5,6],
+"can_force_push":true,
+"enable_force_push_allowlist":true,
+"force_push_allowlist_user_ids":[8,9],
+"force_push_allowlist_team_ids":[7,8],
+"force_push_allowlist_deploy_keys":true,
+"enable_status_check":true,
+"status_check_contexts":["ci/*","lint"],
+"enable_approvals_whitelist":true,
+"approvals_whitelist_user_ids":[10,11],
+"approvals_whitelist_team_ids":[9,10],
+"required_approvals":2,
+"block_on_rejected_reviews":true,
+"block_on_official_review_requests":true,
+"block_on_codeowner_reviews":true,
+"block_on_outdated_branch":true,
+"dismiss_stale_approvals":true,
+"ignore_stale_approvals":true,
+"require_signed_commits":true,
+"protected_file_patterns":"*.go;*.md",
+"unprotected_file_patterns":"docs/**",
+"block_admin_merge_override":true
+}`
 	var config protectedBranchConfigV358
 	require.NoError(t, json.Unmarshal([]byte(configJSON), &config))
 	for i := range 101 {
