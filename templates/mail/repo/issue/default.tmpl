@@ -19,7 +19,7 @@
 
 				{{.locale.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink}}
 			{{else}}
-				{{.locale.TrN (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n" .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits)}}
+				{{.locale.TrPlural "mail.issue.action.push" (len .Comment.Commits) .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits)}}
 			{{end}}
 		</p>
 	{{end}}

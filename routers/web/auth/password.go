@@ -210,6 +210,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.Data["Err_Password"] = true
 		switch {
 		case errors.Is(err, password.ErrMinLength):
+			// TODO: use TrPlural for the count
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
 		case errors.Is(err, password.ErrComplexity):
 			ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
@@ -303,6 +304,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			ctx.Data["Err_Password"] = true
+			// TODO: use TrPlural for the count
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
 		case errors.Is(err, password.ErrComplexity):
 			ctx.Data["Err_Password"] = true

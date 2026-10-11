@@ -76,14 +76,14 @@
 					{{$mergedStr:= DateUtils.TimeSince .Issue.PullRequest.MergedUnix}}
 					{{if .Issue.OriginalAuthor}}
 						{{.Issue.OriginalAuthor}}
-						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
+						<span class="pull-desc">{{/* TODO: use TrPlural for the count */}}{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
 					{{else}}
 						{{template "shared/user/namelink" .Issue.PullRequest.Merger}}
 						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
 					{{end}}
 				{{else}}
 					{{if .Issue.OriginalAuthor}}
-						<span id="pull-desc-display" class="pull-desc">{{.Issue.OriginalAuthor}} {{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}</span>
+						<span id="pull-desc-display" class="pull-desc">{{.Issue.OriginalAuthor}} {{/* TODO: use TrPlural for the count */}}{{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}</span>
 					{{else}}
 						<span id="pull-desc-display" class="pull-desc">
 							{{template "shared/user/namelink" .Issue.Poster}}
@@ -138,7 +138,7 @@
 						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr .Issue.Poster.GetDisplayName}}
 					{{end}}
 					·
-					{{ctx.Locale.TrN .Issue.NumComments "repo.issues.num_comments_1" "repo.issues.num_comments" .Issue.NumComments}}
+					{{ctx.Locale.TrPlural "repo.issues.num_comments" .Issue.NumComments .Issue.NumComments}}
 				</span>
 			{{end}}
 		</div>

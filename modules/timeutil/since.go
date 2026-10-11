@@ -20,62 +20,40 @@ const (
 	Year   = 12 * Month
 )
 
-func computeTimeDiffFloor(diff int64, lang translation.Locale) (int64, string) {
-	var diffStr string
-	switch {
-	case diff <= 0:
-		diff = 0
-		diffStr = lang.TrString("tool.now")
-	case diff < 2:
-		diff = 0
-		diffStr = lang.TrString("tool.1s")
-	case diff < 1*Minute:
-		diffStr = lang.TrString("tool.seconds", diff)
-		diff = 0
-
-	case diff < 2*Minute:
-		diff -= 1 * Minute
-		diffStr = lang.TrString("tool.1m")
-	case diff < 1*Hour:
-		diffStr = lang.TrString("tool.minutes", diff/Minute)
-		diff -= diff / Minute * Minute
-
-	case diff < 2*Hour:
-		diff -= 1 * Hour
-		diffStr = lang.TrString("tool.1h")
-	case diff < 1*Day:
-		diffStr = lang.TrString("tool.hours", diff/Hour)
-		diff -= diff / Hour * Hour
-
-	case diff < 2*Day:
-		diff -= 1 * Day
-		diffStr = lang.TrString("tool.1d")
-	case diff < 1*Week:
-		diffStr = lang.TrString("tool.days", diff/Day)
-		diff -= diff / Day * Day
-
-	case diff < 2*Week:
-		diff -= 1 * Week
-		diffStr = lang.TrString("tool.1w")
-	case diff < 1*Month:
-		diffStr = lang.TrString("tool.weeks", diff/Week)
-		diff -= diff / Week * Week
-
-	case diff < 2*Month:
-		diff -= 1 * Month
-		diffStr = lang.TrString("tool.1mon")
-	case diff < 1*Year:
-		diffStr = lang.TrString("tool.months", diff/Month)
-		diff -= diff / Month * Month
-
-	case diff < 2*Year:
-		diff -= 1 * Year
-		diffStr = lang.TrString("tool.1y")
-	default:
-		diffStr = lang.TrString("tool.years", diff/Year)
-		diff -= (diff / Year) * Year
+// trUnit translates "n units". Locales not yet migrated to CLDR plural forms still use the legacy
+// singular key for n == 1, otherwise the plural message is chosen by the CLDR category of n.
+func trUnit(lang translation.Locale, n int64, pluralKey, singularKey string) string {
+	if n == 1 && !lang.HasPluralKey(pluralKey) {
+		return lang.TrString(singularKey)
 	}
-	return diff, diffStr
+	return lang.TrPluralString(pluralKey, n, n)
+}
+
+func computeTimeDiffFloor(diff int64, lang translation.Locale) (int64, string) {
+	if diff <= 0 {
+		return 0, lang.TrString("tool.now")
+	}
+
+	var unit int64
+	var pluralKey, singularKey string
+	switch {
+	case diff < 1*Minute:
+		unit, pluralKey, singularKey = 1, "tool.seconds", "tool.1s"
+	case diff < 1*Hour:
+		unit, pluralKey, singularKey = Minute, "tool.minutes", "tool.1m"
+	case diff < 1*Day:
+		unit, pluralKey, singularKey = Hour, "tool.hours", "tool.1h"
+	case diff < 1*Week:
+		unit, pluralKey, singularKey = Day, "tool.days", "tool.1d"
+	case diff < 1*Month:
+		unit, pluralKey, singularKey = Week, "tool.weeks", "tool.1w"
+	case diff < 1*Year:
+		unit, pluralKey, singularKey = Month, "tool.months", "tool.1mon"
+	default:
+		unit, pluralKey, singularKey = Year, "tool.years", "tool.1y"
+	}
+	n := diff / unit
+	return diff - n*unit, trUnit(lang, n, pluralKey, singularKey)
 }
 
 // MinutesToFriendly returns a user-friendly string with number of minutes

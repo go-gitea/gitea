@@ -4,7 +4,7 @@ import SvgIcon from './SvgIcon.vue';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {isPlainClick} from '../utils/dom.ts';
-import {trN, trString} from '../modules/i18n.ts';
+import {trPlural, trString, type PluralForms} from '../modules/i18n.ts';
 import {debounce} from '../utils/func.ts';
 import type {ActionsJob} from '../modules/gitea-actions.ts';
 import type {ActionRunViewStore} from './ActionRunView.ts';
@@ -19,10 +19,8 @@ import {
 } from './WorkflowGraph.utils.ts';
 
 export type WorkflowGraphLocale = {
-  graphJobsCount1: string,
-  graphJobsCountN: string,
-  graphDependenciesCount1: string,
-  graphDependenciesCountN: string,
+  graphJobsCount: PluralForms,
+  graphDependenciesCount: PluralForms,
   graphSuccessRate: string,
   graphZoomIn: string,
   graphZoomMax: string,
@@ -123,8 +121,8 @@ const successRateLabel = computed(() => {
 });
 
 const graphStats = computed(() => [
-  trN(props.jobs.length, props.locale.graphJobsCount1, props.locale.graphJobsCountN),
-  trN(edges.value.length, props.locale.graphDependenciesCount1, props.locale.graphDependenciesCountN),
+  trPlural(props.jobs.length, props.locale.graphJobsCount),
+  trPlural(edges.value.length, props.locale.graphDependenciesCount),
   trString(props.locale.graphSuccessRate, successRateLabel.value),
 ].join(' • '));
 

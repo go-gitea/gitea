@@ -19,14 +19,14 @@
 			{{end}}
 			{{if .ShowDiffSummaryInToolbar}}
 				<div class="diff-detail-stats tw-flex tw-items-center tw-flex-wrap">
-					{{svg "octicon-diff" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .DiffShortStat.NumFiles .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
+					{{svg "octicon-diff" 16 "tw-mr-1"}}{{/* TODO: use TrPlural for the count */}}{{ctx.Locale.Tr "repo.diff.stats_desc" .DiffShortStat.NumFiles .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
 				</div>
 			{{end}}
 		</div>
 		<div class="diff-detail-actions">
 			{{if and .PageIsPullFiles $.SignedUserID (not .DiffNotAvailable)}}
 				<div class="not-mobile tw-flex tw-items-center tw-flex-col tw-whitespace-nowrap tw-mr-1">
-					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">
+					{{/* TODO: use TrPlural for the count */}}<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .NumViewedFiles .DiffShortStat.NumFiles}}
 					</label>
 					<progress id="viewed-files-summary" value="{{.NumViewedFiles}}" max="{{.DiffShortStat.NumFiles}}"></progress>
@@ -224,7 +224,7 @@
 
 				{{if .Diff.IsIncomplete}}
 					<div class="ui segment flex-left-right" id="diff-incomplete">
-						<span id="diff-load-progress" class="tw-text-text-light-2" data-text-too-many-files="{{ctx.Locale.Tr "repo.diff.too_many_files"}}">
+						{{/* TODO: use TrPlural for the count */}}<span id="diff-load-progress" class="tw-text-text-light-2" data-text-too-many-files="{{ctx.Locale.Tr "repo.diff.too_many_files"}}">
 							{{ctx.Locale.Tr "repo.diff.too_many_files" (len .Diff.Files) .DiffShortStat.NumFiles}}
 						</span>
 						<a class="ui basic tiny button" id="diff-show-more-files" data-global-click="diffLoadMoreFiles" data-href="?skip-to={{.Diff.End}}&file-only=true"

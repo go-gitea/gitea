@@ -10,7 +10,7 @@
 				{{ctx.Locale.Tr "admin.users.remove_all_orgs_title"}}
 			</div>
 			<div class="content">
-				<p>{{ctx.Locale.Tr "admin.users.remove_all_orgs_desc" $user.Name $userOrgsTotal}}</p>
+				<p>{{/* TODO: use TrPlural for the count */}}{{ctx.Locale.Tr "admin.users.remove_all_orgs_desc" $user.Name $userOrgsTotal}}</p>
 			</div>
 			<div class="actions">
 				<div class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</div>

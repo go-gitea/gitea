@@ -1071,6 +1071,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 		grantedApprovals := issues_model.GetGrantedApprovalsCount(ctx, pb, pull)
 		blockerInfo := ctx.Locale.Tr("repo.pulls.blocked_by_approvals", grantedApprovals, pb.RequiredApprovals)
 		if pb.EnableApprovalsWhitelist {
+			// TODO: use TrPlural for the count
 			blockerInfo = ctx.Locale.Tr("repo.pulls.blocked_by_approvals_whitelisted", grantedApprovals, pb.RequiredApprovals)
 		}
 		data.infoProtectionBlockers.AddErrorItem(blockerInfo)

@@ -75,7 +75,7 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error)
 	switch {
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
-		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+		msg := ctx.TrPlural("repo.form.reach_limit_of_creation", maxCreationLimit, maxCreationLimit)
 		ctx.JSONError(msg)
 	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.JSONErrorWithField(ctx.Tr("form.repo_name_been_taken"), "repo_name")
