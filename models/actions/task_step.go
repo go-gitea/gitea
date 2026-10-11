@@ -37,7 +37,7 @@ func (step *ActionTaskStep) Duration() time.Duration {
 	return calculateDuration(step.Started, step.Stopped, step.Status, step.Updated)
 }
 
-// StepStage returns the stored stage, which was validated against the enum when the runner reported it
+// StepStage returns the stored stage, which can be one added to the enum after this Gitea version
 func (step *ActionTaskStep) StepStage() runnerv1.StepStage {
 	return runnerv1.StepStage(step.Stage)
 }
@@ -118,7 +118,7 @@ func validateReportedSteps(steps []*runnerv1.StepState) error {
 	}
 	seen := make(container.Set[reportedStepKey], len(steps))
 	for i, v := range steps {
-		if _, ok := runnerv1.StepStage_name[int32(v.Stage)]; !ok || v.Stage == runnerv1.StepStage_STEP_STAGE_UNSPECIFIED {
+		if v.Stage <= runnerv1.StepStage_STEP_STAGE_UNSPECIFIED { // a stage added later is shown by its name
 			return fmt.Errorf("step %d has invalid stage %d", i, v.Stage)
 		}
 		if v.Id != int64(i) || v.Number < 0 || v.LogIndex < 0 || v.LogLength < 0 {
