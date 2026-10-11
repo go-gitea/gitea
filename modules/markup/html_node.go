@@ -200,35 +200,29 @@ func visitNodeSource(ctx *RenderContext, node *html.Node) (next *html.Node) {
 	return next
 }
 
-const srcSetSpaces = " \t\n\r\f" // the ASCII whitespace that delimits a "srcset" candidate URL
-
-// resolveSrcSetLinks rewrites every candidate URL of a "srcset" value, keeping the separators
-// and descriptors in place. A candidate URL is the leading run of non-space chars, except that
-// commas at its end close the candidate instead of belonging to the URL.
+// resolveSrcSetLinks rewrites every candidate URL of a "srcset" value, normalizing whitespace
+// to single spaces. Commas at a field's edges separate candidates, inner ones belong to the URL.
 // https://html.spec.whatwg.org/multipage/images.html#parse-a-srcset-attribute
 func resolveSrcSetLinks(srcSet string, resolve func(link string) string) string {
 	var sb strings.Builder
-	for rest := srcSet; ; {
-		candidate := strings.TrimLeft(rest, srcSetSpaces+",")
-		sb.WriteString(rest[:len(rest)-len(candidate)])
-		if candidate == "" {
-			return sb.String()
+	expectLink := true
+	for field := range strings.FieldsSeq(srcSet) {
+		if sb.Len() != 0 {
+			sb.WriteByte(' ')
 		}
-		linkEnd := strings.IndexAny(candidate, srcSetSpaces)
-		if linkEnd < 0 {
-			linkEnd = len(candidate)
+		noLeadingCommas := strings.TrimLeft(field, ",")
+		expectLink = expectLink || noLeadingCommas != field // a leading comma closes the previous candidate
+		link := strings.TrimRight(noLeadingCommas, ",")
+		if expectLink && link != "" {
+			sb.WriteString(field[:len(field)-len(noLeadingCommas)])
+			sb.WriteString(resolve(link))
+			sb.WriteString(noLeadingCommas[len(link):])
+		} else {
+			sb.WriteString(field) // a descriptor, or bare commas
 		}
-		link := strings.TrimRight(candidate[:linkEnd], ",")
-		sb.WriteString(resolve(link))
-		sb.WriteString(candidate[len(link):linkEnd])
-		rest = candidate[linkEnd:]
-		if len(link) == linkEnd { // no comma closed the URL, so a descriptor may follow
-			descEnd := strings.IndexByte(rest, ',')
-			if descEnd < 0 {
-				descEnd = len(rest)
-			}
-			sb.WriteString(rest[:descEnd])
-			rest = rest[descEnd:]
+		if link != "" {
+			expectLink = strings.HasSuffix(field, ",")
 		}
 	}
+	return sb.String()
 }
