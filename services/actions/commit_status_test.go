@@ -121,12 +121,23 @@ func TestCreateCommitStatus_HidesOptionalPendingJobs(t *testing.T) {
 	deploy.Status = actions_model.StatusPending
 	assert.Len(t, postDeploy(pending), 2)
 
-	require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: repo.ID, RuleName: "main", EnableStatusCheck: true, StatusCheckContexts: []string{"ci.yaml / deploy*"}}))
+	require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{
+		ProtectedBranchConfig: git_model.ProtectedBranchConfig{
+			EnableStatusCheck:   true,
+			StatusCheckContexts: []string{"ci.yaml / deploy*"},
+		},
+		RepoID: repo.ID, RuleName: "main",
+	}))
 	pending = newPendingJobFilter(t.Context(), run)
 	assert.False(t, pending.onlyReplace(deploy, "ci.yaml / deploy (push)"))
 	assert.True(t, pending.onlyReplace(deploy, "other / deploy (push)"))
 
-	require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: repo.ID, RuleName: "release", EnableStatusCheck: true}))
+	require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{
+		ProtectedBranchConfig: git_model.ProtectedBranchConfig{
+			EnableStatusCheck: true,
+		},
+		RepoID: repo.ID, RuleName: "release",
+	}))
 	assert.Nil(t, newPendingJobFilter(t.Context(), run))
 }
 
