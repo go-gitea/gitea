@@ -82,17 +82,15 @@ func EnvironmentEdit(ctx *context.Context) {
 	ctx.Data["Title"] = env.Name
 	ctx.Data["PageIsRepoSettingsEnvironments"] = true
 
-	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
-		RepoID:        ctx.Repo.Repository.ID,
-		EnvironmentID: env.ID,
-	})
+	scope := actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID)
+	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{BelongingScope: scope})
 	if err != nil {
 		ctx.ServerError("FindVariables", err)
 		return
 	}
 	ctx.Data["Variables"] = variables
 
-	shared_secrets.SetSecretsContext(ctx, 0, ctx.Repo.Repository.ID, env.ID)
+	shared_secrets.SetSecretsContext(ctx, scope)
 	if ctx.Written() {
 		return
 	}

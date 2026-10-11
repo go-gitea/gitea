@@ -255,9 +255,8 @@ func ListEnvSecrets(ctx *context.APIContext) {
 	}
 	listOptions := utils.GetListOptions(ctx)
 	secrets, count, err := db.FindAndCount[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		RepoID:        ctx.Repo.Repository.ID,
-		EnvironmentID: env.ID,
-		ListOptions:   listOptions,
+		BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID),
+		ListOptions:    listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -328,7 +327,7 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 		return
 	}
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
-	s, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
+	s, created, err := secret_service.CreateOrUpdateSecret(ctx, actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -383,7 +382,7 @@ func DeleteEnvSecret(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	s, err := secret_service.DeleteSecretByName(ctx, 0, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"))
+	s, err := secret_service.DeleteSecretByName(ctx, actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), ctx.PathParam("secretname"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -435,9 +434,8 @@ func ListEnvVariables(ctx *context.APIContext) {
 	}
 	listOptions := utils.GetListOptions(ctx)
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
-		RepoID:        ctx.Repo.Repository.ID,
-		EnvironmentID: env.ID,
-		ListOptions:   listOptions,
+		BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID),
+		ListOptions:    listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -511,7 +509,7 @@ func CreateEnvVariable(ctx *context.APIContext) {
 	opt := web.GetForm[*api.CreateVariableOption](ctx)
 	variableName := ctx.PathParam("variablename")
 
-	_, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{RepoID: ctx.Repo.Repository.ID, EnvironmentID: env.ID, Name: variableName})
+	_, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), Name: variableName})
 	if err == nil {
 		ctx.APIError(http.StatusConflict, "variable name already exists")
 		return
@@ -521,7 +519,7 @@ func CreateEnvVariable(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := actions_service.CreateVariable(ctx, 0, ctx.Repo.Repository.ID, env.ID, variableName, opt.Value, opt.Description); err != nil {
+	if _, err := actions_service.CreateVariable(ctx, actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), variableName, opt.Value, opt.Description); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
@@ -576,7 +574,7 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{RepoID: ctx.Repo.Repository.ID, EnvironmentID: env.ID, Name: ctx.PathParam("variablename")})
+	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), Name: ctx.PathParam("variablename")})
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -632,7 +630,7 @@ func DeleteEnvVariable(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("variablename")); err != nil {
+	if err := actions_service.DeleteVariableByName(ctx, actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), ctx.PathParam("variablename")); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}

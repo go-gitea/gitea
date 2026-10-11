@@ -51,13 +51,7 @@ func init() {
 	db.RegisterModel(new(ActionVariable))
 }
 
-func InsertVariable(ctx context.Context, ownerID, repoID, environmentID int64, name, data, description string) (*ActionVariable, error) {
-	if ownerID != 0 && repoID != 0 {
-		// It's trying to create a variable that belongs to a repository, but OwnerID has been set accidentally.
-		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
-		ownerID = 0
-	}
-
+func InsertVariable(ctx context.Context, scope BelongingScope, name, data, description string) (*ActionVariable, error) {
 	if utf8.RuneCountInString(data) > VariableDataMaxLength {
 		return nil, util.NewInvalidArgumentErrorf("data too long")
 	}
@@ -65,9 +59,9 @@ func InsertVariable(ctx context.Context, ownerID, repoID, environmentID int64, n
 	description = util.TruncateRunes(description, VariableDescriptionMaxLength)
 
 	variable := &ActionVariable{
-		OwnerID:       ownerID,
-		RepoID:        repoID,
-		EnvironmentID: environmentID,
+		OwnerID:       scope.internalOwnerID,
+		RepoID:        scope.internalRepoID,
+		EnvironmentID: scope.internalEnvironmentID,
 		Name:          strings.ToUpper(name),
 		Data:          data,
 		Description:   description,
@@ -77,11 +71,10 @@ func InsertVariable(ctx context.Context, ownerID, repoID, environmentID int64, n
 
 type FindVariablesOpts struct {
 	db.ListOptions
-	IDs           []int64
-	RepoID        int64
-	OwnerID       int64 // it will be ignored if RepoID is set
-	EnvironmentID int64
-	Name          string
+	IDs  []int64
+	Name string
+
+	BelongingScope BelongingScope
 }
 
 func (opts FindVariablesOpts) ToOrders() string {
@@ -101,18 +94,19 @@ func (opts FindVariablesOpts) ToConds() builder.Cond {
 
 	// Since we now support instance-level variables,
 	// there is no need to check for null values for `owner_id` and `repo_id`
-	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	if opts.RepoID != 0 { // if RepoID is set
+	ownerID, repoID := opts.BelongingScope.GetOwnerRepoIDs()
+	cond = cond.And(builder.Eq{"repo_id": repoID})
+	if repoID != 0 { // if RepoID is set
 		// ignore OwnerID and treat it as 0
 		cond = cond.And(builder.Eq{"owner_id": 0})
 	} else {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+		cond = cond.And(builder.Eq{"owner_id": ownerID})
 	}
 
 	if opts.Name != "" {
 		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
 	}
-	cond = cond.And(builder.Eq{"environment_id": opts.EnvironmentID})
+	cond = cond.And(builder.Eq{"environment_id": opts.BelongingScope.GetEnvironmentID()})
 	return cond
 }
 
@@ -158,14 +152,14 @@ func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, 
 	}
 
 	// Org / User level
-	ownerVariables, err := db.Find[ActionVariable](ctx, FindVariablesOpts{OwnerID: run.Repo.OwnerID})
+	ownerVariables, err := db.Find[ActionVariable](ctx, FindVariablesOpts{BelongingScope: BelongingScopeOwner(run.Repo.OwnerID)})
 	if err != nil {
 		log.Error("find variables of org: %d, error: %v", run.Repo.OwnerID, err)
 		return nil, err
 	}
 
 	// Repo level
-	repoVariables, err := db.Find[ActionVariable](ctx, FindVariablesOpts{RepoID: run.RepoID})
+	repoVariables, err := db.Find[ActionVariable](ctx, FindVariablesOpts{BelongingScope: BelongingScopeRepo(run.RepoID)})
 	if err != nil {
 		log.Error("find variables of repo: %d, error: %v", run.RepoID, err)
 		return nil, err
@@ -192,10 +186,7 @@ func GetVariablesOfJob(ctx context.Context, job *ActionRunJob, env *ActionEnviro
 		return variables, nil
 	}
 
-	envVars, err := db.Find[ActionVariable](ctx, FindVariablesOpts{
-		RepoID:        job.RepoID,
-		EnvironmentID: env.ID,
-	})
+	envVars, err := db.Find[ActionVariable](ctx, FindVariablesOpts{BelongingScope: BelongingScopeEnvironment(job.RepoID, env.ID)})
 	if err != nil {
 		return nil, fmt.Errorf("find variables of environment %d: %w", env.ID, err)
 	}

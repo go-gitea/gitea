@@ -6,27 +6,23 @@ package secrets
 import (
 	"context"
 
+	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	secret_model "gitea.dev/models/secret"
 )
 
-func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID, environmentID int64, name, data, description string) (*secret_model.Secret, bool, error) {
+func CreateOrUpdateSecret(ctx context.Context, scope actions_model.BelongingScope, name, data, description string) (*secret_model.Secret, bool, error) {
 	if err := ValidateName(name); err != nil {
 		return nil, false, err
 	}
 
-	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID:       ownerID,
-		RepoID:        repoID,
-		EnvironmentID: environmentID,
-		Name:          name,
-	})
+	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{BelongingScope: scope, Name: name})
 	if err != nil {
 		return nil, false, err
 	}
 
 	if len(s) == 0 {
-		s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, environmentID, name, data, description)
+		s, err := secret_model.InsertEncryptedSecret(ctx, scope, name, data, description)
 		if err != nil {
 			return nil, false, err
 		}
@@ -40,13 +36,8 @@ func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID, environmentID in
 	return s[0], false, nil
 }
 
-func DeleteSecretByID(ctx context.Context, ownerID, repoID, environmentID, secretID int64) (*secret_model.Secret, error) {
-	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID:       ownerID,
-		RepoID:        repoID,
-		EnvironmentID: environmentID,
-		SecretID:      secretID,
-	})
+func DeleteSecretByID(ctx context.Context, scope actions_model.BelongingScope, secretID int64) (*secret_model.Secret, error) {
+	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{BelongingScope: scope, SecretID: secretID})
 	if err != nil {
 		return nil, err
 	}
@@ -57,13 +48,8 @@ func DeleteSecretByID(ctx context.Context, ownerID, repoID, environmentID, secre
 	return s[0], deleteSecret(ctx, s[0])
 }
 
-func DeleteSecretByName(ctx context.Context, ownerID, repoID, environmentID int64, name string) (*secret_model.Secret, error) {
-	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID:       ownerID,
-		RepoID:        repoID,
-		EnvironmentID: environmentID,
-		Name:          name,
-	})
+func DeleteSecretByName(ctx context.Context, scope actions_model.BelongingScope, name string) (*secret_model.Secret, error) {
+	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{BelongingScope: scope, Name: name})
 	if err != nil {
 		return nil, err
 	}

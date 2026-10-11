@@ -18,8 +18,8 @@ import (
 	secret_service "gitea.dev/services/secrets"
 )
 
-func SetSecretsContext(ctx *context.Context, ownerID, repoID, environmentID int64) {
-	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{OwnerID: ownerID, RepoID: repoID, EnvironmentID: environmentID})
+func SetSecretsContext(ctx *context.Context, scope actions_model.BelongingScope) {
+	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{BelongingScope: scope})
 	if err != nil {
 		ctx.ServerError("FindSecrets", err)
 		return
@@ -30,29 +30,18 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID, environmentID int6
 	ctx.Data["DescriptionMaxLength"] = secret_model.SecretDescriptionMaxLength
 }
 
-func secretOwnerRepoIDs(owner *user_model.User, repo *repo_model.Repository) (ownerID, repoID int64) {
-	if owner != nil {
-		ownerID = owner.ID
-	}
-	if repo != nil {
-		repoID = repo.ID
-	}
-	return ownerID, repoID
-}
-
-func secretAuditMetadata(ctx *context.Context, environmentID int64, name string) []any {
+func secretAuditMetadata(ctx *context.Context, scope actions_model.BelongingScope, name string) []any {
 	metadata := []any{"secret", name}
-	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok && environmentID != 0 && env.ID == environmentID {
+	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok && env.ID == scope.GetEnvironmentID() {
 		metadata = append(metadata, "environment", env.Name)
 	}
 	return metadata
 }
 
-func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository, environmentID int64, redirectURL string) {
+func PerformSecretsPost(ctx *context.Context, scope actions_model.BelongingScope, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	form := web.GetForm[*forms.AddSecretForm](ctx)
-	ownerID, repoID := secretOwnerRepoIDs(owner, repo)
 
-	s, created, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, environmentID, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
+	s, created, err := secret_service.CreateOrUpdateSecret(ctx, scope, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -62,24 +51,23 @@ func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo
 	if created {
 		actions = audit.SecretAdd
 	}
-	audit.RecordScoped(ctx, owner, repo, actions, secretAuditMetadata(ctx, environmentID, s.Name)...)
+	audit.RecordScoped(ctx, owner, repo, actions, secretAuditMetadata(ctx, scope, s.Name)...)
 
 	ctx.Flash.Success(ctx.Tr("secrets.save_success", s.Name))
 	ctx.JSONRedirect(redirectURL)
 }
 
-func PerformSecretsDelete(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository, environmentID int64, redirectURL string) {
+func PerformSecretsDelete(ctx *context.Context, scope actions_model.BelongingScope, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	id := ctx.FormInt64("id")
-	ownerID, repoID := secretOwnerRepoIDs(owner, repo)
 
-	s, err := secret_service.DeleteSecretByID(ctx, ownerID, repoID, environmentID, id)
+	s, err := secret_service.DeleteSecretByID(ctx, scope, id)
 	if err != nil {
 		log.Error("DeleteSecretByID(%d) failed: %v", id, err)
 		ctx.JSONError(ctx.Tr("secrets.deletion.failed"))
 		return
 	}
 
-	audit.RecordScoped(ctx, owner, repo, audit.SecretRemove, secretAuditMetadata(ctx, environmentID, s.Name)...)
+	audit.RecordScoped(ctx, owner, repo, audit.SecretRemove, secretAuditMetadata(ctx, scope, s.Name)...)
 
 	ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
 	ctx.JSONRedirect(redirectURL)
