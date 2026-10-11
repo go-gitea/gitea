@@ -207,12 +207,6 @@ func init() {
 	db.RegisterModel(&ActionRunner{})
 }
 
-// FindRunnerOptions
-// ownerID == 0 and repoID == 0 means any runner including global runners
-// repoID != 0 and WithAvailable == false means any runner for the given repo
-// repoID != 0 and WithAvailable == true means any runner for the given repo, parent user/org, and global runners
-// ownerID != 0 and repoID == 0 and WithAvailable == false means any runner for the given user/org
-// ownerID != 0 and repoID == 0 and WithAvailable == true means any runner for the given user/org and global runners
 // GetRunnersMapByIDs returns the found runners keyed by ID, silently omitting IDs that no longer exist
 func GetRunnersMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionRunner, error) {
 	runners := make(map[int64]*ActionRunner, len(ids))
@@ -222,6 +216,12 @@ func GetRunnersMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionRunn
 	return runners, db.GetEngine(ctx).In("id", ids).Find(&runners)
 }
 
+// FindRunnerOptions
+// ownerID == 0 and repoID == 0 means any runner including global runners
+// repoID != 0 and WithAvailable == false means any runner for the given repo
+// repoID != 0 and WithAvailable == true means any runner for the given repo, parent user/org, and global runners
+// ownerID != 0 and repoID == 0 and WithAvailable == false means any runner for the given user/org
+// ownerID != 0 and repoID == 0 and WithAvailable == true means any runner for the given user/org and global runners
 type FindRunnerOptions struct {
 	db.ListOptions
 	IDs           []int64
