@@ -9,6 +9,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
 	"gitea.dev/modules/log"
+	npm_module "gitea.dev/modules/packages/npm"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/packages/alpine"
@@ -404,48 +405,27 @@ func CommonRoutes() *web.Router {
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
-			r.Group("/@{scope}/{id}", func() {
-				r.Get("", npm.PackageMetadata)
-				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
-				r.Group("/-/{version}/{filename}", func() {
-					r.Get("", npm.DownloadPackageFile)
-					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
-				})
-				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
-				r.Group("/-rev/{revision}", func() {
-					r.Delete("", npm.DeletePackage)
-					r.Put("", npm.DeletePreview)
-				}, reqPackageAccess(perm.AccessModeWrite))
-			})
-			r.Group("/{id}", func() {
-				r.Get("", npm.PackageMetadata)
-				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
-				r.Group("/-/{version}/{filename}", func() {
-					r.Get("", npm.DownloadPackageFile)
-					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
-				})
-				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
-				r.Group("/-rev/{revision}", func() {
-					r.Delete("", npm.DeletePackage)
-					r.Put("", npm.DeletePreview)
-				}, reqPackageAccess(perm.AccessModeWrite))
-			})
-			r.Group("/-/package/@{scope}/{id}/dist-tags", func() {
-				r.Get("", npm.ListPackageTags)
-				r.Group("/{tag}", func() {
-					r.Put("", npm.AddPackageTag)
-					r.Delete("", npm.DeletePackageTag)
-				}, reqPackageAccess(perm.AccessModeWrite))
-			})
-			r.Group("/-/package/{id}/dist-tags", func() {
-				r.Get("", npm.ListPackageTags)
-				r.Group("/{tag}", func() {
-					r.Put("", npm.AddPackageTag)
-					r.Delete("", npm.DeletePackageTag)
-				}, reqPackageAccess(perm.AccessModeWrite))
-			})
-			r.Group("/-/v1/search", func() {
-				r.Get("", npm.PackageSearch)
+			r.Get("/-/v1/search", npm.PackageSearch)
+			r.Get("/-/ping", npm.Ping)
+			r.Get("/-/whoami", npm.Whoami)
+			r.PathGroup("/*", func(g *web.RouterPathGroup) {
+				// HINT: NPM-ROUTE-PATH-PATTERN: search this keyword to see more details
+				packageId := `/<id:(@` + npm_module.RegexpNamePart + `/)?` + npm_module.RegexpNamePart + ">"
+				g.UseUnescapedPath()
+				g.MatchPath("DELETE", packageId+"/-/<version>/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+				g.MatchPath("DELETE", packageId+"/-/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+				g.MatchPath("GET", packageId+"/-/<version>/<filename>", npm.DownloadPackageFileByName) // former tarball URL, still in lockfiles
+				g.MatchPath("GET", packageId+"/-/<filename>", npm.DownloadPackageFileByName)
+				g.MatchPath("DELETE", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackage)
+				g.MatchPath("PUT", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePreview)
+				g.MatchPath("GET", packageId+"/<version>", npm.PackageVersionMetadata)
+				g.MatchPath("GET", packageId, npm.PackageMetadata)
+				g.MatchPath("PUT", packageId, reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
+
+				packageDistTags := "/-/package" + packageId + "/dist-tags"
+				g.MatchPath("GET", packageDistTags, npm.ListPackageTags)
+				g.MatchPath("PUT", packageDistTags+"/<tag>", reqPackageAccess(perm.AccessModeWrite), npm.AddPackageTag)
+				g.MatchPath("DELETE", packageDistTags+"/<tag>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageTag)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/pub", func() {

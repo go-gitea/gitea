@@ -74,7 +74,7 @@ func TestAttachment_DownloadURL(t *testing.T) {
 		UUID: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
 		ID:   1,
 	}
-	assert.Equal(t, "https://try.gitea.io/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.DownloadURL())
+	assert.Equal(t, "https://try.gitea.io/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.DownloadURL(t.Context()))
 }
 
 func TestUpdateAttachment(t *testing.T) {

@@ -23,7 +23,7 @@ const (
 
 func newOAuth2CommonHandlers(org *context.Organization) *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
-		OwnerID:            org.Organization.ID,
+		Owner:              org.Organization.AsUser(),
 		BasePathList:       fmt.Sprintf("%s/org/%s/settings/applications", setting.AppSubURL, org.Organization.Name),
 		BasePathEditPrefix: fmt.Sprintf("%s/org/%s/settings/applications/oauth2", setting.AppSubURL, org.Organization.Name),
 		TplAppEdit:         tplSettingsOAuthApplicationEdit,

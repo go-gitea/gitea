@@ -4,9 +4,9 @@ import {initSwaggerUI} from '../swagger.ts';
 // HINT: SWAGGER-CSS-IMPORT: these styles are for the render only.
 import '../../../css/swagger-render.css';
 
-export const frontendRender: FrontendRenderFunc = async (opts): Promise<boolean> => {
+export const frontendRender: FrontendRenderFunc = (opts) => {
   try {
-    await initSwaggerUI(opts.container, {specText: opts.contentString()});
+    initSwaggerUI(opts.container, {specText: opts.contentString()});
     return true;
   } catch (error) {
     console.error(error);

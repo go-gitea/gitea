@@ -9,7 +9,6 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/agit"
@@ -19,12 +18,17 @@ import (
 // HookProcReceive proc-receive hook - only handles agit Proc-Receive requests at present
 func HookProcReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm[*private.HookOptions](ctx)
-	if !git.DefaultFeatures().SupportProcReceive {
-		ctx.Status(http.StatusNotFound)
+	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
 		return
 	}
 
-	results, err := agit.ProcReceive(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, opts)
+	results, err := agit.ProcReceive(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, &agit.ProcReceiveOptions{
+		OldCommitIDs:   opts.OldCommitIDs,
+		NewCommitIDs:   opts.NewCommitIDs,
+		RefFullNames:   opts.RefFullNames,
+		GitPushOptions: opts.GitPushOptions,
+		Doer:           ctx.Doer,
+	})
 	if err != nil {
 		if errors.Is(err, issues_model.ErrMustCollaborator) {
 			ctx.PrivateUserErrorf(http.StatusUnauthorized, "You must be a collaborator to create pull request.")

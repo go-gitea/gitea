@@ -301,7 +301,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	if err := auth.CreateSource(ctx, &auth.Source{
+	if err := auth_service.CreateSource(ctx, &auth.Source{
 		Type:            auth.Type(form.Type),
 		Name:            form.Name,
 		IsActive:        form.IsActive,
@@ -419,7 +419,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
 	source.TwoFactorPolicy = form.TwoFactorPolicy
-	if err := auth.UpdateSource(ctx, source); err != nil {
+	if err := auth_service.UpdateSource(ctx, source); err != nil {
 		if errExist, ok := errors.AsType[auth.ErrSourceAlreadyExist](err); ok {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", errExist.Name), tplAuthEdit, form)

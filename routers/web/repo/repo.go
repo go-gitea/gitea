@@ -49,7 +49,7 @@ func MustBeNotEmpty(ctx *context.Context) {
 
 // MustBeEditable check that repo can be edited
 func MustBeEditable(ctx *context.Context) {
-	if !ctx.Repo.Repository.CanEnableEditor() {
+	if !ctx.Repo.Repository.CanContentChange() {
 		ctx.NotFound(nil)
 		return
 	}
@@ -295,7 +295,7 @@ func handleRepoActionError(ctx *context.Context, err error) {
 	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.JSONError(ctx.Tr("error.permission_denied"))
 	default:
-		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
+		ctx.ServerError("RepoAction:"+ctx.PathParam("action"), err)
 	}
 }
 

@@ -13,6 +13,11 @@ import (
 	"gitea.dev/modules/setting"
 )
 
+func TestMain(m *testing.M) {
+	setting.SetupGiteaTestEnv()
+	m.Run()
+}
+
 func newFuzzRenderContext() *markup.RenderContext {
 	return markup.NewTestRenderContext("https://example.com/go-gitea/gitea", map[string]string{"user": "go-gitea", "repo": "gitea"})
 }

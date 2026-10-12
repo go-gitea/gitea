@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"gitea.dev/models/db"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
@@ -121,7 +120,7 @@ func DeleteCommitComment(ctx *context.Context) {
 
 	comment, err := repo_model.GetCommitCommentByID(ctx, ctx.Repo.Repository.ID, commentID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommitCommentByID", db.IsErrNotExist, err)
+		ctx.ServerError("GetCommitCommentByID", err)
 		return
 	}
 

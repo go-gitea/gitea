@@ -9,18 +9,24 @@ import (
 	"path"
 	"testing"
 
+	"gitea.dev/models/actions"
+	"gitea.dev/models/db"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func assertLinkPageComplete(t *testing.T, session *TestSession, link string) {
+func assertLinkPageComplete(t *testing.T, session *TestSession, link string, containStrings ...string) {
 	req := NewRequest(t, "GET", link)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "Page did not complete: "+link)
+	for _, s := range containStrings {
+		assert.Contains(t, resp.Body.String(), s, "Page does not contain expected string: "+s)
+	}
 }
 
 func TestLinks(t *testing.T) {
@@ -92,6 +98,7 @@ func testLinksNoLogin(t *testing.T) {
 		assertLinkPageComplete(t, nil, link)
 	}
 	MakeRequest(t, NewRequest(t, "GET", "/.well-known/security.txt"), http.StatusOK)
+	MakeRequest(t, NewRequest(t, "GET", "/ssh_info"), http.StatusOK)
 }
 
 func testLinksRedirectsNoLogin(t *testing.T) {
@@ -166,6 +173,7 @@ func testLinksAsUser(t *testing.T) {
 		"/user2",
 		"/user2?tab=stars",
 		"/user2?tab=activity",
+		"/user2?tab=organizations",
 		"/user/settings",
 		"/user/settings/account",
 		"/user/settings/security",
@@ -215,26 +223,30 @@ func testLinksAsUser(t *testing.T) {
 func testLinksRepoCommon(t *testing.T) {
 	// repo1 has enabled almost features, so we can test most links
 	repoLink := "/user2/repo1"
-	links := []string{
-		"/actions",
-		"/packages",
-		"/projects",
+
+	err := db.Insert(t.Context(), &actions.ActionRun{Title: "", RepoID: 1})
+	require.NoError(t, err)
+
+	links := map[string][]string{
+		"/actions":  {"(empty commit message)"},
+		"/packages": {},
+		"/projects": {},
 	}
 
 	// anonymous user
-	for _, link := range links {
-		assertLinkPageComplete(t, nil, repoLink+link)
+	for link, strs := range links {
+		assertLinkPageComplete(t, nil, repoLink+link, strs...)
 	}
 
 	// admin/owner user
 	session := loginUser(t, "user1")
-	for _, link := range links {
-		assertLinkPageComplete(t, session, repoLink+link)
+	for link, strs := range links {
+		assertLinkPageComplete(t, session, repoLink+link, strs...)
 	}
 
 	// non-admin non-owner user
 	session = loginUser(t, "user2")
-	for _, link := range links {
-		assertLinkPageComplete(t, session, repoLink+link)
+	for link, strs := range links {
+		assertLinkPageComplete(t, session, repoLink+link, strs...)
 	}
 }

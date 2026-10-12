@@ -167,6 +167,7 @@ func assignTeamPermissionUnits(team *organization.Team, permission string, units
 	oldAccessMode := team.AccessMode
 	oldUnitPerms := team.GetUnitsMap()
 	if len(unitsMap) > 0 {
+		team.AccessMode = perm.AccessModeNone
 		team.Units = make([]*organization.TeamUnit, 0, len(unitsMap))
 		for unitKey, p := range unitsMap {
 			unitType, unitPerm := unit_model.TypeFromKey(unitKey), perm.ParseAccessMode(p)
@@ -613,7 +614,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := getRepositoryByParams(ctx)
+	repo, permission := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -629,11 +630,6 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
 	// The team may be reachable by a non-team-member via its visibility tier;
 	// don't confirm the existence of a repo the doer cannot access.
 	if !permission.HasAnyUnitAccessOrPublicAccess() {
@@ -641,34 +637,28 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, permission))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, *permission))
 }
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
-func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
+func getRepositoryByParams(ctx *context.APIContext) (*repo_model.Repository, *access_model.Permission) {
 	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Team.OrgID, ctx.PathParam("reponame"))
 	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return nil
+		ctx.APIErrorAuto(err)
+		return nil, nil
 	}
-	return repo
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil, nil
+	}
+	return repo, &perm
 }
 
-func canChangeTeamRepository(ctx *context.APIContext) bool {
-	if ctx.Org.Organization.RepoAdminChangeTeamAccess {
-		return true
-	}
-	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return false
-	}
-	if !isOwner {
-		ctx.APIError(http.StatusForbidden, "user is nor repo admin nor owner")
+func canManageRepoCollaboratorTeam(ctx *context.APIContext, repo *repo_model.Repository, perm *access_model.Permission) bool {
+	canChange := access_model.CanDoerManageOrgRepoCollaboratorTeam(ctx, repo, perm)
+	if !canChange {
+		ctx.APIError(http.StatusForbidden, "Must have permission to manage team repository access")
 		return false
 	}
 	return true
@@ -706,18 +696,11 @@ func AddTeamRepository(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := getRepositoryByParams(ctx)
+	repo, perm := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
 	}
-	if !canChangeTeamRepository(ctx) {
-		return
-	}
-	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if access < perm.AccessModeAdmin {
-		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
+	if !canManageRepoCollaboratorTeam(ctx, repo, perm) {
 		return
 	}
 	if err := repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
@@ -761,18 +744,11 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := getRepositoryByParams(ctx)
+	repo, perm := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
 	}
-	if !canChangeTeamRepository(ctx) {
-		return
-	}
-	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if access < perm.AccessModeAdmin {
-		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
+	if !canManageRepoCollaboratorTeam(ctx, repo, perm) {
 		return
 	}
 	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, repo.ID); err != nil {

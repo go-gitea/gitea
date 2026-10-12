@@ -221,7 +221,7 @@ func applyRepoConditions(sess db.Session, opts *IssuesOptions) {
 		if opts.RepoCond == nil {
 			opts.RepoCond = builder.NewCond()
 		}
-		opts.RepoCond = opts.RepoCond.Or(builder.In("issue.repo_id", builder.Select("id").From("repository").Where(builder.Eq{"is_private": false})))
+		opts.RepoCond = opts.RepoCond.Or(builder.In("issue.repo_id", builder.Select("id").From("repository").Where(repo_model.PublicRepoUnderPublicOwnerCond())))
 	}
 	if opts.RepoCond != nil {
 		sess.And(opts.RepoCond)

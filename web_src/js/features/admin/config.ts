@@ -25,7 +25,7 @@ function initSystemConfigAutoCheckbox(el: HTMLInputElement) {
         value: String(collectCheckboxBooleanValue(el)),
       });
       const resp = await POST(`${appSubUrl}/-/admin/config`, {data});
-      const json: Record<string, any> = await resp.json();
+      const json: {errorMessage?: string} = await resp.json();
       if (json.errorMessage) throw new Error(json.errorMessage);
     } catch (ex) {
       showTemporaryTooltip(el, errorMessage(ex));
@@ -112,7 +112,7 @@ export class ConfigFormValueMapper {
   }
 
   collectConfigValueFromElement(el: GeneralFormFieldElement) {
-    let val: any;
+    let val: boolean | number | string;
     const valType = this.presetValueTypes[el.name];
     if (el.matches('[type="checkbox"]')) {
       // TODO: if it needs to support array values in the future,

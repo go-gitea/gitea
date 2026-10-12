@@ -24,8 +24,7 @@ jobs:
         with:
           lint-cache: "true"
       - run: make deps-backend deps-tools
-      - run: TAGS="bindata" make generate-go # lint-go also lints with "bindata" tags which requires "_bindata.go"
-      - run: make lint-backend
+      - run: TAGS="bindata" make generate-go lint-backend # lint-go can lint with "bindata" tags
 
   lint-on-demand:
     needs: files-changed
@@ -94,13 +93,13 @@ jobs:
         env:
           GOOS: linux
           GOARCH: arm64
-          TAGS: bindata gogit
+          TAGS: bindata
       - name: build-backend-windows
         run: go build -ldflags '-s -w' -o gitea-windows
         env:
           GOOS: windows
           GOARCH: amd64
-          TAGS: bindata gogit
+          TAGS: bindata
       - name: build-backend-386
         run: go build -ldflags '-s -w' -o gitea-linux-386
         env:

@@ -16,11 +16,11 @@ import (
 
 // LookupFederatedHost returns the avatar host from the email domain's SRV record. https://wiki.libravatar.org/api/
 func LookupFederatedHost(ctx context.Context, email string, secure bool) string {
-	at := strings.LastIndexByte(email, '@')
-	if at < 0 {
+	_, domain, found := strings.CutLast(email, "@")
+	if !found {
 		return ""
 	}
-	domain := strings.ToLower(email[at+1:])
+	domain = strings.ToLower(domain)
 
 	service, defaultPort := "avatars", uint16(80)
 	if secure {

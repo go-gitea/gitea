@@ -7,12 +7,14 @@ import (
 	"errors"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/openid"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -105,6 +107,9 @@ func settingsOpenIDVerify(ctx *context.Context) {
 		return
 	}
 	log.Trace("Associated OpenID %s to user %s", id, ctx.Doer.Name)
+
+	audit.Record(ctx, audit_model.UserOpenIDAdd, ctx.Doer, "openid", oid.URI)
+
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -117,7 +122,17 @@ func DeleteOpenID(ctx *context.Context) {
 		return
 	}
 
-	if err := user_model.DeleteUserOpenID(ctx, &user_model.UserOpenID{ID: ctx.FormInt64("id"), UID: ctx.Doer.ID}); err != nil {
+	oid, err := user_model.GetUserOpenIDByID(ctx, ctx.FormInt64("id"), ctx.Doer.ID)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.HTTPError(http.StatusNotFound)
+		} else {
+			ctx.ServerError("GetUserOpenIDByID", err)
+		}
+		return
+	}
+
+	if err := user_model.DeleteUserOpenID(ctx, oid); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.HTTPError(http.StatusNotFound)
 		} else {
@@ -125,6 +140,9 @@ func DeleteOpenID(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserOpenIDRemove, ctx.Doer, "openid", oid.URI)
+
 	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.openid_deletion_success"))
