@@ -853,25 +853,34 @@ func cancelReusableCaller(ctx context.Context, caller *ActionRunJob, force bool)
 	}
 
 	// Cancel descendants deepest-first, then the caller: a caller's status is aggregated from its children,
-	// so each child must reach its final state before its parent caller is re-aggregated.
+	// so each child must be cancelled before its parent caller is re-read.
 	// A child's ID always exceeds its parent's, so descending ID is a valid deepest-first order.
 	descendants := CollectAllDescendantJobs(caller, attemptJobs)
 	slices.SortFunc(descendants, func(a, b *ActionRunJob) int { return cmp.Compare(b.ID, a.ID) })
+	callersWithChildren := make(container.Set[int64])
+	for _, d := range descendants {
+		callersWithChildren.Add(d.ParentJobID)
+	}
 
-	for _, c := range descendants {
-		cancelled, err := cancelOneJob(ctx, c, force)
+	for _, job := range append(descendants, caller) {
+		if !callersWithChildren.Contains(job.ID) {
+			cancelled, err := cancelOneJob(ctx, job, force)
+			if err != nil {
+				return cancelledJobs, err
+			}
+			if cancelled != nil {
+				cancelledJobs = append(cancelledJobs, cancelled)
+			}
+			continue
+		}
+		// the job is a caller and its children's cascade already re-aggregated it
+		reloaded, err := GetRunJobByRunAndID(ctx, job.RunID, job.ID)
 		if err != nil {
 			return cancelledJobs, err
 		}
-		if cancelled != nil {
-			cancelledJobs = append(cancelledJobs, cancelled)
+		if reloaded.Status != job.Status {
+			cancelledJobs = append(cancelledJobs, reloaded)
 		}
-	}
-
-	if c, err := cancelOneJob(ctx, caller, force); err != nil {
-		return cancelledJobs, err
-	} else if c != nil {
-		cancelledJobs = append(cancelledJobs, c)
 	}
 	return cancelledJobs, nil
 }
