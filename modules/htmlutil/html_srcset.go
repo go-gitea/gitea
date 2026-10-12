@@ -21,26 +21,20 @@ func isAsciiSpace(r byte) bool {
 func ParseSrcset(srcset string) (candidates []SrcSetCandidate) {
 	// ref: https://html.spec.whatwg.org/multipage/images.html#parse-a-srcset-attribute
 	extractLink := func() (string, bool) {
-		srcset = strings.TrimLeft(srcset, asciiSpaces)
+		srcset = strings.TrimLeft(srcset, asciiSpaces+",")
 		if srcset == "" {
 			return "", false
 		}
-		for i := range len(srcset) {
-			c := srcset[i]
-			curIsSpace := isAsciiSpace(c)
-			if c == ',' || curIsSpace {
-				nextIsSep := i == len(srcset)-1 || isAsciiSpace(srcset[i+1])
-				if curIsSpace || nextIsSep {
-					link := srcset[:i]
-					srcset = srcset[i+1:]
-					hasDesc := curIsSpace
-					return link, hasDesc
-				}
-			}
+		end := strings.IndexAny(srcset, asciiSpaces)
+		if end == -1 {
+			end = len(srcset)
 		}
-		link := srcset
-		srcset = ""
-		return link, false
+		link := srcset[:end]
+		srcset = srcset[end:]
+		if strings.HasSuffix(link, ",") {
+			return strings.TrimRight(link, ","), false
+		}
+		return link, true
 	}
 	extractDesc := func() (string, bool) {
 		srcset = strings.TrimLeft(srcset, asciiSpaces)

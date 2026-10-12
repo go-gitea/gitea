@@ -30,6 +30,18 @@ func TestSrcset(t *testing.T) {
 			encoded:    "a.png, b.png, c.png",
 		},
 		{
+			name:       "empty candidates",
+			input:      ", ,\ta.png 1x,, ,b.png 2x, ,",
+			candidates: []SrcSetCandidate{{SrcLink: "a.png", SrcDesc: []string{"1x"}}, {SrcLink: "b.png", SrcDesc: []string{"2x"}}},
+			encoded:    "a.png 1x, b.png 2x",
+		},
+		{
+			name:       "trailing commas in URL",
+			input:      "a.png,, b.png 2x",
+			candidates: []SrcSetCandidate{{SrcLink: "a.png"}, {SrcLink: "b.png", SrcDesc: []string{"2x"}}},
+			encoded:    "a.png, b.png 2x",
+		},
+		{
 			name:       "comma in URL",
 			input:      "comma,in,url.png",
 			candidates: []SrcSetCandidate{{SrcLink: "comma,in,url.png"}},
