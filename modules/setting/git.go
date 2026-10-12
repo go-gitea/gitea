@@ -87,7 +87,7 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	GitConfig.Options = make(map[string]string)
 	GitConfig.SetOption("diff.algorithm", "histogram")
 	GitConfig.SetOption("core.logAllRefUpdates", "true")
-	GitConfig.SetOption("maintenance.auto", "false") // the git_gc_repos cron task maintains repositories instead
+	GitConfig.SetOption("maintenance.auto", "false")
 	GitConfig.SetOption("receive.autogc", "false")
 
 	secGitReflog := rootCfg.Section("git.reflog")
