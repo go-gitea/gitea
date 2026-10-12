@@ -436,8 +436,10 @@ func getRunJobsByAttempts(ctx context.Context, attempts []*ActionRunAttempt) ([]
 	}
 	attemptIDs := container.FilterSlice(attempts, func(a *ActionRunAttempt) (int64, bool) { return a.ID, true })
 	var jobs []*ActionRunJob
-	if err := db.GetEngine(ctx).In("run_attempt_id", attemptIDs).OrderBy("id").Find(&jobs); err != nil {
-		return nil, err
+	for chunk := range slices.Chunk(attemptIDs, db.DefaultMaxInSize) {
+		if err := db.GetEngine(ctx).In("run_attempt_id", chunk).OrderBy("id").Find(&jobs); err != nil {
+			return nil, err
+		}
 	}
 	jobsByAttempt := make(map[int64][]*ActionRunJob, len(attempts))
 	for _, job := range jobs {

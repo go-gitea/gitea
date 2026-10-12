@@ -506,4 +506,15 @@ func TestGetLatestAttemptJobsByRuns(t *testing.T) {
 	require.Len(t, attemptJobs, 3)
 	assert.Equal(t, []int64{latestAttempt.ID, latestAttempt.ID, oldAttempt.ID}, []int64{attemptJobs[0].RunAttemptID, attemptJobs[1].RunAttemptID, attemptJobs[2].RunAttemptID})
 	assert.Less(t, attemptJobs[0].ID, attemptJobs[1].ID)
+
+	// split the attempts across IN chunks, padding with attempts that have no jobs
+	chunkedAttempts := []*ActionRunAttempt{oldAttempt}
+	for i := range db.DefaultMaxInSize {
+		chunkedAttempts = append(chunkedAttempts, &ActionRunAttempt{ID: -int64(i + 1)})
+	}
+	chunkedAttempts = append(chunkedAttempts, latestAttempt)
+	attemptJobs, err = getRunJobsByAttempts(ctx, chunkedAttempts)
+	require.NoError(t, err)
+	require.Len(t, attemptJobs, 3)
+	assert.Equal(t, []int64{oldAttempt.ID, latestAttempt.ID, latestAttempt.ID}, []int64{attemptJobs[0].RunAttemptID, attemptJobs[1].RunAttemptID, attemptJobs[2].RunAttemptID})
 }

@@ -730,18 +730,19 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 		return nil, nil
 	}
 
-	jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
-		RunIDs: container.FilterSlice(runs, func(run *ActionRun) (int64, bool) { return run.ID, true }),
-	})
-	if err != nil {
-		return nil, err
-	}
+	runIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) { return run.ID, true })
 	jobsByRun := make(map[int64][]*ActionRunJob, len(runs))
-	for _, job := range jobs {
-		jobsByRun[job.RunID] = append(jobsByRun[job.RunID], job)
+	for chunk := range slices.Chunk(runIDs, db.DefaultMaxInSize) {
+		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{RunIDs: chunk})
+		if err != nil {
+			return nil, err
+		}
+		for _, job := range jobs {
+			jobsByRun[job.RunID] = append(jobsByRun[job.RunID], job)
+		}
 	}
 
-	cancelledJobs := make([]*ActionRunJob, 0, len(jobs))
+	var cancelledJobs []*ActionRunJob
 	for _, run := range runs {
 		cjs, err := CancelJobs(ctx, jobsByRun[run.ID], false)
 		if err != nil {
