@@ -11,7 +11,7 @@ import type {FomanticApiResponse, Issue} from '../types.ts';
 const {appSubUrl} = window.config;
 
 function initRepoIssueBranchSelector(elSidebar: HTMLElement) {
-  // TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
+  // TODO: ISSUE-SIDEBAR-REF-SELECTOR: see "repo/issue/branch_selector_field.tmpl"
   const elSelectBranch = elSidebar.querySelector('.ui.dropdown.select-branch.branch-selector-dropdown');
   if (!elSelectBranch) return;
   const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');
