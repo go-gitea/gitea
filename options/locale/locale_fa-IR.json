@@ -436,7 +436,6 @@
   "settings.key_name": "نام کلید",
   "settings.key_content": "محتوا",
   "settings.principal_content": "محتوا",
-  "settings.delete_key": "حذف",
   "settings.ssh_key_deletion": "SSH کلید حذف",
   "settings.gpg_key_deletion": "حذف کلید GPG",
   "settings.ssh_principal_deletion": "گواهی SSH اصلی را حذف کنید",

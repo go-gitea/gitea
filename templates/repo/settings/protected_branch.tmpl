@@ -53,33 +53,12 @@
 					<div id="whitelist_box" class="grouped fields {{if not .Rule.EnableWhitelist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_users"}}</label>
-							<div class="ui multiple search selection dropdown">
-								<input type="hidden" name="whitelist_users" value="{{.whitelist_users}}">
-								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
-								<div class="menu">
-									{{range .Users}}
-										<div class="item" data-value="{{.ID}}">
-											{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
-										</div>
-									{{end}}
-								</div>
-							</div>
+							{{template "repo/settings/user_dropdown" (dict "Name" "whitelist_users" "Value" .whitelist_users "Users" .Users)}}
 						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">
 								<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_teams"}}</label>
-								<div class="ui multiple search selection dropdown">
-									<input type="hidden" name="whitelist_teams" value="{{.whitelist_teams}}">
-									<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
-									<div class="menu">
-										{{range .Teams}}
-											<div class="item" data-value="{{.ID}}">
-												{{svg "octicon-people"}}
-												{{.Name}}
-											</div>
-										{{end}}
-									</div>
-								</div>
+								{{template "repo/settings/team_dropdown" (dict "Name" "whitelist_teams" "Value" .whitelist_teams "Teams" .Teams)}}
 							</div>
 						{{end}}
 						<div class="checkbox-sub-item field">
@@ -123,33 +102,12 @@
 					<div id="force_push_allowlist_box" class="grouped fields {{if not .Rule.EnableForcePushAllowlist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_allowlist_users"}}</label>
-							<div class="ui multiple search selection dropdown">
-								<input type="hidden" name="force_push_allowlist_users" value="{{.force_push_allowlist_users}}">
-								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
-								<div class="menu">
-									{{range .Users}}
-										<div class="item" data-value="{{.ID}}">
-											{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
-										</div>
-									{{end}}
-								</div>
-							</div>
+							{{template "repo/settings/user_dropdown" (dict "Name" "force_push_allowlist_users" "Value" .force_push_allowlist_users "Users" .Users)}}
 						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">
 								<label>{{ctx.Locale.Tr "repo.settings.protect_force_push_allowlist_teams"}}</label>
-								<div class="ui multiple search selection dropdown">
-									<input type="hidden" name="force_push_allowlist_teams" value="{{.force_push_allowlist_teams}}">
-									<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
-									<div class="menu">
-										{{range .Teams}}
-											<div class="item" data-value="{{.ID}}">
-												{{svg "octicon-people"}}
-												{{.Name}}
-											</div>
-										{{end}}
-									</div>
-								</div>
+								{{template "repo/settings/team_dropdown" (dict "Name" "force_push_allowlist_teams" "Value" .force_push_allowlist_teams "Teams" .Teams)}}
 							</div>
 						{{end}}
 						<div class="checkbox-sub-item field">
@@ -177,33 +135,12 @@
 					<div id="approvals_whitelist_box" class="grouped fields {{if not .Rule.EnableApprovalsWhitelist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_approvals_whitelist_users"}}</label>
-							<div class="ui multiple search selection dropdown">
-								<input type="hidden" name="approvals_whitelist_users" value="{{.approvals_whitelist_users}}">
-								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
-								<div class="menu">
-								{{range .Users}}
-									<div class="item" data-value="{{.ID}}">
-										{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
-									</div>
-								{{end}}
-								</div>
-							</div>
+							{{template "repo/settings/user_dropdown" (dict "Name" "approvals_whitelist_users" "Value" .approvals_whitelist_users "Users" .Users)}}
 						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">
 								<label>{{ctx.Locale.Tr "repo.settings.protect_approvals_whitelist_teams"}}</label>
-								<div class="ui multiple search selection dropdown">
-									<input type="hidden" name="approvals_whitelist_teams" value="{{.approvals_whitelist_teams}}">
-									<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
-									<div class="menu">
-									{{range .Teams}}
-										<div class="item" data-value="{{.ID}}">
-											{{svg "octicon-people"}}
-										{{.Name}}
-										</div>
-									{{end}}
-									</div>
-								</div>
+								{{template "repo/settings/team_dropdown" (dict "Name" "approvals_whitelist_teams" "Value" .approvals_whitelist_teams "Teams" .Teams)}}
 							</div>
 						{{end}}
 					</div>
@@ -274,33 +211,12 @@
 					<div id="merge_whitelist_box" class="grouped fields {{if not .Rule.EnableMergeWhitelist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_merge_whitelist_users"}}</label>
-							<div class="ui multiple search selection dropdown">
-								<input type="hidden" name="merge_whitelist_users" value="{{.merge_whitelist_users}}">
-								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
-								<div class="menu">
-								{{range .Users}}
-									<div class="item" data-value="{{.ID}}">
-										{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
-									</div>
-								{{end}}
-								</div>
-							</div>
+							{{template "repo/settings/user_dropdown" (dict "Name" "merge_whitelist_users" "Value" .merge_whitelist_users "Users" .Users)}}
 						</div>
 					{{if .Owner.IsOrganization}}
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_merge_whitelist_teams"}}</label>
-							<div class="ui multiple search selection dropdown">
-								<input type="hidden" name="merge_whitelist_teams" value="{{.merge_whitelist_teams}}">
-								<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
-								<div class="menu">
-								{{range .Teams}}
-									<div class="item" data-value="{{.ID}}">
-										{{svg "octicon-people"}}
-									{{.Name}}
-									</div>
-								{{end}}
-								</div>
-							</div>
+							{{template "repo/settings/team_dropdown" (dict "Name" "merge_whitelist_teams" "Value" .merge_whitelist_teams "Teams" .Teams)}}
 						</div>
 					{{end}}
 					</div>
@@ -317,33 +233,12 @@
 					<div id="bypass_allowlist_box" class="grouped fields {{if not .Rule.EnableBypassAllowlist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_bypass_allowlist_users"}}</label>
-							<div class="ui multiple search selection dropdown">
-								<input type="hidden" name="bypass_allowlist_users" value="{{.bypass_allowlist_users}}">
-								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
-								<div class="menu">
-								{{range .Users}}
-									<div class="item" data-value="{{.ID}}">
-										{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
-									</div>
-								{{end}}
-								</div>
-							</div>
+							{{template "repo/settings/user_dropdown" (dict "Name" "bypass_allowlist_users" "Value" .bypass_allowlist_users "Users" .Users)}}
 						</div>
 					{{if .Owner.IsOrganization}}
 						<div class="checkbox-sub-item field">
 							<label>{{ctx.Locale.Tr "repo.settings.protect_bypass_allowlist_teams"}}</label>
-							<div class="ui multiple search selection dropdown">
-								<input type="hidden" name="bypass_allowlist_teams" value="{{.bypass_allowlist_teams}}">
-								<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
-								<div class="menu">
-								{{range .Teams}}
-									<div class="item" data-value="{{.ID}}">
-										{{svg "octicon-people"}}
-									{{.Name}}
-									</div>
-								{{end}}
-								</div>
-							</div>
+							{{template "repo/settings/team_dropdown" (dict "Name" "bypass_allowlist_teams" "Value" .bypass_allowlist_teams "Teams" .Teams)}}
 						</div>
 					{{end}}
 					</div>

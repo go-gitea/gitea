@@ -40,7 +40,7 @@ func ForceFastImportWithInit(ctx context.Context, repoLocalPath string, commits 
 	dirEntries, err := os.ReadDir(repoLocalPath)
 	if os.IsNotExist(err) || (err == nil && len(dirEntries) == 0) {
 		_ = os.MkdirAll(repoLocalPath, 0o755)
-		err := InitRepositoryLocal(ctx, repoLocalPath, initOpt.Bare, util.IfZero(initOpt.ObjectFormat, "sha1"))
+		err := InitRepositoryLocal(ctx, repoLocalPath, initOpt.Bare, util.IfZero(initOpt.ObjectFormat, "sha1"), "")
 		if err != nil {
 			return nil, err
 		}

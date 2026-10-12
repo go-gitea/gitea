@@ -108,7 +108,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case refFullName.IsTag():
 			preReceiveTag(ourCtx, refFullName)
-		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
+		case refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
 		default:
 			ourCtx.assertCanWriteRef(refFullName)

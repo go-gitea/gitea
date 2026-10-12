@@ -4,8 +4,10 @@
 package repo
 
 import (
+	"cmp"
 	"errors"
 	"net/http"
+	"slices"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -76,6 +78,16 @@ func RetrieveLabelsForList(ctx *context.Context) {
 		}
 		for _, l := range orgLabels {
 			l.CalOpenOrgIssues(ctx, ctx.Repo.Repository.ID, l.ID)
+		}
+		switch ctx.FormString("sort") {
+		case "leastissues":
+			slices.SortStableFunc(orgLabels, func(label1, label2 *issues_model.Label) int {
+				return cmp.Compare(label1.NumOpenRepoIssues, label2.NumOpenRepoIssues)
+			})
+		case "mostissues":
+			slices.SortStableFunc(orgLabels, func(label1, label2 *issues_model.Label) int {
+				return cmp.Compare(label2.NumOpenRepoIssues, label1.NumOpenRepoIssues)
+			})
 		}
 		ctx.Data["OrgLabels"] = orgLabels
 

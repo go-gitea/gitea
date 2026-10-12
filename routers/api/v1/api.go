@@ -946,7 +946,7 @@ func verifyAuthWithOptionsAPI(options *common.VerifyOptions) func(ctx *context.A
 				ctx.JSON(http.StatusForbidden, map[string]string{"message": "This account is not activated."})
 				return
 			} else if check.LoginIsProhibited {
-				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
+				log.Info("Failed authentication attempt for %s from %s (prohibited)", ctx.Doer.Name, ctx.RemoteAddr())
 				ctx.JSON(http.StatusForbidden, map[string]string{"message": "This account is prohibited from signing in, please contact your site administrator."})
 				return
 			} else if check.NeedChangePassword {
