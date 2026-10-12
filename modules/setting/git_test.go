@@ -27,14 +27,20 @@ a.b = 1
 	loadGitFrom(cfg)
 	assert.Equal(t, "1", GitConfig.Options["a.b"])
 	assert.Equal(t, "histogram", GitConfig.Options["diff.algorithm"])
+	assert.Equal(t, "false", GitConfig.Options["maintenance.auto"])
+	assert.Equal(t, "false", GitConfig.Options["receive.autogc"])
 
 	cfg, err = NewConfigProviderFromData(`
+[cron]
+ENABLED = false
 [git.config]
 diff.algorithm = other
 `)
 	assert.NoError(t, err)
 	loadGitFrom(cfg)
 	assert.Equal(t, "other", GitConfig.Options["diff.algorithm"])
+	assert.Equal(t, "true", GitConfig.Options["maintenance.auto"])
+	assert.Equal(t, "true", GitConfig.Options["receive.autogc"])
 }
 
 func TestGitReflog(t *testing.T) {
