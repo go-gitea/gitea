@@ -33640,6 +33640,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/conflict"
           }
         },
         "summary": "Edit a team",

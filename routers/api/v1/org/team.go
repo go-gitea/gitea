@@ -267,6 +267,8 @@ func EditTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Team"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
 
 	form := web.GetForm[*api.EditTeamOption](ctx)
 	team := ctx.Org.Team
@@ -309,7 +311,7 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	if err := org_service.UpdateTeam(ctx, team, isAuthChanged, isIncludeAllChanged); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 

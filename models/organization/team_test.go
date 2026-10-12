@@ -18,6 +18,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestTeam_UniqueOrgLowerName(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// the fixtures already contain a team with lower_name "team1" in org 3
+	err := db.Insert(t.Context(), &organization.Team{OrgID: 3, LowerName: "team1", Name: "Team1"})
+	assert.Error(t, err)
+
+	// the same lower_name in another org is fine
+	err = db.Insert(t.Context(), &organization.Team{OrgID: 6, LowerName: "team1", Name: "Team1"})
+	assert.NoError(t, err)
+}
+
 func TestTeam_IsOwnerTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

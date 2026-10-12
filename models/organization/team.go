@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
 // ___________
@@ -93,6 +94,15 @@ type Team struct {
 	CanCreateOrgRepo bool `xorm:"NOT NULL DEFAULT false"`
 
 	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 2"`
+}
+
+// TableIndices implements xorm's TableIndices interface
+func (t *Team) TableIndices() []*schemas.Index {
+	indices := make([]*schemas.Index, 0, 1)
+	teamUnique := schemas.NewIndex("unique_team_org_lower_name", schemas.UniqueType)
+	teamUnique.AddColumn("org_id", "lower_name")
+	indices = append(indices, teamUnique)
+	return indices
 }
 
 func (t *Team) IsPublic() bool  { return t.Visibility.IsPublic() }
