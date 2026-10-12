@@ -88,6 +88,13 @@ func TestConvertToViewModel(t *testing.T) {
 	viewJobSteps, _, err := convertToViewModel(t.Context(), translation.MockLocale{}, nil, task)
 	require.NoError(t, err)
 
+	t.Run("out of range cursor step", func(t *testing.T) {
+		cursors := []LogCursor{{Step: -1, Expanded: true}, {Step: 3, Expanded: true}}
+		_, logs, err := convertToViewModel(t.Context(), translation.MockLocale{}, cursors, task)
+		require.NoError(t, err)
+		assert.Empty(t, logs)
+	})
+
 	expectedViewJobs := []*ViewJobStep{
 		{
 			Summary:  "Set up job",

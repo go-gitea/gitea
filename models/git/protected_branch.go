@@ -99,8 +99,8 @@ func (protectBranch *ProtectedBranch) loadGlob() {
 	var err error
 	protectBranch.globRule, err = glob.Compile(protectBranch.RuleName, '/')
 	if err != nil {
-		log.Warn("Invalid glob rule for ProtectedBranch[%d]: %s %v", protectBranch.ID, protectBranch.RuleName, err)
-		protectBranch.globRule = glob.MustCompile(glob.QuoteMeta(protectBranch.RuleName), '/')
+		log.Debug("Invalid glob rule for ProtectedBranch[%d]: %s %v", protectBranch.ID, protectBranch.RuleName, err)
+		protectBranch.globRule, _ = glob.Compile(glob.QuoteMeta(protectBranch.RuleName), '/')
 	}
 }
 
@@ -110,7 +110,9 @@ func (protectBranch *ProtectedBranch) Match(branchName string) bool {
 	if protectBranch.isPlainName {
 		return strings.EqualFold(protectBranch.RuleName, branchName)
 	}
-
+	if protectBranch.globRule == nil {
+		return false // in case of invalid glob rule, we don't match anything
+	}
 	return protectBranch.globRule.Match(branchName)
 }
 

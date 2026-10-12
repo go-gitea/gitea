@@ -310,10 +310,6 @@ func (evt *Event) Acts() map[string][]string {
 	return evt.acts
 }
 
-func (evt *Event) Schedules() []map[string]string {
-	return evt.schedules
-}
-
 func ReadWorkflowRawConcurrency(content []byte) (*model.RawConcurrency, error) {
 	w, err := ReadWorkflow(content)
 	if err != nil {
