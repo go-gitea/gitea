@@ -137,7 +137,7 @@
 			{{$rightCC := $line.CommitCommentsRight}}
 			{{/* a DEL line holds no new side of its own, its match does */}}
 			{{if and (eq .GetType 3) $hasmatch}}{{$rightCC = (index $section.Lines $line.Match).CommitCommentsRight}}{{end}}
-			{{template "repo/diff/commit_conversation_row" dict "root" $.root "left" $line.CommitCommentsLeft "right" $rightCC "lineType" $line.GetHTMLDiffLineType "split" true}}
+			{{template "repo/diff/commit_conversation_row" dict "Left" $line.CommitCommentsLeft "Right" $rightCC "LineType" $line.GetHTMLDiffLineType "Split" true}}
 		{{end}}
 	{{end}}
 {{end}}

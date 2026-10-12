@@ -51,6 +51,6 @@
 		{{/* Render commit comments (not PR review comments). Both sides can be set:
 			a context line has an old and a new index, and either may carry a thread
 			authored from the equivalent split view. */}}
-		{{template "repo/diff/commit_conversation_row" dict "root" $.root "left" $line.CommitCommentsLeft "right" $line.CommitCommentsRight "lineType" $line.GetHTMLDiffLineType}}
+		{{template "repo/diff/commit_conversation_row" dict "Left" $line.CommitCommentsLeft "Right" $line.CommitCommentsRight "LineType" $line.GetHTMLDiffLineType}}
 	{{end}}
 {{end}}

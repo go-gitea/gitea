@@ -1,9 +1,9 @@
 {{if ctx.RootData.CanCommentOnCommit}}
 	{{/* on the reply path a parent comment is passed, so the reply submits with the parent's coordinates */}}
-	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.DiffNewCommentURL}}" method="post">
-		<input type="hidden" name="side" value="{{with $.comment}}{{.DiffSide}}{{end}}">
-		<input type="hidden" name="line" value="{{with $.comment}}{{.UnsignedLine}}{{end}}">
-		<input type="hidden" name="path" value="{{with $.comment}}{{.TreePath}}{{end}}">
+	<form class="ui form {{if $.Hidden}}tw-hidden comment-form{{end}}" action="{{ctx.RootData.DiffNewCommentURL}}" method="post">
+		<input type="hidden" name="side" value="{{with $.Comment}}{{.DiffSide}}{{end}}">
+		<input type="hidden" name="line" value="{{with $.Comment}}{{.UnsignedLine}}{{end}}">
+		<input type="hidden" name="path" value="{{with $.Comment}}{{.TreePath}}{{end}}">
 		<div class="field">
 		{{template "shared/combomarkdowneditor" (dict
 			"CustomInit" true

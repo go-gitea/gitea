@@ -1,21 +1,21 @@
-{{range .comments}}
+{{range $comment := $.Comments}}
 
-{{$createdStr := DateUtils.TimeSince .CreatedUnix}}
-<div class="comment" id="{{.HashTag}}">
+{{$createdStr := DateUtils.TimeSince $comment.CreatedUnix}}
+<div class="comment" id="{{$comment.HashTag}}">
 	<div class="tw-mt-2 tw-mr-4">
-		{{template "shared/user/avatarlink" dict "user" .Poster}}
+		{{template "shared/user/avatarlink" dict "user" $comment.Poster}}
 	</div>
 	<div class="content comment-container">
 		<div class="comment-header avatar-content-left-arrow">
 			<div class="comment-header-left">
 				<span class="tw-text-text-light muted-links">
-					{{template "shared/user/namelink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
+					{{template "shared/user/namelink" $comment.Poster}}
+					{{ctx.Locale.Tr "repo.issues.commented_at" $comment.HashTag $createdStr}}
 				</span>
 			</div>
 			<div class="comment-header-right">
-				{{if .CanDelete}}
-					<div class="item context js-aria-clickable delete-comment" data-comment-id="{{.HashTag}}" data-url="{{$.root.RepoLink}}/commit/{{.CommitSHA}}/comment/{{.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">
+				{{if $comment.CanDelete}}
+					<div class="item context js-aria-clickable delete-comment" data-comment-id="{{$comment.HashTag}}" data-url="{{ctx.RootData.RepoLink}}/commit/{{$comment.CommitSHA}}/comment/{{$comment.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">
 						{{svg "octicon-trash" 14}}
 					</div>
 				{{end}}
@@ -23,8 +23,8 @@
 		</div>
 		<div class="ui attached segment comment-body">
 			<div class="render-content markup">
-			{{if .RenderedContent}}
-				{{.RenderedContent}}
+			{{if $comment.RenderedContent}}
+				{{$comment.RenderedContent}}
 			{{else}}
 				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}

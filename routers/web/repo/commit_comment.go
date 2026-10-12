@@ -114,7 +114,7 @@ func CreateCommitComment(ctx *context.Context) {
 
 	ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
 	ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, comment.CommitSHA)
-	ctx.Data["comments"] = comments
+	ctx.Data["Comments"] = comments
 	ctx.HTML(http.StatusOK, tplCommitConversation)
 }
 

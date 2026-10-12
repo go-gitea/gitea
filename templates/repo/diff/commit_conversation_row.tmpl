@@ -1,16 +1,16 @@
-{{if or .left .right}}
-	<tr class="add-comment" data-line-type="{{.lineType}}">
-		{{if .split}}
+{{if or $.Left $.Right}}
+	<tr class="add-comment" data-line-type="{{$.LineType}}">
+		{{if $.Split}}
 			<td class="add-comment-left" colspan="4">
-				{{if .left}}{{template "repo/diff/commit_conversation" dict "." .root "comments" .left}}{{end}}
+				{{if $.Left}}{{template "repo/diff/commit_conversation" dict "Comments" $.Left}}{{end}}
 			</td>
 			<td class="add-comment-right" colspan="4">
-				{{if .right}}{{template "repo/diff/commit_conversation" dict "." .root "comments" .right}}{{end}}
+				{{if $.Right}}{{template "repo/diff/commit_conversation" dict "Comments" $.Right}}{{end}}
 			</td>
 		{{else}}
 			<td class="add-comment-left add-comment-right" colspan="5">
-				{{if .right}}{{template "repo/diff/commit_conversation" dict "." .root "comments" .right}}{{end}}
-				{{if .left}}{{template "repo/diff/commit_conversation" dict "." .root "comments" .left}}{{end}}
+				{{if $.Right}}{{template "repo/diff/commit_conversation" dict "Comments" $.Right}}{{end}}
+				{{if $.Left}}{{template "repo/diff/commit_conversation" dict "Comments" $.Left}}{{end}}
 			</td>
 		{{end}}
 	</tr>
