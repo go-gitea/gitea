@@ -7,19 +7,19 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func AddStageAndNumberToActionTaskStep(_ context.Context, x base.EngineMigration) error {
-	type ActionTaskStep struct {
-		Stage  int64 `xorm:"NOT NULL DEFAULT 0"`
-		Number int64 `xorm:"NOT NULL DEFAULT 0"`
+func AddPreviousAuthTokenHash(_ context.Context, x base.EngineMigration) error {
+	type AuthToken struct {
+		PreviousTokenHash string
+		RotatedUnix       timeutil.TimeStamp
 	}
-
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
-	}, new(ActionTaskStep))
+		IgnoreConstrains:  true,
+	}, new(AuthToken))
 	return err
 }
