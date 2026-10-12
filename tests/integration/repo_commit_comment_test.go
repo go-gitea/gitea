@@ -150,5 +150,12 @@ func TestCommitInlineCommentOnExpandedContext(t *testing.T) {
 
 		body := session.MakeRequest(t, NewRequest(t, "GET", excerptURL), http.StatusOK).Body.String()
 		assert.Contains(t, body, "comment on expanded line")
+
+		// Expanded lines are unchanged, so like the PR excerpt they only take
+		// comments on the new side, in both columns of the split view.
+		require.Contains(t, excerptURL, "style=unified")
+		splitBody := session.MakeRequest(t, NewRequest(t, "GET", strings.Replace(excerptURL, "style=unified", "style=split", 1)), http.StatusOK).Body.String()
+		assert.Contains(t, splitBody, "add-code-comment-right")
+		assert.NotContains(t, splitBody, "add-code-comment-left")
 	})
 }
