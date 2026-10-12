@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
@@ -215,4 +216,23 @@ func TestRegisterOpenIDPostRejectsWrongCaptcha(t *testing.T) {
 	RegisterOpenIDPost(ctx)
 	assert.Equal(t, true, ctx.Data["Err_Captcha"])
 	unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "openid-captcha-user"})
+}
+
+func TestAutoSignInStaleCookie(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	at, token, err := auth_service.CreateAuthTokenForUserID(t.Context(), 2)
+	require.NoError(t, err)
+	current, currentToken, err := auth_service.RegenerateAuthToken(t.Context(), at)
+	require.NoError(t, err)
+
+	ctx, resp := contexttest.MockContext(t, "/user/login")
+	ctx.Req.AddCookie(&http.Cookie{Name: setting.CookieRememberName, Value: at.ID + ":" + token})
+	succeeded, err := autoSignIn(ctx)
+	require.NoError(t, err)
+	require.False(t, succeeded)
+	for _, cookie := range resp.Result().Cookies() {
+		assert.NotEqual(t, setting.CookieRememberName, cookie.Name)
+	}
+	_, err = auth_service.CheckAuthToken(t.Context(), current.ID+":"+currentToken)
+	require.NoError(t, err)
 }
