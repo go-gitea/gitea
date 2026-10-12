@@ -36,6 +36,15 @@ type secretsCtx struct {
 }
 
 func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
+	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok {
+		return &secretsCtx{
+			Repo:           ctx.Repo.Repository,
+			BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID),
+			IsRepo:         true,
+			RedirectLink:   env.SettingsLink(ctx.Repo.RepoLink),
+		}, nil
+	}
+
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &secretsCtx{
 			Repo:            ctx.Repo.Repository,

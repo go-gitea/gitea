@@ -30,6 +30,14 @@ func SetSecretsContext(ctx *context.Context, scope actions_model.BelongingScope)
 	ctx.Data["DescriptionMaxLength"] = secret_model.SecretDescriptionMaxLength
 }
 
+func secretAuditMetadata(ctx *context.Context, scope actions_model.BelongingScope, name string) []any {
+	metadata := []any{"secret", name}
+	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok && env.ID == scope.GetEnvironmentID() {
+		metadata = append(metadata, "environment", env.Name)
+	}
+	return metadata
+}
+
 func PerformSecretsPost(ctx *context.Context, scope actions_model.BelongingScope, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	form := web.GetForm[*forms.AddSecretForm](ctx)
 
@@ -43,7 +51,7 @@ func PerformSecretsPost(ctx *context.Context, scope actions_model.BelongingScope
 	if created {
 		actions = audit.SecretAdd
 	}
-	audit.RecordScoped(ctx, owner, repo, actions, "secret", s.Name)
+	audit.RecordScoped(ctx, owner, repo, actions, secretAuditMetadata(ctx, scope, s.Name)...)
 
 	ctx.Flash.Success(ctx.Tr("secrets.save_success", s.Name))
 	ctx.JSONRedirect(redirectURL)
@@ -59,7 +67,7 @@ func PerformSecretsDelete(ctx *context.Context, scope actions_model.BelongingSco
 		return
 	}
 
-	audit.RecordScoped(ctx, owner, repo, audit.SecretRemove, "secret", s.Name)
+	audit.RecordScoped(ctx, owner, repo, audit.SecretRemove, secretAuditMetadata(ctx, scope, s.Name)...)
 
 	ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
 	ctx.JSONRedirect(redirectURL)

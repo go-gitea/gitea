@@ -121,6 +121,8 @@ type ActionRunJob struct {
 	// Only set when IsReusableCaller is true.
 	CallPayload string `xorm:"LONGTEXT"`
 
+	EnvironmentName string `xorm:"TEXT"`
+
 	// ParentJobID scopes `Needs` resolution: name lookups happen only among rows sharing the same ParentJobID. 0 for top-level rows.
 	ParentJobID int64 `xorm:"index NOT NULL DEFAULT 0"`
 

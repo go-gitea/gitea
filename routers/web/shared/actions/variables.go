@@ -37,6 +37,14 @@ type variablesCtx struct {
 }
 
 func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
+	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok {
+		return &variablesCtx{
+			BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID),
+			IsRepo:         true,
+			RedirectLink:   env.SettingsLink(ctx.Repo.RepoLink),
+		}, nil
+	}
+
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &variablesCtx{
 			BelongingScope:    actions_model.BelongingScopeRepo(ctx.Repo.Repository.ID),

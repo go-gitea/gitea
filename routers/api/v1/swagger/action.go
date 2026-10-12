@@ -46,3 +46,17 @@ type swaggerResponseRunDetails struct {
 	// in:body
 	Body api.RunDetails `json:"body"`
 }
+
+// Environment
+// swagger:response Environment
+type swaggerResponseEnvironment struct {
+	// in:body
+	Body api.ActionEnvironment `json:"body"`
+}
+
+// EnvironmentList
+// swagger:response EnvironmentList
+type swaggerResponseEnvironmentList struct {
+	// in:body
+	Body []api.ActionEnvironment `json:"body"`
+}

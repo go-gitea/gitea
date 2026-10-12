@@ -8,6 +8,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -169,6 +170,30 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 			"GITEA_TOKEN":  "tok",
 			"ALIAS_C":      "prod-secret",
 			// no "dev-secret"
+		}, got)
+	})
+
+	t.Run("CallerMapping_DoesNotScopeEnvironmentSecrets", func(t *testing.T) {
+		const runID = 9011
+		env, err := actions_model.InsertEnvironment(ctx, 1, "production", "")
+		require.NoError(t, err)
+		_, err = InsertEncryptedSecret(ctx, actions_model.BelongingScopeRepo(1), "REPO_KEY", "repo-secret", "")
+		require.NoError(t, err)
+		_, err = InsertEncryptedSecret(ctx, actions_model.BelongingScopeEnvironment(1, env.ID), "DEPLOY_KEY", "env-secret", "")
+		require.NoError(t, err)
+		caller := insertCaller(t, runID, 0, `{"ALIAS":"DEPLOY_KEY"}`)
+		task := &actions_model.ActionTask{Token: "tok", Job: &actions_model.ActionRunJob{
+			RunID: runID, RepoID: 1, ParentJobID: caller.ID,
+			Run: &actions_model.ActionRun{RepoID: 1, Repo: &repo_model.Repository{ID: 1, OwnerID: 2}},
+		}}
+
+		got, err := GetSecretsOfTask(ctx, task, env)
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{
+			"GITHUB_TOKEN": "tok",
+			"GITEA_TOKEN":  "tok",
+			"DEPLOY_KEY":   "env-secret",
+			// no "repo-secret", and the mapping cannot source the environment secret
 		}, got)
 	})
 }

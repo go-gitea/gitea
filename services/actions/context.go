@@ -17,7 +17,6 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
-	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
@@ -47,14 +46,12 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	if pullPayload, err := run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
 		baseRef = pullPayload.PullRequest.Base.Ref
 		headRef = pullPayload.PullRequest.Head.Ref
-
-		// if the TriggerEvent is pull_request_target, ref and sha need to be set according to the base of pull request
-		// In GitHub's documentation, ref should be the branch or tag that triggered workflow. But when the TriggerEvent is pull_request_target,
-		// the ref will be the base branch.
-		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
-			ref = git.BranchPrefix + pullPayload.PullRequest.Base.Ref
-			sha = pullPayload.PullRequest.Base.Sha
-		}
+	}
+	// In GitHub's documentation, ref should be the branch or tag that triggered workflow. But when the TriggerEvent is pull_request_target,
+	// ref and sha are set according to the base of pull request.
+	if base := run.PullRequestTargetBase(); base != nil {
+		ref = runRef(run)
+		sha = base.Sha
 	}
 
 	refName := git.RefName(ref)

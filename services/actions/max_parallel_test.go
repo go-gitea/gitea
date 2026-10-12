@@ -175,6 +175,7 @@ on: workflow_call
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: production
     strategy:
       max-parallel: 2
       matrix:
@@ -189,6 +190,7 @@ jobs:
 		if job.ParentJobID == caller.ID {
 			children++
 			assert.Equal(t, 2, job.MaxParallel)
+			assert.Equal(t, "production", job.EnvironmentName)
 		}
 	}
 	assert.Equal(t, 3, children)
