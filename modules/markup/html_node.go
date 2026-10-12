@@ -6,6 +6,7 @@ package markup
 import (
 	"strings"
 
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup/common"
 
 	"golang.org/x/net/html"
@@ -127,6 +128,10 @@ func processNodeA(ctx *RenderContext, node *html.Node) {
 	}
 }
 
+func resolveMediaLinkWithCamo(ctx *RenderContext, link string) string {
+	return camoHandleLink(ctx.RenderHelper.ResolveLink(link, LinkTypeMedia))
+}
+
 func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 	next = img.NextSibling
 	attrSrc, hasLazy := "", false
@@ -162,9 +167,7 @@ func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 			parent.InsertBefore(wrapper, imgNext)
 			wrapper.AppendChild(img)
 		}
-
-		imgAttr.Val = ctx.RenderHelper.ResolveLink(imgSrcOrigin, LinkTypeMedia)
-		imgAttr.Val = camoHandleLink(imgAttr.Val)
+		imgAttr.Val = resolveMediaLinkWithCamo(ctx, imgSrcOrigin)
 		img.Attr[i] = imgAttr
 	}
 	if !RenderBehaviorForTesting.DisableAdditionalAttributes && !hasLazy && !strings.HasPrefix(attrSrc, "data:") {
@@ -179,50 +182,24 @@ func visitNodeVideo(ctx *RenderContext, node *html.Node) (next *html.Node) {
 		if attr.Key != "src" {
 			continue
 		}
-		attr.Val = ctx.RenderHelper.ResolveLink(attr.Val, LinkTypeMedia)
-		attr.Val = camoHandleLink(attr.Val)
+		attr.Val = resolveMediaLinkWithCamo(ctx, attr.Val)
 		node.Attr[i] = attr
 	}
 	return next
 }
 
-func visitNodeSource(ctx *RenderContext, node *html.Node) (next *html.Node) {
+func visitNodePictureSource(ctx *RenderContext, node *html.Node) (next *html.Node) {
 	next = node.NextSibling
-	for i, attr := range node.Attr {
+	for attrIdx, attr := range node.Attr {
 		if attr.Key != "srcset" {
 			continue
 		}
-		attr.Val = resolveSrcSetLinks(attr.Val, func(link string) string {
-			return camoHandleLink(ctx.RenderHelper.ResolveLink(link, LinkTypeMedia))
-		})
-		node.Attr[i] = attr
+		srcsetCandidates := htmlutil.ParseSrcset(attr.Val)
+		for i, candidate := range srcsetCandidates {
+			srcsetCandidates[i].SrcLink = resolveMediaLinkWithCamo(ctx, candidate.SrcLink)
+		}
+		attr.Val = htmlutil.EncodeSrcset(srcsetCandidates)
+		node.Attr[attrIdx] = attr
 	}
 	return next
-}
-
-// resolveSrcSetLinks rewrites every candidate URL of a "srcset" value, normalizing whitespace
-// to single spaces. Commas at a field's edges separate candidates, inner ones belong to the URL.
-// https://html.spec.whatwg.org/multipage/images.html#parse-a-srcset-attribute
-func resolveSrcSetLinks(srcSet string, resolve func(link string) string) string {
-	var sb strings.Builder
-	expectLink := true
-	for field := range strings.FieldsSeq(srcSet) {
-		if sb.Len() != 0 {
-			sb.WriteByte(' ')
-		}
-		noLeadingCommas := strings.TrimLeft(field, ",")
-		expectLink = expectLink || noLeadingCommas != field // a leading comma closes the previous candidate
-		link := strings.TrimRight(noLeadingCommas, ",")
-		if expectLink && link != "" {
-			sb.WriteString(field[:len(field)-len(noLeadingCommas)])
-			sb.WriteString(resolve(link))
-			sb.WriteString(noLeadingCommas[len(link):])
-		} else {
-			sb.WriteString(field) // a descriptor, or bare commas
-		}
-		if link != "" {
-			expectLink = strings.HasSuffix(field, ",")
-		}
-	}
-	return sb.String()
 }

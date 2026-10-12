@@ -102,20 +102,3 @@ func TestProcessNodeAttrID_SkipHeadingIDForComments(t *testing.T) {
 		})
 	}
 }
-
-func TestResolveSrcSetLinks(t *testing.T) {
-	resolve := func(link string) string { return "/base/" + link }
-	cases := []struct{ input, expected string }{
-		{"a.png", "/base/a.png"},
-		{" a.png 1x, b.png 2x ", "/base/a.png 1x, /base/b.png 2x"},
-		{"a.png, b.png", "/base/a.png, /base/b.png"},
-		{"a.png,b.png", "/base/a.png,b.png"}, // only a trailing comma closes a candidate
-		{"a,b.png 1x", "/base/a,b.png 1x"},
-		{"a.png 1x ,b.png", "/base/a.png 1x ,/base/b.png"},
-		{"", ""},
-		{" ,, ", ",,"},
-	}
-	for _, c := range cases {
-		assert.Equal(t, c.expected, resolveSrcSetLinks(c.input, resolve), "input: %q", c.input)
-	}
-}
