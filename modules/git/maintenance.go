@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"errors"
 	"io/fs"
 	"os"
@@ -12,14 +11,7 @@ import (
 	"slices"
 
 	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/globallock"
 )
-
-// TryLockMaintenanceAndDo skips repositories busy with other maintenance, concurrent repacks and fsck fail on each other's temporary packs
-func TryLockMaintenanceAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
-	_, err := globallock.TryLockAndDo(ctx, "repo-maintenance:"+repo.GitRepoManagedID(), fn)
-	return err
-}
 
 // NeedsGarbageCollection reports loose objects or multiple packs, ignoring cruft and kept packs that "git gc" leaves in place
 func NeedsGarbageCollection(repo RepositoryFacade) bool {

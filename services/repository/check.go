@@ -108,12 +108,8 @@ func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Du
 }
 
 func gitGc(ctx context.Context, gitRepo git.RepositoryFacade, args gitcmd.TrustedCmdArgs) error {
-	var stdout string
-	err := git.TryLockMaintenanceAndDo(ctx, gitRepo, func(ctx context.Context) (err error) {
-		stdout, _, err = gitcmd.NewCommand("gc").AddArguments(args...).WithRepo(gitRepo).RunStdString(ctx)
-		return err
-	})
-	if err != nil {
+	stdout, _, err := gitcmd.NewCommand("gc").AddArguments(args...).WithRepo(gitRepo).RunStdString(ctx)
+	if err != nil && !gitcmd.IsStderr(err, gitcmd.StderrGcAlreadyRunning) {
 		log.Error("Repository garbage collection failed for %s. Stdout: %s\nError: %v", gitRepo.LogString(), stdout, err)
 		if err := system_model.CreateRepositoryNotice("Repository garbage collection failed (%s). Stdout: %s\nError: %v", gitRepo.LogString(), stdout, err); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)

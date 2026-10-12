@@ -6,7 +6,6 @@ package setting
 import (
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -88,14 +87,8 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	GitConfig.Options = make(map[string]string)
 	GitConfig.SetOption("diff.algorithm", "histogram")
 	GitConfig.SetOption("core.logAllRefUpdates", "true")
-
-	gcCron := struct{ Enabled bool }{Enabled: true}
-	if _, err := getCronSettings(rootCfg, "git_gc_repos", &gcCron); err != nil {
-		log.Fatal("Failed to map cron.git_gc_repos settings: %v", err)
-	}
-	autoMaintenance := strconv.FormatBool(!gcCron.Enabled) // git's own maintenance on push and fetch is replaced by the cron task
-	GitConfig.SetOption("maintenance.auto", autoMaintenance)
-	GitConfig.SetOption("receive.autogc", autoMaintenance)
+	GitConfig.SetOption("maintenance.auto", "false") // the git_gc_repos cron task maintains repositories instead
+	GitConfig.SetOption("receive.autogc", "false")
 
 	secGitReflog := rootCfg.Section("git.reflog")
 	if secGitReflog.HasKey("ENABLED") {

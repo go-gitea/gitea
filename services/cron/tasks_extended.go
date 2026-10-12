@@ -53,7 +53,7 @@ func registerGarbageCollectRepositories() {
 	}
 	RegisterTaskFatal("git_gc_repos", &RepoHealthCheckConfig{
 		BaseConfig: BaseConfig{
-			Enabled:    true, // setting.loadGitFrom reads the same default to turn off git's own auto maintenance
+			Enabled:    true,
 			RunAtStart: false,
 			Schedule:   "0 3 * * *",
 		},
