@@ -169,10 +169,6 @@ func parseGitHookCommitRefLine(line string) (oldCommitID, newCommitID string, re
 }
 
 func runHookPreReceive(ctx context.Context, c *cli.Command) error {
-	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
-		return nil
-	}
-
 	setup(ctx, c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
@@ -280,10 +276,6 @@ Gitea or set your environment appropriately.`, "")
 // runHookUpdate avoid to do heavy operations on update hook because it will be
 // invoked for every ref update which does not like pre-receive and post-receive
 func runHookUpdate(_ context.Context, c *cli.Command) error {
-	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
-		return nil
-	}
-
 	// Update is empty and is kept only for backwards compatibility
 	if len(os.Args) < 3 {
 		return nil
@@ -302,11 +294,6 @@ func runHookPostReceive(ctx context.Context, c *cli.Command) error {
 	// First of all run update-server-info no matter what
 	if err := gitcmd.NewCommand("update-server-info").RunWithStderr(ctx); err != nil {
 		return fmt.Errorf("failed to call 'git update-server-info': %w", err)
-	}
-
-	// Now if we're an internal don't do anything else
-	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
-		return nil
 	}
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {

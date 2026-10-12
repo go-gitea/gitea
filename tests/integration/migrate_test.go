@@ -94,9 +94,9 @@ func TestMigrateGiteaForm(t *testing.T) {
 			"description": "",
 			"uid":         strconv.FormatInt(repoOwner.ID, 10),
 		})
-		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+		resp = session.MakeRequest(t, req, http.StatusOK)
 		// Step 5: a redirection displays the migrated repository
-		loc := resp.Header().Get("Location")
+		loc := *test.ParseJSONRedirect(resp.Body.Bytes()).Redirect
 		assert.Equal(t, fmt.Sprintf("/%s/%s", ownerName, migratedRepoName), loc)
 		// Step 6: check the repo was created
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: migratedRepoName})

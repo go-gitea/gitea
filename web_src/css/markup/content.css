@@ -125,7 +125,8 @@
 .markup ol,
 .markup dl,
 .markup table,
-.markup pre {
+.markup pre,
+.markup math[display="block" i] {
   margin-top: 0;
   margin-bottom: 16px;
 }
