@@ -1,0 +1,15 @@
+{{$c := .Credit}}
+<div class="flex-text-block security-advisory-row">
+	<div class="ui search input tw-flex-1" data-global-init="initSecurityAdvisoryUserSearch">
+		<input class="prompt" name="credit_user" value="{{$c.User.Name}}" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" aria-label="{{ctx.Locale.Tr "repo.security_advisories.credit_user"}}" autocomplete="off">
+	</div>
+	<div class="ui selection dropdown" aria-label="{{ctx.Locale.Tr "repo.security_advisories.credit_type"}}">
+		<input type="hidden" name="credit_type" value="{{$c.Type}}">
+		<div class="text"></div>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		<div class="menu">
+			{{range .CreditTypes}}<div class="item" data-value="{{.}}">{{ctx.Locale.Tr (print "repo.security_advisories.credit." .)}}</div>{{end}}
+		</div>
+	</div>
+	<button type="button" class="ui basic icon button" data-remove-row data-tooltip-content="{{ctx.Locale.Tr "remove"}}" aria-label="{{ctx.Locale.Tr "remove"}}">{{svg "octicon-trash"}}</button>
+</div>

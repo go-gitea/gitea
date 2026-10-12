@@ -353,6 +353,7 @@ func NewTeamPost(ctx *context.Context) {
 		AccessMode:              teamPermission,
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
+		IsSecurityTeam:          form.IsSecurityTeam,
 		Visibility:              org_model.NormalizeTeamVisibility(form.Visibility),
 	}
 
@@ -531,6 +532,7 @@ func EditTeamPost(ctx *context.Context) {
 			t.IncludesAllRepositories = includesAllRepositories
 		}
 		t.CanCreateOrgRepo = form.CanCreateOrgRepo
+		t.IsSecurityTeam = form.IsSecurityTeam
 		t.Visibility = org_model.NormalizeTeamVisibility(form.Visibility)
 	} else {
 		t.CanCreateOrgRepo = true

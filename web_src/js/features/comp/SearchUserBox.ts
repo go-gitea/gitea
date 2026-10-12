@@ -7,8 +7,10 @@ type UserSearchResponse = {data: Array<{login: string; avatar_url: string; full_
 
 export function initCompSearchUserBox() {
   const box = document.querySelector<HTMLElement>('#search-user-box');
-  if (!box) return;
+  if (box) attachSearchUserBox(box);
+}
 
+export function attachSearchUserBox(box: HTMLElement) {
   const allowEmailInput = box.getAttribute('data-allow-email') === 'true';
   const allowEmailDescription = box.getAttribute('data-allow-email-description') ?? undefined;
   const includeOrgs = box.getAttribute('data-include-orgs') === 'true';

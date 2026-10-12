@@ -174,6 +174,12 @@
 						</a>
 					{{end}}
 
+					{{if and (not ctx.Consts.RepoUnitTypeSecurityAdvisories.UnitGlobalDisabled) (.Permission.CanRead ctx.Consts.RepoUnitTypeSecurityAdvisories)}}
+						<a class="{{if .PageIsSecurityAdvisories}}active {{end}}item" href="{{.RepoLink}}/security/advisories">
+							{{svg "octicon-shield"}} {{ctx.Locale.Tr "repo.security_advisories"}}
+						</a>
+					{{end}}
+
 					{{if and (.Permission.CanReadAny ctx.Consts.RepoUnitTypePullRequests ctx.Consts.RepoUnitTypeIssues ctx.Consts.RepoUnitTypeReleases ctx.Consts.RepoUnitTypeCode) (not .IsEmptyRepo)}}
 						<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
 							{{svg "octicon-pulse"}} {{ctx.Locale.Tr "repo.activity"}}

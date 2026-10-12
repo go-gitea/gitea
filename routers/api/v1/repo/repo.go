@@ -35,6 +35,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	actions_service "gitea.dev/services/actions"
+	advisory_service "gitea.dev/services/advisory"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -971,11 +972,27 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
+	oldPrivateReporting := advisory_service.IsPrivateReportingConfigured(ctx, repo)
+	newPrivateReporting := oldPrivateReporting
+	if opts.HasSecurityAdvisories != nil && !unit_model.TypeSecurityAdvisories.UnitGlobalDisabled() {
+		if !*opts.HasSecurityAdvisories {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeSecurityAdvisories)
+			newPrivateReporting = false
+		} else {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeSecurityAdvisories,
+				Config: repo.MustGetUnit(ctx, unit_model.TypeSecurityAdvisories).SecurityAdvisoriesConfig(),
+			})
+		}
+	}
+
 	if len(units)+len(deleteUnitTypes) > 0 {
 		if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
 			return err
 		}
 	}
+	advisory_service.RecordPrivateReportingChange(ctx, ctx.Doer, repo, oldPrivateReporting, newPrivateReporting)
 	return nil
 }
 

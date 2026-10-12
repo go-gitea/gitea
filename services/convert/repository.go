@@ -138,6 +138,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	hasReleases := repo.UnitEnabled(ctx, unit_model.TypeReleases)
 	hasPackages := repo.UnitEnabled(ctx, unit_model.TypePackages)
 	hasActions := repo.UnitEnabled(ctx, unit_model.TypeActions)
+	hasSecurityAdvisories := repo.UnitEnabled(ctx, unit_model.TypeSecurityAdvisories)
 
 	if err := repo.LoadOwner(ctx); err != nil {
 		return nil
@@ -236,6 +237,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		HasReleases:                   hasReleases,
 		HasPackages:                   hasPackages,
 		HasActions:                    hasActions,
+		HasSecurityAdvisories:         hasSecurityAdvisories,
 		ExternalWiki:                  externalWiki,
 		HasPullRequests:               hasPullRequests,
 		IgnoreWhitespaceConflicts:     ignoreWhitespaceConflicts,

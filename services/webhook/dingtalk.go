@@ -167,6 +167,12 @@ func (dc dingtalkConvertor) Release(p *api.ReleasePayload) (DingtalkPayload, err
 	return createDingtalkPayload(text, text, "view release", p.Release.HTMLURL), nil
 }
 
+func (dc dingtalkConvertor) RepositoryAdvisory(p *api.RepositoryAdvisoryPayload) (DingtalkPayload, error) {
+	text, _ := getRepositoryAdvisoryPayloadInfo(p, noneLinkFormatter, true)
+
+	return createDingtalkPayload(text, text, "view advisory", p.RepositoryAdvisory.HTMLURL), nil
+}
+
 func (dc dingtalkConvertor) Package(p *api.PackagePayload) (DingtalkPayload, error) {
 	text, _ := getPackagePayloadInfo(p, noneLinkFormatter, true)
 

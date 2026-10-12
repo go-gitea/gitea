@@ -15,6 +15,7 @@ import (
 	shared_label "gitea.dev/routers/web/shared/label"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
+	issue_service "gitea.dev/services/issue"
 )
 
 // RetrieveLabels find all the labels of an organization
@@ -85,7 +86,7 @@ func UpdateLabel(ctx *context.Context) {
 
 // DeleteLabel delete a label
 func DeleteLabel(ctx *context.Context) {
-	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+	if err := issue_service.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteLabel: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))

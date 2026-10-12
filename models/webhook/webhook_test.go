@@ -139,7 +139,7 @@ func TestWebhook_EventsArray(t *testing.T) {
 		"pull_request", "pull_request_assign", "pull_request_label", "pull_request_milestone",
 		"pull_request_comment", "pull_request_review_approved", "pull_request_review_rejected",
 		"pull_request_review_comment", "pull_request_sync", "pull_request_review_request", "wiki", "repository", "release",
-		"package", "status", "workflow_run", "workflow_job",
+		"package", "status", "repository_advisory", "workflow_run", "workflow_job",
 	},
 		(&Webhook{
 			HookEvent: &webhook_module.HookEvent{SendEverything: true},
@@ -151,6 +151,14 @@ func TestWebhook_EventsArray(t *testing.T) {
 			HookEvent: &webhook_module.HookEvent{PushOnly: true},
 		}).EventsArray(),
 	)
+}
+
+func TestWebhook_HasEventRepositoryAdvisory(t *testing.T) {
+	everything := &Webhook{HookEvent: &webhook_module.HookEvent{SendEverything: true}}
+	assert.False(t, everything.HasEvent(webhook_module.HookEventRepositoryAdvisoryReported), "undisclosed reports need an explicit selection")
+	assert.True(t, everything.HasEvent(webhook_module.HookEventRepositoryAdvisory))
+	assert.NotContains(t, everything.EventsArray(), string(webhook_module.HookEventRepositoryAdvisoryReported), "an edit sending the events back must not subscribe to reports")
+	assert.Equal(t, "repository_advisory", webhook_module.HookEventRepositoryAdvisoryReported.Event())
 }
 
 func TestCreateWebhook(t *testing.T) {

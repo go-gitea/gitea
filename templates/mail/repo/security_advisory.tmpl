@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+	{{template "mail/base/head" .Subject}}
+</head>
+
+{{$advisory_url := HTMLFormat "<a href='%s'>%s</a>" .Link .Summary}}
+{{$repo_url := HTMLFormat "<a href='%s'>%s</a>" .RepoLink .RepoName}}
+<body>
+	<p>{{.locale.Tr .TextKey .DoerName $advisory_url $repo_url}}</p>
+	{{if .Content}}<div>{{.Content}}</div>{{end}}
+	<p><a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a></p>
+	{{template "mail/base/footer"}}
+</body>
+</html>

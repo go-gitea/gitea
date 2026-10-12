@@ -6,12 +6,14 @@ package webhook
 import (
 	"testing"
 
+	advisory_model "gitea.dev/models/advisory"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -31,6 +33,7 @@ func TestWebhookService(t *testing.T) {
 	t.Run("WebhookUserMail", testWebhookUserMail)
 	t.Run("CheckBranchFilter", testWebhookCheckBranchFilter)
 	t.Run("PrepareTestWebhookIgnoresGates", testPrepareTestWebhookIgnoresGates)
+	t.Run("RepositoryAdvisoryReportHidesReporter", testRepositoryAdvisoryReportHidesReporter)
 }
 
 func testWebhookGetSlackHook(t *testing.T) {
@@ -166,4 +169,30 @@ func testPrepareTestWebhookIgnoresGates(t *testing.T) {
 	// Manual test delivery always queues so the endpoint can be verified.
 	require.NoError(t, PrepareTestWebhook(t.Context(), hook, webhook_module.HookEventPush, payload))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
+}
+
+func testRepositoryAdvisoryReportHidesReporter(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	reporter := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	hook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://localhost/gitea-webhook-test-advisory_report",
+		ContentType: webhook_model.ContentTypeJSON,
+		IsActive:    true,
+		HookEvent: &webhook_module.HookEvent{
+			ChooseEvents: true,
+			HookEvents:   webhook_module.HookEvents{webhook_module.HookEventRepositoryAdvisoryReported: true},
+		},
+	}
+	require.NoError(t, hook.UpdateEvent())
+	require.NoError(t, db.Insert(t.Context(), hook))
+
+	a := &advisory_model.Advisory{RepoID: repo.ID, Repo: repo, Identifier: "abcd-efgh-ijkl", State: advisory_model.StateTriage, IsReport: true, ReporterID: reporter.ID}
+	(&webhookNotifier{}).NewSecurityAdvisoryReport(t.Context(), reporter, a)
+
+	task := unittest.AssertExistsAndLoadBean(t, &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventRepositoryAdvisoryReported})
+	var p api.RepositoryAdvisoryPayload
+	require.NoError(t, json.Unmarshal([]byte(task.PayloadContent), &p))
+	assert.Equal(t, user_model.GhostUserName, p.Sender.UserName, "the reporter of an undisclosed vulnerability is not revealed in chat messages")
+	assert.Equal(t, reporter.Name, p.RepositoryAdvisory.Author.UserName, "the hooks of reports get the private details")
 }

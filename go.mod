@@ -70,6 +70,7 @@ require (
 	github.com/niklasfasching/go-org v1.9.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
+	github.com/pandatix/go-cvss v0.6.4
 	github.com/pquerna/otp v1.5.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/quasoft/websspi v1.1.2

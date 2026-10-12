@@ -6,12 +6,23 @@ package issue
 import (
 	"context"
 
+	advisory_model "gitea.dev/models/advisory"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
 	notify_service "gitea.dev/services/notify"
 )
+
+// DeleteLabel deletes a label of the repository or organization and unassigns it from the security advisories
+func DeleteLabel(ctx context.Context, ownerID, labelID int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issues_model.DeleteLabel(ctx, ownerID, labelID); err != nil {
+			return err
+		}
+		return advisory_model.DeleteLabelLinks(ctx, labelID)
+	})
+}
 
 // ClearLabels clears all of an issue's labels
 func ClearLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.User) error {

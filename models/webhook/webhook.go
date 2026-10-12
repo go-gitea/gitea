@@ -170,7 +170,7 @@ func (w *Webhook) UpdateEvent() error {
 
 func (w *Webhook) HasEvent(evt webhook_module.HookEventType) bool {
 	if w.SendEverything {
-		return true
+		return !evt.RequiresExplicitSelection()
 	}
 	if w.PushOnly {
 		return evt == webhook_module.HookEventPush

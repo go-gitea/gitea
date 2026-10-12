@@ -133,6 +133,27 @@ type swaggerResponseReleaseList struct {
 	Body []api.Release `json:"body"`
 }
 
+// RepositoryAdvisory
+// swagger:response RepositoryAdvisory
+type swaggerResponseRepositoryAdvisory struct {
+	// in:body
+	Body api.RepositoryAdvisory `json:"body"`
+}
+
+// RepositoryAdvisoryList
+// swagger:response RepositoryAdvisoryList
+type swaggerResponseRepositoryAdvisoryList struct {
+	// in:body
+	Body []api.RepositoryAdvisory `json:"body"`
+}
+
+// PrivateVulnerabilityReporting
+// swagger:response PrivateVulnerabilityReporting
+type swaggerResponsePrivateVulnerabilityReporting struct {
+	// in:body
+	Body api.PrivateVulnerabilityReporting `json:"body"`
+}
+
 // PullRequest
 // swagger:response PullRequest
 type swaggerResponsePullRequest struct {
@@ -508,4 +529,18 @@ type swaggerCompare struct {
 type swaggerMergeUpstreamResponse struct {
 	// in:body
 	Body api.MergeUpstreamResponse `json:"body"`
+}
+
+// RepositoryAdvisoryComment
+// swagger:response RepositoryAdvisoryComment
+type swaggerResponseRepositoryAdvisoryComment struct {
+	// in:body
+	Body api.RepositoryAdvisoryComment `json:"body"`
+}
+
+// RepositoryAdvisoryCommentList
+// swagger:response RepositoryAdvisoryCommentList
+type swaggerResponseRepositoryAdvisoryCommentList struct {
+	// in:body
+	Body []api.RepositoryAdvisoryComment `json:"body"`
 }

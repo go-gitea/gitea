@@ -228,6 +228,24 @@ func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, w
 	return text, color
 }
 
+func getRepositoryAdvisoryPayloadInfo(p *api.RepositoryAdvisoryPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
+	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+	switch p.Action {
+	case api.HookRepositoryAdvisoryReported:
+		return fmt.Sprintf("[%s] Vulnerability reported privately: %s", repoLink, linkFormatter(p.RepositoryAdvisory.HTMLURL, p.RepositoryAdvisory.Identifier)), orangeColor
+	case api.HookRepositoryAdvisoryPublished:
+		text = fmt.Sprintf("[%s] Security advisory published: %s", repoLink, linkFormatter(p.RepositoryAdvisory.HTMLURL, p.RepositoryAdvisory.Summary))
+		color = redColor
+	case api.HookRepositoryAdvisoryWithdrawn:
+		text = fmt.Sprintf("[%s] Security advisory withdrawn: %s", repoLink, linkFormatter(p.RepositoryAdvisory.HTMLURL, p.RepositoryAdvisory.Summary))
+		color = greyColor
+	}
+	if withSender {
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
+	}
+	return text, color
+}
+
 func getWikiPayloadInfo(p *api.WikiPayload, linkFormatter linkFormatter, withSender bool) (string, int, string) {
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	pageLink := linkFormatter(p.Repository.HTMLURL+"/wiki/"+url.PathEscape(p.Page), p.Page)

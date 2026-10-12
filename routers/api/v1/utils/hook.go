@@ -176,6 +176,8 @@ func updateHookEvents(events []string) webhook_module.HookEvents {
 	hookEvents[webhook_module.HookEventStatus] = util.SliceContainsString(events, string(webhook_module.HookEventStatus), true)
 	hookEvents[webhook_module.HookEventWorkflowRun] = util.SliceContainsString(events, string(webhook_module.HookEventWorkflowRun), true)
 	hookEvents[webhook_module.HookEventWorkflowJob] = util.SliceContainsString(events, string(webhook_module.HookEventWorkflowJob), true)
+	hookEvents[webhook_module.HookEventRepositoryAdvisory] = util.SliceContainsString(events, string(webhook_module.HookEventRepositoryAdvisory), true)
+	hookEvents[webhook_module.HookEventRepositoryAdvisoryReported] = util.SliceContainsString(events, string(webhook_module.HookEventRepositoryAdvisoryReported), true)
 
 	// Issues
 	hookEvents[webhook_module.HookEventIssues] = issuesHook(events, "issues_only")

@@ -107,6 +107,7 @@ type Repository struct {
 	HasReleases                   bool             `json:"has_releases"`
 	HasPackages                   bool             `json:"has_packages"`
 	HasActions                    bool             `json:"has_actions"`
+	HasSecurityAdvisories         bool             `json:"has_security_advisories"`
 	IgnoreWhitespaceConflicts     bool             `json:"ignore_whitespace_conflicts"`
 	AllowMerge                    bool             `json:"allow_merge_commits"`
 	AllowRebase                   bool             `json:"allow_rebase"`
@@ -210,6 +211,8 @@ type EditRepoOption struct {
 	HasPackages *bool `json:"has_packages,omitempty"`
 	// either `true` to enable actions unit, or `false` to disable them.
 	HasActions *bool `json:"has_actions,omitempty"`
+	// either `true` to enable security advisories unit, or `false` to disable them.
+	HasSecurityAdvisories *bool `json:"has_security_advisories,omitempty"`
 	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
 	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits.

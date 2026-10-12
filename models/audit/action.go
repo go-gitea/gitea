@@ -189,6 +189,14 @@ var (
 	WikiPageUpdate = define("wiki:page:update", "Updated wiki page {page} in repository {scope}.")
 	WikiPageDelete = define("wiki:page:delete", "Deleted wiki page {page} from repository {scope}.")
 
+	SecurityAdvisoryCreate             = define("security_advisory:create", "Created security advisory {advisory} in repository {scope}.")
+	SecurityAdvisoryReport             = define("security_advisory:report", "Reported vulnerability {advisory} privately to repository {scope}.")
+	SecurityAdvisoryState              = define("security_advisory:state", "Changed state of security advisory {advisory} in repository {scope} from {previous_state} to {state}.")
+	SecurityAdvisoryDelete             = define("security_advisory:delete", "Deleted security advisory {advisory} from repository {scope}.")
+	SecurityAdvisoryCollaboratorAdd    = define("security_advisory:collaborator:add", "Added {collaborator} as collaborator of security advisory {advisory} in repository {scope}.")
+	SecurityAdvisoryCollaboratorRemove = define("security_advisory:collaborator:remove", "Removed {collaborator} as collaborator of security advisory {advisory} in repository {scope}.")
+	SecurityAdvisoryPrivateReporting   = define("security_advisory:private_reporting:update", "Changed private vulnerability reporting of repository {scope} to {enabled}.")
+
 	ActionsWorkflowEnable   = define("actions:workflow:enable", "Enabled Actions workflow {workflow} in repository {scope}.")
 	ActionsWorkflowDisable  = define("actions:workflow:disable", "Disabled Actions workflow {workflow} in repository {scope}.")
 	ActionsWorkflowDispatch = define("actions:workflow:dispatch", "Dispatched Actions workflow {workflow} on {ref} in repository {scope}.")
