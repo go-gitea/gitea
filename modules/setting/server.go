@@ -102,6 +102,8 @@ var (
 	AcmeEmail                  string
 	AcmeURL                    string
 	AcmeProfile                string
+	AcmeEABKID                 string
+	AcmeEABHMAC                string
 	AcmeCARoot                 string
 	SSLMinimumVersion          string
 	SSLMaximumVersion          string
@@ -144,6 +146,11 @@ func loadServerDomainAndURL(sec ConfigSection, protocol string) {
 	AppDomain = appURL.Hostname()
 }
 
+func loadAcmeEABFrom(sec ConfigSection) {
+	AcmeEABKID = sec.Key("ACME_EAB_KID").MustString("")
+	AcmeEABHMAC = sec.Key("ACME_EAB_HMAC").MustString("")
+}
+
 func loadServerFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("server")
 	AppName = rootCfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
@@ -173,6 +180,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		if EnableAcme {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
 			AcmeProfile = sec.Key("ACME_PROFILE").MustString("")
+			loadAcmeEABFrom(sec)
 			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
 
 			if sec.HasKey("ACME_ACCEPTTOS") {
@@ -208,6 +216,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 				KeyFile = filepath.Join(CustomPath, KeyFile)
 			}
 		}
+
 		SSLMinimumVersion = sec.Key("SSL_MIN_VERSION").MustString("")
 		SSLMaximumVersion = sec.Key("SSL_MAX_VERSION").MustString("")
 		SSLCurvePreferences = sec.Key("SSL_CURVE_PREFERENCES").Strings(",")
