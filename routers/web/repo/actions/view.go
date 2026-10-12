@@ -853,7 +853,7 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 	}
 
 	for _, cursor := range cursors {
-		if !cursor.Expanded {
+		if !cursor.Expanded || cursor.Step < 0 || cursor.Step >= len(steps) {
 			continue
 		}
 

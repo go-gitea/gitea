@@ -206,6 +206,13 @@ func TestDetectMatched(t *testing.T) {
 			expected:     detectMatched,
 		},
 		{
+			desc:         "HookEventRelease(release) doesn't match an invalid activity type pattern",
+			triggedEvent: webhook_module.HookEventRelease,
+			payload:      &api.ReleasePayload{Action: api.HookReleasePublished},
+			yamlOn:       "on:\n  release:\n    types: [\"[\"]",
+			expected:     detectNotApplicable,
+		},
+		{
 			desc:         "HookEventPackage(package) `created` action doesn't match GithubEventRegistryPackage(registry_package) with `updated` activity type",
 			triggedEvent: webhook_module.HookEventPackage,
 			payload:      &api.PackagePayload{Action: api.HookPackageCreated},
