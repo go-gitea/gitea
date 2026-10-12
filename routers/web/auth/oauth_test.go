@@ -6,6 +6,7 @@ package auth
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync/atomic"
 	"testing"
 
@@ -126,10 +127,23 @@ func TestOAuth2ScopeChange(t *testing.T) {
 	assert.Equal(t, http.StatusSeeOther, authorize("profile openid"))
 	assert.Equal(t, http.StatusOK, authorize("openid profile email"))
 
-	ctx, resp := contexttest.MockContext(t, "/login/oauth/grant", mockOpt)
-	ctx.Doer = doer
-	web.SetForm(ctx, &forms.GrantApplicationForm{ClientID: app.ClientID, Granted: true, RedirectURI: app.RedirectURIs[0], State: "state", Scope: "openid profile email"})
-	GrantApplicationOAuth(ctx)
-	assert.Equal(t, http.StatusSeeOther, resp.Code)
-	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, Scope: "openid profile email"})
+	for _, tt := range []struct {
+		name, scope, wantScope, wantError string
+	}{
+		{"invalid scope", "openid invalid:scope", "openid profile", "invalid_scope"},
+		{"OIDC scopes", "openid profile email", "openid profile email", ""},
+		{"normalized access scopes", " read:user  openid profile email read:user ", "openid profile email read:user", ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, resp := contexttest.MockContext(t, "/login/oauth/grant", mockOpt)
+			ctx.Doer = doer
+			web.SetForm(ctx, &forms.GrantApplicationForm{ClientID: app.ClientID, Granted: true, RedirectURI: app.RedirectURIs[0], State: "state", Scope: tt.scope})
+			GrantApplicationOAuth(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			redirect, err := url.Parse(resp.Header().Get("Location"))
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantError, redirect.Query().Get("error"))
+			unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, Scope: tt.wantScope})
+		})
+	}
 }
