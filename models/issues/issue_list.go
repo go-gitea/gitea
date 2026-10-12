@@ -40,17 +40,15 @@ func (issues IssueList) LoadRepositories(ctx context.Context) (repo_model.Reposi
 
 	repoIDs := issues.getRepoIDs()
 	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
-	left := len(repoIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		err := db.GetEngine(ctx).
-			In("id", repoIDs[:limit]).
-			Find(&repoMaps)
-		if err != nil {
-			return nil, fmt.Errorf("find repository: %w", err)
-		}
-		left -= limit
-		repoIDs = repoIDs[limit:]
+	err := db.QueryAndProcessByChunk(repoIDs, func(chunk []int64) (out []*repo_model.Repository, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(repo *repo_model.Repository) error {
+		repoMaps[repo.ID] = repo
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("find repository: %w", err)
 	}
 
 	for _, issue := range issues {
@@ -147,17 +145,15 @@ func (issues IssueList) LoadMilestones(ctx context.Context) error {
 	}
 
 	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
-	left := len(milestoneIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		err := db.GetEngine(ctx).
-			In("id", milestoneIDs[:limit]).
-			Find(&milestoneMaps)
-		if err != nil {
-			return err
-		}
-		left -= limit
-		milestoneIDs = milestoneIDs[limit:]
+	err := db.QueryAndProcessByChunk(milestoneIDs, func(chunk []int64) (out []*Milestone, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(milestone *Milestone) error {
+		milestoneMaps[milestone.ID] = milestone
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	for _, issue := range issues {
