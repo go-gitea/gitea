@@ -13,7 +13,7 @@ import (
 	"gitea.dev/modules/git/gitrepo"
 )
 
-// NeedsGarbageCollection reports loose objects or multiple packs, ignoring cruft and kept packs that "git gc" leaves in place
+// NeedsGarbageCollection reports whether the repository is not fully packed
 func NeedsGarbageCollection(repo RepositoryFacade) bool {
 	objectsPath := filepath.Join(gitrepo.RepoLocalPath(repo), "objects")
 	dirs, err := os.ReadDir(objectsPath)
