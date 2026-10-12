@@ -365,10 +365,11 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		// because the content there is not processable, for example: the content is a commit id or a full URL.
 		procs = emojiProcessors
 	}
+	next := node.NextSibling
 	for n := node.FirstChild; n != nil; {
 		n = visitNode(ctx, procs, n)
 	}
-	return node.NextSibling
+	return next
 }
 
 // createKeyword() renders a highlighted version of an action keyword

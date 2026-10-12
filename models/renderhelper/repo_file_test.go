@@ -9,6 +9,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/test"
 
 	_ "gitea.dev/modules/markup/orgmode"
 
@@ -86,8 +87,16 @@ func TestRepoFile(t *testing.T) {
 			WithMarkupType(markdown.MarkupName)
 		rendered, err := testRenderString(rctx, `<picture><source media="(prefers-color-scheme: dark)" srcset="dark.svg"><img src="light.svg"></picture>`)
 		assert.NoError(t, err)
-		assert.Equal(t, `<p><picture><source media="(prefers-color-scheme: dark)" srcset="/user2/repo1/media/branch/main/dark.svg"/><a href="/user2/repo1/src/branch/main/light.svg" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/main/light.svg"/></a></picture></p>
-`, rendered)
+		assert.Equal(t, test.NormalizeHTMLSpaces(`
+<p>
+	<a href="/user2/repo1/src/branch/main/light.svg" target="_blank" rel="nofollow noopener">
+		<picture>
+			<source media="(prefers-color-scheme: dark)" srcset="/user2/repo1/media/branch/main/dark.svg"/>
+			<img src="/user2/repo1/media/branch/main/light.svg"/>
+		</picture>
+	</a>
+</p>
+`), test.NormalizeHTMLSpaces(rendered))
 	})
 }
 

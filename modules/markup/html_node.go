@@ -157,15 +157,19 @@ func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 			cnt++
 		}
 		if isLinkable {
+			linkNode := img
+			if img.Parent.Data == "picture" {
+				linkNode = img.Parent
+			}
 			wrapper := &html.Node{Type: html.ElementNode, Data: "a", Attr: []html.Attribute{
 				{Key: "href", Val: ctx.RenderHelper.ResolveLink(imgSrcOrigin, LinkTypeDefault)},
 				{Key: "target", Val: "_blank"},
 			}}
-			parent := img.Parent
-			imgNext := img.NextSibling
-			parent.RemoveChild(img)
-			parent.InsertBefore(wrapper, imgNext)
-			wrapper.AppendChild(img)
+			parent := linkNode.Parent
+			linkNext := linkNode.NextSibling
+			parent.RemoveChild(linkNode)
+			parent.InsertBefore(wrapper, linkNext)
+			wrapper.AppendChild(linkNode)
 		}
 		imgAttr.Val = resolveMediaLinkWithCamo(ctx, imgSrcOrigin)
 		img.Attr[i] = imgAttr

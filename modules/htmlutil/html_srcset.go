@@ -12,16 +12,16 @@ type SrcSetCandidate struct {
 	SrcDesc []string
 }
 
-const asciiSpaces = " \t\n\r\f"
-
-func isAsciiSpace(r byte) bool {
-	return strings.IndexByte(asciiSpaces, r) >= 0
-}
+const (
+	asciiSpaces         = " \t\n\r\f"
+	asciiSpacesAndComma = " \t\n\r\f,"
+)
 
 func ParseSrcset(srcset string) (candidates []SrcSetCandidate) {
 	// ref: https://html.spec.whatwg.org/multipage/images.html#parse-a-srcset-attribute
+	// It can't simply use "split" because comma can appear in URLs and descriptors can be parenthesized and contain commas.
 	extractLink := func() (string, bool) {
-		srcset = strings.TrimLeft(srcset, asciiSpaces+",")
+		srcset = strings.TrimLeft(srcset, asciiSpacesAndComma)
 		if srcset == "" {
 			return "", false
 		}
@@ -52,7 +52,7 @@ func ParseSrcset(srcset string) (candidates []SrcSetCandidate) {
 				inParentheses = true
 				continue
 			}
-			if c == ',' || isAsciiSpace(c) {
+			if strings.IndexByte(asciiSpacesAndComma, c) != -1 {
 				desc := srcset[:i]
 				srcset = srcset[i+1:]
 				return desc, c != ','
