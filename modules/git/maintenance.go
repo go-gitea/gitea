@@ -10,9 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/globallock"
 )
@@ -30,28 +28,21 @@ func NeedsGarbageCollection(repo RepositoryFacade) bool {
 	if err != nil {
 		return !errors.Is(err, fs.ErrNotExist) // let "git gc" report unreadable repositories, a missing wiki is normal
 	}
-	packPath := filepath.Join(objectsPath, "pack")
-	entries, _ := os.ReadDir(packPath)
-	names := make(container.Set[string], len(entries))
-	for _, entry := range entries {
-		names.Add(entry.Name())
-	}
+	packFiles, _ := os.ReadDir(filepath.Join(objectsPath, "pack"))
 	packs := 0
-	for name := range names {
-		if base, ok := strings.CutSuffix(name, ".pack"); ok && !names.Contains(base+".mtimes") && !names.Contains(base+".keep") {
+	for _, packFile := range packFiles {
+		switch filepath.Ext(packFile.Name()) {
+		case ".pack":
 			packs++
+		case ".mtimes", ".keep":
+			packs--
 		}
 	}
-	if packs > 1 {
-		return true
-	}
-	return slices.ContainsFunc(dirs, func(dir os.DirEntry) bool {
+	return packs > 1 || slices.ContainsFunc(dirs, func(dir os.DirEntry) bool {
 		if len(dir.Name()) != 2 {
 			return false
 		}
 		objects, _ := os.ReadDir(filepath.Join(objectsPath, dir.Name()))
-		return slices.ContainsFunc(objects, func(object os.DirEntry) bool {
-			return len(object.Name()) == 38 || len(object.Name()) == 62 // SHA-1 or SHA-256 hex without the directory's two characters
-		})
+		return len(objects) > 0
 	})
 }
