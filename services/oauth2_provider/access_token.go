@@ -107,8 +107,10 @@ func splitGrantScopes(grantScopes string) (generalScopes []string, accessScope a
 		return generalScopes, ""
 	}
 
+	// Since version 1.22, if no access scope is provided, then "all" access is granted.
+	//
 	// OAuth also permits ignoring requested scopes under server policy: https://www.rfc-editor.org/rfc/rfc6749.html#section-3.3
-	// If after the removal the invalid scopes, there are no valid scopes left, we return no-token-scope to prevent granting full access.
+	// If after the removal the invalid scopes, there are no valid scopes left, we return no-token-scope to prevent granting "all" access.
 	accessScope, _ = auth.AccessTokenScope(strings.Join(accessScopes, ",")).Normalize()
 	if accessScope == "" {
 		accessScope = auth.AccessTokenScopeNone
