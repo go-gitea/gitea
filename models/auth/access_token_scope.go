@@ -54,7 +54,8 @@ type AccessTokenScope string
 // for all categories, write implies read
 const (
 	AccessTokenScopeAll        AccessTokenScope = "all"
-	AccessTokenScopePublicOnly AccessTokenScope = "public-only" // limited to public orgs/repos
+	AccessTokenScopeNone       AccessTokenScope = "no-token-scope" // no token permission scopes, so no API permissions
+	AccessTokenScopePublicOnly AccessTokenScope = "public-only"    // limited to public orgs/repos
 
 	AccessTokenScopeReadActivityPub  AccessTokenScope = "read:activitypub"
 	AccessTokenScopeWriteActivityPub AccessTokenScope = "write:activitypub"
@@ -147,6 +148,7 @@ var allAccessTokenScopes = []AccessTokenScope{
 // allAccessTokenScopeBits contains all access token scopes.
 var allAccessTokenScopeBits = map[AccessTokenScope]accessTokenScopeBitmap{
 	AccessTokenScopeAll:               accessTokenScopeAllBits,
+	AccessTokenScopeNone:              0,
 	AccessTokenScopePublicOnly:        accessTokenScopePublicOnlyBits,
 	AccessTokenScopeReadActivityPub:   accessTokenScopeReadActivityPubBits,
 	AccessTokenScopeWriteActivityPub:  accessTokenScopeWriteActivityPubBits,
@@ -209,11 +211,6 @@ func GetRequiredScopes(level AccessTokenScopeLevel, scopeCategories ...AccessTok
 		scopes = append(scopes, accessTokenScopes[level][cat])
 	}
 	return scopes
-}
-
-// ContainsCategory checks if a list of categories contains a specific category
-func ContainsCategory(categories []AccessTokenScopeCategory, category AccessTokenScopeCategory) bool {
-	return slices.Contains(categories, category)
 }
 
 // GetScopeLevelFromAccessMode converts permission access mode to scope level
@@ -286,12 +283,14 @@ func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 	if err != nil {
 		return "", err
 	}
-
+	if bitmap == 0 && slices.Contains(s.StringSlice(), string(AccessTokenScopeNone)) {
+		return AccessTokenScopeNone, nil
+	}
 	return bitmap.toScope(), nil
 }
 
 func (s AccessTokenScope) HasPermissionScope() bool {
-	return s != "" && s != AccessTokenScopePublicOnly
+	return s != "" && s != AccessTokenScopeNone && s != AccessTokenScopePublicOnly
 }
 
 // PublicOnly checks if this token scope is limited to public resources

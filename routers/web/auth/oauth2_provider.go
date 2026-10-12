@@ -10,7 +10,6 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -198,7 +197,7 @@ func IntrospectOAuth(ctx *context.Context) {
 	}
 
 	response.Active = true
-	response.Scope = grant.Scope
+	response.Scope = oauth2_provider.NormalizeGrantScope(grant.Scope)
 	response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
 	user, err := user_model.GetUserByID(ctx, grant.UserID)
 	if err != nil {
@@ -324,12 +323,15 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
+	if grant != nil && form.Scope == "" {
+		form.Scope = grant.Scope
+	}
+	form.Scope = oauth2_provider.NormalizeGrantScope(form.Scope)
+
 	var addedScopes, removedScopes []string
 	if grant != nil {
-		if form.Scope == "" {
-			form.Scope = grant.Scope
-		}
-		addedScopes, removedScopes = util.DiffSlice(strings.Fields(grant.Scope), strings.Fields(form.Scope))
+		grantedScope := oauth2_provider.NormalizeGrantScope(grant.Scope)
+		addedScopes, removedScopes = util.DiffSlice(strings.Fields(grantedScope), strings.Fields(form.Scope))
 	}
 	scopeChanged := len(addedScopes) > 0 || len(removedScopes) > 0
 
@@ -400,33 +402,6 @@ func AuthorizeOAuth(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplGrantAccess)
 }
 
-// normalizeGrantScope validates scope and returns its normalized form, keeping the
-// general OIDC scopes (openid, profile, email, groups) as-is and deduplicating/
-// canonicalizing the remaining access token scopes, mirroring the split done by
-// oauth2_provider.GrantAdditionalScopes when the scope is consumed.
-func normalizeGrantScope(scope string) (string, error) {
-	generalScopesSupported := oauth2_provider.GeneralScopesSupported()
-	var generalScopes, accessScopes []string
-	for s := range strings.SplitSeq(scope, " ") {
-		if s == "" {
-			continue
-		}
-		if slices.Contains(generalScopesSupported, s) {
-			generalScopes = append(generalScopes, s)
-		} else {
-			accessScopes = append(accessScopes, s)
-		}
-	}
-	if len(accessScopes) == 0 {
-		return strings.Join(generalScopes, " "), nil
-	}
-	normalizedAccessScope, err := auth.AccessTokenScope(strings.Join(accessScopes, ",")).Normalize()
-	if err != nil {
-		return "", err
-	}
-	return strings.Join(append(generalScopes, normalizedAccessScope.StringSlice()...), " "), nil
-}
-
 // GrantApplicationOAuth manages the post request submitted when a user grants access to an application
 func GrantApplicationOAuth(ctx *context.Context) {
 	form := web.GetForm[*forms.GrantApplicationForm](ctx)
@@ -459,16 +434,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
 	}
-	normalizedScope, err := normalizeGrantScope(form.Scope)
-	if err != nil {
-		handleAuthorizeError(ctx, AuthorizeError{
-			State:            form.State,
-			ErrorDescription: "Invalid Scope: " + err.Error(),
-			ErrorCode:        ErrorCodeInvalidScope,
-		}, form.RedirectURI)
-		return
-	}
-	form.Scope = normalizedScope
+	form.Scope = oauth2_provider.NormalizeGrantScope(form.Scope)
 
 	if grant == nil {
 		grant, err = app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
