@@ -91,7 +91,11 @@ func EncodeSrcset(candidates []SrcSetCandidate) string {
 		if i != 0 {
 			sb.WriteString(", ")
 		}
-		sb.WriteString(c.SrcLink)
+		link := c.SrcLink
+		if prefix, ok := strings.CutSuffix(link, ","); ok {
+			link = prefix + "%2C"
+		}
+		sb.WriteString(link)
 		for _, d := range c.SrcDesc {
 			sb.WriteByte(' ')
 			sb.WriteString(d)

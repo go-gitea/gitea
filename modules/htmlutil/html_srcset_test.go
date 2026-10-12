@@ -64,4 +64,18 @@ func TestSrcset(t *testing.T) {
 			assert.Equal(t, util.IfZero(test.encoded, test.input), encoded)
 		})
 	}
+
+	t.Run("encode trailing commas", func(t *testing.T) {
+		encoded := EncodeSrcset([]SrcSetCandidate{
+			{SrcLink: "image,"},
+			{SrcLink: "image,,", SrcDesc: []string{"2x"}},
+			{SrcLink: "image.svg?variant=light,", SrcDesc: []string{"3x"}},
+		})
+		assert.Equal(t, "image%2C, image,%2C 2x, image.svg?variant=light%2C 3x", encoded)
+		assert.Equal(t, []SrcSetCandidate{
+			{SrcLink: "image%2C"},
+			{SrcLink: "image,%2C", SrcDesc: []string{"2x"}},
+			{SrcLink: "image.svg?variant=light%2C", SrcDesc: []string{"3x"}},
+		}, ParseSrcset(encoded))
+	})
 }
