@@ -170,32 +170,27 @@ func (issues IssueList) LoadMilestones(ctx context.Context) error {
 func (issues IssueList) LoadProjects(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
 	issueProjectMaps := make(map[int64][]*project_model.Project, len(issues))
-	left := len(issueIDs)
 
 	type projectWithIssueID struct {
 		*project_model.Project `xorm:"extends"`
 		IssueID                int64
 	}
 
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-
-		projects := make([]*projectWithIssueID, 0, limit)
-		err := db.GetEngine(ctx).
+	err := db.QueryAndProcessByChunk(issueIDs, func(chunk []int64) (out []*projectWithIssueID, err error) {
+		err = db.GetEngine(ctx).
 			Table("project").
 			Select("project.*, project_issue.issue_id").
 			Join("INNER", "project_issue", "project.id = project_issue.project_id").
-			In("project_issue.issue_id", issueIDs[:limit]).
+			In("project_issue.issue_id", chunk).
 			OrderBy("project_issue.issue_id ASC, project.id ASC").
-			Find(&projects)
-		if err != nil {
-			return err
-		}
-		for _, project := range projects {
-			issueProjectMaps[project.IssueID] = append(issueProjectMaps[project.IssueID], project.Project)
-		}
-		left -= limit
-		issueIDs = issueIDs[limit:]
+			Find(&out)
+		return out, err
+	}, func(project *projectWithIssueID) error {
+		issueProjectMaps[project.IssueID] = append(issueProjectMaps[project.IssueID], project.Project)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("IssueList.LoadProjects: %w", err)
 	}
 
 	for _, issue := range issues {
@@ -290,9 +285,7 @@ func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 	attachments := make(map[int64][]*repo_model.Attachment, len(issues))
 	issuesIDs := issues.getIssueIDs()
 	err = db.QueryAndProcessByChunk(issuesIDs, func(chunk []int64) (out []*repo_model.Attachment, err error) {
-		err = db.GetEngine(ctx).
-			In("issue_id", chunk).
-			Find(&out)
+		err = db.GetEngine(ctx).In("issue_id", chunk).Find(&out)
 		return out, err
 	}, func(attachment *repo_model.Attachment) error {
 		attachments[attachment.IssueID] = append(attachments[attachment.IssueID], attachment)
