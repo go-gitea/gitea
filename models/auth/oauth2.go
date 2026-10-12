@@ -25,7 +25,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // Authorization codes should expire within 10 minutes per https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2
@@ -587,22 +586,17 @@ func GetOAuth2GrantsByUserID(ctx context.Context, uid int64) ([]*OAuth2Grant, er
 		Grant       *OAuth2Grant       `xorm:"extends"`
 		Application *OAuth2Application `xorm:"extends"`
 	}
-	var results *xorm.Rows
-	var err error
-	if results, err = db.GetEngine(ctx).
+	var joinedOAuth2Grants []*joinedOAuth2Grant
+	err := db.GetEngine(ctx).
 		Table("oauth2_grant").
 		Where("user_id = ?", uid).
 		Join("INNER", "oauth2_application", "application_id = oauth2_application.id").
-		Rows(new(joinedOAuth2Grant)); err != nil {
+		Find(&joinedOAuth2Grants)
+	if err != nil {
 		return nil, err
 	}
-	defer results.Close()
 	grants := make([]*OAuth2Grant, 0)
-	for results.Next() {
-		joinedGrant := new(joinedOAuth2Grant)
-		if err := results.Scan(joinedGrant); err != nil {
-			return nil, err
-		}
+	for _, joinedGrant := range joinedOAuth2Grants {
 		joinedGrant.Grant.Application = joinedGrant.Application
 		grants = append(grants, joinedGrant.Grant)
 	}

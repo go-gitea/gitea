@@ -434,7 +434,8 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(356, "Add index on action_run commit_sha", v29.AddActionRunCommitSHAIndex),
 		newMigration(357, "Normalize legacy team authorize values", v29.NormalizeLegacyTeamAuthorize),
-		newMigration(358, "Add runner_name to action_task", v29.AddRunnerNameToActionTask),
+		newMigration(358, "Track previous remember-me token hashes", v29.AddPreviousAuthTokenHash),
+		newMigration(359, "Add runner_name to action_task", v29.AddRunnerNameToActionTask),
 	}
 	return preparedMigrations
 }

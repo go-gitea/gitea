@@ -7,18 +7,19 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func AddRunnerNameToActionTask(_ context.Context, x base.EngineMigration) error {
-	type ActionTask struct {
-		RunnerName string `xorm:"VARCHAR(255)"`
+func AddPreviousAuthTokenHash(_ context.Context, x base.EngineMigration) error {
+	type AuthToken struct {
+		PreviousTokenHash string
+		RotatedUnix       timeutil.TimeStamp
 	}
-
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,
-	}, new(ActionTask))
+	}, new(AuthToken))
 	return err
 }
