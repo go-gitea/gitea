@@ -28,6 +28,39 @@ test('assign issue to project and change column', async ({page}) => {
   await apiDeleteRepo(page.request, user, repoName);
 });
 
+test('remove issues from project board', async ({page}) => {
+  const repoName = `e2e-board-remove-${randomString(8)}`;
+  const user = env.GITEA_TEST_E2E_USER;
+  await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName, autoInit: false})]);
+  try {
+    const project = await createProject(page, {owner: user, repo: repoName, title: 'Board'});
+    await Promise.all(['Card one', 'Card two'].map((title) => apiCreateIssue(page.request, {owner: user, repo: repoName, title, projects: [project.id]})));
+    await page.goto(`/${user}/${repoName}/projects/${project.id}`);
+    const cards = page.locator('.issue-card');
+    const confirmDialog = page.locator('.g-modal-confirm');
+    await expect(cards).toHaveCount(2);
+
+    const cardOne = cards.filter({hasText: 'Card one'});
+    await cardOne.hover();
+    await cardOne.getByRole('button', {name: 'Remove from Project'}).click();
+    await expect(confirmDialog).toContainText('Card one');
+    await confirmDialog.getByRole('button', {name: 'Confirm'}).click();
+    await expect(cards).toHaveCount(1);
+
+    await page.locator('.project-column-header .ui.dropdown').click();
+    await page.locator('.project-column-remove-issues').click();
+    await expect(confirmDialog).toContainText('Card two');
+    await confirmDialog.getByRole('button', {name: 'Confirm'}).click();
+    await expect(cards).toHaveCount(0);
+    await expect(page.locator('.project-column-issue-count')).toHaveText('0');
+
+    await page.reload();
+    await expect(page.locator('.project-column-issue-count')).toHaveText('0');
+  } finally {
+    await apiDeleteRepo(page.request, user, repoName);
+  }
+});
+
 test('create a project', async ({page}) => {
   const repoName = `e2e-project-repo-${Date.now()}`;
   const projectTitle = 'Test Project';

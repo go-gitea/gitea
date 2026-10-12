@@ -4,12 +4,12 @@
 package shared
 
 import (
+	"errors"
 	"math"
 	"net/http"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -109,41 +109,15 @@ func (s projectScope) findColumnIssue(ctx *context.APIContext) (*project_model.C
 	return column, s.findIssue(ctx)
 }
 
-// findIssue resolves an issue addressable within this scope. Owner-level boards span
-// repositories, so the issue is looked up globally and gated on the doer's read access.
+// findIssue resolves the "issue_id" path param as an issue addressable within this scope.
 func (s projectScope) findIssue(ctx *context.APIContext) *issues_model.Issue {
-	issueID := ctx.PathParamInt64("issue_id")
-	var issue *issues_model.Issue
-	var err error
-	if s.Repo != nil {
-		issue, err = issues_model.GetIssueByRepoID(ctx, s.Repo.ID, issueID)
-	} else {
-		issue, err = issues_model.GetIssueByID(ctx, issueID)
-	}
-	if err != nil {
+	issue, err := project_service.GetBoardIssue(ctx, ctx.Doer, s.repoID(), ctx.PathParamInt64("issue_id"))
+	if errors.Is(err, project_service.ErrIssueRepoArchived) {
+		ctx.APIError(http.StatusLocked, "repo is archived")
+		return nil
+	} else if err != nil {
 		ctx.APIErrorAuto(err)
 		return nil
-	}
-	if s.Repo == nil {
-		if err := issue.LoadRepo(ctx); err != nil {
-			ctx.APIErrorInternal(err)
-			return nil
-		}
-		perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, ctx.Doer)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return nil
-		}
-		// hide the issue's existence rather than reporting it as forbidden
-		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
-			ctx.APIErrorNotFound()
-			return nil
-		}
-		// the repo route group has mustNotBeArchived, owner boards have to check per issue
-		if issue.Repo.IsArchived {
-			ctx.APIError(http.StatusLocked, "repo is archived")
-			return nil
-		}
 	}
 	return issue
 }
