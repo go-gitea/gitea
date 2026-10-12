@@ -228,30 +228,15 @@ func (nl NotificationList) LoadRepos(ctx context.Context) (repo_model.Repository
 
 	repoIDs := nl.getPendingRepoIDs()
 	repos := make(map[int64]*repo_model.Repository, len(repoIDs))
-	left := len(repoIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).
-			In("id", repoIDs[:limit]).
-			Rows(new(repo_model.Repository))
-		if err != nil {
-			return nil, nil, err
-		}
-
-		for rows.Next() {
-			var repo repo_model.Repository
-			err = rows.Scan(&repo)
-			if err != nil {
-				rows.Close()
-				return nil, nil, err
-			}
-
-			repos[repo.ID] = &repo
-		}
-		_ = rows.Close()
-
-		left -= limit
-		repoIDs = repoIDs[limit:]
+	err := db.QueryAndProcessByChunk(repoIDs, func(chunk []int64) (out []*repo_model.Repository, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(repo *repo_model.Repository) error {
+		repos[repo.ID] = repo
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
 	}
 
 	failed := []int{}
@@ -299,30 +284,15 @@ func (nl NotificationList) LoadIssues(ctx context.Context) ([]int, error) {
 
 	issueIDs := nl.getPendingIssueIDs()
 	issues := make(map[int64]*issues_model.Issue, len(issueIDs))
-	left := len(issueIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).
-			In("id", issueIDs[:limit]).
-			Rows(new(issues_model.Issue))
-		if err != nil {
-			return nil, err
-		}
-
-		for rows.Next() {
-			var issue issues_model.Issue
-			err = rows.Scan(&issue)
-			if err != nil {
-				rows.Close()
-				return nil, err
-			}
-
-			issues[issue.ID] = &issue
-		}
-		_ = rows.Close()
-
-		left -= limit
-		issueIDs = issueIDs[limit:]
+	err := db.QueryAndProcessByChunk(issueIDs, func(chunk []int64) (out []*issues_model.Issue, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(issue *issues_model.Issue) error {
+		issues[issue.ID] = issue
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	failures := []int{}
@@ -391,30 +361,15 @@ func (nl NotificationList) LoadUsers(ctx context.Context) ([]int, error) {
 
 	userIDs := nl.getUserIDs()
 	users := make(map[int64]*user_model.User, len(userIDs))
-	left := len(userIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).
-			In("id", userIDs[:limit]).
-			Rows(new(user_model.User))
-		if err != nil {
-			return nil, err
-		}
-
-		for rows.Next() {
-			var user user_model.User
-			err = rows.Scan(&user)
-			if err != nil {
-				rows.Close()
-				return nil, err
-			}
-
-			users[user.ID] = &user
-		}
-		_ = rows.Close()
-
-		left -= limit
-		userIDs = userIDs[limit:]
+	err := db.QueryAndProcessByChunk(userIDs, func(chunk []int64) (out []*user_model.User, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(user *user_model.User) error {
+		users[user.ID] = user
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	failures := []int{}
@@ -439,30 +394,15 @@ func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 
 	commentIDs := nl.getPendingCommentIDs()
 	comments := make(map[int64]*issues_model.Comment, len(commentIDs))
-	left := len(commentIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).
-			In("id", commentIDs[:limit]).
-			Rows(new(issues_model.Comment))
-		if err != nil {
-			return nil, err
-		}
-
-		for rows.Next() {
-			var comment issues_model.Comment
-			err = rows.Scan(&comment)
-			if err != nil {
-				rows.Close()
-				return nil, err
-			}
-
-			comments[comment.ID] = &comment
-		}
-		_ = rows.Close()
-
-		left -= limit
-		commentIDs = commentIDs[limit:]
+	err := db.QueryAndProcessByChunk(commentIDs, func(chunk []int64) (out []*issues_model.Comment, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(comment *issues_model.Comment) error {
+		comments[comment.ID] = comment
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	failures := []int{}
