@@ -15,8 +15,7 @@ function initRepoIssueBranchSelector(elSidebar: HTMLElement) {
   const elSelectBranch = elSidebar.querySelector('.ui.dropdown.select-branch.branch-selector-dropdown');
   if (!elSelectBranch) return;
   const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');
-  const elBranchMenu = elSelectBranch.querySelector('.reference-list-menu')!;
-  queryElems(elBranchMenu, '.item:not(.no-select)', (el) => el.addEventListener('click', async function (e) {
+  queryElems(elSelectBranch, '.reference-list-menu .item:not(.no-select)', (el) => el.addEventListener('click', async function (e) {
     e.preventDefault();
     const selectedValue = this.getAttribute('data-id')!; // eg: "refs/heads/my-branch"
     const selectedText = this.getAttribute('data-name'); // eg: "my-branch"
