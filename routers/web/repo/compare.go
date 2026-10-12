@@ -793,7 +793,7 @@ func ExcerptBlob(ctx *context.Context) {
 		if err != nil {
 			log.Error("FindCommitCommentsForFile error: %v", err)
 		} else {
-			renderCommitComments(ctx, gitdiff.AttachCommitCommentsToLines(section.Lines, fileComments))
+			prepareCommitComments(ctx, gitdiff.AttachCommitCommentsToLines(section.Lines, fileComments))
 		}
 	}
 

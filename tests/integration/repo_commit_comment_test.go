@@ -61,6 +61,23 @@ func TestCommitInlineComment(t *testing.T) {
 		assert.True(t, btn.HasClass("tw-invisible"))
 	})
 
+	t.Run("DeleteFollowsPosterOrAdmin", func(t *testing.T) {
+		deleteButtons := func(user string) int {
+			resp := loginUser(t, user).MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/commit/"+rootSHA), http.StatusOK)
+			return NewHTMLParser(t, resp.Body).Find(".comment-code-cloud .delete-comment").Length()
+		}
+		assert.Equal(t, 2, deleteButtons("user2"), "the poster deletes their own comments")
+		assert.Equal(t, 2, deleteButtons("user1"), "an admin deletes anyone's comments")
+		assert.Equal(t, 0, deleteButtons("user5"), "other readers get no delete button")
+
+		// The route has to agree with the buttons.
+		comment := unittest.AssertExistsAndLoadBean(t, &repo_model.CommitComment{Content: "first commit comment"})
+		url := fmt.Sprintf("/user2/repo1/commit/%s/comment/%d/delete", rootSHA, comment.ID)
+		loginUser(t, "user5").MakeRequest(t, NewRequest(t, "POST", url), http.StatusForbidden)
+		loginUser(t, "user1").MakeRequest(t, NewRequest(t, "POST", url), http.StatusOK)
+		unittest.AssertNotExistsBean(t, &repo_model.CommitComment{ID: comment.ID})
+	})
+
 	t.Run("PreviousSideResolvesAgainstParent", func(t *testing.T) {
 		// Old line 5 only exists in the post-commit file; the stored context
 		// must come from the parent tree, never from the new one.

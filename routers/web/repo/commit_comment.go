@@ -35,9 +35,17 @@ func commitCommentURL(ctx *context.Context, commitSHA string) string {
 	return ctx.Repo.RepoLink + "/commit/" + commitSHA + "/comment"
 }
 
-// renderCommitComments renders the markdown body of every given comment.
-func renderCommitComments(ctx *context.Context, comments repo_model.CommitCommentList) {
+// canDeleteCommitComment is shared by the delete route and the templates, so the
+// delete button only shows where the request would succeed.
+func canDeleteCommitComment(ctx *context.Context, c *repo_model.CommitComment) bool {
+	return canCommentOnCommit(ctx) && (c.PosterID == ctx.Doer.ID || ctx.Repo.Permission.IsAdmin())
+}
+
+// prepareCommitComments renders the markdown body of every given comment and
+// sets what the current viewer may do with it.
+func prepareCommitComments(ctx *context.Context, comments repo_model.CommitCommentList) {
 	for _, c := range comments {
+		c.CanDelete = canDeleteCommitComment(ctx, c)
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
 			FootnoteContextID: strconv.FormatInt(c.ID, 10),
 		})
@@ -102,7 +110,7 @@ func CreateCommitComment(ctx *context.Context) {
 		ctx.ServerError("FindCommitCommentsByLine", err)
 		return
 	}
-	renderCommitComments(ctx, comments)
+	prepareCommitComments(ctx, comments)
 
 	ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
 	ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, comment.CommitSHA)
@@ -124,8 +132,8 @@ func DeleteCommitComment(ctx *context.Context) {
 		return
 	}
 
-	if comment.PosterID != ctx.Doer.ID && !ctx.Repo.Permission.IsAdmin() {
-		ctx.JSONError("permission denied")
+	if !canDeleteCommitComment(ctx, comment) {
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 

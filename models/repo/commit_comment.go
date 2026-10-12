@@ -39,6 +39,7 @@ type CommitComment struct {
 
 	Poster          *user_model.User `xorm:"-"`
 	RenderedContent template.HTML    `xorm:"-"`
+	CanDelete       bool             `xorm:"-"`
 }
 
 func init() {

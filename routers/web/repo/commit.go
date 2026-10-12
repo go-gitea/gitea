@@ -432,7 +432,7 @@ func Diff(ctx *context.Context) {
 		if err != nil {
 			log.Error("LoadCommitComments: %v", err)
 		}
-		renderCommitComments(ctx, commitComments)
+		prepareCommitComments(ctx, commitComments)
 		ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
 		ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, commitID)
 	}
