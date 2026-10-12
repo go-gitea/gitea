@@ -498,8 +498,9 @@ func TestValidateReportedSteps(t *testing.T) {
 		step(1, runnerv1.StepStage_STEP_STAGE_PRE, 0),
 		step(2, runnerv1.StepStage_STEP_STAGE_MAIN, 0),
 		step(3, runnerv1.StepStage_STEP_STAGE_MAIN, 1),
-		step(4, runnerv1.StepStage_STEP_STAGE_CLEANUP, 5), // the number of a job level stage is ignored
-		step(5, runnerv1.StepStage(100), 0),               // a stage added later
+		step(4, runnerv1.StepStage_STEP_STAGE_CLEANUP, 0),
+		step(5, runnerv1.StepStage(100), 0), // a stage added later, with several steps told apart by number
+		step(6, runnerv1.StepStage(100), 1),
 	}))
 	for name, steps := range map[string][]*runnerv1.StepState{
 		"unspecified stage": {step(0, runnerv1.StepStage_STEP_STAGE_UNSPECIFIED, 0)},
@@ -507,7 +508,7 @@ func TestValidateReportedSteps(t *testing.T) {
 		"id not position":   {step(1, runnerv1.StepStage_STEP_STAGE_SETUP, 0)},
 		"negative number":   {step(0, runnerv1.StepStage_STEP_STAGE_MAIN, -1)},
 		"duplicate main":    {step(0, runnerv1.StepStage_STEP_STAGE_MAIN, 0), step(1, runnerv1.StepStage_STEP_STAGE_MAIN, 0)},
-		"duplicate setup":   {step(0, runnerv1.StepStage_STEP_STAGE_SETUP, 0), step(1, runnerv1.StepStage_STEP_STAGE_SETUP, 1)},
+		"duplicate setup":   {step(0, runnerv1.StepStage_STEP_STAGE_SETUP, 0), step(1, runnerv1.StepStage_STEP_STAGE_SETUP, 0)},
 		"too many":          make([]*runnerv1.StepState, maxReportedSteps+1),
 	} {
 		assert.Error(t, validateReportedSteps(steps), name)

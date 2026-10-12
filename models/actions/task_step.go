@@ -104,14 +104,6 @@ type reportedStepKey struct {
 	number int64
 }
 
-func newReportedStepKey(stage runnerv1.StepStage, number int64) reportedStepKey {
-	switch stage {
-	case runnerv1.StepStage_STEP_STAGE_PRE, runnerv1.StepStage_STEP_STAGE_MAIN, runnerv1.StepStage_STEP_STAGE_POST:
-		return reportedStepKey{stage: stage, number: number}
-	}
-	return reportedStepKey{stage: stage} // the other stages appear once and ignore the number
-}
-
 func validateReportedSteps(steps []*runnerv1.StepState) error {
 	if len(steps) > maxReportedSteps {
 		return fmt.Errorf("%d steps exceed the limit of %d", len(steps), maxReportedSteps)
@@ -124,7 +116,7 @@ func validateReportedSteps(steps []*runnerv1.StepState) error {
 		if v.Id != int64(i) || v.Number < 0 || v.LogIndex < 0 || v.LogLength < 0 {
 			return fmt.Errorf("step %d has invalid id %d, number %d or log range %d+%d", i, v.Id, v.Number, v.LogIndex, v.LogLength)
 		}
-		if !seen.Add(newReportedStepKey(v.Stage, v.Number)) {
+		if !seen.Add(reportedStepKey{v.Stage, v.Number}) {
 			return fmt.Errorf("step %d duplicates stage %s of number %d", i, v.Stage, v.Number)
 		}
 	}
@@ -138,7 +130,7 @@ func updateReportedSteps(ctx context.Context, task *ActionTask, reported []*runn
 	sameLayout := len(task.Steps) == len(reported)
 	for i := 0; sameLayout && i < len(reported); i++ {
 		step := task.Steps[i]
-		sameLayout = step.IsReported() && newReportedStepKey(step.StepStage(), step.Number) == newReportedStepKey(reported[i].Stage, reported[i].Number)
+		sameLayout = step.IsReported() && reportedStepKey{step.StepStage(), step.Number} == reportedStepKey{reported[i].Stage, reported[i].Number}
 	}
 
 	if sameLayout {
@@ -158,12 +150,12 @@ func updateReportedSteps(ctx context.Context, task *ActionTask, reported []*runn
 	known := make(map[reportedStepKey]*ActionTaskStep, len(task.Steps))
 	for _, step := range task.Steps {
 		if step.IsReported() {
-			known[newReportedStepKey(step.StepStage(), step.Number)] = step
+			known[reportedStepKey{step.StepStage(), step.Number}] = step
 		}
 	}
 	steps := make([]*ActionTaskStep, len(reported))
 	for i, v := range reported {
-		key := newReportedStepKey(v.Stage, v.Number)
+		key := reportedStepKey{v.Stage, v.Number}
 		step := &ActionTaskStep{
 			Name:   util.EllipsisDisplayString(v.Name, 255),
 			TaskID: task.ID,
