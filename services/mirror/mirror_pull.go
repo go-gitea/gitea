@@ -61,14 +61,21 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		}
 	}
 
+	if err := m.SetRemoteAddressWithCredentials(addr); err != nil {
+		return err
+	}
+	if err := repo_model.UpdateMirrorRemoteAddressEncrypted(ctx, m); err != nil {
+		return err
+	}
+
 	// erase authentication before storing in database
 	u.User = nil
 	m.Repo.OriginalURL = u.String()
 	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
 }
 
-func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration) error {
-	stdout, _, pruneErr := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithRepo(gitRepo).RunStdString(ctx)
+func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, remoteAddr, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration) error {
+	stdout, _, pruneErr := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithRemoteCredentials(remoteAddr).WithRepo(gitRepo).RunStdString(ctx)
 	if pruneErr != nil {
 		// sanitize the output, since it may contain the remote address, which may contain a password
 		stderrMessage := util.SanitizeCredentialURLs(pruneErr.Stderr())
@@ -110,6 +117,11 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		log.Error("SyncMirrors [repo: %-v]: GetRemoteURL Error %v", m.Repo, remoteErr)
 		return nil, false
 	}
+	remoteAddr, remoteErr := m.GetRemoteAddressWithCredentials(ctx)
+	if remoteErr != nil {
+		log.Error("SyncMirrors [repo: %-v]: GetRemoteAddressWithCredentials Error %v", m.Repo, remoteErr)
+		return nil, false
+	}
 	// re-validate on every sync: the host may now resolve to an internal IP (rebinding) or the
 	// allow/block list may have changed. ssh/file are skipped (not an HTTP SSRF vector).
 	switch remoteURL.URL.Scheme {
@@ -127,7 +139,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
-		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
+		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithRemoteCredentials(remoteAddr)
 	}
 
 	var err error
@@ -142,7 +154,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 			log.Warn("SyncMirrors [repo: %-v]: failed to update mirror repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
 			err = nil
 			// Attempt prune
-			pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName(), m.Repo.CodeStorageRepo(), timeout)
+			pruneErr := pruneBrokenReferences(ctx, m, remoteAddr, m.Repo.FullName(), m.Repo.CodeStorageRepo(), timeout)
 			if pruneErr == nil {
 				// Successful prune - reattempt mirror
 				fetchStdout, fetchStderr, err = cmdFetch().WithRepo(m.Repo).RunStdString(ctx)
@@ -176,7 +188,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 	if m.LFS && setting.LFS.StartServer {
 		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
-		lfsClient, err := lfs.NewClientFromEndpoint(remoteURL.String(), m.LFSEndpoint, migrations.NewMigrationHTTPTransport())
+		lfsClient, err := lfs.NewClientFromEndpoint(addRemoteCredentials(remoteURL.String(), remoteAddr), m.LFSEndpoint, migrations.NewMigrationHTTPTransport())
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to initialize LFS client: %v", m.Repo.FullName(), err)
 		} else if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
@@ -204,7 +216,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
-		return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
+		return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithRemoteCredentials(remoteAddr)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
@@ -222,7 +234,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 				err = nil
 
 				// Attempt prune
-				pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName()+".wiki", m.Repo.WikiStorageRepo(), timeout)
+				pruneErr := pruneBrokenReferences(ctx, m, remoteAddr, m.Repo.FullName()+".wiki", m.Repo.WikiStorageRepo(), timeout)
 				if pruneErr == nil {
 					// Successful prune - reattempt mirror
 					stdout, stderr, err = cmdRemoteUpdatePrune().WithRepo(m.Repo.WikiStorageRepo()).RunStdString(ctx)

@@ -23,3 +23,7 @@ type ResourceIndex = db.ResourceIndex
 func LocalCodeGitRepo(ownerName, repoName string) gitrepo.RepositoryFacade {
 	return gitrepo.CodeRepoByName(ownerName, repoName)
 }
+
+func LocalWikiGitRepo(ownerName, repoName string) gitrepo.RepositoryFacade {
+	return gitrepo.WikiRepoByName(ownerName, repoName)
+}

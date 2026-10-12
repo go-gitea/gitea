@@ -472,13 +472,12 @@ func TestAPIRepoEdit(t *testing.T) {
 		updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
 		assert.Equal(t, "https://127.0.0.1/user2/repo1.git", updatedRepo.OriginalURL)
 
-		remoteURL, err := git.ParseRemoteAddressURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
+		configAddr, err := git.GetRemoteAddress(ctx, updatedRepo, updatedMirror.GetRemoteName())
 		require.NoError(t, err)
-		require.NotNil(t, remoteURL.User)
-		assert.Equal(t, "existing-user", remoteURL.User.Username())
-		password, ok := remoteURL.User.Password()
-		require.True(t, ok)
-		assert.Equal(t, newPassword, password)
+		assert.Equal(t, "https://127.0.0.1/user2/repo1.git", configAddr)
+		remoteAddr, err := updatedMirror.GetRemoteAddressWithCredentials(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "https://existing-user:updated-password@127.0.0.1/user2/repo1.git", remoteAddr)
 
 		// Test updating mirror token without guessing a username
 		token := "mirror-token-value"
@@ -496,13 +495,9 @@ func TestAPIRepoEdit(t *testing.T) {
 		updatedRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
 		assert.Equal(t, "https://127.0.0.1/user2/repo1.git", updatedRepo.OriginalURL)
 
-		remoteURL, err = git.ParseRemoteAddressURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
+		remoteAddr, err = updatedMirror.GetRemoteAddressWithCredentials(ctx)
 		require.NoError(t, err)
-		require.NotNil(t, remoteURL.User)
-		assert.Empty(t, remoteURL.User.Username())
-		password, ok = remoteURL.User.Password()
-		require.True(t, ok)
-		assert.Equal(t, token, password)
+		assert.Equal(t, "https://:mirror-token-value@127.0.0.1/user2/repo1.git", remoteAddr)
 	})
 }
 

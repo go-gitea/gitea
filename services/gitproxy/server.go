@@ -106,11 +106,10 @@ func Run(ctx context.Context) error {
 
 // gitEnvs route git's http(s) remotes through proxyURL and its git:// remotes through MaybeTunnel, command scope config beats every config file and keeps the credentials out of process listings
 func gitEnvs(proxyURL string) []string {
-	envs := []string{
-		"GIT_CONFIG_PARAMETERS=" + strings.TrimSpace(os.Getenv("GIT_CONFIG_PARAMETERS")+" 'http.proxy="+proxyURL+"'"),
+	envs := append(gitcmd.ConfigEnvs(os.Environ(), "http.proxy", proxyURL),
 		"GIT_HTTP_PROXY_AUTHMETHOD=basic",
 		"no_proxy=", "NO_PROXY=", // git honors no_proxy even for a configured proxy
-	}
+	)
 	if setting.GitConfig.GetOption("core.gitProxy") == "" { // the operator's own git:// proxy command stays in charge
 		envs = append(envs, "GIT_PROXY_COMMAND="+setting.AppPath, proxyURLEnv+"="+proxyURL)
 	}
