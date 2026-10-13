@@ -238,4 +238,3 @@ func deduplicate(paths []string) []string {
 	}
 	return unique
 }
-

@@ -41,13 +41,8 @@ type CreateFileOptions struct {
 	// content must be base64 encoded
 	// required: true
 	ContentBase64 string `json:"content"`
-	// is_lfs_pointer says the content is already a valid Git-LFS pointer and
-	// must be committed to git exactly as given. Without it, a path that
-	// .gitattributes routes through LFS has its content hashed into a new LFS
-	// object -- so sending a pointer stores the pointer text as an object and
-	// commits a pointer to that. The named object must already be in the
-	// repository's LFS store; one that is not is refused rather than committed
-	// as a pointer to nothing.
+	// is_lfs_pointer commits the content as-is, as a Git-LFS pointer to an
+	// object the repository already holds.
 	IsLFSPointer bool `json:"is_lfs_pointer"`
 }
 
@@ -71,13 +66,8 @@ type UpdateFileOptions struct {
 	ContentBase64 string `json:"content"`
 	// from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL
 	FromPath string `json:"from_path" binding:"MaxSize(500)"`
-	// is_lfs_pointer says the content is already a valid Git-LFS pointer and
-	// must be committed to git exactly as given. Without it, a path that
-	// .gitattributes routes through LFS has its content hashed into a new LFS
-	// object -- so sending a pointer stores the pointer text as an object and
-	// commits a pointer to that. The named object must already be in the
-	// repository's LFS store; one that is not is refused rather than committed
-	// as a pointer to nothing.
+	// is_lfs_pointer commits the content as-is, as a Git-LFS pointer to an
+	// object the repository already holds.
 	IsLFSPointer bool `json:"is_lfs_pointer"`
 }
 
@@ -99,13 +89,8 @@ type ChangeFileOperation struct {
 	SHA string `json:"sha"`
 	// old path of the file to move
 	FromPath string `json:"from_path"`
-	// is_lfs_pointer says the content is already a valid Git-LFS pointer and
-	// must be committed to git exactly as given. Without it, a path that
-	// .gitattributes routes through LFS has its content hashed into a new LFS
-	// object -- so sending a pointer stores the pointer text as an object and
-	// commits a pointer to that. The named object must already be in the
-	// repository's LFS store; one that is not is refused rather than committed
-	// as a pointer to nothing.
+	// is_lfs_pointer commits the content as-is, as a Git-LFS pointer to an
+	// object the repository already holds.
 	IsLFSPointer bool `json:"is_lfs_pointer"`
 }
 
@@ -241,24 +226,4 @@ type FileDeleteResponse struct {
 type GetFilesOptions struct {
 	// Files is the list of file paths to retrieve
 	Files []string `json:"files" binding:"Required"`
-}
-
-// PromoteToLFSOptions names the files to move into Git LFS.
-type PromoteToLFSOptions struct {
-	// Repository paths, on the branch below. A path already stored as a
-	// pointer is skipped rather than refused.
-	// required: true
-	Files []string `json:"files" binding:"Required"`
-	// The branch to read the blobs from and commit the pointers to. Defaults
-	// to the repository's default branch. One branch, because promoting is a
-	// commit and a commit is on a branch.
-	Branch  string `json:"branch"`
-	Message string `json:"message"`
-}
-
-// PromoteToLFSResponse says which paths were moved.
-type PromoteToLFSResponse struct {
-	// Empty when every path named was already stored as a pointer, which is a
-	// success with nothing to do rather than a failure.
-	Moved []string `json:"moved"`
 }
