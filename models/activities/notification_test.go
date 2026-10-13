@@ -57,6 +57,10 @@ func TestCreateCommitCommentNotification(t *testing.T) {
 	assert.NoError(t, repo_model.CreateCommitComment(t.Context(), second))
 	assert.NoError(t, activities_model.CreateCommitCommentNotification(t.Context(), doer, repo, sha, second.ID, "", nil))
 	assert.Equal(t, 1, unittest.GetCount(t, &activities_model.Notification{UserID: 4, CommitID: sha}))
+
+	// A mention of a missing user must not drop the mentions that do resolve.
+	assert.NoError(t, activities_model.CreateCommitCommentNotification(t.Context(), doer, repo, sha, second.ID, "", []string{"user5", "no-such-user"}))
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 5, CommitID: sha})
 }
 
 func TestCreateOrUpdateIssueNotificationsForAssigneeAndReviewer(t *testing.T) {

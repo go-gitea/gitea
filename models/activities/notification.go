@@ -151,13 +151,12 @@ func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User,
 			}
 		}
 
-		// Notify @mentioned users. GetUserIDsByNames with non-existent users
-		// in the slice would normally fail; we already pass true (ignoreNonExisting)
-		// so any returned error here is a real DB failure.
+		// Notify @mentioned users. GetDoerUserIDsByNames still returns the found IDs
+		// when some names don't exist, so only an error other than ErrUserNotExist is a failure.
 		if len(mentionedUsernames) > 0 {
-			mentionedIDs, err := user_model.GetUserIDsByNames(ctx, mentionedUsernames, true)
-			if err != nil {
-				return fmt.Errorf("GetUserIDsByNames: %w", err)
+			mentionedIDs, err := user_model.GetDoerUserIDsByNames(ctx, mentionedUsernames)
+			if err != nil && !user_model.IsErrUserNotExist(err) {
+				return fmt.Errorf("GetDoerUserIDsByNames: %w", err)
 			}
 			receiverIDs.AddMultiple(mentionedIDs...)
 		}
