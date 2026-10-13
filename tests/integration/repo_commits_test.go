@@ -310,6 +310,15 @@ func TestRepoCommitsStatusTokenScopes(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusCreated)
 	})
 
+	// a signed-in user with read-only access can list but not create statuses
+	t.Run("CreateStatusReadOnlyUser", func(t *testing.T) {
+		readOnlySession := loginUser(t, "user4")
+		listReq := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/statuses/"+commitID)
+		readOnlySession.MakeRequest(t, listReq, http.StatusOK)
+		createReq := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user2/repo1/statuses/"+commitID, statusOption).AddBasicAuth("user4")
+		readOnlySession.MakeRequest(t, createReq, http.StatusForbidden)
+	})
+
 	// the commitstatus scope alone does not grant access to a repository the user cannot see
 	t.Run("CreateStatusWithoutRepoAccess", func(t *testing.T) {
 		ctx := NewAPITestContext(t, "user4", "repo2", auth_model.AccessTokenScopeWriteCommitStatus)
