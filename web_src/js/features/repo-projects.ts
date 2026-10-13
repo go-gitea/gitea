@@ -65,13 +65,16 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
   };
 
   try {
-    await POST(`${to.getAttribute('data-url')}/move`, {
+    const resp = await POST(`${to.getAttribute('data-url')}/move`, {
       data: columnSorting,
     });
+    if (!resp.ok) throw new Error(`Invalid server response: ${resp.status}`);
   } catch (error) {
     console.error(error);
     if (oldIndex !== undefined) {
       from.insertBefore(item, from.children[oldIndex]);
+      updateColumn(from.closest('.project-column')!);
+      updateColumn(to.closest('.project-column')!);
     }
   }
 }

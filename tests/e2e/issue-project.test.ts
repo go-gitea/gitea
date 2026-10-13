@@ -61,6 +61,30 @@ test('remove issues from project board', async ({page}) => {
   }
 });
 
+test('failed card move restores column state', async ({page}) => {
+  const repoName = `e2e-board-move-fail-${randomString(8)}`;
+  const user = env.GITEA_TEST_E2E_USER;
+  await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName, autoInit: false})]);
+  try {
+    const project = await createProject(page, {owner: user, repo: repoName, title: 'Board'});
+    // sequential, the default column falls back to "Done" if that exists first
+    await apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Only card', projects: [project.id]});
+    await createProjectColumn(page.request, user, repoName, String(project.id), 'Done');
+    await page.goto(`/${user}/${repoName}/projects/${project.id}`);
+    const [source, target] = [page.locator('.project-column').first(), page.locator('.project-column', {hasText: 'Done'})];
+    await expect(source.locator('.issue-card')).toHaveCount(1);
+
+    await page.route('**/move', (route) => route.fulfill({status: 500}));
+    await source.locator('.issue-card').dragTo(target.locator('.cards'));
+    await expect(source.locator('.issue-card')).toHaveCount(1);
+    await expect(source.locator('.project-column-issue-count')).toHaveText('1');
+    await expect(target.locator('.project-column-issue-count')).toHaveText('0');
+    await expect(source.locator('.project-column-remove-issues')).not.toContainClass('disabled');
+  } finally {
+    await apiDeleteRepo(page.request, user, repoName);
+  }
+});
+
 test('create a project', async ({page}) => {
   const repoName = `e2e-project-repo-${Date.now()}`;
   const projectTitle = 'Test Project';
