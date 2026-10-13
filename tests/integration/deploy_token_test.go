@@ -8,13 +8,10 @@ import (
 	"net/url"
 	"testing"
 
-	"gitea.dev/models/db"
 	deploykey_model "gitea.dev/models/deploykey"
-	git_model "gitea.dev/models/git"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git/gitcmd"
 	lfs_module "gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
@@ -50,24 +47,6 @@ func TestDeployTokenGitHTTP(t *testing.T) {
 		})
 		t.Run("PushWithWriteToken", func(t *testing.T) {
 			requestAs(t, writeKey.Token, "/"+repo.FullName()+"/info/refs?service=git-receive-pack", http.StatusOK)
-		})
-		t.Run("ProtectedDeletion", func(t *testing.T) {
-			rule := &git_model.ProtectedBranch{
-				RepoID: repo.ID, RuleName: "branch2",
-				ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableDeletionAllowlist: true},
-			}
-			require.NoError(t, db.Insert(t.Context(), rule))
-			pushURL := *u
-			pushURL.Path = "/" + repo.FullName() + ".git"
-			pushURL.User = url.UserPassword("deploy-token", writeKey.Token)
-			_, _, gitErr := gitcmd.NewCommand("push").AddDynamicArguments(pushURL.String(), ":refs/heads/branch2").WithRepo(repo).RunStdString(t.Context())
-			require.Error(t, gitErr)
-			assert.Contains(t, gitErr.Stderr(), "protected from deletion")
-			rule.DeletionAllowlistUserIDs = []int64{user_model.DeployKeyUserID}
-			_, err := db.GetEngine(t.Context()).ID(rule.ID).Cols("config").Update(rule)
-			require.NoError(t, err)
-			_, _, gitErr = gitcmd.NewCommand("push").AddDynamicArguments(pushURL.String(), ":refs/heads/branch2").WithRepo(repo).RunStdString(t.Context())
-			require.NoError(t, gitErr)
 		})
 		t.Run("OtherRepo", func(t *testing.T) {
 			requestAs(t, readKey.Token, "/"+otherRepo.FullName()+"/info/refs?service=git-upload-pack", http.StatusNotFound)

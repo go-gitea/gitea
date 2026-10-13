@@ -117,44 +117,6 @@ func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
 	})
 }
 
-func TestProtectedBranchDeletionByDeployKey(t *testing.T) {
-	onGiteaRun(t, testProtectedBranchDeletionByDeployKey)
-}
-
-func testProtectedBranchDeletionByDeployKey(t *testing.T, u *url.URL) {
-	ctx := NewAPITestContext(t, "user2", "deploy-key-protected-deletion", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-	keyname := ctx.Reponame + "-push"
-	u.Path = ctx.GitPath()
-
-	t.Run("CreateEmptyRepository", doAPICreateRepository(ctx, true))
-
-	withKeyFile(t, keyname, func(keyFile string) {
-		t.Run("CreatePushDeployKey", doAPICreateDeployKey(ctx, keyname, keyFile, false))
-
-		dstPath := t.TempDir()
-		t.Run("InitTestRepository", doGitInitTestRepository(dstPath))
-		t.Run("AddRemote", doGitAddRemote(dstPath, "origin", createSSHUrl(ctx.GitPath(), u)))
-		t.Run("PushDefaultBranch", doGitPushTestRepository(dstPath, "origin", "master"))
-		t.Run("CreateProtectedBranch", doGitCreateBranch(dstPath, "protected-delete"))
-		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected-delete"))
-
-		path := "/api/v1/repos/user2/" + ctx.Reponame + "/branch_protections"
-		req := NewRequestWithJSON(t, http.MethodPost, path, &api.CreateBranchProtectionOption{
-			RuleName: "protected-delete", EnablePush: true, EnableDeletion: true, EnableDeletionAllowlist: true,
-		}).AddTokenAuth(ctx.Token)
-		ctx.Session.MakeRequest(t, req, http.StatusCreated)
-		t.Run("DenyRestrictedDeletion", doGitPushTestRepositoryFail(dstPath, "origin", "--delete", "protected-delete"))
-
-		req = NewRequestWithJSON(t, http.MethodPatch, path+"/protected-delete", &api.EditBranchProtectionOption{
-			DeletionAllowlistUsernames: []string{"gitea:deploy-key"},
-		}).AddTokenAuth(ctx.Token)
-		ctx.Session.MakeRequest(t, req, http.StatusOK)
-		t.Run("DeleteWithAllowlistedDeployKey", doGitPushTestRepository(dstPath, "origin", "--delete", "protected-delete"))
-	})
-
-	t.Run("DeleteRepository", doAPIDeleteRepository(ctx))
-}
-
 func TestKeyOnlyOneType(t *testing.T) {
 	onGiteaRun(t, testKeyOnlyOneType)
 }

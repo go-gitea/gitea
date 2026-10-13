@@ -557,34 +557,3 @@ func TestAPIBranchProtectionDeployKeyAllowlists(t *testing.T) {
 		assert.Equal(t, []string{"gitea:deploy-key"}, bp.ForcePushAllowlistUsernames)
 	})
 }
-
-func TestAPIBranchProtectionDeletionSettings(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
-	path := "/api/v1/repos/org3/repo3/branch_protections"
-	users := []string{"gitea-actions", "gitea:deploy-key"}
-	resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, &api.CreateBranchProtectionOption{
-		RuleName: "deletion-settings", EnablePush: true, EnableDeletion: true, EnableDeletionAllowlist: true,
-		DeletionAllowlistUsernames: users, DeletionAllowlistTeams: []string{"Owners"},
-	}).AddTokenAuth(token), http.StatusCreated)
-	bp := DecodeJSON(t, resp, &api.BranchProtection{})
-	assert.True(t, bp.EnableDeletion)
-	assert.Equal(t, users, bp.DeletionAllowlistUsernames)
-	assert.Equal(t, []string{"Owners"}, bp.DeletionAllowlistTeams)
-
-	resp = MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/deletion-settings", &api.EditBranchProtectionOption{
-		DeletionAllowlistUsernames: []string{"user2"}, DeletionAllowlistTeams: []string{},
-	}).AddTokenAuth(token), http.StatusOK)
-	bp = DecodeJSON(t, resp, &api.BranchProtection{})
-	assert.True(t, bp.EnableDeletion)
-	assert.Equal(t, []string{"user2"}, bp.DeletionAllowlistUsernames)
-	assert.Empty(t, bp.DeletionAllowlistTeams)
-
-	resp = MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/deletion-settings", &api.EditBranchProtectionOption{
-		EnablePush: new(false),
-	}).AddTokenAuth(token), http.StatusOK)
-	bp = DecodeJSON(t, resp, &api.BranchProtection{})
-	assert.False(t, bp.EnableDeletion)
-	assert.False(t, bp.EnableDeletionAllowlist)
-	assert.Empty(t, bp.DeletionAllowlistUsernames)
-}

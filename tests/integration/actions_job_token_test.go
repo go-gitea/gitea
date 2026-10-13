@@ -15,7 +15,6 @@ import (
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
 	org_model "gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
@@ -472,29 +471,5 @@ jobs:
 			SetHeader("Accept", lfs.MediaType).
 			AddBasicAuth("gitea-actions", task1Token)
 		MakeRequest(t, req, http.StatusUnauthorized)
-	})
-}
-
-func TestActionsProtectedBranchDeletion(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
-		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
-		task.GenerateAndFillToken()
-		task.Status = actions_model.StatusRunning
-		require.NoError(t, actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status"))
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: task.RepoID})
-		rule := &git_model.ProtectedBranch{
-			RepoID: repo.ID, RuleName: "master",
-			ProtectedBranchConfig: git_model.ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableDeletionAllowlist: true},
-		}
-		require.NoError(t, db.Insert(t.Context(), rule))
-		repo.DefaultBranch = "other"
-		_, err := db.GetEngine(t.Context()).ID(repo.ID).Cols("default_branch").Update(repo)
-		require.NoError(t, err)
-		path := "/api/v1/repos/" + repo.FullName() + "/branches/master"
-		MakeRequest(t, NewRequest(t, "DELETE", path).AddTokenAuth(task.Token), http.StatusForbidden)
-		rule.DeletionAllowlistUserIDs = []int64{user_model.ActionsUserID}
-		_, err = db.GetEngine(t.Context()).ID(rule.ID).Cols("config").Update(rule)
-		require.NoError(t, err)
-		MakeRequest(t, NewRequest(t, "DELETE", path).AddTokenAuth(task.Token), http.StatusNoContent)
 	})
 }

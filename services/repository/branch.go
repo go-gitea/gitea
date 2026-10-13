@@ -92,10 +92,7 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	if err != nil {
 		return nil, nil, 0, err
 	}
-	pullRequestTargetBranch, err := getPullRequestTargetBranch(ctx, repo)
-	if err != nil {
-		return nil, nil, 0, err
-	}
+	pullRequestTargetBranch := repo.GetPullRequestTargetBranch(ctx)
 
 	repoIDToRepo := map[int64]*repo_model.Repository{}
 	repoIDToRepo[repo.ID] = repo
@@ -565,17 +562,6 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 
 var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default or pull request target")
 
-func getPullRequestTargetBranch(ctx context.Context, repo *repo_model.Repository) (string, error) {
-	pullRequestUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
-	if repo_model.IsErrUnitTypeNotExist(err) {
-		return repo.DefaultBranch, nil
-	}
-	if err != nil {
-		return "", err
-	}
-	return util.IfZero(pullRequestUnit.PullRequestsConfig().DefaultTargetBranch, repo.DefaultBranch), nil
-}
-
 func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
 	perm, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
 	if err != nil {
@@ -586,11 +572,7 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 
 // CanDeleteBranchWithPermission checks whether a branch can be deleted using an already loaded repository permission.
 func CanDeleteBranchWithPermission(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User, permissionInRepo access_model.Permission) error {
-	pullRequestTargetBranch, err := getPullRequestTargetBranch(ctx, repo)
-	if err != nil {
-		return err
-	}
-	if branchName == repo.DefaultBranch || branchName == pullRequestTargetBranch {
+	if branchName == repo.DefaultBranch || branchName == repo.GetPullRequestTargetBranch(ctx) {
 		return ErrBranchIsDefault
 	}
 	if !permissionInRepo.CanWrite(unit.TypeCode) {
