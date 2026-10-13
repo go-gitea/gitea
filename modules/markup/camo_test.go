@@ -15,8 +15,11 @@ func TestCamoHandleLink(t *testing.T) {
 	setting.AppURL = "https://gitea.com"
 	// Test media proxy
 	setting.Camo.Enabled = true
+	setting.Camo.Always = false
 	setting.Camo.ServerURL = "https://image.proxy"
 	setting.Camo.HMACKey = "geheim"
+	dataURL := "data:image/png;base64,i//V"
+	assert.Equal(t, dataURL, camoHandleLink(dataURL))
 
 	assert.Equal(t,
 		"https://gitea.com/img.jpg",
@@ -29,6 +32,7 @@ func TestCamoHandleLink(t *testing.T) {
 		camoHandleLink("http://testimages.org/img.jpg"))
 
 	setting.Camo.Always = true
+	assert.Equal(t, dataURL, camoHandleLink(dataURL))
 	assert.Equal(t,
 		"https://gitea.com/img.jpg",
 		camoHandleLink("https://gitea.com/img.jpg"))
