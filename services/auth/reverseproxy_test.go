@@ -5,10 +5,12 @@ package auth
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -68,4 +70,63 @@ func TestReverseProxyLastLogin(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID}).LastLoginUnix) // no write without a new session
 	assert.Equal(t, 1, sess.released)
+}
+
+func TestReverseProxyVerify(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	verify := func(headers map[string]string) (*user_model.User, error) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+		return (&ReverseProxy{}).Verify(req, httptest.NewRecorder(), reqctx.ContextData{}, nil)
+	}
+
+	t.Run("no header", func(t *testing.T) {
+		user, err := verify(nil)
+		assert.NoError(t, err)
+		assert.Nil(t, user)
+	})
+
+	t.Run("username", func(t *testing.T) {
+		user, err := verify(map[string]string{"X-WEBAUTH-USER": "user2"})
+		require.NoError(t, err)
+		assert.EqualValues(t, 2, user.ID)
+	})
+
+	t.Run("email fallback", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.EnableReverseProxyEmail, true)()
+		user, err := verify(map[string]string{"X-WEBAUTH-EMAIL": "user2@example.com"})
+		require.NoError(t, err)
+		assert.EqualValues(t, 2, user.ID)
+	})
+
+	t.Run("email ignored when disabled", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.EnableReverseProxyEmail, false)()
+		user, err := verify(map[string]string{"X-WEBAUTH-EMAIL": "user2@example.com"})
+		assert.NoError(t, err)
+		assert.Nil(t, user)
+	})
+
+	t.Run("unknown user", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.EnableReverseProxyAutoRegister, false)()
+		_, err := verify(map[string]string{"X-WEBAUTH-USER": "no-such-user"})
+		assert.True(t, user_model.IsErrUserNotExist(err))
+	})
+
+	t.Run("auto registration", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.EnableReverseProxyAutoRegister, true)()
+		defer test.MockVariableValue(&setting.Service.EnableReverseProxyEmail, true)()
+		defer test.MockVariableValue(&setting.Service.EnableReverseProxyFullName, true)()
+		user, err := verify(map[string]string{
+			"X-WEBAUTH-USER":     "proxy-new-user",
+			"X-WEBAUTH-EMAIL":    "proxy-new-user@example.com",
+			"X-WEBAUTH-FULLNAME": "Proxy User",
+		})
+		require.NoError(t, err)
+		assert.NotZero(t, user.ID)
+		assert.Equal(t, "proxy-new-user@example.com", user.Email)
+		assert.Equal(t, "Proxy User", user.FullName)
+	})
 }
