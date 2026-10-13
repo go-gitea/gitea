@@ -664,6 +664,11 @@ jobs:
 
 		// the finished job still reports its runner after the ephemeral runner is removed
 		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: actionTask.RunnerID})
+		// purge the soft-deleted runner row, so the name can only come from the task itself
+		assert.NoError(t, actions_service.CleanupEphemeralRunners(t.Context()))
+		runnerRows, err := db.GetEngine(t.Context()).Table("action_runner").Where("id = ?", actionTask.RunnerID).Count()
+		assert.NoError(t, err)
+		assert.Zero(t, runnerRows)
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs/%d", baseRepo.OwnerName, baseRepo.Name, actionRunJob.ID)).AddTokenAuth(user2Token)
 		apiJob := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionWorkflowJob{})
 		assert.Equal(t, actionTask.RunnerID, apiJob.RunnerID)
