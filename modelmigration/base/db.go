@@ -518,16 +518,3 @@ func ModifyColumn(ctx context.Context, x EngineMigration, tableName string, col 
 func Iterate[Bean any](ctx context.Context, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
 	return db.Iterate(ctx, cond, f)
 }
-
-func EngineTransaction(x EngineMigration, f func(Session) error) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-	err := f(sess)
-	if err != nil {
-		return err
-	}
-	return sess.Commit()
-}

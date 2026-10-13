@@ -13,12 +13,8 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-type sqlTableInfoProvider interface {
-	TableInfo(bean any) (*schemas.Table, error)
-}
-
-func IterateTableByColumn[Bean any](ctx context.Context, tableInfo sqlTableInfoProvider, sess SQLSession, colName string, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
-	table, err := tableInfo.TableInfo(new(Bean))
+func iterateTableByColumn[Bean any](ctx context.Context, colName string, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
+	table, err := xormEngine.TableInfo(new(Bean))
 	if err != nil {
 		return err
 	}
@@ -40,7 +36,7 @@ func IterateTableByColumn[Bean any](ctx context.Context, tableInfo sqlTableInfoP
 		}
 
 		beans := make([]*Bean, 0, batchSize)
-		query := sess.Table(table.Name).Asc(colName)
+		query := GetEngine(ctx).Table(table.Name).Asc(colName)
 
 		batchCond := cond
 		if lastColValue != nil {
@@ -72,9 +68,9 @@ func IterateTableByColumn[Bean any](ctx context.Context, tableInfo sqlTableInfoP
 }
 
 func IterateByColumn[Bean any](ctx context.Context, colName string, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
-	return IterateTableByColumn(ctx, xormEngine, GetEngine(ctx), colName, cond, f)
+	return iterateTableByColumn(ctx, colName, cond, f)
 }
 
 func Iterate[Bean any](ctx context.Context, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
-	return IterateTableByColumn(ctx, xormEngine, GetEngine(ctx), "", cond, f)
+	return iterateTableByColumn(ctx, "", cond, f)
 }
