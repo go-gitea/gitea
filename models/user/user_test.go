@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -363,18 +364,15 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 	assert.LessOrEqual(t, fetched.UpdatedUnix, timestampEnd)
 }
 
-func TestGetUserIDsByNames(t *testing.T) {
+func TestGetDoerUserIDsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	ids, err := user_model.GetDoerUserIDsByNames(t.Context(), []string{"user1", "user2", "none_existing_user"})
+	assert.ErrorIs(t, err, util.ErrNotExist)
+	assert.Equal(t, []int64{1, 2}, ids)
 
-	// ignore non existing
-	IDs, err := user_model.GetUserIDsByNames(t.Context(), []string{"user1", "user2", "none_existing_user"}, true)
+	ids, err = user_model.GetDoerUserIDsByNamesWithSystem(t.Context(), []string{"gitea-actions", "gitea:deploy-key"})
 	assert.NoError(t, err)
-	assert.Equal(t, []int64{1, 2}, IDs)
-
-	// ignore non existing
-	IDs, err = user_model.GetUserIDsByNames(t.Context(), []string{"user1", "do_not_exist"}, false)
-	assert.Error(t, err)
-	assert.Equal(t, []int64(nil), IDs)
+	assert.Equal(t, []int64{-2, -3}, ids)
 }
 
 func TestGetMaileableUsersByIDs(t *testing.T) {
