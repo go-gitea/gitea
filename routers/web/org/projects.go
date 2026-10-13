@@ -197,12 +197,12 @@ func ChangeProjectStatus(ctx *context.Context) {
 
 	project, err := project_model.GetProjectByIDAndOwner(ctx, id, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProjectByID", err)
 		return
 	}
 
 	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, project.ID, toClose); err != nil {
-		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("ChangeProjectStatusByRepoIDAndID", err)
 		return
 	}
 	ctx.JSONRedirect(project_model.ProjectLinkForOrg(ctx.ContextUser, project.ID))
@@ -212,7 +212,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 func DeleteProject(ctx *context.Context) {
 	p, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProjectByID", err)
 		return
 	}
 
@@ -241,7 +241,7 @@ func RenderEditProject(ctx *context.Context) {
 
 	p, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProjectByID", err)
 		return
 	}
 
@@ -279,7 +279,7 @@ func EditProjectPost(ctx *context.Context) {
 
 	p, err := project_model.GetProjectByIDAndOwner(ctx, projectID, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProjectByID", err)
 		return
 	}
 
@@ -304,7 +304,7 @@ func EditProjectPost(ctx *context.Context) {
 func ViewProject(ctx *context.Context) {
 	project, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProjectByID", err)
 		return
 	}
 

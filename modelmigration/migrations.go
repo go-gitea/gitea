@@ -434,7 +434,9 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(356, "Add index on action_run commit_sha", v29.AddActionRunCommitSHAIndex),
 		newMigration(357, "Normalize legacy team authorize values", v29.NormalizeLegacyTeamAuthorize),
-		newMigration(358, "Add new table project_workflow", v29.AddProjectWorkflow),
+		newMigration(358, "Track previous remember-me token hashes", v29.AddPreviousAuthTokenHash),
+		newMigration(359, "Add stage and number columns to action_task_step", v29.AddStageAndNumberToActionTaskStep),
+		newMigration(360, "Add new table project_workflow", v29.AddProjectWorkflow),
 	}
 	return preparedMigrations
 }
