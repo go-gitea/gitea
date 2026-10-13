@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -47,8 +46,6 @@ func ReadPointer(reader io.Reader) (Pointer, error) {
 	return ReadPointerFromBuffer(buf)
 }
 
-var oidPattern = regexp.MustCompile(`^[a-f\d]{64}$`)
-
 // ReadPointerFromBuffer will return a pointer if the provided byte slice is a pointer file or an error otherwise.
 func ReadPointerFromBuffer(buf []byte) (Pointer, error) {
 	var p Pointer
@@ -65,7 +62,7 @@ func ReadPointerFromBuffer(buf []byte) (Pointer, error) {
 
 	// spec says "key/value pairs MUST be sorted alphabetically in ascending order (version is exception and must be the first)"
 	oid := strings.TrimPrefix(splitLines[1], MetaFileOidPrefix)
-	if len(oid) != 64 || !oidPattern.MatchString(oid) {
+	if !isValidOid(oid) {
 		return p, ErrInvalidOIDFormat
 	}
 	size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
@@ -79,13 +76,24 @@ func ReadPointerFromBuffer(buf []byte) (Pointer, error) {
 	return p, nil
 }
 
+func isValidOid(oid string) bool {
+	if len(oid) != 64 {
+		return false
+	}
+	for i := range len(oid) {
+		c := oid[i]
+		valid := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+		if !valid {
+			return false
+		}
+	}
+	return true
+}
+
 // IsValid checks if the pointer has a valid structure.
 // It doesn't check if the pointed-to-content exists.
 func (p Pointer) IsValid() bool {
-	if len(p.Oid) != 64 {
-		return false
-	}
-	if !oidPattern.MatchString(p.Oid) {
+	if !isValidOid(p.Oid) {
 		return false
 	}
 	if p.Size < 0 {
