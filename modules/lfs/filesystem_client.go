@@ -33,6 +33,7 @@ func (c *FilesystemClient) objectPath(oid string) (string, error) {
 	if !isValidOid(oid) {
 		return "", ErrInvalidOIDFormat
 	}
+	// HINT: LFS-INTERNAL-PATH-PATTERN
 	return filepath.Join(c.lfsDir, oid[0:2], oid[2:4], oid), nil
 }
 

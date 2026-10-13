@@ -12,6 +12,9 @@ import (
 	"path"
 	"strconv"
 	"strings"
+
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // spec: https://github.com/git-lfs/git-lfs/blob/master/docs/spec.md
@@ -110,10 +113,13 @@ func (p Pointer) StringContent() string {
 
 // RelativePath returns the relative storage path of the pointer
 func (p Pointer) RelativePath() string {
-	if len(p.Oid) < 5 {
-		return p.Oid
+	if !isValidOid(p.Oid) {
+		setting.PanicInDevOrTesting("invalid LFS OID: %s", p.Oid)
+		return "invalid-lfs-oid-" + util.PathJoinRelX(p.Oid)
 	}
-
+	// HINT: LFS-INTERNAL-PATH-PATTERN: this path pattern is only used by Gitea internally,
+	// It isn't the same as the path pattern used by Git LFS, which is: <oid[0:2]>/<oid[2:4]>/<oid>
+	// However, there are other parts of Gitea that rely on such path pattern.
 	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
 }
 
