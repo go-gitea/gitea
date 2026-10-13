@@ -15,7 +15,7 @@ func TestNewClient(t *testing.T) {
 	u, _ := url.Parse("file:///test")
 	c := newClient(u, nil)
 	require.IsType(t, &FilesystemClient{}, c)
-	localPath, err := c.(*FilesystemClient).objectPath("invalid")
+	localPath, err := c.(*FilesystemClient).objectPath("invalid") //nolint:forcetypeassert // type is expected
 	assert.Empty(t, localPath)
 	assert.ErrorIs(t, err, ErrInvalidOIDFormat)
 
