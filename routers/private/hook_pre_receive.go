@@ -159,7 +159,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	// 1. Enforce branch deletion permissions
 	if newCommitID == objectFormat.EmptyObjectID().String() {
 		// Keep Git in line with the API/UI (CanDeleteBranchWithPermission): the pull request target branch cannot be deleted
-		if !ctx.opts.IsWiki && branchName == repo.GetPullRequestTargetBranch(ctx) {
+		if branchName == repo.GetPullRequestTargetBranch(ctx) {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
 			return
 		}
