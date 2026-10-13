@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -78,13 +77,22 @@ func SettingsProtectedBranch(c *context.Context) {
 
 	c.Data["PageIsSettingsBranches"] = true
 	c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
-	users, err := access_model.GetUsersWithAnyUnitAccess(c, c.Repo.Repository, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
+
+	repoUsers, err := access_model.GetUsersWithAnyUnitAccess(c, c.Repo.Repository, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		c.ServerError("GetUsersWithUnitAccess", err)
 		return
 	}
-	c.Data["Users"] = users
-	c.Data["PushUsers"] = append(slices.Clone(users), user_model.NewActionsUser())
+
+	pushUsers := []*user_model.User{user_model.NewActionsUser(), user_model.NewDeployKeyUser()}
+	pushUsers = append(pushUsers, repoUsers...)
+
+	c.Data["PushUsers"] = pushUsers
+	c.Data["ForcePushUsers"] = pushUsers
+	c.Data["DeletionUsers"] = pushUsers
+	c.Data["MergeUsers"] = repoUsers
+	c.Data["BypassCheckUsers"] = repoUsers
+	c.Data["ApprovalUsers"] = repoUsers
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
 	c.Data["force_push_allowlist_users"] = strings.Join(base.Int64sToStrings(rule.ForcePushAllowlistUserIDs), ",")
 	c.Data["deletion_allowlist_users"] = strings.Join(base.Int64sToStrings(rule.DeletionAllowlistUserIDs), ",")
@@ -178,11 +186,9 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	case "all":
 		protectBranch.CanPush = true
 		protectBranch.EnableWhitelist = false
-		protectBranch.WhitelistDeployKeys = false
 	case "whitelist":
 		protectBranch.CanPush = true
 		protectBranch.EnableWhitelist = true
-		protectBranch.WhitelistDeployKeys = f.WhitelistDeployKeys
 		if strings.TrimSpace(f.WhitelistUsers) != "" {
 			whitelistUsers, _ = base.StringsToInt64s(strings.Split(f.WhitelistUsers, ","))
 		}
@@ -192,18 +198,15 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	default:
 		protectBranch.CanPush = false
 		protectBranch.EnableWhitelist = false
-		protectBranch.WhitelistDeployKeys = false
 	}
 
 	switch f.EnableForcePush {
 	case "all":
 		protectBranch.CanForcePush = true
 		protectBranch.EnableForcePushAllowlist = false
-		protectBranch.ForcePushAllowlistDeployKeys = false
 	case "whitelist":
 		protectBranch.CanForcePush = true
 		protectBranch.EnableForcePushAllowlist = true
-		protectBranch.ForcePushAllowlistDeployKeys = f.ForcePushAllowlistDeployKeys
 		if strings.TrimSpace(f.ForcePushAllowlistUsers) != "" {
 			forcePushAllowlistUsers, _ = base.StringsToInt64s(strings.Split(f.ForcePushAllowlistUsers, ","))
 		}
@@ -213,23 +216,20 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	default:
 		protectBranch.CanForcePush = false
 		protectBranch.EnableForcePushAllowlist = false
-		protectBranch.ForcePushAllowlistDeployKeys = false
 	}
 
 	enableDeletion := f.EnableDeletion
 	if !protectBranch.CanPush {
-		// Deletion requires push access (see CanUserDelete), so mirror the API and never store an unusable deletion policy
+		// Deletion requires push access.
 		enableDeletion = ""
 	}
 	switch enableDeletion {
 	case "all":
 		protectBranch.CanDelete = true
 		protectBranch.EnableDeletionAllowlist = false
-		protectBranch.DeletionAllowlistDeployKeys = false
 	case "whitelist":
 		protectBranch.CanDelete = true
 		protectBranch.EnableDeletionAllowlist = true
-		protectBranch.DeletionAllowlistDeployKeys = f.DeletionAllowlistDeployKeys
 		if strings.TrimSpace(f.DeletionAllowlistUsers) != "" {
 			deletionAllowlistUsers, _ = base.StringsToInt64s(strings.Split(f.DeletionAllowlistUsers, ","))
 		}
@@ -239,7 +239,6 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	default:
 		protectBranch.CanDelete = false
 		protectBranch.EnableDeletionAllowlist = false
-		protectBranch.DeletionAllowlistDeployKeys = false
 	}
 
 	protectBranch.EnableMergeWhitelist = f.EnableMergeWhitelist

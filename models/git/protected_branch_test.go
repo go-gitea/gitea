@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -165,10 +166,8 @@ func TestCanBypassBranchProtection(t *testing.T) {
 	teamMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	pb := &ProtectedBranch{
-		ProtectedBranchConfig: ProtectedBranchConfig{
-			EnableBypassAllowlist:  true,
-			BypassAllowlistUserIDs: []int64{user.ID},
-		},
+		EnableBypassAllowlist:  true,
+		BypassAllowlistUserIDs: []int64{user.ID},
 	}
 
 	testBypass := func(t *testing.T, expected bool, pb *ProtectedBranch, doer *user_model.User, isAdmin bool) {
@@ -208,129 +207,72 @@ func TestCanBypassBranchProtection(t *testing.T) {
 	testBypass(t, false, pb, user, false)
 }
 
-func TestProtectedBranchCanUserDelete(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
-	ownerPermission, err := access_model.GetDoerRepoPermission(t.Context(), repo, owner)
-	require.NoError(t, err)
-
-	userPermission, err := access_model.GetDoerRepoPermission(t.Context(), repo, user)
-	require.NoError(t, err)
-
-	pb := &ProtectedBranch{
-		RepoID:                repo.ID,
-		Repo:                  repo,
-		ProtectedBranchConfig: ProtectedBranchConfig{CanPush: true},
-	}
-
-	assert.False(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
-
-	pb.CanDelete = true
-	assert.True(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
-
-	pb.EnableDeletionAllowlist = true
-	assert.False(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
-
-	pb.DeletionAllowlistUserIDs = []int64{owner.ID}
-	assert.True(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
-	assert.False(t, pb.CanUserDelete(t.Context(), user, userPermission))
-
-	pb.CanPush = false
-	assert.False(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
-
-	pb.CanPush = true
-	pb.DeletionAllowlistUserIDs = nil
-	pb.DeletionAllowlistTeamIDs = []int64{1}
-	assert.True(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
-	assert.False(t, pb.CanUserDelete(t.Context(), user, userPermission))
-}
-
 func TestProtectedBranchConfig(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	pb := &ProtectedBranch{
-		RepoID: repo.ID, RuleName: "config-test",
+		RepoID: 1, RuleName: "config-test",
 		ProtectedBranchConfig: ProtectedBranchConfig{
-			CanPush:             true,
-			WhitelistUserIDs:    []int64{2, 4},
-			StatusCheckContexts: []string{},
-
-			CanDelete: true, EnableDeletionAllowlist: true, DeletionAllowlistDeployKeys: true,
-			DeletionAllowlistUserIDs: []int64{2, 4}, DeletionAllowlistTeamIDs: []int64{1, 2},
+			CanDelete: true, EnableDeletionAllowlist: true,
+			DeletionAllowlistUserIDs: []int64{2, 4, user_model.ActionsUserID, user_model.DeployKeyUserID}, DeletionAllowlistTeamIDs: []int64{1, 2},
+			CanPush: true, WhitelistUserIDs: []int64{2, 4}, WhitelistTeamIDs: []int64{1, 2}, StatusCheckContexts: []string{},
 		},
 	}
 	require.NoError(t, db.Insert(ctx, pb))
 	loaded := unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{ID: pb.ID})
 	assert.Equal(t, pb.ProtectedBranchConfig, loaded.ProtectedBranchConfig)
-
 	require.NoError(t, RemoveUserIDFromProtectedBranch(ctx, loaded, 2))
-	loaded = unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{ID: pb.ID})
-	assert.Equal(t, []int64{4}, loaded.WhitelistUserIDs)
-	assert.Equal(t, []int64{4}, loaded.DeletionAllowlistUserIDs)
-	assert.Equal(t, pb.DeletionAllowlistTeamIDs, loaded.DeletionAllowlistTeamIDs)
-
 	require.NoError(t, RemoveTeamIDFromProtectedBranch(ctx, loaded, 1))
 	loaded = unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{ID: pb.ID})
-	assert.Equal(t, []int64{2}, loaded.DeletionAllowlistTeamIDs)
-	assert.Equal(t, []int64{4}, loaded.DeletionAllowlistUserIDs)
+	assert.Equal(t, []int64{4}, loaded.WhitelistUserIDs)
+	assert.Equal(t, []int64{2}, loaded.WhitelistTeamIDs)
+	assert.True(t, loaded.CanPush)
 	assert.True(t, loaded.CanDelete)
 	assert.True(t, loaded.EnableDeletionAllowlist)
-	assert.True(t, loaded.DeletionAllowlistDeployKeys)
-
+	assert.Equal(t, []int64{4, user_model.ActionsUserID, user_model.DeployKeyUserID}, loaded.DeletionAllowlistUserIDs)
+	assert.Equal(t, []int64{2}, loaded.DeletionAllowlistTeamIDs)
 	loaded.ProtectedBranchConfig = ProtectedBranchConfig{}
-	require.NoError(t, UpdateProtectBranch(ctx, repo, loaded, WhitelistOptions{UserIDs: loaded.WhitelistUserIDs}))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, UpdateProtectBranch(ctx, repo, loaded, WhitelistOptions{}))
 	loaded = unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{ID: pb.ID})
 	assert.Equal(t, ProtectedBranchConfig{}, loaded.ProtectedBranchConfig)
-	assert.False(t, loaded.CanPush)
 }
 
-func TestProtectedBranchCanUserDeleteWithPermission(t *testing.T) {
+func TestProtectedBranchCanUserDelete(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	actionsUser := user_model.NewActionsUserWithTaskID(47)
-	pb := &ProtectedBranch{
-		RepoID: repo.ID, Repo: repo,
-		ProtectedBranchConfig: ProtectedBranchConfig{CanPush: true, CanDelete: true},
+	writePermission := access_model.Permission{}
+	writePermission.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: unit.TypeCode}}, perm.AccessModeWrite)
+	readPermission := access_model.Permission{}
+	readPermission.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: unit.TypeCode}}, perm.AccessModeRead)
+
+	for _, user := range []*user_model.User{{ID: 2, Name: "user2"}, user_model.NewActionsUser(), user_model.NewDeployKeyUser()} {
+		t.Run(user.GetDisplayName(), func(t *testing.T) {
+			for _, tt := range []struct {
+				name   string
+				config ProtectedBranchConfig
+				want   bool
+			}{
+				{name: "disabled by default", config: ProtectedBranchConfig{CanPush: true}},
+				{name: "push disabled", config: ProtectedBranchConfig{CanDelete: true}},
+				{name: "unrestricted", config: ProtectedBranchConfig{CanPush: true, CanDelete: true}, want: true},
+				{name: "empty push allowlist", config: ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableWhitelist: true}},
+				{name: "not in push allowlist", config: ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableWhitelist: true, WhitelistUserIDs: []int64{1}}},
+				{name: "empty deletion allowlist", config: ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableDeletionAllowlist: true}},
+				{name: "not in deletion allowlist", config: ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableDeletionAllowlist: true, DeletionAllowlistUserIDs: []int64{1}}},
+				{name: "in both allowlists", config: ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableWhitelist: true, WhitelistUserIDs: []int64{user.ID}, EnableDeletionAllowlist: true, DeletionAllowlistUserIDs: []int64{user.ID}}, want: true},
+				{name: "deletion allowlist does not grant push", config: ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableWhitelist: true, EnableDeletionAllowlist: true, DeletionAllowlistUserIDs: []int64{user.ID}}},
+				{name: "team member", config: ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableDeletionAllowlist: true, DeletionAllowlistTeamIDs: []int64{1}}, want: user.ID == 2},
+				{name: "push team member", config: ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableWhitelist: true, WhitelistTeamIDs: []int64{1}}, want: user.ID == 2},
+				{name: "not in team", config: ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableDeletionAllowlist: true, DeletionAllowlistTeamIDs: []int64{3}}},
+				{name: "user or team", config: ProtectedBranchConfig{CanPush: true, CanDelete: true, EnableDeletionAllowlist: true, DeletionAllowlistUserIDs: []int64{user.ID}, DeletionAllowlistTeamIDs: []int64{3}}, want: true},
+			} {
+				t.Run(tt.name, func(t *testing.T) {
+					pb := &ProtectedBranch{ProtectedBranchConfig: tt.config}
+					assert.Equal(t, tt.want, pb.CanUserDelete(t.Context(), user, writePermission))
+					assert.False(t, pb.CanUserDelete(t.Context(), user, readPermission))
+					assert.False(t, pb.CanUserDelete(t.Context(), nil, writePermission))
+				})
+			}
+		})
 	}
-
-	ownerPermission, err := access_model.GetDoerRepoPermission(t.Context(), repo, owner)
-	require.NoError(t, err)
-	assert.True(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
-	assert.False(t, pb.CanUserDelete(t.Context(), owner, access_model.Permission{}))
-
-	actionsPermission, err := access_model.GetDoerRepoPermission(t.Context(), repo, actionsUser)
-	require.NoError(t, err)
-	assert.True(t, actionsPermission.CanWrite(unit.TypeCode))
-	assert.True(t, pb.CanUserPush(t.Context(), actionsUser, actionsPermission))
-	assert.True(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
-	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, access_model.Permission{}))
-	assert.False(t, pb.CanUserDelete(t.Context(), nil, actionsPermission))
-
-	pb.EnableWhitelist = true
-	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
-	pb.WhitelistUserIDs = []int64{actionsUser.ID}
-	assert.True(t, pb.CanUserPush(t.Context(), actionsUser, actionsPermission))
-	assert.False(t, pb.CanUserPush(t.Context(), actionsUser, access_model.Permission{}))
-	assert.False(t, pb.CanUserPush(t.Context(), nil, actionsPermission))
-	pb.CanForcePush = true
-	pb.EnableForcePushAllowlist = true
-	assert.False(t, pb.CanUserForcePush(t.Context(), actionsUser, actionsPermission))
-	pb.ForcePushAllowlistUserIDs = []int64{actionsUser.ID}
-	assert.True(t, pb.CanUserForcePush(t.Context(), actionsUser, actionsPermission))
-	assert.False(t, pb.CanUserForcePush(t.Context(), actionsUser, access_model.Permission{}))
-	assert.True(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
-	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, access_model.Permission{}))
-
-	pb.EnableDeletionAllowlist = true
-	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
-	pb.DeletionAllowlistUserIDs = []int64{actionsUser.ID}
-	assert.True(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
-	pb.CanPush = false
-	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
 }

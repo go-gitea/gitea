@@ -4,14 +4,12 @@
 package shared
 
 import (
-	"errors"
 	"net/http"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
@@ -25,10 +23,7 @@ type RegistrationToken struct {
 }
 
 func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
-	token, err := actions_model.GetLatestRunnerToken(ctx, ownerID, repoID)
-	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
-		token, err = actions_model.NewRunnerToken(ctx, ownerID, repoID)
-	}
+	token, err := actions_model.GetOrCreateActiveRunnerToken(ctx, ownerID, repoID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -64,7 +59,7 @@ func ListRunners(ctx *context.APIContext, ownerID, repoID int64) {
 
 	res.Entries = make([]*api.ActionRunner, len(runners))
 	for i, runner := range runners {
-		res.Entries[i] = convert.ToActionRunner(ctx, runner)
+		res.Entries[i] = convert.ToActionRunner(runner)
 	}
 
 	ctx.JSON(http.StatusOK, &res)
@@ -102,7 +97,7 @@ func GetRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 	if !ok {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToActionRunner(ctx, runner))
+	ctx.JSON(http.StatusOK, convert.ToActionRunner(runner))
 }
 
 // DeleteRunner deletes the runner for api route validated ownerID and repoID

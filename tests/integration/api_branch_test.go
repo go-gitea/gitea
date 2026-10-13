@@ -53,7 +53,7 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 
 func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPriority, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.CreateBranchProtectionOption{
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
 		RuleName: branchName,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, expectedHTTPStatus)
@@ -65,7 +65,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPrio
 	}
 }
 
-func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.EditBranchProtectionOption, expectedHTTPStatus int) {
+func testAPIEditBranchProtection(t *testing.T, branchName string, body any, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/branch_protections/"+branchName, body).
 		AddTokenAuth(token)
@@ -359,67 +359,6 @@ func TestAPIBranchProtection(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("Basic", testAPIBranchProtectionBasic)
 	t.Run("BypassAllowlistValidation", testAPIBranchProtectionBypassAllowlistValidation)
-	t.Run("DeletionAllowlistValidation", testAPIBranchProtectionDeletionAllowlistValidation)
-	t.Run("DeletionTeamAllowlist", testAPIBranchProtectionDeletionTeamAllowlist)
-	t.Run("ActionsAllowlist", testAPIBranchProtectionActionsAllowlist)
-}
-
-func testAPIBranchProtectionActionsAllowlist(t *testing.T) {
-	const ruleName = "actions-*"
-	actionsUsernames := []string{"gitea-actions"}
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user2/repo1/branch_protections", &api.CreateBranchProtectionOption{
-		RuleName: ruleName, EnablePush: true, EnablePushWhitelist: true, PushWhitelistUsernames: actionsUsernames,
-		EnableForcePush: true, EnableForcePushAllowlist: true, ForcePushAllowlistUsernames: actionsUsernames,
-		EnableDeletion: true, EnableDeletionAllowlist: true, DeletionAllowlistUsernames: actionsUsernames,
-	}).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusCreated)
-	assertActions := func(bp *api.BranchProtection) {
-		t.Helper()
-		require.NotNil(t, bp)
-		assert.Equal(t, actionsUsernames, bp.PushWhitelistUsernames)
-		assert.Equal(t, actionsUsernames, bp.ForcePushAllowlistUsernames)
-		assert.Equal(t, actionsUsernames, bp.DeletionAllowlistUsernames)
-	}
-	assertActions(DecodeJSON(t, resp, &api.BranchProtection{}))
-	assertActions(testAPIGetBranchProtection(t, ruleName, http.StatusOK))
-
-	session := loginUser(t, "user2")
-	req = NewRequest(t, http.MethodGet, "/user2/repo1/settings/branches/edit?rule_name="+url.QueryEscape(ruleName))
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-	for _, field := range []string{"whitelist_users", "force_push_allowlist_users", "deletion_allowlist_users"} {
-		input := doc.Find(fmt.Sprintf(`input[name="%s"]`, field))
-		assert.Equal(t, "-2", input.AttrOr("value", ""))
-		assert.Equal(t, 1, input.Parent().Find(`.item[data-value="-2"]`).Length())
-	}
-	for _, field := range []string{"merge_whitelist_users", "approvals_whitelist_users", "bypass_allowlist_users"} {
-		assert.Zero(t, doc.Find(fmt.Sprintf(`input[name="%s"]`, field)).Parent().Find(`.item[data-value="-2"]`).Length())
-	}
-	req = NewRequestWithValues(t, http.MethodPost, "/user2/repo1/settings/branches/edit", map[string]string{
-		"rule_name":   ruleName,
-		"enable_push": "whitelist", "whitelist_users": "-2",
-		"enable_force_push": "whitelist", "force_push_allowlist_users": "-2",
-		"enable_deletion": "whitelist", "deletion_allowlist_users": "-2",
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
-	assertActions(testAPIGetBranchProtection(t, ruleName, http.StatusOK))
-
-	testAPIEditBranchProtection(t, ruleName, &api.EditBranchProtectionOption{
-		PushWhitelistUsernames: []string{}, ForcePushAllowlistUsernames: []string{}, DeletionAllowlistUsernames: []string{},
-	}, http.StatusOK)
-	bp := testAPIGetBranchProtection(t, ruleName, http.StatusOK)
-	assert.Empty(t, bp.PushWhitelistUsernames)
-	assert.Empty(t, bp.ForcePushAllowlistUsernames)
-	assert.Empty(t, bp.DeletionAllowlistUsernames)
-	testAPIEditBranchProtection(t, ruleName, &api.EditBranchProtectionOption{
-		PushWhitelistUsernames: []string{"GITEA-ACTIONS"}, ForcePushAllowlistUsernames: actionsUsernames, DeletionAllowlistUsernames: actionsUsernames,
-	}, http.StatusOK)
-	assertActions(testAPIGetBranchProtection(t, ruleName, http.StatusOK))
-	testAPIEditBranchProtection(t, ruleName, &api.EditBranchProtectionOption{
-		PushWhitelistUsernames: []string{"(deploy-key)"},
-	}, http.StatusUnprocessableEntity)
-	testAPIDeleteBranchProtection(t, ruleName, http.StatusNoContent)
 }
 
 func testAPIBranchProtectionBasic(t *testing.T) {
@@ -441,13 +380,13 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
 
 	testAPIGetBranchProtection(t, "master", http.StatusOK)
-	testAPIEditBranchProtection(t, "master", &api.EditBranchProtectionOption{
-		EnablePush: new(true),
+	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
+		EnablePush: true,
 	}, http.StatusOK)
 
 	// enable status checks, require the "test1" check to pass
-	testAPIEditBranchProtection(t, "master", &api.EditBranchProtectionOption{
-		EnableStatusCheck:   new(true),
+	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
+		EnableStatusCheck:   true,
 		StatusCheckContexts: []string{"test1"},
 	}, http.StatusOK)
 	bp := testAPIGetBranchProtection(t, "master", http.StatusOK)
@@ -455,8 +394,8 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 	assert.Equal(t, []string{"test1"}, bp.StatusCheckContexts)
 
 	// disable status checks, clear the list of required checks
-	testAPIEditBranchProtection(t, "master", &api.EditBranchProtectionOption{
-		EnableStatusCheck:   new(false),
+	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
+		EnableStatusCheck:   false,
 		StatusCheckContexts: []string{},
 	}, http.StatusOK)
 	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
@@ -467,52 +406,16 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 
 	// Test branch deletion
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
-
-	// Protected branches remain non-deletable by default.
 	testAPICreateBranchProtection(t, "branch2", 3, http.StatusCreated)
 	testAPIDeleteBranch(t, "branch2", http.StatusForbidden)
-
-	// Enabling deletion with an empty allowlist still denies deletion.
 	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
-		EnablePush:              new(true),
-		EnableDeletion:          new(true),
-		EnableDeletionAllowlist: new(true),
-	}, http.StatusOK)
-	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
-	assert.True(t, bp.EnableDeletion)
-	assert.True(t, bp.EnableDeletionAllowlist)
-	assert.Empty(t, bp.DeletionAllowlistUsernames)
-	assert.False(t, bp.DeletionAllowlistDeployKeys)
-	testAPIDeleteBranch(t, "branch2", http.StatusForbidden)
-
-	// The deploy-key allowlist flag is exposed by the API and cleared when restricted deletion is disabled.
-	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
-		EnableDeletion:              new(true),
-		EnableDeletionAllowlist:     new(true),
-		DeletionAllowlistDeployKeys: new(true),
-	}, http.StatusOK)
-	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
-	assert.True(t, bp.DeletionAllowlistDeployKeys)
-	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
-		EnableDeletion:          new(true),
-		EnableDeletionAllowlist: new(false),
-	}, http.StatusOK)
-	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
-	assert.False(t, bp.EnableDeletionAllowlist)
-	assert.False(t, bp.DeletionAllowlistDeployKeys)
-
-	// An allowlisted user with push access can delete the protected branch.
-	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
-		EnablePush:                 new(true),
-		EnableDeletion:             new(true),
-		EnableDeletionAllowlist:    new(true),
+		EnablePush: new(true), EnableDeletion: new(true), EnableDeletionAllowlist: new(true),
 		DeletionAllowlistUsernames: []string{"user2"},
 	}, http.StatusOK)
 	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
+	assert.True(t, bp.EnableDeletion)
 	assert.Equal(t, []string{"user2"}, bp.DeletionAllowlistUsernames)
-	assert.False(t, bp.DeletionAllowlistDeployKeys)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
-	testAPIDeleteBranchProtection(t, "branch2", http.StatusNoContent)
 	testAPIDeleteBranch(t, "branch2", http.StatusNotFound)        // deleted branch, there is a record in DB with IsDelete=true
 	testAPIDeleteBranch(t, "no-such-branch", http.StatusNotFound) // non-existing branch, not exist in git or DB
 }
@@ -544,72 +447,6 @@ func testAPIBranchProtectionBypassAllowlistValidation(t *testing.T) {
 			AddTokenAuth(token)
 		MakeRequest(t, deleteReq, http.StatusNoContent)
 	})
-}
-
-func testAPIBranchProtectionDeletionAllowlistValidation(t *testing.T) {
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
-
-	t.Run("IgnoreInvalidDeletionUsernamesWhenDisabled", func(t *testing.T) {
-		ruleName := "deletion-disabled-invalid-user"
-		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.CreateBranchProtectionOption{
-			RuleName:                   ruleName,
-			EnablePush:                 true,
-			EnableDeletion:             true,
-			EnableDeletionAllowlist:    false,
-			DeletionAllowlistUsernames: []string{"nonexistent-user"},
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-		testAPIDeleteBranchProtection(t, ruleName, http.StatusNoContent)
-	})
-
-	t.Run("IgnoreInvalidDeletionTeamsWhenDisabled", func(t *testing.T) {
-		ruleName := "deletion-disabled-invalid-team"
-		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/org3/repo3/branch_protections", &api.CreateBranchProtectionOption{
-			RuleName:                ruleName,
-			EnablePush:              true,
-			EnableDeletion:          true,
-			EnableDeletionAllowlist: false,
-			DeletionAllowlistTeams:  []string{"nonexistent-team"},
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-
-		deleteReq := NewRequestf(t, "DELETE", "/api/v1/repos/org3/repo3/branch_protections/%s", ruleName).
-			AddTokenAuth(token)
-		MakeRequest(t, deleteReq, http.StatusNoContent)
-	})
-}
-
-func testAPIBranchProtectionDeletionTeamAllowlist(t *testing.T) {
-	const repoName = "repo3"
-	const branchName = "test_branch"
-	ownerToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
-	teamMemberToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteRepository)
-
-	createProtectionReq := NewRequestWithJSON(t, "POST", "/api/v1/repos/org3/"+repoName+"/branch_protections", &api.CreateBranchProtectionOption{
-		RuleName:                branchName,
-		EnablePush:              true,
-		EnableDeletion:          true,
-		EnableDeletionAllowlist: true,
-		DeletionAllowlistTeams:  []string{"Owners"},
-	}).AddTokenAuth(ownerToken)
-	resp := MakeRequest(t, createProtectionReq, http.StatusCreated)
-	bp := DecodeJSON(t, resp, &api.BranchProtection{})
-	assert.Equal(t, []string{"Owners"}, bp.DeletionAllowlistTeams)
-
-	deleteBranchReq := NewRequestf(t, "DELETE", "/api/v1/repos/org3/%s/branches/%s", repoName, branchName).
-		AddTokenAuth(teamMemberToken)
-	MakeRequest(t, deleteBranchReq, http.StatusForbidden)
-
-	editProtectionReq := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org3/"+repoName+"/branch_protections/"+branchName, &api.EditBranchProtectionOption{
-		DeletionAllowlistTeams: []string{"team1"},
-	}).AddTokenAuth(ownerToken)
-	resp = MakeRequest(t, editProtectionReq, http.StatusOK)
-	bp = DecodeJSON(t, resp, &api.BranchProtection{})
-	assert.Equal(t, []string{"team1"}, bp.DeletionAllowlistTeams)
-
-	deleteBranchReq = NewRequestf(t, "DELETE", "/api/v1/repos/org3/%s/branches/%s", repoName, branchName).
-		AddTokenAuth(teamMemberToken)
-	MakeRequest(t, deleteBranchReq, http.StatusNoContent)
 }
 
 func TestAPICreateBranchWithSyncBranches(t *testing.T) {
@@ -644,4 +481,110 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, branches, 1)
+}
+
+func TestAPIBranchProtectionDeployKeyAllowlists(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+	path := "/api/v1/repos/user2/repo1/branch_protections"
+	createProtection := func(t *testing.T, ruleName string, deployKeys bool) *api.BranchProtection {
+		t.Helper()
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, &api.CreateBranchProtectionOption{
+			RuleName: ruleName, EnablePush: true, EnablePushWhitelist: true, PushWhitelistDeployKeys: deployKeys,
+			EnableForcePush: true, EnableForcePushAllowlist: true, ForcePushAllowlistDeployKeys: deployKeys,
+		}).AddTokenAuth(token), http.StatusCreated)
+		return DecodeJSON(t, resp, &api.BranchProtection{})
+	}
+
+	t.Run("CreateWithLegacyFlags", func(t *testing.T) {
+		bp := createProtection(t, "legacy-flags", true)
+		assert.True(t, bp.PushWhitelistDeployKeys)
+		assert.True(t, bp.ForcePushAllowlistDeployKeys)
+	})
+
+	t.Run("PreserveDeployKeysWhenUpdatingUsernames", func(t *testing.T) {
+		createProtection(t, "update-usernames", true)
+		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/update-usernames", map[string]any{
+			"push_whitelist_usernames": []string{"user2"}, "force_push_allowlist_usernames": []string{},
+		}).AddTokenAuth(token), http.StatusOK)
+		bp := DecodeJSON(t, resp, &api.BranchProtection{})
+		assert.True(t, bp.PushWhitelistDeployKeys)
+		assert.True(t, bp.ForcePushAllowlistDeployKeys)
+		assert.Equal(t, []string{"user2", "gitea:deploy-key"}, bp.PushWhitelistUsernames)
+	})
+
+	t.Run("LegacyFlagsDisableDeployKeys", func(t *testing.T) {
+		createProtection(t, "disable-deploy-keys", true)
+		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/disable-deploy-keys", map[string]any{
+			"enable_push": true, "enable_push_whitelist": true, "push_whitelist_deploy_keys": false,
+			"enable_force_push": true, "enable_force_push_allowlist": true, "force_push_allowlist_deploy_keys": false,
+			"push_whitelist_usernames": []string{"user2", "gitea:deploy-key"}, "force_push_allowlist_usernames": []string{"gitea:deploy-key"},
+		}).AddTokenAuth(token), http.StatusOK)
+		bp := DecodeJSON(t, resp, &api.BranchProtection{})
+		assert.False(t, bp.PushWhitelistDeployKeys)
+		assert.False(t, bp.ForcePushAllowlistDeployKeys)
+		assert.Equal(t, []string{"user2"}, bp.PushWhitelistUsernames)
+		rule, err := git_model.GetProtectedBranchRuleByName(t.Context(), 1, "disable-deploy-keys")
+		require.NoError(t, err)
+		require.NotNil(t, rule)
+		assert.Equal(t, []int64{2}, rule.WhitelistUserIDs)
+		assert.Empty(t, rule.ForcePushAllowlistUserIDs)
+	})
+
+	t.Run("AddDeployKeysByUsername", func(t *testing.T) {
+		createProtection(t, "add-deploy-keys", false)
+		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/add-deploy-keys", map[string]any{
+			"push_whitelist_usernames": []string{"user2", "gitea:deploy-key"}, "force_push_allowlist_usernames": []string{"gitea:deploy-key"},
+		}).AddTokenAuth(token), http.StatusOK)
+		bp := DecodeJSON(t, resp, &api.BranchProtection{})
+		assert.True(t, bp.PushWhitelistDeployKeys)
+		assert.True(t, bp.ForcePushAllowlistDeployKeys)
+		assert.Equal(t, []string{"user2", "gitea:deploy-key"}, bp.PushWhitelistUsernames)
+		assert.Equal(t, []string{"gitea:deploy-key"}, bp.ForcePushAllowlistUsernames)
+	})
+
+	t.Run("CreateWithDeployKeyUsernames", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, &api.CreateBranchProtectionOption{
+			RuleName: "deploy-key-usernames", EnablePush: true, EnablePushWhitelist: true,
+			PushWhitelistUsernames: []string{"gitea:deploy-key"}, EnableForcePush: true, EnableForcePushAllowlist: true,
+			ForcePushAllowlistUsernames: []string{"gitea:deploy-key"},
+		}).AddTokenAuth(token), http.StatusCreated)
+		bp := DecodeJSON(t, resp, &api.BranchProtection{})
+		assert.True(t, bp.PushWhitelistDeployKeys)
+		assert.True(t, bp.ForcePushAllowlistDeployKeys)
+		assert.Equal(t, []string{"gitea:deploy-key"}, bp.PushWhitelistUsernames)
+		assert.Equal(t, []string{"gitea:deploy-key"}, bp.ForcePushAllowlistUsernames)
+	})
+}
+
+func TestAPIBranchProtectionDeletionSettings(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+	path := "/api/v1/repos/org3/repo3/branch_protections"
+	users := []string{"gitea-actions", "gitea:deploy-key"}
+	resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, &api.CreateBranchProtectionOption{
+		RuleName: "deletion-settings", EnablePush: true, EnableDeletion: true, EnableDeletionAllowlist: true,
+		DeletionAllowlistUsernames: users, DeletionAllowlistTeams: []string{"Owners"},
+	}).AddTokenAuth(token), http.StatusCreated)
+	bp := DecodeJSON(t, resp, &api.BranchProtection{})
+	assert.True(t, bp.EnableDeletion)
+	assert.Equal(t, users, bp.DeletionAllowlistUsernames)
+	assert.Equal(t, []string{"Owners"}, bp.DeletionAllowlistTeams)
+
+	resp = MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/deletion-settings", &api.EditBranchProtectionOption{
+		DeletionAllowlistUsernames: []string{"user2"}, DeletionAllowlistTeams: []string{},
+	}).AddTokenAuth(token), http.StatusOK)
+	bp = DecodeJSON(t, resp, &api.BranchProtection{})
+	assert.True(t, bp.EnableDeletion)
+	assert.Equal(t, []string{"user2"}, bp.DeletionAllowlistUsernames)
+	assert.Empty(t, bp.DeletionAllowlistTeams)
+
+	resp = MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/deletion-settings", &api.EditBranchProtectionOption{
+		EnablePush: new(false),
+	}).AddTokenAuth(token), http.StatusOK)
+	bp = DecodeJSON(t, resp, &api.BranchProtection{})
+	assert.False(t, bp.EnableDeletion)
+	assert.False(t, bp.EnableDeletionAllowlist)
+	assert.Empty(t, bp.DeletionAllowlistUsernames)
 }

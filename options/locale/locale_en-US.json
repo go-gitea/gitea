@@ -2429,7 +2429,6 @@
   "repo.settings.protect_force_push_allowlist_deploy_keys": "Allowlist deploy keys with push access to force push.",
   "repo.settings.protect_deletion_allowlist_users": "Allowlisted users for deleting:",
   "repo.settings.protect_deletion_allowlist_teams": "Allowlisted teams for deleting:",
-  "repo.settings.protect_deletion_allowlist_deploy_keys": "Allowlist deploy keys with push access to delete.",
   "repo.settings.protect_merge_whitelist_committers": "Enable Merge Allowlist",
   "repo.settings.protect_merge_whitelist_committers_desc": "Allow only allowlisted users or teams to merge pull requests into this branch.",
   "repo.settings.protect_merge_whitelist_users": "Allowlisted users for merging:",

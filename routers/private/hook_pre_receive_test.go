@@ -4,12 +4,14 @@
 package private
 
 import (
+	"net/http"
 	"testing"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -23,15 +25,22 @@ import (
 func TestPreReceiveActionsProtectedBranch(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	for _, tc := range []struct {
-		name       string
-		protection git_model.ProtectedBranch
-		forcePush  bool
-		allowed    bool
+		name          string
+		protection    git_model.ProtectedBranchConfig
+		forcePush     bool
+		deleteBranch  bool
+		targetBranch  bool
+		defaultBranch bool
+		allowed       bool
 	}{
-		{name: "push", protection: git_model.ProtectedBranch{CanPush: true}, allowed: true},
-		{name: "push allowlist", protection: git_model.ProtectedBranch{CanPush: true, EnableWhitelist: true}},
-		{name: "force push", protection: git_model.ProtectedBranch{CanPush: true, CanForcePush: true}, forcePush: true, allowed: true},
-		{name: "force push allowlist", protection: git_model.ProtectedBranch{CanPush: true, CanForcePush: true, EnableForcePushAllowlist: true}, forcePush: true},
+		{name: "push", protection: git_model.ProtectedBranchConfig{CanPush: true}, allowed: true},
+		{name: "push allowlist", protection: git_model.ProtectedBranchConfig{CanPush: true, EnableWhitelist: true}},
+		{name: "force push", protection: git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true}, forcePush: true, allowed: true},
+		{name: "force push allowlist", protection: git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true, EnableForcePushAllowlist: true}, forcePush: true},
+		{name: "deletion disabled", protection: git_model.ProtectedBranchConfig{CanPush: true}, deleteBranch: true},
+		{name: "deletion allowed", protection: git_model.ProtectedBranchConfig{CanPush: true, CanDelete: true}, deleteBranch: true, allowed: true},
+		{name: "pull request target", protection: git_model.ProtectedBranchConfig{CanPush: true, CanDelete: true}, deleteBranch: true, targetBranch: true},
+		{name: "default branch", protection: git_model.ProtectedBranchConfig{CanPush: true, CanDelete: true}, deleteBranch: true, defaultBranch: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtx, resp := contexttest.MockPrivateContext(t, "/")
@@ -45,7 +54,7 @@ func TestPreReceiveActionsProtectedBranch(t *testing.T) {
 			doer := user_model.NewActionsUserWithTaskID(53)
 			loadContextDoerPermission(ctx.PrivateContext, doer.ID, doer.ExtDoerData.EncodeToString())
 
-			protection := tc.protection
+			protection := git_model.ProtectedBranch{ProtectedBranchConfig: tc.protection}
 			protection.RepoID = ctx.Repo.Repository.ID
 			protection.RuleName = "probe"
 			require.NoError(t, db.Insert(t.Context(), &protection))
@@ -57,9 +66,20 @@ func TestPreReceiveActionsProtectedBranch(t *testing.T) {
 			if tc.forcePush {
 				oldCommitID, newCommitID = newCommitID, oldCommitID
 			}
+			if tc.deleteBranch {
+				newCommitID = ctx.Repo.GetObjectFormat().EmptyObjectID().String()
+			}
+			if tc.targetBranch {
+				ctx.Repo.Repository.Units = append(ctx.Repo.Repository.Units, &repo_model.RepoUnit{Type: unit.TypePullRequests, Config: &repo_model.PullRequestsConfig{DefaultTargetBranch: "probe"}})
+			}
+			if tc.defaultBranch {
+				ctx.Repo.Repository.DefaultBranch = "probe"
+			}
 			preReceiveBranch(ctx, oldCommitID, newCommitID, git.RefNameFromBranch("probe"))
 			if tc.allowed {
 				assert.False(t, ctx.Written(), resp.Body.String())
+			} else if tc.deleteBranch {
+				assert.Equal(t, http.StatusForbidden, resp.Code)
 			} else {
 				assert.Contains(t, resp.Body.String(), "Not allowed to")
 			}

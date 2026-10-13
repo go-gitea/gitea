@@ -138,47 +138,17 @@ func testProtectedBranchDeletionByDeployKey(t *testing.T, u *url.URL) {
 		t.Run("CreateProtectedBranch", doGitCreateBranch(dstPath, "protected-delete"))
 		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected-delete"))
 
-		t.Run("ProtectBranchWithUnrestrictedDeletion", func(t *testing.T) {
-			req := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user2/"+ctx.Reponame+"/branch_protections", &api.CreateBranchProtectionOption{
-				RuleName:       "protected-delete",
-				EnablePush:     true,
-				EnableDeletion: true,
-			}).AddTokenAuth(ctx.Token)
-			ctx.Session.MakeRequest(t, req, http.StatusCreated)
-		})
-		t.Run("DeleteWithUnrestrictedDeletion", doGitPushTestRepository(dstPath, "origin", "--delete", "protected-delete"))
-
-		t.Run("RestoreProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected-delete"))
-		t.Run("RestrictDeletionWithoutDeployKeys", func(t *testing.T) {
-			req := NewRequestWithJSON(t, http.MethodPatch, "/api/v1/repos/user2/"+ctx.Reponame+"/branch_protections/protected-delete", &api.EditBranchProtectionOption{
-				EnableDeletion:          new(true),
-				EnableDeletionAllowlist: new(true),
-			}).AddTokenAuth(ctx.Token)
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-		})
+		path := "/api/v1/repos/user2/" + ctx.Reponame + "/branch_protections"
+		req := NewRequestWithJSON(t, http.MethodPost, path, &api.CreateBranchProtectionOption{
+			RuleName: "protected-delete", EnablePush: true, EnableDeletion: true, EnableDeletionAllowlist: true,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, req, http.StatusCreated)
 		t.Run("DenyRestrictedDeletion", doGitPushTestRepositoryFail(dstPath, "origin", "--delete", "protected-delete"))
 
-		t.Run("AllowlistDeployKeyOnlyForDeletion", func(t *testing.T) {
-			req := NewRequestWithJSON(t, http.MethodPatch, "/api/v1/repos/user2/"+ctx.Reponame+"/branch_protections/protected-delete", &api.EditBranchProtectionOption{
-				EnablePush:                  new(true),
-				EnablePushWhitelist:         new(true),
-				PushWhitelistDeployKeys:     new(false),
-				EnableDeletion:              new(true),
-				EnableDeletionAllowlist:     new(true),
-				DeletionAllowlistDeployKeys: new(true),
-			}).AddTokenAuth(ctx.Token)
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-		})
-		t.Run("DenyDeletionWithoutPushAccess", doGitPushTestRepositoryFail(dstPath, "origin", "--delete", "protected-delete"))
-
-		t.Run("AllowlistDeployKeyForPush", func(t *testing.T) {
-			req := NewRequestWithJSON(t, http.MethodPatch, "/api/v1/repos/user2/"+ctx.Reponame+"/branch_protections/protected-delete", &api.EditBranchProtectionOption{
-				EnablePush:              new(true),
-				EnablePushWhitelist:     new(true),
-				PushWhitelistDeployKeys: new(true),
-			}).AddTokenAuth(ctx.Token)
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-		})
+		req = NewRequestWithJSON(t, http.MethodPatch, path+"/protected-delete", &api.EditBranchProtectionOption{
+			DeletionAllowlistUsernames: []string{"gitea:deploy-key"},
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
 		t.Run("DeleteWithAllowlistedDeployKey", doGitPushTestRepository(dstPath, "origin", "--delete", "protected-delete"))
 	})
 

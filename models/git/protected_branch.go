@@ -48,7 +48,6 @@ type ProtectedBranchConfig struct {
 	WhitelistUserIDs              []int64  `json:"whitelist_user_ids,omitzero"`
 	WhitelistTeamIDs              []int64  `json:"whitelist_team_ids,omitzero"`
 	EnableMergeWhitelist          bool     `json:"enable_merge_whitelist,omitzero"`
-	WhitelistDeployKeys           bool     `json:"whitelist_deploy_keys,omitzero"`
 	MergeWhitelistUserIDs         []int64  `json:"merge_whitelist_user_ids,omitzero"`
 	MergeWhitelistTeamIDs         []int64  `json:"merge_whitelist_team_ids,omitzero"`
 	EnableBypassAllowlist         bool     `json:"enable_bypass_allowlist,omitzero"`
@@ -58,12 +57,10 @@ type ProtectedBranchConfig struct {
 	EnableForcePushAllowlist      bool     `json:"enable_force_push_allowlist,omitzero"`
 	ForcePushAllowlistUserIDs     []int64  `json:"force_push_allowlist_user_ids,omitzero"`
 	ForcePushAllowlistTeamIDs     []int64  `json:"force_push_allowlist_team_ids,omitzero"`
-	ForcePushAllowlistDeployKeys  bool     `json:"force_push_allowlist_deploy_keys,omitzero"`
 	CanDelete                     bool     `json:"can_delete,omitzero"`
 	EnableDeletionAllowlist       bool     `json:"enable_deletion_allowlist,omitzero"`
 	DeletionAllowlistUserIDs      []int64  `json:"deletion_allowlist_user_ids,omitzero"`
 	DeletionAllowlistTeamIDs      []int64  `json:"deletion_allowlist_team_ids,omitzero"`
-	DeletionAllowlistDeployKeys   bool     `json:"deletion_allowlist_deploy_keys,omitzero"`
 	EnableStatusCheck             bool     `json:"enable_status_check,omitzero"`
 	StatusCheckContexts           []string `json:"status_check_contexts,omitzero"`
 	EnableApprovalsWhitelist      bool     `json:"enable_approvals_whitelist,omitzero"`
@@ -109,8 +106,8 @@ func (protectBranch *ProtectedBranch) loadGlob() {
 	var err error
 	protectBranch.globRule, err = glob.Compile(protectBranch.RuleName, '/')
 	if err != nil {
-		log.Warn("Invalid glob rule for ProtectedBranch[%d]: %s %v", protectBranch.ID, protectBranch.RuleName, err)
-		protectBranch.globRule = glob.MustCompile(glob.QuoteMeta(protectBranch.RuleName), '/')
+		log.Debug("Invalid glob rule for ProtectedBranch[%d]: %s %v", protectBranch.ID, protectBranch.RuleName, err)
+		protectBranch.globRule, _ = glob.Compile(glob.QuoteMeta(protectBranch.RuleName), '/')
 	}
 }
 
@@ -120,7 +117,9 @@ func (protectBranch *ProtectedBranch) Match(branchName string) bool {
 	if protectBranch.isPlainName {
 		return strings.EqualFold(protectBranch.RuleName, branchName)
 	}
-
+	if protectBranch.globRule == nil {
+		return false // in case of invalid glob rule, we don't match anything
+	}
 	return protectBranch.globRule.Match(branchName)
 }
 
@@ -134,10 +133,7 @@ func (protectBranch *ProtectedBranch) LoadRepo(ctx context.Context) (err error) 
 
 // CanUserPush returns if some user could push to this protected branch
 func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *user_model.User, permissionInRepo access_model.Permission) bool {
-	if !protectBranch.CanPush || user == nil {
-		return false
-	}
-	if user.ID == user_model.ActionsUserID && !permissionInRepo.CanWrite(unit.TypeCode) {
+	if !protectBranch.CanPush {
 		return false
 	}
 
@@ -429,25 +425,25 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 		return fmt.Errorf("LoadOwner: %v", err)
 	}
 
-	whitelist, err := updateUserWhitelist(ctx, repo, protectBranch.WhitelistUserIDs, opts.UserIDs, true)
+	whitelist, err := updateUserWhitelist(ctx, repo, protectBranch.WhitelistUserIDs, opts.UserIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.WhitelistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.ForcePushAllowlistUserIDs, opts.ForcePushUserIDs, true)
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.ForcePushAllowlistUserIDs, opts.ForcePushUserIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.ForcePushAllowlistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.DeletionAllowlistUserIDs, opts.DeletionUserIDs, true)
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.DeletionAllowlistUserIDs, opts.DeletionUserIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.DeletionAllowlistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.MergeWhitelistUserIDs, opts.MergeUserIDs, false)
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.MergeWhitelistUserIDs, opts.MergeUserIDs)
 	if err != nil {
 		return err
 	}
@@ -459,7 +455,7 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.ApprovalsWhitelistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.BypassAllowlistUserIDs, opts.BypassUserIDs, false)
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.BypassAllowlistUserIDs, opts.BypassUserIDs)
 	if err != nil {
 		return err
 	}
@@ -573,7 +569,7 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 
 // updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have write access to the repo.
-func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64, allowActions bool) (whitelist []int64, err error) {
+func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
 	hasUsersChanged := !util.SliceSortedEqual(currentWhitelist, newWhitelist)
 	if !hasUsersChanged {
 		return currentWhitelist, nil
@@ -581,18 +577,17 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		if allowActions && userID == user_model.ActionsUserID {
-			// Actions token permissions are checked for each operation, not when saving the rule.
+		if userID == user_model.ActionsUserID || userID == user_model.DeployKeyUserID {
 			whitelist = append(whitelist, userID)
 			continue
 		}
 		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
-			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
+			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %w", userID, repo.ID, err)
 		}
 		perm, err := access_model.GetIndividualUserRepoPermission(ctx, repo, user)
 		if err != nil {
-			return nil, fmt.Errorf("GetIndividualUserRepoPermission [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
+			return nil, fmt.Errorf("GetIndividualUserRepoPermission [user_id: %d, repo_id: %d]: %w", userID, repo.ID, err)
 		}
 
 		if !perm.CanWrite(unit.TypeCode) {
@@ -695,4 +690,12 @@ func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, us
 // RemoveTeamIDFromProtectedBranch removes all team ids from protected branch options
 func RemoveTeamIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, teamID int64) error {
 	return removeIDsFromProtectedBranch(ctx, p, 0, teamID)
+}
+
+func (protectBranch *ProtectedBranch) HasDeployKeyPush() bool {
+	return slices.Contains(protectBranch.WhitelistUserIDs, user_model.DeployKeyUserID)
+}
+
+func (protectBranch *ProtectedBranch) HasDeployKeyForcePush() bool {
+	return slices.Contains(protectBranch.ForcePushAllowlistUserIDs, user_model.DeployKeyUserID)
 }
