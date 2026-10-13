@@ -6,100 +6,52 @@ package integration
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/routers"
 	"gitea.dev/tests"
 
-	"gitea.com/go-chi/session"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func getSessionID(t *testing.T, resp *httptest.ResponseRecorder) string {
-	cookies := resp.Result().Cookies()
-	found := false
-	sessionID := ""
-	for _, cookie := range cookies {
+func getSessionID(resp *httptest.ResponseRecorder) string {
+	for _, cookie := range resp.Result().Cookies() {
 		if cookie.Name == setting.SessionConfig.CookieName {
-			sessionID = cookie.Value
-			found = true
+			return cookie.Value
 		}
 	}
-	assert.True(t, found)
-	assert.NotEmpty(t, sessionID)
-	return sessionID
-}
-
-func sessionFile(tmpDir, sessionID string) string {
-	return filepath.Join(tmpDir, sessionID[0:1], sessionID[1:2], sessionID)
-}
-
-func sessionFileExist(t *testing.T, tmpDir, sessionID string) bool {
-	sessionFile := sessionFile(tmpDir, sessionID)
-	_, err := os.Lstat(sessionFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-		assert.NoError(t, err)
-	}
-	return true
+	return ""
 }
 
 func TestSessionFileCreation(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.SessionConfig.ProviderConfig)()
-	defer test.MockVariableValue(&testWebRoutes)()
-
-	var config session.Options
-	err := json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &config)
-	assert.NoError(t, err)
-
-	config.Provider = "file"
-
-	// Now create a temporaryDirectory
 	tmpDir := t.TempDir()
-	config.ProviderConfig = tmpDir
-
-	newConfigBytes, err := json.Marshal(config)
-	assert.NoError(t, err)
-
-	setting.SessionConfig.ProviderConfig = string(newConfigBytes)
-
-	testWebRoutes = routers.NormalRoutes()
+	defer test.MockVariableValue(&setting.SessionConfig.Provider, "file")()
+	defer test.MockVariableValue(&setting.SessionConfig.ProviderConfig, tmpDir)()
+	defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
 
 	t.Run("NoSessionOnViewIssue", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", "/user2/repo1/issues/1")
-		resp := MakeRequest(t, req, http.StatusOK)
-		sessionID := getSessionID(t, resp)
-
-		// We're not logged in so there should be no session
-		assert.False(t, sessionFileExist(t, tmpDir, sessionID))
+		resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/issues/1"), http.StatusOK)
+		assert.Empty(t, getSessionID(resp))
 	})
 	t.Run("CreateSessionOnLogin", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", "/user/login")
-		resp := MakeRequest(t, req, http.StatusOK)
-		sessionID := getSessionID(t, resp)
+		resp := MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
+		assert.Empty(t, getSessionID(resp))
 
-		// We're not logged in so there should be no session
-		assert.False(t, sessionFileExist(t, tmpDir, sessionID))
-
-		req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+		req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
 			"user_name": "user2",
 			"password":  userPassword,
 		})
-		resp = MakeRequest(t, req, http.StatusSeeOther)
-		sessionID = getSessionID(t, resp)
-
-		assert.FileExists(t, sessionFile(tmpDir, sessionID))
+		sessionID := getSessionID(MakeRequest(t, req, http.StatusSeeOther))
+		require.Len(t, sessionID, 16)
+		assert.FileExists(t, filepath.Join(tmpDir, sessionID[0:1], sessionID[1:2], sessionID))
 	})
 }

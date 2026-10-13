@@ -17,7 +17,7 @@ import (
 const nl = "\n"
 
 func TestMathRender(t *testing.T) {
-	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{ParseInlineDollar: true, ParseInlineParentheses: true}
+	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{ParseInlineDollar: true, ParseInlineParentheses: true})()
 	testcases := []struct {
 		testcase string
 		expected string
@@ -122,7 +122,7 @@ func TestMathRender(t *testing.T) {
 }
 
 func TestMathRenderBlockIndent(t *testing.T) {
-	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{ParseBlockDollar: true, ParseBlockSquareBrackets: true}
+	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{ParseBlockDollar: true, ParseBlockSquareBrackets: true})()
 	testcases := []struct {
 		name     string
 		testcase string
@@ -257,8 +257,7 @@ x
 }
 
 func TestMathRenderOptions(t *testing.T) {
-	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{}
-	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions)
+	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{})()
 	test := func(t *testing.T, expected, input string) {
 		res, err := RenderString(markup.NewTestRenderContext(), input)
 		assert.NoError(t, err)

@@ -61,9 +61,7 @@ func TestMigrateLocalPath(t *testing.T) {
 func TestMigrateGiteaForm(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		// Gitea SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
-		defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 		defer test.MockVariableValue(&setting.AppVer, "1.16.0")()
-		assert.NoError(t, migrations.Init())
 
 		ownerName := "user2"
 		repoName := "repo1"
@@ -96,9 +94,9 @@ func TestMigrateGiteaForm(t *testing.T) {
 			"description": "",
 			"uid":         strconv.FormatInt(repoOwner.ID, 10),
 		})
-		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+		resp = session.MakeRequest(t, req, http.StatusOK)
 		// Step 5: a redirection displays the migrated repository
-		loc := resp.Header().Get("Location")
+		loc := *test.ParseJSONRedirect(resp.Body.Bytes()).Redirect
 		assert.Equal(t, fmt.Sprintf("/%s/%s", ownerName, migratedRepoName), loc)
 		// Step 6: check the repo was created
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: migratedRepoName})
@@ -222,8 +220,6 @@ done
 
 func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
-	assert.NoError(t, migrations.Init())
 
 	mockServer := setupGiteaMockServer(t)
 

@@ -319,11 +319,11 @@ class RelativeTime extends HTMLElement {
     return undefined;
   }
 
-  get prefix(): string {
+  override get prefix(): string {
     return this.getAttribute('prefix') ?? (this.format === 'datetime' ? '' : 'on');
   }
 
-  set prefix(v: string) {
+  override set prefix(v: string) {
     this.setAttribute('prefix', v);
   }
 

@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -41,8 +40,8 @@ type SearchUserOptions struct {
 	Keyword       string
 	Types         []UserType
 	UID           int64
-	LoginName     string // this option should be used only for admin user
-	SourceID      int64  // this option should be used only for admin user
+	LoginName     string                 // this option should be used only for admin user
+	SourceID      optional.Option[int64] // this option should be used only for admin user, Some(0) means local users
 	OrderBy       db.SearchOrderBy
 	Visible       []structs.VisibleType
 	Actor         *User // The user doing the search
@@ -55,7 +54,6 @@ type SearchUserOptions struct {
 	IsRestricted       optional.Option[bool]
 	IsTwoFactorEnabled optional.Option[bool]
 	IsProhibitLogin    optional.Option[bool]
-	IncludeReserved    bool
 }
 
 func (opts *SearchUserOptions) ToOrders() string {
@@ -71,18 +69,6 @@ func (opts *SearchUserOptions) ApplyPublicOnly(publicOnly bool) {
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) db.Session {
 	var cond builder.Cond
 	cond = builder.In("type", opts.Types)
-	if opts.IncludeReserved {
-		switch {
-		case slices.Contains(opts.Types, UserTypeIndividual):
-			cond = cond.Or(builder.Eq{"type": UserTypeUserReserved}).Or(
-				builder.Eq{"type": UserTypeBot},
-			).Or(
-				builder.Eq{"type": UserTypeRemoteUser},
-			)
-		case slices.Contains(opts.Types, UserTypeOrganization):
-			cond = cond.Or(builder.Eq{"type": UserTypeOrganizationReserved})
-		}
-	}
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -120,8 +106,8 @@ func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) db.Session
 		cond = cond.And(builder.Eq{"id": opts.UID})
 	}
 
-	if opts.SourceID > 0 {
-		cond = cond.And(builder.Eq{"login_source": opts.SourceID})
+	if opts.SourceID.Has() {
+		cond = cond.And(builder.Eq{"login_source": opts.SourceID.Value()})
 	}
 	if opts.LoginName != "" {
 		cond = cond.And(builder.Eq{"login_name": opts.LoginName})

@@ -7,7 +7,7 @@ import {
 } from './repo-issue.ts';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
 import {initRepoCloneButtons} from './repo-common.ts';
-import {initCitationFileCopyContent} from './citation.ts';
+import {initRepoCitationPanel} from './citation.ts';
 import {initCompLabelEdit} from './comp/LabelEdit.ts';
 import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoSettings} from './repo-settings.ts';
@@ -20,7 +20,7 @@ import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 import {initRepoPullMergeBox, initRepoPullRequestUpdate} from './repo-issue-pull.ts';
 
 function initRepoBranchTagSelector() {
-  registerGlobalInitFunc('initRepoBranchTagSelector', async (elRoot: HTMLInputElement) => {
+  registerGlobalInitFunc('initRepoBranchTagSelector', (elRoot: HTMLInputElement) => {
     createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
   });
 }
@@ -40,6 +40,7 @@ export function initBranchSelectorTabs() {
 export function initRepository() {
   registerGlobalInitFunc('initRepoPullMergeBox', initRepoPullMergeBox);
   registerGlobalInitFunc('initRepoPullRequestUpdate', initRepoPullRequestUpdate);
+  registerGlobalInitFunc('initRepoCitationPanel', initRepoCitationPanel);
 
   const pageContent = document.querySelector('.page-content.repository');
   if (!pageContent) return;
@@ -53,7 +54,6 @@ export function initRepository() {
   initRepoNew();
 
   initRepoCloneButtons();
-  initCitationFileCopyContent();
   initRepoSettings();
   initRepoIssueWipNewTitle();
 

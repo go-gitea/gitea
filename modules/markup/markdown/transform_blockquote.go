@@ -62,7 +62,7 @@ func (g *ASTTransformer) extractBlockquoteAttention2(firstParagraph ast.Node, re
 		return "", nil
 	}
 	node1, ok := firstParagraph.FirstChild().(*ast.Text)
-	if !ok {
+	if !ok || node1.SoftLineBreak() || node1.HardLineBreak() {
 		return "", nil
 	}
 	node2, ok := node1.NextSibling().(*ast.Text)
@@ -71,8 +71,9 @@ func (g *ASTTransformer) extractBlockquoteAttention2(firstParagraph ast.Node, re
 	}
 	val1 := string(node1.Segment.Value(reader.Source()))
 	val2 := string(node2.Segment.Value(reader.Source()))
-	if strings.HasPrefix(val1, `\[!`) && val2 == `\]` {
-		attentionType := strings.ToLower(val1[3:])
+	// Inline math options change where Goldmark splits the escaped marker.
+	if inner, ok := strings.CutPrefix(val1+val2, `\[!`); ok && strings.HasSuffix(val2, `\]`) {
+		attentionType := strings.ToLower(strings.TrimSuffix(inner, `\]`))
 		if g.attentionTypes.Contains(attentionType) {
 			return attentionType, []ast.Node{node1, node2}
 		}

@@ -12,6 +12,7 @@ import (
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBranchRuleMatch(t *testing.T) {
@@ -201,4 +202,29 @@ func TestCanBypassBranchProtection(t *testing.T) {
 
 	// User does not bypass when not in allowlisted teams.
 	testBypass(t, false, pb, user, false)
+}
+
+func TestProtectedBranchConfig(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	pb := &ProtectedBranch{
+		RepoID: 1, RuleName: "config-test",
+		ProtectedBranchConfig: ProtectedBranchConfig{
+			CanPush: true, WhitelistUserIDs: []int64{2, 4}, WhitelistTeamIDs: []int64{1, 2}, StatusCheckContexts: []string{},
+		},
+	}
+	require.NoError(t, db.Insert(ctx, pb))
+	loaded := unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{ID: pb.ID})
+	assert.Equal(t, pb.ProtectedBranchConfig, loaded.ProtectedBranchConfig)
+	require.NoError(t, RemoveUserIDFromProtectedBranch(ctx, loaded, 2))
+	require.NoError(t, RemoveTeamIDFromProtectedBranch(ctx, loaded, 1))
+	loaded = unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{ID: pb.ID})
+	assert.Equal(t, []int64{4}, loaded.WhitelistUserIDs)
+	assert.Equal(t, []int64{2}, loaded.WhitelistTeamIDs)
+	assert.True(t, loaded.CanPush)
+	loaded.ProtectedBranchConfig = ProtectedBranchConfig{}
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, UpdateProtectBranch(ctx, repo, loaded, WhitelistOptions{}))
+	loaded = unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{ID: pb.ID})
+	assert.Equal(t, ProtectedBranchConfig{}, loaded.ProtectedBranchConfig)
 }

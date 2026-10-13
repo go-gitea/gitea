@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/indexer"
-	path_filter "gitea.dev/modules/indexer/code/bleve/token/path"
 	"gitea.dev/modules/indexer/code/internal"
 	indexer_internal "gitea.dev/modules/indexer/internal"
 	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
@@ -32,8 +31,8 @@ import (
 	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
-	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
+	"github.com/blevesearch/bleve/v2/registry"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/go-enry/go-enry/v2"
 )
@@ -69,7 +68,7 @@ const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 10
+	repoIndexerLatestVersion = 11
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -114,8 +113,8 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	if err := mapping.AddCustomAnalyzer(filenameIndexerAnalyzer, map[string]any{
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
-		"tokenizer":     unicode.Name,
-		"token_filters": []string{unicodeNormalizeName, path_filter.Name, lowercase.Name},
+		"tokenizer":     pathTokenizerName,
+		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}
@@ -137,6 +136,13 @@ type Indexer struct {
 
 func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
 	return indexer.SearchModesExactWords()
+}
+
+func init() {
+	// due to bleve's design problem, the "Register" must be done in the main goroutine, otherwise data-race
+	util.MustNoError(registry.RegisterTokenizer(codeTokenizerName, codeTokenizerConstructor))
+	util.MustNoError(registry.RegisterTokenFilter(codeTokenFilterName, codeTokenFilterConstructor))
+	util.MustNoError(registry.RegisterTokenizer(pathTokenizerName, pathTokenizerConstructor))
 }
 
 // NewIndexer creates a new bleve local indexer

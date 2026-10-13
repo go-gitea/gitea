@@ -190,7 +190,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 	protectionRequireSigned := false
 	if protectedBranch != nil {
 		protectedBranch.Repo = targetRepo
-		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer)
+		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer, doerRepoPerm)
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
 		// If branch-wide push is restricted, allow direct commit when the
 		// URL-derived tree path matches an unprotected file pattern. The
@@ -389,6 +389,15 @@ func ComposeGoGetImport(ctx context.Context, owner, repo string) string {
 	return path.Join(curAppURL.Host, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
+// ComposeGoGetCloneURL returns the clone URL for the go-import meta content.
+func ComposeGoGetCloneURL(ctx *Context, owner, repo string) string {
+	useSSH := setting.Repository.GoGetCloneURLProtocol == "ssh" || (setting.Repository.DisableHTTPGit && !setting.SSH.Disabled)
+	if useSSH {
+		return repo_model.ComposeSSHCloneURI(ctx.Doer, owner, repo)
+	}
+	return repo_model.ComposeHTTPSCloneURL(ctx, owner, repo)
+}
+
 // EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
 // if user does not have actual access to the requested repository,
 // or the owner or repository does not exist at all.
@@ -402,13 +411,7 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 		return
 	}
 
-	var cloneURL string
-	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame)
-	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame)
-	}
-	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), cloneURL)
+	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), ComposeGoGetCloneURL(ctx, username, reponame))
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
 	ctx.PlainText(http.StatusOK, htmlMeta)
 }
@@ -849,7 +852,7 @@ func getRefNameLegacy(ctx *Base, repo *Repository, reqPath, extraRef string) (re
 	if refName := getRefName(ctx, repo, reqRefPath, git.RefTypeTag); refName != "" {
 		return refName, git.RefTypeTag, false
 	}
-	if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.Repository.ObjectFormatName), reqRefPathParts[0]) {
+	if git.IsStringValidObjectID(git.ObjectFormatFromName(repo.Repository.ObjectFormatName), reqRefPathParts[0]) {
 		// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
 		repo.TreePath = strings.Join(reqRefPathParts[1:], "/")
 		return reqRefPathParts[0], git.RefTypeCommit, false
@@ -900,7 +903,7 @@ func getRefName(ctx *Base, repo *Repository, path string, refType git.RefType) s
 		})
 	case git.RefTypeCommit:
 		parts := strings.Split(path, "/")
-		if git.IsStringLikelyCommitID(repo.GetObjectFormat(), parts[0], 7) {
+		if git.IsStringValidObjectID(repo.GetObjectFormat(), parts[0], 7) {
 			// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
 			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
@@ -1032,7 +1035,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if git.IsStringLikelyCommitID(ctx.Repo.GetObjectFormat(), refShortName, 7) {
+			} else if git.IsStringValidObjectID(ctx.Repo.GetObjectFormat(), refShortName, 7) {
 				ctx.Repo.RefFullName = git.RefNameFromCommit(refShortName)
 				ctx.Repo.CommitID = refShortName
 
