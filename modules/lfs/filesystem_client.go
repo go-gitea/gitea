@@ -5,6 +5,7 @@ package lfs
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -37,6 +38,10 @@ func (c *FilesystemClient) objectPath(oid string) string {
 func (c *FilesystemClient) Download(ctx context.Context, objects []Pointer, callback DownloadCallback) error {
 	for _, object := range objects {
 		p := Pointer{object.Oid, object.Size}
+		if !p.IsValid() {
+			// objectPath builds a path straight from the OID, so keep the containment here
+			return fmt.Errorf("FilesystemClient.Download: invalid LFS pointer %s", p.LogString())
+		}
 
 		objectPath := c.objectPath(p.Oid)
 
@@ -56,6 +61,10 @@ func (c *FilesystemClient) Download(ctx context.Context, objects []Pointer, call
 func (c *FilesystemClient) Upload(ctx context.Context, objects []Pointer, callback UploadCallback) error {
 	for _, object := range objects {
 		p := Pointer{object.Oid, object.Size}
+		if !p.IsValid() {
+			// objectPath builds a path straight from the OID, so keep the containment here
+			return fmt.Errorf("FilesystemClient.Upload: invalid LFS pointer %s", p.LogString())
+		}
 
 		objectPath := c.objectPath(p.Oid)
 
