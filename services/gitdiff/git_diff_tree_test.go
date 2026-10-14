@@ -340,6 +340,22 @@ func TestParseGitDiffTree(t *testing.T) {
 			},
 		},
 		{
+			// with the default core.quotePath=true, git octal-escapes every non-ASCII byte, e.g. "日本語.txt"
+			Name:      "file modified with a C-quoted path (non-ASCII name)",
+			GitOutput: ":100644 100644 b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0 04fea06420ca60892f73becee3614f6d023a4b7f M\t\"\\346\\227\\245\\346\\234\\254\\350\\252\\236.txt\"",
+			Expected: []*DiffTreeRecord{
+				{
+					Status:     "modified",
+					HeadPath:   "日本語.txt",
+					BasePath:   "日本語.txt",
+					HeadMode:   git.EntryModeBlob,
+					BaseMode:   git.EntryModeBlob,
+					HeadBlobID: "04fea06420ca60892f73becee3614f6d023a4b7f",
+					BaseBlobID: "b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0",
+				},
+			},
+		},
+		{
 			Name:      "no changes",
 			GitOutput: ``,
 			Expected:  []*DiffTreeRecord{},
