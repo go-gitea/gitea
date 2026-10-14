@@ -1,15 +1,12 @@
-{{$isReviewDisabled := false -}}
-{{$disalbedReviewTooltip := "" -}}
+{{$disabledReviewTooltip := "" -}}
 {{if $.Repository.IsArchived -}}
-	{{$isReviewDisabled = true -}}
-	{{$disalbedReviewTooltip = ctx.Locale.Tr "repo.archive.pull.nocomment" -}}
+	{{$disabledReviewTooltip = ctx.Locale.Tr "repo.archive.pull.nocomment" -}}
 {{else if not $.IsShowingAllCommits -}}
-	{{$isReviewDisabled = true -}}
-	{{$disalbedReviewTooltip = ctx.Locale.Tr "repo.pulls.review_only_possible_for_full_diff" -}}
+	{{$disabledReviewTooltip = ctx.Locale.Tr "repo.pulls.review_only_possible_for_full_diff" -}}
 {{end -}}
 <div data-global-init="initPullReviewBox">
-<div {{if $isReviewDisabled}}data-tooltip-content="{{$disalbedReviewTooltip}}"{{end}}>
-	<button type="button" class="ui tiny primary button review-box-button" {{if $isReviewDisabled}}disabled{{end}}>
+<div {{if $disabledReviewTooltip}}data-tooltip-content="{{$disabledReviewTooltip}}"{{end}}>
+	<button type="button" class="ui tiny primary button review-box-button" {{if $disabledReviewTooltip}}disabled{{end}}>
 		{{ctx.Locale.Tr "repo.diff.review"}}
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
