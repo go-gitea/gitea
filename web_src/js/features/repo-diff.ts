@@ -11,7 +11,8 @@ import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
-import {performFetchActionTrigger} from './common-fetch-action.ts';
+import {performFetchActionTrigger} from '../modules/fetch-action.ts';
+import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
@@ -76,7 +77,7 @@ function initRepoDiffConversationForm() {
 
       // the default behavior is to add a pending review, so if no submitter, it also means "pending_review"
       if (!submitter || submitter?.matches('button[name="pending_review"]')) {
-        const reviewBox = document.querySelector('#review-box')!;
+        const reviewBox = document.querySelector('.review-box-button')!;
         const counter = reviewBox?.querySelector('.review-comments-counter');
         if (!counter) return;
         const num = parseInt(counter.getAttribute('data-pending-comment-number')!) + 1 || 1;
@@ -158,12 +159,11 @@ async function diffLoadMoreFiles(btn: Element): Promise<boolean> {
     const resp = await GET(url);
     if (!resp.ok) return false;
     const respText = await resp.text();
-    const respDoc = parseDom(respText, 'text/html');
+    const respDoc = parseDom(respText, 'text/html'); // the response is a full HTML page, extract the new file boxes from it
     const respFileBoxes = respDoc.querySelector('#diff-file-boxes')!;
-    // the response is a full HTML page, we need to extract the relevant contents:
-    // * append the newly loaded file list items to the existing list
     const respFileBoxesChildren = Array.from(respFileBoxes.children); // "children:HTMLCollection" will be empty after replaceWith
     document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
+    applyFiltersToFileBoxes(diffTreeStore());
     onDiffFileBodyChange();
     return true;
   } catch (error) {
@@ -206,9 +206,7 @@ async function onLocationHashChange() {
 
   const targetElementId = currentHash.substring(1);
   while (currentHash === window.location.hash) {
-    // use getElementById to avoid querySelector throws an error when the hash is invalid
-    // eslint-disable-next-line unicorn/prefer-query-selector
-    const targetElement = document.getElementById(targetElementId);
+    const targetElement = document.querySelector<HTMLElement>(`#${CSS.escape(targetElementId)}`);
     if (targetElement) {
       // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
       targetElement.scrollIntoView();

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -411,7 +411,7 @@ jobs:
 		require.Contains(t, rerunJobsByJobID, "job1")
 		require.Contains(t, rerunJobsByJobID, "job2")
 		assert.Equal(t, actions_model.StatusWaiting, rerunJobsByJobID["job1"].Status)
-		assert.Equal(t, actions_model.StatusBlocked, rerunJobsByJobID["job2"].Status)
+		assert.Equal(t, actions_model.StatusPending, rerunJobsByJobID["job2"].Status)
 
 		// fetch job1 rerun task
 		job1TaskR1 := runner.fetchTask(t)

@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	feed_service "gitea.dev/services/feed"
@@ -261,7 +263,7 @@ func Create(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	form := web.GetForm(ctx).(*api.CreateOrgOption)
+	form := web.GetForm[*api.CreateOrgOption](ctx)
 	if !ctx.Doer.CanCreateOrganization() {
 		ctx.APIError(http.StatusForbidden, "not allowed to create org")
 		return
@@ -295,6 +297,8 @@ func Create(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	audit.Record(ctx, audit_model.OrganizationCreate, org.AsUser())
 
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
@@ -358,7 +362,7 @@ func Rename(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.RenameOrgOption)
+	form := web.GetForm[*api.RenameOrgOption](ctx)
 	orgUser := ctx.Org.Organization.AsUser()
 	if err := user_service.RenameUser(ctx, orgUser, form.NewName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
@@ -397,7 +401,7 @@ func Edit(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditOrgOption)
+	form := web.GetForm[*api.EditOrgOption](ctx)
 
 	if err := org.UpdateOrgEmailAddress(ctx, ctx.Org.Organization, form.Email); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {

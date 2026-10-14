@@ -69,13 +69,7 @@ func goGet(ctx *context.Context) {
 
 	goGetImport := context.ComposeGoGetImport(ctx, ownerName, trimmedRepoName)
 
-	var cloneURL string
-	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, ownerName, repoName)
-	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, ownerName, repoName)
-	}
-	goImportContent := fmt.Sprintf("%s git %s", goGetImport, cloneURL /*CloneLink*/)
+	goImportContent := fmt.Sprintf("%s git %s", goGetImport, context.ComposeGoGetCloneURL(ctx, ownerName, trimmedRepoName))
 	goSourceContent := fmt.Sprintf("%s _ %s %s", goGetImport, prefix+"{/dir}" /*GoDocDirectory*/, prefix+"{/dir}/{file}#L{line}" /*GoDocFile*/)
 	goGetCli := fmt.Sprintf("go get %s%s", insecure, goGetImport)
 
@@ -127,12 +121,9 @@ func goGetDefaultBranch(ctx *context.Context, repo *repo_model.Repository) strin
 // always may; a token request may only when its scope grants repository read, so a PAT that was never
 // scoped for repositories cannot disclose the branch even if its owner can read the repo.
 func goGetTokenCanReadRepo(ctx *context.Context) bool {
-	if ctx.Data["IsApiToken"] != true {
+	scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if !hasApiTokenScope {
 		return true
-	}
-	scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-	if !ok {
-		return false
 	}
 	has, err := scope.HasScope(auth_model.AccessTokenScopeReadRepository)
 	return err == nil && has

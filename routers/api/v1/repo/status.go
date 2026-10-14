@@ -52,7 +52,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.CreateStatusOption)
+	form := web.GetForm[*api.CreateStatusOption](ctx)
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
 		ctx.APIError(http.StatusBadRequest, "sha not provided")

@@ -67,7 +67,7 @@ func packageDescriptorToMetadata(baseURL string, pd *packages_model.PackageDescr
 		Version:    pd.Version.Version,
 		ArchiveURL: fmt.Sprintf("%s/files/%s.tar.gz", baseURL, url.PathEscape(pd.Version.Version)),
 		Published:  pd.Version.CreatedUnix.AsLocalTime(),
-		Pubspec:    pd.Metadata.(*pub_module.Metadata).Pubspec,
+		Pubspec:    packages_model.DescriptorMetadata[*pub_module.Metadata](pd).Pubspec,
 	}
 }
 

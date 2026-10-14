@@ -38,6 +38,7 @@ func PrepareFilterIssueLabels(ctx *context.Context, repoID int64, owner *user_mo
 			ctx.ServerError("GetLabelsByRepoID", err)
 			return ret
 		}
+		issues_model.SortLabelsForDisplay(repoLabels)
 		allLabels = append(allLabels, repoLabels...)
 	}
 
@@ -47,6 +48,7 @@ func PrepareFilterIssueLabels(ctx *context.Context, repoID int64, owner *user_mo
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return ret
 		}
+		issues_model.SortLabelsForDisplay(orgLabels)
 		allLabels = append(allLabels, orgLabels...)
 	}
 

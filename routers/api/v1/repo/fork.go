@@ -148,7 +148,7 @@ func CreateFork(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateForkOption)
+	form := web.GetForm[*api.CreateForkOption](ctx)
 	forkOwner := ctx.Doer // user/org that will own the fork
 	if form.Organization != nil {
 		org := prepareDoerCreateRepoInOrg(ctx, *form.Organization)

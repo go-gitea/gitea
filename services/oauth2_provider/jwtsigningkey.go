@@ -81,7 +81,7 @@ type rsaSingingKey struct {
 }
 
 func newRSASingingKey(signingMethod jwt.SigningMethod, key *rsa.PrivateKey) (rsaSingingKey, error) {
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*rsa.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(&key.PublicKey)
 	if err != nil {
 		return rsaSingingKey{}, err
 	}
@@ -110,7 +110,7 @@ func (key rsaSingingKey) VerifyKey() any {
 }
 
 func (key rsaSingingKey) ToJWK() (map[string]string, error) {
-	pubKey := key.key.Public().(*rsa.PublicKey)
+	pubKey := &key.key.PublicKey
 
 	return map[string]string{
 		"kty": "RSA",
@@ -132,7 +132,7 @@ type eddsaSigningKey struct {
 }
 
 func newEdDSASingingKey(signingMethod jwt.SigningMethod, key ed25519.PrivateKey) (eddsaSigningKey, error) {
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(ed25519.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(key.Public().(ed25519.PublicKey)) //nolint:forcetypeassert // ed25519.PrivateKey.Public always returns ed25519.PublicKey
 	if err != nil {
 		return eddsaSigningKey{}, err
 	}
@@ -161,7 +161,7 @@ func (key eddsaSigningKey) VerifyKey() any {
 }
 
 func (key eddsaSigningKey) ToJWK() (map[string]string, error) {
-	pubKey := key.key.Public().(ed25519.PublicKey)
+	pubKey := key.key.Public().(ed25519.PublicKey) //nolint:forcetypeassert // ed25519.PrivateKey.Public always returns ed25519.PublicKey
 
 	return map[string]string{
 		"alg": key.SigningMethod().Alg(),
@@ -183,7 +183,7 @@ type ecdsaSingingKey struct {
 }
 
 func newECDSASingingKey(signingMethod jwt.SigningMethod, key *ecdsa.PrivateKey) (ecdsaSingingKey, error) {
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*ecdsa.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(&key.PublicKey)
 	if err != nil {
 		return ecdsaSingingKey{}, err
 	}
@@ -212,7 +212,7 @@ func (key ecdsaSingingKey) VerifyKey() any {
 }
 
 func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
-	pubKey := key.key.Public().(*ecdsa.PublicKey)
+	pubKey := &key.key.PublicKey
 
 	// PublicKey.Bytes returns the uncompressed SEC 1 format: 0x04 || X || Y
 	pubKeyBytes, err := pubKey.Bytes()

@@ -26,36 +26,52 @@ func (mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		"/range/5617b": "FD4CB34F0378BCB15D23F6FFD28F0775C9E:3\r\nFDF342FCD8C3611DAE4D76E8A992A3E4169:4\r\nFE81480327C992FE62065A827429DD1318B:0",
 		"/range/79082": "FDF342FCD8C3611DAE4D76E8A992A3E4169:4\r\nFE81480327C992FE62065A827429DD1318B:0\r\nAFEF386F56EB0B4BE314E07696E5E6E6536:0",
 	}
+	if req.URL.Path == "/range/b6b47" { // sha1("ratelimited") prefix
+		return &http.Response{Request: req, StatusCode: http.StatusTooManyRequests, Body: io.NopCloser(strings.NewReader("rate limited"))}, nil
+	}
+	if req.URL.Path == "/range/76eff" {
+		return &http.Response{Request: req, StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(strings.Repeat("0", maxResponseSize+1)))}, nil
+	}
 	if resp, ok := respMap[req.URL.Path]; ok {
-		return &http.Response{Request: req, Body: io.NopCloser(strings.NewReader(resp))}, nil
+		return &http.Response{Request: req, StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(resp))}, nil
 	}
 	return nil, errors.New("unsupported path")
 }
 
 func TestPassword(t *testing.T) {
-	client := New(WithHTTP(&http.Client{Transport: mockTransport{}}))
+	ctx := t.Context()
+	client := New()
+	client.mockTransport = mockTransport{}
 
-	count, err := client.CheckPassword("", false)
-	assert.ErrorIs(t, err, ErrEmptyPassword, "blank input should return ErrEmptyPassword")
+	count, err := client.CheckPassword(ctx, "", false)
+	assert.ErrorContains(t, err, "password cannot be empty")
 	assert.EqualValues(t, -1, count)
 
-	count, err = client.CheckPassword("pwned", false)
+	count, err = client.CheckPassword(ctx, "pwned", false)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 
-	count, err = client.CheckPassword("notpwned", false)
+	count, err = client.CheckPassword(ctx, "notpwned", false)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 
-	count, err = client.CheckPassword("paddedpwned", true)
+	count, err = client.CheckPassword(ctx, "paddedpwned", true)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 
-	count, err = client.CheckPassword("paddednotpwned", true)
+	count, err = client.CheckPassword(ctx, "paddednotpwned", true)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 
-	count, err = client.CheckPassword("paddednotpwnedzero", true)
+	count, err = client.CheckPassword(ctx, "paddednotpwnedzero", true)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
+
+	count, err = client.CheckPassword(ctx, "ratelimited", false)
+	assert.Error(t, err)
+	assert.EqualValues(t, -1, count)
+
+	count, err = client.CheckPassword(ctx, "oversized", false)
+	assert.ErrorContains(t, err, "exceeds")
+	assert.EqualValues(t, -1, count)
 }

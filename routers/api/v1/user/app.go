@@ -10,11 +10,13 @@ import (
 	"strconv"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
@@ -98,7 +100,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
+	form := web.GetForm[*api.CreateAccessTokenOption](ctx)
 
 	t := &auth_model.AccessToken{
 		UID:  ctx.ContextUser.ID,
@@ -127,12 +129,8 @@ func CreateAccessToken(ctx *context.APIContext) {
 	t.Scope = scope
 
 	// a token-authenticated request must not mint a token with a broader scope than its own
-	if ctx.Data["IsApiToken"] == true {
-		apiTokenScope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-		if !ok {
-			ctx.APIError(http.StatusForbidden, "the authenticating token has no scope")
-			return
-		}
+	apiTokenScope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if hasApiTokenScope {
 		hasScope, err := apiTokenScope.CanCreateChildScope(scope)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -153,6 +151,9 @@ func CreateAccessToken(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserAccessTokenAdd, ctx.ContextUser, "token", t.Name, "token_scope", t.Scope)
+
 	ctx.JSON(http.StatusCreated, &api.AccessToken{
 		Name:           t.Name,
 		Token:          t.Token,
@@ -215,10 +216,18 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		}
 	}
 
-	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.ContextUser.ID); err != nil {
+	t, err := auth_model.GetAccessTokenByID(ctx, tokenID, ctx.ContextUser.ID)
+	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
+
+	if err := auth_model.DeleteAccessTokenByID(ctx, t.ID, ctx.ContextUser.ID); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+
+	audit.Record(ctx, audit_model.UserAccessTokenRemove, ctx.ContextUser, "token", t.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -242,7 +251,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
+	data := web.GetForm[*api.CreateOAuth2ApplicationOptions](ctx)
 	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
 		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
 		return
@@ -264,6 +273,8 @@ func CreateOauth2Application(ctx *context.APIContext) {
 		return
 	}
 	app.ClientSecret = secret
+
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationAdd, ctx.Doer, "oauth2_application", app.Name)
 
 	ctx.JSON(http.StatusCreated, convert.ToOAuth2Application(app))
 }
@@ -327,6 +338,15 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.PathParamInt64("id")
+	app, err := auth_model.GetOAuth2ApplicationByID(ctx, appID)
+	if err != nil {
+		if auth_model.IsErrOAuthApplicationNotFound(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
 	if err := auth_model.DeleteOAuth2Application(ctx, appID, ctx.Doer.ID); err != nil {
 		if auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.APIErrorNotFound()
@@ -335,6 +355,8 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationRemove, ctx.Doer, "oauth2_application", app.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -406,7 +428,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.PathParamInt64("id")
 
-	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
+	data := web.GetForm[*api.CreateOAuth2ApplicationOptions](ctx)
 	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
 		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
 		return
@@ -433,6 +455,8 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 		ctx.APIError(http.StatusBadRequest, "error updating application secret")
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationUpdate, ctx.Doer, "oauth2_application", app.Name)
 
 	ctx.JSON(http.StatusOK, convert.ToOAuth2Application(app))
 }

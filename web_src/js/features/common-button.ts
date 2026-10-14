@@ -17,6 +17,8 @@ function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
   // if it has "toggle" class, it toggles the panel
   e.preventDefault();
   const sel = el.getAttribute('data-panel')!;
+  const selHide = el.getAttribute('data-panel-hide');
+  if (selHide) hideElem(selHide);
   const elems = el.classList.contains('toggle') ? toggleElem(sel) : showElem(sel);
   for (const elem of elems) {
     if (isElemVisible(elem as HTMLElement)) {
@@ -45,7 +47,7 @@ export type ElementWithAssignableProperties = {
   nodeName: string;
   getAttribute: (name: string) => string | null;
   setAttribute: (name: string, value: string) => void;
-} & Record<string, any>;
+};
 
 export function assignElementProperty(el: ElementWithAssignableProperties, kebabName: string, val: string) {
   if (el.nodeName === 'FORM') {
@@ -57,14 +59,15 @@ export function assignElementProperty(el: ElementWithAssignableProperties, kebab
     if (kebabName === 'url') kebabName = 'action';
   }
   const camelizedName = camelize(kebabName);
-  const old = el[camelizedName];
+  const properties: Record<string, unknown> = el;
+  const old = properties[camelizedName];
   if (typeof old === 'boolean') {
-    el[camelizedName] = val === 'true';
+    properties[camelizedName] = val === 'true';
   } else if (typeof old === 'number') {
-    el[camelizedName] = parseFloat(val);
+    properties[camelizedName] = parseFloat(val);
   } else if (typeof old === 'string') {
-    el[camelizedName] = val;
-  } else if (old?.nodeName) {
+    properties[camelizedName] = val;
+  } else if (old && typeof old === 'object' && 'nodeName' in old) {
     // "form" has an edge case: its "<input name=action>" element overwrites the "action" property, we can only set attribute
     el.setAttribute(kebabName, val);
   } else {
@@ -111,8 +114,10 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
 
     if (attrTargetProp) {
       assignElementProperty(attrTarget, attrTargetProp, attrib.value);
+    } else if (attrTarget.matches('input[type=checkbox], input[type=radio]')) {
+      (attrTarget as HTMLInputElement).checked = attrib.value === 'true';
     } else if (attrTarget.matches('input, textarea')) {
-      (attrTarget as HTMLInputElement | HTMLTextAreaElement).value = attrib.value; // FIXME: add more supports like checkbox
+      (attrTarget as HTMLInputElement | HTMLTextAreaElement).value = attrib.value;
     } else {
       attrTarget.textContent = attrib.value; // FIXME: it should be more strict here, only handle div/span/p
     }

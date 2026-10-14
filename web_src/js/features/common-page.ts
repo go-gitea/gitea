@@ -6,6 +6,7 @@ import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
+import {initRepoSwitcher} from './repo-switcher.ts';
 import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
 
 const {appUrl, appSubUrl} = window.config;
@@ -38,7 +39,7 @@ function initFooterThemeSelector() {
   const $dropdown = fomanticQuery(elDropdown);
   $dropdown.dropdown({
     direction: 'upward',
-    apiSettings: {url: `${appSubUrl}/-/web-theme/list`, cache: false},
+    apiSettings: {url: `${appSubUrl}/-/web-theme/list`},
   });
   addDelegatedEventListener(elDropdown, 'click', '.menu > .item', async (el) => {
     const themeName = el.getAttribute('data-value')!;
@@ -70,19 +71,16 @@ export function initGlobalDropdown() {
         action: 'hide',
         onShow() {
           // hide associated tooltip while dropdown is open
-          this._tippy?.hide();
-          this._tippy?.disable();
+          el._tippy?.hide();
+          el._tippy?.disable();
         },
         onHide() {
-          this._tippy?.enable();
-          // eslint-disable-next-line unicorn/no-this-assignment
-          const elDropdown = this;
+          el._tippy?.enable();
 
-          // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
+          // hide all tippy elements of items after a while, in case some items have tooltip popup.
           setTimeout(() => {
-            const $dropdown = fomanticQuery(elDropdown);
             if ($dropdown.dropdown('is hidden')) {
-              queryElems(elDropdown, '.menu > .item', (el) => el._tippy?.hide());
+              queryElems(el, '.menu > .item', (item) => item._tippy?.hide());
             }
           }, 2000);
         },
@@ -105,6 +103,7 @@ export function initGlobalComponent() {
   registerGlobalInitFunc('initTabSwitcher', initTabSwitcher);
   registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
+  registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);
   registerGlobalInitFunc('initScopedWorkflowRequired', initScopedWorkflowRequired);
 }
 
