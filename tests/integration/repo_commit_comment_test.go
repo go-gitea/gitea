@@ -14,6 +14,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	repo_service "gitea.dev/services/repository"
 	files_service "gitea.dev/services/repository/files"
 	"gitea.dev/tests"
@@ -203,11 +205,15 @@ func TestCommitInlineCommentDiffFiles(t *testing.T) {
 			&files_service.ChangeRepoFile{Operation: "create", TreePath: "old.txt", ContentReader: strings.NewReader(lines + "last\n")},
 			&files_service.ChangeRepoFile{Operation: "create", TreePath: "data.bin", ContentReader: strings.NewReader("a\x00b\n")},
 			&files_service.ChangeRepoFile{Operation: "create", TreePath: "same.txt", ContentReader: strings.NewReader(lines)},
+			&files_service.ChangeRepoFile{Operation: "create", TreePath: `a"b.txt`, ContentReader: strings.NewReader("x\n")},
+			&files_service.ChangeRepoFile{Operation: "create", TreePath: ":notes.txt", ContentReader: strings.NewReader("x\n")},
 		)
 		sha := change(first,
 			&files_service.ChangeRepoFile{Operation: "update", FromTreePath: "old.txt", TreePath: "new.txt", ContentReader: strings.NewReader(lines + "changed\n")},
 			&files_service.ChangeRepoFile{Operation: "update", TreePath: "data.bin", ContentReader: strings.NewReader("a\x00c\n")},
 			&files_service.ChangeRepoFile{Operation: "rename", FromTreePath: "same.txt", TreePath: "moved.txt"},
+			&files_service.ChangeRepoFile{Operation: "update", TreePath: `a"b.txt`, ContentReader: strings.NewReader("y\n")},
+			&files_service.ChangeRepoFile{Operation: "update", TreePath: ":notes.txt", ContentReader: strings.NewReader("y\n")},
 		)
 
 		session := loginUser(t, user2.Name)
@@ -227,5 +233,39 @@ func TestCommitInlineCommentDiffFiles(t *testing.T) {
 		post("README.md", "proposed", "1", http.StatusBadRequest)
 		post("data.bin", "proposed", "1", http.StatusBadRequest)
 		post("moved.txt", "previous", "1", http.StatusBadRequest)
+		// git quotes the first name in its plain output and reads the second as
+		// pathspec magic, so neither may go through that route.
+		post(`a"b.txt`, "proposed", "1", http.StatusOK)
+		post(":notes.txt", "proposed", "1", http.StatusOK)
+		// With MAX_GIT_DIFF_LINES at 0 the page still loads a file in full on
+		// request, so the check must not depend on that limit.
+		func() {
+			defer test.MockVariableValue(&setting.Git.MaxGitDiffLines, 0)()
+			post("new.txt", "proposed", "10", http.StatusOK)
+		}()
+
+		// ChangeRepoFiles cannot write symlinks, so build the type change by hand.
+		// git splits it into a binary deletion and a text addition of one path.
+		tmp, err := files_service.NewTemporaryUploadRepository(repo)
+		require.NoError(t, err)
+		defer tmp.Close()
+		require.NoError(t, tmp.Clone(t.Context(), "main", true))
+		require.NoError(t, tmp.SetDefaultIndex(t.Context()))
+		target, err := tmp.HashObjectAndWrite(t.Context(), strings.NewReader("new.txt"))
+		require.NoError(t, err)
+		require.NoError(t, tmp.AddObjectToIndex(t.Context(), "120000", target, "data.bin"))
+		tree, err := tmp.WriteTree(t.Context())
+		require.NoError(t, err)
+		sha, err = tmp.CommitTree(t.Context(), &files_service.CommitTreeUserOptions{
+			ParentCommitID: sha,
+			TreeHash:       tree,
+			CommitMessage:  "replace data.bin with a symlink",
+			DoerUser:       user2,
+		})
+		require.NoError(t, err)
+		require.NoError(t, tmp.Push(t.Context(), user2, sha, "main", false))
+
+		post("data.bin", "proposed", "1", http.StatusOK)
+		post("data.bin", "previous", "1", http.StatusBadRequest)
 	})
 }
