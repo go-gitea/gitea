@@ -43,25 +43,25 @@ func TestPackageCran(t *testing.T) {
 		return buf.Bytes()
 	}
 
+	createArchive := func(filename string, content []byte) *bytes.Buffer {
+		var buf bytes.Buffer
+		gw := gzip.NewWriter(&buf)
+		tw := tar.NewWriter(gw)
+		hdr := &tar.Header{
+			Name: filename,
+			Mode: 0o600,
+			Size: int64(len(content)),
+		}
+		tw.WriteHeader(hdr)
+		tw.Write(content)
+		tw.Close()
+		gw.Close()
+		return &buf
+	}
+
 	url := fmt.Sprintf("/api/packages/%s/cran", user.Name)
 
 	t.Run("Source", func(t *testing.T) {
-		createArchive := func(filename string, content []byte) *bytes.Buffer {
-			var buf bytes.Buffer
-			gw := gzip.NewWriter(&buf)
-			tw := tar.NewWriter(gw)
-			hdr := &tar.Header{
-				Name: filename,
-				Mode: 0o600,
-				Size: int64(len(content)),
-			}
-			tw.WriteHeader(hdr)
-			tw.Write(content)
-			tw.Close()
-			gw.Close()
-			return &buf
-		}
-
 		t.Run("Upload", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
@@ -225,5 +225,21 @@ func TestPackageCran(t *testing.T) {
 
 			assert.Contains(t, resp.Header().Get("Content-Type"), "application/x-gzip")
 		})
+	})
+
+	t.Run("EnumerateAfterOlderUpload", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequestWithBody(t, "PUT", url+"/src", createArchive(
+			"package/DESCRIPTION",
+			createDescription(packageName, "1.0.2"),
+		)).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		for _, indexURL := range []string{url + "/src/contrib/PACKAGES", url + "/bin/windows/contrib/4.2/PACKAGES"} {
+			req = NewRequest(t, "GET", indexURL).AddBasicAuth(user.Name)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Contains(t, resp.Body.String(), "Version: "+packageVersion)
+		}
 	})
 }

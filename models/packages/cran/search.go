@@ -59,17 +59,31 @@ func (opts *SearchOptions) toConds() builder.Cond {
 }
 
 func SearchLatestVersions(ctx context.Context, opts *SearchOptions) ([]*packages.PackageVersion, error) {
-	sess := db.GetEngine(ctx).
+	pvs := make([]*packages.PackageVersion, 0, 10)
+	err := db.GetEngine(ctx).
 		Table("package_version").
 		Select("package_version.*").
-		Join("LEFT", "package_version pv2", builder.Expr("package_version.package_id = pv2.package_id AND pv2.is_internal = ? AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))", false)).
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Join("INNER", "package_file", "package_file.version_id = package_version.id").
-		Where(opts.toConds().And(builder.Expr("pv2.id IS NULL"))).
-		Asc("package.name")
+		Where(opts.toConds()).
+		Asc("package.name", "package.id").
+		Find(&pvs)
+	if err != nil {
+		return nil, err
+	}
 
-	pvs := make([]*packages.PackageVersion, 0, 10)
-	return pvs, sess.Find(&pvs)
+	// SQL can't order R version strings, so pick the highest version per package here
+	latest := make([]*packages.PackageVersion, 0, len(pvs))
+	for _, pv := range pvs {
+		if n := len(latest); n > 0 && latest[n-1].PackageID == pv.PackageID {
+			if cran_module.CompareVersions(pv.Version, latest[n-1].Version) > 0 {
+				latest[n-1] = pv
+			}
+			continue
+		}
+		latest = append(latest, pv)
+	}
+	return latest, nil
 }
 
 func SearchFile(ctx context.Context, opts *SearchOptions) (*packages.PackageFile, error) {

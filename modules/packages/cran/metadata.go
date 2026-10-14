@@ -7,12 +7,14 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"bufio"
+	"cmp"
 	"compress/gzip"
 	"io"
 	"path"
 	"regexp"
 	"strings"
 
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/util"
 )
 
@@ -231,6 +233,11 @@ func setField(p *Package, data string) error {
 	}
 
 	return nil
+}
+
+// CompareVersions returns -1, 0 or 1, R treats "." and "-" as equivalent separators
+func CompareVersions(a, b string) int {
+	return cmp.Compare(base.NaturalSortCompare(strings.ReplaceAll(a, "-", "."), strings.ReplaceAll(b, "-", ".")), 0)
 }
 
 func splitAndTrim(s string) []string {
