@@ -8,6 +8,7 @@ import (
 	"compress/gzip"
 	"io"
 	"regexp"
+	"strings"
 	"sync"
 
 	"gitea.dev/modules/util"
@@ -23,6 +24,8 @@ var (
 	ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
 	// ErrInvalidVersion indicates an invalid version in the metadata.gz file
 	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
+	// ErrInvalidMetadata indicates metadata that would corrupt the generated index
+	ErrInvalidMetadata = util.NewInvalidArgumentErrorf("package metadata is invalid")
 )
 
 var globalVars = sync.OnceValue(func() (ret struct {
@@ -168,6 +171,18 @@ func ParsePackageMetaData(r io.Reader) (*Package, error) {
 	return nil, ErrMissingMetadataFile
 }
 
+// containsLineBreak reports whether any value carries a CR or LF. Such a value
+// would forge extra lines when written verbatim into the line-based compact
+// index (the per-package info/<name> file and the shared /versions listing).
+func containsLineBreak(ss ...string) bool {
+	for _, s := range ss {
+		if strings.ContainsAny(s, "\r\n") {
+			return true
+		}
+	}
+	return false
+}
+
 func parseMetadataFile(r io.Reader) (*Package, error) {
 	zr, err := gzip.NewReader(r)
 	if err != nil {
@@ -213,11 +228,31 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 			Name:    gemdep.Name,
 			Version: gemdep.Requirement.AsVersionRequirement(),
 		}
+		if containsLineBreak(dep.Name) {
+			return nil, ErrInvalidName
+		}
+		for _, req := range dep.Version {
+			if containsLineBreak(req.Restriction, req.Version) {
+				return nil, ErrInvalidMetadata
+			}
+		}
 		if gemdep.Type == ":runtime" {
 			m.RuntimeDependencies = append(m.RuntimeDependencies, dep)
 		} else {
 			m.DevelopmentDependencies = append(m.DevelopmentDependencies, dep)
 		}
+	}
+
+	for _, reqs := range [][]VersionRequirement{m.RequiredRubyVersion, m.RequiredRubygemsVersion} {
+		for _, req := range reqs {
+			if containsLineBreak(req.Restriction, req.Version) {
+				return nil, ErrInvalidMetadata
+			}
+		}
+	}
+
+	if containsLineBreak(m.Platform) {
+		return nil, ErrInvalidMetadata
 	}
 
 	return &Package{
