@@ -123,24 +123,19 @@ func validateGitDiffTreeArguments(ctx context.Context, gitRepo *git.Repository, 
 }
 
 func parseGitDiffTree(gitOutput io.Reader) ([]*DiffTreeRecord, error) {
-	/*
-		The output of `git diff-tree --raw -r --find-renames` is of the form:
+	/* The output of `git diff-tree --raw -r --find-renames` is of the form:
+	:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<path>
 
-		:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<path>
+	or for renames:
+	:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<old_path>\t<new_path>
 
-		or for renames:
-
-		:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<old_path>\t<new_path>
-
-		See: <https://git-scm.com/docs/git-diff-tree#_raw_output_format> for more details
-	*/
+	See: <https://git-scm.com/docs/git-diff-tree#_raw_output_format> for more details */
 	results := make([]*DiffTreeRecord, 0)
 
 	lines := bufio.NewScanner(gitOutput)
 	for lines.Scan() {
 		line := lines.Text()
-
-		if len(line) == 0 {
+		if line == "" {
 			continue
 		}
 
@@ -216,7 +211,7 @@ func parseGitDiffTreeLine(line string) (*DiffTreeRecord, error) {
 
 // unquoteGitDiffTreePath undoes git's C-quoting of a `diff-tree --raw` path, mirroring parseLsTreeLine.
 func unquoteGitDiffTreePath(path string) (string, error) {
-	if len(path) == 0 || path[0] != '"' {
+	if !strings.HasPrefix(path, `"`) {
 		return path, nil
 	}
 	return strconv.Unquote(path)

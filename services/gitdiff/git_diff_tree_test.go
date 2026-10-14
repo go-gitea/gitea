@@ -325,29 +325,14 @@ func TestParseGitDiffTree(t *testing.T) {
 			},
 		},
 		{
-			Name:      "file added with a C-quoted path (contains a literal tab)",
-			GitOutput: ":000000 100644 0000000000000000000000000000000000000000 0063162fb403db15ceb0517b34ab782e4e58b619 A\t\"we\\tird.txt\"",
-			Expected: []*DiffTreeRecord{
-				{
-					Status:     "added",
-					HeadPath:   "we\tird.txt",
-					BasePath:   "we\tird.txt",
-					HeadMode:   git.EntryModeBlob,
-					BaseMode:   git.EntryModeNoEntry,
-					HeadBlobID: "0063162fb403db15ceb0517b34ab782e4e58b619",
-					BaseBlobID: "0000000000000000000000000000000000000000",
-				},
-			},
-		},
-		{
-			// with the default core.quotePath=true, git octal-escapes every non-ASCII byte, e.g. "日本語.txt"
-			Name:      "file modified with a C-quoted path (non-ASCII name)",
-			GitOutput: ":100644 100644 b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0 04fea06420ca60892f73becee3614f6d023a4b7f M\t\"\\346\\227\\245\\346\\234\\254\\350\\252\\236.txt\"",
+			// make sure our code can unquote paths no matter core.quotePath is true or false: quoted chars are like "\t" or "\{oct}"
+			Name:      "file modified with a C-quoted path",
+			GitOutput: ":100644 100644 b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0 04fea06420ca60892f73becee3614f6d023a4b7f M\t" + `"\346\227\245\346\234\254\350\252\236\ttest.txt"`,
 			Expected: []*DiffTreeRecord{
 				{
 					Status:     "modified",
-					HeadPath:   "日本語.txt",
-					BasePath:   "日本語.txt",
+					HeadPath:   "日本語\ttest.txt",
+					BasePath:   "日本語\ttest.txt",
 					HeadMode:   git.EntryModeBlob,
 					BaseMode:   git.EntryModeBlob,
 					HeadBlobID: "04fea06420ca60892f73becee3614f6d023a4b7f",
