@@ -45,8 +45,7 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_
 		return nil, ErrCommitCommentRootPrevious
 	}
 
-	patch, err := commitCommentPatch(ctx, gitRepo, parentSHA, fullSHA, treePath, line)
-	if err != nil {
+	if _, err := commitCommentPatch(ctx, gitRepo, parentSHA, fullSHA, treePath, line); err != nil {
 		return nil, err
 	}
 
@@ -58,7 +57,6 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_
 		PosterID:  doer.ID,
 		Poster:    doer,
 		Content:   content,
-		Patch:     patch,
 	}
 	if err := repo_model.CreateCommitComment(ctx, comment); err != nil {
 		return nil, err
@@ -71,9 +69,10 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_
 	return comment, nil
 }
 
-// commitCommentPatch builds the diff context stored with a comment. An empty
-// patch means the coordinate does not exist, so it doubles as the validation
-// that keeps a crafted POST from creating an invisible comment.
+// commitCommentPatch builds the diff context around a comment's line. An empty
+// patch means the coordinate does not exist, which keeps a crafted POST from
+// creating an invisible comment. Nothing is stored: a commit's diff never
+// changes, so it can always be rebuilt.
 func commitCommentPatch(ctx context.Context, gitRepo *git.Repository, parentSHA, fullSHA, treePath string, line int64) (string, error) {
 	if parentSHA != "" {
 		patch, err := git.GetFileDiffCutAroundLine(ctx, gitRepo, parentSHA, fullSHA, treePath, max(line, -line), line < 0, setting.UI.CodeCommentLines)

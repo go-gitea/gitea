@@ -33,7 +33,6 @@ type CommitComment struct {
 	Line        int64              `xorm:"NOT NULL"`
 	PosterID    int64              `xorm:"INDEX NOT NULL"`
 	Content     string             `xorm:"LONGTEXT NOT NULL"`
-	Patch       string             `xorm:"LONGTEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 

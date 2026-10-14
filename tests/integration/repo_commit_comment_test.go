@@ -78,12 +78,10 @@ func TestCommitInlineComment(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &repo_model.CommitComment{ID: comment.ID})
 	})
 
-	t.Run("PreviousSideResolvesAgainstParent", func(t *testing.T) {
-		// Old line 5 only exists in the post-commit file; the stored context
-		// must come from the parent tree, never from the new one.
-		postComment(changeSHA, "previous", "5", "old side comment")
-		comment := unittest.AssertExistsAndLoadBean(t, &repo_model.CommitComment{Content: "old side comment"})
-		assert.NotContains(t, comment.Patch, "And change for branch2")
+	t.Run("PreviousSideComment", func(t *testing.T) {
+		// Old line 3 is the line the commit removed.
+		assert.Contains(t, postComment(changeSHA, "previous", "3", "old side comment"), "old side comment")
+		unittest.AssertExistsAndLoadBean(t, &repo_model.CommitComment{CommitSHA: changeSHA, Line: -3})
 	})
 
 	t.Run("DeleteMissingCommentIsNotFound", func(t *testing.T) {
