@@ -24,6 +24,9 @@ var (
 	ErrMissingPdbStream      = util.NewInvalidArgumentErrorf("missing PDB stream")
 )
 
+// maxPortablePdbSize caps the total decompressed size of the PDB files in a symbol package (var so tests can lower it)
+var maxPortablePdbSize int64 = 128 * 1024 * 1024
+
 type PortablePdb struct {
 	Name    string
 	ID      string
@@ -46,6 +49,7 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 	}
 
 	var pdbs PortablePdbList
+	remaining := maxPortablePdbSize
 
 	err = func() error {
 		for _, file := range archive.File {
@@ -58,18 +62,23 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 			case ".nuspec", ".xml", ".psmdcp", ".rels", ".p7s":
 				continue
 			case ".pdb":
+				if file.UncompressedSize64 > uint64(remaining) {
+					return util.ErrLimitExceeded
+				}
+
 				f, err := archive.Open(file.Name)
 				if err != nil {
 					return err
 				}
 
-				buf, err := packages.CreateHashedBufferFromReader(f)
+				buf, err := packages.CreateHashedBufferFromReader(util.NewLimitedReader(f, remaining))
 
 				_ = f.Close()
 
 				if err != nil {
 					return err
 				}
+				remaining -= buf.Size()
 
 				id, err := ParseDebugHeaderID(buf)
 				if err != nil {

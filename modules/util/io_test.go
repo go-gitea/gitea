@@ -6,7 +6,10 @@ package util
 import (
 	"bytes"
 	"errors"
+	"io"
+	"strings"
 	"testing"
+	"testing/iotest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,6 +23,22 @@ func (r *readerWithError) Read(p []byte) (n int, err error) {
 		return 0, errors.New("test error")
 	}
 	return r.buf.Read(p)
+}
+
+func TestLimitedReader(t *testing.T) {
+	data, err := io.ReadAll(NewLimitedReader(strings.NewReader("12345"), 5))
+	assert.NoError(t, err)
+	assert.Equal(t, "12345", string(data))
+
+	data, err = io.ReadAll(NewLimitedReader(strings.NewReader("123456"), 5))
+	assert.ErrorIs(t, err, ErrLimitExceeded)
+	assert.Equal(t, "12345", string(data))
+
+	_, err = io.ReadAll(NewLimitedReader(iotest.OneByteReader(strings.NewReader("123456")), 5))
+	assert.ErrorIs(t, err, ErrLimitExceeded)
+
+	_, err = io.ReadAll(NewLimitedReader(strings.NewReader("1"), 0))
+	assert.ErrorIs(t, err, ErrLimitExceeded)
 }
 
 func TestReadWithLimit(t *testing.T) {

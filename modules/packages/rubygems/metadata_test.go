@@ -4,9 +4,11 @@
 package rubygems
 
 import (
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -31,6 +33,13 @@ version:
 		rp, err := ParsePackageMetaData(data)
 		assert.NoError(t, err)
 		assert.NotNil(t, rp)
+	})
+
+	t.Run("TooLarge", func(t *testing.T) {
+		content := test.CompressGzip("name: g\nversion:\n  version: 1\ndescription: " + strings.Repeat("a", 9*1024*1024) + "\n")
+		rp, err := parseMetadataFile(content)
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
+		assert.Nil(t, rp)
 	})
 
 	t.Run("InvalidName", func(t *testing.T) {

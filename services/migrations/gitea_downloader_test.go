@@ -4,6 +4,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"net/http"
@@ -18,7 +19,9 @@ import (
 	"time"
 
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/json"
 	base "gitea.dev/modules/migration"
+	gitea_sdk "gitea.dev/sdk"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -361,5 +364,51 @@ func TestGiteaDownloadCommentsPaging(t *testing.T) {
 			assert.Len(t, comments, tc.commentCount)
 			assert.Equal(t, tc.requests, commentRequests)
 		})
+	}
+}
+
+func TestGiteaDownloadReleaseAssetCanceled(t *testing.T) {
+	assetRequested := make(chan struct{})
+	unblock := make(chan struct{})
+	var serverURL string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/repos/owner/repo/releases/1/assets/2" {
+			_ = json.NewEncoder(w).Encode(gitea_sdk.Attachment{ID: 2, DownloadURL: serverURL + "/asset"})
+			return
+		}
+		close(assetRequested)
+		select {
+		case <-r.Context().Done():
+		case <-unblock:
+		}
+	}))
+	defer server.Close()
+	defer close(unblock)
+	serverURL = server.URL
+
+	client, err := gitea_sdk.NewClient(server.URL, gitea_sdk.SetGiteaVersion(""))
+	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	g := &GiteaDownloader{ctx: ctx, client: client, baseURL: server.URL, repoOwner: "owner", repoName: "repo"}
+	release := g.convertGiteaRelease(&gitea_sdk.Release{
+		ID:          1,
+		Publisher:   &gitea_sdk.User{},
+		Attachments: []*gitea_sdk.Attachment{{ID: 2, DownloadURL: server.URL + "/asset"}},
+	})
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := release.Assets[0].DownloadFunc()
+		done <- err
+	}()
+	<-assetRequested
+	cancel()
+
+	select {
+	case err := <-done:
+		assert.ErrorIs(t, err, context.Canceled)
+	case <-time.After(5 * time.Second):
+		assert.Fail(t, "asset download was not interrupted by the canceled migration")
 	}
 }

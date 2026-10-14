@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/test"
@@ -140,6 +141,22 @@ func TestParsePackageInfo(t *testing.T) {
 		p, err := ParsePackageInfo(bytes.NewReader(data))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidVersion)
+	})
+
+	t.Run("TooManyEntries", func(t *testing.T) {
+		data := string(createPKGINFOContent(packageName, packageVersion)) + strings.Repeat("\nprovides = x", maxPackageInfoEntries)
+
+		p, err := ParsePackageInfo(strings.NewReader(data))
+		assert.Nil(t, p)
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	})
+
+	t.Run("TooLarge", func(t *testing.T) {
+		data := string(createPKGINFOContent(packageName, packageVersion)) + strings.Repeat("\n# comment", 1024*1024)
+
+		p, err := ParsePackageInfo(strings.NewReader(data))
+		assert.Nil(t, p)
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("Valid", func(t *testing.T) {

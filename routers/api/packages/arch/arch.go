@@ -59,6 +59,11 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	if err := packages_service.CheckSizeQuotaExceeded(ctx, ctx.Doer, ctx.Package.Owner, packages_model.TypeArch, buf.Size()); err != nil {
+		apiError(ctx, helper.QuotaErrorStatus(err), err)
+		return
+	}
+
 	pck, err := arch_module.ParsePackage(buf)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, io.EOF) {

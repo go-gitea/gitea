@@ -209,6 +209,11 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	if err := packages_service.CheckSizeQuotaExceeded(ctx, ctx.Doer, ctx.Package.Owner, packages_model.TypeConda, buf.Size()); err != nil {
+		apiError(ctx, helper.QuotaErrorStatus(err), err)
+		return
+	}
+
 	var pck *conda_module.Package
 	if strings.HasSuffix(filename, ".tar.bz2") {
 		pck, err = conda_module.ParsePackageBZ2(buf)

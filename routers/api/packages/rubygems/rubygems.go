@@ -215,6 +215,11 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	if err := packages_service.CheckSizeQuotaExceeded(ctx, ctx.Doer, ctx.Package.Owner, packages_model.TypeRubyGems, buf.Size()); err != nil {
+		apiError(ctx, helper.QuotaErrorStatus(err), err)
+		return
+	}
+
 	rp, err := rubygems_module.ParsePackageMetaData(buf)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {

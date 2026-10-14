@@ -34,6 +34,9 @@ const (
 	RepositoryVersion = "_repository"
 
 	AnyArch = "any"
+
+	// cap on the multi-value .PKGINFO entries (depends, provides, ...) summed over all keys
+	maxPackageInfoEntries = 10000
 )
 
 var (
@@ -42,6 +45,7 @@ var (
 	ErrInvalidName         = util.NewInvalidArgumentErrorf("package name is invalid")
 	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
 	ErrInvalidArchitecture = util.NewInvalidArgumentErrorf("package architecture is invalid")
+	ErrTooManyEntries      = util.NewInvalidArgumentErrorf(".PKGINFO file contains too many entries")
 
 	// https://man.archlinux.org/man/PKGBUILD.5
 	namePattern = regexp.MustCompile(`\A[a-zA-Z0-9@._+-]+\z`)
@@ -178,7 +182,22 @@ func ParsePackage(r io.Reader) (*Package, error) {
 func ParsePackageInfo(r io.Reader) (*Package, error) {
 	p := &Package{}
 
-	s := bufio.NewScanner(r)
+	lists := map[string]*[]string{
+		"license":     &p.VersionMetadata.Licenses,
+		"provides":    &p.FileMetadata.Provides,
+		"depend":      &p.FileMetadata.Depends,
+		"replaces":    &p.FileMetadata.Replaces,
+		"optdepend":   &p.FileMetadata.OptDepends,
+		"makedepend":  &p.FileMetadata.MakeDepends,
+		"checkdepend": &p.FileMetadata.CheckDepends,
+		"conflict":    &p.FileMetadata.Conflicts,
+		"backup":      &p.FileMetadata.Backup,
+		"group":       &p.FileMetadata.Groups,
+		"xdata":       &p.FileMetadata.XData,
+	}
+	entries := 0
+
+	s := bufio.NewScanner(util.NewLimitedReader(r, packages.MaxMetadataFileSize))
 	for s.Scan() {
 		line := s.Text()
 
@@ -193,6 +212,14 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 
 		key := strings.TrimSpace(line[:i])
 		value := strings.TrimSpace(line[i+1:])
+
+		if list, ok := lists[key]; ok {
+			if entries++; entries > maxPackageInfoEntries {
+				return nil, ErrTooManyEntries
+			}
+			*list = append(*list, value)
+			continue
+		}
 
 		switch key {
 		case "pkgname":
@@ -209,26 +236,6 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 			p.FileMetadata.Packager = value
 		case "arch":
 			p.FileMetadata.Architecture = value
-		case "license":
-			p.VersionMetadata.Licenses = append(p.VersionMetadata.Licenses, value)
-		case "provides":
-			p.FileMetadata.Provides = append(p.FileMetadata.Provides, value)
-		case "depend":
-			p.FileMetadata.Depends = append(p.FileMetadata.Depends, value)
-		case "replaces":
-			p.FileMetadata.Replaces = append(p.FileMetadata.Replaces, value)
-		case "optdepend":
-			p.FileMetadata.OptDepends = append(p.FileMetadata.OptDepends, value)
-		case "makedepend":
-			p.FileMetadata.MakeDepends = append(p.FileMetadata.MakeDepends, value)
-		case "checkdepend":
-			p.FileMetadata.CheckDepends = append(p.FileMetadata.CheckDepends, value)
-		case "conflict":
-			p.FileMetadata.Conflicts = append(p.FileMetadata.Conflicts, value)
-		case "backup":
-			p.FileMetadata.Backup = append(p.FileMetadata.Backup, value)
-		case "group":
-			p.FileMetadata.Groups = append(p.FileMetadata.Groups, value)
 		case "builddate":
 			date, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
@@ -241,8 +248,6 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 				return nil, err
 			}
 			p.FileMetadata.InstalledSize = size
-		case "xdata":
-			p.FileMetadata.XData = append(p.FileMetadata.XData, value)
 		}
 	}
 	if err := s.Err(); err != nil {

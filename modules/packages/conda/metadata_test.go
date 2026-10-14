@@ -8,8 +8,10 @@ import (
 	"archive/zip"
 	"bytes"
 	"io"
+	"strings"
 	"testing"
 
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/zstd"
 
 	"github.com/dsnet/compress/bzip2"
@@ -60,6 +62,18 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, "name", p.Name)
 		assert.Equal(t, "1.0", p.Version)
 		assert.Empty(t, p.VersionMetadata.ProjectURL)
+	})
+
+	t.Run("TooLarge", func(t *testing.T) {
+		large := strings.Repeat("a", 9*1024*1024)
+		for _, files := range []map[string][]byte{
+			{"info/index.json": []byte(`{"name":"name","version":"1.0","depends":["` + large + `"]}`)},
+			{"info/index.json": []byte(`{"name":"name","version":"1.0"}`), "info/about.json": []byte(`{"description":"` + large + `"}`)},
+		} {
+			p, err := parsePackageTar(createArchive(files))
+			assert.Nil(t, p)
+			assert.ErrorIs(t, err, util.ErrInvalidArgument)
+		}
 	})
 
 	t.Run("InvalidName", func(t *testing.T) {

@@ -15,12 +15,21 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
+	packages_service "gitea.dev/services/packages"
 )
 
 // PackageErrorStatus returns the status to report for a package lookup error
 func PackageErrorStatus(err error) int {
 	if errors.Is(err, util.ErrNotExist) {
 		return http.StatusNotFound
+	}
+	return http.StatusInternalServerError
+}
+
+// QuotaErrorStatus returns the status to report for a failed package quota check
+func QuotaErrorStatus(err error) int {
+	if errors.Is(err, packages_service.ErrQuotaTypeSize) || errors.Is(err, packages_service.ErrQuotaTotalSize) {
+		return http.StatusForbidden
 	}
 	return http.StatusInternalServerError
 }

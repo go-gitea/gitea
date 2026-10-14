@@ -8,9 +8,11 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -72,6 +74,15 @@ func TestParseMetadataFromBox(t *testing.T) {
 }
 
 func TestParseInfoFile(t *testing.T) {
+	t.Run("TooLarge", func(t *testing.T) {
+		content, err := json.Marshal(map[string]string{"description": strings.Repeat("a", 9*1024*1024)})
+		assert.NoError(t, err)
+
+		metadata, err := ParseInfoFile(bytes.NewReader(content))
+		assert.Nil(t, metadata)
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	})
+
 	t.Run("UnknownKeys", func(t *testing.T) {
 		content, err := json.Marshal(map[string]string{
 			"package": "",

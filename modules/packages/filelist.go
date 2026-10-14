@@ -5,6 +5,9 @@ package packages
 
 import "gitea.dev/modules/util"
 
+// MaxMetadataFileSize caps the decompressed size of a single metadata file read from an uploaded package
+const MaxMetadataFileSize = 8 * 1024 * 1024
+
 // BoundedFileList accumulates file names from a package archive while enforcing caps on the number of
 // entries and their total name length, returning an error once either cap would be exceeded.
 type BoundedFileList struct {

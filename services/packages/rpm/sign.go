@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	packages_module "gitea.dev/modules/packages"
+	rpm_module "gitea.dev/modules/packages/rpm"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/sassoftware/go-rpmutils"
@@ -20,7 +21,12 @@ func SignPackage(buf *packages_module.HashedBuffer, privateKey string) (*package
 		return nil, err
 	}
 
-	h, err := rpmutils.SignRpmStream(buf, keyring[0].PrivateKey, nil)
+	r, err := rpm_module.CheckHeaderSizes(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	h, err := rpmutils.SignRpmStream(r, keyring[0].PrivateKey, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -613,6 +613,11 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 	}
 	closables = append(closables, buf)
 
+	if err := packages_service.CheckSizeQuotaExceeded(ctx, ctx.Doer, ctx.Package.Owner, packages_model.TypeNuGet, buf.Size()); err != nil {
+		apiError(ctx, helper.QuotaErrorStatus(err), err)
+		return nil, nil, closables
+	}
+
 	np, err := nuget_module.ParsePackageMetaData(buf, buf.Size())
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
