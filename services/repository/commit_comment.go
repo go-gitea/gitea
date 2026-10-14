@@ -13,8 +13,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/references"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/gitdiff"
 )
 
 // ErrCommitCommentCoordinates is returned when the requested diff coordinate
@@ -45,7 +43,7 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_
 		return nil, ErrCommitCommentRootPrevious
 	}
 
-	if _, err := commitCommentPatch(ctx, gitRepo, parentSHA, fullSHA, treePath, line); err != nil {
+	if err := checkCommitCommentLine(ctx, gitRepo, parentSHA, fullSHA, treePath, line); err != nil {
 		return nil, err
 	}
 
@@ -69,35 +67,34 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_
 	return comment, nil
 }
 
-// commitCommentPatch builds the diff context around a comment's line. An empty
-// patch means the coordinate does not exist, which keeps a crafted POST from
-// creating an invisible comment. Nothing is stored: a commit's diff never
-// changes, so it can always be rebuilt.
-func commitCommentPatch(ctx context.Context, gitRepo *git.Repository, parentSHA, fullSHA, treePath string, line int64) (string, error) {
-	if parentSHA != "" {
-		patch, err := git.GetFileDiffCutAroundLine(ctx, gitRepo, parentSHA, fullSHA, treePath, max(line, -line), line < 0, setting.UI.CodeCommentLines)
-		if err != nil {
-			log.Debug("GetFileDiffCutAroundLine failed for commit comment: %v", err)
-		}
-		if patch != "" {
-			return patch, nil
-		}
-	}
-
-	// The line is unchanged by the commit (or the commit is a root commit).
-	// Old-side coordinates only exist in the parent tree; resolving them against
-	// fullSHA rejects lines the commit removed and stores the wrong context for
-	// the ones it kept.
-	contextSHA := fullSHA
+// checkCommitCommentLine makes sure the line exists on its side of the commit:
+// the parent tree for the old side, the commit's own tree for the new one. A
+// crafted POST past the end of the file would otherwise store a comment that no
+// diff row ever shows.
+func checkCommitCommentLine(ctx context.Context, gitRepo *git.Repository, parentSHA, fullSHA, treePath string, line int64) error {
+	sideSHA := fullSHA
 	if line < 0 {
-		contextSHA = parentSHA
+		sideSHA = parentSHA
 	}
-	patch, err := gitdiff.GeneratePatchForUnchangedLine(ctx, gitRepo, contextSHA, treePath, line, setting.UI.CodeCommentLines)
+	commit, err := gitRepo.GetCommit(ctx, sideSHA)
 	if err != nil {
-		log.Debug("GeneratePatchForUnchangedLine failed for commit comment: %v", err)
+		return err
 	}
-	if patch == "" {
-		return "", ErrCommitCommentCoordinates
+	entry, err := commit.GetTreeEntryByPath(ctx, gitRepo, treePath)
+	if git.IsErrNotExist(err) {
+		return ErrCommitCommentCoordinates
+	} else if err != nil {
+		return err
 	}
-	return patch, nil
+	if entry.IsDir() || entry.IsSubModule() {
+		return ErrCommitCommentCoordinates
+	}
+	_, lineCount, err := entry.Blob(gitRepo).GetBlobLineCount(ctx, nil)
+	if err != nil {
+		return err
+	}
+	if max(line, -line) > int64(lineCount) {
+		return ErrCommitCommentCoordinates
+	}
+	return nil
 }

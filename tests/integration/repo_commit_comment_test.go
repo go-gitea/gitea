@@ -84,6 +84,22 @@ func TestCommitInlineComment(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &repo_model.CommitComment{CommitSHA: changeSHA, Line: -3})
 	})
 
+	t.Run("LinePastEndOfFileIsRejected", func(t *testing.T) {
+		// The parent README has 3 lines and the new one has 5, so previous line 4
+		// only exists if the old side is wrongly read from the commit's own tree.
+		for _, c := range []struct{ side, line string }{{"previous", "4"}, {"proposed", "6"}} {
+			req := NewRequestWithValues(t, "POST", "/user2/repo1/commit/"+changeSHA+"/comment", map[string]string{
+				"content": "past the end",
+				"path":    "README.md",
+				"side":    c.side,
+				"line":    c.line,
+			})
+			session.MakeRequest(t, req, http.StatusBadRequest)
+		}
+		unittest.AssertNotExistsBean(t, &repo_model.CommitComment{Content: "past the end"})
+		assert.Contains(t, postComment(changeSHA, "proposed", "5", "last line comment"), "last line comment")
+	})
+
 	t.Run("DeleteMissingCommentIsNotFound", func(t *testing.T) {
 		comment := unittest.AssertExistsAndLoadBean(t, &repo_model.CommitComment{Content: "second commit comment"})
 		url := fmt.Sprintf("/user2/repo1/commit/%s/comment/%d/delete", rootSHA, comment.ID)
