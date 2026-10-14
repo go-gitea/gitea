@@ -30,6 +30,8 @@ const (
 	labelDocumentation = "org.opencontainers.image.documentation"
 	labelDescription   = "org.opencontainers.image.description"
 	labelAuthors       = "org.opencontainers.image.authors"
+
+	LabelFlatpakRef = "org.flatpak.ref"
 )
 
 type ImageType string

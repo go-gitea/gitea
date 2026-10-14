@@ -24,6 +24,11 @@ func UpdateRepositoryNames(ctx context.Context, owner *user_model.User, newOwner
 	if err != nil {
 		return err
 	}
+	flatpaks, err := packages_model.GetPackagesByType(ctx, owner.ID, packages_model.TypeFlatpak)
+	if err != nil {
+		return err
+	}
+	ps = append(ps, flatpaks...)
 
 	newOwnerName = strings.ToLower(newOwnerName)
 
