@@ -104,8 +104,8 @@ func TestComposeIssueComment(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 
 	markup.Init(&markup.RenderHelperFuncs{
-		IsUsernameMentionable: func(ctx context.Context, username string) bool {
-			return username == doer.Name
+		ResolveUserMention: func(ctx context.Context, username string) (bool, string) {
+			return username == doer.Name, ""
 		},
 	})
 

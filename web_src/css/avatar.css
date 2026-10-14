@@ -6,6 +6,14 @@ img.ui.avatar,
   aspect-ratio: 1;
 }
 
+/* inline avatar for @user mentions rendered by markdown */
+img.mention-avatar {
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: -0.25em;
+  margin: 0 0.1em;
+}
+
 .avatar-stack-names {
   display: inline-flex;
   align-items: center;
