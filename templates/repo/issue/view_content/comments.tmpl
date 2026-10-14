@@ -545,7 +545,7 @@
 					{{if .IsForcePush}}
 						{{ctx.Locale.Tr "repo.issues.force_push_codes" $.Issue.PullRequest.HeadBranch (ShortSha .OldCommit) ($.Issue.Repo.CommitLink .OldCommit) (ShortSha .NewCommit) ($.Issue.Repo.CommitLink .NewCommit) $createdStr}}
 					{{else}}
-						{{ctx.Locale.TrN (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n" (len .Commits) $createdStr}}
+						{{ctx.Locale.TrPlural "repo.issues.push_commit" (len .Commits) (len .Commits) $createdStr}}
 					{{end}}
 				</span>
 				{{if and .IsForcePush $.Issue.PullRequest.BaseRepo.Name}}

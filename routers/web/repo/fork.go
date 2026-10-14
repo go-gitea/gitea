@@ -92,7 +92,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	ctx.Data["Orgs"] = orgs
 
 	// TODO: this message should only be shown for the "current doer" when it is selected, just like the "new repo" page.
-	// msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", ctx.Doer.MaxCreationLimit())
+	// msg := ctx.TrPlural("repo.form.reach_limit_of_creation", maxCreationLimit, ctx.Doer.MaxCreationLimit())
 
 	if canForkToUser {
 		ctx.Data["ContextUser"] = ctx.Doer
@@ -210,7 +210,7 @@ func ForkRepoTo(ctx *context.Context, owner *user_model.User, forkOpts repo_serv
 		switch {
 		case repo_model.IsErrReachLimitOfRepo(err):
 			maxCreationLimit := owner.MaxCreationLimit()
-			msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+			msg := ctx.TrPlural("repo.form.reach_limit_of_creation", maxCreationLimit, maxCreationLimit)
 			ctx.JSONError(msg)
 		case repo_model.IsErrRepoAlreadyExist(err):
 			ctx.JSONError(ctx.Tr("repo.settings.new_owner_has_same_repo"))

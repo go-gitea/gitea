@@ -198,6 +198,7 @@ func NewUserPost(ctx *context.Context) {
 	if !u.IsTypeBot() && (u.LoginType == auth.NoType || u.LoginType == auth.Plain) {
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
+			// TODO: use TrPlural for the count
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
 			return
 		}
@@ -477,6 +478,7 @@ func EditUserPost(ctx *context.Context) {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			ctx.Data["Err_Password"] = true
+			// TODO: use TrPlural for the count
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)
 		case errors.Is(err, password.ErrComplexity):
 			ctx.Data["Err_Password"] = true
@@ -673,6 +675,7 @@ func RemoveUserFromAllOrgs(ctx *context.Context) {
 	}
 
 	if removedCount < len(orgs) {
+		// TODO: use TrPlural for the count
 		ctx.Flash.Warning(ctx.Tr("admin.users.some_orgs_removed", removedCount, len(orgs)))
 	} else {
 		ctx.Flash.Success(ctx.Tr("admin.users.all_orgs_removed"))

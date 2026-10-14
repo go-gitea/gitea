@@ -18,7 +18,7 @@
 						<div class="menu">
 							<div class="item" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}"
 								{{if not .CanCreateRepoInDoer}}
-									data-create-repo-disallowed-prompt="{{ctx.Locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimitOfDoer}}"
+									data-create-repo-disallowed-prompt="{{ctx.Locale.TrPlural "repo.form.reach_limit_of_creation" .MaxCreationLimit .MaxCreationLimitOfDoer}}"
 								{{end}}
 							>
 								{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
