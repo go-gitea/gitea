@@ -95,6 +95,12 @@ func TestUserEmails(t *testing.T) {
 			setting.Service.NoReplyAddress = "example.com"
 			testGetUserByEmail(t, "user1-2@example.COM", 1)
 		})
+
+		t.Run("EmptyEmail", func(t *testing.T) {
+			// A user whose email address is empty must not own commits that have no author email.
+			require.NoError(t, db.Insert(t.Context(), &user_model.EmailAddress{UID: 2, Email: "", LowerEmail: "", IsActivated: true}))
+			testGetUserByEmail(t, "", 0)
+		})
 	})
 	t.Run("GetUserByEmail", func(t *testing.T) {
 		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
