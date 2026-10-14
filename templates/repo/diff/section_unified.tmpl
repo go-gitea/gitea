@@ -13,7 +13,7 @@
 		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
 			{{if eq .GetType 4}}
 				{{if $diffBlobExcerptData}}
-					<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $file.NameHash $diffBlobExcerptData}}</td>
+					<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $file.NameHash $diffBlobExcerptData ctx.Locale}}</td>
 				{{else}}
 					{{/* when DiffBlobExcerptData is not available (code file preview, pull conversation diff comment), do not show the expansion arrows */}}
 					<td colspan="2" class="lines-num"></td>
