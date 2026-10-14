@@ -126,6 +126,29 @@ type Job struct {
 	RawPermissions     yaml.Node             `yaml:"permissions,omitempty"`
 }
 
+// UnmarshalYAML requotes folded scalars in with/env, which go-yaml cannot re-emit losslessly.
+func (j *Job) UnmarshalYAML(node *yaml.Node) error {
+	type rawJob Job
+	if err := node.Decode((*rawJob)(j)); err != nil {
+		return err
+	}
+	unfoldScalars(&j.With)
+	unfoldScalars(&j.Env)
+	return nil
+}
+
+// unfoldScalars turns folded (`>`) scalar values into double-quoted ones: the encoder wraps and
+// pads folded text in ways that change its value when read back (yaml/go-yaml#337).
+func unfoldScalars(n *yaml.Node) {
+	if n.Kind == yaml.ScalarNode && n.Style&yaml.FoldedStyle != 0 {
+		n.Style = yaml.DoubleQuotedStyle
+		return
+	}
+	for _, c := range n.Content {
+		unfoldScalars(c)
+	}
+}
+
 // GetContinueOnError decodes the continue-on-error field to a bool.
 // The field may be a literal bool or an already-evaluated expression node.
 func (j *Job) GetContinueOnError() bool {
@@ -227,6 +250,8 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 	if err := node.Decode((*rawStep)(s)); err != nil {
 		return err
 	}
+	unfoldScalars(&s.With)
+	unfoldScalars(&s.Env)
 	if raw := &s.RawContinueOnError; raw.Tag == "!!bool" {
 		raw.Value = strings.ToLower(raw.Value)
 	}
