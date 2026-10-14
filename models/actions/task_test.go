@@ -14,6 +14,7 @@ import (
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/timeutil"
@@ -442,6 +443,62 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 	assert.True(t, available(FindRunnerOptions{RepoID: run.RepoID}))
 }
 
+func TestCreateTaskForRunnerRechecksRunnerScopeAtClaim(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	run := &ActionRun{RepoID: 1}
+	require.NoError(t, db.Insert(t.Context(), run))
+	require.NoError(t, db.Insert(t.Context(), &ActionRunJob{
+		RunID:           run.ID,
+		RepoID:          run.RepoID,
+		Status:          StatusWaiting,
+		RunsOn:          []string{"ubuntu-latest"},
+		WorkflowPayload: []byte("on: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
+	}))
+	require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: run.RepoID, Type: unit.TypeActions}))
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: run.RepoID}).OwnerID
+	runner := &ActionRunner{UUID: "owner-scoped", OwnerID: repoOwner, AgentLabels: []string{"ubuntu-latest"}, TokenHash: "owner-scoped"}
+	require.NoError(t, db.Insert(t.Context(), runner))
+
+	exec := func(query string, args ...any) func() {
+		return func() {
+			_, err := db.GetEngine(t.Context()).Exec(append([]any{query}, args...)...)
+			require.NoError(t, err)
+		}
+	}
+	hook := &beforeTaskClaim{}
+	unittest.GetXORMEngine().AddHook(hook)
+	t.Cleanup(func() { hook.change = nil })
+	for _, change := range []struct{ apply, revert func() }{
+		{exec("UPDATE repository SET owner_id = ? WHERE id = ?", repoOwner+1, run.RepoID), exec("UPDATE repository SET owner_id = ? WHERE id = ?", repoOwner, run.RepoID)},
+		{exec("UPDATE action_runner SET is_disabled = ? WHERE id = ?", true, runner.ID), exec("UPDATE action_runner SET is_disabled = ? WHERE id = ?", false, runner.ID)},
+		{exec("UPDATE action_runner SET deleted = ? WHERE id = ?", timeutil.TimeStampNow(), runner.ID), exec("UPDATE action_runner SET deleted = NULL WHERE id = ?", runner.ID)},
+	} {
+		hook.change = change.apply
+		_, ok, err := CreateTaskForRunner(t.Context(), runner)
+		require.NoError(t, err)
+		require.Nil(t, hook.change)
+		assert.False(t, ok)
+		change.revert()
+	}
+
+	_, ok, err := CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	assert.True(t, ok)
+}
+
+type beforeTaskClaim struct{ change func() }
+
+func (h *beforeTaskClaim) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
+	if change := h.change; change != nil && c.SQL == "BEGIN TRANSACTION" {
+		h.change = nil
+		change()
+	}
+	return c.Ctx, nil
+}
+
+func (*beforeTaskClaim) AfterProcess(*contexts.ContextHook) error { return nil }
+
 func TestRunnerGroupMembership(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
@@ -452,6 +509,10 @@ func TestRunnerGroupMembership(t *testing.T) {
 	assert.NotEqual(t, orgGroup.ID, group.ID)
 	_, err = CreateRunnerGroup(t.Context(), 0, "GPU")
 	require.Error(t, err)
+	require.NoError(t, db.Insert(t.Context(), &ActionRunnerAccess{GroupID: orgGroup.ID, RepoID: 1}))
+	repos, err := FindRunnerGroupRepos(t.Context(), orgGroup)
+	require.NoError(t, err)
+	assert.Empty(t, repos, "a grant for a repository of another owner is not listed")
 
 	member := &ActionRunner{UUID: "member", Name: "member", TokenHash: "m"}
 	require.NoError(t, db.Insert(t.Context(), member))

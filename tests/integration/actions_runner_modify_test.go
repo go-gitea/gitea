@@ -231,6 +231,7 @@ func TestActionsRunnerModify(t *testing.T) {
 
 		sessionAdmin.MakeRequest(t, NewRequestWithValues(t, "POST", adminGroupsURL, map[string]string{"name": "gpu"}), http.StatusOK)
 		sessionAdmin.MakeRequest(t, NewRequestWithValues(t, "POST", adminGroupsURL, map[string]string{"name": "gpu"}), http.StatusBadRequest)
+		sessionAdmin.MakeRequest(t, NewRequestWithValues(t, "POST", adminGroupsURL, map[string]string{"name": "org/gpu"}), http.StatusBadRequest)
 		sessionAdmin.MakeRequest(t, NewRequestWithValues(t, "POST", orgGroupsURL, map[string]string{"name": "gpu"}), http.StatusOK)
 		group := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerGroup{Name: "gpu"}, unittest.Cond("owner_id = ?", 0))
 		orgGroup := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerGroup{Name: "gpu"}, unittest.Cond("owner_id = ?", org3.ID))

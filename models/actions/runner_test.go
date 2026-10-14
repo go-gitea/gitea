@@ -90,4 +90,11 @@ func TestCanRunJob(t *testing.T) {
 	assert.False(t, runner.CanRunJob("", nil))
 	assert.False(t, runner.CanRunJob("cpu", nil))
 	assert.False(t, (&ActionRunner{}).CanRunJob("gpu", nil))
+	assert.True(t, runner.CanRunJob("enterprise/GPU", nil))
+	assert.False(t, runner.CanRunJob("org/gpu", nil))
+	assert.False(t, runner.CanRunJob("other/gpu", nil))
+	ownerRunner := &ActionRunner{Group: &ActionRunnerGroup{OwnerID: 3, Name: "GPU", LowerName: "gpu"}}
+	assert.True(t, ownerRunner.CanRunJob("organization/gpu", nil))
+	assert.False(t, ownerRunner.CanRunJob("ent/gpu", nil))
+	assert.False(t, (&ActionRunner{Group: &ActionRunnerGroup{Name: "s", LowerName: "s"}}).CanRunJob("ſ", nil))
 }

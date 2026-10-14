@@ -205,10 +205,27 @@ func (r *ActionRunner) CanRunJob(runsOnGroup string, runsOnLabels []string) bool
 	if runsOnGroup == "" && len(runsOnLabels) == 0 {
 		return false
 	}
-	if runsOnGroup != "" && (r.Group == nil || !strings.EqualFold(r.Group.LowerName, runsOnGroup)) {
+	if runsOnGroup != "" && !r.matchesGroup(runsOnGroup) {
 		return false
 	}
 	return !slices.ContainsFunc(runsOnLabels, func(label string) bool { return !util.SliceContainsString(r.AgentLabels, label, true) })
+}
+
+// runsOnGroupScopes maps github.com's runs-on group prefixes to whether they select an owner-level group over a site-level one
+var runsOnGroupScopes = map[string]bool{"org": true, "organization": true, "ent": false, "enterprise": false}
+
+func (r *ActionRunner) matchesGroup(runsOnGroup string) bool {
+	if r.Group == nil {
+		return false
+	}
+	scope, name, found := strings.Cut(runsOnGroup, "/")
+	if !found {
+		name = scope
+	} else if ownerLevel, known := runsOnGroupScopes[scope]; !known || ownerLevel != (r.Group.OwnerID != 0) {
+		return false
+	}
+	lowerName := strings.ToLower(name) // folds like lower_name, EqualFold would also pair "s" with "ſ"
+	return r.Group.LowerName == lowerName
 }
 
 func runnerGroupGrantsCond(repoCond builder.Cond) builder.Cond {

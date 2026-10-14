@@ -61,7 +61,7 @@ func RunnerGroupCreate(ctx *context.Context) {
 		return
 	}
 	name := ctx.FormTrim("name")
-	if name == "" || utf8.RuneCountInString(name) > 255 {
+	if name == "" || utf8.RuneCountInString(name) > 200 || strings.Contains(name, "/") {
 		ctx.JSONError(ctx.Tr("actions.runners.groups.name_invalid"))
 		return
 	}
@@ -84,7 +84,7 @@ func RunnerGroupEdit(ctx *context.Context) {
 		return
 	}
 
-	repos, err := actions_model.FindRunnerGroupRepos(ctx, group.ID)
+	repos, err := actions_model.FindRunnerGroupRepos(ctx, group)
 	if err != nil {
 		ctx.ServerError("FindRunnerGroupRepos", err)
 		return

@@ -193,10 +193,14 @@ func DeleteRunnerGroup(ctx context.Context, group *ActionRunnerGroup) error {
 	})
 }
 
-func FindRunnerGroupRepos(ctx context.Context, groupID int64) ([]*repo_model.Repository, error) {
+func FindRunnerGroupRepos(ctx context.Context, group *ActionRunnerGroup) ([]*repo_model.Repository, error) {
+	cond := builder.Eq{"action_runner_access.group_id": group.ID}
+	if group.OwnerID != 0 {
+		cond["repository.owner_id"] = group.OwnerID // skips grants a concurrent transfer left behind
+	}
 	var repos []*repo_model.Repository
 	err := db.GetEngine(ctx).Cols("repository.id", "repository.owner_name", "repository.name").
 		Join("INNER", "action_runner_access", "action_runner_access.repo_id = repository.id").
-		Where("action_runner_access.group_id = ?", groupID).Asc("repository.lower_name").Find(&repos)
+		Where(cond).Asc("repository.lower_name").Find(&repos)
 	return repos, err
 }
