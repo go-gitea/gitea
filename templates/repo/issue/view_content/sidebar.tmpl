@@ -1,4 +1,5 @@
 <div class="issue-content-right ui segment" data-global-init="initRepoIssueSidebar">
+	{{template "custom/extra_repo_issue_sidebar_top" $}}
 	{{template "repo/issue/branch_selector_field" $}}
 
 	{{if .Issue.IsPull}}

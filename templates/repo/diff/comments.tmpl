@@ -1,4 +1,4 @@
-{{range .comments}}
+{{range $comment := .comments}}
 
 {{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
 <div class="comment" id="{{.HashTag}}">
@@ -53,7 +53,7 @@
 				{{if not $.root.Repository.IsArchived}}
 					{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
 				{{end}}
-				{{template "repo/issue/view_content/context_menu" dict "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
+				{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentPage" "pr-files" "ConvContentItem" $comment}}
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
