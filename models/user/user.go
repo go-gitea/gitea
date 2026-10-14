@@ -1231,6 +1231,9 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 	noReplyAddressSuffix := "@" + strings.ToLower(setting.Service.NoReplyAddress)
 	for _, email := range emails {
 		emailLower := strings.ToLower(email)
+		if emailLower == "" {
+			continue // a commit without an author email names no user
+		}
 		needCheckEmails.Add(emailLower)
 		if localPart, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
 			name, id := parseLocalPartToNameID(localPart)
