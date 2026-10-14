@@ -252,9 +252,7 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 
 	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, run.CommitSHA)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("GetCommit", err)
 		return
 	}
 	rpath, entries, err := actions.ListWorkflows(ctx, ctx.Repo.GitRepo, commit)
@@ -857,7 +855,7 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 	}
 
 	for _, cursor := range cursors {
-		if !cursor.Expanded {
+		if !cursor.Expanded || cursor.Step < 0 || cursor.Step >= len(steps) {
 			continue
 		}
 
@@ -1041,9 +1039,7 @@ func Logs(ctx *context_module.Context) {
 	jobID := ctx.PathParamInt64("job")
 
 	if err := common.DownloadActionsRunJobLogsWithID(ctx.Base, ctx.Repo.Repository, run.ID, jobID); err != nil {
-		ctx.NotFoundOrServerError("DownloadActionsRunJobLogsWithID", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("DownloadActionsRunJobLogsWithID", err)
 	}
 }
 
@@ -1069,9 +1065,7 @@ func Approve(ctx *context_module.Context) {
 		return
 	}
 	if _, err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
-		ctx.NotFoundOrServerError("ApproveRuns", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("ApproveRuns", err)
 		return
 	}
 
@@ -1119,9 +1113,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		jobID := ctx.PathParamInt64("job")
 		selectedJob, err = actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetRunJobByRepoAndID", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetRunJobByRunAndID", err)
 			return nil, nil, nil
 		}
 	}
@@ -1136,27 +1128,21 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		// Explicit attempt number in the URL — user is viewing a historical attempt.
 		attempt, err = actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetRunAttemptByRunIDAndAttempt", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetRunAttemptByRunIDAndAttemptNum", err)
 			return nil, nil, nil
 		}
 	case selectedJob != nil && selectedJob.RunAttemptID > 0:
 		// No explicit attempt in the URL, but the requested job belongs to a known attempt — resolve via the job.
 		attempt, err = actions_model.GetRunAttemptByRepoAndID(ctx, selectedJob.RepoID, selectedJob.RunAttemptID)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetRunAttemptByRepoAndID", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetRunAttemptByRepoAndID", err)
 			return nil, nil, nil
 		}
 	default:
 		// No attempt context at all — show the latest attempt (nil for legacy runs).
 		attempt, _, err = run.GetLatestAttempt(ctx)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetLatestAttempt", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetLatestAttempt", err)
 			return nil, nil, nil
 		}
 	}
@@ -1205,9 +1191,7 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 	}
 	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("resolveArtifactAttemptIDFromQuery", err)
 		return
 	}
 	artifactName := ctx.PathParam("artifact_name")
@@ -1225,9 +1209,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	}
 	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("resolveArtifactAttemptIDFromQuery", err)
 		return
 	}
 	artifactName := ctx.PathParam("artifact_name")
@@ -1312,7 +1294,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return
 	}
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, repo.ID, commitStatuses)
 	if err != nil {
 		ctx.ServerError("GetRunsFromCommitStatuses", err)
 		return
@@ -1331,9 +1313,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 	}
 
 	if _, err := actions_service.ApproveRuns(ctx, repo, ctx.Doer, runIDs); err != nil {
-		ctx.NotFoundOrServerError("ApproveRuns", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("ApproveRuns", err)
 		return
 	}
 
@@ -1446,9 +1426,7 @@ func Run(ctx *context_module.Context) {
 func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.ActionRun) {
 	sourceRepo, err := repo_model.GetRepositoryByID(ctx, run.WorkflowRepoID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetRepositoryByID", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("GetRepositoryByID", err)
 		return
 	}
 
@@ -1471,9 +1449,7 @@ func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.Acti
 
 	commit, err := sourceGitRepo.GetCommit(ctx, run.WorkflowCommitSHA)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("GetCommit", err)
 		return
 	}
 	rpath, entries, err := actions.ListScopedWorkflows(ctx, sourceGitRepo, commit)
