@@ -36,7 +36,7 @@ test('pr review flow', async ({page, request}) => {
       request,
       poster,
       repoName,
-      [{path: 'added.txt', content: 'new content\n'}],
+      [{path: 'added.txt', content: 'new content\nsecond line\n'}],
       {branch: 'main', newBranch: 'feat', headers: posterHeaders},
     ),
   ]);
@@ -80,10 +80,10 @@ test('pr review flow', async ({page, request}) => {
 
   await page.goto(`${pullUrl}/files`);
 
-  // diff viewer renders the added file with its header and one added-line row
+  // diff viewer renders the added file with its header and added-line rows
   const fileBox = page.locator('.diff-file-box[data-new-filename="added.txt"]');
   await expect(fileBox.locator('.diff-file-header .file-link')).toHaveText('added.txt');
-  await expect(fileBox.locator('tr.add-code')).toHaveCount(1);
+  await expect(fileBox.locator('tr.add-code')).toHaveCount(2);
 
   // commits tab badge reflects the single PR commit, and the diff stats header counts one changed file
   const commitsTab = page.locator('.ui.pull.tabular.menu a.item', {has: page.locator('.octicon-git-commit')});
@@ -101,11 +101,29 @@ test('pr review flow', async ({page, request}) => {
   await logout(page);
   await loginUser(page, reviewer);
   await page.goto(`${pullUrl}/files`);
-  await page.locator('#review-box .js-btn-review').click();
+  await fileBox.locator('tr.add-code').nth(1).getByRole('button', {name: 'Add line comment', exact: true}).click();
+  const pendingForm = fileBox.locator('form').filter({has: page.getByRole('button', {name: 'Start review', exact: true})});
+  await pendingForm.getByRole('textbox', {name: 'Leave a comment', exact: true}).fill('pending review comment');
+  await pendingForm.getByRole('button', {name: 'Start review', exact: true}).click();
+  const counter = page.locator('.review-box-button .review-comments-counter');
+  await expect(counter).toHaveAttribute('data-pending-comment-number', '1');
+  await expect(counter).toHaveText('1');
+  const pendingComment = fileBox.locator('.comment').filter({hasText: 'pending review comment'});
+  await expect(pendingComment.locator('[data-clipboard-text]')).toHaveAttribute('data-clipboard-text', /\/files#issuecomment-\d+$/);
+  await pendingComment.getByRole('menu').filter({has: page.getByRole('menuitem', {name: 'Delete', exact: true, includeHidden: true})}).click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await pendingComment.getByRole('menuitem', {name: 'Delete', exact: true}).click();
+  await expect(pendingComment).toHaveCount(0);
+  await expect(counter).toHaveAttribute('data-pending-comment-number', '0');
+  await expect(counter).toHaveText('0');
+
+  await page.getByRole('button', {name: 'Review', exact: true}).click();
   const panel = page.locator('.review-box-panel');
   await panel.locator('textarea[name="content"]').fill(`First approval from ${reviewer}`);
   await panel.getByRole('button', {name: 'Approve', exact: true}).click();
-  await expect(page.locator('.timeline-item').filter({hasText: `First approval from ${reviewer}`})).toBeVisible();
+  const reviewComment = page.locator('.timeline-item').filter({hasText: `First approval from ${reviewer}`});
+  await expect(reviewComment).toBeVisible();
+  await expect(reviewComment.locator('[data-clipboard-text]')).toHaveAttribute('data-clipboard-text', /\/pulls\/\d+#issuecomment-\d+$/);
 
   await reRequestAndApprove(reviewer, 'Uncounted approval', 'tw-text-text-light', false);
 
