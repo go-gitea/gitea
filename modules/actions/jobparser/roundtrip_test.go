@@ -117,12 +117,12 @@ jobs:
       - uses: ./.github/actions/build
         with:
           cfg: >
-            {
-              "file_path" : "dir/Installer Scripts/some long path/another long path/some file name.xzy",
-              "build_sets" : [{"configuration" : "Release"}]
-            }
+            begin
+              first "indented" line with path dir/Installer Scripts/some long path/another long path/some file name.xzy,
+              second "indented" line
+            end
 `
-	const want = "{\n  \"file_path\" : \"dir/Installer Scripts/some long path/another long path/some file name.xzy\",\n  \"build_sets\" : [{\"configuration\" : \"Release\"}]\n}\n"
+	const want = "begin\n  first \"indented\" line with path dir/Installer Scripts/some long path/another long path/some file name.xzy,\n  second \"indented\" line\nend\n"
 	sws, err := Parse([]byte(wf))
 	require.NoError(t, err)
 	require.Len(t, sws, 1)
