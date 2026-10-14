@@ -38,8 +38,8 @@ func RunnerGroups(ctx *context.Context) {
 		ctx.ServerError("FindRunnerGroups", err)
 		return
 	}
-	runners, repos, err := actions_model.CountRunnerGroupUsage(ctx, container.FilterSlice(groups, func(g *actions_model.ActionRunnerGroup) (int64, bool) {
-		return g.ID, true
+	runners, repos, err := actions_model.CountRunnerGroupUsage(ctx, container.FilterSlice(groups, func(group *actions_model.ActionRunnerGroup) (int64, bool) {
+		return group.ID, true
 	}))
 	if err != nil {
 		ctx.ServerError("CountRunnerGroupUsage", err)

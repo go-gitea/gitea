@@ -83,11 +83,11 @@ func lockRunnerGroup(ctx context.Context, group *ActionRunnerGroup) error {
 
 func setRunnerGroupMembers(ctx context.Context, group *ActionRunnerGroup, runnerIDs []int64) error {
 	if len(runnerIDs) > 0 {
-		n, err := db.GetEngine(ctx).Where(builder.Eq{"owner_id": group.OwnerID, "repo_id": 0}.And(builder.In("id", runnerIDs))).Count(new(ActionRunner))
+		inScopeCount, err := db.GetEngine(ctx).Where(builder.Eq{"owner_id": group.OwnerID, "repo_id": 0}.And(builder.In("id", runnerIDs))).Count(new(ActionRunner))
 		if err != nil {
 			return err
 		}
-		if n != int64(len(runnerIDs)) {
+		if inScopeCount != int64(len(runnerIDs)) {
 			return util.NewPermissionDeniedErrorf("runner is outside the group's scope")
 		}
 	}
@@ -109,11 +109,11 @@ func setRunnerAccess(ctx context.Context, group *ActionRunnerGroup, repoIDs []in
 		if group.OwnerID != 0 {
 			inScope = inScope.And(builder.Eq{"owner_id": group.OwnerID})
 		}
-		n, err := db.GetEngine(ctx).Where(inScope).Count(new(repo_model.Repository))
+		inScopeCount, err := db.GetEngine(ctx).Where(inScope).Count(new(repo_model.Repository))
 		if err != nil {
 			return err
 		}
-		if n != int64(len(repoIDs)) {
+		if inScopeCount != int64(len(repoIDs)) {
 			return util.NewPermissionDeniedErrorf("repository is outside the group's scope")
 		}
 	}

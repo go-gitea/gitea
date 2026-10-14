@@ -23,12 +23,12 @@
 				</tr>
 			</thead>
 			<tbody>
-				{{range .RunnerGroups}}
+				{{range $group := .RunnerGroups}}
 					<tr>
-						<td>{{.Name}}</td>
-						<td>{{index $.RunnerGroupRunnerCounts .ID}}</td>
-						<td>{{if .IncludesAllRepositories}}{{ctx.Locale.Tr "org.teams.all_repositories"}}{{else}}{{index $.RunnerGroupRepoCounts .ID}}{{end}}</td>
-						<td><a href="{{$.Link}}/{{.ID}}" aria-label="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a></td>
+						<td>{{$group.Name}}</td>
+						<td>{{index $.RunnerGroupRunnerCounts $group.ID}}</td>
+						<td>{{if $group.IncludesAllRepositories}}{{ctx.Locale.Tr "org.teams.all_repositories"}}{{else}}{{index $.RunnerGroupRepoCounts $group.ID}}{{end}}</td>
+						<td><a href="{{$.Link}}/{{$group.ID}}" aria-label="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a></td>
 					</tr>
 				{{end}}
 			</tbody>
