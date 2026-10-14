@@ -13,6 +13,8 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/references"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/gitdiff"
 )
 
 // ErrCommitCommentCoordinates is returned when the requested diff coordinate
@@ -67,20 +69,37 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_
 	return comment, nil
 }
 
-// checkCommitCommentLine makes sure the line exists on its side of the commit:
-// the parent tree for the old side, the commit's own tree for the new one. A
-// crafted POST past the end of the file would otherwise store a comment that no
-// diff row ever shows.
+// checkCommitCommentLine makes sure the comment has a row on the commit page:
+// the commit's diff shows the file as text, and the line exists on its side (the
+// parent's copy of the file for the old side, the commit's for the new one). A
+// crafted POST would otherwise store a comment that no diff row ever shows.
 func checkCommitCommentLine(ctx context.Context, gitRepo *git.Repository, parentSHA, fullSHA, treePath string, line int64) error {
-	sideSHA := fullSHA
+	// --skip-to keeps rename detection, which limiting the diff to treePath loses
+	diff, err := gitdiff.GetDiffForAPI(ctx, gitRepo, &gitdiff.DiffOptions{
+		DiffCommonOptions: gitdiff.DiffCommonOptions{BeforeCommitID: parentSHA, AfterCommitID: fullSHA},
+		SkipTo:            treePath,
+		MaxLines:          setting.Git.MaxGitDiffLines,
+		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:          1,
+	})
+	if err != nil {
+		return err
+	}
+	// a binary file or a rename without changes renders no rows to comment on
+	if len(diff.Files) == 0 || diff.Files[0].Name != treePath || diff.Files[0].IsBin || len(diff.Files[0].Sections) == 0 {
+		return ErrCommitCommentCoordinates
+	}
+
+	sideSHA, sidePath := fullSHA, treePath
 	if line < 0 {
-		sideSHA = parentSHA
+		// the diff posts a renamed file's new name for both sides
+		sideSHA, sidePath = parentSHA, diff.Files[0].OldName
 	}
 	commit, err := gitRepo.GetCommit(ctx, sideSHA)
 	if err != nil {
 		return err
 	}
-	entry, err := commit.GetTreeEntryByPath(ctx, gitRepo, treePath)
+	entry, err := commit.GetTreeEntryByPath(ctx, gitRepo, sidePath)
 	if git.IsErrNotExist(err) {
 		return ErrCommitCommentCoordinates
 	} else if err != nil {

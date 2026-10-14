@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	repo_service "gitea.dev/services/repository"
+	files_service "gitea.dev/services/repository/files"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -171,5 +172,60 @@ func TestCommitInlineCommentOnExpandedContext(t *testing.T) {
 		splitBody := session.MakeRequest(t, NewRequest(t, "GET", strings.Replace(excerptURL, "style=unified", "style=split", 1)), http.StatusOK).Body.String()
 		assert.Contains(t, splitBody, "add-code-comment-right")
 		assert.NotContains(t, splitBody, "add-code-comment-left")
+	})
+}
+
+// TestCommitInlineCommentDiffFiles checks the posted path against what the
+// commit's diff actually shows, not just against the tree.
+func TestCommitInlineCommentDiffFiles(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user2, user2, repo_service.CreateRepoOptions{
+			Name:          "commit_comment_files",
+			Readme:        "Default",
+			AutoInit:      true,
+			DefaultBranch: "main",
+		}, true)
+		require.NoError(t, err)
+
+		change := func(lastCommitID string, files ...*files_service.ChangeRepoFile) string {
+			resp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
+				OldBranch:    "main",
+				LastCommitID: lastCommitID,
+				Message:      "change files",
+				Files:        files,
+			})
+			require.NoError(t, err)
+			return resp.Commit.SHA
+		}
+		lines := strings.Repeat("line\n", 9)
+		first := change("",
+			&files_service.ChangeRepoFile{Operation: "create", TreePath: "old.txt", ContentReader: strings.NewReader(lines + "last\n")},
+			&files_service.ChangeRepoFile{Operation: "create", TreePath: "data.bin", ContentReader: strings.NewReader("a\x00b\n")},
+			&files_service.ChangeRepoFile{Operation: "create", TreePath: "same.txt", ContentReader: strings.NewReader(lines)},
+		)
+		sha := change(first,
+			&files_service.ChangeRepoFile{Operation: "update", FromTreePath: "old.txt", TreePath: "new.txt", ContentReader: strings.NewReader(lines + "changed\n")},
+			&files_service.ChangeRepoFile{Operation: "update", TreePath: "data.bin", ContentReader: strings.NewReader("a\x00c\n")},
+			&files_service.ChangeRepoFile{Operation: "rename", FromTreePath: "same.txt", TreePath: "moved.txt"},
+		)
+
+		session := loginUser(t, user2.Name)
+		post := func(path, side, line string, status int) {
+			req := NewRequestWithValues(t, "POST", "/"+repo.FullName()+"/commit/"+sha+"/comment", map[string]string{
+				"content": "comment on " + path,
+				"path":    path,
+				"side":    side,
+				"line":    line,
+			})
+			session.MakeRequest(t, req, status)
+		}
+		// The diff posts a renamed file's new name for both sides, but the
+		// removed line only exists under the old name in the parent.
+		post("new.txt", "previous", "10", http.StatusOK)
+		// Neither of these has a row on the commit page to show the comment on.
+		post("README.md", "proposed", "1", http.StatusBadRequest)
+		post("data.bin", "proposed", "1", http.StatusBadRequest)
+		post("moved.txt", "previous", "1", http.StatusBadRequest)
 	})
 }
