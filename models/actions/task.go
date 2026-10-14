@@ -289,6 +289,8 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 				Where(builder.Eq{"group_id": runner.GroupID})))
 	}
 	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}.And(jobCond, accessCond, groupCond)
+	claimCond := builder.And(jobCond, accessCond, builder.Exists(builder.Select("1").From("action_runner").
+		Where(builder.Eq{"id": runner.ID, "group_id": runner.GroupID, "is_disabled": false}.And(builder.IsNull{"deleted"}))))
 
 	// TODO: a more efficient way to filter labels
 	log.Trace("runner labels: %v", runner.AgentLabels)
@@ -322,7 +324,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			if !runner.CanRunJob(v.RunsOnGroup, v.RunsOn) {
 				continue
 			}
-			task, ok, err := claimJobForRunner(ctx, runner, v, builder.And(jobCond, accessCond))
+			task, ok, err := claimJobForRunner(ctx, runner, v, claimCond)
 			if err != nil {
 				return nil, false, err
 			}
@@ -340,9 +342,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 // claimJobForRunner attempts to atomically claim job for runner inside its own
 // transaction. Returns (task, true, nil) on success, or (nil, false, nil) when
-// another runner wins the optimistic-lock race (the caller should try the next
-// candidate job).
-func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob, scopeCond builder.Cond) (*ActionTask, bool, error) {
+// another runner wins the optimistic-lock race or claimCond no longer holds
+// (the caller should try the next candidate job).
+func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob, claimCond builder.Cond) (*ActionTask, bool, error) {
 	var resultTask *ActionTask
 
 	err := db.WithTx(ctx, func(ctx context.Context) error {
@@ -401,9 +403,7 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 		}
 
 		job.TaskID = task.ID
-		runnerUnchanged := builder.Exists(builder.Select("1").From("action_runner").
-			Where(builder.Eq{"id": runner.ID, "group_id": runner.GroupID, "is_disabled": false}.And(builder.IsNull{"deleted"})))
-		n, err := UpdateRunJob(ctx, job, builder.And(builder.Eq{"task_id": 0}, builder.Eq{"status": StatusWaiting}, scopeCond, runnerUnchanged))
+		n, err := UpdateRunJob(ctx, job, builder.And(builder.Eq{"task_id": 0}, builder.Eq{"status": StatusWaiting}, claimCond))
 		if err != nil {
 			return err
 		}

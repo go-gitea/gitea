@@ -194,7 +194,7 @@ func runsOnLabelsProblem(node *yaml.Node) string {
 	return ""
 }
 
-// RunsOnGroupScopes maps github.com's runs-on group prefixes to whether they pin an owner-level group over a site-level one
+// RunsOnGroupScopes maps github.com's runs-on group prefixes to whether they pin an owner-level group
 var RunsOnGroupScopes = map[string]bool{"org": true, "organization": true, "ent": false, "enterprise": false}
 
 func runsOnGroupProblem(node *yaml.Node) string {

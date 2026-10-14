@@ -83,7 +83,7 @@ func TestShouldPersistLastActive(t *testing.T) {
 }
 
 func TestCanRunJob(t *testing.T) {
-	runner := &ActionRunner{AgentLabels: []string{"self-hosted", "Linux", "X64"}, Group: &ActionRunnerGroup{Name: "GPU", LowerName: "gpu"}}
+	runner := &ActionRunner{AgentLabels: []string{"self-hosted", "Linux", "X64"}, Group: &ActionRunnerGroup{LowerName: "gpu"}}
 	assert.True(t, runner.CanRunJob("gpu", []string{"SELF-HOSTED", "linux"}))
 	assert.True(t, runner.CanRunJob("gpu", nil))
 	assert.False(t, runner.CanRunJob("", []string{"linux", "arm64"}))
@@ -93,8 +93,8 @@ func TestCanRunJob(t *testing.T) {
 	assert.True(t, runner.CanRunJob("enterprise/GPU", nil))
 	assert.False(t, runner.CanRunJob("org/gpu", nil))
 	assert.False(t, runner.CanRunJob("other/gpu", nil))
-	ownerRunner := &ActionRunner{Group: &ActionRunnerGroup{OwnerID: 3, Name: "GPU", LowerName: "gpu"}}
+	ownerRunner := &ActionRunner{Group: &ActionRunnerGroup{OwnerID: 3, LowerName: "gpu"}}
 	assert.True(t, ownerRunner.CanRunJob("organization/gpu", nil))
 	assert.False(t, ownerRunner.CanRunJob("ent/gpu", nil))
-	assert.False(t, (&ActionRunner{Group: &ActionRunnerGroup{Name: "s", LowerName: "s"}}).CanRunJob("ſ", nil))
+	assert.False(t, (&ActionRunner{Group: &ActionRunnerGroup{LowerName: "s"}}).CanRunJob("ſ", nil))
 }

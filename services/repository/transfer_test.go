@@ -9,6 +9,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -46,7 +47,7 @@ func TestTransferOwnership(t *testing.T) {
 	assert.NoError(t, repoTransfer.LoadAttributes(t.Context()))
 	oldOwnerGroup, groupErr := actions_model.CreateRunnerGroup(t.Context(), sourceRepo.OwnerID, "gpu")
 	require.NoError(t, groupErr)
-	require.NoError(t, actions_model.UpdateRunnerGroup(t.Context(), oldOwnerGroup, false, []int64{sourceRepo.ID}, nil))
+	require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunnerAccess{GroupID: oldOwnerGroup.ID, RepoID: sourceRepo.ID}))
 	assert.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, doer))
 	unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerAccess{GroupID: oldOwnerGroup.ID, RepoID: sourceRepo.ID})
 

@@ -192,7 +192,7 @@ func (j *Job) RunsOn() []string {
 }
 
 func (j *Job) RunsOnGroup() string {
-	// a truncated selector matches no group, names are capped at 200 runes so even "organization/" plus a name fits
+	// safe to truncate, group names are capped at 200 runes
 	return util.TruncateRunes(unescapeExpressions(model.RunsOnGroupFromNode(j.RawRunsOn)), 255)
 }
 

@@ -63,7 +63,7 @@ func UpdateRunnerGroup(ctx context.Context, group *ActionRunnerGroup, includesAl
 		if err := setRunnerGroupMembers(ctx, group, runnerIDs); err != nil {
 			return err
 		}
-		return IncreaseTaskVersion(ctx, group.OwnerID, 0) // wake members for work that just became eligible
+		return IncreaseTaskVersion(ctx, group.OwnerID, 0)
 	})
 }
 
@@ -169,16 +169,14 @@ func CreateRunnerGroup(ctx context.Context, ownerID int64, name string) (*Action
 		return nil, util.NewInvalidArgumentErrorf("invalid runner group name %q", name)
 	}
 	group := &ActionRunnerGroup{OwnerID: ownerID, Name: name, LowerName: strings.ToLower(name)}
-	return group, db.WithTx(ctx, func(ctx context.Context) error {
-		exists, err := db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID, "lower_name": group.LowerName}).Exist(new(ActionRunnerGroup))
-		if err != nil {
-			return err
-		}
-		if exists {
-			return util.NewAlreadyExistErrorf("runner group %q already exists", name)
-		}
-		return db.Insert(ctx, group)
-	})
+	exists, err := db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID, "lower_name": group.LowerName}).Exist(new(ActionRunnerGroup))
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, util.NewAlreadyExistErrorf("runner group %q already exists", name)
+	}
+	return group, db.Insert(ctx, group)
 }
 
 func DeleteRunnerGroup(ctx context.Context, group *ActionRunnerGroup) error {

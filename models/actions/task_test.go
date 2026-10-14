@@ -459,26 +459,28 @@ func TestCreateTaskForRunnerRechecksRunnerScopeAtClaim(t *testing.T) {
 	runner := &ActionRunner{UUID: "owner-scoped", OwnerID: repoOwner, AgentLabels: []string{"ubuntu-latest"}, TokenHash: "owner-scoped"}
 	require.NoError(t, db.Insert(t.Context(), runner))
 
-	exec := func(query string, args ...any) func() {
-		return func() {
-			_, err := db.GetEngine(t.Context()).Exec(append([]any{query}, args...)...)
-			require.NoError(t, err)
-		}
-	}
 	hook := &beforeTaskClaim{}
 	unittest.GetXORMEngine().AddHook(hook)
 	t.Cleanup(func() { hook.change = nil })
-	for _, change := range []struct{ apply, revert func() }{
-		{exec("UPDATE repository SET owner_id = ? WHERE id = ?", repoOwner+1, run.RepoID), exec("UPDATE repository SET owner_id = ? WHERE id = ?", repoOwner, run.RepoID)},
-		{exec("UPDATE action_runner SET is_disabled = ? WHERE id = ?", true, runner.ID), exec("UPDATE action_runner SET is_disabled = ? WHERE id = ?", false, runner.ID)},
-		{exec("UPDATE action_runner SET deleted = ? WHERE id = ?", timeutil.TimeStampNow(), runner.ID), exec("UPDATE action_runner SET deleted = NULL WHERE id = ?", runner.ID)},
+	for _, change := range []struct {
+		query             string
+		applied, reverted any
+		id                int64
+	}{
+		{"UPDATE repository SET owner_id = ? WHERE id = ?", repoOwner + 1, repoOwner, run.RepoID},
+		{"UPDATE action_runner SET is_disabled = ? WHERE id = ?", true, false, runner.ID},
+		{"UPDATE action_runner SET deleted = ? WHERE id = ?", timeutil.TimeStampNow(), nil, runner.ID},
 	} {
-		hook.change = change.apply
+		set := func(value any) {
+			_, err := db.GetEngine(t.Context()).Exec(change.query, value, change.id)
+			require.NoError(t, err)
+		}
+		hook.change = func() { set(change.applied) }
 		_, ok, err := CreateTaskForRunner(t.Context(), runner)
 		require.NoError(t, err)
 		require.Nil(t, hook.change)
-		assert.False(t, ok)
-		change.revert()
+		assert.False(t, ok, change.query)
+		set(change.reverted)
 	}
 
 	_, ok, err := CreateTaskForRunner(t.Context(), runner)
