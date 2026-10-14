@@ -193,6 +193,15 @@ func parseGitDiffTreeLine(line string) (*DiffTreeRecord, error) {
 		headPath = filePaths[0]
 	}
 
+	// git C-quotes paths containing tabs, newlines, double quotes or backslashes (and, unless
+	// core.quotePath=false, non-ASCII bytes too), same as `git ls-tree`; undo that like parseLsTreeLine does.
+	if basePath, err = unquoteGitDiffTreePath(basePath); err != nil {
+		return nil, fmt.Errorf("unparsable output for diff-tree --raw: `%s`, invalid base path: %w", line, err)
+	}
+	if headPath, err = unquoteGitDiffTreePath(headPath); err != nil {
+		return nil, fmt.Errorf("unparsable output for diff-tree --raw: `%s`, invalid head path: %w", line, err)
+	}
+
 	return &DiffTreeRecord{
 		Status:     status,
 		Score:      score,
@@ -203,6 +212,14 @@ func parseGitDiffTreeLine(line string) (*DiffTreeRecord, error) {
 		BasePath:   basePath,
 		HeadPath:   headPath,
 	}, nil
+}
+
+// unquoteGitDiffTreePath undoes git's C-quoting of a `diff-tree --raw` path, mirroring parseLsTreeLine.
+func unquoteGitDiffTreePath(path string) (string, error) {
+	if len(path) == 0 || path[0] != '"' {
+		return path, nil
+	}
+	return strconv.Unquote(path)
 }
 
 func statusFromLetter(rawStatus string) (status string, score uint8, err error) {

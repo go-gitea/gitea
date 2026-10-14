@@ -325,6 +325,21 @@ func TestParseGitDiffTree(t *testing.T) {
 			},
 		},
 		{
+			Name:      "file added with a C-quoted path (contains a literal tab)",
+			GitOutput: ":000000 100644 0000000000000000000000000000000000000000 0063162fb403db15ceb0517b34ab782e4e58b619 A\t\"we\\tird.txt\"",
+			Expected: []*DiffTreeRecord{
+				{
+					Status:     "added",
+					HeadPath:   "we\tird.txt",
+					BasePath:   "we\tird.txt",
+					HeadMode:   git.EntryModeBlob,
+					BaseMode:   git.EntryModeNoEntry,
+					HeadBlobID: "0063162fb403db15ceb0517b34ab782e4e58b619",
+					BaseBlobID: "0000000000000000000000000000000000000000",
+				},
+			},
+		},
+		{
 			Name:      "no changes",
 			GitOutput: ``,
 			Expected:  []*DiffTreeRecord{},
