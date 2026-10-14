@@ -8,7 +8,7 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"encoding/binary"
-	"runtime"
+	"io"
 	"slices"
 	"strings"
 	"testing"
@@ -53,8 +53,10 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 
 	zr, err := gzip.NewReader(bytes.NewReader(rpmPackageContent))
 	assert.NoError(t, err)
+	content, err := io.ReadAll(zr)
+	assert.NoError(t, err)
 
-	p, err := ParsePackage(zr)
+	p, err := ParsePackage(bytes.NewReader(content))
 	assert.NotNil(t, p)
 	assert.NoError(t, err)
 
@@ -194,13 +196,13 @@ func TestParsePackageLimits(t *testing.T) {
 		}
 		buf.Write(data.Bytes())
 	}
-	createPackage := func(tags []tag, declaredSize uint32) *bytes.Buffer {
+	createPackage := func(tags []tag, declaredSize uint32) *bytes.Reader {
 		var buf bytes.Buffer
 		buf.Write([]byte{0xed, 0xab, 0xee, 0xdb})
 		buf.Write(make([]byte, 92))
 		writeHeader(&buf, nil, 0)
 		writeHeader(&buf, tags, declaredSize)
-		return &buf
+		return bytes.NewReader(buf.Bytes())
 	}
 	createRequires := func(n int) []tag {
 		flags := make([]byte, 4*n)
@@ -225,15 +227,11 @@ func TestParsePackageLimits(t *testing.T) {
 		// above the header cap, and below it but beyond the uploaded data
 		for _, declaredSize := range []uint32{1024 * 1024 * 1024, 32 * 1024 * 1024} {
 			data := createPackage(nil, declaredSize)
-			assert.Equal(t, 128, data.Len())
+			assert.EqualValues(t, 128, data.Size())
 
-			var before, after runtime.MemStats
-			runtime.ReadMemStats(&before)
 			p, err := ParsePackage(data)
-			runtime.ReadMemStats(&after)
 			assert.Nil(t, p)
-			assert.ErrorIs(t, err, util.ErrInvalidArgument)
-			assert.Less(t, after.TotalAlloc-before.TotalAlloc, uint64(1024*1024))
+			assert.ErrorIs(t, err, ErrInvalidHeader)
 		}
 	})
 

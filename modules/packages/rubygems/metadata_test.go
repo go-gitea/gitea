@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
@@ -36,7 +37,7 @@ version:
 	})
 
 	t.Run("TooLarge", func(t *testing.T) {
-		content := test.CompressGzip("name: g\nversion:\n  version: 1\ndescription: " + strings.Repeat("a", 9*1024*1024) + "\n")
+		content := test.CompressGzip("name: g\nversion:\n  version: 1\ndescription: " + strings.Repeat("a", packages.MaxMetadataFileSize) + "\n")
 		rp, err := parseMetadataFile(content)
 		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 		assert.Nil(t, rp)

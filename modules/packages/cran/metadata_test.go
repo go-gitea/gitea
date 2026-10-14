@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -149,7 +150,7 @@ func TestParseDescription(t *testing.T) {
 
 	t.Run("TooLarge", func(t *testing.T) {
 		buf := createDescription(packageName, packageVersion)
-		buf.WriteString(strings.Repeat("  continuation\n", 9*1024*1024/15))
+		buf.WriteString(strings.Repeat("  continuation\n", packages.MaxMetadataFileSize/15+1))
 		p, err := ParseDescription(buf)
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, util.ErrInvalidArgument)

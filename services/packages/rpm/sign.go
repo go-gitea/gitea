@@ -21,12 +21,11 @@ func SignPackage(buf *packages_module.HashedBuffer, privateKey string) (*package
 		return nil, err
 	}
 
-	r, err := rpm_module.CheckHeaderSizes(buf)
-	if err != nil {
+	if err := rpm_module.CheckHeaderSizes(buf); err != nil {
 		return nil, err
 	}
 
-	h, err := rpmutils.SignRpmStream(r, keyring[0].PrivateKey, nil)
+	h, err := rpmutils.SignRpmStream(buf, keyring[0].PrivateKey, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/zstd"
 
@@ -65,7 +66,7 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("TooLarge", func(t *testing.T) {
-		large := strings.Repeat("a", 9*1024*1024)
+		large := strings.Repeat("a", packages.MaxMetadataFileSize)
 		for _, files := range []map[string][]byte{
 			{"info/index.json": []byte(`{"name":"name","version":"1.0","depends":["` + large + `"]}`)},
 			{"info/index.json": []byte(`{"name":"name","version":"1.0"}`), "info/about.json": []byte(`{"description":"` + large + `"}`)},

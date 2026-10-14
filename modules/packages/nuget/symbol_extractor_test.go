@@ -12,7 +12,6 @@ import (
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -59,7 +58,7 @@ func TestExtractPortablePdb(t *testing.T) {
 		_, _ = w.Write(append(b, make([]byte, 1024)...))
 		_ = archive.Close()
 		pdbs, err := ExtractPortablePdb(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
-		assert.ErrorIs(t, err, util.ErrInvalidArgument)
+		assert.ErrorIs(t, err, ErrPdbFilesTooLarge)
 		assert.Empty(t, pdbs)
 
 		buf.Reset()
@@ -70,7 +69,7 @@ func TestExtractPortablePdb(t *testing.T) {
 		}
 		_ = archive.Close()
 		pdbs, err = ExtractPortablePdb(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
-		assert.ErrorIs(t, err, util.ErrInvalidArgument)
+		assert.ErrorIs(t, err, ErrPdbFilesTooLarge)
 		assert.Empty(t, pdbs)
 	})
 

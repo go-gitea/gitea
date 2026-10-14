@@ -31,7 +31,7 @@ type Metadata struct {
 func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("invalid box archive: %v", err)
 	}
 	defer gzr.Close()
 
@@ -42,7 +42,7 @@ func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
 			break
 		}
 		if err != nil {
-			return nil, err
+			return nil, util.NewInvalidArgumentErrorf("invalid box archive: %v", err)
 		}
 
 		if hd.Typeflag != tar.TypeReg {

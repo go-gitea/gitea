@@ -156,8 +156,8 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	if err := packages_service.CheckSizeQuotaExceeded(ctx, ctx.Doer, ctx.Package.Owner, packages_model.TypeHelm, buf.Size()); err != nil {
-		apiError(ctx, helper.QuotaErrorStatus(err), err)
+	if err := packages_service.CheckTypeSizeQuotaExceeded(ctx.Doer, packages_model.TypeHelm, buf.Size()); err != nil {
+		apiError(ctx, http.StatusForbidden, err)
 		return
 	}
 

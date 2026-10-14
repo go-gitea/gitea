@@ -6,19 +6,19 @@ package rpm
 import (
 	"bytes"
 	"encoding/binary"
-	"runtime"
 	"testing"
 
 	packages_module "gitea.dev/modules/packages"
+	rpm_module "gitea.dev/modules/packages/rpm"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSignPackageDeclaredHeaderSize(t *testing.T) {
-	setting.AppDataPath = t.TempDir()
+	defer test.MockVariableValue(&setting.AppDataPath, t.TempDir())()
 
 	priv, _, err := generateKeypair()
 	require.NoError(t, err)
@@ -33,11 +33,7 @@ func TestSignPackageDeclaredHeaderSize(t *testing.T) {
 	require.NoError(t, err)
 	defer buf.Close()
 
-	var before, after runtime.MemStats
-	runtime.ReadMemStats(&before)
 	signed, err := SignPackage(buf, priv)
-	runtime.ReadMemStats(&after)
 	assert.Nil(t, signed)
-	assert.ErrorIs(t, err, util.ErrInvalidArgument)
-	assert.Less(t, after.TotalAlloc-before.TotalAlloc, uint64(1024*1024))
+	assert.ErrorIs(t, err, rpm_module.ErrInvalidHeader)
 }

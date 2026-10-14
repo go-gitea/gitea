@@ -392,6 +392,33 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		return nil
 	}
 
+	if err := CheckTypeSizeQuotaExceeded(doer, packageType, uploadSize); err != nil {
+		return err
+	}
+
+	if setting.Packages.LimitTotalOwnerSize > -1 {
+		totalSize, err := packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
+			OwnerID: owner.ID,
+		})
+		if err != nil {
+			log.Error("CalculateFileSize failed: %v", err)
+			return err
+		}
+		if totalSize+uploadSize > setting.Packages.LimitTotalOwnerSize {
+			return ErrQuotaTotalSize
+		}
+	}
+
+	return nil
+}
+
+// CheckTypeSizeQuotaExceeded checks if the upload size is bigger than the allowed size for the package type.
+// Unlike CheckSizeQuotaExceeded it needs no database query, so it can run before an upload is parsed.
+func CheckTypeSizeQuotaExceeded(doer *user_model.User, packageType packages_model.Type, uploadSize int64) error {
+	if doer.IsAdmin {
+		return nil
+	}
+
 	var typeSpecificSize int64
 	switch packageType {
 	case packages_model.TypeAlpine:
@@ -444,20 +471,6 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 	if typeSpecificSize > -1 && typeSpecificSize < uploadSize {
 		return ErrQuotaTypeSize
 	}
-
-	if setting.Packages.LimitTotalOwnerSize > -1 {
-		totalSize, err := packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
-			OwnerID: owner.ID,
-		})
-		if err != nil {
-			log.Error("CalculateFileSize failed: %v", err)
-			return err
-		}
-		if totalSize+uploadSize > setting.Packages.LimitTotalOwnerSize {
-			return ErrQuotaTotalSize
-		}
-	}
-
 	return nil
 }
 

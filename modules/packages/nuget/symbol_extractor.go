@@ -22,6 +22,7 @@ var (
 	ErrInvalidFiles          = util.NewInvalidArgumentErrorf("package contains invalid files")
 	ErrInvalidPdbMagicNumber = util.NewInvalidArgumentErrorf("invalid Portable PDB magic number")
 	ErrMissingPdbStream      = util.NewInvalidArgumentErrorf("missing PDB stream")
+	ErrPdbFilesTooLarge      = util.NewInvalidArgumentErrorf("PDB files are too large")
 )
 
 // maxPortablePdbSize caps the total decompressed size of the PDB files in a symbol package (var so tests can lower it)
@@ -63,7 +64,7 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 				continue
 			case ".pdb":
 				if file.UncompressedSize64 > uint64(remaining) {
-					return util.ErrLimitExceeded
+					return ErrPdbFilesTooLarge
 				}
 
 				f, err := archive.Open(file.Name)
@@ -71,7 +72,7 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 					return err
 				}
 
-				buf, err := packages.CreateHashedBufferFromReader(util.NewLimitedReader(f, remaining))
+				buf, err := packages.CreateHashedBufferFromReader(f) // archive/zip fails reads beyond UncompressedSize64
 
 				_ = f.Close()
 

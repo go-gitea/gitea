@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -81,7 +82,7 @@ func TestParseChefMetadata(t *testing.T) {
 	})
 
 	t.Run("TooLarge", func(t *testing.T) {
-		p, err := ParseChefMetadata(strings.NewReader(`{"name":"test","version":"1.0.0","long_description":"` + strings.Repeat("a", 9*1024*1024) + `"}`))
+		p, err := ParseChefMetadata(strings.NewReader(`{"name":"test","version":"1.0.0","long_description":"` + strings.Repeat("a", packages.MaxMetadataFileSize) + `"}`))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})

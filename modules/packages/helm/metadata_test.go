@@ -4,12 +4,11 @@
 package helm
 
 import (
-	"archive/tar"
 	"compress/gzip"
-	"io"
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
@@ -27,34 +26,16 @@ func TestParseChartArchive(t *testing.T) {
 	})
 
 	t.Run("TooLarge", func(t *testing.T) {
-		pr, pw := io.Pipe()
-		go func() {
-			gw, _ := gzip.NewWriterLevel(pw, gzip.BestSpeed)
-			tw := tar.NewWriter(gw)
-			_ = tw.WriteHeader(&tar.Header{Name: "test/padding", Mode: 0o600, Size: maxChartArchiveSize})
-			_, _ = io.CopyN(tw, zeroReader{}, maxChartArchiveSize)
-			_ = tw.WriteHeader(&tar.Header{Name: "test/Chart.yaml", Mode: 0o600, Size: int64(len(chartFile))})
-			_, _ = tw.Write([]byte(chartFile))
-			_ = tw.Close()
-			_ = gw.Close()
-			_ = pw.Close()
-		}()
-		metadata, err := ParseChartArchive(pr)
-		_ = pr.Close()
+		defer test.MockVariableValue(&maxChartArchiveSize, 1024)()
+		data := test.WriteTarCompression(gzip.NewWriter, map[string]string{"test/padding": strings.Repeat("a", 2048)})
+		metadata, err := ParseChartArchive(data)
 		assert.Nil(t, metadata)
-		assert.ErrorIs(t, err, util.ErrInvalidArgument)
+		assert.ErrorIs(t, err, util.ErrLimitExceeded)
 	})
 }
 
 func TestParseChartFile(t *testing.T) {
-	metadata, err := ParseChartFile(strings.NewReader(chartFile + "description: " + strings.Repeat("a", 9*1024*1024) + "\n"))
+	metadata, err := ParseChartFile(strings.NewReader(chartFile + "description: " + strings.Repeat("a", packages.MaxMetadataFileSize) + "\n"))
 	assert.Nil(t, metadata)
 	assert.ErrorIs(t, err, util.ErrInvalidArgument)
-}
-
-type zeroReader struct{}
-
-func (zeroReader) Read(p []byte) (int, error) {
-	clear(p)
-	return len(p), nil
 }

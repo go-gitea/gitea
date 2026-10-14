@@ -70,8 +70,8 @@ type Dependency struct {
 	Alias        string   `json:"alias,omitempty" yaml:"alias,omitempty"`
 }
 
-// maxChartArchiveSize caps the decompressed bytes scanned while searching a chart archive for its Chart.yaml
-const maxChartArchiveSize = 100 * 1024 * 1024
+// maxChartArchiveSize caps the decompressed bytes scanned while searching a chart archive for its Chart.yaml (var so tests can lower it)
+var maxChartArchiveSize int64 = 100 * 1024 * 1024
 
 // ParseChartArchive parses the metadata of a Helm archive
 func ParseChartArchive(r io.Reader) (*Metadata, error) {

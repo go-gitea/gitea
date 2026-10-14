@@ -4,7 +4,6 @@
 package rpm
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -116,40 +115,40 @@ type Changelog struct {
 }
 
 // CheckHeaderSizes rejects RPM header size declarations which are too large or exceed the available data,
-// because go-rpmutils allocates the declared sizes before reading. The returned reader yields the whole package.
-func CheckHeaderSizes(r io.Reader) (io.Reader, error) {
-	var buf bytes.Buffer
-	if _, err := io.CopyN(&buf, r, 96); err != nil {
-		return nil, ErrInvalidHeader
+// because go-rpmutils allocates the declared sizes before reading. r is rewound to the start afterwards.
+func CheckHeaderSizes(r io.ReadSeeker) error {
+	size, err := r.Seek(0, io.SeekEnd)
+	if err != nil {
+		return err
 	}
+	offset := int64(96) // skip the lead
 	for _, isSignature := range []bool{true, false} {
+		if _, err := r.Seek(offset, io.SeekStart); err != nil {
+			return err
+		}
 		var intro [16]byte
 		if _, err := io.ReadFull(r, intro[:]); err != nil {
-			return nil, ErrInvalidHeader
+			return ErrInvalidHeader
 		}
-		buf.Write(intro[:])
 
 		entries := int64(binary.BigEndian.Uint32(intro[8:12]))
 		dataSize := int64(binary.BigEndian.Uint32(intro[12:16]))
 		if isSignature {
 			dataSize = (dataSize + 7) / 8 * 8 // the signature header is padded to 8 bytes
 		}
-		size := entries*16 + dataSize
-		if entries > maxHeaderIndexEntries || size > maxHeaderSize {
-			return nil, ErrInvalidHeader
-		}
-		// CopyN grows the buffer with the data actually read, not with the declared size
-		if _, err := io.CopyN(&buf, r, size); err != nil {
-			return nil, ErrInvalidHeader
+		headerSize := entries*16 + dataSize
+		offset += 16 + headerSize
+		if entries > maxHeaderIndexEntries || headerSize > maxHeaderSize || offset > size {
+			return ErrInvalidHeader
 		}
 	}
-	return io.MultiReader(&buf, r), nil
+	_, err = r.Seek(0, io.SeekStart)
+	return err
 }
 
 // ParsePackage parses the RPM package file
-func ParsePackage(r io.Reader) (*Package, error) {
-	r, err := CheckHeaderSizes(r)
-	if err != nil {
+func ParsePackage(r io.ReadSeeker) (*Package, error) {
+	if err := CheckHeaderSizes(r); err != nil {
 		return nil, err
 	}
 
