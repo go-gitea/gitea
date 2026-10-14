@@ -57,18 +57,18 @@ export function initRepository() {
   initRepoSettings();
   initRepoIssueWipNewTitle();
 
+  initRepoIssueCommentEdit();
+  initRepoIssueCommentDelete();
+  initRepoIssueCodeCommentCancel();
+
   // Issues
   if (pageContent.matches('.page-content.repository.view.issue')) {
-    initRepoIssueCommentEdit();
-
     initRepoIssueTitleEdit();
     initRepoIssueWipToggle();
     initRepoIssueComments();
 
     initRepoIssueReferenceIssue();
 
-    initRepoIssueCommentDelete();
-    initRepoIssueCodeCommentCancel();
     initCompReactionSelector();
   }
 
