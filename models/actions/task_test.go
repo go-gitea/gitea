@@ -6,7 +6,6 @@ package actions
 import (
 	"context"
 	"errors"
-	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -408,10 +407,10 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: run.RepoID}).OwnerID
 	available := func(opts FindRunnerOptions) bool {
-		opts.WithAvailable = true
+		opts.IDs, opts.WithAvailable = []int64{runner.ID}, true
 		runners, err := db.Find[ActionRunner](t.Context(), opts)
 		require.NoError(t, err)
-		return slices.ContainsFunc(runners, func(r *ActionRunner) bool { return r.ID == runner.ID })
+		return len(runners) > 0
 	}
 	assert.False(t, available(FindRunnerOptions{OwnerID: repoOwner}))
 	require.NoError(t, UpdateRunnerGroup(t.Context(), group, false, []int64{2, 2}, []int64{runner.ID}))

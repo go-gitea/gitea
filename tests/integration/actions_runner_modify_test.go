@@ -246,8 +246,8 @@ func TestActionsRunnerModify(t *testing.T) {
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/%d", baseURL, id), map[string]string{"repos": repos})
 			sessionAdmin.MakeRequest(t, req, expected)
 		}
-		require.NoError(t, actions_model.CreateRunner(ctx, &actions_model.ActionRunner{Name: "grouped-runner", TokenHash: "h", UUID: "h"}))
-		runner := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{Name: "grouped-runner"})
+		runner := &actions_model.ActionRunner{Name: "grouped-runner", TokenHash: "h", UUID: "h"}
+		require.NoError(t, actions_model.CreateRunner(ctx, runner))
 		resp = sessionAdmin.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/%d", adminGroupsURL, group.ID)), http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "grouped-runner")
 

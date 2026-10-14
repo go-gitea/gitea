@@ -16,6 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/shared/types"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -211,9 +212,6 @@ func (r *ActionRunner) CanRunJob(runsOnGroup string, runsOnLabels []string) bool
 	return !slices.ContainsFunc(runsOnLabels, func(label string) bool { return !util.SliceContainsString(r.AgentLabels, label, true) })
 }
 
-// runsOnGroupScopes maps github.com's runs-on group prefixes to whether they select an owner-level group over a site-level one
-var runsOnGroupScopes = map[string]bool{"org": true, "organization": true, "ent": false, "enterprise": false}
-
 func (r *ActionRunner) matchesGroup(runsOnGroup string) bool {
 	if r.Group == nil {
 		return false
@@ -221,7 +219,7 @@ func (r *ActionRunner) matchesGroup(runsOnGroup string) bool {
 	scope, name, found := strings.Cut(runsOnGroup, "/")
 	if !found {
 		name = scope
-	} else if ownerLevel, known := runsOnGroupScopes[scope]; !known || ownerLevel != (r.Group.OwnerID != 0) {
+	} else if ownerLevel, known := jobparser.RunsOnGroupScopes[scope]; !known || ownerLevel != (r.Group.OwnerID != 0) {
 		return false
 	}
 	lowerName := strings.ToLower(name) // folds like lower_name, EqualFold would also pair "s" with "ſ"

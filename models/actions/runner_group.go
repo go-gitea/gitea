@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"strings"
+	"unicode/utf8"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -164,6 +165,9 @@ func CountRunnerGroupUsage(ctx context.Context, groupIDs []int64) (runners, repo
 }
 
 func CreateRunnerGroup(ctx context.Context, ownerID int64, name string) (*ActionRunnerGroup, error) {
+	if name == "" || utf8.RuneCountInString(name) > 200 || strings.Contains(name, "/") { // 200 leaves room for "organization/" in runs_on_group
+		return nil, util.NewInvalidArgumentErrorf("invalid runner group name %q", name)
+	}
 	group := &ActionRunnerGroup{OwnerID: ownerID, Name: name, LowerName: strings.ToLower(name)}
 	return group, db.WithTx(ctx, func(ctx context.Context) error {
 		exists, err := db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID, "lower_name": group.LowerName}).Exist(new(ActionRunnerGroup))
@@ -193,12 +197,12 @@ func DeleteRunnerGroup(ctx context.Context, group *ActionRunnerGroup) error {
 	})
 }
 
-func FindRunnerGroupRepos(ctx context.Context, group *ActionRunnerGroup) ([]*repo_model.Repository, error) {
+func FindRunnerGroupRepos(ctx context.Context, group *ActionRunnerGroup) (repo_model.RepositoryList, error) {
 	cond := builder.Eq{"action_runner_access.group_id": group.ID}
 	if group.OwnerID != 0 {
 		cond["repository.owner_id"] = group.OwnerID // skips grants a concurrent transfer left behind
 	}
-	var repos []*repo_model.Repository
+	var repos repo_model.RepositoryList
 	err := db.GetEngine(ctx).Cols("repository.id", "repository.owner_name", "repository.name").
 		Join("INNER", "action_runner_access", "action_runner_access.repo_id = repository.id").
 		Where(cond).Asc("repository.lower_name").Find(&repos)

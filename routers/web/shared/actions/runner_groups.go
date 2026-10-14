@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"unicode/utf8"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -60,14 +59,12 @@ func RunnerGroupCreate(ctx *context.Context) {
 	if rCtx == nil {
 		return
 	}
-	name := ctx.FormTrim("name")
-	if name == "" || utf8.RuneCountInString(name) > 200 || strings.Contains(name, "/") {
-		ctx.JSONError(ctx.Tr("actions.runners.groups.name_invalid"))
-		return
-	}
-	group, err := actions_model.CreateRunnerGroup(ctx, rCtx.OwnerID, name)
+	group, err := actions_model.CreateRunnerGroup(ctx, rCtx.OwnerID, ctx.FormTrim("name"))
 	switch {
 	case err == nil:
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.JSONError(ctx.Tr("actions.runners.groups.name_invalid"))
+		return
 	case errors.Is(err, util.ErrAlreadyExist):
 		ctx.JSONError(ctx.Tr("actions.runners.groups.name_taken"))
 		return
@@ -101,9 +98,9 @@ func RunnerGroupEdit(ctx *context.Context) {
 	ctx.Data["RunnerGroup"] = group
 	ctx.Data["RunnerGroupRepos"] = repos
 	ctx.Data["RunnerGroupCandidates"] = candidates
-	ctx.Data["RunnerGroupMemberIDs"] = base.Int64sToStrings(container.FilterSlice(candidates, func(runner *actions_model.ActionRunner) (int64, bool) {
+	ctx.Data["RunnerGroupMemberIDs"] = container.FilterSlice(candidates, func(runner *actions_model.ActionRunner) (int64, bool) {
 		return runner.ID, runner.GroupID == group.ID
-	}))
+	})
 	ctx.HTML(http.StatusOK, rCtx.RunnersTemplate)
 }
 
