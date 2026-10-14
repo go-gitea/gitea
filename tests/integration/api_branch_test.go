@@ -65,7 +65,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPrio
 	}
 }
 
-func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.BranchProtection, expectedHTTPStatus int) {
+func testAPIEditBranchProtection(t *testing.T, branchName string, body any, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/branch_protections/"+branchName, body).
 		AddTokenAuth(token)
@@ -406,6 +406,15 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 
 	// Test branch deletion
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
+	testAPICreateBranchProtection(t, "branch2", 3, http.StatusCreated)
+	testAPIDeleteBranch(t, "branch2", http.StatusForbidden)
+	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
+		EnablePush: new(true), EnableDeletion: new(true), EnableDeletionAllowlist: new(true),
+		DeletionAllowlistUsernames: []string{"user2"},
+	}, http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
+	assert.True(t, bp.EnableDeletion)
+	assert.Equal(t, []string{"user2"}, bp.DeletionAllowlistUsernames)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
 	testAPIDeleteBranch(t, "branch2", http.StatusNotFound)        // deleted branch, there is a record in DB with IsDelete=true
 	testAPIDeleteBranch(t, "no-such-branch", http.StatusNotFound) // non-existing branch, not exist in git or DB
