@@ -43,6 +43,10 @@ func TestMathRender(t *testing.T) {
 			`<p><code class="language-math">a</code> <code class="language-math">b</code></p>` + nl,
 		},
 		{
+			`a\(b\)c \(d\)\(e\)1`,
+			`<p>a<code class="language-math">b</code>c <code class="language-math">d</code><code class="language-math">e</code>1</p>` + nl,
+		},
+		{
 			`$a$.`,
 			`<p><code class="language-math">a</code>.</p>` + nl,
 		},
