@@ -271,7 +271,7 @@ func (g *GithubDownloaderV3) fetchTimelineEvents(ctx context.Context, ids []stri
 		}
 		return nil, err
 	}
-	g.respectGraphQLBudget(ctx, resp.RateLimit)
+	g.recordGraphQLBudget(resp.RateLimit)
 
 	out := make(map[string][]*base.Comment, len(resp.Nodes))
 	for i := range resp.Nodes {

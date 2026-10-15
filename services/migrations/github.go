@@ -82,6 +82,7 @@ type GithubDownloaderV3 struct {
 	userName      string
 	password      string
 	rates         []*github.Rate
+	gqlRates      []*github.Rate // per-client GraphQL points budget, metered apart from the REST quota in rates
 	curClientIdx  int
 	maxPerPage    int
 	SkipReactions bool
@@ -185,6 +186,7 @@ func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) erro
 	}
 	g.clients = append(g.clients, githubClient)
 	g.rates = append(g.rates, nil)
+	g.gqlRates = append(g.gqlRates, nil)
 	return nil
 }
 

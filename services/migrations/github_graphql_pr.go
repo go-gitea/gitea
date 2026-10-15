@@ -199,7 +199,7 @@ func (g *GithubDownloaderV3) getPullRequestsGraphQL(ctx context.Context, page, p
 	if err := g.doGraphQLPageShrink(ctx, g.graphQLPullRequestsQuery(), vars, &resp, graphQLPageSize(perPage, githubGraphQLPRPageSize), "pull requests"); err != nil {
 		return nil, false, err
 	}
-	g.respectGraphQLBudget(ctx, resp.RateLimit)
+	g.recordGraphQLBudget(resp.RateLimit)
 
 	allPRs := make([]*base.PullRequest, 0, len(resp.Repository.PullRequests.Nodes))
 	// PR node id -> number, for the timeline node-id pass after this page

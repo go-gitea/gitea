@@ -39,6 +39,8 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
+
+	"github.com/google/go-github/v92/github"
 )
 
 const (
@@ -152,7 +154,9 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 	// throttle, decodeRetries bounds retries of a body that died mid-stream.
 	rateWaits, decodeRetries := 0, 0
 	for {
-		g.waitAndPickClient(ctx)
+		if err := g.pickGraphQLClient(ctx); err != nil {
+			return err
+		}
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, g.graphQLEndpoint(), bytes.NewReader(payload))
 		if err != nil {
@@ -162,6 +166,9 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 		req.Header.Set("Accept", "application/json")
 
 		resp, err := g.getClient().Client().Do(req)
+		if err == nil {
+			g.recordGraphQLRate(resp.Header)
+		}
 		if err != nil {
 			// A network-level failure that reaches here already exhausted
 			// retryTransport's budget, so retrying it a second time here would
@@ -185,8 +192,9 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 				// 429 and not always a Retry-After, so retryTransport may have
 				// passed it straight through; wait out the window and retry in
 				// place rather than aborting the whole metadata sync.
-				if rateWaits < maxGraphQLRateRetries && g.waitForGraphQLRateReset(ctx, resp.Header) {
+				if rateWaits < maxGraphQLRateRetries {
 					rateWaits++
+					g.restGraphQLClient(resp.Header)
 					continue
 				}
 				return fmt.Errorf("github graphql: rate limited, status %s%s", resp.Status, detail)
@@ -216,13 +224,12 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 		if len(envelope.Errors) > 0 {
 			// A RATE_LIMITED response means the points budget (or a secondary
 			// abuse limit) is exhausted. Wait out the window and retry in place
-			// rather than aborting the whole metadata sync — the REST path does
-			// the same via waitAndPickClient.
+			// rather than aborting the whole metadata sync; another token with points
+			// left takes over first (pickGraphQLClient).
 			if isGraphQLRateLimited(envelope.Errors) && rateWaits < maxGraphQLRateRetries {
-				if g.waitForGraphQLRateReset(ctx, header) {
-					rateWaits++
-					continue
-				}
+				rateWaits++
+				g.restGraphQLClient(header)
+				continue
 			}
 			return fmt.Errorf("github graphql: %w", envelope.Errors[0])
 		}
@@ -293,20 +300,64 @@ func isGraphQLRateLimited(errs []graphQLError) bool {
 	return false
 }
 
-// waitForGraphQLRateReset sleeps until the GitHub rate-limit window resets so a
-// RATE_LIMITED response is waited out in-process. Returns false if the context is
-// cancelled while waiting.
-func (g *GithubDownloaderV3) waitForGraphQLRateReset(ctx context.Context, header http.Header) bool {
-	wait := graphQLRateResetWait(header)
-	log.Info("github graphql: RATE_LIMITED, sleeping %s until reset", wait.Round(time.Second))
-	timer := time.NewTimer(wait)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-		return false
-	case <-timer.C:
-		return true
+// pickGraphQLClient selects the client with the most GraphQL points left. GraphQL
+// is metered separately from the REST core quota waitAndPickClient balances on, so
+// a GraphQL sweep spreads over the configured tokens by this budget instead. A
+// client whose budget is unknown, or whose window has reset, is tried first so
+// its budget gets learned; only when every client is spent does it sleep, until
+// the earliest reset.
+func (g *GithubDownloaderV3) pickGraphQLClient(ctx context.Context) error {
+	for {
+		best, soonest := -1, -1
+		for i, r := range g.gqlRates {
+			if r == nil || !time.Now().Before(r.Reset.Time) {
+				g.curClientIdx = i
+				return nil
+			}
+			if r.Remaining > githubGraphQLPointsFloor && (best < 0 || r.Remaining > g.gqlRates[best].Remaining) {
+				best = i
+			}
+			if soonest < 0 || r.Reset.Before(g.gqlRates[soonest].Reset.Time) {
+				soonest = i
+			}
+		}
+		if best >= 0 {
+			g.curClientIdx = best
+			return nil
+		}
+		wait := min(time.Until(g.gqlRates[soonest].Reset.Time), graphQLRateResetCap)
+		log.Info("github graphql: every token's points budget is spent, sleeping %s until the earliest reset", wait.Round(time.Second))
+		timer := time.NewTimer(wait)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
 	}
+}
+
+// recordGraphQLRate notes the selected client's GraphQL budget from the rate
+// headers GitHub sends on every GraphQL response.
+func (g *GithubDownloaderV3) recordGraphQLRate(header http.Header) {
+	remaining, err := strconv.Atoi(header.Get("X-RateLimit-Remaining"))
+	if err != nil {
+		return
+	}
+	rate := &github.Rate{Remaining: remaining}
+	if epoch, err := strconv.ParseInt(header.Get("X-RateLimit-Reset"), 10, 64); err == nil {
+		rate.Reset = github.Timestamp{Time: time.Unix(epoch, 0)}
+	}
+	g.gqlRates[g.curClientIdx] = rate
+}
+
+// restGraphQLClient marks the selected client as throttled until its window
+// resets, so the next pickGraphQLClient moves to another token that still has
+// points, and only sleeps when none does.
+func (g *GithubDownloaderV3) restGraphQLClient(header http.Header) {
+	wait := graphQLRateResetWait(header)
+	log.Info("github graphql: token %d throttled, resting it for %s", g.curClientIdx, wait.Round(time.Second))
+	g.gqlRates[g.curClientIdx] = &github.Rate{Reset: github.Timestamp{Time: time.Now().Add(wait)}}
 }
 
 // isPrimaryBudgetSpent reports whether the throttle is the primary points budget
@@ -341,28 +392,19 @@ func graphQLRateResetWait(header http.Header) time.Duration {
 	return wait
 }
 
-// respectGraphQLBudget pauses until the points budget resets when it is nearly
-// exhausted, so a long backfill sleeps in-process rather than erroring.
-func (g *GithubDownloaderV3) respectGraphQLBudget(ctx context.Context, rl graphQLRateLimit) {
+// recordGraphQLBudget logs a query's cost and notes the budget its rateLimit
+// block reports for the selected client; pickGraphQLClient then moves to another
+// token, or waits, once that budget runs low.
+func (g *GithubDownloaderV3) recordGraphQLBudget(rl graphQLRateLimit) {
 	// Benchmark instrumentation: GraphQL is billed on a points budget (not the REST
 	// requests/hr limit), so record per-query cost and the running total for the run.
 	g.gqlPointsSpent += int64(rl.Cost)
 	log.Trace("github graphql: query cost=%d remaining=%d cumulative=%d", rl.Cost, rl.Remaining, g.gqlPointsSpent)
 
-	if rl.Remaining > githubGraphQLPointsFloor || rl.ResetAt.IsZero() {
+	if rl.ResetAt.IsZero() {
 		return
 	}
-	wait := time.Until(rl.ResetAt)
-	if wait <= 0 {
-		return
-	}
-	log.Info("github graphql: points budget low (%d), sleeping %s until reset", rl.Remaining, wait.Round(time.Second))
-	timer := time.NewTimer(wait)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-	case <-timer.C:
-	}
+	g.gqlRates[g.curClientIdx] = &github.Rate{Remaining: rl.Remaining, Reset: github.Timestamp{Time: rl.ResetAt}}
 }
 
 // --- issues query -----------------------------------------------------------
@@ -528,7 +570,7 @@ func (g *GithubDownloaderV3) getIssuesGraphQL(ctx context.Context, page, perPage
 	if err := g.doGraphQLPageShrink(ctx, g.graphQLIssuesQuery(), vars, &resp, graphQLPageSize(perPage, githubGraphQLPageSize), "issues"); err != nil {
 		return nil, false, err
 	}
-	g.respectGraphQLBudget(ctx, resp.RateLimit)
+	g.recordGraphQLBudget(resp.RateLimit)
 
 	issues := make([]*base.Issue, 0, len(resp.Repository.Issues.Nodes))
 	// issue node id -> number, for the timeline node-id pass after this page
@@ -683,7 +725,7 @@ func sweepNodeConnection[T any](ctx context.Context, g *GithubDownloaderV3, quer
 		if err := g.doGraphQL(ctx, query, vars, &resp); err != nil {
 			return nil, err
 		}
-		g.respectGraphQLBudget(ctx, resp.RateLimit)
+		g.recordGraphQLBudget(resp.RateLimit)
 		all = append(all, resp.Node.Conn.Nodes...)
 		if !resp.Node.Conn.PageInfo.HasNextPage {
 			return all, nil
@@ -896,7 +938,7 @@ func (g *GithubDownloaderV3) fetchNodeReactions(ctx context.Context, ids []strin
 		}
 		return nil, err
 	}
-	g.respectGraphQLBudget(ctx, resp.RateLimit)
+	g.recordGraphQLBudget(resp.RateLimit)
 
 	out := make(map[string][]*base.Reaction, len(resp.Nodes))
 	for _, n := range resp.Nodes {

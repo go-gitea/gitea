@@ -4,6 +4,7 @@
 package migrations
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +20,7 @@ import (
 	"gitea.dev/modules/json"
 	base "gitea.dev/modules/migration"
 
+	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -654,4 +656,66 @@ func TestDoGraphQLPageShrinkOnResourceLimits(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	assert.Equal(t, []int{100, 50, 25}, sizes, "each oversized page is refused once, then halved")
+}
+
+// TestDoGraphQLSwitchesTokenOnRateLimit: GraphQL points are metered per token, so
+// when one token is RATE_LIMITED the request moves to another token with points
+// left instead of sleeping out the first token's window (an hour here).
+func TestDoGraphQLSwitchesTokenOnRateLimit(t *testing.T) {
+	var spentCalls, freshCalls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "Bearer spent" {
+			spentCalls.Add(1)
+			w.Header().Set("X-RateLimit-Remaining", "0")
+			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10))
+			_, _ = io.WriteString(w, `{"errors":[{"type":"RATE_LIMITED","message":"API rate limit exceeded"}]}`)
+			return
+		}
+		freshCalls.Add(1)
+		w.Header().Set("X-RateLimit-Remaining", "4000")
+		_, _ = io.WriteString(w, `{"data":{"ok":true}}`)
+	}))
+	defer srv.Close()
+
+	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "spent,fresh", "o", "r")
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	var out struct {
+		OK bool `json:"ok"`
+	}
+	require.NoError(t, d.doGraphQL(ctx, "query{}", nil, &out), "must not wait out the spent token's hour")
+	assert.True(t, out.OK)
+	assert.EqualValues(t, 1, spentCalls.Load())
+	assert.EqualValues(t, 1, freshCalls.Load())
+
+	// the next request goes straight to the token that has points
+	require.NoError(t, d.doGraphQL(ctx, "query{}", nil, &out))
+	assert.EqualValues(t, 1, spentCalls.Load())
+	assert.EqualValues(t, 2, freshCalls.Load())
+}
+
+func TestPickGraphQLClient(t *testing.T) {
+	inAnHour := github.Timestamp{Time: time.Now().Add(time.Hour)}
+	d := &GithubDownloaderV3{gqlRates: []*github.Rate{
+		{Remaining: 1000, Reset: inAnHour},
+		{Remaining: 4000, Reset: inAnHour},
+		{Remaining: 5, Reset: inAnHour}, // under the floor
+	}}
+	require.NoError(t, d.pickGraphQLClient(t.Context()))
+	assert.Equal(t, 1, d.curClientIdx, "the token with the most points")
+
+	d.gqlRates[1] = nil
+	require.NoError(t, d.pickGraphQLClient(t.Context()))
+	assert.Equal(t, 1, d.curClientIdx, "an unknown budget is probed first")
+
+	// every token spent: wait for the earliest reset, then probe that token
+	soon := github.Timestamp{Time: time.Now().Add(50 * time.Millisecond)}
+	d.gqlRates = []*github.Rate{{Remaining: 0, Reset: inAnHour}, {Remaining: 0, Reset: soon}}
+	start := time.Now()
+	require.NoError(t, d.pickGraphQLClient(t.Context()))
+	assert.Equal(t, 1, d.curClientIdx)
+	assert.GreaterOrEqual(t, time.Since(start), 40*time.Millisecond)
+	assert.Less(t, time.Since(start), 5*time.Second)
 }
