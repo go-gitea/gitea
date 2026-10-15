@@ -1,0 +1,75 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "codespace.dev_container_templates"}}
+	<div class="ui right">
+		<button class="ui primary tiny button codespace-template-edit" type="button"
+			data-modal="#codespace-devcontainer-template-modal"
+			data-modal-form.url="{{.ActionBase}}"
+			data-modal-template-modal-title="{{ctx.Locale.Tr "codespace.dev_container_template_add"}}"
+			data-submit-label="{{ctx.Locale.Tr "codespace.dev_container_template_create"}}"
+			data-modal-codespace-devcontainer-template-name=""
+			data-modal-codespace-devcontainer-template-content='{
+	"image": "mcr.microsoft.com/devcontainers/base:ubuntu"
+}'>
+			{{ctx.Locale.Tr "codespace.dev_container_template_add"}}
+		</button>
+	</div>
+</h4>
+<div class="ui attached segment">
+	<p>{{if .IsSiteTemplateSettings}}{{ctx.Locale.Tr "codespace.dev_container_template_site_help"}}{{else}}{{ctx.Locale.Tr "codespace.dev_container_template_personal_help"}}{{end}}</p>
+	{{if .DevContainerTemplates}}
+		<div class="flex-divided-list items-with-main">
+			{{range .DevContainerTemplates}}
+				<div class="item tw-items-center">
+					<div class="item-main">
+						<div class="item-title tw-break-anywhere">{{.Name}}</div>
+						<div class="item-body">{{ctx.Locale.Tr "codespace.updated"}} {{DateUtils.TimeSince .UpdatedUnix}}</div>
+					</div>
+					<div class="item-trailing tw-gap-1 tw-flex-nowrap tw-shrink-0">
+						<button class="btn interact-bg tw-flex tw-items-center tw-justify-center tw-w-8 tw-h-8 codespace-template-edit" type="button"
+							data-modal="#codespace-devcontainer-template-modal"
+							data-modal-form.url="{{$.ActionBase}}/{{.ID}}"
+							data-modal-template-modal-title="{{ctx.Locale.Tr "codespace.dev_container_template_edit"}}"
+							data-submit-label="{{ctx.Locale.Tr "save"}}"
+							data-modal-codespace-devcontainer-template-name="{{.Name}}"
+							data-modal-codespace-devcontainer-template-content="{{.Content}}"
+							data-tooltip-content="{{ctx.Locale.Tr "edit"}}" aria-label="{{ctx.Locale.Tr "edit"}}">
+							{{svg "octicon-pencil"}}
+						</button>
+						<form class="form-fetch-action ignore-dirty tw-m-0" method="post" action="{{$.ActionBase}}/{{.ID}}/delete">
+							{{$.CsrfTokenHtml}}
+							<button class="btn interact-bg tw-flex tw-items-center tw-justify-center tw-w-8 tw-h-8 tw-text-red" type="submit"
+								data-modal-confirm="{{ctx.Locale.Tr "codespace.dev_container_template_delete_confirm" .Name}}"
+								data-tooltip-content="{{ctx.Locale.Tr "delete"}}" aria-label="{{ctx.Locale.Tr "delete"}}">{{svg "octicon-trash"}}</button>
+						</form>
+					</div>
+				</div>
+			{{end}}
+		</div>
+	{{else}}
+		{{ctx.Locale.Tr "codespace.no_dev_container_templates"}}
+	{{end}}
+</div>
+
+<div class="ui modal codespace-modal" id="codespace-devcontainer-template-modal" data-global-init="initCodespaceTemplateEditor">
+	<div class="header template-modal-title">{{ctx.Locale.Tr "codespace.dev_container_templates"}}</div>
+	<form class="ui form form-fetch-action" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="content">
+			<div class="required field">
+				<label for="codespace-devcontainer-template-name">{{ctx.Locale.Tr "name"}}</label>
+				<input id="codespace-devcontainer-template-name" name="name" required maxlength="255" autocomplete="off">
+			</div>
+			<div class="required field">
+				<label for="codespace-devcontainer-template-content">{{ctx.Locale.Tr "codespace.dev_container_template_content"}}</label>
+				<div class="codespace-template-editor">
+					<textarea id="codespace-devcontainer-template-content" name="content" rows="16" spellcheck="false" autocomplete="off" data-code-editor-config='{"filename":"devcontainer.json","indentStyle":"space","indentSize":2,"lineWrap":true}'></textarea>
+				</div>
+				<div class="help">{{ctx.Locale.Tr "codespace.dev_container_template_content_help"}}</div>
+			</div>
+		</div>
+		<div class="actions">
+			<button class="ui cancel button" type="button">{{svg "octicon-x"}} {{ctx.Locale.Tr "cancel"}}</button>
+			<button class="ui primary ok button" type="submit">{{svg "octicon-check"}} <span class="template-submit-label">{{ctx.Locale.Tr "save"}}</span></button>
+		</div>
+	</form>
+</div>

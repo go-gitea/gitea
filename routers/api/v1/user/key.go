@@ -69,13 +69,14 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 			ListOptions: listOptions,
 			OwnerID:     userID,
 			Fingerprint: fingerprint,
+			KeyTypes:    []asymkey_model.KeyType{asymkey_model.KeyTypeUser, asymkey_model.KeyTypeDeploy},
 		})
 	} else {
 		// Use ListPublicKeys
 		keys, count, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
 			ListOptions: listOptions,
 			OwnerID:     user.ID,
-			NotKeytype:  asymkey_model.KeyTypePrincipal,
+			KeyTypes:    []asymkey_model.KeyType{asymkey_model.KeyTypeUser},
 		})
 	}
 

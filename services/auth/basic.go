@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
+	codespace_service "gitea.dev/services/codespace"
 )
 
 // Ensure the struct implements the interface.
@@ -203,6 +204,8 @@ func GetAccessScope(store DataStore) auth_model.AccessTokenScope {
 		fallthrough
 	case BasicMethodName, AccessTokenMethodName:
 		return auth_model.AccessTokenScopeAll
+	case CodespaceTokenMethodName:
+		return auth_model.AccessTokenScope(codespace_service.GiteaTokenScope)
 	case ActionTokenMethodName:
 		fallthrough
 	default:

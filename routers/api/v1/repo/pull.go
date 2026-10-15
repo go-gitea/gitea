@@ -13,6 +13,7 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
@@ -917,6 +918,10 @@ func MergePullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	codespaceHeadPermission, ok := requireCodespacePullHeadPermission(ctx, ctx.Repo.Repository, pr.HeadRepo, perm.AccessModeRead)
+	if !ok {
+		return
+	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
 		ctx.APIErrorInternal(err)
@@ -999,6 +1004,12 @@ func MergePullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	if deleteBranchAfterMerge && codespaceHeadPermission != nil {
+		if !ctx.CodespaceTokenAllowsRepositoryID(pr.HeadRepoID, unit.TypeCode, perm.AccessModeWrite) || !codespaceHeadPermission.CanWrite(unit.TypeCode) {
+			ctx.APIError(http.StatusForbidden, "codespace token does not have write access to delete the pull request head branch")
+			return
+		}
+	}
 
 	if form.MergeWhenChecksSucceed {
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
@@ -1075,6 +1086,10 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	}
 
 	isSameRepo := baseRepo.ID == headRepo.ID
+	codespaceHeadPermission, ok := requireCodespacePullHeadPermission(ctx, baseRepo, headRepo, perm.AccessModeRead)
+	if !ok {
+		return nil, nil
+	}
 
 	var headGitRepo *git.Repository
 	if isSameRepo {
@@ -1109,10 +1124,14 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 
 	// user should have permission to read headRepo's codes
 	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
-	permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return nil, nil
+	permHead := codespaceHeadPermission
+	if permHead == nil {
+		permission, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return nil, nil
+		}
+		permHead = &permission
 	}
 	if !permHead.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v", ctx.Doer, headRepo, permHead)
@@ -1148,6 +1167,42 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	}
 
 	return &compareInfo, closer
+}
+
+func requireCodespacePullHeadPermission(ctx *context.APIContext, baseRepo, headRepo *repo_model.Repository, mode perm.AccessMode) (*access_model.Permission, bool) {
+	if baseRepo.ID == headRepo.ID {
+		return nil, true
+	}
+	if _, ok := ctx.CodespaceTokenRepoID(); !ok {
+		return nil, true
+	}
+	if !ctx.CodespaceTokenAllowsRepositoryID(headRepo.ID, unit.TypeCode, mode) {
+		ctx.APIError(http.StatusForbidden, "codespace token does not have access to the pull request head repository")
+		return nil, false
+	}
+	permission, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil, false
+	}
+	allowed := permission.CanRead(unit.TypeCode)
+	if mode == perm.AccessModeWrite {
+		allowed = permission.CanWrite(unit.TypeCode)
+	}
+	if !allowed {
+		ctx.APIError(http.StatusForbidden, "user does not have access to the pull request head repository")
+		return nil, false
+	}
+	related, err := repo_model.ShareForkTree(ctx, baseRepo, headRepo)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil, false
+	}
+	if !related {
+		ctx.APIError(http.StatusForbidden, "pull request repositories are not in the same fork tree")
+		return nil, false
+	}
+	return &permission, true
 }
 
 // UpdatePullRequest merge PR's baseBranch into headBranch
@@ -1224,10 +1279,14 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	if _, ok := requireCodespacePullHeadPermission(ctx, pr.BaseRepo, pr.HeadRepo, perm.AccessModeWrite); !ok {
+		return
+	}
 
-	// a public-only token must not update (push into) a private head repo,
-	// even when the base repo named in the route is public
-	if !ctx.TokenCanAccessRepo(pr.HeadRepo) {
+	// A public-only token must not update a private head repo, even when the
+	// base repo named in the route is public. Codespace head permission was
+	// checked above; public-only scope remains an independent Gitea API rule.
+	if ctx.PublicOnly && !ctx.TokenCanAccessRepo(pr.HeadRepo) {
 		ctx.APIErrorNotFound()
 		return
 	}
