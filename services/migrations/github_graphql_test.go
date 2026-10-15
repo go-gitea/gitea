@@ -597,3 +597,42 @@ func TestDoGraphQLPageShrink(t *testing.T) {
 	assert.Equal(t, 25, vars["first"])
 	assert.Len(t, sizes, 2*(retryMaxRetries+1)+1, "sizes 100 and 50 exhaust the transport budget, 25 succeeds first try")
 }
+
+// TestDoGraphQLPageShrinkOnResourceLimits: GitHub refuses a page that exceeds the
+// per-query compute budget with a RESOURCE_LIMITS_EXCEEDED error rather than a
+// 502, and that page only fits at a smaller size, so it must shrink the same way.
+func TestDoGraphQLPageShrinkOnResourceLimits(t *testing.T) {
+	var (
+		mu    sync.Mutex
+		sizes []int
+	)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Variables struct {
+				First int `json:"first"`
+			} `json:"variables"`
+		}
+		body, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(body, &req)
+		mu.Lock()
+		sizes = append(sizes, req.Variables.First)
+		mu.Unlock()
+		if req.Variables.First > 25 {
+			_, _ = io.WriteString(w, `{"errors":[{"type":"RESOURCE_LIMITS_EXCEEDED","message":"Resource limits for this query exceeded."}]}`)
+			return
+		}
+		_, _ = io.WriteString(w, `{"data":{"repository":{"issues":{"pageInfo":{"hasNextPage":false,"endCursor":""},"nodes":[]}}}}`)
+	}))
+	defer srv.Close()
+
+	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
+	require.NoError(t, err)
+
+	var resp gqlIssuesResponse
+	vars := map[string]any{"owner": "o", "name": "r"}
+	require.NoError(t, d.doGraphQLPageShrink(t.Context(), d.graphQLIssuesQuery(), vars, &resp, githubGraphQLPageSize, "issues"))
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, []int{100, 50, 25}, sizes, "each oversized page is refused once, then halved")
+}

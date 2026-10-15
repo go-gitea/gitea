@@ -903,7 +903,8 @@ func (g *GithubDownloaderV3) fetchNodeReactions(ctx context.Context, ids []strin
 
 // doGraphQLPageShrink runs a page query whose connection size is the $first
 // variable, halving the page and re-requesting the same cursor whenever the
-// transient retry budget is exhausted. A deterministic 502 — one specific page
+// transient retry budget is exhausted or the query exceeds GitHub's resource
+// limits. A deterministic 502 — one specific page
 // whose response payload is too heavy for GitHub's backend — never succeeds at
 // the same size, but does at a smaller one; the cursor still advances by
 // however many nodes the smaller page returned, and the next page starts back
@@ -915,11 +916,13 @@ func (g *GithubDownloaderV3) doGraphQLPageShrink(ctx context.Context, query stri
 		if err == nil {
 			return nil
 		}
-		if !errors.Is(err, errGraphQLTransientExhausted) || pageSize <= 1 {
+		// RESOURCE_LIMITS_EXCEEDED is GitHub's per-query compute budget refusing the
+		// page outright; like a worn-out transient it only fits at a smaller size.
+		if !(errors.Is(err, errGraphQLTransientExhausted) || isGraphQLResourceLimited(err)) || pageSize <= 1 {
 			return err
 		}
 		pageSize = max(1, pageSize/2)
-		log.Warn("github graphql: %s page keeps failing transiently — shrinking page size to %d and retrying", what, pageSize)
+		log.Warn("github graphql: %s page too heavy (%v), shrinking page size to %d and retrying", what, err, pageSize)
 	}
 }
 
