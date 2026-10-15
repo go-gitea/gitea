@@ -17,8 +17,9 @@ import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
-import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import type {FomanticApiResponse} from '../types.ts';
+import {performFetchActionRequest} from '../modules/fetch-action.ts';
 
 const {appSubUrl} = window.config;
 
@@ -94,69 +95,57 @@ export function initRepoIssueFilterItemLabel() {
 }
 
 export function initRepoIssueCommentDelete() {
-  // Delete comment
-  document.addEventListener('click', async (e) => {
-    if (!(e.target as HTMLElement).matches('.delete-comment')) return;
-    e.preventDefault();
+  registerGlobalEventFunc('click', 'onConvContentDelete', async (deleteButton) => {
+    if (!window.confirm(deleteButton.getAttribute('data-locale')!)) return;
 
-    const deleteButton = e.target as HTMLElement;
-    if (window.confirm(deleteButton.getAttribute('data-locale')!)) {
-      try {
-        const response = await POST(deleteButton.getAttribute('data-url')!);
-        if (!response.ok) throw new Error('Failed to delete comment');
+    const response = await performFetchActionRequest(deleteButton, {method: 'POST', url: deleteButton.getAttribute('data-url')!});
+    if (!response) return;
 
-        const conversationHolder = deleteButton.closest('.conversation-holder');
-        const parentTimelineItem = deleteButton.closest('.timeline-item');
-        const parentTimelineGroup = deleteButton.closest('.timeline-item-group');
+    const conversationHolder = deleteButton.closest('.conversation-holder');
+    const parentTimelineItem = deleteButton.closest('.timeline-item');
+    const parentTimelineGroup = deleteButton.closest('.timeline-item-group');
 
-        // Check if this was a pending comment.
-        if (conversationHolder?.querySelector('.pending-label')) {
-          const counter = document.querySelector('#review-box .review-comments-counter')!;
-          let num = parseInt(counter?.getAttribute('data-pending-comment-number') || '') - 1 || 0;
-          num = Math.max(num, 0);
-          counter.setAttribute('data-pending-comment-number', String(num));
-          counter.textContent = String(num);
+    // Check if this was a pending comment.
+    if (conversationHolder?.querySelector('.pending-label')) {
+      const counter = document.querySelector('.review-box-button .review-comments-counter')!;
+      let num = parseInt(counter?.getAttribute('data-pending-comment-number') || '') - 1 || 0;
+      num = Math.max(num, 0);
+      counter.setAttribute('data-pending-comment-number', String(num));
+      counter.textContent = String(num);
+    }
+
+    document.querySelector(`#${deleteButton.getAttribute('data-comment-id')}`)?.remove();
+
+    if (conversationHolder && !conversationHolder.querySelector('.comment')) {
+      const path = conversationHolder.getAttribute('data-path');
+      const side = conversationHolder.getAttribute('data-side');
+      const idx = conversationHolder.getAttribute('data-idx');
+      const lineType = conversationHolder.closest('tr')?.getAttribute('data-line-type');
+
+      // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
+      // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment"
+      if (lineType) {
+        if (lineType === 'same') {
+          document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
+        } else {
+          document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-side="${CSS.escape(String(side))}"][data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
         }
-
-        document.querySelector(`#${deleteButton.getAttribute('data-comment-id')}`)?.remove();
-
-        if (conversationHolder && !conversationHolder.querySelector('.comment')) {
-          const path = conversationHolder.getAttribute('data-path');
-          const side = conversationHolder.getAttribute('data-side');
-          const idx = conversationHolder.getAttribute('data-idx');
-          const lineType = conversationHolder.closest('tr')?.getAttribute('data-line-type');
-
-          // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
-          // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment"
-          if (lineType) {
-            if (lineType === 'same') {
-              document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
-            } else {
-              document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-side="${CSS.escape(String(side))}"][data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
-            }
-          }
-          conversationHolder.remove();
-        }
-
-        // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
-        if (!parentTimelineGroup?.querySelector('.timeline-item.comment') && !parentTimelineItem?.querySelector('.conversation-holder')) {
-          const timelineAvatar = parentTimelineGroup?.querySelector('.timeline-avatar');
-          timelineAvatar?.classList.remove('timeline-avatar-offset');
-        }
-      } catch (error) {
-        console.error(error);
       }
+      conversationHolder.remove();
+    }
+
+    // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
+    if (!parentTimelineGroup?.querySelector('.timeline-item.comment') && !parentTimelineItem?.querySelector('.conversation-holder')) {
+      const timelineAvatar = parentTimelineGroup?.querySelector('.timeline-avatar');
+      timelineAvatar?.classList.remove('timeline-avatar-offset');
     }
   });
 }
 
 export function initRepoIssueCodeCommentCancel() {
-  // Cancel inline code comment
-  document.addEventListener('click', (e) => {
-    if (!(e.target as HTMLElement).matches('.cancel-code-comment')) return;
-
-    const form = (e.target as HTMLElement).closest('form')!;
-    if (form?.classList.contains('comment-form')) {
+  registerGlobalEventFunc('click', 'onCancelCodeComment', (el) => {
+    const form = el.closest('form')!;
+    if (form.classList.contains('comment-form')) {
       hideElem(form);
       showElem(form.closest('.comment-code-cloud')!.querySelectorAll('button.comment-form-reply'));
     } else {
@@ -186,7 +175,7 @@ export function initRepoIssueComments() {
   });
 }
 
-export async function handleReply(el: HTMLElement) {
+export async function handleCommentReply(el: HTMLElement) {
   const form = el.closest('.comment-code-cloud')!.querySelector('.comment-form')!;
   const textarea = form.querySelector('textarea');
 
@@ -242,15 +231,13 @@ export function initRepoPullRequestReview() {
 
   addDelegatedEventListener(document, 'click', 'button.comment-form-reply', (el, e) => {
     e.preventDefault();
-    handleReply(el);
+    handleCommentReply(el);
   });
 
-  // The following part is only for diff views
-  if (!document.querySelector('.repository.pull.diff')) return;
-
-  const elReviewBtn = document.querySelector('.js-btn-review');
-  const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
-  if (elReviewBtn && elReviewPanel) {
+  registerGlobalInitFunc('initPullReviewBox', (el) => {
+    const elReviewBtn = el.querySelector('.review-box-button')!;
+    const elReviewPanel = el.querySelector('.review-box-panel.tippy-target');
+    if (!elReviewPanel) return;
     const tippy = createTippy(elReviewBtn, {
       content: elReviewPanel,
       theme: 'default',
@@ -260,8 +247,8 @@ export function initRepoPullRequestReview() {
       interactive: true,
       hideOnClick: true,
     });
-    elReviewPanel.querySelector('.close')!.addEventListener('click', () => tippy.hide());
-  }
+    elReviewPanel.querySelector('.close-review-panel')!.addEventListener('click', () => tippy.hide());
+  });
 
   addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
     e.preventDefault();

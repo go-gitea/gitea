@@ -23,10 +23,15 @@ func TestGrantAdditionalScopes(t *testing.T) {
 		{"read:user read:repository", "read:repository,read:user"},
 		{"read:user write:issue public-only", "public-only,write:issue,read:user"},
 		{"openid profile email read:user", "read:user"},
-
-		// TODO: at the moment invalid tokens are treated as "all" to avoid breaking 1.22 behavior (more details are in GrantAdditionalScopes)
-		{"read:invalid_scope", "all"},
-		{"read:invalid_scope,write:scope_invalid,just-plain-wrong", "all"},
+		{"no-token-scope", "no-token-scope"},
+		{"openid no-token-scope", "no-token-scope"},
+		{"no-token-scope read:user", "read:user"},
+		{"read:invalid_scope", "no-token-scope"},
+		{"read:invalid_scope,write:scope_invalid,just-plain-wrong", "no-token-scope"},
+		{"openid invalid:scope", "no-token-scope"},
+		{"openid ,,", "no-token-scope"},
+		{"read:user invalid:scope", "read:user"},
+		{"read:user,invalid:scope public-only", "public-only,read:user"},
 	}
 
 	for _, test := range tests {
