@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -403,4 +404,56 @@ func testIssueClose(t *testing.T, session *TestSession, owner, repo, issueNumber
 
 	req := NewRequestWithValues(t, "POST", closeURL, options)
 	return session.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestPullReviewCodeCommentOnUnchangedLine(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		session := loginUser(t, "user2")
+
+		numberedLines := func(prefix string, count int) string {
+			var sb strings.Builder
+			for i := range count {
+				fmt.Fprintf(&sb, "%s %d\n", prefix, i+1)
+			}
+			return sb.String()
+		}
+
+		// "old 10" was last changed by the first commit where it is line 10, but it is line 15 on master and line 17 on the PR head
+		const treePath = "unchanged-line.txt"
+		oldLines := numberedLines("old", 20)
+		testCreateFile(t, session, "user2", "repo1", "master", "", treePath, oldLines)
+		testEditFile(t, session, "user2", "repo1", "master", treePath, numberedLines("new", 5)+oldLines)
+		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "unchanged-line", treePath, numberedLines("pr", 2)+numberedLines("new", 5)+oldLines)
+		testPullCreateDirectly(t, session, createPullRequestOptions{
+			BaseRepoOwner: "user2", BaseRepoName: "repo1", BaseBranch: "master", HeadBranch: "unchanged-line", Title: "unchanged line comment",
+		})
+
+		ctx := t.Context()
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Title: "unchanged line comment"})
+		require.NoError(t, issue.LoadAttributes(ctx))
+		require.NoError(t, issue.LoadPullRequest(ctx))
+		gitRepo, err := git.OpenRepository(ctx, repo)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+		headCommitID, err := gitRepo.GetRefCommitID(ctx, issue.PullRequest.GetGitHeadRefName())
+		require.NoError(t, err)
+
+		for _, c := range []struct {
+			name string
+			line int64
+		}{
+			{"NewSide", 17},
+			{"OldSide", -15},
+		} {
+			t.Run(c.name, func(t *testing.T) {
+				comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, c.line, "test", treePath, true, 0, headCommitID, nil)
+				require.NoError(t, err)
+				require.NotEmpty(t, comment.Patch)
+				patchLines := strings.Split(strings.TrimSuffix(comment.Patch, "\n"), "\n")
+				assert.Equal(t, " old 10", patchLines[len(patchLines)-1])
+			})
+		}
+	})
 }
