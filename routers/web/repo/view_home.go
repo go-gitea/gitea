@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"cmp"
 	"errors"
 	"fmt"
 	"net/http"
@@ -201,6 +200,20 @@ func prepareHomeSidebarLanguageStats(ctx *context.Context) {
 	ctx.Data["LanguageStats"] = langs
 }
 
+func prepareHomeSidebarContributors(ctx *context.Context) {
+	contributors, total, err := repo_service.FindRepoContributors(ctx, ctx.Repo.Repository, repo_model.FindRepoContributorsOptions{
+		ListOptions: db.ListOptions{Page: 1, PageSize: 14},
+	})
+	if err != nil {
+		if !errors.Is(err, repo_service.ErrAwaitGeneration) {
+			log.Error("FindRepoContributors: %v", err)
+		}
+		return
+	}
+	ctx.Data["TopContributors"] = contributors
+	ctx.Data["NumContributors"] = total
+}
+
 func prepareHomeSidebarLatestRelease(ctx *context.Context) {
 	if !ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeReleases) {
 		return
@@ -219,42 +232,6 @@ func prepareHomeSidebarLatestRelease(ctx *context.Context) {
 		}
 		ctx.Data["LatestRelease"] = release
 	}
-}
-
-func prepareHomeSidebarContributors(ctx *context.Context) {
-	if ctx.Repo.Repository.IsEmpty {
-		return
-	}
-	stats, err := repo_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
-		if errors.Is(err, repo_service.ErrAwaitGeneration) {
-			return
-		}
-		log.Error("GetContributorStats: %v", err)
-		return
-	}
-
-	sorted := make([]*repo_service.ContributorData, 0, len(stats)-1)
-	for key, c := range stats {
-		if key == repo_service.ContributorTotalKey {
-			continue
-		}
-		sorted = append(sorted, c)
-	}
-	if len(sorted) <= 1 {
-		return
-	}
-	slices.SortFunc(sorted, func(a, b *repo_service.ContributorData) int {
-		return cmp.Compare(b.TotalCommits, a.TotalCommits)
-	})
-
-	const maxDisplay = 14
-	total := len(sorted)
-	if len(sorted) > maxDisplay {
-		sorted = sorted[:maxDisplay]
-	}
-	ctx.Data["SidebarContributors"] = sorted
-	ctx.Data["SidebarContributorsExtra"] = total - len(sorted)
 }
 
 func prepareUpstreamDivergingInfo(ctx *context.Context) {
@@ -525,8 +502,8 @@ func Home(ctx *context.Context) {
 			prepareHomeSidebarLicenses,
 			prepareHomeSidebarCitationFile,
 			prepareHomeSidebarLanguageStats,
-			prepareHomeSidebarLatestRelease,
 			prepareHomeSidebarContributors,
+			prepareHomeSidebarLatestRelease,
 		)
 	}
 

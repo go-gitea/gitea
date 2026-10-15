@@ -159,6 +159,8 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&git_model.RenamedBranch{RepoID: repoID},
 		&git_model.LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
+		&repo_model.RepoContributor{RepoID: repoID},
+		&repo_model.RepoContributorWeek{RepoID: repoID},
 		&repo_model.RepoLicense{RepoID: repoID},
 		&issues_model.Milestone{RepoID: repoID},
 		&repo_model.Mirror{RepoID: repoID},

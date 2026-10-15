@@ -410,6 +410,9 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Error("SyncMirrors [repo: %-v]: unable to add repo to license updater queue: %v", m.Repo, err)
 		return false
 	}
+	if err = repo_service.AddRepoToContributorsQueue(m.Repo.ID); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: unable to add repo to contributors queue: %v", m.Repo, err)
+	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
 

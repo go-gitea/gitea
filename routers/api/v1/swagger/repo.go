@@ -351,6 +351,13 @@ type swaggerTopicNames struct {
 	Body api.TopicName `json:"body"`
 }
 
+// ContributorList
+// swagger:response ContributorList
+type swaggerContributorList struct {
+	// in: body
+	Body []api.Contributor `json:"body"`
+}
+
 // LanguageStatistics
 // swagger:response LanguageStatistics
 type swaggerLanguageStatistics struct {

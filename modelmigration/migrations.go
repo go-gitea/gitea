@@ -437,6 +437,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(358, "Track previous remember-me token hashes", v29.AddPreviousAuthTokenHash),
 		newMigration(359, "Add stage and number columns to action_task_step", v29.AddStageAndNumberToActionTaskStep),
 		newMigration(360, "Move branch protection settings to JSON", v29.MoveBranchProtectionConfigToJSON),
+		newMigration(361, "Add repo_contributor and repo_contributor_week tables", v29.AddRepoContributorTables),
 	}
 	return preparedMigrations
 }

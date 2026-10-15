@@ -1,31 +1,4 @@
 <div class="repo-home-sidebar-bottom flex-relaxed-list">
-	{{if .SidebarContributors}}
-		<div class="divider"></div>
-		<div class="repo-home-sidebar-header">
-			<a class="item muted" href="{{.RepoLink}}/activity/contributors">
-				{{ctx.Locale.Tr "repo.contributors"}}
-			</a>
-		</div>
-		<div>
-			<div class="repo-sidebar-contributors">
-				{{range .SidebarContributors}}
-				{{if .HomeLink}}
-				<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}">
-					<img class="ui avatar" src="{{.AvatarLink}}" alt="{{.Name}}">
-				</a>
-				{{else}}
-				<span data-tooltip-content="{{.Name}}">
-					<img class="ui avatar" src="{{.AvatarLink}}" alt="{{.Name}}">
-				</span>
-				{{end}}
-				{{end}}
-			</div>
-			{{if gt .SidebarContributorsExtra 0}}
-			<a class="tw-mt-2 tw-inline-block" href="{{.RepoLink}}/activity/contributors">+ {{.SidebarContributorsExtra}} {{ctx.Locale.Tr "repo.contributors"}}</a>
-			{{end}}
-		</div>
-	{{end}}
-
 	{{if .LatestRelease}}
 		<div class="divider"></div>
 		<div class="repo-home-sidebar-header">
@@ -43,6 +16,29 @@
 				</div>
 			</div>
 			<div class="tw-ml-[24px] tw-text-12">{{DateUtils.TimeSince .LatestRelease.PublishedUnix}}</div>
+		</div>
+	{{end}}
+
+	{{if .TopContributors}}
+		<div class="divider"></div>
+		<div class="repo-home-sidebar-header">
+			<a class="item muted" href="{{.RepoLink}}/activity/contributors">
+				{{ctx.Locale.Tr "repo.activity.navbar.contributors"}}
+			</a>
+			<span class="ui small label">{{ctx.Locale.PrettyNumber .NumContributors}}</span>
+		</div>
+		<div class="tw-flex tw-flex-wrap tw-gap-1">
+			{{range $contributor := .TopContributors}}
+				{{if $contributor.User}}
+					<a {{if gt $contributor.User.ID 0}}href="{{$contributor.User.HomeLink}}"{{end}} data-tooltip-content="{{$contributor.User.GetDisplayName}}">
+						{{ctx.AvatarUtils.Avatar $contributor.User 32}}
+					</a>
+				{{else}}
+					<span data-tooltip-content="{{$contributor.Name}}">
+						{{ctx.AvatarUtils.AvatarByEmail $contributor.Email $contributor.Name 32}}
+					</span>
+				{{end}}
+			{{end}}
 		</div>
 	{{end}}
 
