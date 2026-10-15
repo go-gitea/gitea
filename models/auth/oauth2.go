@@ -88,9 +88,14 @@ func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 		RedirectURIs: []string{"com.gitea.app://oauth/callback"},
 	}
 	m["75a9ec3e-42b5-40cb-9144-9ea96ecd56a6"] = &BuiltinOAuth2Application{
-		ConfigName:   "gitea-vscode",
-		DisplayName:  "gitea-vscode",
-		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+		ConfigName:  "gitea-vscode",
+		DisplayName: "gitea-vscode",
+		RedirectURIs: []string{
+			"http://127.0.0.1",
+			"https://127.0.0.1",
+			"vscode://gitea.gitea-for-vscode/auth/callback",
+			"vscode-insiders://gitea.gitea-for-vscode/auth/callback",
+		},
 	}
 	return m
 }
