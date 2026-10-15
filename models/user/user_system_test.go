@@ -6,6 +6,9 @@ package user
 import (
 	"testing"
 
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,4 +39,20 @@ func TestSystemUser(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(-1), uid)
 	assert.Equal(t, "Ghost", u.Name)
+}
+
+func TestActionsUserBranding(t *testing.T) {
+	defer test.MockVariableValue(&setting.Actions.BotFullName, "Acme CI")()
+	defer test.MockVariableValue(&setting.Actions.BotEmail, "ci@example.com")()
+	defer test.MockVariableValue(&setting.Actions.BotAvatarURL, "https://example.com/bot.png")()
+
+	u := NewActionsUser()
+	assert.Equal(t, "gitea-actions", u.Name)
+	assert.Equal(t, "Acme CI", u.FullName)
+	assert.Equal(t, "ci@example.com", u.Email)
+	assert.Equal(t, "https://example.com/bot.png", u.AvatarLinkWithSize(t.Context(), 0))
+
+	// other system users are not affected by the actions branding
+	assert.NotEqual(t, "https://example.com/bot.png", NewDeployKeyUser().AvatarLinkWithSize(t.Context(), 0))
+	assert.Empty(t, NewDeployKeyUser().Email)
 }

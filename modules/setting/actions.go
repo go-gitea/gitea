@@ -45,6 +45,11 @@ var (
 		MaxConcurrentTaskPicks int `ini:"MAX_CONCURRENT_TASK_PICKS"`
 
 		ArtifactPreviewMaxSize int64 `ini:"ARTIFACT_PREVIEW_MAX_SIZE"`
+
+		// Branding of the builtin "gitea-actions" bot user, empty values keep the defaults.
+		BotFullName  string `ini:"BOT_FULL_NAME"`
+		BotEmail     string `ini:"BOT_EMAIL"`
+		BotAvatarURL string `ini:"BOT_AVATAR_URL"`
 	}{
 		Enabled:                true,
 		DefaultActionsURL:      defaultActionsURLGitHub,
