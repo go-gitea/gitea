@@ -96,6 +96,14 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 
 // UpdateComment updates information of comment.
 func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion int, doer *user_model.User, oldContent string) error {
+	if err := updateComment(ctx, c, contentVersion, doer, oldContent); err != nil {
+		return err
+	}
+	notify_service.UpdateComment(ctx, doer, c, oldContent)
+	return nil
+}
+
+func updateComment(ctx context.Context, c *issues_model.Comment, contentVersion int, doer *user_model.User, oldContent string) error {
 	if err := c.LoadIssue(ctx); err != nil {
 		return err
 	}
@@ -134,8 +142,59 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 		}
 	}
 
-	notify_service.UpdateComment(ctx, doer, c, oldContent)
+	return nil
+}
 
+// UpdateReviewContent updates a review and its existing summary comments.
+// The caller must authorize the edit and reject review requests.
+func UpdateReviewContent(ctx context.Context, review *issues_model.Review, doer *user_model.User, content string) error {
+	if review.ID <= 0 {
+		return issues_model.ErrReviewNotExist{ID: review.ID}
+	}
+	if err := review.LoadIssue(ctx); err != nil {
+		return err
+	}
+	if err := review.Issue.LoadRepo(ctx); err != nil {
+		return err
+	}
+	if user_model.IsUserBlockedBy(ctx, doer, review.Issue.PosterID, review.Issue.Repo.OwnerID) {
+		if !access_model.IsUserRepoAdmin(ctx, review.Issue.Repo, doer) {
+			return user_model.ErrBlockedUser
+		}
+	}
+
+	updated := &issues_model.Review{Content: content}
+	oldContents := make(map[*issues_model.Comment]string)
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{
+			ListOptions: db.ListOptionsAll,
+			ReviewID:    review.ID,
+			Type:        issues_model.CommentTypeReview,
+		})
+		if err != nil {
+			return err
+		}
+		for _, comment := range comments {
+			if comment.Content == content {
+				continue
+			}
+			oldContent := comment.Content
+			comment.Content = content
+			if err := updateComment(ctx, comment, comment.ContentVersion, doer, oldContent); err != nil {
+				return err
+			}
+			oldContents[comment] = oldContent
+		}
+		_, err = db.GetEngine(ctx).ID(review.ID).Cols("content").Update(updated)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+	review.Content, review.UpdatedUnix = updated.Content, updated.UpdatedUnix
+	for comment, oldContent := range oldContents {
+		notify_service.UpdateComment(ctx, doer, comment, oldContent)
+	}
 	return nil
 }
 
