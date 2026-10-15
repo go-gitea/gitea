@@ -111,7 +111,7 @@ like "small" and "mini" are still kept for the HTML elements, these can be clean
   display: inline-flex;
   gap: var(--gap-inline);
   align-items: center;
-  padding: 10px 12px 10px 10px;
+  padding-inline: 10px 12px;
   margin-left: 0.75em;
   margin-right: 0;
 }
