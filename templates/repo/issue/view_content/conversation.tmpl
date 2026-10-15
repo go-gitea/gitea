@@ -98,8 +98,8 @@ The variables in "ctx.Data" are different in each case, making this template fra
 								</div>
 							</div>
 							<div class="text comment-content">
-								{{$doerIsPoser := eq $signedUserID $comment.PosterID}}
-								<div class="render-content markup" {{if or $canWrite $doerIsPoser}}data-can-edit="true"{{end}}>
+								{{$doerIsPoster := eq $signedUserID $comment.PosterID}}
+								<div class="render-content markup" {{if or $canWrite $doerIsPoster}}data-can-edit="true"{{end}}>
 								{{if $comment.RenderedContent}}
 									{{$comment.RenderedContent}}
 								{{else}}
