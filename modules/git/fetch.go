@@ -21,7 +21,7 @@ import (
 // merge base between commits.
 func FetchRemoteCommit(ctx context.Context, repo, remoteRepo RepositoryFacade, commitID string) error {
 	return LockWriteAndDo(ctx, repo, func(ctx context.Context) error {
-		return gitcmd.NewCommand("fetch", "--no-tags").
+		return gitcmd.NewCommand("fetch", "--no-tags", "--no-write-commit-graph").
 			AddDynamicArguments(gitrepo.RepoLocalPath(remoteRepo)).
 			AddDynamicArguments(commitID).
 			WithRepo(repo).Run(ctx)
