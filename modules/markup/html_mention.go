@@ -27,7 +27,7 @@ func createMentionAvatar(ctx *RenderContext, avatarLink string) *html.Node {
 		Attr: []html.Attribute{
 			ctx.RenderInternal.NodeSafeAttr("class", "ui avatar mention-avatar"),
 			{Key: "src", Val: avatarLink},
-			{Key: "alt", Val: ""},
+			{Key: "alt", Val: ""}, // decorative, the mention text already names the user
 			{Key: "width", Val: "20"},
 			{Key: "height", Val: "20"},
 			{Key: "loading", Val: "lazy"},
