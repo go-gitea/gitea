@@ -26,7 +26,11 @@ func RenderWorkflows(ctx *context.Context, canWrite bool, tpl templates.TplName)
 	key := ctx.PathParam("workflow_key")
 	if id, err := strconv.ParseInt(key, 10, 64); err == nil {
 		if _, err := project_model.GetWorkflowByProjectAndID(ctx, project.ID, id); err != nil {
-			ctx.NotFoundOrServerError("GetWorkflowByProjectAndID", db.IsErrNotExist, err)
+			if db.IsErrNotExist(err) {
+				ctx.NotFound(err)
+			} else {
+				ctx.ServerError("GetWorkflowByProjectAndID", err)
+			}
 			return
 		}
 	} else if key != "" && !project_model.WorkflowEvent(key).IsValid() {
