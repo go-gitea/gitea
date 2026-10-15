@@ -38,6 +38,55 @@ func TestAPIReleaseRead(t *testing.T) {
 	t.Run("GetReleaseByTag", testAPIGetReleaseByTag)
 	t.Run("GetDraftReleaseByTag", testAPIGetDraftReleaseByTag)
 	t.Run("EditReleaseAttachmentWithUnallowedFile", testAPIEditReleaseAttachmentWithUnallowedFile) // failed attempt, so it is also a read test
+	t.Run("GenerateReleaseNotes", testAPIGenerateReleaseNotes)
+}
+
+func testAPIGenerateReleaseNotes(t *testing.T) {
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeWriteRepository)
+	link := "/api/v1/repos/user2/repo1/releases/generate-notes"
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+	// fixture repo only ships tag v1.1, create v1.0 on the root commit for the range
+	assert.NoError(t, gitRepo.CreateTag(t.Context(), "v1.0", "65f1bf27bc3bf70f64657658635e66094edbcb4d"))
+
+	t.Run("ExistingTagRange", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", link, &api.GenerateReleaseNotesOption{
+			TagName:         "v1.1",
+			PreviousTagName: "v1.0",
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		notes := DecodeJSON(t, resp, &api.ReleaseNotes{})
+		assert.Equal(t, "v1.1", notes.Name)
+		assert.Contains(t, notes.Body, "## What's Changed")
+		assert.Contains(t, notes.Body, "v1.0...v1.1")
+	})
+
+	t.Run("TargetNotFound", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", link, &api.GenerateReleaseNotesOption{
+			TagName:         "v9.9.9",
+			TargetCommitish: "nonexistent-branch",
+			PreviousTagName: "v1.0",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("CreateReleaseWithGeneratedNotes", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/releases", &api.CreateReleaseOption{
+			TagName:         "v1.2",
+			Title:           "v1.2",
+			Target:          "master",
+			PreviousTagName: "v1.1",
+			GenerateNotes:   true,
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		release := DecodeJSON(t, resp, &api.Release{})
+		assert.Contains(t, release.Note, "## What's Changed")
+		assert.Contains(t, release.Note, "v1.1...v1.2")
+	})
 }
 
 func testAPIListReleasesTagNames(t *testing.T, queryURL, authToken string, expectedTagNames []string, msgAndArgs ...string) {
