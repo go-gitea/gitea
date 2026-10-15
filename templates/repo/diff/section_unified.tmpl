@@ -8,10 +8,10 @@
 	<col width="10">
 	<col>
 </colgroup>
-{{range $j, $section := $file.Sections}}
-	{{range $k, $line := $section.Lines}}
-		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
-			{{if eq .GetType 4}}
+{{range $section := $file.Sections}}
+	{{range $line := $section.Lines}}
+		<tr class="{{.GetHTMLDiffLineType}}-code" data-line-type="{{.GetHTMLDiffLineType}}">
+			{{if $line.IsDiffLineSection}}
 				{{if $diffBlobExcerptData}}
 					<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $file.NameHash $diffBlobExcerptData}}</td>
 				{{else}}
@@ -27,7 +27,7 @@
 				{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}
 			</td>
 			<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
-			{{if eq .GetType 4}}
+			{{if $line.IsDiffLineSection}}
 				<td class="chroma lines-code blob-hunk">{{template "repo/diff/section_code" dict "diff" $inlineDiff}}</td>
 			{{else}}
 				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
