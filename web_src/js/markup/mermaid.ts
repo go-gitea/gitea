@@ -16,7 +16,7 @@ function initMermaidViewController(viewController: Element, dragElement: SVGSVGE
 
   for (const el of viewController.querySelectorAll('[data-control-action]')) {
     el.addEventListener('click', () => {
-      switch (el.getAttribute('data-control-action')) {
+      switch (el.getAttribute('data-control-action')!) {
         case 'zoom-in':
           scale *= 1.2;
           break;

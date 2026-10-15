@@ -68,7 +68,7 @@ function toggleLoadingIndicator(el: HTMLElement, opt: FetchActionOpts, isLoading
   }
 }
 
-export async function handleFetchActionSuccessJson(el: HTMLElement, respJson: {redirect?: unknown} | null) {
+export function handleFetchActionSuccessJson(el: HTMLElement, respJson: {redirect?: unknown} | null) {
   ignoreAreYouSure(el); // ignore the areYouSure check before reloading
   const redirect = respJson?.redirect;
   if (typeof redirect === 'string' && redirect) {
@@ -84,7 +84,7 @@ async function handleFetchActionSuccess(el: HTMLElement, opt: FetchActionOpts, r
   const respText = await resp.text();
   const respJson = isRespJson ? JSON.parse(respText) : null;
   if (isRespJson) {
-    await handleFetchActionSuccessJson(el, respJson);
+    handleFetchActionSuccessJson(el, respJson);
   } else if (opt.successSync) {
     await handleFetchActionSuccessSync(el, opt.successSync, respText);
   } else {

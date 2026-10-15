@@ -12,21 +12,17 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"gitea.dev/modules/hostmatcher"
+	"gitea.dev/modules/egress"
+	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 )
 
-// migrationHTTPClient is the shared migration client. Callers that would otherwise build a client per
-// request use it (via getMigrationHTTPClient) so a single connection pool is reused across downloads —
-// e.g. many release assets from the same host — instead of a fresh pool and TLS handshake each time. It
-// is built lazily on first use and reset by Init whenever the allow/block lists change; OnceValue keeps
-// concurrent callers sharing a single client instead of racing to create their own.
-var migrationHTTPClient = util.OnceValue[*http.Client]{Func: newMigrationHTTPClient}
+// getMigrationHTTPClient returns the shared migration client, so downloads from one host reuse its connections
+var getMigrationHTTPClient = sync.OnceValue(newMigrationHTTPClient)
 
 // newMigrationHTTPClient returns a HTTP client for migration with retry support
 func newMigrationHTTPClient() *http.Client {
@@ -35,18 +31,11 @@ func newMigrationHTTPClient() *http.Client {
 	}
 }
 
-// getMigrationHTTPClient returns the shared migration client, building it on first use so no request
-// escapes the SSRF-validated transport even before Init has run.
-func getMigrationHTTPClient() *http.Client {
-	return migrationHTTPClient.Value()
-}
-
-// NewMigrationHTTPTransport returns a HTTP transport for migration. The target is validated against the
-// allow/block lists on both the direct-dial and proxy paths, so a configured proxy cannot be used to
-// reach an otherwise-forbidden target (SSRF).
+// NewMigrationHTTPTransport returns a HTTP transport for migration, enforcing the migration policy on its direct dials.
 func NewMigrationHTTPTransport() *http.Transport {
-	return hostmatcher.NewHTTPTransport("migration", allowList, blockList, proxy.Proxy(), setting.Proxy.ProxyURLFixed,
-		&tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify})
+	t := egress.NewMigrationPolicy().NewHTTPTransport()
+	t.TLSClientConfig = &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify}
+	return t
 }
 
 const (
@@ -151,7 +140,7 @@ func shouldRetryRequest(resp *http.Response, err error) bool {
 // the retrying downloader on top, three times over). Anything unrecognized stays
 // retryable: a reset connection or a truncated body is the common case.
 func isTransientTransportError(err error) bool {
-	if errors.Is(err, hostmatcher.ErrDialNotAllowed) {
+	if errors.Is(err, policy.ErrDenied) {
 		return false
 	}
 	if _, ok := errors.AsType[*tls.CertificateVerificationError](err); ok {

@@ -475,6 +475,28 @@ func TestGithubMultiToken(t *testing.T) {
 	}
 }
 
+func TestGithubMultiTokenClientSelection(t *testing.T) {
+	downloader := &GithubDownloaderV3{
+		clients: make([]*github.Client, 3),
+		rates:   make([]*github.Rate, 3),
+	}
+
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 0, downloader.curClientIdx)
+
+	downloader.rates[0] = &github.Rate{Remaining: 100}
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 1, downloader.curClientIdx)
+
+	downloader.rates[1] = &github.Rate{Remaining: 200}
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 2, downloader.curClientIdx)
+
+	downloader.rates[2] = &github.Rate{Remaining: 50}
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 1, downloader.curClientIdx)
+}
+
 // TestGitHubIssuesPageBasedLinkFallback proves the issues sweep terminates against
 // a server whose Link header carries page numbers but no `after` cursor (older
 // GitHub Enterprise). Without the page-number fallback a full first page would be
@@ -516,26 +538,4 @@ func TestGitHubIssuesPageBasedLinkFallback(t *testing.T) {
 		numbers = append(numbers, issue.Number)
 	}
 	assert.Equal(t, []int64{1, 2, 3}, numbers)
-}
-
-func TestGithubMultiTokenClientSelection(t *testing.T) {
-	downloader := &GithubDownloaderV3{
-		clients: make([]*github.Client, 3),
-		rates:   make([]*github.Rate, 3),
-	}
-
-	downloader.waitAndPickClient(t.Context())
-	assert.Equal(t, 0, downloader.curClientIdx)
-
-	downloader.rates[0] = &github.Rate{Remaining: 100}
-	downloader.waitAndPickClient(t.Context())
-	assert.Equal(t, 1, downloader.curClientIdx)
-
-	downloader.rates[1] = &github.Rate{Remaining: 200}
-	downloader.waitAndPickClient(t.Context())
-	assert.Equal(t, 2, downloader.curClientIdx)
-
-	downloader.rates[2] = &github.Rate{Remaining: 50}
-	downloader.waitAndPickClient(t.Context())
-	assert.Equal(t, 1, downloader.curClientIdx)
 }

@@ -4,13 +4,7 @@
 import rule from './unescaped-html-literal.ts';
 import {RuleTester} from 'eslint';
 
-class VitestRuleTester extends RuleTester {
-  static describe = describe;
-  static it = it;
-  static itOnly = it.only;
-}
-
-const ruleTester = new VitestRuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run('unescaped-html-literal', rule, {
   valid: [

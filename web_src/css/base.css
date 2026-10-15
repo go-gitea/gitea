@@ -2,6 +2,8 @@
   /* fonts */
   --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
   --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
+  /* Chromium's "math" is a font Linux and ChromeOS don't ship, so fall back to the math fonts they do, https://issues.chromium.org/issues/40069293 */
+  --fonts-math: math, "STIX Two Math", "DejaVu Math TeX Gyre", "Noto Sans Math";
   /* GitHub explicitly sets font names like: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
   Actually "Twemoji Mozilla" emoji font is widely used by browsers like Firefox, Pale Moon, and it is more likely up-to-dated than the system emoji font.
   So not setting emoji font seems to be the best choice, here we just use a non-existing dummy font name and let browsers choose. */
@@ -105,6 +107,11 @@ code,
 samp,
 .tw-font-mono {
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
+}
+
+math {
+  font-family: var(--fonts-math);
+  font-size-adjust: ex-height 0.52; /* match KaTeX's x-height (0.431 × 1.21em) regardless of math font, https://github.com/w3c/mathml-core/issues/41 */
 }
 
 /* there are many <code> blocks in non-markup(.markup code) / non-code-diff(code.code-inner) containers, for example: translation strings, etc,
@@ -445,11 +452,6 @@ a.label,
   color: var(--color-text) !important;
 }
 
-.user-menu > .item {
-  width: 100%;
-  border-radius: 0 !important;
-}
-
 .color-preview {
   display: inline-block;
   margin-left: 0.4em;
@@ -544,24 +546,22 @@ overflow-menu .overflow-menu-popup::after {
   border-bottom-color: var(--color-menu);
 }
 
-overflow-menu .overflow-menu-popup > .item {
-  display: flex;
-  align-items: center;
-  padding: 9px 18px !important;
-  color: var(--color-text) !important;
-  background: transparent !important;
-  text-decoration: none;
-  gap: 10px;
-  width: 100%;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item { /* doubled class beats the host menu's item styles */
+  margin: 0 4px;
+  padding-inline: 8px !important; /* plus the margin, matches the host's tab padding */
+  border: none;
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+  width: calc(100% - 8px);
 }
 
-overflow-menu .overflow-menu-popup > .item:hover,
-overflow-menu .overflow-menu-popup > .item:focus {
-  background: var(--color-hover) !important;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item:hover,
+overflow-menu.ui.menu .overflow-menu-popup > .item.item:focus {
+  background: var(--color-hover);
 }
 
-overflow-menu .overflow-menu-popup > .item.active {
-  background: var(--color-active) !important;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item.active {
+  background: var(--color-active);
 }
 
 overflow-menu .overflow-menu-items {
@@ -851,8 +851,8 @@ table th[data-sortt-desc] .svg {
   min-width: 0;
 }
 
-.ui.list.flex-items-block > .item,
-.ui.vertical.menu .item.flex-text-block,
+.ui.ui.ui.ui .item.flex-text-block, /* override .ui.list and .ui.vertical.menu */
+.ui.ui.ui.ui.flex-items-block > .item,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {

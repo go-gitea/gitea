@@ -13,7 +13,7 @@ import (
 	"net/url"
 	"testing"
 
-	"gitea.dev/modules/hostmatcher"
+	"gitea.dev/modules/egress/policy"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +33,7 @@ func TestShouldRetryRequestPermanentErrors(t *testing.T) {
 		err   error
 		retry bool
 	}{
-		{"blocked by policy", wrapped(fmt.Errorf("migration can not call blocked HTTP servers: %w", hostmatcher.ErrDialNotAllowed)), false},
+		{"blocked by policy", wrapped(fmt.Errorf("migration can not call blocked HTTP servers: %w", policy.ErrDenied)), false},
 		{"host does not resolve", wrapped(&net.DNSError{Err: "no such host", Name: "nope.invalid", IsNotFound: true}), false},
 		{"TLS verification failed", wrapped(&tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}}), false},
 		{"DNS server failure", wrapped(&net.DNSError{Err: "server misbehaving", Name: "example.com", IsTemporary: true}), true},

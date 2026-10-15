@@ -120,7 +120,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 func convertToInternal(s string) ([]actions_model.Status, error) {
 	switch s {
 	case "pending", "waiting", "requested", "action_required":
-		return []actions_model.Status{actions_model.StatusBlocked}, nil
+		return []actions_model.Status{actions_model.StatusBlocked, actions_model.StatusPending}, nil
 	case "queued":
 		return []actions_model.Status{actions_model.StatusWaiting}, nil
 	case "in_progress":
@@ -186,7 +186,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	if actor := ctx.FormString("actor"); actor != "" {
 		user, err := user_model.GetUserByName(ctx, actor)
 		if err != nil {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 			return
 		}
 		opts.TriggerUserID = user.ID
