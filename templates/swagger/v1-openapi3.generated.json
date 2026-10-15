@@ -3086,6 +3086,11 @@
             "type": "string",
             "x-go-name": "FromPath"
           },
+          "is_lfs_pointer": {
+            "description": "is_lfs_pointer commits the content as-is, as a Git-LFS pointer to an\nobject the repository already holds.",
+            "type": "boolean",
+            "x-go-name": "IsLFSPointer"
+          },
           "operation": {
             "description": "indicates what to do with the file: \"create\" for creating a new file, \"update\" for updating an existing file,\n\"upload\" for creating or updating a file, \"rename\" for renaming a file, and \"delete\" for deleting an existing file.",
             "enum": [
@@ -4078,6 +4083,11 @@
             "description": "force_push (optional) will do a force-push if the new branch already exists",
             "type": "boolean",
             "x-go-name": "ForcePush"
+          },
+          "is_lfs_pointer": {
+            "description": "is_lfs_pointer commits the content as-is, as a Git-LFS pointer to an\nobject the repository already holds.",
+            "type": "boolean",
+            "x-go-name": "IsLFSPointer"
           },
           "message": {
             "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
@@ -10611,6 +10621,11 @@
             "description": "from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL",
             "type": "string",
             "x-go-name": "FromPath"
+          },
+          "is_lfs_pointer": {
+            "description": "is_lfs_pointer commits the content as-is, as a Git-LFS pointer to an\nobject the repository already holds.",
+            "type": "boolean",
+            "x-go-name": "IsLFSPointer"
           },
           "message": {
             "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
