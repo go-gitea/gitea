@@ -86,7 +86,7 @@
 					</div>
 				{{end}}
 				<div id="diff-file-boxes">
-				{{range $i, $file := .Diff.Files}}
+				{{range $file := .Diff.Files}}
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 					{{$isImage:= $file.IsBlobTypeImage}}
 					{{$isCsv := $file.IsBlobTypeCsv}}
@@ -193,9 +193,9 @@
 								{{else if $file.Sections}}
 									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
 										{{if $.IsSplitStyle}}
-											{{template "repo/diff/section_split" dict "file" . "root" $}}
+											{{template "repo/diff/section_split" dict "file" $file}}
 										{{else}}
-											{{template "repo/diff/section_unified" dict "file" . "root" $}}
+											{{template "repo/diff/section_unified" dict "file" $file}}
 										{{end}}
 									</table>
 								{{else if $file.IsRenamed}}
