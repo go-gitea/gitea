@@ -574,8 +574,8 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 	if err != nil {
 		return err
 	}
-	// fetch, not push: pushing objects FetchRemoteCommit already fetched races background repacks
-	if err := git.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, headCommitID); err != nil {
+	// fetch, not push: pushing objects FetchRemoteTempCommit already fetched races background repacks
+	if err := git.FetchRemoteTempCommit(ctx, pr.BaseRepo, pr.HeadRepo, headCommitID); err != nil {
 		return fmt.Errorf("unable to fetch head branch %s:%s into base repo %s, err: %w",
 			pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
