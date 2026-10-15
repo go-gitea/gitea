@@ -539,3 +539,28 @@ func TestGitHubIssuesPageBasedLinkFallback(t *testing.T) {
 	}
 	assert.Equal(t, []int64{1, 2, 3}, numbers)
 }
+
+// TestGithubFactoryUsesGraphQLOnlyWhereItWorks: GraphQL needs credentials and only
+// batches the issue and pull-request sweeps, so anonymous migrations and
+// comments-only dumps must stay on REST.
+func TestGithubFactoryUsesGraphQLOnlyWhereItWorks(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		opts base.MigrateOptions
+		want bool
+	}{
+		{"token, issues", base.MigrateOptions{AuthToken: "tok", Issues: true}, true},
+		{"basic auth, pull requests", base.MigrateOptions{AuthUsername: "u", AuthPassword: "pat", PullRequests: true}, true},
+		{"anonymous public repository", base.MigrateOptions{Issues: true, PullRequests: true}, false},
+		{"comments only", base.MigrateOptions{AuthToken: "tok", Comments: true}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.opts.CloneAddr = "https://github.com/go-gitea/test_repo"
+			d, err := (&GithubDownloaderV3Factory{}).New(t.Context(), tc.opts)
+			require.NoError(t, err)
+			gd, ok := d.(*GithubDownloaderV3)
+			require.True(t, ok)
+			assert.Equal(t, tc.want, gd.useGraphQL)
+		})
+	}
+}

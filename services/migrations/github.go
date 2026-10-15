@@ -56,7 +56,13 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 	if err != nil {
 		return nil, err
 	}
-	downloader.useGraphQL = setting.Migrations.UseGraphQL
+	// GitHub rejects anonymous GraphQL requests, and the fast path only batches the
+	// issue and pull-request sweeps (their comments ride along). Anything else, such
+	// as an anonymous public-repository migration or a comments-only dump, stays on
+	// REST, which serves both.
+	downloader.useGraphQL = setting.Migrations.UseGraphQL &&
+		(opts.AuthToken != "" || opts.AuthPassword != "") &&
+		(opts.Issues || opts.PullRequests)
 	return downloader, nil
 }
 
