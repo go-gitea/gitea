@@ -4,16 +4,27 @@
 	</div>
 	<div class="content">
 		<div class="ui stackable secondary menu">
-			<div class="ui action input" id="citation-panel">
-				{{template "repo/cite/cite_buttons" .}}
-				<a id="goto-citation-btn" class="ui basic jump icon button" href="{{$.RepoLink}}/src/{{$.BranchName}}/CITATION.cff" data-tooltip-content="{{ctx.Locale.Tr "repo.find_file.go_to_file"}}">
+			<div class="ui action input tw-flex tw-w-full" data-global-init="initRepoCitationPanel">
+				{{if .CitationAPA}}
+				<button type="button" class="ui citation button citation-apa" data-text="{{.CitationAPA}}">
+					APA
+				</button>
+				{{end}}
+				<button type="button" class="ui citation button citation-bibtex" data-text="{{.CitationBibTeX}}">
+					BibTeX
+				</button>
+				<input value="" size="1" readonly autofocus>
+				<button type="button" class="ui icon button citation-copy" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">
+					{{svg "octicon-copy"}}
+				</button>
+				<a class="ui basic jump icon button" href="{{$.RepoLink}}/src/{{$.RefTypeNameSubURL}}/{{PathEscapeSegments $.CitationFileName}}" data-tooltip-content="{{ctx.Locale.Tr "repo.find_file.go_to_file"}}">
 					{{svg "octicon-file-moved"}}
 				</a>
 			</div>
 		</div>
 	</div>
 	<div class="actions">
-		<button class="ui cancel button">
+		<button type="button" class="ui cancel button">
 			{{ctx.Locale.Tr "cancel"}}
 		</button>
 	</div>

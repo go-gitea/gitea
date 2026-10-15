@@ -1,10 +1,10 @@
 <div class="flex-text-block tw-flex-wrap">
 	{{range $term := .SearchResultLanguages}}
-	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label tw-m-0"
+	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label tw-m-0 tw-gap-2"
 		href="?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&search_mode={{$.SelectedSearchMode}}">
-		<i class="color-icon tw-mr-2" style="background-color: {{$term.Color}}"></i>
+		<i class="color-icon" style="background-color: {{$term.Color}}"></i>
 		{{$term.Language}}
-		<div class="detail">{{$term.Count}}</div>
+		<div class="detail tw-ml-2">{{$term.Count}}</div>
 	</a>
 	{{end}}
 </div>

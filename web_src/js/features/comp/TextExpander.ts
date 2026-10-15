@@ -4,21 +4,18 @@ import {svg} from '../../svg.ts';
 import {parseIssueHref, parseRepoOwnerPathInfo} from '../../utils.ts';
 import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
 import {getIssueColorClass, getIssueIcon} from '../issue.ts';
-import {debounce} from 'perfect-debounce';
+import {errorName} from '../../modules/errors.ts';
+import {debounce} from '../../utils/func.ts';
 import type TextExpanderElement from '@github/text-expander-element';
 import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element';
 
-async function fetchIssueSuggestions(key: string, text: string): Promise<TextExpanderResult> {
-  const issuePathInfo = parseIssueHref(window.location.href);
-  if (!issuePathInfo.ownerName) {
-    const repoOwnerPathInfo = parseRepoOwnerPathInfo(window.location.pathname);
-    issuePathInfo.ownerName = repoOwnerPathInfo.ownerName;
-    issuePathInfo.repoName = repoOwnerPathInfo.repoName;
-    // then no issuePathInfo.indexString here, it is only used to exclude the current issue when "matchIssue"
-  }
-  if (!issuePathInfo.ownerName) return {matched: false};
+async function fetchIssueSuggestions(key: string, text: string, signal: AbortSignal): Promise<TextExpanderResult> {
+  const hrefPathInfo = parseIssueHref(window.location.href);
+  // the fallback has no indexString, it is only used to exclude the current issue when "matchIssue"
+  const pathInfo = hrefPathInfo ?? parseRepoOwnerPathInfo(window.location.pathname);
+  if (!pathInfo) return {matched: false};
 
-  const matches = await matchIssue(issuePathInfo.ownerName, issuePathInfo.repoName, issuePathInfo.indexString, text);
+  const matches = await matchIssue(pathInfo.ownerName, pathInfo.repoName, hrefPathInfo?.indexString, text, signal);
   if (!matches.length) return {matched: false};
 
   const ul = createElementFromAttrs('ul', {class: 'suggestions'});
@@ -48,6 +45,7 @@ export function initTextExpander(expander: TextExpanderElement) {
     return keyStart > lineStart;
   };
 
+  let suggestionsController = new AbortController();
   const debouncedIssueSuggestions = debounce(async (key: string, text: string): Promise<TextExpanderResult> => {
     // https://github.com/github/text-expander-element/issues/71
     // Upstream bug: when using "multiword+promise", TextExpander will get wrong "key" position.
@@ -58,10 +56,17 @@ export function initTextExpander(expander: TextExpanderElement) {
     // check the input before the request, to avoid emitting empty query to backend (still related to the upstream bug)
     if (!shouldShowIssueSuggestions()) return {matched: false};
     // await sleep(Math.random() * 1000); // help to reproduce the text-expander bug
-    const ret = await fetchIssueSuggestions(key, text);
-    // check the input again to avoid text-expander using incorrect position (upstream bug)
-    if (!shouldShowIssueSuggestions()) return {matched: false};
-    return ret;
+    suggestionsController.abort(); // only the newest request may answer
+    suggestionsController = new AbortController();
+    try {
+      const ret = await fetchIssueSuggestions(key, text, suggestionsController.signal);
+      // check the input again to avoid text-expander using incorrect position (upstream bug)
+      if (!shouldShowIssueSuggestions()) return {matched: false};
+      return ret;
+    } catch (err) {
+      if (errorName(err) !== 'AbortError') throw err;
+      return {matched: false};
+    }
   }, 300); // to match onInputDebounce delay
 
   expander.addEventListener('text-expander-change', (e: TextExpanderChangeEvent) => {
@@ -122,7 +127,8 @@ export function initTextExpander(expander: TextExpanderElement) {
     }
   });
 
-  expander.addEventListener('text-expander-value', ({detail}: Record<string, any>) => {
+  expander.addEventListener('text-expander-value', (event) => {
+    const {detail} = event as CustomEvent<{item: HTMLElement, key: string, value: string}>;
     if (detail?.item) {
       // add a space after @mentions and #issue as it's likely the user wants one
       const suffix = ['@', '#'].includes(detail.key) ? ' ' : '';

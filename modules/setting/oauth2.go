@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/generate"
+	"gitea.dev/modules/log"
 )
 
 // OAuth2UsernameType is enum describing the way gitea generates its 'username' from oauth2 data
@@ -99,6 +99,7 @@ var OAuth2 = struct {
 	JWTClaimIssuer             string `ini:"JWT_CLAIM_ISSUER"`
 	MaxTokenLength             int
 	DefaultApplications        []string
+	CustomSchemes              []string
 }{
 	Enabled:                    true,
 	AccessTokenExpirationTime:  3600,
@@ -107,7 +108,7 @@ var OAuth2 = struct {
 	JWTSigningAlgorithm:        "RS256",
 	JWTSigningPrivateKeyFile:   "jwt/private.pem",
 	MaxTokenLength:             math.MaxInt16,
-	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea"},
+	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea", "gitea-app"},
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {

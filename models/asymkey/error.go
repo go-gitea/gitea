@@ -6,7 +6,7 @@ package asymkey
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 // ErrKeyUnableVerify represents a "KeyUnableVerify" kind of error.
@@ -192,28 +192,6 @@ func (err ErrGPGKeyIDAlreadyUsed) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
-// ErrGPGKeyAccessDenied represents a "GPGKeyAccessDenied" kind of Error.
-type ErrGPGKeyAccessDenied struct {
-	UserID int64
-	KeyID  int64
-}
-
-// IsErrGPGKeyAccessDenied checks if an error is a ErrGPGKeyAccessDenied.
-func IsErrGPGKeyAccessDenied(err error) bool {
-	_, ok := err.(ErrGPGKeyAccessDenied)
-	return ok
-}
-
-// Error pretty-prints an error of type ErrGPGKeyAccessDenied.
-func (err ErrGPGKeyAccessDenied) Error() string {
-	return fmt.Sprintf("user does not have access to the key [user_id: %d, key_id: %d]",
-		err.UserID, err.KeyID)
-}
-
-func (err ErrGPGKeyAccessDenied) Unwrap() error {
-	return util.ErrPermissionDenied
-}
-
 // ErrKeyAccessDenied represents a "KeyAccessDenied" kind of error.
 type ErrKeyAccessDenied struct {
 	UserID int64
@@ -235,67 +213,6 @@ func (err ErrKeyAccessDenied) Error() string {
 
 func (err ErrKeyAccessDenied) Unwrap() error {
 	return util.ErrPermissionDenied
-}
-
-// ErrDeployKeyNotExist represents a "DeployKeyNotExist" kind of error.
-type ErrDeployKeyNotExist struct {
-	ID     int64
-	KeyID  int64
-	RepoID int64
-}
-
-// IsErrDeployKeyNotExist checks if an error is a ErrDeployKeyNotExist.
-func IsErrDeployKeyNotExist(err error) bool {
-	_, ok := err.(ErrDeployKeyNotExist)
-	return ok
-}
-
-func (err ErrDeployKeyNotExist) Error() string {
-	return fmt.Sprintf("Deploy key does not exist [id: %d, key_id: %d, repo_id: %d]", err.ID, err.KeyID, err.RepoID)
-}
-
-func (err ErrDeployKeyNotExist) Unwrap() error {
-	return util.ErrNotExist
-}
-
-// ErrDeployKeyAlreadyExist represents a "DeployKeyAlreadyExist" kind of error.
-type ErrDeployKeyAlreadyExist struct {
-	KeyID  int64
-	RepoID int64
-}
-
-// IsErrDeployKeyAlreadyExist checks if an error is a ErrDeployKeyAlreadyExist.
-func IsErrDeployKeyAlreadyExist(err error) bool {
-	_, ok := err.(ErrDeployKeyAlreadyExist)
-	return ok
-}
-
-func (err ErrDeployKeyAlreadyExist) Error() string {
-	return fmt.Sprintf("public key already exists [key_id: %d, repo_id: %d]", err.KeyID, err.RepoID)
-}
-
-func (err ErrDeployKeyAlreadyExist) Unwrap() error {
-	return util.ErrAlreadyExist
-}
-
-// ErrDeployKeyNameAlreadyUsed represents a "DeployKeyNameAlreadyUsed" kind of error.
-type ErrDeployKeyNameAlreadyUsed struct {
-	RepoID int64
-	Name   string
-}
-
-// IsErrDeployKeyNameAlreadyUsed checks if an error is a ErrDeployKeyNameAlreadyUsed.
-func IsErrDeployKeyNameAlreadyUsed(err error) bool {
-	_, ok := err.(ErrDeployKeyNameAlreadyUsed)
-	return ok
-}
-
-func (err ErrDeployKeyNameAlreadyUsed) Error() string {
-	return fmt.Sprintf("public key with name already exists [repo_id: %d, name: %s]", err.RepoID, err.Name)
-}
-
-func (err ErrDeployKeyNameAlreadyUsed) Unwrap() error {
-	return util.ErrNotExist
 }
 
 // ErrSSHInvalidTokenSignature represents a "ErrSSHInvalidTokenSignature" kind of error.

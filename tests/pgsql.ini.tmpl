@@ -1,4 +1,4 @@
-WORK_PATH = {{WORK_PATH}}
+WORK_PATH = {{TEST_WORK_PATH}}
 APP_NAME = Gitea: Git with a cup of tea
 RUN_MODE = prod
 
@@ -50,6 +50,9 @@ SSH_TRUSTED_USER_CA_KEYS = ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCb4DC1dMFnJ6pXW
 ENABLED = true
 PROTOCOL = dummy
 FROM = pgsql-integration-test@gitea.io
+
+[migrations]
+ALLOWED_HOST_LIST = private, loopback
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false

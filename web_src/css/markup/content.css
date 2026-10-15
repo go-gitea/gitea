@@ -18,10 +18,6 @@
   text-decoration: none;
 }
 
-.markup .absent {
-  color: var(--color-red);
-}
-
 .markup .anchor {
   float: left;
   padding-inline-end: 4px;
@@ -129,7 +125,8 @@
 .markup ol,
 .markup dl,
 .markup table,
-.markup pre {
+.markup pre,
+.markup math[display="block" i] {
   margin-top: 0;
   margin-bottom: 16px;
 }
@@ -152,12 +149,6 @@ In markup content, we always use bottom margin for all elements */
 .markup ul,
 .markup ol {
   padding-inline-start: 2em;
-}
-
-.markup ul.no-list,
-.markup ol.no-list {
-  padding: 0;
-  list-style-type: none;
 }
 
 .markup .task-list-item {
@@ -329,97 +320,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   padding-inline-end: 28px;
 }
 
-.markup span.frame {
-  display: block;
-  overflow: hidden;
-}
-
-.markup span.frame > span {
-  display: block;
-  float: left;
-  width: auto;
-  padding: 7px;
-  margin: 13px 0 0;
-  overflow: hidden;
-  border: 1px solid var(--color-secondary);
-}
-
-.markup span.frame span img,
-.markup span.frame span video {
-  display: block;
-  float: left;
-}
-
-.markup span.frame span span {
-  display: block;
-  padding: 5px 0 0;
-  clear: both;
-  color: var(--color-text);
-}
-
-.markup span.align-center {
-  display: block;
-  overflow: hidden;
-  clear: both;
-}
-
-.markup span.align-center > span {
-  display: block;
-  margin: 13px auto 0;
-  overflow: hidden;
-  text-align: center;
-}
-
-.markup span.align-center span img,
-.markup span.align-center span video {
-  margin: 0 auto;
-  text-align: center;
-}
-
-.markup span.align-right {
-  display: block;
-  overflow: hidden;
-  clear: both;
-}
-
-.markup span.align-right > span {
-  display: block;
-  margin: 13px 0 0;
-  overflow: hidden;
-  text-align: right;
-}
-
-.markup span.align-right span img,
-.markup span.align-right span video {
-  margin: 0;
-  text-align: right;
-}
-
-.markup span.float-left {
-  display: block;
-  float: left;
-  margin-inline-end: 13px;
-  overflow: hidden;
-}
-
-.markup span.float-left span {
-  margin: 13px 0 0;
-}
-
-.markup span.float-right {
-  display: block;
-  float: right;
-  margin-inline-start: 13px;
-  overflow: hidden;
-}
-
-.markup span.float-right > span {
-  display: block;
-  margin: 13px auto 0;
-  overflow: hidden;
-  text-align: right;
-}
-
 .markup code,
 .markup tt {
   padding: 0.2em 0.4em;
@@ -433,10 +333,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
 .markup code br,
 .markup tt br {
   display: none;
-}
-
-.markup del code {
-  text-decoration: inherit;
 }
 
 .markup pre > code {
@@ -508,12 +404,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   box-shadow: var(--box-shadow-kbd);
 }
 
-.markup .ui.list .list,
-.markup ol.ui.list ol,
-.markup ul.ui.list ul {
-  padding-inline-start: 2em;
-}
-
 .markup details.frontmatter-content summary {
   text-overflow: ellipsis;
   overflow: hidden;
@@ -527,16 +417,18 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
 }
 
 .external-render-iframe {
+  display: block; /* removes the inline baseline gap below the iframe */
   width: 100%;
   height: max(300px, 80vh);
   border: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .markup-content-iframe {
   display: block;
   border: none;
   width: 100%;
-  height: var(--height-loading); /* actual height is set in JS after loading */
+  height: var(--height-loading); /* actual height is set in JS */
   overflow: hidden;
   color-scheme: normal; /* match the value inside the iframe to allow it to become transparent */
 }

@@ -16,9 +16,9 @@
 		<div class="ui attached segment">
 			<p>{{if .PackageDescriptor.Metadata.Summary}}{{.PackageDescriptor.Metadata.Summary}}{{end}}</p>
 			{{if .PackageDescriptor.Metadata.LongDescription}}
-				{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.LongDescription}}
+				{{ctx.RenderUtils.RenderPackageMarkdown .PackageDescriptor.Metadata.LongDescription .PackageDescriptor.Repository}}
 			{{else if .PackageDescriptor.Metadata.Description}}
-				{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.Description}}
+				{{ctx.RenderUtils.RenderPackageMarkdown .PackageDescriptor.Metadata.Description .PackageDescriptor.Repository}}
 			{{end}}
 		</div>
 	{{end}}

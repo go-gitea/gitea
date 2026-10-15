@@ -49,3 +49,5 @@
   repo_id: 0
   description: "This runner is going to be deleted"
   agent_labels: '["runner_to_be_deleted","linux"]'
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

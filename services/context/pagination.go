@@ -12,29 +12,69 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/paginator"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/paginator"
 )
 
-// Pagination provides a pagination via paginator.Paginator and additional configurations for the link params used in rendering
-type Pagination struct {
-	Paginater *paginator.Paginator
-	urlParams []string
+type PagerBuilder struct {
+	ctx          *Context
+	total        int64
+	curPage      int
+	perPageLimit int
+	navPageNum   *int
 }
 
-// NewPagination creates a new instance of the Pagination struct.
-// "total" is usually from database result "count int64", so it also uses int64
-// "pagingNum" is "page size" or "limit", "current" is "page"
-// total=-1 means only showing prev/next
-func NewPagination(total int64, pagingNum, current, numPages int) *Pagination {
-	totalInt := int(min(total, int64(math.MaxInt)))
-	p := &Pagination{}
-	p.Paginater = paginator.New(totalInt, pagingNum, current, numPages)
+func NewPagerBuilder(ctx *Context) *PagerBuilder {
+	return &PagerBuilder{ctx: ctx}
+}
+
+func (pb *PagerBuilder) TotalCount(n int64) *PagerBuilder {
+	pb.total = n
+	return pb
+}
+
+func (pb *PagerBuilder) PerPageLimit(n int) *PagerBuilder {
+	pb.perPageLimit = n
+	return pb
+}
+
+func (pb *PagerBuilder) CurPage(n int) *PagerBuilder {
+	pb.curPage = n
+	return pb
+}
+
+func (pb *PagerBuilder) NavPageNum(n int) *PagerBuilder {
+	pb.navPageNum = &n
+	return pb
+}
+
+func (pb *PagerBuilder) Build() *Pagination {
+	navPageNum := optional.FromPtr(pb.navPageNum).ValueOrDefault(5)
+	p := newPagination(pb.total, pb.perPageLimit, pb.curPage, navPageNum)
+	p.AddParamFromRequest(pb.ctx.Req)
 	return p
 }
 
-func (p *Pagination) WithCurRows(n int) *Pagination {
-	p.Paginater.SetCurRows(n)
+// Pagination provides a pagination via paginator.Paginator and additional configurations for the link params used in rendering
+type Pagination struct {
+	Paginator *paginator.Paginator
+	urlParams []string
+}
+
+// newPagination creates a new instance of the Pagination struct.
+// "total" is usually from database result "count int64", so it also uses int64
+// "pagingNum" is "page size" or "limit", "current" is "page"
+// total=-1 means only showing prev/next
+func newPagination(total int64, pagingNum, current, numPages int) *Pagination {
+	totalInt := int(min(total, int64(math.MaxInt)))
+	p := &Pagination{}
+	p.Paginator = paginator.New(totalInt, pagingNum, current, numPages)
+	return p
+}
+
+func (p *Pagination) WithUnlimitedPaging(curRows int, hasNext bool) *Pagination {
+	p.Paginator.SetUnlimitedPaging(curRows, hasNext)
 	return p
 }
 

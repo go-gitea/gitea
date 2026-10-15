@@ -1,0 +1,3 @@
+Content-Type: application/json;charset=utf-8
+
+{"targetHeadCommitHash":"f32b0a9dfd09a60f616f29158f772cedd89942d2","headCommitHash":"343deffe3526b9bc84e873743ff7f6e6d8b827c0","mergeStrategy":"MERGE_IF_NECESSARY","mergeCommitHash":"abc123"}

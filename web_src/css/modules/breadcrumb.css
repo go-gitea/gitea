@@ -1,6 +1,7 @@
 .breadcrumb {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 3px;
   overflow-wrap: anywhere;
 }

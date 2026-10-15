@@ -1,0 +1,62 @@
+name: giteabot
+
+on:
+  # When main advances, rerun merge queue maintenance so the oldest
+  # reviewed/wait-merge PR can be updated against the new base promptly.
+  push:
+    branches:
+      - main
+  # pull_request_target gives this workflow access to GITEABOT_TOKEN on PRs from
+  # forks, which the bot needs to write labels, statuses and comments. Safe here
+  # because the job only runs a pinned action and never checks out PR HEAD.
+  # These PR lifecycle events drive label maintenance, queue maintenance, and
+  # explicit bot actions triggered by relevant label changes.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types:
+      - opened
+      - synchronize
+      - labeled
+      - unlabeled
+      - closed
+      - review_requested
+      - review_request_removed
+  # Reviews arrive through giteabot-review because fork PR review runs get no secrets
+  workflow_run:
+    workflows:
+      - giteabot-review
+    types:
+      - requested
+  # Periodic maintenance is still useful as a backstop for queue cleanup and
+  # other housekeeping, even though main pushes now trigger it promptly.
+  schedule:
+    - cron: "15 3 * * *"
+  # Allow maintainers to rerun selected checks manually when debugging bot
+  # behavior without waiting for another repository event.
+  workflow_dispatch:
+    inputs:
+      checks:
+        description: Comma-separated list of non-backport checks to run
+        required: false
+        default: labels,merge_queue,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions
+
+permissions: {}
+
+concurrency:
+  group: ${{ format('{0}-{1}', github.workflow, github.event_name == 'pull_request_target' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'workflow_run' && format('review-{0}', github.event.workflow_run.head_sha) || 'maintenance') }}
+  cancel-in-progress: false
+
+jobs:
+  giteabot:
+    if: github.repository == 'go-gitea/gitea' && (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'pull_request_review')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: go-gitea/giteabot@f48c6a15e0d384f037aea19cc05ff5e9551096b9 # v1.1.0
+        with:
+          github_token: ${{ secrets.GITEABOT_TOKEN }}
+          checks: ${{ github.event.inputs.checks || 'labels,merge_queue,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions' }}

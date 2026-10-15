@@ -4,6 +4,7 @@
 package dump
 
 import (
+	"archive/zip"
 	"context"
 	"errors"
 	"fmt"
@@ -15,9 +16,9 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/modules/consts"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/mholt/archives"
 )
@@ -85,7 +86,7 @@ func NewDumper(ctx context.Context, format string, output io.Writer) (*Dumper, e
 	var comp archives.ArchiverAsync
 	switch format {
 	case "zip":
-		comp = archives.Zip{}
+		comp = archives.Zip{Compression: zip.Deflate}
 	case "tar":
 		comp = archives.Tar{}
 	case "tar.sz":
@@ -183,7 +184,7 @@ func (dumper *Dumper) Close() error {
 
 func (dumper *Dumper) normalizeFilePath(absPath string) string {
 	absPath = filepath.Clean(absPath)
-	if setting.IsWindows {
+	if consts.IsWindows {
 		absPath = strings.ToLower(absPath)
 	}
 	return absPath
