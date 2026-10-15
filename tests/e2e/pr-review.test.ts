@@ -94,6 +94,9 @@ test('pr review flow', async ({page, request}) => {
   const conversation = fileBox.locator('.conversation-holder');
   await conversation.locator('.comment-form-reply').click();
   const replyForm = conversation.locator('form');
+  await replyForm.getByRole('button', {name: 'Cancel', exact: true}).click();
+  await expect(replyForm).toBeHidden();
+  await conversation.locator('.comment-form-reply').click();
   await replyForm.locator('textarea[name="content"]').fill('my reply body');
   await replyForm.getByRole('button', {name: 'Reply', exact: true}).click();
   await expect(conversation.locator('.comment-body')).toContainText(['inline to reply to', 'my reply body']);
@@ -103,6 +106,9 @@ test('pr review flow', async ({page, request}) => {
   await page.goto(`${pullUrl}/files`);
   await fileBox.locator('tr.add-code').nth(1).getByRole('button', {name: 'Add line comment', exact: true}).click();
   const pendingForm = fileBox.locator('form').filter({has: page.getByRole('button', {name: 'Start review', exact: true})});
+  await pendingForm.getByRole('button', {name: 'Cancel', exact: true}).click();
+  await expect(pendingForm).toHaveCount(0);
+  await fileBox.locator('tr.add-code').nth(1).getByRole('button', {name: 'Add line comment', exact: true}).click();
   await pendingForm.getByRole('textbox', {name: 'Leave a comment', exact: true}).fill('pending review comment');
   await pendingForm.getByRole('button', {name: 'Start review', exact: true}).click();
   const counter = page.locator('.review-box-button .review-comments-counter');
