@@ -183,12 +183,14 @@ type gqlPullRequestsResponse struct {
 func (g *GithubDownloaderV3) getPullRequestsGraphQL(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	if page <= 1 {
 		g.gqlPRCursor = ""
-		g.gqlReviews = map[int64][]*base.Review{}
 		log.Info("metadata sync [%s/%s]: pull requests — full sweep", g.repoOwner, g.repoName)
 	}
-	if g.gqlComments == nil {
-		g.gqlComments = map[int64][]*base.Comment{}
-	}
+	// Like the issue sweep, the caches only have to outlive one page: the
+	// framework reads a page's comments and reviews before requesting the next
+	// page, so a sweep that never reads them (a pull-requests-only export) does
+	// not hold every PR's comments and reviews for the whole run.
+	g.gqlComments = map[int64][]*base.Comment{}
+	g.gqlReviews = map[int64][]*base.Review{}
 
 	vars := map[string]any{"owner": g.repoOwner, "name": g.repoName}
 	if g.gqlPRCursor != "" {

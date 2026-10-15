@@ -554,9 +554,14 @@ type gqlIssuesResponse struct {
 func (g *GithubDownloaderV3) getIssuesGraphQL(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
 	if page <= 1 {
 		g.gqlIssuesCursor = ""
-		g.gqlComments = map[int64][]*base.Comment{}
 		log.Info("metadata sync [%s/%s]: issues — full sweep", g.repoOwner, g.repoName)
 	}
+
+	// The cache only has to outlive one page: the framework reads a page's
+	// comments before requesting the next page. Dropping it per page keeps a
+	// sweep that never reads it (an issues-only export) from holding every
+	// issue's comments for the whole run.
+	g.gqlComments = map[int64][]*base.Comment{}
 
 	vars := map[string]any{
 		"owner": g.repoOwner,

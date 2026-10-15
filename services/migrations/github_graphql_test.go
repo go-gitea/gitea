@@ -719,3 +719,35 @@ func TestPickGraphQLClient(t *testing.T) {
 	assert.GreaterOrEqual(t, time.Since(start), 40*time.Millisecond)
 	assert.Less(t, time.Since(start), 5*time.Second)
 }
+
+// TestGraphQLSweepsDropCachesPerPage: the framework reads a page's comments and
+// reviews before it requests the next page, so the caches only have to outlive one
+// page. An issues- or pull-requests-only export never reads them, and keeping them
+// for the whole sweep would hold every comment, timeline and review in memory.
+func TestGraphQLSweepsDropCachesPerPage(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if strings.Contains(string(body), "pullRequests") {
+			_, _ = io.WriteString(w, `{"data":{"repository":{"pullRequests":{"pageInfo":{"hasNextPage":true,"endCursor":"C"},"nodes":[]}}}}`)
+			return
+		}
+		_, _ = io.WriteString(w, `{"data":{"repository":{"issues":{"pageInfo":{"hasNextPage":true,"endCursor":"C"},"nodes":[]}}}}`)
+	}))
+	defer srv.Close()
+
+	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
+	require.NoError(t, err)
+	d.useGraphQL = true
+
+	d.gqlComments = map[int64][]*base.Comment{1: {{Content: "from page 1"}}}
+	_, _, err = d.getIssuesGraphQL(t.Context(), 2, 10)
+	require.NoError(t, err)
+	assert.NotContains(t, d.gqlComments, int64(1), "issue page 2 must drop page 1's unread comments")
+
+	d.gqlComments = map[int64][]*base.Comment{1: {{Content: "from page 1"}}}
+	d.gqlReviews = map[int64][]*base.Review{1: {{Content: "from page 1"}}}
+	_, _, err = d.getPullRequestsGraphQL(t.Context(), 2, 10)
+	require.NoError(t, err)
+	assert.NotContains(t, d.gqlComments, int64(1), "PR page 2 must drop page 1's unread comments")
+	assert.NotContains(t, d.gqlReviews, int64(1), "PR page 2 must drop page 1's unread reviews")
+}
