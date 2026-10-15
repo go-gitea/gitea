@@ -50,6 +50,13 @@ func TestGraphQLRateResetWait(t *testing.T) {
 	assert.Equal(t, graphQLRateResetFallback, graphQLRateResetWait(past))
 	assert.Equal(t, graphQLRateResetFallback, graphQLRateResetWait(http.Header{}))
 
+	// with primary quota left the throttle is a secondary limit: its reset header
+	// belongs to the primary window, so the fallback applies instead
+	secondary := http.Header{}
+	secondary.Set("X-RateLimit-Remaining", "4321")
+	secondary.Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10))
+	assert.Equal(t, graphQLRateResetFallback, graphQLRateResetWait(secondary))
+
 	// a bogus far-future reset is capped
 	huge := http.Header{}
 	huge.Set("Retry-After", "999999")
@@ -471,8 +478,20 @@ func TestDoGraphQLWaitsOutSecondaryRateLimit(t *testing.T) {
 			w.Header().Set("Retry-After", "1")
 			w.WriteHeader(http.StatusForbidden)
 		}},
+		{"403 secondary limit without Retry-After, quota left", func(w http.ResponseWriter) {
+			// the primary window resets in an hour; waiting for it would stall the
+			// sweep, a secondary limit only needs the short fallback wait
+			w.Header().Set("X-RateLimit-Remaining", "4321")
+			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10))
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = io.WriteString(w, `{"message":"You have exceeded a secondary rate limit. Please wait a few minutes before you try again."}`)
+		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			prev := graphQLRateResetFallback
+			graphQLRateResetFallback = 20 * time.Millisecond
+			defer func() { graphQLRateResetFallback = prev }()
+
 			var calls atomic.Int32
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if calls.Add(1) == 1 {

@@ -57,9 +57,6 @@ const (
 	// graphQLRateResetCap bounds how long a single RATE_LIMITED wait can sleep,
 	// guarding against a bogus reset header.
 	graphQLRateResetCap = time.Hour
-	// graphQLRateResetFallback is used when a RATE_LIMITED response carries no
-	// usable reset header.
-	graphQLRateResetFallback = time.Minute
 	// maxGraphQLTransientRetries bounds retries of a response body that died
 	// mid-stream (truncated JSON, connection cut while reading). The retrying
 	// transport cannot retry those — the failure happens after the response
@@ -91,6 +88,11 @@ const gqlReactionFields = "content user{login databaseId}"
 // graphQLTransientRetryBase is the initial backoff before a truncated response is
 // re-requested; doubled each attempt. A variable so tests can shrink it.
 var graphQLTransientRetryBase = 2 * time.Second
+
+// graphQLRateResetFallback is how long to wait out a throttle that names no
+// reset time; GitHub asks for at least a minute before retrying a secondary rate
+// limit. A variable so tests can shorten it.
+var graphQLRateResetFallback = time.Minute
 
 // errGraphQLTransientExhausted marks a request that kept failing transiently
 // through the whole retry budget — the transport's, for a 5xx or a network
@@ -178,7 +180,7 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 				// that still fails is too heavy at this size, not unlucky —
 				// report transient so the caller retries it smaller.
 				return fmt.Errorf("%w: status %s%s", errGraphQLTransientExhausted, resp.Status, detail)
-			case isGraphQLThrottled(resp):
+			case isGraphQLThrottled(resp, detail):
 				// Secondary/abuse rate limit. GitHub answers those with 403 or
 				// 429 and not always a Retry-After, so retryTransport may have
 				// passed it straight through; wait out the window and retry in
@@ -245,13 +247,17 @@ func readGraphQLErrorBody(body io.Reader) string {
 
 // isGraphQLThrottled reports whether a non-200 response is GitHub throttling this
 // client. 429 always is; a 403 only when it carries a rate-limit signal, because a
-// plain 403 is a permission error that no amount of waiting fixes.
-func isGraphQLThrottled(resp *http.Response) bool {
+// plain 403 is a permission error that no amount of waiting fixes. A secondary
+// rate limit may come without Retry-After and with primary quota left, so its
+// body (GitHub's "You have exceeded a secondary rate limit") counts as a signal.
+func isGraphQLThrottled(resp *http.Response, body string) bool {
 	switch resp.StatusCode {
 	case http.StatusTooManyRequests:
 		return true
 	case http.StatusForbidden:
-		return resp.Header.Get("Retry-After") != "" || resp.Header.Get("X-RateLimit-Remaining") == "0"
+		return resp.Header.Get("Retry-After") != "" ||
+			resp.Header.Get("X-RateLimit-Remaining") == "0" ||
+			strings.Contains(strings.ToLower(body), "secondary rate limit")
 	}
 	return false
 }
@@ -303,6 +309,15 @@ func (g *GithubDownloaderV3) waitForGraphQLRateReset(ctx context.Context, header
 	}
 }
 
+// isPrimaryBudgetSpent reports whether the throttle is the primary points budget
+// running out (X-RateLimit-Remaining 0, or absent). With quota still left it is a
+// secondary limit, whose X-RateLimit-Reset belongs to the primary window and can
+// be an hour away; GitHub asks for at least a minute instead.
+func isPrimaryBudgetSpent(header http.Header) bool {
+	remaining := header.Get("X-RateLimit-Remaining")
+	return remaining == "" || remaining == "0"
+}
+
 // graphQLRateResetWait derives how long to wait from GitHub's rate headers:
 // Retry-After (secondary limits, in seconds) takes precedence, then
 // X-RateLimit-Reset (primary budget, a unix epoch). It falls back to a short
@@ -313,7 +328,7 @@ func graphQLRateResetWait(header http.Header) time.Duration {
 		if secs, err := strconv.Atoi(ra); err == nil && secs > 0 {
 			wait = time.Duration(secs) * time.Second
 		}
-	} else if reset := header.Get("X-RateLimit-Reset"); reset != "" {
+	} else if reset := header.Get("X-RateLimit-Reset"); reset != "" && isPrimaryBudgetSpent(header) {
 		if epoch, err := strconv.ParseInt(reset, 10, 64); err == nil {
 			if d := time.Until(time.Unix(epoch, 0)); d > 0 {
 				wait = d
