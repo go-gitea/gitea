@@ -171,6 +171,7 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 func Releases(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
+	ctx.Data["ReleaseAllowedReactions"] = release_service.ReleaseAllowedReactions
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
@@ -291,6 +292,7 @@ func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType st
 // SingleRelease renders a single release's page
 func SingleRelease(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
+	ctx.Data["ReleaseAllowedReactions"] = release_service.ReleaseAllowedReactions
 
 	writeAccess := ctx.Repo.Permission.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived

@@ -70,8 +70,8 @@ export function initRepository() {
 
     initRepoIssueCommentDelete();
     initRepoIssueCodeCommentCancel();
-    initCompReactionSelector();
-  } else if (pageContent.matches('.page-content.repository.releases')) {
+  }
+  if (pageContent.matches('.page-content.repository.view.issue, .page-content.repository.releases')) {
     initCompReactionSelector();
   }
 

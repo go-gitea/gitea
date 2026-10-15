@@ -14,9 +14,9 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-// reactionBeforeV348 mirrors the pre-migration reaction table: no release_id
+// reactionBeforeV347 mirrors the pre-migration reaction table: no release_id
 // column and a 6-column UNIQUE(s) index on issue/comment reactions.
-type reactionBeforeV348 struct {
+type reactionBeforeV347 struct {
 	ID               int64  `xorm:"pk autoincr"`
 	Type             string `xorm:"UNIQUE(s) NOT NULL"`
 	IssueID          int64  `xorm:"UNIQUE(s) NOT NULL DEFAULT(0)"`
@@ -26,16 +26,16 @@ type reactionBeforeV348 struct {
 	OriginalAuthor   string `xorm:"UNIQUE(s)"`
 }
 
-func (reactionBeforeV348) TableName() string { return "reaction" }
+func (reactionBeforeV347) TableName() string { return "reaction" }
 
 func Test_AddReleaseIDToReaction(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(reactionBeforeV348))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(reactionBeforeV347))
 	defer deferable()
 
 	// pre-existing rows in the old schema must survive the migration
-	_, err := x.Insert(&reactionBeforeV348{Type: "heart", IssueID: 1, UserID: 1})
+	_, err := x.Insert(&reactionBeforeV347{Type: "heart", IssueID: 1, UserID: 1})
 	require.NoError(t, err)
-	_, err = x.Insert(&reactionBeforeV348{Type: "laugh", CommentID: 2, UserID: 1})
+	_, err = x.Insert(&reactionBeforeV347{Type: "laugh", CommentID: 2, UserID: 1})
 	require.NoError(t, err)
 
 	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "reaction")

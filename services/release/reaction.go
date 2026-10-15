@@ -5,13 +5,22 @@ package release
 
 import (
 	"context"
+	"slices"
 
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 )
 
+// ReleaseAllowedReactions is the reduced reaction set for releases, mirroring
+// GitHub's release reactions: the global set minus thumbs-down (-1) and confused.
+var ReleaseAllowedReactions = []string{`+1`, `laugh`, `heart`, `hooray`, `rocket`, `eyes`}
+
 // CreateReleaseReaction creates a reaction on a release.
 func CreateReleaseReaction(ctx context.Context, doer *user_model.User, rel *repo_model.Release, content string) (*repo_model.Reaction, error) {
+	if !slices.Contains(ReleaseAllowedReactions, content) {
+		return nil, repo_model.ErrForbiddenReaction{Reaction: content}
+	}
+
 	if err := rel.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}

@@ -38,7 +38,7 @@
 							</h4>
 							<div class="tw-flex tw-items-center tw-gap-2">
 								{{if not $.Repository.IsArchived}}
-									{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/releases/%d/reactions" $.RepoLink $release.ID)}}
+									{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/releases/%d/reactions" $.RepoLink $release.ID) "AllowedReactions" $.ReleaseAllowedReactions}}
 								{{end}}
 								{{if and $.CanCreateRelease (not $.PageIsSingleTag)}}
 									<a class="muted" data-tooltip-content="{{ctx.Locale.Tr "repo.release.edit"}}" href="{{$.RepoLink}}/releases/edit/{{$release.TagName | PathEscapeSegments}}" rel="nofollow">

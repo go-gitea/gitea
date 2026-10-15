@@ -29,6 +29,19 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m)
 }
 
+// setReactionsForTest overrides setting.UI.Reactions for the duration of the test.
+func setReactionsForTest(t *testing.T, reactions ...string) {
+	oldReactions := setting.UI.Reactions
+	oldReactionsLookup := setting.UI.ReactionsLookup
+	setting.UI.Reactions = reactions
+	setting.UI.ReactionsLookup = make(container.Set[string])
+	setting.UI.ReactionsLookup.AddMultiple(reactions...)
+	t.Cleanup(func() {
+		setting.UI.Reactions = oldReactions
+		setting.UI.ReactionsLookup = oldReactionsLookup
+	})
+}
+
 func TestRelease_Create(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -397,16 +410,7 @@ func TestCreateReleaseReaction(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1, RepoID: repo.ID})
 
-	// Setup setting reactions list
-	oldReactions := setting.UI.Reactions
-	oldReactionsLookup := setting.UI.ReactionsLookup
-	setting.UI.Reactions = []string{"heart"}
-	setting.UI.ReactionsLookup = make(container.Set[string])
-	setting.UI.ReactionsLookup.Add("heart")
-	defer func() {
-		setting.UI.Reactions = oldReactions
-		setting.UI.ReactionsLookup = oldReactionsLookup
-	}()
+	setReactionsForTest(t, "heart")
 
 	reaction, err := CreateReleaseReaction(t.Context(), user, release, "heart")
 	assert.NoError(t, err)
@@ -421,6 +425,28 @@ func TestCreateReleaseReaction(t *testing.T) {
 	assert.ErrorIs(t, err, user_model.ErrBlockedUser)
 }
 
+func TestCreateReleaseReactionReducedSet(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// the global reactions list allows all eight; only the release-specific
+	// reduced set may reject thumbs-down and confused
+	setReactionsForTest(t, `+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`)
+
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1, RepoID: repo.ID})
+
+	_, err := CreateReleaseReaction(t.Context(), user, release, "+1")
+	assert.NoError(t, err)
+
+	_, err = CreateReleaseReaction(t.Context(), user, release, "-1")
+	assert.True(t, repo_model.IsErrForbiddenReaction(err))
+
+	_, err = CreateReleaseReaction(t.Context(), user, release, "confused")
+	assert.True(t, repo_model.IsErrForbiddenReaction(err))
+}
+
 func TestDeleteReleaseByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -428,16 +454,7 @@ func TestDeleteReleaseByID(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1, RepoID: repo.ID})
 
-	// Setup setting reactions list
-	oldReactions := setting.UI.Reactions
-	oldReactionsLookup := setting.UI.ReactionsLookup
-	setting.UI.Reactions = []string{"heart"}
-	setting.UI.ReactionsLookup = make(container.Set[string])
-	setting.UI.ReactionsLookup.Add("heart")
-	defer func() {
-		setting.UI.Reactions = oldReactions
-		setting.UI.ReactionsLookup = oldReactionsLookup
-	}()
+	setReactionsForTest(t, "heart")
 
 	reaction, err := CreateReleaseReaction(t.Context(), user, release, "heart")
 	assert.NoError(t, err)
