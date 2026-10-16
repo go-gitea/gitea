@@ -85,60 +85,6 @@ func maintainRepository(ctx context.Context, repo *repo_model.Repository) error 
 	return nil
 }
 
-// GitGcRepos calls 'git gc' to remove unnecessary files and optimize the local repository
-func GitGcRepos(ctx context.Context, timeout time.Duration, args gitcmd.TrustedCmdArgs) error {
-	log.Trace("Doing: GitGcRepos")
-
-	if err := db.Iterate(
-		ctx,
-		builder.Gt{"id": 0},
-		func(ctx context.Context, repo *repo_model.Repository) error {
-			select {
-			case <-ctx.Done():
-				return db.ErrCancelledf("before GC of %s", repo.FullName())
-			default:
-			}
-			// we can ignore the error here because it will be logged in GitGCRepo
-			_ = GitGcRepo(ctx, repo, timeout, args)
-			return nil
-		},
-	); err != nil {
-		return err
-	}
-
-	log.Trace("Finished: GitGcRepos")
-	return nil
-}
-
-// GitGcRepo calls 'git gc' to remove unnecessary files and optimize the local repository
-func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args gitcmd.TrustedCmdArgs) error {
-	log.Trace("Running git gc on %-v", repo)
-	command := gitcmd.NewCommand("gc").AddArguments(args...)
-	var stdout string
-	var err error
-	stdout, _, err = command.WithRepo(repo).RunStdString(ctx)
-	if err != nil {
-		log.Error("Repository garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
-		desc := fmt.Sprintf("Repository garbage collection failed (%s). Stdout: %s\nError: %v", repo.FullName(), stdout, err)
-		if err := system_model.CreateRepositoryNotice(desc); err != nil {
-			log.Error("CreateRepositoryNotice: %v", err)
-		}
-		return fmt.Errorf("repository garbage collection failed in repo: %s, error: %w", repo.FullName(), err)
-	}
-
-	// Now update the size of the repository
-	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Updating size as part of garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
-		desc := fmt.Sprintf("Updating size as part of garbage collection failed (%s). Stdout: %s\nError: %v", repo.FullName(), stdout, err)
-		if err := system_model.CreateRepositoryNotice(desc); err != nil {
-			log.Error("CreateRepositoryNotice: %v", err)
-		}
-		return fmt.Errorf("updating size as part of garbage collection failed in repo: %s, error: %w", repo.FullName(), err)
-	}
-
-	return nil
-}
-
 func gatherMissingRepoRecords(ctx context.Context) (repo_model.RepositoryList, error) {
 	repos := make([]*repo_model.Repository, 0, 10)
 	if err := db.Iterate(
