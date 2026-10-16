@@ -142,12 +142,13 @@ const (
 	MaxFullFileHighlightTimeLimit = 2 * time.Second
 )
 
-// GetType returns the type of DiffLine.
-func (d *DiffLine) GetType() int {
-	return int(d.Type)
-}
+func (d *DiffLine) IsDiffLinePlain() bool   { return d.Type == DiffLinePlain }
+func (d *DiffLine) IsDiffLineAdd() bool     { return d.Type == DiffLineAdd }
+func (d *DiffLine) IsDiffLineDel() bool     { return d.Type == DiffLineDel }
+func (d *DiffLine) IsDiffLineSection() bool { return d.Type == DiffLineSection }
 
-// GetHTMLDiffLineType returns the diff line type name for HTML
+// GetHTMLDiffLineType returns the diff line type name for HTML,
+// it will generate CSS names for styles ".del-code", ".add-code", ".same-code", ".tag-code"
 func (d *DiffLine) GetHTMLDiffLineType() string {
 	switch d.Type {
 	case DiffLineAdd:

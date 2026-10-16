@@ -454,7 +454,7 @@
 				<div class="timeline-item event code-comments-list">
 					{{range $filename, $lines := .Review.CodeComments}}
 						{{range $line, $comms := $lines}}
-							{{template "repo/issue/view_content/conversation" dict "." $ "comments" $comms}}
+							{{template "repo/issue/view_content/conversation" dict "comments" $comms}}
 						{{end}}
 					{{end}}
 				</div>
@@ -553,7 +553,7 @@
 				{{end}}
 			</div>
 			{{if not .IsForcePush}}
-				{{template "repo/commits_list_small" dict "comment" . "root" $}}
+				{{template "repo/commits_list_small" dict "comment" $comment}}
 			{{end}}
 		{{else if eq .Type 30}}
 			<div class="timeline-item event" id="{{.HashTag}}">
