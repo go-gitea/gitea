@@ -52,7 +52,7 @@ func naturalSortTrimZeros(num string) string {
 }
 
 // NaturalSortCompare compares two strings so that they could be sorted in natural order
-func NaturalSortCompare(s1, s2 string) int {
+func NaturalSortCompare(s1, s2 string) (ret int) {
 	// There is a bug in Golang's collate package: https://github.com/golang/go/issues/67997
 	// text/collate: CompareString(collate.Numeric) returns wrong result for "0.0" vs "1.0" #67997
 	// So we need to handle the number parts by ourselves
@@ -71,7 +71,7 @@ func NaturalSortCompare(s1, s2 string) int {
 				if cmp := strings.Compare(num1, num2); cmp != 0 {
 					return cmp // equal digit count, so byte order is numeric order
 				}
-				return len(part1) - len(part2) // equal value, fewer leading zeros sorts first
+				ret = len(part1) - len(part2) // equal value, fewer leading zeros sorts first
 			}
 		} else {
 			if cmp := c.CompareString(part1, part2); cmp != 0 {
@@ -79,6 +79,9 @@ func NaturalSortCompare(s1, s2 string) int {
 			}
 		}
 		pos1, pos2 = end1, end2
+	}
+	if ret != 0 {
+		return ret
 	}
 	return len(s1) - len(s2)
 }
