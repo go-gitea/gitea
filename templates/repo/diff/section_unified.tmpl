@@ -1,7 +1,7 @@
-{{$file := .file}}
+{{$file := $.file}}
 {{/* this tmpl is also used by the PR Conversation page, so "DiffBlobExcerptData" may not exist */}}
-{{$diffBlobExcerptData := $.root.DiffBlobExcerptData}}
-{{$canAddComment := and $.root.SignedUserID (or $.root.PageIsPullFiles $.root.CanCommentOnCommit) (not $.root.Repository.IsArchived)}}
+{{$diffBlobExcerptData := ctx.RootData.DiffBlobExcerptData}}
+{{$canAddComment := and ctx.RootData.SignedUserID (or $diffBlobExcerptData.PullIssueIndex ctx.RootData.CanCommentOnCommit)}}
 <colgroup>
 	<col width="50">
 	<col width="50">
@@ -9,10 +9,10 @@
 	<col width="10">
 	<col>
 </colgroup>
-{{range $j, $section := $file.Sections}}
-	{{range $k, $line := $section.Lines}}
-		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
-			{{if eq .GetType 4}}
+{{range $section := $file.Sections}}
+	{{range $line := $section.Lines}}
+		<tr class="{{$line.GetHTMLDiffLineType}}-code" data-line-type="{{$line.GetHTMLDiffLineType}}">
+			{{if $line.IsDiffLineSection}}
 				{{if $diffBlobExcerptData}}
 					<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $file.NameHash $diffBlobExcerptData}}</td>
 				{{else}}
@@ -28,7 +28,7 @@
 				{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}
 			</td>
 			<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
-			{{if eq .GetType 4}}
+			{{if $line.IsDiffLineSection}}
 				<td class="chroma lines-code blob-hunk">{{template "repo/diff/section_code" dict "diff" $inlineDiff}}</td>
 			{{else}}
 				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
@@ -42,9 +42,9 @@
 			{{end}}
 		</tr>
 		{{if $line.Comments}}
-			<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+			<tr class="add-comment" data-line-type="{{$line.GetHTMLDiffLineType}}">
 				<td class="add-comment-left add-comment-right" colspan="5">
-					{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
+					{{template "repo/diff/conversation" dict "comments" $line.Comments}}
 				</td>
 			</tr>
 		{{end}}

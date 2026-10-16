@@ -42,13 +42,13 @@ export function initRepository() {
   registerGlobalInitFunc('initRepoPullRequestUpdate', initRepoPullRequestUpdate);
   registerGlobalInitFunc('initRepoCitationPanel', initRepoCitationPanel);
 
+  // TODO: need to refactor more legacy if-querySelector-based "init" code to "data-global-xxx" framework in the future.
   const pageContent = document.querySelector('.page-content.repository');
   if (!pageContent) return;
 
   initRepoBranchTagSelector();
   initRepoCommentFormAndSidebar();
 
-  // Labels
   initCompLabelEdit('.page-content.repository.labels');
   initRepoMilestone();
   initRepoNew();
@@ -57,15 +57,11 @@ export function initRepository() {
   initRepoSettings();
   initRepoIssueWipNewTitle();
 
-  // conversations exist on the issue/PR pages and on the commit diff, so these
-  // delegated handlers follow the markup rather than a page class
+  initRepoIssueCommentEdit();
   initRepoIssueCommentDelete();
   initRepoIssueCodeCommentCancel();
 
-  // Issues
   if (pageContent.matches('.page-content.repository.view.issue')) {
-    initRepoIssueCommentEdit();
-
     initRepoIssueTitleEdit();
     initRepoIssueWipToggle();
     initRepoIssueComments();

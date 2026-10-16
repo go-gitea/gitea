@@ -67,7 +67,7 @@ func TestCommitInlineComment(t *testing.T) {
 	t.Run("DeleteFollowsPosterOrAdmin", func(t *testing.T) {
 		deleteButtons := func(user string) int {
 			resp := loginUser(t, user).MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/commit/"+rootSHA), http.StatusOK)
-			return NewHTMLParser(t, resp.Body).Find(".comment-code-cloud .delete-comment").Length()
+			return NewHTMLParser(t, resp.Body).Find(`.comment-code-cloud [data-global-click="onConvContentDelete"]`).Length()
 		}
 		assert.Equal(t, 2, deleteButtons("user2"), "the poster deletes their own comments")
 		assert.Equal(t, 2, deleteButtons("user1"), "an admin deletes anyone's comments")
@@ -172,8 +172,11 @@ func TestCommitInlineCommentOnExpandedContext(t *testing.T) {
 		// comments on the new side, in both columns of the split view.
 		require.Contains(t, excerptURL, "style=unified")
 		splitBody := session.MakeRequest(t, NewRequest(t, "GET", strings.Replace(excerptURL, "style=unified", "style=split", 1)), http.StatusOK).Body.String()
-		assert.Contains(t, splitBody, "add-code-comment-right")
-		assert.NotContains(t, splitBody, "add-code-comment-left")
+		sides := regexp.MustCompile(`add-code-comment[^"]*" data-side="(\w+)"`).FindAllStringSubmatch(splitBody, -1)
+		require.NotEmpty(t, sides)
+		for _, side := range sides {
+			assert.Equal(t, "right", side[1])
+		}
 	})
 }
 
