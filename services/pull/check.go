@@ -29,6 +29,7 @@ import (
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/automergequeue"
 )
@@ -313,8 +314,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	cmd := gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(prHeadRef, pr.BaseBranch)
 	if err := cmd.WithRepo(pr.BaseRepo).RunWithStderr(ctx); err != nil {
 		if gitcmd.IsErrorExitCode(err, 1) {
-			// prHeadRef is not an ancestor of the base branch
-			return nil, nil //nolint:nilnil // return nil to indicate that the PR head is not merged
+			return nil, util.ErrNotExist // prHeadRef is not an ancestor of the base branch, no merge commit is found
 		}
 		// Errors are signaled by a non-zero status that is not 1
 		return nil, fmt.Errorf("%-v git merge-base --is-ancestor: %w", pr, err)
@@ -328,7 +328,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 		return nil, fmt.Errorf("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
 	}
 	if prHeadCommitID == pr.MergeBase {
-		return nil, nil //nolint:nilnil // empty PR; also skips a fast-forwarded PR whose merge base was already refreshed
+		return nil, util.ErrNotExist // empty PR, no merge commit is found
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
@@ -409,10 +409,7 @@ func manuallyMergedByPushedCommit(ctx context.Context, pr *issues_model.PullRequ
 	if err != nil {
 		log.Error("%-v getMergeCommit: %v", pr, err)
 		return false
-	}
-
-	if commit == nil {
-		// no merge commit found
+	} else if errors.Is(err, util.ErrNotExist) {
 		return false
 	}
 
