@@ -387,7 +387,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	// follow GitHub's behavior: autofill the form and expand
 	newPrFormTitle := ctx.FormTrim("title")
 	newPrFormBody := ctx.FormTrim("body")
-	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand") || ctx.FormBool("quick_pull") || newPrFormTitle != "" || newPrFormBody != "" || ctx.FormString("assignee") != ""
+	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand") || ctx.FormBool("quick_pull") || newPrFormTitle != "" || newPrFormBody != "" || hasIssuePrefillQuery(ctx)
 	ctx.Data["TitleQuery"] = newPrFormTitle
 	ctx.Data["BodyQuery"] = newPrFormBody
 
@@ -623,7 +623,7 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 
 		if !cpi.nothingToCompare {
 			// Setup information for new form.
-			pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, true)
+			pageMetaData := retrieveRepoIssueMetaDataWithPrefill(ctx, ctx.Repo.Repository, true)
 			if ctx.Written() {
 				return
 			}
@@ -631,7 +631,6 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 			if len(templateErrs) > 0 {
 				ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
 			}
-			pageMetaData.setSelectedAssigneesFromQuery(ctx)
 		}
 	}
 	beforeCommitID := cpi.compareInfo.CompareBase

@@ -4,6 +4,8 @@
 package repo
 
 import (
+	"html/template"
+	"net/url"
 	"slices"
 	"sort"
 	"strconv"
@@ -127,6 +129,35 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 	}
 
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, isPull)
+	return data
+}
+
+// issuePrefillQueryKeys are the query parameters shared by the issue list filters and the new issue and pull request forms
+var issuePrefillQueryKeys = []string{"labels", "milestone", "project", "assignee"}
+
+func hasIssuePrefillQuery(ctx *context.Context) bool {
+	return slices.ContainsFunc(issuePrefillQueryKeys, func(key string) bool { return ctx.FormString(key) != "" })
+}
+
+func issuePrefillQuery(ctx *context.Context) template.URL {
+	query := url.Values{}
+	for _, key := range issuePrefillQueryKeys {
+		if value := ctx.FormString(key); value != "" {
+			query.Set(key, value)
+		}
+	}
+	return template.URL(query.Encode())
+}
+
+func retrieveRepoIssueMetaDataWithPrefill(ctx *context.Context, repo *repo_model.Repository, isPull bool) *IssuePageMetaData {
+	data := retrieveRepoIssueMetaData(ctx, repo, nil, isPull)
+	if ctx.Written() {
+		return data
+	}
+	data.LabelsData.SetSelectedLabelIDs(ctx.FormStringInt64s("labels"))
+	data.MilestonesData.SelectedMilestoneID = ctx.FormInt64("milestone")
+	data.SetSelectedProjectIDs(parseProjectIDsFromQuery(ctx))
+	data.setSelectedAssigneesFromQuery(ctx)
 	return data
 }
 
