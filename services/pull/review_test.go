@@ -57,14 +57,15 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 6})
 	require.NoError(t, pr.LoadBaseRepo(ctx))
 
-	// "old 10" was last changed by the first commit (line 10), it is line 15 in the merge base and line 17 in the PR head
 	numberedLines := func(prefix string, count int) string {
 		var sb strings.Builder
 		for i := range count {
-			fmt.Fprintf(&sb, "%s %d\n", prefix, i+1)
+			_, _ = fmt.Fprintf(&sb, "%s %d\n", prefix, i+1)
 		}
 		return sb.String()
 	}
+
+	// "old 10" was last changed by the first commit (line 10), it is line 15 in the merge base and line 17 in the PR head
 	const treePath = "unchanged-line.txt"
 	oldLines := numberedLines("old", 20)
 	baseLines := numberedLines("base", 5) + oldLines
@@ -80,6 +81,7 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
+
 	headCommit, err := gitRepo.GetCommit(ctx, headRef)
 	require.NoError(t, err)
 	mergeBase, err := headCommit.ParentID(0)
