@@ -881,15 +881,15 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 }
 
 func rpmHeaderAndSignature(content []byte) (header, signature []byte) {
-	sigIndexCount, sigDataSize := binary.BigEndian.Uint32(content[96+8:]), binary.BigEndian.Uint32(content[96+12:])
-	sigStore := content[96+16+sigIndexCount*16:]
-	for i := range sigIndexCount {
-		entry := content[96+16+i*16:]
-		if binary.BigEndian.Uint32(entry) == 268 {
+	const leadSize, introSize, indexEntrySize, sigTagRSA = 96, 16, 16, 268
+	sigHeader := content[leadSize:]
+	sigIndex := sigHeader[introSize : introSize+binary.BigEndian.Uint32(sigHeader[8:])*indexEntrySize]
+	sigStore := sigHeader[introSize+len(sigIndex):]
+	for entry := range slices.Chunk(sigIndex, indexEntrySize) {
+		if binary.BigEndian.Uint32(entry) == sigTagRSA {
 			signature = sigStore[binary.BigEndian.Uint32(entry[8:]):][:binary.BigEndian.Uint32(entry[12:])]
 		}
 	}
-	headerStart := 96 + 16 + sigIndexCount*16 + (sigDataSize+7)/8*8
-	indexCount, dataSize := binary.BigEndian.Uint32(content[headerStart+8:]), binary.BigEndian.Uint32(content[headerStart+12:])
-	return content[headerStart : headerStart+16+indexCount*16+dataSize], signature
+	header = sigStore[(binary.BigEndian.Uint32(sigHeader[12:])+7)/8*8:]
+	return header[:introSize+binary.BigEndian.Uint32(header[8:])*indexEntrySize+binary.BigEndian.Uint32(header[12:])], signature
 }

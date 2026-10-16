@@ -9,7 +9,6 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// ErrContentTooLarge is returned when content read from an upload exceeds its size limit
 var ErrContentTooLarge = util.NewInvalidArgumentErrorf("content exceeds the size limit")
 
 const MaxMetadataSize = 32 * 1024 * 1024

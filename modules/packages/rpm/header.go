@@ -18,19 +18,21 @@ import (
 )
 
 // https://rpm-software-management.github.io/rpm/manual/format_v4.html
-// TODO: replace this reader with go-rpmutils once https://github.com/sassoftware/go-rpmutils/pull/44 is released
+// TODO: replace this reader and SignPackage with go-rpmutils once https://github.com/sassoftware/go-rpmutils/pull/44 is released
 
 var ErrInvalidPackage = util.NewInvalidArgumentErrorf("invalid RPM package")
 
 const (
-	leadSize         = 96
-	leadMagic        = 0xedabeedb
-	headerMagic      = 0x8eade801
-	headerIntroSize  = 16
-	indexEntrySize   = 16
-	maxHeaderEntries = 0xffff     // rpmlib's hdrchkTags
-	maxHeaderData    = 0x0fffffff // rpmlib's hdrchkData
-	maxRegionTag     = 63
+	leadSize            = 96
+	leadMagic           = 0xedabeedb
+	headerMagic         = 0x8eade801
+	headerIntroSize     = 16
+	indexEntrySize      = 16
+	maxHeaderEntries    = 0xffff // rpmlib's hdrblobVerifyLengths limits
+	maxHeaderData       = 0x0fffffff
+	maxSignatureEntries = 32
+	maxSignatureData    = 64 * 1024 * 1024
+	maxRegionTag        = 63
 )
 
 const (
@@ -49,43 +51,45 @@ const (
 var typeSizes = map[uint32]int{typeNull: 0, typeChar: 1, typeInt8: 1, typeInt16: 2, typeInt32: 4, typeInt64: 8, typeBin: 1}
 
 const (
-	tagName            = 1000
-	tagVersion         = 1001
-	tagRelease         = 1002
-	tagEpoch           = 1003
-	tagSummary         = 1004
-	tagDescription     = 1005
-	tagBuildTime       = 1006
-	tagBuildHost       = 1007
-	tagSize            = 1009
-	tagVendor          = 1011
-	tagLicense         = 1014
-	tagPackager        = 1015
-	tagGroup           = 1016
-	tagURL             = 1020
-	tagArch            = 1022
-	tagFileModes       = 1030
-	tagFileMTimes      = 1034
-	tagFileFlags       = 1037
-	tagSourceRpm       = 1044
-	tagProvideName     = 1047
-	tagRequireFlags    = 1048
-	tagRequireName     = 1049
-	tagRequireVersion  = 1050
-	tagConflictFlags   = 1053
-	tagConflictName    = 1054
-	tagConflictVersion = 1055
-	tagChangelogTime   = 1080
-	tagChangelogName   = 1081
-	tagChangelogText   = 1082
-	tagObsoleteName    = 1090
-	tagProvideFlags    = 1112
-	tagProvideVersion  = 1113
-	tagObsoleteFlags   = 1114
-	tagObsoleteVersion = 1115
-	tagDirIndexes      = 1116
-	tagBaseNames       = 1117
-	tagDirNames        = 1118
+	tagName              = 1000
+	tagVersion           = 1001
+	tagRelease           = 1002
+	tagEpoch             = 1003
+	tagSummary           = 1004
+	tagDescription       = 1005
+	tagBuildTime         = 1006
+	tagBuildHost         = 1007
+	tagSize              = 1009
+	tagVendor            = 1011
+	tagLicense           = 1014
+	tagPackager          = 1015
+	tagGroup             = 1016
+	tagURL               = 1020
+	tagArch              = 1022
+	tagFileModes         = 1030
+	tagFileMTimes        = 1034
+	tagFileFlags         = 1037
+	tagSourceRpm         = 1044
+	tagProvideName       = 1047
+	tagRequireFlags      = 1048
+	tagRequireName       = 1049
+	tagRequireVersion    = 1050
+	tagConflictFlags     = 1053
+	tagConflictName      = 1054
+	tagConflictVersion   = 1055
+	tagChangelogTime     = 1080
+	tagChangelogName     = 1081
+	tagChangelogText     = 1082
+	tagObsoleteName      = 1090
+	tagProvideFlags      = 1112
+	tagProvideVersion    = 1113
+	tagObsoleteFlags     = 1114
+	tagObsoleteVersion   = 1115
+	tagDirIndexes        = 1116
+	tagBaseNames         = 1117
+	tagDirNames          = 1118
+	tagPayloadDigest     = 5092
+	tagPayloadDigestAlgo = 5093
 
 	sigTagRegion        = 62
 	sigTagDSA           = 267
@@ -93,6 +97,7 @@ const (
 	sigTagSHA1          = 269
 	sigTagSHA256        = 273
 	sigTagPGP           = 1002
+	sigTagMD5           = 1004
 	sigTagGPG           = 1005
 	sigTagPayloadSize   = 1007
 	sigTagReservedSpace = 1008
@@ -109,22 +114,19 @@ type header struct {
 }
 
 // readHeader validates the index like rpmlib's hdrblobVerifyInfo, so data is only allocated as it is read
-func readHeader(r io.Reader) (*header, error) {
+func readHeader(r io.Reader, maxEntries, maxData uint32) (*header, error) {
 	intro := make([]byte, headerIntroSize)
 	if _, err := io.ReadFull(r, intro); err != nil {
 		return nil, err
 	}
 	indexCount, dataSize := binary.BigEndian.Uint32(intro[8:]), binary.BigEndian.Uint32(intro[12:])
-	if binary.BigEndian.Uint32(intro) != headerMagic || indexCount > maxHeaderEntries || dataSize > maxHeaderData {
+	if binary.BigEndian.Uint32(intro) != headerMagic || indexCount > maxEntries || dataSize > maxData {
 		return nil, ErrInvalidPackage
 	}
 	size := headerIntroSize + int64(indexCount)*indexEntrySize + int64(dataSize)
 	buf := bytes.NewBuffer(intro)
-	if _, err := buf.ReadFrom(io.LimitReader(r, size-headerIntroSize)); err != nil {
+	if _, err := io.CopyN(buf, r, size-headerIntroSize); err != nil {
 		return nil, err
-	}
-	if int64(buf.Len()) != size {
-		return nil, io.ErrUnexpectedEOF
 	}
 
 	h := &header{raw: buf.Bytes(), entries: make(map[uint32]headerEntry, indexCount)}
@@ -172,7 +174,6 @@ func dataLength(typ, count uint32, data []byte) (int, bool) {
 	return int(n), ok && n <= int64(len(data))
 }
 
-// readHeaders reads the lead and both headers, rejecting a header that doesn't match the digest in the signature header
 func readHeaders(r io.Reader) (lead []byte, sig, hdr *header, err error) {
 	defer func() {
 		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
@@ -187,13 +188,13 @@ func readHeaders(r io.Reader) (lead []byte, sig, hdr *header, err error) {
 	if binary.BigEndian.Uint32(lead) != leadMagic {
 		return nil, nil, nil, ErrInvalidPackage
 	}
-	if sig, err = readHeader(r); err != nil {
+	if sig, err = readHeader(r, maxSignatureEntries, maxSignatureData); err != nil {
 		return nil, nil, nil, err
 	}
 	if _, err := io.CopyN(io.Discard, r, int64(signaturePadding(len(sig.raw)))); err != nil {
 		return nil, nil, nil, err
 	}
-	if hdr, err = readHeader(r); err != nil {
+	if hdr, err = readHeader(r, maxHeaderEntries, maxHeaderData); err != nil {
 		return nil, nil, nil, err
 	}
 
@@ -209,17 +210,16 @@ func readHeaders(r io.Reader) (lead []byte, sig, hdr *header, err error) {
 	return lead, sig, hdr, nil
 }
 
-// signaturePadding aligns the header following the signature header to 8 bytes
 func signaturePadding(size int) int {
 	return (8 - size%8) % 8
 }
 
 func (h *header) getStrings(tag uint32) []string {
-	e, ok := h.entries[tag]
-	if !ok || e.count == 0 || (e.typ != typeString && e.typ != typeStringArray && e.typ != typeI18NString) {
+	entry := h.entries[tag]
+	if entry.count == 0 || (entry.typ != typeString && entry.typ != typeStringArray && entry.typ != typeI18NString) {
 		return nil
 	}
-	return strings.Split(string(e.data[:len(e.data)-1]), "\x00")
+	return strings.Split(string(entry.data[:len(entry.data)-1]), "\x00")
 }
 
 func (h *header) getString(tag uint32) string {
@@ -230,12 +230,12 @@ func (h *header) getString(tag uint32) string {
 }
 
 func (h *header) getUints(tag uint32) []uint64 {
-	e, ok := h.entries[tag]
-	if !ok || e.typ < typeChar || e.typ > typeInt64 {
+	entry := h.entries[tag]
+	if entry.typ < typeChar || entry.typ > typeInt64 {
 		return nil
 	}
-	values := make([]uint64, 0, e.count)
-	for chunk := range slices.Chunk(e.data, typeSizes[e.typ]) {
+	values := make([]uint64, 0, entry.count)
+	for chunk := range slices.Chunk(entry.data, typeSizes[entry.typ]) {
 		switch len(chunk) {
 		case 1:
 			values = append(values, uint64(chunk[0]))

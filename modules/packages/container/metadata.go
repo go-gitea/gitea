@@ -4,6 +4,7 @@
 package container
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -97,7 +98,7 @@ func ParseImageConfig(mediaType string, r io.Reader) (*Metadata, error) {
 	// FIXME: this fallback is not right, we should strictly check the media type in the future
 	metadata, err := parseOCIImageConfig(r)
 	if err != nil {
-		if !IsMediaTypeImageManifest(mediaType) {
+		if !IsMediaTypeImageManifest(mediaType) && !errors.Is(err, packages.ErrContentTooLarge) {
 			return &Metadata{Platform: "unknown/unknown"}, nil
 		}
 		return nil, err

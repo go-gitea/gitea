@@ -162,12 +162,12 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 			return nil, ErrManifestFileTooLarge
 		}
 
-		f, err := zr.Open(file.Name)
+		f, err := file.Open()
 		if err != nil {
 			return nil, err
 		}
 
-		content, err := io.ReadAll(packages.NewLimitedReader(f, maxManifestFileSize))
+		content, err := io.ReadAll(f)
 
 		if err := f.Close(); err != nil {
 			return nil, err
