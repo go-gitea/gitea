@@ -35,8 +35,8 @@ type ContributorData struct {
 	Weeks        map[int64]*WeekData `json:"weeks"`
 }
 
-// ensureContributorStats queues the generation of the contributor stats of a repository if they were never generated
-func ensureContributorStats(ctx context.Context, repo *repo_model.Repository) error {
+// EnsureContributorStats queues the generation of the contributor stats of a repository if they were never generated
+func EnsureContributorStats(ctx context.Context, repo *repo_model.Repository) error {
 	if repo.IsEmpty {
 		return nil
 	}
@@ -53,11 +53,8 @@ func ensureContributorStats(ctx context.Context, repo *repo_model.Repository) er
 	return ErrAwaitGeneration
 }
 
-// FindRepoContributors returns the contributors of a repository with their users loaded, most commits first
+// FindRepoContributors returns the generated contributors of a repository with their users loaded, most commits first
 func FindRepoContributors(ctx context.Context, repo *repo_model.Repository, opts repo_model.FindRepoContributorsOptions) (repo_model.RepoContributorList, int64, error) {
-	if err := ensureContributorStats(ctx, repo); err != nil {
-		return nil, 0, err
-	}
 	opts.RepoID = repo.ID
 	contributors, total, err := db.FindAndCount[repo_model.RepoContributor](ctx, opts)
 	if err != nil {
@@ -68,6 +65,9 @@ func FindRepoContributors(ctx context.Context, repo *repo_model.Repository, opts
 
 // GetContributorStats returns the weekly stats of the default branch contributors keyed by email, and their sum keyed by "total"
 func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[string]*ContributorData, error) {
+	if err := EnsureContributorStats(ctx, repo); err != nil {
+		return nil, err
+	}
 	contributors, _, err := FindRepoContributors(ctx, repo, repo_model.FindRepoContributorsOptions{ListOptions: db.ListOptionsAll})
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 
 // GetWeeklyTotals returns the stats of all default branch contributors summed up per week
 func GetWeeklyTotals(ctx context.Context, repo *repo_model.Repository) (map[int64]*WeekData, error) {
-	if err := ensureContributorStats(ctx, repo); err != nil {
+	if err := EnsureContributorStats(ctx, repo); err != nil {
 		return nil, err
 	}
 	return getWeeklyTotals(ctx, repo)

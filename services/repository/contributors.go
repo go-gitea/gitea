@@ -60,62 +60,74 @@ func AddRepoToContributorsQueue(repoID int64) error {
 // UpdateRepoContributors brings the contributor stats of a repository up to date with its default branch.
 // Commits added on top of the last counted commit are added to the stats, otherwise all commits are counted again.
 func UpdateRepoContributors(ctx context.Context, repoID int64) error {
-	return globallock.LockAndDo(ctx, fmt.Sprintf("repo_contributors_%d", repoID), func(ctx context.Context) error {
-		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-		if repo_model.IsErrRepoNotExist(err) {
-			return nil
-		} else if err != nil {
+	for {
+		var updated bool
+		// a running update isn't waited for, so it checks again for pushes made meanwhile once it is done
+		locked, err := globallock.TryLockAndDo(ctx, fmt.Sprintf("repo_contributors_%d", repoID), func(ctx context.Context) (err error) {
+			updated, err = updateRepoContributors(ctx, repoID)
 			return err
-		}
-		if repo.IsEmpty {
-			return nil
-		}
-
-		ctx, _, finished := process.GetManager().AddContext(ctx, "UpdateRepoContributors: "+repo.FullName())
-		defer finished()
-
-		gitRepo, err := git.OpenRepository(ctx, repo)
-		if err != nil {
-			return err
-		}
-		defer gitRepo.Close()
-
-		head, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
-		if err != nil {
-			return err
-		}
-		headID := head.ID.String()
-		status, err := repo_model.GetIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeContributors)
-		if err != nil {
-			return err
-		}
-		if status.CommitSha == headID {
-			return nil
-		}
-
-		revision, incremental := headID, false
-		if status.CommitSha != "" {
-			// an error means the counted commit is gone, so the history was rewritten too
-			if isForcePush, err := head.IsForcePush(ctx, gitRepo, status.CommitSha); err == nil && !isForcePush {
-				revision, incremental = status.CommitSha+".."+headID, true
-			}
-		}
-
-		contributors, weeks, err := collectContributorStats(ctx, gitRepo, repo.ID, revision)
-		if err != nil {
-			return err
-		}
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			if incremental {
-				err = repo_model.AddRepoContributors(ctx, contributors, weeks)
-			} else {
-				err = repo_model.ReplaceRepoContributors(ctx, repo.ID, contributors, weeks)
-			}
-			if err != nil {
-				return err
-			}
-			return repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeContributors, headID)
 		})
+		if err != nil || !locked || !updated {
+			return err
+		}
+	}
+}
+
+func updateRepoContributors(ctx context.Context, repoID int64) (bool, error) {
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if repo_model.IsErrRepoNotExist(err) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	if repo.IsEmpty {
+		return false, nil
+	}
+
+	ctx, _, finished := process.GetManager().AddContext(ctx, "UpdateRepoContributors: "+repo.FullName())
+	defer finished()
+
+	gitRepo, err := git.OpenRepository(ctx, repo)
+	if err != nil {
+		return false, err
+	}
+	defer gitRepo.Close()
+
+	head, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
+	if err != nil {
+		return false, err
+	}
+	headID := head.ID.String()
+	status, err := repo_model.GetIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeContributors)
+	if err != nil {
+		return false, err
+	}
+	if status.CommitSha == headID {
+		return false, nil
+	}
+
+	revision, incremental := headID, false
+	if status.CommitSha != "" {
+		// an error means the counted commit is gone, so the history was rewritten too
+		if isForcePush, err := head.IsForcePush(ctx, gitRepo, status.CommitSha); err == nil && !isForcePush {
+			revision, incremental = status.CommitSha+".."+headID, true
+		}
+	}
+
+	contributors, weeks, err := collectContributorStats(ctx, gitRepo, repo.ID, revision)
+	if err != nil {
+		return false, err
+	}
+	return true, db.WithTx(ctx, func(ctx context.Context) error {
+		if incremental {
+			err = repo_model.AddRepoContributors(ctx, contributors, weeks)
+		} else {
+			err = repo_model.ReplaceRepoContributors(ctx, repo.ID, contributors, weeks)
+		}
+		if err != nil {
+			return err
+		}
+		return repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeContributors, headID)
 	})
 }
 

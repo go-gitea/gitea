@@ -201,13 +201,12 @@ func prepareHomeSidebarLanguageStats(ctx *context.Context) {
 }
 
 func prepareHomeSidebarContributors(ctx *context.Context) {
+	// doesn't queue generating the stats, otherwise crawlers would trigger that for every repository
 	contributors, total, err := repo_service.FindRepoContributors(ctx, ctx.Repo.Repository, repo_model.FindRepoContributorsOptions{
 		ListOptions: db.ListOptions{Page: 1, PageSize: 14},
 	})
 	if err != nil {
-		if !errors.Is(err, repo_service.ErrAwaitGeneration) {
-			log.Error("FindRepoContributors: %v", err)
-		}
+		log.Error("FindRepoContributors: %v", err)
 		return
 	}
 	ctx.Data["TopContributors"] = contributors

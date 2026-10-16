@@ -4,12 +4,14 @@
 package repository
 
 import (
+	"fmt"
 	"testing"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/globallock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,5 +83,17 @@ func TestUpdateRepoContributors(t *testing.T) {
 
 		require.NoError(t, UpdateRepoContributors(t.Context(), repoID))
 		assertStats(t, countedContributors)
+	})
+
+	t.Run("Locked", func(t *testing.T) {
+		setStats(t, parentID, nil, nil)
+		release, err := globallock.Lock(t.Context(), fmt.Sprintf("repo_contributors_%d", repoID))
+		require.NoError(t, err)
+		defer release()
+
+		require.NoError(t, UpdateRepoContributors(t.Context(), repoID))
+		status, err := repo_model.GetIndexerStatus(t.Context(), repo, repo_model.RepoIndexerTypeContributors)
+		require.NoError(t, err)
+		assert.Equal(t, parentID, status.CommitSha)
 	})
 }

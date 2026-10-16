@@ -60,8 +60,10 @@ func testViewRepoSidebarContributors(t *testing.T) {
 		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo16"), http.StatusOK)
 		return NewHTMLParser(t, resp.Body).doc.Find(`.repo-home-sidebar-bottom a[href="/user2/repo16/activity/contributors"]`)
 	}
-	// the first view queues the counting, which the test queues run right away
+	// viewing the repository doesn't queue the counting, the contributors graph does and the test queues run it right away
+	findContributors()
 	assert.Zero(t, findContributors().Length())
+	session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo16/activity/contributors/data"), http.StatusAccepted)
 
 	header := findContributors().Parent()
 	assert.Equal(t, "2", strings.TrimSpace(header.Find(".ui.label").Text()))

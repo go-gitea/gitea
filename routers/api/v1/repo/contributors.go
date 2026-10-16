@@ -53,14 +53,18 @@ func ListContributors(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	if err := repo_service.EnsureContributorStats(ctx, ctx.Repo.Repository); errors.Is(err, repo_service.ErrAwaitGeneration) {
+		ctx.Status(http.StatusAccepted)
+		return
+	} else if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 	contributors, total, err := repo_service.FindRepoContributors(ctx, ctx.Repo.Repository, repo_model.FindRepoContributorsOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		OnlyUsers:   !ctx.FormBool("anon"),
 	})
-	if errors.Is(err, repo_service.ErrAwaitGeneration) {
-		ctx.Status(http.StatusAccepted)
-		return
-	} else if err != nil {
+	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
