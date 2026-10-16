@@ -327,6 +327,9 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	if err != nil {
 		return nil, fmt.Errorf("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
 	}
+	if prHeadCommitID == pr.MergeBase {
+		return nil, nil //nolint:nilnil // empty PR; also skips a fast-forwarded PR whose merge base was already refreshed
+	}
 
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
