@@ -406,10 +406,10 @@ func manuallyMergedByPushedCommit(ctx context.Context, pr *issues_model.PullRequ
 	}
 
 	commit, err := getMergeCommit(ctx, pr)
-	if err != nil {
-		log.Error("%-v getMergeCommit: %v", pr, err)
+	if errors.Is(err, util.ErrNotExist) {
 		return false
-	} else if errors.Is(err, util.ErrNotExist) {
+	} else if err != nil {
+		log.Error("%-v getMergeCommit: %v", pr, err)
 		return false
 	}
 
