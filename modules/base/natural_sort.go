@@ -70,7 +70,7 @@ func NaturalSortCompare(s1, s2 string) (ret int) {
 				}
 				if cmp := strings.Compare(num1, num2); cmp != 0 {
 					return cmp // equal digit count, so byte order is numeric order
-				} // else: equal value, fewer leading zeros sorts first, leave it to the outer return
+				} // else: naturally equal value, leave it to the outer return
 			}
 		} else {
 			if cmp := c.CompareString(part1, part2); cmp != 0 {
