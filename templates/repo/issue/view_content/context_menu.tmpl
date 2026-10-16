@@ -42,7 +42,7 @@
 						<div class="item js-aria-clickable" data-global-click="onConvContentEdit">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
 					{{end}}
 					{{if $canDelete}}
-						<div class="item js-aria-clickable" data-global-click="onConvContentDelete" data-comment-id={{$item.HashTag}} data-url="{{$deleteURL}}" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+						<div class="item js-aria-clickable" data-global-click="onConvContentDelete" data-comment-hash-tag={{$item.HashTag}} data-url="{{$deleteURL}}" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
 					{{end}}
 				{{end}}
 			{{end}}
