@@ -16,7 +16,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-const issueIndexerLatestVersion = 3
+const issueIndexerLatestVersion = 4
 
 var _ internal.Indexer = &Indexer{}
 
@@ -57,7 +57,8 @@ const (
 			"project_ids": { "type": "integer", "index": true },
 			"no_project": { "type": "boolean", "index": true },
 			"poster_id": { "type": "integer", "index": true },
-			"assignee_id": { "type": "integer", "index": true },
+			"assignee_ids": { "type": "integer", "index": true },
+			"no_assignee": { "type": "boolean", "index": true },
 			"mention_ids": { "type": "integer", "index": true },
 			"reviewed_ids": { "type": "integer", "index": true },
 			"review_requested_ids": { "type": "integer", "index": true },
@@ -177,14 +178,15 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(es.TermQuery("poster_id", posterIDInt64))
 	}
 
-	if options.AssigneeID != "" {
-		if options.AssigneeID == "(any)" {
-			query.Must(es.NewRangeQuery("assignee_id").Gte(1))
-		} else {
-			// "(none)" becomes 0, it means no assignee
-			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
-			query.Must(es.TermQuery("assignee_id", assigneeIDInt64))
-		}
+	switch options.AssigneeID {
+	case "":
+	case "(any)":
+		query.Must(es.TermQuery("no_assignee", false))
+	case "(none)":
+		query.Must(es.TermQuery("no_assignee", true))
+	default:
+		assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+		query.Must(es.TermQuery("assignee_ids", assigneeIDInt64))
 	}
 
 	if options.MentionID.Has() {

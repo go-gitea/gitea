@@ -13,9 +13,12 @@ type PushUpdateOptions struct {
 	PusherName   string
 	RepoUserName string
 	RepoName     string
-	RefFullName  git.RefName // branch, tag or other name to push
-	OldCommitID  string
-	NewCommitID  string
+
+	// FIXME: this struct's design is not right, the changed commits should be in a separate slice
+
+	RefFullName git.RefName // branch, tag or other name to push
+	OldCommitID string
+	NewCommitID string
 }
 
 // IsNewRef return true if it's a first-time push to a branch, tag or etc.

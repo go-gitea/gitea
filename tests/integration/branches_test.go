@@ -8,6 +8,10 @@ import (
 	"net/url"
 	"testing"
 
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/translation"
 	"gitea.dev/tests"
 
@@ -18,24 +22,49 @@ import (
 func TestViewBranches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	req := NewRequest(t, "GET", "/user2/repo1/branches")
 	resp := MakeRequest(t, req, http.StatusOK)
-
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	_, exists := htmlDoc.doc.Find(".delete-branch-button").Attr("data-url")
-	assert.False(t, exists, "The template has changed")
-}
+	AssertHTMLElement(t, htmlDoc, "[data-testid=branches-default-branch-list]", 1)
+	AssertHTMLElement(t, htmlDoc, "[data-testid=branches-default-branch-not-exist]", 0)
 
-func TestDeleteBranch(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	deleteBranch(t)
+	repo1.DefaultBranch = "non-existent-branch"
+	_, _ = db.GetEngine(t.Context()).ID(repo1.ID).Cols("default_branch").Update(repo1)
+	req = NewRequest(t, "GET", "/user2/repo1/branches")
+	resp = MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	AssertHTMLElement(t, htmlDoc, "[data-testid=branches-default-branch-list]", 0)
+	AssertHTMLElement(t, htmlDoc, "[data-testid=branches-default-branch-not-exist]", 1)
 }
 
 func TestUndoDeleteBranch(t *testing.T) {
+	branchAction := func(t *testing.T, button, attr string) (*HTMLDoc, string) {
+		session := loginUser(t, "user2")
+		req := NewRequest(t, "GET", "/user2/repo1/branches")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		link, exists := htmlDoc.doc.Find(button).Attr(attr)
+		require.True(t, exists, "The template has changed")
+		linkURL, err := url.Parse(link)
+		require.NoError(t, err)
+
+		req = NewRequest(t, "POST", link)
+		session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", "/user2/repo1/branches")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+
+		return NewHTMLParser(t, resp.Body), linkURL.Query().Get("name")
+	}
+
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		deleteBranch(t)
-		htmlDoc, name := branchAction(t, ".restore-branch-button")
+		htmlDoc, name := branchAction(t, ".delete-branch-button", "data-modal-form.url")
+		assert.Contains(t,
+			htmlDoc.doc.Find(".ui.positive.message").Text(),
+			translation.NewLocale("en-US").TrString("repo.branch.deletion_success", name),
+		)
+		htmlDoc, name = branchAction(t, ".restore-branch-button", "data-url")
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.positive.message").Text(),
 			translation.NewLocale("en-US").TrString("repo.branch.restore_success", name),
@@ -43,30 +72,38 @@ func TestUndoDeleteBranch(t *testing.T) {
 	})
 }
 
-func deleteBranch(t *testing.T) {
-	htmlDoc, name := branchAction(t, ".delete-branch-button")
-	assert.Contains(t,
-		htmlDoc.doc.Find(".ui.positive.message").Text(),
-		translation.NewLocale("en-US").TrString("repo.branch.deletion_success", name),
-	)
-}
+func TestDeleteProtectedBranchWeb(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		session := loginUser(t, "user2")
+		const branchURL = "/user2/repo1/branches/delete?name=branch2"
+		const deleteButton = `.delete-branch-button[data-modal-name="branch2"]`
+		testAPICreateBranchProtection(t, "branch2", 1, http.StatusCreated)
 
-func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user2/repo1/branches")
-	resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/branches"), http.StatusOK)
+		AssertHTMLElement(t, NewHTMLParser(t, resp.Body), deleteButton, 0)
+		session.MakeRequest(t, NewRequest(t, "POST", branchURL), http.StatusBadRequest)
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/branches/branch2"), http.StatusOK)
 
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find(button).Attr("data-url")
-	require.True(t, exists, "The template has changed")
+		testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
+			EnablePush:                 new(true),
+			EnableDeletion:             new(true),
+			EnableDeletionAllowlist:    new(true),
+			DeletionAllowlistUsernames: []string{"user2"},
+		}, http.StatusOK)
+		resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/branches"), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, htmlDoc, deleteButton, 1)
+		button := htmlDoc.doc.Find(deleteButton)
+		assert.Equal(t, "button", button.AttrOr("type", ""))
+		link, exists := button.Attr("data-modal-form.url")
+		require.True(t, exists)
+		resp = session.MakeRequest(t, NewRequest(t, "POST", link), http.StatusOK)
+		assert.JSONEq(t, `{"redirect":""}`, resp.Body.String())
+		testAPIGetBranch(t, "branch2", false)
 
-	req = NewRequest(t, "POST", link)
-	session.MakeRequest(t, req, http.StatusOK)
-
-	url, err := url.Parse(link)
-	assert.NoError(t, err)
-	req = NewRequest(t, "GET", "/user2/repo1/branches")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-
-	return NewHTMLParser(t, resp.Body), url.Query().Get("name")
+		resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/branches"), http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, htmlDoc, deleteButton, 0)
+		AssertHTMLElement(t, htmlDoc, `.restore-branch-button[data-url*="name=branch2"]`, 0)
+	})
 }

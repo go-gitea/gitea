@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -32,4 +33,42 @@ func TestFeedRepo(t *testing.T) {
 		assert.Equal(t, "issue5", rss.Channel.Items[0].Description)
 		assert.NotEmpty(t, rss.Channel.Items[0].PubDate)
 	})
+}
+
+// TestFeedRepoContentTokenScopes ensures repository feed endpoints enforce the
+// repository token scope, so a PAT without repository scope cannot read private
+// repository commit/activity data through RSS/Atom feeds.
+func TestFeedRepoContentTokenScopes(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user2/repo2 is a private repository owned by user2
+	ownerReadToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
+	miscToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadMisc)
+
+	urls := []string{
+		"/user2/repo2.rss",
+		"/user2/repo2.atom",
+		"/user2/repo2/rss/branch/master",
+		"/user2/repo2/atom/branch/master",
+		"/user2/repo2/rss/branch/master/README.md",
+		"/user2/repo2/tags.rss",
+		"/user2/repo2/tags.atom",
+		"/user2/repo2/releases.rss",
+		"/user2/repo2/releases.atom",
+	}
+
+	for _, url := range urls {
+		t.Run(url, func(t *testing.T) {
+			// feed routes only accept basic auth, so authenticate as the advisory PoC does (user:token)
+			reqDenied := NewRequest(t, "GET", url)
+			reqDenied.SetBasicAuth("user2", miscToken)
+			// a token without repository scope must be denied
+			MakeRequest(t, reqDenied, http.StatusForbidden)
+
+			reqAllowed := NewRequest(t, "GET", url)
+			reqAllowed.SetBasicAuth("user2", ownerReadToken)
+			// a token with repository read scope is allowed
+			MakeRequest(t, reqAllowed, http.StatusOK)
+		})
+	}
 }

@@ -4,10 +4,11 @@
 package integration
 
 import (
-	"os"
-	"path/filepath"
+	"net/http"
+	"net/http/httptest"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	activities_model "gitea.dev/models/activities"
@@ -18,10 +19,10 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	mirror_service "gitea.dev/services/mirror"
 	release_service "gitea.dev/services/release"
 	repo_service "gitea.dev/services/repository"
@@ -37,7 +38,7 @@ func TestMirrorPull(t *testing.T) {
 	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
+	repoPath := gitrepo.RepoLocalPath(repo)
 
 	opts := migration.MigrateOptions{
 		RepoName:    "test_mirror",
@@ -68,7 +69,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.True(t, slices.ContainsFunc(mirrorRepo.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unit.TypeReleases }))
 	assert.True(t, slices.ContainsFunc(mirrorRepo.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unit.TypeWiki }))
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -81,7 +82,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Zero(t, initCount) // no sync yet, so even though there is a tag in source repo, the mirror's release table is still empty
 
-	assert.NoError(t, release_service.CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, release_service.CreateRelease(ctx, gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -135,124 +136,34 @@ func TestMirrorPull(t *testing.T) {
 
 func TestMirrorPullForcePushBackupRefIsNotRestored(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Mirror.DefaultForcePushBackupLimit, 1)()
 
 	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	sourceRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	sourceRepoPath := repo_model.RepoPath(user.Name, sourceRepo.Name)
-	forcePushBackup := true
-	oldForcePushBackupLimit := setting.Mirror.DefaultForcePushBackupLimit
-	setting.Mirror.DefaultForcePushBackupLimit = 1
-	defer func() {
-		setting.Mirror.DefaultForcePushBackupLimit = oldForcePushBackupLimit
-	}()
+	f := newMirrorBackupFixture(t, "test_mirror_force_push_backup", true, true)
+	firstOID := f.commit(t, "first")
+	f.setRemoteRef(t, "refs/heads/main", firstOID)
+	require.True(t, mirror_service.SyncPullMirror(ctx, f.repo.ID))
 
-	opts := migration.MigrateOptions{
-		RepoName:        "test_mirror_force_push_backup",
-		Description:     "Test mirror force push backup",
-		Private:         false,
-		Mirror:          true,
-		CloneAddr:       sourceRepoPath,
-		ForcePushBackup: &forcePushBackup,
-	}
+	gitForMirrorBackupTest(t, f.work, "reset", "--hard", "HEAD~1")
+	actionCount := countMirrorBackupActions(t, f.repo.ID)
+	secondOID := f.commit(t, "second")
+	f.setRemoteRef(t, "refs/heads/main", secondOID)
+	require.True(t, mirror_service.SyncPullMirror(ctx, f.repo.ID))
+	assert.Equal(t, actionCount+1, countMirrorBackupActions(t, f.repo.ID))
+	backupBranch := assertSingleActiveBackupBranch(t, f.repo.ID)
 
-	mirrorRepo, err := repo_service.CreateRepositoryDirectly(ctx, user, user, repo_service.CreateRepoOptions{
-		Name:        opts.RepoName,
-		Description: opts.Description,
-		IsPrivate:   opts.Private,
-		IsMirror:    opts.Mirror,
-		Status:      repo_model.RepositoryBeingMigrated,
-	}, false)
-	require.NoError(t, err)
-
-	mirrorRepo, err = repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
-	require.NoError(t, err)
-
-	workDir := t.TempDir()
-	require.NoError(t, git.Clone(ctx, sourceRepoPath, workDir, git.CloneRepoOptions{}))
-
-	writeCommitAndUpdateSource := func(fileName, content, refspec string) {
-		require.NoError(t, os.WriteFile(filepath.Join(workDir, fileName), []byte(content), 0o644))
-		require.NoError(t, gitAddChangesDeprecated(ctx, workDir, true))
-		signature := git.Signature{
-			Email: "test@test.test",
-			Name:  "test",
-		}
-		require.NoError(t, gitCommitChangesDeprecated(ctx, workDir, gitCommitChangesOptions{
-			Committer: &signature,
-			Author:    &signature,
-			Message:   "update " + fileName,
-		}))
-		_, _, err := gitcmd.NewCommand("fetch").
-			AddDynamicArguments(workDir, refspec).
-			WithDir(sourceRepoPath).
-			RunStdString(ctx)
-		require.NoError(t, err)
-	}
-
-	writeCommitAndUpdateSource("mirror-force-push-a.txt", "first", "master:refs/heads/master")
-	require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
-
-	_, _, err = gitcmd.NewCommand("reset", "--hard", "HEAD~1").
-		WithDir(workDir).
-		RunStdString(ctx)
-	require.NoError(t, err)
-	actionCount := countMirrorBackupActions(t, mirrorRepo.ID)
-	writeCommitAndUpdateSource("mirror-force-push-b.txt", "second", "+master:refs/heads/master")
-	require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
-	assert.Equal(t, actionCount+1, countMirrorBackupActions(t, mirrorRepo.ID))
-
-	_ = assertSingleActiveBackupBranch(t, mirrorRepo.ID)
-	_, _, err = gitcmd.NewCommand("reset", "--hard", "HEAD~1").
-		WithDir(workDir).
-		RunStdString(ctx)
-	require.NoError(t, err)
-	writeCommitAndUpdateSource("mirror-force-push-c.txt", "third", "+master:refs/heads/master")
-	require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
-	assert.Equal(t, actionCount+2, countMirrorBackupActions(t, mirrorRepo.ID))
-	backupBranch := assertSingleActiveBackupBranch(t, mirrorRepo.ID)
-
-	mirrorGitRepo, err := gitrepo.OpenRepository(ctx, mirrorRepo)
+	mirrorGitRepo, err := git.OpenRepository(ctx, f.repo)
 	require.NoError(t, err)
 	defer mirrorGitRepo.Close()
-	assert.True(t, gitrepo.IsBranchExist(ctx, mirrorRepo, backupBranch.Name))
+	assert.True(t, git.IsBranchExist(ctx, f.repo, backupBranch.Name))
+	require.NoError(t, repo_service.DeleteBranch(ctx, user, f.repo, mirrorGitRepo, backupBranch.Name))
+	assert.False(t, git.IsBranchExist(ctx, f.repo, backupBranch.Name))
 
-	require.NoError(t, repo_service.DeleteBranch(ctx, user, mirrorRepo, mirrorGitRepo, backupBranch.Name))
-	assert.False(t, gitrepo.IsBranchExist(ctx, mirrorRepo, backupBranch.Name))
-
-	require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
-	assert.False(t, gitrepo.IsBranchExist(ctx, mirrorRepo, backupBranch.Name))
-
-	deletedBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{
-		RepoID: mirrorRepo.ID,
-		Name:   backupBranch.Name,
-	})
+	require.True(t, mirror_service.SyncPullMirror(ctx, f.repo.ID))
+	assert.False(t, git.IsBranchExist(ctx, f.repo, backupBranch.Name))
+	deletedBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: f.repo.ID, Name: backupBranch.Name})
 	assert.True(t, deletedBranch.IsDeleted)
-
-	tagName := "mirror-backup-tag"
-	_, _, err = gitcmd.NewCommand("tag", "-f").AddDashesAndList(tagName, "HEAD").
-		WithDir(workDir).
-		RunStdString(ctx)
-	require.NoError(t, err)
-	_, _, err = gitcmd.NewCommand("fetch").
-		AddDynamicArguments(workDir, "refs/tags/"+tagName+":refs/tags/"+tagName).
-		WithDir(sourceRepoPath).
-		RunStdString(ctx)
-	require.NoError(t, err)
-	require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
-
-	writeCommitAndUpdateSource("mirror-force-push-tag.txt", "tag", "master:refs/heads/master")
-	_, _, err = gitcmd.NewCommand("tag", "-f").AddDashesAndList(tagName, "HEAD").
-		WithDir(workDir).
-		RunStdString(ctx)
-	require.NoError(t, err)
-	_, _, err = gitcmd.NewCommand("fetch").
-		AddDynamicArguments(workDir, "+refs/tags/"+tagName+":refs/tags/"+tagName).
-		WithDir(sourceRepoPath).
-		RunStdString(ctx)
-	require.NoError(t, err)
-	require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
-	assertSingleRefWithPrefix(t, mirrorRepo, "refs/tags/mirror-backup/tag/"+tagName+"-")
 }
 
 func assertSingleActiveBackupBranch(t *testing.T, repoID int64) *git_model.Branch {
@@ -285,25 +196,26 @@ func countMirrorBackupActions(t *testing.T, repoID int64) int64 {
 	return count
 }
 
-func assertSingleRefWithPrefix(t *testing.T, repo *repo_model.Repository, prefix string) {
-	t.Helper()
+// TestMirrorPullSSRFRevalidation ensures a pull mirror re-validates its remote URL against
+// the migration allow/block list on every sync, so a mirror whose (network) remote now
+// points at a disallowed internal host is never fetched.
+func TestMirrorPullSSRFRevalidation(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
 
-	listPrefix := prefix
-	if idx := strings.LastIndexByte(prefix, '/'); idx >= 0 {
-		listPrefix = prefix[:idx+1]
-	}
-	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--format=%(refname)").
-		AddDynamicArguments(listPrefix).
-		WithDir(repo.RepoPath()).
-		RunStdString(t.Context())
-	require.NoError(t, err)
+	ctx := t.Context()
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		http.Redirect(w, r, "http://"+strings.Replace(r.Host, "127.0.0.1", "0.0.0.0", 1)+r.URL.RequestURI(), http.StatusFound)
+	}))
+	defer server.Close()
 
-	var refs []string
-	for line := range strings.SplitSeq(stdout, "\n") {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, prefix) {
-			refs = append(refs, line)
-		}
-	}
-	require.Len(t, refs, 1)
+	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
+	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, server.URL+"/repo.git"))
+	assert.False(t, mirror_service.SyncPullMirror(ctx, mirror.RepoID))
+	assert.EqualValues(t, 1, requests.Load(), "the git proxy must deny the redirect to a reserved address")
+
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
+	assert.False(t, mirror_service.SyncPullMirror(ctx, mirror.RepoID))
+	assert.EqualValues(t, 1, requests.Load(), "the disallowed internal remote must not be reached")
 }

@@ -39,7 +39,7 @@ func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Nod
 					r.Writer.RawWrite(w, value)
 				}
 			case *ColorPreview:
-				_ = r.renderInternal.FormatWithSafeAttrs(w, `<span class="color-preview" style="background-color: %s"></span>`, string(v.Color))
+				_ = r.renderInternal.FormatWithSafeAttrs(w, `<span class="color-preview" style="background-color: %s"></span>`, v.Color)
 			}
 		}
 		return ast.WalkSkipChildren, nil
@@ -68,8 +68,11 @@ func cssColorHandler(value string) bool {
 }
 
 func (g *ASTTransformer) transformCodeSpan(_ *markup.RenderContext, v *ast.CodeSpan, reader text.Reader) {
-	colorContent := v.Text(reader.Source()) //nolint:staticcheck // Text is deprecated
-	if cssColorHandler(string(colorContent)) {
+	colorContent, ok := childSingleText(v, reader.Source())
+	if !ok {
+		return
+	}
+	if cssColorHandler(colorContent) {
 		v.AppendChild(v, NewColorPreview(colorContent))
 	}
 }

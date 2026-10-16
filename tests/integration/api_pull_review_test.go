@@ -15,7 +15,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
 	issue_service "gitea.dev/services/issue"
@@ -160,6 +160,26 @@ func testAPIPullReviewGeneral(t *testing.T) {
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
+	reviewsURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index)
+	pendingComment := []api.CreatePullReviewComment{{Path: "README.md", Body: "pending comment", NewLineNum: 1}}
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Body: "draft"}).AddTokenAuth(token)
+	pendingReviewURL := fmt.Sprintf("%s/%d", reviewsURL, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{}).ID)
+	req = NewRequestWithJSON(t, http.MethodPost, pendingReviewURL, &api.SubmitPullReviewOptions{Event: "COMMENT"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Comments: pendingComment}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+	req = NewRequestWithJSON(t, http.MethodPost, pendingReviewURL, &api.SubmitPullReviewOptions{Event: "COMMENT"}).AddTokenAuth(token)
+	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	assert.EqualValues(t, "COMMENT", review.State)
+	assert.Equal(t, 1, review.CodeCommentsCount)
+
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Comments: pendingComment}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Event: "COMMENT"}).AddTokenAuth(token)
+	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	assert.EqualValues(t, "COMMENT", review.State)
+	assert.Equal(t, 1, review.CodeCommentsCount)
+
 	// test CreatePullReview Comment without body but with comments
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		// Body:  "",
@@ -210,7 +230,7 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
 	errMap := make(map[string]any)
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
-	assert.Equal(t, "review event COMMENT requires a body or a comment", errMap["message"].(string))
+	assert.Equal(t, "review requires a body or a comment", errMap["message"])
 
 	// test get review requests
 	// to make it simple, use same api with get review
@@ -375,11 +395,11 @@ func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: pullIssue.PosterID})
 	require.NoError(t, pullIssue.LoadPullRequest(ctx))
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
-	latestCommitID, err := gitRepo.GetRefCommitID(pullIssue.PullRequest.GetGitHeadRefName())
+	latestCommitID, err := gitRepo.GetRefCommitID(t.Context(), pullIssue.PullRequest.GetGitHeadRefName())
 	require.NoError(t, err)
 
 	codeComment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, pullIssue, 1, "resolve comment", "README.md", false, 0, latestCommitID, nil)
@@ -536,11 +556,11 @@ func testAPIPullReviewCommentReply(t *testing.T) {
 	require.NoError(t, pullIssue.LoadRepo(t.Context()))
 	require.NoError(t, pullIssue.LoadPullRequest(t.Context()))
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), pullIssue.Repo)
+	gitRepo, err := git.OpenRepository(t.Context(), pullIssue.Repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
-	commitID, err := gitRepo.GetRefCommitID(pullIssue.PullRequest.GetGitHeadRefName())
+	commitID, err := gitRepo.GetRefCommitID(t.Context(), pullIssue.PullRequest.GetGitHeadRefName())
 	require.NoError(t, err)
 
 	parent, err := pull_service.CreateCodeComment(t.Context(), doer, gitRepo, pullIssue, 1, "parent comment", "README.md", false, 0, commitID, nil)

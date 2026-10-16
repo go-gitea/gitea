@@ -36,6 +36,7 @@ function initAdminRunnerBulk(toolbar: HTMLElement) {
 
   const refresh = () => {
     const checked = Array.from(rowCheckboxes).filter((c) => c.checked);
+    formRunnerIds.value = checked.map((c) => c.getAttribute('data-runner-id')!).join(',');
     toggleElem(toolbar, checked.length > 0);
     for (const btn of actionButtons) {
       btn.querySelector<HTMLElement>('.runner-bulk-count')!.textContent = `(${checked.length})`;
@@ -50,44 +51,38 @@ function initAdminRunnerBulk(toolbar: HTMLElement) {
   });
   for (const cb of rowCheckboxes) cb.addEventListener('change', refresh);
   refresh();
-
-  const collectSelectedIds = () => {
-    const ids = [];
-    for (const cb of rowCheckboxes) {
-      if (cb.checked) ids.push(cb.getAttribute('data-runner-id')!);
-    }
-    return ids.join(',');
-  };
-  formRunnerIds.value = collectSelectedIds();
 }
 
 function initAdminUser() {
   const pageContent = document.querySelector('.page-content.admin.edit.user, .page-content.admin.new.user');
-  if (!pageContent) return;
+  const elLoginType = document.querySelector<HTMLInputElement>('#login_type');
+  if (!pageContent || !elLoginType) return;
+  const isNew = pageContent.classList.contains('new');
+  const elUserType = document.querySelector<HTMLInputElement>('#user_type');
+  const elUserName = document.querySelector<HTMLInputElement>('#user_name')!;
+  const elLoginName = document.querySelector<HTMLInputElement>('#login_name')!;
+  const elPassword = document.querySelector<HTMLInputElement>('#password')!;
 
-  document.querySelector<HTMLInputElement>('#login_type')?.addEventListener('change', function () {
-    if (this.value?.startsWith('0')) {
-      document.querySelector<HTMLInputElement>('#user_name')?.removeAttribute('disabled');
-      document.querySelector<HTMLInputElement>('#login_name')?.removeAttribute('required');
-      hideElem('.non-local');
-      showElem('.local');
-      document.querySelector<HTMLInputElement>('#user_name')?.focus();
-
-      if (this.getAttribute('data-password') === 'required') {
-        document.querySelector('#password')?.setAttribute('required', 'required');
-      }
-    } else {
-      if (document.querySelector<HTMLDivElement>('.admin.edit.user')) {
-        document.querySelector<HTMLInputElement>('#user_name')?.setAttribute('disabled', 'disabled');
-      }
-      document.querySelector<HTMLInputElement>('#login_name')?.setAttribute('required', 'required');
-      showElem('.non-local');
-      hideElem('.local');
-      document.querySelector<HTMLInputElement>('#login_name')?.focus();
-
-      document.querySelector<HTMLInputElement>('#password')?.removeAttribute('required');
+  const syncFields = (focusField: boolean) => {
+    const isBot = elUserType?.value === 'Bot';
+    const isLocal = !isBot && elLoginType.value.startsWith('0'); // login type 0 is a local account without auth source
+    toggleElem('.js-non-bot', !isBot);
+    if (!isBot) {
+      toggleElem('.js-local', isLocal);
+      toggleElem('.js-non-local', !isLocal);
     }
-  });
+    elLoginName.toggleAttribute('required', !isBot && !isLocal);
+    if (isNew) {
+      elPassword.toggleAttribute('required', isLocal);
+    } else {
+      elUserName.toggleAttribute('disabled', !isBot && !isLocal);
+    }
+    if (focusField) (isBot || isLocal ? elUserName : elLoginName).focus();
+  };
+
+  elUserType?.addEventListener('change', () => syncFields(true));
+  elLoginType.addEventListener('change', () => syncFields(true));
+  if (isNew) syncFields(false);
 }
 
 function initAdminAuthentication() {
@@ -294,7 +289,7 @@ function initAdminNotice() {
   const checkboxes = document.querySelectorAll<HTMLInputElement>('.select.table .ui.checkbox input');
 
   queryElems(pageContent, '.select.action', (el) => el.addEventListener('click', () => {
-    switch (el.getAttribute('data-action')) {
+    switch (el.getAttribute('data-action')!) {
       case 'select-all':
         for (const checkbox of checkboxes) {
           checkbox.checked = true;

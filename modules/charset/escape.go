@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
 )
@@ -32,12 +33,16 @@ func EscapeControlHTML(html template.HTML, locale translation.Locale, opts ...Es
 	if !setting.UI.AmbiguousUnicodeDetection {
 		return &EscapeStatus{}, html
 	}
-	sb := &strings.Builder{}
-	escaped, _ = EscapeControlReader(strings.NewReader(string(html)), sb, locale, opts...) // err has been handled in EscapeControlReader
-	return escaped, template.HTML(sb.String())
+	w := &htmlutil.HTMLBuilder{}
+	escaped, _ = EscapeControlReader(strings.NewReader(string(html)), w, locale, opts...)
+	return escaped, w.HTMLString()
 }
 
 // EscapeControlReader escapes the Unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
-func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale, opts ...EscapeOptions) (*EscapeStatus, error) {
-	return escapeStream(locale, reader, writer, opts...)
+func EscapeControlReader(reader io.Reader, writer htmlutil.HTMLWriter, locale translation.Locale, opts ...EscapeOptions) (*EscapeStatus, error) {
+	if !setting.UI.AmbiguousUnicodeDetection {
+		_, err := io.Copy(writer.OriginWriter(), reader)
+		return &EscapeStatus{}, err
+	}
+	return escapeStream(locale, reader, writer.OriginWriter(), opts...)
 }

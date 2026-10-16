@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
@@ -22,15 +21,11 @@ func runSendMail(ctx context.Context, c *cli.Command) error {
 
 	if !confirmSkipped {
 		if len(body) == 0 {
-			fmt.Print("warning: Content is empty")
+			cprintln(c, "warning: Content is empty")
 		}
 
-		fmt.Print("Proceed with sending email? [Y/n] ")
-		isConfirmed, err := confirm()
-		if err != nil {
-			return err
-		} else if !isConfirmed {
-			fmt.Println("The mail was not sent")
+		if !confirm(c.Reader, c.Writer, "Proceed with sending email? [Y/n] ") {
+			cprintln(c, "The mail was not sent")
 			return nil
 		}
 	}
@@ -39,6 +34,6 @@ func runSendMail(ctx context.Context, c *cli.Command) error {
 	if extra.HasError() {
 		return handleCliResponseExtra(extra)
 	}
-	_, _ = fmt.Printf("Sent %s email(s) to all users\n", respText.Text)
+	cprintf(c, "Sent %s email(s) to all users\n", respText.Text)
 	return nil
 }

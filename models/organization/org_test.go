@@ -10,7 +10,9 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
@@ -302,43 +304,39 @@ func TestOrgMembersSearch(t *testing.T) {
 		{
 			name: "match by username",
 			opts: &organization.FindOrgMembersOpts{
-				OrgID:         3,
-				Doer:          member,
-				IsDoerMember:  true,
-				Keyword:       "user4",
-				SearchByEmail: true,
+				OrgID:        3,
+				Doer:         member,
+				IsDoerMember: true,
+				Keyword:      "user4",
 			},
 			expectedUIDs: []int64{4},
 		},
 		{
 			name: "match by full name",
 			opts: &organization.FindOrgMembersOpts{
-				OrgID:         3,
-				Doer:          member,
-				IsDoerMember:  true,
-				Keyword:       "user27",
-				SearchByEmail: true,
+				OrgID:        3,
+				Doer:         member,
+				IsDoerMember: true,
+				Keyword:      "user27",
 			},
 			expectedUIDs: []int64{28},
 		},
 		{
 			name: "private email hidden",
 			opts: &organization.FindOrgMembersOpts{
-				OrgID:         3,
-				Doer:          member,
-				IsDoerMember:  true,
-				Keyword:       "user2@example.com",
-				SearchByEmail: true,
+				OrgID:        3,
+				Doer:         member,
+				IsDoerMember: true,
+				Keyword:      "user2@example.com",
 			},
 			expectedUIDs: []int64{},
 		},
 		{
 			name: "admin can search private email",
 			opts: &organization.FindOrgMembersOpts{
-				OrgID:         3,
-				Doer:          admin,
-				Keyword:       "user2@example.com",
-				SearchByEmail: true,
+				OrgID:   3,
+				Doer:    admin,
+				Keyword: "user2@example.com",
 			},
 			expectedUIDs: []int64{2},
 		},
@@ -629,4 +627,11 @@ func TestCreateOrganization4(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, db.IsErrNameReserved(err))
 	unittest.CheckConsistencyFor(t, &organization.Organization{}, &organization.Team{})
+}
+
+func TestOrAnyRepoUnitPermission(t *testing.T) {
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+	org := organization.Organization{Visibility: structs.VisibleTypeLimited}
+	assert.Equal(t, perm.AccessModeNone, org.AnyRepoUnitPermission(t.Context(), nil, unit.TypeWiki))
+	assert.Equal(t, perm.AccessModeRead, org.AnyRepoUnitPermission(t.Context(), &user_model.User{}, unit.TypeWiki))
 }

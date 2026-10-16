@@ -10,7 +10,6 @@ import (
 
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -35,16 +34,15 @@ func Members(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 
 	opts := &organization.FindOrgMembersOpts{
-		Doer:          ctx.Doer,
-		OrgID:         org.ID,
-		Keyword:       keyword,
-		SearchByEmail: true,
+		Doer:    ctx.Doer,
+		OrgID:   org.ID,
+		Keyword: keyword,
 	}
 
 	if ctx.Doer != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "IsOrgMember")
+			ctx.ServerError("IsOrgMember", err)
 			return
 		}
 		opts.IsDoerMember = isMember
@@ -53,7 +51,7 @@ func Members(ctx *context.Context) {
 
 	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "CountOrgMembers")
+		ctx.ServerError("CountOrgMembers", err)
 		return
 	}
 
@@ -63,9 +61,8 @@ func Members(ctx *context.Context) {
 	}
 
 	pageSize := setting.UI.MembersPagingNum
-	pager := context.NewPagination(total, pageSize, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
-	opts.ListOptions.Page = pager.Paginater.Current()
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(pageSize).CurPage(page).Build()
+	opts.ListOptions.Page = pager.Paginator.Current()
 	opts.ListOptions.PageSize = pageSize
 	members, membersIsPublic, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
@@ -74,8 +71,6 @@ func Members(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = pager
 	ctx.Data["Members"] = members
-	ctx.Data["MembersShown"] = len(members)
-	ctx.Data["MembersTotal"] = total
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
 	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(ctx, members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus(ctx)
@@ -134,6 +129,5 @@ func MembersAction(ctx *context.Context) {
 		return
 	}
 
-	log.Error("Action(%s): %v", ctx.PathParam("action"), err)
-	ctx.JSONError(err.Error()) // FIXME: legacy logic, errors are handled together, it's not right, need to distinguish between different errors
+	ctx.JSONErrorAuto(err)
 }

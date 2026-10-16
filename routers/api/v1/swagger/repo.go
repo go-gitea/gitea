@@ -84,13 +84,6 @@ type swaggerResponseTagProtection struct {
 	Body api.TagProtection `json:"body"`
 }
 
-// Reference
-// swagger:response Reference
-type swaggerResponseReference struct {
-	// in:body
-	Body api.Reference `json:"body"`
-}
-
 // ReferenceList
 // swagger:response ReferenceList
 type swaggerResponseReferenceList struct {
@@ -255,7 +248,7 @@ type swaggerCommitList struct {
 	PerPage int `json:"X-PerPage"`
 
 	// Total commit count
-	Total int `json:"X-Total"`
+	Total int `json:"X-Total-Count"`
 
 	// Total number of pages
 	PageCount int `json:"X-PageCount"`
@@ -273,11 +266,11 @@ type swaggerChangedFileList struct {
 	// The current page
 	Page int `json:"X-Page"`
 
-	// Commits per page
+	// Files per page
 	PerPage int `json:"X-PerPage"`
 
-	// Total commit count
-	Total int `json:"X-Total"`
+	// Total file count
+	Total int `json:"X-Total-Count"`
 
 	// Total number of pages
 	PageCount int `json:"X-PageCount"`
@@ -348,7 +341,7 @@ type swaggerFileDeleteResponse struct {
 // swagger:response TopicListResponse
 type swaggerTopicListResponse struct {
 	// in: body
-	Body []api.TopicResponse `json:"body"`
+	Body api.TopicListResponse `json:"body"`
 }
 
 // TopicNames
@@ -509,12 +502,6 @@ type swaggerRunner struct {
 type swaggerCompare struct {
 	// in:body
 	Body api.Compare `json:"body"`
-}
-
-// swagger:response MergeUpstreamRequest
-type swaggerMergeUpstreamRequest struct {
-	// in:body
-	Body api.MergeUpstreamRequest `json:"body"`
 }
 
 // swagger:response MergeUpstreamResponse

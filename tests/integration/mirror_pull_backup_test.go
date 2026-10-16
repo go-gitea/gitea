@@ -17,6 +17,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
 	mirror_service "gitea.dev/services/mirror"
@@ -95,12 +96,12 @@ func (f *mirrorBackupFixture) deleteRemoteRef(t *testing.T, ref string) {
 
 func (f *mirrorBackupFixture) mirrorRef(t *testing.T, ref string) string {
 	t.Helper()
-	return gitForMirrorBackupTest(t, f.repo.RepoPath(), "rev-parse", "--verify", ref)
+	return gitForMirrorBackupTest(t, gitrepo.RepoLocalPath(f.repo), "rev-parse", "--verify", ref)
 }
 
 func (f *mirrorBackupFixture) hasMirrorRef(t *testing.T, ref string) bool {
 	t.Helper()
-	cmd := exec.CommandContext(t.Context(), "git", "-C", f.repo.RepoPath(), "show-ref", "--verify", "--quiet", ref)
+	cmd := exec.CommandContext(t.Context(), "git", "-C", gitrepo.RepoLocalPath(f.repo), "show-ref", "--verify", "--quiet", ref)
 	err := cmd.Run()
 	if err == nil {
 		return true
@@ -117,7 +118,7 @@ func (f *mirrorBackupFixture) backupRefs(t *testing.T, prefix string) []string {
 	if idx := strings.LastIndexByte(prefix, '/'); idx >= 0 {
 		listPrefix = prefix[:idx+1]
 	}
-	output := gitForMirrorBackupTest(t, f.repo.RepoPath(), "for-each-ref", "--format=%(refname) %(objectname)", listPrefix)
+	output := gitForMirrorBackupTest(t, gitrepo.RepoLocalPath(f.repo), "for-each-ref", "--format=%(refname) %(objectname)", listPrefix)
 	if output == "" {
 		return nil
 	}
@@ -210,7 +211,7 @@ func TestMirrorPullBackupLockFailurePreservesRefsAndRetries(t *testing.T) {
 	thirdOID := f.commit(t, "another history")
 	f.setRemoteRef(t, "refs/heads/main", thirdOID)
 
-	lockPath := filepath.Join(f.repo.RepoPath(), "refs", "heads", "main.lock")
+	lockPath := filepath.Join(gitrepo.RepoLocalPath(f.repo), "refs", "heads", "main.lock")
 	require.NoError(t, os.WriteFile(lockPath, nil, 0o600))
 	last, err := repo_model.GetMirrorByRepoID(t.Context(), f.repo.ID)
 	require.NoError(t, err)
@@ -326,10 +327,10 @@ func TestMirrorPullBackupIgnoresReplacementRefsForAncestry(t *testing.T) {
 	require.True(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID))
 	require.Equal(t, oldOID, f.mirrorRef(t, "refs/heads/main"))
 	require.True(t, f.hasMirrorRef(t, replaceRef))
-	gitForMirrorBackupTest(t, f.repo.RepoPath(), "fetch", "--no-tags", f.work, "HEAD")
-	withReplace := exec.CommandContext(t.Context(), "git", "-C", f.repo.RepoPath(), "merge-base", "--is-ancestor", oldOID, newOID)
+	gitForMirrorBackupTest(t, gitrepo.RepoLocalPath(f.repo), "fetch", "--no-tags", f.work, "HEAD")
+	withReplace := exec.CommandContext(t.Context(), "git", "-C", gitrepo.RepoLocalPath(f.repo), "merge-base", "--is-ancestor", oldOID, newOID)
 	require.NoError(t, withReplace.Run())
-	withoutReplace := exec.CommandContext(t.Context(), "git", "-C", f.repo.RepoPath(), "merge-base", "--is-ancestor", oldOID, newOID)
+	withoutReplace := exec.CommandContext(t.Context(), "git", "-C", gitrepo.RepoLocalPath(f.repo), "merge-base", "--is-ancestor", oldOID, newOID)
 	withoutReplace.Env = append(os.Environ(), "GIT_NO_REPLACE_OBJECTS=1")
 	var exitErr *exec.ExitError
 	require.ErrorAs(t, withoutReplace.Run(), &exitErr)
@@ -360,7 +361,7 @@ func TestMirrorPullBackupRetentionKeepsNewestAcrossSequences(t *testing.T) {
 	secondOID := f.commit(t, "alternate branch tip")
 	futureTimestamp := time.Now().UTC().Add(time.Hour).Format("20060102-150405")
 	prefix := "refs/heads/mirror-backup/branch/main-"
-	gitForMirrorBackupTest(t, f.repo.RepoPath(), "update-ref", prefix+futureTimestamp, initialOID)
+	gitForMirrorBackupTest(t, gitrepo.RepoLocalPath(f.repo), "update-ref", prefix+futureTimestamp, initialOID)
 
 	for i := range 12 {
 		oldOID, newOID := firstOID, secondOID
@@ -480,13 +481,13 @@ func TestMirrorPullBackupRejectsStaleLiveRef(t *testing.T) {
 	secondOID := f.commit(t, "alternate history")
 	f.setRemoteRef(t, "refs/heads/main", secondOID)
 	thirdOID := f.commit(t, "concurrent history")
-	gitForMirrorBackupTest(t, f.repo.RepoPath(), "fetch", "--no-tags", f.work, "HEAD")
+	gitForMirrorBackupTest(t, gitrepo.RepoLocalPath(f.repo), "fetch", "--no-tags", f.work, "HEAD")
 
-	hook := filepath.Join(f.repo.RepoPath(), "hooks", "reference-transaction")
+	hook := filepath.Join(gitrepo.RepoLocalPath(f.repo), "hooks", "reference-transaction")
 	hookTrace := filepath.Join(t.TempDir(), "hook-trace")
 	_, err := os.Stat(hook)
 	require.ErrorIs(t, err, os.ErrNotExist)
-	script := fmt.Sprintf("#!/bin/sh\n[ \"$1\" = committed ] || exit 0\nwhile read old new ref; do\n  printf '%%s %%s\\n' \"$1\" \"$ref\" >> %q\n  case \"$ref\" in refs/heads/mirror-backup/branch/main-*)\n    git -C %q -c core.hooksPath=/dev/null update-ref refs/heads/main %q %q >> %q 2>&1\n    exit $? ;;\n  esac\ndone\nexit 0\n", hookTrace, f.repo.RepoPath(), thirdOID, firstOID, hookTrace)
+	script := fmt.Sprintf("#!/bin/sh\n[ \"$1\" = committed ] || exit 0\nwhile read old new ref; do\n  printf '%%s %%s\\n' \"$1\" \"$ref\" >> %q\n  case \"$ref\" in refs/heads/mirror-backup/branch/main-*)\n    git -C %q -c core.hooksPath=/dev/null update-ref refs/heads/main %q %q >> %q 2>&1\n    exit $? ;;\n  esac\ndone\nexit 0\n", hookTrace, gitrepo.RepoLocalPath(f.repo), thirdOID, firstOID, hookTrace)
 	require.NoError(t, os.WriteFile(hook, []byte(script), 0o755))
 	last, err := repo_model.GetMirrorByRepoID(t.Context(), f.repo.ID)
 	require.NoError(t, err)
@@ -518,7 +519,7 @@ func requireMirrorBackupReferenceTransactionHook(t *testing.T) {
 
 func installMirrorBackupRejectingHook(t *testing.T, f *mirrorBackupFixture, ref, newID string) string {
 	t.Helper()
-	hook := filepath.Join(f.repo.RepoPath(), "hooks", "reference-transaction")
+	hook := filepath.Join(gitrepo.RepoLocalPath(f.repo), "hooks", "reference-transaction")
 	_, err := os.Stat(hook)
 	require.ErrorIs(t, err, os.ErrNotExist)
 	script := fmt.Sprintf("#!/bin/sh\n[ \"$1\" = prepared ] || exit 0\nwhile read old new ref; do\n  [ \"$ref\" = %q ] && [ \"$new\" = %q ] && exit 1\ndone\nexit 0\n", ref, newID)

@@ -11,12 +11,10 @@ import (
 	indexer_internal "gitea.dev/modules/indexer/internal"
 	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
 	"gitea.dev/modules/indexer/issues/internal"
-	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
-	"github.com/blevesearch/bleve/v2/analysis/token/camelcase"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
@@ -27,7 +25,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 6
+	issueIndexerLatestVersion = 8
 )
 
 const unicodeNormalizeName = "unicodeNormalize"
@@ -86,7 +84,8 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	docMapping.AddFieldMappingsAt("project_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("no_project", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("poster_id", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("assignee_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("assignee_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("no_assignee", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("mention_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("reviewed_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("review_requested_ids", numberFieldMapping)
@@ -103,7 +102,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 		"type":          custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
-		"token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name},
+		"token_filters": []string{unicodeNormalizeName, camelCaseKeepWholeName, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}
@@ -258,14 +257,15 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, inner_bleve.NumericEqualityQuery(posterIDInt64, "poster_id"))
 	}
 
-	if options.AssigneeID != "" {
-		if options.AssigneeID == "(any)" {
-			queries = append(queries, inner_bleve.NumericRangeInclusiveQuery(optional.Some[int64](1), optional.None[int64](), "assignee_id"))
-		} else {
-			// "(none)" becomes 0, it means no assignee
-			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
-			queries = append(queries, inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_id"))
-		}
+	switch options.AssigneeID {
+	case "":
+	case "(any)":
+		queries = append(queries, inner_bleve.BoolFieldQuery(false, "no_assignee"))
+	case "(none)":
+		queries = append(queries, inner_bleve.BoolFieldQuery(true, "no_assignee"))
+	default:
+		assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+		queries = append(queries, inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_ids"))
 	}
 
 	if options.MentionID.Has() {

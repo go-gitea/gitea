@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -201,15 +202,10 @@ func (pr *PullRequest) String() string {
 	return s.String()
 }
 
-// MustHeadUserName returns the HeadRepo's username if failed return blank
-func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
-	if err := pr.LoadHeadRepo(ctx); err != nil {
-		if !repo_model.IsErrRepoNotExist(err) {
-			log.Error("LoadHeadRepo: %v", err)
-		} else {
-			log.Warn("LoadHeadRepo %d but repository does not exist: %v", pr.HeadRepoID, err)
-		}
-		return ""
+// OptionalHeadUserName returns the HeadRepo's username if failed return blank
+func (pr *PullRequest) OptionalHeadUserName(ctx context.Context) string {
+	if err := pr.LoadHeadRepo(ctx); err != nil && !errors.Is(err, util.ErrNotExist) {
+		log.Error("LoadHeadRepo: %v", err)
 	}
 	if pr.HeadRepo == nil {
 		return ""
@@ -220,16 +216,10 @@ func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
 // LoadAttributes loads pull request attributes from database
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
-	if pr.HasMerged && pr.Merger == nil {
-		pr.Merger, err = user_model.GetUserByID(ctx, pr.MergerID)
-		if user_model.IsErrUserNotExist(err) {
-			pr.MergerID = user_model.GhostUserID
-			pr.Merger = user_model.NewGhostUser()
-		} else if err != nil {
-			return fmt.Errorf("getUserByID [%d]: %w", pr.MergerID, err)
-		}
+	if pr.Merger == nil && pr.MergerID != 0 {
+		pr.MergerID, pr.Merger, err = user_model.GetPossibleUserByID(ctx, pr.MergerID)
+		return err
 	}
-
 	return nil
 }
 
@@ -413,8 +403,23 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 }
 
 // GetGitHeadRefName returns git ref for hidden pull request branch
-func (pr *PullRequest) GetGitHeadRefName() string {
-	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
+func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefName but not string
+	return git.RefNameFromPullIndex(pr.Index).String()
+}
+
+func (pr *PullRequest) GetInstructionsCliArgs() (ret struct {
+	BaseBranchArg  string
+	HeadBranchArg  string
+	LocalBranchArg string
+},
+) {
+	ret.BaseBranchArg = util.ShellEscape(pr.BaseBranch)
+	ret.HeadBranchArg = util.ShellEscape(pr.HeadBranch)
+	ret.LocalBranchArg = ret.HeadBranchArg
+	if pr.HeadRepo != nil && pr.HeadRepoID != pr.BaseRepoID {
+		ret.LocalBranchArg = util.ShellEscape(pr.HeadRepo.OwnerName) + "-" + ret.HeadBranchArg
+	}
+	return ret
 }
 
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
@@ -534,12 +539,8 @@ func GetPullRequestByIndex(ctx context.Context, repoID, index int64) (*PullReque
 	if index < 1 {
 		return nil, ErrPullRequestNotExist{}
 	}
-	pr := &PullRequest{
-		BaseRepoID: repoID,
-		Index:      index,
-	}
 
-	has, err := db.GetEngine(ctx).Get(pr)
+	pr, has, err := db.Get[PullRequest](ctx, builder.Eq{"base_repo_id": repoID, "`index`": index})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -860,6 +861,11 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRul
 	return rules, warnings
 }
 
+// codeOwnerMatchTimeout bounds a single pattern match so a crafted pattern
+// cannot stall via catastrophic backtracking. See also the aggregate budget
+// enforced by the caller across the whole rules×files match loop.
+const codeOwnerMatchTimeout = 150 * time.Millisecond
+
 type CodeOwnerRule struct {
 	Rule     *regexp2.Regexp // it supports negative lookahead, does better for end users
 	Negative bool
@@ -888,6 +894,8 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
 		return nil, warnings
 	}
+	// Bound matching time so user-supplied patterns cannot stall PR creation via catastrophic backtracking.
+	rule.Rule.MatchTimeout = codeOwnerMatchTimeout
 
 	for _, user := range tokens[1:] {
 		user = strings.TrimPrefix(user, "@")
@@ -1007,4 +1015,17 @@ func GetPullRequestByMergedCommit(ctx context.Context, repoID int64, sha string)
 	}
 
 	return pr, nil
+}
+
+// GetPullRequestRequestedReviewerIDs returns IDs of reviewers currently requested for the given pull request.
+func GetPullRequestRequestedReviewerIDs(ctx context.Context, issueID int64) ([]int64, error) {
+	userIDs := make([]int64, 0, 5)
+	return userIDs, db.GetEngine(ctx).
+		Table("review").
+		Cols("reviewer_id").
+		Where("issue_id=?", issueID).
+		And("type=?", ReviewTypeRequest).
+		And("reviewer_id > 0").
+		Distinct("reviewer_id").
+		Find(&userIDs)
 }

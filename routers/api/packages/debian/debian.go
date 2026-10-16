@@ -68,11 +68,7 @@ func GetRepositoryFile(ctx *context.Context) {
 		ctx.Req.Method,
 	)
 	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, helper.PackageErrorStatus(err), err)
 		return
 	}
 
@@ -120,9 +116,9 @@ func GetRepositoryFileByHash(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	distribution := strings.TrimSpace(ctx.PathParam("distribution"))
-	component := strings.TrimSpace(ctx.PathParam("component"))
-	if distribution == "" || component == "" {
+	distribution := ctx.PathParam("distribution")
+	component := ctx.PathParam("component")
+	if !debian_module.IsValidDistributionOrComponent(distribution) || !debian_module.IsValidDistributionOrComponent(component) {
 		apiError(ctx, http.StatusBadRequest, "invalid distribution or component")
 		return
 	}

@@ -151,9 +151,7 @@ func testUnknownOrganization(t *testing.T) {
 
 	req := NewRequest(t, "GET", "/api/v1/users/user1/orgs/unknown/permissions").
 		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusNotFound)
-	apiError := DecodeJSON(t, resp, &api.APIError{})
-	assert.Equal(t, "GetUserByName", apiError.Message)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func testHiddenMemberPermissionsForbidden(t *testing.T) {

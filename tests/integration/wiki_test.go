@@ -40,11 +40,6 @@ func TestRepoWikiPages(t *testing.T) {
 }
 
 func testRepoWikiCloneHTTP(t *testing.T, u *url.URL) {
-	// When proc-receive support is enabled globally, the HTTP receive-pack pre-check
-	// must still require write access for wiki repositories. Exercise this with a
-	// normal wiki push because the regression is about the pre-check, not agit refs.
-	require.True(t, git.DefaultFeatures().SupportProcReceive) // modern git should all support proc-receive
-
 	wikiURL := *u
 	wikiURL.Path = "/user2/repo1.wiki.git"
 
@@ -72,7 +67,7 @@ EOF
 
 	// reader can't push
 	_, _, runErr = gitcmd.NewCommand("push", "origin", "refs/heads/master").WithDir(dstLocalPath).RunStdString(t.Context())
-	assert.True(t, gitcmd.StderrContains(runErr, "remote: Repository not found\n"))
+	assert.Contains(t, runErr.Stderr(), "remote: Repository not found\n")
 	req := NewRequest(t, "GET", "/user2/repo1/wiki/raw/Home.md")
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "This is the home page!")

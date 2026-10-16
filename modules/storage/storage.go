@@ -11,11 +11,14 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
+	"time"
 
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // ErrURLNotSupported represents url is not supported
@@ -39,6 +42,19 @@ type Object interface {
 	io.Seeker
 	Stat() (os.FileInfo, error)
 }
+
+type objectFileInfo struct {
+	name    string
+	size    int64
+	modTime time.Time
+}
+
+func (o *objectFileInfo) Name() string       { return o.name } // base name, no dir path
+func (o *objectFileInfo) Size() int64        { return o.size }
+func (o *objectFileInfo) ModTime() time.Time { return o.modTime }
+func (o *objectFileInfo) IsDir() bool        { return false } // object storage doesn't support dir
+func (o *objectFileInfo) Mode() os.FileMode  { return os.ModePerm }
+func (o *objectFileInfo) Sys() any           { return nil }
 
 // ServeDirectOptions customizes HTTP headers for a generated signed URL.
 type ServeDirectOptions struct {
@@ -137,6 +153,23 @@ func SaveFrom(objStorage ObjectStorage, path string, callback func(w io.Writer) 
 
 	_, err := objStorage.Save(path, pr, -1)
 	return err
+}
+
+func buildObjectStorePath(base, p string) string {
+	p = strings.TrimPrefix(util.PathJoinRelX(base, p), "/") // object store doesn't use slash for root path
+	if p == "." {
+		p = "" // object store doesn't use dot as relative path
+	}
+	return p
+}
+
+func buildObjectStorePathPrefix(base, p string) string {
+	// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
+	p = buildObjectStorePath(base, p) + "/"
+	if p == "/" {
+		p = "" // object store doesn't use slash for root path
+	}
+	return p
 }
 
 var (

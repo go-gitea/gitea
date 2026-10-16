@@ -171,6 +171,11 @@ func testGetAttachment(t *testing.T) {
 		{"PrivateAccessibleByUser", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", true, user2Session, http.StatusOK},
 		{"RepoNotAccessibleByUser", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", true, user8Session, http.StatusNotFound},
 		{"OrgNotAccessibleByUser", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", true, user8Session, http.StatusNotFound},
+		// draft release attachments must only be reachable by users with write access, even on a public repo
+		{"DraftReleaseByOwner", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23", true, user2Session, http.StatusOK},
+		{"DraftReleaseByAdmin", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23", true, adminSession, http.StatusOK},
+		{"DraftReleaseByNonCollaborator", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23", true, user8Session, http.StatusNotFound},
+		{"DraftReleaseByAnonymous", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23", true, emptySession, http.StatusNotFound},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -182,6 +187,26 @@ func testGetAttachment(t *testing.T) {
 			// Actual test
 			req := NewRequest(t, "GET", "/attachments/"+tc.uuid)
 			tc.session.MakeRequest(t, req, tc.want)
+		})
+	}
+
+	attachment, err := repo_model.GetAttachmentByUUID(t.Context(), "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12")
+	require.NoError(t, err)
+	defer func() {
+		attachment.RepoID = 2
+		require.NoError(t, repo_model.UpdateAttachmentByUUID(t.Context(), attachment, "repo_id"))
+	}()
+	for _, testCase := range []struct {
+		name   string
+		repoID int64
+	}{
+		{"RecordedRepository", 2},
+		{"LegacyMissingRepository", 0},
+	} {
+		t.Run("OtherRepositoryPath/"+testCase.name, func(t *testing.T) {
+			attachment.RepoID = testCase.repoID
+			require.NoError(t, repo_model.UpdateAttachmentByUUID(t.Context(), attachment, "repo_id"))
+			MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/attachments/"+attachment.UUID), http.StatusNotFound)
 		})
 	}
 }

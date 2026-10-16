@@ -268,7 +268,7 @@ body:
     attributes:
       label: "a"
 `,
-			wantErr: "body[0](dropdown): 'options' is required and should be a array",
+			wantErr: "body[0](dropdown): 'options' is required and should be an array",
 		},
 		{
 			name: "dropdown invalid options",

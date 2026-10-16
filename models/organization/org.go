@@ -19,7 +19,6 @@ import (
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // ErrOrgNotExist represents a "OrgNotExist" kind of error.
@@ -92,11 +91,6 @@ func (org *Organization) IsOwnedBy(ctx context.Context, uid int64) (bool, error)
 	return IsOrganizationOwner(ctx, org.ID, uid)
 }
 
-// IsOrgAdmin returns true if given user is in the owner team or an admin team.
-func (org *Organization) IsOrgAdmin(ctx context.Context, uid int64) (bool, error) {
-	return IsOrganizationAdmin(ctx, org.ID, uid)
-}
-
 // IsOrgMember returns true if given user is member of organization.
 func (org *Organization) IsOrgMember(ctx context.Context, uid int64) (bool, error) {
 	return IsOrganizationMember(ctx, org.ID, uid)
@@ -141,10 +135,6 @@ func (org *Organization) GetMembers(ctx context.Context, doer *user_model.User) 
 
 // HasMemberWithUserID returns true if user with userID is part of the u organisation.
 func (org *Organization) HasMemberWithUserID(ctx context.Context, userID int64) bool {
-	return org.hasMemberWithUserID(ctx, userID)
-}
-
-func (org *Organization) hasMemberWithUserID(ctx context.Context, userID int64) bool {
 	isMember, err := IsOrganizationMember(ctx, org.ID, userID)
 	if err != nil {
 		log.Error("IsOrganizationMember: %v", err)
@@ -181,45 +171,43 @@ func (org *Organization) HomeLink() string {
 // FindOrgMembersOpts represents find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
-	Doer          *user_model.User
-	IsDoerMember  bool
-	OrgID         int64
-	Keyword       string
-	SearchByEmail bool
+	Doer         *user_model.User
+	IsDoerMember bool
+	OrgID        int64
+	Keyword      string
 }
 
 func (opts FindOrgMembersOpts) PublicOnly() bool {
 	return opts.Doer == nil || !(opts.IsDoerMember || opts.Doer.IsAdmin)
 }
 
-func (opts FindOrgMembersOpts) applyKeywordFilter(sess *xorm.Session) (*xorm.Session, bool) {
+// applyKeywordFilter adds keyword search conditions to session
+func (opts FindOrgMembersOpts) applyKeywordFilter(sess db.Session) bool {
 	if opts.Keyword == "" {
-		return sess, false
+		return false
 	}
 
-	lowerKeyword := strings.ToLower(opts.Keyword)
 	keywordCond := builder.Or(
-		builder.Like{"`user`.lower_name", lowerKeyword},
-		builder.Like{"LOWER(`user`.full_name)", lowerKeyword},
+		db.BuildCaseInsensitiveLike("`user`.lower_name", opts.Keyword),
+		db.BuildCaseInsensitiveLike("`user`.full_name", opts.Keyword),
 	)
-	if opts.SearchByEmail {
-		var emailCond builder.Cond = builder.Like{"LOWER(`user`.email)", lowerKeyword}
-		switch {
-		case opts.Doer == nil:
-			emailCond = emailCond.And(builder.Eq{"`user`.keep_email_private": false})
-		case !opts.Doer.IsAdmin:
-			emailCond = emailCond.And(
-				builder.Or(
-					builder.Eq{"`user`.keep_email_private": false},
-					builder.Eq{"`user`.id": opts.Doer.ID},
-				),
-			)
-		}
-		keywordCond = keywordCond.Or(emailCond)
-	}
 
-	sess = sess.Join("INNER", "`user`", "org_user.uid = `user`.id").And(keywordCond)
-	return sess, true
+	emailCond := db.BuildCaseInsensitiveLike("`user`.email", opts.Keyword)
+	switch {
+	case opts.Doer == nil:
+		emailCond = emailCond.And(builder.Eq{"`user`.keep_email_private": false})
+	case !opts.Doer.IsAdmin:
+		emailCond = emailCond.And(
+			builder.Or(
+				builder.Eq{"`user`.keep_email_private": false},
+				builder.Eq{"`user`.id": opts.Doer.ID},
+			),
+		)
+	}
+	keywordCond = keywordCond.Or(emailCond)
+
+	_ = sess.Join("INNER", "`user`", "org_user.uid = `user`.id").And(keywordCond)
+	return true
 }
 
 // applyTeamMatesOnlyFilter make sure restricted users only see public team members and there own team mates
@@ -245,7 +233,7 @@ func CountOrgMembers(ctx context.Context, opts *FindOrgMembersOpts) (int64, erro
 	} else {
 		opts.applyTeamMatesOnlyFilter(sess)
 	}
-	sess, _ = opts.applyKeywordFilter(sess)
+	_ = opts.applyKeywordFilter(sess)
 
 	return sess.Count(new(OrgUser))
 }
@@ -287,8 +275,8 @@ func (org *Organization) CustomAvatarRelativePath() string {
 	return org.Avatar
 }
 
-// UnitPermission returns unit permission
-func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
+func (org *Organization) AnyRepoUnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
+	// FIXME: ORG-TEAM-UNIT-MAX-PERMISSION: this function is not right, team can access repo1's code doesn't mean it can access repo2's code
 	if doer != nil {
 		teams, err := GetUserOrgTeams(ctx, org.ID, doer.ID)
 		if err != nil {
@@ -302,11 +290,11 @@ func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.Us
 		}
 
 		if len(teams) > 0 {
-			return teams.UnitMaxAccess(unitType)
+			return teams.AnyRepoUnitMaxAccess(ctx, unitType)
 		}
 	}
 
-	if org.Visibility.IsPublic() {
+	if ownerVisibilitySatisfiesDoer(org.AsUser(), doer) {
 		return perm.AccessModeRead
 	}
 
@@ -373,6 +361,7 @@ func CreateOrganization(ctx context.Context, org *Organization, owner *user_mode
 			NumMembers:              1,
 			IncludesAllRepositories: true,
 			CanCreateOrgRepo:        true,
+			Visibility:              structs.VisibleTypeLimited,
 		}
 		if err = db.Insert(ctx, t); err != nil {
 			return fmt.Errorf("insert owner team: %w", err)
@@ -413,11 +402,8 @@ func GetOrgByName(ctx context.Context, name string) (*Organization, error) {
 	if len(name) == 0 {
 		return nil, ErrOrgNotExist{0, name}
 	}
-	u := &Organization{
-		LowerName: strings.ToLower(name),
-		Type:      user_model.UserTypeOrganization,
-	}
-	has, err := db.GetEngine(ctx).Get(u)
+
+	u, has, err := db.Get[Organization](ctx, builder.Eq{"lower_name": strings.ToLower(name), "`type`": user_model.UserTypeOrganization})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -450,8 +436,7 @@ func GetUsersWhoCanCreateOrgRepo(ctx context.Context, orgID int64) (map[int64]*u
 		And("team_user.org_id = ?", orgID).Find(&users)
 }
 
-// HasOrgOrUserVisible tells if the given user can see the given org or user
-func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) bool {
+func ownerVisibilitySatisfiesDoer(orgOrUser, user *user_model.User) bool {
 	// If user is nil, it's an anonymous user/request.
 	// The Ghost user is handled like an anonymous user.
 	if user == nil || user.IsGhost() {
@@ -466,18 +451,17 @@ func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) 
 		return true
 	}
 
-	if (orgOrUser.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !OrgFromUser(orgOrUser).hasMemberWithUserID(ctx, user.ID) {
-		return false
-	}
-	return true
+	return orgOrUser.Visibility != structs.VisibleTypePrivate && !user.IsRestricted
+}
+
+// HasOrgOrUserVisible tells if the given user can see the given org or user
+func HasOrgOrUserVisible(ctx context.Context, owner, doer *user_model.User) bool {
+	return ownerVisibilitySatisfiesDoer(owner, doer) ||
+		(doer != nil && OrgFromUser(owner).HasMemberWithUserID(ctx, doer.ID))
 }
 
 // HasOrgsVisible tells if the given user can see at least one of the orgs provided
 func HasOrgsVisible(ctx context.Context, orgs []*Organization, user *user_model.User) bool {
-	if len(orgs) == 0 {
-		return false
-	}
-
 	for _, org := range orgs {
 		if HasOrgOrUserVisible(ctx, org.AsUser(), user) {
 			return true
@@ -494,8 +478,8 @@ func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUs
 	} else {
 		opts.applyTeamMatesOnlyFilter(sess)
 	}
-	if keywordSess, hasKeyword := opts.applyKeywordFilter(sess); hasKeyword {
-		sess = keywordSess.Select("org_user.*")
+	if opts.applyKeywordFilter(sess) {
+		sess = sess.Select("org_user.*")
 	}
 
 	sess = sess.OrderBy("org_user.uid ASC")
@@ -601,8 +585,8 @@ func RemoveOrgRepo(ctx context.Context, orgID, repoID int64) error {
 
 // GetUserTeams returns all teams that belong to user,
 // and that the user has joined.
-func (org *Organization) GetUserTeams(ctx context.Context, userID int64, cols ...string) ([]*Team, error) {
-	teams := make([]*Team, 0, org.NumTeams)
+func (org *Organization) GetUserTeams(ctx context.Context, userID int64, cols ...string) (TeamList, error) {
+	teams := make(TeamList, 0, org.NumTeams)
 	return teams, db.GetEngine(ctx).
 		Where("`team_user`.org_id = ?", org.ID).
 		Join("INNER", "team_user", "`team_user`.team_id = team.id").

@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExpandVars(t *testing.T) {
-	kases := []struct {
+func TestExpandCurlyBrace(t *testing.T) {
+	cases := []struct {
 		tmpl  string
 		data  map[string]string
 		out   string
@@ -57,15 +57,31 @@ func TestExpandVars(t *testing.T) {
 		},
 	}
 
-	for _, kase := range kases {
-		t.Run(kase.tmpl, func(t *testing.T) {
-			res, err := Expand(kase.tmpl, kase.data)
-			assert.Equal(t, kase.out, res)
-			if kase.error {
+	for _, c := range cases {
+		t.Run(c.tmpl, func(t *testing.T) {
+			res, err := ExpandCurlyBrace(c.tmpl, c.data)
+			assert.Equal(t, c.out, res)
+			if c.error {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
 		})
+	}
+}
+
+func TestExpandShellLike(t *testing.T) {
+	cases := []struct {
+		tmpl string
+		data map[string]string
+		out  string
+	}{
+		{tmpl: "$key ${key} $other ${other}", data: map[string]string{"key": "val"}, out: "val val $other ${other}"},
+		{tmpl: "$ key ${key }", data: map[string]string{"key": "val"}, out: "$ key ${key }"},
+	}
+
+	for _, c := range cases {
+		out := ExpandShellLike(c.tmpl, c.data)
+		assert.Equal(t, c.out, out, "tmpl: %s", c.tmpl)
 	}
 }

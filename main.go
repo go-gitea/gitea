@@ -13,11 +13,12 @@ import (
 	"gitea.dev/cmd"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/gitproxy"
 
 	// register supported doc types
-	_ "gitea.dev/modules/markup/asciicast"
 	_ "gitea.dev/modules/markup/console"
 	_ "gitea.dev/modules/markup/csv"
+	_ "gitea.dev/modules/markup/jupyter"
 	_ "gitea.dev/modules/markup/markdown"
 	_ "gitea.dev/modules/markup/orgmode"
 
@@ -37,6 +38,7 @@ func init() {
 }
 
 func main() {
+	gitproxy.MaybeTunnel()
 	cli.OsExiter = func(code int) {
 		log.GetManager().Close()
 		os.Exit(code)

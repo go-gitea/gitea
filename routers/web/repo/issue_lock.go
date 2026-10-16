@@ -13,7 +13,7 @@ import (
 // LockIssue locks an issue. This would limit commenting abilities to
 // users with write access to the repo.
 func LockIssue(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.IssueLockForm)
+	form := web.GetForm[*forms.IssueLockForm](ctx)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return

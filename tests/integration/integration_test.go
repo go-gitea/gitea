@@ -31,6 +31,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers"
+	"gitea.dev/routers/common"
 	gitea_context "gitea.dev/services/context"
 	"gitea.dev/tests"
 
@@ -66,10 +67,10 @@ func testMain(m *testing.M) int {
 	// Instead, "No tests were found",  last nonsense log is "According to the configuration, subsequent logs will not be printed to the console"
 	exitCode := m.Run()
 
-	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
+	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		log.Error("Failed to remove indexer path: %v", err)
 	}
-	if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
+	if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
 		log.Error("Failed to remove indexer path: %v", err)
 	}
 	return exitCode
@@ -189,13 +190,8 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 		urlValues.Add("scope-dummy", string(scope)) // it only needs to start with "scope-" to be accepted
 	}
 	req := NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
-	session.MakeRequest(t, req, http.StatusSeeOther)
-	flashes := session.GetCookieFlashMessage()
-	assert.NotNil(t, flashes)
-	if flashes != nil {
-		return flashes.InfoMsg
-	}
-	return ""
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	return NewHTMLParser(t, resp.Body).Find("#new-access-token-value").Text()
 }
 
 type RequestWrapper struct {
@@ -294,6 +290,9 @@ func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest
 			// don't use "require" which exits the test case and makes "wait group" wait forever
 			assert.Equal(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String())
 		}
+		if expectedStatus != http.StatusInternalServerError {
+			assert.NotContains(t, recorder.Body.String(), common.PageInternalServerErrorMark, "Request: %s %s, response should not contain internal server error", req.Method, req.URL.String())
+		}
 	}
 	return recorder
 }
@@ -323,6 +322,10 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	}
 }
 
+// DecodeJSON decodes then response as JSON into typed variable and return it
+// HINT: don't use it on existing variable (reuse existing variable):
+// if the existing var already contains some values but the new input doesn't, then it leads to wrong test result in edge cases.
+// For slice decoding, use: v := DecodeJSON(t, resp, []T{})
 func DecodeJSON[T any](t testing.TB, resp *httptest.ResponseRecorder, v T) (ret T) {
 	t.Helper()
 

@@ -11,7 +11,7 @@ import (
 )
 
 func GetLabelEditForm(ctx *context.Context) *forms.CreateLabelForm {
-	form := web.GetForm(ctx).(*forms.CreateLabelForm)
+	form := web.GetForm[*forms.CreateLabelForm](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return nil

@@ -17,7 +17,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -75,9 +75,9 @@ func needsStagedMirrorSync(ctx context.Context, m *repo_model.Mirror) (bool, err
 	return false, nil
 }
 
-func listRefsWithPrefix(ctx context.Context, repo gitrepo.Repository, prefix string) ([]mirrorRef, error) {
-	stdout, _, err := gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("for-each-ref", "--format=%(objectname) %(refname)").
-		AddDynamicArguments(prefix))
+func listRefsWithPrefix(ctx context.Context, repo gitrepo.RepositoryFacade, prefix string) ([]mirrorRef, error) {
+	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--format=%(objectname) %(refname)").
+		AddDynamicArguments(prefix).WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func listRefsWithPrefix(ctx context.Context, repo gitrepo.Repository, prefix str
 	return refs, nil
 }
 
-func removeRefsWithPrefix(ctx context.Context, repo gitrepo.Repository, prefix string) error {
+func removeRefsWithPrefix(ctx context.Context, repo gitrepo.RepositoryFacade, prefix string) error {
 	refs, err := listRefsWithPrefix(ctx, repo, prefix)
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func removeRefsWithPrefix(ctx context.Context, repo gitrepo.Repository, prefix s
 	return runMirrorRefBatch(ctx, repo, mutations)
 }
 
-func syncStagedMirrorRefs(ctx context.Context, m *repo_model.Mirror, timeout time.Duration, envs []string) (err error) {
+func syncStagedMirrorRefs(ctx context.Context, m *repo_model.Mirror, timeout time.Duration) (err error) {
 	remoteName := m.GetRemoteName()
 	stagePrefix := temporaryFetchPrefix + uuid.NewString() + "/"
 	defer func() {
@@ -124,8 +124,8 @@ func syncStagedMirrorRefs(ctx context.Context, m *repo_model.Mirror, timeout tim
 	for attempt := range 2 {
 		cmd := gitcmd.NewCommand("fetch", "--no-tags", "--no-prune", "--refmap=").
 			AddDynamicArguments(remoteName, "+refs/*:"+stagePrefix+"*").
-			WithTimeout(timeout).WithEnv(envs)
-		_, stderr, fetchErr := gitrepo.RunCmdString(ctx, m.Repo, cmd)
+			WithTimeout(timeout).WithRepo(m.Repo)
+		_, stderr, fetchErr := cmd.RunStdString(ctx)
 		if fetchErr == nil {
 			break
 		}
@@ -316,9 +316,9 @@ func mirrorRefTypeAndShortName(name string) (string, string) {
 	return "branch", strings.TrimPrefix(name, git.BranchPrefix)
 }
 
-func canFastForwardRef(ctx context.Context, repo gitrepo.Repository, oldObjectID, newObjectID string) (bool, error) {
-	_, _, err := gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("merge-base", "--is-ancestor").
-		AddDynamicArguments(oldObjectID, newObjectID))
+func canFastForwardRef(ctx context.Context, repo gitrepo.RepositoryFacade, oldObjectID, newObjectID string) (bool, error) {
+	_, _, err := gitcmd.NewCommand("merge-base", "--is-ancestor").
+		AddDynamicArguments(oldObjectID, newObjectID).WithRepo(repo).RunStdString(ctx)
 	if err == nil {
 		return true, nil
 	}
@@ -368,7 +368,7 @@ func applyMirrorRefPlan(ctx context.Context, m *repo_model.Mirror, plan *mirrorR
 	return nil
 }
 
-func runMirrorRefBatch(ctx context.Context, repo gitrepo.Repository, mutations []mirrorRefMutation) error {
+func runMirrorRefBatch(ctx context.Context, repo gitrepo.RepositoryFacade, mutations []mirrorRefMutation) error {
 	if len(mutations) == 0 {
 		return nil
 	}
@@ -386,7 +386,7 @@ func runMirrorRefBatch(ctx context.Context, repo gitrepo.Repository, mutations [
 			input.WriteString("update " + mutation.name + "\x00" + mutation.newID + "\x00" + mutation.oldID + "\x00")
 		}
 	}
-	return gitrepo.RunCmd(ctx, repo, gitcmd.NewCommand("update-ref", "--stdin", "-z").WithStdinBytes(input.Bytes()))
+	return gitcmd.NewCommand("update-ref", "--stdin", "-z").WithStdinBytes(input.Bytes()).WithRepo(repo).Run(ctx)
 }
 
 func notifyMirrorBackup(ctx context.Context, m *repo_model.Mirror, backup mirrorBackup) {
@@ -409,7 +409,7 @@ func notifyMirrorBackup(ctx context.Context, m *repo_model.Mirror, backup mirror
 func reconcilePartialMirrorState(ctx context.Context, m *repo_model.Mirror) {
 	reconcileCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 	defer cancel()
-	gitRepo, err := gitrepo.OpenRepository(reconcileCtx, m.Repo)
+	gitRepo, err := git.OpenRepository(reconcileCtx, m.Repo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to open partially synced repo: %v", m.Repo, err)
 		return
@@ -440,9 +440,9 @@ func parseBackupRef(name string) (refType, shortName string, timestamp time.Time
 		if shortName, timestamp, ok = parseBackupBody(body); ok {
 			return refType, shortName, timestamp, 1, true
 		}
-		if dash := strings.LastIndexByte(body, '-'); dash >= 0 {
-			if n, err := strconv.Atoi(body[dash+1:]); err == nil && n >= 2 {
-				if shortName, timestamp, ok = parseBackupBody(body[:dash]); ok {
+		if base, suffix, found := strings.CutLast(body, "-"); found {
+			if n, err := strconv.Atoi(suffix); err == nil && n >= 2 {
+				if shortName, timestamp, ok = parseBackupBody(base); ok {
 					return refType, shortName, timestamp, n, true
 				}
 			}

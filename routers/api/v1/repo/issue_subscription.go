@@ -128,7 +128,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 
 	// only admin and user for itself can change subscription
 	if user.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
-		ctx.APIError(http.StatusForbidden, fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.Doer.Name, user.Name))
+		ctx.APIError(http.StatusForbidden, fmt.Sprintf("%s is not permitted to change subscriptions for %s", ctx.Doer.Name, user.Name))
 		return
 	}
 
