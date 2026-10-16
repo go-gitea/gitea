@@ -70,8 +70,7 @@ func NaturalSortCompare(s1, s2 string) (ret int) {
 				}
 				if cmp := strings.Compare(num1, num2); cmp != 0 {
 					return cmp // equal digit count, so byte order is numeric order
-				}
-				ret = len(part1) - len(part2) // equal value, fewer leading zeros sorts first
+				} // else: equal value, fewer leading zeros sorts first, leave it to the outer return
 			}
 		} else {
 			if cmp := c.CompareString(part1, part2); cmp != 0 {
@@ -80,8 +79,6 @@ func NaturalSortCompare(s1, s2 string) (ret int) {
 		}
 		pos1, pos2 = end1, end2
 	}
-	if ret != 0 {
-		return ret
-	}
-	return len(s1) - len(s2)
+	// each field is naturally equal, make sure "01.1" < "1.01"
+	return strings.Compare(s1, s2)
 }

@@ -21,6 +21,7 @@ func TestNaturalSortLess(t *testing.T) {
 	testLess("", "a")
 	testLess("", "1")
 
+	testLess("01.1", "1.01")
 	testLess("1.01.0", "1.1.1")
 	testLess("v1.2", "v1.2.0")
 	testLess("v1.2.0", "v1.10.0")
@@ -43,7 +44,7 @@ func TestNaturalSortLess(t *testing.T) {
 	testLess("0.txt", "1.txt")
 
 	testLess("file0001", "file2")
-	testLess("a8", "a08")
+	testLess("a08", "a8")
 	testLess("00", "1")
 	testLess("0", "00") // equal value, fewer leading zeros sorts first
 }
