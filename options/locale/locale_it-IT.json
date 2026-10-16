@@ -450,7 +450,6 @@
   "settings.key_name": "Nome della Chiave",
   "settings.key_content": "Contenuto",
   "settings.principal_content": "Contenuto",
-  "settings.delete_key": "Rimuovi",
   "settings.ssh_key_deletion": "Rimuovi chiave SSH",
   "settings.gpg_key_deletion": "Rimuovi chiave GPG",
   "settings.ssh_principal_deletion": "Rimuovi certificato SSH principale",

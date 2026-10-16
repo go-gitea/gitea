@@ -151,16 +151,28 @@ func TestListEmails(t *testing.T) {
 
 func TestEmailAddressValidate(t *testing.T) {
 	cases := map[string]bool{
-		"":                   false,
-		"root@localhost":     true,
-		"user@[192.168.1.2]": true,
-		"@a":                 false,
-		"abc@gmail.com":      true,
-		"abc@gmail.com\n":    false,
+		"":   false,
+		"@a": false,
+
+		// "_" shouldn't appear in domain but can appear in hostname, since we can't stop site admins from doing so, just accept it
+		"root@local_host": true,
+		"root@localhost":  true,
+		"root@LOCALHOST":  true,
+
+		"user@[192.168.1.2]":  true,
+		"user@[IPv6:FFff::1]": true,
+
+		"abc@gmail.com":   true,
+		"abc@gmail.com.":  false,
+		"abc@gmail.com-":  false,
+		"abc@gmail.com\n": false,
+		"abc@gmail..com":  false,
+		"abc@gmail com":   false,
+		"abc@gmail*com":   false,
+
 		"Foo <foo@bar.com>":  false,
 		"abc@gmail.com (x)":  false,
-		"jürgen@example.com": false,
-		"a@foo_bar.com":      false,
+		"jürgen@example.com": false, // utf8 address is not supported yet
 	}
 	for tc, isValid := range cases {
 		t.Run(tc, func(t *testing.T) {
