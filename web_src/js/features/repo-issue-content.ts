@@ -39,6 +39,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
     async onChange(_value: string, _text: string, $item: JQueryElem) {
       const optionItem = $item.data('option-item');
       if (optionItem === 'delete') {
+        // TODO: to use confirmModal instead of window.confirm, need to support multiple modals on the same page first.
         if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
           try {
             const params = new URLSearchParams();

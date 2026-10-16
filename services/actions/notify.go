@@ -46,6 +46,12 @@ func NotifyWorkflowJobsAndRunsStatusUpdate(ctx context.Context, jobs []*actions_
 	}
 }
 
+// notifyAndEmitFinishedJobs notifies status changes of jobs that may have finished and emits their runs' next jobs
+func notifyAndEmitFinishedJobs(ctx context.Context, jobs []*actions_model.ActionRunJob) {
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, jobs)
+	EmitJobsIfReadyByJobs(jobs)
+}
+
 // NotifyWorkflowRunStatusUpdateWithReload reloads the run before notifying its status update.
 // Use it when only repo/run IDs are available or when the in-memory run may be stale after job updates.
 func NotifyWorkflowRunStatusUpdateWithReload(ctx context.Context, repoID, runID int64) {
