@@ -162,8 +162,8 @@ export function initRepoIssueCodeCommentCancel() {
   });
 }
 
-export function initRepoIssueComments() {
-  if (!document.querySelector('.repository.view.issue .timeline')) return;
+export function initRepoIssueCommentTargetHashReset() {
+  if (!document.querySelector('.repository.view.issue')) return;
 
   document.addEventListener('click', (e: Event) => {
     const urlTarget = document.querySelector(':target');

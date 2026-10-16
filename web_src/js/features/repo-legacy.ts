@@ -2,13 +2,12 @@ import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {
   initRepoCommentForm,
   initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
-  initRepoIssueComments, initRepoIssueReferenceIssue,
+  initRepoIssueCommentTargetHashReset, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipNewTitle, initRepoIssueWipToggle,
 } from './repo-issue.ts';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
 import {initRepoCloneButtons} from './repo-common.ts';
 import {initRepoCitationPanel} from './citation.ts';
-import {initCompLabelEdit} from './comp/LabelEdit.ts';
 import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoSettings} from './repo-settings.ts';
 import {hideElem, queryElemChildren, queryElems, showElem} from '../utils/dom.ts';
@@ -51,7 +50,6 @@ export function initRepository() {
   initRepoIssueSidebar();
   initRepoCommentForm();
 
-  initCompLabelEdit('.page-content.repository.labels');
   initRepoMilestone();
   initRepoNew();
 
@@ -68,7 +66,7 @@ export function initRepository() {
   if (pageContent.matches('.page-content.repository.view.issue')) {
     initRepoIssueTitleEdit();
     initRepoIssueWipToggle();
-    initRepoIssueComments();
+    initRepoIssueCommentTargetHashReset();
 
     initRepoIssueReferenceIssue();
   }
