@@ -10,10 +10,6 @@ import (
 	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
-<<<<<<< HEAD
-=======
-	"xorm.io/xorm/schemas"
->>>>>>> 8e22da2299 (enhance: add colors to reputation labels)
 )
 
 func AddPreviousAuthTokenHash(_ context.Context, x base.EngineMigration) error {
@@ -25,17 +21,5 @@ func AddPreviousAuthTokenHash(_ context.Context, x base.EngineMigration) error {
 		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,
 	}, new(AuthToken))
-	return err
-}
-
-// AddColorToBadges adds the display color for manually managed labels.
-func AddColorToBadges(_ context.Context, x base.EngineMigration) error {
-	type Badge struct {
-		Color string
-	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(Badge))
 	return err
 }

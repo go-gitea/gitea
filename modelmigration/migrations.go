@@ -434,7 +434,6 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(356, "Add index on action_run commit_sha", v29.AddActionRunCommitSHAIndex),
 		newMigration(357, "Normalize legacy team authorize values", v29.NormalizeLegacyTeamAuthorize),
-<<<<<<< HEAD
 		newMigration(358, "Track previous remember-me token hashes", v29.AddPreviousAuthTokenHash),
 		newMigration(359, "Add stage and number columns to action_task_step", v29.AddStageAndNumberToActionTaskStep),
 		newMigration(360, "Move branch protection settings to JSON", v29.MoveBranchProtectionConfigToJSON),
@@ -445,14 +444,6 @@ func prepareMigrationTasks() []*migration {
 			}
 			return v29.AddColorToBadges(ctx, x)
 		}),
-=======
-		newMigration(358, "Add repository and organization badges and colors", func(ctx context.Context, x base.EngineMigration) error {
-			if err := v29.AddRepositoryAndOrganizationBadges(ctx, x); err != nil {
-				return err
-			}
-			return v29.AddColorToBadges(ctx, x)
-		}),
->>>>>>> 8e22da2299 (enhance: add colors to reputation labels)
 	}
 	return preparedMigrations
 }
