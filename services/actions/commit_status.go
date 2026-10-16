@@ -17,10 +17,10 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 	pull_service "gitea.dev/services/pull"
 	commitstatus_service "gitea.dev/services/repository/commitstatus"
@@ -36,7 +36,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 
 	event, commitID, err := getCommitStatusEventNameAndCommitID(run)
 	if err != nil {
-		log.Error("GetCommitStatusEventNameAndSHA: %v", err)
+		log.Error("getCommitStatusEventNameAndCommitID: %v", err)
 	}
 	if event == "" || commitID == "" {
 		return // unsupported event, or no commit id, or error occurs, do nothing
@@ -71,31 +71,15 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 	}
 }
 
-func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, error) {
-	runMap := make(map[int64]*actions_model.ActionRun)
+func GetRunsFromCommitStatuses(ctx context.Context, repoID int64, statuses []*git_model.CommitStatus) (runs []*actions_model.ActionRun, _ error) {
+	runIDs := container.Set[int64]{}
 	for _, status := range statuses {
 		runID, _, ok := status.ParseGiteaActionsTargetURL(ctx)
-		if !ok {
-			continue
-		}
-		_, ok = runMap[runID]
-		if !ok {
-			run, err := actions_model.GetRunByRepoAndID(ctx, status.RepoID, runID)
-			if err != nil {
-				if errors.Is(err, util.ErrNotExist) {
-					// the run may be deleted manually, just skip it
-					continue
-				}
-				return nil, fmt.Errorf("GetRunByRepoAndID: %w", err)
-			}
-			runMap[runID] = run
+		if ok {
+			runIDs.Add(runID)
 		}
 	}
-	runs := make([]*actions_model.ActionRun, 0, len(runMap))
-	for _, run := range runMap {
-		runs = append(runs, run)
-	}
-	return runs, nil
+	return actions_model.GetRunsByRepoAndID(ctx, repoID, runIDs.Values())
 }
 
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {

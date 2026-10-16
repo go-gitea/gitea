@@ -8,21 +8,18 @@ import (
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/xorm"
 )
 
-// AddPushMirrorConfigAndHistory adds the config column and the history table of push mirrors.
-func AddPushMirrorConfigAndHistory(_ context.Context, x base.EngineMigration) error {
-	type PushMirror struct {
-		Config string `xorm:"TEXT JSON"`
+func AddPreviousAuthTokenHash(_ context.Context, x base.EngineMigration) error {
+	type AuthToken struct {
+		PreviousTokenHash string
+		RotatedUnix       timeutil.TimeStamp
 	}
-	type PushMirrorHistory struct {
-		ID           int64 `xorm:"pk autoincr"`
-		RepoID       int64 `xorm:"INDEX"`
-		PushMirrorID int64 `xorm:"INDEX"`
-		Status       string
-		DurationMs   int64
-		Result       string             `xorm:"TEXT JSON"`
-		CreatedUnix  timeutil.TimeStamp `xorm:"created"`
-	}
-	return x.Sync(new(PushMirror), new(PushMirrorHistory))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(AuthToken))
+	return err
 }
