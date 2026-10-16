@@ -83,14 +83,19 @@ func DisableTwoFactor(ctx *context.Context) {
 	}
 
 	// a live session alone must not be enough to remove MFA
-	passcode := ctx.FormString("passcode")
+	passcode := strings.TrimSpace(ctx.FormString("passcode"))
+	if len(passcode) == 0 || len(passcode) > 32 {
+		ctx.JSONErrorWithField(ctx.Tr("settings.twofa_disable_passcode_incorrect"), "passcode")
+		return
+	}
+
 	valid, err := t.ValidateAndConsumeTOTP(ctx, passcode)
 	if err != nil {
 		ctx.ServerError("SettingsTwoFactor: Failed to ValidateAndConsumeTOTP", err)
 		return
 	}
 	if !valid && !t.VerifyScratchToken(passcode) { // recovery key, for a lost authenticator
-		ctx.JSONError(ctx.Tr("settings.twofa_disable_passcode_incorrect"))
+		ctx.JSONErrorWithField(ctx.Tr("settings.twofa_disable_passcode_incorrect"), "passcode")
 		return
 	}
 
