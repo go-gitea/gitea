@@ -12,7 +12,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
 	pull_service "gitea.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
@@ -72,25 +71,21 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 	headLines := numberedLines("head", 2) + baseLines
 
 	headRef := pr.GetGitHeadRefName()
-	stdin := "reset " + headRef + "\n\n"
-	for i, content := range []string{oldLines, baseLines, headLines} {
-		stdin += fmt.Sprintf("commit %s\nmark :%d\ncommitter Test <test@example.com> 0 +0000\ndata 1\nc\n", headRef, i+1)
-		if i > 0 {
-			stdin += fmt.Sprintf("from :%d\n", i)
-		}
-		stdin += fmt.Sprintf("M 100644 inline %s\ndata %d\n%s\n", treePath, len(content), content)
-	}
-	require.NoError(t, gitcmd.NewCommand("fast-import", "--force").WithRepo(pr.BaseRepo).WithStdinBytes([]byte(stdin)).RunWithStderr(ctx))
-	mergeBase, _, runErr := gitcmd.NewCommand("rev-parse").AddDynamicArguments(headRef + "~1").WithRepo(pr.BaseRepo).RunStdString(ctx)
-	require.NoError(t, runErr)
-	pr.MergeBase = strings.TrimSpace(mergeBase)
-	require.NoError(t, pr.UpdateCols(ctx, "merge_base"))
+	require.NoError(t, git.ForceFastImport(ctx, pr.BaseRepo, []git.FastImportCommit{
+		{Ref: headRef, Files: []git.FastImportFile{{Path: treePath, Content: oldLines}}},
+		{Ref: headRef, Parent: ":1", Files: []git.FastImportFile{{Path: treePath, Content: baseLines}}},
+		{Ref: headRef, Parent: ":2", Files: []git.FastImportFile{{Path: treePath, Content: headLines}}},
+	}))
 
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
-	headCommitID, err := gitRepo.GetRefCommitID(ctx, headRef)
+	headCommit, err := gitRepo.GetCommit(ctx, headRef)
 	require.NoError(t, err)
+	mergeBase, err := headCommit.ParentID(0)
+	require.NoError(t, err)
+	pr.MergeBase = mergeBase.String()
+	require.NoError(t, pr.UpdateCols(ctx, "merge_base"))
 
 	for _, c := range []struct {
 		name string
@@ -102,7 +97,7 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
 			require.NoError(t, issue.LoadRepo(ctx))
-			comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, c.line, "test", treePath, true, 0, headCommitID, nil)
+			comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, c.line, "test", treePath, true, 0, headCommit.ID.String(), nil)
 			require.NoError(t, err)
 			assert.True(t, strings.HasSuffix(comment.Patch, "\n old 10\n"), "patch: %q", comment.Patch)
 		})
