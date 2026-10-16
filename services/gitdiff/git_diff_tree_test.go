@@ -244,11 +244,11 @@ func TestGitDiffTreeRespectsDiffOrderFile(t *testing.T) {
 		err = os.WriteFile(diffOrderFilePath, []byte("README.md\nLICENSE\n"), 0o644)
 		require.NoError(t, err)
 
-		_, _, err = gitcmd.NewCommand("config", "set", "--global").AddDynamicArguments("diff.orderFile", diffOrderFilePath).RunStdString(t.Context())
+		_, _, err = gitcmd.NewCommand("config", "--global").AddDynamicArguments("diff.orderFile", diffOrderFilePath).RunStdString(t.Context())
 		require.NoError(t, err)
 		require.NoError(t, git.InitFull())
 		defer func() {
-			_, _, err = gitcmd.NewCommand("config", "unset", "--global").AddDynamicArguments("diff.orderFile").RunStdString(t.Context())
+			_, _, err = gitcmd.NewCommand("config", "--global", "--unset").AddDynamicArguments("diff.orderFile").RunStdString(t.Context())
 			require.NoError(t, err)
 			require.NoError(t, git.InitFull())
 		}()
