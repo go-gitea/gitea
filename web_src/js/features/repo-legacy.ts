@@ -1,6 +1,6 @@
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {
-  initRepoCommentFormAndSidebar,
+  initRepoCommentForm,
   initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipNewTitle, initRepoIssueWipToggle,
@@ -18,6 +18,7 @@ import {initRepoNew} from './repo-new.ts';
 import {createApp} from 'vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 import {initRepoPullMergeBox, initRepoPullRequestUpdate} from './repo-issue-pull.ts';
+import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 
 function initRepoBranchTagSelector() {
   registerGlobalInitFunc('initRepoBranchTagSelector', (elRoot: HTMLInputElement) => {
@@ -47,7 +48,8 @@ export function initRepository() {
   if (!pageContent) return;
 
   initRepoBranchTagSelector();
-  initRepoCommentFormAndSidebar();
+  initRepoIssueSidebar();
+  initRepoCommentForm();
 
   initCompLabelEdit('.page-content.repository.labels');
   initRepoMilestone();
@@ -61,14 +63,14 @@ export function initRepository() {
   initRepoIssueCommentDelete();
   initRepoIssueCodeCommentCancel();
 
+  initCompReactionSelector();
+
   if (pageContent.matches('.page-content.repository.view.issue')) {
     initRepoIssueTitleEdit();
     initRepoIssueWipToggle();
     initRepoIssueComments();
 
     initRepoIssueReferenceIssue();
-
-    initCompReactionSelector();
   }
 
   initUnicodeEscapeButton();

@@ -620,10 +620,6 @@
   min-width: 0;
 }
 
-.repository .comment.form .content .field:first-child {
-  clear: none;
-}
-
 .repository.new.milestone textarea {
   height: 200px;
 }

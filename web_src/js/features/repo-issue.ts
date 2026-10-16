@@ -13,7 +13,6 @@ import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
@@ -491,9 +490,7 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
   }
 }
 
-export function initRepoCommentFormAndSidebar() {
-  initRepoIssueSidebar();
-
+export function initRepoCommentForm() {
   const commentForm = document.querySelector<HTMLFormElement>('.comment.form');
   if (!commentForm) return;
 
