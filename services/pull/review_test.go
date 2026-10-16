@@ -4,14 +4,19 @@
 package pull_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	pull_service "gitea.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDismissReview(t *testing.T) {
@@ -44,4 +49,62 @@ func TestDismissReview(t *testing.T) {
 	_, err = pull_service.DismissReview(t.Context(), review.ID, issue.RepoID, "", &user_model.User{}, false, false)
 	assert.Error(t, err)
 	assert.True(t, pull_service.IsErrDismissRequestOnClosedPR(err))
+}
+
+func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 6})
+	require.NoError(t, pr.LoadBaseRepo(ctx))
+
+	// "old 10" was last changed by the first commit (line 10), it is line 15 in the merge base and line 17 in the PR head
+	numberedLines := func(prefix string, count int) string {
+		var sb strings.Builder
+		for i := range count {
+			fmt.Fprintf(&sb, "%s %d\n", prefix, i+1)
+		}
+		return sb.String()
+	}
+	const treePath = "unchanged-line.txt"
+	oldLines := numberedLines("old", 20)
+	baseLines := numberedLines("base", 5) + oldLines
+	headLines := numberedLines("head", 2) + baseLines
+
+	headRef := pr.GetGitHeadRefName()
+	stdin := "reset " + headRef + "\n\n"
+	for i, content := range []string{oldLines, baseLines, headLines} {
+		stdin += fmt.Sprintf("commit %s\nmark :%d\ncommitter Test <test@example.com> 0 +0000\ndata 1\nc\n", headRef, i+1)
+		if i > 0 {
+			stdin += fmt.Sprintf("from :%d\n", i)
+		}
+		stdin += fmt.Sprintf("M 100644 inline %s\ndata %d\n%s\n", treePath, len(content), content)
+	}
+	require.NoError(t, gitcmd.NewCommand("fast-import", "--force").WithRepo(pr.BaseRepo).WithStdinBytes([]byte(stdin)).RunWithStderr(ctx))
+	mergeBase, _, runErr := gitcmd.NewCommand("rev-parse").AddDynamicArguments(headRef + "~1").WithRepo(pr.BaseRepo).RunStdString(ctx)
+	require.NoError(t, runErr)
+	pr.MergeBase = strings.TrimSpace(mergeBase)
+	require.NoError(t, pr.UpdateCols(ctx, "merge_base"))
+
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	headCommitID, err := gitRepo.GetRefCommitID(ctx, headRef)
+	require.NoError(t, err)
+
+	for _, c := range []struct {
+		name string
+		line int64
+	}{
+		{"NewSide", 17},
+		{"OldSide", -15},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
+			require.NoError(t, issue.LoadRepo(ctx))
+			comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, c.line, "test", treePath, true, 0, headCommitID, nil)
+			require.NoError(t, err)
+			assert.True(t, strings.HasSuffix(comment.Patch, "\n old 10\n"), "patch: %q", comment.Patch)
+		})
+	}
 }
