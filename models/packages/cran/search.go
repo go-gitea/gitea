@@ -5,6 +5,7 @@ package cran
 
 import (
 	"context"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -74,14 +75,15 @@ func SearchLatestVersions(ctx context.Context, opts *SearchOptions) ([]*packages
 
 	// SQL can't order R version strings, so pick the highest version per package here
 	latest := make([]*packages.PackageVersion, 0, len(pvs))
-	for _, pv := range pvs {
-		if n := len(latest); n > 0 && latest[n-1].PackageID == pv.PackageID {
-			if cran_module.CompareVersions(pv.Version, latest[n-1].Version) > 0 {
-				latest[n-1] = pv
-			}
-			continue
+	for start := 0; start < len(pvs); {
+		end := start + 1
+		for end < len(pvs) && pvs[end].PackageID == pvs[start].PackageID {
+			end++
 		}
-		latest = append(latest, pv)
+		latest = append(latest, slices.MaxFunc(pvs[start:end], func(a, b *packages.PackageVersion) int {
+			return cran_module.CompareVersions(a.Version, b.Version)
+		}))
+		start = end
 	}
 	return latest, nil
 }
