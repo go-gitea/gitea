@@ -67,6 +67,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
+	ctx.Data["MirrorForcePushBackupLimit"] = setting.Mirror.DefaultForcePushBackupLimit
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
 
 	signing, _ := gitrepo.GetSigningKey(ctx)
@@ -146,6 +147,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
+	ctx.Data["MirrorForcePushBackupLimit"] = setting.Mirror.DefaultForcePushBackupLimit
 
 	signing, _ := gitrepo.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil

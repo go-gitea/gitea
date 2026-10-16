@@ -130,16 +130,18 @@
 										<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
 											<label>{{ctx.Locale.Tr "repo.mirror_prune"}}</label>
 											<div class="ui checkbox">
-										<input id="enable_prune" name="enable_prune" type="checkbox" {{if .PullMirror.EnablePrune}}checked{{end}}>
-										<label>{{ctx.Locale.Tr "repo.mirror_prune_desc"}}</label>
+												<input id="enable_prune" name="enable_prune" type="checkbox" {{if .PullMirror.EnablePrune}}checked{{end}}>
+												<label>{{ctx.Locale.Tr "repo.mirror_prune_migrate"}}</label>
 											</div>
+											<span class="help tw-block">{{ctx.Locale.Tr "repo.mirror_prune_desc"}}</span>
 										</div>
 										<div class="inline field {{if .Err_ForcePushBackup}}error{{end}}">
 											<label>{{ctx.Locale.Tr "repo.mirror_force_push_backup"}}</label>
 											<div class="ui checkbox">
-											<input id="force_push_backup" name="force_push_backup" type="checkbox" {{if .PullMirror.ForcePushBackup}}checked{{end}}>
-											<label>{{ctx.Locale.Tr "repo.mirror_force_push_backup_desc"}}</label>
+												<input id="force_push_backup" name="force_push_backup" type="checkbox" {{if .PullMirror.ForcePushBackup}}checked{{end}}>
+												<label>{{ctx.Locale.Tr "repo.mirror_force_push_backup_migrate"}}</label>
 											</div>
+											<span class="help tw-block">{{ctx.Locale.Tr "repo.mirror_force_push_backup_desc"}}<br>{{ctx.Locale.Tr "repo.mirror_force_push_backup_details" .MirrorForcePushBackupLimit}}<br>{{ctx.Locale.Tr "repo.mirror_force_push_backup_disabled_hint"}}</span>
 										</div>
 										<div class="inline field {{if .Err_Interval}}error{{end}}">
 											<label for="interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
