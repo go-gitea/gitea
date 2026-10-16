@@ -11,19 +11,27 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOneDevVersionResponseSizeLimit(t *testing.T) {
+func TestOneDevResponseSizeLimit(t *testing.T) {
+	defer test.MockVariableValue(&maxOneDevAPIResponseSize, 1024)()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write(bytes.Repeat([]byte("1"), maxOneDevVersionResponseSize+1))
+		if r.URL.Path == "/~api/version/server" {
+			_, _ = w.Write(bytes.Repeat([]byte("1"), maxOneDevVersionResponseSize+1))
+			return
+		}
+		_, _ = w.Write([]byte(`[{"id":1,"name":"` + strings.Repeat("a", 1024) + `"}]`))
 	}))
 	defer server.Close()
 
@@ -33,6 +41,13 @@ func TestOneDevVersionResponseSizeLimit(t *testing.T) {
 	var version *version.Version
 	err = download.callAPI(t.Context(), "/~api/version/server", nil, &version)
 	assert.Error(t, err)
+
+	var projects []struct {
+		ID   int64  `json:"id"`
+		Name string `json:"name"`
+	}
+	err = download.callAPI(t.Context(), "/~api/projects", nil, &projects)
+	assert.ErrorIs(t, err, util.ErrLimitExceeded)
 }
 
 func TestOneDevDownloadRepo(t *testing.T) {

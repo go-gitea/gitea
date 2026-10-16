@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	packages_module "gitea.dev/modules/packages"
+	rpm_module "gitea.dev/modules/packages/rpm"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/sassoftware/go-rpmutils"
@@ -17,6 +18,10 @@ import (
 func SignPackage(buf *packages_module.HashedBuffer, privateKey string) (*packages_module.HashedBuffer, error) {
 	keyring, err := openpgp.ReadArmoredKeyRing(strings.NewReader(privateKey))
 	if err != nil {
+		return nil, err
+	}
+
+	if err := rpm_module.CheckHeaderSizes(buf); err != nil {
 		return nil, err
 	}
 

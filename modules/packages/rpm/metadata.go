@@ -4,11 +4,13 @@
 package rpm
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"strings"
 
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
 	"github.com/sassoftware/go-rpmutils"
@@ -33,6 +35,20 @@ const (
 	sIXUSR = 0x40
 	sIXGRP = 0x8
 	sIXOTH = 0x1
+)
+
+// caps far above any legitimate package, but low enough to stop metadata amplification
+const (
+	maxHeaderIndexEntries = 0xffff
+	maxHeaderSize         = 64 * 1024 * 1024
+	maxDependencyEntries  = 10000
+	maxChangelogEntries   = 10000
+	maxFileEntries        = 100000
+)
+
+var (
+	ErrInvalidHeader  = util.NewInvalidArgumentErrorf("package header is invalid")
+	ErrTooManyEntries = util.NewInvalidArgumentErrorf("package header contains too many entries")
 )
 
 // https://rpm-software-management.github.io/rpm/manual/spec.html
@@ -98,8 +114,44 @@ type Changelog struct {
 	Text   string             `json:"text,omitempty" xml:",chardata"`
 }
 
+// CheckHeaderSizes rejects RPM header size declarations which are too large or exceed the available data,
+// because go-rpmutils allocates the declared sizes before reading. r is rewound to the start afterwards.
+func CheckHeaderSizes(r io.ReadSeeker) error {
+	size, err := r.Seek(0, io.SeekEnd)
+	if err != nil {
+		return err
+	}
+	offset := int64(96) // skip the lead
+	for _, isSignature := range []bool{true, false} {
+		if _, err := r.Seek(offset, io.SeekStart); err != nil {
+			return err
+		}
+		var intro [16]byte
+		if _, err := io.ReadFull(r, intro[:]); err != nil {
+			return ErrInvalidHeader
+		}
+
+		entries := int64(binary.BigEndian.Uint32(intro[8:12]))
+		dataSize := int64(binary.BigEndian.Uint32(intro[12:16]))
+		if isSignature {
+			dataSize = (dataSize + 7) / 8 * 8 // the signature header is padded to 8 bytes
+		}
+		headerSize := entries*16 + dataSize
+		offset += 16 + headerSize
+		if entries > maxHeaderIndexEntries || headerSize > maxHeaderSize || offset > size {
+			return ErrInvalidHeader
+		}
+	}
+	_, err = r.Seek(0, io.SeekStart)
+	return err
+}
+
 // ParsePackage parses the RPM package file
-func ParsePackage(r io.Reader) (*Package, error) {
+func ParsePackage(r io.ReadSeeker) (*Package, error) {
+	if err := CheckHeaderSizes(r); err != nil {
+		return nil, err
+	}
+
 	rpm, err := rpmutils.ReadRpm(r)
 	if err != nil {
 		return nil, err
@@ -138,14 +190,27 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			FileTime:      getUInt64(rpm.Header, rpmutils.FILEMTIMES),
 			InstalledSize: getUInt64(rpm.Header, rpmutils.SIZE),
 			ArchiveSize:   getUInt64(rpm.Header, rpmutils.SIG_PAYLOADSIZE),
-
-			Provides:   getEntries(rpm.Header, rpmutils.PROVIDENAME, rpmutils.PROVIDEVERSION, rpmutils.PROVIDEFLAGS),
-			Requires:   getEntries(rpm.Header, rpmutils.REQUIRENAME, rpmutils.REQUIREVERSION, rpmutils.REQUIREFLAGS),
-			Conflicts:  getEntries(rpm.Header, rpmutils.CONFLICTNAME, rpmutils.CONFLICTVERSION, rpmutils.CONFLICTFLAGS),
-			Obsoletes:  getEntries(rpm.Header, rpmutils.OBSOLETENAME, rpmutils.OBSOLETEVERSION, rpmutils.OBSOLETEFLAGS),
-			Files:      getFiles(rpm.Header),
-			Changelogs: getChangelogs(rpm.Header),
 		},
+	}
+
+	fm := p.FileMetadata
+	if fm.Provides, err = getEntries(rpm.Header, rpmutils.PROVIDENAME, rpmutils.PROVIDEVERSION, rpmutils.PROVIDEFLAGS); err != nil {
+		return nil, err
+	}
+	if fm.Requires, err = getEntries(rpm.Header, rpmutils.REQUIRENAME, rpmutils.REQUIREVERSION, rpmutils.REQUIREFLAGS); err != nil {
+		return nil, err
+	}
+	if fm.Conflicts, err = getEntries(rpm.Header, rpmutils.CONFLICTNAME, rpmutils.CONFLICTVERSION, rpmutils.CONFLICTFLAGS); err != nil {
+		return nil, err
+	}
+	if fm.Obsoletes, err = getEntries(rpm.Header, rpmutils.OBSOLETENAME, rpmutils.OBSOLETEVERSION, rpmutils.OBSOLETEFLAGS); err != nil {
+		return nil, err
+	}
+	if fm.Files, err = getFiles(rpm.Header); err != nil {
+		return nil, err
+	}
+	if fm.Changelogs, err = getChangelogs(rpm.Header); err != nil {
+		return nil, err
 	}
 
 	if !validation.IsValidURL(p.VersionMetadata.ProjectURL) {
@@ -171,21 +236,24 @@ func getUInt64(h *rpmutils.RpmHeader, tag int) uint64 {
 	return values[0]
 }
 
-func getEntries(h *rpmutils.RpmHeader, namesTag, versionsTag, flagsTag int) []*Entry {
+func getEntries(h *rpmutils.RpmHeader, namesTag, versionsTag, flagsTag int) ([]*Entry, error) {
 	names, err := h.GetStrings(namesTag)
 	if err != nil || len(names) == 0 {
-		return nil
+		return nil, nil
+	}
+	if len(names) > maxDependencyEntries {
+		return nil, ErrTooManyEntries
 	}
 	flags, err := h.GetUint64s(flagsTag)
 	if err != nil || len(flags) == 0 {
-		return nil
+		return nil, nil
 	}
 	versions, err := h.GetStrings(versionsTag)
 	if err != nil || len(versions) == 0 {
-		return nil
+		return nil, nil
 	}
 	if len(names) != len(flags) || len(names) != len(versions) {
-		return nil
+		return nil, nil
 	}
 
 	entries := make([]*Entry, 0, len(names))
@@ -227,11 +295,14 @@ func getEntries(h *rpmutils.RpmHeader, namesTag, versionsTag, flagsTag int) []*E
 
 		entries = append(entries, e)
 	}
-	return entries
+	return entries, nil
 }
 
-func getFiles(h *rpmutils.RpmHeader) []*File {
+func getFiles(h *rpmutils.RpmHeader) ([]*File, error) {
 	baseNames, _ := h.GetStrings(rpmutils.BASENAMES)
+	if len(baseNames) > maxFileEntries {
+		return nil, ErrTooManyEntries
+	}
 	dirNames, _ := h.GetStrings(rpmutils.DIRNAMES)
 	dirIndexes, _ := h.GetUint32s(rpmutils.DIRINDEXES)
 	fileFlags, _ := h.GetUint32s(rpmutils.FILEFLAGS)
@@ -267,24 +338,27 @@ func getFiles(h *rpmutils.RpmHeader) []*File {
 		})
 	}
 
-	return files
+	return files, nil
 }
 
-func getChangelogs(h *rpmutils.RpmHeader) []*Changelog {
+func getChangelogs(h *rpmutils.RpmHeader) ([]*Changelog, error) {
 	texts, err := h.GetStrings(rpmutils.CHANGELOGTEXT)
 	if err != nil || len(texts) == 0 {
-		return nil
+		return nil, nil
+	}
+	if len(texts) > maxChangelogEntries {
+		return nil, ErrTooManyEntries
 	}
 	authors, err := h.GetStrings(rpmutils.CHANGELOGNAME)
 	if err != nil || len(authors) == 0 {
-		return nil
+		return nil, nil
 	}
 	times, err := h.GetUint32s(rpmutils.CHANGELOGTIME)
 	if err != nil || len(times) == 0 {
-		return nil
+		return nil, nil
 	}
 	if len(texts) != len(authors) || len(texts) != len(times) {
-		return nil
+		return nil, nil
 	}
 
 	changelogs := make([]*Changelog, 0, len(texts))
@@ -295,7 +369,7 @@ func getChangelogs(h *rpmutils.RpmHeader) []*Changelog {
 			Text:   texts[i],
 		})
 	}
-	return changelogs
+	return changelogs, nil
 }
 
 type DateAttr struct {

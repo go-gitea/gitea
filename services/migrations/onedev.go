@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 
 	"github.com/hashicorp/go-version"
 )
@@ -25,6 +26,9 @@ const (
 	OneDevRequiredVersion        = "12.0.1"
 	maxOneDevVersionResponseSize = 1024
 )
+
+// maxOneDevAPIResponseSize caps a single decoded OneDev API response (var so tests can lower it)
+var maxOneDevAPIResponseSize int64 = 32 * 1024 * 1024
 
 var (
 	_ base.Downloader        = &OneDevDownloader{}
@@ -156,7 +160,7 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 		return nil
 	}
 
-	decoder := json.NewDecoder(resp.Body)
+	decoder := json.NewDecoder(util.NewLimitedReader(resp.Body, maxOneDevAPIResponseSize))
 	return decoder.Decode(&result)
 }
 

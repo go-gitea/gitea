@@ -62,6 +62,36 @@ func readWithLimit(r io.Reader, batch, limit int) ([]byte, error) {
 	return res.Bytes(), nil
 }
 
+// ErrLimitExceeded is returned by a reader from NewLimitedReader once its limit is exceeded
+var ErrLimitExceeded = NewInvalidArgumentErrorf("content exceeds the size limit")
+
+type limitedReader struct {
+	r         io.Reader
+	remaining int64
+}
+
+// NewLimitedReader returns a reader which fails with ErrLimitExceeded once r provides more than limit bytes.
+// Unlike io.LimitReader it does not silently truncate, so a decoder cannot accept a cut-off document.
+func NewLimitedReader(r io.Reader, limit int64) io.Reader {
+	return &limitedReader{r: r, remaining: limit}
+}
+
+func (l *limitedReader) Read(p []byte) (int, error) {
+	if l.remaining < 0 {
+		return 0, ErrLimitExceeded
+	}
+	// read one byte past the limit to detect oversized input
+	if int64(len(p)) > l.remaining+1 {
+		p = p[:l.remaining+1]
+	}
+	n, err := l.r.Read(p)
+	l.remaining -= int64(n)
+	if l.remaining < 0 {
+		return n - 1, ErrLimitExceeded
+	}
+	return n, err
+}
+
 // ErrNotEmpty is an error reported when there is a non-empty reader
 var ErrNotEmpty = errors.New("not-empty")
 

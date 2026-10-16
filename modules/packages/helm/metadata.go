@@ -10,6 +10,7 @@ import (
 	"io"
 	"strings"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -69,6 +70,9 @@ type Dependency struct {
 	Alias        string   `json:"alias,omitempty" yaml:"alias,omitempty"`
 }
 
+// maxChartArchiveSize caps the decompressed bytes scanned while searching a chart archive for its Chart.yaml (var so tests can lower it)
+var maxChartArchiveSize int64 = 100 * 1024 * 1024
+
 // ParseChartArchive parses the metadata of a Helm archive
 func ParseChartArchive(r io.Reader) (*Metadata, error) {
 	gzr, err := gzip.NewReader(r)
@@ -77,7 +81,7 @@ func ParseChartArchive(r io.Reader) (*Metadata, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(gzr)
+	tr := tar.NewReader(util.NewLimitedReader(gzr, maxChartArchiveSize))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
@@ -106,7 +110,7 @@ func ParseChartArchive(r io.Reader) (*Metadata, error) {
 // ParseChartFile parses a Chart.yaml file to retrieve the metadata of a Helm chart
 func ParseChartFile(r io.Reader) (*Metadata, error) {
 	var metadata *Metadata
-	if err := yaml.NewDecoder(r).Decode(&metadata); err != nil {
+	if err := yaml.NewDecoder(util.NewLimitedReader(r, packages.MaxMetadataFileSize)).Decode(&metadata); err != nil {
 		return nil, err
 	}
 

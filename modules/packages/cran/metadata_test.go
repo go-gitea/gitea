@@ -9,7 +9,11 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"strings"
 	"testing"
+
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -142,6 +146,14 @@ func TestParseDescription(t *testing.T) {
 			assert.NotNil(t, p)
 			assert.Equal(t, version, p.Version)
 		}
+	})
+
+	t.Run("TooLarge", func(t *testing.T) {
+		buf := createDescription(packageName, packageVersion)
+		buf.WriteString(strings.Repeat("  continuation\n", packages.MaxMetadataFileSize/15+1))
+		p, err := ParseDescription(buf)
+		assert.Nil(t, p)
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("Valid", func(t *testing.T) {

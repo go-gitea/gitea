@@ -7,9 +7,11 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"testing"
 
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -43,6 +45,31 @@ func TestExtractPortablePdb(t *testing.T) {
 
 		pdbs, err := ExtractPortablePdb(bytes.NewReader(data), int64(len(data)))
 		assert.ErrorIs(t, err, ErrInvalidFiles)
+		assert.Empty(t, pdbs)
+	})
+
+	t.Run("TooLarge", func(t *testing.T) {
+		defer test.MockVariableValue(&maxPortablePdbSize, 1024)()
+		b, _ := base64.StdEncoding.DecodeString(pdbContent)
+
+		var buf bytes.Buffer
+		archive := zip.NewWriter(&buf)
+		w, _ := archive.Create("large.pdb")
+		_, _ = w.Write(append(b, make([]byte, 1024)...))
+		_ = archive.Close()
+		pdbs, err := ExtractPortablePdb(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+		assert.ErrorIs(t, err, ErrPdbFilesTooLarge)
+		assert.Empty(t, pdbs)
+
+		buf.Reset()
+		archive = zip.NewWriter(&buf)
+		for i := range 1024/len(b) + 1 {
+			w, _ := archive.Create(fmt.Sprintf("%d.pdb", i))
+			_, _ = w.Write(b)
+		}
+		_ = archive.Close()
+		pdbs, err = ExtractPortablePdb(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+		assert.ErrorIs(t, err, ErrPdbFilesTooLarge)
 		assert.Empty(t, pdbs)
 	})
 

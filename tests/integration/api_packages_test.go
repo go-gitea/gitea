@@ -20,6 +20,7 @@ import (
 	container_module "gitea.dev/modules/packages/container"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	packages_service "gitea.dev/services/packages"
 	packages_cleanup_service "gitea.dev/services/packages/cleanup"
@@ -546,6 +547,30 @@ func TestPackageQuota(t *testing.T) {
 		uploadPackage(user, "1.2", http.StatusForbidden)
 		uploadPackage(admin, "1.2", http.StatusCreated)
 		setting.Packages.LimitSizeGeneric = limitSizeGeneric
+	})
+
+	t.Run("CheckedBeforeParsing", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// the content is invalid, so the quota error proves it was not parsed
+		for _, upload := range []struct {
+			method, path string
+			limit        *int64
+		}{
+			{"PUT", "arch", &setting.Packages.LimitSizeArch},
+			{"PUT", "conda/channel/test-1.0-0.tar.bz2", &setting.Packages.LimitSizeConda},
+			{"PUT", "cran/src", &setting.Packages.LimitSizeCran},
+			{"POST", "helm/api/charts", &setting.Packages.LimitSizeHelm},
+			{"PUT", "nuget/", &setting.Packages.LimitSizeNuGet},
+			{"PUT", "rpm/upload", &setting.Packages.LimitSizeRpm},
+			{"POST", "rubygems/api/v1/gems", &setting.Packages.LimitSizeRubyGems},
+			{"PUT", "vagrant/test/1.0.0/virtualbox.box", &setting.Packages.LimitSizeVagrant},
+		} {
+			defer test.MockVariableValue(upload.limit, 0)()
+			req := NewRequestWithBody(t, upload.method, fmt.Sprintf("/api/packages/%s/%s", user.Name, upload.path), strings.NewReader("invalid")).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusForbidden)
+		}
 	})
 
 	t.Run("Container", func(t *testing.T) {

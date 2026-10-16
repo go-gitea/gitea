@@ -135,6 +135,11 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	if err := packages_service.CheckTypeSizeQuotaExceeded(ctx.Doer, packages_model.TypeRpm, buf.Size()); err != nil {
+		apiError(ctx, http.StatusForbidden, err)
+		return
+	}
+
 	if setting.Packages.DefaultRPMSignEnabled || ctx.FormBool("sign") {
 		priv, _, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 		if err != nil {

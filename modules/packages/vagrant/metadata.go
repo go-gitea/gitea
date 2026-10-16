@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 )
 
@@ -29,7 +31,7 @@ type Metadata struct {
 func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("invalid box archive: %v", err)
 	}
 	defer gzr.Close()
 
@@ -40,7 +42,7 @@ func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
 			break
 		}
 		if err != nil {
-			return nil, err
+			return nil, util.NewInvalidArgumentErrorf("invalid box archive: %v", err)
 		}
 
 		if hd.Typeflag != tar.TypeReg {
@@ -58,7 +60,7 @@ func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
 // ParseInfoFile parses a info.json file to retrieve the metadata of a Vagrant package
 func ParseInfoFile(r io.Reader) (*Metadata, error) {
 	var values map[string]string
-	if err := json.NewDecoder(r).Decode(&values); err != nil {
+	if err := json.NewDecoder(util.NewLimitedReader(r, packages.MaxMetadataFileSize)).Decode(&values); err != nil {
 		return nil, err
 	}
 

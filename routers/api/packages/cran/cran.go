@@ -166,6 +166,11 @@ func uploadPackageFile(ctx *context.Context, compositeKey string, properties map
 	}
 	defer buf.Close()
 
+	if err := packages_service.CheckTypeSizeQuotaExceeded(ctx.Doer, packages_model.TypeCran, buf.Size()); err != nil {
+		apiError(ctx, http.StatusForbidden, err)
+		return
+	}
+
 	pck, err := cran_module.ParsePackage(buf, buf.Size())
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {

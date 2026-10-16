@@ -7,8 +7,15 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/binary"
+	"io"
+	"slices"
+	"strings"
 	"testing"
 
+	"gitea.dev/modules/util"
+
+	"github.com/sassoftware/go-rpmutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,8 +53,10 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 
 	zr, err := gzip.NewReader(bytes.NewReader(rpmPackageContent))
 	assert.NoError(t, err)
+	content, err := io.ReadAll(zr)
+	assert.NoError(t, err)
 
-	p, err := ParsePackage(zr)
+	p, err := ParsePackage(bytes.NewReader(content))
 	assert.NotNil(t, p)
 	assert.NoError(t, err)
 
@@ -160,4 +169,75 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 		},
 		p.FileMetadata.Changelogs,
 	)
+}
+
+func TestParsePackageLimits(t *testing.T) {
+	type tag struct {
+		id, typ, count int32
+		data           []byte
+	}
+	stringTag := func(id int32, values ...string) tag {
+		return tag{id, rpmutils.RPM_STRING_ARRAY_TYPE, int32(len(values)), []byte(strings.Join(values, "\x00") + "\x00")}
+	}
+	writeHeader := func(buf *bytes.Buffer, tags []tag, declaredSize uint32) {
+		var data bytes.Buffer
+		for _, t := range tags {
+			data.Write(t.data)
+		}
+		size := uint32(data.Len())
+		if declaredSize != 0 {
+			size = declaredSize
+		}
+		_ = binary.Write(buf, binary.BigEndian, []uint32{0x8eade801, 0, uint32(len(tags)), size})
+		offset := int32(0)
+		for _, t := range tags {
+			_ = binary.Write(buf, binary.BigEndian, []int32{t.id, t.typ, offset, t.count})
+			offset += int32(len(t.data))
+		}
+		buf.Write(data.Bytes())
+	}
+	createPackage := func(tags []tag, declaredSize uint32) *bytes.Reader {
+		var buf bytes.Buffer
+		buf.Write([]byte{0xed, 0xab, 0xee, 0xdb})
+		buf.Write(make([]byte, 92))
+		writeHeader(&buf, nil, 0)
+		writeHeader(&buf, tags, declaredSize)
+		return bytes.NewReader(buf.Bytes())
+	}
+	createRequires := func(n int) []tag {
+		flags := make([]byte, 4*n)
+		return []tag{
+			stringTag(rpmutils.NAME, "test"),
+			stringTag(rpmutils.VERSION, "1.0"),
+			stringTag(rpmutils.RELEASE, "1"),
+			stringTag(rpmutils.ARCH, "noarch"),
+			stringTag(rpmutils.REQUIRENAME, slices.Repeat([]string{"dep"}, n)...),
+			stringTag(rpmutils.REQUIREVERSION, slices.Repeat([]string{""}, n)...),
+			{rpmutils.REQUIREFLAGS, rpmutils.RPM_INT32_TYPE, int32(n), flags},
+		}
+	}
+
+	t.Run("Valid", func(t *testing.T) {
+		p, err := ParsePackage(createPackage(createRequires(2), 0))
+		assert.NoError(t, err)
+		assert.Len(t, p.FileMetadata.Requires, 2)
+	})
+
+	t.Run("DeclaredHeaderSize", func(t *testing.T) {
+		// above the header cap, and below it but beyond the uploaded data
+		for _, declaredSize := range []uint32{1024 * 1024 * 1024, 32 * 1024 * 1024} {
+			data := createPackage(nil, declaredSize)
+			assert.EqualValues(t, 128, data.Size())
+
+			p, err := ParsePackage(data)
+			assert.Nil(t, p)
+			assert.ErrorIs(t, err, ErrInvalidHeader)
+		}
+	})
+
+	t.Run("TooManyEntries", func(t *testing.T) {
+		p, err := ParsePackage(createPackage(createRequires(maxDependencyEntries+1), 0))
+		assert.Nil(t, p)
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	})
 }

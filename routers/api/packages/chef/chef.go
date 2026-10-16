@@ -270,6 +270,11 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	if err := packages_service.CheckTypeSizeQuotaExceeded(ctx.Doer, packages_model.TypeChef, buf.Size()); err != nil {
+		apiError(ctx, http.StatusForbidden, err)
+		return
+	}
+
 	pck, err := chef_module.ParsePackage(buf)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
