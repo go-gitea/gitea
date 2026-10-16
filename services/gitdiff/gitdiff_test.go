@@ -12,6 +12,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -1270,4 +1271,14 @@ func TestGetDiffShortStatWithOptions(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, &DiffShortStat{NumFiles: 1, TotalAddition: 3, TotalDeletion: 2}, stat)
 	})
+}
+
+func TestDiffLineCanCommentUnified(t *testing.T) {
+	line := &DiffLine{LeftIdx: 3, RightIdx: 3, Type: DiffLinePlain}
+	assert.True(t, line.CanCommentUnified())
+
+	// the unified row holds the threads of both sides, and the add button only
+	// opens a form in a row that has none yet
+	line.CommitCommentsLeft = repo_model.CommitCommentList{{ID: 1}}
+	assert.False(t, line.CanCommentUnified())
 }

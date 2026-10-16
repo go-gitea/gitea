@@ -183,13 +183,10 @@ func (d *DiffLine) CanCommentRight() bool {
 	return d.CanComment() && len(d.CommitCommentsRight) == 0
 }
 
-// CanCommentUnified answers for the single button of the unified view, which
-// targets the new side whenever the line has one
+// CanCommentUnified answers for the single button of the unified view. Its row
+// holds the threads of both sides, and the form only opens in a row without one.
 func (d *DiffLine) CanCommentUnified() bool {
-	if d.RightIdx > 0 {
-		return d.CanCommentRight()
-	}
-	return d.CanCommentLeft()
+	return d.CanCommentLeft() && d.CanCommentRight()
 }
 
 // GetCommentSide returns the comment side of the first comment, if not set returns empty string
