@@ -57,6 +57,34 @@ func GitFsckRepo(ctx context.Context, repo *repo_model.Repository, timeout time.
 	return nil
 }
 
+func MaintainRepositories(ctx context.Context) error {
+	return db.Iterate(ctx, builder.Gt{"id": 0}, maintainRepository)
+}
+
+func maintainRepository(ctx context.Context, repo *repo_model.Repository) error {
+	if ctx.Err() != nil {
+		return db.ErrCancelledf("before maintenance of %s", repo.FullName())
+	}
+	for _, gitRepo := range []git.RepositoryFacade{repo.WikiStorageRepo(), repo} {
+		if exist, err := git.IsRepositoryExist(ctx, gitRepo); !exist {
+			if err != nil {
+				log.Error("Failed to check %s: %v", gitRepo.LogString(), err)
+			}
+			continue
+		}
+		changed, err := git.MaintainRepository(ctx, gitRepo)
+		if err != nil {
+			log.Error("Failed to maintain %s: %v", gitRepo.LogString(), err)
+		}
+		if changed && gitRepo == repo {
+			if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
+				log.Error("Failed to update the size of %s: %v", gitRepo.LogString(), err)
+			}
+		}
+	}
+	return nil
+}
+
 // GitGcRepos calls 'git gc' to remove unnecessary files and optimize the local repository
 func GitGcRepos(ctx context.Context, timeout time.Duration, args gitcmd.TrustedCmdArgs) error {
 	log.Trace("Doing: GitGcRepos")
@@ -82,40 +110,32 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args gitcmd.TrustedC
 	return nil
 }
 
-// GitGcRepo calls 'git gc' to remove unnecessary files and optimize the local repository and its wiki
+// GitGcRepo calls 'git gc' to remove unnecessary files and optimize the local repository
 func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args gitcmd.TrustedCmdArgs) error {
 	log.Trace("Running git gc on %-v", repo)
-	if git.NeedsGarbageCollection(repo.WikiStorageRepo()) {
-		_ = gitGc(ctx, repo.WikiStorageRepo(), args) // logged in gitGc
-	}
-	if !git.NeedsGarbageCollection(repo) {
-		return nil
-	}
-	if err := gitGc(ctx, repo, args); err != nil {
-		return err
+	command := gitcmd.NewCommand("gc").AddArguments(args...)
+	var stdout string
+	var err error
+	stdout, _, err = command.WithRepo(repo).RunStdString(ctx)
+	if err != nil {
+		log.Error("Repository garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
+		desc := fmt.Sprintf("Repository garbage collection failed (%s). Stdout: %s\nError: %v", repo.FullName(), stdout, err)
+		if err := system_model.CreateRepositoryNotice(desc); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+		return fmt.Errorf("repository garbage collection failed in repo: %s, error: %w", repo.FullName(), err)
 	}
 
 	// Now update the size of the repository
 	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Updating size as part of garbage collection failed for %-v. Error: %v", repo, err)
-		if err := system_model.CreateRepositoryNotice("Updating size as part of garbage collection failed (%s). Error: %v", repo.FullName(), err); err != nil {
+		log.Error("Updating size as part of garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
+		desc := fmt.Sprintf("Updating size as part of garbage collection failed (%s). Stdout: %s\nError: %v", repo.FullName(), stdout, err)
+		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 		return fmt.Errorf("updating size as part of garbage collection failed in repo: %s, error: %w", repo.FullName(), err)
 	}
 
-	return nil
-}
-
-func gitGc(ctx context.Context, gitRepo git.RepositoryFacade, args gitcmd.TrustedCmdArgs) error {
-	stdout, _, err := gitcmd.NewCommand("gc").AddArguments(args...).WithRepo(gitRepo).RunStdString(ctx)
-	if err != nil && !gitcmd.IsStderr(err, gitcmd.StderrGcAlreadyRunning) {
-		log.Error("Repository garbage collection failed for %s. Stdout: %s\nError: %v", gitRepo.LogString(), stdout, err)
-		if err := system_model.CreateRepositoryNotice("Repository garbage collection failed (%s). Stdout: %s\nError: %v", gitRepo.LogString(), stdout, err); err != nil {
-			log.Error("CreateRepositoryNotice: %v", err)
-		}
-		return fmt.Errorf("repository garbage collection failed in repo: %s, error: %w", gitRepo.LogString(), err)
-	}
 	return nil
 }
 

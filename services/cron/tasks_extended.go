@@ -53,9 +53,9 @@ func registerGarbageCollectRepositories() {
 	}
 	RegisterTaskFatal("git_gc_repos", &RepoHealthCheckConfig{
 		BaseConfig: BaseConfig{
-			Enabled:    true,
+			Enabled:    false,
 			RunAtStart: false,
-			Schedule:   "0 3 * * *",
+			Schedule:   "@every 72h",
 		},
 		Timeout: time.Duration(setting.Git.Timeout.GC) * time.Second,
 		Args:    setting.Git.GCArgs,
