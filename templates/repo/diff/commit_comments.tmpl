@@ -14,11 +14,7 @@
 				</span>
 			</div>
 			<div class="comment-header-right">
-				{{if $comment.CanDelete}}
-					<div class="item context js-aria-clickable" data-global-click="onConvContentDelete" data-comment-id="{{$comment.HashTag}}" data-url="{{ctx.RootData.RepoLink}}/commit/{{$comment.CommitSHA}}/comment/{{$comment.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">
-						{{svg "octicon-trash" 14}}
-					</div>
-				{{end}}
+				{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "commit_comment" "ConvContentItem" $comment}}
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
@@ -29,6 +25,7 @@
 				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}
 			</div>
+			<div id="{{$comment.HashTag}}-raw" class="raw-content tw-hidden">{{$comment.Content}}</div>
 		</div>
 	</div>
 </div>

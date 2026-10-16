@@ -11,12 +11,14 @@ import (
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/context"
 	repo_service "gitea.dev/services/repository"
+	user_service "gitea.dev/services/user"
 )
 
 var (
@@ -44,6 +46,9 @@ func canDeleteCommitComment(ctx *context.Context, c *repo_model.CommitComment) b
 // prepareCommitComments renders the markdown body of every given comment and
 // sets what the current viewer may do with it.
 func prepareCommitComments(ctx *context.Context, comments repo_model.CommitCommentList) {
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
 	for _, c := range comments {
 		c.CanDelete = canDeleteCommitComment(ctx, c)
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{

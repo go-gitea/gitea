@@ -64,6 +64,16 @@ func TestCommitInlineComment(t *testing.T) {
 		assert.True(t, btn.HasClass("tw-invisible"))
 	})
 
+	t.Run("SharedContextMenu", func(t *testing.T) {
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/commit/"+rootSHA), http.StatusOK)
+		comment := NewHTMLParser(t, resp.Body).Find(".comment-code-cloud .comment").First()
+		link, _ := comment.Find(".menu [data-clipboard-text]").Attr("data-clipboard-text")
+		assert.Contains(t, link, "/user2/repo1/commit/"+rootSHA+"#commitcomment-")
+		id, _ := comment.Attr("id")
+		assert.Equal(t, 1, comment.Find("#"+id+"-raw.raw-content").Length(), "quote reply and copy source read the raw content")
+		assert.Equal(t, 0, comment.Find(`[data-global-click="onConvContentEdit"]`).Length(), "commit comments have no edit endpoint")
+	})
+
 	t.Run("DeleteFollowsPosterOrAdmin", func(t *testing.T) {
 		deleteButtons := func(user string) int {
 			resp := loginUser(t, user).MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/commit/"+rootSHA), http.StatusOK)
