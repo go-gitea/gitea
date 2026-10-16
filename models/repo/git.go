@@ -39,17 +39,17 @@ const (
 	UpdateStyleRebase UpdateStyle = "rebase"
 )
 
-// SquashMergeMessage is the source of the default squash merge commit message body, the title is always the pull request title
+// SquashMergeMessage is the source of the default squash merge commit message body, values match GitHub's squash_merge_commit_message
 type SquashMergeMessage string
 
 const (
-	SquashMergeMessageTitle          SquashMergeMessage = "title"
-	SquashMergeMessageCommitMessages SquashMergeMessage = "commit-messages"
-	SquashMergeMessageDescription    SquashMergeMessage = "description"
+	SquashMergeMessageBlank          SquashMergeMessage = "BLANK"
+	SquashMergeMessageCommitMessages SquashMergeMessage = "COMMIT_MESSAGES"
+	SquashMergeMessagePRBody         SquashMergeMessage = "PR_BODY"
 )
 
 func (m SquashMergeMessage) IsValid() bool {
-	return m == SquashMergeMessageTitle || m == SquashMergeMessageCommitMessages || m == SquashMergeMessageDescription
+	return m == SquashMergeMessageBlank || m == SquashMergeMessageCommitMessages || m == SquashMergeMessagePRBody
 }
 
 // UpdateDefaultBranch updates the default branch

@@ -105,7 +105,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	defaultDeleteBranchAfterMerge := false
 	defaultMergeStyle := repo_model.MergeStyleMerge
 	defaultUpdateStyle := repo_model.UpdateStyleMerge
-	var defaultSquashMergeMessage repo_model.SquashMergeMessage
+	defaultSquashMergeMessage := repo_model.DefaultPullRequestsConfig().DefaultSquashMergeMessage
 	defaultAllowMaintainerEdit := false
 	defaultTargetBranch := ""
 	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
@@ -253,7 +253,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
 		DefaultMergeStyle:             string(defaultMergeStyle),
 		DefaultUpdateStyle:            string(defaultUpdateStyle),
-		DefaultSquashMergeMessage:     string(defaultSquashMergeMessage),
+		SquashMergeCommitMessage:      string(defaultSquashMergeMessage),
 		DefaultAllowMaintainerEdit:    defaultAllowMaintainerEdit,
 		DefaultTargetBranch:           defaultTargetBranch,
 		AvatarURL:                     repo.AvatarLink(ctx),

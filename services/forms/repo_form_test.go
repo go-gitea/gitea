@@ -51,6 +51,7 @@ func TestMergePullRequestForm(t *testing.T) {
 		ForceMerge:             true,
 		MergeWhenChecksSucceed: true,
 		DeleteBranchAfterMerge: new(true),
+		HasMergeMessageField:   true,
 	}
 
 	t.Run("NewFields", func(t *testing.T) {
@@ -83,5 +84,11 @@ func TestMergePullRequestForm(t *testing.T) {
 		var m *MergePullRequestForm
 		require.NoError(t, json.Unmarshal([]byte(input), &m))
 		assert.Equal(t, expected, m)
+	})
+
+	t.Run("OmittedMergeMessageField", func(t *testing.T) {
+		var m *MergePullRequestForm
+		require.NoError(t, json.Unmarshal([]byte(`{"do": "squash"}`), &m))
+		assert.False(t, m.HasMergeMessageField)
 	})
 }

@@ -1346,22 +1346,34 @@ Co-authored-by: user4 <user4@example.com>
 			pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 1})
 			require.NoError(t, pullRequest.LoadIssue(t.Context()))
 			pullRequest.Issue.Content = "PR description"
+			pullRequest.BaseRepo = repo
 
 			prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
 			require.NoError(t, err)
 			for style, expected := range map[repo_model.SquashMergeMessage]string{
-				repo_model.SquashMergeMessageTitle:          "",
-				repo_model.SquashMergeMessageDescription:    "PR description",
-				repo_model.SquashMergeMessageCommitMessages: "* commit msg 1\n\n* commit msg 2\n\n",
+				repo_model.SquashMergeMessageBlank:  "",
+				repo_model.SquashMergeMessagePRBody: "PR description",
 			} {
 				prUnit.PullRequestsConfig().DefaultSquashMergeMessage = style
-				require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), prUnit))
-				pullRequest.BaseRepo, pullRequest.HeadRepo = nil, nil
-
 				msg, err := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
 				require.NoError(t, err)
 				assert.Equal(t, expected, msg, style)
 			}
+		})
+
+		t.Run("API squash merge without message uses repository default", func(t *testing.T) {
+			defer test.MockVariableValue(&setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages, false)()
+			token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository)
+			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/1/merge", user2.Name, repo.Name), map[string]string{"do": "squash"}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+
+			pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 1})
+			gitRepo, err := git.OpenRepository(t.Context(), repo)
+			require.NoError(t, err)
+			defer gitRepo.Close()
+			commit, err := gitRepo.GetCommit(t.Context(), pullRequest.MergedCommitID)
+			require.NoError(t, err)
+			assert.Contains(t, commit.CommitMessage.MessageRaw, "Pull for test-branch-0 (#1)\n\n* commit msg 1\n\n* commit msg 2\n")
 		})
 	})
 }

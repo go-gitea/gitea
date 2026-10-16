@@ -6062,11 +6062,6 @@
             "type": "string",
             "x-go-name": "DefaultMergeStyle"
           },
-          "default_squash_merge_message": {
-            "description": "set the default squash merge commit message body: \"title\" (empty), \"commit-messages\", or \"description\".",
-            "type": "string",
-            "x-go-name": "DefaultSquashMergeMessage"
-          },
           "default_update_style": {
             "description": "set to an update style to be used by this repository: \"merge\" or \"rebase\".",
             "type": "string",
@@ -6171,6 +6166,11 @@
             "description": "`repo` to only allow repo-level projects, `owner` to only allow owner projects, `all` to allow both.",
             "type": "string",
             "x-go-name": "ProjectsMode"
+          },
+          "squash_merge_commit_message": {
+            "description": "set the default squash merge commit message body: \"PR_BODY\", \"COMMIT_MESSAGES\", or \"BLANK\".",
+            "type": "string",
+            "x-go-name": "SquashMergeCommitMessage"
           },
           "template": {
             "description": "either `true` to make this repository a template or `false` to make it a normal repository",
@@ -9698,10 +9698,6 @@
             "type": "string",
             "x-go-name": "DefaultMergeStyle"
           },
-          "default_squash_merge_message": {
-            "type": "string",
-            "x-go-name": "DefaultSquashMergeMessage"
-          },
           "default_target_branch": {
             "type": "string",
             "x-go-name": "DefaultTargetBranch"
@@ -9884,6 +9880,10 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "Size"
+          },
+          "squash_merge_commit_message": {
+            "type": "string",
+            "x-go-name": "SquashMergeCommitMessage"
           },
           "ssh_url": {
             "format": "uri",

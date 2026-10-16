@@ -784,11 +784,11 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return "", err
 	}
-	var mergeMessage string // empty for SquashMergeMessageTitle
+	var mergeMessage string
 	switch pr.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultSquashMergeMessage {
 	case repo_model.SquashMergeMessageCommitMessages:
 		mergeMessage = formatSquashMergeCommitMessages(limitedCommits)
-	case repo_model.SquashMergeMessageDescription:
+	case repo_model.SquashMergeMessagePRBody:
 		mergeMessage = strings.TrimSpace(pr.Issue.Content)
 	}
 	coAuthors := collectSquashMergeCommitCoAuthors(ctx, gitRepo, pr, headCommitRef, mergeBaseRef, limit, limitedCommits)
@@ -803,7 +803,7 @@ func buildSquashMergeCommitMessages(mergeMessage string, coAuthors []string) str
 	msgContent, msgSep, msgTrailer := git.CommitMessageSplitTrailer(mergeMessage)
 	if (msgSep == "" || msgSep == "\n\n") && msgTrailer == "" {
 		msgContent = strings.TrimRightFunc(msgContent, unicode.IsSpace)
-		msgSep = "\n\n---------\n\n"
+		msgSep = util.Iif(msgContent == "", "", "\n\n---------\n\n")
 	}
 	var sb strings.Builder
 	sb.WriteString(msgContent)
