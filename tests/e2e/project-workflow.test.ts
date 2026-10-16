@@ -9,6 +9,12 @@ const sidebar = (page: Page) => page.getByRole('navigation', {name: 'Default wor
 const workflowLink = (page: Page, name: string) => sidebar(page).getByRole('link', {name});
 const editor = (page: Page) => page.getByRole('form', {name: /^Item opened/});
 const editorButton = (page: Page, name: string) => editor(page).getByRole('button', {name, exact: true});
+const editorField = (page: Page, name: string) => editor(page).getByRole('button', {name});
+
+async function choose(page: Page, field: string, option: string) {
+  await editorField(page, field).click();
+  await page.getByRole('menuitemradio', {name: option}).click();
+}
 
 async function openWorkflowsPage(page: Page) {
   const repo = `e2e-project-workflow-${randomString(8)}`;
@@ -27,7 +33,7 @@ async function openWorkflowsPage(page: Page) {
 async function configureItemOpened(page: Page, column: string) {
   await workflowLink(page, 'Item opened').click();
   await expect(workflowLink(page, 'Item opened')).toHaveAttribute('aria-current', 'page');
-  await editor(page).getByLabel('Move to column').selectOption({label: column});
+  await choose(page, 'Move to column', column);
   await editorButton(page, 'Save').click();
   await expect(editorButton(page, 'Edit')).toBeVisible();
 }
@@ -36,7 +42,7 @@ test('project workflow: configure, toggle, edit and view read-only', async ({pag
   const {repo, url} = await openWorkflowsPage(page);
   try {
     await expect(sidebar(page).getByRole('link')).toHaveCount(9);
-    await editor(page).getByLabel('Apply to').selectOption({label: 'Issues only'});
+    await choose(page, 'Apply to', 'Issues only');
     await configureItemOpened(page, 'Backlog');
     await expect(page).toHaveURL(/\/workflows\/\d+$/);
     await expect(editor(page).getByLabel('Apply to')).toHaveText('Issues only');
@@ -55,8 +61,8 @@ test('project workflow: configure, toggle, edit and view read-only', async ({pag
     await expect(editor(page).getByLabel('Move to column')).toHaveText('Backlog');
 
     await editorButton(page, 'Edit').click();
-    await expect(editor(page).getByLabel('Apply to')).toHaveValue('issue');
-    await editor(page).getByLabel('Move to column').selectOption({label: 'Done'});
+    await expect(editorField(page, 'Apply to')).toHaveText('Issues only');
+    await choose(page, 'Move to column', 'Done');
     await editorButton(page, 'Save').click();
     await expect(editor(page).getByLabel('Move to column')).toHaveText('Done');
 
@@ -77,7 +83,7 @@ test('project workflow: clone with labels and delete', async ({page}) => {
 
     await editorButton(page, 'Clone').click();
     await expect(workflowLink(page, 'Item opened #2')).toHaveAttribute('aria-current', 'page');
-    await editorButton(page, 'Add labels').click();
+    await editorField(page, 'Add labels').click();
     await page.getByRole('menuitemcheckbox', {name: 'bug'}).click();
     await expect(page.getByRole('menuitemcheckbox', {name: 'bug'})).toHaveAttribute('aria-checked', 'true');
     await editorButton(page, 'Save').click();

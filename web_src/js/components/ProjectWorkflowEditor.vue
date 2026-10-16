@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed} from 'vue';
-import ProjectWorkflowLabelPicker from './ProjectWorkflowLabelPicker.vue';
+import ProjectWorkflowDropdown from './ProjectWorkflowDropdown.vue';
 import {confirmModal} from '../features/comp/ConfirmModal.ts';
 import type {ProjectWorkflowLocale, ProjectWorkflowStore} from './ProjectWorkflowStore.ts';
 
@@ -26,13 +26,10 @@ const issueStates = [
   {value: 'close', text: locale.closeIssue},
   {value: 'reopen', text: locale.reopenIssue},
 ];
-const optionText = (options: Array<{value: string, text: string}>, value: string) => options.find((o) => o.value === value)!.text;
-
-const toggleLabel = (ids: number[], id: number) => {
-  const idx = ids.indexOf(id);
-  if (idx === -1) ids.push(id);
-  else ids.splice(idx, 1);
-};
+const columnOptions = (emptyText: string) => computed(() => [{value: 0, text: emptyText}, ...store.columns.map((c) => ({value: c.id, text: c.title}))]);
+const anyColumnOptions = columnOptions(locale.anyColumn);
+const noColumnOptions = columnOptions(locale.none);
+const labelOptions = computed(() => store.labels.map((l) => ({value: l.id, text: l.name, html: l.html})));
 
 const onDelete = async () => {
   if (await confirmModal({content: locale.deleteConfirm, confirmButtonColor: 'red'})) await store.remove();
@@ -49,90 +46,59 @@ const onDelete = async () => {
         </span>
       </div>
       <div v-if="store.editing" class="flex-text-inline">
-        <button v-if="row.workflow || row.key !== row.event.event" type="button" class="ui small button" :disabled="store.saving" @click="store.cancel()">{{ locale.cancel }}</button>
-        <button type="submit" class="ui small primary button" :class="{loading: store.saving}" :disabled="store.saving">{{ locale.save }}</button>
-        <button v-if="row.workflow" type="button" class="ui small red button" :disabled="store.saving" @click="onDelete">{{ locale.remove }}</button>
+        <button v-if="row.workflow || row.key !== row.event.event" type="button" class="ui tiny button" :disabled="store.saving" @click="store.cancel()">{{ locale.cancel }}</button>
+        <button type="submit" class="ui tiny primary button" :class="{loading: store.saving}" :disabled="store.saving">{{ locale.save }}</button>
+        <button v-if="row.workflow" type="button" class="ui tiny red button" :disabled="store.saving" @click="onDelete">{{ locale.remove }}</button>
       </div>
       <div v-else-if="store.canWrite && row.workflow" class="flex-text-inline">
-        <button type="button" class="ui small primary button" @click="store.editMode = true">{{ locale.edit }}</button>
-        <button type="button" class="ui small button" :disabled="store.saving" @click="store.setEnabled(!row.workflow.enabled)">
+        <button type="button" class="ui tiny primary button" @click="store.editMode = true">{{ locale.edit }}</button>
+        <button type="button" class="ui tiny button" :disabled="store.saving" @click="store.setEnabled(!row.workflow.enabled)">
           {{ row.workflow.enabled ? locale.disable : locale.enable }}
         </button>
-        <button type="button" class="ui small button" :disabled="!store.canClone(row)" @click="store.clone()">{{ locale.clone }}</button>
+        <button type="button" class="ui tiny button" :disabled="!store.canClone(row)" @click="store.clone()">{{ locale.clone }}</button>
       </div>
     </h4>
     <div class="ui attached segment">
       <template v-if="row.event.filters.length">
         <h5 class="ui dividing header">{{ locale.filters }}</h5>
-        <div class="tw-pl-4">
-          <div v-if="hasFilter('issue_type')" class="field">
-            <label id="workflow-issue-type-label" for="workflow-issue-type">{{ locale.applyTo }}</label>
-            <select v-if="store.editing" class="ui dropdown custom" id="workflow-issue-type" v-model="store.form.issue_type">
-              <option v-for="o in issueTypes" :key="o.value" :value="o.value">{{ o.text }}</option>
-            </select>
-            <div v-else aria-labelledby="workflow-issue-type-label">{{ optionText(issueTypes, store.form.issue_type) }}</div>
-          </div>
-          <div v-if="hasFilter('source_column')" class="field">
-            <label id="workflow-source-column-label" for="workflow-source-column">{{ locale.whenMovedFromColumn }}</label>
-            <select v-if="store.editing" class="ui dropdown custom" id="workflow-source-column" v-model="store.form.source_column_id">
-              <option :value="0">{{ locale.anyColumn }}</option>
-              <option v-for="c in store.columns" :key="c.id" :value="c.id">{{ c.title }}</option>
-            </select>
-            <div v-else aria-labelledby="workflow-source-column-label">{{ store.columnTitle(store.form.source_column_id) ?? locale.anyColumn }}</div>
-          </div>
-          <div v-if="hasFilter('target_column')" class="field">
-            <label id="workflow-target-column-label" for="workflow-target-column">{{ locale.whenMovedToColumn }}</label>
-            <select v-if="store.editing" class="ui dropdown custom" id="workflow-target-column" v-model="store.form.target_column_id">
-              <option :value="0">{{ locale.anyColumn }}</option>
-              <option v-for="c in store.columns" :key="c.id" :value="c.id">{{ c.title }}</option>
-            </select>
-            <div v-else aria-labelledby="workflow-target-column-label">{{ store.columnTitle(store.form.target_column_id) ?? locale.anyColumn }}</div>
-          </div>
-          <div v-if="hasFilter('labels')" class="field">
-            <label>{{ locale.onlyIfHasLabels }}</label>
-            <ProjectWorkflowLabelPicker
-              :labels="store.labels" :selected-ids="store.form.label_ids" :readonly="!store.editing"
-              :placeholder="locale.anyLabel" :field-label="locale.onlyIfHasLabels"
-              @toggle="toggleLabel(store.form.label_ids, $event)"
-            />
-          </div>
-        </div>
+        <ProjectWorkflowDropdown
+          v-if="hasFilter('issue_type')" v-model="store.form.issue_type"
+          :label="locale.applyTo" :options="issueTypes" :readonly="!store.editing"
+        />
+        <ProjectWorkflowDropdown
+          v-if="hasFilter('source_column')" v-model="store.form.source_column_id"
+          :label="locale.whenMovedFromColumn" :options="anyColumnOptions" :readonly="!store.editing"
+        />
+        <ProjectWorkflowDropdown
+          v-if="hasFilter('target_column')" v-model="store.form.target_column_id"
+          :label="locale.whenMovedToColumn" :options="anyColumnOptions" :readonly="!store.editing"
+        />
+        <ProjectWorkflowDropdown
+          v-if="hasFilter('labels')" v-model="store.form.label_ids"
+          :label="locale.onlyIfHasLabels" :options="labelOptions" :readonly="!store.editing"
+          :placeholder="locale.anyLabel" :filter-text="locale.filterLabels" :clear-text="locale.clearLabels"
+        />
       </template>
 
       <h5 class="ui dividing header">{{ locale.actions }}</h5>
-      <div class="tw-pl-4">
-        <div v-if="hasAction('column')" class="field">
-          <label id="workflow-column-label" for="workflow-column">{{ locale.moveToColumn }}</label>
-          <select v-if="store.editing" class="ui dropdown custom" id="workflow-column" v-model="store.form.column_id">
-            <option :value="0">{{ locale.selectColumn }}</option>
-            <option v-for="c in store.columns" :key="c.id" :value="c.id">{{ c.title }}</option>
-          </select>
-          <div v-else aria-labelledby="workflow-column-label">{{ store.columnTitle(store.form.column_id) ?? locale.none }}</div>
-        </div>
-        <div v-if="hasAction('add_labels')" class="field">
-          <label>{{ locale.addLabels }}</label>
-          <ProjectWorkflowLabelPicker
-            :labels="store.labels" :selected-ids="store.form.add_label_ids" :readonly="!store.editing"
-            :placeholder="locale.none" :field-label="locale.addLabels"
-            @toggle="toggleLabel(store.form.add_label_ids, $event)"
-          />
-        </div>
-        <div v-if="hasAction('remove_labels')" class="field">
-          <label>{{ locale.removeLabels }}</label>
-          <ProjectWorkflowLabelPicker
-            :labels="store.labels" :selected-ids="store.form.remove_label_ids" :readonly="!store.editing"
-            :placeholder="locale.none" :field-label="locale.removeLabels"
-            @toggle="toggleLabel(store.form.remove_label_ids, $event)"
-          />
-        </div>
-        <div v-if="hasAction('issue_state')" class="field">
-          <label id="workflow-issue-state-label" for="workflow-issue-state">{{ locale.issueState }}</label>
-          <select v-if="store.editing" class="ui dropdown custom" id="workflow-issue-state" v-model="store.form.issue_state">
-            <option v-for="o in issueStates" :key="o.value" :value="o.value">{{ o.text }}</option>
-          </select>
-          <div v-else aria-labelledby="workflow-issue-state-label">{{ optionText(issueStates, store.form.issue_state) }}</div>
-        </div>
-      </div>
+      <ProjectWorkflowDropdown
+        v-if="hasAction('column')" v-model="store.form.column_id"
+        :label="locale.moveToColumn" :options="noColumnOptions" :readonly="!store.editing"
+      />
+      <ProjectWorkflowDropdown
+        v-if="hasAction('add_labels')" v-model="store.form.add_label_ids"
+        :label="locale.addLabels" :options="labelOptions" :readonly="!store.editing"
+        :placeholder="locale.none" :filter-text="locale.filterLabels" :clear-text="locale.clearLabels"
+      />
+      <ProjectWorkflowDropdown
+        v-if="hasAction('remove_labels')" v-model="store.form.remove_label_ids"
+        :label="locale.removeLabels" :options="labelOptions" :readonly="!store.editing"
+        :placeholder="locale.none" :filter-text="locale.filterLabels" :clear-text="locale.clearLabels"
+      />
+      <ProjectWorkflowDropdown
+        v-if="hasAction('issue_state')" v-model="store.form.issue_state"
+        :label="locale.issueState" :options="issueStates" :readonly="!store.editing"
+      />
     </div>
   </form>
 </template>

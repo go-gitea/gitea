@@ -8,10 +8,14 @@ test('createTippy handles keys in menus only', async () => {
   document.body.append(menuButton, panelButton);
 
   const clicked: Array<string> = [];
-  const menuContent = createElementFromHTML('<div><button class="item">a</button><button class="item">b</button></div>');
+  const menuContent = createElementFromHTML('<div><input><button class="item">a</button><button class="item">b</button></div>');
   for (const item of menuContent.querySelectorAll('.item')) item.addEventListener('click', () => { clicked.push(item.textContent) });
   const menu = createTippy(menuButton, {content: menuContent, theme: 'menu', trigger: 'manual', interactive: true});
   menu.show();
+  const filter = menu.popper.querySelector('input')!;
+  filter.focus();
+  await userEvent.keyboard('a b{Enter}');
+  expect(filter.value).toEqual('a b');
   await userEvent.keyboard('{ArrowDown}{ArrowDown} {Enter}');
   expect(clicked).toEqual(['b', 'b']);
   await userEvent.keyboard('{Escape}');

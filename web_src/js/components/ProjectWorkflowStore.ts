@@ -81,9 +81,10 @@ export type ProjectWorkflowLocale = {
   anyColumn: string;
   onlyIfHasLabels: string;
   anyLabel: string;
+  filterLabels: string;
+  clearLabels: string;
   actions: string;
   moveToColumn: string;
-  selectColumn: string;
   addLabels: string;
   removeLabels: string;
   none: string;
