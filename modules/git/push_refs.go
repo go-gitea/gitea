@@ -128,7 +128,7 @@ func runPushPorcelain(ctx context.Context, repo RepositoryFacade, remote string,
 func ParsePushPorcelain(stdout string) (results []PushRefResult) {
 	for line := range strings.SplitSeq(stdout, "\n") {
 		parts := strings.SplitN(line, "\t", 3)
-		if len(parts) != 3 || len(parts[0]) != 1 || !strings.Contains(" +-*=!", parts[0]) {
+		if len(parts) != 3 || len(parts[0]) != 1 || !strings.ContainsAny(parts[0], " +-*=!") {
 			continue
 		}
 		from, to, _ := strings.Cut(parts[1], ":")
