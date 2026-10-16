@@ -151,7 +151,7 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 	cfg.DefaultDeleteBranchAfterMerge = setting.Repository.PullRequest.DefaultDeleteBranchAfterMerge
 	cfg.DefaultMergeStyle = MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
 	cfg.DefaultMergeStyle = util.IfZero(cfg.DefaultMergeStyle, MergeStyleMerge)
-	cfg.DefaultSquashMergeMessage = util.Iif(setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages, SquashMergeMessageCommitMessages, SquashMergeMessagePRBody)
+	cfg.DefaultSquashMergeMessage = SquashMergeMessage(setting.Repository.PullRequest.DefaultSquashMergeMessage)
 	return cfg
 }
 
