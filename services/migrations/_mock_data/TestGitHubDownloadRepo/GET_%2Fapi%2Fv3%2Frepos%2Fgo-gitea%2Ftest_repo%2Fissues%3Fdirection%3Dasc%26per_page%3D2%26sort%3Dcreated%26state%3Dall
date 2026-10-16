@@ -4,7 +4,7 @@ Cache-Control: private, max-age=60, s-maxage=60
 Content-Security-Policy: default-src 'none'
 Content-Type: application/json; charset=utf-8
 Etag: W/"4d1d8ecb86bafe76a686d250018cc158745dd6bc794ef651eeeeecbfc1a947bc"
-Link: <https://api.github.com/repositories/220672974/issues?direction=asc&page=2&per_page=2&sort=created&state=all>; rel="next", <https://api.github.com/repositories/220672974/issues?direction=asc&page=3&per_page=2&sort=created&state=all>; rel="last"
+Link: <https://api.github.com/repositories/220672974/issues?direction=asc&per_page=2&sort=created&state=all&after=Y3Vyc29yOnYyOpLPAAABbjhuGMjODUdxBw%3D%3D&page=2>; rel="next"
 Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
 Strict-Transport-Security: max-age=31536000; includeSubdomains; preload
 Vary: Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With

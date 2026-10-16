@@ -13,10 +13,18 @@ var Migrations = struct {
 	AllowedHostList string
 	BlockedHostList string
 	SkipTLSVerify   bool
+	// UseGraphQL routes GitHub migrations through the batched GraphQL fast path
+	// (see services/migrations/github_graphql.go), which fetches an issue or pull
+	// request together with its comments, reviews and reactions in one request
+	// instead of one request per entity. On by default; [migrations] USE_GRAPHQL
+	// = false falls back to the REST downloader (e.g. for a server or token that
+	// cannot use the GraphQL API). Non-GitHub migrations are unaffected.
+	UseGraphQL bool
 }{
 	MaxAttempts:  3,
 	RetryBackoff: 3,
 	EgressMode:   "lax",
+	UseGraphQL:   true,
 }
 
 func loadMigrationsFrom(rootCfg ConfigProvider) {
@@ -51,4 +59,5 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 	checkHostList("[migrations] BLOCKED_HOST_LIST", Migrations.BlockedHostList, true)
 
 	Migrations.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool(false)
+	Migrations.UseGraphQL = sec.Key("USE_GRAPHQL").MustBool(true)
 }
