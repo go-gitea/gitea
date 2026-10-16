@@ -785,6 +785,7 @@ func ExcerptBlob(ctx *context.Context) {
 	} else if ctx.FormBool("commit_diff") && ctx.Data["PageIsWiki"] != true {
 		// Commit diff excerpt: expose the same commit-comment data the commit
 		// page renders, so expanded rows keep their buttons and conversations.
+		diffBlobExcerptData.IsCommitDiff = true
 		fullSHA := commit.ID.String()
 		ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
 		ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, fullSHA)

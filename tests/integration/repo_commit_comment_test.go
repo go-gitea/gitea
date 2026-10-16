@@ -175,6 +175,7 @@ func TestCommitInlineCommentOnExpandedContext(t *testing.T) {
 		// than parsing it out of table context.
 		excerptBody := session.MakeRequest(t, NewRequest(t, "GET", excerptURL), http.StatusOK).Body.String()
 		assert.Contains(t, excerptBody, "add-code-comment", "expanded rows must offer the comment button")
+		assert.Contains(t, excerptBody, "commit_diff=1", "the next expander must keep loading commit comments")
 
 		lineNums := regexp.MustCompile(`data-line-num="(\d+)"`).FindAllStringSubmatch(excerptBody, -1)
 		require.NotEmpty(t, lineNums)
