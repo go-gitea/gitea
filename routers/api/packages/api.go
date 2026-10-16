@@ -414,7 +414,7 @@ func CommonRoutes() *web.Router {
 				g.UseUnescapedPath()
 				g.MatchPath("DELETE", packageId+"/-/<version>/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				g.MatchPath("DELETE", packageId+"/-/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
-				g.MatchPath("GET", packageId+"/-/<version>/<filename>", npm.DownloadPackageFileByName) // former tarball URL, still in lockfiles
+				g.MatchPath("GET", packageId+"/-/<version>/<filename>", npm.DownloadPackageFileByName) // 1.27 and 28.0 URL, still advertised for older uploads
 				g.MatchPath("GET", packageId+"/-/<filename>", npm.DownloadPackageFileByName)
 				g.MatchPath("DELETE", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackage)
 				g.MatchPath("PUT", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePreview)
