@@ -4,6 +4,7 @@
 package project
 
 import (
+	"html/template"
 	"net/http"
 	"strconv"
 
@@ -26,11 +27,7 @@ func RenderWorkflows(ctx *context.Context, canWrite bool, tpl templates.TplName)
 	key := ctx.PathParam("workflow_key")
 	if id, err := strconv.ParseInt(key, 10, 64); err == nil {
 		if _, err := project_model.GetWorkflowByProjectAndID(ctx, project.ID, id); err != nil {
-			if db.IsErrNotExist(err) {
-				ctx.NotFound(err)
-			} else {
-				ctx.ServerError("GetWorkflowByProjectAndID", err)
-			}
+			ctx.ServerError("GetWorkflowByProjectAndID", err)
 			return
 		}
 	} else if key != "" && !project_model.WorkflowEvent(key).IsValid() {
@@ -51,9 +48,9 @@ func WorkflowsData(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
+	workflows, err := db.Find[project_model.Workflow](ctx, project_model.FindWorkflowsOptions{ListOptions: db.ListOptionsAll, ProjectID: project.ID})
 	if err != nil {
-		ctx.ServerError("FindWorkflowsByProjectID", err)
+		ctx.ServerError("FindWorkflows", err)
 		return
 	}
 	columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
@@ -88,11 +85,22 @@ func WorkflowsData(ctx *context.Context) {
 		workflowColumns = append(workflowColumns, workflowColumn{column.ID, column.Title})
 	}
 
+	type workflowLabel struct {
+		ID   int64         `json:"id"`
+		Name string        `json:"name"`
+		HTML template.HTML `json:"html"`
+	}
+	renderUtils := templates.NewRenderUtils(ctx)
+	workflowLabels := make([]workflowLabel, 0, len(labels))
+	for _, label := range labels {
+		workflowLabels = append(workflowLabels, workflowLabel{label.ID, label.Name, renderUtils.RenderLabel(label)})
+	}
+
 	ctx.JSON(http.StatusOK, map[string]any{
 		"events":    events,
 		"workflows": convert.ToProjectWorkflowList(workflows),
 		"columns":   workflowColumns,
-		"labels":    convert.ToLabelList(labels, ctx.Repo.Repository, ctx.ContextUser),
+		"labels":    workflowLabels,
 	})
 }
 

@@ -130,12 +130,15 @@ func TestProjectWorkflowExecution(t *testing.T) {
 		Title:    "workflow item",
 		Projects: []int64{project.ID},
 	}).AddTokenAuth(token)
-	issueID := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Issue{}).ID
+	created := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Issue{})
+	issueID := created.ID
 
 	card := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issueID, ProjectID: project.ID})
 	assert.Equal(t, inProgress.ID, card.ProjectColumnID)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issueID, LabelID: label.ID})
 	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueID}).IsClosed)
+	resp := session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/issues/%d", created.Index), http.StatusOK)
+	assert.Contains(t, NewHTMLParser(t, resp.Body).Find(".timeline-item.event .comment-text-line").Text(), "Project workflow Item opened")
 
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/%d/move", link, done.ID), map[string]any{
 		"issues": []map[string]any{{"issueID": issueID, "sorting": 0}},

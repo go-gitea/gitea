@@ -3,7 +3,6 @@ import {GET} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {trString} from '../modules/i18n.ts';
-import type {Label} from '../types.ts';
 
 type ProjectWorkflowFilters = {
   issue_type?: 'issue' | 'pull_request';
@@ -36,11 +35,13 @@ type ProjectWorkflowEvent = {
 
 type ProjectColumn = {id: number; title: string};
 
+export type ProjectLabel = {id: number; name: string; html: string};
+
 type ProjectWorkflowData = {
   events: ProjectWorkflowEvent[];
   workflows: ProjectWorkflow[];
   columns: ProjectColumn[];
-  labels: Label[];
+  labels: ProjectLabel[];
 };
 
 // flat, always-populated editor state: 0 means "any" / "none", '' means unset
@@ -158,7 +159,7 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
     events: [] as ProjectWorkflowEvent[],
     workflows: [] as ProjectWorkflow[],
     columns: [] as ProjectColumn[],
-    labels: [] as Label[],
+    labels: [] as ProjectLabel[],
     unsaved: [] as UnsavedWorkflow[],
 
     selectedKey: '',
@@ -253,15 +254,21 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
         await post<ProjectWorkflow>(`${baseUrl}/${row.workflow.id}`, rules) :
         await post<ProjectWorkflow>(baseUrl, {event: row.event.event, ...rules});
       if (!saved) return;
+      let history: 'push' | 'replace' | undefined;
       if (row.workflow) {
         replaceWorkflow(saved);
       } else {
         store.workflows.push(saved);
         const unsaved = store.unsaved.find((u) => u.key === row.key)!;
-        if (unsaved.sourceKey) store.unsaved = store.unsaved.filter((u) => u !== unsaved);
-        else unsaved.draft = toWorkflowForm();
+        if (unsaved.sourceKey) {
+          store.unsaved = store.unsaved.filter((u) => u !== unsaved);
+          history = 'push'; // a clone has no URL of its own, keep its source's entry
+        } else {
+          unsaved.draft = toWorkflowForm();
+          history = 'replace';
+        }
       }
-      store.select(store.resolve(String(saved.id))!, row.workflow ? undefined : 'replace');
+      store.select(store.resolve(String(saved.id))!, history);
     },
 
     async setEnabled(enabled: boolean) {

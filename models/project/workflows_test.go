@@ -6,6 +6,7 @@ package project
 import (
 	"testing"
 
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,6 @@ func TestWorkflowCRUD(t *testing.T) {
 	closed := newWorkflow(WorkflowEventItemClosed)
 	opened := newWorkflow(WorkflowEventItemOpened)
 	closed2 := newWorkflow(WorkflowEventItemClosed)
-	assert.Equal(t, 1, unittest.AssertExistsAndLoadBean(t, &Workflow{ID: closed.ID}).SchemaVersion)
 
 	closed.Enabled = false
 	require.NoError(t, UpdateWorkflow(ctx, closed, "enabled"))
@@ -33,8 +33,9 @@ func TestWorkflowCRUD(t *testing.T) {
 	require.NoError(t, DeleteWorkflow(ctx, 2, opened.ID))
 	assert.True(t, unittest.AssertExistsAndLoadBean(t, &Workflow{ID: opened.ID}).Enabled, "other projects cannot modify it")
 
-	workflows, err := FindWorkflowsByProjectID(ctx, 1)
+	workflows, err := db.Find[Workflow](ctx, FindWorkflowsOptions{ProjectID: 1})
 	require.NoError(t, err)
+	require.Len(t, workflows, 3)
 	assert.Equal(t, []int64{closed.ID, opened.ID, closed2.ID}, []int64{workflows[0].ID, workflows[1].ID, workflows[2].ID})
 
 	enabled, err := FindEnabledWorkflows(ctx, []int64{1, 2}, WorkflowEventItemClosed)

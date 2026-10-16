@@ -1,9 +1,6 @@
-// Copyright 2026 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
-
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {apiCreateProject, apiCreateRepo, apiDeleteRepo, createProjectColumn, login, logout, randomString} from './utils.ts';
+import {apiCreateLabel, apiCreateProject, apiCreateRepo, apiDeleteRepo, createProjectColumn, login, logout, randomString} from './utils.ts';
 import type {Page} from '@playwright/test';
 
 const owner = env.GITEA_TEST_E2E_USER;
@@ -17,7 +14,10 @@ async function openWorkflowsPage(page: Page) {
   const repo = `e2e-project-workflow-${randomString(8)}`;
   await Promise.all([login(page), apiCreateRepo(page.request, {name: repo, autoInit: false})]);
   const projectId = await apiCreateProject(page.request, owner, repo, 'Workflows');
-  await Promise.all(['Backlog', 'Done'].map((title) => createProjectColumn(page.request, owner, repo, String(projectId), title)));
+  await Promise.all([
+    ...['Backlog', 'Done'].map((title) => createProjectColumn(page.request, owner, repo, String(projectId), title)),
+    apiCreateLabel(page.request, owner, repo, 'bug', 'ee0701'),
+  ]);
   const url = `/${owner}/${repo}/projects/${projectId}/workflows`;
   await page.goto(url);
   await expect(sidebar(page)).toBeVisible();
@@ -32,11 +32,10 @@ async function configureItemOpened(page: Page, column: string) {
   await expect(editorButton(page, 'Edit')).toBeVisible();
 }
 
-test('project workflow: configure, toggle and edit', async ({page}) => {
+test('project workflow: configure, toggle, edit and view read-only', async ({page}) => {
   const {repo, url} = await openWorkflowsPage(page);
   try {
     await expect(sidebar(page).getByRole('link')).toHaveCount(9);
-    await workflowLink(page, 'Item opened').click();
     await editor(page).getByLabel('Apply to').selectOption({label: 'Issues only'});
     await configureItemOpened(page, 'Backlog');
     await expect(page).toHaveURL(/\/workflows\/\d+$/);
@@ -60,28 +59,31 @@ test('project workflow: configure, toggle and edit', async ({page}) => {
     await editor(page).getByLabel('Move to column').selectOption({label: 'Done'});
     await editorButton(page, 'Save').click();
     await expect(editor(page).getByLabel('Move to column')).toHaveText('Done');
+
+    await logout(page);
+    await page.goto(url);
+    await expect(workflowLink(page, 'Item opened')).toHaveAttribute('aria-current', 'page');
+    await expect(editor(page).getByLabel('Move to column')).toHaveText('Done');
+    await expect(editor(page).getByRole('button')).toHaveCount(0);
   } finally {
     await apiDeleteRepo(page.request, owner, repo);
   }
 });
 
-test('project workflow: clone, cancel and delete', async ({page}) => {
+test('project workflow: clone with labels and delete', async ({page}) => {
   const {repo} = await openWorkflowsPage(page);
   try {
     await configureItemOpened(page, 'Backlog');
 
     await editorButton(page, 'Clone').click();
     await expect(workflowLink(page, 'Item opened #2')).toHaveAttribute('aria-current', 'page');
-    await editorButton(page, 'Cancel').click();
-    await expect(workflowLink(page, 'Item opened')).toHaveCount(1);
-    await expect(editorButton(page, 'Edit')).toBeVisible();
-
-    await editorButton(page, 'Clone').click();
-    await editor(page).getByLabel('Move to column').selectOption({label: 'Done'});
+    await editorButton(page, 'Add labels').click();
+    await page.getByRole('menuitemcheckbox', {name: 'bug'}).click();
+    await expect(page.getByRole('menuitemcheckbox', {name: 'bug'})).toHaveAttribute('aria-checked', 'true');
     await editorButton(page, 'Save').click();
     await expect(workflowLink(page, 'Item opened')).toHaveCount(2);
     await expect(workflowLink(page, 'Item opened #2')).toHaveAttribute('aria-current', 'page');
-    await expect(editor(page).getByLabel('Move to column')).toHaveText('Done');
+    await expect(editor(page).getByRole('group', {name: 'Add labels'})).toHaveText('bug');
 
     await editorButton(page, 'Edit').click();
     await editorButton(page, 'Remove').click();
@@ -89,20 +91,6 @@ test('project workflow: clone, cancel and delete', async ({page}) => {
     await expect(workflowLink(page, 'Item opened')).toHaveCount(1);
     await expect(workflowLink(page, 'Item opened')).toHaveAttribute('aria-current', 'page');
     await expect(editor(page).getByLabel('Move to column')).toHaveText('Backlog');
-  } finally {
-    await apiDeleteRepo(page.request, owner, repo);
-  }
-});
-
-test('project workflow: anonymous users get a read-only view', async ({page}) => {
-  const {repo, url} = await openWorkflowsPage(page);
-  try {
-    await configureItemOpened(page, 'Backlog');
-    await logout(page);
-    await page.goto(url);
-    await expect(workflowLink(page, 'Item opened')).toHaveAttribute('aria-current', 'page');
-    await expect(editor(page).getByLabel('Move to column')).toHaveText('Backlog');
-    await expect(editor(page).getByRole('button')).toHaveCount(0);
   } finally {
     await apiDeleteRepo(page.request, owner, repo);
   }

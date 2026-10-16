@@ -83,6 +83,9 @@ func setWorkflowRules(ctx context.Context, project *project_model.Project, wf *p
 	if a.IssueState != "" && a.IssueState != project_model.WorkflowIssueStateClose && a.IssueState != project_model.WorkflowIssueStateReopen {
 		return util.ErrorWrap(util.ErrUnprocessableContent, "invalid issue_state: %s", a.IssueState)
 	}
+	if a.IssueState == project_model.WorkflowIssueStateReopen && f.IssueType == project_model.WorkflowIssueTypePullRequest {
+		return util.ErrorWrap(util.ErrUnprocessableContent, "pull requests cannot be reopened by a workflow")
+	}
 
 	for _, columnID := range []int64{f.SourceColumnID, f.TargetColumnID, a.ColumnID} {
 		if columnID == 0 {
@@ -147,6 +150,9 @@ func canWorkflowChangeIssue(ctx context.Context, wf *project_model.Workflow, iss
 		return false, nil
 	} else if err != nil {
 		return false, err
+	}
+	if !updater.IsActive || updater.ProhibitLogin {
+		return false, nil
 	}
 	perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, updater)
 	if err != nil {

@@ -6,9 +6,11 @@ package shared
 import (
 	"net/http"
 
+	"gitea.dev/models/db"
 	project_model "gitea.dev/models/project"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	project_service "gitea.dev/services/projects"
@@ -46,6 +48,14 @@ func ListProjectWorkflows(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflowList"
@@ -69,6 +79,14 @@ func ListProjectWorkflows(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflowList"
@@ -87,6 +105,14 @@ func ListProjectWorkflows(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflowList"
@@ -97,11 +123,14 @@ func ListProjectWorkflows(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
+	listOptions := utils.GetListOptions(ctx)
+	workflows, total, err := db.FindAndCount[project_model.Workflow](ctx, project_model.FindWorkflowsOptions{ListOptions: listOptions, ProjectID: project.ID})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	ctx.SetLinkHeader(total, listOptions.PageSize)
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToProjectWorkflowList(workflows))
 }
 

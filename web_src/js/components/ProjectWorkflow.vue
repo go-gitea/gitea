@@ -63,7 +63,7 @@ onUnmounted(() => window.removeEventListener('popstate', onPopState));
           />
           <div class="tw-min-w-0">
             <div class="gt-ellipsis">{{ row.displayName }}</div>
-            <div v-if="store.summary(row)" class="gt-ellipsis tw-text-12 tw-text-text-light-2">{{ store.summary(row) }}</div>
+            <div class="gt-ellipsis tw-text-12 tw-text-text-light-2">{{ store.summary(row) }}</div>
           </div>
         </a>
       </nav>

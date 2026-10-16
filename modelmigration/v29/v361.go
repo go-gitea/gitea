@@ -12,12 +12,11 @@ import (
 
 func AddProjectWorkflow(_ context.Context, x base.EngineMigration) error {
 	type ProjectWorkflow struct {
-		ID              int64
+		ID              int64 `xorm:"pk autoincr"`
 		ProjectID       int64 `xorm:"INDEX"`
 		WorkflowEvent   string
 		WorkflowFilters string             `xorm:"TEXT JSON"`
 		WorkflowActions string             `xorm:"TEXT JSON"`
-		SchemaVersion   int                `xorm:"DEFAULT 1"`
 		Enabled         bool               `xorm:"DEFAULT true NOT NULL"`
 		UpdaterID       int64              `xorm:"NOT NULL DEFAULT 0"`
 		CreatedUnix     timeutil.TimeStamp `xorm:"created"`

@@ -9,6 +9,8 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 type WorkflowEvent string
@@ -165,14 +167,12 @@ func (we WorkflowEvent) LangKey() string {
 }
 
 type Workflow struct {
-	ID              int64
+	ID              int64 `xorm:"pk autoincr"`
 	ProjectID       int64 `xorm:"INDEX"`
 	WorkflowEvent   WorkflowEvent
 	WorkflowFilters WorkflowFilters `xorm:"TEXT JSON"`
 	WorkflowActions WorkflowActions `xorm:"TEXT JSON"`
-	// bump when the filter/action JSON shape changes, see HookTask.PayloadVersion
-	SchemaVersion int  `xorm:"DEFAULT 1"`
-	Enabled       bool `xorm:"DEFAULT true NOT NULL"`
+	Enabled         bool            `xorm:"DEFAULT true NOT NULL"`
 	// label and issue state actions run with this user's permissions
 	UpdaterID   int64              `xorm:"NOT NULL DEFAULT 0"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
@@ -203,9 +203,17 @@ func init() {
 	db.RegisterModel(new(Workflow))
 }
 
-func FindWorkflowsByProjectID(ctx context.Context, projectID int64) ([]*Workflow, error) {
-	workflows := make([]*Workflow, 0)
-	return workflows, db.GetEngine(ctx).Where("project_id=?", projectID).OrderBy("id ASC").Find(&workflows)
+type FindWorkflowsOptions struct {
+	db.ListOptions
+	ProjectID int64
+}
+
+func (opts FindWorkflowsOptions) ToConds() builder.Cond {
+	return builder.Eq{"project_id": opts.ProjectID}
+}
+
+func (opts FindWorkflowsOptions) ToOrders() string {
+	return "id ASC"
 }
 
 func FindEnabledWorkflows(ctx context.Context, projectIDs []int64, event WorkflowEvent) ([]*Workflow, error) {
@@ -229,10 +237,7 @@ func GetWorkflowByProjectAndID(ctx context.Context, projectID, workflowID int64)
 	return &workflow, nil
 }
 
-const currentWorkflowSchemaVersion = 1
-
 func CreateWorkflow(ctx context.Context, wf *Workflow) error {
-	wf.SchemaVersion = currentWorkflowSchemaVersion // xorm inserts the zero value, bypassing the column DEFAULT
 	return db.Insert(ctx, wf)
 }
 

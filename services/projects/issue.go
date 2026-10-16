@@ -14,7 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
-	"gitea.dev/services/notify"
+	notify_service "gitea.dev/services/notify"
 
 	"xorm.io/builder"
 )
@@ -27,7 +27,7 @@ var ErrIssueNotInProject = util.ErrorWrap(util.ErrUnprocessableContent, "all iss
 // the column. One transaction, so a failure cannot strand it in the default column.
 func AddIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
 	var added []int64
-	moves, err := db.WithTx2(ctx, func(ctx context.Context) (moves []columnMove, err error) {
+	moves, err := db.WithTx2(ctx, func(ctx context.Context) ([]columnMove, error) {
 		projectIDs, err := issue.ProjectIDs(ctx)
 		if err != nil {
 			return nil, err
@@ -43,7 +43,7 @@ func AddIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues_
 	if err != nil {
 		return err
 	}
-	notify.IssueChangeProjects(ctx, doer, issue, added, nil)
+	notify_service.IssueChangeProjects(ctx, doer, issue, added, nil)
 	notifyColumnMoves(ctx, doer, column, moves)
 	return nil
 }
@@ -94,7 +94,7 @@ func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *is
 	if err != nil {
 		return err
 	}
-	notify.IssueChangeProjects(ctx, doer, issue, nil, removed)
+	notify_service.IssueChangeProjects(ctx, doer, issue, nil, removed)
 	return nil
 }
 
@@ -118,7 +118,7 @@ type columnMove struct {
 
 func notifyColumnMoves(ctx context.Context, doer *user_model.User, column *project_model.Column, moves []columnMove) {
 	for _, move := range moves {
-		notify.IssueChangeProjectColumn(ctx, doer, move.issue, move.oldColumnID, column)
+		notify_service.IssueChangeProjectColumn(ctx, doer, move.issue, move.oldColumnID, column)
 	}
 }
 
@@ -169,8 +169,7 @@ func moveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			return nil, err
 		}
 
-		projectColumnID := projectColumnMap[column.ProjectID]
-		oldColumnID := projectColumnID
+		oldColumnID := projectColumnMap[column.ProjectID]
 		if oldColumnID == 0 { // legacy encoding of the default column
 			if defaultColumn == nil {
 				if defaultColumn, err = project.MustDefaultColumn(ctx); err != nil {
@@ -180,7 +179,7 @@ func moveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			oldColumnID = defaultColumn.ID
 		}
 
-		if projectColumnID != column.ID {
+		if oldColumnID != column.ID {
 			// add timeline to issue
 			if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 				Type:               issues_model.CommentTypeProjectColumn,
@@ -194,8 +193,6 @@ func moveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			}); err != nil {
 				return nil, err
 			}
-		}
-		if oldColumnID != column.ID {
 			moves = append(moves, columnMove{issue: curIssue, oldColumnID: oldColumnID})
 		}
 

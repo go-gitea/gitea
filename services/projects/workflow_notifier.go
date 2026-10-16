@@ -117,6 +117,12 @@ func runWorkflows(ctx context.Context, doer *user_model.User, issue *issues_mode
 	if len(workflows) == 0 {
 		return
 	}
+	// the caller and the notifiers after this one keep using their issue, don't change it under them
+	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
+	if err != nil {
+		log.Error("GetIssueByID: %v", err)
+		return
+	}
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
 		return
@@ -189,7 +195,7 @@ func executeWorkflowActions(ctx context.Context, wf *project_model.Workflow, doe
 	var err error
 	if a.IssueState == project_model.WorkflowIssueStateClose && !issue.IsClosed {
 		err = issue_service.CloseIssue(ctx, issue, doer, "")
-	} else if a.IssueState == project_model.WorkflowIssueStateReopen && issue.IsClosed {
+	} else if a.IssueState == project_model.WorkflowIssueStateReopen && issue.IsClosed && !issue.IsPull { // pull requests need the reopen checks of the pull request handlers
 		err = issue_service.ReopenIssue(ctx, issue, doer, "")
 	}
 	if err != nil {

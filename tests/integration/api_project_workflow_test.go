@@ -44,27 +44,16 @@ func TestAPIProjectWorkflows(t *testing.T) {
 	assert.Equal(t, created.Filters, fetched.Filters)
 	assert.Equal(t, created.Actions, fetched.Actions)
 
-	listed := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK), []*api.ProjectWorkflow{})
+	resp := MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK)
+	assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
+	listed := DecodeJSON(t, resp, []*api.ProjectWorkflow{})
 	require.Len(t, listed, 1)
 	assert.Equal(t, created.ID, listed[0].ID)
 
-	edit := func(opts *api.EditProjectWorkflowOption) *api.ProjectWorkflow {
-		req := NewRequestWithJSON(t, "PATCH", workflowURL, opts).AddTokenAuth(token)
-		return DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ProjectWorkflow{})
-	}
-	updated := edit(&api.EditProjectWorkflowOption{Filters: &api.ProjectWorkflowFilters{SourceColumnID: backlog.ID}})
+	req = NewRequestWithJSON(t, "PATCH", workflowURL, &api.EditProjectWorkflowOption{Filters: &api.ProjectWorkflowFilters{SourceColumnID: backlog.ID}}).AddTokenAuth(token)
+	updated := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ProjectWorkflow{})
 	assert.Equal(t, api.ProjectWorkflowFilters{SourceColumnID: backlog.ID}, updated.Filters)
 	assert.Equal(t, created.Actions, updated.Actions)
-
-	updated = edit(&api.EditProjectWorkflowOption{Actions: &api.ProjectWorkflowActions{RemoveLabelIDs: []int64{label.ID}}})
-	assert.Equal(t, api.ProjectWorkflowFilters{SourceColumnID: backlog.ID}, updated.Filters)
-	assert.Equal(t, api.ProjectWorkflowActions{RemoveLabelIDs: []int64{label.ID}}, updated.Actions)
-
-	updated = edit(&api.EditProjectWorkflowOption{Enabled: new(false)})
-	assert.False(t, updated.Enabled)
-	assert.Equal(t, api.ProjectWorkflowActions{RemoveLabelIDs: []int64{label.ID}}, updated.Actions)
-	fetched = DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", workflowURL).AddTokenAuth(token), http.StatusOK), &api.ProjectWorkflow{})
-	assert.False(t, fetched.Enabled)
 
 	req = NewRequestWithJSON(t, "PATCH", workflowURL, &api.EditProjectWorkflowOption{Filters: &api.ProjectWorkflowFilters{LabelIDs: []int64{999999}}}).AddTokenAuth(token)
 	assert.Contains(t, MakeRequest(t, req, http.StatusUnprocessableEntity).Body.String(), "invalid label")

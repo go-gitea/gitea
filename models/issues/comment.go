@@ -815,7 +815,7 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 	case SpecialDoerNameCodeOwners:
 		return locale.Tr("repo.issues.review.codeowners_rules")
 	case SpecialDoerNameProjectWorkflow:
-		return htmlutil.HTMLFormat(`%s <span class="tw-font-semibold">%s</span>`, locale.Tr("repo.issues.project_workflow"), locale.Tr(c.CommentMetaData.ProjectWorkflowEvent.LangKey()))
+		return locale.Tr("repo.issues.project_workflow", htmlutil.HTMLFormat(`<span class="tw-font-semibold">%s</span>`, locale.Tr(c.CommentMetaData.ProjectWorkflowEvent.LangKey())))
 	default:
 		// don't trust the content of SpecialDoerName, it might not be fully controlled by us
 		return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)

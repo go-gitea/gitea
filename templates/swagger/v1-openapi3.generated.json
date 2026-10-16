@@ -15748,6 +15748,22 @@
               "format": "int64",
               "type": "integer"
             }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -29252,6 +29268,22 @@
               "format": "int64",
               "type": "integer"
             }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -37224,6 +37256,22 @@
             "required": true,
             "schema": {
               "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
               "type": "integer"
             }
           }

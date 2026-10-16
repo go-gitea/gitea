@@ -1,12 +1,11 @@
 <script lang="ts" setup>
 import {computed, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {contrastColor} from '../utils/color.ts';
-import type {Label} from '../types.ts';
+import {createTippy} from '../modules/tippy.ts';
+import type {ProjectLabel} from './ProjectWorkflowStore.ts';
 
 const props = defineProps<{
-  labels: Label[];
+  labels: ProjectLabel[];
   selectedIds: number[];
   readonly: boolean;
   placeholder: string;
@@ -17,44 +16,48 @@ const emit = defineEmits<{
   toggle: [id: number];
 }>();
 
-const elDropdown = useTemplateRef<HTMLElement>('elDropdown');
-watch(elDropdown, (el) => {
-  if (el) fomanticQuery(el).dropdown({action: 'nothing', fullTextSearch: true});
+const elTrigger = useTemplateRef<HTMLButtonElement>('elTrigger');
+const elMenu = useTemplateRef<HTMLDivElement>('elMenu');
+watch(elTrigger, (el, _, onCleanup) => {
+  if (!el) return;
+  const tippy = createTippy(el, {
+    content: elMenu.value!,
+    trigger: 'click',
+    interactive: true,
+    hideOnClick: true,
+    placement: 'bottom-start',
+    theme: 'menu',
+    arrow: false,
+    limitSizeToViewport: {vertical: true},
+  });
+  onCleanup(() => tippy.destroy());
 }, {flush: 'post'});
 
 const selectedLabels = computed(() => props.labels.filter((l) => props.selectedIds.includes(l.id)));
-const labelStyle = (label: Label) => ({backgroundColor: `#${label.color}`, color: contrastColor(`#${label.color}`)});
 </script>
 
 <template>
-  <div v-if="readonly" class="flex-text-block tw-flex-wrap" :aria-label="fieldLabel">
-    <span v-if="!selectedIds.length" class="tw-text-text-light-2">{{ placeholder }}</span>
-    <span v-for="label in selectedLabels" :key="label.id" class="ui label" :style="labelStyle(label)">{{ label.name }}</span>
-  </div>
-  <div v-else ref="elDropdown" class="ui fluid multiple search selection dropdown custom" role="listbox" aria-multiselectable="true" :aria-label="fieldLabel" tabindex="0">
-    <input type="hidden" :value="selectedIds.join(',')">
-    <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
-    <span v-for="label in selectedLabels" :key="label.id" class="ui label" :style="labelStyle(label)">{{ label.name }}</span>
-    <div class="text" :class="{default: !selectedIds.length}">
-      <template v-if="!selectedIds.length">{{ placeholder }}</template>
-    </div>
-    <div class="menu">
-      <div
-        v-for="label in labels" :key="label.id"
-        class="item" role="option" :data-value="label.id"
-        :class="{active: selectedIds.includes(label.id)}" :aria-selected="selectedIds.includes(label.id)"
-        @click.prevent="emit('toggle', label.id)"
-      >
-        <span class="ui label" :style="labelStyle(label)">{{ label.name }}</span>
+  <div class="flex-text-block tw-flex-wrap" role="group" :aria-label="fieldLabel">
+    <span v-if="!selectedLabels.length" class="tw-text-text-light-2">{{ placeholder }}</span>
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <span v-for="label in selectedLabels" :key="label.id" v-html="label.html"/>
+    <template v-if="!readonly">
+      <button ref="elTrigger" type="button" class="ui mini basic icon button" :aria-label="fieldLabel">
+        <SvgIcon name="octicon-gear"/>
+      </button>
+      <div ref="elMenu" class="tippy-target">
+        <div role="menu" :aria-label="fieldLabel">
+          <button
+            v-for="label in labels" :key="label.id"
+            type="button" class="item" role="menuitemcheckbox"
+            :aria-checked="selectedIds.includes(label.id)" @click="emit('toggle', label.id)"
+          >
+            <SvgIcon name="octicon-check" :class="{'tw-invisible': !selectedIds.includes(label.id)}"/>
+            <!-- eslint-disable-next-line vue/no-v-html -->
+            <span v-html="label.html"/>
+          </button>
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
-
-<style scoped>
-/* keep the selected labels the same size as the labels in the menu */
-.ui.multiple.dropdown > .label {
-  padding: 2px 6px;
-  font-size: var(--font-size-label);
-}
-</style>

@@ -18,17 +18,15 @@ const workflow = (id: number, event: string, extra: Partial<ProjectWorkflow> = {
   id, event, enabled: true, filters: {}, actions: {column_id: 1}, ...extra,
 });
 
-const jsonResponse = (body: unknown, status = 200) => Response.json(body, {status});
-
 async function setup(workflows: ProjectWorkflow[]) {
-  vi.mocked(GET).mockResolvedValueOnce(jsonResponse({
+  vi.mocked(GET).mockResolvedValueOnce(Response.json({
     events: [
       {event: 'item_opened', display_name: 'Item opened', filters: ['issue_type', 'labels'], actions: ['column']},
       {event: 'item_closed', display_name: 'Item closed', filters: [], actions: ['column']},
     ],
     workflows,
     columns: [{id: 1, title: 'Backlog'}, {id: 2, title: 'Done'}],
-    labels: [{id: 7, name: 'bug', color: 'ee0701'}, {id: 8, name: 'docs', color: '0075ca'}],
+    labels: [{id: 7, name: 'bug', html: ''}, {id: 8, name: 'docs', html: ''}],
   }));
   const store = createProjectWorkflowStore({el: document.createElement('div'), projectLink: '/o/r/projects/1', canWrite: true, locale});
   await store.load();
@@ -84,7 +82,7 @@ test('the form drops columns and labels deleted since saving', async () => {
   expect(store.form.add_label_ids).toEqual([]);
 });
 
-test('clone is numbered after its source and cancel returns to the source', async () => {
+test('clone is numbered after its source, cancel returns to the source, saving adds a history entry', async () => {
   const store = await setup([workflow(3, 'item_opened'), workflow(5, 'item_opened', {actions: {column_id: 2}})]);
   store.select(store.resolve('5')!);
   store.clone();
@@ -95,6 +93,12 @@ test('clone is numbered after its source and cancel returns to the source', asyn
   store.cancel();
   expect(store.selectedKey).toBe('5');
   expect(store.rows).toHaveLength(3);
+
+  store.clone();
+  vi.mocked(performFetchActionRequest).mockResolvedValueOnce(Response.json(workflow(9, 'item_opened', {actions: {column_id: 2}})));
+  await store.save();
+  expect(store.selected!.displayName).toBe('Item opened #3');
+  expect(window.history.pushState).toHaveBeenCalledWith({key: '9', event: 'item_opened'}, '', '/o/r/projects/1/workflows/9');
 });
 
 test('saving a placeholder creates the workflow and blocks selection meanwhile', async () => {
@@ -106,7 +110,7 @@ test('saving a placeholder creates the workflow and blocks selection meanwhile',
   const saving = store.save();
   store.select(store.resolve('item_opened')!);
   expect(store.selectedKey).toBe('item_closed');
-  resolvePost(jsonResponse(workflow(9, 'item_closed', {actions: {column_id: 2}})));
+  resolvePost(Response.json(workflow(9, 'item_closed', {actions: {column_id: 2}})));
   await saving;
 
   expect(performFetchActionRequest).toHaveBeenCalledWith(expect.any(HTMLElement), {url: '/o/r/projects/1/workflows', method: 'POST', data: {
@@ -136,7 +140,7 @@ test('delete selects the next row of the same event only on success', async () =
   expect(store.rows).toHaveLength(3);
   expect(store.selectedKey).toBe('3');
 
-  vi.mocked(performFetchActionRequest).mockResolvedValueOnce(jsonResponse({}));
+  vi.mocked(performFetchActionRequest).mockResolvedValueOnce(Response.json({}));
   await store.remove();
   expect(store.rows.map((r) => r.key)).toEqual(['5', 'item_closed']);
   expect(store.selectedKey).toBe('5');
