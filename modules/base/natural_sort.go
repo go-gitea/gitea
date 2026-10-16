@@ -79,6 +79,6 @@ func NaturalSortCompare(s1, s2 string) (ret int) {
 		}
 		pos1, pos2 = end1, end2
 	}
-	// each field is naturally equal, make sure "01.1" < "1.01"
+	// each field is naturally equal, just use string comparison: "v1.02.3" < "v1.2.03"
 	return strings.Compare(s1, s2)
 }

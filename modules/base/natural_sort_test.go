@@ -21,7 +21,7 @@ func TestNaturalSortLess(t *testing.T) {
 	testLess("", "a")
 	testLess("", "1")
 
-	testLess("01.1", "1.01")
+	testLess("v1.02.3", "v1.2.03")
 	testLess("1.01.0", "1.1.1")
 	testLess("v1.2", "v1.2.0")
 	testLess("v1.2.0", "v1.10.0")
