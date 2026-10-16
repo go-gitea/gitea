@@ -14,7 +14,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-// OrgBadge represents an organization badge
+// OrgBadge links a reusable badge definition to an organization.
 type OrgBadge struct {
 	ID      int64 `xorm:"pk autoincr"`
 	BadgeID int64
@@ -46,7 +46,7 @@ func GetOrgBadges(ctx context.Context, org *Organization) ([]*badges.Badge, erro
 	return badgesSlice, err
 }
 
-// LoadBadges loads badges for the organizations in the provided user list.
+// LoadBadges loads organization badges for organization records represented in a user list.
 func LoadBadges(ctx context.Context, users []*user_model.User) error {
 	if len(users) == 0 {
 		return nil

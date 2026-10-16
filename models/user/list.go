@@ -16,7 +16,7 @@ import (
 // This type provide valuable methods to retrieve information for a group of users efficiently.
 type UserList []*User //revive:disable-line:exported
 
-// LoadBadges loads achievement badges for all users in the list.
+// LoadBadges loads user badges for all users in the list in batches.
 func (users UserList) LoadBadges(ctx context.Context) error {
 	if len(users) == 0 {
 		return nil

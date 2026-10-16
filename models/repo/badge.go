@@ -13,7 +13,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-// RepoBadge represents a repository badge
+// RepoBadge links a reusable badge definition to a repository.
 type RepoBadge struct { //nolint:revive // export stutter
 	ID      int64 `xorm:"pk autoincr"`
 	BadgeID int64

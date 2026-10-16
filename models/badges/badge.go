@@ -12,7 +12,8 @@ import (
 	"xorm.io/builder"
 )
 
-// Badge represents a reputation badge
+// Badge represents a reusable, instance-managed label definition. The mapping
+// table determines whether it is assigned to a user, repository, or organization.
 type Badge struct {
 	ID          int64  `xorm:"pk autoincr"`
 	Slug        string `xorm:"UNIQUE"`
