@@ -5,7 +5,6 @@ package cran
 
 import (
 	"context"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -59,31 +58,28 @@ func (opts *SearchOptions) toConds() builder.Cond {
 	return cond
 }
 
-func SearchLatestVersions(ctx context.Context, opts *SearchOptions) ([]*packages.PackageVersion, error) {
-	pvs := make([]*packages.PackageVersion, 0, 10)
-	err := db.GetEngine(ctx).
+func SearchLatestVersions(ctx context.Context, opts *SearchOptions) (latest []*packages.PackageVersion, err error) {
+	var allPkgVers []*packages.PackageVersion
+	err = db.GetEngine(ctx).
 		Table("package_version").
 		Select("package_version.*").
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Join("INNER", "package_file", "package_file.version_id = package_version.id").
 		Where(opts.toConds()).
 		Asc("package.name", "package.id").
-		Find(&pvs)
+		Find(&allPkgVers)
 	if err != nil {
 		return nil, err
 	}
 
 	// SQL can't order R version strings, so pick the highest version per package here
-	latest := make([]*packages.PackageVersion, 0, len(pvs))
-	for start := 0; start < len(pvs); {
-		end := start + 1
-		for end < len(pvs) && pvs[end].PackageID == pvs[start].PackageID {
-			end++
+	for _, pv := range allPkgVers {
+		curIdx := len(latest) - 1
+		if curIdx == -1 || latest[curIdx].PackageID != pv.PackageID {
+			latest = append(latest, pv) // start a new package version
+		} else if cran_module.CompareVersions(pv.Version, latest[curIdx].Version) > 0 {
+			latest[curIdx] = pv // replace with a higher version
 		}
-		latest = append(latest, slices.MaxFunc(pvs[start:end], func(a, b *packages.PackageVersion) int {
-			return cran_module.CompareVersions(a.Version, b.Version)
-		}))
-		start = end
 	}
 	return latest, nil
 }
