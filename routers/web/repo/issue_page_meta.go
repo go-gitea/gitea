@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -169,6 +170,20 @@ func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 		d.AssigneesData.SelectedAssigneeIDs = strings.Join(ids, ",")
 	}
 	ctx.Data["Assignees"] = d.AssigneesData.CandidateAssignees
+}
+
+// setSelectedAssigneesFromQuery selects the candidate assignees from the comma-separated `assignee` user IDs query parameter
+func (d *IssuePageMetaData) setSelectedAssigneesFromQuery(ctx *context.Context) {
+	if ctx.FormString("assignee") == "" {
+		return
+	}
+	var ids []string
+	for _, id := range ctx.FormStringInt64s("assignee") {
+		if slices.ContainsFunc(d.AssigneesData.CandidateAssignees, func(u *user_model.User) bool { return u.ID == id }) {
+			ids = append(ids, strconv.FormatInt(id, 10))
+		}
+	}
+	d.AssigneesData.SelectedAssigneeIDs = strings.Join(ids, ",")
 }
 
 func (d *IssuePageMetaData) retrieveProjectCardsForExistingIssue(ctx *context.Context) {

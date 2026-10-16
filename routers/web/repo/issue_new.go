@@ -139,6 +139,7 @@ func NewIssue(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	pageMetaData.setSelectedAssigneesFromQuery(ctx)
 
 	if len(ret.TemplateErrors) > 0 {
 		ctx.Flash.Warning(renderErrorOfTemplates(ctx, ret.TemplateErrors), true)
