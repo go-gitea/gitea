@@ -162,6 +162,12 @@ func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User,
 		}
 
 		receiverIDs.Remove(doer.ID)
+		// muting the repository outranks every other source, including mentions
+		ignorerIDs, err := repo_model.GetRepoIgnorersIDs(ctx, repo.ID)
+		if err != nil {
+			return fmt.Errorf("GetRepoIgnorersIDs: %w", err)
+		}
+		receiverIDs.RemoveFromSlice(ignorerIDs)
 		if len(receiverIDs) == 0 {
 			return nil
 		}

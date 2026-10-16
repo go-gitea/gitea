@@ -61,6 +61,13 @@ func TestCreateCommitCommentNotification(t *testing.T) {
 	// A mention of a missing user must not drop the mentions that do resolve.
 	assert.NoError(t, activities_model.CreateCommitCommentNotification(t.Context(), doer, repo, sha, second.ID, "", []string{"user5", "no-such-user"}))
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 5, CommitID: sha})
+
+	// Muting the repository outranks a mention, as it does for issues.
+	const mutedSHA = "3333333333333333333333333333333333333333"
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user5, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeDont}))
+	assert.NoError(t, activities_model.CreateCommitCommentNotification(t.Context(), doer, repo, mutedSHA, second.ID, "", []string{"user5"}))
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: 5, CommitID: mutedSHA})
 }
 
 func TestCreateOrUpdateIssueNotificationsForAssigneeAndReviewer(t *testing.T) {
