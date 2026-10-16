@@ -103,6 +103,9 @@ func CreateCommitComment(ctx *context.Context) {
 	case errors.Is(err, repo_service.ErrCommitCommentCoordinates), errors.Is(err, repo_service.ErrCommitCommentRootPrevious):
 		ctx.JSONError(err.Error())
 		return
+	case errors.Is(err, user_model.ErrBlockedUser):
+		ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
+		return
 	default:
 		ctx.ServerError("CreateCommitComment", err)
 		return

@@ -113,6 +113,19 @@ func TestCommitInlineComment(t *testing.T) {
 		assert.Contains(t, postComment(changeSHA, "proposed", "5", "last line comment"), "last line comment")
 	})
 
+	t.Run("BlockedByOwnerIsRejected", func(t *testing.T) {
+		// user2 owns repo1 and blocks user29 in the fixtures; repo1 is public,
+		// so user29 can still read the code
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/commit/"+rootSHA+"/comment", map[string]string{
+			"content": "blocked comment",
+			"path":    "README.md",
+			"side":    "proposed",
+			"line":    "2",
+		})
+		loginUser(t, "user29").MakeRequest(t, req, http.StatusBadRequest)
+		unittest.AssertNotExistsBean(t, &repo_model.CommitComment{Content: "blocked comment"})
+	})
+
 	t.Run("DeleteMissingCommentIsNotFound", func(t *testing.T) {
 		comment := unittest.AssertExistsAndLoadBean(t, &repo_model.CommitComment{Content: "second commit comment"})
 		url := fmt.Sprintf("/user2/repo1/commit/%s/comment/%d/delete", rootSHA, comment.ID)

@@ -33,6 +33,10 @@ var ErrCommitCommentRootPrevious = errors.New("cannot comment on the previous si
 // CreateCommitComment stores an inline comment on a commit diff. line is signed:
 // negative for the old side, positive for the new one.
 func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, commitSHA, treePath string, line int64, content string) (*repo_model.CommitComment, error) {
+	if user_model.IsUserBlockedBy(ctx, doer, repo.OwnerID) {
+		return nil, user_model.ErrBlockedUser
+	}
+
 	commit, err := gitRepo.GetCommit(ctx, commitSHA)
 	if err != nil {
 		return nil, err
