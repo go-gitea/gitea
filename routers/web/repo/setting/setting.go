@@ -118,10 +118,32 @@ func SettingsCtxData(ctx *context.Context) {
 
 func preparePullRequestSettings(ctx *context.Context) {
 	defaultUpdateStyle := repo_model.UpdateStyleMerge
+	defaultSquashMergeMessage := repo_model.DefaultPullRequestsConfig().DefaultSquashMergeMessage
 	if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypePullRequests) {
-		prUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit_model.TypePullRequests)
-		defaultUpdateStyle = util.IfZero(prUnit.PullRequestsConfig().DefaultUpdateStyle, repo_model.UpdateStyleMerge)
+		prConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit_model.TypePullRequests).PullRequestsConfig()
+		defaultUpdateStyle = util.IfZero(prConfig.DefaultUpdateStyle, repo_model.UpdateStyleMerge)
+		defaultSquashMergeMessage = prConfig.DefaultSquashMergeMessage
 	}
+
+	squashMergeMessageOptions := make([]selectOption, 0, 3)
+	for _, opt := range []struct {
+		value repo_model.SquashMergeMessage
+		key   string
+	}{
+		{repo_model.SquashMergeMessageTitle, "repo.settings.pulls.default_squash_merge_message.title"},
+		{repo_model.SquashMergeMessageCommitMessages, "repo.settings.pulls.default_squash_merge_message.commit_messages"},
+		{repo_model.SquashMergeMessageDescription, "repo.settings.pulls.default_squash_merge_message.description"},
+	} {
+		squashMergeMessageOptions = append(squashMergeMessageOptions, selectOption{
+			Value:    string(opt.value),
+			Text:     ctx.Tr(opt.key),
+			Selected: opt.value == defaultSquashMergeMessage,
+		})
+		if opt.value == defaultSquashMergeMessage {
+			ctx.Data["PullsDefaultSquashMergeMessageText"] = ctx.Tr(opt.key)
+		}
+	}
+	ctx.Data["PullsDefaultSquashMergeMessageOptions"] = squashMergeMessageOptions
 
 	updateBranchText := ctx.Tr("repo.pulls.update_branch")
 	rebaseUpdateText := ctx.Tr("repo.pulls.update_branch_rebase")
@@ -680,11 +702,16 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultUpdateStyle:            defaultUpdateStyle,
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
+			DefaultSquashMergeMessage:     repo_model.SquashMergeMessage(form.PullsDefaultSquashMergeMessage),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
 		}
 		if err := prConfig.ValidateUpdateSettings(); err != nil {
 			ctx.JSONErrorAuto(err)
+			return
+		}
+		if !prConfig.DefaultSquashMergeMessage.IsValid() {
+			ctx.JSONError(ctx.Tr("form.invalid_input"))
 			return
 		}
 		units = append(units, newRepoUnit(repo, unit_model.TypePullRequests, prConfig))

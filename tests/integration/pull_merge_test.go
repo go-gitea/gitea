@@ -23,6 +23,7 @@ import (
 	"gitea.dev/models/perm"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
@@ -1340,5 +1341,27 @@ Co-authored-by: user4 <user4@example.com>
 				assert.Equal(t, tc.expectedMessage, squashMergeCommitMessage)
 			})
 		}
+
+		t.Run("Repository default squash merge message", func(t *testing.T) {
+			pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 1})
+			require.NoError(t, pullRequest.LoadIssue(t.Context()))
+			pullRequest.Issue.Content = "PR description"
+
+			prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
+			require.NoError(t, err)
+			for style, expected := range map[repo_model.SquashMergeMessage]string{
+				repo_model.SquashMergeMessageTitle:          "",
+				repo_model.SquashMergeMessageDescription:    "PR description",
+				repo_model.SquashMergeMessageCommitMessages: "* commit msg 1\n\n* commit msg 2\n\n",
+			} {
+				prUnit.PullRequestsConfig().DefaultSquashMergeMessage = style
+				require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), prUnit))
+				pullRequest.BaseRepo, pullRequest.HeadRepo = nil, nil
+
+				msg, err := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
+				require.NoError(t, err)
+				assert.Equal(t, expected, msg, style)
+			}
+		})
 	})
 }

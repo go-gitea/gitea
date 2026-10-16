@@ -606,6 +606,24 @@
 							</div>
 						</div>
 						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message"}}</label>
+							<div class="ui dropdown selection">
+								<select name="pulls_default_squash_merge_message">
+									{{range .PullsDefaultSquashMergeMessageOptions}}
+										<option value="{{.Value}}" {{if .Selected}}selected{{end}}>{{.Text}}</option>
+									{{end}}
+								</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="default text">
+									{{.PullsDefaultSquashMergeMessageText}}
+								</div>
+								<div class="menu">
+									{{range .PullsDefaultSquashMergeMessageOptions}}
+										<div class="item" data-value="{{.Value}}">{{.Text}}</div>
+									{{end}}
+								</div>
+							</div>
+						</div>
+						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch"}}</label>
 							<div class="ui search selection dropdown">
 								<input type="hidden" name="default_target_branch" value="{{$prUnit.PullRequestsConfig.DefaultTargetBranch}}">

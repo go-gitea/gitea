@@ -533,3 +533,21 @@ func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
 }
+
+func TestAPIRepoEditDefaultSquashMergeMessage(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1", &api.EditRepoOption{
+		DefaultSquashMergeMessage: new("invalid"),
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusBadRequest)
+
+	req = NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1", &api.EditRepoOption{
+		DefaultSquashMergeMessage: new(string(repo_model.SquashMergeMessageTitle)),
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, string(repo_model.SquashMergeMessageTitle), DecodeJSON(t, resp, &api.Repository{}).DefaultSquashMergeMessage)
+}

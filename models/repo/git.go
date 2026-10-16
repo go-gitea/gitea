@@ -39,6 +39,19 @@ const (
 	UpdateStyleRebase UpdateStyle = "rebase"
 )
 
+// SquashMergeMessage is the source of the default squash merge commit message body, the title is always the pull request title
+type SquashMergeMessage string
+
+const (
+	SquashMergeMessageTitle          SquashMergeMessage = "title"
+	SquashMergeMessageCommitMessages SquashMergeMessage = "commit-messages"
+	SquashMergeMessageDescription    SquashMergeMessage = "description"
+)
+
+func (m SquashMergeMessage) IsValid() bool {
+	return m == SquashMergeMessageTitle || m == SquashMergeMessageCommitMessages || m == SquashMergeMessageDescription
+}
+
 // UpdateDefaultBranch updates the default branch
 func UpdateDefaultBranch(ctx context.Context, repo *Repository) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).Cols("default_branch").Update(repo)

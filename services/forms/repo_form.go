@@ -133,6 +133,7 @@ type RepoSettingForm struct {
 	PullsAllowMergeUpdate            bool
 	PullsAllowRebaseUpdate           bool
 	PullsDefaultUpdateStyle          string
+	PullsDefaultSquashMergeMessage   string
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
 	DefaultTargetBranch              string
