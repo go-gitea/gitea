@@ -62,7 +62,39 @@ func TestNoLoginViewIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues")
-	MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	issue := htmlDoc.doc.Find("#issue-list .list-item-large-title[href='/user2/repo1/issues/1']").Closest(".item")
+	assert.Equal(t, "label1", strings.TrimSpace(issue.Find(".labels-list").Text()))
+	assignee := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.Equal(t, assignee.HomeLink(), issue.Find(".assignee").AttrOr("href", ""))
+	assert.Equal(t, assignee.GetDisplayName(), issue.Find(".assignee").AttrOr("data-tooltip-content", ""))
+}
+
+func TestViewIssueListContexts(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	t.Run("dashboard", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/issues")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, "user2/repo1#1", strings.TrimSpace(htmlDoc.doc.Find("#issue-list .index[href='/user2/repo1/issues/1']").Text()))
+	})
+	t.Run("milestone", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/user2/repo1/milestone/1")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, 1, getIssuesSelection(t, htmlDoc).Length())
+		assert.Empty(t, htmlDoc.doc.Find("#issue-list .milestone").Nodes)
+		labels := htmlDoc.doc.Find("#issue-list .labels-list a")
+		assert.Equal(t, 2, labels.Length())
+		labels.Each(func(_ int, label *goquery.Selection) {
+			link, err := url.Parse(label.AttrOr("href", ""))
+			assert.NoError(t, err)
+			assert.NotContains(t, link.Query(), "milestone")
+		})
+	})
 }
 
 func TestViewIssuesSortByType(t *testing.T) {

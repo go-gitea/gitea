@@ -8,7 +8,7 @@ require (
 	connectrpc.com/connect v1.21.0
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
-	gitea.dev/actionslib v1.3.0
+	gitea.dev/actionslib v1.4.0
 	gitea.dev/sdk v1.3.0
 	github.com/42wim/httpsig v1.3.0
 	github.com/42wim/sshsig v0.0.0-20260317195500-b9f38cf0d432
@@ -87,7 +87,7 @@ require (
 	github.com/yohcop/openid-go v1.0.1
 	github.com/yuin/goldmark v1.8.6
 	gitlab.com/gitlab-org/api/client-go/v3 v3.16.0
-	go.yaml.in/yaml/v4 v4.0.0-rc.6
+	go.yaml.in/yaml/v4 v4.0.0-rc.6.0.20261013184558-04dd63131525
 	golang.org/x/crypto v0.57.0
 	golang.org/x/image v0.46.0
 	golang.org/x/mod v0.41.0
