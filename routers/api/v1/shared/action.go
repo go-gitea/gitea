@@ -186,7 +186,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	if actor := ctx.FormString("actor"); actor != "" {
 		user, err := user_model.GetUserByName(ctx, actor)
 		if err != nil {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 			return
 		}
 		opts.TriggerUserID = user.ID

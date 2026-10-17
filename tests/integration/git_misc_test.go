@@ -109,6 +109,8 @@ func TestAgitPullPush(t *testing.T) {
 		assert.NoError(t, pr.LoadIssue(t.Context()))
 		assert.Equal(t, "test-title", pr.Issue.Title)
 		assert.Equal(t, "test-description", pr.Issue.Content)
+		assert.Equal(t, 0, pr.CommitsBehind)
+		assert.Equal(t, 1, pr.CommitsAhead)
 
 		// commit 2
 		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
@@ -119,6 +121,9 @@ func TestAgitPullPush(t *testing.T) {
 			WithDir(dstPath).
 			Run(t.Context())
 		assert.NoError(t, err)
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Flow: issues_model.PullRequestFlowAGit, HeadBranch: "user2/test-agit-push"})
+		assert.Equal(t, 0, pr.CommitsBehind)
+		assert.Equal(t, 2, pr.CommitsAhead)
 
 		// reset to first commit
 		err = gitcmd.NewCommand("reset", "--hard", "HEAD~1").WithDir(dstPath).Run(t.Context())

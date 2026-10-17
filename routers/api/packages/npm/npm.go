@@ -6,7 +6,9 @@ package npm
 import (
 	"bytes"
 	std_ctx "context"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -55,28 +57,41 @@ func buildNpmRegistryURL(ctx std_ctx.Context, owner *user_model.User) string {
 	return httplib.GuessCurrentAppURL(ctx) + "api/packages/" + url.PathEscape(owner.Name) + "/npm"
 }
 
-// PackageMetadata returns the metadata for a single package
-func PackageMetadata(ctx *context.Context) {
-	packageName := packageNameFromParams(ctx)
-
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
+func packageMetadata(ctx *context.Context) *npm_module.PackageMetadata {
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageNameFromParams(ctx))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
-		return
+		return nil
 	}
 	if len(pvs) == 0 {
 		apiError(ctx, http.StatusNotFound, err)
-		return
+		return nil
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
-		return
+		return nil
 	}
 
-	resp := createPackageMetadataResponse(buildNpmRegistryURL(ctx, ctx.Package.Owner), pds)
-	ctx.JSON(http.StatusOK, resp)
+	return createPackageMetadataResponse(buildNpmRegistryURL(ctx, ctx.Package.Owner), pds)
+}
+
+// PackageMetadata returns the metadata for a single package
+func PackageMetadata(ctx *context.Context) {
+	if metadata := packageMetadata(ctx); metadata != nil {
+		serveMetadata(ctx, metadata)
+	}
+}
+
+func serveMetadata(ctx *context.Context, obj any) {
+	body, err := json.MarshalDeterministic(obj)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.Resp.Header().Set("ETag", fmt.Sprintf(`W/"%x"`, sha256.Sum256(body)))
+	ctx.ServeContent(bytes.NewReader(body), context.ServeHeaderOptions{ContentType: "application/json;charset=utf-8"})
 }
 
 // PackageVersionMetadata returns the metadata for a single version or dist-tag
@@ -100,7 +115,11 @@ func PackageVersionMetadata(ctx *context.Context) {
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, "version not found: "+versionOrTag)
+		if versionOrTag != "latest" {
+			apiError(ctx, http.StatusNotFound, "version not found: "+versionOrTag)
+		} else if metadata := packageMetadata(ctx); metadata != nil { // unset, so serve the packument's fallback
+			serveMetadata(ctx, metadata.Versions[metadata.DistTags["latest"]])
+		}
 		return
 	}
 
@@ -110,25 +129,40 @@ func PackageVersionMetadata(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, createPackageMetadataVersion(buildNpmRegistryURL(ctx, ctx.Package.Owner), pd))
+	serveMetadata(ctx, createPackageMetadataVersion(buildNpmRegistryURL(ctx, ctx.Package.Owner), pd))
 }
 
-// DownloadPackageFile serves the content of a package
-func DownloadPackageFile(ctx *context.Context) {
-	packageName := packageNameFromParams(ctx)
-	packageVersion := ctx.PathParam("version")
-	filename := ctx.PathParam("filename")
+func packageVersionByFilename(ctx *context.Context) *packages_model.PackageVersion {
+	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID:         ctx.Package.Owner.ID,
+		Type:            packages_model.TypeNpm,
+		Name:            packages_model.SearchValue{ExactMatch: true, Value: packageNameFromParams(ctx)},
+		HasFileWithName: ctx.PathParam("filename"),
+		IsInternal:      optional.Some(false),
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return nil
+	}
+	if len(pvs) != 1 {
+		apiError(ctx, http.StatusNotFound, nil)
+		return nil
+	}
+	return pvs[0]
+}
 
-	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
+// DownloadPackageFileByName finds the version and serves the contents of a package
+func DownloadPackageFileByName(ctx *context.Context) {
+	pv := packageVersionByFilename(ctx)
+	if pv == nil {
+		return
+	}
+
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageVersion(
 		ctx,
-		&packages_service.PackageInfo{
-			Owner:       ctx.Package.Owner,
-			PackageType: packages_model.TypeNpm,
-			Name:        packageName,
-			Version:     packageVersion,
-		},
+		pv,
 		&packages_service.PackageFileInfo{
-			Filename: filename,
+			Filename: ctx.PathParam("filename"),
 		},
 		ctx.Req.Method,
 	)
@@ -140,54 +174,14 @@ func DownloadPackageFile(ctx *context.Context) {
 	helper.ServePackageFile(ctx, s, u, pf)
 }
 
-// DownloadPackageFileByName finds the version and serves the contents of a package
-func DownloadPackageFileByName(ctx *context.Context) {
-	filename := ctx.PathParam("filename")
-
-	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeNpm,
-		Name: packages_model.SearchValue{
-			ExactMatch: true,
-			Value:      packageNameFromParams(ctx),
-		},
-		HasFileWithName: filename,
-		IsInternal:      optional.Some(false),
-	})
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if len(pvs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
-		return
-	}
-
-	s, u, pf, err := packages_service.OpenFileForDownloadByPackageVersion(
-		ctx,
-		pvs[0],
-		&packages_service.PackageFileInfo{
-			Filename: filename,
-		},
-		ctx.Req.Method,
-	)
-	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	helper.ServePackageFile(ctx, s, u, pf)
-}
-
 // UploadPackage creates a new package
 func UploadPackage(ctx *context.Context) {
-	npmPackage, deprecation, err := npm_module.ParseUpload(ctx.Req.Body)
+	// about the npmjs and GitHub Packages limit, fits base64 tarballs up to ~200 MB
+	npmPackage, deprecation, err := npm_module.ParseUpload(http.MaxBytesReader(ctx.Resp, ctx.Req.Body, 256*1024*1024))
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
+		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+			apiError(ctx, http.StatusRequestEntityTooLarge, err)
+		} else if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -340,26 +334,14 @@ func deprecatePackage(ctx *context.Context, dep *npm_module.PackageDeprecation) 
 	ctx.Status(http.StatusOK)
 }
 
-// DeletePackageVersion deletes the package version
+// DeletePackageVersion deletes the package version, which `npm unpublish` addresses by its tarball
 func DeletePackageVersion(ctx *context.Context) {
-	packageName := packageNameFromParams(ctx)
-	packageVersion := ctx.PathParam("version")
+	pv := packageVersionByFilename(ctx)
+	if pv == nil {
+		return
+	}
 
-	err := packages_service.RemovePackageVersionByNameAndVersion(
-		ctx,
-		ctx.Doer,
-		&packages_service.PackageInfo{
-			Owner:       ctx.Package.Owner,
-			PackageType: packages_model.TypeNpm,
-			Name:        packageName,
-			Version:     packageVersion,
-		},
-	)
-	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
+	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -394,9 +376,7 @@ func DeletePackage(ctx *context.Context) {
 
 // ListPackageTags returns all tags for a package
 func ListPackageTags(ctx *context.Context) {
-	packageName := packageNameFromParams(ctx)
-
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageNameFromParams(ctx))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -414,7 +394,11 @@ func ListPackageTags(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, tags)
+	if _, ok := tags["latest"]; ok {
+		ctx.JSON(http.StatusOK, tags)
+	} else if metadata := packageMetadata(ctx); metadata != nil { // unset, so list the packument's fallback
+		ctx.JSON(http.StatusOK, metadata.DistTags)
+	}
 }
 
 // AddPackageTag adds a tag to the package
@@ -522,6 +506,18 @@ func setPackageTag(ctx std_ctx.Context, tag string, pv *packages_model.PackageVe
 		}
 		return nil
 	})
+}
+
+func Ping(ctx *context.Context) {
+	ctx.JSON(http.StatusOK, map[string]any{})
+}
+
+func Whoami(ctx *context.Context) {
+	if ctx.Doer == nil {
+		apiError(ctx, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]string{"username": ctx.Doer.Name})
 }
 
 func PackageSearch(ctx *context.Context) {

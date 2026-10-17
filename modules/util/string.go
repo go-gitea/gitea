@@ -121,7 +121,7 @@ func asciiLower(b byte) byte {
 
 // AsciiEqualFold is from Golang https://cs.opensource.google/go/go/+/refs/tags/go1.24.4:src/net/http/internal/ascii/print.go
 // ASCII only. In most cases for protocols, we should only use this but not [strings.EqualFold]
-func AsciiEqualFold(s, t string) bool {
+func AsciiEqualFold[T string | []byte](s, t T) bool {
 	if len(s) != len(t) {
 		return false
 	}

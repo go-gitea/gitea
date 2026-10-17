@@ -423,7 +423,6 @@
   "settings.key_name": "Avaimen nimi",
   "settings.key_content": "Sisältö",
   "settings.principal_content": "Sisältö",
-  "settings.delete_key": "Poista",
   "settings.ssh_key_deletion": "Poista SSH-avain",
   "settings.gpg_key_deletion": "Poista GPG-avain",
   "settings.gpg_key_deletion_desc": "GPG-avaimen poistaminen peruuttaa sillä allekirjoitettujen committien vahvistukset. Jatketaanko?",

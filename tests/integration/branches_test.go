@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/translation"
 	"gitea.dev/tests"
 
@@ -68,5 +69,41 @@ func TestUndoDeleteBranch(t *testing.T) {
 			htmlDoc.doc.Find(".ui.positive.message").Text(),
 			translation.NewLocale("en-US").TrString("repo.branch.restore_success", name),
 		)
+	})
+}
+
+func TestDeleteProtectedBranchWeb(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		session := loginUser(t, "user2")
+		const branchURL = "/user2/repo1/branches/delete?name=branch2"
+		const deleteButton = `.delete-branch-button[data-modal-name="branch2"]`
+		testAPICreateBranchProtection(t, "branch2", 1, http.StatusCreated)
+
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/branches"), http.StatusOK)
+		AssertHTMLElement(t, NewHTMLParser(t, resp.Body), deleteButton, 0)
+		session.MakeRequest(t, NewRequest(t, "POST", branchURL), http.StatusBadRequest)
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/branches/branch2"), http.StatusOK)
+
+		testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
+			EnablePush:                 new(true),
+			EnableDeletion:             new(true),
+			EnableDeletionAllowlist:    new(true),
+			DeletionAllowlistUsernames: []string{"user2"},
+		}, http.StatusOK)
+		resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/branches"), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, htmlDoc, deleteButton, 1)
+		button := htmlDoc.doc.Find(deleteButton)
+		assert.Equal(t, "button", button.AttrOr("type", ""))
+		link, exists := button.Attr("data-modal-form.url")
+		require.True(t, exists)
+		resp = session.MakeRequest(t, NewRequest(t, "POST", link), http.StatusOK)
+		assert.JSONEq(t, `{"redirect":""}`, resp.Body.String())
+		testAPIGetBranch(t, "branch2", false)
+
+		resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/branches"), http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, htmlDoc, deleteButton, 0)
+		AssertHTMLElement(t, htmlDoc, `.restore-branch-button[data-url*="name=branch2"]`, 0)
 	})
 }

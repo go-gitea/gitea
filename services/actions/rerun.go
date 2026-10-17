@@ -385,8 +385,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 		return nil, err
 	}
 
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledConcurrencyJobs)
-	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
+	notifyAndEmitFinishedJobs(ctx, cancelledConcurrencyJobs)
 
 	CreateCommitStatusForRunJobs(ctx, plan.run, newJobs...)
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, newJobsToRerun)

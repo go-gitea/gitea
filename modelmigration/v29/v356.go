@@ -11,13 +11,15 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddReusableWorkflowRefToActionRunJob(_ context.Context, x base.EngineMigration) error {
-	type ActionRunJob struct {
-		ReusableWorkflowRef string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+// AddActionRunCommitSHAIndex indexes the runs lookup by commit, which the API `head_sha` filter uses.
+func AddActionRunCommitSHAIndex(_ context.Context, x base.EngineMigration) error {
+	type ActionRun struct {
+		CommitSHA string `xorm:"index"`
 	}
+
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
-	}, new(ActionRunJob))
+		IgnoreConstrains:  true,
+	}, new(ActionRun))
 	return err
 }

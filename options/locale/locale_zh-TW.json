@@ -634,7 +634,6 @@
   "settings.add_key_success": "已新增 SSH 金鑰「%s」。",
   "settings.add_gpg_key_success": "已新增 GPG 金鑰「%s」。",
   "settings.add_principal_success": "已新增 SSH 認證主體「%s」。",
-  "settings.delete_key": "移除",
   "settings.ssh_key_deletion": "移除 SSH 金鑰",
   "settings.gpg_key_deletion": "移除 GPG 金鑰",
   "settings.ssh_principal_deletion": "移除 SSH 認證主體",

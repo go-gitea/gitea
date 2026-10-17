@@ -569,7 +569,7 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 					break
 				}
 			}
-			if job.Status.IsWaiting() {
+			if job.Status.IsWaiting() && !job.IsReusableCaller {
 				hasOnlineRunner := false
 				for _, runner := range runners {
 					if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
@@ -664,7 +664,7 @@ func (data *actionRunListData) prepareCommon(ctx *context.Context, workflows []W
 		return false
 	}
 	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, data.ActionRuns); err != nil {
-		log.Error("LoadIsRefDeleted", err)
+		log.Error("loadIsRefDeleted: %v", err)
 	}
 
 	if !data.processActionRuns(ctx) {
