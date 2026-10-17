@@ -574,7 +574,6 @@ func CreateIssue(ctx *context.APIContext) {
 		PosterID: ctx.Doer.ID,
 		Poster:   ctx.Doer,
 		Content:  form.Body,
-		Ref:      form.Ref,
 	}
 
 	assigneeIDs := make([]int64, 0)
@@ -745,14 +744,6 @@ func EditIssue(ctx *context.APIContext) {
 			return
 		}
 	}
-	if form.Ref != nil {
-		err = issue_service.ChangeIssueRef(ctx, issue, ctx.Doer, *form.Ref)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-	}
-
 	// Update or remove the deadline, only if set and allowed
 	if canWrite && !editIssueDeadline(ctx, issue, form.Deadline, form.RemoveDeadline) {
 		return

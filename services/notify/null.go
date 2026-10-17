@@ -134,10 +134,6 @@ func (*NullNotifier) IssueClearLabels(ctx context.Context, doer *user_model.User
 func (*NullNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 }
 
-// IssueChangeRef places a place holder function
-func (*NullNotifier) IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
-}
-
 // IssueChangeLabels places a place holder function
 func (*NullNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	addedLabels, removedLabels []*issues_model.Label) {

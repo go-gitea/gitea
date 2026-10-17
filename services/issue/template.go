@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/url"
 	"path"
-	"strings"
 
 	"gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -144,9 +143,6 @@ func ParseTemplatesFromDefaultBranch(ctx context.Context, repo *repo.Repository,
 			if it, err := template.UnmarshalFromEntry(ctx, gitRepo, entry, dirName); err != nil {
 				ret.TemplateErrors[fullName] = err
 			} else {
-				if !strings.HasPrefix(it.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
-					it.Ref = git.BranchPrefix + it.Ref
-				}
 				ret.IssueTemplates = append(ret.IssueTemplates, it)
 			}
 		}

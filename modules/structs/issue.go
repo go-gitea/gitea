@@ -56,7 +56,6 @@ type Issue struct {
 	OriginalAuthorID int64         `json:"original_author_id"`
 	Title            string        `json:"title"`
 	Body             string        `json:"body"`
-	Ref              string        `json:"ref"`
 	Attachments      []*Attachment `json:"assets"`
 	Labels           []*Label      `json:"labels"`
 	Milestone        *Milestone    `json:"milestone"`
@@ -91,7 +90,6 @@ type CreateIssueOption struct {
 	// required:true
 	Title string `json:"title" binding:"Required"`
 	Body  string `json:"body"`
-	Ref   string `json:"ref"`
 	// deprecated
 	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`
@@ -110,7 +108,6 @@ type CreateIssueOption struct {
 type EditIssueOption struct {
 	Title string  `json:"title"`
 	Body  *string `json:"body"`
-	Ref   *string `json:"ref"`
 	// deprecated
 	Assignee  *string  `json:"assignee"`
 	Assignees []string `json:"assignees"`
@@ -199,7 +196,6 @@ type IssueTemplate struct {
 	About     string                   `json:"about" yaml:"about"` // Using "description" in a template file is compatible
 	Labels    IssueTemplateStringSlice `json:"labels" yaml:"labels"`
 	Assignees IssueTemplateStringSlice `json:"assignees" yaml:"assignees"`
-	Ref       string                   `json:"ref" yaml:"ref"`
 	Content   string                   `json:"content" yaml:"-"`
 	Fields    []*IssueFormField        `json:"body" yaml:"body"`
 	FileName  string                   `json:"file_name" yaml:"-"`

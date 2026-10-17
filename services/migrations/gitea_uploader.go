@@ -408,19 +408,12 @@ func (g *GiteaLocalUploader) CreateIssues(ctx context.Context, issues ...*base.I
 			}
 		}
 
-		// SECURITY: issue.Ref needs to be a valid reference
-		if !git.IsValidRefPattern(issue.Ref) {
-			log.Warn("Invalid issue.Ref[%s] in issue #%d in %s/%s", issue.Ref, issue.Number, g.repoOwner, g.repoName)
-			issue.Ref = ""
-		}
-
 		is := issues_model.Issue{
 			RepoID:      g.repo.ID,
 			Repo:        g.repo,
 			Index:       issue.Number,
 			Title:       util.TruncateRunes(issue.Title, 255),
 			Content:     issue.Content,
-			Ref:         issue.Ref,
 			IsClosed:    issue.State == "closed",
 			IsLocked:    issue.IsLocked,
 			MilestoneID: milestoneID,

@@ -132,20 +132,6 @@ func ChangeTimeEstimate(ctx context.Context, issue *issues_model.Issue, doer *us
 	return issues_model.ChangeIssueTimeEstimate(ctx, issue, doer, timeEstimate)
 }
 
-// ChangeIssueRef changes the branch of this issue, as the given user.
-func ChangeIssueRef(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, ref string) error {
-	oldRef := issue.Ref
-	issue.Ref = ref
-
-	if err := issues_model.ChangeIssueRef(ctx, issue, doer, oldRef); err != nil {
-		return err
-	}
-
-	notify_service.IssueChangeRef(ctx, doer, issue, oldRef)
-
-	return nil
-}
-
 // DeleteIssue deletes an issue
 func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) error {
 	// load issue before deleting it
@@ -178,21 +164,6 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model
 	notify_service.DeleteIssue(ctx, doer, issue)
 
 	return nil
-}
-
-// GetRefEndNamesAndURLs retrieves the ref end names (e.g. refs/heads/branch-name -> branch-name)
-// and their respective URLs.
-func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[int64]string, map[int64]string) {
-	issueRefEndNames := make(map[int64]string, len(issues))
-	issueRefURLs := make(map[int64]string, len(issues))
-	for _, issue := range issues {
-		if issue.Ref != "" {
-			ref := git.RefName(issue.Ref)
-			issueRefEndNames[issue.ID] = ref.ShortName()
-			issueRefURLs[issue.ID] = repoLink + "/src/" + ref.RefWebLinkPath()
-		}
-	}
-	return issueRefEndNames, issueRefURLs
 }
 
 // deleteIssue deletes the issue

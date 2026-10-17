@@ -90,12 +90,6 @@
 							<span class="gt-ellipsis">{{$project.Title}}</span>
 						</a>
 					{{end}}
-					{{if $issue.Ref}}{{/* TODO: ISSUE-SIDEBAR-REF-SELECTOR: see "repo/issue/branch_selector_field.tmpl" */}}
-						<a class="ref flex-text-inline tw-max-w-[300px]" {{if $root.RepoLink}}href="{{index $root.IssueRefURLs $issue.ID}}"{{else}}href="{{$issue.Repo.Link}}{{index $root.IssueRefURLs $issue.ID}}"{{end}}>
-							{{svg "octicon-git-branch" 14}}
-							<span class="gt-ellipsis">{{index $root.IssueRefEndNames $issue.ID}}</span>
-						</a>
-					{{end}}
 					{{$tasks := $issue.GetTasks}}
 					{{if gt $tasks 0}}
 						{{$tasksDone := $issue.GetTasksDone}}

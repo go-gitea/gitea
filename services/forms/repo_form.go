@@ -340,7 +340,6 @@ type CreateIssueForm struct {
 	Title               string `binding:"TrimSpace;Required;MaxSize(255)"`
 	AssigneeIDs         string `form:"assignee_ids"`
 	ReviewerIDs         string `form:"reviewer_ids"`
-	Ref                 string `form:"ref"`
 	MilestoneID         int64
 	Content             string
 	Files               []string
