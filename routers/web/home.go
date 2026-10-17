@@ -17,38 +17,18 @@ import (
 	"gitea.dev/modules/sitemap"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/routers/web/auth"
 	"gitea.dev/routers/web/user"
 	"gitea.dev/services/context"
 )
 
-const (
-	// tplHome home page template
-	tplHome templates.TplName = "home"
-)
+const tplHome templates.TplName = "home"
 
-// Home render home page
 func Home(ctx *context.Context) {
 	if ctx.IsSigned {
-		if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
-			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-			ctx.HTML(http.StatusOK, auth.TplActivate)
-		} else if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
-			log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
-			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
-		} else if doerMustChangePassword(ctx) {
-			ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
-			ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
-			middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
-			ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
-		} else {
-			user.Dashboard(ctx)
-		}
+		user.Dashboard(ctx)
 		return
-		// Check non-logged users landing page.
 	} else if setting.LandingPageURL != setting.LandingPageHome {
+		// Check non-logged users landing page
 		ctx.Redirect(setting.AppSubURL + string(setting.LandingPageURL))
 		return
 	}

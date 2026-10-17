@@ -13,18 +13,13 @@ import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import {AnsiLineRenderer} from '../render/ansi.ts';
-import {
-  type ActionRunViewStore,
-  createLogLineMessage,
-  type LogLine,
-  type LogLineCommand,
-  parseLogLineCommand,
-} from './ActionRunView.ts';
+import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
+import type {ActionRunViewStore, LogLine, LogLineCommand} from './ActionRunView.ts';
 
-function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
+function isLogElementInViewport(el: Element, {extraViewPortHeight} = {extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
   // only check whether bottom is in viewport, because the log element can be a log group which is usually tall
-  return 0 <= rect.bottom && rect.bottom <= window.innerHeight + extraViewPortHeight;
+  return rect.bottom >= 0 && rect.bottom <= window.innerHeight + extraViewPortHeight;
 }
 
 export type ActionRunJobViewLocale = {
@@ -42,14 +37,14 @@ type Step = {
   summary: string,
   duration: string,
   status: ActionsStatus,
-}
+};
 
 type JobStepState = {
-  cursor: string|null,
+  cursor: string | null,
   expanded: boolean,
   manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
   firstLogTime?: number, // the step's first log line time, what "Show seconds" counts from
-}
+};
 
 // one ANSI renderer per step, so an unterminated color carries between that step's lines only
 const stepAnsiRenderers: AnsiLineRenderer[] = [];
@@ -59,7 +54,7 @@ type StepContainerElement = HTMLElement & {
   // then the following batches of logs should still use the same group (active logs container).
   // maybe it can be refactored to decouple from the HTML element in the future.
   _stepLogsActiveContainer?: HTMLElement;
-}
+};
 
 type LocaleStorageOptions = {
   autoScroll: boolean;
@@ -109,8 +104,12 @@ const defaultViewOptions: LocaleStorageOptions = {
   actionsLogShowTimestamps: false,
 };
 
-const savedViewOptions = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
-const {autoScroll, expandRunning, actionsLogShowSeconds, actionsLogShowTimestamps} = savedViewOptions;
+const {
+  autoScroll,
+  expandRunning,
+  actionsLogShowSeconds,
+  actionsLogShowTimestamps,
+} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
 
 // internal state
 let loadingAbortController: AbortController | null = null;
@@ -176,8 +175,8 @@ onMounted(async () => {
     }, 0);
   });
 
-  intervalID = setInterval(() => void loadJob(), 1000);
-  void hashChangeListener();
+  intervalID = setInterval(() => loadJob(), 1000);
+  hashChangeListener();
   window.addEventListener('hashchange', hashChangeListener);
 });
 
@@ -256,7 +255,7 @@ async function copyStepOutput(event: MouseEvent, stepIndex: number) {
 function toggleStepLogs(idx: number) {
   currentJobStepsStates.value[idx].expanded = !currentJobStepsStates.value[idx].expanded;
   if (currentJobStepsStates.value[idx].expanded) {
-    void loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
+    loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
   } else if (currentJob.value.steps[idx].status === 'running') {
     currentJobStepsStates.value[idx].manuallyCollapsed = true;
   }
@@ -293,19 +292,14 @@ function shouldAutoScroll(stepIndex: number): boolean {
 function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
   for (const line of logLines) {
     const cmd = parseLogLineCommand(line);
-    switch (cmd?.name) {
-      case 'hidden':
-        continue;
-      case 'group':
-        beginLogGroup(stepIndex, startTime, line, cmd);
-        continue;
-      case 'endgroup':
-        endLogGroup(stepIndex);
-        continue;
+    if (cmd?.name === 'group') {
+      beginLogGroup(stepIndex, startTime, line, cmd);
+    } else if (cmd?.name === 'endgroup') {
+      endLogGroup(stepIndex);
+    } else if (cmd?.name !== 'hidden') {
+      // the active logs container may change during the loop, for example: entering and leaving a group
+      getActiveLogsContainer(stepIndex).append(createLogLine(stepIndex, startTime, line, cmd));
     }
-    // the active logs container may change during the loop, for example: entering and leaving a group
-    const el = getActiveLogsContainer(stepIndex);
-    el.append(createLogLine(stepIndex, startTime, line, cmd));
   }
 }
 
@@ -340,8 +334,12 @@ async function loadJob() {
     store.viewData.runArtifacts = runJobResp.artifacts || [];
     store.viewData.currentRun = runJobResp.state.run;
 
+    const previousSteps = currentJob.value.steps;
     currentJob.value = runJobResp.state.currentJob;
-    const jobLogs = runJobResp.logs.stepsLog ?? [];
+    // a runner reporting its own steps can change them while the job runs, which moves the logs of each step position
+    const stepsChanged = previousSteps.length > 0 && !isSameSteps(previousSteps, currentJob.value.steps);
+    if (stepsChanged) resetStepsLogs(previousSteps);
+    const jobLogs = stepsChanged ? [] : runJobResp.logs.stepsLog ?? [];
 
     // sync the currentJobStepsStates to store the job step states
     for (let i = 0; i < currentJob.value.steps.length; i++) {
@@ -387,8 +385,8 @@ async function loadJob() {
       lastLogElem.scrollIntoView({behavior: 'smooth', block: 'end'});
     }
 
-    // clear the interval timer if the job is done
-    if (run.value.done && intervalID) {
+    // clear the interval timer if the job is done, the logs of changed steps still need to be loaded
+    if (run.value.done && intervalID && !stepsChanged) {
       clearInterval(intervalID);
       intervalID = null;
     }
@@ -398,6 +396,21 @@ async function loadJob() {
     throw e;
   } finally {
     if (loadingAbortController === abortController) loadingAbortController = null;
+  }
+}
+
+function isSameSteps(a: Array<Step>, b: Array<Step>) {
+  return a.length === b.length && a.every((step, idx) => step.summary === b[idx].summary);
+}
+
+function resetStepsLogs(previousSteps: Array<Step>) {
+  const expandedSummaries = new Set(previousSteps.filter((_, idx) => currentJobStepsStates.value[idx].expanded).map((step) => step.summary));
+  currentJobStepsStates.value = currentJob.value.steps.map((step) => ({cursor: null, expanded: expandedSummaries.has(step.summary), manuallyCollapsed: false}));
+  stepAnsiRenderers.length = 0;
+  for (const el of jobStepLogs.value) {
+    if (!el) continue;
+    el.replaceChildren();
+    el._stepLogsActiveContainer = undefined;
   }
 }
 

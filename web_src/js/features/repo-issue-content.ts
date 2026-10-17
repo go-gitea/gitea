@@ -16,16 +16,16 @@ let i18nTextDeleteFromHistoryConfirm: string;
 function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
   const elDetailDialog = createElementFromHTML(html`
     <div class="ui modal content-history-detail-dialog">
-      ${svgRaw('octicon-x', 16, 'close icon inside')}
       <div class="header flex-left-right">
         <div>${htmlRaw(itemTitleHtml)}</div>
-        <div class="ui dropdown dialog-header-options tw-mr-8 tw-hidden">
+        <div class="ui dropdown dialog-header-options tw-mx-4 tw-hidden">
           ${i18nTextOptions}
           ${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
           <div class="menu">
             <div class="item tw-text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
           </div>
         </div>
+        <button type="button" class="close-modal"></button>
       </div>
       <div class="comment-diff-data is-loading"></div>
     </div>
@@ -39,6 +39,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
     async onChange(_value: string, _text: string, $item: JQueryElem) {
       const optionItem = $item.data('option-item');
       if (optionItem === 'delete') {
+        // TODO: to use confirmModal instead of window.confirm, need to support multiple modals on the same page first.
         if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
           try {
             const params = new URLSearchParams();

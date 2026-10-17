@@ -267,29 +267,8 @@ func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle)
 	if err := ctx.PrepareGitCmd(cmdRebase).
 		RunWithStderr(ctx); err != nil {
 		// Rebase will leave a REBASE_HEAD file in .git if there is a conflict
-		if _, statErr := os.Stat(filepath.Join(ctx.tmpBasePath, ".git", "REBASE_HEAD")); statErr == nil {
-			var commitSha string
-			ok := false
-			failingCommitPaths := []string{
-				filepath.Join(ctx.tmpBasePath, ".git", "rebase-apply", "original-commit"), // Git < 2.26
-				filepath.Join(ctx.tmpBasePath, ".git", "rebase-merge", "stopped-sha"),     // Git >= 2.26
-			}
-			for _, failingCommitPath := range failingCommitPaths {
-				if _, statErr := os.Stat(failingCommitPath); statErr == nil {
-					commitShaBytes, readErr := os.ReadFile(failingCommitPath)
-					if readErr != nil {
-						// Abandon this attempt to handle the error
-						return fmt.Errorf("unable to git rebase staging on to base in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
-					}
-					commitSha = strings.TrimSpace(string(commitShaBytes))
-					ok = true
-					break
-				}
-			}
-			if !ok {
-				log.Error("Unable to determine failing commit sha for failing rebase in temp repo for %-v. Cannot cast as ErrRebaseConflicts.", ctx.pr)
-				return fmt.Errorf("unable to git rebase staging on to base in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
-			}
+		if rebaseHead, readErr := os.ReadFile(filepath.Join(ctx.tmpBasePath, ".git", "REBASE_HEAD")); readErr == nil {
+			commitSha := strings.TrimSpace(string(rebaseHead))
 			log.Debug("Conflict when rebasing staging on to base in %-v at %s: %v\n%s\n%s", ctx.pr, commitSha, err, ctx.outbuf.String(), err.Stderr())
 			return ErrRebaseConflicts{
 				CommitSHA: commitSha,

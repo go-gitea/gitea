@@ -126,11 +126,13 @@ func testAPICreateIssue(t *testing.T) {
 		Body:     body,
 		Title:    title,
 		Assignee: owner.Name,
+		Deadline: new(time.Date(2026, 5, 11, 12, 0, 0, 0, time.FixedZone("", -10*3600))),
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	apiIssue := DecodeJSON(t, resp, &api.Issue{})
 	assert.Equal(t, body, apiIssue.Body)
 	assert.Equal(t, title, apiIssue.Title)
+	assert.Equal(t, time.Date(2026, 5, 11, 23, 59, 59, 0, setting.DefaultUILocation).Unix(), apiIssue.Deadline.Unix())
 
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
 		RepoID:     repoBefore.ID,
@@ -535,7 +537,7 @@ func testAPIIssueAssignees(t *testing.T) {
 	t.Run("OrganizationAssignee", func(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueAssigneesOption{Assignees: []string{"org3"}}).
 			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusBadRequest)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 		checkReq := NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "org3")).AddTokenAuth(token)
 		MakeRequest(t, checkReq, http.StatusBadRequest)

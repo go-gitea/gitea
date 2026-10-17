@@ -250,15 +250,6 @@ func publicKeyHandler(ctx context.Context, conn gossh.ConnMetadata, key gossh.Pu
 	return keyPermissions(pkey.ID), nil
 }
 
-// sshConnectionFailed logs a failed connection
-// - this mainly exists to give a nice function name in logging
-func sshConnectionFailed(conn net.Conn, err error) {
-	// Log the underlying error with a specific message
-	log.Warn("Failed connection from %s with error: %v", conn.RemoteAddr(), err)
-	// Log with the standard failed authentication from message for simpler fail2ban configuration
-	log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
-}
-
 // Listen starts an SSH server listening on given port.
 func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	hostKeyFiles := make([]string, 0, len(setting.SSH.ServerHostKeys))

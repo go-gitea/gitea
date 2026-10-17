@@ -148,8 +148,12 @@ func TestRepository_InitWiki(t *testing.T) {
 
 	// repo2 does not already have a wiki
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	repo2.DefaultWikiBranch = "wiki-main"
 	assert.NoError(t, InitWiki(t.Context(), repo2))
 	assert.True(t, repo_service.HasWiki(t.Context(), repo2))
+	branch, err := git.GetDefaultBranch(t.Context(), repo2.WikiStorageRepo())
+	assert.NoError(t, err)
+	assert.Equal(t, "wiki-main", branch)
 }
 
 func TestRepository_AddWikiPage(t *testing.T) {
@@ -301,7 +305,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	// Now create a temporaryDirectory
 	tmpDir := t.TempDir()
 
-	err := git.InitRepositoryLocal(t.Context(), tmpDir, true, git.Sha1ObjectFormat.Name())
+	err := git.InitRepositoryLocal(t.Context(), tmpDir, true, git.Sha1ObjectFormat.Name(), "")
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepositoryLocal(t.Context(), tmpDir)

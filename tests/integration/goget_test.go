@@ -58,6 +58,11 @@ func TestGoGetForSSH(t *testing.T) {
 </html>`, setting.AppDomain, setting.HTTPPort, setting.AppURL, setting.SSH.Domain, setting.SSH.Port)
 
 	assert.Equal(t, expected, resp.Body.String())
+
+	// go rejects scp-style addresses, so the standard port must still produce an ssh:// URL
+	defer test.MockVariableValue(&setting.SSH.Port, 22)()
+	resp = MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), fmt.Sprintf(`git ssh://git@%s/blah/glah.git">`, setting.SSH.Domain))
 }
 
 // TestGoGetPrivateRepoBranchNotLeaked ensures the go-get meta endpoint does not disclose a
