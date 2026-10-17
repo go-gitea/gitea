@@ -93,13 +93,13 @@ jobs:
         env:
           GOOS: linux
           GOARCH: arm64
-          TAGS: bindata gogit
+          TAGS: bindata
       - name: build-backend-windows
         run: go build -ldflags '-s -w' -o gitea-windows
         env:
           GOOS: windows
           GOARCH: amd64
-          TAGS: bindata gogit
+          TAGS: bindata
       - name: build-backend-386
         run: go build -ldflags '-s -w' -o gitea-linux-386
         env:

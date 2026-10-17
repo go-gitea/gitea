@@ -430,7 +430,6 @@
   "settings.key_name": "යතුරෙහි නම",
   "settings.key_content": "අන්තර්ගතය",
   "settings.principal_content": "අන්තර්ගතය",
-  "settings.delete_key": "ඉවත් කරන්න",
   "settings.ssh_key_deletion": "SSH කී ඉවත් කරන්න",
   "settings.gpg_key_deletion": "ජීපීජී යතුර ඉවත් කරන්න",
   "settings.ssh_principal_deletion": "SSH සහතිකය විදුහල්පති ඉවත් කරන්න",

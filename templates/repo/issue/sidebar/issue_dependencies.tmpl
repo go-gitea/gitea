@@ -137,7 +137,7 @@
 				</p>
 				{{$ModalButtonCancelText := ctx.Locale.Tr "repo.issues.dependency.cancel"}}
 				{{$ModalButtonOkText := ctx.Locale.Tr "repo.issues.dependency.remove"}}
-				{{template "base/modal_actions_confirm" (dict "." . "ModalButtonCancelText" $ModalButtonCancelText "ModalButtonOkText" $ModalButtonOkText)}}
+				{{template "base/modal_actions_confirm" (dict "ModalButtonCancelText" $ModalButtonCancelText "ModalButtonOkText" $ModalButtonOkText)}}
 			</div>
 		</form>
 	{{end}}

@@ -139,7 +139,8 @@ func hookPostReceiveUpdateRepoByOptions(ctx *gitea_context.PrivateContext, opts 
 	// The repo is empty and being initialized by this push, so there is no
 	// dependent state (webhooks, notifications, visibility fan-out) to reconcile
 	// yet; setting the flags directly is sufficient in this push-to-create case.
-	if isPrivate.Has() && repo.IsPrivate != isPrivate.Value() {
+	if isPrivate.Has() && repo.IsPrivate != isPrivate.Value() &&
+		(isPrivate.Value() || !setting.Repository.ForcePrivate || ctx.Doer.IsAdmin) {
 		repo.IsPrivate = isPrivate.Value()
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
 			log.Error("failed to update repo is_private: %v", err)

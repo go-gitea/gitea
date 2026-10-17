@@ -11,6 +11,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/log"
 )
 
 // CancelRun cancels a run's cancellable jobs and returns the run's post-cancellation state.
@@ -51,6 +52,12 @@ func cancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*action
 	}
 	if len(updatedJobs) > 0 || reloaded.Status != run.Status {
 		NotifyWorkflowRunStatusUpdate(ctx, reloaded)
+	}
+	if len(updatedJobs) == 0 && reloaded.Status != run.Status {
+		// the run's status was updated, so emit it for the emitter to check
+		if err := EmitJobsIfReadyByRun(run.ID); err != nil {
+			log.Error("Check jobs of run %d: %v", run.ID, err)
+		}
 	}
 	return reloaded, nil
 }

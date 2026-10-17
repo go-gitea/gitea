@@ -948,7 +948,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 
 // Rollback when migrating failed, this will rollback all the changes.
 func (g *GiteaLocalUploader) Rollback() error {
-	if g.repo != nil && g.repo.ID > 0 {
+	if g.repo != nil && g.repo.ID > 0 && g.gitRepo != nil {
 		g.gitRepo.Close()
 
 		// do not delete the repository, otherwise the end users won't be able to see the last error message

@@ -22,10 +22,9 @@ func ParseDeadlineDateToEndOfDay(date string) (timeutil.TimeStamp, error) {
 	return timeutil.TimeStamp(deadline.Unix()), nil
 }
 
-func ParseAPIDeadlineToEndOfDay(t *time.Time) (timeutil.TimeStamp, error) {
+func ParseAPIDeadlineToEndOfDay(t *time.Time) timeutil.TimeStamp {
 	if t == nil || t.IsZero() || t.Unix() == 0 {
-		return 0, nil
+		return 0
 	}
-	deadline := time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, setting.DefaultUILocation)
-	return timeutil.TimeStamp(deadline.Unix()), nil
+	return timeutil.TimeStamp(time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, setting.DefaultUILocation).Unix())
 }

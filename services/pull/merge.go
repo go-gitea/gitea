@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"uuid"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -27,6 +28,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/gtprof"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/references"
@@ -289,8 +291,21 @@ func hasPullRequestCommitBeenMerged(ctx context.Context, pr *issues_model.PullRe
 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
-func Merge(prID int64, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+func Merge(outerCtx context.Context, prID int64, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+	outerCtxId := uuid.NewV4().String()
+
+	_, outerSpan := gtprof.GetTracer().Start(outerCtx, gtprof.TraceSpanContext)
+	outerSpan.SetAttributeString("context.trace-id", outerCtxId) // this attribute is only used internally for debugging purpose
+	defer outerSpan.End()
+
+	// TODO: in the future, the contexts from graceful.GetManager() should be wrapped with gtprof tracing, refactor the code to framework-level support
 	ctx := graceful.GetManager().HammerContext() // don't abort the git operation even if the user's request is canceled
+
+	ctx, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanContext)
+	span.SetAttributeString(gtprof.TraceAttrGeneralName, "merge-pull-request")
+	span.SetAttributeString(gtprof.TraceAttrGeneralDesc, fmt.Sprintf("merge pull request %d with merge style %s", prID, mergeStyle))
+	span.SetAttributeString("context.trace-id-outer", outerCtxId) // this attribute is only used internally for debugging purpose
+	defer span.End()
 
 	err := globallock.LockAndDo(ctx, getPullWorkingLockKey(prID), func(ctx context.Context) error {
 		pr, err := issues_model.GetPullRequestByID(ctx, prID)
