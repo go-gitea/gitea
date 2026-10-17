@@ -5,15 +5,12 @@ package actions
 
 import "sync"
 
-// taskVersionWake broadcasts to FetchTask waiters when any task version is bumped.
 var taskVersionWake = struct {
 	mu sync.Mutex
 	ch chan struct{}
 }{ch: make(chan struct{})}
 
-// TasksVersionWakeChannel returns a channel that is closed by the next
-// IncreaseTaskVersion. Subscribe before reading the version so a signal
-// arriving in between is not lost.
+// TasksVersionWakeChannel must be read before the version to avoid missing a wake.
 func TasksVersionWakeChannel() <-chan struct{} {
 	taskVersionWake.mu.Lock()
 	defer taskVersionWake.mu.Unlock()
@@ -25,4 +22,14 @@ func signalTaskVersionWake() {
 	defer taskVersionWake.mu.Unlock()
 	close(taskVersionWake.ch)
 	taskVersionWake.ch = make(chan struct{})
+}
+
+func (v *ActionTasksVersion) AfterInsert() {
+	v.AfterUpdate()
+}
+
+func (v *ActionTasksVersion) AfterUpdate() {
+	if v.OwnerID == 0 && v.RepoID == 0 {
+		signalTaskVersionWake()
+	}
 }

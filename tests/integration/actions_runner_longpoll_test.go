@@ -4,8 +4,10 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"sync"
 	"testing"
@@ -24,12 +26,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestActionsRunnerLongPollWake exercises the end-to-end glue from workflow
-// dispatch to task delivery: a waiting FetchTask returns the queued task
-// without waiting for the long-poll deadline. Wake channel mechanics are
-// covered by unit tests in models/actions/tasks_version_notify_test.go.
 func TestActionsRunnerLongPollWake(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _url *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -54,7 +52,22 @@ jobs:
 		opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wfFile, wfContent)
 		createWorkflowFile(t, token, user2.Name, repo.Name, wfFile, opts)
 
+		_, tasksVersion := runner.fetchTaskOnce(t, 0)
 		defer test.MockVariableValue(&setting.Actions.RunnerLongPollTimeout, 5*time.Second)()
+		t.Run("client deadline", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			defer cancel()
+			resp, err := runner.client.runnerServiceClient.FetchTask(ctx, connect.NewRequest(&runnerv1.FetchTaskRequest{
+				TasksVersion: tasksVersion,
+			}))
+			require.NoError(t, err)
+			assert.Nil(t, resp.Msg.Task)
+			assert.Equal(t, tasksVersion, resp.Msg.TasksVersion)
+		})
+		requestWritten := make(chan struct{})
+		ctx := httptrace.WithClientTrace(t.Context(), &httptrace.ClientTrace{
+			WroteRequest: func(_info httptrace.WroteRequestInfo) { close(requestWritten) },
+		})
 
 		var (
 			wg      sync.WaitGroup
@@ -63,8 +76,8 @@ jobs:
 		)
 		wg.Go(func() {
 			start := time.Now()
-			resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
-				TasksVersion: 0,
+			resp, err := runner.client.runnerServiceClient.FetchTask(ctx, connect.NewRequest(&runnerv1.FetchTaskRequest{
+				TasksVersion: tasksVersion,
 			}))
 			elapsed = time.Since(start)
 			assert.NoError(t, err)
@@ -73,7 +86,7 @@ jobs:
 			}
 		})
 
-		time.Sleep(100 * time.Millisecond)
+		<-requestWritten
 		runURL := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "longpoll-wake.yml")
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", runURL, map[string]string{
 			"ref": "refs/heads/" + repo.DefaultBranch,

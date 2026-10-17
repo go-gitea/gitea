@@ -5,7 +5,6 @@ package integration
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -124,19 +123,10 @@ func (r *mockRunner) tryFetchTask(t *testing.T, timeout ...time.Duration) *runne
 	return task
 }
 
-// fetchTaskOnce performs a single FetchTask request with the given TasksVersion
-// and returns the task (if any) and the TasksVersion from the response.
-// The request is bounded by a short context timeout so server-side long-poll
-// (RUNNER_LONG_POLL_TIMEOUT) does not slow tests that repeatedly poll for state.
 func (r *mockRunner) fetchTaskOnce(t *testing.T, tasksVersion int64) (*runnerv1.Task, int64) {
-	ctx, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
-	defer cancel()
-	resp, err := r.client.runnerServiceClient.FetchTask(ctx, connect.NewRequest(&runnerv1.FetchTaskRequest{
+	resp, err := r.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
 		TasksVersion: tasksVersion,
 	}))
-	if errors.Is(err, context.DeadlineExceeded) {
-		return nil, 0
-	}
 	require.NoError(t, err)
 	return resp.Msg.Task, resp.Msg.TasksVersion
 }

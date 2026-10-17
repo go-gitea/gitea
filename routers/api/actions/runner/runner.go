@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/actions"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	actions_service "gitea.dev/services/actions"
 
@@ -173,30 +174,35 @@ func (s *Service) FetchTask(
 ) (*connect.Response[runnerv1.FetchTaskResponse], error) {
 	runner := GetRunner(ctx)
 
+	timeout := setting.Actions.RunnerLongPollTimeout
+	if clientDeadline, ok := ctx.Deadline(); ok {
+		timeout = min(timeout, time.Until(clientDeadline)-time.Second)
+	}
 	var deadline <-chan time.Time
-	if d := setting.Actions.RunnerLongPollTimeout; d > 0 {
-		deadline = time.After(d)
+	var recheck <-chan time.Time
+	if timeout > 0 {
+		deadline = time.After(timeout)
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		recheck = ticker.C
 	}
 
 	clientVersion := req.Msg.TasksVersion
-	var latestVersion int64
-LongPoll:
 	for {
 		wakeCh := actions_model.TasksVersionWakeChannel()
 
-		v, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
+		latestVersion, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "query tasks version failed: %v", err)
-		} else if v == 0 {
+		} else if latestVersion == 0 {
 			if err := actions_model.IncreaseTaskVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
 				return nil, status.Errorf(codes.Internal, "fail to increase task version: %v", err)
 			}
-			// if we don't increase the value of `v` here,
+			// if we don't increase the value of `latestVersion` here,
 			// the response of FetchTask will return tasksVersion as zero.
 			// and the runner will treat it as an old version of Gitea.
-			v = 1
+			latestVersion = 1
 		}
-		latestVersion = v
 
 		if clientVersion != latestVersion {
 			// Re-load runner from DB so task assignment uses current IsDisabled state
@@ -229,21 +235,27 @@ LongPoll:
 		}
 
 		if deadline == nil {
-			break
+			return connect.NewResponse(&runnerv1.FetchTaskResponse{
+				TasksVersion: latestVersion,
+			}), nil
+		}
+
+		if now := time.Now(); actions_model.ShouldPersistLastOnline(runner.LastOnline, now) {
+			runner.LastOnline = timeutil.TimeStamp(now.Unix())
+			if err := actions_model.UpdateRunner(ctx, runner, "last_online"); err != nil {
+				log.Error("can't update runner status: %v", err)
+			}
 		}
 
 		select {
 		case <-wakeCh:
+		case <-recheck:
 		case <-deadline:
-			break LongPoll
+			deadline = nil
 		case <-ctx.Done():
-			break LongPoll
+			return nil, ctx.Err()
 		}
 	}
-
-	return connect.NewResponse(&runnerv1.FetchTaskResponse{
-		TasksVersion: latestVersion,
-	}), nil
 }
 
 // UpdateTask updates the task status.
