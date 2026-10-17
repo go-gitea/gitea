@@ -409,45 +409,27 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 		return nil, nil
 	}
 
-	var jobsToCancel []*ActionRunJob
-
 	attempts, jobs, err := getConcurrencyEntriesToReplace(ctx, attempt.RepoID, attempt.ConcurrencyGroup, attempt.ConcurrencyCancel)
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
 	jobs = slices.DeleteFunc(jobs, func(job *ActionRunJob) bool { return job.RunID == attempt.RunID })
-	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group
-	attempts = slices.DeleteFunc(attempts, func(a *ActionRunAttempt) bool { return a.RunID == attempt.RunID })
+	attempts = slices.DeleteFunc(attempts, func(concurrentAttempt *ActionRunAttempt) bool { return concurrentAttempt.RunID == attempt.RunID })
 	attemptJobs, err := getRunJobsByAttempts(ctx, attempts)
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent attempt jobs: %w", err)
 	}
-	jobsToCancel = append(jobsToCancel, attemptJobs...)
-
-	return CancelJobs(ctx, jobsToCancel, false)
+	return CancelJobs(ctx, append(jobs, attemptJobs...), false)
 }
 
-// getRunJobsByAttempts returns the jobs of the attempts in attempt order, each attempt's jobs ordered by ID
-func getRunJobsByAttempts(ctx context.Context, attempts []*ActionRunAttempt) ([]*ActionRunJob, error) {
-	if len(attempts) == 0 {
-		return nil, nil
-	}
-	attemptIDs := container.FilterSlice(attempts, func(a *ActionRunAttempt) (int64, bool) { return a.ID, true })
-	var jobs []*ActionRunJob
-	for chunk := range slices.Chunk(attemptIDs, db.DefaultMaxInSize) {
-		if err := db.GetEngine(ctx).In("run_attempt_id", chunk).OrderBy("id").Find(&jobs); err != nil {
+func getRunJobsByAttempts(ctx context.Context, attempts []*ActionRunAttempt) (jobs []*ActionRunJob, _ error) {
+	for chunk := range slices.Chunk(attempts, db.DefaultMaxInSize) {
+		attemptIDs := container.FilterSlice(chunk, func(attempt *ActionRunAttempt) (int64, bool) { return attempt.ID, true })
+		if err := db.GetEngine(ctx).In("run_attempt_id", attemptIDs).Find(&jobs); err != nil {
 			return nil, err
 		}
 	}
-	jobsByAttempt := make(map[int64][]*ActionRunJob, len(attempts))
-	for _, job := range jobs {
-		jobsByAttempt[job.RunAttemptID] = append(jobsByAttempt[job.RunAttemptID], job)
-	}
-	ordered := make([]*ActionRunJob, 0, len(jobs))
-	for _, a := range attempts {
-		ordered = append(ordered, jobsByAttempt[a.ID]...)
-	}
-	return ordered, nil
+	return jobs, nil
 }

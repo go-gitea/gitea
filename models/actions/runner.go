@@ -207,7 +207,6 @@ func init() {
 	db.RegisterModel(&ActionRunner{})
 }
 
-// GetRunnersMapByIDs returns the found runners keyed by ID, silently omitting IDs that no longer exist
 func GetRunnersMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionRunner, error) {
 	runners := make(map[int64]*ActionRunner, len(ids))
 	if len(ids) == 0 {

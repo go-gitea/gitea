@@ -468,12 +468,12 @@ func TestCancelJobs_CallerWaitsForCancellingChild(t *testing.T) {
 	assert.Equal(t, StatusCancelled, unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID}).Status)
 }
 
-func TestGetLatestAttemptJobsByRuns(t *testing.T) {
+func TestBatchLoadAndCancelRunJobs(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
-	legacyRun := &ActionRun{RepoID: 4, OwnerID: 1, Index: 9600, TriggerUserID: 1, Status: StatusRunning}
-	run := &ActionRun{RepoID: 4, OwnerID: 1, Index: 9601, TriggerUserID: 1, Status: StatusRunning}
+	legacyRun := &ActionRun{RepoID: 4, OwnerID: 1, Index: 9600, TriggerUserID: 1, Ref: "refs/heads/batch", Status: StatusRunning}
+	run := &ActionRun{RepoID: 4, OwnerID: 1, Index: 9601, TriggerUserID: 1, Ref: "refs/heads/batch", Status: StatusRunning}
 	require.NoError(t, db.Insert(ctx, legacyRun, run))
 	require.NoError(t, db.Insert(ctx, &ActionRunJob{RunID: legacyRun.ID, RepoID: legacyRun.RepoID, OwnerID: legacyRun.OwnerID}))
 	oldAttempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: 1}
@@ -488,33 +488,27 @@ func TestGetLatestAttemptJobsByRuns(t *testing.T) {
 	runs := RunList{legacyRun, run}
 	jobsByRun, err := GetLatestAttemptJobsByRuns(ctx, runs)
 	require.NoError(t, err)
-	for _, r := range runs {
-		expected, err := GetLatestAttemptJobsByRun(ctx, r)
+	for _, listedRun := range runs {
+		expected, err := GetLatestAttemptJobsByRun(ctx, listedRun)
 		require.NoError(t, err)
 		require.NotEmpty(t, expected)
-		assert.Equal(t, expected, jobsByRun[r.ID])
+		assert.Equal(t, expected, jobsByRun[listedRun.ID])
 	}
 
 	attempts, err := runs.GetLatestAttempts(ctx)
 	require.NoError(t, err)
 	require.Len(t, attempts, 1)
-	assert.Equal(t, latestAttempt.ID, attempts[run.ID].ID)
-	assert.EqualValues(t, 2, attempts[run.ID].TriggerUser.ID)
+	assert.EqualValues(t, 2, attempts[latestAttempt.ID].TriggerUser.ID)
 
-	attemptJobs, err := getRunJobsByAttempts(ctx, []*ActionRunAttempt{latestAttempt, oldAttempt})
-	require.NoError(t, err)
-	require.Len(t, attemptJobs, 3)
-	assert.Equal(t, []int64{latestAttempt.ID, latestAttempt.ID, oldAttempt.ID}, []int64{attemptJobs[0].RunAttemptID, attemptJobs[1].RunAttemptID, attemptJobs[2].RunAttemptID})
-	assert.Less(t, attemptJobs[0].ID, attemptJobs[1].ID)
-
-	// split the attempts across IN chunks, padding with attempts that have no jobs
 	chunkedAttempts := []*ActionRunAttempt{oldAttempt}
 	for i := range db.DefaultMaxInSize {
 		chunkedAttempts = append(chunkedAttempts, &ActionRunAttempt{ID: -int64(i + 1)})
 	}
-	chunkedAttempts = append(chunkedAttempts, latestAttempt)
-	attemptJobs, err = getRunJobsByAttempts(ctx, chunkedAttempts)
+	attemptJobs, err := getRunJobsByAttempts(ctx, append(chunkedAttempts, latestAttempt))
 	require.NoError(t, err)
-	require.Len(t, attemptJobs, 3)
-	assert.Equal(t, []int64{oldAttempt.ID, latestAttempt.ID, latestAttempt.ID}, []int64{attemptJobs[0].RunAttemptID, attemptJobs[1].RunAttemptID, attemptJobs[2].RunAttemptID})
+	assert.Len(t, attemptJobs, 3)
+
+	cancelled, err := CancelPreviousJobs(ctx, run.RepoID, run.Ref, "", "")
+	require.NoError(t, err)
+	assert.Len(t, cancelled, 4)
 }

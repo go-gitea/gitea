@@ -42,25 +42,24 @@ func (tasks TaskList) LoadJobs(ctx context.Context) error {
 	return jobsList.LoadAttributes(ctx, true)
 }
 
-// LoadSteps loads the steps of the tasks whose steps are not loaded yet
 func (tasks TaskList) LoadSteps(ctx context.Context) error {
-	taskIDs := container.FilterSlice(tasks, func(t *ActionTask) (int64, bool) {
-		return t.ID, t.Steps == nil
+	taskIDs := container.FilterSlice(tasks, func(task *ActionTask) (int64, bool) {
+		return task.ID, task.Steps == nil
 	})
 	if len(taskIDs) == 0 {
 		return nil
 	}
 	var steps []*ActionTaskStep
-	if err := db.GetEngine(ctx).In("task_id", taskIDs).OrderBy("`index` ASC").Find(&steps); err != nil {
+	if err := db.GetEngine(ctx).In("task_id", taskIDs).OrderBy("task_id, `index`").Find(&steps); err != nil {
 		return err
 	}
 	stepsByTask := make(map[int64][]*ActionTaskStep, len(taskIDs))
 	for _, step := range steps {
 		stepsByTask[step.TaskID] = append(stepsByTask[step.TaskID], step)
 	}
-	for _, t := range tasks {
-		if t.Steps == nil {
-			t.Steps = util.SliceNilAsEmpty(stepsByTask[t.ID])
+	for _, task := range tasks {
+		if task.Steps == nil {
+			task.Steps = util.SliceNilAsEmpty(stepsByTask[task.ID])
 		}
 	}
 	return nil

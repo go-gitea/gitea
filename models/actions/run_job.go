@@ -271,27 +271,14 @@ func GetLatestAttemptJobsByRun(ctx context.Context, run *ActionRun) (ActionJobLi
 	return jobs, nil
 }
 
-// GetLatestAttemptJobsByRuns is the batch version of GetLatestAttemptJobsByRun, keyed by run ID
 func GetLatestAttemptJobsByRuns(ctx context.Context, runs []*ActionRun) (map[int64]ActionJobList, error) {
 	result := make(map[int64]ActionJobList, len(runs))
 	if len(runs) == 0 {
 		return result, nil
 	}
-	var attemptIDs, legacyRunIDs []int64
-	for _, run := range runs {
-		if run.LatestAttemptID > 0 {
-			attemptIDs = append(attemptIDs, run.LatestAttemptID)
-		} else {
-			legacyRunIDs = append(legacyRunIDs, run.ID)
-		}
-	}
-	cond := builder.NewCond()
-	if len(attemptIDs) > 0 {
-		cond = cond.Or(builder.In("run_attempt_id", attemptIDs))
-	}
-	if len(legacyRunIDs) > 0 {
-		cond = cond.Or(builder.In("run_id", legacyRunIDs).And(builder.Eq{"run_attempt_id": 0}))
-	}
+	attemptIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) { return run.LatestAttemptID, run.LatestAttemptID != 0 })
+	legacyRunIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) { return run.ID, run.LatestAttemptID == 0 })
+	cond := builder.In("run_attempt_id", attemptIDs).Or(builder.Eq{"run_attempt_id": 0}.And(builder.In("run_id", legacyRunIDs)))
 	var jobs []*ActionRunJob
 	if err := db.GetEngine(ctx).Where(cond).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
@@ -716,41 +703,18 @@ func hasFailFastMatrixFailure(jobs []*ActionRunJob) bool {
 // It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) ([]*ActionRunJob, error) {
 	// Find all runs in the specified repository, reference, and workflow with non-final status
-	runs, err := db.Find[ActionRun](ctx, FindRunOptions{
+	runIDs := builder.Select("id").From("action_run").Where(FindRunOptions{
 		RepoID:       repoID,
 		Ref:          ref,
 		WorkflowID:   workflowID,
 		TriggerEvent: event,
 		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked, StatusCancelling},
-	})
-	if err != nil {
+	}.ToConds())
+	var jobs []*ActionRunJob
+	if err := db.GetEngine(ctx).Where(builder.In("run_id", runIDs)).Find(&jobs); err != nil {
 		return nil, err
 	}
-	if len(runs) == 0 {
-		return nil, nil
-	}
-
-	runIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) { return run.ID, true })
-	jobsByRun := make(map[int64][]*ActionRunJob, len(runs))
-	for chunk := range slices.Chunk(runIDs, db.DefaultMaxInSize) {
-		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{RunIDs: chunk})
-		if err != nil {
-			return nil, err
-		}
-		for _, job := range jobs {
-			jobsByRun[job.RunID] = append(jobsByRun[job.RunID], job)
-		}
-	}
-
-	var cancelledJobs []*ActionRunJob
-	for _, run := range runs {
-		cjs, err := CancelJobs(ctx, jobsByRun[run.ID], false)
-		if err != nil {
-			return cancelledJobs, err
-		}
-		cancelledJobs = append(cancelledJobs, cjs...)
-	}
-	return cancelledJobs, nil
+	return CancelJobs(ctx, jobs, false)
 }
 
 // GetAncestorCallerIDs returns the IDs of the reusable workflow callers the job is nested in.
@@ -767,7 +731,7 @@ func GetAncestorCallerIDs(ctx context.Context, job *ActionRunJob) (container.Set
 	return ids, nil
 }
 
-func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) (jobsToCancel []*ActionRunJob, _ error) {
+func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) ([]*ActionRunJob, error) {
 	if job.RawConcurrency == "" {
 		return nil, nil
 	}
@@ -787,17 +751,14 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 		return nil, err
 	}
 	jobs = slices.DeleteFunc(jobs, func(j *ActionRunJob) bool { return j.ID == job.ID || callerIDs.Contains(j.ID) })
-	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group
-	attempts = slices.DeleteFunc(attempts, func(a *ActionRunAttempt) bool { return a.ID == job.RunAttemptID })
+	attempts = slices.DeleteFunc(attempts, func(attempt *ActionRunAttempt) bool { return attempt.ID == job.RunAttemptID })
 	attemptJobs, err := getRunJobsByAttempts(ctx, attempts)
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent attempt jobs: %w", err)
 	}
-	jobsToCancel = append(jobsToCancel, attemptJobs...)
-
-	return CancelJobs(ctx, jobsToCancel, false)
+	return CancelJobs(ctx, append(jobs, attemptJobs...), false)
 }
 
 // CancelJobs cancels every cancellable job it is given, force skipping the graceful cancelling

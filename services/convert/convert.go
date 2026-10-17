@@ -488,22 +488,16 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		}
 
 		if task != nil {
-			if task.Steps == nil {
-				task.Steps, err = actions_model.GetTaskStepsByTaskID(ctx, task.ID)
-				if err != nil {
-					return nil, err
-				}
-				task.Steps = util.SliceNilAsEmpty(task.Steps)
+			if err := (actions_model.TaskList{task}).LoadSteps(ctx); err != nil {
+				return nil, err
 			}
-			if r, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, task.RunnerID); ok {
-				runner = r
-			}
+			runner, _, _ = db.GetByID[actions_model.ActionRunner](ctx, task.RunnerID)
 		}
 	}
 	return toActionWorkflowJob(ctx, repo, task, runner, job), nil
 }
 
-// ToActionWorkflowJobs converts jobs of loaded runs and repositories, batch loading their tasks, steps and runners
+// ToActionWorkflowJobs requires job.Run.Repo to be loaded
 func ToActionWorkflowJobs(ctx context.Context, jobs []*actions_model.ActionRunJob) ([]*api.ActionWorkflowJob, error) {
 	tasks, err := actions_model.GetTasksMapByIDs(ctx, container.FilterSlice(jobs, func(job *actions_model.ActionRunJob) (int64, bool) {
 		taskID := job.EffectiveTaskID()
@@ -535,7 +529,6 @@ func ToActionWorkflowJobs(ctx context.Context, jobs []*actions_model.ActionRunJo
 	return result, nil
 }
 
-// toActionWorkflowJob requires job.Run to be loaded, task and runner are nil when they don't exist
 func toActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task *actions_model.ActionTask, runner *actions_model.ActionRunner, job *actions_model.ActionRunJob) *api.ActionWorkflowJob {
 	status, conclusion := ToRunActionsStatus(job.Run, job.Status)
 	var runnerID int64
