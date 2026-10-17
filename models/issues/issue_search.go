@@ -96,6 +96,10 @@ func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
 		sess.Desc("issue.num_comments").Desc("issue.created_unix").Desc("issue.id")
 	case "leastcomment":
 		sess.Asc("issue.num_comments").Desc("issue.created_unix").Desc("issue.id")
+	case "name":
+		sess.Asc("issue.name").Desc("issue.id")
+	case "namedesc":
+		sess.Desc("issue.name").Desc("issue.id")
 	case "priority":
 		sess.Desc("issue.priority").Desc("issue.created_unix").Desc("issue.id")
 	case "nearduedate":
