@@ -548,8 +548,7 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 }
 
 func (n *actionsNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	commitID, _ := git.NewIDFromString(opts.NewCommitID)
-	if commitID.IsZero() {
+	if git.IsEmptyCommitID(opts.NewCommitID) {
 		log.Trace("new commitID is empty")
 		return
 	}

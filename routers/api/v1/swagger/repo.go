@@ -358,6 +358,13 @@ type swaggerLanguageStatistics struct {
 	Body map[string]int64 `json:"body"`
 }
 
+// RepoHashAlgorithm
+// swagger:response RepoHashAlgorithm
+type swaggerRepoHashAlgorithm struct {
+	// in: body
+	Body api.RepoHashAlgorithm `json:"body"`
+}
+
 // LicensesList
 // swagger:response LicensesList
 type swaggerLicensesList struct {

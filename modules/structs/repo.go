@@ -17,6 +17,12 @@ const (
 	ObjectFormatSHA256 ObjectFormatName = "sha256"
 )
 
+// RepoHashAlgorithm is the git hash algorithm used to store repository objects
+type RepoHashAlgorithm struct {
+	// required: true
+	HashAlgorithm ObjectFormatName `json:"hash_algorithm"`
+}
+
 // Permission represents a set of permissions
 type Permission struct {
 	Admin bool `json:"admin"` // Admin indicates if the user is an administrator of the repository.
@@ -164,7 +170,7 @@ type CreateRepoOption struct {
 	// TrustModel of the repository
 	// enum: ["default","collaborator","committer","collaboratorcommitter"]
 	TrustModel string `json:"trust_model"`
-	// ObjectFormatName of the underlying git repository, empty string for default (sha1)
+	// ObjectFormatName of the underlying git repository, empty string for the instance default
 	ObjectFormatName ObjectFormatName `json:"object_format_name" binding:"MaxSize(6)"`
 }
 

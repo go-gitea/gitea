@@ -1597,6 +1597,7 @@ func Routes() *web.Router {
 				m.Get("/issue_templates", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueTemplates)
 				m.Get("/issue_config", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueConfig)
 				m.Get("/issue_config/validate", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.ValidateIssueConfig)
+				m.Get("/hash-algorithm", reqRepoReader(unit.TypeCode), repo.GetHashAlgorithm)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
 				m.Get("/licenses", reqRepoReader(unit.TypeCode), repo.GetLicenses)
 				m.Get("/activities/feeds", repo.ListRepoActivityFeeds)

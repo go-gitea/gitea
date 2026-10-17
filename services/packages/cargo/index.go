@@ -212,7 +212,8 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			repo, err = repo_service.CreateRepositoryDirectly(ctx, doer, owner, repo_service.CreateRepoOptions{
-				Name: IndexRepositoryName,
+				Name:             IndexRepositoryName,
+				ObjectFormatName: git.Sha1ObjectFormat.Name(), // cargo clients can't fetch sha256 repos
 			}, true)
 			if err != nil {
 				return nil, fmt.Errorf("CreateRepository: %w", err)
