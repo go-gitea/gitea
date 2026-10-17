@@ -10,7 +10,7 @@
   font-size: 1rem;
   text-align: center;
   text-decoration: none;
-  line-height: 1;
+  line-height: var(--line-height-default);
   border-radius: var(--border-radius);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -92,19 +92,18 @@
 }
 .ui.button:not(.icon) > .icon:not(.button):not(.dropdown) {
   margin: 0 0.42857143em 0 -0.21428571em;
-  vertical-align: baseline;
 }
 
 /* reference sizes (not exactly at the moment): normal: padding-x=21, height=38 ; compact: padding-x=15, height=32 */
 .ui.button { /* stylelint-disable-line no-duplicate-selectors -- deliberate second block for the reference sizes */
   gap: var(--gap-block);
   min-height: 38px;
-  padding: 0.57em /* around 8px */ 1.43em /* around 20px */;
+  padding: 0.43em /* around 6px, keeps CJK text within min-height */ 1.43em /* around 20px */;
 }
 .ui.compact.buttons .button,
 .ui.compact.button {
   gap: var(--gap-inline);
-  padding: 6px 15px;
+  padding: 3px 15px;
   min-height: 32px;
 }
 .ui.compact.icon.buttons .button,
@@ -149,7 +148,7 @@
 
 .ui.icon.buttons .button,
 .ui.icon.button:not(.compact) {
-  padding: 0.57em;
+  padding-inline: 0.57em;
 }
 .ui.icon.buttons .button > .icon,
 .ui.icon.button > .icon {
