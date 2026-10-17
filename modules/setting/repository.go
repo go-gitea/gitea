@@ -342,8 +342,12 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 
 	prSec := rootCfg.Section("repository.pull-request")
 	deprecatedSetting(rootCfg, "repository.pull-request", "POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES", "repository.pull-request", "DEFAULT_SQUASH_MERGE_MESSAGE", "v30.0.0")
-	if ConfigSectionKey(prSec, "DEFAULT_SQUASH_MERGE_MESSAGE") == nil && ConfigSectionKeyBool(prSec, "POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES") {
-		Repository.PullRequest.DefaultSquashMergeMessage = "COMMIT_MESSAGES"
+	if legacyKey := ConfigSectionKey(prSec, "POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES"); ConfigSectionKey(prSec, "DEFAULT_SQUASH_MERGE_MESSAGE") == nil && legacyKey != nil {
+		if useCommitMessages, _ := legacyKey.Bool(); useCommitMessages {
+			Repository.PullRequest.DefaultSquashMergeMessage = "COMMIT_MESSAGES"
+		} else {
+			Repository.PullRequest.DefaultSquashMergeMessage = "PR_BODY"
+		}
 	}
 	if !slices.Contains([]string{"BLANK", "COMMIT_MESSAGES", "PR_BODY"}, Repository.PullRequest.DefaultSquashMergeMessage) {
 		log.Fatal("Invalid repository.pull-request.DEFAULT_SQUASH_MERGE_MESSAGE: %s", Repository.PullRequest.DefaultSquashMergeMessage)

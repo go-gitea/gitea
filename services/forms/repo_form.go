@@ -425,7 +425,7 @@ type MergePullRequestForm struct {
 	ForceMerge             bool   `json:"force_merge,omitempty"`
 	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge,omitempty"`
-	HasMergeMessageField   bool   `json:"-"`
+	HasMergeMessageField   bool   `form:"-" json:"-"`
 }
 
 func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {
@@ -452,6 +452,7 @@ func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {
 	}
 	f.Do = util.IfZero(a.Do1, a.Do2)
 	f.MergeTitleField = util.IfZero(a.MergeTitleField1, a.MergeTitleField2)
+	f.MergeMessageField, f.HasMergeMessageField = "", false
 	if mergeMessageField := util.IfZero(a.MergeMessageField1, a.MergeMessageField2); mergeMessageField != nil {
 		f.MergeMessageField, f.HasMergeMessageField = *mergeMessageField, true
 	}

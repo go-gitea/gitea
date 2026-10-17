@@ -86,9 +86,17 @@ func TestMergePullRequestForm(t *testing.T) {
 		assert.Equal(t, expected, m)
 	})
 
-	t.Run("OmittedMergeMessageField", func(t *testing.T) {
-		var m *MergePullRequestForm
-		require.NoError(t, json.Unmarshal([]byte(`{"do": "squash"}`), &m))
-		assert.False(t, m.HasMergeMessageField)
+	t.Run("OmittedMergeMessageFieldClearsPreviousMessage", func(t *testing.T) {
+		form := &MergePullRequestForm{MergeMessageField: "previous message", HasMergeMessageField: true}
+		require.NoError(t, json.Unmarshal([]byte(`{"do": "squash"}`), &form))
+		assert.Empty(t, form.MergeMessageField)
+		assert.False(t, form.HasMergeMessageField)
+	})
+
+	t.Run("EmptyMergeMessageField", func(t *testing.T) {
+		var form MergePullRequestForm
+		require.NoError(t, json.Unmarshal([]byte(`{"do": "squash", "merge_message_field": ""}`), &form))
+		assert.Empty(t, form.MergeMessageField)
+		assert.True(t, form.HasMergeMessageField)
 	})
 }

@@ -989,7 +989,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if !form.HasMergeMessageField && repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash {
+	if !form.HasMergeMessageField && !ctx.Req.Form.Has("merge_message_field") && repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash {
 		form.MergeMessageField, err = pull_service.GetSquashMergeCommitMessages(ctx, pr)
 		if err != nil {
 			ctx.APIErrorInternal(err)
