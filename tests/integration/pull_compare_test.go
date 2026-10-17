@@ -117,7 +117,7 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 		user2Session := loginUser(t, "user2")
 		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", prURL+"/files"), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		nodes := htmlDoc.doc.Find(".diff-file-box[data-new-filename=\"README.md\"] .diff-file-header-actions .tippy-target a")
+		nodes := htmlDoc.doc.Find(".diff-file-box[data-new-filename=\"README.md\"] .diff-file-header-actions .floating-target a")
 		if assert.Equal(t, 1, nodes.Length()) {
 			// there is only "View File" button, no "Edit File" button
 			assert.Equal(t, "View File", nodes.First().Text())
@@ -140,7 +140,7 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 		// user2 (admin of repo3) goes to the PR files page again
 		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", prURL+"/files"), http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
-		nodes = htmlDoc.doc.Find(".diff-file-box[data-new-filename=\"README.md\"] .diff-file-header-actions .tippy-target a")
+		nodes = htmlDoc.doc.Find(".diff-file-box[data-new-filename=\"README.md\"] .diff-file-header-actions .floating-target a")
 		if assert.Equal(t, 2, nodes.Length()) {
 			// there are "View File" button and "Edit File" button
 			assert.Equal(t, "View File", nodes.First().Text())

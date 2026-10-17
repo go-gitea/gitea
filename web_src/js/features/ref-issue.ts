@@ -1,7 +1,7 @@
 import {parseIssueHref} from '../utils.ts';
 import {GET} from '../modules/fetch.ts';
 import {createApp} from 'vue';
-import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
+import {createFloatingElement, getFloatingElement} from '../modules/floating.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 import type {Issue, TimeoutId} from '../types.ts';
 
@@ -34,7 +34,7 @@ async function showRefIssuePopup(link: HTMLAnchorElement) {
   app.mount(el);
   // suppress ancestor title like from .commit-summary to prevent double tooltip
   link.title = '';
-  createTippy(link, {
+  createFloatingElement(link, {
     theme: 'default',
     content: el,
     trigger: 'mouseenter focus',
@@ -51,7 +51,7 @@ export function initRefIssueContextPopup() {
   addDelegatedEventListener<HTMLAnchorElement, MouseEvent>(document, 'mouseover', selector, (link) => {
     if (!parseIssueHref(link.getAttribute('href')!)) return;
     if (!link.classList.contains('ref-issue') && !link.closest('[data-ref-issue-container]')) return;
-    if (getAttachedTippyInstance(link)) return;
+    if (getFloatingElement(link)) return;
     link.setAttribute('data-ref-issue-popup', '');
 
     // delay so a mouse passing over the link doesn't fire a fetch

@@ -20,7 +20,7 @@ import {
   triggerEditorContentChanged,
 } from './EditorMarkdown.ts';
 import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
-import {createTippy} from '../../modules/tippy.ts';
+import {createFloatingElement} from '../../modules/floating.ts';
 import {initTabSwitcher} from '../../modules/fomantic/tab.ts';
 import type EasyMDE from 'easymde';
 import type Dropzone from '@deltablot/dropzone';
@@ -284,8 +284,7 @@ export class ComboMarkdownEditor {
   initMarkdownButtonTableAdd() {
     const addTableButton = this.container.querySelector('.markdown-button-table-add')!;
     const addTablePanel = this.container.querySelector('.markdown-add-table-panel')!;
-    // here the tippy can't attach to the button because the button already owns a tippy for tooltip
-    const addTablePanelTippy = createTippy(addTablePanel, {
+    const addTablePanelFloat = createFloatingElement(addTablePanel, {
       content: addTablePanel,
       trigger: 'manual',
       placement: 'bottom',
@@ -293,7 +292,7 @@ export class ComboMarkdownEditor {
       interactive: true,
       getReferenceClientRect: () => addTableButton.getBoundingClientRect(),
     });
-    addTableButton.addEventListener('click', () => addTablePanelTippy.show());
+    addTableButton.addEventListener('click', () => addTablePanelFloat.show());
 
     addTablePanel.querySelector('.ui.button.primary')!.addEventListener('click', () => {
       let rows = parseInt(addTablePanel.querySelector<HTMLInputElement>('.add-table-rows')!.value);
@@ -301,7 +300,7 @@ export class ComboMarkdownEditor {
       rows = Math.max(1, Math.min(100, rows));
       cols = Math.max(1, Math.min(100, cols));
       replaceTextareaSelection(this.textarea, `\n${this.generateMarkdownTable(rows, cols)}\n\n`);
-      addTablePanelTippy.hide();
+      addTablePanelFloat.hide();
     });
   }
 

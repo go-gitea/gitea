@@ -5,7 +5,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {sleep} from '../utils.ts';
 import RepoActivityTopAuthors from '../components/RepoActivityTopAuthors.vue';
 import {createApp} from 'vue';
-import {createTippy} from '../modules/tippy.ts';
+import {createFloatingElement} from '../modules/floating.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 
@@ -129,9 +129,8 @@ function initRepoCloneButtonsCombo(parent: Element) {
 
 function initRepoClonePanel(btn: HTMLButtonElement) {
   const elPanel = btn.nextElementSibling!;
-  // "init" must be before the "createTippy" otherwise the "tippy-target" will be removed from the document
-  initRepoCloneButtonsCombo(elPanel);
-  createTippy(btn, {
+  initRepoCloneButtonsCombo(elPanel); // Initialize before the panel is moved into the popup.
+  createFloatingElement(btn, {
     content: elPanel,
     trigger: 'click',
     placement: 'bottom-end',
