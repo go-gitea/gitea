@@ -59,6 +59,29 @@ type CreateReleaseOption struct {
 	IsDraft bool `json:"draft"`
 	// Whether to mark the release as a prerelease
 	IsPrerelease bool `json:"prerelease"`
+	// Whether to automatically generate release notes for the release
+	GenerateNotes bool `json:"generate_release_notes"`
+	// The previous tag to use as the starting point of the generated release notes
+	PreviousTagName string `json:"previous_tag_name"`
+}
+
+// GenerateReleaseNotesOption options when generating release notes
+type GenerateReleaseNotesOption struct {
+	// The name of the tag to generate release notes for
+	// required: true
+	TagName string `json:"tag_name" binding:"Required"`
+	// The branch or commitish the release targets when tag_name does not exist yet
+	TargetCommitish string `json:"target_commitish"`
+	// The previous tag to use as the starting point of the changelog range
+	PreviousTagName string `json:"previous_tag_name"`
+}
+
+// ReleaseNotes contains generated release notes content
+type ReleaseNotes struct {
+	// The suggested name of the release
+	Name string `json:"name"`
+	// The generated release notes body
+	Body string `json:"body"`
 }
 
 // EditReleaseOption options when editing a release

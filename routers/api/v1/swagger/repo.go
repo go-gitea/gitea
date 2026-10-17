@@ -133,6 +133,13 @@ type swaggerResponseReleaseList struct {
 	Body []api.Release `json:"body"`
 }
 
+// ReleaseNotes
+// swagger:response ReleaseNotes
+type swaggerResponseReleaseNotes struct {
+	// in:body
+	Body api.ReleaseNotes `json:"body"`
+}
+
 // PullRequest
 // swagger:response PullRequest
 type swaggerResponsePullRequest struct {
