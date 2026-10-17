@@ -456,8 +456,8 @@ func ownerVisibilitySatisfiesDoer(orgOrUser, user *user_model.User) bool {
 
 // HasOrgOrUserVisible tells if the given user can see the given org or user
 func HasOrgOrUserVisible(ctx context.Context, owner, doer *user_model.User) bool {
-	return ownerVisibilitySatisfiesDoer(owner, doer) ||
-		(doer != nil && OrgFromUser(owner).HasMemberWithUserID(ctx, doer.ID))
+	return user_model.DoerTokenAllowsOwner(doer, owner) && (ownerVisibilitySatisfiesDoer(owner, doer) ||
+		(doer != nil && OrgFromUser(owner).HasMemberWithUserID(ctx, doer.ID)))
 }
 
 // HasOrgsVisible tells if the given user can see at least one of the orgs provided

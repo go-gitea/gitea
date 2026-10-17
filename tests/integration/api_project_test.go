@@ -288,7 +288,7 @@ func testAPIProjectVisibility(t *testing.T, outsider string) {
 		auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadIssue,
 		auth_model.AccessTokenScopePublicOnly)
 	for _, url := range []string{"/api/v1/orgs/private_org35/projects", "/api/v1/users/private_org35/projects"} {
-		MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(publicOnly), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(publicOnly), http.StatusNotFound)
 	}
 
 	// a public org's board is readable by an outsider but not writable

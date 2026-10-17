@@ -37,7 +37,7 @@ func RedirectToUser(ctx *Base, doer *user_model.User, userName string, redirectU
 	}
 
 	// Handle Visibility
-	if user.Visibility != structs.VisibleTypePublic && doer == nil {
+	if user.Visibility != structs.VisibleTypePublic && (doer == nil || user_model.IsPublicOnlyDoer(doer)) {
 		// We must be signed in to see limited or private organizations
 		ctx.HTTPError(http.StatusNotFound, "user does not exist")
 		return

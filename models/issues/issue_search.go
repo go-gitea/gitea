@@ -283,6 +283,9 @@ func applyConditions(sess db.Session, opts *IssuesOptions) {
 		sess.And(repo_model.UserOwnedRepoCond(opts.Owner.ID))
 	}
 
+	if user_model.IsPublicOnlyDoer(opts.Doer) {
+		sess.And(builder.In("issue.repo_id", builder.Select("id").From("repository").Where(repo_model.PublicRepoUnderPublicOwnerCond())))
+	}
 	if opts.Doer != nil && !opts.Doer.IsAdmin {
 		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.Doer.ID, opts.Owner, opts.Team, opts.IsPull.Value()))
 	}

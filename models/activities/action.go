@@ -436,12 +436,6 @@ type GetFeedsOptions struct {
 	DontCount       bool                   // do counting in GetFeeds
 }
 
-func (opts *GetFeedsOptions) ApplyPublicOnly(publicOnly bool) {
-	if publicOnly {
-		opts.IncludePrivate = false
-	}
-}
-
 // ActivityReadable return whether doer can read activities of user
 func ActivityReadable(user, doer *user_model.User) bool {
 	return !user.KeepActivityPrivate ||
@@ -477,8 +471,10 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 		opts.RequestedUser = org
 	}
 
+	publicOnly := user_model.IsPublicOnlyDoer(opts.Actor)
+
 	// check activity visibility for actor ( similar to activityReadable() )
-	if opts.Actor == nil {
+	if opts.Actor == nil || publicOnly {
 		cond = cond.And(builder.In("act_user_id",
 			builder.Select("`user`.id").Where(
 				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
@@ -509,7 +505,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	}
 
 	// check readable repositories by doer/actor
-	if opts.Actor == nil || !opts.Actor.IsAdmin {
+	if opts.Actor == nil || !opts.Actor.IsAdmin || publicOnly {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
@@ -539,7 +535,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 		}
 	}
 
-	if !opts.IncludePrivate {
+	if !opts.IncludePrivate || publicOnly {
 		cond = cond.And(builder.Eq{"`action`.is_private": false})
 	}
 	if !opts.IncludeDeleted {

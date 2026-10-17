@@ -544,13 +544,10 @@ func GetTeamRepos(ctx *context.APIContext) {
 
 	team := ctx.Org.Team
 	listOptions := utils.GetListOptions(ctx)
-	// A public-only token must not expose (or count) private repos, even when the
-	// doer owning the token otherwise has access to them, so filter them out at the
-	// query level to keep the returned page and the total-count header consistent.
 	searchOpts := &repo_model.SearchTeamRepoOptions{
 		ListOptions: listOptions,
 		TeamID:      team.ID,
-		PublicOnly:  ctx.PublicOnly,
+		Actor:       ctx.Doer,
 	}
 	teamRepos, err := repo_model.GetTeamRepositories(ctx, searchOpts)
 	if err != nil {
@@ -616,12 +613,6 @@ func GetTeamRepo(ctx *context.APIContext) {
 
 	repo, permission := getRepositoryByParams(ctx)
 	if ctx.Written() {
-		return
-	}
-
-	// A public-only token must not confirm the existence of a private repo.
-	if !ctx.TokenCanAccessRepo(repo) {
-		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -881,8 +872,6 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
-	// A public-only token must not receive private activity entries.
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

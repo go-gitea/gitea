@@ -28,9 +28,6 @@ var (
 // BasicMethodName is the constant name of the basic authentication method
 const (
 	BasicMethodName       = "basic"
-	AccessTokenMethodName = "access_token"
-	OAuth2TokenMethodName = "oauth2_token"
-	ActionTokenMethodName = "action_token"
 	DeployTokenMethodName = "deploy_token"
 )
 
@@ -73,7 +70,7 @@ func parseAuthBasic(req *http.Request) (ret struct{ authToken, uname, passwd str
 // VerifyAuthToken only the access token provided as parameter, used by other auth methods that want to reuse access token verification logic
 func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore, authToken string) (*user_model.User, error) {
 	// get oauth2 token's user's ID
-	accessTokenScope, uid, grantID := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
+	accessTokenScope, uid, grantID := getOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 
@@ -86,9 +83,7 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 			return nil, nil //nolint:nilnil // the auth method is not applicable
 		}
 
-		store.GetData()["LoginMethod"] = OAuth2TokenMethodName
-		store.GetData()["ApiTokenScope"] = accessTokenScope
-		setAuthCredential(store, credentialOAuth2Grant, grantID)
+		u.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialOAuth2Grant, grantID, accessTokenScope)
 		return u, nil
 	}
 
@@ -107,9 +102,7 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 			log.Error("UpdateAccessToken:  %v", err)
 		}
 
-		store.GetData()["LoginMethod"] = AccessTokenMethodName
-		store.GetData()["ApiTokenScope"] = token.Scope
-		setAuthCredential(store, credentialAccessToken, token.ID)
+		u.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, token.ID, token.Scope)
 		return u, nil
 	} else if !errors.Is(err, util.ErrNotExist) {
 		log.Error("GetAccessTokenBySHA: %v", err)
@@ -119,7 +112,6 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 	task, err := actions_model.GetRunningTaskByToken(req.Context(), authToken)
 	if err == nil && task != nil {
 		log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
-		store.GetData()["LoginMethod"] = ActionTokenMethodName
 		return user_model.NewActionsUserWithTaskID(task.ID), nil
 	}
 	return nil, nil //nolint:nilnil // the auth method is not applicable
@@ -194,18 +186,12 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 	return nil
 }
 
-func GetAccessScope(store DataStore) auth_model.AccessTokenScope {
-	if scope, hasApiTokenScope := store.GetData()["ApiTokenScope"].(auth_model.AccessTokenScope); hasApiTokenScope {
+func GetAccessScope(doer *user_model.User, store DataStore) auth_model.AccessTokenScope {
+	if scope, ok := user_model.GetDoerTokenScope(doer); ok {
 		return scope
 	}
-	switch store.GetData()["LoginMethod"] {
-	case OAuth2TokenMethodName:
-		fallthrough
-	case BasicMethodName, AccessTokenMethodName:
+	if store.GetData()["LoginMethod"] == BasicMethodName {
 		return auth_model.AccessTokenScopeAll
-	case ActionTokenMethodName:
-		fallthrough
-	default:
-		return ""
 	}
+	return ""
 }

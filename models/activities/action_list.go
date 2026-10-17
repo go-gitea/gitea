@@ -212,7 +212,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	var err error
 	var cond builder.Cond
 	// if the actor is the requested user or is an administrator, we can skip the ActivityQueryCondition
-	if opts.Actor != nil && opts.RequestedUser != nil && (opts.Actor.IsAdmin || opts.Actor.ID == opts.RequestedUser.ID) {
+	if opts.Actor != nil && opts.RequestedUser != nil && !user_model.IsPublicOnlyDoer(opts.Actor) && (opts.Actor.IsAdmin || opts.Actor.ID == opts.RequestedUser.ID) {
 		cond = builder.Eq{
 			"user_id": opts.RequestedUser.ID,
 		}.And(
