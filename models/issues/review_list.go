@@ -170,7 +170,7 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (latestReviews, mig
 	// filter them in memory to get the latest review of each reviewer
 	// Since the reviews should not be too many for one issue, less than 100 commonly, it's acceptable to do this in memory
 	// And since there are too less indexes in review table, it will be very slow to filter in the database
-	type originalReviewer struct { // authors migrated from a Gitea source share ID -1
+	type originalReviewer struct {
 		id   int64
 		name string
 	}
@@ -181,7 +181,10 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (latestReviews, mig
 	for _, review := range reviews {
 		if review.ReviewerTeamID == 0 && slices.Contains(countedReviewTypes, review.Type) && !review.Dismissed {
 			if review.OriginalAuthorID != 0 {
-				key := originalReviewer{review.OriginalAuthorID, review.OriginalAuthor}
+				key := originalReviewer{id: review.OriginalAuthorID}
+				if review.OriginalAuthorID == user_model.GhostUserID {
+					key.name = review.OriginalAuthor
+				}
 				originalReviewersMap[key] = append(originalReviewersMap[key], review)
 			} else {
 				reviewersMap[review.ReviewerID] = append(reviewersMap[review.ReviewerID], review)

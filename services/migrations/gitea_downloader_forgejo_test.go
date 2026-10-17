@@ -135,13 +135,20 @@ func TestGiteaDownloaderServerVersion(t *testing.T) {
 }
 
 func TestGiteaDownloaderDisabledUnits(t *testing.T) {
-	for _, unitsEnabled := range []bool{false, true} {
+	for _, testCase := range []struct {
+		unitsEnabled    bool
+		externalTracker string
+	}{
+		{false, "null"},
+		{true, "null"},
+		{true, "{}"},
+	} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
 			case "/api/v1/version":
 				_, _ = w.Write([]byte(`{"version":"1.27.0"}`))
 			case "/api/v1/repos/owner/repo":
-				_, _ = fmt.Fprintf(w, `{"has_issues":%[1]t,"has_pull_requests":%[1]t,"has_releases":%[1]t}`, unitsEnabled)
+				_, _ = fmt.Fprintf(w, `{"has_issues":%[1]t,"has_pull_requests":%[1]t,"has_releases":%[1]t,"external_tracker":%[2]s}`, testCase.unitsEnabled, testCase.externalTracker)
 			case "/api/v1/repos/owner/repo/releases":
 				http.Error(w, "forbidden", http.StatusForbidden)
 			default:
@@ -157,10 +164,10 @@ func TestGiteaDownloaderDisabledUnits(t *testing.T) {
 		_, releasesErr := downloader.GetReleases(ctx)
 		server.Close()
 
-		assert.Equal(t, unitsEnabled, issuesErr != nil)
-		assert.Equal(t, unitsEnabled, prsErr != nil)
-		assert.Equal(t, unitsEnabled, releasesErr != nil)
-		assert.Equal(t, !unitsEnabled, issuesEnd)
-		assert.Equal(t, !unitsEnabled, prsEnd)
+		assert.Equal(t, testCase.unitsEnabled && testCase.externalTracker == "null", issuesErr != nil)
+		assert.Equal(t, testCase.unitsEnabled, prsErr != nil)
+		assert.Equal(t, testCase.unitsEnabled, releasesErr != nil)
+		assert.Equal(t, !testCase.unitsEnabled || testCase.externalTracker != "null", issuesEnd)
+		assert.Equal(t, !testCase.unitsEnabled, prsEnd)
 	}
 }

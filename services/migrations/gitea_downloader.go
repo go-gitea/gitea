@@ -426,7 +426,7 @@ func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*
 		State:       gitea_sdk.StateAll,
 		Type:        gitea_sdk.IssueTypeIssue,
 	})
-	if g.unitDisabled(resp, func(repo *gitea_sdk.Repository) bool { return repo.HasIssues }) {
+	if g.unitDisabled(resp, func(repo *gitea_sdk.Repository) bool { return repo.HasIssues && repo.ExternalTracker == nil }) {
 		return nil, true, nil
 	}
 	if err != nil {

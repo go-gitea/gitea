@@ -199,6 +199,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 		{OriginalAuthor: "octocat", OriginalAuthorID: user_model.GhostUserID},
 		{OriginalAuthor: "hubot", OriginalAuthorID: user_model.GhostUserID},
 		{OriginalAuthor: "octocat", OriginalAuthorID: 583231},
+		{OriginalAuthor: "renamed-octocat", OriginalAuthorID: 583231},
 	} {
 		review.IssueID, review.Type = issue.ID, issues_model.ReviewTypeApprove
 		assert.NoError(t, db.Insert(t.Context(), review))
