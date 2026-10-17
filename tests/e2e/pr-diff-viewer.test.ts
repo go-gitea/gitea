@@ -211,7 +211,7 @@ test('diff viewer expand', async ({page, request}) => {
   // a link to a hidden comment expands its lines
   const commentId = await file.locator('.comment').filter({hasText: 'hidden-comment'}).getAttribute('id');
   await page.goto(`/${user}/${repo}/pulls/${prIndex}/files#${commentId}`);
-  await page.reload();
+  await page.reload(); // a hash change alone doesn't load the page again
   await expect(page.locator(`#${commentId}`)).toBeInViewport();
 });
 

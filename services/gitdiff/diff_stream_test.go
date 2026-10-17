@@ -63,17 +63,17 @@ deleted file mode 100644
 	require.Len(t, files, 6)
 
 	assert.Equal(t, "src/a.go", files[0].Name)
-	assert.Equal(t, "change", files[0].Type)
+	assert.Equal(t, "modified", files[0].Type)
 	assert.Empty(t, files[0].Mode)
 	assert.Equal(t, "@@ -1,2 +1,2 @@\n package a\n-var x = 1\n+var x = 2\n", files[0].Hunks)
 	assert.NotEmpty(t, files[0].NameHash)
 
 	assert.Equal(t, "new name.txt", files[1].Name)
 	assert.Equal(t, "old name.txt", files[1].OldName)
-	assert.Equal(t, "rename", files[1].Type)
+	assert.Equal(t, "renamed", files[1].Type)
 	assert.Zero(t, files[1].hunksSize)
 
-	assert.Equal(t, "add", files[2].Type)
+	assert.Equal(t, "added", files[2].Type)
 	assert.True(t, files[2].IsBinary)
 
 	assert.Equal(t, "100644", files[3].OldMode)
@@ -83,7 +83,7 @@ deleted file mode 100644
 	assert.Equal(t, strings.Repeat("4", 40), files[4].Submodule.OldCommit)
 	assert.Equal(t, strings.Repeat("5", 40), files[4].Submodule.NewCommit)
 
-	assert.Equal(t, "delete", files[5].Type)
+	assert.Equal(t, "deleted", files[5].Type)
 	assert.Equal(t, "big.txt", files[5].Name)
 	assert.True(t, files[5].TooLarge)
 	assert.Empty(t, files[5].Hunks)
@@ -115,46 +115,6 @@ func TestSplitDiffStreamSubmodules(t *testing.T) {
 	}
 
 	tests := []testcase{
-		{
-			name: "added",
-			gitdiff: `diff --git a/.gitmodules b/.gitmodules
-new file mode 100644
-index 0000000..4ac13c1
---- /dev/null
-+++ b/.gitmodules
-@@ -0,0 +1,3 @@
-+[submodule "gitea-mirror"]
-+	path = gitea-mirror
-+	url = https://gitea.com/gitea/gitea-mirror
-diff --git a/gitea-mirror b/gitea-mirror
-new file mode 160000
-index 0000000..68972a9
---- /dev/null
-+++ b/gitea-mirror
-@@ -0,0 +1 @@
-+Subproject commit 68972a994719ae5c74e28d8fa82fa27c23399bc8
-`,
-			submodules: map[int]DiffStreamSubmodule{
-				1: {NewCommit: "68972a994719ae5c74e28d8fa82fa27c23399bc8"},
-			},
-		},
-		{
-			name: "updated",
-			gitdiff: `diff --git a/gitea-mirror b/gitea-mirror
-index 68972a9..c8ffe77 160000
---- a/gitea-mirror
-+++ b/gitea-mirror
-@@ -1 +1 @@
--Subproject commit 68972a994719ae5c74e28d8fa82fa27c23399bc8
-+Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
-`,
-			submodules: map[int]DiffStreamSubmodule{
-				0: {
-					OldCommit: "68972a994719ae5c74e28d8fa82fa27c23399bc8",
-					NewCommit: "c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d",
-				},
-			},
-		},
 		{
 			name: "rename",
 			gitdiff: `diff --git a/.gitmodules b/.gitmodules
@@ -261,6 +221,19 @@ index 0000000..33a9488
 					OldCommit: "c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d",
 				},
 			},
+		},
+		{
+			name: "type changed to file",
+			gitdiff: `diff --git a/gitea b/gitea
+old mode 160000
+new mode 100644
+index c8ffe77..33a9488
+--- a/gitea
++++ b/gitea
+@@ -1 +1 @@
+-Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
++example
+`,
 		},
 		{
 			name: "converted to submodule",

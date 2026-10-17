@@ -1,16 +1,19 @@
-import {GET} from '../fetch.ts';
 import {performFetchActionRequest} from '../fetch-action.ts';
+import {fetchOk} from './stream.ts';
 import {trString} from '../i18n.ts';
 import {animateOnce, createElementFromAttrs, createElementFromHTML, toggleElem} from '../../utils/dom.ts';
 import {html, htmlEscape, htmlRaw} from '../../utils/html.ts';
-import {formatBytes} from '../../utils.ts';
+import {formatBytes, parseDom} from '../../utils.ts';
+import {formatDatetimeISO} from '../../utils/time.ts';
 import {svg, type SvgName} from '../../svg.ts';
 import type {DiffSide} from './parse.ts';
-import {diffTreeStore, type DiffTreeCommentFile, type DiffTreeCommentThread} from '../diff-file.ts';
+import {diffTreeFiles, diffTreeStore, type DiffTreeCommentFile, type DiffTreeCommentThread} from '../diff-file.ts';
 import {initComboMarkdownEditor, type ComboMarkdownEditor} from '../../features/comp/ComboMarkdownEditor.ts';
 import {confirmModal} from '../../features/comp/ConfirmModal.ts';
 import {appendQuote, EventCommentContentSaved, extractSelectedMarkdown} from '../../features/repo-issue-edit.ts';
 import {showContentHistoryMenuIfEdited} from '../../features/repo-issue-content.ts';
+import {showErrorToast} from '../toast.ts';
+import {errorMessage} from '../errors.ts';
 import type {DiffFileEntry} from './types.ts';
 import type {DiffViewer} from './viewer.ts';
 
@@ -61,17 +64,6 @@ type Thread = {target: LineTarget; comments: ViewerComment[]};
 
 const targetKey = (target: LineTarget) => `${target.path}|${target.side}|${target.line}`;
 
-function groupBy<T>(items: Iterable<T>, keyOf: (item: T) => string): Map<string, T[]> {
-  const groups = new Map<string, T[]>();
-  for (const item of items) {
-    const key = keyOf(item);
-    const group = groups.get(key);
-    if (group) group.push(item);
-    else groups.set(key, [item]);
-  }
-  return groups;
-}
-
 export class DiffComments {
   host: DiffViewer;
   data: CommentsData = {
@@ -91,10 +83,8 @@ export class DiffComments {
   }
 
   async load(): Promise<void> {
-    const response = await GET(this.host.config.commentsUrl!);
-    if (!response.ok) throw new Error(`Failed to load the comments: ${response.status}`);
-    this.data = await response.json();
-    this.byPath = groupBy(this.data.comments, (comment) => comment.path);
+    this.data = await (await fetchOk(this.host.config.commentsUrl!)).json();
+    this.byPath = Map.groupBy(this.data.comments, (comment) => comment.path);
     this.byId = new Map(this.data.comments.map((comment) => [comment.id, comment]));
     this.publishSummary();
   }
@@ -102,18 +92,17 @@ export class DiffComments {
   // the threads of every file for the comments tab, in the order of the file tree
   publishSummary(): void {
     const store = diffTreeStore();
-    const files = Object.values(store.fullNameMap).filter((item) => item.Children === null && item.FullName);
     const result: DiffTreeCommentFile[] = [];
-    for (const file of files) {
+    for (const file of diffTreeFiles(store)) {
       const comments = this.commentsAt(file.FullName, file.OldFullName);
       if (!comments.length) continue;
-      const threads = groupBy(comments, (comment) => `${comment.side}|${comment.line}`);
+      const threads = Map.groupBy(comments, (comment) => `${comment.side}|${comment.line}`);
       const summaries = Array.from(threads.values(), (thread): DiffTreeCommentThread => ({
         id: thread[0].id,
         line: thread[0].line,
         posterName: thread[0].originalAuthor || thread[0].poster.displayName,
         avatarUrl: thread[0].originalAuthor ? '' : thread[0].poster.avatar,
-        excerpt: thread[0].body.split('\n').find((line) => line.trim())?.trim() ?? '',
+        excerpt: parseDom(thread[0].bodyHtml, 'text/html').body.textContent.split('\n').find((line) => line.trim())?.trim() ?? '',
         count: thread.length,
         resolved: thread[0].resolved,
         outdated: thread[0].outdated,
@@ -125,7 +114,12 @@ export class DiffComments {
   }
 
   async reload(): Promise<void> {
-    await this.load();
+    try {
+      await this.load();
+    } catch (error) {
+      showErrorToast(errorMessage(error));
+      return;
+    }
     for (const entry of this.host.entries) this.renderAnnotations(entry);
     this.updatePendingCounter();
   }
@@ -190,18 +184,28 @@ export class DiffComments {
     // the diff of LFS objects can't be commented, the comments are about the pointer
     const body = entry.lfsState === null ? entry.element?.querySelector('.code-diff > table > tbody') : null;
     if (!body) return;
+    for (const row of body.querySelectorAll(':scope > tr.add-comment')) row.remove();
+    for (const button of body.querySelectorAll('.add-code-comment.tw-invisible')) button.classList.remove('tw-invisible');
+    const threads = this.threadsOf(entry);
+    const drafts = [...this.drafts.values()].filter(({target}) => target.path === entry.file.name);
+    if (!threads.size && !drafts.length) return;
     // comments being edited are kept, the editor of the edit handler belongs to their element
     const editing = new Map<number, HTMLElement>();
     for (const zone of (previous ?? body).querySelectorAll('.edit-content-zone:not(.tw-hidden)')) {
       const commentEl = zone.closest<HTMLElement>('.comment')!;
       editing.set(Number(commentEl.getAttribute('data-comment-id')), commentEl);
     }
-    for (const row of body.querySelectorAll(':scope > tr.add-comment')) row.remove();
-    for (const button of body.querySelectorAll('.add-code-comment.tw-invisible')) button.classList.remove('tw-invisible');
 
+    const rows = new Map<string, HTMLElement>();
+    for (const row of body.children as HTMLCollectionOf<HTMLElement>) {
+      for (const side of ['old', 'new'] as const) {
+        const line = row.getAttribute(`data-${side}`);
+        if (line) rows.set(`${side}|${line}`, row);
+      }
+    }
     const groups = new Map<HTMLElement | null, Record<DiffSide, HTMLElement[]>>();
     const add = (side: DiffSide, line: number, content: HTMLElement) => {
-      const anchor = line ? body.querySelector<HTMLElement>(`:scope > tr[data-${CSS.escape(side)}="${CSS.escape(String(line))}"]`) : null;
+      const anchor = rows.get(`${side}|${line}`) ?? null;
       let group = groups.get(anchor);
       if (!group) {
         group = {old: [], new: []};
@@ -210,14 +214,12 @@ export class DiffComments {
       group[side].push(content);
       return anchor;
     };
-    for (const [key, {target, comments}] of this.threadsOf(entry)) {
+    for (const [key, {target, comments}] of threads) {
       const anchor = add(target.side, target.line, this.buildConversation(key, comments, editing));
       // a line with a conversation gets replies instead of a new thread
       anchor?.querySelector(`.add-code-comment[data-side="${CSS.escape(target.side)}"]`)?.classList.add('tw-invisible');
     }
-    for (const {target, el} of this.drafts.values()) {
-      if (target.path === entry.file.name) add(target.side, target.line, el);
-    }
+    for (const {target, el} of drafts) add(target.side, target.line, el);
     for (const [anchor, group] of groups) {
       const row = createElementFromAttrs('tr', {class: 'add-comment'});
       if (this.host.config.isSplit) {
@@ -285,7 +287,7 @@ export class DiffComments {
     const {locale} = this.host;
     const {data} = this;
     const anchor = `issuecomment-${comment.id}`;
-    const timeHtml = html`<relative-time datetime="${new Date(comment.created * 1000).toISOString()}"></relative-time>`;
+    const timeHtml = html`<relative-time datetime="${formatDatetimeISO(comment.created)}"></relative-time>`;
     const commentedAt = trString(locale.commentedAt, htmlEscape(anchor), timeHtml);
     const posterHref = comment.poster.homeLink ? html` href="${comment.poster.homeLink}"` : '';
     let avatarHtml: string;
@@ -483,9 +485,8 @@ export class DiffComments {
         this.replyForms.delete(key);
         toggleElem(composer.form.closest('.comment-code-cloud')!.querySelector('.diff-viewer-reply')!, true);
         composer.form.remove();
-      }, (content, files, singleReview) => this.submitComment(composer.form, target, content, files, singleReview, first.reviewId, () => this.replyForms.delete(key)));
-      reply = composer;
-      this.replyForms.set(key, reply);
+      }, (content, files, singleReview) => this.submitComment(composer.form, key, target, content, files, singleReview, first.reviewId));
+      this.replyForms.set(key, reply = composer);
       cloud.append(reply.form);
       toggleElem(cloud.querySelector('.diff-viewer-reply')!, false);
     }
@@ -509,7 +510,7 @@ export class DiffComments {
     const composer = this.buildComposer(buttons, () => {
       this.drafts.delete(key);
       draft.closest('tr')?.remove();
-    }, (content, files, singleReview) => this.submitComment(composer.form, target, content, files, singleReview));
+    }, (content, files, singleReview) => this.submitComment(composer.form, key, target, content, files, singleReview));
     draft.append(composer.form);
     this.drafts.set(key, {target, el: draft});
     this.renderAnnotations(entry);
@@ -549,21 +550,22 @@ export class DiffComments {
     return {form, editorPromise};
   }
 
-  async submitComment(form: HTMLElement, target: LineTarget, content: string, files: string[], singleReview: boolean, replyReviewId = 0, onSubmitted?: () => void): Promise<void> {
+  // the composer of the key is dropped once its comment is posted, the comments are reloaded
+  async submitComment(form: HTMLElement, key: string, target: LineTarget, content: string, files: string[], singleReview: boolean, replyReviewId = 0): Promise<void> {
     const body = new URLSearchParams({
       origin: 'diff',
       content,
       side: target.side === 'new' ? 'proposed' : 'previous',
       line: String(target.line),
       path: target.path,
-      latest_commit_id: this.host.config.afterCommitId,
+      latest_commit_id: this.host.config.headCommitId!,
     });
     if (singleReview) body.set('single_review', 'true');
     if (replyReviewId) body.set('reply', String(replyReviewId));
     for (const file of files) body.append('files', file);
     if (!await performFetchActionRequest(form, {method: 'POST', url: `${this.host.config.issueLink}/files/reviews/comments`, data: body})) return;
-    this.drafts.delete(targetKey(target));
-    onSubmitted?.();
+    this.drafts.delete(key);
+    this.replyForms.delete(key);
     await this.reload();
     const reviewBox = document.querySelector('.review-box-button');
     if (!singleReview && reviewBox) animateOnce(reviewBox, 'pulse-1p5-200');

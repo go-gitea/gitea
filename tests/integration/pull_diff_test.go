@@ -97,8 +97,8 @@ func diffViewerConfigOf(t *testing.T, htmlDoc *HTMLDoc) *testDiffViewerConfig {
 }
 
 // requestDiffStream returns the files of a diff stream and whether it was truncated
-func requestDiffStream(t *testing.T, session *TestSession, url string) (files []*gitdiff.DiffStreamFile, truncated bool) {
-	resp := session.MakeRequest(t, NewRequest(t, "GET", url), http.StatusOK)
+func requestDiffStream(t *testing.T, session *TestSession, streamURL string) (files []*gitdiff.DiffStreamFile, truncated bool) {
+	resp := session.MakeRequest(t, NewRequest(t, "GET", streamURL), http.StatusOK)
 	assert.Equal(t, "application/x-ndjson", resp.Header().Get("Content-Type"))
 	lines := strings.Split(strings.TrimSpace(resp.Body.String()), "\n")
 	for _, line := range lines[:len(lines)-1] {
@@ -158,7 +158,7 @@ func TestDiffStream(t *testing.T) {
 	files, _ := requestDiffStream(t, session, "/user2/repo1/diff/stream?after=65f1bf27bc3bf70f64657658635e66094edbcb4d")
 	require.Len(t, files, 1)
 	assert.Equal(t, "README.md", files[0].Name)
-	assert.Equal(t, "add", files[0].Type)
+	assert.Equal(t, "added", files[0].Type)
 	assert.Contains(t, files[0].Hunks, "+# repo1")
 
 	files, _ = requestDiffStream(t, session, "/user2/repo1/wiki/diff/stream?after=a5bbc0fd39a696feabed2d4cccaf05abbcaf3b02")
@@ -174,11 +174,13 @@ func TestDiffStream(t *testing.T) {
 		assert.True(t, files[0].TooLarge)
 		assert.Empty(t, files[0].Hunks)
 		files, _ = requestDiffStream(t, session, "/user2/repo1/diff/stream?after=65f1bf27bc3bf70f64657658635e66094edbcb4d&full=true")
+		assert.True(t, files[0].TooLarge) // only a requested file is loaded in full
+		files, _ = requestDiffStream(t, session, "/user2/repo1/diff/stream?after=65f1bf27bc3bf70f64657658635e66094edbcb4d&full=true&files=README.md")
 		assert.False(t, files[0].TooLarge)
 
 		// a file beyond the total limit can't be loaded in full either
 		defer test.MockVariableValue(&setting.Git.MaxDiffViewSize, 10)()
-		files, truncated := requestDiffStream(t, session, "/user2/repo1/diff/stream?after=65f1bf27bc3bf70f64657658635e66094edbcb4d&full=true")
+		files, truncated := requestDiffStream(t, session, "/user2/repo1/diff/stream?after=65f1bf27bc3bf70f64657658635e66094edbcb4d&full=true&files=README.md")
 		require.Len(t, files, 1)
 		assert.True(t, files[0].TooLarge)
 		assert.False(t, truncated)

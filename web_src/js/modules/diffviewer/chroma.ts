@@ -152,16 +152,16 @@ export class ChromaLexer {
     }
   }
 
-  // tokenizes like chroma's LexerState.Iterator, the tokens add up to the text
-  tokenize(input: string, initialState = 'root', nested = false): Segment[] {
+  // tokenizes like chroma's LexerState.Iterator, the tokens add up to the text, nested calls share the deadline
+  tokenize(input: string, initialState = 'root', deadline?: number): Segment[] {
     let text = input;
     const end = text.length;
-    if (this.ensureNL && !nested && !text.endsWith('\n')) text += '\n';
+    if (this.ensureNL && deadline === undefined && !text.endsWith('\n')) text += '\n';
+    deadline ??= performance.now() + tokenizeTimeBudget;
     const out: Segment[] = [];
     const stack = [initialState];
     let pos = 0;
     let zeroLengthMatches = 0;
-    const deadline = performance.now() + tokenizeTimeBudget;
     for (let iteration = 0; pos < end && stack.length; iteration++) {
       if (iteration % 1024 === 0 && performance.now() > deadline) break;
       const state = stack.at(-1)!;
@@ -190,7 +190,7 @@ export class ChromaLexer {
       pos += match[0].length;
       this.mutate(rule.mutator, stack, state);
       const groups = Array.from(match, (group) => group ?? '');
-      this.emit(rule.emitter, groups, out);
+      this.emit(rule.emitter, groups, out, deadline);
     }
     if (pos < end) out.push([text.slice(pos, end), '']);
     // the token with the added newline is cut
@@ -219,7 +219,7 @@ export class ChromaLexer {
     }
   }
 
-  emit(emitter: Emitter, groups: string[], out: Segment[]) {
+  emit(emitter: Emitter, groups: string[], out: Segment[], deadline: number) {
     const text = groups[0];
     if (emitter === null || typeof emitter === 'string') {
       if (text) out.push([text, emitter ?? '']);
@@ -231,24 +231,24 @@ export class ChromaLexer {
         out.push([text, '']);
         return;
       }
-      for (const [i, group] of groups.slice(1).entries()) this.emit(emitter.g[i], [group], out);
+      for (const [i, group] of groups.slice(1).entries()) this.emit(emitter.g[i], [group], out, deadline);
       return;
     }
     if ('u' in emitter) {
       const lexer = this.resolve(emitter.u);
-      if (lexer) out.push(...lexer.tokenize(text, 'root', true));
+      if (lexer) out.push(...lexer.tokenize(text, 'root', deadline));
       else out.push([text, '']);
       return;
     }
     if ('s' in emitter) {
-      out.push(...this.tokenize(text, emitter.s, true));
+      out.push(...this.tokenize(text, emitter.s, deadline));
       return;
     }
     const [nameGroup, codeGroup, emitters] = emitter.ug;
     const sublexer = this.resolve(groups[nameGroup] ?? '');
     for (const [i, group] of groups.slice(1).entries()) {
-      if (i === codeGroup - 1 && sublexer) out.push(...sublexer.tokenize(group, 'root', true));
-      else this.emit(emitters[i] ?? null, [group], out);
+      if (i === codeGroup - 1 && sublexer) out.push(...sublexer.tokenize(group, 'root', deadline));
+      else this.emit(emitters[i] ?? null, [group], out, deadline);
     }
   }
 }

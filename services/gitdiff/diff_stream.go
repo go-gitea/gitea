@@ -12,7 +12,6 @@ import (
 	"io"
 	"mime"
 	"path"
-	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -36,7 +35,7 @@ type DiffStreamFile struct {
 	Name        string               `json:"name"`
 	OldName     string               `json:"oldName"`
 	NameHash    string               `json:"nameHash"`
-	Type        string               `json:"type"` // add, change, delete, rename, copy
+	Type        string               `json:"type"` // like the statuses of the diff tree: added, modified, deleted, renamed, copied
 	OldMode     string               `json:"oldMode,omitempty"`
 	Mode        string               `json:"mode,omitempty"`
 	IsBinary    bool                 `json:"isBinary,omitempty"`
@@ -120,11 +119,19 @@ func StreamDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffStreamOp
 		if !file.TooLarge {
 			file.Hunks = decodeHunksToUTF8(hunks.Bytes())
 			file.LFS = detectLFSPointers(ctx, opts.RepoID, file.Hunks)
-			file.IsBinary = file.IsBinary || file.LFS != nil
 		}
 		if attrs, err := checker.CheckPath(file.Name); err == nil {
-			file.IsVendored = attrs.GetVendored().ValueOrDefault(analyze.IsVendor(file.Name))
-			file.IsGenerated = attrs.GetGenerated().ValueOrDefault(analyze.IsGenerated(file.Name))
+			// the attributes are preferred, detecting by name is slower
+			if vendored := attrs.GetVendored(); vendored.Has() {
+				file.IsVendored = vendored.Value()
+			} else {
+				file.IsVendored = analyze.IsVendor(file.Name)
+			}
+			if generated := attrs.GetGenerated(); generated.Has() {
+				file.IsGenerated = generated.Value()
+			} else {
+				file.IsGenerated = analyze.IsGenerated(file.Name)
+			}
 			file.Language = attrs.GetLanguage().Value()
 		}
 		if file.Submodule != nil {
@@ -139,9 +146,10 @@ func StreamDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffStreamOp
 			file.OldImage = util.Iif(file.LFS.Old != nil && file.LFS.Old.Exists, imageMime, "")
 			file.NewImage = util.Iif(file.LFS.New != nil && file.LFS.New.Exists, imageMime, "")
 		case file.IsBinary || isRenderedDiffFile(file.Name):
-			// reading a blob streams it completely, so only the ones named like images are sniffed
-			file.OldSize, file.OldImage = blobInfo(ctx, gitRepo, file.oldBlobID, imageMime != "")
-			file.NewSize, file.NewImage = blobInfo(ctx, gitRepo, file.newBlobID, imageMime != "")
+			// reading a blob streams it completely, so only text files named like images (SVG) are sniffed
+			sniff := imageMime != "" && !file.IsBinary
+			file.OldSize, file.OldImage = blobInfo(ctx, gitRepo, file.oldBlobID, imageMime, sniff)
+			file.NewSize, file.NewImage = blobInfo(ctx, gitRepo, file.newBlobID, imageMime, sniff)
 		}
 		return onFile(file)
 	}
@@ -231,33 +239,33 @@ func splitDiffStream(input *bufio.Reader, maxFileSize, maxSize int64, emit func(
 // the "\a/" and "\b/" prefixes force git to quote all names in the head line, so they are never ambiguous
 func newDiffStreamFile(headLine string) *DiffStreamFile {
 	parsed := createDiffFile(headLine + "\n")
-	return &DiffStreamFile{Name: parsed.Name, OldName: parsed.OldName, NameHash: git.HashFilePathForWebUI(parsed.Name), Type: "change"}
+	return &DiffStreamFile{Name: parsed.Name, OldName: parsed.OldName, NameHash: git.HashFilePathForWebUI(parsed.Name), Type: "modified"}
 }
 
 func parseDiffStreamHeader(file *DiffStreamFile, line string) {
-	value := func(prefix string) string { return strings.TrimSpace(strings.TrimPrefix(line, prefix)) }
-	var indexMode string
-	switch {
-	case strings.HasPrefix(line, "old mode "):
-		file.OldMode = value("old mode ")
-	case strings.HasPrefix(line, "new mode "):
-		file.Mode = value("new mode ")
-	case strings.HasPrefix(line, "new file mode "):
-		file.Type, file.Mode = "add", value("new file mode ")
-	case strings.HasPrefix(line, "deleted file mode "):
-		file.Type, file.OldMode = "delete", value("deleted file mode ")
-	case strings.HasPrefix(line, "rename from "):
-		file.Type = "rename"
-	case strings.HasPrefix(line, "copy from "):
-		file.Type = "copy"
-	case strings.HasPrefix(line, "Binary files "):
+	var submoduleMode string // a type change between a submodule and a file shows the file's content instead
+	if mode, ok := strings.CutPrefix(line, "old mode "); ok {
+		file.OldMode = strings.TrimSpace(mode)
+	} else if mode, ok := strings.CutPrefix(line, "new mode "); ok {
+		file.Mode = strings.TrimSpace(mode)
+	} else if mode, ok := strings.CutPrefix(line, "new file mode "); ok {
+		file.Type, file.Mode = "added", strings.TrimSpace(mode)
+		submoduleMode = file.Mode
+	} else if mode, ok := strings.CutPrefix(line, "deleted file mode "); ok {
+		file.Type, file.OldMode = "deleted", strings.TrimSpace(mode)
+		submoduleMode = file.OldMode
+	} else if strings.HasPrefix(line, "rename from ") {
+		file.Type = "renamed"
+	} else if strings.HasPrefix(line, "copy from ") {
+		file.Type = "copied"
+	} else if strings.HasPrefix(line, "Binary files ") {
 		file.IsBinary = true
-	case strings.HasPrefix(line, "index "):
+	} else if index, ok := strings.CutPrefix(line, "index "); ok { // "index <old>..<new> [<mode>]"
 		var blobIDs string
-		blobIDs, indexMode, _ = strings.Cut(strings.TrimPrefix(line, "index "), " ") // "index <old>..<new> [<mode>]"
+		blobIDs, submoduleMode, _ = strings.Cut(index, " ")
 		file.oldBlobID, file.newBlobID, _ = strings.Cut(blobIDs, "..")
 	}
-	if file.Submodule == nil && slices.Contains([]string{indexMode, file.Mode, file.OldMode}, "160000") {
+	if submoduleMode == "160000" {
 		file.Submodule = &DiffStreamSubmodule{}
 	}
 }
@@ -271,28 +279,22 @@ func isRenderedDiffFile(name string) bool {
 	return false
 }
 
-// blobInfo returns the size of a blob, and its mime type if it's sniffed and an image
-func blobInfo(ctx context.Context, gitRepo *git.Repository, blobID string, sniff bool) (size int64, imageMime string) {
+// blobInfo returns the size of a blob and its image mime type, which is confirmed by sniffing the content if requested
+func blobInfo(ctx context.Context, gitRepo *git.Repository, blobID, imageMime string, sniff bool) (size int64, _ string) {
 	blob, err := gitRepo.GetBlob(blobID)
 	if err != nil {
 		return 0, "" // the file doesn't exist on this side
 	}
 	if !sniff {
-		return blob.Size(ctx), ""
+		return blob.Size(ctx), imageMime
 	}
-	reader, err := blob.DataAsync(ctx)
+	data, err := blob.GetBlobBytes(ctx, typesniffer.SniffContentSize)
 	if err != nil {
-		log.Error("blobInfo: DataAsync: %v", err)
+		log.Error("blobInfo: GetBlobBytes: %v", err)
 		return blob.Size(ctx), ""
 	}
-	defer reader.Close()
-	buf := make([]byte, typesniffer.SniffContentSize)
-	n, _ := util.ReadAtMost(reader, buf)
-	sniffed := typesniffer.DetectContentType(buf[:n])
-	if sniffed.IsImage() && (setting.UI.SVG.Enabled || !sniffed.IsSvgImage()) {
-		imageMime = sniffed.GetMimeType()
-	}
-	return blob.Size(ctx), imageMime
+	sniffed := typesniffer.DetectContentType(data)
+	return blob.Size(ctx), util.Iif(sniffed.IsImage(), sniffed.GetMimeType(), "")
 }
 
 func parseSubmoduleCommitLine(file *DiffStreamFile, line string) {
@@ -303,25 +305,14 @@ func parseSubmoduleCommitLine(file *DiffStreamFile, line string) {
 	}
 }
 
-// submoduleFile returns the submodule at the path in the commit, nil if it isn't found
-func submoduleFile(ctx context.Context, repoLink string, gitRepo *git.Repository, path string, commit *git.Commit) *git.CommitSubmoduleFile {
-	if commit == nil {
-		return nil
-	}
-	submodule, err := commit.GetSubModule(ctx, gitRepo, path)
-	if err != nil {
-		log.Error("Unable to get the submodule %q: %v", path, err)
-		return nil // don't cause 500 errors for end users
-	}
-	if submodule == nil {
-		return nil
-	}
-	return git.NewCommitSubmoduleFile(repoLink, path, submodule.URL, commit.ID.String())
-}
-
 func fillSubmoduleLinks(ctx context.Context, repoLink string, gitRepo *git.Repository, file *DiffStreamFile, beforeCommit, afterCommit *git.Commit) {
-	sub := submoduleFile(ctx, repoLink, gitRepo, file.Name, util.Iif(file.Type == "delete", beforeCommit, afterCommit))
-	if sub == nil {
+	commit := util.Iif(file.Type == "deleted", beforeCommit, afterCommit)
+	if commit == nil {
+		return
+	}
+	sub, err := git.GetCommitInfoSubmoduleFile(ctx, repoLink, file.Name, gitRepo, commit, commit.ID)
+	if err != nil {
+		log.Error("Unable to get the submodule %q: %v", file.Name, err) // without links instead of a failed diff
 		return
 	}
 	if link := sub.SubmoduleWebLinkTree(ctx); link != nil {
@@ -364,7 +355,10 @@ func decodeHunksToUTF8(hunks []byte) string {
 	}
 	var out strings.Builder
 	for _, line := range lines {
-		if decoder := decoders[firstByte(line)]; decoder != nil {
+		if len(line) == 0 {
+			continue
+		}
+		if decoder := decoders[line[0]]; decoder != nil {
 			if decoded, _, err := transform.Bytes(decoder, line[1:]); err == nil {
 				out.WriteByte(line[0])
 				out.Write(decoded)
@@ -374,13 +368,6 @@ func decodeHunksToUTF8(hunks []byte) string {
 		out.WriteString(strings.ToValidUTF8(string(line), "\uFFFD"))
 	}
 	return out.String()
-}
-
-func firstByte(b []byte) byte {
-	if len(b) == 0 {
-		return 0
-	}
-	return b[0]
 }
 
 // detectLFSPointers returns the LFS pointers of both sides if the hunks are a pointer file diff with a stored object,

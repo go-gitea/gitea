@@ -300,8 +300,8 @@ func TestCompareCodeExpand(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		config := diffViewerConfigOf(t, NewHTMLParser(t, resp.Body))
 
-		// the diff and the file contents for expanding are loaded from the forked repo
-		assert.True(t, strings.HasPrefix(config.StreamURL, "/user2/test_code_expand-fork/"), config.StreamURL)
+		// the file contents for expanding are loaded from the forked repo
+		assert.True(t, strings.HasPrefix(config.StreamURL, "/user1/test_code_expand/compare/main...user2/test_code_expand-fork:forked-branch/diff/stream?"), config.StreamURL)
 		assert.Equal(t, "/user2/test_code_expand-fork", config.RepoLink)
 		files, _ := requestDiffStream(t, session, config.StreamURL)
 		require.Len(t, files, 1)

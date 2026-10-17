@@ -1,6 +1,6 @@
 import {Virtualizer, observeWindowOffset, observeWindowRect, windowScroll} from '@tanstack/virtual-core';
 import {watch} from 'vue';
-import {GET, POST} from '../fetch.ts';
+import {POST} from '../fetch.ts';
 import {trN, trString} from '../i18n.ts';
 import {parseHunks, splitLines, type DiffSide} from './parse.ts';
 import {diffTreeFiles, diffTreeStore, diffTreeStoreSetViewed, filteredFileNames, type DiffTreeEntry} from '../diff-file.ts';
@@ -10,7 +10,7 @@ import {html, htmlRaw} from '../../utils/html.ts';
 import {svg, type SvgName} from '../../svg.ts';
 import {showErrorToast} from '../toast.ts';
 import {errorMessage} from '../errors.ts';
-import {streamDiff, type DiffStreamFile} from './stream.ts';
+import {fetchOk, streamDiff, type DiffStreamFile} from './stream.ts';
 import {highlightLines, loadHighlighter, type Segment} from './highlight.ts';
 import {hunksLineCount, pairChangedLines, renderSplitRows, renderUnifiedRows, segmentsToHtml, splitColgroup, unifiedColgroup} from './render.ts';
 import {wordDiffRanges} from './worddiff.ts';
@@ -18,7 +18,7 @@ import {buildHunks} from './linediff.ts';
 import {detectEscapes, loadEscapeTables, type EscapeTables, type LineEscapes} from './escape.ts';
 import {imageDiffHtml, renderCsvView, renderedKind} from './rendered.ts';
 import {expandDirections, expandGap, gapOfLine, gapsOf, type ExpandDirection, type Gap} from './expand.ts';
-import {buildFileBox, fileUrl, setFolded, submoduleNotice} from './filebox.ts';
+import {applyFolded, buildFileBox, fileUrl, submoduleNotice} from './filebox.ts';
 import {DiffComments} from './comments.ts';
 import type {DiffFileEntry, DiffViewerConfig, DiffViewerLocale} from './types.ts';
 
@@ -27,15 +27,8 @@ const headerHeight = 42;
 const noticeHeight = 45;
 const stickyTopHeight = 44; // matches .diff-file-box scroll-margin-top
 
-async function fetchOk(url: string, headers?: HeadersInit): Promise<Response> {
-  const response = await GET(url, {headers});
-  if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
-  return response;
-}
-
 function treeEntryToStreamFile(item: DiffTreeEntry): DiffStreamFile {
-  const types: Record<string, DiffStreamFile['type']> = {added: 'add', deleted: 'delete', renamed: 'rename', copied: 'copy'};
-  return {name: item.FullName, oldName: item.OldFullName || item.FullName, nameHash: item.NameHash, type: types[item.DiffStatus] ?? 'change', tabSize: 4};
+  return {name: item.FullName, oldName: item.OldFullName || item.FullName, nameHash: item.NameHash, type: item.DiffStatus, tabSize: 4};
 }
 
 export class DiffViewer {
@@ -44,13 +37,14 @@ export class DiffViewer {
   locale: DiffViewerLocale;
   entries: DiffFileEntry[] = [];
   entriesByName = new Map<string, DiffFileEntry>();
+  entriesByElement = new WeakMap<HTMLElement, DiffFileEntry>();
   visibleEntries: DiffFileEntry[] = [];
   mounted = new Set<DiffFileEntry>();
   list: HTMLElement;
   virtualizer: Virtualizer<Window, HTMLElement> | null = null;
   comments: DiffComments | null = null;
   escapeTables: EscapeTables | null = null;
-  truncated = false;
+  streamState: 'loading' | 'complete' | 'truncated' | 'failed' = 'loading'; // unless complete, the missing files can be loaded one by one
   mountQueued = false;
   visibleUpdateQueued = false;
   hashPending = true; // the file of the URL hash may still be streaming
@@ -76,10 +70,11 @@ export class DiffViewer {
         if (this.virtualizer) this.queueVisibleEntriesUpdate();
       });
       await Promise.all([painted, commentsPromise]);
-      this.truncated = end.truncated;
+      this.streamState = end.truncated ? 'truncated' : 'complete';
       if (end.failed) throw new Error('The diff stream ended unexpectedly');
     } catch (error) {
       console.error(error); // also when leaving the page while loading
+      this.streamState = 'failed';
       this.root.prepend(createElementFromAttrs('div', {class: 'ui error message'}, this.locale.loadFailed));
     } finally {
       status.remove();
@@ -87,10 +82,11 @@ export class DiffViewer {
       if (this.entries.length) this.virtualizer ??= this.createVirtualizer();
       this.updateVisibleEntries();
     }
-    if (this.truncated) {
+    if (this.streamState === 'truncated') {
       const loaded = this.entries.filter((entry) => !entry.missing).length;
       this.root.prepend(createElementFromAttrs('div', {class: 'ui warning message'}, trString(this.locale.tooManyFiles, loaded, this.entries.length)));
     }
+    this.updateScrollMargin(); // the messages above the list move it
     const store = diffTreeStore();
     watch(() => store.filenameFilterQuery, onInputDebounce(() => this.updateVisibleEntries()));
     watch(() => [store.activeExtensions, store.activeStatuses, store.commentedOnly && store.commentFiles], () => this.updateVisibleEntries(), {deep: true});
@@ -111,16 +107,15 @@ export class DiffViewer {
     } catch (error) {
       console.error(error);
       showErrorToast(errorMessage(error));
+      return;
     }
+    for (const entry of this.entries) if (entry.element) this.renderBody(entry); // the files painted before they arrived
   }
 
-  // waits briefly for the first file's grammar, so the first paint is usually highlighted already, and for the rest it needs
+  // waits briefly for the first file's grammar and the comments, so the first paint usually has them, and for the rest it needs
   async firstPaint(status: Element, file: DiffStreamFile, escapeTablesPromise: Promise<void> | null, commentsPromise: Promise<void>): Promise<void> {
-    const highlighterPromise = this.config.disableHighlight ? null : Promise.race([
-      loadHighlighter(file.name, file.language),
-      sleep(300),
-    ]);
-    await Promise.all([highlighterPromise, escapeTablesPromise, commentsPromise]);
+    const highlighterPromise = this.config.disableHighlight ? null : loadHighlighter(file.name, file.language);
+    await Promise.all([Promise.race([Promise.all([highlighterPromise, commentsPromise]), sleep(300)]), escapeTablesPromise]);
     status.remove();
     this.updateVisibleEntries();
     this.virtualizer ??= this.createVirtualizer(); // the stream may have failed meanwhile and created it
@@ -133,7 +128,7 @@ export class DiffViewer {
       file, missing,
       hunks: parseHunks(file.hunks ?? ''),
       folded: Boolean(diffTreeStore().fullNameMap[file.name]?.IsViewed || file.isGenerated),
-      element: null, highlighter: undefined, renderedLines: null, linePairs: null, rowIndex: null, content: null, contentSegments: null, lfsState: null,
+      element: null, highlighter: undefined, renderedLines: null, linePairs: null, rowIndex: null, rowCount: null, gaps: null, content: null, contentSegments: null, lfsState: null,
     };
     this.entries.push(entry);
     this.entriesByName.set(file.name, entry);
@@ -176,7 +171,11 @@ export class DiffViewer {
       // with the full file, the lines are highlighted with the context of the whole file
       entry.contentSegments ??= {old: entry.content.old && highlight(entry.content.old), new: highlight(entry.content.new)};
       const {old: oldSegments, new: newSegments} = entry.contentSegments;
-      segments = lines.map((line) => (line.type === 'del' ? oldSegments?.[line.oldNum - 1] : newSegments[line.newNum - 1]) ?? [[line.content, '']]);
+      segments = lines.map((line) => {
+        const lineSegments = line.type === 'del' ? oldSegments?.[line.oldNum - 1] : newSegments[line.newNum - 1];
+        // the raw file may be decoded differently than the hunks, like a stripped BOM, then the ranges wouldn't match
+        return lineSegments?.map(([text]) => text).join('') === line.content ? lineSegments : [[line.content, '']];
+      });
     } else {
       // "same" lines are taken from the new side, so every line is highlighted with the context of its own side
       const newSide = highlight(lines.filter((line) => line.type !== 'del').map((line) => line.content));
@@ -211,16 +210,19 @@ export class DiffViewer {
     entry.renderedLines = null;
     entry.linePairs = null;
     entry.rowIndex = null;
+    entry.rowCount = null;
+    entry.gaps = null;
   }
 
   isExpandable(entry: DiffFileEntry): boolean {
     const {file} = entry;
     return Boolean(this.config.repoLink) && !file.isBinary && !file.lfs && !file.tooLarge && !entry.missing &&
-      entry.hunks.length > 0 && (file.type === 'change' || file.type === 'rename' || file.type === 'copy');
+      entry.hunks.length > 0 && file.type !== 'added' && file.type !== 'deleted';
   }
 
   gaps(entry: DiffFileEntry): Gap[] {
-    return this.isExpandable(entry) ? gapsOf(entry.hunks, entry.content?.new.length ?? null) : [];
+    entry.gaps ??= this.isExpandable(entry) ? gapsOf(entry.hunks, entry.content?.new.length ?? null) : [];
+    return entry.gaps;
   }
 
   // the gap a line is hidden in, comments on hidden lines show up when their gap gets expanded
@@ -240,10 +242,9 @@ export class DiffViewer {
     const buttons = new Map<number, string>();
     for (const gap of gaps) {
       const directions = expandDirections(gap, entry.hunks.length);
-      const directionAttr = directions.length === 2 ? 'updown' : directions[0] === 'all' ? 'single' : directions[0];
       const commentCount = hiddenComments.get(gap.index);
       const badge = commentCount ? html`<span class="code-comment-more" data-tooltip-content="${trN(commentCount, this.locale.numComments1, this.locale.numComments)}">${commentCount}</span>` : '';
-      buttons.set(gap.index, html`<div class="code-expander-buttons" data-expand-direction="${directionAttr}">${htmlRaw(badge)}${htmlRaw(directions.map((direction) => html`
+      buttons.set(gap.index, html`<div class="code-expander-buttons"${htmlRaw(directions.length === 2 ? ' data-expand-direction="updown"' : '')}>${htmlRaw(badge)}${htmlRaw(directions.map((direction) => html`
         <button type="button" class="code-expander-button" data-expand="${direction}">${htmlRaw(svg(icons[direction]))}</button>
       `).join(''))}</div>`);
     }
@@ -253,13 +254,21 @@ export class DiffViewer {
   async loadContent(entry: DiffFileEntry): Promise<NonNullable<DiffFileEntry['content']>> {
     if (entry.content) return entry.content;
     const {file} = entry;
-    const fetchLines = async (url: string) => splitLines(await (await fetchOk(url)).text());
+    const fetchLines = async (url: string) => {
+      const response = await fetchOk(url);
+      if (this.config.maxFileSize >= 0 && Number(response.headers.get('content-length')) > this.config.maxFileSize) {
+        await response.body?.cancel();
+        throw new Error(this.locale.fileSuppressed);
+      }
+      return splitLines(await response.text());
+    };
     const [oldLines, newLines] = await Promise.all([
-      this.config.beforeCommitId && file.type !== 'add' ? fetchLines(fileUrl(this.config, 'raw', 'old', file.oldName)) : null,
-      file.type === 'delete' ? [] : fetchLines(fileUrl(this.config, 'raw', 'new', file.name)),
+      this.config.beforeCommitId && file.type !== 'added' ? fetchLines(fileUrl(this.config, 'raw', 'old', file.oldName)) : null,
+      file.type === 'deleted' ? [] : fetchLines(fileUrl(this.config, 'raw', 'new', file.name)),
     ]);
     entry.content = {old: oldLines, new: newLines};
     entry.contentSegments = null;
+    entry.gaps = null; // the tail gap ends at the known line count now
     return entry.content;
   }
 
@@ -304,21 +313,31 @@ export class DiffViewer {
   estimateHeight(entry: DiffFileEntry): number {
     if (entry.folded) return headerHeight;
     if (this.bodyNotice(entry) !== null) return headerHeight + noticeHeight;
-    let rows = hunksLineCount(entry.hunks);
-    if (this.config.isSplit) rows -= this.linePairs(entry).filter((pair) => pair !== -1).length / 2;
-    return headerHeight + rows * lineHeight;
+    return headerHeight + this.rowCount(entry) * lineHeight;
+  }
+
+  // the virtualizer estimates all unmeasured files again whenever a file arrives, so the count is cached
+  rowCount(entry: DiffFileEntry): number {
+    if (entry.rowCount === null) {
+      let rows = hunksLineCount(entry.hunks);
+      if (this.config.isSplit) {
+        for (const pair of this.linePairs(entry)) if (pair !== -1) rows -= 0.5;
+      }
+      entry.rowCount = rows;
+    }
+    return entry.rowCount;
   }
 
   // returns the notice shown instead of the lines, or null if the lines are shown
   bodyNotice(entry: DiffFileEntry): string | null {
     const {file} = entry;
     const {locale} = this;
-    if (entry.missing) return this.truncated ? locale.fileSuppressed : locale.whitespaceOnly;
+    if (entry.missing) return this.streamState === 'complete' ? locale.whitespaceOnly : locale.fileSuppressed;
     if (file.tooLarge) return locale.fileSuppressed;
     if (file.isBinary) return locale.binNotShown;
     if (file.submodule) return '';
     if (entry.hunks.length) return null;
-    if (file.type === 'rename' || file.type === 'copy') return locale.renamedNoChanges;
+    if (file.oldName !== file.name) return locale.renamedNoChanges;
     if (file.oldMode && file.mode) return locale.modeChanged;
     return locale.whitespaceOnly;
   }
@@ -347,7 +366,7 @@ export class DiffViewer {
       } else if (!oldRendered) {
         renderCsvView(entry, rendered, async () => {
           const content = await this.loadContent(entry);
-          return {old: content.old?.join('\n') ?? null, new: entry.file.type === 'delete' ? null : content.new.join('\n')};
+          return {old: content.old?.join('\n') ?? null, new: entry.file.type === 'deleted' ? null : content.new.join('\n')};
         }, this.config.csvMaxFileSize, this.locale);
       }
     }
@@ -374,12 +393,12 @@ export class DiffViewer {
       source.innerHTML = `<table class="chroma">${rows}</table>`;
       return source;
     }
-    if (entry.file.submodule && !entry.missing) {
+    if (entry.file.submodule) {
       source.append(submoduleNotice(entry.file, this.locale));
       return source;
     }
     const noticeEl = createElementFromAttrs('div', {class: 'tw-p-3'}, notice);
-    if (entry.lfsState === 'tooLarge' || (entry.missing ? this.truncated : entry.file.tooLarge)) {
+    if (entry.lfsState === 'tooLarge' || (entry.missing ? this.streamState !== 'complete' : entry.file.tooLarge)) {
       const load = createElementFromAttrs('button', {type: 'button', class: 'ui basic tiny button tw-ml-2'}, this.locale.load);
       load.addEventListener('click', () => {
         if (!entry.file.lfs) {
@@ -448,6 +467,9 @@ export class DiffViewer {
     const files: DiffStreamFile[] = [];
     try {
       await streamDiff(url.href, (file) => { files.push(file) });
+    } catch (error) {
+      showErrorToast(errorMessage(error));
+      return;
     } finally {
       button.classList.remove('is-loading');
     }
@@ -455,6 +477,7 @@ export class DiffViewer {
     // a file beyond the total size limit can't be loaded
     if (!loaded || loaded.tooLarge) {
       button.remove();
+      showErrorToast(this.locale.fileSuppressed);
       return;
     }
     entry.file = loaded;
@@ -476,7 +499,8 @@ export class DiffViewer {
   buildFileElement(entry: DiffFileEntry): HTMLElement {
     const box = buildFileBox(entry, this.config, this.locale, renderedKind(entry, this.config) !== null);
     entry.element = box;
-    setFolded(entry, entry.folded);
+    this.entriesByElement.set(box, entry);
+    applyFolded(entry, entry.folded);
     box.querySelector('.fold-file')!.addEventListener('click', () => this.setFolded(entry, !entry.folded));
     box.querySelector<HTMLInputElement>('.viewed-file-form input')?.addEventListener('change', (e) => {
       this.setViewed(entry, (e.target as HTMLInputElement).checked);
@@ -486,7 +510,7 @@ export class DiffViewer {
   }
 
   setFolded(entry: DiffFileEntry, folded: boolean): void {
-    setFolded(entry, folded);
+    applyFolded(entry, folded);
     if (folded && entry.element && entry.element.getBoundingClientRect().top < 0) {
       const index = this.visibleEntries.indexOf(entry);
       if (index >= 0) this.virtualizer?.scrollToIndex(index, {align: 'start'});
@@ -494,7 +518,7 @@ export class DiffViewer {
   }
 
   setAllFolded(folded: boolean): void {
-    for (const entry of this.entries) setFolded(entry, folded);
+    for (const entry of this.entries) applyFolded(entry, folded);
     this.virtualizer?.measure();
   }
 
@@ -505,8 +529,12 @@ export class DiffViewer {
     this.setFolded(entry, viewed);
     diffTreeStoreSetViewed(diffTreeStore(), entry.file.name, viewed);
     updateViewedFilesSummary(viewed ? 1 : -1);
-    const response = await POST(`${this.config.issueLink}/viewed-files`, {data: {files: {[entry.file.name]: viewed}, headCommitSHA: this.config.afterCommitId}});
-    if (!response.ok) throw new Error(`Failed to update the viewed state: ${response.status}`);
+    try {
+      const response = await POST(`${this.config.issueLink}/viewed-files`, {data: {files: {[entry.file.name]: viewed}, headCommitSHA: this.config.headCommitId}});
+      if (!response.ok) throw new Error(`Failed to update the viewed state: ${response.status}`);
+    } catch (error) {
+      showErrorToast(errorMessage(error));
+    }
   }
 
   async scrollToComment(commentId: number): Promise<void> {
@@ -515,9 +543,15 @@ export class DiffViewer {
     const entry = this.findEntry(comment.path);
     const index = entry ? this.visibleEntries.indexOf(entry) : -1;
     if (!entry || index < 0) return;
-    if (entry.folded) setFolded(entry, false);
+    if (entry.folded) applyFolded(entry, false);
     const gap = this.hiddenGap(entry, comment.side, comment.line);
-    if (gap) await this.expand(entry, gap.index, 'all');
+    if (gap) {
+      try {
+        await this.expand(entry, gap.index, 'all');
+      } catch (error) {
+        showErrorToast(errorMessage(error));
+      }
+    }
     const first = this.comments!.threadOf(comment)?.comments[0];
     if (first?.resolved && !this.comments!.expandedThreads.has(first.id)) {
       this.comments!.expandedThreads.add(first.id);
@@ -536,7 +570,7 @@ export class DiffViewer {
   }
 
   async expandByButton(button: HTMLElement): Promise<void> {
-    const entry = this.entriesByName.get(button.closest('.diff-file-box')!.getAttribute('data-new-filename')!)!;
+    const entry = this.entriesByElement.get(button.closest<HTMLElement>('.diff-file-box')!)!;
     button.classList.add('is-loading');
     try {
       await this.expand(entry, Number(button.closest('tr')!.getAttribute('data-hunk')), button.getAttribute('data-expand') as ExpandDirection);
@@ -554,21 +588,20 @@ export class DiffViewer {
       return;
     }
     if (!this.comments) return;
-    const row = target.closest<HTMLElement>('tr[data-line-type="same"], tr[data-line-type="add"], tr[data-line-type="del"]');
+    const row = target.closest<HTMLElement>('tr[data-line-type]:not([data-line-type="tag"])');
     const box = target.closest<HTMLElement>('.diff-file-box');
     if (!row || !box) return;
     let side: DiffSide;
-    const addButton = target.closest('.add-code-comment');
-    if (addButton) {
-      side = addButton.getAttribute('data-side') as DiffSide;
-    } else if (target.closest('.lines-num-old:not([data-line-num=""])')) {
-      side = 'old';
+    if (target.closest('.add-code-comment, .lines-num-old:not([data-line-num=""])')) {
+      side = target.closest('.add-code-comment')?.getAttribute('data-side') as DiffSide ?? 'old';
     } else if (target.closest('.lines-num-new:not([data-line-num=""])')) {
       side = 'new';
     } else {
       return;
     }
-    this.comments.openDraft({path: box.getAttribute('data-new-filename')!, side, line: Number(row.getAttribute(`data-${side}`))});
+    // the line numbers open what the side's button would, there is none for read-only diffs or the old side of expanded lines
+    if (!row.querySelector(`.add-code-comment[data-side="${CSS.escape(side)}"]`)) return;
+    this.comments.openDraft({path: this.entriesByElement.get(box)!.file.name, side, line: Number(row.getAttribute(`data-${side}`))});
   }
 
   createVirtualizer(): Virtualizer<Window, HTMLElement> {
@@ -656,7 +689,9 @@ export class DiffViewer {
     const hash = window.location.hash.slice(1);
     const commentId = /^issuecomment-(\d+)$/.exec(hash)?.[1];
     if (commentId) {
-      if (!this.comments?.byId.has(Number(commentId))) return;
+      const comment = this.comments?.byId.get(Number(commentId));
+      const entry = comment && this.findEntry(comment.path);
+      if (!entry || !this.visibleEntries.includes(entry)) return; // its file may still be streaming
       this.hashPending = false;
       // when the comment is shown, the browser has scrolled to it already, otherwise it may be collapsed or not rendered yet
       const commentEl = document.querySelector<HTMLElement>(`#${CSS.escape(hash)}`);
@@ -667,7 +702,7 @@ export class DiffViewer {
     if (index < 0) return;
     this.hashPending = false;
     const entry = this.visibleEntries[index];
-    if (entry.folded) setFolded(entry, false);
+    if (entry.folded) applyFolded(entry, false);
     this.virtualizer?.scrollToIndex(index, {align: 'start'});
   }
 }

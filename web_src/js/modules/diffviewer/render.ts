@@ -88,13 +88,24 @@ function addButton(opts: RowRenderOptions, side: DiffSide): string {
   return html`<button type="button" class="ui primary button add-code-comment" data-side="${side}" aria-label="${opts.addCommentLabel}">${htmlRaw(svg('octicon-plus'))}</button>`;
 }
 
+// the row of a hunk header, with the expand buttons of the gap above it, the tail gap has an empty header
+function hunkRow(hunkIdx: number, header: string, isSplit: boolean, opts: RowRenderOptions): string {
+  const cells = isSplit ?
+    html`<td class="lines-num lines-num-old">${htmlRaw(opts.expanders.get(hunkIdx) ?? '')}</td><td class="lines-escape lines-escape-old"></td><td colspan="6" class="chroma lines-code lines-code-old"><code class="code-inner">${header}</code></td>` :
+    html`<td colspan="2" class="lines-num">${htmlRaw(opts.expanders.get(hunkIdx) ?? '')}</td><td class="lines-escape"></td><td class="lines-type-marker"><span class="tw-font-mono" data-type-marker=""></span></td><td class="chroma lines-code blob-hunk"><code class="code-inner">${header}</code></td>`;
+  return html`<tr class="tag-code" data-line-type="tag" data-hunk="${hunkIdx}">${htmlRaw(cells)}</tr>`;
+}
+
+function tailRow(hunks: DiffHunk[], isSplit: boolean, opts: RowRenderOptions): string {
+  return opts.expanders.has(hunks.length) ? hunkRow(hunks.length, '', isSplit, opts) : '';
+}
+
 // lineHtml holds the content of all lines in hunk order
 export function renderUnifiedRows(hunks: DiffHunk[], lineHtml: string[], opts: RowRenderOptions): string {
-  const tagRow = (hunkIdx: number, header: string) => html`<tr class="tag-code" data-line-type="tag" data-hunk="${hunkIdx}"><td colspan="2" class="lines-num">${htmlRaw(opts.expanders.get(hunkIdx) ?? '')}</td><td class="lines-escape"></td><td class="lines-type-marker"><span class="tw-font-mono" data-type-marker=""></span></td><td class="chroma lines-code blob-hunk"><code class="code-inner">${header}</code></td></tr>`;
   let out = '';
   let idx = 0;
   for (const [hunkIdx, hunk] of hunks.entries()) {
-    out += tagRow(hunkIdx, hunk.header);
+    out += hunkRow(hunkIdx, hunk.header, false, opts);
     for (const line of hunk.lines) {
       const oldNum = line.oldNum || '';
       const newNum = line.newNum || '';
@@ -104,8 +115,7 @@ export function renderUnifiedRows(hunks: DiffHunk[], lineHtml: string[], opts: R
         `<td class="chroma lines-code${line.type === 'del' ? ' lines-code-old' : ''}">${addButton(opts, line.newNum ? 'new' : 'old')}<code class="code-inner">${lineHtml[idx++]}</code></td></tr>`;
     }
   }
-  if (opts.expanders.has(hunks.length)) out += tagRow(hunks.length, '');
-  return out;
+  return out + tailRow(hunks, false, opts);
 }
 
 function splitHalf(side: DiffSide, line: DiffLine | null, lineIdx: number, content: string, cellClass: string, opts: RowRenderOptions): string {
@@ -114,16 +124,16 @@ function splitHalf(side: DiffSide, line: DiffLine | null, lineIdx: number, conte
   return `<td class="lines-num lines-num-${side}${cellClass}" data-line-num="${num}"></td>` +
     `<td class="lines-escape lines-escape-${side}${cellClass}">${line ? opts.escapeButtons[lineIdx] : ''}</td>` +
     `<td class="lines-type-marker lines-type-marker-${side}${cellClass}">${marker}</td>` +
-    `<td class="chroma lines-code lines-code-${side}${cellClass}">${line ? addButton(opts, side) : ''}<code class="code-inner">${content}</code></td>`;
+    // like the legacy excerpts, expanded lines are only commented on the new side
+    `<td class="chroma lines-code lines-code-${side}${cellClass}">${line && !(side === 'old' && line.expanded) ? addButton(opts, side) : ''}<code class="code-inner">${content}</code></td>`;
 }
 
 // a deleted line and its paired added line share a row
 export function renderSplitRows(hunks: DiffHunk[], lineHtml: string[], pairs: Int32Array, opts: RowRenderOptions): string {
-  const tagRow = (hunkIdx: number, header: string) => html`<tr class="tag-code" data-line-type="tag" data-hunk="${hunkIdx}"><td class="lines-num lines-num-old">${htmlRaw(opts.expanders.get(hunkIdx) ?? '')}</td><td class="lines-escape lines-escape-old"></td><td colspan="6" class="chroma lines-code lines-code-old"><code class="code-inner">${header}</code></td></tr>`;
   let out = '';
   let idx = 0;
   for (const [hunkIdx, hunk] of hunks.entries()) {
-    out += tagRow(hunkIdx, hunk.header);
+    out += hunkRow(hunkIdx, hunk.header, true, opts);
     const base = idx;
     for (const line of hunk.lines) {
       const lineIdx = idx++;
@@ -147,6 +157,5 @@ export function renderSplitRows(hunks: DiffHunk[], lineHtml: string[], pairs: In
       }</tr>`;
     }
   }
-  if (opts.expanders.has(hunks.length)) out += tagRow(hunks.length, '');
-  return out;
+  return out + tailRow(hunks, true, opts);
 }

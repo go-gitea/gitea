@@ -15,7 +15,7 @@ export function fileUrl(config: DiffViewerConfig, view: 'src' | 'raw' | 'media',
   return `${config.repoLink}/${view}/commit/${encodeURIComponent(commitId)}/${pathEscapeSegments(path)}`;
 }
 
-export function setFolded(entry: DiffFileEntry, folded: boolean) {
+export function applyFolded(entry: DiffFileEntry, folded: boolean) {
   entry.folded = folded;
   const box = entry.element;
   if (!box) return;
@@ -46,8 +46,8 @@ function fileMenuHtml(entry: DiffFileEntry, config: DiffViewerConfig, locale: Di
   }
   items += html`<button type="button" class="item" data-clipboard-text="${basename(file.name)}">${locale.copyFilename}</button>`;
   if (config.repoLink) {
-    items += html`<a class="item" rel="nofollow" href="${fileUrl(config, 'src', file.type === 'delete' ? 'old' : 'new', file.name)}">${locale.viewFile}</a>`;
-    if (file.type !== 'delete' && config.editFileLink) {
+    items += html`<a class="item" rel="nofollow" href="${fileUrl(config, 'src', file.type === 'deleted' ? 'old' : 'new', file.name)}">${locale.viewFile}</a>`;
+    if (file.type !== 'deleted' && config.editFileLink) {
       const returnUri = encodeURIComponent(`${config.editReturnUri}#diff-${file.nameHash}`);
       items += html`<a class="item" rel="nofollow" href="${config.editFileLink}${pathEscapeSegments(file.name)}?return_uri=${returnUri}">${locale.editFile}</a>`;
     }
@@ -58,7 +58,7 @@ function fileMenuHtml(entry: DiffFileEntry, config: DiffViewerConfig, locale: Di
 export function buildFileBox(entry: DiffFileEntry, config: DiffViewerConfig, locale: DiffViewerLocale, hasRenderedView: boolean): HTMLElement {
   const {file} = entry;
   const treeItem = diffTreeStore().fullNameMap[file.name];
-  const fileName = file.type === 'rename' || file.type === 'copy' ? `${file.oldName} → ${file.name}` : file.name;
+  const fileName = file.oldName !== file.name ? `${file.oldName} → ${file.name}` : file.name;
   const lines = entry.hunks.flatMap((hunk) => hunk.lines);
   const additions = lines.filter((line) => line.type === 'add').length;
   const deletions = lines.filter((line) => line.type === 'del').length;
@@ -117,9 +117,9 @@ export function submoduleNotice(file: DiffStreamFile, locale: DiffViewerLocale):
   const shortSha = (sha = '') => sha.substring(0, 10);
   const nameHtml = link(submodule!.repoLink, name);
   let message: string;
-  if (type === 'delete') {
+  if (type === 'deleted') {
     message = trString(locale.submoduleDeleted, nameHtml, link(submodule!.oldLink, shortSha(submodule!.oldCommit)));
-  } else if (type === 'add') {
+  } else if (type === 'added') {
     message = trString(locale.submoduleAdded, nameHtml, link(submodule!.newLink, shortSha(submodule!.newCommit)));
   } else {
     const range = `${shortSha(submodule!.oldCommit)}...${shortSha(submodule!.newCommit)}`;

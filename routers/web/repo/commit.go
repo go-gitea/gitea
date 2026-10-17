@@ -280,15 +280,16 @@ func Diff(ctx *context.Context) {
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.PathParam("sha")
-	isWiki := ctx.Data["PageIsWiki"] != nil
 	gitRepo := ctx.Repo.GitRepo // don't access ctx.Repo.GitRepo anymore, because it might not be right for wiki repo
-	if isWiki {
+	viewerOpts := diffViewerOptions{streamPath: ctx.Repo.RepoLink + "/diff/stream", gitRepoLink: ctx.Repo.RepoLink}
+	if ctx.Data["PageIsWiki"] != nil {
 		var err error
 		gitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
 		}
+		viewerOpts = diffViewerOptions{streamPath: ctx.Repo.RepoLink + "/wiki/diff/stream"} // the wiki has no file pages to link
 	}
 
 	commit, err := gitRepo.GetCommit(ctx, commitID)
@@ -349,17 +350,8 @@ func Diff(ctx *context.Context) {
 	}
 	prepareDiffFileTree(ctx, diffTree, nil)
 
-	viewerOpts := diffViewerOptions{
-		streamPath:     ctx.Repo.RepoLink + "/diff/stream",
-		streamQuery:    url.Values{"after": {commitID}},
-		gitRepoLink:    ctx.Repo.RepoLink,
-		beforeCommitID: parentCommitID,
-		afterCommitID:  commitID,
-	}
-	if isWiki {
-		viewerOpts.streamPath = ctx.Repo.RepoLink + "/wiki/diff/stream"
-		viewerOpts.gitRepoLink = ""
-	}
+	viewerOpts.streamQuery = url.Values{"after": {commitID}}
+	viewerOpts.beforeCommitID, viewerOpts.afterCommitID = parentCommitID, commitID
 	prepareDiffViewer(ctx, viewerOpts)
 
 	statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)

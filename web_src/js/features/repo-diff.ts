@@ -40,13 +40,7 @@ export function initRepoDiffConversationForm() {
       const response = await POST(url, {data: new URLSearchParams({origin, action, comment_id})});
       const data = await response.text();
 
-      const elConversationHolder = el.closest('.conversation-holder');
-      if (elConversationHolder) {
-        const elNewConversation = createElementFromHTML(data);
-        elConversationHolder.replaceWith(elNewConversation);
-      } else {
-        window.location.reload();
-      }
+      el.closest('.conversation-holder')!.replaceWith(createElementFromHTML(data));
     } catch (error) {
       console.error('Error:', error);
     }

@@ -143,25 +143,31 @@ async function loadContentHistoryOverview(issueBaseUrl: string): Promise<Record<
 
 let editedHistoryOverview: ReturnType<typeof loadContentHistoryOverview> | null = null;
 
-// for comments rendered after the page has loaded
-export async function showContentHistoryMenuIfEdited(elComment: Element, commentId: number) {
+// the overview of the issue is loaded once, null outside of issue pages
+function getEditedHistoryOverview(): {issueBaseUrl: string; overview: ReturnType<typeof loadContentHistoryOverview>} | null {
   const issuePageInfo = parseIssuePageInfo();
-  if (!issuePageInfo.issueNumber) return;
+  if (!issuePageInfo.issueNumber) return null;
   const issueBaseUrl = `${issuePageInfo.repoLink}/issues/${issuePageInfo.issueNumber}`;
   editedHistoryOverview ??= loadContentHistoryOverview(issueBaseUrl);
-  if ((await editedHistoryOverview)?.[commentId]) showContentHistoryMenu(issueBaseUrl, elComment, String(commentId));
+  return {issueBaseUrl, overview: editedHistoryOverview};
+}
+
+// for comments rendered after the page has loaded
+export async function showContentHistoryMenuIfEdited(elComment: Element, commentId: number) {
+  const edited = getEditedHistoryOverview();
+  if (edited && (await edited.overview)?.[commentId]) showContentHistoryMenu(edited.issueBaseUrl, elComment, String(commentId));
 }
 
 export async function initRepoIssueContentHistory() {
-  const issuePageInfo = parseIssuePageInfo();
-  if (!issuePageInfo.issueNumber) return;
+  const edited = getEditedHistoryOverview();
+  if (!edited) return;
 
   const elIssueDescription = document.querySelector('.repository.issue .timeline-item.comment.issue-content-comment'); // issue(PR) main content
   const elComments = document.querySelectorAll('.repository.issue .comment-list .comment'); // includes: issue(PR) comments, review comments, code comments
   if (!elIssueDescription && !elComments.length) return;
 
-  const issueBaseUrl = `${issuePageInfo.repoLink}/issues/${issuePageInfo.issueNumber}`;
-  const editedHistoryCountMap = await loadContentHistoryOverview(issueBaseUrl);
+  const {issueBaseUrl} = edited;
+  const editedHistoryCountMap = await edited.overview;
   if (!editedHistoryCountMap) return;
   if (editedHistoryCountMap[0] && elIssueDescription) {
     showContentHistoryMenu(issueBaseUrl, elIssueDescription, '0');

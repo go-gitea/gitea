@@ -39,14 +39,17 @@ func SourceCommitURL(owner, name string, commit *git.Commit) string {
 	return setting.AppSubURL + "/" + url.PathEscape(owner) + "/" + url.PathEscape(name) + "/src/commit/" + url.PathEscape(commit.ID.String())
 }
 
+func newComparePageInfo() *comparePageInfoType {
+	return &comparePageInfoType{}
+}
+
 type comparePageInfoType struct {
 	compareInfo      *git_service.CompareInfo
 	nothingToCompare bool
 	allowCreatePull  bool
-}
-
-func newComparePageInfo() *comparePageInfoType {
-	return &comparePageInfoType{}
+	rootRepo         *repo_model.Repository // the base repo was forked from it
+	ownForkRepo      *repo_model.Repository // the doer's fork of the base repo
+	fileOnly         bool                   // only the diff is needed, not the commits
 }
 
 // parseCompareInfo parse compare info between two commit for preparing comparing references
@@ -118,72 +121,29 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 
 	// 1. First if the baseRepo is a fork get the "RootRepo" it was
 	// forked from
-	var rootRepo *repo_model.Repository
 	if baseRepo.IsFork {
 		err = baseRepo.GetBaseRepo(ctx)
 		if err != nil && !repo_model.IsErrRepoNotExist(err) {
 			return err
 		} else if err == nil {
-			rootRepo = baseRepo.BaseRepo
+			cpi.rootRepo = baseRepo.BaseRepo
 		}
 	}
 
 	// 2. Now if the current user is not the owner of the baseRepo,
 	// check if they have a fork of the base repo and offer that as
 	// "OwnForkRepo"
-	var ownForkRepo *repo_model.Repository
 	if ctx.Doer != nil && baseRepo.OwnerID != ctx.Doer.ID {
-		repo := repo_model.GetForkedRepo(ctx, ctx.Doer.ID, baseRepo.ID)
-		if repo != nil {
-			ownForkRepo = repo
-			ctx.Data["OwnForkRepo"] = ownForkRepo
+		cpi.ownForkRepo = repo_model.GetForkedRepo(ctx, ctx.Doer.ID, baseRepo.ID)
+		if cpi.ownForkRepo != nil {
+			ctx.Data["OwnForkRepo"] = cpi.ownForkRepo
 		}
 	}
 
 	ctx.Data["HeadRepo"] = headRepo
 	ctx.Data["BaseCompareRepo"] = ctx.Repo.Repository
 
-	// If we have a rootRepo, and it's different from:
-	// 1. the computed base
-	// 2. the computed head
-	// then get the branches of it
-	if rootRepo != nil &&
-		rootRepo.ID != headRepo.ID &&
-		rootRepo.ID != baseRepo.ID {
-		canRead := access_model.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
-		if canRead {
-			ctx.Data["RootRepo"] = rootRepo
-			branches, tags, err := getBranchesAndTagsForRepo(ctx, rootRepo)
-			if err != nil {
-				return err
-			}
-			ctx.Data["RootRepoBranches"] = branches
-			ctx.Data["RootRepoTags"] = tags
-		}
-	}
-
-	// If we have a ownForkRepo, and it's different from:
-	// 1. The computed base
-	// 2. The computed head
-	// 3. The rootRepo (if we have one)
-	// then get the branches from it.
-	if ownForkRepo != nil &&
-		ownForkRepo.ID != headRepo.ID &&
-		ownForkRepo.ID != baseRepo.ID &&
-		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		canRead := access_model.CheckRepoUnitUser(ctx, ownForkRepo, ctx.Doer, unit.TypeCode)
-		if canRead {
-			ctx.Data["OwnForkRepo"] = ownForkRepo
-			branches, tags, err := getBranchesAndTagsForRepo(ctx, ownForkRepo)
-			if err != nil {
-				return err
-			}
-			ctx.Data["OwnForkRepoBranches"] = branches
-			ctx.Data["OwnForkRepoTags"] = tags
-		}
-	}
-
-	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison())
+	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), cpi.fileOnly)
 	if err != nil {
 		return err
 	}
@@ -321,10 +281,8 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 
 	ctx.Data["title"], ctx.Data["content"] = prepareNewPullRequestTitleContent(ci, commits, setting.Repository.PullRequest.DefaultTitleSource)
 
-	// the diff runs in the head repo, which has the base commit too (see GetCompareInfo)
 	prepareDiffViewer(ctx, diffViewerOptions{
-		streamPath:     ci.HeadRepo.Link() + "/diff/stream",
-		streamQuery:    url.Values{"before": {beforeCommitID}, "after": {headCommitID}},
+		streamPath:     ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.PathParam("*")) + "/diff/stream",
 		gitRepoLink:    ci.HeadRepo.Link(),
 		beforeCommitID: beforeCommitID,
 		afterCommitID:  headCommitID,
@@ -347,18 +305,71 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 	return branches, tags, nil
 }
 
-// CompareDiff show different from one commit to another commit
-func CompareDiff(ctx *context.Context) {
+func parseComparePageInfo(ctx *context.Context, compareParam string, fileOnly bool) *comparePageInfoType {
 	comparePageInfo := newComparePageInfo()
-	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
+	comparePageInfo.fileOnly = fileOnly
+	err := comparePageInfo.parseCompareInfo(ctx, compareParam)
 	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 		ctx.NotFound(nil)
-		return
+		return nil
 	} else if err != nil {
 		ctx.ServerError("ParseCompareInfo", err)
+		return nil
+	}
+	return comparePageInfo
+}
+
+// prepareRefLists loads the branches and tags of the other repos the page offers to compare, if they differ from the base and head
+func (cpi *comparePageInfoType) prepareRefLists(ctx *context.Context) error {
+	baseRepo, headRepo := cpi.compareInfo.BaseRepo, cpi.compareInfo.HeadRepo
+	if rootRepo := cpi.rootRepo; rootRepo != nil && rootRepo.ID != headRepo.ID && rootRepo.ID != baseRepo.ID &&
+		access_model.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode) {
+		ctx.Data["RootRepo"] = rootRepo
+		branches, tags, err := getBranchesAndTagsForRepo(ctx, rootRepo)
+		if err != nil {
+			return err
+		}
+		ctx.Data["RootRepoBranches"] = branches
+		ctx.Data["RootRepoTags"] = tags
+	}
+	if ownForkRepo := cpi.ownForkRepo; ownForkRepo != nil && ownForkRepo.ID != headRepo.ID && ownForkRepo.ID != baseRepo.ID &&
+		(cpi.rootRepo == nil || ownForkRepo.ID != cpi.rootRepo.ID) && access_model.CheckRepoUnitUser(ctx, ownForkRepo, ctx.Doer, unit.TypeCode) {
+		ctx.Data["OwnForkRepo"] = ownForkRepo
+		branches, tags, err := getBranchesAndTagsForRepo(ctx, ownForkRepo)
+		if err != nil {
+			return err
+		}
+		ctx.Data["OwnForkRepoBranches"] = branches
+		ctx.Data["OwnForkRepoTags"] = tags
+	}
+	return nil
+}
+
+// CompareDiffStream streams the diff of the compare page, the base commit is fetched into the head repo again if it was pruned meanwhile
+func CompareDiffStream(ctx *context.Context) {
+	comparePageInfo := parseComparePageInfo(ctx, ctx.PathParam("basehead"), true)
+	if ctx.Written() {
 		return
 	}
 	ci := comparePageInfo.compareInfo
+	serveDiffStream(ctx, ci.HeadGitRepo, gitdiff.DiffStreamOptions{
+		DiffCommonOptions: gitdiff.DiffCommonOptions{BeforeCommitID: ci.CompareBase, AfterCommitID: ci.HeadCommitID},
+		RepoID:            ci.HeadRepo.ID,
+		RepoLink:          ci.HeadRepo.Link(),
+	}, nil)
+}
+
+// CompareDiff show different from one commit to another commit
+func CompareDiff(ctx *context.Context) {
+	comparePageInfo := parseComparePageInfo(ctx, ctx.PathParam("*"), false)
+	if ctx.Written() {
+		return
+	}
+	ci := comparePageInfo.compareInfo
+	if err := comparePageInfo.prepareRefLists(ctx); err != nil {
+		ctx.ServerError("prepareRefLists", err)
+		return
+	}
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["CompareInfo"] = ci

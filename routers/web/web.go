@@ -1295,11 +1295,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.TreeViewNodes)
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeViewNodes)
 		})
-		m.Get("/diff/stream", repo.MustBeNotEmpty, repo.SetWhitespaceBehavior, repo.DiffStream)
+		m.Get("/diff/stream", repo.MustBeNotEmpty, repo.DiffStream)
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.PathGroup("/compare/*", func(g *web.RouterPathGroup) {
 			g.MatchPath("GET", "/<basehead:*>.diff", repo.MustBeNotEmpty, repo.DownloadCompareDiff)
 			g.MatchPath("GET", "/<basehead:*>.patch", repo.MustBeNotEmpty, repo.DownloadComparePatch)
+			g.MatchPath("GET", "/<basehead:*>/diff/stream", repo.MustBeNotEmpty, repo.CompareDiffStream)
 			g.MatchPath("GET", "/<*:*>", repo.MustBeNotEmpty, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 			g.MatchPath("POST", "/<*:*>", repo.MustBeNotEmpty, reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind[*forms.CreateIssueForm](), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 		})
@@ -1605,7 +1606,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			Post(context.RepoMustNotBeArchived(), reqSignIn, reqUnitWikiWriter, repo.WikiPost)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}", repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}.{ext:patch|diff}", repo.RawDiff)
-		m.Get("/diff/stream", repo.SetWhitespaceBehavior, repo.WikiDiffStream)
+		m.Get("/diff/stream", repo.WikiDiffStream)
 		m.Get("/raw/*", repo.WikiRaw)
 	}, optSignIn, context.RepoAssignment, repo.MustEnableWiki, reqUnitWikiReader, func(ctx *context.Context) {
 		ctx.Data["PageIsWiki"] = true
@@ -1658,8 +1659,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("/files", func() {
 				m.Get("", repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
 				m.Get("/{shaFrom:[a-f0-9]{7,64}}..{shaTo:[a-f0-9]{7,64}}", repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
-				m.Get("/stream", repo.SetWhitespaceBehavior, repo.PullFilesStream)
-				m.Get("/comments", repo.SetShowOutdatedComments, repo.PullFilesComments)
+				m.Get("/stream", repo.PullFilesStream)
+				m.Get("/comments", repo.PullFilesComments)
 				m.Group("/reviews", func() {
 					m.Post("/comments", web.Bind[*forms.CodeCommentForm](), repo.CreateCodeComment)
 					m.Post("/submit", web.Bind[*forms.SubmitReviewForm](), repo.SubmitReview)

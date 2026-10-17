@@ -25,6 +25,7 @@ type diffViewerConfig struct {
 	RepoLink         string `json:"repoLink,omitempty"` // to browse the commits, empty for the wiki which can't
 	BeforeCommitID   string `json:"beforeCommitId,omitempty"`
 	AfterCommitID    string `json:"afterCommitId"`
+	HeadCommitID     string `json:"headCommitId,omitempty"` // new comments are attached to it, even when older commits are shown
 	EditFileLink     string `json:"editFileLink,omitempty"` // the file path is appended
 	EditReturnURI    string `json:"editReturnUri,omitempty"`
 	IsSplit          bool   `json:"isSplit"`
@@ -44,6 +45,9 @@ type diffViewerOptions struct {
 }
 
 func prepareDiffViewer(ctx *context.Context, opts diffViewerOptions) *diffViewerConfig {
+	if opts.streamQuery == nil {
+		opts.streamQuery = url.Values{}
+	}
 	// the stream uses the same whitespace option as the page, which isn't persisted for anonymous users
 	opts.streamQuery.Set("whitespace", GetWhitespaceBehavior(ctx))
 	config := &diffViewerConfig{
@@ -61,60 +65,48 @@ func prepareDiffViewer(ctx *context.Context, opts diffViewerOptions) *diffViewer
 	return config
 }
 
-// serveDiffStream writes the files of a diff as newline-delimited JSON, the last line tells whether the diff was truncated
-func serveDiffStream(ctx *context.Context, gitRepo *git.Repository, repoID int64, repoLink, beforeCommitID, afterCommitID string, decorate func(*gitdiff.DiffStreamFile)) {
-	if afterCommitID == "" {
+// serveDiffStream writes the files of a diff as newline-delimited JSON, the last line tells whether the diff was truncated.
+// The options name the commits and the repo, the request selects the files and whether a file is loaded beyond the size limit.
+func serveDiffStream(ctx *context.Context, gitRepo *git.Repository, opts gitdiff.DiffStreamOptions, decorate func(*gitdiff.DiffStreamFile)) {
+	if opts.AfterCommitID == "" {
 		ctx.NotFound(nil)
 		return
 	}
-	for _, commitID := range []string{beforeCommitID, afterCommitID} {
-		if commitID == "" {
-			continue
-		}
-		if _, err := gitRepo.GetCommit(ctx, commitID); err != nil {
-			if git.IsErrNotExist(err) {
-				ctx.NotFound(err)
-			} else {
-				ctx.ServerError("GetCommit", err)
-			}
-			return
-		}
-	}
-
-	opts := &gitdiff.DiffStreamOptions{
-		DiffCommonOptions: gitdiff.DiffCommonOptions{
-			BeforeCommitID:     beforeCommitID,
-			AfterCommitID:      afterCommitID,
-			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(GetWhitespaceBehavior(ctx)),
-		},
-		Files:       ctx.FormStrings("files"),
-		MaxSize:     setting.Git.MaxDiffViewSize,
-		MaxFileSize: util.Iif(ctx.FormBool("full"), -1, setting.Git.MaxDiffViewFileSize),
-		RepoID:      repoID,
-		RepoLink:    repoLink,
-	}
+	opts.WhitespaceBehavior = gitdiff.GetWhitespaceFlag(ctx.FormString("whitespace")) // the page's option, see prepareDiffViewer
+	opts.Files = ctx.FormStrings("files")
+	opts.MaxSize = setting.Git.MaxDiffViewSize
+	opts.MaxFileSize = util.Iif(ctx.FormBool("full") && len(opts.Files) > 0, -1, setting.Git.MaxDiffViewFileSize)
 	ec, _, _ := ctx.Repo.GetEditorconfig(ctx)
-	ctx.Resp.Header().Set("Content-Type", "application/x-ndjson")
-	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 	writeLine := func(v any) error {
 		line, err := json.Marshal(v)
 		if err != nil {
 			return err
 		}
-		_, err = ctx.Resp.Write(append(line, '\n'))
-		return err
-	}
-	truncated, err := gitdiff.StreamDiff(ctx, gitRepo, opts, func(file *gitdiff.DiffStreamFile) error {
-		file.TabSize = templates.TabWidth(ec, file.Name)
-		if decorate != nil {
-			decorate(file)
+		if !ctx.Written() {
+			ctx.Resp.Header().Set("Content-Type", "application/x-ndjson")
+			ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 		}
-		if err := writeLine(file); err != nil {
+		if _, err = ctx.Resp.Write(append(line, '\n')); err != nil {
 			return err
 		}
 		ctx.Resp.Flush()
 		return nil
+	}
+	truncated, err := gitdiff.StreamDiff(ctx, gitRepo, &opts, func(file *gitdiff.DiffStreamFile) error {
+		file.TabSize = templates.TabWidth(ec, file.Name)
+		if decorate != nil {
+			decorate(file)
+		}
+		return writeLine(file)
 	})
+	if err != nil && !ctx.Written() { // a failure before the first file still gets a status
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("StreamDiff", err)
+		}
+		return
+	}
 	if err != nil && ctx.Err() == nil { // not when the client has left
 		log.Error("serveDiffStream: %v", err)
 	}
@@ -123,7 +115,11 @@ func serveDiffStream(ctx *context.Context, gitRepo *git.Repository, repoID int64
 
 // DiffStream streams the diff between two commits of the repository
 func DiffStream(ctx *context.Context) {
-	serveDiffStream(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.ID, ctx.Repo.RepoLink, ctx.FormString("before"), ctx.FormString("after"), nil)
+	serveDiffStream(ctx, ctx.Repo.GitRepo, gitdiff.DiffStreamOptions{
+		DiffCommonOptions: gitdiff.DiffCommonOptions{BeforeCommitID: ctx.FormString("before"), AfterCommitID: ctx.FormString("after")},
+		RepoID:            ctx.Repo.Repository.ID,
+		RepoLink:          ctx.Repo.RepoLink,
+	}, nil)
 }
 
 // WikiDiffStream streams the diff between two commits of the wiki
@@ -133,7 +129,10 @@ func WikiDiffStream(ctx *context.Context) {
 		ctx.ServerError("RepositoryFromRequestContextOrOpen", err)
 		return
 	}
-	serveDiffStream(ctx, gitRepo, 0, ctx.Repo.RepoLink+"/wiki", ctx.FormString("before"), ctx.FormString("after"), nil)
+	serveDiffStream(ctx, gitRepo, gitdiff.DiffStreamOptions{
+		DiffCommonOptions: gitdiff.DiffCommonOptions{BeforeCommitID: ctx.FormString("before"), AfterCommitID: ctx.FormString("after")},
+		RepoLink:          ctx.Repo.RepoLink + "/wiki",
+	}, nil)
 }
 
 // PullFilesStream streams the diff of a pull request, "from" and "to" select commits like the "files" page URLs
@@ -151,7 +150,11 @@ func PullFilesStream(ctx *context.Context) {
 	if rule != nil {
 		patterns = rule.GetProtectedFilePatterns()
 	}
-	serveDiffStream(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.ID, ctx.Repo.RepoLink, filesRange.beforeCommit.ID.String(), filesRange.afterCommit.ID.String(), func(file *gitdiff.DiffStreamFile) {
+	serveDiffStream(ctx, ctx.Repo.GitRepo, gitdiff.DiffStreamOptions{
+		DiffCommonOptions: gitdiff.DiffCommonOptions{BeforeCommitID: filesRange.beforeCommit.ID.String(), AfterCommitID: filesRange.afterCommit.ID.String()},
+		RepoID:            ctx.Repo.Repository.ID,
+		RepoLink:          ctx.Repo.RepoLink,
+	}, func(file *gitdiff.DiffStreamFile) {
 		file.IsProtected = len(patterns) != 0 && rule.IsProtectedFile(patterns, file.Name)
 	})
 }

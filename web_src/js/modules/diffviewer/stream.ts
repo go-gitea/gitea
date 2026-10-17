@@ -1,4 +1,5 @@
 import {GET} from '../fetch.ts';
+import type {DiffStatus} from '../diff-file.ts';
 
 type DiffStreamLFSObject = {size: number; exists: boolean};
 
@@ -6,7 +7,7 @@ export type DiffStreamFile = {
   name: string;
   oldName: string;
   nameHash: string;
-  type: 'add' | 'change' | 'delete' | 'rename' | 'copy';
+  type: DiffStatus; // added, modified, deleted, renamed or copied
   oldMode?: string;
   mode?: string;
   isBinary?: boolean;
@@ -27,10 +28,15 @@ export type DiffStreamFile = {
 
 type DiffStreamEnd = {end: true; truncated: boolean; failed: boolean};
 
+export async function fetchOk(url: string, headers?: HeadersInit): Promise<Response> {
+  const response = await GET(url, {headers});
+  if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
+  return response;
+}
+
 // reads the newline-delimited JSON written by the server's diff stream, onFile is called as soon as a file arrives
 export async function streamDiff(url: string, onFile: (file: DiffStreamFile) => void): Promise<DiffStreamEnd> {
-  const response = await GET(url);
-  if (!response.ok) throw new Error(`Failed to load the diff: ${response.status}`);
+  const response = await fetchOk(url);
   const reader = response.body!.pipeThrough(new TextDecoderStream()).getReader();
   let pending = '';
   let end: DiffStreamEnd = {end: true, truncated: false, failed: true}; // a missing end line means the stream broke

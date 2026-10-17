@@ -367,7 +367,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillInfo(ctx *context.Context, bas
 func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Context, baseRef git.RefName) {
 	var err error
 	pull := prInfo.issue.PullRequest
-	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseRef, git.RefName(pull.GetGitHeadRefName()), false)
+	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseRef, git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
 		isKnownErrorForBroken := errors.Is(err, util.ErrNotExist) || gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(err, gitcmd.StderrUnknownRevisionOrPath)
 		if !isKnownErrorForBroken {
@@ -745,7 +745,7 @@ func preparePullFilesRange(ctx *context.Context, issue *issues_model.Issue, befo
 	return r
 }
 
-// ViewPullFiles render pull request changed files list page
+// viewPullFiles renders the "files" page of the commit range
 func viewPullFiles(ctx *context.Context, beforeCommitIDParam, afterCommitIDParam string) {
 	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullFiles"] = true
@@ -832,8 +832,9 @@ func viewPullFiles(ctx *context.Context, beforeCommitIDParam, afterCommitIDParam
 		afterCommitID:  afterCommitID,
 	})
 	viewerConfig.IssueLink = issue.Link()
+	viewerConfig.HeadCommitID = filesRange.prViewInfo.CompareInfo.HeadCommitID
 	// like the stream's whitespace option, the setting isn't persisted for anonymous users
-	viewerConfig.CommentsURL = issue.Link() + "/files/comments?show-outdated=" + strconv.FormatBool(GetShowOutdatedComments(ctx))
+	viewerConfig.CommentsURL = issue.Link() + "/files/comments?" + url.Values{"show-outdated": {strconv.FormatBool(GetShowOutdatedComments(ctx))}}.Encode()
 	viewerConfig.CanReviewFiles = ctx.IsSigned && !ctx.Repo.Repository.IsArchived && isShowAllCommits
 
 	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)

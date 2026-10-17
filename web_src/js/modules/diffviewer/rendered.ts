@@ -14,7 +14,7 @@ export function renderedKind(entry: DiffFileEntry, config: DiffViewerConfig): 'i
   if (!config.repoLink || entry.missing || file.tooLarge || file.submodule) return null; // the wiki can't load the files
   if (file.oldImage || file.newImage) return 'image';
   const ext = extname(file.name).toLowerCase();
-  if (!file.isBinary && (ext === '.csv' || ext === '.tsv')) return 'csv';
+  if (!file.isBinary && !file.lfs && (ext === '.csv' || ext === '.tsv')) return 'csv';
   return null;
 }
 

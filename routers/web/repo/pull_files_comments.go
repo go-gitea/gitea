@@ -108,7 +108,7 @@ func PullFilesComments(ctx *context.Context) {
 	}
 	repo := ctx.Repo.Repository
 
-	codeComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, GetShowOutdatedComments(ctx))
+	codeComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show-outdated"))
 	if err != nil {
 		ctx.ServerError("FetchCodeComments", err)
 		return
@@ -162,6 +162,10 @@ func PullFilesComments(ctx *context.Context) {
 			}
 		}
 	}
+
+	slices.SortFunc(data.Comments, func(a, b diffViewerComment) int {
+		return cmp.Or(cmp.Compare(a.Created, b.Created), cmp.Compare(a.ID, b.ID))
+	})
 
 	if data.CanResolve, err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
