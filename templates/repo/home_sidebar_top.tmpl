@@ -12,7 +12,7 @@
 	<div class="flex-relaxed-list">
 		<div class="repo-home-sidebar-header">{{ctx.Locale.Tr "repo.repo_desc"}}</div>
 
-		<div class="repo-description break-anywhere gap-2">
+		<div class="repo-description wrap-anywhere gap-2">
 			{{- $description := .Repository.DescriptionHTML ctx -}}
 			{{if $description}}{{$description | RenderCodeBlock}}{{else}}{{ctx.Locale.Tr "repo.repo_no_desc"}}{{end}}
 		</div>

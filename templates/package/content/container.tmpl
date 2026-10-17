@@ -83,7 +83,7 @@
 				</span>
 			{{end}}
 		</h4>
-		<div class="ui attached segment break-anywhere">
+		<div class="ui attached segment wrap-anywhere">
 			<table class="ui very basic compact table font-mono">
 				<tbody>
 					{{range $imageMetadata.ImageLayers}}
@@ -109,7 +109,7 @@
 					{{range $key, $value := $imageMetadata.Labels}}
 						<tr>
 							<td class="align-top">{{$key}}</td>
-							<td class="break-anywhere">{{$value}}</td>
+							<td class="wrap-anywhere">{{$value}}</td>
 						</tr>
 					{{end}}
 				</tbody>

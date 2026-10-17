@@ -48,7 +48,7 @@
 							<td>{{.ID}}</td>
 							<td>{{template "admin/shared/owner" dict "OwnerUser" $repo.Owner}}</td>
 							<td>
-								<a class="break-anywhere" href="{{.Link}}">{{.Name}}</a>
+								<a class="wrap-anywhere" href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 								{{end}}

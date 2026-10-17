@@ -208,7 +208,7 @@
 						<tbody>
 							{{range .PushMirrors}}
 							<tr>
-								<td class="break-anywhere">{{.RemoteAddress}}</td>
+								<td class="wrap-anywhere">{{.RemoteAddress}}</td>
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.push"}} ({{.Interval}})</td>
 								<td>
 									<span class="flex-text-block">

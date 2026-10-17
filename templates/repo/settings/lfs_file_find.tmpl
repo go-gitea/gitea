@@ -2,7 +2,7 @@
 	<div class="user-main-content twelve wide column content repository file list">
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
-				<a href="{{.LFSFilesLink}}">{{ctx.Locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.Oid}}</span>
+				<a href="{{.LFSFilesLink}}">{{ctx.Locale.Tr "repo.settings.lfs"}}</a> / <span class="sha">{{.Oid}}</span>
 			</h4>
 			<table id="lfs-files-find-table" class="ui attached segment single line table">
 				<tbody>
@@ -13,7 +13,7 @@
 								<a href="{{$.RepoLink}}/src/commit/{{.SHA}}/{{PathEscapeSegments .Name}}" title="{{.Name}}">{{.Name}}</a>
 							</td>
 							<td class="message">
-								<span class="truncate">
+								<span>
 									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{$lfsItem.Summary}}">
 										{{$lfsItem.Summary | ctx.RenderUtils.RenderEmoji}}
 									</a>

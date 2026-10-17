@@ -8,37 +8,7 @@ Gitea's private styles use `g-` prefix.
   display: none !important;
 }
 
-.break-anywhere {
-  overflow-wrap: anywhere !important;
-}
-
-.container:not(.ui) {
-  width: 100% !important;
-}
-
-@media (width >= 40rem) {
-  .container:not(.ui) { max-width: 40rem !important; }
-}
-
-@media (width >= 48rem) {
-  .container:not(.ui) { max-width: 48rem !important; }
-}
-
-@media (width >= 64rem) {
-  .container:not(.ui) { max-width: 64rem !important; }
-}
-
-@media (width >= 80rem) {
-  .container:not(.ui) { max-width: 80rem !important; }
-}
-
-@media (width >= 96rem) {
-  .container:not(.ui) { max-width: 96rem !important; }
-}
-
 .grid:not(.ui) { display: grid !important; }
-.table:not(.ui) { display: table !important; }
-.fixed:not(.ui) { position: fixed !important; }
 
 .gt-ellipsis {
   overflow: hidden !important;

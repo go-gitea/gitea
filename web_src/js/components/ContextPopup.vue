@@ -33,7 +33,7 @@ const body = computed(() => {
       </div>
       <div class="flex-text-block">
         <svg-icon :name="getIssueIcon(issue)" :class="getIssueColorClass(issue)"/>
-        <a :href="issue.html_url" class="issue-title font-semibold break-anywhere muted">
+        <a :href="issue.html_url" class="issue-title font-semibold wrap-anywhere muted">
           {{ issue.title }}
           <span class="index">#{{ issue.number }}</span>
         </a>
