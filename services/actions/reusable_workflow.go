@@ -51,7 +51,6 @@ func checkRunJobLimit(ctx context.Context, runID, attemptID int64, adding int) e
 	return nil
 }
 
-// reusableWorkflowSource is a reusable workflow file and where it was loaded from.
 type reusableWorkflowSource struct {
 	content   []byte
 	repoID    int64
