@@ -54,6 +54,17 @@ func testPullRequestLoadAttributes(t *testing.T) {
 	assert.NoError(t, pr.LoadAttributes(t.Context()))
 	assert.NotNil(t, pr.Merger)
 	assert.Equal(t, pr.MergerID, pr.Merger.ID)
+
+	pr = &issues_model.PullRequest{HasMerged: true}
+	require.NoError(t, pr.LoadAttributes(t.Context()))
+	require.NotNil(t, pr.Merger)
+	assert.True(t, pr.Merger.IsGhost())
+	assert.Equal(t, user_model.GhostUserID, pr.MergerID)
+
+	pr = &issues_model.PullRequest{}
+	require.NoError(t, pr.LoadAttributes(t.Context()))
+	assert.Nil(t, pr.Merger)
+	assert.Zero(t, pr.MergerID)
 }
 
 func testPullRequestLoadIssue(t *testing.T) {
