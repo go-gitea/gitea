@@ -87,6 +87,8 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	GitConfig.Options = make(map[string]string)
 	GitConfig.SetOption("diff.algorithm", "histogram")
 	GitConfig.SetOption("core.logAllRefUpdates", "true")
+	GitConfig.SetOption("maintenance.auto", "false")
+	GitConfig.SetOption("receive.autogc", "false")
 
 	secGitReflog := rootCfg.Section("git.reflog")
 	if secGitReflog.HasKey("ENABLED") {

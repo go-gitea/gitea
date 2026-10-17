@@ -27,6 +27,9 @@ func TestGetFullCommitIDErrorSha256(t *testing.T) {
 }
 
 func TestCommitFromReaderSha256(t *testing.T) {
+	if !DefaultFeatures().SupportHashSha256 {
+		t.Skip("sha256 is not supported")
+	}
 	commitString := `tree e7f9e96dd79c09b078cac8b303a7d3b9d65ff9b734e86060a4d20409fd379f9e
 parent 26e9ccc29fad747e9c5d9f4c9ddeb7eff61cc45ef6a8dc258cbeb181afc055e8
 author Adam Majer <amajer@suse.de> 1698676906 +0100
@@ -95,6 +98,9 @@ signed commit`, commitFromReader.Signature.Payload)
 }
 
 func TestHasPreviousCommitSha256(t *testing.T) {
+	if !DefaultFeatures().SupportHashSha256 {
+		t.Skip("sha256 is not supported")
+	}
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
 
 	repo, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
