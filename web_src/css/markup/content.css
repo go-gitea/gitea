@@ -486,8 +486,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   transition: var(--transition-hover-fade);
 }
 
-/* all rendered code-block elements are in their container,
-the manually written code-block elements on "packages" pages don't have the container */
 .markup .code-block-container:hover .auto-hide-control,
 .markup .code-block:hover .auto-hide-control {
   visibility: visible;
