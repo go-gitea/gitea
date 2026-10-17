@@ -41,7 +41,11 @@ func getPullRequestInfo(p *api.PullRequestPayload) (title, link, by, operator, o
 	}
 	switch p.Action {
 	case api.HookIssueAssigned:
-		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
+		if len(assignList) > 0 {
+			operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
+		} else {
+			operateResult = p.Sender.UserName + " assigned this"
+		}
 	case api.HookIssueUnassigned:
 		operateResult = p.Sender.UserName + " unassigned this for someone"
 	case api.HookIssueMilestoned:
@@ -67,7 +71,11 @@ func getIssuesInfo(p *api.IssuePayload) (issueTitle, link, by, operator, operate
 	}
 	switch p.Action {
 	case api.HookIssueAssigned:
-		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
+		if len(assignList) > 0 {
+			operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
+		} else {
+			operateResult = p.Sender.UserName + " assigned this"
+		}
 	case api.HookIssueUnassigned:
 		operateResult = p.Sender.UserName + " unassigned this for someone"
 	case api.HookIssueMilestoned:
