@@ -65,6 +65,9 @@
 								</span>
 								<span class="time">{{DateUtils.TimeSince $release.PublishedUnix}}</span>
 							{{end}}
+							{{if $release.IsImmutable}}
+								| <span class="flex-text-inline" data-tooltip-content="{{if $release.IsTag}}{{ctx.Locale.Tr "repo.release.tag_name_immutable"}}{{else}}{{ctx.Locale.Tr "repo.release.immutable_locked"}}{{end}}">{{svg "octicon-lock"}}{{ctx.Locale.Tr "repo.release.immutable"}}</span>
+							{{end}}
 							{{if and (gt $release.NumCommits 0) (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 								| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{$release.TagName | PathEscapeSegments}}...{{$release.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" $release.NumCommitsBehind}}</a> {{ctx.Locale.Tr "repo.release.ahead.target" $release.TargetBehind}}</span>
 							{{end}}
