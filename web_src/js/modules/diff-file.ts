@@ -16,6 +16,8 @@ export type DiffTreeEntry = {
   EntryMode: string,
   IsViewed: boolean,
   HasChanged: boolean, // since the last review
+  Additions?: number, // counted by the diff viewer once the file is streamed
+  Deletions?: number,
   Children: DiffTreeEntry[] | null,
   FileIcon: string,
   ParentEntry?: DiffTreeEntry,

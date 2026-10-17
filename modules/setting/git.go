@@ -114,7 +114,7 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	}
 
 	Git.MaxDiffViewSize = mustBytesWithDefault(sec, "MAX_DIFF_VIEW_SIZE", 50*1024*1024)
-	Git.MaxDiffViewFileSize = mustBytesWithDefault(sec, "MAX_DIFF_VIEW_FILE_SIZE", 1024*1024)
+	Git.MaxDiffViewFileSize = mustBytesWithDefault(sec, "MAX_DIFF_VIEW_FILE_SIZE", 256*1024)
 
 	// validate for a integer percentage between 0% and 100%
 	if !regexp.MustCompile(`^([0-9]|[1-9][0-9]|100)%$`).MatchString(Git.DiffRenameSimilarityThreshold) {

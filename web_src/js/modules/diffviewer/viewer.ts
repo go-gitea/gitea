@@ -128,10 +128,20 @@ export class DiffViewer {
       file, missing,
       hunks: parseHunks(file.hunks ?? ''),
       folded: Boolean(diffTreeStore().fullNameMap[file.name]?.IsViewed || file.isGenerated),
-      element: null, highlighter: undefined, renderedLines: null, linePairs: null, rowIndex: null, rowCount: null, gaps: null, content: null, contentSegments: null, lfsState: null,
+      element: null, highlighter: undefined, renderedLines: null, linePairs: null, rowIndex: null, rowCount: null, gaps: null, content: null, contentPromise: null, contentSegments: null, lfsState: null,
     };
     this.entries.push(entry);
     this.entriesByName.set(file.name, entry);
+    const treeItem = diffTreeStore().fullNameMap[file.name];
+    if (treeItem && !missing) {
+      treeItem.Additions = treeItem.Deletions = 0;
+      for (const hunk of entry.hunks) {
+        for (const line of hunk.lines) {
+          if (line.type === 'add') treeItem.Additions++;
+          else if (line.type === 'del') treeItem.Deletions++;
+        }
+      }
+    }
     if (entry.hunks.length) this.loadEntryHighlighter(entry);
     return entry;
   }
@@ -214,10 +224,14 @@ export class DiffViewer {
     entry.gaps = null;
   }
 
-  isExpandable(entry: DiffFileEntry): boolean {
+  // the files of the commits can be loaded for text diffs when the repo has file pages, the wiki doesn't
+  canLoadContent(entry: DiffFileEntry): boolean {
     const {file} = entry;
-    return Boolean(this.config.repoLink) && !file.isBinary && !file.lfs && !file.tooLarge && !entry.missing &&
-      entry.hunks.length > 0 && file.type !== 'added' && file.type !== 'deleted';
+    return Boolean(this.config.repoLink) && !file.isBinary && !file.lfs && !file.tooLarge && !entry.missing && entry.hunks.length > 0;
+  }
+
+  isExpandable(entry: DiffFileEntry): boolean {
+    return this.canLoadContent(entry) && entry.file.type !== 'added' && entry.file.type !== 'deleted';
   }
 
   gaps(entry: DiffFileEntry): Gap[] {
@@ -251,8 +265,26 @@ export class DiffViewer {
     return buttons;
   }
 
-  async loadContent(entry: DiffFileEntry): Promise<NonNullable<DiffFileEntry['content']>> {
-    if (entry.content) return entry.content;
+  // like the legacy viewer, small files are highlighted as a whole so that multi-line constructs around the hunks are known
+  async highlightWithContent(entry: DiffFileEntry): Promise<void> {
+    if (this.config.disableHighlight || entry.contentPromise || !this.canLoadContent(entry)) return;
+    try {
+      await this.loadContent(entry);
+    } catch {
+      return; // the hunks stay highlighted on their own
+    }
+    if (entry.element) {
+      entry.renderedLines = null;
+      this.renderBody(entry);
+    }
+  }
+
+  loadContent(entry: DiffFileEntry): Promise<NonNullable<DiffFileEntry['content']>> {
+    entry.contentPromise ??= this.fetchContent(entry);
+    return entry.contentPromise;
+  }
+
+  async fetchContent(entry: DiffFileEntry): Promise<NonNullable<DiffFileEntry['content']>> {
     const {file} = entry;
     const fetchLines = async (url: string) => {
       const response = await fetchOk(url);
@@ -262,10 +294,17 @@ export class DiffViewer {
       }
       return splitLines(await response.text());
     };
-    const [oldLines, newLines] = await Promise.all([
-      this.config.beforeCommitId && file.type !== 'added' ? fetchLines(fileUrl(this.config, 'raw', 'old', file.oldName)) : null,
-      file.type === 'deleted' ? [] : fetchLines(fileUrl(this.config, 'raw', 'new', file.name)),
-    ]);
+    let oldLines: string[] | null;
+    let newLines: string[];
+    try {
+      [oldLines, newLines] = await Promise.all([
+        this.config.beforeCommitId && file.type !== 'added' ? fetchLines(fileUrl(this.config, 'raw', 'old', file.oldName)) : null,
+        file.type === 'deleted' ? [] : fetchLines(fileUrl(this.config, 'raw', 'new', file.name)),
+      ]);
+    } catch (error) {
+      entry.contentPromise = null; // a later expansion tries again
+      throw error;
+    }
     entry.content = {old: oldLines, new: newLines};
     entry.contentSegments = null;
     entry.gaps = null; // the tail gap ends at the known line count now
@@ -343,6 +382,7 @@ export class DiffViewer {
   }
 
   renderBody(entry: DiffFileEntry): void {
+    if (!entry.content) this.highlightWithContent(entry);
     const body = entry.element!.querySelector<HTMLElement>('.diff-file-body')!;
     const oldSource = body.querySelector('.code-diff');
     const source = this.buildSource(entry);

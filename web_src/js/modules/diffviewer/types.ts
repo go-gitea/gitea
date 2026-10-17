@@ -48,7 +48,8 @@ export type DiffFileEntry = {
   highlighter: LineHighlighter | null | undefined; // undefined while loading
   renderedLines: {html: string[]; escapeButtons: string[]} | null; // in hunk order, escapeButtons are the unicode escape toggles
   linePairs: Int32Array | null;
-  content: {old: string[] | null; new: string[]} | null; // the full file, loaded when expanding the context
+  content: {old: string[] | null; new: string[]} | null; // the full file, for highlighting and expanding the context
+  contentPromise: Promise<NonNullable<DiffFileEntry['content']>> | null; // while it loads
   lfsState: 'loading' | 'tooLarge' | 'binary' | 'diff' | 'failed' | null; // the diff of the LFS objects instead of their pointers
   contentSegments: {old: Segment[][] | null; new: Segment[][]} | null;
   rowIndex: Record<DiffSide, Map<number, number>> | null; // the row of each line number, for ordering conversations
