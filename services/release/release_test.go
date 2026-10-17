@@ -496,7 +496,9 @@ func TestRelease_Immutable(t *testing.T) {
 		assert.NoError(t, db.Insert(t.Context(), claimed))
 		published := *draft
 		published.IsDraft = false
+		releasesConfig.ImmutableReleases = false
 		assert.ErrorIs(t, UpdateRelease(t.Context(), user, gitRepo, &published, nil, nil, nil), ErrImmutableTag)
+		releasesConfig.ImmutableReleases = true
 		assert.NoError(t, db.DeleteBeans(t.Context(), &repo_model.ImmutableTag{ID: claimed.ID}))
 
 		draft.IsDraft = false

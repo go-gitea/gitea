@@ -338,7 +338,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	if err := assertReleaseMutable(oldRelease, rel, assetsChanged); err != nil {
 		return err
 	}
-	if isConvertedFromTag || isBeingLocked || rel.TagName != oldRelease.TagName {
+	if isConvertedFromTag || isBeingLocked || (oldRelease.IsDraft && !rel.IsDraft) || rel.TagName != oldRelease.TagName {
 		if err := assertTagMutable(ctx, rel.Repo, rel.TagName); err != nil {
 			return err
 		}

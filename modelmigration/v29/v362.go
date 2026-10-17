@@ -38,7 +38,7 @@ func AddImmutableReleases(ctx context.Context, x base.EngineMigration) error {
 	if err != nil || !exist { // dropping an absent column fails outside sqlite
 		return err
 	}
-	sess := x.NewSession()
-	defer sess.Close()
-	return base.DropTableColumns(sess, "release", "lower_tag_name")
+	return base.EngineTransaction(x, func(sess base.Session) error {
+		return base.DropTableColumns(sess, "release", "lower_tag_name")
+	})
 }

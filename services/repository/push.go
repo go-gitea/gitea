@@ -336,7 +336,6 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	if err != nil {
 		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
 	}
-	// a case-insensitive collation cannot hold both cases, so that row is the one to update
 	relMap := make(map[string]*repo_model.Release, len(releases))
 	relMapFolded := make(map[string]*repo_model.Release, len(releases))
 	for _, rel := range releases {
@@ -363,8 +362,12 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		}
 
 		rel, has := relMap[tagName]
-		if !has {
-			rel, has = relMapFolded[strings.ToLower(tagName)]
+		if !has && relMapFolded[strings.ToLower(tagName)] != nil {
+			rel, err = repo_model.GetRelease(ctx, repo.ID, tagName)
+			if err != nil && !repo_model.IsErrReleaseNotExist(err) {
+				return fmt.Errorf("pushUpdateAddTags: %w", err)
+			}
+			has = err == nil
 		}
 		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)
 		if !has {

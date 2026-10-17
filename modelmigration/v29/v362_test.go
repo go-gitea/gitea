@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,6 +33,21 @@ func TestAddImmutableReleases(t *testing.T) {
 	}
 	_, err := x.Insert(&Release{LowerTagName: "v1.0"})
 	require.NoError(t, err)
+
+	if setting.Database.Type.IsSQLite3() {
+		t.Run("RollsBackFailedColumnRemoval", func(t *testing.T) {
+			_, err := x.Exec("CREATE VIEW release_view AS SELECT id FROM `release`")
+			require.NoError(t, err)
+			require.Error(t, AddImmutableReleases(t.Context(), x))
+			release := &Release{ID: 1}
+			has, err := x.Get(release)
+			require.NoError(t, err)
+			assert.True(t, has)
+			assert.Equal(t, "v1.0", release.LowerTagName)
+			_, err = x.Exec("DROP VIEW release_view")
+			require.NoError(t, err)
+		})
+	}
 
 	require.NoError(t, AddImmutableReleases(t.Context(), x))
 
