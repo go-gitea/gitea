@@ -197,7 +197,7 @@ func IntrospectOAuth(ctx *context.Context) {
 	}
 
 	response.Active = true
-	response.Scope = grant.Scope
+	response.Scope = oauth2_provider.NormalizeGrantScope(grant.Scope)
 	response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
 	user, err := user_model.GetUserByID(ctx, grant.UserID)
 	if err != nil {
@@ -323,12 +323,15 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
+	if grant != nil && form.Scope == "" {
+		form.Scope = grant.Scope
+	}
+	form.Scope = oauth2_provider.NormalizeGrantScope(form.Scope)
+
 	var addedScopes, removedScopes []string
 	if grant != nil {
-		if form.Scope == "" {
-			form.Scope = grant.Scope
-		}
-		addedScopes, removedScopes = util.DiffSlice(strings.Fields(grant.Scope), strings.Fields(form.Scope))
+		grantedScope := oauth2_provider.NormalizeGrantScope(grant.Scope)
+		addedScopes, removedScopes = util.DiffSlice(strings.Fields(grantedScope), strings.Fields(form.Scope))
 	}
 	scopeChanged := len(addedScopes) > 0 || len(removedScopes) > 0
 
@@ -431,6 +434,8 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
 	}
+	form.Scope = oauth2_provider.NormalizeGrantScope(form.Scope)
+
 	if grant == nil {
 		grant, err = app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
 		if err != nil {
