@@ -32,6 +32,17 @@ version:
 		assert.NoError(t, err)
 		assert.NotNil(t, rp)
 	})
+
+	t.Run("InvalidName", func(t *testing.T) {
+		// a name carrying a newline would be re-emitted verbatim into the
+		// line-based compact index, letting an upload forge extra entries
+		for _, quotedName := range []string{`"evil\n1.0.0"`, `"a b"`, `"a/b"`, `""`} {
+			content := test.CompressGzip("name: " + quotedName + "\nversion:\n  version: 1\n")
+			rp, err := parseMetadataFile(content)
+			assert.ErrorIs(t, err, ErrInvalidName, "name %s should be rejected", quotedName)
+			assert.Nil(t, rp)
+		}
+	})
 }
 
 func TestParseMetadataFile(t *testing.T) {

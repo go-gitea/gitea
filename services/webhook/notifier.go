@@ -17,7 +17,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
@@ -130,6 +129,18 @@ func (m *webhookNotifier) DeleteRepository(ctx context.Context, doer *user_model
 		Repository:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
 		Organization: convert.ToUser(ctx, repo.MustOwner(ctx), nil),
 		Sender:       convert.ToUser(ctx, doer, nil),
+	}); err != nil {
+		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+	}
+}
+
+func (m *webhookNotifier) RenameRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldRepoName string) {
+	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventRepository, &api.RepositoryPayload{
+		Action:       api.HookRepoRenamed,
+		Repository:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
+		Organization: convert.ToUser(ctx, repo.MustOwner(ctx), nil),
+		Sender:       convert.ToUser(ctx, doer, nil),
+		Changes:      &api.ChangesPayload{Name: &api.ChangesFromPayload{From: oldRepoName}},
 	}); err != nil {
 		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
 	}
@@ -987,6 +998,14 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 }
 
 func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
+	if err := job.LoadRun(ctx); err != nil {
+		log.Error("LoadRun: %v", err)
+		return
+	}
+	status, _ := convert.ToRunActionsStatus(job.Run, job.Status)
+	if status == "requested" || status == "pending" {
+		return // announce a job only once it is queued
+	}
 	source := EventSource{
 		Repository: repo,
 		Owner:      repo.Owner,
@@ -996,8 +1015,6 @@ func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_
 	if repo.Owner.IsOrganization() {
 		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
 	}
-
-	status, _ := convert.ToActionsStatus(job.Status)
 
 	convertedJob, err := convert.ToActionWorkflowJob(ctx, repo, task, job)
 	if err != nil {
@@ -1029,24 +1046,19 @@ func (*webhookNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_
 
 	status := convert.ToWorkflowRunAction(run.Status)
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	// Resolve the workflow definition from its source repo.
+	convertedWorkflow, err := convert.ResolveActionWorkflowForRun(ctx, repo, run)
 	if err != nil {
-		log.Error("OpenRepository: %v", err)
-		return
-	}
-	defer gitRepo.Close()
-
-	convertedWorkflow, err := convert.GetActionWorkflowByRef(ctx, gitRepo, repo, run.WorkflowID, git.RefName(run.Ref))
-	if err != nil && errors.Is(err, util.ErrNotExist) {
-		convertedWorkflow, err = convert.GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
-	}
-	if err != nil {
-		log.Error("GetActionWorkflow: %v", err)
+		if errors.Is(err, util.ErrNotExist) {
+			log.Debug("WorkflowRunStatusUpdate: workflow %q for run %d not found: %v", run.WorkflowID, run.ID, err)
+			return
+		}
+		log.Error("ResolveActionWorkflowForRun: %v", err)
 		return
 	}
 
 	run.Repo = repo
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 	if err != nil {
 		log.Error("ToActionWorkflowRun: %v", err)
 		return

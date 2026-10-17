@@ -5,7 +5,9 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"sort"
+	"time"
 
 	"gitea.dev/modules/util"
 )
@@ -20,6 +22,8 @@ type Tag struct {
 	Type      string
 	Tagger    *Signature
 	Signature *CommitSignature
+
+	CommitDate time.Time // committer date of Object, only GetTagInfos resolves it
 }
 
 func parsePayloadSignature(data []byte, messageStart int) (payload, msg, sign string) {
@@ -113,4 +117,9 @@ func (ts tagSorter) Swap(i, j int) {
 func sortTagsByTime(tags []*Tag) {
 	sorter := tagSorter(tags)
 	sort.Sort(sorter)
+}
+
+// IsTagExist returns true if given tag exists in the repository.
+func IsTagExist(ctx context.Context, repo RepositoryFacade, name string) bool {
+	return IsReferenceExist(ctx, repo, TagPrefix+name)
 }

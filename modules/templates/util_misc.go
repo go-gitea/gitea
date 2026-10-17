@@ -15,7 +15,8 @@ import (
 	activities_model "gitea.dev/models/activities"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
@@ -141,7 +142,7 @@ type remoteAddress struct {
 
 func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
 	ret := remoteAddress{}
-	u, err := gitrepo.GitRemoteGetURL(ctx, m, remoteName)
+	u, err := git.ParseRemoteAddressURL(ctx, m, remoteName)
 	if err != nil {
 		log.Error("GetRemoteURL %v", err)
 		return ret
@@ -166,6 +167,14 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 	// It should be the same as long as there are no bugs.
 
 	return ret
+}
+
+// UserTypeLabel marks a bot account next to a name built in Go, the template equivalent is shared/user/user_type_label
+func (ut *RenderUtils) UserTypeLabel(u *user_model.User) template.HTML {
+	if u == nil || !u.IsTypeBot() {
+		return ""
+	}
+	return htmlutil.HTMLFormat(` <span class="ui basic label tw-py-0 tw-align-baseline">%s</span>`, ut.locale().TrString("concept_user_bot"))
 }
 
 func filenameIsImage(filename string) bool {

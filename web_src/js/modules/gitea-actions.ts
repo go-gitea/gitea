@@ -1,9 +1,10 @@
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
-export type ActionsStatus = 'unknown' | 'waiting' | 'running' | 'cancelling' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+export type ActionsStatus = 'unknown' | 'waiting' | 'running' | 'cancelling' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked' | 'pending';
 export type ActionsArtifactStatus = 'expired' | 'completed';
 
 export type ActionsRun = {
   repoId: number,
+  index: number,
   link: string,
   viewLink: string,
   title: string,
@@ -17,6 +18,7 @@ export type ActionsRun = {
   done: boolean,
   workflowID: string,
   workflowLink: string,
+  canViewWorkflowFile: boolean,
   isSchedule: boolean,
   runAttempt: number,
   attempts: Array<ActionsRunAttempt>,
@@ -86,4 +88,5 @@ export type ActionsArtifact = {
   size: number;
   status: ActionsArtifactStatus;
   expiresUnix: number;
+  previewLink?: string;
 };

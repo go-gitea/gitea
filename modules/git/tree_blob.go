@@ -4,16 +4,57 @@
 
 package git
 
+import (
+	"context"
+	"path"
+	"strings"
+)
+
 // GetBlobByPath get the blob object according the path
-func (t *Tree) GetBlobByPath(relpath string) (*Blob, error) {
-	entry, err := t.GetTreeEntryByPath(relpath)
+func (t *Tree) GetBlobByPath(ctx context.Context, gitRepo *Repository, relpath string) (*Blob, error) {
+	entry, err := t.GetTreeEntryByPath(ctx, gitRepo, relpath)
 	if err != nil {
 		return nil, err
 	}
 
 	if !entry.IsDir() && !entry.IsSubModule() {
-		return entry.Blob(), nil
+		return entry.Blob(gitRepo), nil
 	}
 
+	return nil, ErrNotExist{"", relpath}
+}
+
+// GetTreeEntryByPath get the tree entries according the sub dir
+func (t *Tree) GetTreeEntryByPath(ctx context.Context, gitRepo *Repository, relpath string) (_ *TreeEntry, err error) {
+	if len(relpath) == 0 {
+		return &TreeEntry{
+			ptree:     t,
+			ID:        t.ID,
+			name:      "",
+			entryMode: EntryModeTree,
+		}, nil
+	}
+
+	relpath = path.Clean(relpath)
+	parts := strings.Split(relpath, "/")
+
+	tree := t
+	for _, name := range parts[:len(parts)-1] {
+		tree, err = tree.SubTree(ctx, gitRepo, name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	name := parts[len(parts)-1]
+	entries, err := tree.ListEntries(ctx, gitRepo)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range entries {
+		if v.Name() == name {
+			return v, nil
+		}
+	}
 	return nil, ErrNotExist{"", relpath}
 }

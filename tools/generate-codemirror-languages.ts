@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-import {load as parseYaml} from 'js-yaml';
 import {writeFile} from 'node:fs/promises';
 import {languages as cmLanguages} from '@codemirror/language-data';
-
-const linguistUrl = 'https://raw.githubusercontent.com/github-linguist/linguist/main/lib/linguist/languages.yml';
+import * as linguist from 'linguist-languages';
+import type {Language} from 'linguist-languages';
 
 const renames: Record<string, string> = {
   'Protocol Buffer': 'ProtoBuf',
@@ -35,21 +34,11 @@ const extraExtensions: Record<string, string[]> = {
   'Properties files': ['conf'],
 };
 
-type LinguistEntry = {
-  type: string;
-  extensions?: string[];
-  filenames?: string[];
-};
-
 type CmLanguage = {
   name: string;
   extensions: string[];
   filenames: string[];
 };
-
-const res = await fetch(linguistUrl);
-if (!res.ok) throw new Error(`fetch ${linguistUrl} failed: ${res.status}`);
-const linguist = parseYaml(await res.text()) as Record<string, LinguistEntry>;
 
 const cmByAlias = new Map<string, string>();
 // Map of extension -> the CM language that originally owns it. Used to prevent Linguist
@@ -66,7 +55,7 @@ for (const lang of cmLanguages) {
 
 const out: CmLanguage[] = [];
 const seen = new Set<string>();
-for (const [linguistName, entry] of Object.entries(linguist)) {
+for (const [linguistName, entry] of Object.entries(linguist as Record<string, Language>)) {
   const cmName = renames[linguistName] ?? cmByAlias.get(linguistName.toLowerCase());
   // Multiple Linguist entries can alias to the same CM language (e.g. JSON5 → JSON).
   if (!cmName || skipNames.has(cmName) || seen.has(cmName)) continue;

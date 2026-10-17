@@ -8,11 +8,12 @@ import (
 	"gitea.dev/services/forms"
 )
 
-// not actually a response, just a hack to get go-swagger to include definitions
-// of the various XYZOption structs
+// not actually a set of parameters, just a hack to get go-swagger to include
+// definitions of the various XYZOption structs. The annotation below uses an
+// operation id that matches no route, so the spec carries no unused response
+// or parameter for it while still emitting the referenced definitions.
 
-// parameterBodies
-// swagger:response parameterBodies
+// swagger:parameters parameterBodies
 type swaggerParameterBodies struct {
 	// in:body
 	AddCollaboratorOption api.AddCollaboratorOption
@@ -51,6 +52,9 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateKeyOption api.CreateKeyOption
+
+	// in:body
+	CreateDeployKeyTokenOption api.CreateDeployKeyTokenOption
 
 	// in:body
 	RenameUserOption api.RenameUserOption
@@ -235,4 +239,23 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	LockIssueOption api.LockIssueOption
+
+	// in:body
+	CreateProjectOption api.CreateProjectOption
+	// in:body
+	EditProjectOption api.EditProjectOption
+
+	// in:body
+	CreateProjectColumnOption api.CreateProjectColumnOption
+	// in:body
+	EditProjectColumnOption api.EditProjectColumnOption
+
+	// in:body
+	MoveProjectColumnsOption api.MoveProjectColumnsOption
+
+	// in:body
+	MoveProjectIssueOption api.MoveProjectIssueOption
+
+	// in:body
+	MergeUpstreamRequest api.MergeUpstreamRequest
 }

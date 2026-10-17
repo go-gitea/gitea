@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 // Scheme describes protocol types
@@ -48,7 +49,8 @@ const (
 var (
 	// AppURL is the Application ROOT_URL. It always has a '/' suffix
 	// It maps to ini:"ROOT_URL"
-	AppURL string
+	AppURL    string
+	AppDomain string
 
 	// PublicURLDetection controls how to use the HTTP request headers to detect public URL
 	PublicURLDetection string
@@ -79,7 +81,6 @@ var (
 	ProxyProtocolTLSBridging   bool
 	ProxyProtocolHeaderTimeout time.Duration
 	ProxyProtocolAcceptUnknown bool
-	Domain                     string
 	HTTPAddr                   string
 	HTTPPort                   string
 	LocalUseProxyProtocol      bool
@@ -100,6 +101,7 @@ var (
 	AcmeLiveDirectory          string
 	AcmeEmail                  string
 	AcmeURL                    string
+	AcmeProfile                string
 	AcmeCARoot                 string
 	SSLMinimumVersion          string
 	SSLMaximumVersion          string
@@ -113,11 +115,39 @@ var (
 	StaticURLPrefix            string // no trailing slash, defaults to AppSubURL, the URL can be relative or absolute
 )
 
+func loadServerDomainAndURL(sec ConfigSection, protocol string) {
+	defaultAppURL := protocol + "://localhost:" + HTTPPort
+	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
+	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLAuto)
+	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy && PublicURLDetection != PublicURLNever {
+		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
+	}
+
+	// Check validity of AppURL
+	appURL, err := url.Parse(AppURL)
+	if err != nil {
+		log.Fatal("Invalid ROOT_URL %q: %s", AppURL, err)
+	}
+	// Remove default ports from AppURL.
+	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
+	if (appURL.Scheme == string(HTTP) && appURL.Port() == "80") || (appURL.Scheme == string(HTTPS) && appURL.Port() == "443") {
+		appURL.Host = appURL.Hostname()
+	}
+	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
+	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
+
+	// AppSubURL should start with '/' and end without '/', such as '/{subpath}'.
+	// This value is empty if site does not have sub-url.
+	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
+	UseSubURLPath = sec.Key("USE_SUB_URL_PATH").MustBool(false)
+	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
+	AppDomain = appURL.Hostname()
+}
+
 func loadServerFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("server")
 	AppName = rootCfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 
-	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 
@@ -142,6 +172,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		Protocol = HTTPS
 		if EnableAcme {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
+			AcmeProfile = sec.Key("ACME_PROFILE").MustString("")
 			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
 
 			if sec.HasKey("ACME_ACCEPTTOS") {
@@ -216,37 +247,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	PerWriteTimeout = sec.Key("PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
 	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
-	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
-	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLAuto)
-	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy && PublicURLDetection != PublicURLNever {
-		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
-	}
-
-	// Check validity of AppURL
-	appURL, err := url.Parse(AppURL)
-	if err != nil {
-		log.Fatal("Invalid ROOT_URL %q: %s", AppURL, err)
-	}
-	// Remove default ports from AppURL.
-	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
-	if (appURL.Scheme == string(HTTP) && appURL.Port() == "80") || (appURL.Scheme == string(HTTPS) && appURL.Port() == "443") {
-		appURL.Host = appURL.Hostname()
-	}
-	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
-	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
-
-	// AppSubURL should start with '/' and end without '/', such as '/{subpath}'.
-	// This value is empty if site does not have sub-url.
-	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
-	UseSubURLPath = sec.Key("USE_SUB_URL_PATH").MustBool(false)
-	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
-
-	// Check if Domain differs from AppURL domain than update it to AppURL's domain
-	urlHostname := appURL.Hostname()
-	if urlHostname != Domain && net.ParseIP(urlHostname) == nil && urlHostname != "" {
-		Domain = urlHostname
-	}
+	loadServerDomainAndURL(sec, string(Protocol))
 
 	var defaultLocalURL string
 	switch Protocol {
@@ -272,9 +273,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
-	if len(StaticRootPath) == 0 {
-		StaticRootPath = AppWorkPath
-	}
+	StaticRootPath = util.IfZero(StaticRootPath, AppWorkPath)
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data"))

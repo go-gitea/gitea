@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -48,16 +49,18 @@ type requestContext struct {
 
 // Claims is a JWT Token Claims
 type Claims struct {
-	RepoID int64
-	Op     string
-	UserID int64
+	RepoID          int64
+	Op              string
+	UserID          int64
+	UserExtDoerData string
 	jwt.RegisteredClaims
 }
 
 type AuthTokenOptions struct {
-	Op     string
-	UserID int64
-	RepoID int64
+	Op              string
+	UserID          int64
+	UserExtDoerData string
+	RepoID          int64
 }
 
 func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
@@ -67,9 +70,10 @@ func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
 			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
 			NotBefore: jwt.NewNumericDate(now),
 		},
-		RepoID: opts.RepoID,
-		Op:     opts.Op,
-		UserID: opts.UserID,
+		RepoID:          opts.RepoID,
+		Op:              opts.Op,
+		UserID:          opts.UserID,
+		UserExtDoerData: opts.UserExtDoerData,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
@@ -254,30 +258,22 @@ func BatchHandler(ctx *context.Context) {
 
 		var responseObject *lfs_module.ObjectResponse
 		if isUpload {
+			if exists && meta == nil {
+				// The object exists in the content store but is not linked to this
+				// repo. Do not auto-link it based on cross-repo access: the token
+				// only authorizes this repo, and for deploy keys ctx.Doer is the
+				// repo owner, so trusting it here would let a single-repo key pull
+				// objects from any repo the owner can see. Require proof of
+				// possession by making the client upload the (hash-verified) bytes,
+				// and treat it as a new upload for size-limit enforcement below.
+				exists = false
+			}
+
 			var err *lfs_module.ObjectError
 			if !exists && setting.LFS.MaxFileSize > 0 && p.Size > setting.LFS.MaxFileSize {
 				err = &lfs_module.ObjectError{
 					Code:    http.StatusUnprocessableEntity,
 					Message: fmt.Sprintf("Size must be less than or equal to %d", setting.LFS.MaxFileSize),
-				}
-			}
-
-			if exists && meta == nil {
-				accessible, err := git_model.LFSObjectAccessible(ctx, ctx.Doer, p.Oid)
-				if err != nil {
-					log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
-					writeStatus(ctx, http.StatusInternalServerError)
-					return
-				}
-				if accessible {
-					_, err := git_model.NewLFSMetaObject(ctx, repository.ID, p)
-					if err != nil {
-						log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
-						writeStatus(ctx, http.StatusInternalServerError)
-						return
-					}
-				} else {
-					exists = false
 				}
 			}
 
@@ -327,24 +323,25 @@ func UploadHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := lfs_module.NewContentStore()
-	exists, err := contentStore.Exists(p)
-	if err != nil {
-		log.Error("Unable to check if LFS OID[%s] exist. Error: %v", p.Oid, err)
-		writeStatus(ctx, http.StatusInternalServerError)
-		return
-	}
-
 	uploadOrVerify := func() error {
-		if exists {
-			accessible, err := git_model.LFSObjectAccessible(ctx, ctx.Doer, p.Oid)
-			if err != nil {
-				log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
+		contentStore := lfs_module.NewContentStore()
+		stat, err := contentStore.Stat(p)
+		if stat != nil {
+			// The bytes already exist in the content store. Only skip proof of
+			// possession when the object is already linked to *this* repo; never
+			// trust cross-repo access (ctx.Doer is the repo owner for deploy keys),
+			// which would let a caller link an object it cannot produce.
+			meta, err := git_model.GetLFSMetaObjectByOid(ctx, repository.ID, p.Oid)
+			if err != nil && !errors.Is(err, util.ErrNotExist) {
+				log.Error("Unable to get LFS MetaObject [%s]. Error: %v", p.Oid, err)
 				return err
 			}
-			if !accessible {
-				// The file exists but the user has no access to it.
+			if meta == nil {
+				// The file exists but is not linked to this repo, or the file is being uploaded.
 				// The upload gets verified by hashing and size comparison to prove access to it.
+				// Keep in mind: here the file might be incomplete due to concurrent uploading, so the verification might fail.
+				// ATTENTION: it's impossible to handle corrupted file on server-side at the moment,
+				// we don't know whether a file is really corrupted, or it is being uploaded.
 				hash := sha256.New()
 				written, err := io.Copy(hash, ctx.Req.Body)
 				if err != nil {
@@ -359,11 +356,17 @@ func UploadHandler(ctx *context.Context) {
 					return lfs_module.ErrHashMismatch
 				}
 			}
-		} else if err := contentStore.Put(p, ctx.Req.Body); err != nil {
-			log.Error("Error putting LFS MetaObject [%s] into content store. Error: %v", p.Oid, err)
+		} else if errors.Is(err, fs.ErrNotExist) {
+			// not exist, store it into the store
+			if err := contentStore.Put(p, ctx.Req.Body); err != nil {
+				log.Error("Error putting LFS MetaObject [%s] into content store. Error: %v", p.Oid, err)
+				return err
+			}
+		} else {
+			log.Error("Unable to check LFS OID[%s] stat. Error: %v", p.Oid, err)
 			return err
 		}
-		_, err := git_model.NewLFSMetaObject(ctx, repository.ID, p)
+		_, err = git_model.NewLFSMetaObject(ctx, repository.ID, p)
 		return err
 	}
 
@@ -376,9 +379,12 @@ func UploadHandler(ctx *context.Context) {
 			log.Error("Error whilst uploadOrVerify LFS OID[%s]: %v", p.Oid, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 		}
-		if _, err = git_model.RemoveLFSMetaObjectByOid(ctx, repository.ID, p.Oid); err != nil {
-			log.Error("Error whilst removing MetaObject for LFS OID[%s]: %v", p.Oid, err)
-		}
+		// Do not remove the LFS MetaObject here: this request only creates it after the content is verified and stored,
+		// an invalid request should not remove the existing correct record.
+		// If two requests are uploading (the file is incomplete):
+		// * one will keep writing the file content
+		// * one will fail the verification because it reads an incomplete file, the failure should be just be ignored
+		// In the end, the first one will complete the upload and insert a new LFS MetaObject record.
 		return
 	}
 
@@ -541,15 +547,6 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		accessMode = perm_model.AccessModeWrite
 	}
 
-	if taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer); ok {
-		perm, err := access_model.GetActionsUserRepoPermission(ctx, repository, ctx.Doer, taskID)
-		if err != nil {
-			log.Error("Unable to GetActionsUserRepoPermission for task[%d] Error: %v", taskID, err)
-			return false
-		}
-		return perm.CanAccess(accessMode, unit.TypeCode)
-	}
-
 	// it works for both anonymous request and signed-in user, then perm.CanAccess will do the permission check
 	perm, err := access_model.GetDoerRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
@@ -601,9 +598,9 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 		return nil, errors.New("invalid token claim")
 	}
 
-	u, err := user_model.GetUserByID(ctx, claims.UserID)
+	u, err := user_model.GetDoerPermissionUser(ctx, claims.UserID, claims.UserExtDoerData)
 	if err != nil {
-		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
+		log.Error("Unable to GetDoerUser[%d]: Error: %v", claims.UserID, err)
 		return nil, err
 	}
 	if !u.IsActive || u.ProhibitLogin {

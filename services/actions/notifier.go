@@ -16,7 +16,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -57,7 +56,7 @@ func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 		Issue:      convert.ToAPIIssue(ctx, issue.Poster, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, issue.Poster, nil),
-	}).Notify(withMethod(ctx, "NewIssue"))
+	}).Notify(ctx)
 }
 
 // IssueChangeContent notifies change content of issue
@@ -456,12 +455,11 @@ func (n *actionsNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 
 	permission, err := access_model.GetIndividualUserRepoPermission(ctx, review.Issue.Repo, review.Issue.Poster)
 	if err != nil {
-		log.Error("models.GetIndividualUserRepoPermission: %v", err)
+		log.Error("GetIndividualUserRepoPermission: %v", err)
 		return
 	}
 
-	newNotifyInput(review.Issue.Repo, review.Reviewer, reviewHookType).
-		WithRef(review.CommitID).
+	newPullRequestReviewNotifyInput(review.Issue.Repo, review.Reviewer, reviewHookType, review.CommitID, pr).
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueReviewed,
 			Index:       review.Issue.Index,
@@ -518,7 +516,7 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
 
@@ -691,7 +689,7 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 	ctx = withMethod(ctx, "PullRequestSynchronized")
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
 
@@ -718,7 +716,7 @@ func (n *actionsNotifier) PullRequestChangeTargetBranch(ctx context.Context, doe
 	ctx = withMethod(ctx, "PullRequestChangeTargetBranch")
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
 
@@ -802,23 +800,19 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 
 	status := convert.ToWorkflowRunAction(run.Status)
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	convertedWorkflow, err := convert.ResolveActionWorkflowForRun(ctx, repo, run)
 	if err != nil {
-		log.Error("OpenRepository: %v", err)
+		if errors.Is(err, util.ErrNotExist) {
+			// The workflow definition is gone (e.g. a scoped source repo/file was deleted, or the file no longer exists at the recorded commit), skip
+			log.Debug("WorkflowRunStatusUpdate: workflow %q for run %d not found: %v", run.WorkflowID, run.ID, err)
+			return
+		}
+		log.Error("WorkflowRunStatusUpdate resolve workflow: %v", err)
 		return
 	}
-	defer gitRepo.Close()
 
-	convertedWorkflow, err := convert.GetActionWorkflowByRef(ctx, gitRepo, repo, run.WorkflowID, git.RefName(run.Ref))
-	if err != nil && errors.Is(err, util.ErrNotExist) {
-		convertedWorkflow, err = convert.GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
-	}
-	if err != nil {
-		log.Error("GetActionWorkflow: %v", err)
-		return
-	}
 	run.Repo = repo
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 	if err != nil {
 		log.Error("ToActionWorkflowRun: %v", err)
 		return

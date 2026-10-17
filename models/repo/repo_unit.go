@@ -5,6 +5,7 @@ package repo
 
 import (
 	"context"
+	"fmt"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
@@ -295,44 +296,56 @@ func (r *RepoUnit) Unit() unit.Unit {
 	return unit.Units[r.Type]
 }
 
+// unitConfig returns the unit's config, which BeforeSet has created from the unit type
+func unitConfig[T interface {
+	*E
+	convert.Conversion
+}, E any](r *RepoUnit) T {
+	config, ok := r.Config.(T)
+	if !ok {
+		panic(fmt.Errorf("repo unit %d of type %s has config type %T instead of %T", r.ID, r.Type.LogString(), r.Config, config))
+	}
+	return config
+}
+
 // CodeConfig returns config for unit.TypeCode
 func (r *RepoUnit) CodeConfig() *UnitConfig {
-	return r.Config.(*UnitConfig)
+	return unitConfig[*UnitConfig](r)
 }
 
 // PullRequestsConfig returns config for unit.TypePullRequests
 func (r *RepoUnit) PullRequestsConfig() *PullRequestsConfig {
-	return r.Config.(*PullRequestsConfig)
+	return unitConfig[*PullRequestsConfig](r)
 }
 
 // ReleasesConfig returns config for unit.TypeReleases
 func (r *RepoUnit) ReleasesConfig() *UnitConfig {
-	return r.Config.(*UnitConfig)
+	return unitConfig[*UnitConfig](r)
 }
 
 // ExternalWikiConfig returns config for unit.TypeExternalWiki
 func (r *RepoUnit) ExternalWikiConfig() *ExternalWikiConfig {
-	return r.Config.(*ExternalWikiConfig)
+	return unitConfig[*ExternalWikiConfig](r)
 }
 
 // IssuesConfig returns config for unit.TypeIssues
 func (r *RepoUnit) IssuesConfig() *IssuesConfig {
-	return r.Config.(*IssuesConfig)
+	return unitConfig[*IssuesConfig](r)
 }
 
 // ExternalTrackerConfig returns config for unit.TypeExternalTracker
 func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
-	return r.Config.(*ExternalTrackerConfig)
+	return unitConfig[*ExternalTrackerConfig](r)
 }
 
 // ActionsConfig returns config for unit.ActionsConfig
 func (r *RepoUnit) ActionsConfig() *ActionsConfig {
-	return r.Config.(*ActionsConfig)
+	return unitConfig[*ActionsConfig](r)
 }
 
 // ProjectsConfig returns config for unit.ProjectsConfig
 func (r *RepoUnit) ProjectsConfig() *ProjectsConfig {
-	return r.Config.(*ProjectsConfig)
+	return unitConfig[*ProjectsConfig](r)
 }
 
 func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err error) {

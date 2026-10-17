@@ -7,16 +7,19 @@ import (
 	"context"
 	"fmt"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
 // EvaluateRunConcurrencyFillModel evaluates the expressions in a run-level (workflow) concurrency,
 // and fills the run attempt model with the evaluated `concurrency.group` and `concurrency.cancel-in-progress` values.
 // Workflow-level concurrency doesn't depend on the job outputs, so it can always be evaluated if there is no syntax error.
+// Callers must resolve `inputs`, there is no job in scope here to read `on: workflow_dispatch` from.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency
 func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, wfRawConcurrency *act_model.RawConcurrency, vars map[string]string, inputs map[string]any) error {
 	if err := run.LoadAttributes(ctx); err != nil {
@@ -26,11 +29,10 @@ func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 	actionsRunCtx := GenerateGiteaContext(ctx, run, attempt, nil)
 	jobResults := map[string]*jobparser.JobResult{"": {}}
 	if inputs == nil {
-		var err error
-		inputs, err = getWorkflowDispatchInputsFromRun(run)
-		if err != nil {
-			return fmt.Errorf("get inputs: %w", err)
+		if run.Event == "workflow_dispatch" {
+			setting.PanicInDevOrTesting("run %d: workflow_dispatch inputs must be resolved by the caller", run.ID)
 		}
+		inputs = map[string]any{}
 	}
 
 	var err error
@@ -78,7 +80,7 @@ func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 
 	actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = jobparser.EvaluateConcurrency(&rawConcurrency, actionRunJob.JobID, workflowJob, actionsJobCtx, jobResults, vars, inputs)
 	if err != nil {
-		return fmt.Errorf("evaluate concurrency: %w", err)
+		return util.NewInvalidArgumentErrorf("%v", err)
 	}
 	actionRunJob.IsConcurrencyEvaluated = true
 	return nil

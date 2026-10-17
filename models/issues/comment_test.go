@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateComment(t *testing.T) {
@@ -45,12 +46,86 @@ func TestCreateComment(t *testing.T) {
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
 
+func TestLoadAssigneeUserAndTeam_DeletedTeamBecomesGhostTeam(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 15})
+	comment := &issues_model.Comment{
+		Type:           issues_model.CommentTypeAssignees,
+		IssueID:        issue.ID,
+		AssigneeTeamID: 999999, // non-existing team ID
+	}
+	assert.NoError(t, comment.LoadAssigneeUserAndTeam(t.Context()))
+	assert.NotNil(t, comment.AssigneeTeam)
+	assert.EqualValues(t, -1, comment.AssigneeTeam.ID)
+}
+
+func TestCommentListLoadAttributesMixedAssignees(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	first := &issues_model.Comment{
+		ID: 1, PosterID: 1, IssueID: 1, LabelID: 1, MilestoneID: 1, OldMilestoneID: 1, AssigneeID: 1, DependentIssueID: 2,
+	}
+	last := &issues_model.Comment{
+		ID: 2, PosterID: 2, IssueID: 4, LabelID: 2, MilestoneID: 3, OldMilestoneID: 3, AssigneeID: 2, DependentIssueID: 1,
+	}
+	comments := issues_model.CommentList{
+		{AssigneeTeamID: 8},
+		{AssigneeID: 999999},
+		first,
+	}
+	for i := range db.DefaultMaxInSize {
+		id := unittest.NonexistentID - int64(i)
+		comments = append(comments, &issues_model.Comment{
+			ID: id, PosterID: id, IssueID: id, LabelID: id, MilestoneID: id, OldMilestoneID: id, AssigneeID: id, DependentIssueID: id,
+		})
+	}
+	comments = append(comments, last)
+
+	require.NoError(t, comments.LoadAttributes(t.Context()))
+	assert.Nil(t, comments[0].Assignee)
+	assert.Zero(t, comments[0].AssigneeID)
+	assert.Equal(t, user_model.GhostUserID, comments[1].AssigneeID)
+	assert.Equal(t, user_model.GhostUserID, comments[1].Assignee.ID)
+	for _, comment := range []*issues_model.Comment{first, last} {
+		require.NotNil(t, comment.Poster)
+		assert.Equal(t, comment.PosterID, comment.Poster.ID)
+		require.NotNil(t, comment.Issue)
+		assert.Equal(t, comment.IssueID, comment.Issue.ID)
+		require.NotNil(t, comment.Label)
+		assert.Equal(t, comment.LabelID, comment.Label.ID)
+		require.NotNil(t, comment.Milestone)
+		assert.Equal(t, comment.MilestoneID, comment.Milestone.ID)
+		require.NotNil(t, comment.OldMilestone)
+		assert.Equal(t, comment.OldMilestoneID, comment.OldMilestone.ID)
+		require.NotNil(t, comment.Assignee)
+		assert.Equal(t, comment.AssigneeID, comment.Assignee.ID)
+		require.NotNil(t, comment.DependentIssue)
+		assert.Equal(t, comment.DependentIssueID, comment.DependentIssue.ID)
+		require.NotNil(t, comment.DependentIssue.Repo)
+		assert.Equal(t, comment.DependentIssue.RepoID, comment.DependentIssue.Repo.ID)
+		require.Len(t, comment.Attachments, 2)
+		for _, attachment := range comment.Attachments {
+			assert.Equal(t, comment.ID, attachment.CommentID)
+		}
+	}
+	missing := comments[3]
+	assert.Equal(t, user_model.GhostUserID, missing.Poster.ID)
+	assert.Equal(t, user_model.GhostUserID, missing.Assignee.ID)
+	assert.Nil(t, missing.Issue)
+	assert.Nil(t, missing.Label)
+	assert.Nil(t, missing.Milestone)
+	assert.Nil(t, missing.OldMilestone)
+	assert.Nil(t, missing.DependentIssue)
+	assert.Empty(t, missing.Attachments)
+}
+
 func Test_UpdateCommentAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: comment.IssueID})
 	attachment := repo_model.Attachment{
-		Name: "test.txt",
+		RepoID: issue.RepoID, // must match the comment's repo, else the cross-repo guard rejects it
+		Name:   "test.txt",
 	}
 	assert.NoError(t, db.Insert(t.Context(), &attachment))
 

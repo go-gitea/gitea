@@ -10,7 +10,9 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -26,13 +28,16 @@ func TestGitSmartHTTP(t *testing.T) {
 		testGitSmartHTTPTokenScopes(t)
 		testRenamedRepoRedirect(t)
 		testGitArchiveRemote(t, u)
+		t.Run("AnonymousAccess-Repo", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, false) })
+		t.Run("AnonymousAccess-Wiki", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, true) })
 	})
 }
 
 func testGitSmartHTTP(t *testing.T, u *url.URL) {
-	kases := []struct {
+	cases := []struct {
 		method, path string
 		code         int
+		contains     string
 	}{
 		{
 			path: "user2/repo1/info/refs",
@@ -46,6 +51,11 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 		{
 			path: "user2/repo1/HEAD",
 			code: http.StatusOK,
+		},
+		{
+			path:     "user2/repo2.wiki/info/refs?service=git-upload-pack",
+			code:     http.StatusOK,
+			contains: "ERR wiki doesn't exist",
 		},
 		{
 			path: "user2/repo1/objects/info/alternates",
@@ -69,17 +79,20 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 		},
 	}
 
-	for _, kase := range kases {
-		t.Run(kase.path, func(t *testing.T) {
-			req, err := http.NewRequest(util.IfZero(kase.method, "GET"), u.String()+kase.path, nil)
+	for _, tc := range cases {
+		t.Run(tc.path, func(t *testing.T) {
+			req, err := http.NewRequest(util.IfZero(tc.method, "GET"), u.String()+tc.path, nil)
 			require.NoError(t, err)
 			req.SetBasicAuth("user2", userPassword)
 			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			assert.Equal(t, kase.code, resp.StatusCode)
-			_, err = io.ReadAll(resp.Body)
+			assert.Equal(t, tc.code, resp.StatusCode)
+			respBody, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
+			if tc.contains != "" {
+				assert.Contains(t, string(respBody), tc.contains)
+			}
 		})
 	}
 }
@@ -143,4 +156,34 @@ func testGitArchiveRemote(t *testing.T, u *url.URL) {
 	t.Run("Fetch HEAD archive", doGitRemoteArchive(u.String(), "HEAD"))
 	t.Run("Fetch HEAD archive subpath", doGitRemoteArchive(u.String(), "HEAD", "test"))
 	t.Run("list compression options", doGitRemoteArchive(u.String(), "--list"))
+}
+
+// testGitSmartHTTPPrivateRepoAnonymousAccess tests that a private repo with
+// anonymous code access enabled can be cloned without credentials.
+func testGitSmartHTTPPrivateRepoAnonymousAccess(t *testing.T, isWiki bool) {
+	// repo1 (ID=1) belongs to user2 and is public by default in fixtures
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, OwnerName: "user2", Name: "repo1"})
+	unitType := util.Iif(isWiki, unit.TypeWiki, unit.TypeCode)
+	repoLink := "/" + repo.FullName() + util.Iif(isWiki, ".wiki", "")
+	gitPullPath := repoLink + "/info/refs?service=git-upload-pack"
+	gitPushPath := repoLink + "/info/refs?service=git-receive-pack"
+
+	// make the repo private
+	require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: repo.ID, IsPrivate: true}, "is_private"))
+
+	// without anonymous access: anonymous pull must require auth
+	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusUnauthorized)
+
+	// enable anonymous read access on the unit
+	require.NoError(t, repo_model.UpdateRepoUnitPublicAccess(t.Context(), &repo_model.RepoUnit{RepoID: repo.ID, Type: unitType, AnonymousAccessMode: perm.AccessModeRead}))
+
+	// with anonymous code access: anonymous pull must succeed without credentials
+	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusOK)
+
+	// push (receive-pack) must still require auth even with anonymous code access
+	MakeRequest(t, NewRequest(t, "GET", gitPushPath), http.StatusUnauthorized)
+
+	// RequireSignInViewStrict must override anonymous access
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusUnauthorized)
 }

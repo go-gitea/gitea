@@ -88,6 +88,13 @@ func TestConvertToViewModel(t *testing.T) {
 	viewJobSteps, _, err := convertToViewModel(t.Context(), translation.MockLocale{}, nil, task)
 	require.NoError(t, err)
 
+	t.Run("out of range cursor step", func(t *testing.T) {
+		cursors := []LogCursor{{Step: -1, Expanded: true}, {Step: 3, Expanded: true}}
+		_, logs, err := convertToViewModel(t.Context(), translation.MockLocale{}, cursors, task)
+		require.NoError(t, err)
+		assert.Empty(t, logs)
+	})
+
 	expectedViewJobs := []*ViewJobStep{
 		{
 			Summary:  "Set up job",
@@ -133,8 +140,53 @@ func TestConvertToViewModelCancellingTaskDoesNotRenderRunningSteps(t *testing.T)
 		{
 			Summary:  "Complete job",
 			Duration: "0s",
-			Status:   "waiting",
+			Status:   "pending",
 		},
 	}
 	assert.Equal(t, expectedViewJobs, viewJobSteps)
+}
+
+func TestPendingNeeds(t *testing.T) {
+	current := &actions_model.ActionRunJob{JobID: "deploy", Needs: []string{"build", "test"}}
+	jobs := []*actions_model.ActionRunJob{
+		current,
+		{JobID: "build", Status: actions_model.StatusSuccess},
+		{JobID: "test", Status: actions_model.StatusRunning},
+	}
+	// "test" is not done yet, "build" succeeded, so only "test" blocks.
+	assert.Equal(t, []string{"test"}, pendingNeeds(current, jobs))
+
+	t.Run("all needs done", func(t *testing.T) {
+		done := []*actions_model.ActionRunJob{
+			current,
+			{JobID: "build", Status: actions_model.StatusSuccess},
+			{JobID: "test", Status: actions_model.StatusSkipped},
+		}
+		assert.Empty(t, pendingNeeds(current, done))
+	})
+
+	t.Run("matrix expansion all required", func(t *testing.T) {
+		matrix := []*actions_model.ActionRunJob{
+			current,
+			{JobID: "build", Status: actions_model.StatusSuccess},
+			{JobID: "build", Status: actions_model.StatusRunning},
+			{JobID: "test", Status: actions_model.StatusSuccess},
+		}
+		assert.Equal(t, []string{"build"}, pendingNeeds(current, matrix))
+	})
+
+	t.Run("unresolved need treated as pending", func(t *testing.T) {
+		missing := []*actions_model.ActionRunJob{current}
+		assert.Equal(t, []string{"build", "test"}, pendingNeeds(current, missing))
+	})
+
+	t.Run("parent job scope", func(t *testing.T) {
+		// a same-named job under a different parent must not satisfy the need
+		scoped := &actions_model.ActionRunJob{JobID: "deploy", Needs: []string{"build"}, ParentJobID: 5}
+		jobs := []*actions_model.ActionRunJob{
+			scoped,
+			{JobID: "build", Status: actions_model.StatusSuccess, ParentJobID: 0},
+		}
+		assert.Equal(t, []string{"build"}, pendingNeeds(scoped, jobs))
+	})
 }

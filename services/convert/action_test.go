@@ -62,7 +62,7 @@ func TestGetActionWorkflow_FallbackRef(t *testing.T) {
 
 	repoDir := buildWorkflowTestRepo(t)
 
-	gitRepo, err := git.OpenRepository(ctx, repoDir)
+	gitRepo, err := git.OpenRepositoryLocal(ctx, repoDir)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -121,7 +121,7 @@ func TestToActionWorkflowRun_UsesTriggerEvent(t *testing.T) {
 	run.Event = "push"
 	run.TriggerEvent = "schedule"
 
-	apiRun, err := ToActionWorkflowRun(t.Context(), run, nil)
+	apiRun, err := ToActionWorkflowRun(t.Context(), run, nil, false)
 	require.NoError(t, err)
 	assert.Equal(t, "schedule", apiRun.Event)
 }
@@ -176,4 +176,23 @@ func TestToActionWorkflowJob_StepStatusIsIndependentOfJobStatus(t *testing.T) {
 	assert.Equal(t, "success", apiJob.Steps[0].Conclusion, "step 0 conclusion (succeeded before the failure)")
 	assert.Equal(t, "completed", apiJob.Steps[1].Status, "step 1 status")
 	assert.Equal(t, "failure", apiJob.Steps[1].Conclusion, "step 1 conclusion")
+}
+
+func TestToActionsStatus(t *testing.T) {
+	for status, expected := range map[actions_model.Status]string{
+		actions_model.StatusWaiting:    "queued",
+		actions_model.StatusBlocked:    "pending",
+		actions_model.StatusPending:    "requested",
+		actions_model.StatusCancelling: "in_progress",
+	} {
+		action, conclusion := ToActionsStatus(status)
+		assert.Equal(t, expected, action, status.String())
+		assert.Empty(t, conclusion)
+	}
+	action, _ := ToRunActionsStatus(&actions_model.ActionRun{NeedApproval: true}, actions_model.StatusBlocked)
+	assert.Equal(t, "waiting", action)
+}
+
+func TestToWorkflowRunAction_Cancelling(t *testing.T) {
+	assert.Equal(t, "in_progress", ToWorkflowRunAction(actions_model.StatusCancelling))
 }

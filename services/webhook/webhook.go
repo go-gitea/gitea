@@ -129,6 +129,33 @@ func checkBranchFilter(branchFilter string, ref git.RefName) bool {
 	return g.Match(ref.String())
 }
 
+// PrepareTestWebhook always creates and enqueues a hook task for manual testing.
+// Unlike PrepareWebhook, it ignores event subscriptions and branch filters so the
+// Test Push Event control can verify delivery even when those gates would suppress
+// a real event.
+func PrepareTestWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook_module.HookEventType, p api.Payloader) error {
+	if setting.DisableWebhooks {
+		return nil
+	}
+
+	payload, err := p.JSONPayload()
+	if err != nil {
+		return fmt.Errorf("JSONPayload for %s: %w", event, err)
+	}
+
+	task, err := webhook_model.CreateHookTask(ctx, &webhook_model.HookTask{
+		HookID:         w.ID,
+		PayloadContent: string(payload),
+		EventType:      event,
+		PayloadVersion: 2,
+	})
+	if err != nil {
+		return fmt.Errorf("CreateHookTask for %s: %w", event, err)
+	}
+
+	return enqueueHookTask(task.ID)
+}
+
 // PrepareWebhook creates a hook task and enqueues it for processing.
 // The payload is saved as-is. The adjustments depending on the webhook type happen
 // right before delivery, in the [Deliver] method.

@@ -9,6 +9,8 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // UserOpenID is the list of all OpenID identities of a user.
@@ -43,7 +45,7 @@ func isOpenIDUsed(ctx context.Context, uri string) (bool, error) {
 		return true, nil
 	}
 
-	return db.GetEngine(ctx).Get(&UserOpenID{URI: uri})
+	return db.Exist[UserOpenID](ctx, builder.Eq{"uri": uri})
 }
 
 // ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
@@ -76,6 +78,17 @@ func AddUserOpenID(ctx context.Context, openid *UserOpenID) error {
 	}
 
 	return db.Insert(ctx, openid)
+}
+
+// GetUserOpenIDByID returns the OpenID with the given ID owned by uid.
+func GetUserOpenIDByID(ctx context.Context, id, uid int64) (*UserOpenID, error) {
+	oid, has, err := db.Get[UserOpenID](ctx, builder.Eq{"id": id, "uid": uid})
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("OpenID is unknown")
+	}
+	return oid, nil
 }
 
 // DeleteUserOpenID deletes an openid address of given user.

@@ -5,6 +5,7 @@ package db
 
 import (
 	"context"
+	"slices"
 
 	"gitea.dev/modules/setting"
 
@@ -24,10 +25,9 @@ type Paginator interface {
 }
 
 // SetSessionPagination sets pagination for a database session
-func SetSessionPagination(sess Engine, p Paginator) Session {
+func SetSessionPagination(sess Engine, p Paginator) {
 	skip, take := p.GetSkipTake()
-
-	return sess.Limit(take, skip)
+	sess.Limit(take, skip)
 }
 
 // ListOptions options to paginate results
@@ -39,10 +39,7 @@ type ListOptions struct {
 
 var ListOptionsAll = ListOptions{ListAll: true}
 
-var (
-	_ Paginator   = &ListOptions{}
-	_ FindOptions = ListOptions{}
-)
+var _ Paginator = &ListOptions{}
 
 // GetSkipTake returns the skip and take values
 func (opts *ListOptions) GetSkipTake() (skip, take int) {
@@ -118,16 +115,13 @@ type FindOptions interface {
 	GetPageSize() int
 	IsListAll() bool
 	ToConds() builder.Cond
+	ToOrders() string
 }
 
 type JoinFunc func(sess Engine) error
 
 type FindOptionsJoin interface {
 	ToJoins() []JoinFunc
-}
-
-type FindOptionsOrder interface {
-	ToOrders() string
 }
 
 // Find represents a common find function which accept an options interface
@@ -141,12 +135,7 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 			}
 		}
 	}
-	if orderOpt, ok := opts.(FindOptionsOrder); ok {
-		if order := orderOpt.ToOrders(); order != "" {
-			sess.OrderBy(order)
-		}
-	}
-
+	sess.OrderBy(opts.ToOrders())
 	page, pageSize := opts.GetPage(), opts.GetPageSize()
 	if !opts.IsListAll() && pageSize > 0 {
 		if page == 0 {
@@ -168,15 +157,17 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 
 // Count represents a common count function which accept an options interface
 func Count[T any](ctx context.Context, opts FindOptions) (int64, error) {
-	sess := GetEngine(ctx).Where(opts.ToConds())
-	if joinOpt, ok := opts.(FindOptionsJoin); ok {
-		for _, joinFunc := range joinOpt.ToJoins() {
-			if err := joinFunc(sess); err != nil {
-				return 0, err
+	sess := GetEngine(ctx)
+	if opts != nil {
+		sess.Where(opts.ToConds())
+		if joinOpt, ok := opts.(FindOptionsJoin); ok {
+			for _, joinFunc := range joinOpt.ToJoins() {
+				if err := joinFunc(sess); err != nil {
+					return 0, err
+				}
 			}
 		}
 	}
-
 	var object T
 	return sess.Count(&object)
 }
@@ -195,11 +186,7 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, er
 			}
 		}
 	}
-	if orderOpt, ok := opts.(FindOptionsOrder); ok {
-		if order := orderOpt.ToOrders(); order != "" {
-			sess.OrderBy(order)
-		}
-	}
+	sess.OrderBy(opts.ToOrders())
 
 	findPageSize := defaultFindSliceSize
 	if pageSize > 0 {
@@ -211,4 +198,19 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, er
 		return nil, 0, err
 	}
 	return objects, cnt, nil
+}
+
+func QueryAndProcessByChunk[IN, OUT any](in []IN, fnIn func(chunk []IN) ([]OUT, error), fnOut func(out OUT) error) error {
+	for chunkIn := range slices.Chunk(in, DefaultMaxInSize) {
+		chunkOut, err := fnIn(chunkIn)
+		if err != nil {
+			return err
+		}
+		for _, out := range chunkOut {
+			if err := fnOut(out); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

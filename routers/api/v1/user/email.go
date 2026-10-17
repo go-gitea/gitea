@@ -4,10 +4,10 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -54,32 +54,26 @@ func AddEmail(ctx *context.APIContext) {
 	// responses:
 	//   '201':
 	//     "$ref": "#/responses/EmailList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateEmailOption)
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
+		ctx.APIErrorNotFound("emails are not allowed to be changed")
+		return
+	}
+
+	form := web.GetForm[*api.CreateEmailOption](ctx)
 	if len(form.Emails) == 0 {
 		ctx.APIError(http.StatusUnprocessableEntity, "Email list empty")
 		return
 	}
 
 	if err := user_service.AddEmailAddresses(ctx, ctx.Doer, form.Emails); err != nil {
-		if user_model.IsErrEmailAlreadyUsed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, "Email address has been used: "+err.(user_model.ErrEmailAlreadyUsed).Email)
-		} else if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
-			email := ""
-			if typedError, ok := err.(user_model.ErrEmailInvalid); ok {
-				email = typedError.Email
-			}
-			if typedError, ok := err.(user_model.ErrEmailCharIsNotSupported); ok {
-				email = typedError.Email
-			}
-
-			errMsg := fmt.Sprintf("Email address %q invalid", email)
-			ctx.APIError(http.StatusUnprocessableEntity, errMsg)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -114,7 +108,12 @@ func DeleteEmail(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.DeleteEmailOption)
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
+		ctx.APIErrorNotFound("emails are not allowed to be changed")
+		return
+	}
+
+	form := web.GetForm[*api.DeleteEmailOption](ctx)
 	if len(form.Emails) == 0 {
 		ctx.Status(http.StatusNoContent)
 		return
