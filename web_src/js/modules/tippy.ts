@@ -83,7 +83,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     menuInstance.hide();
   } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     focusMenuItem(menuInstance, e.key === 'ArrowDown' ? 1 : -1);
-  } else if ((e.key === 'Enter' || e.key === ' ') && inMenu) {
+  } else if ((e.key === 'Enter' || e.key === ' ') && inMenu && !(focused instanceof HTMLInputElement)) {
     focused.click();
   } else {
     return;

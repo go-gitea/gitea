@@ -217,6 +217,11 @@ func combineXRefComments(issue *issues_model.Issue) {
 	}
 }
 
+// project workflows post as the user who triggered them, the metadata keeps their changes apart
+func sameCommentMetaData(a, b *issues_model.CommentMetaData) bool {
+	return a == b || (a != nil && b != nil && *a == *b)
+}
+
 // combineLabelComments combine the nearby label comments as one.
 func combineLabelComments(issue *issues_model.Issue) {
 	var prev, cur *issues_model.Comment
@@ -227,7 +232,8 @@ func combineLabelComments(issue *issues_model.Issue) {
 		}
 		if i == 0 || cur.Type != issues_model.CommentTypeLabel ||
 			(prev != nil && prev.PosterID != cur.PosterID) ||
-			(prev != nil && cur.CreatedUnix-prev.CreatedUnix >= 60) {
+			(prev != nil && cur.CreatedUnix-prev.CreatedUnix >= 60) ||
+			(prev != nil && !sameCommentMetaData(prev.CommentMetaData, cur.CommentMetaData)) {
 			if cur.Type == issues_model.CommentTypeLabel && cur.Label != nil {
 				if cur.Content != "1" {
 					cur.RemovedLabels = append(cur.RemovedLabels, cur.Label)

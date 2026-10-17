@@ -67,8 +67,9 @@ func LoadProjectIssueColumnMap(ctx context.Context, projectID, defaultColumnID i
 // and removes projects that are currently assigned but not in newProjectIDs.
 // If newProjectIDs is empty, all projects are removed from the issue.
 // When adding an issue to a project, it is placed in the project's default column.
-func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectIDs []int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+// It returns the IDs of the projects the issue was added to and removed from.
+func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectIDs []int64) (added, removed []int64, err error) {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issue.LoadRepo(ctx); err != nil {
 			return err
 		}
@@ -78,15 +79,15 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			return err
 		}
 
-		projectsToAdd, projectsToRemove := util.DiffSlice(oldProjectIDs, newProjectIDs)
+		added, removed = util.DiffSlice(oldProjectIDs, newProjectIDs)
 		issue.isProjectsLoaded = false
 		issue.Projects = nil
 
-		if len(projectsToRemove) > 0 {
-			if _, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).In("project_id", projectsToRemove).Delete(&project_model.ProjectIssue{}); err != nil {
+		if len(removed) > 0 {
+			if _, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).In("project_id", removed).Delete(&project_model.ProjectIssue{}); err != nil {
 				return err
 			}
-			for _, projectID := range projectsToRemove {
+			for _, projectID := range removed {
 				if _, err := CreateComment(ctx, &CreateCommentOptions{
 					Type:         CommentTypeProject,
 					Doer:         doer,
@@ -100,13 +101,13 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			}
 		}
 
-		if len(projectsToAdd) > 0 {
-			projectMap, err := project_model.GetProjectsMapByIDs(ctx, projectsToAdd)
+		if len(added) > 0 {
+			projectMap, err := project_model.GetProjectsMapByIDs(ctx, added)
 			if err != nil {
 				return err
 			}
 
-			for _, projectID := range projectsToAdd {
+			for _, projectID := range added {
 				newProject, ok := projectMap[projectID]
 				if !ok {
 					return util.NewNotExistErrorf("project %d not found", projectID)
@@ -149,4 +150,5 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 		}
 		return nil
 	})
+	return added, removed, err
 }

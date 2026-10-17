@@ -435,6 +435,10 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 			return err
 		}
 
+		if _, err := db.GetEngine(ctx).Where("project_id=?", id).Delete(new(Workflow)); err != nil {
+			return err
+		}
+
 		if _, err = db.GetEngine(ctx).ID(p.ID).Delete(new(Project)); err != nil {
 			return err
 		}
@@ -444,6 +448,9 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 }
 
 func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
+	if _, err := db.GetEngine(ctx).In("project_id", builder.Select("id").From("project").Where(builder.Eq{"repo_id": repoID})).Delete(new(Workflow)); err != nil {
+		return err
+	}
 	switch {
 	case setting.Database.Type.IsSQLite3():
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue WHERE project_issue.id IN (SELECT project_issue.id FROM project_issue INNER JOIN project WHERE project.id = project_issue.project_id AND project.repo_id = ?)", repoID); err != nil {
