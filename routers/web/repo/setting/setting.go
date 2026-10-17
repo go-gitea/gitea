@@ -680,11 +680,16 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultUpdateStyle:            defaultUpdateStyle,
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
+			DefaultSquashMergeMessage:     repo_model.SquashMergeMessage(form.PullsDefaultSquashMergeMessage),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
 		}
 		if err := prConfig.ValidateUpdateSettings(); err != nil {
 			ctx.JSONErrorAuto(err)
+			return
+		}
+		if !prConfig.DefaultSquashMergeMessage.IsValid() {
+			ctx.JSONErrorAuto(util.NewInvalidArgumentErrorf("invalid default squash merge message: %s", prConfig.DefaultSquashMergeMessage))
 			return
 		}
 		units = append(units, newRepoUnit(repo, unit_model.TypePullRequests, prConfig))

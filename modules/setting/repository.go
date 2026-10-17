@@ -6,6 +6,7 @@ package setting
 import (
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"gitea.dev/modules/log"
@@ -94,7 +95,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
-			PopulateSquashCommentWithCommitMessages  bool
+			DefaultSquashMergeMessage                string
 			AddCoCommitterTrailers                   bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
@@ -188,7 +189,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
-			PopulateSquashCommentWithCommitMessages  bool
+			DefaultSquashMergeMessage                string
 			AddCoCommitterTrailers                   bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
@@ -206,7 +207,7 @@ var (
 			DefaultMergeMessageAllAuthors:            false,
 			DefaultMergeMessageMaxApprovers:          10,
 			DefaultMergeMessageOfficialApproversOnly: true,
-			PopulateSquashCommentWithCommitMessages:  false,
+			DefaultSquashMergeMessage:                "PR_BODY",
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
 			DelayCheckForInactiveDays:                7,
@@ -337,6 +338,19 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Repository.Upload settings: %v", err)
 	} else if err = rootCfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
+	}
+
+	prSec := rootCfg.Section("repository.pull-request")
+	deprecatedSetting(rootCfg, "repository.pull-request", "POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES", "repository.pull-request", "DEFAULT_SQUASH_MERGE_MESSAGE", "v30.0.0")
+	if legacyKey := ConfigSectionKey(prSec, "POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES"); ConfigSectionKey(prSec, "DEFAULT_SQUASH_MERGE_MESSAGE") == nil && legacyKey != nil {
+		if useCommitMessages, _ := legacyKey.Bool(); useCommitMessages {
+			Repository.PullRequest.DefaultSquashMergeMessage = "COMMIT_MESSAGES"
+		} else {
+			Repository.PullRequest.DefaultSquashMergeMessage = "PR_BODY"
+		}
+	}
+	if !slices.Contains([]string{"BLANK", "COMMIT_MESSAGES", "PR_BODY"}, Repository.PullRequest.DefaultSquashMergeMessage) {
+		log.Fatal("Invalid repository.pull-request.DEFAULT_SQUASH_MERGE_MESSAGE: %s", Repository.PullRequest.DefaultSquashMergeMessage)
 	}
 
 	if !rootCfg.Section("packages").Key("ENABLED").MustBool(Packages.Enabled) {

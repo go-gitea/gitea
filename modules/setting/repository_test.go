@@ -64,3 +64,23 @@ ORG_MAX_CREATION_LIMIT = -1
 		assert.Equal(t, -1, Repository.OrgMaxCreationLimit)
 	})
 }
+
+func TestLoadRepositoryDefaultSquashMergeMessage(t *testing.T) {
+	defer test.MockVariableValue(&Repository.PullRequest.DefaultSquashMergeMessage)()
+
+	for _, testcase := range []struct {
+		ini      string
+		expected string
+	}{
+		{"POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES = true", "COMMIT_MESSAGES"},
+		{"POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES = false", "PR_BODY"},
+		{"POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES = yes", "COMMIT_MESSAGES"},
+		{"POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES = true\nDEFAULT_SQUASH_MERGE_MESSAGE = BLANK", "BLANK"},
+	} {
+		Repository.PullRequest.DefaultSquashMergeMessage = "BLANK"
+		cfg, err := NewConfigProviderFromData("[repository.pull-request]\n" + testcase.ini)
+		assert.NoError(t, err)
+		loadRepositoryFrom(cfg)
+		assert.Equal(t, testcase.expected, Repository.PullRequest.DefaultSquashMergeMessage, testcase.ini)
+	}
+}
