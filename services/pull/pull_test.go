@@ -5,6 +5,7 @@
 package pull
 
 import (
+	"strconv"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -110,6 +111,7 @@ func TestCollectSquashMergeCommitTrailers(t *testing.T) {
 
 	trailers, err := collectSquashMergeCommitTrailers(t.Context(), poster, []*git.Commit{
 		newCommit("whiskey", "third\n\nCo-authored-by: renamed <ZULU@example.com>"),
+		{Author: &git.Signature{Name: "offline"}},
 		newCommit("user2", "second\n\nSigned-off-by: one <one@example.com>\nSigned-off-by: two <two@example.com>"),
 		newCommit("zulu", "first\n\nCo-authored-by: yankee <yankee@example.com>\nSigned-off-by: two <two@example.com>"),
 	})
@@ -119,6 +121,17 @@ func TestCollectSquashMergeCommitTrailers(t *testing.T) {
 		"Signed-off-by: one <one@example.com>",
 		"Co-authored-by: zulu <zulu@example.com>",
 		"Co-authored-by: yankee <yankee@example.com>",
+		"Co-authored-by: offline <>",
 		"Co-authored-by: whiskey <whiskey@example.com>",
 	}, trailers)
+
+	t.Run("MoreAuthorsThanSQLiteParameters", func(t *testing.T) {
+		commits := make([]*git.Commit, 32767)
+		for i := range commits {
+			commits[i] = newCommit(strconv.Itoa(i), "")
+		}
+		trailers, err := collectSquashMergeCommitTrailers(t.Context(), poster, commits)
+		assert.NoError(t, err)
+		assert.Len(t, trailers, len(commits))
+	})
 }

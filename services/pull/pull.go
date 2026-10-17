@@ -828,29 +828,39 @@ func buildSquashMergeCommitMessages(mergeMessage string, trailers []string, mult
 func collectSquashMergeCommitTrailers(ctx context.Context, poster *user_model.User, commits []*git.Commit) ([]string, error) {
 	var trailers []string
 	var coAuthors []*git.CommitIdentity
-	uniqueEmails := make(container.Set[string])
+	uniqueAuthors := make(container.Set[string])
+	uniqueSignOffs := make(container.Set[string])
 	for _, commit := range slices.Backward(commits) {
 		for _, signOff := range commit.MessageTrailer()["signed-off-by"] {
-			if line := "Signed-off-by: " + signOff; !slices.Contains(trailers, line) {
-				trailers = append(trailers, line)
+			if uniqueSignOffs.Add(signOff) {
+				trailers = append(trailers, "Signed-off-by: "+signOff)
 			}
 		}
 		for _, identity := range commit.AllAuthorIdentities() {
-			if identity.Email != "" && !strings.EqualFold(identity.Email, poster.GetEmail()) && uniqueEmails.Add(strings.ToLower(identity.Email)) {
+			if identity.Email != "" && strings.EqualFold(identity.Email, poster.GetEmail()) {
+				continue
+			}
+			if uniqueAuthors.Add(strings.ToLower(util.IfZero(identity.Email, identity.Name))) {
 				coAuthors = append(coAuthors, identity)
 			}
 		}
 	}
 
-	emailUsers, err := user_model.GetUsersByEmails(ctx, uniqueEmails.Values())
-	if err != nil {
-		return nil, err
-	}
-	for _, coAuthor := range coAuthors {
-		// Compare use account as well to avoid adding the same author multiple times
-		// when email addresses are private or multiple emails are used.
-		if commitUser := emailUsers.GetByEmail(coAuthor.Email); commitUser == nil || commitUser.ID != poster.ID {
-			trailers = append(trailers, fmt.Sprintf("%s: %s <%s>", git.CoAuthoredByTrailer, coAuthor.Name, coAuthor.Email))
+	for batch := range slices.Chunk(coAuthors, db.DefaultMaxInSize) {
+		emails := make([]string, 0, len(batch))
+		for _, coAuthor := range batch {
+			if coAuthor.Email != "" {
+				emails = append(emails, coAuthor.Email)
+			}
+		}
+		emailUsers, err := user_model.GetUsersByEmails(ctx, emails)
+		if err != nil {
+			return nil, err
+		}
+		for _, coAuthor := range batch {
+			if commitUser := emailUsers.GetByEmail(coAuthor.Email); commitUser == nil || commitUser.ID != poster.ID {
+				trailers = append(trailers, fmt.Sprintf("%s: %s <%s>", git.CoAuthoredByTrailer, coAuthor.Name, coAuthor.Email))
+			}
 		}
 	}
 	return trailers, nil
