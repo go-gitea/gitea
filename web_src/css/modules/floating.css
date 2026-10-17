@@ -38,15 +38,6 @@
   overflow: auto;
 }
 
-/* interactive hit area: an invisible padded region around the popup so the
-   cursor can traverse the gap between reference and popup without closing it */
-.floating-box[data-interactive="true"]::before {
-  content: "";
-  position: absolute;
-  inset: calc(-1 * var(--floating-interactive-border, 0px));
-  z-index: 0;
-}
-
 .floating-box[data-theme="default"] {
   box-shadow: 0 6px 18px var(--color-shadow);
 }

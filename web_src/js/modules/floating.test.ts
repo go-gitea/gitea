@@ -1,5 +1,5 @@
 import {userEvent} from 'vitest/browser';
-import {createFloatingElement, getFloatingElement, initGlobalTooltips} from './floating.ts';
+import {createFloatingElement, getFloatingElement, initGlobalTooltips, showTemporaryTooltip} from './floating.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import '../../css/modules/floating.css';
 
@@ -13,12 +13,14 @@ describe('floating', () => {
   beforeEach(() => { document.body.replaceChildren() });
   afterEach(() => { vi.useRealTimers() });
 
-  test('register', () => {
+  test('destroy unregisters and removes a popup even when hiding is prevented', () => {
     const target = makeTarget();
-    const instance = createFloatingElement(target, {trigger: 'manual'});
+    const instance = createFloatingElement(target, {trigger: 'manual', onHide: () => false});
     expect(getFloatingElement(target)).toBe(instance);
+    instance.show();
     instance.destroy();
     expect(getFloatingElement(target)).toBeNull();
+    expect(instance.element.isConnected).toBe(false);
   });
 
   test('show/hide', () => {
@@ -40,10 +42,22 @@ describe('floating', () => {
     instance.destroy();
   });
 
-  test('hover delay', () => {
+  test('hover delay is canceled by hiding or clicking before the popup appears', () => {
     vi.useFakeTimers({toFake: ['setTimeout', 'clearTimeout']});
     const target = makeTarget();
-    const instance = createFloatingElement(target, {delay: [40, 0]});
+    const instance = createFloatingElement(target, {delay: [40, 0], hideOnClick: true});
+    target.dispatchEvent(new MouseEvent('mouseenter'));
+    instance.hide();
+    vi.advanceTimersByTime(40);
+    expect(instance.state.isShown).toBe(false);
+    target.dispatchEvent(new MouseEvent('mouseenter'));
+    target.click();
+    vi.advanceTimersByTime(40);
+    expect(instance.state.isShown).toBe(false);
+    target.dispatchEvent(new MouseEvent('mouseenter'));
+    document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
+    vi.advanceTimersByTime(40);
+    expect(instance.state.isShown).toBe(false);
     target.dispatchEvent(new MouseEvent('mouseenter'));
     expect(instance.state.isShown).toBe(false);
     vi.advanceTimersByTime(40);
@@ -55,7 +69,21 @@ describe('floating', () => {
 
   test('click toggles', () => {
     const target = makeTarget();
-    const instance = createFloatingElement(target, {trigger: 'click'});
+    const instance = createFloatingElement(target, {trigger: 'click', interactive: true, hideOnClick: true});
+    expect(target.getAttribute('aria-expanded')).toBe('false');
+    target.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    expect(instance.state.isShown).toBe(true);
+    expect(target.getAttribute('aria-expanded')).toBe('true');
+    target.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    expect(instance.state.isShown).toBe(false);
+    expect(target.getAttribute('aria-expanded')).toBe('false');
+    instance.destroy();
+  });
+
+  test('focus click ignores only the click that follows focus', () => {
+    const target = makeTarget();
+    const instance = createFloatingElement(target, {trigger: 'focus click'});
+    target.dispatchEvent(new FocusEvent('focus'));
     target.dispatchEvent(new MouseEvent('click', {bubbles: true}));
     expect(instance.state.isShown).toBe(true);
     target.dispatchEvent(new MouseEvent('click', {bubbles: true}));
@@ -63,25 +91,48 @@ describe('floating', () => {
     instance.destroy();
   });
 
-  test('focus click', () => {
+  test('interactive focus can enter popup content', () => {
+    vi.useFakeTimers({toFake: ['setTimeout', 'clearTimeout']});
     const target = makeTarget();
-    const instance = createFloatingElement(target, {trigger: 'focus click'});
-    target.dispatchEvent(new FocusEvent('focus'));
-    target.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    const content = createElementFromHTML<HTMLInputElement>('<input>');
+    const instance = createFloatingElement(target, {content, trigger: 'focus click', interactive: true});
+    target.focus();
+    content.focus();
+    vi.advanceTimersByTime(1);
     expect(instance.state.isShown).toBe(true);
+    expect(document.activeElement).toBe(content);
     instance.destroy();
   });
 
-  test('interactive hover', async () => {
+  test('interactive hover crosses the reference gap and closes outside the popup border', async () => {
     const target = makeTarget();
-    const instance = createFloatingElement(target, {interactive: true});
-    target.dispatchEvent(new MouseEvent('mouseenter'));
-    instance.element.dispatchEvent(new MouseEvent('mouseenter'));
-    target.dispatchEvent(new MouseEvent('mouseleave'));
+    const instance = createFloatingElement(target, {interactive: true, interactiveBorder: 5});
+    vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(new DOMRect(100, 150, 20, 20));
+    vi.spyOn(instance.element, 'getBoundingClientRect').mockReturnValue(new DOMRect(100, 100, 100, 40));
+    target.dispatchEvent(new MouseEvent('mouseenter', {clientX: 110, clientY: 155}));
+    target.dispatchEvent(new MouseEvent('mouseleave', {clientX: 110, clientY: 149}));
+    document.dispatchEvent(new PointerEvent('pointermove', {clientX: 110, clientY: 145}));
+    await vi.waitFor(() => expect(instance.element.hasAttribute('data-placement')).toBe(true));
     expect(instance.state.isShown).toBe(true);
-    instance.element.dispatchEvent(new MouseEvent('mouseleave'));
+    instance.element.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(instance.state.isShown).toBe(true);
+    instance.element.dispatchEvent(new MouseEvent('mouseleave', {clientX: 110, clientY: 100}));
+    document.dispatchEvent(new PointerEvent('pointermove', {clientX: 300, clientY: 300}));
     await vi.waitFor(() => expect(instance.state.isShown).toBe(false));
     instance.destroy();
+  });
+
+  test('temporary feedback from popup content is dismissed by the next outside press', () => {
+    const content = createElementFromHTML('<button>copy</button>');
+    const popup = createFloatingElement(makeTarget(), {content, trigger: 'manual', interactive: true});
+    popup.show();
+    showTemporaryTooltip(content, 'Copied');
+    const tooltip = getFloatingElement(document.body)!;
+    expect(tooltip.state.isShown).toBe(true);
+    document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
+    expect(tooltip.state.isShown).toBe(false);
+    expect(getFloatingElement(document.body)).toBeNull();
+    popup.destroy();
   });
 
   test('tooltip dedupe', () => {

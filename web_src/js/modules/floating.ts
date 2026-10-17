@@ -107,6 +107,11 @@ if (typeof document !== 'undefined') {
 function acquireCursorTracking(fn: () => void): void { cursorListeners.add(fn) }
 function releaseCursorTracking(fn: () => void): void { cursorListeners.delete(fn) }
 
+function isCursorWithinRect(rect: Pick<DOMRect, 'left' | 'right' | 'top' | 'bottom'>, border = 0): boolean {
+  return mouseCoords.x >= rect.left - border && mouseCoords.x <= rect.right + border &&
+    mouseCoords.y >= rect.top - border && mouseCoords.y <= rect.bottom + border;
+}
+
 const dismissListeners = new Set<(e: MouseEvent) => void>();
 function onGlobalDismiss(e: MouseEvent): void {
   for (const fn of dismissListeners) fn(e);
@@ -187,7 +192,9 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
   const triggers = parseTriggers(props.trigger ?? defaults.trigger);
   const needsClickHandler = triggers.click || ((triggers.mouse || triggers.focus) && Boolean(props.hideOnClick));
   const floatingHoverTracked = Boolean(props.interactive) && triggers.mouse;
-  const needsDismissTracking = triggers.click || Boolean(props.interactive);
+  const needsDismissTracking = triggers.click || Boolean(props.hideOnClick);
+  const managesExpanded = props.interactive && props.role !== 'tooltip' && !target.hasAttribute('aria-expanded');
+  if (managesExpanded) target.setAttribute('aria-expanded', 'false');
 
   const disposers: Array<() => void> = [];
   function listen(el: Element, ev: string, fn: EventListener): void {
@@ -275,16 +282,38 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
 
   function cursorUpdateHandler(): void { update() }
 
+  function onInteractiveMove(): void {
+    const referenceRect = target.getBoundingClientRect();
+    const rect = el.getBoundingClientRect();
+    const side = (el.getAttribute('data-placement') || props.placement || defaults.placement).split('-')[0];
+    if (isCursorWithinRect(referenceRect) || isCursorWithinRect({
+      left: side === 'right' ? Math.min(rect.left, referenceRect.right) : rect.left,
+      right: side === 'left' ? Math.max(rect.right, referenceRect.left) : rect.right,
+      top: side === 'bottom' ? Math.min(rect.top, referenceRect.bottom) : rect.top,
+      bottom: side === 'top' ? Math.max(rect.bottom, referenceRect.top) : rect.bottom,
+    }, props.interactiveBorder ?? defaults.interactiveBorder)) clearTimers();
+    else if (hideTimer === undefined) scheduleHide();
+  }
+
+  function onInteractiveLeave(event: Event): void {
+    if (!isShown) { scheduleHide(); return }
+    const {clientX, clientY} = event as MouseEvent;
+    mouseCoords = {x: clientX, y: clientY};
+    acquireCursorTracking(onInteractiveMove);
+    onInteractiveMove();
+  }
+
   function onDocDismiss(e: MouseEvent): void {
-    if (!isShown) return;
-    const t = e.target as Node;
-    if (target.contains(t) || el.contains(t)) return;
+    if (!props.hideOnClick) return;
+    const targetNode = e.target as Node;
+    if ((triggers.click && target.contains(targetNode)) || (props.interactive && el.contains(targetNode))) return;
     doHide();
   }
 
   function doShow(): void {
+    clearTimers();
     if (isDestroyed || !isEnabled || isShown) return;
-    if (props.onShow?.(instance) === false) return;
+    if (props.onShow?.(instance) === false) { releaseDismissTracking(onDocDismiss); return }
     isShown = true;
     visibleInstances.add(instance);
     for (const other of visibleInstances) {
@@ -295,19 +324,24 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
     }
     document.body.append(el);
     target.setAttribute('aria-controls', el.id);
+    if (managesExpanded) target.setAttribute('aria-expanded', 'true');
     if (props.role === 'tooltip') target.setAttribute('aria-describedby', el.id);
     startAutoUpdate();
     if (props.followCursor) acquireCursorTracking(cursorUpdateHandler);
     if (needsDismissTracking) acquireDismissTracking(onDocDismiss);
   }
 
-  function doHide(): void {
-    if (isDestroyed || !isShown) return;
-    if (props.onHide?.(instance) === false) return;
+  function doHide(force = false): void {
+    clearTimers();
+    if (isDestroyed || !isShown) { releaseDismissTracking(onDocDismiss); return }
+    if (props.onHide?.(instance) === false && !force) return;
     isShown = false;
+    if (managesExpanded) target.setAttribute('aria-expanded', 'false');
     visibleInstances.delete(instance);
     stopAutoUpdate?.();
     stopAutoUpdate = null;
+    releaseCursorTracking(onInteractiveMove);
+    isCursorOverFloating = false;
     if (props.followCursor) releaseCursorTracking(cursorUpdateHandler);
     if (needsDismissTracking) releaseDismissTracking(onDocDismiss);
     if (isMenu(instance) && el.contains(document.activeElement)) (target as HTMLElement).focus();
@@ -318,6 +352,8 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
 
   function scheduleShow(): void {
     clearTimers();
+    if (isDestroyed || !isEnabled) return;
+    if (needsDismissTracking) acquireDismissTracking(onDocDismiss);
     const d = resolveDelay(props.delay, 'show');
     if (d > 0) showTimer = window.setTimeout(doShow, d);
     else doShow();
@@ -331,39 +367,42 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
     else doHide();
   }
 
-  let recentFocusAt = 0;
+  let wasFocused = false;
   function onRefFocus(): void {
-    recentFocusAt = performance.now();
+    wasFocused = true;
     scheduleShow();
   }
   function onRefClick(): void {
     if (!isEnabled) return;
-    if (!triggers.click) { if (isShown && props.hideOnClick) doHide(); return }
-    if (triggers.focus && performance.now() - recentFocusAt < 200) return;
+    if (!triggers.click) { if (props.hideOnClick) doHide(); return }
+    if (triggers.focus && wasFocused) { wasFocused = false; return }
     if (isShown) doHide(); else doShow();
-  }
-
-  if (props.interactive && props.interactiveBorder) {
-    el.style.setProperty('--floating-interactive-border', `${props.interactiveBorder}px`);
-    el.setAttribute('data-interactive', 'true');
   }
 
   if (triggers.mouse) {
     listen(target, 'mouseenter', (e) => {
       const {clientX, clientY} = e as MouseEvent;
       mouseCoords = {x: clientX, y: clientY};
+      releaseCursorTracking(onInteractiveMove);
       scheduleShow();
     });
-    listen(target, 'mouseleave', scheduleHide);
+    listen(target, 'mouseleave', props.interactive ? onInteractiveLeave : scheduleHide);
   }
   if (triggers.focus) {
     listen(target, 'focus', onRefFocus);
-    listen(target, 'blur', scheduleHide);
+    listen(target, 'blur', (e) => {
+      if (props.interactive && el.contains((e as FocusEvent).relatedTarget as Node | null)) return;
+      scheduleHide();
+    });
   }
   if (needsClickHandler) listen(target, 'click', onRefClick);
   if (floatingHoverTracked) {
-    listen(el, 'mouseenter', () => { isCursorOverFloating = true; clearTimers() });
-    listen(el, 'mouseleave', () => { isCursorOverFloating = false; scheduleHide() });
+    listen(el, 'mouseenter', () => {
+      isCursorOverFloating = true;
+      releaseCursorTracking(onInteractiveMove);
+      clearTimers();
+    });
+    listen(el, 'mouseleave', (e) => { isCursorOverFloating = false; onInteractiveLeave(e) });
   }
 
   instance.reference = target;
@@ -375,8 +414,7 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
   instance.update = () => { if (isShown) update(); };
   instance.destroy = () => {
     if (isDestroyed) return;
-    clearTimers();
-    if (isShown) doHide();
+    doHide(true);
     isDestroyed = true;
     for (const dispose of disposers) dispose();
     instances.delete(target);
@@ -405,7 +443,7 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
     update();
   };
   instance.enable = () => { isEnabled = true };
-  instance.disable = () => { isEnabled = false; if (isShown) doHide(); };
+  instance.disable = () => { isEnabled = false; doHide() };
 
   instances.set(target, instance);
   if (props.role === 'menu') target.setAttribute('aria-haspopup', 'true');
@@ -550,8 +588,6 @@ type FloatingDelegateProps = Omit<FloatingElementProps, 'content' | 'trigger' | 
   content: (el: Element) => FloatingContent;
 };
 
-/** A single floating element shared across many children of `container` matching `target`,
- *  reference-swapped on hover so it appears to glide between cells. */
 export function delegate(container: Element | string, props: FloatingDelegateProps): () => void {
   const resolved = typeof container === 'string' ? document.querySelector(container) : container;
   if (!resolved) return () => {};
@@ -577,8 +613,7 @@ export function delegate(container: Element | string, props: FloatingDelegatePro
     }
     hovered = el;
     instance.setContent(content(el));
-    if (instance.state.isShown) instance.update();
-    else instance.show();
+    if (!instance.state.isShown) instance.show();
   }
   function onLeave(): void {
     hovered = null;
