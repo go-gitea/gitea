@@ -30,10 +30,10 @@
 						{{svg "octicon-git-commit"}}
 						{{ctx.Locale.Tr "repo.editor.commit_directly_to_this_branch" .BranchName}}
 						{{if not .CommitFormOptions.CanCommitToBranch}}
-						<div class="tw-mt-2">
+						<div class="mt-2">
 							{{ctx.Locale.Tr "repo.editor.no_commit_to_branch"}}
 							{{if .CommitFormOptions.DenyCommitToBranchReason}}
-								<ul class="tw-mb-0"><li>{{.CommitFormOptions.DenyCommitToBranchReason}}</li></ul>
+								<ul class="mb-0"><li>{{.CommitFormOptions.DenyCommitToBranchReason}}</li></ul>
 							{{end}}
 						</div>
 						{{end}}
@@ -58,10 +58,10 @@
 						</label>
 					</div>
 				</div>
-				<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}tw-hidden{{end}}">
+				<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}hidden{{end}}">
 					<div class="new-branch-name-input field">
 						{{svg "octicon-git-branch"}}
-						<input type="text" name="new_branch_name" maxlength="100" value="{{.new_branch_name}}" class="input-contrast tw-mr-1 js-quick-pull-new-branch-name" placeholder="{{ctx.Locale.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}} title="{{ctx.Locale.Tr "repo.editor.new_branch_name"}}">
+						<input type="text" name="new_branch_name" maxlength="100" value="{{.new_branch_name}}" class="input-contrast mr-1 js-quick-pull-new-branch-name" placeholder="{{ctx.Locale.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}} title="{{ctx.Locale.Tr "repo.editor.new_branch_name"}}">
 						<span class="text-muted js-quick-pull-normalization-info"></span>
 					</div>
 				</div>

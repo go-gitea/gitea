@@ -12,15 +12,15 @@ const store = diffTreeStore();
 const collapsed = shallowRef(props.item.IsViewed);
 
 const diffStatusIcons: Record<DiffStatus, {name: SvgName, class: string}> = {
-  '': {name: 'octicon-blocked', class: 'tw-text-red'},
-  'added': {name: 'octicon-diff-added', class: 'tw-text-green'},
-  'modified': {name: 'octicon-diff-modified', class: 'tw-text-yellow'},
-  'deleted': {name: 'octicon-diff-removed', class: 'tw-text-red'},
-  'renamed': {name: 'octicon-diff-renamed', class: 'tw-text-teal'},
-  'copied': {name: 'octicon-diff-renamed', class: 'tw-text-green'}, // there is no octicon for copied, so renamed should be ok
-  'typechanged': {name: 'octicon-diff-modified', class: 'tw-text-green'},
-  'unmerged': {name: 'octicon-blocked', class: 'tw-text-red'},
-  'unknown': {name: 'octicon-blocked', class: 'tw-text-red'},
+  '': {name: 'octicon-blocked', class: 'text-red'},
+  'added': {name: 'octicon-diff-added', class: 'text-green'},
+  'modified': {name: 'octicon-diff-modified', class: 'text-yellow'},
+  'deleted': {name: 'octicon-diff-removed', class: 'text-red'},
+  'renamed': {name: 'octicon-diff-renamed', class: 'text-teal'},
+  'copied': {name: 'octicon-diff-renamed', class: 'text-green'}, // there is no octicon for copied, so renamed should be ok
+  'typechanged': {name: 'octicon-diff-modified', class: 'text-green'},
+  'unmerged': {name: 'octicon-blocked', class: 'text-red'},
+  'unknown': {name: 'octicon-blocked', class: 'text-red'},
 };
 </script>
 
@@ -30,7 +30,7 @@ const diffStatusIcons: Record<DiffStatus, {name: SvgName, class: string}> = {
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="tw-contents" v-html="collapsed ? store.folderIcon : store.folderOpenIcon"/>
+      <span class="contents" v-html="collapsed ? store.folderIcon : store.folderOpenIcon"/>
       <span class="gt-ellipsis">{{ item.DisplayName }}</span>
     </div>
 
@@ -45,8 +45,8 @@ const diffStatusIcons: Record<DiffStatus, {name: SvgName, class: string}> = {
   >
     <!-- file -->
     <!-- eslint-disable-next-line vue/no-v-html -->
-    <span class="tw-contents" v-html="item.FileIcon"/>
-    <span class="gt-ellipsis tw-flex-1">{{ item.DisplayName }}</span>
+    <span class="contents" v-html="item.FileIcon"/>
+    <span class="gt-ellipsis flex-1">{{ item.DisplayName }}</span>
     <SvgIcon v-bind="diffStatusIcons[item.DiffStatus] ?? diffStatusIcons['']"/>
   </a>
 </template>

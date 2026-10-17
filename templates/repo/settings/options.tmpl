@@ -64,7 +64,7 @@
 			</h4>
 			<div class="ui attached segment">
 				{{if .Repository.IsArchived}}
-					<div class="ui warning message tw-text-center">
+					<div class="ui warning message text-center">
 						{{ctx.Locale.Tr "repo.settings.archive.mirrors_unavailable"}}
 					</div>
 				{{else}}
@@ -104,7 +104,7 @@
 					<table class="ui table">
 						<thead>
 							<tr>
-								<th class="tw-w-2/5">{{ctx.Locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
+								<th class="w-2/5">{{ctx.Locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.last_update"}}</th>
 								<th></th>
@@ -115,7 +115,7 @@
 							<tbody>
 								<tr>
 									<td colspan="4">
-										<div class="tw-text-red tw-py-4">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
+										<div class="text-red py-4">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
 									</td>
 								</tr>
 							</tbody>
@@ -125,8 +125,8 @@
 								<td>{{.PullMirror.RemoteAddress}}</td>
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 								<td>{{DateUtils.FullTime .PullMirror.UpdatedUnix}}</td>
-								<td class="tw-text-right">
-									<form method="post" class="tw-inline-block">
+								<td class="text-right">
+									<form method="post" class="inline-block">
 										<input type="hidden" name="action" value="mirror-sync">
 										<button type="submit" class="ui primary tiny button inline">{{ctx.Locale.Tr "repo.settings.sync_mirror"}}</button>
 									</form>
@@ -155,10 +155,10 @@
 											<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 										</div>
 										<details class="ui optional field" {{if $address.Username}}open{{end}}>
-											<summary class="tw-p-1">
+											<summary class="p-1">
 												{{ctx.Locale.Tr "repo.need_auth"}}
 											</summary>
-											<div class="tw-p-1">
+											<div class="p-1">
 												<div class="inline field">
 													<label for="mirror_username">{{ctx.Locale.Tr "username"}}</label>
 													<input id="mirror_username" name="mirror_username" value="{{$address.Username}}">
@@ -199,7 +199,7 @@
 					<table class="ui table">
 						<thead>
 							<tr>
-								<th class="tw-w-2/5">{{ctx.Locale.Tr "repo.settings.mirror_settings.pushed_repository"}}</th>
+								<th class="w-2/5">{{ctx.Locale.Tr "repo.settings.mirror_settings.pushed_repository"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.last_update"}}</th>
 								<th></th>
@@ -208,7 +208,7 @@
 						<tbody>
 							{{range .PushMirrors}}
 							<tr>
-								<td class="tw-break-anywhere">{{.RemoteAddress}}</td>
+								<td class="wrap-anywhere">{{.RemoteAddress}}</td>
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.push"}} ({{.Interval}})</td>
 								<td>
 									<span class="flex-text-block">
@@ -220,7 +220,7 @@
 										{{if .LastError}}<span class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error_title"}}</span>{{end}}
 									</span>
 								</td>
-								<td class="tw-text-right">
+								<td class="text-right">
 									<button
 										type="button"
 										class="ui tiny button show-modal"
@@ -232,12 +232,12 @@
 									>
 										{{svg "octicon-pencil" 14}}
 									</button>
-									<form method="post" class="tw-inline-block">
+									<form method="post" class="inline-block">
 										<input type="hidden" name="action" value="push-mirror-sync">
 										<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 										<button type="submit" class="ui primary tiny button" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.sync_mirror"}}">{{svg "octicon-sync" 14}}</button>
 									</form>
-									<form method="post" class="tw-inline-block">
+									<form method="post" class="inline-block">
 										<input type="hidden" name="action" value="push-mirror-remove">
 										<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 										<button type="submit" class="ui basic red tiny button" data-tooltip-content="{{ctx.Locale.Tr "remove"}}">{{svg "octicon-trash" 14}}</button>
@@ -261,10 +261,10 @@
 												<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 											</div>
 											<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
-												<summary class="tw-p-1">
+												<summary class="p-1">
 													{{ctx.Locale.Tr "repo.need_auth"}}
 												</summary>
-												<div class="tw-p-1">
+												<div class="p-1">
 													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
 														<label for="push_mirror_username">{{ctx.Locale.Tr "username"}}</label>
 														<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
@@ -336,7 +336,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
-					<div id="internal_wiki_box" class="field tw-pl-4 {{if not $isInternalWikiEnabled}}disabled{{end}}">
+					<div id="internal_wiki_box" class="field pl-4 {{if not $isInternalWikiEnabled}}disabled{{end}}">
 						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
 							<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
@@ -348,7 +348,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
 					</div>
-					<div id="external_wiki_box" class="field tw-pl-4 {{if not $isExternalWikiEnabled}}disabled{{end}}">
+					<div id="external_wiki_box" class="field pl-4 {{if not $isExternalWikiEnabled}}disabled{{end}}">
 						<label for="external_wiki_url">{{ctx.Locale.Tr "repo.settings.external_wiki_url"}}</label>
 						<input id="external_wiki_url" name="external_wiki_url" type="url" value="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}">
 						<p class="help">{{ctx.Locale.Tr "repo.settings.external_wiki_url_desc"}}</p>
@@ -369,7 +369,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field tw-pl-4 {{if not $isInternalTrackerEnabled}}disabled{{end}}" id="internal_issue_box">
+					<div class="field pl-4 {{if not $isInternalTrackerEnabled}}disabled{{end}}" id="internal_issue_box">
 						{{if .Repository.CanEnableTimetracker}}
 							<div class="field">
 								<div class="ui checkbox">
@@ -403,7 +403,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field tw-pl-4 {{if not $isExternalTrackerEnabled}}disabled{{end}}" id="external_issue_box">
+					<div class="field pl-4 {{if not $isExternalTrackerEnabled}}disabled{{end}}" id="external_issue_box">
 						<div class="field">
 							<label for="external_tracker_url">{{ctx.Locale.Tr "repo.settings.external_tracker_url"}}</label>
 							<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerURL}}">
@@ -414,11 +414,11 @@
 							<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="https://github.com/{user}/{repo}/issues/{index}">
 							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_url_format_desc"}}</p>
 						</div>
-						<div class="field tw-m-0">
+						<div class="field m-0">
 							<label>{{ctx.Locale.Tr "repo.settings.tracker_issue_style"}}</label>
 							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_issue_style_desc"}}</p>
 						</div>
-						<div class="flex-text-block flex-wrap tw-gap-4 tw-mb-2">
+						<div class="flex-text-block flex-wrap gap-4 mb-2">
 							<div>
 								<div class="ui radio checkbox">
 								{{$externalTracker := (.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalTracker)}}
@@ -460,7 +460,7 @@
 						<label>{{ctx.Locale.Tr "repo.settings.projects_desc"}}</label>
 					</div>
 				</div>
-				<div class="field {{if not $isProjectsEnabled}} disabled{{end}} tw-pl-4" id="projects_box">
+				<div class="field {{if not $isProjectsEnabled}} disabled{{end}} pl-4" id="projects_box">
 					<p>
 						{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}
 					</p>
@@ -797,7 +797,7 @@
 		<div class="ui attached error danger segment">
 			<div class="flex-divided-list items-with-main">
 				{{if not .Repository.IsFork}}
-					<div class="item tw-items-center">
+					<div class="item items-center">
 						<div class="item-main">
 							<div class="item-title">{{ctx.Locale.Tr "repo.visibility"}}</div>
 							{{if .Repository.IsPrivate}}
@@ -882,7 +882,7 @@
 					</div>
 				</div>
 				{{if not .Repository.IsMirror}}
-					<div class="item tw-items-center">
+					<div class="item items-center">
 						<div class="item-main">
 							{{if .Repository.IsArchived}}
 								<div class="item-title">{{ctx.Locale.Tr "repo.settings.unarchive.header"}}</div>
@@ -1005,7 +1005,7 @@
 							{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_two"}}
 						</li>
 						{{if or .Repository.NumStars .Repository.NumWatches .Repository.NumForks}}
-						<ul class="tw-my-0 tw-pl-4">
+						<ul class="my-0 pl-4">
 							{{if .Repository.NumStars}}<li>{{ctx.Locale.Tr "repo.settings.visibility.private.stats_stars" .Repository.NumStars}}</li>{{end}}
 							{{if .Repository.NumWatches}}<li>{{ctx.Locale.Tr "repo.settings.visibility.private.stats_watchers" .Repository.NumWatches}}</li>{{end}}
 							{{if .Repository.NumForks}}<li>{{ctx.Locale.Tr "repo.settings.visibility.private.stats_forks" .Repository.NumForks}}</li>{{end}}
@@ -1013,14 +1013,14 @@
 						{{end}}
 					</ul>
 				{{end}}
-				<form class="ui form tw-mt-5 form-fetch-action" action="{{.Link}}" method="post">
+				<form class="ui form mt-5 form-fetch-action" action="{{.Link}}" method="post">
 					<input type="hidden" name="action" value="visibility">
 					<input type="hidden" name="private" value="{{not .Repository.IsPrivate}}">
 					{{if not .Repository.IsPrivate}}
 						<div class="field">
 							<label>
 								{{ctx.Locale.Tr "repo.settings.enter_repo_full_name_to_confirm"}}
-								<span class="tw-text-red">{{.Repository.FullName}}</span>
+								<span class="text-red">{{.Repository.FullName}}</span>
 							</label>
 						</div>
 						<div class="required field">

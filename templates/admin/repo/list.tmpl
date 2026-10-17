@@ -48,7 +48,7 @@
 							<td>{{.ID}}</td>
 							<td>{{template "admin/shared/owner" dict "OwnerUser" $repo.Owner}}</td>
 							<td>
-								<a class="tw-break-anywhere" href="{{.Link}}">{{.Name}}</a>
+								<a class="wrap-anywhere" href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 								{{end}}
@@ -80,14 +80,14 @@
 							<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td>
-								<a class="tw-text-red show-modal" href data-modal="#admin-repo-delete-modal"
+								<a class="text-red show-modal" href data-modal="#admin-repo-delete-modal"
 									data-modal-form.url="{{$.Link}}/delete?id={{$repo.ID}}"
 									data-modal-repo-name="{{$repo.Name}}"
 								>{{svg "octicon-trash"}}</a>
 							</td>
 						</tr>
 					{{else}}
-						<tr><td class="tw-text-center" colspan="12">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
+						<tr><td class="text-center" colspan="12">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>

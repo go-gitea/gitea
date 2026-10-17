@@ -136,9 +136,9 @@ test('pr review flow', async ({page, request}) => {
   await expect(reviewComment).toBeVisible();
   await expect(reviewComment.locator('[data-clipboard-text]')).toHaveAttribute('data-clipboard-text', /\/pulls\/\d+#issuecomment-\d+$/);
 
-  await reRequestAndApprove(reviewer, 'Uncounted approval', 'tw-text-text-light', false);
+  await reRequestAndApprove(reviewer, 'Uncounted approval', 'text-text-light', false);
 
   await logout(page);
   await loginUser(page, officialReviewer);
-  await reRequestAndApprove(officialReviewer, 'Approved', 'tw-text-yellow', true);
+  await reRequestAndApprove(officialReviewer, 'Approved', 'text-yellow', true);
 });

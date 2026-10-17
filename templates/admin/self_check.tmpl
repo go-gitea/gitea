@@ -9,19 +9,19 @@
 	<div class="ui attached segment self-check-problem">
 		<div class="ui warning message">
 			<div>{{ctx.Locale.Tr "admin.self_check.startup_warnings"}}</div>
-			<ul class="tw-w-full">{{range .StartupProblems}}<li>{{.}}</li>{{end}}</ul>
+			<ul class="w-full">{{range .StartupProblems}}<li>{{.}}</li>{{end}}</ul>
 		</div>
 	</div>
 	{{end}}
 
-	<div class="ui attached segment tw-hidden self-check-problem" id="self-check-by-frontend"></div>
+	<div class="ui attached segment hidden self-check-problem" id="self-check-by-frontend"></div>
 
 	{{if .DatabaseCheckHasProblems}}
 		<div class="ui attached segment self-check-problem">
 			{{if .DatabaseType.IsMySQL}}
-				<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mysql"}}</div>
+				<div class="p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mysql"}}</div>
 			{{else if .DatabaseType.IsMSSQL}}
-				<div class="tw-p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mssql"}}</div>
+				<div class="p-2">{{ctx.Locale.Tr "admin.self_check.database_fix_mssql"}}</div>
 			{{end}}
 			{{if .DatabaseCheckCollationMismatch}}
 				<div class="ui red message">{{ctx.Locale.Tr "admin.self_check.database_collation_mismatch" .DatabaseCheckResult.ExpectedCollation}}</div>
@@ -33,7 +33,7 @@
 				<div class="ui red message">
 					<details>
 						<summary>{{ctx.Locale.Tr "admin.self_check.database_inconsistent_collation_columns" .DatabaseCheckResult.DatabaseCollation}}</summary>
-						<ul class="tw-w-full">
+						<ul class="w-full">
 						{{range .DatabaseCheckInconsistentCollationColumns}}
 							<li>{{.}}</li>
 						{{end}}
@@ -52,7 +52,7 @@
 	{{end}}
 
 	{{/* only shown when there is no visible "self-check-problem" */}}
-	<div class="ui attached segment tw-hidden self-check-no-problem">
+	<div class="ui attached segment hidden self-check-no-problem">
 		{{ctx.Locale.Tr "admin.self_check.no_problem_found"}}
 	</div>
 </div>

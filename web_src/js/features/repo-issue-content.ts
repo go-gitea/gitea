@@ -18,11 +18,11 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
     <div class="ui modal content-history-detail-dialog">
       <div class="header flex-left-right">
         <div>${htmlRaw(itemTitleHtml)}</div>
-        <div class="ui dropdown dialog-header-options tw-mx-4 tw-hidden">
+        <div class="ui dropdown dialog-header-options mx-4 hidden">
           ${i18nTextOptions}
           ${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
           <div class="menu">
-            <div class="item tw-text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
+            <div class="item text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
           </div>
         </div>
         <button type="button" class="close-modal"></button>
@@ -98,7 +98,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {
   const elHeaderLeft = elCommentItem.querySelector('.comment-header-left')!;
   const menuHtml = html`
-    <div class="ui dropdown interact-fg content-history-menu tw-flex-shrink-0" data-comment-id="${commentId}">
+    <div class="ui dropdown interact-fg content-history-menu shrink-0" data-comment-id="${commentId}">
       &bull; ${i18nTextEdited}${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
       </div>

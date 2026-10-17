@@ -252,7 +252,7 @@ function attachDomEvents(dropdown: AriaDropdownElement, focusable: HTMLElement, 
       const elItem = menu.querySelector<HTMLElement>(':scope > .item.selected, .menu > .item.selected');
       // if the selected item is clickable, then trigger the click event.
       // we can not click any item without check, because Fomantic code might also handle the Enter event. that would result in double click.
-      if (elItem?.matches('a, .js-aria-clickable') && !elItem.matches('.tw-hidden, .filtered')) {
+      if (elItem?.matches('a, .js-aria-clickable') && !elItem.matches('.hidden, .filtered')) {
         e.preventDefault();
         elItem.click();
       }
@@ -322,7 +322,7 @@ export function hideScopedEmptyDividers(container: Element) {
   const isScopedDivider = (item: Element) => isDivider(item) && item.hasAttribute('data-scope');
   const hideDivider = (item: Element) => item.classList.add('hidden'); // dropdown has its own classes to hide items
   const showDivider = (item: Element) => item.classList.remove('hidden');
-  const isHidden = (item: Element) => item.classList.contains('hidden') || item.classList.contains('filtered') || item.classList.contains('tw-hidden');
+  const isHidden = (item: Element) => item.classList.contains('hidden') || item.classList.contains('filtered');
   const handleScopeSwitch = (itemScope: string) => {
     if (curScopeVisibleItems.length === 1 && isScopedDivider(curScopeVisibleItems[0])) {
       hideDivider(curScopeVisibleItems[0]);

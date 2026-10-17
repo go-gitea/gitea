@@ -80,12 +80,12 @@ test('keeps input focus, hint visibility and Escape behavior', () => {
   const kbd = document.querySelector('kbd')!;
   expect(press('S').defaultPrevented).toBe(true);
   expect(document.activeElement).toBe(input);
-  expect(kbd.classList.contains('tw-hidden')).toBe(true);
+  expect(kbd.classList.contains('hidden')).toBe(true);
   input.value = 'search';
   press('Escape', {}, input);
   expect(input.value).toBe('');
   expect(document.activeElement).not.toBe(input);
-  expect(kbd.classList.contains('tw-hidden')).toBe(false);
+  expect(kbd.classList.contains('hidden')).toBe(false);
 });
 
 test('normalizes keys and sorts modifiers alphabetically', () => {

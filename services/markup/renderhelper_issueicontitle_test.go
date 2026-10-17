@@ -31,7 +31,7 @@ func TestRenderHelperIssueIconTitle(t *testing.T) {
 			IssueIndex: 1,
 		})
 		assert.NoError(t, err)
-		assert.Equal(t, `<a href="/link"><span>octicon-issue-opened(16/tw-text-green)</span> issue1 (#1)</a>`, string(htm))
+		assert.Equal(t, `<a href="/link"><span>octicon-issue-opened(16/text-green)</span> issue1 (#1)</a>`, string(htm))
 
 		ctx.Repo.Permission.SetUnitsWithDefaultAccessMode([]*repo.RepoUnit{{Type: unit.TypeWiki}}, perm_model.AccessModeRead)
 		issueA := unittest.AssertExistsAndLoadBean(t, &issue_model.Issue{}, builder.Eq{"repo_id": 1, "`index`": 1, "is_pull": false})
@@ -54,7 +54,7 @@ func TestRenderHelperIssueIconTitle(t *testing.T) {
 			IssueIndex: 1,
 		})
 		assert.NoError(t, err)
-		assert.Equal(t, `<a href="/link"><span>octicon-issue-opened(16/tw-text-green)</span> issue1 (user2/repo1#1)</a>`, string(htm))
+		assert.Equal(t, `<a href="/link"><span>octicon-issue-opened(16/text-green)</span> issue1 (user2/repo1#1)</a>`, string(htm))
 
 		ctx, _ = contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 		_, err = renderRepoIssueIconTitle(ctx, markup.RenderIssueIconTitleOptions{

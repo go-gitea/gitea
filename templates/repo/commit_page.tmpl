@@ -4,9 +4,9 @@
 	{{template "repo/header" .}}
 	<div class="ui container fluid padded">
 		<div class="ui top attached header segment">
-			<div class="flex-left-right tw-mb-4 tw-items-start">
-				<h3 class="tw-m-0">
-					<span class="commit-summary tw-align-middle" title="{{.Commit.MessageTitle}}">{{ctx.RenderUtils.RenderCommitMessage .Commit.MessageUTF8 $.Repository}}</span>
+			<div class="flex-left-right mb-4 items-start">
+				<h3 class="m-0">
+					<span class="commit-summary align-middle" title="{{.Commit.MessageTitle}}">{{ctx.RenderUtils.RenderCommitMessage .Commit.MessageUTF8 $.Repository}}</span>
 					{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}
 				</h3>
 				{{if not $.PageIsWiki}}
@@ -128,11 +128,11 @@
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
 
-		<div class="ui attached segment flex-text-block tw-flex-wrap">
+		<div class="ui attached segment flex-text-block flex-wrap">
 			{{$authors := ctx.RenderUtils.AvatarStackWithNames .CommitAvatarStackData}}
 			{{$committedAt := DateUtils.TimeSince .Commit.Committer.When}}
 			{{if .Commit.CommitterIsAuthor}}
-				<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.committed_at" $authors $committedAt}}</span>
+				<span class="flex-text-inline text-text-light">{{ctx.Locale.Tr "repo.diff.committed_at" $authors $committedAt}}</span>
 			{{else}}
 				{{$committerAvatar := ""}}{{$committerDisplayName := ""}}
 				{{if and .Verification .Verification.CommittingUser}}
@@ -143,28 +143,28 @@
 					{{$committerDisplayName = .Commit.Committer.Name}}
 				{{end}}
 				{{$committer := HTMLFormat `%s <strong>%s</strong>` $committerAvatar $committerDisplayName}}
-				<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.authored_committed_at" $authors $committer $committedAt}}</span>
+				<span class="flex-text-inline text-text-light">{{ctx.Locale.Tr "repo.diff.authored_committed_at" $authors $committer $committedAt}}</span>
 			{{end}}
 
 			{{if .Verification}}
 				{{template "repo/commit_sign_badge" dict "CommitSignVerification" .Verification}}
 			{{end}}
 
-			<div class="tw-flex-1"></div>
+			<div class="flex-1"></div>
 
-			<div class="flex-text-block tw-flex-wrap">
+			<div class="flex-text-block flex-wrap">
 				{{if .Parents}}
-					<div class="flex-text-inline tw-flex-wrap">
-						<span class="tw-text-text-light">{{len .Parents}} {{ctx.Locale.TrN (len .Parents) "repo.diff.parent" "repo.diff.parents"}}</span>
+					<div class="flex-text-inline flex-wrap">
+						<span class="text-text-light">{{len .Parents}} {{ctx.Locale.TrN (len .Parents) "repo.diff.parent" "repo.diff.parents"}}</span>
 						{{range $parentCommitID := .Parents}}
 							<a class="ui label commit-id-short" href="{{$commitLinkBase}}/{{PathEscape $parentCommitID}}">{{ShortSha $parentCommitID}}</a>
 						{{end}}
 					</div>
 				{{end}}
 				<div class="flex-text-inline">
-					<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.commit"}}</span>
+					<span class="flex-text-inline text-text-light">{{ctx.Locale.Tr "repo.diff.commit"}}</span>
 					<a class="ui label commit-id-short" href="{{$commitLinkBase}}/{{PathEscape .CommitID}}">{{ShortSha .CommitID}}</a>
-					<button type="button" class="btn interact-fg tw-p-1" data-clipboard-text="{{.CommitID}}" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}">{{svg "octicon-copy" 14}}</button>
+					<button type="button" class="btn interact-fg p-1" data-clipboard-text="{{.CommitID}}" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}">{{svg "octicon-copy" 14}}</button>
 				</div>
 			</div>
 		</div>
@@ -178,7 +178,7 @@
 
 		{{if .NoteRendered}}
 			<div class="ui top attached header segment git-notes">
-				{{svg "octicon-note" 16 "tw-mr-2"}}
+				{{svg "octicon-note" 16 "mr-2"}}
 				{{ctx.Locale.Tr "repo.diff.git-notes"}}:
 				{{if .NoteAuthor}}
 					<a href="{{.NoteAuthor.HomeLink}}">
@@ -191,7 +191,7 @@
 				{{else}}
 					<strong>{{.NoteCommit.Author.Name}}</strong>
 				{{end}}
-				<span class="tw-text-text-light">{{DateUtils.TimeSince .NoteCommit.Author.When}}</span>
+				<span class="text-text-light">{{DateUtils.TimeSince .NoteCommit.Author.When}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
 				<pre class="commit-body">{{.NoteRendered}}</pre>

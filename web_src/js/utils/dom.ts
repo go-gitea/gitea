@@ -43,7 +43,7 @@ export function toggleElemClass(el: ElementArg, className: string, force?: boole
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
 export function toggleElem(el: ElementArg, force?: boolean): ArrayLikeIterable<Element> {
-  return toggleElemClass(el, 'tw-hidden', force === undefined ? force : !force);
+  return toggleElemClass(el, 'hidden', force === undefined ? force : !force);
 }
 
 export function showElem(el: ElementArg): ArrayLikeIterable<Element> {
@@ -248,7 +248,7 @@ export function isElemVisible(el: HTMLElement): boolean {
   // Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
   // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"
   if (!el) return false;
-  return Boolean(!el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length));
+  return Boolean(!el.classList.contains('hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length));
 }
 
 export function createElementFromHTML<T extends Element>(htmlString: string): T {

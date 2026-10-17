@@ -90,9 +90,9 @@ test('initGlobalFormDirtyLeaveConfirm guards beforeunload', () => {
   expect(isBeforeUnloadPrevented()).toBe(false);
   set(field(form, 'title'), {value: 'b'});
   expect(isBeforeUnloadPrevented()).toBe(true);
-  form.parentElement!.classList.add('tw-hidden');
+  form.parentElement!.classList.add('hidden');
   expect(isBeforeUnloadPrevented()).toBe(false);
-  form.parentElement!.classList.remove('tw-hidden');
+  form.parentElement!.classList.remove('hidden');
   ignoreAreYouSure(form);
   expect(isBeforeUnloadPrevented()).toBe(false);
 });

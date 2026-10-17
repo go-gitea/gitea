@@ -111,7 +111,7 @@ func TestLongLineDiffRendering(t *testing.T) {
 					diffFileBox := doc.Find(`.diff-file-box[data-new-filename="` + filename + `"]`)
 					diffBody := diffFileBox.Find(".code-diff-" + style)
 					require.Equal(t, 1, diffBody.Length())
-					assert.False(t, diffBody.HasClass("tw-hidden"))
+					assert.False(t, diffBody.HasClass("hidden"))
 					assert.Empty(t, diffFileBox.Find(".file-view-toggle, .data-table").Nodes)
 					assert.NotContains(t, diffFileBox.Text(), suffix)
 					got := diffBody.Find("tr:not(.tag-code) code.code-inner").Map(func(_ int, s *goquery.Selection) string {

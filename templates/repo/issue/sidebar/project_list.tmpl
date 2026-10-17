@@ -26,7 +26,7 @@
 					{{range $data.OpenProjects}}
 						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
 							<span class="item-check-mark">{{svg "octicon-check"}}</span>
-							{{svg .IconName 18}}<span class="tw-flex-1 gt-ellipsis">{{.Title}}</span>
+							{{svg .IconName 18}}<span class="flex-1 gt-ellipsis">{{.Title}}</span>
 						</a>
 					{{end}}
 				{{end}}
@@ -36,7 +36,7 @@
 					{{range $data.ClosedProjects}}
 						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
 							<span class="item-check-mark">{{svg "octicon-check"}}</span>
-							{{svg .IconName 18}}<span class="tw-flex-1 gt-ellipsis">{{.Title}}</span>
+							{{svg .IconName 18}}<span class="flex-1 gt-ellipsis">{{.Title}}</span>
 						</a>
 					{{end}}
 				{{end}}
@@ -45,8 +45,8 @@
 	</div>
 
 	{{/* project cards (column selectors) */}}
-	<div class="ui list tw-my-2 flex-relaxed-list issue-sidebar-project-cards" data-combo-list-inited="true">
-		<div class="item empty-list {{if $data.ProjectCards}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</div>
+	<div class="ui list my-2 flex-relaxed-list issue-sidebar-project-cards" data-combo-list-inited="true">
+		<div class="item empty-list {{if $data.ProjectCards}}hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</div>
 	{{range $card := $data.ProjectCards}}
 		{{$selectedColumn := $card.SelectedColumn}}
 		{{/* only show a "project column card" if the selected column exists, otherwise only show the project title */}}
@@ -60,8 +60,8 @@
 				>
 					<input class="combo-value" name="column_id" type="hidden" value="{{if $selectedColumn}}{{$selectedColumn.ID}}{{end}}">
 					<div class="ui dropdown full-width">
-						<div class="flex-text-block tw-ml-[16px]">{{/* align with the "project" icon */}}
-							<div class="interact-bg tw-px-2 tw-py-1 tw-rounded flex-text-block fixed-text">
+						<div class="flex-text-block ml-[16px]">{{/* align with the "project" icon */}}
+							<div class="interact-bg px-2 py-1 rounded flex-text-block fixed-text">
 								{{if $selectedColumn}}
 									{{if $card.SelectedColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$card.SelectedColumn.Color}}"></span>{{end}}
 									<div class="gt-ellipsis">{{$card.SelectedColumn.Title}}</div>
@@ -83,7 +83,7 @@
 					</div>
 				</div>
 			{{else if $selectedColumn}}
-				<div class="flex-text-block tw-my-1 tw-ml-[22px]">{{/* align with the "project" icon */}}
+				<div class="flex-text-block my-1 ml-[22px]">{{/* align with the "project" icon */}}
 					{{if $selectedColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$selectedColumn.Color}}"></span>{{end}}
 					<div class="gt-ellipsis">{{$selectedColumn.Title}}</div>
 				</div>

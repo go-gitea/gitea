@@ -33,7 +33,7 @@ test('querySingleVisibleElem', () => {
   expect(querySingleVisibleElem(el, 'span')!.textContent).toEqual('foo');
   el.innerHTML = '<span style="display: none;">foo</span><span>bar</span>';
   expect(querySingleVisibleElem(el, 'span')!.textContent).toEqual('bar');
-  el.innerHTML = '<span class="some-class tw-hidden">foo</span><span>bar</span>';
+  el.innerHTML = '<span class="some-class hidden">foo</span><span>bar</span>';
   expect(querySingleVisibleElem(el, 'span')!.textContent).toEqual('bar');
   el.innerHTML = '<span>foo</span><span>bar</span>';
   expect(() => querySingleVisibleElem(el, 'span')).toThrow('Expected exactly one visible element');
@@ -46,11 +46,11 @@ test('queryElemChildren', () => {
 });
 
 test('toggleElem', () => {
-  const el = createElementFromHTML('<div><div>a</div><div class="tw-hidden">b</div></div>');
+  const el = createElementFromHTML('<div><div>a</div><div class="hidden">b</div></div>');
   toggleElem(el.children);
-  expect(el.outerHTML).toEqual('<div><div class="tw-hidden">a</div><div class="">b</div></div>');
+  expect(el.outerHTML).toEqual('<div><div class="hidden">a</div><div class="">b</div></div>');
   toggleElem(el.children, false);
-  expect(el.outerHTML).toEqual('<div><div class="tw-hidden">a</div><div class="tw-hidden">b</div></div>');
+  expect(el.outerHTML).toEqual('<div><div class="hidden">a</div><div class="hidden">b</div></div>');
   toggleElem(el.children, true);
   expect(el.outerHTML).toEqual('<div><div class="">a</div><div class="">b</div></div>');
 });

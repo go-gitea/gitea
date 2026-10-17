@@ -7,7 +7,7 @@
 {{range $comment := $.comments}}
 {{$createdStr:= DateUtils.TimeSince $comment.CreatedUnix}}
 <div class="comment" id="{{$comment.HashTag}}">
-	<div class="tw-mt-2 tw-mr-4">
+	<div class="mt-2 mr-4">
 		{{if $comment.OriginalAuthor}}
 			<span class="avatar">{{ctx.AvatarUtils.Avatar nil}}</span>
 		{{else}}
@@ -18,11 +18,11 @@
 		<div class="comment-header avatar-content-left-arrow">
 			<div class="comment-header-left">
 				{{if $comment.OriginalAuthor}}
-					<span class="tw-text-text tw-font-semibold tw-mr-1">
+					<span class="text-text font-semibold mr-1">
 						{{svg (MigrationIcon $repo.GetOriginalURLHostname)}}
 						{{$comment.OriginalAuthor}}
 					</span>
-					<span class="tw-text-text-light muted-links">
+					<span class="text-text-light muted-links">
 						{{ctx.Locale.Tr "repo.issues.commented_at" $comment.HashTag $createdStr}}
 					</span>
 					<span class="text migrate">
@@ -31,7 +31,7 @@
 						{{end}}
 					</span>
 				{{else}}
-					<span class="tw-text-text-light muted-links">
+					<span class="text-text-light muted-links">
 						{{template "shared/user/namelink" $comment.Poster}}
 						{{ctx.Locale.Tr "repo.issues.commented_at" $comment.HashTag $createdStr}}
 					</span>
@@ -70,8 +70,8 @@
 				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}
 			</div>
-			<div id="{{$comment.HashTag}}-raw" class="raw-content tw-hidden">{{$comment.Content}}</div>
-			<div class="edit-content-zone tw-hidden" data-update-url="{{$repoLink}}/comments/{{$comment.ID}}" data-content-version="{{$comment.ContentVersion}}" data-context="{{$repoLink}}" data-attachment-url="{{$repoLink}}/comments/{{$comment.ID}}/attachments"></div>
+			<div id="{{$comment.HashTag}}-raw" class="raw-content hidden">{{$comment.Content}}</div>
+			<div class="edit-content-zone hidden" data-update-url="{{$repoLink}}/comments/{{$comment.ID}}" data-content-version="{{$comment.ContentVersion}}" data-context="{{$repoLink}}" data-attachment-url="{{$repoLink}}/comments/{{$comment.ID}}/attachments"></div>
 			{{if $comment.Attachments}}
 				{{template "repo/issue/view_content/attachments" dict "Attachments" $comment.Attachments "RenderedContent" $comment.RenderedContent}}
 			{{end}}

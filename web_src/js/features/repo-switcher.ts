@@ -27,7 +27,7 @@ export function initRepoSwitcher(el: HTMLElement) {
           type: 'html',
           html: html`
             <a class="item" href="${repo.html_url}">
-              <span class="tw-w-[16px]">${htmlRaw(svgCheck)}</span>
+              <span class="w-[16px]">${htmlRaw(svgCheck)}</span>
               <span>${htmlRaw(svgRepoIcon)}</span>
               <span class="gt-ellipsis">${repo.full_name.split('/')[1]}</span>
             </a>

@@ -1,25 +1,25 @@
 {{if .EnableCaptcha}}{{if eq .CaptchaType "image"}}
 	{{$captchaID := call .CreateImageCaptcha}}
-	<div class="inline field tw-text-center">
+	<div class="inline field text-center">
 		<input type="hidden" name="captcha_id" value="{{$captchaID}}">
-		<img class="tw-cursor-pointer" src="{{AppSubUrl}}/captcha?id={{$captchaID}}" width="240" height="80" alt="{{ctx.Locale.Tr "captcha"}}" data-global-click="onImageCaptchaReload">
+		<img class="cursor-pointer" src="{{AppSubUrl}}/captcha?id={{$captchaID}}" width="240" height="80" alt="{{ctx.Locale.Tr "captcha"}}" data-global-click="onImageCaptchaReload">
 	</div>
 	<div class="required field {{if .Err_Captcha}}error{{end}}">
 		<label for="captcha">{{ctx.Locale.Tr "captcha"}}</label>
 		<input id="captcha" name="captcha" autocomplete="off">
 	</div>
 {{else if eq .CaptchaType "recaptcha"}}
-	<div class="inline field tw-text-center required">
+	<div class="inline field text-center required">
 		<div id="captcha" data-captcha-type="g-recaptcha" class="g-recaptcha-style" data-sitekey="{{.RecaptchaSitekey}}"></div>
 	</div>
 	<script nonce="{{ctx.CspScriptNonce}}" defer src="{{.RecaptchaAPIScriptURL}}"></script>
 {{else if eq .CaptchaType "hcaptcha"}}
-	<div class="inline field tw-text-center required">
+	<div class="inline field text-center required">
 		<div id="captcha" data-captcha-type="h-captcha" class="h-captcha-style" data-sitekey="{{.HcaptchaSitekey}}"></div>
 	</div>
 	<script nonce="{{ctx.CspScriptNonce}}" defer src="https://hcaptcha.com/1/api.js"></script>
 {{else if eq .CaptchaType "mcaptcha"}}
-	<div class="inline field tw-text-center">
+	<div class="inline field text-center">
 		<div class="m-captcha-style" id="mcaptcha__widget-container"></div>
 		<label id="mcaptcha__token-label" hidden data-mcaptcha_url="{{.McaptchaURL}}/widget?sitekey={{.McaptchaSitekey}}">
 			<input id="mcaptcha__token" name="mcaptcha__token">{{/* the id and name are hard-coded in the library, cant't be changed */}}
@@ -27,7 +27,7 @@
 		<div id="captcha" data-captcha-type="m-captcha"></div>
 	</div>
 {{else if eq .CaptchaType "cfturnstile"}}
-	<div class="inline field tw-text-center">
+	<div class="inline field text-center">
 		<div id="captcha" data-captcha-type="cf-turnstile" data-sitekey="{{.CfTurnstileSitekey}}"></div>
 	</div>
 	<script nonce="{{ctx.CspScriptNonce}}" defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>

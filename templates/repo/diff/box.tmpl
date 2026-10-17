@@ -1,31 +1,31 @@
 {{$showFileTree := (and (not .DiffNotAvailable) (gt .DiffShortStat.NumFiles 1))}}
 <div>
 	<div class="diff-detail-box">
-		<div class="flex-text-block tw-flex-wrap tw-ml-0.5">
+		<div class="flex-text-block flex-wrap ml-0.5">
 			{{if $showFileTree}}
 				<button type="button" class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
-					{{svg "octicon-sidebar-collapse" 20 "icon tw-hidden"}}
-					{{svg "octicon-sidebar-expand" 20 "icon tw-hidden"}}
+					{{svg "octicon-sidebar-collapse" 20 "icon hidden"}}
+					{{svg "octicon-sidebar-expand" 20 "icon hidden"}}
 				</button>
 				<script nonce="{{ctx.CspScriptNonce}}">
 					// Default to true if unset
 					const diffTreeVisible = window.localUserSettings.getBoolean('diff_file_tree_visible', true);
 					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
 					const diffTreeIcon = `.octicon-sidebar-${diffTreeVisible ? 'expand' : 'collapse'}`;
-					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('tw-hidden');
+					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('hidden');
 					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(diffTreeVisible ? 'data-hide-text' : 'data-show-text'));
 				</script>
 			{{end}}
 			{{if .ShowDiffSummaryInToolbar}}
-				<div class="diff-detail-stats tw-flex tw-items-center tw-flex-wrap">
-					{{svg "octicon-diff" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .DiffShortStat.NumFiles .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
+				<div class="diff-detail-stats flex items-center flex-wrap">
+					{{svg "octicon-diff" 16 "mr-1"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .DiffShortStat.NumFiles .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
 				</div>
 			{{end}}
 		</div>
 		<div class="diff-detail-actions">
 			{{if and .PageIsPullFiles $.SignedUserID (not .DiffNotAvailable)}}
-				<div class="not-mobile tw-flex tw-items-center tw-flex-col tw-whitespace-nowrap tw-mr-1">
+				<div class="not-mobile flex items-center flex-col whitespace-nowrap mr-1">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .NumViewedFiles .DiffShortStat.NumFiles}}
 					</label>
@@ -63,7 +63,7 @@
 	<div id="diff-container">
 		{{if $showFileTree}}
 			{{$.FileIconPoolHTML}}
-			<div id="diff-file-tree" class="tw-hidden not-mobile" data-locale="{{JsonUtils.EncodeToString (dict
+			<div id="diff-file-tree" class="hidden not-mobile" data-locale="{{JsonUtils.EncodeToString (dict
 				"filterFiles" (ctx.Locale.Tr "repo.diff.filter_files")
 				"filterFilesClear" (ctx.Locale.Tr "repo.diff.filter_files_clear")
 				"filterByFileExtension" (ctx.Locale.Tr "repo.diff.filter_by_file_extension")
@@ -73,7 +73,7 @@
 				"allFileExtensions" (ctx.Locale.Tr "repo.diff.all_file_extensions")
 			)}}"></div>
 			<script nonce="{{ctx.CspScriptNonce}}">
-				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
+				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('hidden');
 			</script>
 		{{end}}
 		{{if .DiffNotAvailable}}
@@ -81,7 +81,7 @@
 		{{else}}
 			<div id="diff-boxes-column">
 				{{if $showFileTree}}
-					<div id="diff-no-matches" class="empty-placeholder tw-hidden">
+					<div id="diff-no-matches" class="empty-placeholder hidden">
 						<h2>{{ctx.Locale.Tr "repo.diff.no_files_matched"}}</h2>
 					</div>
 				{{end}}
@@ -92,11 +92,11 @@
 					{{$isCsv := $file.IsBlobTypeCsv}}
 					{{$showFileViewToggle := $file.CanShowFileViewToggle}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
-					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
+					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
 						<div class="diff-file-header sticky-2nd-row ui top attached header">
-							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">
+							<div class="diff-file-name flex flex-1 items-center gap-1 flex-wrap">
 								<div class="flex-text-block">
-									<button type="button" class="fold-file btn interact-bg tw-flex-shrink-0 tw-p-1" data-global-click="diffFileViewFold">
+									<button type="button" class="fold-file btn interact-bg shrink-0 p-1" data-global-click="diffFileViewFold">
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
 										{{else}}
@@ -104,11 +104,11 @@
 										{{end}}
 									</button>
 									{{$entryModeText := $file.TranslateDiffEntryMode ctx.Locale}}
-									<a class="muted file-link tw-font-mono" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">
+									<a class="muted file-link font-mono" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">
 										{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}
 									</a>
 								</div>
-								<button type="button" class="btn interact-fg tw-p-2 tw-shrink-0" data-clipboard-text="{{$file.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_path"}}">{{svg "octicon-copy" 14}}</button>
+								<button type="button" class="btn interact-fg p-2 shrink-0" data-clipboard-text="{{$file.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_path"}}">{{svg "octicon-copy" 14}}</button>
 								{{if $file.IsLFSFile}}
 									<span class="ui label">LFS</span>
 								{{end}}
@@ -122,7 +122,7 @@
 									<span class="ui label">{{$entryModeText}}</span>
 								{{end}}
 							</div>
-							<div class="diff-file-header-actions flex-text-block tw-justify-end tw-flex-wrap">
+							<div class="diff-file-header-actions flex-text-block justify-end flex-wrap">
 								{{if $file.IsBin}}
 									{{ctx.Locale.Tr "repo.diff.bin"}}
 								{{else}}
@@ -147,11 +147,11 @@
 									</label>
 								{{end}}
 								{{if not $file.IsSubmodule}}
-									<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
+									<button type="button" class="btn p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
 									<div class="tippy-target">
 										{{if not (or $file.IsIncomplete $file.IsBin)}}
 											<button type="button" class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-											<button type="button" class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+											<button type="button" class="escape-button hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 										{{end}}
 										<button type="button" class="item" data-clipboard-text="{{$file.GetDiffFileBaseName}}">{{ctx.Locale.Tr "copy_filename"}}</button>
 										{{if not $.PageIsWiki}}
@@ -169,9 +169,9 @@
 							</div>
 						</div>
 						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
-							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} tw-hidden{{end}}">
+							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} hidden{{end}}">
 								{{if or $file.IsIncomplete $file.IsBin}}
-									<div class="tw-p-3">
+									<div class="p-3">
 										{{if $file.IsIncomplete}}
 											{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
 											<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
@@ -180,7 +180,7 @@
 										{{end}}
 									</div>
 								{{else if $file.SubmoduleDiffInfo}}
-									<div class="tw-p-3 flex-text-block">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
+									<div class="p-3 flex-text-block">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
 										{{- $submoduleName := $submoduleDiffInfo.SubmoduleRepoLinkHTML ctx -}}
 										{{- if $file.IsDeleted -}}
 											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.PreviousRefID) -}}
@@ -199,17 +199,17 @@
 										{{end}}
 									</table>
 								{{else if $file.IsRenamed}}
-									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_renamed_no_changes"}}</div>
+									<div class="p-3">{{ctx.Locale.Tr "repo.diff.file_renamed_no_changes"}}</div>
 								{{else if and $file.EntryMode $file.OldEntryMode}}
-									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_mode_changed"}}</div>
+									<div class="p-3">{{ctx.Locale.Tr "repo.diff.file_mode_changed"}}</div>
 								{{else}}
-									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_whitespace_only_changes"}}</div>
+									<div class="p-3">{{ctx.Locale.Tr "repo.diff.file_whitespace_only_changes"}}</div>
 								{{end}}
 							</div>
 							{{if $showFileViewToggle}}
 								{{/* for image or CSV, it can have a horizontal scroll bar, there won't be review comment context menu (position absolute) which would be clipped by "overflow" */}}
-								<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} tw-overflow-x-scroll">
-									<table class="chroma tw-w-full">
+								<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} overflow-x-scroll">
+									<table class="chroma w-full">
 										{{if $isImage}}
 											{{template "repo/diff/image_diff" dict "file" $file}}
 										{{else if $isCsv}}
@@ -224,7 +224,7 @@
 
 				{{if .Diff.IsIncomplete}}
 					<div class="ui segment flex-left-right" id="diff-incomplete">
-						<span id="diff-load-progress" class="tw-text-text-light-2" data-text-too-many-files="{{ctx.Locale.Tr "repo.diff.too_many_files"}}">
+						<span id="diff-load-progress" class="text-text-light-2" data-text-too-many-files="{{ctx.Locale.Tr "repo.diff.too_many_files"}}">
 							{{ctx.Locale.Tr "repo.diff.too_many_files" (len .Diff.Files) .DiffShortStat.NumFiles}}
 						</span>
 						<a class="ui basic tiny button" id="diff-show-more-files" data-global-click="diffLoadMoreFiles" data-href="?skip-to={{.Diff.End}}&file-only=true"
@@ -254,7 +254,7 @@
 						{{template "repo/upload" dict "UploadOptions" $.UploadOptions}}
 					</div>
 				{{end}}
-				<div class="field flex-text-block tw-justify-end">
+				<div class="field flex-text-block justify-end">
 					<button type="button" class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
 					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 				</div>

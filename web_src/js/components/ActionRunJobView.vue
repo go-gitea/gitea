@@ -471,7 +471,7 @@ async function hashChangeListener() {
       </p>
     </div>
     <div class="job-info-header-right">
-      <button ref="menuTriggerEl" type="button" class="btn interact-bg tw-p-2">
+      <button ref="menuTriggerEl" type="button" class="btn interact-bg p-2">
         <SvgIcon name="octicon-gear" :size="18"/>
       </button>
       <div ref="menuPanelEl" class="tippy-target" @click="menuTippy.hide()">
@@ -532,7 +532,7 @@ async function hashChangeListener() {
           v-else
           name="octicon-chevron-right"
           class="step-summary-chevron"
-          :class="{'tw-invisible': !isExpandable(jobStep.status)}"
+          :class="{'invisible': !isExpandable(jobStep.status)}"
         />
         <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill"/>
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>

@@ -1,9 +1,9 @@
 <div class="divider"></div>
 <span class="text"><strong>{{ctx.Locale.Tr "repo.issues.due_date"}}</strong></span>
-<div class="ui form tw-mt-2">
+<div class="ui form mt-2">
 	{{if .Issue.DeadlineUnix}}
 		<div class="flex-left-right">
-			<div class="due-date {{if .Issue.IsOverdue}}tw-text-red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
+			<div class="due-date {{if .Issue.IsOverdue}}text-red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
 				{{svg "octicon-calendar"}} {{DateUtils.AbsoluteLong .Issue.DeadlineUnix}}
 			</div>
 			<div class="flex-text-block">
@@ -18,7 +18,7 @@
 	{{end}}
 
 	{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-		<form class="ui fluid action input issue-due-form form-fetch-action tw-mt-2 {{if .Issue.DeadlineUnix}}tw-hidden{{end}}"
+		<form class="ui fluid action input issue-due-form form-fetch-action mt-2 {{if .Issue.DeadlineUnix}}hidden{{end}}"
 					method="post" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline"
 		>
 			<input required type="date" name="deadline" placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}" {{if .Issue.DeadlineUnix}}value="{{.Issue.DeadlineUnix.FormatDate}}"{{end}}>

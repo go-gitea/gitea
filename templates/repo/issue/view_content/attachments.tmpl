@@ -4,8 +4,8 @@
 	{{end}}
 	{{$hasThumbnails := false}}
 	{{- range $att := .Attachments -}}
-		<div class="tw-flex">
-			<div class="tw-flex-1 tw-p-2">
+		<div class="flex">
+			<div class="flex-1 p-2">
 				<a target="_blank" href="{{$att.DownloadURL ctx}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" $att.Name}}">
 					{{if FilenameIsImage $att.Name}}
 						{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) $att.UUID)}}
@@ -18,8 +18,8 @@
 					<span><strong>{{$att.Name}}</strong></span>
 				</a>
 			</div>
-			<div class="flex-text-block tw-p-2">
-				<span class="ui tw-text-text-light">{{$att.Size | FormatByteSize}}</span>
+			<div class="flex-text-block p-2">
+				<span class="ui text-text-light">{{$att.Size | FormatByteSize}}</span>
 			</div>
 		</div>
 	{{end -}}

@@ -7,9 +7,9 @@
 
 			<div class="item-leading">
 				{{/* using some tw helpers is the only way to align the checkbox */}}
-				<div class="flex-text-inline tw-mt-[3px]">
+				<div class="flex-text-inline mt-[3px]">
 					{{if $root.CanWriteIssuesOrPulls}}
-						<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-[14px]" data-issue-id="{{$issue.ID}}" aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}}: {{$issue.Title}}">
+						<input type="checkbox" autocomplete="off" class="issue-checkbox mr-[14px]" data-issue-id="{{$issue.ID}}" aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}}: {{$issue.Title}}">
 					{{end}}
 					{{template "shared/issueicon" $issue}}
 				</div>
@@ -21,7 +21,7 @@
 						<a class="list-item-large-title" href="{{if $issue.Link}}{{$issue.Link}}{{else}}{{$root.Link}}/{{$issue.Index}}{{end}}">{{$issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 						{{if $issue.IsPull}}
 							{{if (index $root.CommitStatuses $issue.PullRequest.ID)}}
-								<span class="tw-align-[1px]">{{/* make the "flex" children align with parent "inline" */}}
+								<span class="align-[1px]">{{/* make the "flex" children align with parent "inline" */}}
 								{{template "repo/commit_statuses" dict "Status" (index $root.CommitLastStatus $issue.PullRequest.ID) "Statuses" (index $root.CommitStatuses $issue.PullRequest.ID)}}
 								</span>
 							{{end}}
@@ -33,13 +33,13 @@
 						</span>
 					</div>
 					{{if $issue.TotalTrackedTime}}
-					<div class="tw-text-text-light flex-text-block">
+					<div class="text-text-light flex-text-block">
 							{{svg "octicon-clock" 16}}
 							{{$issue.TotalTrackedTime | Sec2Hour}}
 					</div>
 					{{end}}
 				</div>
-				<div class="item-body tw-gap-2">
+				<div class="item-body gap-2">
 					<a class="index flex-text-inline" href="{{if $issue.Link}}{{$issue.Link}}{{else}}{{$root.Link}}/{{$issue.Index}}{{end}}">
 						{{if eq $listType "dashboard"}}
 							{{$issue.Repo.FullName}}#{{$issue.Index}}
@@ -79,19 +79,19 @@
 						</div>
 					{{end}}
 					{{if and $issue.Milestone (ne $listType "milestone")}}
-						<a class="milestone flex-text-inline tw-max-w-[300px]" {{if $root.RepoLink}}href="{{$root.RepoLink}}/milestone/{{$issue.Milestone.ID}}"{{else}}href="{{$issue.Repo.Link}}/milestone/{{$issue.Milestone.ID}}"{{end}}>
+						<a class="milestone flex-text-inline max-w-[300px]" {{if $root.RepoLink}}href="{{$root.RepoLink}}/milestone/{{$issue.Milestone.ID}}"{{else}}href="{{$issue.Repo.Link}}/milestone/{{$issue.Milestone.ID}}"{{end}}>
 							{{svg "octicon-milestone" 14}}
 							<span class="gt-ellipsis">{{$issue.Milestone.Name}}</span>
 						</a>
 					{{end}}
 					{{range $project := $issue.Projects}}
-						<a class="project flex-text-inline tw-max-w-[300px]" href="{{$project.Link ctx}}">
+						<a class="project flex-text-inline max-w-[300px]" href="{{$project.Link ctx}}">
 							{{svg $project.IconName 14}}
 							<span class="gt-ellipsis">{{$project.Title}}</span>
 						</a>
 					{{end}}
 					{{if $issue.Ref}}{{/* TODO: ISSUE-SIDEBAR-REF-SELECTOR: see "repo/issue/branch_selector_field.tmpl" */}}
-						<a class="ref flex-text-inline tw-max-w-[300px]" {{if $root.RepoLink}}href="{{index $root.IssueRefURLs $issue.ID}}"{{else}}href="{{$issue.Repo.Link}}{{index $root.IssueRefURLs $issue.ID}}"{{end}}>
+						<a class="ref flex-text-inline max-w-[300px]" {{if $root.RepoLink}}href="{{index $root.IssueRefURLs $issue.ID}}"{{else}}href="{{$issue.Repo.Link}}{{index $root.IssueRefURLs $issue.ID}}"{{end}}>
 							{{svg "octicon-git-branch" 14}}
 							<span class="gt-ellipsis">{{index $root.IssueRefEndNames $issue.ID}}</span>
 						</a>
@@ -105,7 +105,7 @@
 						</span>
 					{{end}}
 					{{if ne $issue.DeadlineUnix 0}}
-						<span class="due-date flex-text-inline {{if $issue.IsOverdue}}tw-text-red{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
+						<span class="due-date flex-text-inline {{if $issue.IsOverdue}}text-red{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
 							{{svg "octicon-calendar" 14}}
 							{{DateUtils.AbsoluteShort $issue.DeadlineUnix}}
 						</span>
@@ -144,17 +144,17 @@
 			{{if or $issue.Assignees $issue.NumComments}}
 			<div class="item-trailing">
 				{{if $issue.Assignees}}
-				<div class="tw-text-text-light">
+				<div class="text-text-light">
 					{{range $assignee := $issue.Assignees}}
-						<a class="ui assignee tw-no-underline" href="{{$assignee.HomeLink}}" data-tooltip-content="{{$assignee.GetDisplayName}}">
+						<a class="ui assignee no-underline" href="{{$assignee.HomeLink}}" data-tooltip-content="{{$assignee.GetDisplayName}}">
 							{{ctx.AvatarUtils.Avatar $assignee 20}}
 						</a>
 					{{end}}
 				</div>
 				{{end}}
 				{{if $issue.NumComments}}
-				<div class="tw-text-text-light">
-					<a class="tw-no-underline muted flex-text-block" href="{{if $issue.Link}}{{$issue.Link}}{{else}}{{$root.Link}}/{{$issue.Index}}{{end}}">
+				<div class="text-text-light">
+					<a class="no-underline muted flex-text-block" href="{{if $issue.Link}}{{$issue.Link}}{{else}}{{$root.Link}}/{{$issue.Index}}{{end}}">
 						{{svg "octicon-comment" 16}}{{$issue.NumComments}}
 					</a>
 				</div>
@@ -163,9 +163,9 @@
 			{{end}}
 		</div>
 	{{else}}
-		<div class="tw-text-center tw-p-8">
-			<h3 class="tw-my-4">{{ctx.Locale.Tr "repo.issues.filter_no_results"}}</h3>
-			<p class="tw-text-placeholder-text">{{ctx.Locale.Tr "repo.issues.filter_no_results_placeholder"}}</p>
+		<div class="text-center p-8">
+			<h3 class="my-4">{{ctx.Locale.Tr "repo.issues.filter_no_results"}}</h3>
+			<p class="text-placeholder-text">{{ctx.Locale.Tr "repo.issues.filter_no_results_placeholder"}}</p>
 		</div>
 	{{end}}
 	{{if $root.IssueIndexerUnavailable}}

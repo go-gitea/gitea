@@ -16,11 +16,11 @@
 					<div class="comment-header avatar-content-left-arrow" role="heading" aria-level="3">
 						<div class="comment-header-left">
 							{{if .Issue.OriginalAuthor}}
-								<span class="tw-text-text tw-font-semibold">
+								<span class="text-text font-semibold">
 									{{svg (MigrationIcon .Repository.GetOriginalURLHostname)}}
 									{{.Issue.OriginalAuthor}}
 								</span>
-								<span class="tw-text-text-light muted-links">
+								<span class="text-text-light muted-links">
 									{{ctx.Locale.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr}}
 								</span>
 								<span class="text migrate">
@@ -30,7 +30,7 @@
 								<a class="inline-timeline-avatar" href="{{.Issue.Poster.HomeLink}}">
 									{{ctx.AvatarUtils.Avatar .Issue.Poster 24}}
 								</a>
-								<span class="tw-text-text-light muted-links">
+								<span class="text-text-light muted-links">
 									{{template "shared/user/authorlink" .Issue.Poster}}
 									{{ctx.Locale.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr}}
 								</span>
@@ -52,8 +52,8 @@
 								<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
-						<div id="{{.Issue.HashTag}}-raw" class="raw-content tw-hidden">{{.Issue.Content}}</div>
-						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-content-version="{{.Issue.ContentVersion}}" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
+						<div id="{{.Issue.HashTag}}-raw" class="raw-content hidden">{{.Issue.Content}}</div>
+						<div class="edit-content-zone hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-content-version="{{.Issue.ContentVersion}}" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
 						{{if .Issue.Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Issue.Attachments "RenderedContent" .Issue.RenderedContent}}
 						{{end}}
@@ -66,7 +66,7 @@
 			</div>
 
 			{{template "repo/issue/view_content/comments" .}}
-			<div class="timeline-item tw-hidden" id="timeline-comments-end"></div>
+			<div class="timeline-item hidden" id="timeline-comments-end"></div>
 
 			{{if and .Issue.IsPull (not $.Repository.IsArchived)}}
 				{{template "repo/issue/view_content/pull_merge_box".}}
@@ -83,18 +83,18 @@
 							<form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
 								{{template "repo/issue/comment_tab" .}}
 								<div class="field footer">
-									<div class="flex-text-block tw-justify-end">
+									<div class="flex-text-block justify-end">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 											{{$btnIconColor := ""}}{{$btnIcon := ""}}{{$btnTextNoComment := ""}}{{$btnTextWithComment := ""}}{{$btnValue := ""}}
 											{{if .Issue.IsClosed}}
 												{{$btnValue = "reopen"}}
-												{{$btnIconColor = "tw-text-green"}}
+												{{$btnIconColor = "text-green"}}
 												{{$btnIcon = Iif .Issue.IsPull "octicon-git-pull-request" "octicon-issue-reopened"}}
 												{{$btnTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.reopen" "repo.issues.reopen_issue")}}
 												{{$btnTextWithComment = ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}{{/* general: Reopen with Comment */}}
 											{{else}}
 												{{$btnValue = "close"}}
-												{{$btnIconColor = "tw-text-red"}}
+												{{$btnIconColor = "text-red"}}
 												{{$btnIcon = Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed"}}
 												{{$btnTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.close" "repo.issues.close")}}
 												{{$btnTextWithComment = ctx.Locale.Tr "repo.issues.close_comment_issue"}}{{/* general: Close with Comment */}}
@@ -114,7 +114,7 @@
 					</div>
 				</div>
 				{{else if .Repository.IsArchived}}
-					<div class="ui warning message tw-text-center">
+					<div class="ui warning message text-center">
 						{{if .Issue.IsPull}}
 							{{ctx.Locale.Tr "repo.archive.pull.nocomment"}}
 						{{else}}
@@ -124,7 +124,7 @@
 				{{end}}
 			{{else}} {{/* not .IsSigned */}}
 				{{if .Repository.IsArchived}}
-					<div class="ui warning message tw-text-center">
+					<div class="ui warning message text-center">
 						{{if .Issue.IsPull}}
 							{{ctx.Locale.Tr "repo.archive.pull.nocomment"}}
 						{{else}}
@@ -161,7 +161,7 @@
 		{{end}}
 
 		<div class="field">
-			<div class="flex-text-block tw-justify-end">
+			<div class="flex-text-block justify-end">
 				<button type="button" class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
 				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 			</div>
