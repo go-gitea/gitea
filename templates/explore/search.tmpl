@@ -6,6 +6,19 @@
 			{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.org_kind")}}
 		{{end}}
 	</form>
+	{{if .PageIsExploreOrganizations}}
+	<form class="ui form tw-flex tw-items-center" method="get" data-global-init="initExploreOrganizationSearch">
+		<input type="hidden" name="q" value="{{.Keyword}}">
+		<input type="hidden" name="sort" value="{{.SortType}}">
+		<label for="explore-reputation-label">{{ctx.Locale.Tr "explore.reputation_label"}}</label>
+		<select id="explore-reputation-label" name="badge">
+			<option value="">{{ctx.Locale.Tr "filter.clear"}}</option>
+			{{range .Badges}}
+				<option value="{{.Slug}}" {{if eq $.BadgeSlug .Slug}}selected{{end}}>{{.Slug}}</option>
+			{{end}}
+		</select>
+	</form>
+	{{end}}
 	<!-- Sort -->
 	<div class="ui small dropdown type jump item tw-mr-0">
 		<span class="text">
@@ -13,10 +26,10 @@
 		</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
-			<a class="{{if eq .SortType "newest"}}active {{end}}item" href="?sort=newest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
-			<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="?sort=oldest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-			<a class="{{if eq .SortType "alphabetically"}}active {{end}}item" href="?sort=alphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
-			<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="?sort=reversealphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
+			<a class="{{if eq .SortType "newest"}}active {{end}}item" href="?sort=newest&q={{$.Keyword}}{{if $.BadgeSlug}}&badge={{QueryEscape $.BadgeSlug}}{{end}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
+			<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="?sort=oldest&q={{$.Keyword}}{{if $.BadgeSlug}}&badge={{QueryEscape $.BadgeSlug}}{{end}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+			<a class="{{if eq .SortType "alphabetically"}}active {{end}}item" href="?sort=alphabetically&q={{$.Keyword}}{{if $.BadgeSlug}}&badge={{QueryEscape $.BadgeSlug}}{{end}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
+			<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="?sort=reversealphabetically&q={{$.Keyword}}{{if $.BadgeSlug}}&badge={{QueryEscape $.BadgeSlug}}{{end}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
 		</div>
 	</div>
 </div>

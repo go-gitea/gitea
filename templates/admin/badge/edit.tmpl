@@ -13,6 +13,10 @@
 					<label>{{ctx.Locale.Tr "admin.badges.description"}}</label>
 					<textarea name="description" rows="2">{{.Badge.Description}}</textarea>
 				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.badges.color"}}</label>
+					<input type="color" name="color" value="{{if .Badge.Color}}{{.Badge.Color}}{{else}}#6e7781{{end}}">
+				</div>
 				<div class="field {{if .Err_ImageURL}}error{{end}}">
 					<label>{{ctx.Locale.Tr "admin.badges.image_url"}}</label>
 					<input type="url" name="image_url" value="{{.Badge.ImageURL}}">

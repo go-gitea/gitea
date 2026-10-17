@@ -6,6 +6,7 @@ package explore
 import (
 	"net/http"
 
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/log"
@@ -79,6 +80,15 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	language := ctx.FormTrim("language")
 	ctx.Data["Language"] = language
 
+	badgeSlug := ctx.FormTrim("badge")
+	ctx.Data["BadgeSlug"] = badgeSlug
+	availableBadges, _, err := badges.SearchBadges(ctx, &badges.SearchBadgeOptions{})
+	if err != nil {
+		ctx.ServerError("SearchBadges", err)
+		return
+	}
+	ctx.Data["Badges"] = availableBadges
+
 	archived := ctx.FormOptionalBool("archived")
 	ctx.Data["IsArchived"] = archived
 
@@ -103,6 +113,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		OrderBy:            orderBy,
 		Private:            opts.Private,
 		Keyword:            keyword,
+		BadgeSlug:          badgeSlug,
 		OwnerID:            opts.OwnerID,
 		AllPublic:          true,
 		AllLimited:         true,
@@ -130,6 +141,10 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 			log.Error("Failed writing sitemap: %v", err)
 		}
 		return
+	}
+
+	if err := repo_model.RepositoryList(repos).LoadBadges(ctx); err != nil {
+		log.Error("Failed loading badges: %v", err)
 	}
 
 	ctx.Data["Keyword"] = keyword
