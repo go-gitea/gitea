@@ -11,6 +11,7 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/session"
@@ -108,6 +109,10 @@ func (r *ReverseProxy) getUserFromAuthEmail(req *http.Request) *user_model.User 
 // and failing that it will attempt to load it based on the email (see docs for getUserFromAuthEmail).
 // Returns nil if the headers are empty or the user is not found.
 func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
+	if !httplib.IsRequestFromTrustedProxy(req) {
+		return nil, nil //nolint:nilnil // the auth headers can be spoofed by anyone who reaches Gitea directly
+	}
+
 	user, err := r.getUserFromAuthUser(req)
 	if err != nil {
 		return nil, err

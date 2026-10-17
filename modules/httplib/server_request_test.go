@@ -221,3 +221,33 @@ func TestParseGiteaSiteURL(t *testing.T) {
 		assert.Equal(t, test.exp, su, "URL = %s", test.url)
 	}
 }
+
+func TestIsRequestFromTrustedProxy(t *testing.T) {
+	defer test.MockVariableValue(&setting.Protocol, setting.HTTP)()
+	defer test.MockVariableValue(&setting.ReverseProxyTrustedProxies, []string{"127.0.0.0/8", "::1/128", "10.0.0.5"})()
+
+	newRequest := func(peerAddr, remoteAddr string) *http.Request {
+		ctx := reqctx.NewRequestContextForTest(t)
+		req := &http.Request{RemoteAddr: peerAddr}
+		MarkRequestPeerAddr(ctx, req)
+		req = req.WithContext(ctx)
+		req.RemoteAddr = remoteAddr // as rewritten from X-Forwarded-For by the forwarded headers middleware
+		return req
+	}
+	assert.True(t, IsRequestFromTrustedProxy(newRequest("127.0.0.1:1234", "127.0.0.1:1234")))
+	assert.True(t, IsRequestFromTrustedProxy(newRequest("[::1]:1234", "[::1]:1234")))
+	assert.True(t, IsRequestFromTrustedProxy(newRequest("10.0.0.5:1234", "10.0.0.5:1234")))
+	assert.True(t, IsRequestFromTrustedProxy(newRequest("127.0.0.1:1234", "203.0.113.7:0")))
+	assert.False(t, IsRequestFromTrustedProxy(newRequest("203.0.113.7:1234", "127.0.0.1:0")))
+	assert.False(t, IsRequestFromTrustedProxy(newRequest("10.0.0.6:1234", "10.0.0.6:1234")))
+	assert.False(t, IsRequestFromTrustedProxy(newRequest("@", "@")))
+	assert.False(t, IsRequestFromTrustedProxy(&http.Request{RemoteAddr: "203.0.113.7:1234"}))
+	assert.True(t, IsRequestFromTrustedProxy(&http.Request{RemoteAddr: "127.0.0.1:1234"}))
+
+	defer test.MockVariableValue(&setting.ReverseProxyTrustedProxies, []string{"*"})()
+	assert.True(t, IsRequestFromTrustedProxy(newRequest("203.0.113.7:1234", "203.0.113.7:1234")))
+
+	defer test.MockVariableValue(&setting.ReverseProxyTrustedProxies, []string{"127.0.0.0/8"})()
+	defer test.MockVariableValue(&setting.Protocol, setting.FCGI)()
+	assert.True(t, IsRequestFromTrustedProxy(newRequest("203.0.113.7:1234", "203.0.113.7:1234")))
+}
