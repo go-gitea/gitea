@@ -147,6 +147,22 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	assert.EqualValues(t, 6, review.ID)
 	assert.False(t, review.Dismissed)
 
+	// test mark review stale
+	req = NewRequest(t, http.MethodPut, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/stale", repo.OwnerName, repo.Name, pullIssue.Index, review.ID)).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	review = DecodeJSON(t, resp, &api.PullReview{})
+	assert.EqualValues(t, 6, review.ID)
+	assert.True(t, review.Stale)
+
+	// test unmark review stale
+	req = NewRequest(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/stale", repo.OwnerName, repo.Name, pullIssue.Index, review.ID)).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	review = DecodeJSON(t, resp, &api.PullReview{})
+	assert.EqualValues(t, 6, review.ID)
+	assert.False(t, review.Stale)
+
 	// test DeletePullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		Body:  "just a comment",
