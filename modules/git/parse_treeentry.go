@@ -56,13 +56,9 @@ func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd io.Read
 		catBatchTreeReaderPool.Put(bufRd)
 	}()
 
-loop:
 	for sz > 0 {
 		mode, fname, objID, count, err := ParseCatFileTreeLine(objectFormat, bufRd)
 		if err != nil {
-			if err == io.EOF {
-				break loop
-			}
 			return nil, err
 		}
 		sz -= int64(count)
