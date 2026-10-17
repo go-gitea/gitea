@@ -54,7 +54,8 @@ func Migrate(ctx *context.Context) {
 
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["mirror"] = ctx.FormBool("mirror") // from "gogs#2037": "new mirror" button on org's home page
-
+	ctx.Data["enable_prune"] = formBoolDefault(ctx, "enable_prune", true)
+	ctx.Data["force_push_backup"] = formBoolDefault(ctx, "force_push_backup", setting.Mirror.DefaultForcePushBackup)
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
 		return
@@ -62,6 +63,13 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
+}
+
+func formBoolDefault(ctx *context.Context, name string, defaultValue bool) bool {
+	if ctx.FormString(name) == "" {
+		return defaultValue
+	}
+	return ctx.FormBool(name)
 }
 
 func handleMigrateError(ctx *context.Context, owner *user_model.User, err error) {
@@ -174,26 +182,30 @@ func MigratePost(ctx *context.Context) {
 		}
 	}
 
+	enablePrune := form.EnablePrune
+	forcePushBackup := form.ForcePushBackup
 	opts := migrations.MigrateOptions{
-		OriginalURL:    form.CloneAddr,
-		GitServiceType: form.Service,
-		CloneAddr:      remoteAddr,
-		RepoName:       form.RepoName,
-		Description:    form.Description,
-		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror,
-		LFS:            form.LFS,
-		LFSEndpoint:    form.LFSEndpoint,
-		AuthUsername:   form.AuthUsername,
-		AuthPassword:   form.AuthPassword,
-		AuthToken:      form.AuthToken,
-		Wiki:           form.Wiki,
-		Issues:         form.Issues,
-		Milestones:     form.Milestones,
-		Labels:         form.Labels,
-		Comments:       form.Issues || form.PullRequests,
-		PullRequests:   form.PullRequests,
-		Releases:       form.Releases,
+		OriginalURL:     form.CloneAddr,
+		GitServiceType:  form.Service,
+		CloneAddr:       remoteAddr,
+		RepoName:        form.RepoName,
+		Description:     form.Description,
+		Private:         form.Private || setting.Repository.ForcePrivate,
+		Mirror:          form.Mirror,
+		LFS:             form.LFS,
+		LFSEndpoint:     form.LFSEndpoint,
+		AuthUsername:    form.AuthUsername,
+		AuthPassword:    form.AuthPassword,
+		AuthToken:       form.AuthToken,
+		Wiki:            form.Wiki,
+		Issues:          form.Issues,
+		Milestones:      form.Milestones,
+		Labels:          form.Labels,
+		Comments:        form.Issues || form.PullRequests,
+		PullRequests:    form.PullRequests,
+		Releases:        form.Releases,
+		ForcePushBackup: &forcePushBackup,
+		EnablePrune:     &enablePrune,
 	}
 	if opts.Mirror {
 		opts.Issues = false
@@ -229,6 +241,7 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
+	ctx.Data["MirrorForcePushBackupLimit"] = setting.Mirror.DefaultForcePushBackupLimit
 
 	// Plain git should be first
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)

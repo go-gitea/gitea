@@ -9,6 +9,8 @@ export const initRepoMigration = () => registerGlobalInitFunc('initGitMigrateFor
   const pass = elForm.querySelector<HTMLInputElement>('input[name="auth_password"]');
   const token = elForm.querySelector<HTMLInputElement>('input[name="auth_token"]');
   const mirror = elForm.querySelector<HTMLInputElement>('input[name="mirror"]');
+  const mirrorSettings = elForm.querySelector<HTMLElement>('#mirror_settings');
+  const mirrorOptions = elForm.querySelector<HTMLElement>('#mirror_options');
   const lfs = elForm.querySelector<HTMLInputElement>('input[name="lfs"]');
   const lfsSettings = elForm.querySelector<HTMLElement>('#lfs_settings');
   const lfsEndpoint = elForm.querySelector<HTMLElement>('#lfs_endpoint');
@@ -16,11 +18,20 @@ export const initRepoMigration = () => registerGlobalInitFunc('initGitMigrateFor
 
   checkItems(Number(service.value) !== 1); // 1 = plain git service
   setLFSSettingsVisibility();
+  setMirrorOptionsVisibility();
 
   user?.addEventListener('input', () => checkItems(false));
   pass?.addEventListener('input', () => checkItems(false));
   token?.addEventListener('input', () => checkItems(true));
-  mirror?.addEventListener('change', () => checkItems(true));
+  mirror?.addEventListener('change', () => {
+    checkItems(true);
+    setMirrorOptionsVisibility();
+  });
+  elForm.querySelector('#mirror_settings_show')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (mirrorOptions) showElem(mirrorOptions);
+  });
   elForm.querySelector('#lfs_settings_show')?.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -71,5 +82,11 @@ export const initRepoMigration = () => registerGlobalInitFunc('initGitMigrateFor
     const visible = lfs.checked;
     toggleElem(lfsSettings!, visible);
     hideElem(lfsEndpoint!);
+  }
+
+  function setMirrorOptionsVisibility() {
+    if (!mirror || !mirrorSettings || !mirrorOptions) return;
+    toggleElem(mirrorSettings, mirror.checked);
+    if (!mirror.checked) hideElem(mirrorOptions);
   }
 });

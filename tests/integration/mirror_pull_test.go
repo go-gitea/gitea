@@ -11,7 +11,9 @@ import (
 	"sync/atomic"
 	"testing"
 
+	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -130,6 +132,68 @@ func TestMirrorPull(t *testing.T) {
 
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	assert.Equal(t, lastMirrorSync, mirror.LastSyncUnix)
+}
+
+func TestMirrorPullForcePushBackupRefIsNotRestored(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Mirror.DefaultForcePushBackupLimit, 1)()
+
+	ctx := t.Context()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	f := newMirrorBackupFixture(t, "test_mirror_force_push_backup", true, true)
+	firstOID := f.commit(t, "first")
+	f.setRemoteRef(t, "refs/heads/main", firstOID)
+	require.True(t, mirror_service.SyncPullMirror(ctx, f.repo.ID))
+
+	gitForMirrorBackupTest(t, f.work, "reset", "--hard", "HEAD~1")
+	actionCount := countMirrorBackupActions(t, f.repo.ID)
+	secondOID := f.commit(t, "second")
+	f.setRemoteRef(t, "refs/heads/main", secondOID)
+	require.True(t, mirror_service.SyncPullMirror(ctx, f.repo.ID))
+	assert.Equal(t, actionCount+1, countMirrorBackupActions(t, f.repo.ID))
+	backupBranch := assertSingleActiveBackupBranch(t, f.repo.ID)
+
+	mirrorGitRepo, err := git.OpenRepository(ctx, f.repo)
+	require.NoError(t, err)
+	defer mirrorGitRepo.Close()
+	assert.True(t, git.IsBranchExist(ctx, f.repo, backupBranch.Name))
+	require.NoError(t, repo_service.DeleteBranch(ctx, user, f.repo, mirrorGitRepo, backupBranch.Name))
+	assert.False(t, git.IsBranchExist(ctx, f.repo, backupBranch.Name))
+
+	require.True(t, mirror_service.SyncPullMirror(ctx, f.repo.ID))
+	assert.False(t, git.IsBranchExist(ctx, f.repo, backupBranch.Name))
+	deletedBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: f.repo.ID, Name: backupBranch.Name})
+	assert.True(t, deletedBranch.IsDeleted)
+}
+
+func assertSingleActiveBackupBranch(t *testing.T, repoID int64) *git_model.Branch {
+	t.Helper()
+
+	branches, err := db.Find[git_model.Branch](t.Context(), git_model.FindBranchOptions{
+		ListOptions: db.ListOptionsAll,
+		RepoID:      repoID,
+	})
+	require.NoError(t, err)
+
+	var backupBranches []*git_model.Branch
+	for _, branch := range branches {
+		if !branch.IsDeleted && strings.HasPrefix(branch.Name, "mirror-backup/branch/") {
+			backupBranches = append(backupBranches, branch)
+		}
+	}
+	require.Len(t, backupBranches, 1)
+	return backupBranches[0]
+}
+
+func countMirrorBackupActions(t *testing.T, repoID int64) int64 {
+	t.Helper()
+
+	count, err := db.GetEngine(t.Context()).Count(&activities_model.Action{
+		RepoID: repoID,
+		OpType: activities_model.ActionMirrorSyncBackup,
+	})
+	require.NoError(t, err)
+	return count
 }
 
 // TestMirrorPullSSRFRevalidation ensures a pull mirror re-validates its remote URL against

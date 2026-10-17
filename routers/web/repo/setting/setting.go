@@ -78,6 +78,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
+	ctx.Data["MirrorForcePushBackupLimit"] = setting.Mirror.DefaultForcePushBackupLimit
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
 	ctx.Data["CanManagerDangerZone"] = access_model.CanDoerManageRepoDangerZone(ctx, ctx.Doer, ctx.Repo.Repository, &ctx.Repo.Permission)
 
@@ -158,6 +159,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
+	ctx.Data["MirrorForcePushBackupLimit"] = setting.Mirror.DefaultForcePushBackupLimit
 
 	signing, _ := git.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
@@ -303,6 +305,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 	}
 
 	pullMirror.EnablePrune = form.EnablePrune
+	pullMirror.ForcePushBackup = form.ForcePushBackup
 	pullMirror.Interval = interval
 	pullMirror.ScheduleNextUpdate()
 	if err := repo_model.UpdateMirror(ctx, pullMirror); err != nil {
