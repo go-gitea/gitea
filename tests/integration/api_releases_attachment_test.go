@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -61,8 +61,7 @@ func testAPIDraftReleaseAttachmentAccess(t *testing.T) {
 	MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(ownerReadToken), http.StatusNotFound)
 	ownerToken := getUserToken(t, repoOwner.LowerName, auth_model.AccessTokenScopeWriteRepository)
 	resp := MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(ownerToken), http.StatusOK)
-	var attachments []*api.Attachment
-	DecodeJSON(t, resp, &attachments)
+	attachments := DecodeJSON(t, resp, []*api.Attachment{})
 	if assert.Len(t, attachments, 1) {
 		assert.Equal(t, attachment.ID, attachments[0].ID)
 	}

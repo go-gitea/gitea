@@ -6,29 +6,31 @@ package org
 
 import (
 	"errors"
-	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	org_model "code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/services/forms"
-	org_service "code.gitea.io/gitea/services/org"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	"gitea.dev/services/forms"
+	org_service "gitea.dev/services/org"
+	repo_service "gitea.dev/services/repository"
 )
 
 const (
@@ -54,13 +56,55 @@ func Teams(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 
-	for _, t := range ctx.Org.Teams {
+	keyword := ctx.FormTrim("q")
+	page := max(ctx.FormInt("page"), 1)
+	pagingNum := setting.UI.MembersPagingNum
+
+	searchTeams := func() (teams []*org_model.Team, count int64, err error) {
+		if keyword == "" {
+			// fast path, use existing teams in context if no need to filter from database
+			count = int64(len(ctx.Org.Teams))
+			start := (page - 1) * pagingNum
+			if start > len(ctx.Org.Teams) {
+				return nil, count, nil
+			}
+			end := min(start+pagingNum, len(ctx.Org.Teams))
+			return ctx.Org.Teams[start:end], count, nil
+		}
+
+		shouldSeeAllOrgTeams, err := context.UserShouldSeeAllOrgTeams(ctx)
+		if err != nil {
+			return nil, 0, err
+		}
+		opts := &org_model.SearchTeamOptions{
+			OrgID:       org.ID,
+			UserID:      util.Iif(shouldSeeAllOrgTeams, 0, ctx.Doer.ID),
+			Keyword:     keyword,
+			IncludeDesc: true,
+			IncludeVisibilities: util.Iif(shouldSeeAllOrgTeams, nil,
+				org_model.VisibleTeamVisibilitiesFor(ctx.Org.IsMember, ctx.IsSigned)),
+			ListOptions: db.ListOptions{Page: page, PageSize: pagingNum},
+		}
+		return org_model.SearchTeam(ctx, opts)
+	}
+
+	teams, count, err := searchTeams()
+	if err != nil {
+		ctx.ServerError("SearchTeam", err)
+		return
+	}
+
+	for _, t := range teams {
 		if err := t.LoadMembers(ctx); err != nil {
 			ctx.ServerError("GetMembers", err)
 			return
 		}
 	}
-	ctx.Data["Teams"] = ctx.Org.Teams
+
+	ctx.Data["OrgListTeams"] = teams
+	ctx.Data["Keyword"] = keyword
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(setting.UI.MembersPagingNum).CurPage(page).Build()
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplTeams)
 }
@@ -213,7 +257,7 @@ func checkIsOrgMemberAndRedirect(ctx *context.Context, defaultRedirect string) {
 	if isOrgMember, err := org_model.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
 		ctx.ServerError("IsOrganizationMember", err)
 		return
-	} else if !isOrgMember {
+	} else if !isOrgMember && !ctx.Doer.IsAdmin {
 		if ctx.Org.Organization.Visibility.IsPrivate() {
 			defaultRedirect = setting.AppSubURL + "/"
 		} else {
@@ -282,51 +326,25 @@ func NewTeam(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
-// FIXME: TEAM-UNIT-PERMISSION: this design is not right, when a new unit is added in the future,
-// The existing teams won't inherit the correct admin permission for the new unit.
-// The full history is like this:
-// 1. There was only "team", no "team unit", so "team.authorize" was used to determine the team permission.
-// 2. Later, "team unit" was introduced, then the usage of "team.authorize" became inconsistent, and causes various bugs.
-//   - Sometimes, "team.authorize" is used to determine the team permission, e.g. admin, owner
-//   - Sometimes, "team unit" is used not really used and "team unit" is used.
-//   - Some functions like `GetTeamsWithAccessToAnyRepoUnit` use both.
-//
-// 3. After introducing "team unit" and more unclear changes, it becomes difficult to maintain team permissions.
-//   - Org owner need to click the permission for each unit, but can't just set a common "write" permission for all units.
-//
-// Ideally, "team.authorize=write" should mean the team has write access to all units including newly (future) added ones.
-func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_model.Type]perm.AccessMode {
-	unitPerms := make(map[unit_model.Type]perm.AccessMode)
+func paresFormTeamUnits(orgID int64, forms url.Values) (units []*org_model.TeamUnit) {
 	for _, ut := range unit_model.AllRepoUnitTypes {
-		// Default access mode is none
-		unitPerms[ut] = perm.AccessModeNone
-
-		v, ok := forms[fmt.Sprintf("unit_%d", ut)]
-		if ok {
-			vv, _ := strconv.Atoi(v[0])
-			if teamPermission >= perm.AccessModeAdmin {
-				unitPerms[ut] = teamPermission
-				// Don't allow `TypeExternal{Tracker,Wiki}` to influence this as they can only be set to READ perms.
-				if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki {
-					unitPerms[ut] = perm.AccessModeRead
-				}
-			} else {
-				unitPerms[ut] = perm.AccessMode(vv)
-				if unitPerms[ut] >= perm.AccessModeAdmin {
-					unitPerms[ut] = perm.AccessModeWrite
-				}
-			}
+		v, ok := forms["unit_"+strconv.Itoa(ut.Value())]
+		if !ok {
+			continue
 		}
+		vv, _ := strconv.Atoi(v[0])
+		mode := perm.AccessMode(vv)
+		mode = min(mode, perm.AccessModeWrite, unit_model.Units[ut].MaxPerm())
+		units = append(units, &org_model.TeamUnit{OrgID: orgID, Type: ut, AccessMode: mode})
 	}
-	return unitPerms
+	return units
 }
 
 // NewTeamPost response for create new team
 func NewTeamPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateTeamForm)
+	form := web.GetForm[*forms.CreateTeamForm](ctx)
 	includesAllRepositories := form.RepoAccess == "all"
-	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
-	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
+	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeWrite, perm.AccessModeAdmin)
 
 	t := &org_model.Team{
 		OrgID:                   ctx.Org.Organization.ID,
@@ -335,17 +353,8 @@ func NewTeamPost(ctx *context.Context) {
 		AccessMode:              teamPermission,
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
+		Visibility:              org_model.NormalizeTeamVisibility(form.Visibility),
 	}
-
-	units := make([]*org_model.TeamUnit, 0, len(unitPerms))
-	for tp, perm := range unitPerms {
-		units = append(units, &org_model.TeamUnit{
-			OrgID:      ctx.Org.Organization.ID,
-			Type:       tp,
-			AccessMode: perm,
-		})
-	}
-	t.Units = units
 
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
@@ -358,9 +367,12 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
-		return
+	if t.AccessMode == perm.AccessModeNone {
+		t.Units = paresFormTeamUnits(ctx.Org.Organization.ID, ctx.Req.Form)
+		if len(t.Units) == 0 {
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
+			return
+		}
 	}
 
 	if err := org_service.NewTeam(ctx, t); err != nil {
@@ -435,12 +447,21 @@ func SearchTeam(ctx *context.Context) {
 		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 	}
 
+	shouldSeeAll, err := context.UserShouldSeeAllOrgTeams(ctx)
+	if err != nil {
+		ctx.ServerError("UserShouldSeeAllOrgTeams", err)
+		return
+	}
+
 	opts := &org_model.SearchTeamOptions{
-		// UserID is not set because the router already requires the doer to be an org admin. Thus, we don't need to restrict to teams that the user belongs in
 		Keyword:     ctx.FormTrim("q"),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),
 		ListOptions: listOptions,
+	}
+	if !shouldSeeAll {
+		opts.UserID = ctx.Doer.ID
+		opts.IncludeVisibilities = org_model.VisibleTeamVisibilitiesFor(ctx.Org.IsMember, ctx.IsSigned)
 	}
 
 	teams, maxResults, err := org_model.SearchTeam(ctx, opts)
@@ -489,11 +510,10 @@ func EditTeam(ctx *context.Context) {
 
 // EditTeamPost response for modify team information
 func EditTeamPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateTeamForm)
+	form := web.GetForm[*forms.CreateTeamForm](ctx)
+
 	t := ctx.Org.Team
-	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
-	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
-	isAuthChanged := false
+	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeWrite, perm.AccessModeAdmin)
 	isIncludeAllChanged := false
 	includesAllRepositories := form.RepoAccess == "all"
 
@@ -502,44 +522,38 @@ func EditTeamPost(ctx *context.Context) {
 	ctx.Data["Team"] = t
 	ctx.Data["Units"] = unit_model.Units
 
+	oldTeamAccessMode := t.AccessMode
 	if !t.IsOwnerTeam() {
 		t.Name = form.TeamName
-		if t.AccessMode != teamPermission {
-			isAuthChanged = true
-			t.AccessMode = teamPermission
-		}
-
+		t.AccessMode = teamPermission
 		if t.IncludesAllRepositories != includesAllRepositories {
 			isIncludeAllChanged = true
 			t.IncludesAllRepositories = includesAllRepositories
 		}
 		t.CanCreateOrgRepo = form.CanCreateOrgRepo
+		t.Visibility = org_model.NormalizeTeamVisibility(form.Visibility)
 	} else {
 		t.CanCreateOrgRepo = true
+		// The owner team must remain listable to all org members.
+		t.Visibility = structs.VisibleTypeLimited
 	}
 
-	t.Description = form.Description
-	units := make([]*org_model.TeamUnit, 0, len(unitPerms))
-	for tp, perm := range unitPerms {
-		units = append(units, &org_model.TeamUnit{
-			OrgID:      t.OrgID,
-			TeamID:     t.ID,
-			Type:       tp,
-			AccessMode: perm,
-		})
+	oldTeamUnitsMap := t.GetUnitsMap()
+	if t.AccessMode == perm.AccessModeNone {
+		t.Units = paresFormTeamUnits(ctx.Org.Organization.ID, ctx.Req.Form)
+		if len(t.Units) == 0 {
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
+			return
+		}
 	}
-	t.Units = units
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplTeamNew)
 		return
 	}
 
-	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
-		return
-	}
-
+	isAuthChanged := oldTeamAccessMode != t.AccessMode || !maps.Equal(oldTeamUnitsMap, t.GetUnitsMap())
+	t.Description = form.Description
 	if err := org_service.UpdateTeam(ctx, t, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
@@ -567,6 +581,8 @@ func DeleteTeam(ctx *context.Context) {
 // TeamInvite renders the team invite page
 func TeamInvite(ctx *context.Context) {
 	invite, org, team, inviter, err := getTeamInviteFromContext(ctx)
+	// TODO: to quickly debug the UI, can uncomment this (don't worry, it won't pass CI lint)
+	// invite, org, team, inviter, err = &org_model.TeamInvite{}, &org_model.Organization{}, &org_model.Team{}, ctx.Doer, nil
 	if err != nil {
 		if org_model.IsErrTeamInviteNotFound(err) {
 			ctx.NotFound(err)

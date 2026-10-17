@@ -29,10 +29,10 @@ test('ConfigFormValueMapper', () => {
   mapper.fillFromSystemConfig();
   const formData = mapper.collectToFormData();
   const result: Record<string, string> = {};
-  const keys = [], values = [];
-  for (const [key, value] of formData.entries()) {
+  const keys: string[] = [], values: string[] = [];
+  for (const [key, value] of formData) {
     if (key === 'key') keys.push(value as string);
-    if (key === 'value') values.push(value as string);
+    else if (key === 'value') values.push(value as string);
   }
   for (let i = 0; i < keys.length; i++) {
     result[keys[i]] = values[i];

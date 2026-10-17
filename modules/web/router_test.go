@@ -7,12 +7,14 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/types"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -96,11 +98,16 @@ func (r *testRecorder) test(t *testing.T, rt *Router, methodPath string, expecte
 }
 
 func TestPathProcessor(t *testing.T) {
+	unescape := false
 	testProcess := func(pattern, uri string, expectedPathParams map[string]string) {
 		chiCtx := chi.NewRouteContext()
 		chiCtx.RouteMethod = "GET"
 		p := newRouterPathMatcher("GET", patternRegexp(pattern), http.NotFound)
-		assert.True(t, p.matchPath(chiCtx, uri), "use pattern %s to process uri %s", pattern, uri)
+		shouldProcess := expectedPathParams != nil
+		if unescape {
+			uri, _ = url.PathUnescape(uri)
+		}
+		assert.Equal(t, shouldProcess, p.matchPath(chiCtx, uri, unescape), "use pattern %s to process uri %s", pattern, uri)
 		assert.Equal(t, expectedPathParams, chiURLParamsToMap(chiCtx), "use pattern %s to process uri %s", pattern, uri)
 	}
 
@@ -113,6 +120,13 @@ func TestPathProcessor(t *testing.T) {
 	testProcess("/<p1:*>/<p2>", "/a", map[string]string{"p1": "", "p2": "a"})
 	testProcess("/<p1:*>/<p2>", "/a/b", map[string]string{"p1": "a", "p2": "b"})
 	testProcess("/<p1:*>/<p2>", "/a/b/c", map[string]string{"p1": "a/b", "p2": "c"})
+	testProcess("/<p1:*>/part/<p2>", "/a/part/c", map[string]string{"p1": "a", "p2": "c"})
+	testProcess("/<p1:*>/part/<p2>", "/part/c", map[string]string{"p1": "", "p2": "c"})
+	testProcess("/<p1:*>/part/<p2>", "/a/other-part/c", nil)
+	testProcess("/<p1:*>-part/<p2>", "/a-other-part/c", map[string]string{"p1": "a-other", "p2": "c"})
+
+	unescape = true
+	testProcess("/<p1:@/x>", "/%40%2fx", map[string]string{"p1": "@%2Fx"})
 }
 
 func TestRouter(t *testing.T) {
@@ -307,12 +321,12 @@ func TestPreMiddlewareProvider(t *testing.T) {
 	root := NewRouter()
 	root.BeforeRouting(h("before-root"))
 	root.AfterRouting(h("root"))
-	root.Get("/a/1", h("mid"), PreMiddlewareProvider(p("pre-root")), h("end1"))
+	root.Get("/a/1", h("mid"), types.PreMiddlewareProvider(p("pre-root")), h("end1"))
 
 	sub := NewRouter()
 	sub.BeforeRouting(h("before-sub"))
 	sub.AfterRouting(h("sub"))
-	sub.Get("/2", h("mid"), PreMiddlewareProvider(p("pre-sub")), h("end2"))
+	sub.Get("/2", h("mid"), types.PreMiddlewareProvider(p("pre-sub")), h("end2"))
 	sub.NotFound(h("not-found"))
 
 	root.Mount("/a", sub)

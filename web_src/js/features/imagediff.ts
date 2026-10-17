@@ -1,7 +1,6 @@
 import {GET} from '../modules/fetch.ts';
-import {hideElem, loadElem, queryElemChildren, queryElems} from '../utils/dom.ts';
+import {hideElem, loadElem, queryElemChildren} from '../utils/dom.ts';
 import {parseDom} from '../utils.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 type ImageContext = {
   imageBefore: HTMLImageElement | undefined,
@@ -94,14 +93,11 @@ function createContext(imageAfter: HTMLImageElement, imageBefore: HTMLImageEleme
 }
 
 class ImageDiff {
-  containerEl: HTMLElement;
-  diffContainerWidth: number;
+  containerEl!: HTMLElement;
+  diffContainerWidth!: number;
 
   async init(containerEl: HTMLElement) {
     this.containerEl = containerEl;
-    containerEl.setAttribute('data-image-diff-loaded', 'true');
-
-    fomanticQuery(containerEl).find('.ui.menu.tabular .item').tab();
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     this.diffContainerWidth = Math.max(containerEl.closest('.diff-file-box')!.clientWidth - 300, 100);
@@ -294,7 +290,7 @@ class ImageDiff {
 
     function updateOpacity() {
       if (ctx.imageAfter) {
-        (ctx.imageAfter.parentNode as HTMLElement).style.opacity = `${Number(rangeInput.value) / 100}`;
+        (ctx.imageAfter.parentNode as HTMLElement).style.opacity = String(Number(rangeInput.value) / 100);
       }
     }
 
@@ -303,8 +299,6 @@ class ImageDiff {
   }
 }
 
-export function initImageDiff() {
-  for (const el of queryElems<HTMLImageElement>(document, '.image-diff:not([data-image-diff-loaded])')) {
-    (new ImageDiff()).init(el); // it is async, but we don't need to await for it
-  }
+export async function initImageDiff(el: HTMLElement) {
+  await new ImageDiff().init(el);
 }

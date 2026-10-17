@@ -22,4 +22,6 @@ const (
 	SettingEmailNotificationGiteaActionsAll         = "all"
 	SettingEmailNotificationGiteaActionsFailureOnly = "failure-only" // Default for actions email preference
 	SettingEmailNotificationGiteaActionsDisabled    = "disabled"
+
+	SettingsKeyActionsConfig = "actions.config"
 )

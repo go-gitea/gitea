@@ -47,3 +47,5 @@
   next_update_unix: 0
   lfs_enabled: false
   lfs_endpoint: ""
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

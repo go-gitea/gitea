@@ -1,0 +1,86 @@
+/* These are the remnants of the fomantic search module */
+
+.ui.search {
+  position: relative;
+}
+
+.ui.search > .results {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  white-space: normal;
+  text-align: left;
+  background: var(--color-body);
+  margin-top: 0.5em;
+  width: 18em;
+  border-radius: 0.28571429rem;
+  box-shadow: 0 2px 4px 0 var(--color-shadow), 0 2px 10px 0 var(--color-shadow);
+  border: 1px solid var(--color-secondary);
+  z-index: 998;
+  transform-origin: center top;
+  overflow-wrap: anywhere;
+}
+
+.ui.search > .results > :first-child {
+  border-top-left-radius: 0.28571429rem;
+  border-top-right-radius: 0.28571429rem;
+}
+
+.ui.search > .results > :last-child {
+  border-bottom-left-radius: 0.28571429rem;
+  border-bottom-right-radius: 0.28571429rem;
+}
+
+.ui.search > .results .result {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0.85714286em 1.14285714em;
+  color: var(--color-text);
+  line-height: 1.33;
+  border-bottom: 1px solid var(--color-secondary);
+  background: var(--color-body);
+}
+
+.ui.search > .results .result:last-child {
+  border-bottom: none;
+}
+
+.ui.search > .results .result .image {
+  overflow: hidden;
+  border-radius: 0.25em;
+}
+
+.ui.search > .results .result .image img {
+  display: block;
+  height: 100%;
+}
+
+.ui.search > .results .result .title {
+  margin: -0.14285714em 0 0;
+  font-family: var(--fonts-regular);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-dark);
+}
+
+.ui.search > .results .result .description {
+  font-size: 0.92857143em;
+  color: var(--color-text-light-2);
+}
+
+.ui.search > .results .result:hover,
+.ui.search > .results .result.active {
+  background: var(--color-hover);
+}
+
+.ui.fluid.search .results {
+  width: 100%;
+}
+
+@media only screen and (max-width: 767.98px) {
+  .ui.search .results {
+    max-width: calc(100vw - 2rem);
+  }
+}

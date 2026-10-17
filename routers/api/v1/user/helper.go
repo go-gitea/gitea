@@ -4,8 +4,8 @@
 package user
 
 import (
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/services/context"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/services/context"
 )
 
 // GetUserByPathParam get user by the path param name
@@ -18,7 +18,7 @@ func GetUserByPathParam(ctx *context.APIContext, name string) *user_model.User {
 			if redirectUserID, err2 := user_model.LookupUserRedirect(ctx, username); err2 == nil {
 				context.RedirectToUser(ctx.Base, ctx.Doer, username, redirectUserID)
 			} else {
-				ctx.APIErrorNotFound("GetUserByName", err)
+				ctx.APIErrorNotFound()
 			}
 		} else {
 			ctx.APIErrorInternal(err)

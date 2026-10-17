@@ -8,14 +8,16 @@ import (
 	"net/http"
 	"sort"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
-	"code.gitea.io/gitea/services/context"
+	audit_model "gitea.dev/models/audit"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/services/audit"
+	"gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/services/context"
 )
 
 const (
@@ -58,6 +60,8 @@ func DeleteAccountLink(ctx *context.Context) {
 		if _, err := user_model.RemoveAccountLink(ctx, ctx.Doer, id); err != nil {
 			ctx.Flash.Error("RemoveAccountLink: " + err.Error())
 		} else {
+			audit.Record(ctx, audit_model.UserExternalLoginRemove, ctx.Doer, "auth_source_id", id)
+
 			ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
 		}
 	}
@@ -156,5 +160,4 @@ func loadSecurityData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["OpenIDs"] = openid
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 }

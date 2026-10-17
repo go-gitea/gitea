@@ -8,9 +8,9 @@ import (
 	"errors"
 	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/auth/source/smtp"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/auth/source/smtp"
 
 	"github.com/urfave/cli/v3"
 )
@@ -175,12 +175,11 @@ func (a *authService) runUpdateSMTP(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	source, err := a.getAuthSourceByID(ctx, c.Int64("id"))
+	source, err := a.getAuthSourceOfType(ctx, c.Int64("id"), auth_model.SMTP)
 	if err != nil {
 		return err
 	}
-
-	smtpConfig := source.Cfg.(*smtp.Source)
+	smtpConfig := auth_model.MustSourceCfg[*smtp.Source](source)
 
 	if err := parseSMTPConfig(c, smtpConfig); err != nil {
 		return err

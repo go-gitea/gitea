@@ -166,9 +166,9 @@ func newScopedTemplateSet(all *template.Template, name string) (*scopedTemplateS
 	var collectErr error // only need to collect the one error
 	collectTemplates = func(nodes []parse.Node) {
 		for _, node := range nodes {
-			if node.Type() == parse.NodeTemplate {
-				nodeTemplate := node.(*parse.TemplateNode)
-				subName := nodeTemplate.Name
+			switch node := node.(type) {
+			case *parse.TemplateNode:
+				subName := node.Name
 				if ts.htmlTemplates[subName] == nil {
 					subTmpl := all.Lookup(subName)
 					if subTmpl == nil {
@@ -185,26 +185,22 @@ func newScopedTemplateSet(all *template.Template, name string) (*scopedTemplateS
 						collectTemplates(subTmpl.Tree.Root.Nodes)
 					}
 				}
-			} else if node.Type() == parse.NodeList {
-				nodeList := node.(*parse.ListNode)
-				collectTemplates(nodeList.Nodes)
-			} else if node.Type() == parse.NodeIf {
-				nodeIf := node.(*parse.IfNode)
-				collectTemplates(nodeIf.BranchNode.List.Nodes)
-				if nodeIf.BranchNode.ElseList != nil {
-					collectTemplates(nodeIf.BranchNode.ElseList.Nodes)
+			case *parse.ListNode:
+				collectTemplates(node.Nodes)
+			case *parse.IfNode:
+				collectTemplates(node.BranchNode.List.Nodes)
+				if node.BranchNode.ElseList != nil {
+					collectTemplates(node.BranchNode.ElseList.Nodes)
 				}
-			} else if node.Type() == parse.NodeRange {
-				nodeRange := node.(*parse.RangeNode)
-				collectTemplates(nodeRange.BranchNode.List.Nodes)
-				if nodeRange.BranchNode.ElseList != nil {
-					collectTemplates(nodeRange.BranchNode.ElseList.Nodes)
+			case *parse.RangeNode:
+				collectTemplates(node.BranchNode.List.Nodes)
+				if node.BranchNode.ElseList != nil {
+					collectTemplates(node.BranchNode.ElseList.Nodes)
 				}
-			} else if node.Type() == parse.NodeWith {
-				nodeWith := node.(*parse.WithNode)
-				collectTemplates(nodeWith.BranchNode.List.Nodes)
-				if nodeWith.BranchNode.ElseList != nil {
-					collectTemplates(nodeWith.BranchNode.ElseList.Nodes)
+			case *parse.WithNode:
+				collectTemplates(node.BranchNode.List.Nodes)
+				if node.BranchNode.ElseList != nil {
+					collectTemplates(node.BranchNode.ElseList.Nodes)
 				}
 			}
 		}

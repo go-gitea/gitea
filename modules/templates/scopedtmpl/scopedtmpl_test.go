@@ -54,17 +54,14 @@ func TestScopedTemplateSetFuncMap(t *testing.T) {
 	out1 := bytes.Buffer{}
 	out2 := bytes.Buffer{}
 	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
+	wg.Go(func() {
 		err := ts.newExecutor(funcMap1).Execute(&out1, nil)
 		assert.NoError(t, err)
-		wg.Done()
-	}()
-	go func() {
+	})
+	wg.Go(func() {
 		err := ts.newExecutor(funcMap2).Execute(&out2, nil)
 		assert.NoError(t, err)
-		wg.Done()
-	}()
+	})
 	wg.Wait()
 	assert.Equal(t, "base1\ntest1\nbase1\ntest1", out1.String())
 	assert.Equal(t, "base2\ntest2\nbase2\ntest2", out2.String())

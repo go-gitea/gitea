@@ -7,13 +7,12 @@ package user
 import (
 	"net/http"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	feed_service "code.gitea.io/gitea/services/feed"
+	activities_model "gitea.dev/models/activities"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	feed_service "gitea.dev/services/feed"
 )
 
 // Search search users
@@ -59,29 +58,24 @@ func Search(ctx *context.APIContext) {
 	uid := ctx.FormInt64("uid")
 	var users []*user_model.User
 	var maxResults int64
-	var err error
-
-	switch uid {
-	case user_model.GhostUserID:
-		maxResults = 1
-		users = []*user_model.User{user_model.NewGhostUser()}
-	case user_model.ActionsUserID:
-		maxResults = 1
-		users = []*user_model.User{user_model.NewActionsUser()}
-	default:
-		var visible []structs.VisibleType
-		if ctx.PublicOnly {
-			visible = []structs.VisibleType{structs.VisibleTypePublic}
+	if uid < 0 {
+		_, sysUser, _ := user_model.GetPossibleUserByID(ctx, uid)
+		if sysUser != nil && sysUser.ID == uid {
+			maxResults = 1
+			users = []*user_model.User{sysUser}
 		}
-		users, maxResults, err = user_model.SearchUsers(ctx, user_model.SearchUserOptions{
+	} else {
+		opts := user_model.SearchUserOptions{
 			Actor:         ctx.Doer,
 			Keyword:       ctx.FormTrim("q"),
 			UID:           uid,
 			Types:         []user_model.UserType{user_model.UserTypeIndividual},
 			SearchByEmail: true,
-			Visible:       visible,
 			ListOptions:   listOptions,
-		})
+		}
+		opts.ApplyPublicOnly(ctx.PublicOnly)
+		var err error
+		users, maxResults, err = user_model.SearchUsers(ctx, opts)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, map[string]any{
 				"ok":    false,
@@ -121,7 +115,7 @@ func GetInfo(ctx *context.APIContext) {
 
 	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 		// fake ErrUserNotExist error message to not leak information about existence
-		ctx.APIErrorNotFound("GetUserByName", user_model.ErrUserNotExist{Name: ctx.PathParam("username")})
+		ctx.APIErrorNotFound()
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToUser(ctx, ctx.ContextUser, ctx.Doer))
@@ -214,6 +208,7 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 		Date:            ctx.FormString("date"),
 		ListOptions:     listOptions,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

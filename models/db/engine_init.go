@@ -5,11 +5,12 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
-	"strings"
+	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
@@ -24,31 +25,23 @@ func init() {
 
 // newXORMEngine returns a new XORM engine from the configuration
 func newXORMEngine() (*xorm.Engine, error) {
-	connStr, err := setting.DBConnStr()
+	connOpts := GlobalConnOptions()
+	driver, connStr, err := ConnStr(connOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	var engine *xorm.Engine
-
-	if setting.Database.Type.IsPostgreSQL() && len(setting.Database.Schema) > 0 {
-		// OK whilst we sort out our schema issues - create a schema aware postgres
-		registerPostgresSchemaDriver()
-		engine, err = xorm.NewEngine("postgresschema", connStr)
-	} else {
-		engine, err = xorm.NewEngine(setting.Database.Type.String(), connStr)
-	}
-
+	engine, err := xorm.NewEngine(driver, connStr)
 	if err != nil {
 		return nil, err
 	}
-	switch setting.Database.Type {
-	case "mysql":
+	switch {
+	case connOpts.Type.IsMySQL():
 		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
-	case "mssql":
+	case connOpts.Type.IsMSSQL():
 		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
 	}
-	engine.SetSchema(setting.Database.Schema)
+	engine.SetSchema(connOpts.Schema)
 	return engine, nil
 }
 
@@ -56,10 +49,7 @@ func newXORMEngine() (*xorm.Engine, error) {
 func InitEngine(ctx context.Context) error {
 	xe, err := newXORMEngine()
 	if err != nil {
-		if strings.Contains(err.Error(), "SQLite3 support") {
-			return fmt.Errorf("sqlite3 requires: -tags sqlite,sqlite_unlock_notify\n%w", err)
-		}
-		return fmt.Errorf("failed to connect to database: %w", err)
+		return fmt.Errorf("failed to init database engine: %w", err)
 	}
 
 	xe.SetMapper(names.GonicMapper{})
@@ -70,6 +60,11 @@ func InitEngine(ctx context.Context) error {
 	xe.SetMaxOpenConns(setting.Database.MaxOpenConns)
 	xe.SetMaxIdleConns(setting.Database.MaxIdleConns)
 	xe.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
+
+	if setting.Database.Type.IsMySQL() {
+		// like PostgreSQL and MSSQL, avoids MariaDB snapshot isolation errors
+		xe.SetDefaultTxOptions(&sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	}
 
 	if setting.Database.SlowQueryThreshold > 0 {
 		xe.AddHook(&EngineHook{
@@ -104,7 +99,7 @@ func UnsetDefaultEngine() {
 // When called from the "doctor" command, the migration function is a version check
 // that prevents the doctor from fixing anything in the database if the migration level
 // is different from the expected value.
-func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Context, *xorm.Engine) error) (err error) {
+func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Context, EngineMigration) error) (err error) {
 	if err = InitEngine(ctx); err != nil {
 		return err
 	}
@@ -114,6 +109,10 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Conte
 	}
 
 	preprocessDatabaseCollation(xormEngine)
+
+	if setting.Database.Type.IsMSSQL() {
+		enableMSSQLReadCommittedSnapshot(ctx, xormEngine)
+	}
 
 	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
 	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.
@@ -136,4 +135,13 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Conte
 	}
 
 	return nil
+}
+
+// enableMSSQLReadCommittedSnapshot stops MSSQL reads waiting on writers, like PostgreSQL and MySQL
+func enableMSSQLReadCommittedSnapshot(ctx context.Context, engine EngineMigration) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second) // ALTER waits for all other connections to close
+	defer cancel()
+	if _, err := engine.Context(ctx).Exec("IF (SELECT is_read_committed_snapshot_on FROM sys.databases WHERE database_id = DB_ID()) = 0 ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON"); err != nil {
+		log.Error("Unable to set READ_COMMITTED_SNAPSHOT=ON: %v", err)
+	}
 }
