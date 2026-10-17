@@ -215,6 +215,11 @@ func TestSearchUsers(t *testing.T) {
 
 	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsTwoFactorEnabled: optional.Some(true)},
 		[]int64{24})
+
+	restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
+	testUserSuccess(user_model.SearchUserOptions{Actor: restrictedUser}, []int64{29})
+	restrictedUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:user")
+	testUserSuccess(user_model.SearchUserOptions{Actor: restrictedUser}, []int64{29})
 }
 
 func TestEmailNotificationPreferences(t *testing.T) {
