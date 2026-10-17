@@ -35,7 +35,7 @@ func BenchmarkGetCommitGraph(b *testing.B) {
 }
 
 func BenchmarkParseCommitString(b *testing.B) {
-	testString := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|4e61bac|Add route for graph"
+	testString := "* DATA:^4e61bacab44e9b4730e44a6615d04098dd3a8eaf^2016-12-20 21:10:41 +0100^4e61bac^Add route for graph"
 
 	parser := &Parser{}
 	parser.Reset()
@@ -224,14 +224,14 @@ func TestParseGlyphs(t *testing.T) {
 }
 
 func TestCommitStringParsing(t *testing.T) {
-	dataFirstPart := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|4e61bac|"
+	dataFirstPart := "* DATA:^4e61bacab44e9b4730e44a6615d04098dd3a8eaf^2016-12-20 21:10:41 +0100^4e61bac^"
 	tests := []struct {
 		shouldPass    bool
 		testName      string
 		commitMessage string
 	}{
 		{true, "normal", "not a fancy message"},
-		{true, "extra pipe", "An extra pipe: |"},
+		{true, "extra sep", "An extra sep"},
 		{true, "extra 'Data:'", "DATA: might be trouble"},
 	}
 

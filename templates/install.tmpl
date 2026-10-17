@@ -107,25 +107,15 @@
 						<input id="app_name" name="app_name" value="{{.app_name}}" required>
 						<span class="help">{{ctx.Locale.Tr "install.app_name_helper"}}</span>
 					</div>
-					<div class="inline required field {{if .Err_RepoRootPath}}error{{end}}">
-						<label for="repo_root_path">{{ctx.Locale.Tr "install.repo_path"}}</label>
-						<input id="repo_root_path" name="repo_root_path" value="{{.repo_root_path}}" required>
-						<span class="help">{{ctx.Locale.Tr "install.repo_path_helper"}}</span>
-					</div>
-					<div class="inline field {{if .Err_LFSRootPath}}error{{end}}">
-						<label for="lfs_root_path">{{ctx.Locale.Tr "install.lfs_path"}}</label>
-						<input id="lfs_root_path" name="lfs_root_path" value="{{.lfs_root_path}}">
-						<span class="help">{{ctx.Locale.Tr "install.lfs_path_helper"}}</span>
+					<div class="inline required field {{if .Err_AppDataPath}}error{{end}}">
+						<label>{{ctx.Locale.Tr "install.app_data_path"}}</label>
+						<input name="app_data_path" value="{{.app_data_path}}" required>
+						<span class="help">{{ctx.Locale.Tr "install.app_data_path_helper"}}</span>
 					</div>
 					<div class="inline field">
 						<label for="run_user">{{ctx.Locale.Tr "install.run_user"}}</label>
 						<input id="run_user" name="run_user" value="{{.run_user}}" readonly>
 						<span class="help">{{ctx.Locale.Tr "install.run_user_helper"}}</span>
-					</div>
-					<div class="inline required field">
-						<label for="domain">{{ctx.Locale.Tr "install.domain"}}</label>
-						<input id="domain" name="domain" value="{{.domain}}" placeholder="demo.gitea.com" required>
-						<span class="help">{{ctx.Locale.Tr "install.domain_helper"}}</span>
 					</div>
 					<div class="inline field">
 						<label for="ssh_port">{{ctx.Locale.Tr "install.ssh_port"}}</label>
@@ -142,25 +132,37 @@
 						<input id="app_url" name="app_url" value="{{.app_url}}" placeholder="https://demo.gitea.com" required>
 						<span class="help">{{ctx.Locale.Tr "install.app_url_helper"}}</span>
 					</div>
-					<div class="inline required field">
-						<label for="log_root_path">{{ctx.Locale.Tr "install.log_root_path"}}</label>
-						<input id="log_root_path" name="log_root_path" value="{{.log_root_path}}" placeholder="log" required>
-						<span class="help">{{ctx.Locale.Tr "install.log_root_path_helper"}}</span>
+					<div class="inline field">
+						<div class="ui checkbox" id="disable-registration">
+							<label>{{ctx.Locale.Tr "install.disable_registration"}}</label>
+							<input name="disable_registration" type="checkbox" {{if .disable_registration}}checked{{end}}>
+						</div>
+					</div>
+					<div class="inline field">
+						<div class="ui checkbox" id="enable-captcha">
+							<label data-tooltip-content="{{ctx.Locale.Tr "install.enable_captcha_popup"}}">{{ctx.Locale.Tr "install.enable_captcha"}}</label>
+							<input name="enable_captcha" type="checkbox" {{if .enable_captcha}}checked{{end}}>
+						</div>
+					</div>
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label data-tooltip-content="{{ctx.Locale.Tr "install.require_sign_in_view_popup"}}">{{ctx.Locale.Tr "install.require_sign_in_view"}}</label>
+							<input name="require_sign_in_view" type="checkbox" {{if .require_sign_in_view}}checked{{end}}>
+						</div>
 					</div>
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label>{{ctx.Locale.Tr "install.enable_update_checker"}}</label>
 							<input name="enable_update_checker" type="checkbox" {{if .enable_update_checker}}checked{{end}}>
 						</div>
-						<span class="help">{{ctx.Locale.Tr "install.enable_update_checker_helper"}}</span>
 					</div>
 
 					<!-- Optional Settings -->
 					<h4 class="ui dividing header">{{ctx.Locale.Tr "install.optional_title"}}</h4>
 					<div>
 						<!-- Email -->
-						<details class="optional field">
-							<summary class="right-content tw-py-2{{if .Err_SMTP}} tw-text-red{{end}}">
+						<details class="optional field" {{if .Err_SMTP}}open{{end}}>
+							<summary class="right-content tw-py-2 {{if .Err_SMTP}}tw-text-red{{end}}">
 								{{ctx.Locale.Tr "install.email_title"}}
 							</summary>
 							<div class="inline field">
@@ -199,46 +201,10 @@
 						</details>
 
 						<!-- Server and other services -->
-						<details class="optional field">
-							<summary class="right-content tw-py-2{{if .Err_Services}} tw-text-red{{end}}">
+						<details class="optional field" {{if .Err_Services}}open{{end}}>
+							<summary class="right-content tw-py-2 {{if .Err_Services}}tw-text-red{{end}}">
 								{{ctx.Locale.Tr "install.server_service_title"}}
 							</summary>
-							<div class="inline field">
-								<div class="ui checkbox" id="enable-openid-signin">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.openid_signin_popup"}}">{{ctx.Locale.Tr "install.openid_signin"}}</label>
-									<input name="enable_open_id_sign_in" type="checkbox" {{if .enable_open_id_sign_in}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="disable-registration">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.disable_registration_popup"}}">{{ctx.Locale.Tr "install.disable_registration"}}</label>
-									<input name="disable_registration" type="checkbox" {{if .disable_registration}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="allow-only-external-registration">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.allow_only_external_registration_popup"}}">{{ctx.Locale.Tr "install.allow_only_external_registration_popup"}}</label>
-									<input name="allow_only_external_registration" type="checkbox" {{if .allow_only_external_registration}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="enable-openid-signup">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.openid_signup_popup"}}">{{ctx.Locale.Tr "install.openid_signup"}}</label>
-									<input name="enable_open_id_sign_up" type="checkbox" {{if .enable_open_id_sign_up}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="enable-captcha">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.enable_captcha_popup"}}">{{ctx.Locale.Tr "install.enable_captcha"}}</label>
-									<input name="enable_captcha" type="checkbox" {{if .enable_captcha}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.require_sign_in_view_popup"}}">{{ctx.Locale.Tr "install.require_sign_in_view"}}</label>
-									<input name="require_sign_in_view" type="checkbox" {{if .require_sign_in_view}}checked{{end}}>
-								</div>
-							</div>
 							<div class="inline field">
 								<div class="ui checkbox">
 									<label data-tooltip-content="{{ctx.Locale.Tr "install.default_keep_email_private_popup"}}">{{ctx.Locale.Tr "install.default_keep_email_private"}}</label>
@@ -252,35 +218,15 @@
 								</div>
 							</div>
 							<div class="inline field">
-								<div class="ui checkbox">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.default_enable_timetracking_popup"}}">{{ctx.Locale.Tr "install.default_enable_timetracking"}}</label>
-									<input name="default_enable_timetracking" type="checkbox" {{if .default_enable_timetracking}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
 								<label for="no_reply_address">{{ctx.Locale.Tr "install.no_reply_address"}}</label>
 								<input id="_no_reply_address" name="no_reply_address" value="{{.no_reply_address}}">
 								<span class="help">{{ctx.Locale.Tr "install.no_reply_address_helper"}}</span>
 							</div>
-							<div class="inline field">
-								<label for="password_algorithm">{{ctx.Locale.Tr "install.password_algorithm"}}</label>
-								<div class="ui selection dropdown">
-									<input id="password_algorithm" type="hidden" name="password_algorithm" value="{{.password_algorithm}}">
-									<div class="text">{{.password_algorithm}}</div>
-									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<div class="menu">
-										{{range .PasswordHashAlgorithms}}
-											<div class="item" data-value="{{.}}">{{.}}</div>
-										{{end}}
-									</div>
-								</div>
-								<span class="help">{{ctx.Locale.Tr "install.password_algorithm_helper"}}</span>
-							</div>
 						</details>
 
 						<!-- Admin -->
-						<details class="optional field">
-							<summary class="right-content tw-py-2{{if .Err_Admin}} tw-text-red{{end}}">
+						<details class="optional field" {{if .Err_Admin}}open{{end}}>
+							<summary class="right-content tw-py-2 {{if .Err_Admin}}tw-text-red{{end}}">
 								{{ctx.Locale.Tr "install.admin_title"}}
 							</summary>
 							<p class="center">{{ctx.Locale.Tr "install.admin_setting_desc"}}</p>
@@ -323,6 +269,9 @@
 							{{$copyBtn := svg "octicon-copy" 14}}
 							{{$filePath := HTMLFormat `<span class="ui label">%s</span> <button type="button" class="btn interact-fg" data-clipboard-text="%s">%s</button>` .CustomConfFile .CustomConfFile $copyBtn}}
 							{{ctx.Locale.Tr "install.config_write_file_prompt" $filePath}}
+						</div>
+						<div class="right-content tw-mt-2">
+							{{ctx.Locale.Tr "install.config_edit_helper" "https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini"}}
 						</div>
 						<div class="tw-mt-4 tw-mb-2 tw-text-center">
 							<button type="submit" class="ui primary button">{{ctx.Locale.Tr "install.install_btn_confirm"}}</button>

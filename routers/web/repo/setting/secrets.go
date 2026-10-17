@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 
+	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
@@ -26,8 +27,7 @@ const (
 type secretsCtx struct {
 	Owner           *user_model.User
 	Repo            *repo_model.Repository
-	OwnerID         int64
-	RepoID          int64
+	BelongingScope  actions_model.BelongingScope
 	IsRepo          bool
 	IsOrg           bool
 	IsUser          bool
@@ -39,7 +39,7 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &secretsCtx{
 			Repo:            ctx.Repo.Repository,
-			RepoID:          ctx.Repo.Repository.ID,
+			BelongingScope:  actions_model.BelongingScopeRepo(ctx.Repo.Repository.ID),
 			IsRepo:          true,
 			SecretsTemplate: tplRepoSecrets,
 			RedirectLink:    ctx.Repo.RepoLink + "/settings/actions/secrets",
@@ -53,7 +53,7 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 		}
 		return &secretsCtx{
 			Owner:           ctx.ContextUser,
-			OwnerID:         ctx.ContextUser.ID,
+			BelongingScope:  actions_model.BelongingScopeOwner(ctx.ContextUser.ID),
 			IsOrg:           true,
 			SecretsTemplate: tplOrgSecrets,
 			RedirectLink:    ctx.Org.OrgLink + "/settings/actions/secrets",
@@ -63,7 +63,7 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 	if ctx.Data["PageIsUserSettings"] == true {
 		return &secretsCtx{
 			Owner:           ctx.Doer,
-			OwnerID:         ctx.Doer.ID,
+			BelongingScope:  actions_model.BelongingScopeOwner(ctx.Doer.ID),
 			IsUser:          true,
 			SecretsTemplate: tplUserSecrets,
 			RedirectLink:    setting.AppSubURL + "/user/settings/actions/secrets",
@@ -88,7 +88,7 @@ func Secrets(ctx *context.Context) {
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	}
 
-	shared.SetSecretsContext(ctx, sCtx.OwnerID, sCtx.RepoID)
+	shared.SetSecretsContext(ctx, sCtx.BelongingScope)
 	if ctx.Written() {
 		return
 	}
@@ -109,6 +109,7 @@ func SecretsPost(ctx *context.Context) {
 
 	shared.PerformSecretsPost(
 		ctx,
+		sCtx.BelongingScope,
 		sCtx.Owner,
 		sCtx.Repo,
 		sCtx.RedirectLink,
@@ -123,6 +124,7 @@ func SecretsDelete(ctx *context.Context) {
 	}
 	shared.PerformSecretsDelete(
 		ctx,
+		sCtx.BelongingScope,
 		sCtx.Owner,
 		sCtx.Repo,
 		sCtx.RedirectLink,

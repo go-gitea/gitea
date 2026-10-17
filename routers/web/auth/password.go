@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -62,6 +63,9 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Email"] = email
 
 	u, err := user_model.GetUserByEmail(ctx, email)
+	if err == nil && !u.IsIndividual() {
+		err = user_model.ErrUserNotExist{}
+	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
@@ -279,10 +283,9 @@ func MustChangePasswordPost(ctx *context.Context) {
 		return
 	}
 
-	// Make sure only requests for users who are eligible to change their password via
-	// this method passes through
-	if !ctx.Doer.MustChangePassword {
-		ctx.ServerError("MustUpdatePassword", errors.New("cannot update password. Please visit the settings page"))
+	if !common.CheckSignedInUser(ctx.Doer, ctx.Session).NeedChangePassword {
+		log.Debug("User %s attempted to access the must change password page, but they are not required to change their password", ctx.Doer.Name)
+		ctx.NotFound(nil)
 		return
 	}
 

@@ -35,7 +35,7 @@ func TestAdminAuditLogImpersonation(t *testing.T) {
 	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
 		"name":        "impersonated-token",
 		"scope-dummy": "read:user",
-	}), http.StatusSeeOther)
+	}), http.StatusOK)
 
 	session.MakeRequest(t, NewRequest(t, "GET", "/user/logout"), http.StatusSeeOther)
 

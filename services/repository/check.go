@@ -189,7 +189,7 @@ func ReinitMissingRepositories(ctx context.Context) error {
 		default:
 		}
 		log.Trace("Initializing %d/%d...", repo.OwnerID, repo.ID)
-		if err := git.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
+		if err := git.InitRepository(ctx, repo, repo.ObjectFormatName, repo.DefaultBranch); err != nil {
 			log.Error("Unable (re)initialize repository %d at %s. Error: %v", repo.ID, repo.FullName(), err)
 			if err2 := system_model.CreateRepositoryNotice("InitRepository (%s) [%d]: %v", repo.FullName(), repo.ID, err); err2 != nil {
 				log.Error("CreateRepositoryNotice: %v", err2)

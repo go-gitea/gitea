@@ -64,7 +64,7 @@ function replaceWithFeedbackSvg(origSvg: SVGElement, success: boolean): () => vo
 
 // Enable clipboard copy from HTML attributes. These properties are supported:
 // - data-clipboard-text: Direct text to copy
-// - data-clipboard-target: Holds a selector for an element. "value" of <input> or <textarea>, or "textContent" of <div> will be copied
+// - data-clipboard-target: Holds a selector for an element. "value" of <input> or <textarea>, or "textContent" of other elements will be copied
 export function initGlobalCopyToClipboardListener() {
   document.addEventListener('click', async (e) => {
     const target = (e.target as HTMLElement).closest<HTMLElement>('[data-clipboard-text], [data-clipboard-target]');
@@ -78,10 +78,8 @@ export function initGlobalCopyToClipboardListener() {
       const textTarget = document.querySelector(textSelector)!;
       if (textTarget.nodeName === 'INPUT' || textTarget.nodeName === 'TEXTAREA') {
         text = (textTarget as HTMLInputElement | HTMLTextAreaElement).value;
-      } else if (textTarget.nodeName === 'DIV') {
-        text = textTarget.textContent;
       } else {
-        throw new Error(`Unsupported element for clipboard target: ${textSelector}`);
+        text = textTarget.textContent;
       }
     }
     // now, text can not be null
