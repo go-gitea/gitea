@@ -70,7 +70,10 @@ func TestMatchIPAddr(t *testing.T) {
 		{pattern: "loopback", ip: "127.0.0.1", port: 80, want: true},
 		{pattern: "loopback", ip: "::1", port: 80, want: true},
 		{pattern: "loopback", ip: "10.1.2.3", port: 80},
-		{pattern: "private", ip: "100.64.0.1", port: 80, want: true}, // CGNAT
+		{pattern: "private", ip: "100.64.0.1", port: 80}, // CGNAT is its own alias
+		{pattern: "cgnat", ip: "100.64.0.1", port: 80, want: true},
+		{pattern: "cgnat", ip: "100.100.100.200", port: 80, want: true},
+		{pattern: "cgnat", ip: "10.1.2.3", port: 80},
 		{pattern: "private", ip: "8.8.8.8", port: 80},
 		{pattern: "private:22", ip: "fd00::1", port: 22, want: true},
 		{pattern: "private:22", ip: "fd00::1", port: 80},
@@ -131,4 +134,66 @@ func TestRejectedEntries(t *testing.T) {
 	require.Len(t, list.Rejected(), 1)
 	assert.Contains(t, list.Rejected()[0], `use "10.0.0.0/8"`)
 	assert.Empty(t, NewAllowList("example.com", Strict).Rejected())
+}
+
+func TestParseInternalRanges(t *testing.T) {
+	prefixes, rejected := ParseInternalRanges("10.0.0.0/8, private, loopback, cgnat, 192.168.1.1, 2001:db8::/32, ,")
+	assert.Empty(t, rejected)
+	contains := func(ip string) bool {
+		return containsPrefix(prefixes, netip.MustParseAddr(ip))
+	}
+	assert.True(t, contains("10.1.2.3"))
+	assert.True(t, contains("172.16.0.1"))      // private
+	assert.True(t, contains("192.168.0.1"))     // private and the single IP
+	assert.True(t, contains("127.0.0.1"))       // loopback
+	assert.True(t, contains("100.100.100.200")) // cgnat
+	assert.True(t, contains("2001:db8::1"))
+	assert.False(t, contains("8.8.8.8"))
+	assert.False(t, contains("169.254.169.254"))
+
+	// invalid entries are rejected and match nothing
+	_, rejected = ParseInternalRanges("example.com, *.example.com, 0.0.0.0/0, 10.0.0.5/8, ::ffff:10.0.0.0/104, fe80::1%eth0, 999.1.1.1")
+	assert.Len(t, rejected, 7)
+
+	prefixes, rejected = ParseInternalRanges("")
+	assert.Empty(t, prefixes)
+	assert.Empty(t, rejected)
+}
+
+func TestMatchDomainExact(t *testing.T) {
+	assert.True(t, matchDomainExact("example.com", "example.com"))
+	assert.True(t, matchDomainExact("example.com", " EXAMPLE.com.:8080 "))
+	assert.False(t, matchDomainExact("example.com", "www.example.com"))
+	assert.False(t, matchDomainExact("example.com", "notexample.com"))
+	assert.False(t, matchDomainExact("*.example.com", "sub.example.com"))
+	assert.False(t, matchDomainExact("example.com", ""))
+}
+
+func TestMatchHostnameInRanges(t *testing.T) {
+	ranges := []netip.Prefix{netip.MustParsePrefix("10.0.0.0/8"), netip.MustParsePrefix("100.64.0.0/10")}
+	list := NewAllowList("ci.internal.example.com, *.wild.example.com, other.com", Lax)
+	match := func(host, ip string, port uint16) bool {
+		return list.MatchHostnameInRanges(host, netip.AddrPortFrom(netip.MustParseAddr(ip), port), ranges)
+	}
+	// the exact host only, within the ranges
+	assert.True(t, match("ci.internal.example.com", "10.1.2.3", 80))
+	assert.True(t, match("ci.internal.example.com", "100.100.100.200", 80))
+	assert.True(t, match("CI.INTERNAL.EXAMPLE.COM.", "10.1.2.3", 80)) // case and trailing dot
+	assert.False(t, match("www.ci.internal.example.com", "10.1.2.3", 80))
+	assert.False(t, match("ci.internal.example.com", "11.0.0.1", 80))
+	assert.False(t, match("ci.internal.example.com", "169.254.169.254", 80))
+	assert.False(t, match("unlisted.com", "10.1.2.3", 80))
+	assert.False(t, match("", "10.1.2.3", 80))                     // IP literal dials never match
+	assert.False(t, match("sub.wild.example.com", "10.1.2.3", 80)) // wildcards never match exactly
+
+	// a portless entry covers every port in lax mode, a port-scoped entry only its ports
+	assert.True(t, NewAllowList("ci.internal.example.com", Lax).MatchHostnameInRanges("ci.internal.example.com", netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 8080), ranges))
+	scoped := NewAllowList("ci.internal.example.com:8080", Strict)
+	assert.True(t, scoped.MatchHostnameInRanges("ci.internal.example.com", netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 8080), ranges))
+	assert.False(t, scoped.MatchHostnameInRanges("ci.internal.example.com", netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 80), ranges))
+}
+
+func TestHostnameCount(t *testing.T) {
+	assert.Equal(t, 2, NewAllowList("example.com, other.com, *.wild.com, .dot.com, 10.0.0.0/8", Strict).HostnameCount())
+	assert.Equal(t, 0, NewAllowList("", Strict).HostnameCount())
 }

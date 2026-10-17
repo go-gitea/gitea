@@ -79,7 +79,7 @@ func newMigrationPolicy(selectProxy func(*http.Request) (*url.URL, error)) *poli
 	return policy.NewPolicy("migrations", policyMode(setting.Migrations.EgressMode),
 		policy.WithAllow(setting.Migrations.AllowedHostList, "migrations.ALLOWED_HOST_LIST"),
 		policy.WithBlock(setting.Migrations.BlockedHostList, "migrations.BLOCKED_HOST_LIST"),
-		policy.WithLocalNeedsIPAllow(),
+		policy.WithInternalRanges(setting.Migrations.AllowedInternalRanges, "migrations.ALLOWED_INTERNAL_RANGES"),
 		policy.WithProxy(selectProxy))
 }
 
@@ -98,7 +98,7 @@ func NewWebhookPolicy() *policy.Policy {
 	}
 	p = policy.NewPolicy("webhook", policyMode(setting.Security.EgressMode),
 		policy.WithAllow(setting.Webhook.AllowedHostList, "security.ALLOWED_HOST_LIST"),
-		policy.WithLocalNeedsIPAllow(),
+		policy.WithInternalRanges(setting.Security.AllowedInternalRanges, "security.ALLOWED_INTERNAL_RANGES"),
 		policy.WithProxy(selectProxy))
 
 	return p
@@ -107,7 +107,7 @@ func NewWebhookPolicy() *policy.Policy {
 func NewSecurityPolicy(usage string) *policy.Policy {
 	return policy.NewPolicy(usage, policyMode(setting.Security.EgressMode),
 		policy.WithAllow(setting.Security.AllowedHostList, "security.ALLOWED_HOST_LIST"),
-		policy.WithLocalNeedsIPAllow(),
+		policy.WithInternalRanges(setting.Security.AllowedInternalRanges, "security.ALLOWED_INTERNAL_RANGES"),
 		policy.WithProxy(proxy.Proxy()))
 }
 

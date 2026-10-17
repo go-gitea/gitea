@@ -56,13 +56,15 @@ func (p *domainRule) Contains(hostname string, port uint16) bool {
 const (
 	AliasPrivate  = "private"
 	AliasLoopback = "loopback"
+	AliasCGNAT    = "cgnat"
 )
 
 var namedRanges = sync.OnceValue(func() map[string][]netip.Prefix {
 	base := map[string][]string{
-		// private ranges and CGNAT
-		AliasPrivate:  {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7", "100.64.0.0/10"},
+		// private ranges, CGNAT is its own alias so "private" never covers the carrier-NAT metadata endpoint
+		AliasPrivate:  {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7"},
 		AliasLoopback: {"127.0.0.0/8", "::1/128"},
+		AliasCGNAT:    {"100.64.0.0/10"}, // carrier NAT, eg Tailscale
 	}
 	out := make(map[string][]netip.Prefix, 2)
 	for name, ranges := range base {
@@ -331,6 +333,42 @@ func NewBlockList(hostList string) *BlockList {
 	return &BlockList{parseList(hostList, Strict, true)}
 }
 
+// ParseInternalRanges parses a comma-separated list of CIDRs, IPs and named ranges into
+// prefixes, returning the entries it rejects so callers can log them at startup.
+func ParseInternalRanges(hostList string) (prefixes []netip.Prefix, rejected []string) {
+	for entry := range strings.SplitSeq(hostList, ",") {
+		entry = strings.ToLower(strings.TrimSpace(entry))
+		if entry == "" {
+			continue
+		}
+		if expanded, ok := newNamedRanges(entry, nil); ok {
+			for _, rule := range expanded {
+				prefixes = append(prefixes, rule.prefix)
+			}
+			continue
+		}
+		rule, err := newPrefixRule(entry, nil)
+		if err != nil {
+			if errors.Is(err, errNotIP) {
+				rejected = append(rejected, fmt.Sprintf("invalid range %q: not an IP, CIDR, or named range", entry))
+			} else {
+				rejected = append(rejected, err.Error())
+			}
+			continue
+		}
+		if rule.prefix.Addr().Is4In6() {
+			rejected = append(rejected, fmt.Sprintf("invalid range %q: IPv4-mapped CIDR never matches, use the IPv4 form", entry))
+			continue
+		}
+		prefixes = append(prefixes, rule.prefix)
+	}
+	return prefixes, rejected
+}
+
+func containsPrefix(prefixes []netip.Prefix, ip netip.Addr) bool {
+	return slices.ContainsFunc(prefixes, func(p netip.Prefix) bool { return p.Contains(ip) })
+}
+
 func (m *matchList) MatchHostname(host string, port uint16) bool {
 	host = strings.ToLower(strings.TrimSpace(host))
 	if hostname, _, err := net.SplitHostPort(host); err == nil {
@@ -346,6 +384,38 @@ func (m *matchList) MatchHostname(host string, port uint16) bool {
 	return false
 }
 
+// MatchHostnameInRanges matches a non-public target: the host must be exactly a listed
+// hostname (subdomains and wildcards never match) and the IP within one of the given
+// ranges, on the entry's ports.
+func (m *matchList) MatchHostnameInRanges(host string, ip netip.AddrPort, ranges []netip.Prefix) bool {
+	return slices.ContainsFunc(m.patterns, func(rule domainRule) bool {
+		return matchDomainExact(rule.pattern, host) &&
+			slices.ContainsFunc(rule.portRanges, func(r portRange) bool { return r.Contains(ip.Port()) }) &&
+			containsPrefix(ranges, ip.Addr())
+	})
+}
+
+// matchHostnameExact returns the first hostname entry exactly matching host
+func (m *matchList) matchHostnameExact(host string) (domainRule, bool) {
+	for _, rule := range m.patterns {
+		if matchDomainExact(rule.pattern, host) {
+			return rule, true
+		}
+	}
+	return domainRule{}, false
+}
+
+// HostnameCount returns the number of hostname entries that can cover a non-public target, wildcards excluded
+func (m *matchList) HostnameCount() int {
+	count := 0
+	for _, rule := range m.patterns {
+		if !strings.HasPrefix(rule.pattern, "*.") && !strings.HasPrefix(rule.pattern, ".") {
+			count++
+		}
+	}
+	return count
+}
+
 // matchDomain implements the domain-matching model of x/net/http/httpproxy
 // (dot-anchored suffix), like curl's and Go's NO_PROXY:
 //   - "example.com" matches that host and any subdomain, dot-anchored so
@@ -358,6 +428,15 @@ func matchDomain(pattern, host string) bool {
 		return strings.HasSuffix(host, suffix) && len(host) > len(suffix)
 	}
 	return pattern == host || strings.HasSuffix(host, "."+pattern)
+}
+
+// matchDomainExact reports whether host is exactly pattern, case-insensitive and ignoring a trailing dot
+func matchDomainExact(pattern, host string) bool {
+	host = strings.ToLower(strings.TrimSpace(host))
+	if hostname, _, err := net.SplitHostPort(host); err == nil {
+		host = hostname
+	}
+	return pattern == strings.TrimSuffix(host, ".")
 }
 
 // validDomainPattern reports whether p is a usable domain pattern: any glob

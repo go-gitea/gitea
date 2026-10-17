@@ -36,7 +36,8 @@ type Policy struct {
 	allow              AllowList
 	block              BlockList
 	allowKey, blockKey string // the settings the lists were read from, named in rejections
-	localNeedsIPAllow  bool
+	internalRanges     []netip.Prefix
+	internalRangesKey  string // the setting the ranges were read from, named in rejections
 	proxyFunc          func(*http.Request) (*url.URL, error)
 	proxyAddrs         sync.Map // dial addresses proxyFunc returned, the operator's proxies are exempt from the lists
 }
@@ -56,10 +57,11 @@ func WithBlock(hostList, key string) Option {
 	}
 }
 
-// WithLocalNeedsIPAllow requires non-public targets (private, loopback, link-local, CGNAT and special-use ranges) to match an IP allow entry (CIDR or named range), a host name match is not enough.
-func WithLocalNeedsIPAllow() Option {
+// WithInternalRanges sets the ranges hostname entries may resolve into for non-public targets
+func WithInternalRanges(hostList, key string) Option {
 	return func(p *Policy) {
-		p.localNeedsIPAllow = true
+		p.internalRanges, _ = ParseInternalRanges(hostList)
+		p.internalRangesKey = key
 	}
 }
 
@@ -131,15 +133,26 @@ func (p *Policy) allowCheck(host string, ip netip.AddrPort, class addrClass) err
 	if p.allow.MatchIPAddr(ip) {
 		return nil
 	}
-	// with localNeedsIPAllow a restricted target needs an IP entry, a hostname match is not enough
-	hostnameOk := !p.localNeedsIPAllow || class != classRestricted
-	if hostnameOk && p.allow.MatchHostname(host, ip.Port()) {
+	// with internal ranges a hostname entry covers the non-public targets it resolves into, the exact host only
+	if class == classRestricted && len(p.internalRanges) > 0 {
+		if p.allow.MatchHostnameInRanges(host, ip, p.internalRanges) {
+			return nil
+		}
+		if rule, ok := p.allow.matchHostnameExact(host); ok {
+			if !containsPrefix(p.internalRanges, ip.Addr()) {
+				return fmt.Errorf("%s resolves outside the internal ranges allowed for hostnames (check your %s setting), deny '%s'", p.usage, p.internalRangesKey, denyTarget(host, ip))
+			}
+			return fmt.Errorf("%s port %d is not allowed for %q (check your %s setting), deny '%s'", p.usage, ip.Port(), rule.pattern, p.allowKey, denyTarget(host, ip))
+		}
+	}
+	// a restricted target needs an IP entry or an internal-ranges hostname match, a plain hostname match is not enough
+	if class != classRestricted && p.allow.MatchHostname(host, ip.Port()) {
 		return nil
 	}
 	if p.mode == Strict {
 		return p.notAllowedError(denyTarget(host, ip))
 	}
-	if !hostnameOk {
+	if class == classRestricted {
 		return fmt.Errorf("%s needs an explicit IP allow entry (non-public address)", denyTarget(host, ip))
 	}
 	return fmt.Errorf("%s needs an explicit allow entry (non-public address)", denyTarget(host, ip))
