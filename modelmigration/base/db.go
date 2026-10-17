@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"gitea.dev/models/db" //nolint:depguard // allow to access db in migration
@@ -70,6 +71,18 @@ func RecreateTable(sess Session, bean any) error {
 	if err := sess.Table(tempTableName).CreateIndexes(bean); err != nil {
 		log.Error("Unable to create indexes for table %s. Error: %v", tempTableName, err)
 		return err
+	}
+
+	// Firebird rejects DML on a table created in the same transaction ("Table unknown"),
+	// so the temporary table commits before the data copy and the swap continues in a
+	// fresh transaction
+	if setting.Database.Type.IsFirebird() {
+		if err := sess.Commit(); err != nil {
+			return err
+		}
+		if err := sess.Begin(); err != nil {
+			return err
+		}
 	}
 
 	// Work out the column names from the bean - these are the columns to select from the old table and install into the new table
@@ -140,6 +153,10 @@ func RecreateTable(sess Session, bean any) error {
 	if _, err := sess.Exec(sqlStringBuilder.String()); err != nil {
 		log.Error("Unable to set copy data in to temp table %s. Error: %v", tempTableName, err)
 		return err
+	}
+
+	if setting.Database.Type.IsFirebird() {
+		return recreateTableOnFirebird(sess, bean, tableName, tempTableName, newTableColumns)
 	}
 
 	if hasID && setting.Database.Type.IsMSSQL() {
@@ -309,6 +326,64 @@ func RecreateTable(sess Session, bean any) error {
 	return nil
 }
 
+// recreateTableOnFirebird finishes a table recreation on Firebird: the old table is
+// dropped and the final table created from the same bean definition, both committed
+// before the data is copied back, because Firebird rejects DML on a table created in
+// the same transaction ("Table unknown") and has no ALTER TABLE RENAME. The identity
+// generator restarts behind the copied maximum, as a BY DEFAULT identity does not
+// advance on explicit inserts.
+func recreateTableOnFirebird(sess Session, bean any, tableName, tempTableName string, columns []*schemas.Column) error {
+	if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
+		return fmt.Errorf("drop old table %s: %w", tableName, err)
+	}
+	if err := sess.Table(tableName).CreateTable(bean); err != nil {
+		return fmt.Errorf("create table %s: %w", tableName, err)
+	}
+	if err := sess.Table(tableName).CreateUniques(bean); err != nil {
+		return fmt.Errorf("create uniques for table %s: %w", tableName, err)
+	}
+	if err := sess.Table(tableName).CreateIndexes(bean); err != nil {
+		return fmt.Errorf("create indexes for table %s: %w", tableName, err)
+	}
+	if err := sess.Commit(); err != nil {
+		return err
+	}
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	colNames := make([]string, 0, len(columns))
+	for _, column := range columns {
+		colNames = append(colNames, "`"+column.Name+"`")
+	}
+	quotedCols := strings.Join(colNames, ", ")
+	if _, err := sess.Exec(fmt.Sprintf("INSERT INTO `%s` (%s) SELECT %s FROM `%s`", tableName, quotedCols, quotedCols, tempTableName)); err != nil {
+		return fmt.Errorf("copy data into table %s: %w", tableName, err)
+	}
+
+	for _, column := range columns {
+		if !column.IsAutoIncrement {
+			continue
+		}
+		res, err := sess.Query(fmt.Sprintf("SELECT COALESCE(MAX(`%s`), 0) AS maxid FROM `%s`", column.Name, tableName))
+		if err != nil {
+			return fmt.Errorf("read the maximum of %s.%s: %w", tableName, column.Name, err)
+		}
+		maxID, err := strconv.ParseInt(strings.TrimSpace(string(res[0]["MAXID"])), 10, 64)
+		if err != nil {
+			return fmt.Errorf("parse the maximum of %s.%s: %w", tableName, column.Name, err)
+		}
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` ALTER `%s` RESTART WITH %d", tableName, column.Name, maxID+1)); err != nil {
+			return fmt.Errorf("restart the identity of %s.%s: %w", tableName, column.Name, err)
+		}
+	}
+
+	if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tempTableName)); err != nil {
+		return fmt.Errorf("drop temp table %s: %w", tempTableName, err)
+	}
+	return nil
+}
+
 // WARNING: YOU MUST COMMIT THE SESSION AT THE END
 func DropTableColumns(sess Session, tableName string, columnNames ...string) (err error) {
 	if tableName == "" || len(columnNames) == 0 {
@@ -399,6 +474,43 @@ func DropTableColumns(sess Session, tableName string, columnNames ...string) (er
 			return err
 		}
 
+	case setting.Database.Type.IsFirebird():
+		// Firebird refuses to drop a column that an index still references, so the
+		// referencing indexes go first: constraint-backed ones through their constraint,
+		// the rest directly
+		quotedCols := make([]string, 0, len(columnNames))
+		for _, col := range columnNames {
+			quotedCols = append(quotedCols, "'"+strings.ToUpper(col)+"'")
+		}
+		res, errIndex := sess.Query(`SELECT DISTINCT TRIM(i.rdb$index_name) AS index_name, TRIM(rc.rdb$constraint_name) AS constraint_name
+			FROM rdb$indices i
+			JOIN rdb$index_segments s ON s.rdb$index_name = i.rdb$index_name
+			LEFT JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name AND rc.rdb$relation_name = i.rdb$relation_name
+			WHERE i.rdb$relation_name = ? AND UPPER(TRIM(s.rdb$field_name)) IN (`+strings.Join(quotedCols, ",")+`)`, strings.ToUpper(tableName))
+		if errIndex != nil {
+			return errIndex
+		}
+		for _, row := range res {
+			indexName := strings.TrimSpace(string(row["INDEX_NAME"]))
+			constraintName := strings.TrimSpace(string(row["CONSTRAINT_NAME"]))
+			if constraintName != "" {
+				if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraintName)); err != nil {
+					return fmt.Errorf("drop constraint `%s` on table `%s`: %w", constraintName, tableName, err)
+				}
+			} else if _, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName)); err != nil {
+				return fmt.Errorf("drop index `%s` on table `%s`: %w", indexName, tableName, err)
+			}
+		}
+		cols := ""
+		for _, col := range columnNames {
+			if cols != "" {
+				cols += ", "
+			}
+			cols += "DROP `" + strings.ToLower(col) + "`"
+		}
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
+			return fmt.Errorf("drop table `%s` columns %v: %w", tableName, columnNames, err)
+		}
 	case setting.Database.Type.IsPostgreSQL():
 		cols := ""
 		for _, col := range columnNames {

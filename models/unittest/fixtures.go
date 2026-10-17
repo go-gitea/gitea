@@ -6,6 +6,7 @@ package unittest
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -56,6 +57,42 @@ func loadFixtureResetSeqPgsql(e *xorm.Engine) error {
 			_, err = e.Exec(value)
 			if err != nil {
 				return fmt.Errorf("failed to update sequence: %s, error: %w", value, err)
+			}
+		}
+	}
+	return nil
+}
+
+// loadFixtureResetSeqFirebird advances the identity generators of the tables the
+// fixtures wrote explicit primary keys into. A BY DEFAULT identity does not move on
+// an explicit insert, so without this the first row a test creates collides with the
+// fixture rows instead of following them. Firebird 5 keeps the identity bookkeeping
+// out of RDB$, so the columns come from the model metadata instead of the catalog.
+func loadFixtureResetSeqFirebird(e *xorm.Engine) error {
+	beans, _ := db.NamesToBean()
+	for _, bean := range beans {
+		table, err := e.TableInfo(bean)
+		if err != nil {
+			return fmt.Errorf("failed to read the table info of %T: %w", bean, err)
+		}
+		tableName := strings.ToUpper(trimTableNameQuotes(e.TableName(bean)))
+		for _, colName := range table.ColumnsSeq() {
+			col := table.GetColumn(colName)
+			if !col.IsAutoIncrement {
+				continue
+			}
+			quotedTable, quotedColumn := fmt.Sprintf(`"%s"`, tableName), fmt.Sprintf(`"%s"`, strings.ToUpper(col.Name))
+			maxRows, err := e.QueryString(fmt.Sprintf(`SELECT COALESCE(MAX(%s), 0) AS MAXID FROM %s`, quotedColumn, quotedTable))
+			if err != nil {
+				return fmt.Errorf("failed to read the maximum of %s.%s: %w", tableName, col.Name, err)
+			}
+			maxID, err := strconv.ParseInt(maxRows[0]["MAXID"], 10, 64)
+			if err != nil {
+				return fmt.Errorf("failed to parse the maximum of %s.%s: %w", tableName, col.Name, err)
+			}
+			stmt := fmt.Sprintf(`ALTER TABLE %s ALTER %s RESTART WITH %d`, quotedTable, quotedColumn, maxID+1)
+			if _, err = e.Exec(stmt); err != nil {
+				return fmt.Errorf("failed to update identity of %s.%s: %w", tableName, col.Name, err)
 			}
 		}
 	}
@@ -166,8 +203,13 @@ func LoadFixtures() error {
 		return err
 	}
 	// Now if we're running postgres we need to tell it to update the sequences
-	if GetXORMEngine().Dialect().URI().DBType == schemas.POSTGRES {
+	switch GetXORMEngine().Dialect().URI().DBType {
+	case schemas.POSTGRES:
 		if err := loadFixtureResetSeqPgsql(GetXORMEngine()); err != nil {
+			return err
+		}
+	case schemas.FIREBIRD:
+		if err := loadFixtureResetSeqFirebird(GetXORMEngine()); err != nil {
 			return err
 		}
 	}

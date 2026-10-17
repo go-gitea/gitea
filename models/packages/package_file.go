@@ -188,8 +188,8 @@ func (opts *PackageFileSearchOptions) toConds() builder.Cond {
 		propsCondBlock := builder.NewCond()
 		for name, value := range opts.Properties {
 			propsCondBlock = propsCondBlock.Or(builder.Eq{
-				"package_property.name":  name,
-				"package_property.value": value,
+				"package_property.name":      name,
+				"`package_property`.`value`": value,
 			})
 		}
 		propsCond = propsCond.And(propsCondBlock)

@@ -358,7 +358,7 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 		// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
 		err = db.GetEngine(ctx).Table("tracked_time").
 			Where("deleted = ?", false).
-			Select("issue_id, sum(time) as time").
+			Select("issue_id, sum(`time`) as `time`").
 			In("issue_id", chunk).
 			GroupBy("issue_id").
 			Find(&out)

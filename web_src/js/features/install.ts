@@ -21,6 +21,7 @@ function initPreInstall() {
     mysql: '127.0.0.1:3306',
     postgres: '127.0.0.1:5432',
     mssql: '127.0.0.1:1433',
+    firebird: '127.0.0.1:3050',
   };
 
   const dbHost = document.querySelector<HTMLInputElement>('#db_host')!;

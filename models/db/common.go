@@ -49,6 +49,8 @@ func BuilderDialect() string {
 		return builder.POSTGRES
 	case setting.Database.Type.IsMSSQL():
 		return builder.MSSQL
+	case setting.Database.Type.IsFirebird():
+		return builder.FIREBIRD
 	default:
 		return ""
 	}

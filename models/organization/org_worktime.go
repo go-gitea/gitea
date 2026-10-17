@@ -19,7 +19,7 @@ type WorktimeSumByRepos struct {
 
 func GetWorktimeByRepos(ctx context.Context, org *Organization, unitFrom, unixTo int64) (results []WorktimeSumByRepos, err error) {
 	err = db.GetEngine(ctx).
-		Select("repository.name AS repo_name, SUM(tracked_time.time) AS sum_time").
+		Select("repository.name AS repo_name, SUM(tracked_time.`time`) AS sum_time").
 		Table("tracked_time").
 		Join("INNER", "issue", "tracked_time.issue_id = issue.id").
 		Join("INNER", "repository", "issue.repo_id = repository.id").
@@ -44,7 +44,7 @@ type WorktimeSumByMilestones struct {
 
 func GetWorktimeByMilestones(ctx context.Context, org *Organization, unitFrom, unixTo int64) (results []WorktimeSumByMilestones, err error) {
 	err = db.GetEngine(ctx).
-		Select("repository.name AS repo_name, milestone.name AS milestone_name, milestone.id AS milestone_id, milestone.deadline_unix as milestone_deadline, SUM(tracked_time.time) AS sum_time").
+		Select("repository.name AS repo_name, milestone.name AS milestone_name, milestone.id AS milestone_id, milestone.deadline_unix as milestone_deadline, SUM(tracked_time.`time`) AS sum_time").
 		Table("tracked_time").
 		Join("INNER", "issue", "tracked_time.issue_id = issue.id").
 		Join("INNER", "repository", "issue.repo_id = repository.id").
@@ -88,7 +88,7 @@ type WorktimeSumByMembers struct {
 
 func GetWorktimeByMembers(ctx context.Context, org *Organization, unitFrom, unixTo int64) (results []WorktimeSumByMembers, err error) {
 	err = db.GetEngine(ctx).
-		Select("`user`.name AS user_name, SUM(tracked_time.time) AS sum_time").
+		Select("`user`.name AS user_name, SUM(tracked_time.`time`) AS sum_time").
 		Table("tracked_time").
 		Join("INNER", "issue", "tracked_time.issue_id = issue.id").
 		Join("INNER", "repository", "issue.repo_id = repository.id").

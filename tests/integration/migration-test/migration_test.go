@@ -187,6 +187,10 @@ func TestMigrations(t *testing.T) {
 	dialect := setting.Database.Type
 	versions, err := availableVersions()
 	require.NoError(t, err)
+	if len(versions) == 0 && dialect.IsFirebird() {
+		// a Firebird database cannot predate the port, so there is no old dump to restore
+		t.Skipf("no old database versions available to migration test for %s", dialect)
+	}
 	require.NotEmpty(t, versions, "No old database versions available to migration test for %s", dialect)
 
 	for _, version := range versions {

@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
@@ -131,7 +132,9 @@ func init() {
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (source *Source) BeforeSet(colName string, val xorm.Cell) {
-	if colName == "type" {
+	// Firebird reports the stored identifier, so an unquoted "type" comes back folded
+	// to upper case. The check below has to match either spelling.
+	if strings.EqualFold(colName, "type") {
 		typ, _, err := db.CellToInt(val, NoType)
 		if err != nil {
 			setting.PanicInDevOrTesting("Unable to convert login source (id=%d) type: %v", source.ID, err)

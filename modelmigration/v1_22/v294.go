@@ -35,7 +35,12 @@ func AddUniqueIndexForProjectIssue(_ context.Context, x base.EngineMigration) er
 			}
 		} else {
 			var ids []int64
-			if err := x.SQL("SELECT id FROM project_issue WHERE issue_id = ? and project_id = ? limit ?", r.IssueID, r.ProjectID, r.Cnt-1).Find(&ids); err != nil {
+			query := "SELECT id FROM project_issue WHERE issue_id = ? and project_id = ? limit ?"
+			if x.Dialect().URI().DBType == schemas.FIREBIRD {
+				// Firebird has no LIMIT, its ROWS clause takes the same bind
+				query = "SELECT id FROM project_issue WHERE issue_id = ? and project_id = ? ROWS ?"
+			}
+			if err := x.SQL(query, r.IssueID, r.ProjectID, r.Cnt-1).Find(&ids); err != nil {
 				return err
 			}
 			if _, err := x.Table("project_issue").In("id", ids).Delete(); err != nil {

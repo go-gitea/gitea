@@ -326,11 +326,17 @@ func testAPIDeleteOrgRepos(t *testing.T) {
 		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusAccepted)
 
+		// the deletion of the org's repositories runs asynchronously, on the
+		// round-tripping Firebird driver it outlives the fast-database deadline
+		orgReposDeletedTimeout := 2 * time.Second
+		if setting.Database.Type.IsFirebird() {
+			orgReposDeletedTimeout = 30 * time.Second
+		}
 		assert.Eventually(t, func() bool {
 			repos, err := repo_model.GetOrgRepositories(t.Context(), org3.ID)
 			require.NoError(t, err)
 			return len(repos) == 0
-		}, 2*time.Second, 50*time.Millisecond)
+		}, orgReposDeletedTimeout, 50*time.Millisecond)
 
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent) // The org contains no repositories, so the API should return StatusNoContent

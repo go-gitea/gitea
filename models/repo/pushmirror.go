@@ -149,7 +149,8 @@ func PushMirrorsIterate(ctx context.Context, limit int, f func(idx int, bean any
 	sess := db.GetEngine(ctx).
 		Table("push_mirror").
 		Join("INNER", "`repository`", "`repository`.id = `push_mirror`.repo_id").
-		Where("`push_mirror`.last_update + (`push_mirror`.`interval` / ?) <= ?", time.Second, time.Now().Unix()).
+		// Firebird cannot infer the type of a division by a parameter, so the divisor needs a cast
+		Where("`push_mirror`.last_update + (`push_mirror`.`interval` / CAST(? AS BIGINT)) <= ?", time.Second, time.Now().Unix()).
 		And("`push_mirror`.`interval` != 0").
 		And("`repository`.is_archived = ?", false).
 		OrderBy("last_update ASC")

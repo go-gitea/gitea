@@ -310,7 +310,7 @@ func (prs PullRequestList) LoadReviewCommentsCounts(ctx context.Context) (map[in
 		IssueID int64
 		Count   int
 	}, 0, len(issueIDs))
-	if err := db.GetEngine(ctx).Select("issue_id, count(*) as count").
+	if err := db.GetEngine(ctx).Select("issue_id, count(*) as `count`").
 		Table("comment").In("issue_id", issueIDs).And("type = ?", CommentTypeReview).
 		GroupBy("issue_id").Find(&counts); err != nil {
 		return nil, err

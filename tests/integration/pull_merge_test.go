@@ -61,12 +61,19 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 		"delete_branch_after_merge": util.Iif(mergeOptions.DeleteBranch, "on", ""),
 		"merge_message_field":       mergeOptions.Message,
 	}
+	// the Firebird driver round-trips every statement (prepare, execute, commit,
+	// deallocate), so a merge takes seconds where the other databases take
+	// fractions of one
+	mergeTimeout := 5 * time.Second
+	if setting.Database.Type.IsFirebird() {
+		mergeTimeout = 30 * time.Second
+	}
 	var resp *httptest.ResponseRecorder
 	require.Eventually(t, func() bool {
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/pulls/%s/merge", user, repo, pullNum), options)
 		resp = session.MakeRequest(t, req, NoExpectedStatus)
 		return resp.Code == http.StatusOK
-	}, 5*time.Second, 50*time.Millisecond, "Timed out waiting for pull merge to succeed")
+	}, mergeTimeout, 50*time.Millisecond, "Timed out waiting for pull merge to succeed")
 
 	redirect := test.RedirectURL(resp)
 	assert.Equal(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullNum), redirect)

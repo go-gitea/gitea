@@ -101,9 +101,16 @@ require (
 	gopkg.in/ini.v1 v1.67.3
 	modernc.org/sqlite v1.60.1
 	mvdan.cc/xurls/v2 v2.6.0
+	rdb.red-soft.ru/fbx v0.6.0-gitea.1
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.4.3
 )
+
+replace rdb.red-soft.ru/fbx => gitflic.ru/project/id758356735/fbx v0.6.0-gitea.5
+
+replace xorm.io/xorm => gitea.com/nikolay.samofatov/xorm v1.4.3-firebird.1
+
+replace xorm.io/builder => gitea.com/nikolay.samofatov/builder v0.3.13-firebird.1
 
 require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
@@ -170,6 +177,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/inbucket/html2text v1.0.0 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
@@ -190,6 +198,7 @@ require (
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/nakagami/chacha20 v0.1.0 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/nwaples/rardecode/v2 v2.2.3 // indirect
 	github.com/oasdiff/yaml v0.1.1 // indirect
@@ -220,6 +229,7 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
+	gitlab.com/nyarla/go-crypt v0.0.0-20160106005555-d9a5dc2b789b // indirect
 	go.etcd.io/bbolt v1.4.3 // indirect
 	go.uber.org/atomic v1.12.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

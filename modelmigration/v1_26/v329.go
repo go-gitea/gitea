@@ -51,7 +51,12 @@ func AddUniqueIndexForUserBadge(_ context.Context, x base.EngineMigration) error
 			}
 		} else {
 			var ids []int64
-			if err := x.SQL("SELECT id FROM user_badge WHERE user_id = ? and badge_id = ? limit ?", r.UserID, r.BadgeID, r.Cnt-1).Find(&ids); err != nil {
+			query := "SELECT id FROM user_badge WHERE user_id = ? and badge_id = ? limit ?"
+			if x.Dialect().URI().DBType == schemas.FIREBIRD {
+				// Firebird has no LIMIT, its ROWS clause takes the same bind
+				query = "SELECT id FROM user_badge WHERE user_id = ? and badge_id = ? ROWS ?"
+			}
+			if err := x.SQL(query, r.UserID, r.BadgeID, r.Cnt-1).Find(&ids); err != nil {
 				return err
 			}
 			if _, err := x.Table("user_badge").In("id", ids).Delete(); err != nil {
