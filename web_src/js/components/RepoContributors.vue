@@ -28,8 +28,11 @@ import {sleep} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 
-type ContributionType = 'commits' | 'additions' | 'deletions';
+type ContributionType = 'commits' | 'additions' | 'deletions' | 'additions_deletions';
 type ChartType = 'main' | 'contributor';
+type Period = 'all' | '1' | '3' | '6' | '12' | '24'; // months
+
+const periods: Period[] = ['all', '1', '3', '6', '12', '24'];
 
 const oneWeek = 7 * 24 * 60 * 60 * 1000;
 
@@ -82,6 +85,7 @@ type Contributor = ContributorStats & {
   total_commits: number,
   total_additions: number,
   total_deletions: number,
+  total_additions_deletions: number,
   max_contribution_type: number,
 };
 type ContributorsData = Record<string, ContributorInfo & {weeks: DayDataObject}>;
@@ -90,6 +94,8 @@ const props = defineProps<{
   locale: {
     filterLabel: string;
     contributionType: Record<ContributionType, string>;
+    periodFilterLabel: string;
+    period: Record<Period, string>;
     loadingTitle: string;
     loadingTitleFailed: string;
     loadingInfo: string;
@@ -104,9 +110,11 @@ const errorText = shallowRef('');
 const totalStats = shallowRef<DayData[]>([]);
 const sortedContributors = shallowRef<Contributor[]>([]);
 const type = shallowRef<ContributionType>('commits');
+const period = shallowRef<Period>('all');
 let contributorsStats: Record<string, ContributorStats> = {};
-// plain values, so the main chart options do not follow the zoomed range
-let xAxisStart: number | null = null;
+let dataStart: number | null = null;
+// the main chart range only follows the period, not the zoomed range
+const xAxisStart = shallowRef<number | null>(null);
 let xAxisEnd: number | null = null;
 const xAxisMin = shallowRef<number | null>(null);
 const xAxisMax = shallowRef<number | null>(null);
@@ -116,13 +124,32 @@ onMounted(() => {
 
   fomanticQuery('#repo-contributors').dropdown({
     onChange: (val: ContributionType) => {
-      xAxisMin.value = xAxisStart;
+      xAxisMin.value = xAxisStart.value;
       xAxisMax.value = xAxisEnd;
       type.value = val;
       sortContributors();
     },
   });
+
+  fomanticQuery('#repo-contributors-period').dropdown({
+    onChange: (val: Period) => {
+      period.value = val;
+      xAxisStart.value = periodStart();
+      xAxisMin.value = xAxisStart.value;
+      xAxisMax.value = xAxisEnd;
+      sortContributors();
+    },
+  });
 });
+
+function periodStart() {
+  if (period.value === 'all') return dataStart!;
+  return Math.max(dataStart!, dayjs(xAxisEnd).subtract(Number(period.value), 'month').valueOf());
+}
+
+function weekValue(week: DayData, contributionType: ContributionType) {
+  return contributionType === 'additions_deletions' ? week.additions + week.deletions : week[contributionType];
+}
 
 function sortContributors() {
   const criteria = `total_${type.value}` as const;
@@ -160,10 +187,11 @@ async function fetchGraphData() {
       const totalWeeks = Object.fromEntries(Object.entries(total.weeks).sort(([a], [b]) => Number(a) - Number(b)));
 
       const weekValues = Object.values(totalWeeks);
-      xAxisStart = weekValues[0].week;
+      dataStart = weekValues[0].week;
       xAxisEnd = firstStartDateAfterDate(new Date());
-      const startDays = startDaysBetween(xAxisStart, xAxisEnd);
-      xAxisMin.value = xAxisStart;
+      const startDays = startDaysBetween(dataStart, xAxisEnd);
+      xAxisStart.value = periodStart();
+      xAxisMin.value = xAxisStart.value;
       xAxisMax.value = xAxisEnd;
       contributorsStats = Object.fromEntries(Object.entries(other).map(([email, user]) => {
         return [email, {...user, weeks: fillEmptyStartDaysWithZeroes(startDays, user.weeks)}];
@@ -196,9 +224,7 @@ function filterContributorWeeksByDateRange() {
         totalCommits += week.commits;
         totalAdditions += week.additions;
         totalDeletions += week.deletions;
-        if (week[contributionType] > maxContributionType) {
-          maxContributionType = week[contributionType];
-        }
+        maxContributionType = Math.max(maxContributionType, weekValue(week, contributionType));
         return true;
       }
       return false;
@@ -213,6 +239,7 @@ function filterContributorWeeksByDateRange() {
       total_commits: totalCommits,
       total_additions: totalAdditions,
       total_deletions: totalDeletions,
+      total_additions_deletions: totalAdditions + totalDeletions,
       max_contribution_type: maxContributionType,
       email: key,
     });
@@ -222,7 +249,8 @@ function filterContributorWeeksByDateRange() {
 }
 
 const maxMainGraph = computed(() => {
-  return roundUpMax(Math.max(...totalStats.value.map((o) => o[type.value])));
+  const weeks = totalStats.value.filter((o) => o.week >= xAxisStart.value!);
+  return roundUpMax(Math.max(...weeks.map((o) => weekValue(o, type.value))));
 });
 
 // one shared maximum, otherwise the contributor graphs cannot be compared
@@ -235,9 +263,10 @@ function toGraphData(data: DayData[]): ChartData<'line'> {
   return {
     datasets: [
       {
-        data: data.map((i) => ({x: i.week, y: i[contributionType]})),
-        pointRadius: 0,
-        pointHitRadius: 0,
+        data: data.map((i) => ({x: i.week, y: weekValue(i, contributionType)})),
+        // a line needs two points, so a single week is drawn as a point
+        pointRadius: data.length === 1 ? 3 : 0,
+        pointHitRadius: data.length === 1 ? 3 : 0,
         fill: 'start',
         backgroundColor: chartJsColors[type.value],
         borderWidth: 0,
@@ -251,7 +280,7 @@ function updateOtherCharts({chart}: {chart: Chart}, reset: boolean = false) {
   const minVal = Number(chart.options.scales?.x?.min);
   const maxVal = Number(chart.options.scales?.x?.max);
   if (reset) {
-    xAxisMin.value = xAxisStart;
+    xAxisMin.value = xAxisStart.value;
     xAxisMax.value = xAxisEnd;
     sortContributors();
   } else if (minVal) {
@@ -312,7 +341,7 @@ function getOptions(chartType: ChartType): LineOptions {
     scales: {
       x: {
         // the main chart keeps its own zoom range
-        min: (chartType === 'main' ? xAxisStart : xAxisMin.value) ?? undefined,
+        min: (chartType === 'main' ? xAxisStart.value : xAxisMin.value) ?? undefined,
         max: (chartType === 'main' ? xAxisEnd : xAxisMax.value) ?? undefined,
         type: 'time',
         grid: {
@@ -376,7 +405,18 @@ const contributorCharts = computed(() => sortedContributors.value.map((contribut
           {{ new Date(xAxisMax) }}
         </relative-time>
       </div>
-      <div>
+      <div class="tw-flex tw-gap-2">
+        <div class="ui floating dropdown jump" id="repo-contributors-period">
+          <div class="ui basic compact button">
+            <span class="not-mobile">{{ locale.periodFilterLabel }}</span> <strong>{{ locale.period[period] }}</strong>
+            <svg-icon name="octicon-triangle-down" :size="14"/>
+          </div>
+          <div class="left menu">
+            <div v-for="value in periods" :key="value" :class="['item', {'selected': period === value}]" :data-value="value">
+              {{ locale.period[value] }}
+            </div>
+          </div>
+        </div>
         <!-- Contribution type -->
         <div class="ui floating dropdown jump" id="repo-contributors">
           <div class="ui basic compact button">
@@ -393,6 +433,9 @@ const contributorCharts = computed(() => sortedContributors.value.map((contribut
             <div :class="['item', {'selected': type === 'deletions'}]" data-value="deletions">
               {{ locale.contributionType.deletions }}
             </div>
+            <div :class="['item', {'selected': type === 'additions_deletions'}]" data-value="additions_deletions">
+              {{ locale.contributionType.additions_deletions }}
+            </div>
           </div>
         </div>
       </div>
@@ -408,8 +451,9 @@ const contributorCharts = computed(() => sortedContributors.value.map((contribut
           {{ errorText }}
         </div>
       </div>
+      <!-- recreated per period, so resetting the zoom returns to the period range -->
       <ChartCanvas
-        v-if="totalStats.length"
+        v-if="totalStats.length" :key="period"
         type="line" :data="mainChart.graphData" :options="mainChart.chartOptions"
       />
     </div>

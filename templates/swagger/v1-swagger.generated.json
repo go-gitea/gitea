@@ -9648,6 +9648,63 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/contributors": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List the commit authors of the default branch of a repository, most commits first",
+        "operationId": "repoListContributors",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "include authors that are not matched to a user",
+            "name": "anon",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContributorList"
+          },
+          "202": {
+            "description": "The contributors are still being counted, retry later"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/diffpatch": {
       "post": {
         "consumes": [
@@ -26781,6 +26838,67 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "Contributor": {
+      "description": "Contributor represents a commit author of the default branch of a repository",
+      "type": "object",
+      "properties": {
+        "additions": {
+          "description": "number of lines added by these commits",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Additions"
+        },
+        "avatar_url": {
+          "description": "only set for type \"User\"",
+          "type": "string",
+          "x-go-name": "AvatarURL"
+        },
+        "contributions": {
+          "description": "number of non-merge commits",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Contributions"
+        },
+        "deletions": {
+          "description": "number of lines deleted by these commits",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Deletions"
+        },
+        "email": {
+          "description": "the git author email, only set for type \"Anonymous\"",
+          "type": "string",
+          "x-go-name": "Email"
+        },
+        "html_url": {
+          "description": "only set for type \"User\"",
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "description": "only set for type \"User\"",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "login": {
+          "description": "only set for type \"User\"",
+          "type": "string",
+          "x-go-name": "Login"
+        },
+        "name": {
+          "description": "the git author name, only set for type \"Anonymous\"",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "type": {
+          "description": "\"User\" for authors matched to a user, otherwise \"Anonymous\"",
+          "type": "string",
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "CreateAccessTokenOption": {
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
@@ -34420,6 +34538,15 @@
       "description": "ContentsResponse",
       "schema": {
         "$ref": "#/definitions/ContentsResponse"
+      }
+    },
+    "ContributorList": {
+      "description": "ContributorList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Contributor"
+        }
       }
     },
     "CronList": {
