@@ -18,10 +18,10 @@ import (
 	"time"
 	"uuid"
 
-	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -37,7 +37,7 @@ var oidcSigningKey struct {
 	key oauth2_provider.JWTSigningKey
 }
 
-// OIDCSigningKey retries after errors, another instance sharing the data path may still be writing the key
+// OIDCSigningKey retries after errors, unlike sync.OnceValues, so a transient failure doesn't last until restart
 func OIDCSigningKey() (oauth2_provider.JWTSigningKey, error) {
 	oidcSigningKey.Lock()
 	defer oidcSigningKey.Unlock()
@@ -252,7 +252,7 @@ func runWorkflowFile(ctx context.Context, run *actions_model.ActionRun, ref stri
 	if err != nil {
 		return file, "", err
 	}
-	if workflow, err := model.ReadWorkflow(strings.NewReader(content)); err == nil && strings.TrimSpace(workflow.Name) != "" {
+	if workflow, err := jobparser.ReadWorkflow([]byte(content)); err == nil && strings.TrimSpace(workflow.Name) != "" {
 		return file, workflow.Name, nil
 	}
 	return file, file.path, nil

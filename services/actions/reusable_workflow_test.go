@@ -267,7 +267,7 @@ func TestLoadReusableWorkflowSourceFailsAlikeForMissingAndPrivateRepo(t *testing
 
 	run := &actions_model.ActionRun{RepoID: 4, TriggerUserID: 1}
 	for _, repoName := range []string{"missing", "repo3"} {
-		_, _, _, _, err := loadReusableWorkflowSource(t.Context(), run, nil, &model.ReusableWorkflowUses{Owner: "org3", Repo: repoName, Path: ".gitea/workflows/build.yml", Ref: "main"})
+		_, err := loadReusableWorkflowSource(t.Context(), run, nil, &model.ReusableWorkflowUses{Owner: "org3", Repo: repoName, Path: ".gitea/workflows/build.yml", Ref: "main"})
 		assert.EqualError(t, err, "reusable workflow repository org3/"+repoName+" does not exist or is not readable")
 	}
 }
@@ -417,12 +417,15 @@ func TestResolveSameRepoWorkflowSourceCommit(t *testing.T) {
 
 func TestQualifyRef(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	gitRepo, err := git.OpenRepository(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 	masterSHA := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-	assert.Equal(t, "refs/heads/master", qualifyRef(t.Context(), gitRepo, "master", masterSHA))
-	assert.Equal(t, "refs/tags/v1.1", qualifyRef(t.Context(), gitRepo, "v1.1", masterSHA))
-	assert.Equal(t, masterSHA, qualifyRef(t.Context(), gitRepo, masterSHA, masterSHA))
-	assert.Equal(t, "other-sha", qualifyRef(t.Context(), gitRepo, "master", "other-sha"))
+	assert.Equal(t, "refs/heads/master", qualifyRef(t.Context(), repo, gitRepo, "master", masterSHA))
+	assert.Equal(t, "refs/heads/master", qualifyRef(t.Context(), repo, gitRepo, "refs/heads/master", masterSHA))
+	assert.Equal(t, "refs/tags/v1.1", qualifyRef(t.Context(), repo, gitRepo, "v1.1", masterSHA))
+	assert.Equal(t, masterSHA, qualifyRef(t.Context(), repo, gitRepo, masterSHA, masterSHA))
+	assert.Equal(t, masterSHA, qualifyRef(t.Context(), repo, gitRepo, "refs/heads/master~0", masterSHA))
+	assert.Equal(t, "other-sha", qualifyRef(t.Context(), repo, gitRepo, "master", "other-sha"))
 }

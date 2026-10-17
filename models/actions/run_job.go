@@ -111,7 +111,7 @@ type ActionRunJob struct {
 	// Only set when IsReusableCaller is true.
 	ReusableWorkflowContent []byte `xorm:"LONGBLOB"`
 	// ReusableWorkflowRef is the fully qualified ref, or the commit, that "uses:" resolved to when the content was loaded.
-	ReusableWorkflowRef string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	ReusableWorkflowRef string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
 	// CallSecrets encodes the reusable workflow caller's "secrets:" section:
 	//   - ""           : no "secrets:" section (children only see auto-generated tokens).
 	//   - "inherit"    : the caller wrote "secrets: inherit".

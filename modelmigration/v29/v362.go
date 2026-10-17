@@ -13,7 +13,7 @@ import (
 
 func AddReusableWorkflowRefToActionRunJob(_ context.Context, x base.EngineMigration) error {
 	type ActionRunJob struct {
-		ReusableWorkflowRef string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+		ReusableWorkflowRef string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains:  true,
