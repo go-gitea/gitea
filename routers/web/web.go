@@ -508,6 +508,14 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}
 
+	addSettingsRunnerGroupsRoutes := func() {
+		m.Group("/runner-groups", func() {
+			m.Combo("").Get(shared_actions.RunnerGroups).Post(shared_actions.RunnerGroupCreate)
+			m.Combo("/{groupid}").Get(shared_actions.RunnerGroupEdit).Post(shared_actions.RunnerGroupEditPost)
+			m.Post("/{groupid}/delete", shared_actions.RunnerGroupDelete)
+		})
+	}
+
 	addSettingsScopedWorkflowsRoutes := func() {
 		m.Group("/scoped-workflows", func() {
 			m.Get("", shared_actions.ScopedWorkflows)
@@ -721,6 +729,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
+			addSettingsRunnerGroupsRoutes()
 			addSettingsScopedWorkflowsRoutes()
 		}, actions.MustEnableActions)
 
@@ -894,6 +903,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsRunnersRoutes()
 			m.Post("/runners/bulk", shared_actions.RunnerBulkActionPost)
 			addSettingsVariablesRoutes()
+			addSettingsRunnerGroupsRoutes()
 			addSettingsScopedWorkflowsRoutes()
 			m.Get("/job_queue", shared_actions.JobQueue)
 		})
@@ -1051,6 +1061,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
+					addSettingsRunnerGroupsRoutes()
 					addSettingsScopedWorkflowsRoutes()
 				}, actions.MustEnableActions)
 
