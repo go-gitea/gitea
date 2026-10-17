@@ -16,8 +16,8 @@ import (
 
 func TestCheckAddr(t *testing.T) {
 	for _, tc := range []struct {
-		name, allow, block, host, ip    string
-		localNeedsIPAllow, strict, want bool
+		name, allow, block, host, ip string
+		strict, want                 bool
 	}{
 		// lax mode exempts public and unresolved targets, restricted ones need an allow entry
 		{name: "empty lists allow public", host: "github.com", ip: "8.8.8.8", want: true},
@@ -43,9 +43,10 @@ func TestCheckAddr(t *testing.T) {
 		{name: "nat64 reserved denied despite allow", allow: "64:ff9b::/96", ip: "64:ff9b::a9fe:a9fe"},
 		{name: "teredo reserved denied despite allow", allow: "2001::/23", ip: "2001::1"},
 		{name: "protocol assignment allowed by cidr", allow: "2001::/23", ip: "2001:3::1", want: true},
-		{name: "local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5", localNeedsIPAllow: true},
-		{name: "local gate accepts builtin", allow: "private", ip: "100.64.0.1", localNeedsIPAllow: true, want: true},
-		{name: "local gate accepts cidr", allow: "10.0.0.0/24", ip: "10.0.0.5", localNeedsIPAllow: true, want: true},
+		{name: "local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5"},
+		{name: "local gate accepts builtin", allow: "cgnat", ip: "100.64.0.1", want: true},
+		{name: "private does not cover cgnat", allow: "private", ip: "100.64.0.1"},
+		{name: "local gate accepts cidr", allow: "10.0.0.0/24", ip: "10.0.0.5", want: true},
 		// strict mode requires every target to match the allow list, an empty list denies all
 		{name: "strict denies public with empty list", ip: "8.8.8.8", strict: true},
 		{name: "strict denies unresolved with empty list", host: "example.com", strict: true},
@@ -56,13 +57,10 @@ func TestCheckAddr(t *testing.T) {
 		{name: "strict block overrides allow", allow: "10.0.0.0/8", block: "10.0.0.5/32", ip: "10.0.0.5", strict: true},
 		{name: "strict reserved denied despite allow", allow: "168.63.129.16/32", ip: "168.63.129.16", strict: true},
 		{name: "strict link-local allowed by cidr", allow: "169.254.0.0/16", ip: "169.254.169.254", strict: true, want: true},
-		{name: "strict local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5", localNeedsIPAllow: true, strict: true},
-		{name: "strict local gate accepts builtin", allow: "private", ip: "100.64.0.1", localNeedsIPAllow: true, strict: true, want: true},
+		{name: "strict local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5", strict: true},
+		{name: "strict local gate accepts builtin", allow: "cgnat", ip: "100.64.0.1", strict: true, want: true},
 	} {
 		opts := []Option{WithAllow(tc.allow, "test.ALLOWED"), WithBlock(tc.block, "test.BLOCKED")}
-		if tc.localNeedsIPAllow {
-			opts = append(opts, WithLocalNeedsIPAllow())
-		}
 		var addr netip.Addr
 		if tc.ip != "" {
 			addr = netip.MustParseAddr(tc.ip)
@@ -117,17 +115,19 @@ func TestCheckHostIPs(t *testing.T) {
 
 	allowed := NewPolicy("test", Strict, WithAllow("10.0.0.0/8, *.example.com", ""))
 	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://"), ips("10.0.0.5")))
-	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://git.example.com"), ips("192.168.0.1")))
+	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://git.example.com"), ips("192.168.0.1"))) // a hostname entry doesn't cover a restricted target
+	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://git.example.com"), ips("10.0.0.5")))  // an IP entry does
 	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://git.example.com"), nil))
 	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), ips("10.0.0.5", "192.168.0.1")))
 	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), nil))
 
 	builtins := NewPolicy("test", Lax, WithAllow("private, loopback", ""))
-	assert.NoError(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips("8.8.8.8", "100.64.0.1", "::1")))
-	assert.NoError(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips("100.100.100.200"))) // cloud metadata is opt-in with its containing range
+	assert.NoError(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips("8.8.8.8", "10.0.0.5", "::1")))
+	cgnat := NewPolicy("test", Lax, WithAllow("cgnat", ""))
+	assert.NoError(t, cgnat.checkHostIPs(hostURL(t, "http://example.com"), ips("100.100.100.200"))) // cloud metadata is opt-in with its containing range
 	for _, ip := range []string{
 		"0.1.2.3", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",
-		"198.51.100.1", "203.0.113.1", "::7f00:1", "::ffff:0:a00:5", "64:ff9b::a9fe:a9fe", "64:ff9b::808:808", "2001::1", "2001:db8::1",
+		"198.51.100.1", "203.0.113.1", "100.100.100.200", "::7f00:1", "::ffff:0:a00:5", "64:ff9b::a9fe:a9fe", "64:ff9b::808:808", "2001::1", "2001:db8::1",
 		"2002::1", "fe80::1",
 	} {
 		assert.Error(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips(ip)), ip)
@@ -167,4 +167,96 @@ func TestProxy(t *testing.T) {
 
 	_, err := NewPolicy("test", Lax, WithProxy(http.ProxyURL(&url.URL{Scheme: "socks4", Host: "proxy.corp:1080"}))).Proxy(&http.Request{})
 	assert.ErrorContains(t, err, "unsupported proxy scheme")
+}
+
+func TestInternalRanges(t *testing.T) {
+	newPolicy := func(mode Mode, allow, ranges string) *Policy {
+		return NewPolicy("test", mode,
+			WithAllow(allow, "test.ALLOWED_HOST_LIST"),
+			WithInternalRanges(ranges, "test.ALLOWED_INTERNAL_RANGES"))
+	}
+	addr := func(ip string, port uint16) netip.AddrPort {
+		return netip.AddrPortFrom(netip.MustParseAddr(ip), port)
+	}
+
+	// a hostname entry covers the non-public targets it resolves into, the exact host only
+	lax := newPolicy(Lax, "ci.internal.example.com", "10.0.0.0/8, 100.64.0.0/10")
+	assert.NoError(t, lax.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80)))
+	assert.NoError(t, lax.checkAddr("ci.internal.example.com", addr("100.100.100.200", 443)))
+	assert.NoError(t, lax.checkAddr("ci.internal.example.com", addr("::ffff:10.1.2.3", 80))) // mapped form is unmapped, still via the domain
+	assert.Error(t, lax.checkAddr("ci.internal.example.com", addr("192.168.5.5", 80)))       // restricted, outside the ranges
+	assert.Error(t, lax.checkAddr("ci.internal.example.com", addr("169.254.169.254", 80)))
+	assert.Error(t, lax.checkAddr("www.ci.internal.example.com", addr("10.1.2.3", 80))) // subdomain
+	assert.Error(t, lax.checkAddr("other.com", addr("10.1.2.3", 80)))                   // unlisted host
+	assert.Error(t, lax.checkAddr("", addr("10.1.2.3", 80)))                            // direct IP dial
+	assert.Error(t, lax.checkAddr("", addr("::ffff:10.1.2.3", 80)))                     // direct IP dial, mapped form
+
+	// the denial names the ranges setting when the host matches but the IP is outside
+	err := lax.checkAddr("ci.internal.example.com", addr("192.168.5.5", 80))
+	assert.EqualError(t, err, "test resolves outside the internal ranges allowed for hostnames (check your test.ALLOWED_INTERNAL_RANGES setting), deny 'ci.internal.example.com(192.168.5.5)'")
+
+	// a port-scoped entry covers only its ports
+	scoped := newPolicy(Lax, "ci.internal.example.com:8080", "10.0.0.0/8")
+	assert.NoError(t, scoped.checkAddr("ci.internal.example.com", addr("10.1.2.3", 8080)))
+	err = scoped.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80))
+	assert.EqualError(t, err, `test port 80 is not allowed for "ci.internal.example.com" (check your test.ALLOWED_HOST_LIST setting), deny 'ci.internal.example.com(10.1.2.3)'`)
+
+	// without the ranges setting a hostname entry never covers non-public targets
+	plain := newPolicy(Lax, "ci.internal.example.com", "")
+	assert.Error(t, plain.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80)))
+
+	// strict mode: the conjunction works, the domain's public IPs still match by name, portless entries cover 80/443 only
+	strict := newPolicy(Strict, "ci.internal.example.com", "10.0.0.0/8")
+	assert.NoError(t, strict.checkAddr("ci.internal.example.com", addr("10.1.2.3", 443)))
+	assert.NoError(t, strict.checkAddr("ci.internal.example.com", addr("8.8.8.8", 443)))
+	assert.Error(t, strict.checkAddr("ci.internal.example.com", addr("10.1.2.3", 8080)))
+	assert.Error(t, strict.checkAddr("other.com", addr("10.1.2.3", 443)))
+
+	// reserved is denied even inside the ranges
+	reserved := newPolicy(Lax, "ci.internal.example.com", "224.0.0.0/4")
+	assert.Error(t, reserved.checkAddr("ci.internal.example.com", addr("224.0.0.1", 80)))
+
+	// the block list still wins
+	blocked := NewPolicy("test", Lax,
+		WithAllow("ci.internal.example.com", "test.ALLOWED_HOST_LIST"),
+		WithInternalRanges("10.0.0.0/8", "test.ALLOWED_INTERNAL_RANGES"),
+		WithBlock("10.0.0.0/8", "test.BLOCKED_HOST_LIST"))
+	assert.Error(t, blocked.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80)))
+}
+
+func TestDialContextInternalRanges(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ln.Close() })
+	_, port, _ := net.SplitHostPort(ln.Addr().String())
+
+	policy := NewPolicy("test", Lax,
+		WithAllow("localhost", "test.ALLOWED_HOST_LIST"),
+		WithInternalRanges("loopback", "test.ALLOWED_INTERNAL_RANGES"))
+	dial := policy.NewDialContext()
+
+	conn, err := dial(t.Context(), "tcp", net.JoinHostPort("localhost", port))
+	if err == nil {
+		_ = conn.Close()
+	}
+	assert.NoError(t, err, "the exact host within the internal ranges is allowed")
+
+	_, err = dial(t.Context(), "tcp", ln.Addr().String())
+	assert.ErrorIs(t, err, ErrDenied, "a direct IP dial is denied even though the IP is in the ranges")
+}
+
+func TestCheckHostIPsInternalRanges(t *testing.T) {
+	policy := NewPolicy("test", Lax,
+		WithAllow("ci.internal.example.com", "test.ALLOWED_HOST_LIST"),
+		WithInternalRanges("10.0.0.0/8", "test.ALLOWED_INTERNAL_RANGES"))
+	ips := func(addrs ...string) (ret []net.IP) {
+		for _, addr := range addrs {
+			ret = append(ret, net.ParseIP(addr))
+		}
+		return ret
+	}
+	assert.NoError(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("10.1.2.3")))
+	assert.Error(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("10.1.2.3", "192.168.5.5"))) // one IP outside the ranges
+	assert.Error(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("169.254.169.254")))
+	assert.NoError(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), nil)) // unresolved, the dialer re-checks
 }

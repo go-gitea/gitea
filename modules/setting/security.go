@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"net/netip"
 	"net/url"
 	"os"
 	"strings"
@@ -23,6 +24,7 @@ var Security = struct {
 	ContentSecurityPolicyGeneral string // it only supports empty (default policy) or "unset", maybe it can support more in the future
 	EgressMode                   string
 	AllowedHostList              string
+	AllowedInternalRanges        string
 }{
 	XFrameOptions:       "SAMEORIGIN",
 	XContentTypeOptions: "nosniff",
@@ -51,6 +53,35 @@ func checkHostList(key, hostList string, isBlockList bool) {
 	}
 	if isBlockList && len(rejected) > 0 {
 		log.Fatal("%s has invalid entries, fix them so no blocked host is allowed", key)
+	}
+}
+
+// metadataRanges contain well-known cloud metadata endpoints, an internal range overlapping them lets hostname entries reach them
+var metadataRanges = []netip.Prefix{
+	netip.MustParsePrefix("169.254.0.0/16"), // link-local, AWS/Azure/GCP IMDS
+	netip.MustParsePrefix("100.64.0.0/10"),  // CGNAT, Alibaba Cloud 100.100.100.200
+	netip.MustParsePrefix("fc00::/7"),       // ULA, AWS IMDS IPv6 fd00:ec2::254
+}
+
+// checkInternalRanges reports the entries an internal-ranges list drops, warns about ranges containing
+// cloud metadata endpoints, and how many hostname entries of the allow list gain non-public coverage
+func checkInternalRanges(key, rangesList, allowList, allowKey string) {
+	prefixes, rejected := policy.ParseInternalRanges(rangesList)
+	for _, reason := range rejected {
+		LogStartupProblem(1, log.ERROR, "%s ignores an invalid entry: %s", key, reason)
+	}
+	if len(prefixes) == 0 {
+		return
+	}
+	for _, prefix := range prefixes {
+		for _, metadata := range metadataRanges {
+			if prefix.Overlaps(metadata) {
+				LogStartupProblem(1, log.WARN, "%s allows %s, which overlaps cloud metadata ranges (AWS 169.254.169.254 and fd00:ec2::254, Alibaba 100.100.100.200)", key, prefix)
+			}
+		}
+	}
+	if count := policy.NewAllowList(allowList, policy.Lax).HostnameCount(); count > 0 {
+		LogStartupProblem(1, log.WARN, "%s: %d hostname entries in %s may now reach non-public targets within the internal ranges", key, count, allowKey)
 	}
 }
 
@@ -186,6 +217,8 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	egressModeSet := sec.HasKey("EGRESS_MODE")
 	Security.EgressMode = normalizePolicyMode(sec.Key("EGRESS_MODE").String())
 	checkHostList("[security] ALLOWED_HOST_LIST", Security.AllowedHostList, false)
+	Security.AllowedInternalRanges = ConfigSectionKeyString(sec, "ALLOWED_INTERNAL_RANGES")
+	checkInternalRanges("[security] ALLOWED_INTERNAL_RANGES", Security.AllowedInternalRanges, Security.AllowedHostList, "[security] ALLOWED_HOST_LIST")
 	if Security.AllowedHostList != "" && !egressModeSet {
 		LogStartupProblem(1, log.WARN, "[security] ALLOWED_HOST_LIST only restricts private hosts in the default lax mode, set EGRESS_MODE = strict to allow only the listed hosts, or lax to keep this")
 	}

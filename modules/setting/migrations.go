@@ -7,12 +7,13 @@ import "strings"
 
 // Migrations settings
 var Migrations = struct {
-	MaxAttempts     int
-	RetryBackoff    int
-	EgressMode      string
-	AllowedHostList string
-	BlockedHostList string
-	SkipTLSVerify   bool
+	MaxAttempts           int
+	RetryBackoff          int
+	EgressMode            string
+	AllowedHostList       string
+	AllowedInternalRanges string
+	BlockedHostList       string
+	SkipTLSVerify         bool
 }{
 	MaxAttempts:  3,
 	RetryBackoff: 3,

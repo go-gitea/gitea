@@ -73,7 +73,7 @@ func TestWebhookPolicyProxy(t *testing.T) {
 	}
 }
 
-func TestWebhookPolicyNeedsIPAllow(t *testing.T) {
+func TestWebhookPolicyInternalTargets(t *testing.T) {
 	defer test.MockVariableValue(&setting.Webhook.AllowedHostList, "localhost")()
 	defer test.MockVariableValue(&setting.Security.EgressMode, "lax")()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -92,6 +92,9 @@ func TestWebhookPolicyNeedsIPAllow(t *testing.T) {
 	assert.ErrorIs(t, dial(), policy.ErrDenied) // a host name entry doesn't cover the loopback address
 	setting.Webhook.AllowedHostList = "loopback"
 	assert.NoError(t, dial()) // an IP entry does
+	setting.Webhook.AllowedHostList = "localhost"
+	defer test.MockVariableValue(&setting.Security.AllowedInternalRanges, "loopback")()
+	assert.NoError(t, dial()) // an internal range lets the host name entry cover the loopback address
 }
 
 func TestSecurityPolicy(t *testing.T) {
