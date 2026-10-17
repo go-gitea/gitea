@@ -73,10 +73,34 @@ func (m *MaterialIconProvider) renderFileIconSVG(p *RenderedIconPool, name, svg,
 	if p == nil {
 		return svgHTML
 	}
-	if p.IconSVGs[svgID] == "" {
-		p.IconSVGs[svgID] = svgHTML
-	}
+	p.addSVG(svgID, string(svgHTML))
 	return template.HTML(`<svg ` + svgCommonAttrs + `><use href="#` + svgID + `"></use></svg>`)
+}
+
+// findEntryIconName returns the material icon name for an entry, or the generic file or folder icon
+func (m *MaterialIconProvider) findEntryIconName(entry *EntryInfo) string {
+	name := m.FindIconName(entry)
+	if m.svgs[name] != "" {
+		return name
+	}
+	name = util.Iif(entry.EntryMode.IsDir(), util.Iif(entry.IsOpen, "folder-open", "folder"), "file")
+	if m.svgs[name] == "" {
+		setting.PanicInDevOrTesting("missing file icon for %s", name)
+	}
+	return name
+}
+
+// EntryIconID pools the entry material icon and returns its SVG ID and wrapper class, or "" if there is none
+func (m *MaterialIconProvider) EntryIconID(p *RenderedIconPool, entry *EntryInfo) (svgID, class string) {
+	if m.rules == nil || entry.EntryMode.IsLink() {
+		return "", ""
+	}
+	name := m.findEntryIconName(entry)
+	svgID = "svg-mfi-" + name
+	if p.IconSVGs[svgID] == "" {
+		p.IconSVGs[svgID] = m.renderFileIconSVG(nil, name, m.svgs[name], "")
+	}
+	return svgID, "svg git-entry-icon " + BasicEntryIconName(entry)
 }
 
 func (m *MaterialIconProvider) EntryIconHTML(p *RenderedIconPool, entry *EntryInfo) template.HTML {
@@ -92,28 +116,10 @@ func (m *MaterialIconProvider) EntryIconHTML(p *RenderedIconPool, entry *EntryIn
 		return svg.RenderHTML("octicon-file-symlink-file") // TODO: find some better icons for them
 	}
 
-	name := m.FindIconName(entry)
+	name := m.findEntryIconName(entry)
 	iconSVG := m.svgs[name]
-	if iconSVG == "" {
-		name = "file"
-		if entry.EntryMode.IsDir() {
-			name = util.Iif(entry.IsOpen, "folder-open", "folder")
-		}
-		iconSVG = m.svgs[name]
-		if iconSVG == "" {
-			setting.PanicInDevOrTesting("missing file icon for %s", name)
-		}
-	}
 
-	// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
-	extraClass := "octicon-file"
-	switch {
-	case entry.EntryMode.IsDir():
-		extraClass = BasicEntryIconName(entry)
-	case entry.EntryMode.IsSubModule():
-		extraClass = "octicon-file-submodule"
-	}
-	return m.renderFileIconSVG(p, name, iconSVG, extraClass)
+	return m.renderFileIconSVG(p, name, iconSVG, BasicEntryIconName(entry))
 }
 
 func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {
