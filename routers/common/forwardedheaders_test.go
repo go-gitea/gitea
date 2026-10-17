@@ -37,6 +37,7 @@ func TestForwardedHeadersHandler(t *testing.T) {
 		{"zoned peer", "[fe80::1%en1]:1234", 1, []string{"fe80::1%en0"}, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "[fe80::1%en1]:1234"},
 		{"bare ip proxy after invalid one", "10.0.0.1:1234", 1, []string{"invalid", "10.0.0.1"}, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "1.1.1.1:0"},
 		{"mapped cidr proxy", "10.0.0.1:1234", 1, []string{"::ffff:10.0.0.0/104"}, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "1.1.1.1:0"},
+		{"mapped cidr spanning native ipv6", "[::1]:1234", 1, []string{"::ffff:10.0.0.0/80"}, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "1.1.1.1:0"},
 		{"wildcard proxy with zoned peer", "[fe80::1%en0]:1234", 1, []string{"*"}, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "1.1.1.1:0"},
 		{"unix socket", "@", 1, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "1.1.1.1:0"},
 	}

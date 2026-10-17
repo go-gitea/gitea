@@ -24,7 +24,7 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 			addr, _ := netip.ParseAddr(s)
 			prefix = netip.PrefixFrom(addr, addr.BitLen())
 		}
-		if prefix.Addr().Is4In6() {
+		if prefix.Addr().Is4In6() && prefix.Bits() >= 96 {
 			prefix = netip.PrefixFrom(prefix.Addr().Unmap(), prefix.Bits()-96)
 		}
 		if !prefix.IsValid() {
