@@ -99,6 +99,7 @@ func TestParsePackage(t *testing.T) {
 		nestedManifest := "// swift-tools-version:6.3\n//\n//  nested fixture package"
 
 		data := writeOrderedZipArchive([][2]string{
+			{"/Package.swift", nestedManifest},
 			{"Package.swift", rootManifest},
 			{"Package@swift-5.5.swift", rootAltManifest},
 			{"Package@swift-5.7.1.swift", rootPatchAltManifest},

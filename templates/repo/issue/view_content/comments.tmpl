@@ -553,7 +553,7 @@
 				{{end}}
 			</div>
 			{{if not .IsForcePush}}
-				{{template "repo/commits_list_small" dict "comment" . "root" $}}
+				{{template "repo/commits_list_small" dict "comment" $comment}}
 			{{end}}
 		{{else if eq .Type 30}}
 			<div class="timeline-item event" id="{{.HashTag}}">
