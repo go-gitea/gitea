@@ -560,13 +560,13 @@ func GetUserSalt() (string, error) {
 }
 
 type globalVarsStruct struct {
-	customCharsReplacement *strings.Replacer
-	removeCharsRE          *regexp.Regexp
-	transformDiacritics    transform.Transformer
-	replaceCharsHyphenRE   *regexp.Regexp
-	emailToReplacer        *strings.Replacer
-	systemUserNewFuncs     map[int64]func() *User
-	systemUserNameIdMap    map[string]int64
+	customCharsReplacement   *strings.Replacer
+	removeCharsRE            *regexp.Regexp
+	transformDiacritics      transform.Transformer
+	replaceCharsHyphenRE     *regexp.Regexp
+	emailToReplacer          *strings.Replacer
+	systemUserNewFuncs       map[int64]func() *User
+	systemUserLowerNameIdMap map[string]int64
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
@@ -592,11 +592,11 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 
 	userFuncs := []func() *User{NewGhostUser, NewActionsUser, NewDeployKeyUser, NewCliUser, NewAuthSourceUser}
 	ret.systemUserNewFuncs = map[int64]func() *User{}
-	ret.systemUserNameIdMap = map[string]int64{}
+	ret.systemUserLowerNameIdMap = map[string]int64{}
 	for _, fn := range userFuncs {
 		u := fn()
 		ret.systemUserNewFuncs[u.ID] = fn
-		ret.systemUserNameIdMap[u.LowerName] = u.ID
+		ret.systemUserLowerNameIdMap[u.LowerName] = u.ID
 	}
 	return ret
 })
@@ -1148,20 +1148,50 @@ func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]
 		Find(&ous)
 }
 
-// GetUserIDsByNames returns a slice of ids corresponds to names.
-func GetUserIDsByNames(ctx context.Context, names []string, ignoreNonExistent bool) ([]int64, error) {
-	ids := make([]int64, 0, len(names))
+func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer bool) ([]int64, error) {
+	namesLower := make([]string, 0, len(names))
+	namesMap := make(map[string]*User, len(names))
 	for _, name := range names {
-		u, err := GetUserByName(ctx, name)
-		if err != nil {
-			if ignoreNonExistent {
-				continue
+		nameLower := strings.ToLower(name)
+		namesLower = append(namesLower, nameLower)
+		namesMap[nameLower] = nil
+		if allowSystemDoer {
+			if id, ok := globalVars().systemUserLowerNameIdMap[nameLower]; ok && id != GhostUserID {
+				namesMap[nameLower] = globalVars().systemUserNewFuncs[id]()
 			}
-			return nil, err
+		}
+	}
+
+	var users []*User
+	err := db.GetEngine(ctx).In("lower_name", namesLower).Where("`type` IN (?,?)", UserTypeIndividual, UserTypeBot).Find(&users)
+	if err != nil {
+		return nil, err
+	}
+	for _, user := range users {
+		namesMap[user.LowerName] = user
+	}
+
+	ids := make([]int64, 0, len(names))
+	var errFinal error
+	for _, nameLower := range namesLower {
+		u := namesMap[nameLower]
+		if u == nil {
+			errFinal = ErrUserNotExist{Name: nameLower}
+			continue
 		}
 		ids = append(ids, u.ID)
 	}
-	return ids, nil
+	return ids, errFinal
+}
+
+func GetDoerUserIDsByNamesWithSystem(ctx context.Context, names []string) ([]int64, error) {
+	return getDoerUserIDsByNames(ctx, names, true)
+}
+
+// GetDoerUserIDsByNames returns a slice of ids corresponds to names.
+// It always returns found user IDs even if some names are not found, but returns an error if any name is not found.
+func GetDoerUserIDsByNames(ctx context.Context, names []string) ([]int64, error) {
+	return getDoerUserIDsByNames(ctx, names, false)
 }
 
 // GetUsersBySource returns a list of Users for a login source
@@ -1201,6 +1231,9 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 	noReplyAddressSuffix := "@" + strings.ToLower(setting.Service.NoReplyAddress)
 	for _, email := range emails {
 		emailLower := strings.ToLower(email)
+		if emailLower == "" {
+			continue // a commit without an author email names no user
+		}
 		needCheckEmails.Add(emailLower)
 		if localPart, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
 			name, id := parseLocalPartToNameID(localPart)

@@ -169,10 +169,6 @@ func parseGitHookCommitRefLine(line string) (oldCommitID, newCommitID string, re
 }
 
 func runHookPreReceive(ctx context.Context, c *cli.Command) error {
-	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
-		return nil
-	}
-
 	setup(ctx, c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
@@ -213,7 +209,6 @@ Gitea or set your environment appropriately.`, "")
 	refFullNames := make([]git.RefName, hookBatchSize)
 	count := 0
 	total := 0
-	lastline := 0
 
 	out := io.Discard
 	if setting.Git.VerbosePush {
@@ -225,8 +220,6 @@ Gitea or set your environment appropriately.`, "")
 			out = os.Stdout
 		}
 	}
-
-	supportProcReceive := git.DefaultFeatures().SupportProcReceive
 
 	for scanner.Scan() {
 		// TODO: support news feeds for wiki
@@ -240,37 +233,23 @@ Gitea or set your environment appropriately.`, "")
 		}
 
 		total++
-		lastline++
+		oldCommitIDs[count] = oldCommitID
+		newCommitIDs[count] = newCommitID
+		refFullNames[count] = refFullName
+		count++
+		fmt.Fprintf(out, "*")
 
-		// If the ref is a branch or tag, check if it's protected
-		// if supportProcReceive all ref should be checked because
-		// permission check was delayed
-		if supportProcReceive || refFullName.IsBranch() || refFullName.IsTag() {
-			oldCommitIDs[count] = oldCommitID
-			newCommitIDs[count] = newCommitID
-			refFullNames[count] = refFullName
-			count++
-			fmt.Fprintf(out, "*")
+		if count >= hookBatchSize {
+			fmt.Fprintf(out, " Checking %d references\n", count)
 
-			if count >= hookBatchSize {
-				fmt.Fprintf(out, " Checking %d references\n", count)
-
-				hookOptions.OldCommitIDs = oldCommitIDs
-				hookOptions.NewCommitIDs = newCommitIDs
-				hookOptions.RefFullNames = refFullNames
-				extra := private.HookPreReceive(ctx, ownerName, repoName, hookOptions)
-				if extra.HasError() {
-					return fail(ctx, extra.UserMsg, "HookPreReceive(batch) failed: %v", extra.Error)
-				}
-				count = 0
-				lastline = 0
+			hookOptions.OldCommitIDs = oldCommitIDs
+			hookOptions.NewCommitIDs = newCommitIDs
+			hookOptions.RefFullNames = refFullNames
+			extra := private.HookPreReceive(ctx, ownerName, repoName, hookOptions)
+			if extra.HasError() {
+				return fail(ctx, extra.UserMsg, "HookPreReceive(batch) failed: %v", extra.Error)
 			}
-		} else {
-			fmt.Fprintf(out, ".")
-		}
-		if lastline >= hookBatchSize {
-			fmt.Fprintf(out, "\n")
-			lastline = 0
+			count = 0
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -288,8 +267,6 @@ Gitea or set your environment appropriately.`, "")
 		if extra.HasError() {
 			return fail(ctx, extra.UserMsg, "HookPreReceive(last) failed: %v", extra.Error)
 		}
-	} else if lastline > 0 {
-		fmt.Fprintf(out, "\n")
 	}
 
 	fmt.Fprintf(out, "Checked %d references in total\n", total)
@@ -299,10 +276,6 @@ Gitea or set your environment appropriately.`, "")
 // runHookUpdate avoid to do heavy operations on update hook because it will be
 // invoked for every ref update which does not like pre-receive and post-receive
 func runHookUpdate(_ context.Context, c *cli.Command) error {
-	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
-		return nil
-	}
-
 	// Update is empty and is kept only for backwards compatibility
 	if len(os.Args) < 3 {
 		return nil
@@ -321,11 +294,6 @@ func runHookPostReceive(ctx context.Context, c *cli.Command) error {
 	// First of all run update-server-info no matter what
 	if err := gitcmd.NewCommand("update-server-info").RunWithStderr(ctx); err != nil {
 		return fmt.Errorf("failed to call 'git update-server-info': %w", err)
-	}
-
-	// Now if we're an internal don't do anything else
-	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
-		return nil
 	}
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
@@ -473,10 +441,6 @@ If you are pushing over SSH you must push with a key managed by
 Gitea or set your environment appropriately.`, "")
 		}
 		return nil
-	}
-
-	if !git.DefaultFeatures().SupportProcReceive {
-		return fail(ctx, "No proc-receive support", "current git version doesn't support proc-receive.")
 	}
 
 	reader := bufio.NewReader(os.Stdin)

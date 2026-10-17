@@ -84,12 +84,6 @@ export async function apiCreateFiles(requestContext: APIRequestContext, owner: s
   }), 'apiCreateFiles');
 }
 
-export async function apiCancelStopwatch(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
-  await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}/stopwatch/delete`, {
-    headers: headers || apiHeaders(),
-  }), 'apiCancelStopwatch');
-}
-
 export async function apiCloseIssue(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
   await apiRetry(() => requestContext.patch(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}`, {
     headers: headers || apiHeaders(),

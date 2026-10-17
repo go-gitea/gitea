@@ -445,7 +445,6 @@
   "settings.key_name": "Sleutel naam",
   "settings.key_content": "Inhoud",
   "settings.principal_content": "Inhoud",
-  "settings.delete_key": "Verwijder",
   "settings.ssh_key_deletion": "Verwijder SSH-sleutel",
   "settings.gpg_key_deletion": "Verwijder GPG-sleutel",
   "settings.ssh_principal_deletion": "Verwijder de SSH-certificaat verantwoordelijke",

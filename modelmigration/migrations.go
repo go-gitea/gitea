@@ -33,6 +33,7 @@ import (
 	"gitea.dev/modelmigration/v1_8"
 	"gitea.dev/modelmigration/v1_9"
 	"gitea.dev/modelmigration/v28"
+	"gitea.dev/modelmigration/v29"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -429,7 +430,15 @@ func prepareMigrationTasks() []*migration {
 		newMigration(353, "Add audit event table", v28.AddAuditEventTable),
 		newMigration(354, "Add Actions job queue indexes", v28.AddActionQueueIndexes),
 		newMigration(355, "Add AutoMerge merged_commit_id column", v28.AddAutoMergeMergedCommitID),
-		newMigration(356, "Add release.is_immutable column and immutable_tag table", v28.AddImmutableReleases),
+		// Gitea 28.0.0 ends at migration ID number 355 (database version 356)
+
+		newMigration(356, "Add index on action_run commit_sha", v29.AddActionRunCommitSHAIndex),
+		newMigration(357, "Normalize legacy team authorize values", v29.NormalizeLegacyTeamAuthorize),
+		newMigration(358, "Track previous remember-me token hashes", v29.AddPreviousAuthTokenHash),
+		newMigration(359, "Add stage and number columns to action_task_step", v29.AddStageAndNumberToActionTaskStep),
+		newMigration(360, "Move branch protection settings to JSON", v29.MoveBranchProtectionConfigToJSON),
+		newMigration(361, "Drop legacy commit_id column from comment", v29.DropCommentCommitID),
+		newMigration(362, "Add release.is_immutable column and immutable_tag table", v29.AddImmutableReleases),
 	}
 	return preparedMigrations
 }
