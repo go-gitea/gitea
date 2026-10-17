@@ -35,6 +35,7 @@ var (
 		ZombieTaskTimeout     time.Duration     `ini:"ZOMBIE_TASK_TIMEOUT"`
 		EndlessTaskTimeout    time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
 		AbandonedJobTimeout   time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
+		RunnerLongPollTimeout time.Duration     `ini:"RUNNER_LONG_POLL_TIMEOUT"`
 		SkipWorkflowStrings   []string          `ini:"SKIP_WORKFLOW_STRINGS"`
 		WorkflowDirs          []string          `ini:"WORKFLOW_DIRS"`
 		ScopedWorkflowDirs    []string          `ini:"SCOPED_WORKFLOW_DIRS"`
@@ -133,6 +134,7 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	Actions.ZombieTaskTimeout = sec.Key("ZOMBIE_TASK_TIMEOUT").MustDuration(10 * time.Minute)
 	Actions.EndlessTaskTimeout = sec.Key("ENDLESS_TASK_TIMEOUT").MustDuration(3 * time.Hour)
 	Actions.AbandonedJobTimeout = sec.Key("ABANDONED_JOB_TIMEOUT").MustDuration(24 * time.Hour)
+	Actions.RunnerLongPollTimeout = sec.Key("RUNNER_LONG_POLL_TIMEOUT").MustDuration(50 * time.Second)
 
 	if !Actions.LogCompression.IsValid() {
 		return fmt.Errorf("invalid [actions] LOG_COMPRESSION: %q", Actions.LogCompression)

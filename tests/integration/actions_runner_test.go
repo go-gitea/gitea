@@ -123,9 +123,6 @@ func (r *mockRunner) tryFetchTask(t *testing.T, timeout ...time.Duration) *runne
 	return task
 }
 
-// fetchTaskOnce performs a single FetchTask request with the given TasksVersion
-// and returns the task (if any) and the TasksVersion from the response.
-// Used to verify the production path where the runner sends the current version.
 func (r *mockRunner) fetchTaskOnce(t *testing.T, tasksVersion int64) (*runnerv1.Task, int64) {
 	resp, err := r.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
 		TasksVersion: tasksVersion,
