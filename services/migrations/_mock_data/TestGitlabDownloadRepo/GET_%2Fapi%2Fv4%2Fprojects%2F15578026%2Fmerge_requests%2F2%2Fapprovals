@@ -1,0 +1,21 @@
+Cache-Control: max-age=0, private, must-revalidate
+Cf-Cache-Status: MISS
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json
+Etag: W/"7b17d8be4001a23ef2e3265138046ebd"
+Gitlab-Lb: haproxy-main-36-lb-gprd
+Gitlab-Sv: api-gke-us-east1-d
+Ratelimit-Limit: 2000
+Ratelimit-Name: throttle_authenticated_api
+Ratelimit-Observed: 23
+Ratelimit-Remaining: 1977
+Ratelimit-Reset: 1776937500
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000
+Vary: Origin, Accept-Encoding
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Gitlab-Meta: {"correlation_id":"9f0bee9c6e8ac27f-VIE","version":"1"}
+X-Runtime: 0.178166
+
+{"id":43524600,"iid":2,"project_id":15578026,"title":"Test branch","description":"do not merge this PR","state":"opened","created_at":"2019-11-28T15:56:54.104Z","updated_at":"2020-04-19T19:24:21.108Z","merge_status":"can_be_merged","approved":true,"approvals_required":0,"approvals_left":0,"require_password_to_approve":false,"approved_by":[{"user":{"id":4575606,"username":"real6543","public_email":"","name":"6543","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/4575606/avatar.png","web_url":"https://gitlab.com/real6543"},"approved_at":"2020-04-19T19:24:21.089Z"}],"suggested_approvers":[],"approvers":[],"approver_groups":[{"group":{"id":3181312,"web_url":"https://gitlab.com/groups/gitea","name":"gitea","path":"gitea","description":"Mirror of Gitea source code repositories","visibility":"public","share_with_group_lock":false,"require_two_factor_authentication":false,"two_factor_grace_period":48,"project_creation_level":"maintainer","auto_devops_enabled":null,"subgroup_creation_level":"owner","emails_disabled":false,"emails_enabled":true,"show_diff_preview_in_email":true,"mentions_disabled":null,"lfs_enabled":true,"archived":false,"math_rendering_limits_enabled":true,"lock_math_rendering_limits_enabled":false,"default_branch":null,"default_branch_protection":2,"default_branch_protection_defaults":{"allowed_to_push":[{"access_level":40}],"allow_force_push":false,"allowed_to_merge":[{"access_level":40}]},"avatar_url":"https://gitlab.com/uploads/-/system/group/avatar/3181312/gitea.png","request_access_enabled":true,"full_name":"gitea","full_path":"gitea","created_at":"2018-07-04T16:32:10.176Z","parent_id":null,"organization_id":1,"shared_runners_setting":"enabled","max_artifacts_size":null,"marked_for_deletion_on":null,"ldap_cn":null,"ldap_access":null,"wiki_access_level":"enabled"}}],"user_has_approved":false,"user_can_approve":false,"approval_rules_left":[],"has_approval_rules":true,"merge_request_approvers_available":false,"multiple_approval_rules_available":false,"invalid_approvers_rules":[]}

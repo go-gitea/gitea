@@ -1,10 +1,13 @@
 import {GET, POST} from '../modules/fetch.ts';
-import {showGlobalErrorMessage} from '../bootstrap.ts';
+import {showGlobalErrorMessage} from '../modules/errors.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {initTabSwitcher} from '../modules/fomantic/tab.ts';
 import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
+import {initRepoSwitcher} from './repo-switcher.ts';
+import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
 
 const {appUrl, appSubUrl} = window.config;
 
@@ -36,7 +39,7 @@ function initFooterThemeSelector() {
   const $dropdown = fomanticQuery(elDropdown);
   $dropdown.dropdown({
     direction: 'upward',
-    apiSettings: {url: `${appSubUrl}/-/web-theme/list`, cache: false},
+    apiSettings: {url: `${appSubUrl}/-/web-theme/list`},
   });
   addDelegatedEventListener(elDropdown, 'click', '.menu > .item', async (el) => {
     const themeName = el.getAttribute('data-value')!;
@@ -68,19 +71,16 @@ export function initGlobalDropdown() {
         action: 'hide',
         onShow() {
           // hide associated tooltip while dropdown is open
-          this._tippy?.hide();
-          this._tippy?.disable();
+          el._tippy?.hide();
+          el._tippy?.disable();
         },
         onHide() {
-          this._tippy?.enable();
-          // eslint-disable-next-line unicorn/no-this-assignment
-          const elDropdown = this;
+          el._tippy?.enable();
 
-          // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
+          // hide all tippy elements of items after a while, in case some items have tooltip popup.
           setTimeout(() => {
-            const $dropdown = fomanticQuery(elDropdown);
             if ($dropdown.dropdown('is hidden')) {
-              queryElems(elDropdown, '.menu > .item', (el) => el._tippy?.hide());
+              queryElems(el, '.menu > .item', (item) => item._tippy?.hide());
             }
           }, 2000);
         },
@@ -100,9 +100,11 @@ export function initGlobalDropdown() {
 }
 
 export function initGlobalComponent() {
-  fomanticQuery('.ui.menu.tabular:not(.custom) .item').tab();
+  registerGlobalInitFunc('initTabSwitcher', initTabSwitcher);
   registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
+  registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);
+  registerGlobalInitFunc('initScopedWorkflowRequired', initScopedWorkflowRequired);
 }
 
 // for performance considerations, it only uses performant syntax
@@ -116,12 +118,30 @@ function attachInputDirAuto(el: Partial<HTMLInputElement | HTMLTextAreaElement>)
   }
 }
 
+function autoFocusEnd(el: HTMLInputElement | HTMLTextAreaElement) {
+  el.focus();
+  el.setSelectionRange(el.value.length, el.value.length);
+}
+
+export function applyAutoFocus(container: Element) {
+  // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/autofocus
+  // "autofocus" behavior is defined by the standard: when a container (e.g.: dialog) becomes visible, focus the element with "autofocus" attribute
+  // Fomantic UI already supports it for its modal dialog, we need to cover more cases (e.g.: ".show-panel" button)
+  // Here is just a simple support, we don't expect more than one element that need "autofocus" appearing in the same container
+  container.querySelector<HTMLElement>('[autofocus]')?.focus();
+  // Also, apply our autoFocusEnd behavior
+  // TODO: GLOBAL-INIT-MULTIPLE-FUNCTIONS: use "~=" operator in case we would extend the "data-global-init" to support more functions in the future.
+  const el = container.querySelector<HTMLInputElement>('[data-global-init~="autoFocusEnd"]');
+  if (el) autoFocusEnd(el);
+}
+
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
-  registerGlobalInitFunc('initInputAutoFocusEnd', (el: HTMLInputElement) => {
-    el.focus(); // expects only one such element on one page. If there are many, then the last one gets the focus.
-    el.setSelectionRange(el.value.length, el.value.length);
-  });
+
+  // autoFocusEnd is used for autofocus an input/textarea and move the cursor to the end of the text.
+  // It is useful for "New Issue"/"New PR" pages when the title is pre-filled with prefix text (e.g.: from template or commit message)
+  // The native "autofocus" isn't used because there is a delay between "focused (DOM rendering)" and "move cursor to end (our JS)", it causes flickers.
+  registerGlobalInitFunc('autoFocusEnd', autoFocusEnd);
 }
 
 /**
@@ -138,8 +158,8 @@ export function checkAppUrl() {
   if (curUrl.startsWith(appUrl) || `${curUrl}/` === appUrl) {
     return;
   }
-  showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
+  showGlobalErrorMessage(`The detected web site URL is "${appUrl}", it's unlikely matching the site config.
+Mismatched app.ini ROOT_URL or reverse proxy "Host/X-Forwarded-Proto" config might cause wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
 }
 
 export function checkAppUrlScheme() {

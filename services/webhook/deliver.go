@@ -16,30 +16,24 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
-	user_model "code.gitea.io/gitea/models/user"
-	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/hostmatcher"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	user_model "gitea.dev/models/user"
+	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/egress"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/queue"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (req *http.Request, body []byte, err error) {
 	switch w.HTTPMethod {
-	case "":
-		log.Info("HTTP Method for %s webhook %s [ID: %d] is not set, defaulting to POST", w.Type, w.URL, w.ID)
-		fallthrough
-	case http.MethodPost:
+	case "", http.MethodPost:
 		switch w.ContentType {
 		case webhook_model.ContentTypeJSON:
 			req, err = http.NewRequest(http.MethodPost, w.URL, strings.NewReader(t.PayloadContent))
@@ -274,58 +268,15 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	return nil
 }
 
-var (
-	webhookHTTPClient *http.Client
-	once              sync.Once
-	hostMatchers      []glob.Glob
-)
-
-func webhookProxy(allowList *hostmatcher.HostMatchList) func(req *http.Request) (*url.URL, error) {
-	if setting.Webhook.ProxyURL == "" {
-		return proxy.Proxy()
-	}
-
-	once.Do(func() {
-		for _, h := range setting.Webhook.ProxyHosts {
-			if g, err := glob.Compile(h); err == nil {
-				hostMatchers = append(hostMatchers, g)
-			} else {
-				log.Error("glob.Compile %s failed: %v", h, err)
-			}
-		}
-	})
-
-	return func(req *http.Request) (*url.URL, error) {
-		for _, v := range hostMatchers {
-			if v.Match(req.URL.Host) {
-				if !allowList.MatchHostName(req.URL.Host) {
-					return nil, fmt.Errorf("webhook can only call allowed HTTP servers (check your %s setting), deny '%s'", allowList.SettingKeyHint, req.URL.Host)
-				}
-				return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
-			}
-		}
-		return http.ProxyFromEnvironment(req)
-	}
-}
+var webhookHTTPClient *http.Client
 
 // Init starts the hooks delivery thread
 func Init() error {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 
-	allowedHostListValue := setting.Webhook.AllowedHostList
-	if allowedHostListValue == "" {
-		allowedHostListValue = hostmatcher.MatchBuiltinExternal
-	}
-	allowedHostMatcher := hostmatcher.ParseHostMatchList("webhook.ALLOWED_HOST_LIST", allowedHostListValue)
-
-	webhookHTTPClient = &http.Client{
-		Timeout: timeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
-			Proxy:           webhookProxy(allowedHostMatcher),
-			DialContext:     hostmatcher.NewDialContext("webhook", allowedHostMatcher, nil, setting.Webhook.ProxyURLFixed),
-		},
-	}
+	transport := egress.NewWebhookPolicy().NewHTTPTransport()
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify}
+	webhookHTTPClient = &http.Client{Timeout: timeout, Transport: transport}
 
 	hookQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "webhook_sender", handler)
 	if hookQueue == nil {

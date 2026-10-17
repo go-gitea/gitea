@@ -5,29 +5,23 @@
 package highlight
 
 import (
-	"bufio"
 	"bytes"
-	"fmt"
 	gohtml "html"
 	"html/template"
-	"io"
-	"path"
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/formatters/html"
-	"github.com/alecthomas/chroma/v2/lexers"
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/styles"
-	"github.com/go-enry/go-enry/v2"
 )
 
-// don't index files larger than this many bytes for performance purposes
+// don't highlight files larger than this many bytes for performance purposes
 const sizeLimit = 1024 * 1024
 
 type globalVarsType struct {
@@ -84,170 +78,136 @@ func UnsafeSplitHighlightedLines(code template.HTML) (ret [][]byte) {
 	}
 }
 
-func getChromaLexerByLanguage(fileName, lang string) chroma.Lexer {
-	lang, _, _ = strings.Cut(lang, "?") // maybe, the value from gitattributes might contain `?` parameters?
-	ext := path.Ext(fileName)
-	// the "lang" might come from enry, it has different naming for some languages
-	switch lang {
-	case "F#":
-		lang = "FSharp"
-	case "Pascal":
-		lang = "ObjectPascal"
-	case "C":
-		if ext == ".C" || ext == ".H" {
-			lang = "C++"
-		}
-	}
-	// lexers.Get is slow if the language name can't be matched directly: it does extra "Match" call to iterate all lexers
-	return lexers.Get(lang)
+func htmlEscape(code string) template.HTML {
+	return template.HTML(gohtml.EscapeString(code))
 }
 
-// GetChromaLexerWithFallback returns a chroma lexer by given file name, language and code content. All parameters can be optional.
-// When code content is provided, it will be slow if no lexer is found by file name or language.
-// If no lexer is found, it will return the fallback lexer.
-func GetChromaLexerWithFallback(fileName, lang string, code []byte) (lexer chroma.Lexer) {
-	if lang != "" {
-		lexer = getChromaLexerByLanguage(fileName, lang)
-	}
-
-	if lexer == nil {
-		fileExt := path.Ext(fileName)
-		if val, ok := globalVars().highlightMapping[fileExt]; ok {
-			lexer = getChromaLexerByLanguage(fileName, val) // use mapped value to find lexer
-		}
-	}
-
-	if lexer == nil {
-		// when using "code" to detect, analyze.GetCodeLanguage is slower, it iterates many rules to detect language from content
-		// this is the old logic: use enry to detect language, and use chroma to render, but their naming is different for some languages
-		enryLanguage := analyze.GetCodeLanguage(fileName, code)
-		lexer = getChromaLexerByLanguage(fileName, enryLanguage)
-		if lexer == nil {
-			if enryLanguage != enry.OtherLanguage {
-				log.Warn("No chroma lexer found for enry detected language: %s (file: %s), need to fix the language mapping between enry and chroma.", enryLanguage, fileName)
-			}
-			lexer = lexers.Match(fileName) // lexers.Match will search by its basename and extname
-		}
-	}
-
-	return util.IfZero(lexer, lexers.Fallback)
-}
-
-func renderCode(fileName, language, code string, slowGuess bool) (output template.HTML, lexerName string) {
+// RenderCodeSlowGuess tries to get a lexer by file name and language first,
+// if not found, it will try to guess the lexer by code content, which is slow (more than several hundreds of milliseconds).
+func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML, lexer chroma.Lexer, lexerDisplayName string) {
 	// diff view newline will be passed as empty, change to literal '\n' so it can be copied
 	// preserve literal newline in blame view
 	if code == "" || code == "\n" {
-		return "\n", ""
+		return "\n", nil, ""
 	}
 
 	if len(code) > sizeLimit {
-		return template.HTML(template.HTMLEscapeString(code)), ""
+		return htmlEscape(code), nil, ""
 	}
 
-	var codeForGuessLexer []byte
-	if slowGuess {
-		// it is slower to guess lexer by code content, so only do it when necessary
-		codeForGuessLexer = util.UnsafeStringToBytes(code)
-	}
-	lexer := GetChromaLexerWithFallback(fileName, language, codeForGuessLexer)
-	return RenderCodeByLexer(lexer, code), formatLexerName(lexer.Config().Name)
-}
-
-func RenderCodeFast(fileName, language, code string) (output template.HTML, lexerName string) {
-	return renderCode(fileName, language, code, false)
-}
-
-func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML, lexerName string) {
-	return renderCode(fileName, language, code, true)
+	lexer = detectChromaLexerWithAnalyze(fileName, language, util.UnsafeStringToBytes(code)) // it is also slow
+	return RenderCodeByLexer(lexer, code), lexer, formatLexerName(lexer.Config().Name)
 }
 
 // RenderCodeByLexer returns a HTML version of code string with chroma syntax highlighting classes
 func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
-	formatter := html.New(html.WithClasses(true),
-		html.WithLineNumbers(false),
-		html.PreventSurroundingPre(true),
+	formatter := chromahtml.New(chromahtml.WithClasses(true),
+		chromahtml.WithLineNumbers(false),
+		chromahtml.PreventSurroundingPre(true),
 	)
-
-	htmlbuf := bytes.Buffer{}
-	htmlw := bufio.NewWriter(&htmlbuf)
 
 	iterator, err := lexer.Tokenise(nil, code)
 	if err != nil {
 		log.Error("Can't tokenize code: %v", err)
-		return template.HTML(template.HTMLEscapeString(code))
-	}
-	// style not used for live site but need to pass something
-	err = formatter.Format(htmlw, globalVars().githubStyles, iterator)
-	if err != nil {
-		log.Error("Can't format code: %v", err)
-		return template.HTML(template.HTMLEscapeString(code))
+		return htmlEscape(code)
 	}
 
-	_ = htmlw.Flush()
-	// Chroma will add newlines for certain lexers in order to highlight them properly
-	// Once highlighted, strip them here, so they don't cause copy/paste trouble in HTML output
-	return template.HTML(strings.TrimSuffix(htmlbuf.String(), "\n"))
+	htmlBuf := &bytes.Buffer{}
+	// style not used for live site but need to pass something
+	err = formatter.Format(htmlBuf, globalVars().githubStyles, iterator)
+	if err != nil {
+		log.Error("Can't format code: %v", err)
+		return htmlEscape(code)
+	}
+	return template.HTML(util.UnsafeBytesToString(htmlBuf.Bytes()))
 }
 
 // RenderFullFile returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
-func RenderFullFile(fileName, language string, code []byte) ([]template.HTML, string, error) {
-	if len(code) > sizeLimit {
-		return RenderPlainText(code), "", nil
+func RenderFullFile(fileName, language string, code []byte) ([]template.HTML, string) {
+	if language == LanguagePlaintext || len(code) > sizeLimit {
+		return renderPlainText(code), formatLexerName(LanguagePlaintext)
 	}
-
-	formatter := html.New(html.WithClasses(true),
-		html.WithLineNumbers(false),
-		html.PreventSurroundingPre(true),
-	)
-
-	lexer := GetChromaLexerWithFallback(fileName, language, code)
+	lexer := detectChromaLexerWithAnalyze(fileName, language, code)
 	lexerName := formatLexerName(lexer.Config().Name)
-
-	iterator, err := lexer.Tokenise(nil, string(code))
-	if err != nil {
-		return nil, "", fmt.Errorf("can't tokenize code: %w", err)
+	rendered := RenderCodeByLexer(lexer, util.UnsafeBytesToString(code))
+	unsafeLines := UnsafeSplitHighlightedLines(rendered)
+	lines := make([]template.HTML, len(unsafeLines))
+	for idx, lineBytes := range unsafeLines {
+		lines[idx] = template.HTML(util.UnsafeBytesToString(lineBytes))
 	}
-
-	tokensLines := chroma.SplitTokensIntoLines(iterator.Tokens())
-	htmlBuf := &bytes.Buffer{}
-
-	lines := make([]template.HTML, 0, len(tokensLines))
-	for _, tokens := range tokensLines {
-		iterator = chroma.Literator(tokens...)
-		err = formatter.Format(htmlBuf, globalVars().githubStyles, iterator)
-		if err != nil {
-			return nil, "", fmt.Errorf("can't format code: %w", err)
-		}
-		lines = append(lines, template.HTML(htmlBuf.String()))
-		htmlBuf.Reset()
-	}
-
-	return lines, lexerName, nil
+	return lines, lexerName
 }
 
-// RenderPlainText returns non-highlighted HTML for code
-func RenderPlainText(code []byte) []template.HTML {
-	r := bufio.NewReader(bytes.NewReader(code))
-	m := make([]template.HTML, 0, bytes.Count(code, []byte{'\n'})+1)
-	for {
-		content, err := r.ReadString('\n')
-		if err != nil && err != io.EOF {
-			log.Error("failed to read string from buffer: %v", err)
-			break
+// renderPlainText returns non-highlighted HTML for code
+func renderPlainText(code []byte) []template.HTML {
+	lines := make([]template.HTML, 0, bytes.Count(code, []byte{'\n'})+1)
+	pos := 0
+	for pos < len(code) {
+		var content []byte
+		nextPos := bytes.IndexByte(code[pos:], '\n')
+		if nextPos == -1 {
+			content = code[pos:]
+			pos = len(code)
+		} else {
+			content = code[pos : pos+nextPos+1]
+			pos += nextPos + 1
 		}
-		if content == "" && err == io.EOF {
-			break
-		}
-		s := template.HTML(gohtml.EscapeString(content))
-		m = append(m, s)
+		lines = append(lines, htmlEscape(util.UnsafeBytesToString(content)))
 	}
-	return m
+	return lines
 }
 
 func formatLexerName(name string) string {
-	if name == "fallback" {
+	if name == LanguagePlaintext || name == chromaLexerFallback {
 		return "Plaintext"
 	}
-
 	return util.ToTitleCaseNoLower(name)
+}
+
+func languageForCssAttrName(lang string) (forCSS, forAttr string) {
+	s := strings.ToLower(lang)
+	if s == "" || s == LanguagePlaintext || s == chromaLexerFallback {
+		return "text", "text"
+	}
+	isValid := func(c byte) bool {
+		// although "-" is valid in CSS name, it is used as a field separator, so we don't want to keep it in the name
+		return 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_'
+	}
+	idx := 0
+	for ; idx < len(s); idx++ {
+		if !isValid(s[idx]) {
+			break
+		}
+	}
+	if idx == len(s) {
+		return s, lang
+	}
+	out := []byte(s)
+	for i := idx; i < len(s); i++ {
+		if !isValid(out[i]) {
+			out[i] = '_'
+		}
+	}
+	return string(out), lang
+}
+
+func CodeBlockAttributes(lang string) (preAttrs, codeAttrs template.HTML) {
+	// Code block's "chroma" class is used to highlight the code.
+	// "language-{LanguageName}" class is used as part of commonmark spec.
+	// It's unclear about how to handle special chars for a language name like "Visual Basic.NET" or "C++" or "F#".
+	// The commonmark spec seems wrong: https://spec.commonmark.org/0.31.2/#info-string, it just outputs invalid CSS class names.
+
+	cssName, attrLang := languageForCssAttrName(lang)
+	renderByFrontend := lang == "mermaid" || lang == "math"
+	preExtraClasses := ""
+	if renderByFrontend {
+		preExtraClasses = " is-loading"
+	}
+
+	// The "math.ts" strictly depends on the structure: <pre class="code-block"><code class="language-math">...</code></pre>
+	// * If "pre" exists, it is rendered as "block", otherwise, it is rendered as "inline"
+	// The "mermaid.ts" also strictly depends on the structure: "pre" must exist because it is always rendered as "block".
+	//
+	// Hint: "data-code-language" is not exposed in some cases due to the Markup sanitizer, the rules can be refactored in the future if the attribute is useful.
+	return htmlutil.HTMLFormat(`class="code-block%s"`, preExtraClasses), htmlutil.HTMLFormat(`class="chroma language-%s" data-code-language="%s"`, cssName, attrLang)
 }

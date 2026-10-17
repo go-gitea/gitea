@@ -1,57 +1,87 @@
-.ui.modal.g-modal-confirm {
-  max-width: min(800px, 90vw);
+/* to keep the changes minimal and easy to revert or fine tune, the legacy classes
+like "small" and "mini" are still kept for the HTML elements, these can be cleaned up in the future */
+.ui.modal {
+  position: absolute;
+  display: none;
+  z-index: var(--z-index-modal);
+  text-align: left;
+  background: var(--color-body);
+  border: none;
+  box-shadow: 1px 3px 3px 0 var(--color-shadow), 1px 3px 15px 2px var(--color-shadow);
+  transform-origin: 50% 25%;
+  border-radius: var(--border-radius);
+  user-select: text;
+  will-change: top, left, margin, transform, opacity;
+
   width: fit-content;
+  /* on small screens, the modal should not exceed 90% of the viewport width;
+    on large screens, the modal should not exceed 800px in width (ref: ".ui.container" width is 1280px) */
+  max-width: min(800px, 90vw);
+  /* on small screens, the modal should not be smaller than 300px or 90vw in width;
+    on large screens, the minimum width is 30% of the viewport width, capped at 800px */
+  min-width: min(800px, max(min(300px, 90vw), 30vw));
 }
 
-.ui.modal.g-modal-confirm > .inside.close.icon {
+.ui.modal > :first-child {
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+
+.ui.modal > :last-child {
+  border-bottom-left-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
+}
+
+.ui.modal .close-modal {
+  cursor: pointer;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 1rem;
+  z-index: 1;
+  opacity: 0.5;
   padding: 0;
-  width: 1em;
-  height: 1em;
-  top: 1.2em;
+  border: none;
+  background: none;
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
-.ui.modal > .close.inside {
-  color: inherit;
+.ui.modal .close-modal::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: currentcolor;
+  mask-image: var(--octicon-x);
+  mask-size: cover;
 }
 
-.ui.modal > .close.icon[height="16"] {
-  top: 0.7em; /* fomantic uses absolute layout, so if we have special icon size, it needs this trick to align vertically */
-  color: var(--color-text-dark);
+.ui.modal .close-modal:hover {
+  opacity: 1;
 }
 
 .ui.modal > .header {
-  /* can't use display:flex, because some headers have space-separated elements, eg: delete branch modal */
-  color: var(--color-text-dark);
+  display: block;
+  position: relative;
+  font-size: 18px;
+  font-weight: var(--font-weight-medium);
   background: var(--color-body);
-  border-color: var(--color-secondary);
+  margin: 0;
+  padding: 1.25rem 3rem 1.25rem 1.5rem; /* leave more right space for the "close" button */
+  box-shadow: none;
+  color: var(--color-text-dark);
+  border-bottom: 1px solid var(--color-secondary);
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
-  vertical-align: middle;
 }
-
-.ui.modal > .header .svg {
-  vertical-align: middle;
-  display: inline-block;
-}
-
-.ui.modal {
-  background: var(--color-body);
-  box-shadow: 1px 3px 3px 0 var(--color-shadow), 1px 3px 15px 2px var(--color-shadow);
-}
-
-/* Gitea sometimes use a form in a modal dialog, then the "positive" button could submit the form directly
-Fomantic UI only supports the layout: <div .modal><div .content/><div .actions/></div>
-However, Gitea uses the following layouts:
-* <div .modal><div .content><div .actions/></div></div>
-* <div .modal><form><div .content/><div .actions/></form></div>
-* <div .modal><div .content><form><div .actions/></form></div></div>
-* <div .modal><div .content></div><form><div .actions/></form></div>
-* ...
-These inconsistent layouts should be refactored to simple ones.
-*/
 
 .ui.modal > .content,
 .ui.modal form > .content {
+  display: block;
+  width: 100%;
+  font-size: 1em;
+  line-height: 1.4;
   padding: 1.5em;
   background: var(--color-body);
   border-radius: 0 0 var(--border-radius) var(--border-radius);
@@ -61,23 +91,28 @@ These inconsistent layouts should be refactored to simple ones.
 .ui.modal .content + .actions,
 .ui.modal .content + form > .actions {
   background: var(--color-secondary-bg);
-  border-color: var(--color-secondary);
   padding: 1rem;
+  border-top: 1px solid var(--color-secondary);
   text-align: right;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
+.ui.active.modal {
+  display: block;
+}
+
 .ui.modal .content > form > .actions,
 .ui.modal .content > .actions {
-  padding-top: 1em; /* if the "actions" is in the "content", some paddings are already added by the "content" */
+  padding-top: 1em;
   text-align: right;
 }
 
-/* positive/negative action buttons */
 .ui.modal .actions > .ui.button {
   display: inline-flex;
+  gap: var(--gap-inline);
   align-items: center;
-  padding: 10px 12px 10px 10px;
+  padding-inline: 10px 12px;
+  margin-left: 0.75em;
   margin-right: 0;
 }
 
@@ -86,8 +121,4 @@ These inconsistent layouts should be refactored to simple ones.
   width: 100%;
   margin: 0 auto;
   text-align: center;
-}
-
-.ui.modal .actions > .ui.button .svg {
-  margin-right: 5px;
 }

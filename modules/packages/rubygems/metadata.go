@@ -8,12 +8,12 @@ import (
 	"compress/gzip"
 	"io"
 	"regexp"
-	"strings"
+	"sync"
 
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 var (
@@ -25,7 +25,15 @@ var (
 	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
-var versionMatcher = regexp.MustCompile(`\A[0-9]+(?:\.[0-9a-zA-Z]+)*(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z`)
+var globalVars = sync.OnceValue(func() (ret struct {
+	nameMatcher, versionMatcher *regexp.Regexp
+},
+) {
+	// https://github.com/rubygems/rubygems/blob/master/lib/rubygems/specification.rb (VALID_NAME_PATTERN)
+	ret.nameMatcher = regexp.MustCompile(`\A[\w.-]+\z`)
+	ret.versionMatcher = regexp.MustCompile(`\A[0-9]+(?:\.[0-9a-zA-Z]+)*(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z`)
+	return ret
+})
 
 // Package represents a RubyGems package
 type Package struct {
@@ -128,7 +136,7 @@ func (r requirement) AsVersionRequirement() []VersionRequirement {
 			continue
 		}
 		version, ok := versionInt.(string)
-		if !ok || version == "0" {
+		if !ok || (version == "0" && restriction == ">=") {
 			continue
 		}
 
@@ -172,11 +180,11 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 		return nil, err
 	}
 
-	if len(spec.Name) == 0 || strings.Contains(spec.Name, "/") {
+	if !globalVars().nameMatcher.MatchString(spec.Name) {
 		return nil, ErrInvalidName
 	}
 
-	if !versionMatcher.MatchString(spec.Version.Version) {
+	if !globalVars().versionMatcher.MatchString(spec.Version.Version) {
 		return nil, ErrInvalidVersion
 	}
 

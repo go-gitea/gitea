@@ -10,19 +10,21 @@ import (
 	"html"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/repository"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/references"
+	"gitea.dev/modules/repository"
 )
 
 const (
@@ -89,13 +91,31 @@ func issueAddTime(ctx context.Context, issue *issues_model.Issue, doer *user_mod
 	return err
 }
 
+// isSelfReference checks if a commit is the merge commit of the PR it references.
+// This prevents creating self-referencing timeline entries when a PR merge commit
+// contains a reference to its own PR number in the commit message.
+func isSelfReference(ctx context.Context, issue *issues_model.Issue, commitSHA string) bool {
+	if !issue.IsPull {
+		return false
+	}
+
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		if !issues_model.IsErrPullRequestNotExist(err) {
+			log.Error("LoadPullRequest: %v", err)
+		}
+		return false
+	}
+
+	return issue.PullRequest.MergedCommitID == commitSHA
+}
+
 // getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
 // if the provided ref references a non-existent issue.
 func getIssueFromRef(ctx context.Context, repo *repo_model.Repository, index int64) (*issues_model.Issue, error) {
 	issue, err := issues_model.GetIssueByIndex(ctx, repo.ID, index)
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			return nil, nil
+			return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 		}
 		return nil, err
 	}
@@ -105,9 +125,7 @@ func getIssueFromRef(ctx context.Context, repo *repo_model.Repository, index int
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
 func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commits []*repository.PushCommit, branchName string) error {
 	// Commits are appended in the reverse order.
-	for i := len(commits) - 1; i >= 0; i-- {
-		c := commits[i]
-
+	for _, c := range slices.Backward(commits) {
 		type markKey struct {
 			ID     int64
 			Action references.XRefAction
@@ -139,7 +157,7 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 				continue
 			}
 
-			perm, err := access_model.GetUserRepoPermission(ctx, refRepo, doer)
+			perm, err := access_model.GetDoerRepoPermission(ctx, refRepo, doer)
 			if err != nil {
 				return err
 			}
@@ -158,6 +176,11 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 				continue
 			}
 
+			// Skip self-references: if this commit is the merge commit of the PR it references
+			if isSelfReference(ctx, refIssue, c.Sha1) {
+				continue
+			}
+
 			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, html.EscapeString(repo.Link()), html.EscapeString(url.PathEscape(c.Sha1)), html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
 			if err = CreateRefComment(ctx, doer, refRepo, refIssue, message, c.Sha1); err != nil {
 				if errors.Is(err, user_model.ErrBlockedUser) {
@@ -166,13 +189,18 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 				return err
 			}
 
-			// Only issues can be closed/reopened this way, and user needs the correct permissions
-			if refIssue.IsPull || !canclose {
+			// Only issues can be reopened this way, and user needs the correct permissions
+			if !canclose || (refIssue.IsPull && ref.Action == references.XRefActionReopens) {
 				continue
 			}
 
 			// Only process closing/reopening keywords
 			if ref.Action != references.XRefActionCloses && ref.Action != references.XRefActionReopens {
+				continue
+			}
+
+			// With an external tracker, pull requests are referenced as "!N"
+			if !ref.IsPull && refIssue.IsPull && refRepo.UnitEnabled(ctx, unit.TypeExternalTracker) {
 				continue
 			}
 

@@ -1,4 +1,4 @@
-{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings profile")}}
+{{template "user/settings/layout_head" (dict "pageClass" "user settings profile")}}
 	<div class="user-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "settings.public_profile"}}
@@ -8,19 +8,19 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				<div class="required field {{if .Err_Name}}error{{end}}">
 					<label for="username">{{ctx.Locale.Tr "username"}}
-						<span class="text red tw-hidden" id="name-change-prompt"> {{ctx.Locale.Tr "settings.change_username_prompt"}}</span>
-						<span class="text red tw-hidden" id="name-change-redirect-prompt"> {{ctx.Locale.Tr "settings.change_username_redirect_prompt"}}</span>
+						<span class="tw-text-red tw-hidden" id="name-change-prompt"> {{ctx.Locale.Tr "settings.change_username_prompt"}}</span>
+						<span class="tw-text-red tw-hidden" id="name-change-redirect-prompt"> {{ctx.Locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
 					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" required {{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}disabled{{end}} maxlength="40">
 					{{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}
-					<p class="help text blue">{{ctx.Locale.Tr "settings.password_username_disabled"}}</p>
+					<p class="help tw-text-blue">{{ctx.Locale.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" {{if ($.UserDisabledFeatures.Contains "change_full_name")}}disabled{{end}} maxlength="100">
 					{{if ($.UserDisabledFeatures.Contains "change_full_name")}}
-					<p class="help text blue">{{ctx.Locale.Tr "settings.password_full_name_disabled"}}</p>
+					<p class="help tw-text-blue">{{ctx.Locale.Tr "settings.password_full_name_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_Email}}error{{end}}">
@@ -51,9 +51,7 @@
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
 					<span class="inline required field"><label>{{ctx.Locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
-						{{if .SignedUser.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
-						{{if .SignedUser.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
-						{{if .SignedUser.Visibility.IsPrivate}}<input type="hidden" id="visibility" name="visibility" value="2">{{end}}
+						<input type="hidden" id="visibility" name="visibility" value="{{if .SignedUser.Visibility.IsPublic}}0{{else if .SignedUser.Visibility.IsLimited}}1{{else}}2{{end}}">
 						<div class="text">
 							{{if .SignedUser.Visibility.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
 							{{if .SignedUser.Visibility.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}
@@ -91,7 +89,7 @@
 				<div class="divider"></div>
 
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_profile"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.update_profile"}}</button>
 				</div>
 			</form>
 		</div>
@@ -126,8 +124,8 @@
 				</div>
 
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
-					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
+					<button type="button" class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
 		</div>

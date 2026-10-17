@@ -12,23 +12,23 @@ import (
 	"strings"
 	"time"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/updatechecker"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/cron"
-	"code.gitea.io/gitea/services/forms"
-	release_service "code.gitea.io/gitea/services/release"
-	repo_service "code.gitea.io/gitea/services/repository"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/updatechecker"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/cron"
+	"gitea.dev/services/forms"
+	release_service "gitea.dev/services/release"
+	repo_service "gitea.dev/services/repository"
 )
 
 const (
@@ -91,31 +91,31 @@ func updateSystemStatus() {
 	runtime.ReadMemStats(m)
 	sysStatus.NumGoroutine = runtime.NumGoroutine()
 
-	sysStatus.MemAllocated = base.FileSize(int64(m.Alloc))
-	sysStatus.MemTotal = base.FileSize(int64(m.TotalAlloc))
-	sysStatus.MemSys = base.FileSize(int64(m.Sys))
+	sysStatus.MemAllocated = util.FormatByteSize(int64(m.Alloc))
+	sysStatus.MemTotal = util.FormatByteSize(int64(m.TotalAlloc))
+	sysStatus.MemSys = util.FormatByteSize(int64(m.Sys))
 	sysStatus.Lookups = m.Lookups
 	sysStatus.MemMallocs = m.Mallocs
 	sysStatus.MemFrees = m.Frees
 
-	sysStatus.HeapAlloc = base.FileSize(int64(m.HeapAlloc))
-	sysStatus.HeapSys = base.FileSize(int64(m.HeapSys))
-	sysStatus.HeapIdle = base.FileSize(int64(m.HeapIdle))
-	sysStatus.HeapInuse = base.FileSize(int64(m.HeapInuse))
-	sysStatus.HeapReleased = base.FileSize(int64(m.HeapReleased))
+	sysStatus.HeapAlloc = util.FormatByteSize(int64(m.HeapAlloc))
+	sysStatus.HeapSys = util.FormatByteSize(int64(m.HeapSys))
+	sysStatus.HeapIdle = util.FormatByteSize(int64(m.HeapIdle))
+	sysStatus.HeapInuse = util.FormatByteSize(int64(m.HeapInuse))
+	sysStatus.HeapReleased = util.FormatByteSize(int64(m.HeapReleased))
 	sysStatus.HeapObjects = m.HeapObjects
 
-	sysStatus.StackInuse = base.FileSize(int64(m.StackInuse))
-	sysStatus.StackSys = base.FileSize(int64(m.StackSys))
-	sysStatus.MSpanInuse = base.FileSize(int64(m.MSpanInuse))
-	sysStatus.MSpanSys = base.FileSize(int64(m.MSpanSys))
-	sysStatus.MCacheInuse = base.FileSize(int64(m.MCacheInuse))
-	sysStatus.MCacheSys = base.FileSize(int64(m.MCacheSys))
-	sysStatus.BuckHashSys = base.FileSize(int64(m.BuckHashSys))
-	sysStatus.GCSys = base.FileSize(int64(m.GCSys))
-	sysStatus.OtherSys = base.FileSize(int64(m.OtherSys))
+	sysStatus.StackInuse = util.FormatByteSize(int64(m.StackInuse))
+	sysStatus.StackSys = util.FormatByteSize(int64(m.StackSys))
+	sysStatus.MSpanInuse = util.FormatByteSize(int64(m.MSpanInuse))
+	sysStatus.MSpanSys = util.FormatByteSize(int64(m.MSpanSys))
+	sysStatus.MCacheInuse = util.FormatByteSize(int64(m.MCacheInuse))
+	sysStatus.MCacheSys = util.FormatByteSize(int64(m.MCacheSys))
+	sysStatus.BuckHashSys = util.FormatByteSize(int64(m.BuckHashSys))
+	sysStatus.GCSys = util.FormatByteSize(int64(m.GCSys))
+	sysStatus.OtherSys = util.FormatByteSize(int64(m.OtherSys))
 
-	sysStatus.NextGC = base.FileSize(int64(m.NextGC))
+	sysStatus.NextGC = util.FormatByteSize(int64(m.NextGC))
 	sysStatus.LastGCTime = time.Unix(0, int64(m.LastGC)).Format(time.RFC3339)
 	sysStatus.PauseTotalNs = fmt.Sprintf("%.1fs", float64(m.PauseTotalNs)/1000/1000/1000)
 	sysStatus.PauseNs = fmt.Sprintf("%.3fs", float64(m.PauseNs[(m.NumGC+255)%256])/1000/1000/1000)
@@ -153,7 +153,7 @@ func SystemStatus(ctx *context.Context) {
 
 // DashboardPost run an admin operation
 func DashboardPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AdminDashboardForm)
+	form := web.GetForm[*forms.AdminDashboardForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdminDashboard"] = true
 	updateSystemStatus()

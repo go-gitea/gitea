@@ -4,10 +4,12 @@
 package markup
 
 import (
+	"fmt"
+	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/references"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/net/html"
 )
@@ -25,15 +27,13 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		loc.Start += start
 		loc.End += start
 		mention := node.Data[loc.Start:loc.End]
-		teams, ok := ctx.RenderOptions.Metas["teams"]
-		// FIXME: util.URLJoin may not be necessary here:
-		// - setting.AppURL is defined to have a terminal '/' so unless mention[1:]
-		// is an AppSubURL link we can probably fallback to concatenation.
-		// team mention should follow @orgName/teamName style
-		if ok && strings.Contains(mention, "/") {
-			mentionOrgAndTeam := strings.Split(mention, "/")
-			if mentionOrgAndTeam[0][1:] == ctx.RenderOptions.Metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
-				link := "/:root/" + util.URLJoin("org", ctx.RenderOptions.Metas["org"], "teams", mentionOrgAndTeam[1])
+		orgLowerTeams, checkOrgTeams := ctx.RenderOptions.Metas["teams"] // in format ",team1,team2,...,team-n,", always lowercase
+
+		if checkOrgTeams && strings.Contains(mention, "/") {
+			mentionOrg, teamName, _ := strings.Cut(mention, "/")
+			orgName := mentionOrg[1:] // remove the '@' prefix
+			if strings.EqualFold(orgName, ctx.RenderOptions.Metas["org"]) && strings.Contains(orgLowerTeams, ","+strings.ToLower(teamName)+",") {
+				link := fmt.Sprintf("/:root/org/%s/teams/%s", url.PathEscape(orgName), url.PathEscape(teamName))
 				replaceContent(node, loc.Start, loc.End, createLink(ctx, link, mention, "" /*mention*/))
 				node = node.NextSibling.NextSibling
 				start = 0
@@ -45,7 +45,7 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		mentionedUsername := mention[1:]
 
 		if DefaultRenderHelperFuncs != nil && DefaultRenderHelperFuncs.IsUsernameMentionable(ctx, mentionedUsername) {
-			link := "/:root/" + mentionedUsername
+			link := "/:root/" + url.PathEscape(mentionedUsername)
 			replaceContent(node, loc.Start, loc.End, createLink(ctx, link, mention, "" /*mention*/))
 			node = node.NextSibling.NextSibling
 			start = 0

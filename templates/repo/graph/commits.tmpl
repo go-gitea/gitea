@@ -41,17 +41,7 @@
 					</span>
 
 					<span class="flex-text-inline tw-text-12">
-						{{$userName := $commit.Commit.Author.Name}}
-						{{if $commit.User}}
-							{{if and $commit.User.FullName DefaultShowFullName}}
-								{{$userName = $commit.User.FullName}}
-							{{end}}
-							{{ctx.AvatarUtils.Avatar $commit.User 18}}
-							<a class="muted" href="{{$commit.User.HomeLink}}">{{$userName}}</a>
-						{{else}}
-							{{ctx.AvatarUtils.AvatarByEmail $commit.Commit.Author.Email $userName 18}}
-							{{$userName}}
-						{{end}}
+						{{ctx.RenderUtils.AvatarStackWithNames $commit.AvatarStackData}}
 					</span>
 
 					<span class="time flex-text-inline">{{DateUtils.FullTime $commit.Date}}</span>

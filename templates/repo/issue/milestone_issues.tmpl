@@ -36,7 +36,7 @@
 					{{else}}
 
 						{{if .Milestone.DeadlineString}}
-							<span{{if .IsOverdue}} class="text red"{{end}}>
+							<span{{if .IsOverdue}} class="tw-text-red"{{end}}>
 								{{svg "octicon-calendar"}}
 								{{DateUtils.AbsoluteShort (.Milestone.DeadlineString|DateUtils.ParseLegacy)}}
 							</span>
@@ -59,7 +59,7 @@
 
 		{{template "repo/issue/filters" .}}
 
-		{{template "shared/issuelist" dict "." . "listType" "milestone"}}
+		{{template "shared/issuelist" dict "listType" "milestone"}}
 	</div>
 </div>
 {{template "base/footer" .}}

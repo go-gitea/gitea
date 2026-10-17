@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/tailmsg"
+	"gitea.dev/modules/tailmsg"
 )
 
 type traceBuiltinStarter struct{}
@@ -63,7 +63,7 @@ func (t *traceBuiltinSpan) toString(out *strings.Builder, indent int) {
 	}
 	out.WriteString("\n")
 	for _, c := range t.ts.children {
-		span := c.internalSpans[t.internalSpanIdx].(*traceBuiltinSpan)
+		span := c.internalSpans[t.internalSpanIdx].(*traceBuiltinSpan) //nolint:forcetypeassert // this tracer only stores its own spans
 		span.toString(out, indent+2)
 	}
 }

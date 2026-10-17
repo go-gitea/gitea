@@ -3,18 +3,11 @@
 
 package forms
 
-import (
-	"net/http"
-
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/context"
-
-	"gitea.com/go-chi/binding"
-)
+import "gitea.dev/modules/web/middleware"
 
 // AuthenticationForm form for authentication
 type AuthenticationForm struct {
-	ID              int64
+	middleware.FormDefaultValidator
 	Type            int    `binding:"Range(2,7)"`
 	Name            string `binding:"Required;MaxSize(30)"`
 	TwoFactorPolicy string
@@ -88,17 +81,12 @@ type AuthenticationForm struct {
 	Oauth2GroupTeamMapRemoval     bool
 	Oauth2SSHPublicKeyClaimName   string
 	Oauth2FullNameClaimName       string
+	OpenIDConnectExternalIDClaim  string
 
 	// SSPI
 	SSPIAutoCreateUsers      bool
 	SSPIAutoActivateUsers    bool
 	SSPIStripDomainNames     bool
-	SSPISeparatorReplacement string `binding:"AlphaDashDot;MaxSize(5)"`
+	SSPISeparatorReplacement string `binding:"TrimSpace;AlphaDashDot;MaxSize(5)"`
 	SSPIDefaultLanguage      string
-}
-
-// Validate validates fields
-func (f *AuthenticationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

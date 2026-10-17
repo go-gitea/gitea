@@ -4,6 +4,7 @@
 package base
 
 import (
+	"strings"
 	"unicode/utf8"
 
 	"golang.org/x/text/collate"
@@ -41,6 +42,15 @@ func naturalSortAdvance(str string, pos int) (end int, isNumber bool) {
 	return end, isNumber
 }
 
+// naturalSortTrimZeros strips leading '0's, keeping one character so "000" collapses to "0"
+func naturalSortTrimZeros(num string) string {
+	i := 0
+	for i < len(num)-1 && num[i] == '0' {
+		i++
+	}
+	return num[i:]
+}
+
 // NaturalSortCompare compares two strings so that they could be sorted in natural order
 func NaturalSortCompare(s1, s2 string) int {
 	// There is a bug in Golang's collate package: https://github.com/golang/go/issues/67997
@@ -54,10 +64,14 @@ func NaturalSortCompare(s1, s2 string) int {
 		part1, part2 := s1[pos1:end1], s2[pos2:end2]
 		if isNum1 && isNum2 {
 			if part1 != part2 {
-				if len(part1) != len(part2) {
-					return len(part1) - len(part2)
+				num1, num2 := naturalSortTrimZeros(part1), naturalSortTrimZeros(part2)
+				if len(num1) != len(num2) {
+					return len(num1) - len(num2) // without leading zeros, more digits means larger value
 				}
-				return c.CompareString(part1, part2)
+				if cmp := strings.Compare(num1, num2); cmp != 0 {
+					return cmp // equal digit count, so byte order is numeric order
+				}
+				return len(part1) - len(part2) // equal value, fewer leading zeros sorts first
 			}
 		} else {
 			if cmp := c.CompareString(part1, part2); cmp != 0 {

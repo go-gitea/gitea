@@ -1,4 +1,4 @@
-/* eslint-disable no-restricted-globals */
+/* eslint-disable no-restricted-globals -- this is the wrapper the rule points to */
 // Some people deploy Gitea under a subpath, so it needs prefix to avoid local storage key conflicts.
 // And these keys are for user settings only, it also needs a specific prefix,
 // in case in the future there are other uses of local storage, and/or we need to clear some keys when the quota is exceeded.
@@ -58,8 +58,8 @@ export const localUserSettings = {
   getJsonObject: <T extends Record<string, any>>(key: string, def: T): T => {
     const value = getLocalStorageUserSetting(key);
     try {
-      const decoded = value !== null ? JSON.parse(value) : def;
-      return decoded ?? def;
+      const decoded = value !== null ? JSON.parse(value) : null;
+      return {...def, ...decoded};
     } catch (e) {
       console.error(`Unable to parse JSON value for local user settings ${key}=${value}`, e);
     }
