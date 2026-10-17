@@ -1,0 +1,32 @@
+name: release-create-tag
+run-name: Release v${{ inputs.version }} from ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, for example 28.0.1
+        required: true
+
+permissions: {}
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    environment: release-signing
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+      - uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
+        with:
+          gpg_private_key: ${{ secrets.GPGSIGN_KEY }}
+          passphrase: ${{ secrets.GPGSIGN_PASSPHRASE }}
+          git_user_signingkey: true
+          git_committer_email: teabot@gitea.io
+      - env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          git tag -s -m "v$VERSION" "v$VERSION"
+          git push origin tag "v$VERSION"

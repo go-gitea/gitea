@@ -12,7 +12,7 @@
 		</div>
 		<div class="flex-text-block">
 			{{if .Team.IsMember ctx $.SignedUser.ID}}
-				<button class="ui red mini compact button show-modal" data-modal="#org-member-leave-team"
+				<button type="button" class="ui red mini compact button show-modal" data-modal="#org-member-leave-team"
 					data-modal-form.url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/leave?uid={{$.SignedUser.ID}}"
 					data-modal-to-leave-team-name="{{$.Team.Name}}"
 				>{{ctx.Locale.Tr "org.teams.leave"}}</button>

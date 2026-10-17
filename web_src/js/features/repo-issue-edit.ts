@@ -1,4 +1,4 @@
-import {handleReply} from './repo-issue.ts';
+import {handleCommentReply} from './repo-issue.ts';
 import {getComboMarkdownEditor, initComboMarkdownEditor, ComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
@@ -6,13 +6,11 @@ import {hideElem, querySingleVisibleElem, showElem} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
-import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {applyAreYouSure} from '../modules/are-you-sure.ts';
+import {registerShortcutHandler} from '../modules/shortcut.ts';
+import {registerGlobalEventFunc} from '../modules/observer.ts';
 
-async function tryOnEditContent(e: Event) {
-  const clickTarget = (e.target as HTMLElement).closest('.edit-content');
-  if (!clickTarget) return;
-
-  e.preventDefault();
+async function onConvContentEdit(clickTarget: HTMLElement) {
   const commentContent = clickTarget.closest('.comment-header')!.nextElementSibling!;
   const editContentZone = commentContent.querySelector('.edit-content-zone')!;
   let renderContent = commentContent.querySelector('.render-content')!;
@@ -52,7 +50,7 @@ async function tryOnEditContent(e: Event) {
         return;
       }
 
-      reinitializeAreYouSure(editContentZone.querySelector('form')); // the form is no longer dirty
+      applyAreYouSure(editContentZone.querySelector('form')!); // the form is no longer dirty
       editContentZone.setAttribute('data-content-version', data.contentVersion);
 
       // replace the render content with new one, to trigger re-initialization of all features
@@ -120,11 +118,7 @@ function extractSelectedMarkdown(container: HTMLElement) {
   return convertHtmlToMarkdown(el);
 }
 
-async function tryOnQuoteReply(e: Event) {
-  const clickTarget = (e.target as HTMLElement).closest('.quote-reply');
-  if (!clickTarget) return;
-
-  e.preventDefault();
+async function onConvContentQuoteReply(clickTarget: HTMLElement) {
   const contentToQuoteId = clickTarget.getAttribute('data-target');
   const targetRawToQuote = document.querySelector<HTMLElement>(`#${contentToQuoteId}.raw-content`)!;
   const targetMarkupToQuote = targetRawToQuote.parentElement!.querySelector<HTMLElement>('.render-content.markup')!;
@@ -133,9 +127,9 @@ async function tryOnQuoteReply(e: Event) {
   const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n\n`;
 
   let editor;
-  if (clickTarget.classList.contains('quote-reply-diff')) {
-    const replyBtn = clickTarget.closest('.comment-code-cloud')!.querySelector<HTMLElement>('button.comment-form-reply')!;
-    editor = await handleReply(replyBtn);
+  const btnReply = clickTarget.closest('.comment-code-cloud')?.querySelector<HTMLElement>('button.comment-form-reply');
+  if (btnReply) {
+    editor = await handleCommentReply(btnReply);
   } else {
     // for normal issue/comment page
     editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'))!;
@@ -150,9 +144,27 @@ async function tryOnQuoteReply(e: Event) {
   editor.moveCursorToEnd();
 }
 
+export function tryQuoteSelectedReply(): boolean {
+  const selection = window.getSelection();
+  if (!selection?.rangeCount || selection.isCollapsed) return false;
+  const node = selection.getRangeAt(0).commonAncestorContainer;
+  const el = node instanceof HTMLElement ? node : node.parentElement;
+
+  const commentContainer = el?.closest<HTMLElement>('.render-content.markup')?.closest('.comment-container');
+  if (!commentContainer) return false;
+
+  const quoteReplyBtn = commentContainer.querySelector<HTMLElement>('[data-shortcut-handler="quoteSelectedReply"]')!;
+  if (!quoteReplyBtn) return false;
+
+  quoteReplyBtn.click();
+  return true;
+}
+
 export function initRepoIssueCommentEdit() {
-  document.addEventListener('click', (e) => {
-    tryOnEditContent(e); // Edit issue or comment content
-    tryOnQuoteReply(e); // Quote reply to the comment editor
-  });
+  registerGlobalEventFunc('click', 'onConvContentQuoteReply', onConvContentQuoteReply);
+  registerGlobalEventFunc('click', 'onConvContentEdit', onConvContentEdit);
+
+  // The shortcut "r" was chosen by https://github.com/go-gitea/gitea/issues/5796#issuecomment-5528657082
+  // The same to GitHub and GitLab: https://gitlab.com/gitlab-org/gitlab-foss/-/commit/ca5d0c82509cedb94f9bfa4a40e77706a58faafe
+  registerShortcutHandler('quoteSelectedReply', tryQuoteSelectedReply);
 }

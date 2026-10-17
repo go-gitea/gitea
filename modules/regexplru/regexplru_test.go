@@ -10,17 +10,16 @@ import (
 )
 
 func TestRegexpLru(t *testing.T) {
-	r, err := GetCompiled("a")
+	r, err := UserCache().GetCompiled("a")
 	assert.NoError(t, err)
 	assert.True(t, r.MatchString("a"))
 
-	r, err = GetCompiled("a")
+	r, err = UserCache().GetCompiled("a")
 	assert.NoError(t, err)
 	assert.True(t, r.MatchString("a"))
+	assert.Equal(t, 1, UserCache().lruCache.Len())
 
-	assert.Equal(t, 1, lruCache.Len())
-
-	_, err = GetCompiled("(")
+	_, err = UserCache().GetCompiled("(")
 	assert.Error(t, err)
-	assert.Equal(t, 2, lruCache.Len())
+	assert.Equal(t, 2, UserCache().lruCache.Len())
 }

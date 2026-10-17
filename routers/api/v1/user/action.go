@@ -15,6 +15,7 @@ import (
 	"gitea.dev/routers/api/v1/shared"
 	"gitea.dev/routers/api/v1/utils"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	secret_service "gitea.dev/services/secrets"
 )
@@ -50,11 +51,17 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"), opt.Data, opt.Description)
+	s, created, err := secret_service.CreateOrUpdateSecret(ctx, actions_model.BelongingScopeOwner(ctx.Doer.ID), ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
+
+	actions := audit.SecretUpdate
+	if created {
+		actions = audit.SecretAdd
+	}
+	audit.RecordScoped(ctx, ctx.Doer, nil, actions, "secret", s.Name)
 
 	if created {
 		ctx.Status(http.StatusCreated)
@@ -86,11 +93,13 @@ func DeleteSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := secret_service.DeleteSecretByName(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"))
+	s, err := secret_service.DeleteSecretByName(ctx, actions_model.BelongingScopeOwner(ctx.Doer.ID), ctx.PathParam("secretname"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
+
+	audit.RecordScoped(ctx, ctx.Doer, nil, audit.SecretRemove, "secret", s.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -128,8 +137,8 @@ func CreateVariable(ctx *context.APIContext) {
 	variableName := ctx.PathParam("variablename")
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ownerID,
-		Name:    variableName,
+		BelongingScope: actions_model.BelongingScopeOwner(ownerID),
+		Name:           variableName,
 	})
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		ctx.APIErrorInternal(err)
@@ -140,7 +149,7 @@ func CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := actions_service.CreateVariable(ctx, ownerID, 0, variableName, opt.Value, opt.Description); err != nil {
+	if _, err := actions_service.CreateVariable(ctx, actions_model.BelongingScopeOwner(ownerID), variableName, opt.Value, opt.Description); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
@@ -180,8 +189,8 @@ func UpdateVariable(ctx *context.APIContext) {
 	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ctx.Doer.ID,
-		Name:    ctx.PathParam("variablename"),
+		BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID),
+		Name:           ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -227,7 +236,7 @@ func DeleteVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := actions_service.DeleteVariableByName(ctx, ctx.Doer.ID, 0, ctx.PathParam("variablename")); err != nil {
+	if err := actions_service.DeleteVariableByName(ctx, actions_model.BelongingScopeOwner(ctx.Doer.ID), ctx.PathParam("variablename")); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
@@ -257,8 +266,8 @@ func GetVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ctx.Doer.ID,
-		Name:    ctx.PathParam("variablename"),
+		BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID),
+		Name:           ctx.PathParam("variablename"),
 	})
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -301,8 +310,8 @@ func ListVariables(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	listOptions := utils.GetListOptions(ctx)
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
-		OwnerID:     ctx.Doer.ID,
-		ListOptions: listOptions,
+		BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID),
+		ListOptions:    listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -343,7 +352,7 @@ func ListWorkflowRuns(ctx *context.APIContext) {
 	//   required: false
 	// - name: status
 	//   in: query
-	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   description: workflow status (requested, pending, queued, in_progress, failure, success, skipped)
 	//   type: string
 	//   required: false
 	// - name: actor
@@ -384,7 +393,7 @@ func ListWorkflowJobs(ctx *context.APIContext) {
 	// parameters:
 	// - name: status
 	//   in: query
-	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   description: workflow status (requested, pending, queued, in_progress, failure, success, skipped)
 	//   type: string
 	//   required: false
 	// - name: page

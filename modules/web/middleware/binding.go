@@ -14,8 +14,7 @@ import (
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
-
-	"gitea.com/go-chi/binding" //nolint:depguard // this package wraps it
+	"gitea.dev/modules/web/binding"
 )
 
 type (
@@ -88,11 +87,6 @@ func getRuleBody(field reflect.StructField, ruleName string) string {
 	return ""
 }
 
-func AddValidationError(errs validation.BindingErrors, fieldName, errorMsg string) validation.BindingErrors {
-	errs.Add([]string{fieldName}, validation.ErrCustomMessage, errorMsg)
-	return errs
-}
-
 func getFieldDisplayNameForMessage(f any, l translation.Locale, fieldNames []string) (field reflect.StructField, ok bool, displayName string) {
 	if len(fieldNames) == 0 {
 		return field, false, ""
@@ -130,7 +124,7 @@ func getFieldDisplayNameForMessage(f any, l translation.Locale, fieldNames []str
 }
 
 func BuildValidationErrorForUser(f any, l translation.Locale, bindingErrs validation.BindingErrors) (errorMessage, errorFieldName string, fieldNames []string) {
-	if bindingErrs.Len() == 0 {
+	if len(bindingErrs) == 0 {
 		return "", "", nil
 	}
 	bindingErr := bindingErrs[0]
@@ -142,30 +136,28 @@ func BuildValidationErrorForUser(f any, l translation.Locale, bindingErrs valida
 
 	errorFieldName = field.Name
 	switch classification {
-	case binding.ERR_REQUIRED:
+	case binding.ErrRequired:
 		errorMessage = l.TrString("form.require_error", fieldDisplayName)
-	case binding.ERR_ALPHA_DASH:
-		errorMessage = l.TrString("form.alpha_dash_error", fieldDisplayName)
-	case binding.ERR_ALPHA_DASH_DOT:
+	case binding.ErrAlphaDashDot:
 		errorMessage = l.TrString("form.alpha_dash_dot_error", fieldDisplayName)
-	case binding.ERR_MIN_SIZE:
+	case binding.ErrMinSize:
 		errorMessage = l.TrString("form.min_size_error", fieldDisplayName, getRuleBody(field, "MinSize"))
-	case binding.ERR_MAX_SIZE:
+	case binding.ErrMaxSize:
 		errorMessage = l.TrString("form.max_size_error", fieldDisplayName, getRuleBody(field, "MaxSize"))
-	case binding.ERR_RANGE:
+	case binding.ErrRange:
 		rangeMin, rangeMax, _ := strings.Cut(getRuleBody(field, "Range"), ",")
 		errorMessage = l.TrString("form.range_error", fieldDisplayName, rangeMin, rangeMax)
-	case binding.ERR_EMAIL:
+	case validation.ErrEmail:
 		errorMessage = l.TrString("form.email_error", fieldDisplayName)
-	case binding.ERR_URL:
+	case validation.ErrURL:
 		errorMessage = l.TrString("form.url_error", fieldDisplayName)
-	case binding.ERR_IN:
+	case binding.ErrIn:
 		ruleBody := getRuleBody(field, "In")
 		if strings.HasPrefix(ruleBody, ",") {
 			ruleBody = "(empty)" + ruleBody
 		}
 		errorMessage = l.TrString("form.in_error", fieldDisplayName, ruleBody)
-	case binding.ERR_INCLUDE:
+	case binding.ErrInclude:
 		errorMessage = l.TrString("form.include_error", fieldDisplayName, getRuleBody(field, "Include"))
 
 	case validation.ErrCustomMessage:

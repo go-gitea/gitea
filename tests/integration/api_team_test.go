@@ -109,6 +109,16 @@ func TestAPITeam(t *testing.T) {
 	checkTeamResponse(t, "EditTeam1_DescOnly", apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelName(teamToEdit.Permission), nil)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelName(teamToEdit.Permission), nil)
 
+	// Edit team to granular permissions, team's permission should be reset to none
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), api.EditTeamOption{
+		Permission: "read",
+		Units:      []string{"repo.code", "repo.issues"},
+	}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	checkTeamResponse(t, "EditTeam1_Granular", apiTeam, teamToEdit.Name, editDescription, editFalse, api.AccessLevelNameNone, expectedTeamUnitsMap)
+	checkTeamBean(t, teamID, teamToEdit.Name, editDescription, editFalse, api.AccessLevelNameNone, expectedTeamUnitsMap)
+
 	// Read team.
 	teamRead := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
 	assert.NoError(t, teamRead.LoadUnits(t.Context()))
@@ -138,6 +148,15 @@ func TestAPITeam(t *testing.T) {
 	checkTeamResponse(t, "CreateTeam2", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, teamToCreate.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, teamToCreate.UnitsMap)
 	teamID = apiTeam.ID
+
+	// Create a team with permission=write, then edit it to granular permissions later, team's permission should be reset to none
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), api.EditTeamOption{
+		Permission: "write",
+	}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	checkTeamResponse(t, "EditTeam2_Write", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameWrite, nil)
+	checkTeamBean(t, teamID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameWrite, nil)
 
 	// Edit team.
 	editDescription = "team 1"

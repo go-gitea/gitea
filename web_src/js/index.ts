@@ -36,8 +36,8 @@ import {initRepoEditor} from './features/repo-editor.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
 import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
+import {initCompLabelEdit} from './features/comp/LabelEdit.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
-import {initCommonOrganization} from './features/common-organization.ts';
 import {initRepoWiki} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCaptcha} from './features/captcha.ts';
@@ -58,7 +58,8 @@ import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './modules/fetch-action.ts';
 import {initCommmPageComponents, initGlobalComponent, initGlobalDropdown, initGlobalInput} from './features/common-page.ts';
 import {initGlobalButtonClickOnEnter, initGlobalButtons} from './features/common-button.ts';
-import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
+import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit} from './features/common-form.ts';
+import {initGlobalFormDirtyLeaveConfirm} from './modules/are-you-sure.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
@@ -85,11 +86,11 @@ const initPerformanceTracer = callInitFunctions([
   initGlobalInput,
   initGlobalShortcut,
 
-  initCommonOrganization,
   initCommonIssueListQuickGoto,
 
   initCompSearchUserBox,
   initCompWebHookEditor,
+  initCompLabelEdit,
 
   initInstall,
 
