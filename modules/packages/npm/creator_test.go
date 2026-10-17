@@ -23,7 +23,7 @@ func TestParsePackage(t *testing.T) {
 	packageScope := "@scope"
 	packageName := "test-package"
 	packageFullName := packageScope + "/" + packageName
-	packageVersion := "1.0.1-pre"
+	packageVersion := "1.0.1-Pre"
 	packageTag := "latest"
 	packageAuthor := "KN4CK3R"
 	packageBin := "gitea"
@@ -287,7 +287,8 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, packageFullName, p.Name)
 		assert.Equal(t, packageVersion, p.Version)
 		assert.Equal(t, []string{packageTag}, p.DistTags)
-		assert.Equal(t, fmt.Sprintf("%s-%s.tgz", strings.Split(packageFullName, "/")[1], packageVersion), p.Filename)
+		assert.Equal(t, strings.ToLower(fmt.Sprintf("%s-%s.tgz", packageName, packageVersion)), p.Filename)
+		assert.Equal(t, fmt.Sprintf("%s/-/%s-%s.tgz", packageFullName, packageName, packageVersion), p.Metadata.GiteaTarballPath)
 		b, _ = base64.StdEncoding.DecodeString(data)
 		assert.Equal(t, b, p.Data)
 		assert.Equal(t, packageName, p.Metadata.Name)

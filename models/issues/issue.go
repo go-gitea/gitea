@@ -81,7 +81,7 @@ type Issue struct {
 	PullRequest       *PullRequest     `xorm:"-"`
 	NumComments       int
 
-	// TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
+	// TODO: ISSUE-SIDEBAR-REF-SELECTOR: see "repo/issue/branch_selector_field.tmpl"
 	Ref string
 
 	PinOrder int `xorm:"-"` // 0 means not loaded, -1 means loaded but not pinned

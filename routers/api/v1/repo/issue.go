@@ -584,8 +584,8 @@ func CreateIssue(ctx *context.APIContext) {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
 		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+			if errors.Is(err, util.ErrNotExist) {
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: %s", err))
 			} else {
 				ctx.APIErrorInternal(err)
 			}
