@@ -537,7 +537,7 @@ func testAPIIssueAssignees(t *testing.T) {
 	t.Run("OrganizationAssignee", func(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueAssigneesOption{Assignees: []string{"org3"}}).
 			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusBadRequest)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 		checkReq := NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "org3")).AddTokenAuth(token)
 		MakeRequest(t, checkReq, http.StatusBadRequest)
