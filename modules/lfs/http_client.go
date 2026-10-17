@@ -34,7 +34,7 @@ func (c *HTTPClient) BatchSize() int {
 	return setting.LFSClient.BatchSize
 }
 
-func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient {
+func newHTTPClient(endpoint *url.URL, httpTransport http.RoundTripper) *HTTPClient {
 	if httpTransport == nil {
 		httpTransport = &http.Transport{
 			Proxy: proxy.Proxy(),

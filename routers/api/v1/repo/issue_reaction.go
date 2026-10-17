@@ -86,7 +86,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     convert.ToUser(ctx, r.User, ctx.Doer),
+			User:     convert.ToAuthor(ctx, r.User, r.OriginalAuthor, ctx.Doer),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
@@ -315,7 +315,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     convert.ToUser(ctx, r.User, ctx.Doer),
+			User:     convert.ToAuthor(ctx, r.User, r.OriginalAuthor, ctx.Doer),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
