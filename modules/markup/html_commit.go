@@ -4,8 +4,8 @@
 package markup
 
 import (
+	"cmp"
 	"fmt"
-	"regexp"
 	"slices"
 	"strings"
 
@@ -197,10 +197,15 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		return
 	}
 
-	start := 0
-	next := node.NextSibling
-	for node != nil && node != next && start < len(node.Data) {
-		m := globalVars().hashCurrentPattern.FindStringSubmatchIndex(node.Data[start:])
+	text := node.Data
+	if !globalVars().hashCurrentPattern.MatchString(text) {
+		return
+	}
+	linkOrEmailRanges := append(common.GlobalVars().LinkifyRegex.FindAllStringIndex(text, -1), globalVars().emailRegex.FindAllStringIndex(text, -1)...)
+	slices.SortFunc(linkOrEmailRanges, func(first, second []int) int { return cmp.Compare(first[0], second[0]) })
+	start, offset := 0, 0
+	for start < len(text) {
+		m := globalVars().hashCurrentPattern.FindStringSubmatchIndex(text[start:])
 		if m == nil {
 			return
 		}
@@ -210,22 +215,24 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 			}
 		}
 		end := max(m[3], m[5]) // not m[1], the consumed boundary char may lead the next match
-		link := createHashLink(ctx, node.Data, m)
-		if link == nil {
-			start = end
+		start = end
+		for len(linkOrEmailRanges) > 0 && linkOrEmailRanges[0][1] <= m[2] {
+			linkOrEmailRanges = linkOrEmailRanges[1:]
+		}
+		if len(linkOrEmailRanges) > 0 && linkOrEmailRanges[0][0] <= m[2] {
 			continue
 		}
-		replaceContent(node, m[2], end, link)
-		start = 0
+		link := createHashLink(ctx, text, m)
+		if link == nil {
+			continue
+		}
+		replaceContent(node, m[2]-offset, end-offset, link)
+		offset = end
 		node = node.NextSibling.NextSibling
 	}
 }
 
-// createHashLink returns nil if a matched ID doesn't resolve or the match sits inside a URL or email that a later processor links
 func createHashLink(ctx *RenderContext, text string, m []int) *html.Node {
-	if isInLinkOrEmail(text, m[2]) {
-		return nil
-	}
 	fullID := ctx.RenderHelper.ResolveCommitID(text[m[2]:m[3]])
 	if fullID == "" {
 		return nil
@@ -239,22 +246,6 @@ func createHashLink(ctx *RenderContext, text string, m []int) *html.Node {
 		return nil
 	}
 	return createCodeLink(repoLink+"compare/"+fullID+"..."+fullID2, base.ShortSha(fullID)+"..."+base.ShortSha(fullID2), "compare")
-}
-
-func isInLinkOrEmail(text string, pos int) bool {
-	wordStart := strings.LastIndexAny(text[:pos], " \t\n\f\r") + 1 // URLs and emails never span whitespace
-	word := text[wordStart:]
-	if wordEnd := strings.IndexAny(word, " \t\n\f\r"); wordEnd >= 0 {
-		word = word[:wordEnd]
-	}
-	for _, re := range []*regexp.Regexp{common.GlobalVars().LinkifyRegex, globalVars().emailRegex} {
-		for _, loc := range re.FindAllStringIndex(word, -1) {
-			if loc[0] <= pos-wordStart && pos-wordStart < loc[1] {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {

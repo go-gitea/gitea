@@ -270,6 +270,9 @@ func TestRender_PostProcessIssueTitle(t *testing.T) {
 	for _, title := range []template.HTML{"#1", "https://example.com/o/r/compare/65f1bf2...4a35743", "65f1bf2@example.com"} {
 		assert.Equal(t, title, PostProcessIssueTitle(NewTestRenderContext(metas), title))
 	}
+	assert.Equal(t,
+		template.HTML(`<a href="/someUser/someRepo/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" class="commit"><code>65f1bf2</code></a> https://example.com/o/r/compare/65f1bf2...4a35743 65f1bf2@example.com <a href="/someUser/someRepo/commit/4a357436d925b5c974181ff12a994538ddc5a269" class="commit"><code>4a35743</code></a>`),
+		PostProcessIssueTitle(NewTestRenderContext(metas), "65f1bf2 https://example.com/o/r/compare/65f1bf2...4a35743 65f1bf2@example.com 4a35743"))
 }
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
