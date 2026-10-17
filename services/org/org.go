@@ -42,10 +42,12 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 		&user_model.Blocking{BlockerID: org.ID},
 		&actions_model.ActionRunner{OwnerID: org.ID},
 		&actions_model.ActionRunnerToken{OwnerID: org.ID},
-		&actions_model.ActionRunnerGroup{OwnerID: org.ID},
 		&actions_model.ActionScopedWorkflowSource{OwnerID: org.ID},
 	); err != nil {
 		return fmt.Errorf("DeleteBeans: %w", err)
+	}
+	if err := actions_model.DeleteRunnerGroupsByOwner(ctx, org.ID); err != nil {
+		return err
 	}
 
 	if _, err := db.GetEngine(ctx).ID(org.ID).Delete(new(user_model.User)); err != nil {

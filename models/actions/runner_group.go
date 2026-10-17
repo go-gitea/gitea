@@ -195,6 +195,20 @@ func DeleteRunnerGroup(ctx context.Context, group *ActionRunnerGroup) error {
 	})
 }
 
+func DeleteRunnerGroupsByOwner(ctx context.Context, ownerID int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		groupIDs, err := db.FindIDs(ctx, "action_runner_group", "id", builder.Eq{"owner_id": ownerID})
+		if err != nil || len(groupIDs) == 0 {
+			return err
+		}
+		if err := db.DeleteByIDs[ActionRunnerGroup](ctx, groupIDs...); err != nil {
+			return err
+		}
+		_, err = db.GetEngine(ctx).In("group_id", groupIDs).Delete(new(ActionRunnerAccess))
+		return err
+	})
+}
+
 func FindRunnerGroupRepos(ctx context.Context, group *ActionRunnerGroup) (repo_model.RepositoryList, error) {
 	cond := builder.Eq{"action_runner_access.group_id": group.ID}
 	if group.OwnerID != 0 {
