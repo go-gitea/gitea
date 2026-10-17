@@ -607,10 +607,11 @@ func TestMarkdownCodeBlock(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
-	const prefix = `<div class="code-block-container code-overflow-scroll"><pre class="code-block">`
+	const prefix = `<div class="code-block-container code-overflow-scroll code-block-trimmed"><pre class="code-block">`
 	const suffix = `</pre></div>`
 
 	testRender("```\ncode\n```", prefix+`<code class="chroma language-text">code</code>`+suffix)
+	testRender("```\ncode\n\n```", prefix+"<code class=\"chroma language-text\">code\n</code>"+suffix)
 	testRender("```markdown\n# code\n```", prefix+`<code class="chroma language-markdown"><span class="gh"># code</span></code>`+suffix)
 
 	const jsCommon = prefix + `<code class="chroma language-js"><span class="nx">code</span></code>` + suffix
@@ -618,5 +619,6 @@ func TestMarkdownCodeBlock(t *testing.T) {
 	testRender("```js:app.ts\ncode\n```", jsCommon)
 	testRender("```js,ignore\ncode\n```", jsCommon)
 	testRender("```js ignore\ncode\n```", jsCommon)
+	testRender("```js\ncode\n\n```", prefix+"<code class=\"chroma language-js\"><span class=\"nx\">code</span>\n</code>"+suffix)
 	testRender("    <any&content>\n", prefix+`<code class="chroma language-text">&lt;any&amp;content&gt;</code>`+suffix)
 }

@@ -181,7 +181,7 @@ func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.No
 			lexer = lexers.Get(language)
 		}
 		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)
-		if err := r.renderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs); err != nil {
+		if err := r.renderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll code-block-trimmed"><pre %s><code %s>`, preAttrs, codeAttrs); err != nil {
 			return ast.WalkStop, err
 		}
 		code := n.Lines().Value(source)
