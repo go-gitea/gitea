@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitcmd"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetTemplateSubmoduleCommits(t *testing.T) {
-	testRepoPath := filepath.Join(testReposDir, "repo4_submodules")
+	testRepoPath := mockRepository("repo4_submodules")
 	submodules, err := GetTemplateSubmoduleCommits(t.Context(), testRepoPath)
 	require.NoError(t, err)
 
@@ -41,7 +41,7 @@ func TestAddTemplateSubmoduleIndexes(t *testing.T) {
 	require.NoError(t, err)
 	_, _, err = gitcmd.NewCommand("-c", "user.name=a", "-c", "user.email=b", "commit", "-m=test").WithDir(tmpDir).RunStdString(ctx)
 	require.NoError(t, err)
-	submodules, err := GetTemplateSubmoduleCommits(t.Context(), tmpDir)
+	submodules, err := GetTemplateSubmoduleCommits(t.Context(), mockRepository(tmpDir))
 	require.NoError(t, err)
 	assert.Len(t, submodules, 1)
 	assert.Equal(t, "new-dir", submodules[0].Path)

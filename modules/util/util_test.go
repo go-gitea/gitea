@@ -11,22 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsEmptyString(t *testing.T) {
-	cases := []struct {
-		s        string
-		expected bool
-	}{
-		{"", true},
-		{" ", true},
-		{"   ", true},
-		{"  a", false},
-	}
-
-	for _, v := range cases {
-		assert.Equal(t, v.expected, IsEmptyString(v.s))
-	}
-}
-
 func Test_NormalizeEOL(t *testing.T) {
 	data1 := []string{
 		"",
@@ -167,9 +151,9 @@ func TestToTitleCase(t *testing.T) {
 	assert.Equal(t, `Foo Bar Baz`, ToTitleCase(`FOO BAR BAZ`))
 }
 
-func TestReserveLineBreakForTextarea(t *testing.T) {
-	assert.Equal(t, "test\ndata", ReserveLineBreakForTextarea("test\r\ndata"))
-	assert.Equal(t, "test\ndata\n", ReserveLineBreakForTextarea("test\r\ndata\r\n"))
+func TestNormalizeStringEOL(t *testing.T) {
+	assert.Equal(t, "test\ndata", NormalizeStringEOL("test\r\ndata"))
+	assert.Equal(t, " test\ndata\n ", NormalizeStringEOL(" test\rdata\r "))
 }
 
 func TestOptionalArg(t *testing.T) {

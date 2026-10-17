@@ -28,6 +28,7 @@ type FormatStyle = 'long' | 'short' | 'narrow';
 const unitNames = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second'] as const;
 
 const durationRe = /^[-+]?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/;
+const unixSecondsRe = /^\d+$/;
 
 function parseDurationMs(str: string): number {
   const m = durationRe.exec(str);
@@ -164,7 +165,7 @@ function getRelativeTimeUnit(duration: Duration, opts?: {relativeTo?: Date | num
   const rounded = roundToSingleUnit(duration, opts);
   if (rounded.blank) return [0, 'second'];
   for (const unit of unitNames) {
-    const val = (rounded as any)[`${unit}s`];
+    const val = rounded[`${unit}s`];
     if (val) return [val, unit];
   }
   return [0, 'second'];
@@ -318,11 +319,11 @@ class RelativeTime extends HTMLElement {
     return undefined;
   }
 
-  get prefix(): string {
+  override get prefix(): string {
     return this.getAttribute('prefix') ?? (this.format === 'datetime' ? '' : 'on');
   }
 
-  set prefix(v: string) {
+  override set prefix(v: string) {
     this.setAttribute('prefix', v);
   }
 
@@ -364,7 +365,8 @@ class RelativeTime extends HTMLElement {
   }
 
   get date(): Date | null {
-    const parsed = Date.parse(this.datetime);
+    const dt = this.datetime;
+    const parsed = unixSecondsRe.test(dt) ? Number(dt) * 1000 : Date.parse(dt);
     return Number.isNaN(parsed) ? null : new Date(parsed);
   }
 
@@ -418,10 +420,10 @@ class RelativeTime extends HTMLElement {
       duration = emptyDuration;
     }
     const d = duration.blank ? emptyDuration : duration.abs();
-    if (typeof Intl !== 'undefined' && (Intl as any).DurationFormat) {
-      const opts: Record<string, string> = {style};
+    if (typeof Intl !== 'undefined' && Intl.DurationFormat) {
+      const opts: Intl.DurationFormatOptions = {style};
       if (duration.blank) opts.secondsDisplay = 'always';
-      return new (Intl as any).DurationFormat(locale, opts).format({
+      return new Intl.DurationFormat(locale, opts).format({
         years: d.years, months: d.months, weeks: d.weeks, days: d.days,
         hours: d.hours, minutes: d.minutes, seconds: d.seconds,
       });

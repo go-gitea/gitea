@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin badge")}}
+{{template "admin/layout_head" (dict "pageClass" "admin badge")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.badges.badges_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
@@ -20,10 +20,10 @@
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<button class="{{if eq $.SortType "oldest"}}active {{end}}item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
-							<button class="{{if eq $.SortType "newest"}}active {{end}}item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
-							<button class="{{if eq $.SortType "alphabetically"}}active {{end}}item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
-							<button class="{{if eq $.SortType "reversealphabetically"}}active {{end}}item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
+							<button type="submit" class="{{if eq $.SortType "oldest"}}active {{end}}item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
+							<button type="submit" class="{{if eq $.SortType "newest"}}active {{end}}item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
+							<button type="submit" class="{{if eq $.SortType "alphabetically"}}active {{end}}item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
+							<button type="submit" class="{{if eq $.SortType "reversealphabetically"}}active {{end}}item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
 						</div>
 					</div>
 				</div>

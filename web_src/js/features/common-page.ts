@@ -1,11 +1,14 @@
 import {GET, POST} from '../modules/fetch.ts';
 import {showGlobalErrorMessage} from '../modules/errors.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {initTabSwitcher} from '../modules/fomantic/tab.ts';
 import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
 import {getFloatingElement} from '../modules/floating.ts';
+import {initRepoSwitcher} from './repo-switcher.ts';
+import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
 
 const {appUrl, appSubUrl} = window.config;
 
@@ -37,7 +40,7 @@ function initFooterThemeSelector() {
   const $dropdown = fomanticQuery(elDropdown);
   $dropdown.dropdown({
     direction: 'upward',
-    apiSettings: {url: `${appSubUrl}/-/web-theme/list`, cache: false},
+    apiSettings: {url: `${appSubUrl}/-/web-theme/list`},
   });
   addDelegatedEventListener(elDropdown, 'click', '.menu > .item', async (el) => {
     const themeName = el.getAttribute('data-value')!;
@@ -63,25 +66,18 @@ export function initGlobalDropdown() {
     if (el.classList.contains('jump')) {
       // The "jump" means this dropdown is mainly used for "menu" purpose,
       // clicking an item will jump to somewhere else or trigger an action/function.
-      // When a dropdown is used for non-refresh actions with a floating popup,
-      // it must have this "jump" class to hide the floating popup when dropdown is closed.
       $dropdown.dropdown('setting', {
         action: 'hide',
         onShow() {
           // hide associated tooltip while dropdown is open
-          getFloatingElement(this)?.hide();
-          getFloatingElement(this)?.disable();
+          getFloatingElement(el)?.hide();
+          getFloatingElement(el)?.disable();
         },
         onHide() {
-          getFloatingElement(this)?.enable();
-          // eslint-disable-next-line unicorn/no-this-assignment
-          const elDropdown = this;
-
-          // hide all floating popups of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
+          getFloatingElement(el)?.enable();
           setTimeout(() => {
-            const $dropdown = fomanticQuery(elDropdown);
             if ($dropdown.dropdown('is hidden')) {
-              queryElems(elDropdown, '.menu > .item', (el) => getFloatingElement(el)?.hide());
+              queryElems(el, '.menu > .item', (item) => getFloatingElement(item)?.hide());
             }
           }, 2000);
         },
@@ -101,9 +97,11 @@ export function initGlobalDropdown() {
 }
 
 export function initGlobalComponent() {
-  fomanticQuery('.ui.menu.tabular:not(.custom) .item').tab();
+  registerGlobalInitFunc('initTabSwitcher', initTabSwitcher);
   registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
+  registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);
+  registerGlobalInitFunc('initScopedWorkflowRequired', initScopedWorkflowRequired);
 }
 
 // for performance considerations, it only uses performant syntax

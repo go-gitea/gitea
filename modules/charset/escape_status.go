@@ -10,14 +10,8 @@ type EscapeStatus struct {
 	HasAmbiguous bool
 }
 
-// Or combines two EscapeStatus structs into one representing the conjunction of the two
-func (status *EscapeStatus) Or(other *EscapeStatus) *EscapeStatus {
-	st := status
-	if status == nil {
-		st = &EscapeStatus{}
-	}
+func (st *EscapeStatus) Combine(other *EscapeStatus) {
 	st.Escaped = st.Escaped || other.Escaped
 	st.HasAmbiguous = st.HasAmbiguous || other.HasAmbiguous
 	st.HasInvisible = st.HasInvisible || other.HasInvisible
-	return st
 }

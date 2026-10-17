@@ -1,0 +1,12 @@
+Content-Type: application/xml; charset=utf-8
+
+<?xml version="1.0" encoding="UTF-8"?>
+<ticket-notes type="array">
+  <ticket-note>
+    <content>Closed Ticket Message</content>
+    <created-at type="datetime">2021-09-26T19:18:33+00:00</created-at>
+    <updated-at type="datetime">2021-09-26T19:18:33+00:00</updated-at>
+    <id type="integer">200</id>
+    <user-id type="integer">43</user-id>
+  </ticket-note>
+</ticket-notes>

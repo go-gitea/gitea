@@ -28,6 +28,16 @@
   z-index: 1;
 }
 
+.floating-box[data-floating-limit-size] {
+  display: flex;
+  flex-direction: column;
+}
+
+.floating-box[data-floating-limit-size] > .floating-content {
+  min-height: 0;
+  overflow: auto;
+}
+
 /* interactive hit area: an invisible padded region around the popup so the
    cursor can traverse the gap between reference and popup without closing it */
 .floating-box[data-interactive="true"]::before {
@@ -61,7 +71,7 @@
 }
 
 .floating-box[data-theme="tooltip"] .floating-content {
-  padding: 0.5rem 1rem;
+  padding: 5px 10px;
 }
 
 .floating-box[data-theme="tooltip"] .floating-arrow-inner,
@@ -88,12 +98,14 @@
 .floating-box[data-theme="menu"] .item {
   display: flex;
   align-items: center;
-  padding: 9px 18px;
+  margin: 0 4px;
+  padding: 9px 14px;
+  border-radius: var(--border-radius);
   color: inherit;
   background: inherit;
   text-decoration: none;
   gap: 10px;
-  width: 100%;
+  width: calc(100% - 8px);
 }
 
 .floating-box[data-theme="menu"] .item:hover {
@@ -106,6 +118,10 @@
 
 .floating-box[data-theme="menu"] .item.active {
   background: var(--color-active);
+}
+
+.floating-box[data-theme="menu"] .divider {
+  margin: 4px 0;
 }
 
 /* box-with-header theme to look like .ui.attached.segment. can contain .ui.attached.header */

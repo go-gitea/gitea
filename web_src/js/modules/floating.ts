@@ -1,7 +1,9 @@
-import {computePosition, autoUpdate, flip, shift, offset as offsetMiddleware, arrow as arrowMiddleware, size as sizeMiddleware} from '@floating-ui/dom';
+import {
+  computePosition, autoUpdate, flip, shift, offset as offsetMiddleware, arrow as arrowMiddleware, size as sizeMiddleware,
+} from '@floating-ui/dom';
 import type {Middleware, Placement, VirtualElement} from '@floating-ui/dom';
-import {generateElemId, isDocumentFragmentOrElementNode} from '../utils/dom.ts';
-import {html} from '../utils/html.ts';
+import {generateElemId, isDocumentFragmentOrElementNode, isElemVisible} from '../utils/dom.ts';
+import {html, htmlEscape} from '../utils/html.ts';
 import {stripTags} from '../utils.ts';
 
 type FloatingContent = string | Element | DocumentFragment;
@@ -24,6 +26,7 @@ type FloatingElementProps = {
   hideOnClick?: boolean;
   allowHTML?: boolean;
   maxWidth?: number | string;
+  limitSizeToViewport?: {horizontal?: boolean, vertical?: boolean};
   followCursor?: FollowCursor;
   showOnCreate?: boolean;
   getReferenceClientRect?: (() => DOMRect) | null;
@@ -34,6 +37,7 @@ type FloatingElementProps = {
 };
 
 export type FloatingElement = {
+  reference: Element;
   element: HTMLElement;
   props: FloatingElementProps;
   state: {isShown: boolean};
@@ -61,6 +65,18 @@ const defaults = {
 const instances = new WeakMap<Element, FloatingElement>();
 const visibleInstances = new Set<FloatingElement>();
 
+function isMenu(instance: FloatingElement): boolean {
+  return instance.props.role === 'menu' && instance.props.theme === 'menu';
+}
+
+function focusMenuItem(instance: FloatingElement, delta: number): void {
+  const items = [...instance.element.querySelectorAll<HTMLElement>('.item:not(.disabled)')].filter(isElemVisible);
+  if (!items.length) return;
+  const current = items.indexOf(document.activeElement as HTMLElement);
+  const next = current === -1 ? (delta > 0 ? 0 : items.length - 1) : (current + delta + items.length) % items.length;
+  items[next].focus();
+}
+
 let mouseCoords = {x: 0, y: 0};
 const cursorListeners = new Set<() => void>();
 if (typeof document !== 'undefined') {
@@ -68,6 +84,24 @@ if (typeof document !== 'undefined') {
     mouseCoords = {x: e.clientX, y: e.clientY};
     for (const fn of cursorListeners) fn();
   }, {capture: true});
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.isComposing) return;
+    const menuInstance = [...visibleInstances].findLast(isMenu);
+    if (!menuInstance) return;
+    const focused = document.activeElement as HTMLElement;
+    const inMenu = menuInstance.element.contains(focused);
+    if (!inMenu && focused !== menuInstance.reference && focused !== document.body) return;
+    if (e.key === 'Escape') {
+      menuInstance.hide();
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      focusMenuItem(menuInstance, e.key === 'ArrowDown' ? 1 : -1);
+    } else if ((e.key === 'Enter' || e.key === ' ') && inMenu) {
+      focused.click();
+    } else {
+      return;
+    }
+    e.preventDefault();
+  });
 }
 
 function acquireCursorTracking(fn: () => void): void { cursorListeners.add(fn) }
@@ -78,12 +112,12 @@ function onGlobalDismiss(e: MouseEvent): void {
   for (const fn of dismissListeners) fn(e);
 }
 function acquireDismissTracking(fn: (e: MouseEvent) => void): void {
-  if (dismissListeners.size === 0) document.addEventListener('mousedown', onGlobalDismiss, true);
+  if (dismissListeners.size === 0) document.addEventListener('mousedown', onGlobalDismiss, {capture: true});
   dismissListeners.add(fn);
 }
 function releaseDismissTracking(fn: (e: MouseEvent) => void): void {
   if (!dismissListeners.delete(fn)) return;
-  if (dismissListeners.size === 0) document.removeEventListener('mousedown', onGlobalDismiss, true);
+  if (dismissListeners.size === 0) document.removeEventListener('mousedown', onGlobalDismiss, {capture: true});
 }
 
 function resolveDelay(delay: Delay | undefined, kind: 'show' | 'hide'): number {
@@ -111,9 +145,11 @@ function setElementContent(el: HTMLElement, content: FloatingContent, allowHTML:
 const arrowHtml = html`<svg class="floating-arrow" width="16" height="16" viewBox="0 0 16 16" overflow="visible"><path d="M0,0 H16 L8,7 Z" class="floating-arrow-outer"/><path d="M0,-1 H16 L8,6 Z" class="floating-arrow-inner"/></svg>`;
 
 export function createFloatingElement(target: Element, opts: FloatingElementProps = {}): FloatingElement {
+  const theme = opts.theme || opts.role as FloatingTheme || defaults.theme;
   const props: FloatingElementProps = {
     ...defaults,
-    arrow: opts.theme === 'bare' ? false : defaults.arrow,
+    theme,
+    arrow: theme === 'bare' ? false : defaults.arrow,
     ...opts,
   };
 
@@ -122,6 +158,7 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
   el.id = generateElemId('floating-');
   el.setAttribute('data-theme', props.theme ?? defaults.theme);
   el.setAttribute('role', props.role ?? defaults.role);
+  if (props.limitSizeToViewport) el.setAttribute('data-floating-limit-size', '');
 
   const contentEl = document.createElement('div');
   contentEl.className = 'floating-content';
@@ -197,14 +234,18 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
       shift({padding: 8}),
       sizeMiddleware({
         padding: 8,
-        apply({availableWidth}) {
+        apply({availableWidth, availableHeight}) {
           const avail = `${Math.max(0, Math.floor(availableWidth))}px`;
           const cap = typeof props.maxWidth === 'number' ? `${props.maxWidth}px` : (props.maxWidth && props.maxWidth !== 'none' ? props.maxWidth : null);
           el.style.maxWidth = cap ? `min(${cap}, ${avail})` : avail;
+          el.style.maxHeight = props.limitSizeToViewport?.vertical ? `${Math.max(0, Math.floor(availableHeight))}px` : '';
         },
       }),
     ];
-    if (arrowEl) middleware.push(arrowMiddleware({element: arrowEl, padding: 6}));
+    if (arrowEl) middleware.push(arrowMiddleware(({placement, rects}) => ({
+      element: arrowEl,
+      padding: Math.max(0, Math.min(3, (placement.startsWith('left') || placement.startsWith('right') ? rects.reference.height : rects.reference.width) / 2 - 8)),
+    })));
     const result = await computePosition(buildReference(), el, {
       strategy: 'absolute',
       placement: props.placement ?? defaults.placement,
@@ -246,10 +287,11 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
     if (props.onShow?.(instance) === false) return;
     isShown = true;
     visibleInstances.add(instance);
-    if (props.role === 'tooltip') {
-      for (const other of visibleInstances) {
-        if (other !== instance && other.props.role === 'tooltip') other.hide();
-      }
+    for (const other of visibleInstances) {
+      if (other !== instance && other.props.role === 'tooltip') other.hide();
+    }
+    if (isMenu(instance)) {
+      for (const item of el.querySelectorAll<HTMLElement>('.item')) item.tabIndex = -1;
     }
     document.body.append(el);
     target.setAttribute('aria-controls', el.id);
@@ -268,8 +310,8 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
     stopAutoUpdate = null;
     if (props.followCursor) releaseCursorTracking(cursorUpdateHandler);
     if (needsDismissTracking) releaseDismissTracking(onDocDismiss);
+    if (isMenu(instance) && el.contains(document.activeElement)) (target as HTMLElement).focus();
     el.remove();
-    target.removeAttribute('aria-controls');
     if (target.getAttribute('aria-describedby') === el.id) target.removeAttribute('aria-describedby');
     props.onHidden?.(instance);
   }
@@ -285,9 +327,6 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
     clearTimers();
     if (props.interactive && isCursorOverFloating) return;
     const d = resolveDelay(props.delay, 'hide');
-    // Interactive popups defer a zero-delay hide by one tick so the el's
-    // own `mouseenter` can cancel the timer when the pointer crosses from
-    // the reference into the floating element.
     if (d > 0 || props.interactive) hideTimer = window.setTimeout(doHide, d);
     else doHide();
   }
@@ -310,7 +349,11 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
   }
 
   if (triggers.mouse) {
-    listen(target, 'mouseenter', scheduleShow);
+    listen(target, 'mouseenter', (e) => {
+      const {clientX, clientY} = e as MouseEvent;
+      mouseCoords = {x: clientX, y: clientY};
+      scheduleShow();
+    });
     listen(target, 'mouseleave', scheduleHide);
   }
   if (triggers.focus) {
@@ -323,6 +366,7 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
     listen(el, 'mouseleave', () => { isCursorOverFloating = false; scheduleHide() });
   }
 
+  instance.reference = target;
   instance.element = el;
   instance.props = props;
   instance.state = {get isShown() { return isShown }};
@@ -348,6 +392,7 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
     Object.assign(props, partial);
     if (partial.theme) el.setAttribute('data-theme', partial.theme);
     if (partial.role) el.setAttribute('role', partial.role);
+    if ('limitSizeToViewport' in partial) el.toggleAttribute('data-floating-limit-size', Boolean(partial.limitSizeToViewport));
     if (partial.content !== undefined && partial.content !== null) {
       setElementContent(contentEl, partial.content, Boolean(props.allowHTML));
     }
@@ -368,7 +413,6 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
   return instance;
 }
 
-/** Attach or update a tooltip Float on `target`. Returns null if content is empty. */
 function attachTooltip(target: Element, content: FloatingContent | null = null): FloatingElement | null {
   switchTitleToTooltip(target);
 
@@ -377,10 +421,14 @@ function attachTooltip(target: Element, content: FloatingContent | null = null):
 
   const hasClipboardTarget = target.hasAttribute('data-clipboard-target');
   const hideOnClick = !hasClipboardTarget;
-  const placement = (target.getAttribute('data-tooltip-placement') as Placement) || 'top-start';
+  const placement = (target.getAttribute('data-tooltip-placement') as Placement) || 'top';
   const interactiveAttr = target.getAttribute('data-tooltip-interactive') === 'true';
   const followCursorAttr = target.getAttribute('data-tooltip-follow-cursor') as FollowCursor || false;
-  const allowHTML = target.getAttribute('data-tooltip-render') === 'html';
+  let allowHTML = target.getAttribute('data-tooltip-render') === 'html';
+  if (!allowHTML && typeof content === 'string') {
+    content = htmlEscape(content).replace(/\n/g, '<br>');
+    allowHTML = true;
+  }
 
   const props: Partial<FloatingElementProps> = {
     content,
@@ -392,7 +440,7 @@ function attachTooltip(target: Element, content: FloatingContent | null = null):
     placement,
     followCursor: followCursorAttr,
     getReferenceClientRect: null,
-    ...(interactiveAttr ? {interactive: true} : {}),
+    ...(interactiveAttr && {interactive: true}),
   };
 
   const existing = instances.get(target);
@@ -410,13 +458,12 @@ function switchTitleToTooltip(target: Element): void {
   }
 }
 
-/** Lazy first-hover init: on the first `mouseover`, attach the Float, then
- *  re-dispatch `mouseenter` to drive the freshly-attached listener (the
- *  native one has already fired by the time our capture-phase handler runs). */
-function lazyTooltipOnMouseHover(this: HTMLElement): void {
-  this.removeEventListener('mouseover', lazyTooltipOnMouseHover, {capture: true});
-  attachTooltip(this);
-  this.dispatchEvent(new MouseEvent('mouseenter'));
+function lazyTooltipOnMouseHover(e: Event): void {
+  const el = e.currentTarget as HTMLElement;
+  el.removeEventListener('mouseover', lazyTooltipOnMouseHover, {capture: true});
+  if (!attachTooltip(el)) return;
+  const {clientX, clientY} = e as MouseEvent;
+  el.dispatchEvent(new MouseEvent('mouseenter', {clientX, clientY}));
 }
 
 function attachLazyTooltip(el: HTMLElement): void {
@@ -427,6 +474,7 @@ function attachLazyTooltip(el: HTMLElement): void {
     if (content) {
       const isHtml = el.getAttribute('data-tooltip-render') === 'html';
       el.setAttribute('aria-label', isHtml ? stripTags(content).replace(/\s+/g, ' ').trim() : content);
+      el.removeAttribute('aria-hidden');
     }
   }
 }

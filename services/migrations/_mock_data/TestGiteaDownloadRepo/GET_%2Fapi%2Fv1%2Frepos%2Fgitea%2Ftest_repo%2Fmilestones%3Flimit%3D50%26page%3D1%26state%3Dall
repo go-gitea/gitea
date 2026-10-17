@@ -1,0 +1,10 @@
+Access-Control-Expose-Headers: X-Total-Count
+Alt-Svc: h3=":443"; ma=2592000
+Cache-Control: max-age=0, private, must-revalidate, no-transform
+Content-Length: 452
+Content-Type: application/json;charset=utf-8
+Vary: Origin
+X-Content-Type-Options: nosniff
+X-Total-Count: 2
+
+[{"id":1300,"title":"V1","description":"Generate Content","state":"closed","open_issues":0,"closed_issues":4,"created_at":"1970-01-01T00:00:00Z","updated_at":"1970-01-01T00:00:00Z","closed_at":"2020-09-01T18:36:46Z","due_on":null},{"id":1301,"title":"V2 Finalize","description":"","state":"open","open_issues":1,"closed_issues":2,"created_at":"1970-01-01T00:00:00Z","updated_at":"2022-11-13T05:29:15Z","closed_at":null,"due_on":"2020-09-04T23:59:59Z"}]

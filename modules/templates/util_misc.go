@@ -12,15 +12,16 @@ import (
 	"strings"
 	"time"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
+	activities_model "gitea.dev/models/activities"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -50,11 +51,6 @@ func sortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML 
 	}
 	// the table is NOT sorted with this header
 	return ""
-}
-
-// isMultilineCommitMessage checks to see if a commit message contains multiple lines.
-func isMultilineCommitMessage(msg string) bool {
-	return strings.Count(strings.TrimSpace(msg), "\n") >= 1
 }
 
 // Actioner describes an action
@@ -146,7 +142,7 @@ type remoteAddress struct {
 
 func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
 	ret := remoteAddress{}
-	u, err := gitrepo.GitRemoteGetURL(ctx, m, remoteName)
+	u, err := git.ParseRemoteAddressURL(ctx, m, remoteName)
 	if err != nil {
 		log.Error("GetRemoteURL %v", err)
 		return ret
@@ -171,6 +167,14 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 	// It should be the same as long as there are no bugs.
 
 	return ret
+}
+
+// UserTypeLabel marks a bot account next to a name built in Go, the template equivalent is shared/user/user_type_label
+func (ut *RenderUtils) UserTypeLabel(u *user_model.User) template.HTML {
+	if u == nil || !u.IsTypeBot() {
+		return ""
+	}
+	return htmlutil.HTMLFormat(` <span class="ui basic label tw-py-0 tw-align-baseline">%s</span>`, ut.locale().TrString("concept_user_bot"))
 }
 
 func filenameIsImage(filename string) bool {

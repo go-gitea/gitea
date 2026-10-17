@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -18,17 +17,17 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/routers/api/packages/nuget"
-	packageService "code.gitea.io/gitea/services/packages"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	nuget_module "gitea.dev/modules/packages/nuget"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/routers/api/packages/nuget"
+	packageService "gitea.dev/services/packages"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -251,8 +250,7 @@ func TestPackageNuGet(t *testing.T) {
 						return
 					}
 
-					var result nuget.ServiceIndexResponseV3
-					DecodeJSON(t, resp, &result)
+					result := DecodeJSON(t, resp, &nuget.ServiceIndexResponseV3{})
 
 					assert.Equal(t, "3.0.0", result.Version)
 					assert.NotEmpty(t, result.Resources)
@@ -375,7 +373,7 @@ func TestPackageNuGet(t *testing.T) {
 		t.Run("SymbolPackage", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			createSymbolPackage := func(id, packageType string) io.Reader {
+			createSymbolPackage := func(id, packageType string) []byte {
 				symbolData, _ := base64.StdEncoding.DecodeString(`QlNKQgEAAQAAAAAADAAAAFBEQiB2MS4wAAAAAAAABgB8AAAAWAAAACNQZGIAAAAA1AAAAAgBAAAj
 fgAA3AEAAAQAAAAjU3RyaW5ncwAAAADgAQAABAAAACNVUwDkAQAAMAAAACNHVUlEAAAAFAIAACgB
 AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
@@ -391,19 +389,19 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				</metadata>
 				</package>`,
 					symbolFilename: string(symbolData),
-				})
+				}).Bytes()
 			}
 
-			req := NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage("unknown-package", "SymbolsPackage")).
-				AddBasicAuth(user.Name)
+			pkgSymbolsPackageErr := createSymbolPackage("unknown-package", "SymbolsPackage")
+			req := NewRequestWithBody(t, "PUT", url+"/symbolpackage", bytes.NewReader(pkgSymbolsPackageErr)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "DummyPackage")).
-				AddBasicAuth(user.Name)
+			pkgDummyPackage := createSymbolPackage(packageName, "DummyPackage")
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", bytes.NewReader(pkgDummyPackage)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "SymbolsPackage")).
-				AddBasicAuth(user.Name)
+			pkgSymbolsPackage := createSymbolPackage(packageName, "SymbolsPackage")
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", bytes.NewReader(pkgSymbolsPackage)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
 			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
@@ -427,13 +425,13 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
-					assert.Equal(t, int64(633), pb.Size)
+					assert.EqualValues(t, len(content), pb.Size)
 				case fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion):
 					assert.False(t, pf.IsLead)
 
 					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
-					assert.Equal(t, int64(616), pb.Size)
+					assert.EqualValues(t, len(pkgSymbolsPackage), pb.Size)
 				case packageName + ".nuspec":
 					assert.False(t, pf.IsLead)
 
@@ -457,7 +455,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				}
 			}
 
-			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "SymbolsPackage")).
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", bytes.NewReader(createSymbolPackage(packageName, "SymbolsPackage"))).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
@@ -684,8 +682,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var result nuget.SearchResultResponse
-				DecodeJSON(t, resp, &result)
+				result := DecodeJSON(t, resp, &nuget.SearchResultResponse{})
 
 				assert.Equal(t, c.ExpectedTotal, result.TotalHits, "case %d: unexpected total hits", i)
 				assert.Len(t, result.Data, c.ExpectedResults, "case %d: unexpected result count", i)
@@ -702,8 +699,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var result nuget.SearchResultResponse
-				DecodeJSON(t, resp, &result)
+				result := DecodeJSON(t, resp, &nuget.SearchResultResponse{})
 
 				assert.EqualValues(t, 2, result.TotalHits)
 				assert.Len(t, result.Data, 2)
@@ -740,8 +736,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result nuget.RegistrationIndexResponse
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &nuget.RegistrationIndexResponse{})
 
 			assert.Equal(t, indexURL, result.RegistrationIndexURL)
 			assert.Equal(t, 1, result.Count)
@@ -821,8 +816,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var result nuget.RegistrationLeafResponse
-				DecodeJSON(t, resp, &result)
+				result := DecodeJSON(t, resp, &nuget.RegistrationLeafResponse{})
 
 				assert.Equal(t, leafURL, result.RegistrationLeafURL)
 				assert.Equal(t, indexURL, result.RegistrationIndexURL)
@@ -882,8 +876,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result nuget.PackageVersionsResponse
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &nuget.PackageVersionsResponse{})
 
 			assert.Len(t, result.Versions, 1)
 			assert.Equal(t, packageVersion, result.Versions[0])

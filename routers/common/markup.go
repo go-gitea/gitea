@@ -10,14 +10,14 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models/renderhelper"
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/renderhelper"
+	"gitea.dev/models/repo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 // RenderMarkup renders markup text for the /markup and /markdown endpoints
@@ -30,6 +30,8 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	//  Ideally: the "file path" should not appear in the "url path context", but it needs a lot of refactoring to achieve that
 	// for example, when previewing file "/gitea/owner/repo/src/branch/features/feat-123/doc/CHANGE.md", then filePath is "doc/CHANGE.md"
 	// and the urlPathContext is "/gitea/owner/repo/src/branch/features/feat-123/doc"
+
+	ctx.SetHeaderContentSecurityPolicyGeneral()
 
 	if mode == "" || mode == "markdown" {
 		// raw Markdown doesn't do any special handling
@@ -62,6 +64,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		treePath = path.Dir(filePath)                       // it is "doc" if filePath is "doc/CHANGE.md"
 		refPath = strings.Join(fields[3:], "/")             // it is "branch/features/feat-12/doc"
 		refPath = strings.TrimSuffix(refPath, "/"+treePath) // now we get the correct branch path: "branch/features/feat-12"
+		refPath = util.PathEscapeSegments(refPath)
 	} else if fields = strings.SplitN(repoLinkPath, "/", 3); len(fields) == 2 {
 		repoOwnerName, repoName = fields[0], fields[1]
 	}
@@ -71,7 +74,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	case "gfm": // legacy mode
 		rctx = renderhelper.NewRenderContextRepoFile(ctx, repoModel, renderhelper.RepoFileOptions{
 			DeprecatedOwnerName: repoOwnerName, DeprecatedRepoName: repoName,
-			CurrentRefPath: refPath, CurrentTreePath: treePath,
+			CurrentRefSubURL: refPath, CurrentTreePath: treePath,
 		})
 		rctx = rctx.WithMarkupType(markdown.MarkupName)
 	case "comment":
@@ -87,7 +90,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	case "file":
 		rctx = renderhelper.NewRenderContextRepoFile(ctx, repoModel, renderhelper.RepoFileOptions{
 			DeprecatedOwnerName: repoOwnerName, DeprecatedRepoName: repoName,
-			CurrentRefPath: refPath, CurrentTreePath: treePath,
+			CurrentRefSubURL: refPath, CurrentTreePath: treePath,
 		})
 		rctx = rctx.WithMarkupType("").WithRelativePath(filePath) // render the repo file content by its extension
 	default:

@@ -1,12 +1,16 @@
 name: labeler
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
+  # pull_request_target is required to label PRs from forks; jobs only use pinned
+  # actions or base-branch checkout, never PR-head code.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
+
+permissions: {}
 
 jobs:
   labeler:
@@ -15,6 +19,32 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/labeler@v6
+      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7
         with:
           sync-labels: true
+
+  pr-title:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # Base-branch checkout only: pull_request_target runs with elevated token; never run PR-head code here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+      # Labels are only synced after the title lints, so an invalid title never reaches the label diff.
+      - run: node ./tools/ci-tools.ts lint-pr-title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+      - run: node ./tools/ci-tools.ts set-pr-labels
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_TITLE_BEFORE: ${{ github.event.changes.title.from }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_TOKEN: ${{ github.token }}

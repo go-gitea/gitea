@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -131,8 +131,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			resp := MakeRequest(t, req, http.StatusOK)
 			checkFileContent("fork-branch", "test-content-2")
 
-			var mergeResp api.MergeUpstreamResponse
-			DecodeJSON(t, resp, &mergeResp)
+			mergeResp := DecodeJSON(t, resp, &api.MergeUpstreamResponse{})
 			assert.Equal(t, "merge", mergeResp.MergeStyle)
 
 			// after merge, there should be no "sync fork" button anymore
@@ -160,8 +159,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var mergeResp api.MergeUpstreamResponse
-			DecodeJSON(t, resp, &mergeResp)
+			mergeResp := DecodeJSON(t, resp, &api.MergeUpstreamResponse{})
 			assert.Equal(t, "fast-forward", mergeResp.MergeStyle)
 
 			// ff_only=true when fast-forward is not possible (should fail)
@@ -172,6 +170,19 @@ func TestRepoMergeUpstream(t *testing.T) {
 				FfOnly: true,
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusBadRequest)
+		})
+
+		t.Run("BasePrivateBlocksSync", func(t *testing.T) {
+			// add a new commit to the base repo, then make the base repo private
+			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "secret.txt", "master", "private-content"))
+			baseRepo.IsPrivate = true
+			_, err := db.GetEngine(t.Context()).ID(baseRepo.ID).Cols("is_private").Update(baseRepo)
+			require.NoError(t, err)
+			// the fork owner can no longer read the base repo, so syncing must be refused
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/test-repo-fork/merge-upstream", forkUser.Name), &api.MergeUpstreamRequest{
+				Branch: "fork-branch",
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusForbidden)
 		})
 	})
 }

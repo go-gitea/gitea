@@ -1,5 +1,5 @@
-import {clippie} from 'clippie';
 import {createFloatingElement} from '../floating.ts';
+import {copyToClipboard} from '../clipboard.ts';
 import {keySymbols} from '../../utils.ts';
 import {goToDefinitionAt} from './utils.ts';
 import type {FloatingElement} from '../floating.ts';
@@ -95,13 +95,13 @@ function buildMenuItems(cm: CodemirrorModules, view: EditorView, togglePalette: 
     'separator',
     {label: 'Cut', keys: 'Mod+X', disabled: !hasSelection, run: async (v) => {
       const {from, to} = v.state.selection.main;
-      if (await clippie(v.state.doc.sliceString(from, to))) {
+      if (await copyToClipboard(v.state.doc.sliceString(from, to))) {
         v.dispatch({changes: {from, to}});
       }
     }},
     {label: 'Copy', keys: 'Mod+C', disabled: !hasSelection, run: async (v) => {
       const {from, to} = v.state.selection.main;
-      await clippie(v.state.doc.sliceString(from, to));
+      await copyToClipboard(v.state.doc.sliceString(from, to));
     }},
     {label: 'Paste', keys: 'Mod+V', run: async (view) => {
       try {
@@ -187,7 +187,6 @@ export function contextMenu(cm: CodemirrorModules, togglePalette: (view: EditorV
       const menuItems = buildMenuItems(cm, view, togglePalette, goToSymbol);
       const {el: menuEl, actions} = createMenuElement(menuItems, view, dismiss);
 
-      // Create a virtual anchor at mouse position for the context menu
       const anchor = document.createElement('div');
       anchor.style.position = 'fixed';
       anchor.style.left = `${event.clientX}px`;

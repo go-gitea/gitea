@@ -11,33 +11,29 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/auth"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/routers/web"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/auth"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/routers/web"
+	"gitea.dev/tests"
 
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
 
 func storeObjectInRepo(t *testing.T, repositoryID int64, content string) string {
+	t.Helper()
 	pointer, err := lfs.GeneratePointer(strings.NewReader(content))
 	assert.NoError(t, err)
 
 	_, err = git_model.NewLFSMetaObject(t.Context(), repositoryID, pointer)
 	assert.NoError(t, err)
-	contentStore := lfs.NewContentStore()
-	exist, err := contentStore.Exists(pointer)
+	err = lfs.NewContentStore().Put(pointer, strings.NewReader(content))
 	assert.NoError(t, err)
-	if !exist {
-		err := contentStore.Put(pointer, strings.NewReader(content))
-		assert.NoError(t, err)
-	}
 	return pointer.Oid
 }
 
