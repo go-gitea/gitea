@@ -241,6 +241,20 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
+		Name: "WIP only",
+		ExtraData: []*internal.IndexerData{
+			{ID: 1000, Title: "WIP: hello a", IsWIP: true},
+			{ID: 1001, Title: "hello b"},
+			{ID: 1002, Title: "[WIP] hello c", IsWIP: true},
+		},
+		SearchOptions: &internal.SearchOptions{
+			Keyword: "hello",
+			IsWIP:   optional.Some(true),
+		},
+		ExpectedIDs:   []int64{1002, 1000},
+		ExpectedTotal: 2,
+	},
+	{
 		Name: "labels",
 		ExtraData: []*internal.IndexerData{
 			{ID: 1000, Title: "hello a", LabelIDs: []int64{2000, 2001, 2002}},

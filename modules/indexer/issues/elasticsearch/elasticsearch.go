@@ -16,7 +16,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-const issueIndexerLatestVersion = 4
+const issueIndexerLatestVersion = 5
 
 var _ internal.Indexer = &Indexer{}
 
@@ -51,6 +51,7 @@ const (
 			"is_pull": { "type": "boolean", "index": true },
 			"is_closed": { "type": "boolean", "index": true },
 			"is_archived": { "type": "boolean", "index": true },
+			"is_wip": { "type": "boolean", "index": true },
 			"label_ids": { "type": "integer", "index": true },
 			"no_label": { "type": "boolean", "index": true },
 			"milestone_id": { "type": "integer", "index": true },
@@ -138,6 +139,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.IsArchived.Has() {
 		query.Must(es.TermQuery("is_archived", options.IsArchived.Value()))
+	}
+	if options.IsWIP.Has() {
+		query.Must(es.TermQuery("is_wip", options.IsWIP.Value()))
 	}
 
 	if options.NoLabelOnly {

@@ -25,7 +25,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 8
+	issueIndexerLatestVersion = 9
 )
 
 const unicodeNormalizeName = "unicodeNormalize"
@@ -78,6 +78,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	docMapping.AddFieldMappingsAt("is_pull", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("is_closed", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("is_archived", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("is_wip", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("label_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("no_label", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("milestone_id", numberFieldMapping)
@@ -203,6 +204,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.IsArchived.Has() {
 		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsArchived.Value(), "is_archived"))
+	}
+	if options.IsWIP.Has() {
+		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsWIP.Value(), "is_wip"))
 	}
 
 	if options.NoLabelOnly {
