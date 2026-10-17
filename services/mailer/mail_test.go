@@ -615,6 +615,6 @@ func TestMailPullRequestPush(t *testing.T) {
 
 	msgs, err := composeIssueCommentMessages(t.Context(), mc, "mock", []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}, false, "pull request push")
 	require.NoError(t, err)
-	assert.Contains(t, msgs[0].Body, `<a href="https://try.gitea.io/user2/repo1/commit/0000000000000000000000000000000000000000">0000000000</a> - test commit msg`)
+	assert.Contains(t, msgs[0].Body, `<a href="https://try.gitea.io/user2/repo1/commit/0000000000000000000000000000000000000000">0000000</a> - test commit msg`)
 	assert.Contains(t, msgs[0].Body, `</html>`)
 }
