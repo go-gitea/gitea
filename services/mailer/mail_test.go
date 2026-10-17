@@ -26,7 +26,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
@@ -168,52 +167,26 @@ func TestMailMentionsComment(t *testing.T) {
 	assert.Equal(t, 3, mails)
 }
 
-func TestMailIssueCommentBatchOnMentionRepositoryWatch(t *testing.T) {
-	doer, repo, _, _ := prepareMailerTest(t)
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2, Repo: repo, Poster: doer})
-	require.NoError(t, issue.LoadRepo(t.Context()))
-	require.NoError(t, issue.LoadPullRequest(t.Context()))
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	users, err := user_model.GetMailableUsersByIDs(t.Context(), []int64{user.ID}, true)
-	require.NoError(t, err)
-	require.Len(t, users, 1)
-
+func TestMailParticipantsOnMentionCustomWatch(t *testing.T) {
+	doer, repo, issue, comment := prepareMailerTest(t)
+	comment.Poster = doer
 	defer mockMailTemplates("mail/repo/issue/comment", subjectTpl, bodyTpl)()
-	for _, testCase := range []struct {
-		name     string
-		mode     repo_model.WatchMode
-		wantMail bool
-	}{
-		{name: "normal repository watch", mode: repo_model.WatchModeNormal, wantMail: true},
-		{name: "automatic repository watch", mode: repo_model.WatchModeAuto, wantMail: false},
-		{name: "no repository watch", mode: repo_model.WatchModeNone, wantMail: false},
-	} {
-		t.Run(testCase.name, func(t *testing.T) {
-			require.NoError(t, repo_model.WatchRepoAuto(t.Context(), user, repo, false))
-			if testCase.mode == repo_model.WatchModeAuto {
-				restoreAutoWatch := test.MockVariableValue(&setting.Service.AutoWatchOnChanges, true)
-				t.Cleanup(restoreAutoWatch)
-				require.NoError(t, repo_model.WatchIfAuto(t.Context(), user.ID, repo.ID, true))
-			} else if testCase.mode == repo_model.WatchModeNormal {
-				require.NoError(t, repo_model.WatchRepoAuto(t.Context(), user, repo, true))
-			}
-			normalIDs, err := repo_model.GetRepoWatchersIDsByMode(t.Context(), repo.ID, repo_model.WatchPullRequests, repo_model.WatchModeNormal)
-			require.NoError(t, err)
-			normalWatchers := make(container.Set[int64], len(normalIDs))
-			normalWatchers.AddMultiple(normalIDs...)
-			mails := 0
-			defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
-				mails = len(msgs)
-			})()
-			err = mailIssueCommentBatch(t.Context(), &mailComment{Issue: issue, Doer: doer}, users, make(container.Set[int64]), false, normalWatchers)
-			require.NoError(t, err)
-			if testCase.wantMail {
-				assert.Equal(t, 1, mails)
-			} else {
-				assert.Zero(t, mails)
-			}
-		})
-	}
+
+	// users 4 and 9 only get mail on mention and watch repo 1 with all activity
+	customWatcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	allWatcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
+	require.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), customWatcher, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeCustom, WatchPullRequests: true, WatchIssues: true, WatchReleases: true}))
+
+	var recipients []string
+	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
+		for _, msg := range msgs {
+			recipients = append(recipients, msg.To)
+		}
+	})()
+
+	require.NoError(t, MailParticipantsComment(t.Context(), comment, activities_model.ActionCommentIssue, issue, nil))
+	assert.Contains(t, recipients, customWatcher.Email)
+	assert.NotContains(t, recipients, allWatcher.Email)
 }
 
 func TestMailsSkipBots(t *testing.T) {

@@ -11,7 +11,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -146,7 +145,7 @@ func TestWatchOptions(t *testing.T) {
 	// repo 1 is watched by users 1, 4, 9 and 11, all with every event enabled
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeNormal, WatchPullRequests: true}))
+	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeNormal, WatchPullRequests: true})) // custom watches were stored like this before WatchModeCustom
 
 	for watchType, expected := range map[repo_model.WatchType][]int64{
 		repo_model.WatchPullRequests: {1, 4, 9, 11},
@@ -154,6 +153,20 @@ func TestWatchOptions(t *testing.T) {
 		repo_model.WatchReleases:     {4, 9, 11},
 	} {
 		ids, err := repo_model.GetRepoWatchersIDs(t.Context(), repo.ID, watchType)
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, expected, ids, watchType)
+	}
+
+	// a custom watch picking every event differs from all activity, which can be set up automatically
+	customUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), customUser, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeCustom, WatchPullRequests: true, WatchIssues: true, WatchReleases: true}))
+	assert.NoError(t, repo_model.WatchRepoAuto(t.Context(), customUser, repo, true)) // must keep the custom watch
+	for watchType, expected := range map[repo_model.WatchType][]int64{
+		repo_model.WatchPullRequests: {1, 4},
+		repo_model.WatchIssues:       {4},
+		repo_model.WatchReleases:     {4},
+	} {
+		ids, err := repo_model.GetRepoCustomWatchersIDs(t.Context(), repo.ID, watchType)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, expected, ids, watchType)
 	}
@@ -171,31 +184,12 @@ func TestWatchOptions(t *testing.T) {
 	assert.True(t, watch.IsWatchingAll())
 }
 
-func TestGetRepoWatchersIDsByMode(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	autoUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
-	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeNormal, WatchPullRequests: true}))
-	defer test.MockVariableValue(&setting.Service.AutoWatchOnChanges, true)()
-	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), autoUser.ID, repo.ID, true))
-
-	normal, err := repo_model.GetRepoWatchersIDsByMode(t.Context(), repo.ID, repo_model.WatchPullRequests, repo_model.WatchModeNormal)
-	assert.NoError(t, err)
-	assert.Contains(t, normal, user.ID)
-	assert.NotContains(t, normal, autoUser.ID)
-
-	auto, err := repo_model.GetRepoWatchersIDsByMode(t.Context(), repo.ID, repo_model.WatchPullRequests, repo_model.WatchModeAuto)
-	assert.NoError(t, err)
-	assert.ElementsMatch(t, []int64{11, autoUser.ID}, auto)
-}
-
 func TestWatchSelectedMode(t *testing.T) {
 	// a user without a watch row gets the dummy record, whose flags are the column defaults
 	assert.Equal(t, "participate", (&repo_model.Watch{Mode: repo_model.WatchModeNone, IncludePullRequests: true, IncludeIssues: true, IncludeReleases: true}).SelectedMode())
 	assert.Equal(t, "participate", (&repo_model.Watch{Mode: repo_model.WatchModeNormal}).SelectedMode())
 	assert.Equal(t, "ignore", (&repo_model.Watch{Mode: repo_model.WatchModeDont}).SelectedMode())
 	assert.Equal(t, "custom", (&repo_model.Watch{Mode: repo_model.WatchModeNormal, IncludeIssues: true}).SelectedMode())
+	assert.Equal(t, "custom", (&repo_model.Watch{Mode: repo_model.WatchModeCustom, IncludePullRequests: true, IncludeIssues: true, IncludeReleases: true}).SelectedMode())
 	assert.Equal(t, "all", (&repo_model.Watch{Mode: repo_model.WatchModeAuto, IncludePullRequests: true, IncludeIssues: true, IncludeReleases: true}).SelectedMode())
 }
