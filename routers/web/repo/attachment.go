@@ -6,20 +6,20 @@ package repo
 import (
 	"net/http"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/services/attachment"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	repo_service "code.gitea.io/gitea/services/repository"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/services/attachment"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	repo_service "gitea.dev/services/repository"
 )
 
 func attachmentReadScope(unitType unit.Type) (auth_model.AccessTokenScope, bool) {
@@ -143,16 +143,16 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		return
 	}
 
-	// prevent visiting attachment from other repository directly
-	// The check will be ignored before this code merged.
-	if attach.CreatedUnix > repo_model.LegacyAttachmentMissingRepoIDCutoff && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID != attach.RepoID {
-		ctx.HTTPError(http.StatusNotFound)
-		return
-	}
-
 	unitType, repoID, err := repo_service.GetAttachmentLinkedTypeAndRepoID(ctx, attach)
 	if err != nil {
 		ctx.ServerError("GetAttachmentLinkedTypeAndRepoID", err)
+		return
+	}
+	if repoID == 0 {
+		repoID = attach.RepoID
+	}
+	if ctx.Repo.Repository != nil && repoID != 0 && ctx.Repo.Repository.ID != repoID {
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -184,6 +184,22 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		if !perm.CanRead(unitType) {
 			ctx.HTTPError(http.StatusNotFound)
 			return
+		}
+
+		// Draft release attachments must not be exposed to anyone without write
+		// access, matching the API-side canAccessReleaseDraft gate. Otherwise the
+		// UUID-based web endpoints would leak draft attachments to any recipient of
+		// the (leaked) download URL.
+		if unitType == unit.TypeReleases && attach.ReleaseID != 0 && !perm.CanWrite(unit.TypeReleases) {
+			rel, err := repo_model.GetReleaseByID(ctx, attach.ReleaseID)
+			if err != nil {
+				ctx.ServerError("GetReleaseByID", err)
+				return
+			}
+			if rel.IsDraft {
+				ctx.HTTPError(http.StatusNotFound)
+				return
+			}
 		}
 
 		if requiredScope, ok := attachmentReadScope(unitType); ok {

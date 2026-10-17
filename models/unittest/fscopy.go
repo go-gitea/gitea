@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // SyncFile synchronizes the two files. This is skipped if both files
@@ -60,7 +60,6 @@ func SyncDirs(srcPath, destPath string) error {
 	}
 
 	// the keep file is used to keep the directory in a git repository, it doesn't need to be synced
-	// and go-git doesn't work with the ".keep" file (it would report errors like "ref is empty")
 	const keepFile = ".keep"
 
 	// find and delete all untracked files

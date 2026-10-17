@@ -8,7 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 )
 
 var (

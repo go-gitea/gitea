@@ -18,16 +18,21 @@ function initRepoSettingsCollaboration() {
         dropdownEl.classList.add('is-loading', 'loading-icon-2px');
         const lastValue = dropdownEl.getAttribute('data-last-value')!;
         $dropdown.dropdown('hide');
+        let respOk = false;
         try {
           const uid = dropdownEl.getAttribute('data-uid')!;
-          await POST(dropdownEl.getAttribute('data-url')!, {data: new URLSearchParams({uid, 'mode': value})});
-          textEl.textContent = text;
-          dropdownEl.setAttribute('data-last-value', value);
-        } catch {
-          textEl.textContent = '(error)'; // prevent from misleading users when error occurs
-          dropdownEl.setAttribute('data-last-value', lastValue);
+          const resp = await POST(dropdownEl.getAttribute('data-url')!, {data: new URLSearchParams({uid, 'mode': value})});
+          respOk = resp.ok;
+          if (respOk) {
+            textEl.textContent = text;
+            dropdownEl.setAttribute('data-last-value', value);
+          }
         } finally {
           dropdownEl.classList.remove('is-loading');
+          if (!respOk) {
+            textEl.textContent = '(error)'; // prevent from misleading users when error occurs
+            dropdownEl.setAttribute('data-last-value', lastValue);
+          }
         }
       },
       onHide() {

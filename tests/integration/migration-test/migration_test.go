@@ -17,14 +17,14 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/migrations"
-	migrate_base "code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/testlogger"
+	"gitea.dev/modelmigration"
+	migrate_base "gitea.dev/modelmigration/base"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/testlogger"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -149,7 +149,7 @@ func restoreOldDB(t *testing.T, version string) {
 
 func wrappedMigrate(ctx context.Context, x db.EngineMigration) error {
 	currentEngine = x
-	return migrations.Migrate(ctx, x)
+	return modelmigration.Migrate(ctx, x)
 }
 
 func doMigrationTest(t *testing.T, version string) {

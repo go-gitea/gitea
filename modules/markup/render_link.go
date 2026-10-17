@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/setting"
 )
 
 // resolveLinkRelative tries to resolve the link relative to the "{base}/{cur}", and returns the final link.
@@ -42,7 +42,7 @@ func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute b
 			finalLink += "?" + linkURL.RawQuery
 		}
 		if linkURL.Fragment != "" {
-			finalLink += "#" + linkURL.Fragment
+			finalLink += "#" + linkURL.EscapedFragment()
 		}
 	}
 

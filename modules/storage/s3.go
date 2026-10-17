@@ -6,8 +6,10 @@ package storage
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,15 +17,17 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 var _ ObjectStorage = &S3Storage{}
+
+const unknownSizePartSize = 1024 * 1024 * 16 // same as minio-go's minPartSize
 
 type s3Object struct {
 	*minio.Object
@@ -35,7 +39,24 @@ func (m *s3Object) Stat() (os.FileInfo, error) {
 		return nil, convertS3Err(err)
 	}
 
-	return &s3FileInfo{oi}, nil
+	return &objectFileInfo{path.Base(oi.Key), oi.Size, oi.LastModified}, nil
+}
+
+// minio reports a missing key on the first Read, ReadAt or Seek rather than on Open, so all
+// of them convert it like Stat does.
+func (m *s3Object) Read(p []byte) (int, error) {
+	n, err := m.Object.Read(p)
+	return n, convertS3Err(err)
+}
+
+func (m *s3Object) ReadAt(p []byte, off int64) (int, error) {
+	n, err := m.Object.ReadAt(p, off)
+	return n, convertS3Err(err)
+}
+
+func (m *s3Object) Seek(offset int64, whence int) (int64, error) {
+	n, err := m.Object.Seek(offset, whence)
+	return n, convertS3Err(err)
 }
 
 // S3Storage returns an S3 bucket storage
@@ -47,39 +68,41 @@ type S3Storage struct {
 	basePath string
 }
 
-func convertS3Err(err error) error {
+func convertS3Err(err error, optMsg ...string) error {
 	if err == nil {
 		return nil
 	}
-	errResp, ok := err.(minio.ErrorResponse)
+
+	wrapErr := func(err error) error {
+		if len(optMsg) == 0 {
+			return err
+		}
+		return fmt.Errorf("%s: %w", optMsg[0], err)
+	}
+
+	errResp, ok := errors.AsType[minio.ErrorResponse](err)
 	if !ok {
-		return err
+		return wrapErr(err)
 	}
 
 	// Convert two responses to standard analogues
 	switch errResp.Code {
 	case "NoSuchKey":
-		return os.ErrNotExist
+		return wrapErr(fs.ErrNotExist)
 	case "AccessDenied":
-		return os.ErrPermission
+		return wrapErr(fs.ErrPermission)
 	}
 
-	return err
-}
-
-var getBucketVersioning = func(ctx context.Context, s3Client *minio.Client, bucket string) error {
-	_, err := s3Client.GetBucketVersioning(ctx, bucket)
-	return err
+	return wrapErr(err)
 }
 
 // NewS3Storage returns an S3 storage
 func NewS3Storage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
 	config := cfg.S3Config
+	log.Info("Creating S3 storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 	if config.ChecksumAlgorithm != "" && config.ChecksumAlgorithm != "default" && config.ChecksumAlgorithm != "md5" {
 		return nil, fmt.Errorf("invalid S3 checksum algorithm: %s", config.ChecksumAlgorithm)
 	}
-
-	log.Info("Creating S3 storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
 	var lookup minio.BucketLookupType
 	switch config.BucketLookUpType {
@@ -93,6 +116,13 @@ func NewS3Storage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, err
 		return nil, fmt.Errorf("invalid S3 bucket lookup type: %s", config.BucketLookUpType)
 	}
 
+	// The request error message is something like:
+	// * "The request signature we calculated does not match the signature you provided. Check your key and signing method."
+	// It doesn't contain useful information to site admin, so here we wrap the error with our error message
+	// to tell the site admin what is the problem.
+	makeErrMsg := func(hint string) string {
+		return fmt.Sprintf("ObjectStorage.%s: endpoint=%s, location=%s, bucket=%s", hint, config.Endpoint, config.Location, config.Bucket)
+	}
 	s3Client, err := minio.New(config.Endpoint, &minio.Options{
 		Creds:        buildS3Credentials(config),
 		Secure:       config.UseSSL,
@@ -101,37 +131,21 @@ func NewS3Storage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, err
 		BucketLookup: lookup,
 	})
 	if err != nil {
-		return nil, convertS3Err(err)
-	}
-
-	// The GetBucketVersioning is only used for checking whether the Object Storage parameters are generally good. It doesn't need to succeed.
-	// The assumption is that if the API returns the HTTP code 400, then the parameters could be incorrect.
-	// Otherwise even if the request itself fails (403, 404, etc), the code should still continue because the parameters seem "good" enough.
-	// Keep in mind that GetBucketVersioning requires "owner" to really succeed, so it can't be used to check the existence.
-	// Not using "BucketExists (HeadBucket)" because it doesn't include detailed failure reasons.
-	err = getBucketVersioning(ctx, s3Client, config.Bucket)
-	if err != nil {
-		errResp, ok := err.(minio.ErrorResponse)
-		if !ok {
-			return nil, err
-		}
-		if errResp.StatusCode == http.StatusBadRequest {
-			log.Error("S3 storage connection failure at %s:%s with base path %s and region: %s", config.Endpoint, config.Bucket, config.Location, errResp.Message)
-			return nil, err
-		}
+		return nil, convertS3Err(err, makeErrMsg("NewClient"))
 	}
 
 	// Check to see if we already own this bucket
 	exists, err := s3Client.BucketExists(ctx, config.Bucket)
 	if err != nil {
-		return nil, convertS3Err(err)
+		return nil, convertS3Err(err, makeErrMsg("BucketExists"))
 	}
 
+	// If the bucket doesn't exist, try to create one
 	if !exists {
 		if err := s3Client.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
 			Region: config.Location,
 		}); err != nil {
-			return nil, convertS3Err(err)
+			return nil, convertS3Err(err, makeErrMsg("MakeBucket"))
 		}
 	}
 
@@ -145,20 +159,11 @@ func NewS3Storage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, err
 }
 
 func (m *S3Storage) buildS3Path(p string) string {
-	p = strings.TrimPrefix(util.PathJoinRelX(m.basePath, p), "/") // object store doesn't use slash for root path
-	if p == "." {
-		p = "" // object store doesn't use dot as relative path
-	}
-	return p
+	return buildObjectStorePath(m.basePath, p)
 }
 
 func (m *S3Storage) buildS3DirPrefix(p string) string {
-	// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
-	p = m.buildS3Path(p) + "/"
-	if p == "/" {
-		p = "" // object store doesn't use slash for root path
-	}
-	return p
+	return buildObjectStorePathPrefix(m.basePath, p)
 }
 
 func buildS3Credentials(config setting.S3StorageConfig) *credentials.Credentials {
@@ -217,6 +222,10 @@ func (m *S3Storage) Save(path string, r io.Reader, size int64) (int64, error) {
 			// * https://www.backblaze.com/b2/docs/s3_compatible_api.html
 			// do not support "x-amz-checksum-algorithm" header, so use legacy MD5 checksum
 			SendContentMd5: m.cfg.ChecksumAlgorithm == "md5",
+
+			// with an unknown size (-1) minio-go assumes a 5TiB object and buffers a 528MiB part for it, even
+			// for a payload of a few KiB, so pin the part size there, a known size derives its own
+			PartSize: util.Iif[uint64](size < 0, unknownSizePartSize, 0),
 		},
 	)
 	if err != nil {
@@ -225,46 +234,18 @@ func (m *S3Storage) Save(path string, r io.Reader, size int64) (int64, error) {
 	return uploadInfo.Size, nil
 }
 
-type s3FileInfo struct {
-	minio.ObjectInfo
-}
-
-func (m s3FileInfo) Name() string {
-	return path.Base(m.ObjectInfo.Key)
-}
-
-func (m s3FileInfo) Size() int64 {
-	return m.ObjectInfo.Size
-}
-
-func (m s3FileInfo) ModTime() time.Time {
-	return m.LastModified
-}
-
-func (m s3FileInfo) IsDir() bool {
-	return strings.HasSuffix(m.ObjectInfo.Key, "/")
-}
-
-func (m s3FileInfo) Mode() os.FileMode {
-	return os.ModePerm
-}
-
-func (m s3FileInfo) Sys() any {
-	return nil
-}
-
 // Stat returns the stat information of the object
-func (m *S3Storage) Stat(path string) (os.FileInfo, error) {
+func (m *S3Storage) Stat(p string) (os.FileInfo, error) {
 	info, err := m.client.StatObject(
 		m.ctx,
 		m.bucket,
-		m.buildS3Path(path),
+		m.buildS3Path(p),
 		minio.StatObjectOptions{},
 	)
 	if err != nil {
 		return nil, convertS3Err(err)
 	}
-	return &s3FileInfo{info}, nil
+	return &objectFileInfo{path.Base(info.Key), info.Size, info.LastModified}, nil
 }
 
 // Delete delete a file
@@ -278,7 +259,7 @@ func (m *S3Storage) ServeDirectURL(storePath, name, method string, opt *ServeDir
 	reqParams := url.Values{}
 
 	param := prepareServeDirectOptions(opt, name)
-	// the S3 client does not ignore empty params
+	// minio does not ignore empty params
 	if param.ContentType != "" {
 		reqParams.Set("response-content-type", param.ContentType)
 	}
@@ -295,22 +276,26 @@ func (m *S3Storage) ServeDirectURL(storePath, name, method string, opt *ServeDir
 	return u, convertS3Err(err)
 }
 
-// IterateObjects iterates across the objects in the s3storage
 func (m *S3Storage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
-	opts := minio.GetObjectOptions{}
-	// FIXME: this loop is not right and causes resource leaking, see the comment of ListObjects
-	for mObjInfo := range m.client.ListObjects(m.ctx, m.bucket, minio.ListObjectsOptions{
-		Prefix:    m.buildS3DirPrefix(dirName),
-		Recursive: true,
-	}) {
-		object, err := m.client.GetObject(m.ctx, m.bucket, mObjInfo.Key, opts)
+	basePrefix := m.buildS3DirPrefix("")
+	dirPrefix := m.buildS3DirPrefix(dirName)
+	callback := func(object *minio.Object, objPath string) error {
+		defer object.Close()
+		return fn(objPath, &s3Object{object})
+	}
+
+	ctxList, ctxListCancel := context.WithCancel(m.ctx)
+	defer ctxListCancel() // ListObjectsIter: make sure to cancel the passed context, without that you might leak coroutines
+
+	getOpts := minio.GetObjectOptions{}
+	listOpts := minio.ListObjectsOptions{Prefix: dirPrefix, Recursive: true}
+	for mObjInfo := range m.client.ListObjectsIter(ctxList, m.bucket, listOpts) {
+		object, err := m.client.GetObject(m.ctx, m.bucket, mObjInfo.Key, getOpts)
 		if err != nil {
 			return convertS3Err(err)
 		}
-		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
-			defer object.Close()
-			return fn(strings.TrimPrefix(mObjInfo.Key, m.basePath), &s3Object{object})
-		}(object, fn); err != nil {
+		objPath := strings.TrimPrefix(mObjInfo.Key, basePrefix)
+		if err := callback(object, objPath); err != nil {
 			return convertS3Err(err)
 		}
 	}

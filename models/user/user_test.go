@@ -10,17 +10,18 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -94,6 +95,12 @@ func TestUserEmails(t *testing.T) {
 		t.Run("NoReplyConflict", func(t *testing.T) {
 			setting.Service.NoReplyAddress = "example.com"
 			testGetUserByEmail(t, "user1-2@example.COM", 1)
+		})
+
+		t.Run("EmptyEmail", func(t *testing.T) {
+			// A user whose email address is empty must not own commits that have no author email.
+			require.NoError(t, db.Insert(t.Context(), &user_model.EmailAddress{UID: 2, Email: "", LowerEmail: "", IsActivated: true}))
+			testGetUserByEmail(t, "", 0)
 		})
 	})
 	t.Run("GetUserByEmail", func(t *testing.T) {
@@ -297,21 +304,6 @@ func TestDisplayName(t *testing.T) {
 	}
 }
 
-func TestCreateUserInvalidEmail(t *testing.T) {
-	user := &user_model.User{
-		Name:               "GiteaBot",
-		Email:              "GiteaBot@gitea.io\r\n",
-		Passwd:             ";p['////..-++']",
-		IsAdmin:            false,
-		Theme:              setting.UI.DefaultTheme,
-		MustChangePassword: false,
-	}
-
-	err := user_model.CreateUser(t.Context(), user, &user_model.Meta{})
-	assert.Error(t, err)
-	assert.True(t, user_model.IsErrEmailCharIsNotSupported(err))
-}
-
 func TestCreateUserEmailAlreadyUsed(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -378,18 +370,15 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 	assert.LessOrEqual(t, fetched.UpdatedUnix, timestampEnd)
 }
 
-func TestGetUserIDsByNames(t *testing.T) {
+func TestGetDoerUserIDsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	ids, err := user_model.GetDoerUserIDsByNames(t.Context(), []string{"user1", "user2", "none_existing_user"})
+	assert.ErrorIs(t, err, util.ErrNotExist)
+	assert.Equal(t, []int64{1, 2}, ids)
 
-	// ignore non existing
-	IDs, err := user_model.GetUserIDsByNames(t.Context(), []string{"user1", "user2", "none_existing_user"}, true)
+	ids, err = user_model.GetDoerUserIDsByNamesWithSystem(t.Context(), []string{"gitea-actions", "gitea:deploy-key"})
 	assert.NoError(t, err)
-	assert.Equal(t, []int64{1, 2}, IDs)
-
-	// ignore non existing
-	IDs, err = user_model.GetUserIDsByNames(t.Context(), []string{"user1", "do_not_exist"}, false)
-	assert.Error(t, err)
-	assert.Equal(t, []int64(nil), IDs)
+	assert.Equal(t, []int64{-2, -3}, ids)
 }
 
 func TestGetMaileableUsersByIDs(t *testing.T) {
@@ -674,12 +663,18 @@ func TestGetInactiveUsers(t *testing.T) {
 
 func TestCanCreateRepo(t *testing.T) {
 	defer test.MockVariableValue(&setting.Repository.MaxCreationLimit)()
+	defer test.MockVariableValue(&setting.Repository.UserMaxCreationLimit)()
+	defer test.MockVariableValue(&setting.Repository.OrgMaxCreationLimit)()
 	const noLimit = -1
 	doerActions := user_model.NewActionsUser()
 	doerNormal := &user_model.User{ID: 2}
 	doerAdmin := &user_model.User{ID: 1, IsAdmin: true}
+	orgOwner := func(numRepos, maxRepoCreation int) *user_model.User {
+		return &user_model.User{ID: 3, Type: user_model.UserTypeOrganization, NumRepos: numRepos, MaxRepoCreation: maxRepoCreation}
+	}
 	t.Run("NoGlobalLimit", func(t *testing.T) {
-		setting.Repository.MaxCreationLimit = noLimit
+		setting.Repository.UserMaxCreationLimit = noLimit
+		setting.Repository.OrgMaxCreationLimit = noLimit
 
 		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 0}))
 		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 100}))
@@ -693,7 +688,8 @@ func TestCanCreateRepo(t *testing.T) {
 	})
 
 	t.Run("GlobalLimit50", func(t *testing.T) {
-		setting.Repository.MaxCreationLimit = 50
+		setting.Repository.UserMaxCreationLimit = 50
+		setting.Repository.OrgMaxCreationLimit = 50
 
 		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: noLimit}))
 		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 60, MaxRepoCreation: noLimit})) // limited by global limit
@@ -706,5 +702,34 @@ func TestCanCreateRepo(t *testing.T) {
 		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 0}))
 		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 100}))
 		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 60, MaxRepoCreation: 100}))
+	})
+
+	t.Run("UserBlockedOrgsUnlimited", func(t *testing.T) {
+		// User and org limits are independent: a deployment can block personal repos while leaving orgs unrestricted.
+		setting.Repository.UserMaxCreationLimit = 0
+		setting.Repository.OrgMaxCreationLimit = noLimit
+
+		// regular user is blocked
+		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 0, MaxRepoCreation: noLimit}))
+		// per-user override grants individual exceptions even when the global user limit is 0
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 3, MaxRepoCreation: 5}))
+		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 5, MaxRepoCreation: 5}))
+
+		// organization can create unlimited repos
+		assert.True(t, doerNormal.CanCreateRepoIn(orgOwner(10, noLimit)))
+		assert.True(t, doerNormal.CanCreateRepoIn(orgOwner(999, noLimit)))
+		// per-org override still wins over the global org limit
+		assert.False(t, doerNormal.CanCreateRepoIn(orgOwner(5, 5)))
+	})
+
+	t.Run("OrgGlobalLimitWithPerOrgOverride", func(t *testing.T) {
+		setting.Repository.UserMaxCreationLimit = noLimit
+		setting.Repository.OrgMaxCreationLimit = 10
+
+		assert.True(t, doerNormal.CanCreateRepoIn(orgOwner(5, noLimit)))
+		assert.False(t, doerNormal.CanCreateRepoIn(orgOwner(10, noLimit)))
+
+		// per-org override bypasses the global org limit
+		assert.True(t, doerNormal.CanCreateRepoIn(orgOwner(10, 100)))
 	})
 }

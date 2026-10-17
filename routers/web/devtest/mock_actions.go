@@ -5,22 +5,68 @@ package devtest
 
 import (
 	"fmt"
+	"maps"
 	mathRand "math/rand/v2"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/web/repo/actions"
-	"code.gitea.io/gitea/services/context"
+	actions_model "gitea.dev/models/actions"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/web/repo/actions"
+	"gitea.dev/services/context"
 )
+
+const (
+	mockActionsArtifactNameB          = "artifact-b"
+	mockActionsArtifactNameHTMLReport = "artifact-html-report"
+	mockActionsArtifactNameReallyLong = "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong"
+)
+
+var mockActionsArtifactFiles = map[string]map[string]string{
+	mockActionsArtifactNameB: {"report.txt": "artifact-b report"},
+	mockActionsArtifactNameHTMLReport: {
+		"report/index.html": `<html><head><link rel="stylesheet" href="style.css"></head><body>
+<a href="./style.css">link to style.css</a><br>
+<p>This line is red, next line is from JS:</p>
+<script>document.write('window origin: ' + window.origin)</script>
+</body></html>`,
+		"report/style.css": "body {padding: 10px;} p {color: red;}",
+		"demo.svg": `<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" x="10" y="10" rx="20" ry="20" fill="blue" />
+</svg>`,
+		"demo.pdf": `%PDF-1.0
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+3 0 obj<</Type/Page/MediaBox[0 0 3 3]>>endobj
+xref
+0 4
+0000000000 65535 f
+0000000009 00000 n
+0000000052 00000 n
+0000000101 00000 n
+trailer<</Size 4/Root 1 0 R>>
+startxref
+149
+%EOF`,
+	},
+	mockActionsArtifactNameReallyLong: {
+		"index.html":      "<html><body>mock preview</body></html>",
+		"logs/output.txt": "mock logs",
+	},
+}
+
+func mockArtifactPreviewLink(artifactName string) string {
+	return setting.AppSubURL + "/devtest/repo-action-view/artifacts/" + url.PathEscape(artifactName)
+}
 
 type generateMockStepsLogOptions struct {
 	mockCountFirst   int
@@ -54,9 +100,8 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 		logStr = strings.ReplaceAll(logStr, "{step}", strconv.Itoa(logCur.Step))
 		logStr = strings.ReplaceAll(logStr, "{cursor}", strconv.FormatInt(cur, 10))
 		stepsLog = append(stepsLog, &actions.ViewStepLog{
-			Step:    logCur.Step,
-			Cursor:  cur,
-			Started: time.Now().Unix() - 1,
+			Step:   logCur.Step,
+			Cursor: cur,
 			Lines: []*actions.ViewStepLogLine{
 				{Index: cur, Message: logStr, Timestamp: float64(time.Now().UnixNano()) / float64(time.Second)},
 			},
@@ -84,32 +129,44 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	}
 	resp := &actions.ViewResponse{}
 	resp.State.Run.RepoID = 12345
+	resp.State.Run.Index = runID
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
 	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
 	resp.State.Run.CanDeleteArtifact = true
-	resp.State.Run.WorkflowID = "workflow-id"
-	resp.State.Run.WorkflowLink = "./workflow-link"
+	resp.State.Run.WorkflowID = "workflow-id.yml"
 	resp.State.Run.TriggerEvent = "push"
+	renderUtils := templates.NewRenderUtils(ctx)
+	user2, _ := user_model.GetUserByID(ctx, 2)
+	if user2 == nil {
+		user2 = &user_model.User{Name: "user2"}
+	}
+	user3, _ := user_model.GetUserByID(ctx, 3)
+	if user3 == nil {
+		user3 = &user_model.User{Name: "user3"}
+	}
 	resp.State.Run.Commit = actions.ViewCommit{
 		ShortSha: "ccccdddd",
 		Link:     "./commit-link",
 		Pusher: actions.ViewUser{
-			DisplayName: "pusher user",
-			Link:        "./pusher-link",
+			DisplayName: user2.GetDisplayName(),
+			Link:        user2.HomeLink(),
+			AvatarLink:  user2.AvatarLinkWithSize(ctx, 16),
 		},
 		Branch: actions.ViewBranch{
-			Name:      "commit-branch",
+			Name:      "user2:commit-branch",
 			Link:      "./branch-link",
 			IsDeleted: false,
 		},
+	}
+	resp.State.Run.PullRequest = &actions.ViewPullRequest{
+		Index: "#37658",
+		Link:  "./pull/37658",
 	}
 	now := time.Now()
 	currentAttemptNum := int64(1)
 	if attemptID > 0 {
 		currentAttemptNum = attemptID
 	}
-	user2 := &user_model.User{Name: "user2"}
-	user3 := &user_model.User{Name: "user3"}
 	attempts := []*actions_model.ActionRunAttempt{{
 		Attempt:       1,
 		Status:        actions_model.StatusSuccess,
@@ -168,15 +225,16 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			}
 		}
 		resp.State.Run.Attempts = append(resp.State.Run.Attempts, &actions.ViewRunAttempt{
-			Attempt:         attempt.Attempt,
-			Status:          attempt.Status.String(),
-			Done:            attempt.Status.IsDone(),
-			Link:            link,
-			Current:         current,
-			Latest:          attempt.Attempt == latestAttempt.Attempt,
-			TriggeredAt:     attempt.Created.AsTime().Unix(),
-			TriggerUserName: attempt.TriggerUser.GetDisplayName(),
-			TriggerUserLink: attempt.TriggerUser.HomeLink(),
+			Attempt:           attempt.Attempt,
+			Status:            attempt.Status.String(),
+			Done:              attempt.Status.IsDone(),
+			Link:              link,
+			Current:           current,
+			Latest:            attempt.Attempt == latestAttempt.Attempt,
+			TriggeredAt:       attempt.Created.AsTime().Unix(),
+			TriggerUserName:   attempt.TriggerUser.GetDisplayName(),
+			TriggerUserLink:   attempt.TriggerUser.HomeLink(),
+			TriggerUserAvatar: attempt.TriggerUser.AvatarLinkWithSize(ctx, 16),
 		})
 	}
 	isLatestAttempt := currentAttemptNum == latestAttempt.Attempt
@@ -185,6 +243,23 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.CanRerun = runID == 30 && isLatestAttempt
 	resp.State.Run.CanRerunFailed = runID == 30 && isLatestAttempt
 
+	// Mock job summaries so the devtest page can preview the Summary panel rendering.
+	// Only some runs have summaries, so the page also exercises the "no summary" state.
+	if runID == 10 || runID == 20 {
+		resp.State.Run.JobSummaries = []*actions.ViewJobSummary{
+			{
+				JobID:       runID * 10,
+				JobName:     "job 100 (testsubname)",
+				SummaryHTML: renderUtils.MarkdownToHtml("### Devtest job summary\n\n- Markdown rendering\n- Links: [example](https://example.com)\n\n```sh\necho hello\n```\n"),
+			},
+			{
+				JobID:       runID*10 + 2,
+				JobName:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
+				SummaryHTML: renderUtils.MarkdownToHtml("### Another summary\n\nThis demonstrates multiple job summaries in one run.\n\n- Item A\n- Item B\n"),
+			},
+		}
+	}
+
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-a",
 		Size:        100 * 1024,
@@ -192,10 +267,11 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		ExpiresUnix: alignTime(time.Now().Add(-24*time.Hour).Unix(), 3600),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:        "artifact-b",
+		Name:        mockActionsArtifactNameB,
 		Size:        1024 * 1024,
 		Status:      "completed",
 		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
+		PreviewLink: mockArtifactPreviewLink(mockActionsArtifactNameB) + "/preview",
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
@@ -204,14 +280,96 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		ExpiresUnix: alignTime(time.Now().Add(-24*time.Hour).Unix(), 3600),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:        "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Name:        mockActionsArtifactNameHTMLReport,
+		Size:        256 * 1024,
+		Status:      "completed",
+		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
+		PreviewLink: mockArtifactPreviewLink(mockActionsArtifactNameHTMLReport) + "/preview",
+	})
+	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
+		Name:        mockActionsArtifactNameReallyLong,
 		Size:        1024 * 1024,
 		Status:      "completed",
 		ExpiresUnix: 0,
+		PreviewLink: mockArtifactPreviewLink(mockActionsArtifactNameReallyLong) + "/preview",
 	})
 
 	jobLink := func(jobID int64) string {
 		return fmt.Sprintf("%s/jobs/%d", resp.State.Run.Link, jobID)
+	}
+
+	// Keep devtest mock runs minimal: use run 10 as a "complex graph" repro.
+	// This combines long durations, parallel roots, and a multi-dependency downstream job
+	// to validate the workflow graph rendering.
+	if runID == 10 {
+		resp.State.Run.WorkflowID = "workflow-devtest-complex"
+		resp.State.Run.Duration = "7h 12m 34s"
+
+		type mj struct {
+			jobID    string
+			name     string
+			status   actions_model.Status
+			duration string
+			needs    []string
+		}
+		mockJobs := []mj{
+			{jobID: "job-100", name: "job-100", status: actions_model.StatusSuccess, duration: "3s", needs: nil},
+			{jobID: "job-101", name: "job-101", status: actions_model.StatusSuccess, duration: "3s", needs: []string{"job-100"}},
+			{jobID: "job-102", name: "job-102", status: actions_model.StatusSuccess, duration: "4s", needs: []string{"job-100", "job-101"}},
+			{jobID: "job-103", name: "job-103", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"job-100"}},
+
+			{jobID: "prep-jdk", name: "prep-jdk", status: actions_model.StatusSuccess, duration: "3s", needs: nil},
+			{jobID: "code-analysis", name: "code-analysis", status: actions_model.StatusSuccess, duration: "3s", needs: nil},
+
+			// Matrix expansion: the legs share a single JobID, which is what the frontend groups rows on
+			{jobID: "matrix-e2e", name: "matrix-e2e (1, chromium)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
+			{jobID: "matrix-e2e", name: "matrix-e2e (1, firefox)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
+			{jobID: "matrix-e2e", name: "matrix-e2e (2, chromium)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
+			{jobID: "matrix-e2e", name: "matrix-e2e (3, chromium)", status: actions_model.StatusSuccess, duration: "4s", needs: []string{"prep-jdk"}},
+			{jobID: "matrix-e2e", name: "matrix-e2e (3, firefox)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
+			{jobID: "matrix-e2e", name: "matrix-e2e (99, webkit)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
+
+			// Matrix legs whose `name:` interpolates matrix values, so no " (...)" suffix is derived
+			{jobID: "e2e-browsers", name: "E2E on chromium", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
+			{jobID: "e2e-browsers", name: "E2E on firefox", status: actions_model.StatusSuccess, duration: "3s", needs: []string{"prep-jdk"}},
+			{jobID: "e2e-browsers", name: "E2E on webkit", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
+
+			{jobID: "unit-test", name: "unit-test", status: actions_model.StatusSuccess, duration: "3s", needs: []string{"prep-jdk"}},
+			{jobID: "arch-test", name: "arch-test", status: actions_model.StatusSuccess, duration: "3s", needs: []string{"prep-jdk"}},
+			{jobID: "integration-test", name: "integration-test", status: actions_model.StatusSuccess, duration: "4s", needs: []string{"prep-jdk"}},
+
+			{jobID: "build-image", name: "build-image with a very long name that does not fit into the sidebar", status: actions_model.StatusSuccess, duration: "3s", needs: []string{
+				"unit-test",
+				"arch-test",
+				"integration-test",
+				"code-analysis",
+				"matrix-e2e",
+				"e2e-browsers",
+			}},
+
+			// Separate jobs that only look like matrix legs, so they must stay separate nodes
+			{jobID: "deploy-staging", name: "Deploy (staging)", status: actions_model.StatusSuccess, duration: "5s", needs: []string{"build-image"}},
+			{jobID: "deploy-prod", name: "Deploy (prod)", status: actions_model.StatusSuccess, duration: "6s", needs: []string{"deploy-staging"}},
+		}
+
+		resp.State.Run.Jobs = nil
+		for i, j := range mockJobs {
+			id := runID*1000 + int64(i)
+			resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
+				ID:       id,
+				Link:     jobLink(id),
+				JobID:    j.jobID,
+				Name:     j.name,
+				Status:   j.status.String(),
+				CanRerun: j.jobID == "job-100",
+				Duration: j.duration,
+				Needs:    j.needs,
+			})
+		}
+
+		fillViewRunResponseCurrentJob(ctx, resp)
+		ctx.JSON(http.StatusOK, resp)
+		return
 	}
 
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
@@ -240,7 +398,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Name:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
 		Status:   actions_model.StatusFailure.String(),
 		CanRerun: false,
-		Duration: "3h",
+		Duration: "3h35m10s",
 		Needs:    []string{"job-100", "job-101"},
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
@@ -271,6 +429,139 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		}
 	}
 
+	if runID == 40 {
+		// Reusable workflow caller demo: same-repo caller (with a nested same-repo caller inside),
+		// alongside a flat cross-repo caller.
+		// Layout:
+		//   prepare           (regular, top-level)
+		//   local_caller      (caller, same-repo, expanded)
+		//     ├ lib_step      (regular)
+		//     └ inner_caller  (caller, same-repo nested, expanded)
+		//       └ deep_job    (regular)
+		//   cross_caller      (caller, cross-repo, expanded)
+		//     └ external_job  (regular)
+		//   build (linux|windows|macos)       (regular matrix; graph folds into one "build" node)
+		//   build-call (linux|windows|macos)  (caller matrix, each calls build.yml; folds into one "build-call" node like "build")
+		//   final             (regular, needs local_caller + cross_caller)
+		const (
+			prepareID     = int64(400)
+			localCallerID = int64(401)
+			libStepID     = int64(402)
+			innerCallerID = int64(403)
+			deepJobID     = int64(404)
+			crossCallerID = int64(405)
+			externalJobID = int64(406)
+			finalID       = int64(407)
+
+			// Regular matrix set – the graph already folds these into a single "build" node.
+			buildLinuxID   = int64(410)
+			buildWindowsID = int64(411)
+			buildMacosID   = int64(412)
+
+			// Caller matrix set – each matrix leg calls the same reusable workflow. #38466: like the
+			// regular "build" matrix above, these fold into one "build-call" node. Matrix legs share a
+			// single JobID, so the legs below use JobID "build-call" and differ only by their name suffix.
+			buildCallLinuxID    = int64(420)
+			buildCallWindowsID  = int64(421)
+			buildCallMacosID    = int64(422)
+			buildCallLinuxJobID = int64(423)
+			buildCallWinJobID   = int64(424)
+			buildCallMacJobID   = int64(425)
+		)
+
+		resp.State.Run.Jobs = []*actions.ViewJob{
+			{
+				ID: prepareID, Link: jobLink(prepareID), JobID: "prepare", Name: "prepare",
+				Status: actions_model.StatusSuccess.String(), Duration: "30s",
+			},
+			{
+				ID: localCallerID, Link: jobLink(localCallerID), JobID: "local_caller", Name: "local caller",
+				Status: actions_model.StatusRunning.String(), Duration: "5m",
+				Needs:            []string{"prepare"},
+				IsReusableCaller: true, CallUses: "./.gitea/workflows/lib.yml",
+			},
+			{
+				ID: libStepID, Link: jobLink(libStepID), JobID: "lib_step", Name: "lib step",
+				Status: actions_model.StatusSuccess.String(), Duration: "1m",
+				ParentJobID: localCallerID,
+			},
+			{
+				ID: innerCallerID, Link: jobLink(innerCallerID), JobID: "inner_caller", Name: "inner caller (nested)",
+				Status: actions_model.StatusRunning.String(), Duration: "4m",
+				ParentJobID:      localCallerID,
+				IsReusableCaller: true, CallUses: "./.gitea/workflows/inner.yml",
+			},
+			{
+				ID: deepJobID, Link: jobLink(deepJobID), JobID: "deep_job", Name: "deep job",
+				Status: actions_model.StatusRunning.String(), Duration: "2m",
+				ParentJobID: innerCallerID,
+			},
+			{
+				ID: crossCallerID, Link: jobLink(crossCallerID), JobID: "cross_caller", Name: "cross-repo caller",
+				Status: actions_model.StatusWaiting.String(), Duration: "0s",
+				Needs:            []string{"prepare"},
+				IsReusableCaller: true, CallUses: "user2/lib-repo/.gitea/workflows/external.yml@main",
+			},
+			{
+				ID: externalJobID, Link: jobLink(externalJobID), JobID: "external_job", Name: "external job",
+				Status: actions_model.StatusWaiting.String(), Duration: "0s",
+				ParentJobID: crossCallerID,
+			},
+
+			// Regular matrix "build" – these fold into one matrix node in the graph. The matrix legs
+			// share a single JobID ("build"); the " (variant)" name suffix distinguishes the legs.
+			{
+				ID: buildLinuxID, Link: jobLink(buildLinuxID), JobID: "build", Name: "build (linux)",
+				Status: actions_model.StatusSuccess.String(), Duration: "1m", Needs: []string{"prepare"},
+			},
+			{
+				ID: buildWindowsID, Link: jobLink(buildWindowsID), JobID: "build", Name: "build (windows)",
+				Status: actions_model.StatusSuccess.String(), Duration: "2m", Needs: []string{"prepare"},
+			},
+			{
+				ID: buildMacosID, Link: jobLink(buildMacosID), JobID: "build", Name: "build (macos)",
+				Status: actions_model.StatusSuccess.String(), Duration: "90s", Needs: []string{"prepare"},
+			},
+
+			// Caller matrix "build-call" – each leg calls the same reusable workflow. #38466: like the
+			// regular "build" matrix above, these fold into one node. The matrix legs share a single
+			// JobID ("build-call"); the " (variant)" name suffix distinguishes the legs.
+			{
+				ID: buildCallLinuxID, Link: jobLink(buildCallLinuxID), JobID: "build-call", Name: "build-call (linux)",
+				Status: actions_model.StatusSuccess.String(), Duration: "1m", Needs: []string{"prepare"},
+				IsReusableCaller: true, CallUses: "./.gitea/workflows/build.yml",
+			},
+			{
+				ID: buildCallLinuxJobID, Link: jobLink(buildCallLinuxJobID), JobID: "bc_linux_build", Name: "build",
+				Status: actions_model.StatusSuccess.String(), Duration: "1m", ParentJobID: buildCallLinuxID,
+			},
+			{
+				ID: buildCallWindowsID, Link: jobLink(buildCallWindowsID), JobID: "build-call", Name: "build-call (windows)",
+				Status: actions_model.StatusSuccess.String(), Duration: "2m", Needs: []string{"prepare"},
+				IsReusableCaller: true, CallUses: "./.gitea/workflows/build.yml",
+			},
+			{
+				ID: buildCallWinJobID, Link: jobLink(buildCallWinJobID), JobID: "bc_windows_build", Name: "build",
+				Status: actions_model.StatusSuccess.String(), Duration: "2m", ParentJobID: buildCallWindowsID,
+			},
+			{
+				ID: buildCallMacosID, Link: jobLink(buildCallMacosID), JobID: "build-call", Name: "build-call (macos)",
+				Status: actions_model.StatusSuccess.String(), Duration: "90s", Needs: []string{"prepare"},
+				IsReusableCaller: true, CallUses: "./.gitea/workflows/build.yml",
+			},
+			{
+				ID: buildCallMacJobID, Link: jobLink(buildCallMacJobID), JobID: "bc_macos_build", Name: "build",
+				Status: actions_model.StatusSuccess.String(), Duration: "90s", ParentJobID: buildCallMacosID,
+			},
+
+			{
+				ID: finalID, Link: jobLink(finalID), JobID: "final", Name: "final",
+				Status: actions_model.StatusPending.String(), Duration: "0s",
+				Needs: []string{"local_caller", "cross_caller"},
+			},
+		}
+	}
+
 	fillViewRunResponseCurrentJob(ctx, resp)
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -289,7 +580,7 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 		}
 	}
 
-	req := web.GetForm(ctx).(*actions.ViewRequest)
+	req := web.GetForm[*actions.ViewRequest](ctx)
 	var mockLogOptions []generateMockStepsLogOptions
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 0 (mock slow)",
@@ -338,4 +629,19 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 	} else {
 		time.Sleep(time.Duration(100) * time.Millisecond) // actually, frontend reload every 1 second, any smaller delay is fine
 	}
+}
+
+func MockActionsArtifactPreview(ctx *context.Context) {
+	artifactName := ctx.PathParam("artifact_name")
+	files := mockActionsArtifactFiles[artifactName]
+	runURL := setting.AppSubURL + "/devtest/repo-action-view/runs/10"
+	data := &actions.ArtifactPreviewTemplateData{RunURL: runURL, RunIndex: 10, ArtifactName: artifactName, DownloadURL: runURL + "/artifacts/" + url.PathEscape(artifactName)}
+	link := mockArtifactPreviewLink(artifactName)
+	actions.RenderArtifactPreview(ctx, data, slices.Sorted(maps.Keys(files)), ctx.PathParam("*"), link+"/preview/", link+"/raw/")
+}
+
+func MockActionsArtifactPreviewRaw(ctx *context.Context) {
+	filePath := ctx.PathParam("*")
+	content := mockActionsArtifactFiles[ctx.PathParam("artifact_name")][filePath]
+	actions.ServeArtifactPreviewContent(ctx.Base, filePath, strings.NewReader(content), int64(len(content)))
 }

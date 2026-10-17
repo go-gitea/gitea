@@ -7,10 +7,10 @@ import (
 	"context"
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/renderhelper"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/markup/markdown"
+	"gitea.dev/models/db"
+	"gitea.dev/models/renderhelper"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/markup/markdown"
 
 	"xorm.io/builder"
 )
@@ -79,6 +79,14 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
+	if err := comments.loadResolveDoers(ctx); err != nil {
+		return nil, err
+	}
+
+	if err := comments.loadReactions(ctx, issue.Repo); err != nil {
+		return nil, err
+	}
+
 	// Find all reviews by ReviewID
 	reviews := make(map[int64]*Review)
 	ids := make([]int64, 0, len(comments))
@@ -106,14 +114,6 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		}
 		comments[n] = comment
 		n++
-
-		if err := comment.LoadResolveDoer(ctx); err != nil {
-			return nil, err
-		}
-
-		if err := comment.LoadReactions(ctx, issue.Repo); err != nil {
-			return nil, err
-		}
 
 		var err error
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{

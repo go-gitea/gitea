@@ -12,9 +12,9 @@ import (
 	"net/url"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/setting"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
@@ -40,13 +40,12 @@ type GiteaBackend struct {
 	logger       transfer.Logger
 }
 
-func New(ctx context.Context, repo, op, token string, logger transfer.Logger) (transfer.Backend, error) {
-	// runServ guarantees repo will be in form [owner]/[name].git
+func New(ctx context.Context, reqPath, op, token string, logger transfer.Logger) (transfer.Backend, error) {
 	server, err := url.Parse(setting.LocalURL)
 	if err != nil {
 		return nil, err
 	}
-	server = server.JoinPath("api/internal/repo", repo, "info/lfs")
+	server = server.JoinPath(reqPath)
 	return &GiteaBackend{ctx: ctx, server: server, op: op, authToken: token, internalAuth: "Bearer " + setting.InternalToken, logger: logger}, nil
 }
 

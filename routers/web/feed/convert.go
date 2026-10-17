@@ -12,15 +12,15 @@ import (
 	"strconv"
 	"strings"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 
 	"github.com/gorilla/feeds"
 )
@@ -50,12 +50,13 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 }
 
 // renderCommentMarkdown renders the comment markdown to html
-func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
+func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string, feedExcerpt bool) template.HTML {
 	_ = act.LoadRepo(ctx)
 	if act.Repo == nil {
 		return ""
 	}
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, act.Repo).WithUseAbsoluteLink(true)
+	rctx.RenderOptions.FeedExcerpt = feedExcerpt
 	rendered, err := markdown.RenderString(rctx, content)
 	if err != nil {
 		return ""
@@ -222,12 +223,12 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 
 			case activities_model.ActionCreateIssue, activities_model.ActionCreatePullRequest:
 				desc = strings.Join(act.GetIssueInfos(), "#")
-				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx))
+				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx), false)
 			case activities_model.ActionCommentIssue, activities_model.ActionApprovePullRequest, activities_model.ActionRejectPullRequest, activities_model.ActionCommentPull:
 				desc = act.GetIssueTitle(ctx)
 				comment := act.GetIssueInfos()[1]
 				if len(comment) != 0 {
-					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment))
+					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment, true))
 				}
 			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
@@ -301,7 +302,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 		items = append(items, &feeds.Item{
 			Title:   title,
 			Link:    link,
-			Created: rel.CreatedUnix.AsTime(),
+			Created: rel.PublishedUnix.AsTime(),
 			Author: &feeds.Author{
 				Name:  rel.Publisher.GetDisplayName(),
 				Email: rel.Publisher.GetEmail(),

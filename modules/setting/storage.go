@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 // StorageType is a type of Storage
@@ -104,7 +104,6 @@ func (cfg *S3StorageConfig) ToShadow() {
 	}
 }
 
-// AzureBlobStorageConfig represents the configuration for an Azure Blob storage
 type AzureBlobStorageConfig struct {
 	Endpoint    string `ini:"AZURE_BLOB_ENDPOINT" json:",omitempty"`
 	AccountName string `ini:"AZURE_BLOB_ACCOUNT_NAME" json:",omitempty"`
@@ -150,20 +149,20 @@ func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	storageSec := rootCfg.Section(storageSectionName)
 	migrateDeprecatedStorageConfig(storageSec)
 	// Global Defaults
-	storageSec.Key("STORAGE_TYPE").MustString("local")
-	storageSec.Key("S3_ENDPOINT").MustString("localhost:9000")
-	storageSec.Key("S3_ACCESS_KEY_ID").MustString("")
-	storageSec.Key("S3_SECRET_ACCESS_KEY").MustString("")
-	storageSec.Key("S3_BUCKET").MustString("gitea")
-	storageSec.Key("S3_LOCATION").MustString("us-east-1")
-	storageSec.Key("S3_USE_SSL").MustBool(false)
-	storageSec.Key("S3_INSECURE_SKIP_VERIFY").MustBool(false)
-	storageSec.Key("S3_CHECKSUM_ALGORITHM").MustString("default")
-	storageSec.Key("S3_BUCKET_LOOKUP_TYPE").MustString("auto")
-	storageSec.Key("AZURE_BLOB_ENDPOINT").MustString("")
-	storageSec.Key("AZURE_BLOB_ACCOUNT_NAME").MustString("")
-	storageSec.Key("AZURE_BLOB_ACCOUNT_KEY").MustString("")
-	storageSec.Key("AZURE_BLOB_CONTAINER").MustString("gitea")
+	storageSec.Key("STORAGE_TYPE").MustString("local")            // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_ENDPOINT").MustString("localhost:9000")    // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_ACCESS_KEY_ID").MustString("")             // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_SECRET_ACCESS_KEY").MustString("")         // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_BUCKET").MustString("gitea")               // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_LOCATION").MustString("us-east-1")         // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_USE_SSL").MustBool(false)                  // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_INSECURE_SKIP_VERIFY").MustBool(false)     // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_CHECKSUM_ALGORITHM").MustString("default") // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_BUCKET_LOOKUP_TYPE").MustString("auto")    // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_ENDPOINT").MustString("")          // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_ACCOUNT_NAME").MustString("")      // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_ACCOUNT_KEY").MustString("")       // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_CONTAINER").MustString("gitea")    // FIXME: INI-MUST-SIDE-EFFECT
 	return storageSec
 }
 

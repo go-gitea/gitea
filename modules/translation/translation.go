@@ -10,11 +10,11 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/options"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation/i18n"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/options"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation/i18n"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -25,16 +25,7 @@ type contextKey struct{}
 
 var ContextKey any = &contextKey{}
 
-// Locale represents an interface to translation
-type Locale interface {
-	Language() string
-	TrString(string, ...any) string
-
-	Tr(key string, args ...any) template.HTML
-	TrN(cnt any, key1, keyN string, args ...any) template.HTML
-
-	PrettyNumber(v any) string
-}
+type Locale = i18n.LocaleTranslation
 
 // LangType represents a lang type
 type LangType struct {

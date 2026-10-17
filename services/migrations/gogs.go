@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/modules/log"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/structs"
 
 	"github.com/gogs/go-gogs-client"
 )
@@ -107,11 +107,12 @@ func (g *GogsDownloader) client(ctx context.Context) *gogs.Client {
 	gogsClient := gogs.NewClient(g.baseURL, g.token)
 	gogsClient.SetHTTPClient(&http.Client{
 		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			req = req.Clone(ctx)
 			if g.password != "" {
 				// Gogs client lacks the support for basic auth, this is the only way to set it
 				req.SetBasicAuth(g.userName, g.password)
 			}
-			return httpTransport.RoundTrip(req.WithContext(ctx))
+			return httpTransport.RoundTrip(req)
 		}),
 	})
 	return gogsClient

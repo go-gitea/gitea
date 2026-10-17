@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -160,6 +160,13 @@ func TestFindAllIssueReferences(t *testing.T) {
 			"For 999 #1235 no keyword, but yes",
 			[]testResult{
 				{1235, "", "", "1235", false, XRefActionNone, &RefSpan{Start: 8, End: 13}, nil, ""},
+			},
+		},
+		{
+			"After a long investigation into the root cause, this resolves #1, unlike the still unresolved #2",
+			[]testResult{
+				{1, "", "", "1", false, XRefActionCloses, &RefSpan{Start: 62, End: 64}, &RefSpan{Start: 53, End: 61}, ""},
+				{2, "", "", "2", false, XRefActionNone, &RefSpan{Start: 94, End: 96}, nil, ""},
 			},
 		},
 		{

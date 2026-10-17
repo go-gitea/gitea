@@ -11,9 +11,10 @@ import (
 	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/consts"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 
 	"github.com/kballard/go-shellquote"
 )
@@ -66,7 +67,7 @@ func SetupGiteaTestEnv() {
 		StaticRootPath = giteaRoot
 		// during testing, the AppPath must point to the pre-built Gitea binary in the source root
 		// it needs to be called by git hooks
-		AppPath = filepath.Join(giteaRoot, "gitea") + util.Iif(IsWindows, ".exe", "")
+		AppPath = filepath.Join(giteaRoot, "gitea") + util.Iif(consts.IsWindows, ".exe", "")
 	}
 
 	initGiteaConf := func() string {
@@ -120,6 +121,8 @@ func SetupGiteaTestEnv() {
 	if RepoRootPath == "" || AppDataPath == "" {
 		panic("SetupGiteaTestEnv failed, paths are not initialized")
 	}
+
+	SSH.RootPath = AppDataTempDir("ssh").JoinPath() // prevent tests from writing into ~/.ssh
 
 	// TODO: some git repo hooks (test fixtures) still use these env variables, need to be refactored in the future
 	_ = os.Setenv("GITEA_ROOT", giteaRoot)

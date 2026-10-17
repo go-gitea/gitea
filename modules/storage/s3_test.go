@@ -4,111 +4,43 @@
 package storage
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
-	"github.com/minio/minio-go/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestS3Storage(t *testing.T) {
-	endpoint := test.ExternalServiceHTTP(t, "TEST_S3_ENDPOINT", "s3:9000")
-	storageType := setting.S3StorageType
-	config := &setting.Storage{
+func prepareS3StorageConfig(t *testing.T, basePath string) *setting.Storage {
+	return &setting.Storage{
 		S3Config: setting.S3StorageConfig{
-			Endpoint:        endpoint,
+			Endpoint:        test.ExternalServiceHTTP(t, "TEST_S3_ENDPOINT", "s3:9000"),
 			AccessKeyID:     "123456",
 			SecretAccessKey: "12345678",
 			Bucket:          "gitea",
 			Location:        "us-east-1",
+			BasePath:        basePath,
 		},
-	}
-	table := []struct {
-		name string
-		test func(t *testing.T, typStr Type, cfg *setting.Storage)
-	}{
-		{
-			name: "iterator",
-			test: testStorageIterator,
-		},
-		{
-			name: "testBlobStorageURLContentTypeAndDisposition",
-			test: testBlobStorageURLContentTypeAndDisposition,
-		},
-	}
-	for _, entry := range table {
-		t.Run(entry.name, func(t *testing.T) {
-			entry.test(t, storageType, config)
-		})
 	}
 }
 
-func TestS3StoragePath(t *testing.T) {
-	m := &S3Storage{basePath: ""}
-	assert.Empty(t, m.buildS3Path("/"))
-	assert.Empty(t, m.buildS3Path("."))
-	assert.Equal(t, "a", m.buildS3Path("/a"))
-	assert.Equal(t, "a/b", m.buildS3Path("/a/b/"))
-	assert.Empty(t, m.buildS3DirPrefix(""))
-	assert.Equal(t, "a/", m.buildS3DirPrefix("/a/"))
-
-	m = &S3Storage{basePath: "/"}
-	assert.Empty(t, m.buildS3Path("/"))
-	assert.Empty(t, m.buildS3Path("."))
-	assert.Equal(t, "a", m.buildS3Path("/a"))
-	assert.Equal(t, "a/b", m.buildS3Path("/a/b/"))
-	assert.Empty(t, m.buildS3DirPrefix(""))
-	assert.Equal(t, "a/", m.buildS3DirPrefix("/a/"))
-
-	m = &S3Storage{basePath: "/base"}
-	assert.Equal(t, "base", m.buildS3Path("/"))
-	assert.Equal(t, "base", m.buildS3Path("."))
-	assert.Equal(t, "base/a", m.buildS3Path("/a"))
-	assert.Equal(t, "base/a/b", m.buildS3Path("/a/b/"))
-	assert.Equal(t, "base/", m.buildS3DirPrefix(""))
-	assert.Equal(t, "base/a/", m.buildS3DirPrefix("/a/"))
-
-	m = &S3Storage{basePath: "/base/"}
-	assert.Equal(t, "base", m.buildS3Path("/"))
-	assert.Equal(t, "base", m.buildS3Path("."))
-	assert.Equal(t, "base/a", m.buildS3Path("/a"))
-	assert.Equal(t, "base/a/b", m.buildS3Path("/a/b/"))
-	assert.Equal(t, "base/", m.buildS3DirPrefix(""))
-	assert.Equal(t, "base/a/", m.buildS3DirPrefix("/a/"))
+func TestS3Storage(t *testing.T) {
+	for _, basePath := range []string{"", "test-base-path"} {
+		objStore, err := NewStorage(setting.S3StorageType, prepareS3StorageConfig(t, basePath))
+		require.NoError(t, err)
+		testStorageGeneral(t, objStore)
+	}
 }
 
 func TestS3StorageBadRequest(t *testing.T) {
-	if os.Getenv("CI") == "" {
-		t.Skip("S3Storage not present outside of CI")
-		return
-	}
-	cfg := &setting.Storage{
-		S3Config: setting.S3StorageConfig{
-			Endpoint:        "s3:9000",
-			AccessKeyID:     "123456",
-			SecretAccessKey: "12345678",
-			Bucket:          "bucket",
-			Location:        "us-east-1",
-		},
-	}
-	message := "ERROR"
-	old := getBucketVersioning
-	defer func() { getBucketVersioning = old }()
-	getBucketVersioning = func(ctx context.Context, s3Client *minio.Client, bucket string) error {
-		return minio.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Code:       "FixtureError",
-			Message:    message,
-		}
-	}
+	cfg := prepareS3StorageConfig(t, "")
+	cfg.S3Config.SecretAccessKey = "invalid-secret"
 	_, err := NewStorage(setting.S3StorageType, cfg)
-	assert.ErrorContains(t, err, message)
+	assert.ErrorContains(t, err, "ObjectStorage.BucketExists: endpoint="+cfg.S3Config.Endpoint)
 }
 
 func TestS3Credentials(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 // Reference: https://github.com/gobwas/glob/blob/master/glob.go
@@ -177,7 +177,7 @@ func initGlobCompiler(g *globCompiler, pattern string, separators []rune) (Glob,
 
 	regex, err := regexp.Compile(g.regexpPattern)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile regexp: %w", err)
+		return nil, fmt.Errorf("failed to compile glob regexp: %w", err)
 	}
 
 	g.regexp = regex

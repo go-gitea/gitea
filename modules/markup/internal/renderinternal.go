@@ -4,15 +4,14 @@
 package internal
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"html/template"
 	"io"
 	"regexp"
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/htmlutil"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/net/html"
 )
@@ -30,12 +29,7 @@ type RenderInternal struct {
 }
 
 func (r *RenderInternal) Init(output io.Writer, extraHeadHTML template.HTML) io.WriteCloser {
-	buf := make([]byte, 12)
-	_, err := rand.Read(buf)
-	if err != nil {
-		panic("unable to generate secure id")
-	}
-	return r.init(base64.URLEncoding.EncodeToString(buf), output, extraHeadHTML)
+	return r.init(util.FastCryptoRandomHex(16), output, extraHeadHTML)
 }
 
 func (r *RenderInternal) init(secID string, output io.Writer, extraHeadHTML template.HTML) io.WriteCloser {
