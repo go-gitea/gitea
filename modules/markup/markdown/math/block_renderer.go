@@ -17,8 +17,8 @@ import (
 // Block render output:
 // 	<pre class="code-block is-loading"><code class="language-math">...</code></pre>
 //
-// Keep in mind that there is another "code block" render in "func (r *GoldmarkRender) highlightingRenderer"
-// "highlightingRenderer" outputs the math block with extra "chroma" class:
+// Keep in mind that there is another "code block" render in "func (r *HTMLRenderer) renderCodeBlock"
+// "renderCodeBlock" outputs the math block with extra "chroma" class:
 // 	<pre class="code-block is-loading"><code class="chroma language-math">...</code></pre>
 //
 // Special classes:
