@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
@@ -11,6 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -203,13 +205,13 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 		return
 	}
 
-	assigneeIDs, err := user_model.GetUserIDsByNames(ctx, opts.Assignees, false)
+	assigneeIDs, err := user_model.GetDoerUserIDsByNames(ctx, opts.Assignees)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-			return
+		} else {
+			ctx.APIErrorAuto(err)
 		}
-		ctx.APIErrorAuto(err)
 		return
 	}
 

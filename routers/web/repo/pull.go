@@ -438,7 +438,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	// so the status-check section must render when there are any required contexts, not only when enableStatusCheck is on.
 	data.ShowStatusCheck = data.enableStatusCheck || data.hasRequiredStatusContexts || len(statusCheckData.PullCommitStatuses) > 0
 
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, ctx.Repo.Repository.ID, commitStatuses)
 	if err != nil {
 		log.Error("GetRunsFromCommitStatuses: %v", err)
 	}

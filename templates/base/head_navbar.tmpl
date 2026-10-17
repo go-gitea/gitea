@@ -39,8 +39,8 @@
 	<div class="navbar-list navbar-right">
 		{{if and .IsSigned .MustChangePassword}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text">
-					{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-1"}}
+				<span class="flex-text-block">
+					{{ctx.AvatarUtils.Avatar .SignedUser 24}}
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 				</span>

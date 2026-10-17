@@ -77,7 +77,7 @@ function initRepoDiffConversationForm() {
 
       // the default behavior is to add a pending review, so if no submitter, it also means "pending_review"
       if (!submitter || submitter?.matches('button[name="pending_review"]')) {
-        const reviewBox = document.querySelector('#review-box')!;
+        const reviewBox = document.querySelector('.review-box-button')!;
         const counter = reviewBox?.querySelector('.review-comments-counter');
         if (!counter) return;
         const num = parseInt(counter.getAttribute('data-pending-comment-number')!) + 1 || 1;
