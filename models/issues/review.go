@@ -584,12 +584,14 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 	return review, comm, committer.Commit()
 }
 
-// GetReviewByIssueIDAndUserID get the latest review of reviewer for a pull request
-func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*Review, error) {
+// getLatestReviewByIssueIDAndUserIDOfTypes returns the reviewer's latest review (highest ID)
+// among the given types, for the same issue/reviewer, ignoring reviews left by another
+// original author.
+func getLatestReviewByIssueIDAndUserIDOfTypes(ctx context.Context, issueID, userID int64, types ...ReviewType) (*Review, error) {
 	review := new(Review)
 
 	has, err := db.GetEngine(ctx).Where(
-		builder.In("type", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+		builder.In("type", types).
 			And(builder.Eq{"issue_id": issueID, "reviewer_id": userID, "original_author_id": 0})).
 		Desc("id").
 		Get(review)
@@ -602,6 +604,11 @@ func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*R
 	}
 
 	return review, nil
+}
+
+// GetReviewByIssueIDAndUserID get the latest review of reviewer for a pull request
+func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*Review, error) {
+	return getLatestReviewByIssueIDAndUserIDOfTypes(ctx, issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest)
 }
 
 // GetTeamReviewerByIssueIDAndTeamID get the latest review request of reviewer team for a pull request
@@ -700,17 +707,43 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
 		sess := db.GetEngine(ctx)
 
-		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
+		// A stale ReviewTypeRequest row can survive alongside a newer ReviewTypeComment
+		// row (e.g. legacy data imported via InsertReviews, which skips the usual
+		// CreateReview cleanup of stale request rows). Widen the lookup to ReviewTypeComment
+		// only to decide idempotency, so such a stale request row doesn't shadow the newer
+		// comment and silently no-op a genuine re-request.
+		latestMeaningfulReview, err := getLatestReviewByIssueIDAndUserIDOfTypes(ctx, issue.ID, reviewer.ID,
+			ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, ReviewTypeComment)
 		if err != nil && !IsErrReviewNotExist(err) {
 			return nil, err
 		}
 
-		if review != nil {
+		if latestMeaningfulReview != nil && latestMeaningfulReview.Type == ReviewTypeRequest {
 			// skip it when reviewer has been request to review
-			if review.Type == ReviewTypeRequest {
-				return nil, nil // still commit the transaction, or committer.Close() will rollback it, even if it's a reused transaction.
-			}
+			return nil, nil // still commit the transaction, or committer.Close() will rollback it, even if it's a reused transaction.
+		}
 
+		// The closed/merged PR guard must keep its original scope: it only ever applied
+		// when the reviewer already had an approve/reject/request review, never for a
+		// reviewer whose only history is a comment. latestMeaningfulReview already answers
+		// that question except when it's a comment, which may be shadowing an older
+		// approve/reject/request review; only then fall back to the narrower, unwidened
+		// lookup, so that scope is preserved exactly.
+		var existingReview *Review
+		switch {
+		case latestMeaningfulReview == nil:
+			// no approve/reject/request/comment review on record at all
+		case latestMeaningfulReview.Type == ReviewTypeComment:
+			existingReview, err = GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
+			if err != nil && !IsErrReviewNotExist(err) {
+				return nil, err
+			}
+		default:
+			// ReviewTypeApprove or ReviewTypeReject: also the latest approve/reject/request review
+			existingReview = latestMeaningfulReview
+		}
+
+		if existingReview != nil {
 			if issue.IsClosed {
 				return nil, ErrReviewRequestOnClosedPR{}
 			}
@@ -736,7 +769,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 			}
 		}
 
-		review, err = CreateReview(ctx, CreateReviewOptions{
+		review, err := CreateReview(ctx, CreateReviewOptions{
 			Type:     ReviewTypeRequest,
 			Issue:    issue,
 			Reviewer: reviewer,
