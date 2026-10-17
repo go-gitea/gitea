@@ -1,1 +1,0 @@
-{"name":"CSV","flags":"m","ensureNL":false,"rules":{"root":[["\\r?\\n","p",null],[",","p",null],["\"","s2",{"push":["escaped"]}],["[^\\r\\n,]+","s",null]],"escaped":[["\"\"","se",null],["\"","s2",{"pop":1}],["[^\"]+","s2",null]]}}

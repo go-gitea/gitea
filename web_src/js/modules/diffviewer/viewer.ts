@@ -1,4 +1,4 @@
-import {Virtualizer, observeWindowOffset, observeWindowRect, windowScroll} from '@tanstack/virtual-core';
+import {Virtualizer, measureElement, observeWindowOffset, observeWindowRect, windowScroll} from '@tanstack/virtual-core';
 import {watch} from 'vue';
 import {POST} from '../fetch.ts';
 import {trN, trString} from '../i18n.ts';
@@ -656,6 +656,11 @@ export class DiffViewer {
       scrollToFn: windowScroll,
       scrollMargin: this.list.getBoundingClientRect().top + window.scrollY,
       scrollPaddingStart: stickyTopHeight,
+      // the synchronous measurement on mount would force a layout per file, the ResizeObserver delivers the size after the regular one
+      measureElement: (el, entry, instance) => {
+        if (entry) return measureElement(el, entry, instance);
+        return instance.itemSizeCache.get(instance.options.getItemKey(instance.indexFromElement(el))) ?? this.estimateHeight(this.entriesByElement.get(el)!);
+      },
       overscan: 3,
       gap: 8,
       onChange: () => this.queueMount(),

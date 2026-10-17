@@ -11,7 +11,7 @@ type IndexEntry = {name: string; file: string; aliases?: string[]; filenames?: s
 type LexerEntry = IndexEntry & {patterns: RegExp[]; patternsIgnoreCase: RegExp[]};
 type Rule = {re: RegExp | null; emitter: Emitter; mutator: Mutator};
 
-const lexerFiles = import.meta.glob<LexerFile>('../../../../assets/chroma-lexers/*.json', {import: 'default'});
+const lexerFiles = import.meta.glob<LexerFile>('./chroma-lexers/*.json', {import: 'default'});
 const maxZeroLengthMatches = 100;
 const tokenizeTimeBudget = 1000; // ms, JavaScript has no match timeout like regexp2, slow patterns must not block the page
 
@@ -259,7 +259,7 @@ const loadedLexers = new Map<string, ChromaLexer>(); // by lower-case name and a
 
 function loadIndex(): Promise<LexerEntry[]> {
   indexPromise ??= (async () => {
-    const index: IndexEntry[] = (await import('../../../../assets/chroma-lexers/index.json')).default;
+    const index: IndexEntry[] = (await import('./chroma-lexers/index.json')).default;
     return index.map((entry) => {
       const patterns = (entry.filenames ?? []).map((glob) => globCompile(glob).regexp);
       return {...entry, patterns, patternsIgnoreCase: patterns.map((re) => new RegExp(re.source, 'i'))};
@@ -277,7 +277,7 @@ async function loadLexer(index: LexerEntry[], entry: LexerEntry): Promise<Chroma
   let promise = lexers.get(entry.name);
   if (!promise) {
     promise = (async () => {
-      const load = lexerFiles[`../../../../assets/chroma-lexers/${entry.file}.json`];
+      const load = lexerFiles[`./chroma-lexers/${entry.file}.json`];
       if (!load) return null;
       const file = await load();
       // the lexers it delegates to have to be ready, because tokenizing is synchronous

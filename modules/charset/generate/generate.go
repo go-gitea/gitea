@@ -124,7 +124,7 @@ func generateFrontend(tables []*AmbiguousTable, invisible []rune) {
 	if err != nil {
 		log.Fatalf("Unable to marshal the frontend tables: %v", err)
 	}
-	if err := os.WriteFile("../../../assets/unicode-escape.json", append(bs, '\n'), 0o644); err != nil {
+	if err := os.WriteFile("../../../web_src/js/modules/diffviewer/unicode-escape.json", append(bs, '\n'), 0o644); err != nil {
 		log.Fatalf("Unable to write the frontend tables: %v", err)
 	}
 }

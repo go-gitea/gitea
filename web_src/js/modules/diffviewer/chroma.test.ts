@@ -1,6 +1,6 @@
 import {ChromaLexer, loadChromaLexer, translatePattern} from './chroma.ts';
 
-const lexerFiles = import.meta.glob<ConstructorParameters<typeof ChromaLexer>[0]>(['../../../../assets/chroma-lexers/*.json', '!**/index.json'], {import: 'default', eager: true});
+const lexerFiles = import.meta.glob<ConstructorParameters<typeof ChromaLexer>[0]>(['./chroma-lexers/*.json', '!**/index.json'], {import: 'default', eager: true});
 
 test('all lexers compile', () => {
   let rules = 0;

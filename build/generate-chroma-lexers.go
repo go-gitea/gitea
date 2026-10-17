@@ -23,7 +23,7 @@ import (
 // The client-side diff viewer highlights the languages without a CodeMirror grammar with chroma's regex lexers,
 // see web_src/js/modules/diffviewer/chroma.ts for the format.
 const (
-	outputDir              = "assets/chroma-lexers"
+	outputDir              = "web_src/js/modules/diffviewer/chroma-lexers"
 	codemirrorLanguageFile = "assets/codemirror-languages.json"
 )
 
@@ -260,7 +260,7 @@ func main() {
 	for name := range wanted {
 		file := converted[name]
 		entry := lexerIndexEntry{Name: name, File: fileName(name), Aliases: file.config.Aliases, Filenames: append(slices.Clone(file.config.Filenames), file.config.AliasFilenames...)}
-		data, err := json.Marshal(file)
+		data, err := json.MarshalDeterministic(file)
 		if err != nil {
 			log.Fatalf("Unable to marshal %s: %v", name, err)
 		}

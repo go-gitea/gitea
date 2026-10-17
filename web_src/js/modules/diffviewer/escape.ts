@@ -42,7 +42,7 @@ function ambiguousTable(data: EscapeData, lang: string): Map<number, number> {
 
 export function loadEscapeTables(lang: string): Promise<EscapeTables> {
   tablesPromise ??= (async () => {
-    const {default: data} = await import('../../../../assets/unicode-escape.json') as {default: EscapeData};
+    const {default: data} = await import('./unicode-escape.json') as {default: EscapeData};
     return {invisible: new Set(data.invisible), ambiguous: ambiguousTable(data, lang)};
   })();
   return tablesPromise;
