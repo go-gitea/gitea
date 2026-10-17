@@ -8,13 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // ErrDuplicatePackageVersion indicates a duplicated package version error
@@ -165,9 +164,7 @@ func DeleteVersionsByPackageID(ctx context.Context, packageID int64) error {
 
 // HasVersionFileReferences checks if there are associated files
 func HasVersionFileReferences(ctx context.Context, versionID int64) (bool, error) {
-	return db.GetEngine(ctx).Get(&PackageFile{
-		VersionID: versionID,
-	})
+	return db.Exist[PackageFile](ctx, builder.Eq{"version_id": versionID})
 }
 
 // SearchValue describes a value to search
@@ -297,11 +294,11 @@ func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
 	e.Desc("package_version.id") // Sort by id for stable order with duplicates in the other field
 }
 
-func searchVersionsBySession(sess *xorm.Session, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
+func searchVersionsBySession(sess db.Session, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
 	opts.configureOrderBy(sess)
 	pvs := make([]*PackageVersion, 0, 10)
 	if opts.Paginator != nil {
-		sess = db.SetSessionPagination(sess, opts.Paginator)
+		db.SetSessionPagination(sess, opts.Paginator)
 		count, err := sess.FindAndCount(&pvs)
 		return pvs, count, err
 	}

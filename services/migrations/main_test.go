@@ -8,13 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/unittest"
-	base "code.gitea.io/gitea/modules/migration"
+	"gitea.dev/models/unittest"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
+	setting.Migrations.AllowedHostList = "private:*, loopback:*"
 	unittest.MainTest(m)
 }
 
@@ -210,6 +212,7 @@ func assertRepositoryEqual(t *testing.T, expected, actual *base.Repository) {
 	assert.Equal(t, expected.IsPrivate, actual.IsPrivate)
 	assert.Equal(t, expected.IsMirror, actual.IsMirror)
 	assert.Equal(t, expected.Description, actual.Description)
+	assert.Equal(t, expected.Website, actual.Website)
 	assert.Equal(t, expected.CloneURL, actual.CloneURL)
 	assert.Equal(t, expected.OriginalURL, actual.OriginalURL)
 	assert.Equal(t, expected.DefaultBranch, actual.DefaultBranch)

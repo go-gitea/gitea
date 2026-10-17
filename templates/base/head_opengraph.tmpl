@@ -18,8 +18,7 @@
 		<meta property="og:title" content="{{.Title}}">
 		<meta property="og:url" content="{{ctx.AppFullLink $.Link}}">
 		{{if and .PageIsDiff .Commit}}
-			{{- $commitMessageParts := StringUtils.Cut .Commit.Message "\n" -}}
-			{{- $commitMessageBody := index $commitMessageParts 1 -}}
+			{{- $commitMessageBody := .Commit.MessageBody -}}
 			{{- if $commitMessageBody -}}
 				<meta property="og:description" content="{{StringUtils.EllipsisString $commitMessageBody 300}}">
 			{{- end -}}

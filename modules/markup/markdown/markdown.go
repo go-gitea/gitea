@@ -6,17 +6,21 @@ package markdown
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"html/template"
 	"io"
+	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/common"
-	"code.gitea.io/gitea/modules/markup/markdown/math"
-	"code.gitea.io/gitea/modules/setting"
-	giteautil "code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/highlight"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/common"
+	"gitea.dev/modules/markup/markdown/math"
+	"gitea.dev/modules/setting"
+	giteautil "gitea.dev/modules/util"
 
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/yuin/goldmark"
@@ -64,30 +68,21 @@ func newParserContext(ctx *markup.RenderContext) parser.Context {
 	return pc
 }
 
-type GlodmarkRender struct {
+type GoldmarkRender struct {
 	ctx *markup.RenderContext
 
 	goldmarkMarkdown goldmark.Markdown
 }
 
-func (r *GlodmarkRender) Convert(source []byte, writer io.Writer, opts ...parser.ParseOption) error {
+func (r *GoldmarkRender) Convert(source []byte, writer io.Writer, opts ...parser.ParseOption) error {
 	return r.goldmarkMarkdown.Convert(source, writer, opts...)
 }
 
-func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
+func (r *GoldmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
 	if entering {
 		languageBytes, _ := c.Language()
-		languageStr := giteautil.IfZero(string(languageBytes), "text")
-
-		preClasses := "code-block"
-		if languageStr == "mermaid" || languageStr == "math" {
-			preClasses += " is-loading"
-		}
-
-		// include language-x class as part of commonmark spec, "chroma" class is used to highlight the code
-		// the "display" class is used by "js/markup/math.ts" to render the code element as a block
-		// the "math.ts" strictly depends on the structure: <pre class="code-block is-loading"><code class="language-math display">...</code></pre>
-		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre class="%s"><code class="chroma language-%s display">`, preClasses, languageStr)
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes(string(languageBytes))
+		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs)
 		if err != nil {
 			return
 		}
@@ -135,10 +130,10 @@ func goldmarkDefaultParser() parser.Parser {
 }
 
 // SpecializedMarkdown sets up the Gitea specific markdown extensions
-func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
+func SpecializedMarkdown(ctx *markup.RenderContext) *GoldmarkRender {
 	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
 	// at the moment it is fast enough (see the benchmarks)
-	r := &GlodmarkRender{ctx: ctx}
+	r := &GoldmarkRender{ctx: ctx}
 	r.goldmarkMarkdown = goldmark.New(
 		goldmark.WithParser(goldmarkDefaultParser()),
 		goldmark.WithExtensions(
@@ -266,9 +261,47 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 func RenderString(ctx *markup.RenderContext, content string) (template.HTML, error) {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
-		return "", err
+		log.Warn("Unable to RenderString: %v, content: %s", err, giteautil.TruncateRunes(content, 200))
+		err = nil
+		return htmlutil.EscapeString(content), err
 	}
 	return template.HTML(buf.String()), nil
+}
+
+// FeedExcerpt returns the source of the prose rendered by a feed excerpt, truncated outside of inline markup.
+func FeedExcerpt(ctx context.Context, content string) string {
+	rctx := markup.NewRenderContext(ctx)
+	rctx.RenderOptions.FeedExcerpt = true
+	pc := newParserContext(rctx)
+	pc.Set(renderConfigKey, &RenderConfig{})
+	start, texts := len(content), []text.Segment(nil)
+	_ = ast.Walk(SpecializedMarkdown(rctx).goldmarkMarkdown.Parser().Parse(text.NewReader([]byte(content)), parser.WithContext(pc)), func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if entering && node.Type() == ast.TypeBlock && node.Lines().Len() > 0 {
+			start = min(start, strings.LastIndexByte(content[:node.Lines().At(0).Start], '\n')+1)
+		} else if textNode, ok := node.(*ast.Text); ok && entering && node.Parent().Type() == ast.TypeBlock {
+			texts = append(texts, textNode.Segment)
+		}
+		return ast.WalkContinue, nil
+	})
+
+	excerpt := giteautil.EllipsisDisplayString(content[start:], 200)
+	kept, ok := strings.CutSuffix(excerpt, "…")
+	if excerpt == content[start:] || !ok {
+		return excerpt
+	}
+	end := start + len(kept)
+	for _, segment := range slices.Backward(texts) {
+		if segment.Start < end {
+			end = min(end, segment.Stop)
+			break
+		}
+	}
+	excerpt = content[start:end]
+	// in case the content is in a Latin family language, we remove the last broken word.
+	if lastSpaceIdx := strings.LastIndexByte(excerpt, ' '); lastSpaceIdx != -1 && len(excerpt)-lastSpaceIdx+len("…") < 15 {
+		excerpt = excerpt[:lastSpaceIdx]
+	}
+	return excerpt + "…"
 }
 
 // RenderRaw renders Markdown to HTML without handling special links.

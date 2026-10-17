@@ -11,19 +11,19 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/auth/source/ldap"
-	org_service "code.gitea.io/gitea/services/org"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/auth"
+	"gitea.dev/services/auth/source/ldap"
+	org_service "gitea.dev/services/org"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -228,7 +228,7 @@ func testLDAPAuthChange(t *testing.T) {
 	bindDN, _ := doc.Find(`input[name="bind_dn"]`).Attr("value")
 	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", bindDN)
 
-	req = NewRequestWithValues(t, "POST", hrefAuthSource, te.buildAuthSourcePayload(map[string]string{"group_team_map_removal": "off"}))
+	req = NewRequestWithValues(t, "POST", hrefAuthSource, te.buildAuthSourcePayload(map[string]string{"group_team_map_removal": ""}))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	req = NewRequest(t, "GET", hrefAuthSource)
@@ -352,7 +352,8 @@ func testLDAPUserSyncWithGroupFilter(t *testing.T) {
 	ldapSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{
 		Name: "ldap",
 	})
-	ldapConfig := ldapSource.Cfg.(*ldap.Source)
+	ldapConfig, ok := ldapSource.Cfg.(*ldap.Source)
+	require.True(t, ok)
 	ldapConfig.GroupFilter = "(cn=ship_crew)"
 	require.NoError(t, auth_model.UpdateSource(t.Context(), ldapSource))
 
@@ -395,7 +396,7 @@ func testLDAPUserSyncSSHKeys(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		divs := htmlDoc.doc.Find("#keys-ssh .flex-item .flex-item-body:not(:last-child)")
+		divs := htmlDoc.doc.Find("#keys-ssh .item .item-body:not(:last-child)")
 		syncedKeys := make([]string, divs.Length())
 		for i := 0; i < divs.Length(); i++ {
 			syncedKeys[i] = strings.TrimSpace(divs.Eq(i).Text())
@@ -491,7 +492,7 @@ func testLDAPPreventInvalidGroupTeamMap(t *testing.T) {
 	te := prepareLdapTestServerEnv()
 
 	session := loginUser(t, "user1")
-	payload := te.buildAuthSourcePayload(map[string]string{"group_team_map": `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "group_team_map_removal": "off"})
+	payload := te.buildAuthSourcePayload(map[string]string{"group_team_map": `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "group_team_map_removal": ""})
 	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", payload)
 	session.MakeRequest(t, req, http.StatusOK) // StatusOK = failed, StatusSeeOther = ok
 }
@@ -508,7 +509,6 @@ func testLDAPEmailSignin(t *testing.T) {
 			},
 		},
 		serverHost: "mock-host",
-		serverPort: "mock-port",
 	}
 	defer test.MockVariableValue(&ldap.MockedSearchEntry, func(source *ldap.Source, name, passwd string, directBind bool) *ldap.SearchResult {
 		var u *ldapUser

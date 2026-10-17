@@ -1,5 +1,5 @@
 <div class="ui small secondary filter menu">
-	<form id="repo-search-form" class="ui form ignore-dirty tw-flex-1 tw-flex tw-items-center tw-gap-x-2">
+	<form class="ui form ignore-dirty tw-w-full flex-text-block tw-flex-wrap" data-global-init="initRepositorySearch">
 		{{if .Language}}<input type="hidden" name="language" value="{{.Language}}">{{end}}
 		{{if .PageIsExploreRepositories}}<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">{{end}}
 		{{if .TabName}}<input type="hidden" name="tab" value="{{.TabName}}">{{end}}
@@ -9,11 +9,11 @@
 			{{template "shared/search/button"}}
 		</div>
 		<!-- Filter -->
-		<div class="item ui small dropdown jump">
-			<span class="text">{{ctx.Locale.Tr "filter_title"}}</span>
+		<div class="item ui small dropdown">
+			<span>{{ctx.Locale.Tr "filter_title"}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu flex-items-menu">
-				<label class="item"><input type="radio" name="clear-filter"> {{ctx.Locale.Tr "filter.clear"}}</label>
+				<label class="item repo-search-filter-reset js-aria-clickable">{{ctx.Locale.Tr "filter.clear"}}</label>
 				<div class="divider"></div>
 				<label class="item"><input type="radio" name="archived" {{if .IsArchived.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
 				<label class="item"><input type="radio" name="archived" {{if (not (.IsArchived.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_archived"}}</label>
@@ -32,8 +32,8 @@
 			</div>
 		</div>
 		<!-- Sort -->
-		<div class="item ui small dropdown jump">
-			<span class="text">{{ctx.Locale.Tr "repo.issues.filter_sort"}}</span>
+		<div class="item ui small dropdown">
+			<span>{{ctx.Locale.Tr "repo.issues.filter_sort"}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
 				<label class="{{if eq .SortType "newest"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "newest"}}checked{{end}} value="newest"> {{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</label>
@@ -61,4 +61,3 @@
 		</span>
 	</div>
 {{end}}
-<div class="divider"></div>

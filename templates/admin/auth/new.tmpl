@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin new authentication")}}
+{{template "admin/layout_head" (dict "pageClass" "admin new authentication")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.auths.new"}}
@@ -72,7 +72,7 @@
 				</div>
 
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "admin.auths.new"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "admin.auths.new"}}</button>
 				</div>
 			</form>
 		</div>

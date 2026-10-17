@@ -7,6 +7,8 @@ import (
 	"io"
 	"testing"
 
+	"gitea.dev/modules/test"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,6 +41,7 @@ func (doc *HTMLDoc) Find(selector string) *goquery.Selection {
 
 // AssertHTMLElement check if the element by selector exists or does not exist depending on checkExists
 func AssertHTMLElement[T int | bool](t testing.TB, doc *HTMLDoc, selector string, checkExists T) {
+	t.Helper()
 	sel := doc.doc.Find(selector)
 	switch v := any(checkExists).(type) {
 	case bool:
@@ -46,4 +49,14 @@ func AssertHTMLElement[T int | bool](t testing.TB, doc *HTMLDoc, selector string
 	case int:
 		assert.Equal(t, v, sel.Length())
 	}
+}
+
+func assertHTMLEq(t testing.TB, expected, actual string) {
+	t.Helper()
+	if expected == actual { // fast path
+		return
+	}
+	exp := test.NormalizeHTMLAttributes(t, expected)
+	act := test.NormalizeHTMLAttributes(t, actual)
+	assert.Equal(t, exp, act)
 }

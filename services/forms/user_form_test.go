@@ -6,9 +6,9 @@ package forms
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -46,6 +46,7 @@ func TestRegisterForm_IsDomainAllowed_AllowedEmail(t *testing.T) {
 	}{
 		{"security@gitea.io", true},
 		{"security@gITea.io", true},
+		{"hack%evil.example@gitea.io", false},
 		{"invalid", false},
 		{"seee@example.com", false},
 
@@ -69,6 +70,7 @@ func TestRegisterForm_IsDomainAllowed_BlockedEmail(t *testing.T) {
 	}{
 		{"security@gitea.io", false},
 		{"security@gitea.example", true},
+		{"gitea.io!hack@gitea.example", false},
 		{"invalid", true},
 
 		{"user@my.block", false},

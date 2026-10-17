@@ -6,10 +6,34 @@ package convert
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/perm"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
+	"gitea.dev/models/perm"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
+
+func UserTypeToString(t user_model.UserType) api.UserTypeString {
+	switch t {
+	case user_model.UserTypeOrganization, user_model.UserTypeOrganizationReserved:
+		return api.UserTypeStringOrganization
+	case user_model.UserTypeBot:
+		return api.UserTypeStringBot
+	default:
+		return api.UserTypeStringUser
+	}
+}
+
+// UserTypeFromString parses a user type an admin may create or convert to
+func UserTypeFromString(s api.UserTypeString) (user_model.UserType, error) {
+	switch s {
+	case api.UserTypeStringUser:
+		return user_model.UserTypeIndividual, nil
+	case api.UserTypeStringBot:
+		return user_model.UserTypeBot, nil
+	default:
+		return 0, util.NewInvalidArgumentErrorf("invalid user type %q (expected %s, %s)", s, api.UserTypeStringUser, api.UserTypeStringBot)
+	}
+}
 
 // ToUser convert user_model.User to api.User
 // if doer is set, private information is added if the doer has the permission to see it
@@ -50,6 +74,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
+		Type:        UserTypeToString(user.Type),
 		FullName:    user.FullName,
 		Email:       user.GetPlaceholderEmail(),
 		AvatarURL:   user.AvatarLink(ctx),
@@ -65,7 +90,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 		StarredRepos: user.NumStars,
 	}
 
-	result.Visibility = user.Visibility.String()
+	result.Visibility = api.VisibilityString(user.Visibility.String())
 
 	// hide primary email if API caller is anonymous or user keep email private
 	if signed && (!user.KeepEmailPrivate || authed) {
@@ -104,7 +129,7 @@ func User2UserSettings(user *user_model.User) api.UserSettings {
 func ToUserAndPermission(ctx context.Context, user, doer *user_model.User, accessMode perm.AccessMode) api.RepoCollaboratorPermission {
 	return api.RepoCollaboratorPermission{
 		User:       ToUser(ctx, user, doer),
-		Permission: accessMode.ToString(),
+		Permission: api.AccessLevelName(accessMode.ToString()),
 		RoleName:   accessMode.ToString(),
 	}
 }

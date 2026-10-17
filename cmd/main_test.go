@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
+	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v3"
@@ -41,4 +41,5 @@ func TestDefaultCommand(t *testing.T) {
 	test(t, []string{"./gitea"}, "", true)
 	test(t, []string{"./gitea", "test"}, "", true)
 	test(t, []string{"./gitea", "other"}, "other", false)
+	test(t, []string{"./gitea", "test", "extra"}, "extra", false)
 }

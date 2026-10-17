@@ -15,26 +15,25 @@ import (
 	"testing"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	db_model "code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/services/actions"
-	"code.gitea.io/gitea/tests"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	db_model "gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/models/webhook"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	webhook_module "gitea.dev/modules/webhook"
+	"gitea.dev/services/actions"
+	"gitea.dev/tests"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -410,17 +409,17 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 		assert.Empty(t, payloads)
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
+		gitRepo, err := git.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
-		beforeCommitID, err := gitRepo.GetBranchCommitID("develop")
+		beforeCommitID, err := gitRepo.GetBranchCommitID(t.Context(), "develop")
 		assert.NoError(t, err)
 
 		// 3. trigger the webhook
 		testCreateFile(t, session, "user2", "repo1", "develop", "", "test_webhook_push.md", "# a test file for webhook push")
 
-		afterCommitID, err := gitRepo.GetBranchCommitID("develop")
+		afterCommitID, err := gitRepo.GetBranchCommitID(t.Context(), "develop")
 		assert.NoError(t, err)
 
 		// 4. validate the webhook is triggered
@@ -461,17 +460,17 @@ func Test_WebhookPushToNewBranch(t *testing.T) {
 		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", "new_branch")
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
+		gitRepo, err := git.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
-		beforeCommitID, err := gitRepo.GetBranchCommitID("master")
+		beforeCommitID, err := gitRepo.GetBranchCommitID(t.Context(), "master")
 		assert.NoError(t, err)
 
 		// 2. trigger the webhook
 		testCreateFile(t, session, "user2", "repo1", "master", "new_branch", "test_webhook_push.md", "# a new push from new branch")
 
-		afterCommitID, err := gitRepo.GetBranchCommitID("new_branch")
+		afterCommitID, err := gitRepo.GetBranchCommitID(t.Context(), "new_branch")
 		assert.NoError(t, err)
 		emptyCommitID := git.Sha1ObjectFormat.EmptyObjectID().String()
 
@@ -860,6 +859,20 @@ func Test_WebhookRepository(t *testing.T) {
 		assert.Equal(t, "org3", payloads[0].Organization.UserName)
 		assert.Equal(t, "repo_new", payloads[0].Repository.Name)
 		assert.Equal(t, "org3/repo_new", payloads[0].Repository.FullName)
+
+		// 4. rename the repository and validate the webhook is triggered again
+		newName := "repo_renamed"
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org3/repo_new", &api.EditRepoOption{
+			Name: &newName,
+		}).AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository))
+		MakeRequest(t, req, http.StatusOK)
+
+		require.Len(t, payloads, 2)
+		assert.Equal(t, api.HookRepoRenamed, payloads[1].Action)
+		assert.Equal(t, newName, payloads[1].Repository.Name)
+		assert.Equal(t, "org3/"+newName, payloads[1].Repository.FullName)
+		require.NotNil(t, payloads[1].Changes.Name)
+		assert.Equal(t, "repo_new", payloads[1].Changes.Name.From)
 	})
 }
 
@@ -926,9 +939,9 @@ func Test_WebhookStatus(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-		gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
+		gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
-		commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
+		commitID, err := gitRepo1.GetBranchCommitID(t.Context(), repo1.DefaultBranch)
 		assert.NoError(t, err)
 
 		// 2. trigger the webhook
@@ -999,7 +1012,7 @@ func Test_WebhookWorkflowJob(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-		gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
+		gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
 
 		runner := newMockRunner()
@@ -1027,12 +1040,12 @@ jobs:
 		opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
 		createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
 
-		commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
+		commitID, err := gitRepo1.GetBranchCommitID(t.Context(), repo1.DefaultBranch)
 		assert.NoError(t, err)
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "workflow_job", triggeredEvent)
-		assert.Len(t, payloads, 2)
+		assert.Len(t, payloads, 1)
 		assert.Equal(t, "queued", payloads[0].Action)
 		assert.Equal(t, "queued", payloads[0].WorkflowJob.Status)
 		assert.Equal(t, []string{"ubuntu-latest"}, payloads[0].WorkflowJob.Labels)
@@ -1040,11 +1053,11 @@ jobs:
 		assert.Equal(t, "repo1", payloads[0].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
 
-		assert.Equal(t, "waiting", payloads[1].Action)
-		assert.Equal(t, "waiting", payloads[1].WorkflowJob.Status)
-		assert.Equal(t, commitID, payloads[1].WorkflowJob.HeadSha)
-		assert.Equal(t, "repo1", payloads[1].Repo.Name)
-		assert.Equal(t, "user2/repo1", payloads[1].Repo.FullName)
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/actions/jobs?status=requested").AddTokenAuth(token)
+		requestedJobs := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionWorkflowJobsResponse{})
+		require.Len(t, requestedJobs.Entries, 1)
+		assert.Equal(t, "wf2-job", requestedJobs.Entries[0].Name)
+		assert.Equal(t, "requested", requestedJobs.Entries[0].Status)
 
 		// 4. Execute a single Job
 		task := runner.fetchTask(t)
@@ -1055,31 +1068,31 @@ jobs:
 
 		// 5. validate the webhook is triggered
 		assert.Equal(t, "workflow_job", triggeredEvent)
-		assert.Len(t, payloads, 5)
-		assert.Equal(t, "in_progress", payloads[2].Action)
-		assert.Equal(t, "in_progress", payloads[2].WorkflowJob.Status)
+		assert.Len(t, payloads, 4)
+		assert.Equal(t, "in_progress", payloads[1].Action)
+		assert.Equal(t, "in_progress", payloads[1].WorkflowJob.Status)
+		assert.Equal(t, "mock-runner", payloads[1].WorkflowJob.RunnerName)
+		assert.Equal(t, commitID, payloads[1].WorkflowJob.HeadSha)
+		assert.Equal(t, "repo1", payloads[1].Repo.Name)
+		assert.Equal(t, "user2/repo1", payloads[1].Repo.FullName)
+
+		assert.Equal(t, "completed", payloads[2].Action)
+		assert.Equal(t, "completed", payloads[2].WorkflowJob.Status)
 		assert.Equal(t, "mock-runner", payloads[2].WorkflowJob.RunnerName)
+		assert.Equal(t, "success", payloads[2].WorkflowJob.Conclusion)
 		assert.Equal(t, commitID, payloads[2].WorkflowJob.HeadSha)
 		assert.Equal(t, "repo1", payloads[2].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[2].Repo.FullName)
+		assert.Contains(t, payloads[2].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[2].WorkflowJob.ID))
+		assert.Contains(t, payloads[2].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", payloads[2].WorkflowJob.ID))
+		assert.Len(t, payloads[2].WorkflowJob.Steps, 1)
 
-		assert.Equal(t, "completed", payloads[3].Action)
-		assert.Equal(t, "completed", payloads[3].WorkflowJob.Status)
-		assert.Equal(t, "mock-runner", payloads[3].WorkflowJob.RunnerName)
-		assert.Equal(t, "success", payloads[3].WorkflowJob.Conclusion)
+		assert.Equal(t, "queued", payloads[3].Action)
+		assert.Equal(t, "queued", payloads[3].WorkflowJob.Status)
+		assert.Equal(t, []string{"ubuntu-latest"}, payloads[3].WorkflowJob.Labels)
 		assert.Equal(t, commitID, payloads[3].WorkflowJob.HeadSha)
 		assert.Equal(t, "repo1", payloads[3].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[3].Repo.FullName)
-		assert.Contains(t, payloads[3].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[3].WorkflowJob.ID))
-		assert.Contains(t, payloads[3].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", payloads[3].WorkflowJob.ID))
-		assert.Len(t, payloads[3].WorkflowJob.Steps, 1)
-
-		assert.Equal(t, "queued", payloads[4].Action)
-		assert.Equal(t, "queued", payloads[4].WorkflowJob.Status)
-		assert.Equal(t, []string{"ubuntu-latest"}, payloads[4].WorkflowJob.Labels)
-		assert.Equal(t, commitID, payloads[4].WorkflowJob.HeadSha)
-		assert.Equal(t, "repo1", payloads[4].Repo.Name)
-		assert.Equal(t, "user2/repo1", payloads[4].Repo.FullName)
 
 		// 6. Execute a single Job
 		task = runner.fetchTask(t)
@@ -1090,25 +1103,25 @@ jobs:
 
 		// 7. validate the webhook is triggered
 		assert.Equal(t, "workflow_job", triggeredEvent)
-		assert.Len(t, payloads, 7)
-		assert.Equal(t, "in_progress", payloads[5].Action)
-		assert.Equal(t, "in_progress", payloads[5].WorkflowJob.Status)
-		assert.Equal(t, "mock-runner", payloads[5].WorkflowJob.RunnerName)
+		assert.Len(t, payloads, 6)
+		assert.Equal(t, "in_progress", payloads[4].Action)
+		assert.Equal(t, "in_progress", payloads[4].WorkflowJob.Status)
+		assert.Equal(t, "mock-runner", payloads[4].WorkflowJob.RunnerName)
 
+		assert.Equal(t, commitID, payloads[4].WorkflowJob.HeadSha)
+		assert.Equal(t, "repo1", payloads[4].Repo.Name)
+		assert.Equal(t, "user2/repo1", payloads[4].Repo.FullName)
+
+		assert.Equal(t, "completed", payloads[5].Action)
+		assert.Equal(t, "completed", payloads[5].WorkflowJob.Status)
+		assert.Equal(t, "failure", payloads[5].WorkflowJob.Conclusion)
+		assert.Equal(t, "mock-runner", payloads[5].WorkflowJob.RunnerName)
 		assert.Equal(t, commitID, payloads[5].WorkflowJob.HeadSha)
 		assert.Equal(t, "repo1", payloads[5].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[5].Repo.FullName)
-
-		assert.Equal(t, "completed", payloads[6].Action)
-		assert.Equal(t, "completed", payloads[6].WorkflowJob.Status)
-		assert.Equal(t, "failure", payloads[6].WorkflowJob.Conclusion)
-		assert.Equal(t, "mock-runner", payloads[6].WorkflowJob.RunnerName)
-		assert.Equal(t, commitID, payloads[6].WorkflowJob.HeadSha)
-		assert.Equal(t, "repo1", payloads[6].Repo.Name)
-		assert.Equal(t, "user2/repo1", payloads[6].Repo.FullName)
-		assert.Contains(t, payloads[6].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[6].WorkflowJob.ID))
-		assert.Contains(t, payloads[6].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", payloads[6].WorkflowJob.ID))
-		assert.Len(t, payloads[6].WorkflowJob.Steps, 2)
+		assert.Contains(t, payloads[5].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[5].WorkflowJob.ID))
+		assert.Contains(t, payloads[5].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", payloads[5].WorkflowJob.ID))
+		assert.Len(t, payloads[5].WorkflowJob.Steps, 2)
 	})
 }
 
@@ -1191,7 +1204,7 @@ func testWorkflowRunEvents(t *testing.T, webhookData *workflowRunWebhook) {
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
+	gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 
 	// 2.2 trigger the webhooks
@@ -1268,7 +1281,7 @@ jobs:
 	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
 	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
 
-	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
+	commitID, err := gitRepo1.GetBranchCommitID(t.Context(), repo1.DefaultBranch)
 	assert.NoError(t, err)
 
 	// 3. validate the webhook is triggered
@@ -1316,7 +1329,7 @@ func testWorkflowRunEventsOnRerun(t *testing.T, webhookData *workflowRunWebhook)
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
+	gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 
 	// 2.2 trigger the webhooks
@@ -1393,7 +1406,7 @@ jobs:
 	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
 	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
 
-	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
+	commitID, err := gitRepo1.GetBranchCommitID(t.Context(), repo1.DefaultBranch)
 	assert.NoError(t, err)
 
 	// 3. validate the webhook is triggered
@@ -1486,7 +1499,7 @@ func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *wo
 	testAPICreateWebhookForRepo(t, session, "user2", repoName, webhookData.URL, "workflow_run")
 
 	ctx := t.Context()
-	gitRepo, err := gitrepo.OpenRepository(ctx, testRepo)
+	gitRepo, err := git.OpenRepository(ctx, testRepo)
 	assert.NoError(t, err)
 
 	// 2.2 trigger the webhooks
@@ -1565,7 +1578,7 @@ jobs:
 	opts := getWorkflowCreateFileOptions(user2, testRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
 	createWorkflowFile(t, token, "user2", repoName, wfTreePath, opts)
 
-	commitID, err := gitRepo.GetBranchCommitID(testRepo.DefaultBranch)
+	commitID, err := gitRepo.GetBranchCommitID(t.Context(), testRepo.DefaultBranch)
 	assert.NoError(t, err)
 
 	// 3. validate the webhook is triggered
@@ -1704,7 +1717,7 @@ func testWebhookWorkflowRun(t *testing.T, webhookData *workflowRunWebhook) {
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
+	gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 
 	runner := newMockRunner()
@@ -1748,7 +1761,7 @@ jobs:
 	opts = getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
 	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
 
-	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
+	commitID, err := gitRepo1.GetBranchCommitID(t.Context(), repo1.DefaultBranch)
 	assert.NoError(t, err)
 
 	// 3. validate the webhook is triggered
@@ -1805,7 +1818,7 @@ func testWebhookWorkflowRunDepthLimit(t *testing.T, webhookData *workflowRunWebh
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
+	gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 
 	// 2. trigger the webhooks
@@ -1828,7 +1841,7 @@ jobs:
 	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
 	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
 
-	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
+	commitID, err := gitRepo1.GetBranchCommitID(t.Context(), repo1.DefaultBranch)
 	assert.NoError(t, err)
 
 	// 3. validate the webhook is triggered
