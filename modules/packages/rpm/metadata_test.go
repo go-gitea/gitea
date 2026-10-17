@@ -197,6 +197,17 @@ OvSXaRmpzyTLHvsXg/M9EcwbAAA=`
 		}
 	})
 
+	t.Run("RejectsOversizedArrays", func(t *testing.T) {
+		for _, typ := range []uint32{typeInt8, typeStringArray} {
+			const count = 1024 * 1024
+			content := appendUint32s(nil, headerMagic, 0, 1, count)
+			content = appendUint32s(content, tagFileMTimes, typ, 0, count)
+			content = append(content, make([]byte, count)...)
+			_, err := readHeader(bytes.NewReader(content), maxHeaderEntries, maxHeaderData)
+			assert.ErrorIs(t, err, ErrInvalidPackage)
+		}
+	})
+
 	t.Run("SignPackage", func(t *testing.T) {
 		assert.Equal(t, decompressed[leadSize:headerStart], sig.marshalSignature())
 

@@ -30,6 +30,7 @@ const (
 	indexEntrySize      = 16
 	maxHeaderEntries    = 0xffff // rpmlib's hdrblobVerifyLengths limits
 	maxHeaderData       = 0x0fffffff
+	maxHeaderArray      = 0x000fffff
 	maxSignatureEntries = 32
 	maxSignatureData    = 64 * 1024 * 1024
 	maxRegionTag        = 63
@@ -140,7 +141,7 @@ func readHeader(r io.Reader, maxEntries, maxData uint32) (*header, error) {
 		if i == 0 && tag <= maxRegionTag {
 			continue
 		}
-		if offset < end || offset > dataSize {
+		if offset < end || offset > dataSize || (typ != typeBin && count > maxHeaderArray) {
 			return nil, ErrInvalidPackage
 		}
 		n, ok := dataLength(typ, count, store[offset:])
