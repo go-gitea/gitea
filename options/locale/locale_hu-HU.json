@@ -341,7 +341,6 @@
   "settings.key_name": "Kulcs neve",
   "settings.key_content": "Tartalom",
   "settings.principal_content": "Tartalom",
-  "settings.delete_key": "Eltávolítás",
   "settings.ssh_key_deletion": "SSH kulcs eltávolítása",
   "settings.gpg_key_deletion": "GPG kulcs eltávolítása",
   "settings.ssh_key_deletion_desc": "Egy SSH kulcs törlésével visszavonja a kulcs hozzáférését a fiókjához. Folytatja?",

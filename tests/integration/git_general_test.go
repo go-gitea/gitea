@@ -492,6 +492,16 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("MergeProtectedToToforce", doGitMerge(dstPath, "protected"))
 		t.Run("PushToProtectedBranch", doGitPushTestRepository(dstPath, "origin", "toforce:protected"))
 		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "master"))
+
+		t.Run("CreateBranchForProtectedDeletion", doGitCreateBranch(dstPath, "protected-delete"))
+		t.Run("PushBranchForProtectedDeletion", doGitPushTestRepository(dstPath, "origin", "protected-delete"))
+		t.Run("ProtectBranchWithoutDeletion", doProtectBranch(ctx, "protected-delete", baseCtx.Username, "", "", ""))
+		t.Run("DeleteProtectedBranchDenied", doGitPushTestRepositoryFail(dstPath, "origin", "--delete", "protected-delete"))
+		t.Run("ProtectBranchWithDeletionAllowlist", doProtectBranchExt(ctx, "protected-delete", doProtectBranchOptions{
+			UserToWhitelistPush:   baseCtx.Username,
+			UserToWhitelistDelete: baseCtx.Username,
+		}))
+		t.Run("DeleteProtectedBranchAllowed", doGitPushTestRepository(dstPath, "origin", "--delete", "protected-delete"))
 	}
 }
 
@@ -505,7 +515,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelistPush, userToWhit
 }
 
 type doProtectBranchOptions struct {
-	UserToWhitelistPush, UserToWhitelistForcePush, UnprotectedFilePatterns, ProtectedFilePatterns string
+	UserToWhitelistPush, UserToWhitelistForcePush, UserToWhitelistDelete, UnprotectedFilePatterns, ProtectedFilePatterns string
 
 	StatusCheckPatterns []string
 }
@@ -533,6 +543,13 @@ func doProtectBranchExt(ctx APITestContext, ruleName string, opts doProtectBranc
 			formData["force_push_allowlist_users"] = strconv.FormatInt(user.ID, 10)
 			formData["enable_force_push"] = "whitelist"
 			formData["enable_force_push_allowlist"] = "on"
+		}
+
+		if opts.UserToWhitelistDelete != "" {
+			user, err := user_model.GetUserByName(t.Context(), opts.UserToWhitelistDelete)
+			assert.NoError(t, err)
+			formData["deletion_allowlist_users"] = strconv.FormatInt(user.ID, 10)
+			formData["enable_deletion"] = "whitelist"
 		}
 
 		if len(opts.StatusCheckPatterns) > 0 {
@@ -823,11 +840,6 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-
-		// skip this test if git version is low
-		if !git.DefaultFeatures().SupportProcReceive {
-			return
-		}
 
 		gitRepo, err := git.OpenRepositoryLocal(t.Context(), dstPath)
 		require.NoError(t, err)

@@ -124,6 +124,9 @@ func EntryFollowLinks(ctx context.Context, gitRepo *Repository, commit *Commit, 
 	if treeEntry.IsLink() {
 		return res, util.ErrorWrap(util.ErrUnprocessableContent, "%q has too many links", firstFullPath)
 	}
+	if res == nil {
+		res = &EntryFollowResult{TargetEntry: treeEntry, TargetFullPath: fullPath} // in case limit=0
+	}
 	return res, nil
 }
 

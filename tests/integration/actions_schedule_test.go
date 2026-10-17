@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -17,13 +18,16 @@ import (
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/migration"
 	api "gitea.dev/modules/structs"
+	actions_service "gitea.dev/services/actions"
 	mirror_service "gitea.dev/services/mirror"
 	repo_service "gitea.dev/services/repository"
 	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScheduleUpdate(t *testing.T) {
@@ -32,15 +36,17 @@ func TestScheduleUpdate(t *testing.T) {
 	t.Run("DisableAndEnableActionsUnit", testScheduleUpdateDisableAndEnableActionsUnit)
 	t.Run("ArchiveAndUnarchive", testScheduleUpdateArchiveAndUnarchive)
 	t.Run("MirrorSync", testScheduleUpdateMirrorSync)
+	t.Run("ChangeDefaultBranch", testScheduleUpdateChangeDefaultBranch)
+	t.Run("RenameDefaultBranch", testScheduleUpdateRenameDefaultBranch)
 }
 
 func testScheduleUpdatePush(t *testing.T) {
-	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
+	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string) {
+		run := createScheduleRun(t, repo)
 		newCron := "30 5 * * 1,3"
 		pushScheduleChange(t, u, repo, newCron)
-		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
-		assert.NoError(t, err)
-		return branch.CommitID, newCron
+		assertRunStatus(t, run, actions_model.StatusWaiting)
+		return newCron
 	})
 }
 
@@ -68,7 +74,7 @@ jobs:
 
 	for _, mergeStyle := range mergeStyles {
 		t.Run(string(mergeStyle), func(t *testing.T) {
-			doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
+			doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string) {
 				// update workflow file
 				_, err := files_service.ChangeRepoFiles(t.Context(), repo, user, &files_service.ChangeRepoFilesOptions{
 					NewBranch: newBranchName,
@@ -91,15 +97,13 @@ jobs:
 				testPullMerge(t, testContext.Session, repo.OwnerName, repo.Name, strconv.FormatInt(apiPull.Index, 10), MergeOptions{
 					Style: mergeStyle,
 				})
-
-				pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
-				return pull.MergedCommitID, "@every 2m"
+				return "@every 2m"
 			})
 		})
 	}
 
 	t.Run(string(repo_model.MergeStyleManuallyMerged), func(t *testing.T) {
-		doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
+		doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string) {
 			// enable manual-merge
 			doAPIEditRepository(testContext, &api.EditRepoOption{
 				HasPullRequests:  new(true),
@@ -137,13 +141,13 @@ jobs:
 
 			pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
 			assert.Equal(t, issues_model.PullRequestStatusManuallyMerged, pull.Status)
-			return pull.MergedCommitID, "@every 2m"
+			return "@every 2m"
 		})
 	})
 }
 
 func testScheduleUpdateMirrorSync(t *testing.T) {
-	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
+	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string) {
 		// create mirror repo
 		opts := migration.MigrateOptions{
 			RepoName:    "actions-schedule-mirror",
@@ -193,41 +197,79 @@ func testScheduleUpdateMirrorSync(t *testing.T) {
 		scheduleSpec = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{RepoID: mirrorRepo.ID, ScheduleID: actionSchedule.ID})
 		assert.Equal(t, newCron, scheduleSpec.Spec)
 
-		return repoDefaultBranch.CommitID, newCron
+		return newCron
 	})
 }
 
 func testScheduleUpdateArchiveAndUnarchive(t *testing.T) {
-	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
+	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string) {
+		run := createScheduleRun(t, repo)
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			Archived: new(true),
 		})(t)
 		assert.Zero(t, unittest.GetCount(t, &actions_model.ActionSchedule{RepoID: repo.ID}))
+		assertRunStatus(t, run, actions_model.StatusCancelled)
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			Archived: new(false),
 		})(t)
-		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
-		assert.NoError(t, err)
-		return branch.CommitID, "@every 1m"
+		return "@every 1m"
 	})
 }
 
 func testScheduleUpdateDisableAndEnableActionsUnit(t *testing.T) {
-	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
+	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string) {
+		run := createScheduleRun(t, repo)
+		doAPIEditRepository(testContext, &api.EditRepoOption{
+			HasActions: new(true),
+		})(t)
+		assertRunStatus(t, run, actions_model.StatusWaiting)
+
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			HasActions: new(false),
 		})(t)
 		assert.Zero(t, unittest.GetCount(t, &actions_model.ActionSchedule{RepoID: repo.ID}))
+		assertRunStatus(t, run, actions_model.StatusCancelled)
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			HasActions: new(true),
 		})(t)
-		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
-		assert.NoError(t, err)
-		return branch.CommitID, "@every 1m"
+		return "@every 1m"
 	})
 }
 
-type scheduleUpdateTrigger func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string)
+func testScheduleUpdateChangeDefaultBranch(t *testing.T) {
+	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string) {
+		oldBranch, newBranch := repo.DefaultBranch, "release"
+		testAPICreateBranch(t, testContext.Session, repo.OwnerName, repo.Name, oldBranch, newBranch, http.StatusCreated)
+
+		run := createScheduleRun(t, repo)
+		req := NewRequestWithValues(t, "POST", "/"+repo.FullName()+"/settings/branches", map[string]string{
+			"action": "default_branch",
+			"branch": newBranch,
+		})
+		testContext.Session.MakeRequest(t, req, http.StatusSeeOther)
+		assertRunStatus(t, run, actions_model.StatusCancelled)
+		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionSchedule{RepoID: repo.ID, Ref: git.RefNameFromBranch(newBranch).String()})
+
+		run = createScheduleRun(t, repo)
+		doAPIEditRepository(testContext, &api.EditRepoOption{
+			DefaultBranch: new(oldBranch),
+		})(t)
+		assertRunStatus(t, run, actions_model.StatusCancelled)
+		return "@every 1m"
+	})
+}
+
+func testScheduleUpdateRenameDefaultBranch(t *testing.T) {
+	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string) {
+		newName := repo.DefaultBranch + "-renamed"
+		run := createScheduleRun(t, repo)
+		testAPIRenameBranch(t, user.Name, repo.OwnerName, repo.Name, repo.DefaultBranch, newName, http.StatusNoContent)
+		assertRunStatus(t, run, actions_model.StatusCancelled)
+		return "@every 1m"
+	})
+}
+
+type scheduleUpdateTrigger func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string)
 
 func doTestScheduleUpdate(t *testing.T, updateTrigger scheduleUpdateTrigger) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
@@ -260,12 +302,29 @@ jobs:
 		scheduleSpec := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{RepoID: repo.ID, ScheduleID: actionSchedule.ID})
 		assert.Equal(t, "@every 1m", scheduleSpec.Spec)
 
-		commitID, expectedSpec := updateTrigger(t, u, httpContext, user2, repo)
+		expectedSpec := updateTrigger(t, u, httpContext, user2, repo)
 
-		actionSchedule = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionSchedule{RepoID: repo.ID, CommitSHA: commitID})
+		defaultBranch := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}).DefaultBranch
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, defaultBranch)
+		require.NoError(t, err)
+		actionSchedule = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionSchedule{RepoID: repo.ID, Ref: git.RefNameFromBranch(defaultBranch).String(), CommitSHA: branch.CommitID})
 		scheduleSpec = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{RepoID: repo.ID, ScheduleID: actionSchedule.ID})
 		assert.Equal(t, expectedSpec, scheduleSpec.Spec)
 	})
+}
+
+func createScheduleRun(t *testing.T, repo *repo_model.Repository) *actions_model.ActionRun {
+	spec := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{RepoID: repo.ID})
+	spec.Repo = repo
+	spec.Schedule = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionSchedule{ID: spec.ScheduleID})
+	require.NoError(t, actions_service.CreateScheduleTaskBySpec(t.Context(), spec))
+	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, ScheduleID: spec.ScheduleID})
+	assert.Equal(t, actions_model.StatusWaiting, run.Status)
+	return run
+}
+
+func assertRunStatus(t *testing.T, run *actions_model.ActionRun, status actions_model.Status) {
+	assert.Equal(t, status, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID}).Status)
 }
 
 func pushScheduleChange(t *testing.T, u *url.URL, repo *repo_model.Repository, newCron string) {

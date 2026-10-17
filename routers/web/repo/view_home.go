@@ -22,7 +22,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -102,33 +101,36 @@ func prepareHomeSidebarCitationFile(ctx *context.Context) {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
-	isBlob := func(entry *git.TreeEntry) bool { return !entry.IsDir() && !entry.IsSubModule() }
-	for _, name := range []string{"CITATION.cff", "CITATION.bib"} {
-		idx := slices.IndexFunc(allEntries, func(entry *git.TreeEntry) bool { return isBlob(entry) && strings.EqualFold(entry.Name(), name) })
+	isBlobSupported := func(entry *git.TreeEntry) bool {
+		return entry.IsRegular() || entry.IsExecutable() || entry.IsLink()
+	}
+	const nameCff = "CITATION.cff"
+	const nameBib = "CITATION.bib"
+	for _, name := range []string{nameCff, nameBib} {
+		idx := slices.IndexFunc(allEntries, func(entry *git.TreeEntry) bool {
+			return isBlobSupported(entry) && util.AsciiEqualFold(entry.Name(), name)
+		})
 		if idx == -1 {
 			continue
 		}
 		entry := allEntries[idx]
 		if entry.IsLink() {
 			res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, entry.Name(), entry)
-			if err != nil || !isBlob(res.TargetEntry) {
+			if err != nil || !isBlobSupported(res.TargetEntry) {
 				continue
 			}
 			entry = res.TargetEntry
 		}
-		content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
+		content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, citation.MaxContentSize+1)
 		if err != nil {
 			log.Error("prepareHomeSidebarCitationFile: GetBlobContent: %v", err)
 			continue
 		}
-		if pointer, _ := lfs.ReadPointerFromBuffer([]byte(content)); pointer.IsValid() {
-			continue
-		}
 		apa, bibtex := "", content
-		if name == "CITATION.cff" {
+		if name == nameCff {
 			apa, bibtex = citation.FormatCFF(content)
 		}
-		if bibtex != "" {
+		if citation.IsLikelyBibTeX(bibtex) {
 			ctx.Data["CitationFileName"] = allEntries[idx].Name()
 			ctx.Data["CitationAPA"] = apa
 			ctx.Data["CitationBibTeX"] = bibtex

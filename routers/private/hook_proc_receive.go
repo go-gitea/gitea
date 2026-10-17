@@ -9,7 +9,6 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/agit"
@@ -19,10 +18,6 @@ import (
 // HookProcReceive proc-receive hook - only handles agit Proc-Receive requests at present
 func HookProcReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm[*private.HookOptions](ctx)
-	if !git.DefaultFeatures().SupportProcReceive {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
 	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
 		return
 	}

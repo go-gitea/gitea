@@ -54,7 +54,7 @@ func CreateBundle(ctx context.Context, repo RepositoryFacade, commit string, out
 	}
 	defer cleanup()
 
-	if err = InitRepositoryLocal(ctx, tmpDir, true, commitID.Type().Name()); err != nil {
+	if err = InitRepositoryLocal(ctx, tmpDir, true, commitID.Type().Name(), ""); err != nil {
 		return err
 	}
 
