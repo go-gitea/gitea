@@ -133,8 +133,8 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 }
 
 const (
-	newIssuePrefillLabel         = "label"
-	newIssuePrefillLabelFallback = "labels"
+	newIssuePrefillLabelFallback = "labels" // "labels" was introduced long time ago
+	newIssuePrefillLabel         = "label"  // to be consistent with other prefill params, we use "label" instead of "labels"
 	newIssuePrefillMilestone     = "milestone"
 	newIssuePrefillProject       = "project"
 	newIssuePrefillAssignee      = "assignee"

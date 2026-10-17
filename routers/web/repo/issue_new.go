@@ -80,12 +80,8 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 			metaData.LabelsData.SetSelectedLabelNames(template.Labels)
 		}
 		if metaData.AssigneesData.SelectedAssigneeIDs == "" {
-			selectedAssigneeIDStrings := make([]string, 0, len(template.Assignees))
 			selectedAssigneeIDs, _ := user_model.GetDoerUserIDsByNames(ctx, template.Assignees)
-			for _, userID := range selectedAssigneeIDs {
-				selectedAssigneeIDStrings = append(selectedAssigneeIDStrings, strconv.FormatInt(userID, 10))
-			}
-			metaData.AssigneesData.SelectedAssigneeIDs = strings.Join(selectedAssigneeIDStrings, ",")
+			metaData.AssigneesData.SelectedAssigneeIDs = base.JoinInt64s(selectedAssigneeIDs, ",")
 		}
 
 		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
