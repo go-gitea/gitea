@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
@@ -356,6 +355,10 @@ func LoadOrCreateAsymmetricKey(keyPath, algorithm string) (any, error) {
 				case algorithm == "EdDSA":
 					_, pk, err := ed25519.GenerateKey(rand.Reader)
 					return pk, err
+				case algorithm == "ES384":
+					return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+				case algorithm == "ES512":
+					return ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 				default:
 					return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 				}
@@ -375,19 +378,19 @@ func LoadOrCreateAsymmetricKey(keyPath, algorithm string) (any, error) {
 				return err
 			}
 
-			f, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-			if errors.Is(err, fs.ErrExist) { // another instance sharing the data path created it first
-				return nil
-			} else if err != nil {
+			f, err := os.CreateTemp(filepath.Dir(keyPath), filepath.Base(keyPath)+".*.tmp")
+			if err != nil {
 				return err
 			}
-			defer func() {
-				if err = f.Close(); err != nil {
-					log.Error("Close: %v", err)
-				}
-			}()
-
-			return pem.Encode(f, privateKeyPEM)
+			defer func() { _ = util.RemoveWithRetry(f.Name()) }()
+			if err := errors.Join(pem.Encode(f, privateKeyPEM), f.Close()); err != nil {
+				return err
+			}
+			// publish complete keys only, without replacing one another instance sharing the data path created first
+			if err := os.Link(f.Name(), keyPath); err != nil && !errors.Is(err, fs.ErrExist) {
+				return util.RenameWithRetry(f.Name(), keyPath) // filesystems without hard links
+			}
+			return nil
 		}()
 		if err != nil {
 			return nil, fmt.Errorf("error generating private key: %w", err)
