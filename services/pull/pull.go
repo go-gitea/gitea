@@ -1030,6 +1030,8 @@ func markUnrelated(ctx context.Context, repo git.RepositoryFacade, pr *issues_mo
 	if !headContainsMergeBase(ctx, repo, pr.MergeBase, pr.HeadCommitID) {
 		pr.MergeBase = ""
 	}
+	pr.ConflictedFiles = nil
+	pr.ChangedProtectedFiles = nil
 	pr.Status = issues_model.PullRequestStatusUnrelated
 }
 
