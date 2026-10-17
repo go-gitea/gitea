@@ -34,6 +34,42 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
 }
 
+func TestCreateCommitCommentNotification(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	const sha = "2222222222222222222222222222222222222222"
+
+	// user4 opens the thread, the doer replies: a participant must be notified
+	// even though they are neither the commit author nor mentioned.
+	first := &repo_model.CommitComment{RepoID: repo.ID, CommitSHA: sha, TreePath: "README.md", Line: 1, PosterID: 4, Content: "hi"}
+	assert.NoError(t, repo_model.CreateCommitComment(t.Context(), first))
+	reply := &repo_model.CommitComment{RepoID: repo.ID, CommitSHA: sha, TreePath: "README.md", Line: 1, PosterID: doer.ID, Content: "hello"}
+	assert.NoError(t, repo_model.CreateCommitComment(t.Context(), reply))
+
+	assert.NoError(t, activities_model.CreateCommitCommentNotification(t.Context(), doer, repo, sha, reply.ID, "", nil))
+	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, CommitID: sha})
+	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
+	assert.Equal(t, reply.ID, notf.CommitCommentID)
+
+	// A second reply updates the same row rather than piling up unread entries.
+	second := &repo_model.CommitComment{RepoID: repo.ID, CommitSHA: sha, TreePath: "README.md", Line: 1, PosterID: doer.ID, Content: "again"}
+	assert.NoError(t, repo_model.CreateCommitComment(t.Context(), second))
+	assert.NoError(t, activities_model.CreateCommitCommentNotification(t.Context(), doer, repo, sha, second.ID, "", nil))
+	assert.Equal(t, 1, unittest.GetCount(t, &activities_model.Notification{UserID: 4, CommitID: sha}))
+
+	// A mention of a missing user must not drop the mentions that do resolve.
+	assert.NoError(t, activities_model.CreateCommitCommentNotification(t.Context(), doer, repo, sha, second.ID, "", []string{"user5", "no-such-user"}))
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 5, CommitID: sha})
+
+	// Muting the repository outranks a mention, as it does for issues.
+	const mutedSHA = "3333333333333333333333333333333333333333"
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user5, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeDont}))
+	assert.NoError(t, activities_model.CreateCommitCommentNotification(t.Context(), doer, repo, mutedSHA, second.ID, "", []string{"user5"}))
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: 5, CommitID: mutedSHA})
+}
+
 func TestCreateOrUpdateIssueNotificationsForAssigneeAndReviewer(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

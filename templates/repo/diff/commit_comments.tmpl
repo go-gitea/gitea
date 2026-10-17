@@ -1,0 +1,32 @@
+{{range $comment := $.Comments}}
+
+{{$createdStr := DateUtils.TimeSince $comment.CreatedUnix}}
+<div class="comment" id="{{$comment.HashTag}}">
+	<div class="tw-mt-2 tw-mr-4">
+		{{template "shared/user/avatarlink" dict "user" $comment.Poster}}
+	</div>
+	<div class="content comment-container">
+		<div class="comment-header avatar-content-left-arrow">
+			<div class="comment-header-left">
+				<span class="tw-text-text-light muted-links">
+					{{template "shared/user/namelink" $comment.Poster}}
+					{{ctx.Locale.Tr "repo.issues.commented_at" $comment.HashTag $createdStr}}
+				</span>
+			</div>
+			<div class="comment-header-right">
+				{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "commit_comment" "ConvContentItem" $comment}}
+			</div>
+		</div>
+		<div class="ui attached segment comment-body">
+			<div class="render-content markup">
+			{{if $comment.RenderedContent}}
+				{{$comment.RenderedContent}}
+			{{else}}
+				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
+			{{end}}
+			</div>
+			<div id="{{$comment.HashTag}}-raw" class="raw-content tw-hidden">{{$comment.Content}}</div>
+		</div>
+	</div>
+</div>
+{{end}}

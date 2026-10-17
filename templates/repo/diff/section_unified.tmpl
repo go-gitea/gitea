@@ -1,7 +1,7 @@
 {{$file := $.file}}
 {{/* this tmpl is also used by the PR Conversation page, so "DiffBlobExcerptData" may not exist */}}
 {{$diffBlobExcerptData := ctx.RootData.DiffBlobExcerptData}}
-{{$canAddComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex}}
+{{$canAddComment := and ctx.RootData.SignedUserID (or $diffBlobExcerptData.PullIssueIndex ctx.RootData.CanCommentOnCommit)}}
 <colgroup>
 	<col width="50">
 	<col width="50">
@@ -33,7 +33,7 @@
 			{{else}}
 				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
 					{{- if $canAddComment -}}
-						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
+						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if not $line.CanCommentUnified}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
 							{{- svg "octicon-plus" -}}
 						</button>
 					{{- end -}}
@@ -48,5 +48,9 @@
 				</td>
 			</tr>
 		{{end}}
+		{{/* Render commit comments (not PR review comments). Both sides can be set:
+			a context line has an old and a new index, and either may carry a thread
+			authored from the equivalent split view. */}}
+		{{template "repo/diff/commit_conversation_row" dict "Left" $line.CommitCommentsLeft "Right" $line.CommitCommentsRight "LineType" $line.GetHTMLDiffLineType}}
 	{{end}}
 {{end}}
