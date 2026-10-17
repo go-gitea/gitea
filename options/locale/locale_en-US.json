@@ -2459,7 +2459,7 @@
   "repo.settings.require_signed_commits": "Require Signed Commits",
   "repo.settings.require_signed_commits_desc": "Reject pushes to this branch if they are unsigned or unverifiable.",
   "repo.settings.protect_branch_name_pattern": "Protected Branch Name Pattern",
-  "repo.settings.protect_branch_name_pattern_desc": "Protected branch name patterns. See <a href=\"%s\">the documentation</a> for pattern syntax. Examples: main, release/**",
+  "repo.settings.protect_branch_name_pattern_desc": "Protected branch name patterns. See <a href=\"%s\">the documentation</a> for pattern syntax. Examples: <code>main</code>, <code>release/**</code>.",
   "repo.settings.protect_patterns": "Patterns",
   "repo.settings.protect_protected_file_patterns": "Protected file patterns (separated using semicolon ';'):",
   "repo.settings.protect_protected_file_patterns_desc": "Protected files are not allowed to be changed directly even if user has rights to add, edit, or delete files in this branch. Multiple patterns can be separated using semicolon (';'). See <a href='%[1]s'>%[2]s</a> documentation for pattern syntax. Examples: <code>.drone.yml</code>, <code>/docs/**/*.txt</code>.",
