@@ -14,6 +14,14 @@
 				<b>{{ctx.Locale.Tr "admin.users.auth_source"}}:</b>
 				{{Iif (eq .LoginSource.ID 0) (ctx.Locale.Tr "admin.users.local") .LoginSource.Name}}
 			</div>
+			<div class="item-body" data-testid="admin-user-local-password">
+				<b>{{ctx.Locale.Tr "admin.users.local_password"}}:</b>
+				{{svg (Iif .User.HasLocalPassword "octicon-check" "octicon-x")}}
+			</div>
+			<div class="item-body" data-testid="admin-user-password-verified-by">
+				<b>{{ctx.Locale.Tr "admin.users.password_verified_by"}}:</b>
+				{{Iif .User.PasswordVerifiedLocally (ctx.Locale.Tr "admin.users.local") .LoginSource.Name}}
+			</div>
 			<div class="item-body">
 				<b>{{ctx.Locale.Tr "admin.users.activated"}}:</b>
 				{{svg (Iif .User.IsActive "octicon-check" "octicon-x")}}
