@@ -177,7 +177,11 @@ func linkProcessor(ctx *RenderContext, node *html.Node) {
 		if util.IsLikelyEllipsisLeftPart(remaining) {
 			return
 		}
-		replaceContent(node, m[0], m[1], createLink(ctx, uri, uri, "" /*link*/))
+		if text := commitURLText(ctx, uri); text != "" {
+			replaceContent(node, m[0], m[1], createCodeLink(uri, text, "commit"))
+		} else {
+			replaceContent(node, m[0], m[1], createLink(ctx, uri, uri, "" /*link*/))
+		}
 		node = node.NextSibling.NextSibling
 	}
 }
