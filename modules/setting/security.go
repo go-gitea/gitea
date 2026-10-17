@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"gitea.dev/modules/auth/password/hash"
 	"gitea.dev/modules/egress/policy"
@@ -53,6 +54,22 @@ func checkHostList(key, hostList string, isBlockList bool) {
 		log.Fatal("%s has invalid entries, fix them so no blocked host is allowed", key)
 	}
 }
+
+// ReverseProxyJWT settings for reverse proxy authentication using a signed JWT
+var ReverseProxyJWT = struct {
+	Header        string
+	JWKSetURL     string
+	JWKSetFile    string
+	KeyFile       string
+	CacheTTL      time.Duration
+	Algorithms    []string
+	Issuer        string
+	Audience      string
+	Leeway        time.Duration
+	UsernameClaim string
+	EmailClaim    string
+	FullNameClaim string
+}{}
 
 var (
 	InstallLock                        bool
@@ -156,6 +173,22 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
 	ReverseProxyAuthFullName = sec.Key("REVERSE_PROXY_AUTHENTICATION_FULL_NAME").MustString("X-WEBAUTH-FULLNAME")
+
+	ReverseProxyJWT.Header = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_HEADER").MustString("X-JWT-Assertion")
+	ReverseProxyJWT.JWKSetURL = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_JWK_SET_URL").String()
+	ReverseProxyJWT.JWKSetFile = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_JWK_SET_FILE").String()
+	ReverseProxyJWT.KeyFile = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_KEY_FILE").String()
+	ReverseProxyJWT.CacheTTL = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_CACHE_TTL").MustDuration(time.Hour)
+	ReverseProxyJWT.Algorithms = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_ALGORITHMS").Strings(",")
+	if len(ReverseProxyJWT.Algorithms) == 0 {
+		ReverseProxyJWT.Algorithms = []string{"RS256", "ES256"}
+	}
+	ReverseProxyJWT.Issuer = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_ISSUER").String()
+	ReverseProxyJWT.Audience = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_AUDIENCE").String()
+	ReverseProxyJWT.Leeway = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_LEEWAY").MustDuration(30 * time.Second)
+	ReverseProxyJWT.UsernameClaim = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_USERNAME_CLAIM").MustString("sub")
+	ReverseProxyJWT.EmailClaim = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_EMAIL_CLAIM").MustString("email")
+	ReverseProxyJWT.FullNameClaim = sec.Key("REVERSE_PROXY_AUTHENTICATION_JWT_FULL_NAME_CLAIM").MustString("name")
 
 	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
 	ReverseProxyLogoutRedirect = sec.Key("REVERSE_PROXY_LOGOUT_REDIRECT").String()

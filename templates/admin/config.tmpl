@@ -40,6 +40,12 @@
 				<dd>{{.ScriptType}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.reverse_auth_user"}}</dt>
 				<dd>{{.ReverseProxyAuthUser}}</dd>
+				{{if or .Service.EnableReverseProxyJWTAuth .Service.EnableReverseProxyJWTAuthAPI}}
+					<dt>{{ctx.Locale.Tr "admin.config.reverse_auth_jwt_header"}}</dt>
+					<dd>{{.ReverseProxyJWT.Header}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverse_auth_jwt_keys"}}</dt>
+					<dd>{{or .ReverseProxyJWT.JWKSetURL .ReverseProxyJWT.JWKSetFile .ReverseProxyJWT.KeyFile}}</dd>
+				{{end}}
 			</dl>
 		</div>
 

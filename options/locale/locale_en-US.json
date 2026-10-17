@@ -3315,6 +3315,8 @@
   "admin.config.log_file_root_path": "Log Path",
   "admin.config.script_type": "Script Type",
   "admin.config.reverse_auth_user": "Reverse Authentication User",
+  "admin.config.reverse_auth_jwt_header": "Reverse Authentication JWT Header",
+  "admin.config.reverse_auth_jwt_keys": "Reverse Authentication JWT Keys",
   "admin.config.ssh_config": "SSH Configuration",
   "admin.config.ssh_enabled": "Enabled",
   "admin.config.ssh_start_builtin_server": "Use Built-In Server",
