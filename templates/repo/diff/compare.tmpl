@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 
 	{{$compareSeparator := $.CompareInfo.CompareSeparator}}
-	{{$compareSeparatorSwitch := Iif $.CompareInfo.DirectComparison "..." ".."}}
+	{{$compareSeparatorSwitch := Iif (eq $compareSeparator "..") "..." ".."}}
 	<div class="ui container fluid padded">
 		<h2 class="ui header">
 			{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}
@@ -170,15 +170,12 @@
 
 		{{$showDiffBox := and .CommitCount (not .IsNothingToCompare)}}
 		{{if and .IsSigned .PageIsComparePull}}
-			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare))}}
 			{{if .IsNothingToCompare}}
 				<div class="ui segment">
-					{{if $allowCreatePR}}
+					{{if $.AllowCreatePR}}
 						{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}
-					{{else if and $.CompareInfo.BaseRef.IsBranch $.CompareInfo.HeadRef.IsBranch}}
-						{{ctx.Locale.Tr "repo.pulls.nothing_to_compare"}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_have_tag"}}
+						{{ctx.Locale.Tr "repo.pulls.nothing_to_compare"}}
 					{{end}}
 				</div>
 			{{end}}
@@ -201,7 +198,7 @@
 						{{ctx.Locale.Tr "repo.archive.title_date" (DateUtils.AbsoluteLong .Repository.ArchivedUnix)}}
 					{{end}}
 				</div>
-			{{else if $allowCreatePR}}
+			{{else if $.AllowCreatePR}}
 				<div class="ui info message flex-text-block pullrequest-form-toggle {{if .ExpandNewPrForm}}tw-hidden{{end}}">
 					<span class="tw-flex-1">{{ctx.Locale.Tr "repo.pulls.new.description"}}</span>
 					<a class="ui button primary show-panel toggle" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</a>

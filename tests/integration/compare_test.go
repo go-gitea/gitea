@@ -10,14 +10,16 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
+	"gitea.dev/services/forms"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -136,6 +138,9 @@ func TestCompareBranches(t *testing.T) {
 	diffChanges = []string{"test.txt"}
 
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+
+	req = NewRequestWithValues(t, "POST", "/user2/repo20/compare/remove-files-b..remove-files-a", map[string]string{"title": "direct comparison"})
+	session.MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestCompareWithRefSuffix(t *testing.T) {
@@ -208,21 +213,18 @@ func TestResolveRefWithSuffixContract(t *testing.T) {
 func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
-
-	_, _, runErr := gitcmd.NewCommand("fast-import").WithRepo(repo1).WithStdinBytes([]byte(strings.TrimSpace(`
-commit refs/heads/unrelated-history
-committer User <user@example.com> 1714310400 +0000
-data 13
-Second commit
-M 100644 inline file2.txt
-data 12
-Hello from 2
-`))).RunStdString(t.Context())
-	require.NoError(t, runErr)
-
 	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	createPull := func(head string) api.PullRequest {
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls", &api.CreatePullRequestOption{Head: head, Base: "master", Title: head}).AddTokenAuth(token)
+		return DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), api.PullRequest{})
+	}
+	rewrittenBase := createPull("DefaultBranch")
+	require.NoError(t, git.ForceFastImport(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}), []git.FastImportCommit{
+		{Ref: "refs/heads/master"},
+		{Ref: "refs/heads/unrelated-history", Files: []git.FastImportFile{{Path: "file2.txt", Content: "Hello from 2\n"}}},
+	}))
+
 	req := NewRequest(t, "GET", "/user2/repo1/compare/master...unrelated-history")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	body := resp.Body.String()
@@ -234,6 +236,28 @@ Hello from 2
 	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
 	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...master"]`).Length())
 	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
+
+	unrelated := createPull("unrelated-history")
+	assert.False(t, unrelated.Mergeable)
+	for link, filename := range map[string]string{
+		fmt.Sprintf("/user2/repo1/pulls/%d/files", rewrittenBase.Index):                      "LICENSE",
+		fmt.Sprintf("/user2/repo1/pulls/%d/files", unrelated.Index):                          "file2.txt",
+		fmt.Sprintf("/user2/repo1/pulls/%d/commits/%s", unrelated.Index, unrelated.Head.Sha): "file2.txt",
+	} {
+		doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body)
+		assert.Equal(t, filename, doc.Find(".diff-file-box").AttrOr("data-new-filename", ""))
+		labels := doc.Find(".pull.tabular.menu .item .label")
+		assert.Equal(t, []string{"1", "1"}, []string{labels.Eq(1).Text(), labels.Eq(2).Text()})
+	}
+	session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/pulls/%d", unrelated.Index), http.StatusOK)
+	for _, suffix := range []string{".diff", ".patch"} {
+		assert.Contains(t, session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/pulls/%d%s", unrelated.Index, suffix), http.StatusOK).Body.String(), "+++ b/file2.txt")
+	}
+	for _, endpoint := range []string{"files", "commits"} {
+		assert.Len(t, DecodeJSON(t, MakeRequest(t, NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/pulls/%d/%s", unrelated.Index, endpoint).AddTokenAuth(token), http.StatusOK), []map[string]any{}), 1)
+	}
+	MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/merge", unrelated.Index), &forms.MergePullRequestForm{Do: "rebase"}).AddTokenAuth(token), http.StatusMethodNotAllowed)
+	MakeRequest(t, NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/update?style=rebase", rewrittenBase.Index)).AddTokenAuth(token), http.StatusUnprocessableEntity)
 }
 
 func TestCompareDownloadDiffOrPatch(t *testing.T) {
