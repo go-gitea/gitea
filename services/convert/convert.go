@@ -20,6 +20,7 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
@@ -112,31 +113,38 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 			return nil, err
 		}
 		bp.Repo = repo
-		branch.UserCanPush = bp.CanUserPush(ctx, user)
+		branch.UserCanPush = bp.CanUserPush(ctx, user, permission)
 		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(ctx, bp, user.ID, permission)
 	}
 
 	return branch, nil
 }
 
-// getWhitelistEntities returns the names of the entities that are in the whitelist
-func getWhitelistEntities[T *user_model.User | *organization.Team](entities []T, whitelistIDs []int64) []string {
-	whitelistUserIDsSet := container.SetOf(whitelistIDs...)
-	whitelistNames := make([]string, 0)
-	for _, entity := range entities {
-		switch v := any(entity).(type) {
-		case *user_model.User:
-			if whitelistUserIDsSet.Contains(v.ID) {
-				whitelistNames = append(whitelistNames, v.Name)
-			}
-		case *organization.Team:
-			if whitelistUserIDsSet.Contains(v.ID) {
-				whitelistNames = append(whitelistNames, v.Name)
-			}
+func getAllowListUserNames(users []*user_model.User, ids []int64) []string {
+	userIdMap := map[int64]string{}
+	for _, user := range users {
+		userIdMap[user.ID] = user.Name
+	}
+	names := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if name, ok := userIdMap[id]; ok {
+			names = append(names, name)
+		} else if u := user_model.GetSystemUserByID(id); u != nil {
+			names = append(names, u.Name)
 		}
 	}
+	return names
+}
 
-	return whitelistNames
+func getAllowListTeamNames(teams []*organization.Team, ids []int64) []string {
+	idSet := container.SetOf(ids...)
+	names := make([]string, 0, len(ids))
+	for _, team := range teams {
+		if idSet.Contains(team.ID) {
+			names = append(names, team.Name)
+		}
+	}
+	return names
 }
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
@@ -146,22 +154,24 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		log.Error("GetRepoReaders: %v", err)
 	}
 
-	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
-	forcePushAllowlistUsernames := getWhitelistEntities(readers, bp.ForcePushAllowlistUserIDs)
-	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
-	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
-	bypassAllowlistUsernames := getWhitelistEntities(readers, bp.BypassAllowlistUserIDs)
+	pushWhitelistUsernames := getAllowListUserNames(readers, bp.WhitelistUserIDs)
+	forcePushAllowlistUsernames := getAllowListUserNames(readers, bp.ForcePushAllowlistUserIDs)
+	deletionAllowlistUsernames := getAllowListUserNames(readers, bp.DeletionAllowlistUserIDs)
+	mergeWhitelistUsernames := getAllowListUserNames(readers, bp.MergeWhitelistUserIDs)
+	approvalsWhitelistUsernames := getAllowListUserNames(readers, bp.ApprovalsWhitelistUserIDs)
+	bypassAllowlistUsernames := getAllowListUserNames(readers, bp.BypassAllowlistUserIDs)
 
 	teamReaders, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.Owner.ID, repo.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
 	}
 
-	pushWhitelistTeams := getWhitelistEntities(teamReaders, bp.WhitelistTeamIDs)
-	forcePushAllowlistTeams := getWhitelistEntities(teamReaders, bp.ForcePushAllowlistTeamIDs)
-	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
-	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
-	bypassAllowlistTeams := getWhitelistEntities(teamReaders, bp.BypassAllowlistTeamIDs)
+	pushWhitelistTeams := getAllowListTeamNames(teamReaders, bp.WhitelistTeamIDs)
+	forcePushAllowlistTeams := getAllowListTeamNames(teamReaders, bp.ForcePushAllowlistTeamIDs)
+	deletionAllowlistTeams := getAllowListTeamNames(teamReaders, bp.DeletionAllowlistTeamIDs)
+	mergeWhitelistTeams := getAllowListTeamNames(teamReaders, bp.MergeWhitelistTeamIDs)
+	approvalsWhitelistTeams := getAllowListTeamNames(teamReaders, bp.ApprovalsWhitelistTeamIDs)
+	bypassAllowlistTeams := getAllowListTeamNames(teamReaders, bp.BypassAllowlistTeamIDs)
 
 	branchName := ""
 	if !git_model.IsRuleNameSpecial(bp.RuleName) {
@@ -176,12 +186,16 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		EnablePushWhitelist:           bp.EnableWhitelist,
 		PushWhitelistUsernames:        pushWhitelistUsernames,
 		PushWhitelistTeams:            pushWhitelistTeams,
-		PushWhitelistDeployKeys:       bp.WhitelistDeployKeys,
+		PushWhitelistDeployKeys:       bp.HasDeployKeyPush(),
 		EnableForcePush:               bp.CanForcePush,
 		EnableForcePushAllowlist:      bp.EnableForcePushAllowlist,
 		ForcePushAllowlistUsernames:   forcePushAllowlistUsernames,
 		ForcePushAllowlistTeams:       forcePushAllowlistTeams,
-		ForcePushAllowlistDeployKeys:  bp.ForcePushAllowlistDeployKeys,
+		ForcePushAllowlistDeployKeys:  bp.HasDeployKeyForcePush(),
+		EnableDeletion:                bp.CanDelete,
+		EnableDeletionAllowlist:       bp.EnableDeletionAllowlist,
+		DeletionAllowlistUsernames:    deletionAllowlistUsernames,
+		DeletionAllowlistTeams:        deletionAllowlistTeams,
 		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
 		MergeWhitelistUsernames:       mergeWhitelistUsernames,
 		MergeWhitelistTeams:           mergeWhitelistTeams,
@@ -272,7 +286,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 	}
 
 	runAttempt := int64(0)
-	status, conclusion := ToActionsStatus(run.Status)
+	status, conclusion := ToRunActionsStatus(run, run.Status)
 	startedAt := run.Started.AsLocalTime()
 	completedAt := run.Stopped.AsLocalTime()
 	actor := run.TriggerUser       // The username of the user that triggered the initial workflow run.
@@ -288,7 +302,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 			return nil, err
 		}
 		runAttempt = attempt.Attempt
-		status, conclusion = ToActionsStatus(attempt.Status)
+		status, conclusion = ToRunActionsStatus(run, attempt.Status)
 		startedAt = attempt.Started.AsLocalTime()
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
@@ -347,8 +361,8 @@ func loadPullRequestsForRun(ctx context.Context, run *actions_model.ActionRun) (
 	var prs issues_model.PullRequestList
 	switch {
 	case run.Event.IsPullRequest() || run.Event.IsPullRequestReview():
-		index, err := strconv.ParseInt(refName.PullName(), 10, 64)
-		if err != nil {
+		index, ok := refName.PullIndex()
+		if !ok {
 			return result, nil
 		}
 		pr, err := issues_model.GetPullRequestByIndex(ctx, run.RepoID, index)
@@ -434,12 +448,21 @@ func ToWorkflowRunAction(status actions_model.Status) (action string) {
 	return action
 }
 
+func ToRunActionsStatus(run *actions_model.ActionRun, status actions_model.Status) (action, conclusion string) {
+	if status.IsBlocked() && run.NeedApproval {
+		return "waiting", ""
+	}
+	return ToActionsStatus(status)
+}
+
 func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 	switch status {
 	case actions_model.StatusWaiting:
-		action = "queued" // "waiting" is a naming conflict of the webhook between Gitea and GitHub Actions
+		action = "queued"
 	case actions_model.StatusBlocked:
-		action = "waiting" // naming conflict (as above)
+		action = "pending"
+	case actions_model.StatusPending:
+		action = "requested"
 	case actions_model.StatusRunning, actions_model.StatusCancelling:
 		action = "in_progress"
 	default:
@@ -468,7 +491,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		return nil, err
 	}
 
-	status, conclusion := ToActionsStatus(job.Status)
+	status, conclusion := ToRunActionsStatus(job.Run, job.Status)
 	var runnerID int64
 	var runnerName string
 	var steps []*api.ActionWorkflowStep
@@ -710,7 +733,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 }
 
 // ToActionArtifact convert a actions_model.ActionArtifact to an api.ActionArtifact
-func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArtifact) (*api.ActionArtifact, error) {
+func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArtifact) *api.ActionArtifact {
 	url := fmt.Sprintf("%s/actions/artifacts/%d", repo.APIURL(), art.ID)
 
 	return &api.ActionArtifact{
@@ -728,10 +751,10 @@ func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArti
 			RepositoryID: art.RepoID,
 			HeadSha:      art.CommitSHA,
 		},
-	}, nil
+	}
 }
 
-func ToActionRunner(ctx context.Context, runner *actions_model.ActionRunner) *api.ActionRunner {
+func ToActionRunner(runner *actions_model.ActionRunner) *api.ActionRunner {
 	status := runner.Status()
 	apiStatus := "offline"
 	if runner.IsOnline() {
@@ -846,19 +869,21 @@ func ToGitHook(h *git.Hook) *api.GitHook {
 	}
 }
 
-// ToDeployKey convert asymkey_model.DeployKey to api.DeployKey
-func ToDeployKey(ctx context.Context, repo *repo_model.Repository, deployKey *asymkey_model.DeployKey) *api.DeployKey {
+// ToDeployKey convert deploykey_model.DeployKey to api.DeployKey
+func ToDeployKey(ctx context.Context, repo *repo_model.Repository, deployKey *deploykey_model.DeployKey) *api.DeployKey {
 	k := &api.DeployKey{
-		ID:       deployKey.ID,
-		KeyID:    deployKey.KeyID,
-		URL:      repo.APIURL(ctx) + fmt.Sprintf("/keys/%d", deployKey.ID),
-		Title:    deployKey.Name,
-		Created:  deployKey.CreatedUnix.AsTime(),
-		ReadOnly: deployKey.Mode == perm.AccessModeRead, // All deploy keys are read-only.
+		ID:          deployKey.ID,
+		KeyType:     util.Iif(deployKey.KeyType == deploykey_model.KeyTypeSSH, "ssh", "token"),
+		KeyID:       deployKey.KeyID,
+		Token:       deployKey.Token,
+		URL:         repo.APIURL(ctx) + fmt.Sprintf("/keys/%d", deployKey.ID),
+		Title:       deployKey.Name,
+		Fingerprint: deployKey.Fingerprint,
+		Created:     deployKey.CreatedUnix.AsTime(),
+		ReadOnly:    deployKey.IsReadOnly(),
 	}
-	if err := deployKey.LoadPublicKey(ctx); err == nil {
+	if deployKey.KeyType == deploykey_model.KeyTypeSSH && deployKey.LoadPublicKey(ctx) == nil {
 		k.Key = deployKey.PublicKey.Content
-		k.Fingerprint = deployKey.PublicKey.Fingerprint
 	}
 	return k
 }
@@ -958,14 +983,14 @@ func ToTagProtection(ctx context.Context, pt *git_model.ProtectedTag, repo *repo
 		log.Error("GetRepoReaders: %v", err)
 	}
 
-	whitelistUsernames := getWhitelistEntities(readers, pt.AllowlistUserIDs)
+	whitelistUsernames := getAllowListUserNames(readers, pt.AllowlistUserIDs)
 
 	teamReaders, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.Owner.ID, repo.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
 	}
 
-	whitelistTeams := getWhitelistEntities(teamReaders, pt.AllowlistTeamIDs)
+	whitelistTeams := getAllowListTeamNames(teamReaders, pt.AllowlistTeamIDs)
 
 	return &api.TagProtection{
 		ID:                 pt.ID,

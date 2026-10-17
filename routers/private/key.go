@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/modules/timeutil"
+	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/services/context"
 )
 
@@ -20,17 +20,16 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 		return
 	}
 
-	deployKey, err := asymkey_model.GetDeployKeyByRepoPublicKey(ctx, repoID, keyID)
+	deployKey, err := deploykey_model.GetDeployKeyByRepoPublicKey(ctx, repoID, keyID)
 	if err != nil {
-		if asymkey_model.IsErrDeployKeyNotExist(err) {
+		if deploykey_model.IsErrDeployKeyNotExist(err) {
 			ctx.PlainText(http.StatusOK, "success")
 			return
 		}
 		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}
-	deployKey.UpdatedUnix = timeutil.TimeStampNow()
-	if err = asymkey_model.UpdateDeployKeyCols(ctx, deployKey, "updated_unix"); err != nil {
+	if err = deploykey_model.UpdateDeployKeyLastUsed(ctx, deployKey.ID); err != nil {
 		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}
@@ -38,12 +37,9 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	ctx.PlainText(http.StatusOK, "success")
 }
 
-// AuthorizedPublicKeyByContent searches content as prefix (without comment part)
-// and returns public key found.
-func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
+func AuthorizedPublicKeyForSSH(ctx *context.PrivateContext) {
 	content := ctx.FormString("content")
-
-	publicKey, err := asymkey_model.SearchPublicKeyByContent(ctx, content)
+	publicKey, err := asymkey_model.SearchPublicKeyForSSH(ctx, content)
 	if err != nil {
 		ctx.PrivateInternalErrorf("%v", err)
 		return

@@ -54,27 +54,9 @@ function initPreInstall() {
     appUrl.value = window.location.href;
   }
 
-  const domain = document.querySelector<HTMLInputElement>('#domain')!;
-  if (domain.value.trim() === 'localhost') {
-    domain.value = window.location.hostname;
-  }
-
-  // TODO: better handling of exclusive relations.
-  document.querySelector<HTMLInputElement>('#enable-openid-signin input')!.addEventListener('change', function () {
-    if (this.checked) {
-      if (!document.querySelector<HTMLInputElement>('#disable-registration input')!.checked) {
-        document.querySelector<HTMLInputElement>('#enable-openid-signup input')!.checked = true;
-      }
-    } else {
-      document.querySelector<HTMLInputElement>('#enable-openid-signup input')!.checked = false;
-    }
-  });
   document.querySelector<HTMLInputElement>('#disable-registration input')!.addEventListener('change', function () {
     if (this.checked) {
       document.querySelector<HTMLInputElement>('#enable-captcha input')!.checked = false;
-      document.querySelector<HTMLInputElement>('#enable-openid-signup input')!.checked = false;
-    } else {
-      document.querySelector<HTMLInputElement>('#enable-openid-signup input')!.checked = true;
     }
   });
   document.querySelector<HTMLInputElement>('#enable-captcha input')!.addEventListener('change', function () {

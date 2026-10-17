@@ -114,7 +114,6 @@ function updateState(visible: boolean) {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-right: .5rem;
   flex: 1;
   min-height: 0;
 }
@@ -124,7 +123,6 @@ function updateState(visible: boolean) {
   align-items: center;
   gap: 8px;
   padding-top: 1px; /* match .diff-file-box's top border so this row aligns with .diff-file-header */
-  padding-bottom: 0.25rem;
 }
 
 .diff-file-search-wrapper {

@@ -14,12 +14,15 @@ import (
 )
 
 func TestCompareHeadRef(t *testing.T) {
-	defer test.MockVariableValue(&setting.Repository.AllowForkIntoSameOwner)()
-	headRepo := &repo_model.Repository{OwnerName: "user", Name: "fork"}
+	defer test.MockVariableValue(&setting.Repository.AllowForkIntoSameOwner, false)()
+	baseRepo := &repo_model.Repository{ID: 1, OwnerID: 100, OwnerName: "base-owner", Name: "base-repo"}
+	sameRepo := baseRepo
+	sameOwner := &repo_model.Repository{ID: 2, OwnerID: 100, OwnerName: "head-owner", Name: "head-repo"}
+	diffOwner := &repo_model.Repository{ID: 2, OwnerID: 101, OwnerName: "head-owner", Name: "head-repo"}
 
-	setting.Repository.AllowForkIntoSameOwner = false
-	assert.Equal(t, "user:my-branch", CompareHeadRef(headRepo, "my-branch"))
-
+	assert.Equal(t, "my-branch", CompareHeadRef(baseRepo, sameRepo, "my-branch"))
+	assert.Equal(t, "head-owner/head-repo:my-branch", CompareHeadRef(baseRepo, sameOwner, "my-branch"))
+	assert.Equal(t, "head-owner:my-branch", CompareHeadRef(baseRepo, diffOwner, "my-branch"))
 	setting.Repository.AllowForkIntoSameOwner = true
-	assert.Equal(t, "user/fork:my-branch", CompareHeadRef(headRepo, "my-branch"))
+	assert.Equal(t, "head-owner/head-repo:my-branch", CompareHeadRef(baseRepo, diffOwner, "my-branch"))
 }

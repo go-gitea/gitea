@@ -1,4 +1,6 @@
 <div class="issue-content-right ui segment" data-global-init="initRepoIssueSidebar">
+	{{template "custom/extra_repo_issue_sidebar_top" $}}
+
 	{{if .Issue.IsPull}}
 		{{template "repo/issue/sidebar/reviewer_list" $.IssuePageMetaData}}
 		{{template "repo/issue/sidebar/wip_switch" $}}

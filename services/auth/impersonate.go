@@ -42,6 +42,17 @@ func ImpersonateUser(sess SessionStore, u *user_model.User) error {
 	return sess.Release()
 }
 
+// ImpersonatorUserID returns the ID of the admin behind an impersonated
+// session, or zero when the session is not impersonating anyone.
+func ImpersonatorUserID(sess SessionStore) int64 {
+	data, ok := sess.Get(session.KeyImpersonatorData).(map[string]any)
+	if !ok {
+		return 0
+	}
+	uid, _ := data[session.KeyUID].(int64)
+	return uid
+}
+
 func ExitImpersonatedUser(sess SessionStore) (bool, error) {
 	impersonatorData, ok := sess.Get(session.KeyImpersonatorData).(map[string]any)
 	if !ok {

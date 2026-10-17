@@ -19,10 +19,10 @@ import (
 
 // Organization contains organization context
 type Organization struct {
-	IsOwner          bool
-	IsMember         bool
-	IsTeamMember     bool // Is member of team.
-	IsTeamAdmin      bool // In owner team or team that has admin permission level.
+	IsOwner      bool
+	IsMember     bool
+	IsTeamMember bool // Is member of team.
+
 	Organization     *organization.Organization
 	OrgLink          string
 	CanCreateOrgRepo bool
@@ -66,7 +66,6 @@ type OrgAssignmentOptions struct {
 	RequireMember     bool
 	RequireOwner      bool
 	RequireTeamMember bool
-	RequireTeamAdmin  bool
 }
 
 // OrgAssignment returns a middleware to handle organization assignment
@@ -112,7 +111,6 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			ctx.Org.IsOwner = true
 			ctx.Org.IsMember = true
 			ctx.Org.IsTeamMember = true
-			ctx.Org.IsTeamAdmin = true
 			ctx.Org.CanCreateOrgRepo = true
 		} else if ctx.IsSigned {
 			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
@@ -124,7 +122,6 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			if ctx.Org.IsOwner {
 				ctx.Org.IsMember = true
 				ctx.Org.IsTeamMember = true
-				ctx.Org.IsTeamAdmin = true
 				ctx.Org.CanCreateOrgRepo = true
 			} else {
 				ctx.Org.IsMember, err = org.IsOrgMember(ctx, ctx.Doer.ID)
@@ -236,14 +233,6 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				ctx.NotFound(err)
 				return
 			}
-
-			isTeamOwnerOrAdmin := ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.HasAdminAccess()
-			ctx.Org.IsTeamAdmin = ctx.Org.IsOwner || (ctx.Org.IsTeamMember && isTeamOwnerOrAdmin)
-			ctx.Data["IsTeamAdmin"] = ctx.Org.IsTeamAdmin
-			if opts.RequireTeamAdmin && !ctx.Org.IsTeamAdmin {
-				ctx.NotFound(err)
-				return
-			}
 		}
 		ctx.Data["ContextUser"] = ctx.ContextUser
 
@@ -277,10 +266,5 @@ func UserShouldSeeAllOrgTeams(ctx *Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	for _, team := range teams {
-		if team.IncludesAllRepositories && team.HasAdminAccess() {
-			return true, nil
-		}
-	}
-	return false, nil
+	return teams.HasAllRepoAdminAccess(), nil
 }

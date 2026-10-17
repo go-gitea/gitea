@@ -68,6 +68,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -75,6 +76,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -95,6 +97,7 @@ import (
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -124,7 +127,13 @@ func sudo() func(ctx *context.APIContext) {
 					return
 				}
 				log.Trace("Sudo from (%s) to: %s", ctx.Doer.Name, user.Name)
+
+				audit.Record(ctx, audit_model.UserImpersonation, user)
+
 				ctx.Doer = user
+				// keep the audit actor in step with the effective doer, and keep the admin attached to it
+				ctx.Data[middleware.ContextDataKeyImpersonator] = ctx.Data[middleware.ContextDataKeySignedUser]
+				ctx.Data[middleware.ContextDataKeySignedUser] = user
 			} else {
 				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "Only administrators allowed to sudo.",
@@ -189,13 +198,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
-		if taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer); ok {
-			ctx.Repo.Permission, err = access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-		} else {
+		{
 			needTwoFactor, err := doerNeedTwoFactorAuth(ctx, ctx.Doer)
 			if err != nil {
 				ctx.APIErrorInternal(err)
@@ -228,7 +231,7 @@ func doerNeedTwoFactorAuth(ctx gocontext.Context, doer *user_model.User) (bool, 
 	if !setting.TwoFactorAuthEnforced {
 		return false, nil
 	}
-	if doer == nil {
+	if doer == nil || !doer.IsIndividual() { // system doers like Actions tasks or deploy-keys can never enroll 2FA
 		return false, nil
 	}
 	has, err := auth_model.HasTwoFactorOrWebAuthn(ctx, doer.ID)
@@ -422,6 +425,15 @@ func reqOwner() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Repo.Permission.IsOwner() && !ctx.IsUserSiteAdmin() {
 			ctx.APIError(http.StatusForbidden, "user should be the owner of the repo")
+			return
+		}
+	}
+}
+
+func reqRepoDangerZone() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !access_model.CanDoerManageRepoDangerZone(ctx, ctx.Doer, ctx.Repo.Repository, &ctx.Repo.Permission) {
+			ctx.APIError(http.StatusForbidden, "user has no permission to manage the danger zone")
 			return
 		}
 	}
@@ -871,7 +883,7 @@ func mustNotBeArchived(ctx *context.APIContext) {
 }
 
 func mustEnableEditor(ctx *context.APIContext) {
-	if !ctx.Repo.Repository.CanEnableEditor() {
+	if !ctx.Repo.Repository.CanContentChange() {
 		ctx.APIError(http.StatusLocked, "repo is not allowed to edit")
 		return
 	}
@@ -924,31 +936,22 @@ func apiAuth(authMethod auth.Method) func(*context.APIContext) {
 	}
 }
 
-// verifyAuthWithOptions checks authentication according to options
-func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIContext) {
+// verifyAuthWithOptionsAPI checks authentication according to options
+func verifyAuthWithOptionsAPI(options *common.VerifyOptions) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		// Check prohibit login users.
 		if ctx.IsSigned {
-			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
-				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.JSON(http.StatusForbidden, map[string]string{
-					"message": "This account is not activated.",
-				})
+			check := common.CheckSignedInUser(ctx.Doer, nil)
+			if check.NeedActivateAccount {
+				ctx.JSON(http.StatusForbidden, map[string]string{"message": "This account is not activated."})
 				return
-			}
-			if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
-				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
-				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-				ctx.JSON(http.StatusForbidden, map[string]string{
-					"message": "This account is prohibited from signing in, please contact your site administrator.",
-				})
+			} else if check.LoginIsProhibited {
+				log.Info("Failed authentication attempt for %s from %s (prohibited)", ctx.Doer.Name, ctx.RemoteAddr())
+				ctx.JSON(http.StatusForbidden, map[string]string{"message": "This account is prohibited from signing in, please contact your site administrator."})
 				return
-			}
-
-			if ctx.Doer.MustChangePassword {
-				ctx.JSON(http.StatusForbidden, map[string]string{
-					"message": "You must change your password. Change it at: " + setting.AppURL + "/user/change_password",
-				})
+			} else if check.NeedChangePassword {
+				msg := "You must change your password. Change it at: " + httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/user/settings/change_password")
+				ctx.JSON(http.StatusForbidden, map[string]string{"message": msg})
 				return
 			}
 		}
@@ -959,20 +962,12 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 			return
 		}
 
-		if options.SignInRequired {
-			if !ctx.IsSigned {
-				// Restrict API calls with error message.
-				ctx.JSON(http.StatusForbidden, map[string]string{
-					"message": "Only signed in user is allowed to call APIs.",
-				})
-				return
-			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
-				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.JSON(http.StatusForbidden, map[string]string{
-					"message": "This account is not activated.",
-				})
-				return
-			}
+		if options.SignInRequired && !ctx.IsSigned {
+			// Restrict API calls with error message.
+			ctx.JSON(http.StatusForbidden, map[string]string{
+				"message": "Only signed in user is allowed to call APIs.",
+			})
+			return
 		}
 
 		if options.AdminRequired {
@@ -1018,12 +1013,13 @@ func Routes() *web.Router {
 	}
 
 	m.AfterRouting(context.APIContexter())
+	m.AfterRouting(common.AuditOrigin(audit_model.OriginAPI))
 	m.AfterRouting(checkDeprecatedAuthMethods)
 
 	// Get user from session if logged in.
 	m.AfterRouting(apiAuth(buildAuthGroup()))
 
-	m.AfterRouting(verifyAuthWithOptions(&common.VerifyOptions{
+	m.AfterRouting(verifyAuthWithOptionsAPI(&common.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInViewStrict,
 	}))
 
@@ -1305,11 +1301,11 @@ func Routes() *web.Router {
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
-					Delete(reqToken(), reqOwner(), repo.Delete).
+					Delete(reqToken(), reqRepoDangerZone(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Group("/transfer", func() {
-					m.Post("", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
+					m.Post("", reqRepoDangerZone(), bind(api.TransferRepoOption{}), repo.Transfer)
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
@@ -1439,6 +1435,7 @@ func Routes() *web.Router {
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
+					m.Post("/tokens", bind(api.CreateDeployKeyTokenOption{}), repo.CreateDeployToken)
 					m.Combo("/{id}").Get(repo.GetDeployKey).
 						Delete(repo.DeleteDeployKey)
 				}, reqToken(), reqAdmin())
@@ -1591,10 +1588,10 @@ func Routes() *web.Router {
 				m.Get("/signing-key.pub", misc.SigningKeySSH)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
-						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
+						Put(reqToken(), reqAdmin(), mustNotBeArchived, bind(api.RepoTopicOptions{}), repo.UpdateTopics)
 					m.Group("/{topic}", func() {
-						m.Combo("").Put(reqToken(), repo.AddTopic).
-							Delete(reqToken(), repo.DeleteTopic)
+						m.Combo("").Put(reqToken(), mustNotBeArchived, repo.AddTopic).
+							Delete(reqToken(), mustNotBeArchived, repo.DeleteTopic)
 					}, reqAdmin())
 				}, reqAnyRepoReader())
 				m.Get("/issue_templates", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueTemplates)

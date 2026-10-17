@@ -169,13 +169,13 @@ In the PR title, describe the problem you are fixing, not how you are fixing it.
 Use the first comment as a summary of your PR. \
 In the PR summary, you can describe exactly how you are fixing this problem.
 
-PR titles must follow the [Conventional Commits](https://www.conventionalcommits.org/) format, because PRs are squash-merged and the PR title becomes the resulting commit message:
+PR titles must follow the [Conventional Commits](https://www.conventionalcommits.org/) format, because PRs are squash-merged and the PR title becomes the resulting commit message and release notes entry:
 
 ```text
 type(scope)!: subject
 ```
 
-The scope in parentheses is optional. A `!` immediately before the colon marks a [breaking change](https://www.conventionalcommits.org/en/v1.0.0/#summary): either `type!:` or `type(scope)!:` (not `type!(scope):`).
+The scope in parentheses is optional. A `!` immediately before the colon marks a [breaking change](https://www.conventionalcommits.org/en/v1.0.0/#summary): either `type!:` or `type(scope)!:` (not `type!(scope):`). Do not mark `build`, `chore`, `ci`, `docs`, `style`, or `test` as breaking.
 
 Use one of these types:
 

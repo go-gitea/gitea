@@ -149,19 +149,9 @@ func (b *Base) PlainText(status int, text string) {
 // Redirect redirects the request
 func (b *Base) Redirect(location string, status ...int) {
 	code := util.OptionalArg(status, http.StatusSeeOther)
-
-	if !httplib.IsRelativeURL(location) {
-		// Some browsers (Safari) have buggy behavior for Cookie + Cache + External Redirection, eg: /my-path => https://other/path
-		// 1. the first request to "/my-path" contains cookie
-		// 2. some time later, the request to "/my-path" doesn't contain cookie (caused by Prevent web tracking)
-		// 3. Gitea's Sessioner doesn't see the session cookie, so it generates a new session id, and returns it to browser
-		// 4. then the browser accepts the empty session, then the user is logged out
-		// So in this case, we should remove the session cookie from the response header
-		removeSessionCookieHeader(b.Resp)
-	}
 	// In case the request is made by "fetch-action" module, make JS redirect to the new location
 	// Otherwise, the JS fetch will follow the redirection and read a "login" page, embed it to the current page, which is not expected.
-	if b.Req.Header.Get("X-Gitea-Fetch-Action") != "" {
+	if httplib.IsGiteaFetchActionRequest(b.Req) {
 		b.JSON(http.StatusOK, map[string]any{"redirect": location})
 		return
 	}
@@ -210,6 +200,9 @@ func (b *Base) SetHeaderContentSecurityPolicyGeneral() {
 
 func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
 	reqCtx := reqctx.FromContext(req.Context())
+	if reqCtx.Value(BaseContextKey) != nil {
+		panic("Base context already exists in request context")
+	}
 	b := &Base{
 		RequestContext: reqCtx,
 
@@ -218,18 +211,17 @@ func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
 		Locale: middleware.Locale(resp, req),
 		Data:   reqCtx.GetData(),
 	}
-	b.Req = b.Req.WithContext(b)
+	b.Req = httplib.RequestWithContext(b.Req, reqCtx)
 	reqCtx.SetContextValue(BaseContextKey, b)
 	reqCtx.SetContextValue(translation.ContextKey, b.Locale)
-	reqCtx.SetContextValue(httplib.RequestContextKey, b.Req)
 	return b
 }
 
-func NewBaseContextForTest(resp http.ResponseWriter, req *http.Request) *Base {
+func NewBaseContextForTest(t reqctx.TestingT, resp http.ResponseWriter, req *http.Request) *Base {
 	if !setting.IsInTesting {
 		panic("This function is only for testing")
 	}
-	ctx := reqctx.NewRequestContextForTest(req.Context())
+	ctx := reqctx.NewRequestContextForTest(t)
 	*req = *req.WithContext(ctx)
 	return NewBaseContext(resp, req)
 }

@@ -11,6 +11,7 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -24,7 +25,7 @@ import (
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
-func appendPrivateInformation(ctx stdCtx.Context, apiKey *api.DeployKey, key *asymkey_model.DeployKey, repository *repo_model.Repository) (*api.DeployKey, error) {
+func appendPrivateInformation(ctx stdCtx.Context, apiKey *api.DeployKey, key *deploykey_model.DeployKey, repository *repo_model.Repository) (*api.DeployKey, error) {
 	apiKey.ReadOnly = key.Mode == perm.AccessModeRead
 	if repository.ID == key.RepoID {
 		apiKey.Repository = convert.ToRepo(ctx, repository, access_model.Permission{AccessMode: key.Mode})
@@ -78,14 +79,14 @@ func ListDeployKeys(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	opts := asymkey_model.ListDeployKeysOptions{
+	opts := deploykey_model.ListDeployKeysOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		KeyID:       ctx.FormInt64("key_id"),
 		Fingerprint: ctx.FormString("fingerprint"),
 	}
 
-	keys, count, err := db.FindAndCount[asymkey_model.DeployKey](ctx, opts)
+	keys, count, err := db.FindAndCount[deploykey_model.DeployKey](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -133,7 +134,7 @@ func GetDeployKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetDeployKeyByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	key, err := deploykey_model.GetDeployKeyByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -160,13 +161,13 @@ func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 // HandleAddKeyError handle add key error
 func HandleAddKeyError(ctx *context.APIContext, err error) {
 	switch {
-	case asymkey_model.IsErrDeployKeyAlreadyExist(err):
+	case deploykey_model.IsErrDeployKeyAlreadyExist(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "This key has already been added to this repository")
 	case asymkey_model.IsErrKeyAlreadyExist(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "Key content has been used as non-deploy key")
 	case asymkey_model.IsErrKeyNameAlreadyUsed(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "Key title has been used")
-	case asymkey_model.IsErrDeployKeyNameAlreadyUsed(err):
+	case deploykey_model.IsErrDeployKeyNameAlreadyUsed(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "A key with the same name already exists")
 	default:
 		ctx.APIErrorInternal(err)
@@ -213,11 +214,54 @@ func CreateDeployKey(ctx *context.APIContext) {
 	}
 
 	accessMode := util.Iif(form.ReadOnly, perm.AccessModeRead, perm.AccessModeWrite)
-	key, err := asymkey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, accessMode)
+	key, err := deploykey_model.AddDeployKeySSH(ctx, ctx.Repo.Repository.ID, form.Title, content, accessMode)
 	if err != nil {
 		HandleAddKeyError(ctx, err)
 		return
 	}
+	ctx.JSON(http.StatusCreated, convert.ToDeployKey(ctx, ctx.Repo.Repository, key))
+}
+
+// CreateDeployToken create a deploy token for a repository
+func CreateDeployToken(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/keys/tokens repository repoCreateDeployToken
+	// ---
+	// summary: Add a deploy token to a repository, it authenticates git over HTTPS
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateDeployKeyTokenOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/DeployKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	form := web.GetForm[*api.CreateDeployKeyTokenOption](ctx)
+	accessMode := util.Iif(form.ReadOnly, perm.AccessModeRead, perm.AccessModeWrite)
+	key, err := deploykey_model.AddDeployKeyToken(ctx, ctx.Repo.Repository.ID, form.Title, accessMode)
+	if err != nil {
+		HandleAddKeyError(ctx, err)
+		return
+	}
+
 	ctx.JSON(http.StatusCreated, convert.ToDeployKey(ctx, ctx.Repo.Repository, key))
 }
 
@@ -251,7 +295,8 @@ func DeleteDeployKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.PathParamInt64("id")); err != nil {
+	// a key that is already gone still leaves the caller with the state it asked for
+	if _, err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.PathParamInt64("id")); err != nil && !deploykey_model.IsErrDeployKeyNotExist(err) {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {

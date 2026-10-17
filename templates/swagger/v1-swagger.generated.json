@@ -34,7 +34,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -257,7 +257,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -723,8 +723,8 @@
           },
           {
             "type": "string",
-            "description": "pattern of repositories to search for",
-            "name": "pattern",
+            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
+            "name": "query",
             "in": "query"
           }
         ],
@@ -825,7 +825,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "ID of the user's login source to search for",
+            "description": "ID of the user's login source to search for, 0 means the local users",
             "name": "source_id",
             "in": "query"
           },
@@ -945,6 +945,9 @@
           "403": {
             "$ref": "#/responses/forbidden"
           },
+          "409": {
+            "$ref": "#/responses/error"
+          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -1028,6 +1031,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -2034,7 +2040,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -2286,7 +2292,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -5778,7 +5784,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6179,7 +6185,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6515,7 +6521,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6684,7 +6690,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -7741,7 +7747,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -9222,6 +9228,18 @@
             "type": "string",
             "description": "return the raw comparison as `diff` or `patch` instead of JSON",
             "name": "output",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
             "in": "query"
           }
         ],
@@ -14457,6 +14475,55 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/keys/tokens": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add a deploy token to a repository, it authenticates git over HTTPS",
+        "operationId": "repoCreateDeployToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateDeployKeyTokenOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/DeployKey"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/keys/{id}": {
       "get": {
         "produces": [
@@ -14942,6 +15009,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16782,6 +16852,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/PullRequest"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -20050,6 +20123,9 @@
           },
           "422": {
             "$ref": "#/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -20096,6 +20172,9 @@
           },
           "422": {
             "$ref": "#/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -20140,6 +20219,9 @@
           },
           "422": {
             "$ref": "#/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -21335,7 +21417,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -21558,7 +21640,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -22214,6 +22296,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/EmailList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -25899,6 +25987,20 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "deletion_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistTeams"
+        },
+        "deletion_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistUsernames"
+        },
         "dismiss_stale_approvals": {
           "type": "boolean",
           "x-go-name": "DismissStaleApprovals"
@@ -25910,6 +26012,14 @@
         "enable_bypass_allowlist": {
           "type": "boolean",
           "x-go-name": "EnableBypassAllowlist"
+        },
+        "enable_deletion": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletion"
+        },
+        "enable_deletion_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletionAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -26782,6 +26892,20 @@
           },
           "x-go-name": "BypassAllowlistUsernames"
         },
+        "deletion_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistTeams"
+        },
+        "deletion_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistUsernames"
+        },
         "dismiss_stale_approvals": {
           "type": "boolean",
           "x-go-name": "DismissStaleApprovals"
@@ -26793,6 +26917,14 @@
         "enable_bypass_allowlist": {
           "type": "boolean",
           "x-go-name": "EnableBypassAllowlist"
+        },
+        "enable_deletion": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletion"
+        },
+        "enable_deletion_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletionAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -26933,6 +27065,26 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "OldRefName"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CreateDeployKeyTokenOption": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "read_only": {
+          "description": "Describe if the token has only read access or read/write",
+          "type": "boolean",
+          "x-go-name": "ReadOnly"
+        },
+        "title": {
+          "description": "Title of the token to add",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Title"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -27186,7 +27338,6 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "CreateKeyOption": {
-      "description": "CreateKeyOption options when creating a key",
       "type": "object",
       "required": [
         "title",
@@ -28182,11 +28333,10 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "DeployKey": {
-      "description": "DeployKey a deploy key",
       "type": "object",
       "properties": {
         "created_at": {
-          "description": "Created is the time when the deploy key was added",
+          "description": "Created is the time when the deploy-key was added",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -28197,7 +28347,7 @@
           "x-go-name": "Fingerprint"
         },
         "id": {
-          "description": "ID is the unique identifier for the deploy key",
+          "description": "ID is the unique identifier for the deploy-key",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
@@ -28213,6 +28363,15 @@
           "format": "int64",
           "x-go-name": "KeyID"
         },
+        "key_type": {
+          "description": "Type tells whether the key authenticates over SSH or with a token over HTTPS",
+          "type": "string",
+          "enum": [
+            "ssh",
+            "token"
+          ],
+          "x-go-name": "KeyType"
+        },
         "read_only": {
           "description": "ReadOnly indicates if the key has read-only access",
           "type": "boolean",
@@ -28226,8 +28385,13 @@
           "type": "string",
           "x-go-name": "Title"
         },
+        "token": {
+          "description": "Token is the plaintext token of an HTTPS key, only returned when it is created",
+          "type": "string",
+          "x-go-name": "Token"
+        },
         "url": {
-          "description": "URL is the API URL for this deploy key",
+          "description": "URL is the API URL for this deploy-key",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -28327,6 +28491,20 @@
           },
           "x-go-name": "BypassAllowlistUsernames"
         },
+        "deletion_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistTeams"
+        },
+        "deletion_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistUsernames"
+        },
         "dismiss_stale_approvals": {
           "type": "boolean",
           "x-go-name": "DismissStaleApprovals"
@@ -28338,6 +28516,14 @@
         "enable_bypass_allowlist": {
           "type": "boolean",
           "x-go-name": "EnableBypassAllowlist"
+        },
+        "enable_deletion": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletion"
+        },
+        "enable_deletion_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletionAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -29278,6 +29464,17 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "SourceID"
+        },
+        "type": {
+          "description": "The user type",
+          "type": "string",
+          "enum": [
+            "User",
+            "Organization",
+            "Bot"
+          ],
+          "x-go-enum-desc": "User UserTypeStringUser\nOrganization UserTypeStringOrganization\nBot UserTypeStringBot",
+          "x-go-name": "Type"
         },
         "visibility": {
           "description": "User visibility level: public, limited, or private",
@@ -33632,6 +33829,17 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "StarredRepos"
+        },
+        "type": {
+          "description": "the user type",
+          "type": "string",
+          "enum": [
+            "User",
+            "Organization",
+            "Bot"
+          ],
+          "x-go-enum-desc": "User UserTypeStringUser\nOrganization UserTypeStringOrganization\nBot UserTypeStringBot",
+          "x-go-name": "Type"
         },
         "visibility": {
           "description": "User visibility level option: public, limited, private",

@@ -127,9 +127,7 @@ func Dashboard(ctx *context.Context) {
 
 	// FIXME: UNLIMITE-PAGING-ONE-MORE-ROW: here is still an edge case: when curRows==pagingNum, then the "next page" will be an empty page.
 	// Ideally we should query one more row to determine if there is really a next page, but it's impossible in current framework.
-	pager := context.NewPagination(count, pageSize, page, 5).WithUnlimitedPaging(len(feeds), len(feeds) == pageSize)
-
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(pageSize).CurPage(page).Build().WithUnlimitedPaging(len(feeds), len(feeds) == pageSize)
 	ctx.Data["Page"] = pager
 	ctx.Data["Feeds"] = feeds
 
@@ -320,8 +318,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(pagerCount).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestones)
@@ -626,8 +623,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		ctx.Data["State"] = "open"
 	}
 
-	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(shownIssues).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIssues)
@@ -735,18 +731,10 @@ func UsernameSubRoute(ctx *context.Context) {
 			ShowGPGKeys(ctx)
 		}
 	case strings.HasSuffix(username, ".rss"):
-		if !setting.Other.EnableFeed {
-			ctx.HTTPError(http.StatusNotFound)
-			return
-		}
 		if reloadParam(".rss") {
 			feed.ShowUserFeedRSS(ctx)
 		}
 	case strings.HasSuffix(username, ".atom"):
-		if !setting.Other.EnableFeed {
-			ctx.HTTPError(http.StatusNotFound)
-			return
-		}
 		if reloadParam(".atom") {
 			feed.ShowUserFeedAtom(ctx)
 		}

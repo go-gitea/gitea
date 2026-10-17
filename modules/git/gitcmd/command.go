@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -47,11 +46,11 @@ type Command struct {
 	// otherwise some git commands might overwrite git dir internal files by a repo file.
 	gitDir string
 
-	cmd *exec.Cmd
+	cmd *process.Cmd
 
 	cmdCtx       context.Context
-	cmdCancel    process.CancelCauseFunc
-	cmdFinished  process.FinishedFunc
+	cmdCtxCancel process.CancelCauseFunc
+	cmdFinished  func()
 	cmdStartTime time.Time
 
 	pipelineFunc func(Context) error
@@ -173,6 +172,16 @@ func (c *Command) AddOptionFormat(opt string, args ...any) *Command {
 	return c
 }
 
+func (c *Command) AddOptionGrepExpr(s string) *Command {
+	if len(c.args) == 0 || c.args[0] != "grep" {
+		c.handlePreErrorBrokenCommand("(not grep command)")
+		return c
+	}
+	// man git-grep: -e: This option has to be used for patterns starting with "-"
+	c.args = append(c.args, "-e", s)
+	return c
+}
+
 // AddDynamicArguments adds new dynamic argument values to the command.
 // The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options.
 // TODO: in the future, this function can be renamed to AddArgumentValues
@@ -246,10 +255,14 @@ func commonBaseEnvs() []string {
 
 // CommonGitCmdEnvs returns the common environment variables for a "git" command.
 func CommonGitCmdEnvs() []string {
-	return append(commonBaseEnvs(), []string{
+	envs := append(commonBaseEnvs(), []string{
 		"LC_ALL=C",              // ensure git output is in English, error messages are parsed in English
 		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git v2.3
 	}...)
+	if extra := extraEnvs.Load(); extra != nil {
+		envs = append(envs, *extra...)
+	}
+	return envs
 }
 
 // CommonCmdServEnvs is like CommonGitCmdEnvs, but it only returns minimal required environment variables for the "gitea serv" command
@@ -415,47 +428,46 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 	if c.callerInfo == "" {
 		c.WithParentCallerInfo()
 	}
+
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
 	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", c.callerInfo, logArgSanitize(c.gitDir), cmdLogString)
 	log.Debug("git.Command: %s", desc)
 
 	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
-	defer span.End()
 	span.SetAttributeString(gtprof.TraceAttrFuncCaller, c.callerInfo)
 	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
+	var cmdCtxFinished func()
 	if c.cmdTimeout <= 0 {
-		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContext(ctx, desc)
+		c.cmdCtx, c.cmdCtxCancel, cmdCtxFinished = process.GetManager().AddContext(ctx, desc)
 	} else {
-		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContextTimeout(ctx, c.cmdTimeout, desc)
+		c.cmdCtx, c.cmdCtxCancel, cmdCtxFinished = process.GetManager().AddContextTimeout(ctx, c.cmdTimeout, desc)
+	}
+	c.cmdFinished = func() {
+		cmdCtxFinished()
+		span.End()
 	}
 
 	c.cmdStartTime = time.Now()
 
-	c.cmd = exec.CommandContext(c.cmdCtx, c.prog, append(c.configArgs, c.args...)...)
+	c.cmd = process.CommandContext(c.cmdCtx, c.prog, append(c.configArgs, c.args...)...)
 	if c.cmdEnv == nil {
 		c.cmd.Env = os.Environ()
 	} else {
 		c.cmd.Env = c.cmdEnv
 	}
 
-	process.SetSysProcAttribute(c.cmd)
 	c.cmd.Env = append(c.cmd.Env, CommonGitCmdEnvs()...)
 	c.cmd.Dir = c.gitDir
 	c.cmd.Stdout = c.cmdStdout
 	c.cmd.Stdin = c.cmdStdin
 	c.cmd.Stderr = c.cmdStderr
-	c.cmd.Cancel = func() error {
-		// Golang's default cmd.Cancel only calls Process.Kill(), but here we need to close the parent pipes together:
-		// * for some commands like "git --batch-xxx", Windows git might have 2 processes (a wrapper and a real git process)
-		// * on Windows, if parent process is killed (context canceled), the children process won't be killed, and the pipe handles are still open.
-		// * if we don't close the parent pipes here, the children process won't exit.
-		//
-		// There is no such problem on POSIX, while it won't make things worse by closing the parent pipes also on POSIX.
-		err := c.cmd.Process.Kill()
+	c.cmd.WithOnCancelGracefully(func() error {
+		// Need to close the pipes to notify all sub processes to exit.
+		// Especially on Windows: there is no process group, and we didn't implement process job object (like process group).
 		c.closePipeFiles(c.parentPipeFiles)
-		return err
-	}
+		return nil
+	})
 	return c.cmd.Start()
 }
 
@@ -546,7 +558,7 @@ func (c *Command) WaitWithStderr() RunStdError {
 		// if no exec error but only stderr output, the stderr output is still saved in "c.cmdManagedStderr" and can be read later
 		return nil
 	}
-	return &runStdError{err: errWait, stderr: util.UnsafeBytesToString(c.cmdManagedStderr.Bytes())}
+	return NewRunStdError(errWait, util.UnsafeBytesToString(c.cmdManagedStderr.Bytes()))
 }
 
 func (c *Command) RunWithStderr(ctx context.Context) RunStdError {
