@@ -1,0 +1,40 @@
+Age: 0
+Atl-Request-Id: 74b57823-ae68-4692-8deb-1dcad8de9fcf
+Atl-Traceid: 74b57823ae6846928deb1dcad8de9fcf
+Cache-Control: max-age=900
+Content-Type: application/json; charset=utf-8
+Etag: W/"14c5bf74cc850a96849404f143701e69"
+Server-Timing: cdn-upstream-layer;desc="EDGE",cdn-upstream-dns;dur=1,cdn-upstream-connect;dur=0,cdn-upstream-fbl;dur=249,atl-edge;dur=190,atl-edge-internal;dur=9,atl-edge-upstream;dur=181,atl-edge-pop;desc="aws-us-east-1",cdn-cache-miss,cdn-pop;desc="SFO5-P2",cdn-rid;desc="id5HRJ1jrXdgIPuPxC9TG9vP4UbOweZqmej1U9NajjU9M0Sl-HNX6w==",cdn-downstream-fbl;dur=254
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+Vary: Authorization, origin
+Vary: Accept-Encoding
+Via: 1.1 c07670802688417c8b871124c547eb0a.cloudfront.net (CloudFront)
+X-Accepted-Oauth-Scopes: repository
+X-Amz-Cf-Id: id5HRJ1jrXdgIPuPxC9TG9vP4UbOweZqmej1U9NajjU9M0Sl-HNX6w==
+X-Amz-Cf-Pop: SFO5-P2
+X-Asap-Succeeded: True
+X-B3-Spanid: 6091f85508803216
+X-B3-Traceid: 74b57823ae6846928deb1dcad8de9fcf
+X-Cache: Miss from cloudfront
+X-Content-Type-Options: nosniff
+X-Credential-Type: unauthenticated_identity
+X-Dc-Location: Micros-3
+X-Envoy-Attempt-Count: 1
+X-Frame-Options: SAMEORIGIN
+X-Ratelimit-Limit: 60, 60;w=3600
+X-Ratelimit-Remaining: 59
+X-Ratelimit-Reset: 880
+X-Render-Time: 0.15564703941345215
+X-Request-Count: 668
+X-Served-By: 8d0d4f360512
+X-Static-Version: cc480b0813c6
+X-Usage-Input-Ops: 0
+X-Usage-Output-Ops: 0
+X-Usage-System-Time: 0.004399
+X-Usage-User-Time: 0.070948
+X-Used-Mesh: False
+X-Version: cc480b0813c6
+X-View-Name: bitbucket.apps.repo2.api.v20.repo.RepositoryHandler
+X-Xss-Protection: 1; mode=block
+
+{"type": "repository", "full_name": "gitea/test_repo", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo"}, "html": {"href": "https://bitbucket.org/gitea/test_repo"}, "avatar": {"href": "https://bytebucket.org/ravatar/%7B7b764bc5-c3f3-4910-a90b-4cdc229a66b7%7D?ts=default"}, "pullrequests": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/pullrequests"}, "commits": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/commits"}, "forks": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/forks"}, "watchers": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/watchers"}, "branches": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/refs/branches"}, "tags": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/refs/tags"}, "downloads": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/downloads"}, "source": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/src"}, "clone": [{"name": "https", "href": "https://bitbucket.org/gitea/test_repo.git"}, {"name": "ssh", "href": "git@bitbucket.org:gitea/test_repo.git"}], "hooks": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/hooks"}}, "name": "test_repo", "slug": "test_repo", "description": "", "scm": "git", "website": null, "owner": {"display_name": "gitea", "links": {"self": {"href": "https://api.bitbucket.org/2.0/workspaces/%7B5e516e72-8608-4d3e-9ca4-969288daed2a%7D"}, "avatar": {"href": "https://bitbucket.org/account/gitea4/avatar/"}, "html": {"href": "https://bitbucket.org/%7B5e516e72-8608-4d3e-9ca4-969288daed2a%7D/"}}, "type": "team", "uuid": "{5e516e72-8608-4d3e-9ca4-969288daed2a}", "username": "gitea4"}, "workspace": {"type": "workspace", "uuid": "{5e516e72-8608-4d3e-9ca4-969288daed2a}", "name": "gitea", "slug": "gitea", "links": {"avatar": {"href": "https://bitbucket.org/workspaces/gitea/avatar/?ts=1791398183"}, "html": {"href": "https://bitbucket.org/gitea/"}, "self": {"href": "https://api.bitbucket.org/2.0/workspaces/gitea"}}}, "is_private": false, "project": {"type": "project", "key": "TES", "uuid": "{94fee3ab-3d66-4ba7-a36a-134aab7a1e84}", "name": "test_repo", "links": {"self": {"href": "https://api.bitbucket.org/2.0/workspaces/gitea/projects/TES"}, "html": {"href": "https://bitbucket.org/gitea/workspace/projects/TES"}, "avatar": {"href": "https://bitbucket.org/gitea/workspace/projects/TES/avatar/32?ts=1791398116"}}}, "fork_policy": "allow_forks", "created_on": "2026-10-07T18:35:17.202781+00:00", "updated_on": "2026-10-07T18:40:40.122213+00:00", "size": 3862, "language": "", "uuid": "{7b764bc5-c3f3-4910-a90b-4cdc229a66b7}", "mainbranch": {"name": "master", "type": "branch"}, "override_settings": {"default_merge_strategy": true, "branching_model": true}, "parent": null, "enforced_signed_commits": null}

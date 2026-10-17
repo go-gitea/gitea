@@ -1,0 +1,78 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository new migrate">
+	<div class="ui container medium-width">
+		<h3 class="ui top attached header">
+			{{ctx.Locale.Tr "repo.migrate.migrate" .service.Title}}
+		</h3>
+		<div class="ui attached segment">
+			{{template "base/alert" .}}
+			<form class="ui form left-right-form form-fetch-action" action="{{.Link}}" method="post">
+				{{template "repo/migrate/common-init" (dict "ServiceType" .service)}}
+
+				<div class="inline required field">
+					<label>{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
+					<input name="clone_addr" autofocus required>
+					<span class="help">
+					{{ctx.Locale.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate.clone_local_path"}}{{end}}
+					</span>
+				</div>
+
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "username"}}</label>
+					<input name="auth_username">
+				</div>
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "password"}}</label>
+					<input name="auth_password" type="password" autocomplete="new-password">
+					<a target="_blank" href="https://support.atlassian.com/bitbucket-cloud/docs/create-an-app-password/">{{svg "octicon-question"}}</a>
+					<span class="help">
+					{{ctx.Locale.Tr "repo.migrate.bitbucket_token_desc"}}
+					</span>
+				</div>
+
+				{{template "repo/migrate/common-options" .}}
+
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.migrate_items"}}</label>
+					<div class="ui checkbox">
+						<input name="wiki" type="checkbox">
+						<label>{{ctx.Locale.Tr "repo.migrate_items_wiki"}}</label>
+					</div>
+				</div>
+				<div id="migrate_items" class="inline field">
+					<span class="help">{{ctx.Locale.Tr "repo.migrate.migrate_items_options"}}</span>
+					<div class="inline field">
+						<label></label>
+						<div class="ui checkbox">
+							<input name="labels" type="checkbox">
+							<label>{{ctx.Locale.Tr "repo.migrate_items_labels"}}</label>
+						</div>
+						<div class="ui checkbox">
+							<input name="issues" type="checkbox">
+							<label>{{ctx.Locale.Tr "repo.migrate_items_issues"}}</label>
+						</div>
+					</div>
+					<div class="inline field">
+						<label></label>
+						<div class="ui checkbox">
+							<input name="pull_requests" type="checkbox">
+							<label>{{ctx.Locale.Tr "repo.migrate_items_pullrequests"}}</label>
+						</div>
+					</div>
+					<div class="inline field">
+						<label></label>
+						<div class="ui checkbox">
+							<input name="milestones" type="checkbox">
+							<label>{{ctx.Locale.Tr "repo.migrate_items_milestones"}}</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="divider"></div>
+
+				{{template "repo/migrate/common-migrated-repo"}}
+			</form>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
