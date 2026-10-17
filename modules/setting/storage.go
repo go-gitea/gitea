@@ -33,7 +33,7 @@ var storageTypes = []StorageType{
 	LocalStorageType,
 	S3StorageType,
 	AzureBlobStorageType,
-	legacyMinioStorageType, // remove together with the rest of the minio fallback in MinioToS3RemovalVersion
+	legacyMinioStorageType,
 }
 
 // IsValidStorageType returns true if the given storage type is valid
@@ -73,14 +73,12 @@ var minioToS3KeyRenames = []struct{ oldKey, newKey string }{
 	{"MINIO_USE_SSL", "S3_USE_SSL"},
 }
 
-const MinioToS3RemovalVersion = "v30.0.0"
-
 func migrateDeprecatedStorageConfig(sec ConfigSection) {
 	if sec == nil {
 		return
 	}
 	if storageType := ConfigSectionKey(sec, "STORAGE_TYPE"); storageType != nil && storageType.String() == string(legacyMinioStorageType) {
-		LogStartupProblem(1, log.WARN, "Deprecation: config option `[%s].STORAGE_TYPE = %s` is deprecated, please use `%s` instead because this fallback will be removed in %s", sec.Name(), legacyMinioStorageType, S3StorageType, MinioToS3RemovalVersion)
+		LogStartupProblem(1, log.WARN, "Deprecation: config option `[%s].STORAGE_TYPE = %s` is deprecated, please use `%s` instead", sec.Name(), legacyMinioStorageType, S3StorageType)
 		storageType.SetValue(string(S3StorageType))
 	}
 	for _, rename := range minioToS3KeyRenames {
@@ -88,7 +86,7 @@ func migrateDeprecatedStorageConfig(sec ConfigSection) {
 		if oldKey == nil {
 			continue
 		}
-		LogStartupProblem(1, log.WARN, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead because this fallback will be removed in %s", sec.Name(), rename.oldKey, sec.Name(), rename.newKey, MinioToS3RemovalVersion)
+		LogStartupProblem(1, log.WARN, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead", sec.Name(), rename.oldKey, sec.Name(), rename.newKey)
 		if ConfigSectionKey(sec, rename.newKey) == nil {
 			_, _ = sec.NewKey(rename.newKey, oldKey.String())
 		}
@@ -213,7 +211,7 @@ func getStorageSectionByType(rootCfg ConfigProvider, typ string) (ConfigSection,
 	if err != nil && typ == string(S3StorageType) {
 		// fall back to the legacy section name [storage.minio]
 		if legacySec, legacyErr := rootCfg.GetSection(storageSectionName + "." + string(legacyMinioStorageType)); legacyErr == nil {
-			LogStartupProblem(0, log.WARN, "Deprecation: storage section `[%s.%s]` is deprecated, please rename it to `[%s.%s]` because this fallback will be removed in %s", storageSectionName, legacyMinioStorageType, storageSectionName, S3StorageType, MinioToS3RemovalVersion)
+			LogStartupProblem(0, log.WARN, "Deprecation: storage section `[%s.%s]` is deprecated, please rename it to `[%s.%s]`", storageSectionName, legacyMinioStorageType, storageSectionName, S3StorageType)
 			targetSec, err = legacySec, nil
 		}
 	}

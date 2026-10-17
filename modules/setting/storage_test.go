@@ -624,7 +624,6 @@ MINIO_USE_SSL = true
 		for _, k := range legacyKeys {
 			assert.Contains(t, joined, k, "expected deprecation warning for %s", k)
 		}
-		assert.Contains(t, joined, MinioToS3RemovalVersion)
 	})
 
 	t.Run("S3_ takes precedence when both are set", func(t *testing.T) {
