@@ -6,6 +6,7 @@ package repo
 import (
 	"html/template"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -193,7 +194,8 @@ func retrieveRepoIssueMetaDataWithPrefill(ctx *context.Context, repo *repo_model
 
 	// milestone
 	paramMilestone := ctx.FormString(newIssuePrefillMilestone)
-	milestoneIDs := pickItemIDsFromQueryParam(data.MilestonesData.OpenMilestones, paramMilestone, func(milestone *issues_model.Milestone) (int64, string) {
+	allMilestones := slices.Concat(data.MilestonesData.OpenMilestones, data.MilestonesData.ClosedMilestones)
+	milestoneIDs := pickItemIDsFromQueryParam(allMilestones, paramMilestone, func(milestone *issues_model.Milestone) (int64, string) {
 		return milestone.ID, milestone.Name
 	})
 	if len(milestoneIDs) > 0 {
@@ -202,7 +204,7 @@ func retrieveRepoIssueMetaDataWithPrefill(ctx *context.Context, repo *repo_model
 
 	// project
 	paramProject := ctx.FormString(newIssuePrefillProject)
-	allProjects := append(data.ProjectsData.OpenProjects, data.ProjectsData.ClosedProjects...)
+	allProjects := slices.Concat(data.ProjectsData.OpenProjects, data.ProjectsData.ClosedProjects)
 	projectOpenIDs := pickItemIDsFromQueryParam(allProjects, paramProject, func(project *project_model.Project) (int64, string) {
 		return project.ID, project.Title
 	})

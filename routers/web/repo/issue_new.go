@@ -232,8 +232,8 @@ func toSet[ItemType any, KeyType comparable](slice []ItemType, keyFunc func(Item
 	return s
 }
 
-// ValidateRepoMetasForNewIssue check and returns repository's meta information
-func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
+// ValidateRepoMetasForCreateIssue check and returns repository's meta information
+func ValidateRepoMetasForCreateIssue(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
 	LabelIDs, AssigneeIDs []int64
 	MilestoneID           int64
 	ProjectIDs            []int64
@@ -321,7 +321,7 @@ func NewIssuePost(ctx *context.Context) {
 
 	repo := ctx.Repo.Repository
 
-	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, false)
+	validateRet := ValidateRepoMetasForCreateIssue(ctx, *form, false)
 	if ctx.Written() {
 		return
 	}
