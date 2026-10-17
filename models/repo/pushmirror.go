@@ -5,9 +5,11 @@ package repo
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/timeutil"
@@ -29,6 +31,54 @@ type PushMirror struct {
 	CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
 	LastError      string             `xorm:"text"`
+
+	Config PushMirrorConfig `xorm:"TEXT JSON"`
+	// History is filled on demand for display, it is not stored in this table
+	History []*PushMirrorHistory `xorm:"-"`
+}
+
+// PushMirrorConfig holds the optional settings of a push mirror, the zero value keeps the legacy "git push --mirror" behavior.
+type PushMirrorConfig struct {
+	KeepRemoteBranches bool     `json:"keep_remote_branches,omitempty"` // do not delete remote branches which do not exist locally
+	NoPushTags         bool     `json:"no_push_tags,omitempty"`         // do not touch remote tags at all
+	KeepRemoteTags     bool     `json:"keep_remote_tags,omitempty"`     // do not delete remote tags which do not exist locally
+	BranchFilters      []string `json:"branch_filters,omitempty"`       // branch names or glob patterns, empty means all branches
+}
+
+// IsDefault reports whether no option is customized
+func (c *PushMirrorConfig) IsDefault() bool {
+	return !c.KeepRemoteBranches && !c.NoPushTags && !c.KeepRemoteTags && len(c.BranchFilters) == 0
+}
+
+// ParsePushMirrorBranchFilters splits a comma or newline separated list and validates every pattern
+func ParsePushMirrorBranchFilters(s string) ([]string, error) {
+	var filters []string
+	for _, f := range strings.FieldsFunc(s, func(r rune) bool { return r == ',' || r == '\n' || r == '\r' }) {
+		if f = strings.TrimSpace(f); f == "" {
+			continue
+		}
+		if _, err := glob.Compile(f, '/'); err != nil {
+			return nil, util.NewInvalidArgumentErrorf("invalid branch filter %q: %v", f, err)
+		}
+		filters = append(filters, f)
+	}
+	return filters, nil
+}
+
+// MatchBranch reports whether the branch is selected by the filters
+func (c *PushMirrorConfig) MatchBranch(branch string) bool {
+	if len(c.BranchFilters) == 0 {
+		return true
+	}
+	for _, f := range c.BranchFilters {
+		if f == branch {
+			return true
+		}
+		if g, err := glob.Compile(f, '/'); err == nil && g.Match(branch) {
+			return true
+		}
+	}
+	return false
 }
 
 type PushMirrorOptions struct {
@@ -92,8 +142,17 @@ func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
 
 func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
 	if opts.RepoID > 0 {
-		_, err := db.Delete[PushMirror](ctx, opts)
-		return err
+		return db.WithTx(ctx, func(ctx context.Context) error {
+			cond := builder.Eq{"repo_id": opts.RepoID}
+			if opts.ID > 0 {
+				cond["push_mirror_id"] = opts.ID
+			}
+			if _, err := db.GetEngine(ctx).Where(cond).Delete(&PushMirrorHistory{}); err != nil {
+				return err
+			}
+			_, err := db.Delete[PushMirror](ctx, opts)
+			return err
+		})
 	}
 	return util.NewInvalidArgumentErrorf("repoID required and must be set")
 }

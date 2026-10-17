@@ -16,12 +16,14 @@ var Mirror = struct {
 	DisableNewPush  bool
 	DefaultInterval time.Duration
 	MinInterval     time.Duration
+	PushHistoryKeep int
 }{
 	Enabled:         true,
 	DisableNewPull:  false,
 	DisableNewPush:  false,
 	MinInterval:     10 * time.Minute,
 	DefaultInterval: 8 * time.Hour,
+	PushHistoryKeep: 10,
 }
 
 func loadMirrorFrom(rootCfg ConfigProvider) {
@@ -46,6 +48,9 @@ func loadMirrorFrom(rootCfg ConfigProvider) {
 	if Mirror.MinInterval.Minutes() < 1 {
 		log.Warn("Mirror.MinInterval is too low, set to 1 minute")
 		Mirror.MinInterval = 1 * time.Minute
+	}
+	if Mirror.PushHistoryKeep < 1 {
+		Mirror.PushHistoryKeep = 1
 	}
 	if Mirror.DefaultInterval < Mirror.MinInterval {
 		Mirror.DefaultInterval = max(time.Hour*8, Mirror.MinInterval)
