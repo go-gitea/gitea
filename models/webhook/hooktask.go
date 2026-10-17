@@ -56,6 +56,13 @@ type HookTask struct {
 	IsDelivered bool
 	Delivered   timeutil.TimeStampNano
 
+	// DeliveryRecipients holds the email addresses that should receive a direct
+	// message for this delivery (e.g. Feishu DM). Computed by the notifier and
+	// consumed by the webhook requester. Empty when no direct messages are needed.
+	// The JSON-serialised form is stored in DeliveryRecipientsJSON.
+	DeliveryRecipients     []string `xorm:"-"`
+	DeliveryRecipientsJSON string   `xorm:"LONGTEXT"`
+
 	// History info.
 	IsSucceed       bool
 	RequestContent  string        `xorm:"LONGTEXT"`
@@ -68,19 +75,36 @@ func init() {
 	db.RegisterModel(new(HookTask))
 }
 
+// BeforeInsert will be invoked by XORM before inserting a record
+func (t *HookTask) BeforeInsert() {
+	t.beforeSave()
+}
+
 // BeforeUpdate will be invoked by XORM before updating a record
-// representing this object
 func (t *HookTask) BeforeUpdate() {
+	t.beforeSave()
+}
+
+func (t *HookTask) beforeSave() {
 	if t.RequestInfo != nil {
 		t.RequestContent = t.simpleMarshalJSON(t.RequestInfo)
 	}
 	if t.ResponseInfo != nil {
 		t.ResponseContent = t.simpleMarshalJSON(t.ResponseInfo)
 	}
+	if len(t.DeliveryRecipients) > 0 {
+		t.DeliveryRecipientsJSON = t.simpleMarshalJSON(t.DeliveryRecipients)
+	}
 }
 
 // AfterLoad updates the webhook object upon setting a column
 func (t *HookTask) AfterLoad() {
+	if len(t.DeliveryRecipientsJSON) > 0 {
+		if err := json.Unmarshal([]byte(t.DeliveryRecipientsJSON), &t.DeliveryRecipients); err != nil {
+			log.Error("Unmarshal DeliveryRecipientsJSON[%d]: %v", t.ID, err)
+		}
+	}
+
 	if len(t.RequestContent) == 0 {
 		return
 	}
@@ -163,10 +187,11 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 	}
 
 	return CreateHookTask(ctx, &HookTask{
-		HookID:         task.HookID,
-		PayloadContent: task.PayloadContent,
-		EventType:      task.EventType,
-		PayloadVersion: task.PayloadVersion,
+		HookID:             task.HookID,
+		PayloadContent:     task.PayloadContent,
+		EventType:          task.EventType,
+		PayloadVersion:     task.PayloadVersion,
+		DeliveryRecipients: task.DeliveryRecipients,
 	})
 }
 
