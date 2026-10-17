@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"io"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
+
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // spec: https://github.com/git-lfs/git-lfs/blob/master/docs/spec.md
@@ -47,8 +49,6 @@ func ReadPointer(reader io.Reader) (Pointer, error) {
 	return ReadPointerFromBuffer(buf)
 }
 
-var oidPattern = regexp.MustCompile(`^[a-f\d]{64}$`)
-
 // ReadPointerFromBuffer will return a pointer if the provided byte slice is a pointer file or an error otherwise.
 func ReadPointerFromBuffer(buf []byte) (Pointer, error) {
 	var p Pointer
@@ -65,7 +65,7 @@ func ReadPointerFromBuffer(buf []byte) (Pointer, error) {
 
 	// spec says "key/value pairs MUST be sorted alphabetically in ascending order (version is exception and must be the first)"
 	oid := strings.TrimPrefix(splitLines[1], MetaFileOidPrefix)
-	if len(oid) != 64 || !oidPattern.MatchString(oid) {
+	if !isValidOid(oid) {
 		return p, ErrInvalidOIDFormat
 	}
 	size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
@@ -79,13 +79,24 @@ func ReadPointerFromBuffer(buf []byte) (Pointer, error) {
 	return p, nil
 }
 
+func isValidOid(oid string) bool {
+	if len(oid) != 64 {
+		return false
+	}
+	for i := range len(oid) {
+		c := oid[i]
+		valid := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+		if !valid {
+			return false
+		}
+	}
+	return true
+}
+
 // IsValid checks if the pointer has a valid structure.
 // It doesn't check if the pointed-to-content exists.
 func (p Pointer) IsValid() bool {
-	if len(p.Oid) != 64 {
-		return false
-	}
-	if !oidPattern.MatchString(p.Oid) {
+	if !isValidOid(p.Oid) {
 		return false
 	}
 	if p.Size < 0 {
@@ -102,10 +113,13 @@ func (p Pointer) StringContent() string {
 
 // RelativePath returns the relative storage path of the pointer
 func (p Pointer) RelativePath() string {
-	if len(p.Oid) < 5 {
-		return p.Oid
+	if !isValidOid(p.Oid) {
+		setting.PanicInDevOrTesting("invalid LFS OID: %s", p.Oid)
+		return "invalid-lfs-oid-" + util.PathJoinRelX(p.Oid)
 	}
-
+	// HINT: LFS-INTERNAL-PATH-PATTERN: this path pattern is only used by Gitea internally,
+	// It isn't the same as the path pattern used by Git LFS, which is: <oid[0:2]>/<oid[2:4]>/<oid>
+	// However, there are other parts of Gitea that rely on such path pattern.
 	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
 }
 

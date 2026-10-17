@@ -9,12 +9,12 @@ import (
 	"net/url"
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/test"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/test"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -102,7 +102,15 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 
 		// user4 creates a new branch and a PR
 		testEditFileToNewBranch(t, user4Session, "user4", forkedRepoName, "master", "user4/update-readme", "README.md", "Hello, World\n(Edited by user4)\n")
-		resp := testPullCreateDirectly(t, user4Session, repo3.OwnerName, repo3.Name, "master", "user4", forkedRepoName, "user4/update-readme", "PR for user4 forked repo3")
+		resp := testPullCreateDirectly(t, user4Session, createPullRequestOptions{
+			BaseRepoOwner: repo3.OwnerName,
+			BaseRepoName:  repo3.Name,
+			BaseBranch:    "master",
+			HeadRepoOwner: "user4",
+			HeadRepoName:  forkedRepoName,
+			HeadBranch:    "user4/update-readme",
+			Title:         "PR for user4 forked repo3",
+		})
 		prURL := test.RedirectURL(resp)
 
 		// user2 (admin of repo3) goes to the PR files page
@@ -125,7 +133,6 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 		dataURL, exists := htmlDoc.doc.Find("#allow-edits-from-maintainers").Attr("data-url")
 		assert.True(t, exists)
 		req := NewRequestWithValues(t, "POST", dataURL+"/set_allow_maintainer_edit", map[string]string{
-			"_csrf":                 htmlDoc.GetCSRF(),
 			"allow_maintainer_edit": "true",
 		})
 		user4Session.MakeRequest(t, req, http.StatusOK)
@@ -151,7 +158,6 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 				lastCommit := htmlDoc.GetInputValueByName("last_commit")
 				assert.NotEmpty(t, lastCommit)
 				req := NewRequestWithValues(t, "POST", editFileLink, map[string]string{
-					"_csrf":          htmlDoc.GetCSRF(),
 					"last_commit":    lastCommit,
 					"tree_path":      "README.md",
 					"content":        "File is edited by the maintainer user2",

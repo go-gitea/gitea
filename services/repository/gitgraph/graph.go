@@ -7,60 +7,56 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"os"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
 )
 
+const gitLogGraphFormatSep = "^" // disallowed char in git ref names
+
 // GetCommitGraph return a list of commit (GraphItems) from all branches
-func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bool, branches, files []string) (*Graph, error) {
-	format := "DATA:%D|%H|%ad|%h|%s"
+func GetCommitGraph(ctx context.Context, gitRepo *git.Repository, page, maxAllowedColors int, hidePRRefs bool, refs, files []string) (*Graph, error) {
+	format := "DATA:" + strings.Join([]string{
+		"%D",  // ref names without the " (", ")" wrapping.
+		"%H",  // commit hash
+		"%ad", // author date (format respects --date= option)
+		"%h",  // abbreviated commit hash
+		"%s",  // subject
+	}, gitLogGraphFormatSep)
 
-	if page == 0 {
-		page = 1
-	}
-
+	page = max(page, 1)
 	graphCmd := gitcmd.NewCommand("log", "--graph", "--date-order", "--decorate=full")
 
 	if hidePRRefs {
 		graphCmd.AddArguments("--exclude=" + git.PullPrefix + "*")
 	}
 
-	if len(branches) == 0 {
+	if len(refs) == 0 {
 		graphCmd.AddArguments("--tags", "--branches")
 	}
 
-	graphCmd.AddArguments("-C", "-M", "--date=iso-strict").
+	graphCmd.AddArguments("--find-copies", "--find-renames", "--date=iso-strict").
 		AddOptionFormat("-n %d", setting.UI.GraphMaxCommitNum*page).
 		AddOptionFormat("--pretty=format:%s", format)
 
-	if len(branches) > 0 {
-		graphCmd.AddDynamicArguments(branches...)
+	if len(refs) > 0 {
+		graphCmd.AddDynamicArguments(refs...)
 	}
 	if len(files) > 0 {
 		graphCmd.AddDashesAndList(files...)
 	}
 	graph := NewGraph()
 
-	stderr := new(strings.Builder)
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
 	commitsToSkip := setting.UI.GraphMaxCommitNum * (page - 1)
 
-	scanner := bufio.NewScanner(stdoutReader)
-
-	if err := graphCmd.Run(r.Ctx, &gitcmd.RunOpts{
-		Dir:    r.Path,
-		Stdout: stdoutWriter,
-		Stderr: stderr,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
-			defer stdoutReader.Close()
+	stdoutReader, stdoutReaderClose := graphCmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	if err := graphCmd.
+		WithRepo(gitRepo).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
+			scanner := bufio.NewScanner(stdoutReader)
 			parser := &Parser{}
 			parser.firstInUse = -1
 			parser.maxAllowedColors = maxAllowedColors
@@ -92,8 +88,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 				line := scanner.Bytes()
 				if bytes.IndexByte(line, '*') >= 0 {
 					if err := parser.AddLineToGraph(graph, row, line); err != nil {
-						cancel()
-						return err
+						return ctx.CancelPipeline(err)
 					}
 					break
 				}
@@ -104,13 +99,12 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 				row++
 				line := scanner.Bytes()
 				if err := parser.AddLineToGraph(graph, row, line); err != nil {
-					cancel()
-					return err
+					return ctx.CancelPipeline(err)
 				}
 			}
 			return scanner.Err()
-		},
-	}); err != nil {
+		}).
+		RunWithStderr(ctx); err != nil {
 		return graph, err
 	}
 	return graph, nil

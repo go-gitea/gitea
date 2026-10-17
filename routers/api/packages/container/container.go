@@ -9,29 +9,30 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	packages_model "code.gitea.io/gitea/models/packages"
-	container_model "code.gitea.io/gitea/models/packages/container"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/packages/helper"
-	auth_service "code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/context"
-	packages_service "code.gitea.io/gitea/services/packages"
-	container_service "code.gitea.io/gitea/services/packages/container"
+	auth_model "gitea.dev/models/auth"
+	packages_model "gitea.dev/models/packages"
+	container_model "gitea.dev/models/packages/container"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	packages_module "gitea.dev/modules/packages"
+	container_module "gitea.dev/modules/packages/container"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/packages/helper"
+	auth_service "gitea.dev/services/auth"
+	"gitea.dev/services/context"
+	packages_service "gitea.dev/services/packages"
+	container_service "gitea.dev/services/packages/container"
 
 	"github.com/opencontainers/go-digest"
 )
@@ -55,20 +56,16 @@ type containerHeaders struct {
 	UploadUUID    string
 	Range         string
 	Location      string
-	ContentType   string
 	ContentLength optional.Option[int64]
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#legacy-docker-support-http-headers
-func setResponseHeaders(resp http.ResponseWriter, h *containerHeaders) {
+func writeResponseHeaders(resp http.ResponseWriter, h *containerHeaders) {
 	if h.Location != "" {
 		resp.Header().Set("Location", h.Location)
 	}
 	if h.Range != "" {
 		resp.Header().Set("Range", h.Range)
-	}
-	if h.ContentType != "" {
-		resp.Header().Set("Content-Type", h.ContentType)
 	}
 	if h.ContentLength.Has() {
 		resp.Header().Set("Content-Length", strconv.FormatInt(h.ContentLength.Value(), 10))
@@ -85,18 +82,14 @@ func setResponseHeaders(resp http.ResponseWriter, h *containerHeaders) {
 }
 
 func jsonResponse(ctx *context.Context, status int, obj any) {
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status:      status,
-		ContentType: "application/json",
-	})
+	ctx.Resp.Header().Set("Content-Type", "application/json")
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: status})
 	_ = json.NewEncoder(ctx.Resp).Encode(obj) // ignore network errors
 }
 
 func apiError(ctx *context.Context, status int, err error) {
 	_ = helper.ProcessErrorForUser(ctx, status, err)
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status: status,
-	})
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: status})
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#error-codes
@@ -120,17 +113,26 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 	})
 }
 
-func apiUnauthorizedError(ctx *context.Context) {
+func APIUnauthorizedError(ctx *context.Context) {
 	// container registry requires that the "/v2" must be in the root, so the sub-path in AppURL should be removed
 	realmURL := httplib.GuessCurrentHostURL(ctx) + "/v2/token"
 	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+realmURL+`",service="container_registry",scope="*"`)
+
+	ownerName := ctx.PathParam("username")
+	owner, _ := user_model.GetUserByName(ctx, ownerName)
+	requireSignIn := owner != nil && owner.Visibility != structs.VisibleTypePublic
+	requireSignIn = requireSignIn || setting.Service.RequireSignInViewStrict
+	if requireSignIn {
+		// support apple container like: container registry login <gitea-host> -u
+		ctx.Resp.Header().Add("WWW-Authenticate", `Basic realm="Gitea Container Registry"`)
+	}
 	apiErrorDefined(ctx, errUnauthorized)
 }
 
 // ReqContainerAccess is a middleware which checks the current user valid (real user or ghost if anonymous access is enabled)
 func ReqContainerAccess(ctx *context.Context) {
 	if ctx.Doer == nil || (setting.Service.RequireSignInViewStrict && ctx.Doer.IsGhost()) {
-		apiUnauthorizedError(ctx)
+		APIUnauthorizedError(ctx)
 	}
 }
 
@@ -144,9 +146,7 @@ func VerifyImageName(ctx *context.Context) {
 // DetermineSupport is used to test if the registry supports OCI
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#determining-support
 func DetermineSupport(ctx *context.Context) {
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status: http.StatusOK,
-	})
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: http.StatusOK})
 }
 
 // Authenticate creates a token for the current user
@@ -156,7 +156,7 @@ func Authenticate(ctx *context.Context) {
 	packageScope := auth_service.GetAccessScope(ctx.Data)
 	if u == nil {
 		if setting.Service.RequireSignInViewStrict {
-			apiUnauthorizedError(ctx)
+			APIUnauthorizedError(ctx)
 			return
 		}
 
@@ -170,7 +170,7 @@ func Authenticate(ctx *context.Context) {
 			if err != nil {
 				log.Error("Error checking access scope: %v", err)
 			}
-			apiUnauthorizedError(ctx)
+			APIUnauthorizedError(ctx)
 			return
 		}
 	}
@@ -239,7 +239,7 @@ func PostBlobsUploads(ctx *context.Context) {
 	mount := ctx.FormTrim("mount")
 	from := ctx.FormTrim("from")
 	if mount != "" {
-		blob, _ := workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
+		blob, _ := getExistingContainerBlob(ctx, &container_model.BlobSearchOptions{
 			Repository: from,
 			Digest:     mount,
 		})
@@ -256,7 +256,7 @@ func PostBlobsUploads(ctx *context.Context) {
 					return
 				}
 
-				setResponseHeaders(ctx.Resp, &containerHeaders{
+				writeResponseHeaders(ctx.Resp, &containerHeaders{
 					Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
 					ContentDigest: mount,
 					Status:        http.StatusCreated,
@@ -290,8 +290,8 @@ func PostBlobsUploads(ctx *context.Context) {
 				Creator: ctx.Doer,
 			},
 		); err != nil {
-			switch err {
-			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			switch {
+			case errors.Is(err, packages_service.ErrQuotaTotalCount), errors.Is(err, packages_service.ErrQuotaTypeSize), errors.Is(err, packages_service.ErrQuotaTotalSize):
 				apiError(ctx, http.StatusForbidden, err)
 			default:
 				apiError(ctx, http.StatusInternalServerError, err)
@@ -299,7 +299,7 @@ func PostBlobsUploads(ctx *context.Context) {
 			return
 		}
 
-		setResponseHeaders(ctx.Resp, &containerHeaders{
+		writeResponseHeaders(ctx.Resp, &containerHeaders{
 			Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, digest),
 			ContentDigest: digest,
 			Status:        http.StatusCreated,
@@ -313,7 +313,7 @@ func PostBlobsUploads(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
 		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, upload.ID),
 		UploadUUID: upload.ID,
 		Status:     http.StatusAccepted,
@@ -344,7 +344,7 @@ func GetBlobsUpload(ctx *context.Context) {
 	if upload.BytesReceived > 0 {
 		respHeaders.Range = fmt.Sprintf("0-%d", upload.BytesReceived-1)
 	}
-	setResponseHeaders(ctx.Resp, respHeaders)
+	writeResponseHeaders(ctx.Resp, respHeaders)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#single-post
@@ -393,7 +393,7 @@ func PatchBlobsUpload(ctx *context.Context) {
 	if uploader.Size() > 0 {
 		respHeaders.Range = fmt.Sprintf("0-%d", uploader.Size()-1)
 	}
-	setResponseHeaders(ctx.Resp, respHeaders)
+	writeResponseHeaders(ctx.Resp, respHeaders)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
@@ -439,8 +439,8 @@ func PutBlobsUpload(ctx *context.Context) {
 			Creator: ctx.Doer,
 		},
 	); err != nil {
-		switch err {
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+		switch {
+		case errors.Is(err, packages_service.ErrQuotaTotalCount), errors.Is(err, packages_service.ErrQuotaTypeSize), errors.Is(err, packages_service.ErrQuotaTotalSize):
 			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -458,7 +458,7 @@ func PutBlobsUpload(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
 		Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, digest),
 		ContentDigest: digest,
 		Status:        http.StatusCreated,
@@ -484,9 +484,7 @@ func DeleteBlobsUpload(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status: http.StatusNoContent,
-	})
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: http.StatusNoContent})
 }
 
 func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescriptor, error) {
@@ -495,7 +493,7 @@ func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescri
 		return nil, container_model.ErrContainerBlobNotExist
 	}
 
-	return workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
+	return getExistingContainerBlob(ctx, &container_model.BlobSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Image:   ctx.PathParam("image"),
 		Digest:  string(d),
@@ -513,8 +511,8 @@ func HeadBlob(ctx *context.Context) {
 		}
 		return
 	}
-
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
 		ContentDigest: blob.Properties.GetByName(container_module.PropertyDigest),
 		ContentLength: optional.Some(blob.Blob.Size),
 		Status:        http.StatusOK,
@@ -532,8 +530,9 @@ func GetBlob(ctx *context.Context) {
 		}
 		return
 	}
-
-	serveBlob(ctx, blob)
+	// "/v2/<name>/blobs/<digest>" : no need to use descriptor.mediaType, just respond as binary content.
+	// don't trust or use the blob's media type, it is not validated.
+	serveBlob(ctx, blob, "application/octet-stream")
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#deleting-blobs
@@ -549,9 +548,7 @@ func DeleteBlob(ctx *context.Context) {
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status: http.StatusAccepted,
-	})
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: http.StatusAccepted})
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-manifests
@@ -587,23 +584,19 @@ func PutManifest(ctx *context.Context) {
 
 	digest, err := processManifest(ctx, mci, buf)
 	if err != nil {
-		var namedError *namedError
-		if errors.As(err, &namedError) {
+		if namedError, ok := errors.AsType[*namedError](err); ok {
 			apiErrorDefined(ctx, namedError)
 		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
+		} else if errors.Is(err, packages_service.ErrQuotaTotalCount) || errors.Is(err, packages_service.ErrQuotaTypeSize) || errors.Is(err, packages_service.ErrQuotaTotalSize) {
+			apiError(ctx, http.StatusForbidden, err)
 		} else {
-			switch err {
-			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-				apiError(ctx, http.StatusForbidden, err)
-			default:
-				apiError(ctx, http.StatusInternalServerError, err)
-			}
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
 		Location:      fmt.Sprintf("/v2/%s/%s/manifests/%s", ctx.Package.Owner.LowerName, mci.Image, reference),
 		ContentDigest: digest,
 		Status:        http.StatusCreated,
@@ -630,18 +623,24 @@ func getBlobSearchOptionsFromContext(ctx *context.Context) (*container_model.Blo
 	return opts, nil
 }
 
-func getManifestFromContext(ctx *context.Context) (*packages_model.PackageFileDescriptor, error) {
+func getManifestFromContext(ctx *context.Context) (_ *packages_model.PackageFileDescriptor, contentType string, _ error) {
 	opts, err := getBlobSearchOptionsFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-
-	return workaroundGetContainerBlob(ctx, opts)
+	pfd, err := getExistingContainerBlob(ctx, opts)
+	if err != nil {
+		return nil, "", err
+	}
+	// "/v2/<name>/manifests/<reference>": must use valid manifest.mediaType as HTTP Content-Type
+	mediaType := pfd.Properties.GetByName(container_module.PropertyMediaType)
+	mediaType = util.Iif(container_module.IsMediaTypeValid(mediaType), mediaType, "application/octet-stream")
+	return pfd, mediaType, nil
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#checking-if-content-exists-in-the-registry
 func HeadManifest(ctx *context.Context) {
-	manifest, err := getManifestFromContext(ctx)
+	manifest, contentType, err := getManifestFromContext(ctx)
 	if err != nil {
 		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errManifestUnknown)
@@ -650,10 +649,9 @@ func HeadManifest(ctx *context.Context) {
 		}
 		return
 	}
-
-	setResponseHeaders(ctx.Resp, &containerHeaders{
+	ctx.Resp.Header().Set("Content-Type", contentType)
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
 		ContentDigest: manifest.Properties.GetByName(container_module.PropertyDigest),
-		ContentType:   manifest.Properties.GetByName(container_module.PropertyMediaType),
 		ContentLength: optional.Some(manifest.Blob.Size),
 		Status:        http.StatusOK,
 	})
@@ -661,7 +659,7 @@ func HeadManifest(ctx *context.Context) {
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pulling-manifests
 func GetManifest(ctx *context.Context) {
-	manifest, err := getManifestFromContext(ctx)
+	manifest, contentType, err := getManifestFromContext(ctx)
 	if err != nil {
 		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errManifestUnknown)
@@ -670,8 +668,7 @@ func GetManifest(ctx *context.Context) {
 		}
 		return
 	}
-
-	serveBlob(ctx, manifest)
+	serveBlob(ctx, manifest, contentType)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#deleting-tags
@@ -701,38 +698,34 @@ func DeleteManifest(ctx *context.Context) {
 		}
 	}
 
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		Status: http.StatusAccepted,
-	})
+	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: http.StatusAccepted})
 }
 
-func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
-	serveDirectReqParams := make(url.Values)
-	serveDirectReqParams.Set("response-content-type", pfd.Properties.GetByName(container_module.PropertyMediaType))
-	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, serveDirectReqParams)
+func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor, contentType string) {
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, &storage.ServeDirectOptions{
+		ContentType: contentType,
+	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-
-	headers := &containerHeaders{
-		ContentDigest: pfd.Properties.GetByName(container_module.PropertyDigest),
-		ContentType:   pfd.Properties.GetByName(container_module.PropertyMediaType),
-		ContentLength: optional.Some(pfd.Blob.Size),
-		Status:        http.StatusOK,
-	}
-
 	if u != nil {
-		headers.Status = http.StatusTemporaryRedirect
-		headers.Location = u.String()
-		headers.ContentLength = optional.None[int64]() // do not set Content-Length for redirect responses
-		setResponseHeaders(ctx.Resp, headers)
+		writeResponseHeaders(ctx.Resp, &containerHeaders{
+			ContentDigest: pfd.Properties.GetByName(container_module.PropertyDigest), // legacy logic: not sure whether it is right when redirecting
+			Location:      u.String(),
+			Status:        http.StatusTemporaryRedirect,
+		})
 		return
 	}
 
 	defer s.Close()
 
-	setResponseHeaders(ctx.Resp, headers)
+	ctx.Resp.Header().Set("Content-Type", contentType)
+	writeResponseHeaders(ctx.Resp, &containerHeaders{
+		ContentDigest: pfd.Properties.GetByName(container_module.PropertyDigest),
+		ContentLength: optional.Some(pfd.Blob.Size),
+		Status:        http.StatusOK,
+	})
 	_, _ = io.Copy(ctx.Resp, s)
 }
 
@@ -782,23 +775,20 @@ func GetTagsList(ctx *context.Context) {
 	})
 }
 
-// FIXME: Workaround to be removed in v1.20.
-// Update maybe we should never really remote it, as long as there is legacy data?
-// https://github.com/go-gitea/gitea/issues/19586
-func workaroundGetContainerBlob(ctx *context.Context, opts *container_model.BlobSearchOptions) (*packages_model.PackageFileDescriptor, error) {
+// getExistingContainerBlob checks if the blob exists in the database and content store, and returns the package file descriptor if it does.
+func getExistingContainerBlob(ctx *context.Context, opts *container_model.BlobSearchOptions) (*packages_model.PackageFileDescriptor, error) {
 	blob, err := container_model.GetContainerBlob(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	err = packages_module.NewContentStore().Has(packages_module.BlobHash256Key(blob.Blob.HashSHA256))
+	storeKey := packages_module.BlobHash256Key(blob.Blob.HashSHA256)
+	sz, err := packages_module.NewContentStore().OptionalSize(storeKey)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist) {
-			log.Debug("Package registry inconsistent: blob %s does not exist on file system", blob.Blob.HashSHA256)
-			return nil, container_model.ErrContainerBlobNotExist
-		}
-		return nil, err
+		return nil, fmt.Errorf("unable to check object size in content store: %w", err)
 	}
-
+	if sz.ValueOrDefault(-1) != blob.Blob.Size {
+		return nil, container_model.ErrContainerBlobNotExist
+	}
 	return blob, nil
 }

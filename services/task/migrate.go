@@ -7,35 +7,39 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
-	admin_model "code.gitea.io/gitea/models/admin"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/migrations"
-	notify_service "code.gitea.io/gitea/services/notify"
+	admin_model "gitea.dev/models/admin"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/migration"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/migrations"
+	notify_service "gitea.dev/services/notify"
 )
 
 func handleCreateError(owner *user_model.User, err error) error {
+	var (
+		errNameReserved          db.ErrNameReserved
+		errNamePatternNotAllowed db.ErrNamePatternNotAllowed
+	)
 	switch {
 	case repo_model.IsErrReachLimitOfRepo(err):
 		return fmt.Errorf("you have already reached your limit of %d repositories", owner.MaxCreationLimit())
 	case repo_model.IsErrRepoAlreadyExist(err):
 		return errors.New("the repository name is already used")
-	case db.IsErrNameReserved(err):
-		return fmt.Errorf("the repository name '%s' is reserved", err.(db.ErrNameReserved).Name)
-	case db.IsErrNamePatternNotAllowed(err):
-		return fmt.Errorf("the pattern '%s' is not allowed in a repository name", err.(db.ErrNamePatternNotAllowed).Pattern)
+	case errors.As(err, &errNameReserved):
+		return fmt.Errorf("the repository name '%s' is reserved", errNameReserved.Name)
+	case errors.As(err, &errNamePatternNotAllowed):
+		return fmt.Errorf("the pattern '%s' is not allowed in a repository name", errNamePatternNotAllowed.Pattern)
 	default:
 		return err
 	}
@@ -45,7 +49,7 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 	defer func(ctx context.Context) {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("PANIC whilst trying to do migrate task: %v", e)
-			log.Critical("PANIC during runMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d]: %v\nStacktrace: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, e, log.Stack(2))
+			log.Error("PANIC during runMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d]: %v\nStacktrace: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, e, log.Stack(2))
 		}
 		if err == nil {
 			err = admin_model.FinishMigrateTask(ctx, t)
@@ -141,10 +145,10 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 
 	// remoteAddr may contain credentials, so we sanitize it
 	err = util.SanitizeErrorCredentialURLs(err)
-	if strings.Contains(err.Error(), "Authentication failed") ||
-		strings.Contains(err.Error(), "could not read Username") {
+	if migrations.IsAuthenticationError(err) {
 		return fmt.Errorf("authentication failed: %w", err)
-	} else if strings.Contains(err.Error(), "fatal:") {
+	}
+	if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
 		return fmt.Errorf("migration failed: %w", err)
 	}
 

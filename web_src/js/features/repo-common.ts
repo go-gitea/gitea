@@ -1,16 +1,18 @@
-import {queryElems, type DOMEvent} from '../utils/dom.ts';
+import {queryElems, toggleElem} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {sleep} from '../utils.ts';
 import RepoActivityTopAuthors from '../components/RepoActivityTopAuthors.vue';
 import {createApp} from 'vue';
-import {toOriginUrl} from '../utils/url.ts';
 import {createTippy} from '../modules/tippy.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
-async function onDownloadArchive(e: DOMEvent<MouseEvent>) {
+async function onDownloadArchive(e: Event) {
   e.preventDefault();
   // there are many places using the "archive-link", eg: the dropdown on the repo code page, the release list
-  const el = e.target.closest<HTMLAnchorElement>('a.archive-link[href]');
+  const el = (e.target as HTMLElement).closest<HTMLAnchorElement>('a.archive-link[href]')!;
   const targetLoading = el.closest('.ui.dropdown') ?? el;
   targetLoading.classList.add('is-loading', 'loading-icon-2px');
   try {
@@ -22,10 +24,10 @@ async function onDownloadArchive(e: DOMEvent<MouseEvent>) {
       if (data.complete) break;
       await sleep(Math.min((tryCount + 1) * 750, 2000));
     }
-    window.location.href = el.href; // the archive is ready, start real downloading
+    window.location.assign(el.href); // the archive is ready, start real downloading
   } catch (e) {
     console.error(e);
-    showErrorToast(`Failed to download the archive: ${e}`, {duration: 2500});
+    showErrorToast(`Failed to download the archive: ${errorMessage(e)}`, {duration: 2500});
   } finally {
     targetLoading.classList.remove('is-loading', 'loading-icon-2px');
   }
@@ -47,37 +49,39 @@ export function substituteRepoOpenWithUrl(tmpl: string, url: string): string {
   if (pos === -1) return tmpl;
   const posQuestionMark = tmpl.indexOf('?');
   const needEncode = posQuestionMark >= 0 && posQuestionMark < pos;
-  return tmpl.replace('{url}', needEncode ? encodeURIComponent(url) : url);
+  return tmpl.replace('{url}', () => needEncode ? encodeURIComponent(url) : url);
 }
 
-function initCloneSchemeUrlSelection(parent: Element) {
+function initRepoCloneButtonsCombo(parent: Element) {
+  // the clone section is not rendered at all when no git transport (HTTPS/SSH) is available
   const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url');
+  if (!elCloneUrlInput) return;
 
   const tabHttps = parent.querySelector('.repo-clone-https');
   const tabSsh = parent.querySelector('.repo-clone-ssh');
   const tabTea = parent.querySelector('.repo-clone-tea');
-  const updateClonePanelUi = function() {
-    let scheme = localStorage.getItem('repo-clone-protocol');
-    if (!['https', 'ssh', 'tea'].includes(scheme)) {
-      scheme = 'https';
-    }
+  const listOpenWithEditorApps = parent.querySelector('.repo-clone-with-apps');
 
-    // Fallbacks if the scheme preference is not available in the tabs, for example: empty repo page, there are only HTTPS and SSH
-    if (scheme === 'tea' && !tabTea) {
-      scheme = 'https';
-    }
-    if (scheme === 'https' && !tabHttps) {
-      scheme = 'ssh';
-    } else if (scheme === 'ssh' && !tabSsh) {
-      scheme = 'https';
+  // not every tab exists in every panel, eg: the admin may disable HTTP/SSH, and the empty repo page has no Tea CLI tab
+  const tabByScheme: Record<string, Element | null> = {https: tabHttps, ssh: tabSsh, tea: tabTea};
+  const updateClonePanelUi = function() {
+    let scheme = localUserSettings.getString('repo-clone-protocol');
+    // fall back to the first available tab when the preferred scheme's tab is absent (unset preference, or disabled protocol)
+    if (!tabByScheme[scheme]) {
+      scheme = ['https', 'ssh', 'tea'].find((s) => tabByScheme[s]) ?? '';
     }
 
     const isHttps = scheme === 'https';
     const isSsh = scheme === 'ssh';
     const isTea = scheme === 'tea';
 
+    if (listOpenWithEditorApps) {
+      toggleElem(listOpenWithEditorApps, !isTea); // don't show the "Open with editor apps" list when "Tea" clone is selected
+    }
+
     if (tabHttps) {
-      tabHttps.textContent = window.origin.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
+      const link = tabHttps.getAttribute('data-link')!;
+      tabHttps.textContent = link.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
       tabHttps.classList.toggle('active', isHttps);
     }
     if (tabSsh) {
@@ -87,17 +91,10 @@ function initCloneSchemeUrlSelection(parent: Element) {
       tabTea.classList.toggle('active', isTea);
     }
 
-    let tab: Element;
-    if (isHttps) {
-      tab = tabHttps;
-    } else if (isSsh) {
-      tab = tabSsh;
-    } else if (isTea) {
-      tab = tabTea;
-    }
+    const tab = tabByScheme[scheme];
+    if (!tab) return; // no protocol available at all, leave the (hidden) input untouched
 
-    if (!tab) return;
-    const link = toOriginUrl(tab.getAttribute('data-link'));
+    const link = tab.getAttribute('data-link')!;
 
     for (const el of document.querySelectorAll('.js-clone-url')) {
       if (el.nodeName === 'INPUT') {
@@ -107,22 +104,22 @@ function initCloneSchemeUrlSelection(parent: Element) {
       }
     }
     for (const el of parent.querySelectorAll<HTMLAnchorElement>('.js-clone-url-editor')) {
-      el.href = substituteRepoOpenWithUrl(el.getAttribute('data-href-template'), link);
+      el.href = substituteRepoOpenWithUrl(el.getAttribute('data-href-template')!, link);
     }
   };
 
   updateClonePanelUi();
   // tabSsh or tabHttps might not both exist, eg: guest view, or one is disabled by the server
   tabHttps?.addEventListener('click', () => {
-    localStorage.setItem('repo-clone-protocol', 'https');
+    localUserSettings.setString('repo-clone-protocol', 'https');
     updateClonePanelUi();
   });
   tabSsh?.addEventListener('click', () => {
-    localStorage.setItem('repo-clone-protocol', 'ssh');
+    localUserSettings.setString('repo-clone-protocol', 'ssh');
     updateClonePanelUi();
   });
   tabTea?.addEventListener('click', () => {
-    localStorage.setItem('repo-clone-protocol', 'tea');
+    localUserSettings.setString('repo-clone-protocol', 'tea');
     updateClonePanelUi();
   });
   elCloneUrlInput.addEventListener('focus', () => {
@@ -130,10 +127,10 @@ function initCloneSchemeUrlSelection(parent: Element) {
   });
 }
 
-function initClonePanelButton(btn: HTMLButtonElement) {
-  const elPanel = btn.nextElementSibling;
+function initRepoClonePanel(btn: HTMLButtonElement) {
+  const elPanel = btn.nextElementSibling!;
   // "init" must be before the "createTippy" otherwise the "tippy-target" will be removed from the document
-  initCloneSchemeUrlSelection(elPanel);
+  initRepoCloneButtonsCombo(elPanel);
   createTippy(btn, {
     content: elPanel,
     trigger: 'click',
@@ -145,19 +142,8 @@ function initClonePanelButton(btn: HTMLButtonElement) {
 }
 
 export function initRepoCloneButtons() {
-  queryElems(document, '.js-btn-clone-panel', initClonePanelButton);
-  queryElems(document, '.clone-buttons-combo', initCloneSchemeUrlSelection);
-}
-
-export async function updateIssuesMeta(url: string, action: string, issue_ids: string, id: string) {
-  try {
-    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
-    if (!response.ok) {
-      throw new Error('Failed to update issues meta');
-    }
-  } catch (error) {
-    console.error(error);
-  }
+  registerGlobalInitFunc('initRepoClonePanel', initRepoClonePanel);
+  registerGlobalInitFunc('initRepoCloneButtonsCombo', initRepoCloneButtonsCombo);
 }
 
 export function sanitizeRepoName(name: string): string {

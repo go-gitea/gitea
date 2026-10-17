@@ -1,8 +1,8 @@
 export function initTableSort() {
   for (const header of document.querySelectorAll('th[data-sortt-asc]') || []) {
-    const sorttAsc = header.getAttribute('data-sortt-asc');
-    const sorttDesc = header.getAttribute('data-sortt-desc');
-    const sorttDefault = header.getAttribute('data-sortt-default');
+    const sorttAsc = header.getAttribute('data-sortt-asc')!;
+    const sorttDesc = header.getAttribute('data-sortt-desc')!;
+    const sorttDefault = header.getAttribute('data-sortt-default')!;
     header.addEventListener('click', () => {
       tableSort(sorttAsc, sorttDesc, sorttDefault);
     });
@@ -10,7 +10,7 @@ export function initTableSort() {
 }
 
 function tableSort(normSort: string, revSort: string, isDefault: string) {
-  if (!normSort) return false;
+  if (!normSort) return;
   if (!revSort) revSort = '';
 
   const url = new URL(window.location.href);

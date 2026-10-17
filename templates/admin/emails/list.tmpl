@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+{{template "admin/layout_head" (dict "pageClass" "admin user")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.emails.email_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
@@ -24,7 +24,7 @@
 			</div>
 		</div>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table unstackable">
+			<table class="ui very basic table unstackable">
 				<thead>
 					<tr>
 						<th data-sortt-asc="username" data-sortt-desc="reverseusername">
@@ -82,8 +82,6 @@
 			</div>
 			<form class="content ui form" action="{{AppSubUrl}}/-/admin/emails/activate" method="post">
 				<p class="center">{{ctx.Locale.Tr "admin.emails.change_email_text"}}</p>
-
-				{{$.CsrfTokenHtml}}
 
 				<input type="hidden" name="sort" value="{{.SortType}}">
 				<input type="hidden" name="q" value="{{.Keyword}}">

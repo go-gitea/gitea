@@ -4,8 +4,10 @@
 package htmlutil
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"slices"
 	"strings"
 )
@@ -31,7 +33,7 @@ func ParseSizeAndClass(defaultSize int, defaultClass string, others ...any) (int
 	return size, class
 }
 
-func HTMLFormat(s template.HTML, rawArgs ...any) template.HTML {
+func htmlFormatArgs(s template.HTML, rawArgs []any) []any {
 	if !strings.Contains(string(s), "%") || len(rawArgs) == 0 {
 		panic("HTMLFormat requires one or more arguments")
 	}
@@ -50,5 +52,134 @@ func HTMLFormat(s template.HTML, rawArgs ...any) template.HTML {
 			args[i] = template.HTMLEscapeString(fmt.Sprint(v))
 		}
 	}
-	return template.HTML(fmt.Sprintf(string(s), args...))
+	return args
+}
+
+func HTMLFormat(s template.HTML, rawArgs ...any) template.HTML {
+	return template.HTML(fmt.Sprintf(string(s), htmlFormatArgs(s, rawArgs)...))
+}
+
+func HTMLPrintf(w io.Writer, s template.HTML, rawArgs ...any) (int, error) {
+	return fmt.Fprintf(w, string(s), htmlFormatArgs(s, rawArgs)...)
+}
+
+func HTMLPrint(w io.Writer, s template.HTML) (int, error) {
+	return io.WriteString(w, string(s))
+}
+
+func HTMLPrintTag(w io.Writer, tag template.HTML, attrs map[string]string) (written int, err error) {
+	n, err := io.WriteString(w, "<"+string(tag))
+	written += n
+	if err != nil {
+		return written, err
+	}
+	for k, v := range attrs {
+		n, err = fmt.Fprintf(w, ` %s="%s"`, template.HTMLEscapeString(k), template.HTMLEscapeString(v))
+		written += n
+		if err != nil {
+			return written, err
+		}
+	}
+	n, err = io.WriteString(w, ">")
+	written += n
+	return written, err
+}
+
+func EscapeString(s string) template.HTML {
+	return template.HTML(template.HTMLEscapeString(s))
+}
+
+type HTMLWriter interface {
+	Err() error
+	OriginWriter() io.Writer
+	WriteString(s string) HTMLWriter
+	WriteHTML(s template.HTML) HTMLWriter
+	WriteFormatf(fmt template.HTML, args ...any) HTMLWriter
+}
+
+var (
+	_ HTMLWriter = (*htmlWriter)(nil)
+	_ HTMLWriter = (*HTMLBuilder)(nil)
+)
+
+type htmlWriter struct {
+	w    io.Writer
+	errs []error
+}
+
+func (h *htmlWriter) Err() error {
+	return errors.Join(h.errs...)
+}
+
+func (h *htmlWriter) OriginWriter() io.Writer {
+	return h.w
+}
+
+func (h *htmlWriter) WriteString(s string) HTMLWriter {
+	if _, err := io.WriteString(h.w, template.HTMLEscapeString(s)); err != nil {
+		h.errs = append(h.errs, err)
+	}
+	return h
+}
+
+func (h *htmlWriter) WriteHTML(s template.HTML) HTMLWriter {
+	if _, err := io.WriteString(h.w, string(s)); err != nil {
+		h.errs = append(h.errs, err)
+	}
+	return h
+}
+
+func (h *htmlWriter) WriteFormatf(fmt template.HTML, args ...any) HTMLWriter {
+	if _, err := HTMLPrintf(h.w, fmt, args...); err != nil {
+		h.errs = append(h.errs, err)
+	}
+	return h
+}
+
+func NewHTMLWriter(w io.Writer) HTMLWriter {
+	return &htmlWriter{w: w}
+}
+
+func NewHTMLStringWriter() (*strings.Builder, HTMLWriter) {
+	sb := &strings.Builder{}
+	return sb, &htmlWriter{w: sb}
+}
+
+type HTMLBuilder struct {
+	sb strings.Builder
+}
+
+func (b *HTMLBuilder) Err() error {
+	return nil
+}
+
+func (b *HTMLBuilder) OriginWriter() io.Writer {
+	return &b.sb
+}
+
+func (b *HTMLBuilder) Reset() {
+	b.sb.Reset()
+}
+
+func (b *HTMLBuilder) WriteString(s string) HTMLWriter {
+	b.sb.WriteString(template.HTMLEscapeString(s))
+	return b
+}
+
+func (b *HTMLBuilder) WriteHTML(s template.HTML) HTMLWriter {
+	b.sb.WriteString(string(s))
+	return b
+}
+
+func (b *HTMLBuilder) WriteFormatf(fmt template.HTML, args ...any) HTMLWriter {
+	_, _ = HTMLPrintf(&b.sb, fmt, args...)
+	return b
+}
+
+func (b *HTMLBuilder) HTMLString() template.HTML {
+	return template.HTML(b.sb.String())
+}
+
+func (b *HTMLBuilder) String() string {
+	return b.sb.String()
 }

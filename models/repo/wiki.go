@@ -7,11 +7,9 @@ package repo
 import (
 	"context"
 	"fmt"
-	"path/filepath"
-	"strings"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/util"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
 )
 
 // ErrWikiAlreadyExist represents a "WikiAlreadyExist" kind of error.
@@ -74,14 +72,4 @@ func (err ErrWikiInvalidFileName) Unwrap() error {
 // WikiCloneLink returns clone URLs of repository wiki.
 func (repo *Repository) WikiCloneLink(ctx context.Context, doer *user_model.User) *CloneLink {
 	return repo.cloneLink(ctx, doer, repo.Name+".wiki")
-}
-
-// WikiPath returns wiki data path by given user and repository name.
-func WikiPath(userName, repoName string) string {
-	return filepath.Join(user_model.UserPath(userName), strings.ToLower(repoName)+".wiki.git")
-}
-
-// WikiPath returns wiki data path for given repository.
-func (repo *Repository) WikiPath() string {
-	return WikiPath(repo.OwnerName, repo.Name)
 }

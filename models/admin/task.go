@@ -7,16 +7,19 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/secret"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/migration"
+	"gitea.dev/modules/secret"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // Task represents a task
@@ -123,17 +126,22 @@ func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 		// decrypt credentials
 		if opts.CloneAddrEncrypted != "" {
 			if opts.CloneAddr, err = secret.DecryptSecret(setting.SecretKey, opts.CloneAddrEncrypted); err != nil {
-				return nil, err
+				log.Error("Unable to decrypt CloneAddr, maybe SECRET_KEY is wrong: %v", err)
 			}
 		}
 		if opts.AuthPasswordEncrypted != "" {
 			if opts.AuthPassword, err = secret.DecryptSecret(setting.SecretKey, opts.AuthPasswordEncrypted); err != nil {
-				return nil, err
+				log.Error("Unable to decrypt AuthPassword, maybe SECRET_KEY is wrong: %v", err)
 			}
 		}
 		if opts.AuthTokenEncrypted != "" {
 			if opts.AuthToken, err = secret.DecryptSecret(setting.SecretKey, opts.AuthTokenEncrypted); err != nil {
-				return nil, err
+				log.Error("Unable to decrypt AuthToken, maybe SECRET_KEY is wrong: %v", err)
+			}
+		}
+		if opts.AWSSecretAccessKeyEncrypted != "" {
+			if opts.AWSSecretAccessKey, err = secret.DecryptSecret(setting.SecretKey, opts.AWSSecretAccessKeyEncrypted); err != nil {
+				log.Error("Unable to decrypt AWSSecretAccessKey, maybe SECRET_KEY is wrong: %v", err)
 			}
 		}
 
@@ -166,17 +174,13 @@ func (err ErrTaskDoesNotExist) Unwrap() error {
 
 // GetMigratingTask returns the migrating task by repo's id
 func GetMigratingTask(ctx context.Context, repoID int64) (*Task, error) {
-	task := Task{
-		RepoID: repoID,
-		Type:   structs.TaskTypeMigrateRepo,
-	}
-	has, err := db.GetEngine(ctx).Get(&task)
+	task, has, err := db.Get[Task](ctx, builder.Eq{"repo_id": repoID, "`type`": structs.TaskTypeMigrateRepo})
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTaskDoesNotExist{0, repoID, task.Type}
+		return nil, ErrTaskDoesNotExist{0, repoID, structs.TaskTypeMigrateRepo}
 	}
-	return &task, nil
+	return task, nil
 }
 
 // CreateTask creates a task on database
@@ -200,6 +204,8 @@ func FinishMigrateTask(ctx context.Context, task *Task) error {
 	conf.AuthPasswordEncrypted = ""
 	conf.AuthTokenEncrypted = ""
 	conf.CloneAddrEncrypted = ""
+	conf.AWSSecretAccessKey = ""
+	conf.AWSSecretAccessKeyEncrypted = ""
 	confBytes, err := json.Marshal(conf)
 	if err != nil {
 		return err

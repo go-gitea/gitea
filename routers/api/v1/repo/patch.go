@@ -6,10 +6,10 @@ package repo
 import (
 	"net/http"
 
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/repository/files"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/repository/files"
 )
 
 // ApplyDiffPatch handles API call for applying a patch
@@ -36,7 +36,7 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 	//   in: body
 	//   required: true
 	//   schema:
-	//     "$ref": "#/definitions/UpdateFileOptions"
+	//     "$ref": "#/definitions/ApplyDiffPatchFileOptions"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileResponse"

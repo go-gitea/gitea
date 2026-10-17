@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/packages/container/helm"
+	"gitea.dev/modules/packages/container/helm"
 
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
@@ -22,6 +22,8 @@ func TestParseImageConfig(t *testing.T) {
 	repositoryURL := "https://gitea.com/gitea"
 	documentationURL := "https://docs.gitea.com"
 
+	// FIXME: JSON-KEY-CASE: the test case is not right, the config fields are capitalized in the spec
+	// https://github.com/opencontainers/image-spec/blob/main/schema/config-schema.json
 	configOCI := `{"config": {"labels": {"` + labelAuthors + `": "` + author + `", "` + labelLicenses + `": "` + license + `", "` + labelURL + `": "` + projectURL + `", "` + labelSource + `": "` + repositoryURL + `", "` + labelDocumentation + `": "` + documentationURL + `", "` + labelDescription + `": "` + description + `"}}, "history": [{"created_by": "do it 1"}, {"created_by": "dummy #(nop) do it 2"}]}`
 
 	metadata, err := ParseImageConfig(oci.MediaTypeImageManifest, strings.NewReader(configOCI))

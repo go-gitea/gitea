@@ -6,9 +6,8 @@ package private
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 )
 
 // RestoreParams structure holds a data for restore repository
@@ -31,6 +30,6 @@ func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units
 		Units:      units,
 		Validation: validation,
 	})
-	req.SetTimeout(3*time.Second, 0) // since the request will spend much time, don't timeout
+	req.SetReadWriteTimeout(0) // since the request will spend much time, don't timeout
 	return requestJSONClientMsg(req, fmt.Sprintf("Restore repo %s/%s successfully", ownerName, repoName))
 }

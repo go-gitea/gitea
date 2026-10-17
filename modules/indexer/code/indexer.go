@@ -11,17 +11,19 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/indexer"
-	"code.gitea.io/gitea/modules/indexer/code/bleve"
-	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
-	"code.gitea.io/gitea/modules/indexer/code/internal"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/indexer"
+	"gitea.dev/modules/indexer/code/bleve"
+	"gitea.dev/modules/indexer/code/elasticsearch"
+	"gitea.dev/modules/indexer/code/internal"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/queue"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 var (
@@ -72,11 +74,17 @@ func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
 		return nil
 	}
 
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
+	if err != nil {
+		return err
+	}
+	defer closer.Close()
+
 	sha, err := getDefaultBranchSha(ctx, repo)
 	if err != nil {
 		return err
 	}
-	changes, err := getRepoChanges(ctx, repo, sha)
+	changes, err := getRepoChanges(ctx, repo, gitRepo, sha)
 	if err != nil {
 		return err
 	} else if changes == nil {
@@ -166,12 +174,12 @@ func Init() {
 				log.Fatal("PID: %d Unable to initialize the bleve Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
 			}
 		case "elasticsearch":
-			log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoConnStr)
+			log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), util.SanitizeCredentialURLs(setting.Indexer.RepoConnStr))
 			defer func() {
 				if err := recover(); err != nil {
 					log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
 					log.Error("The indexer files are likely corrupted and may need to be deleted")
-					log.Error("You can completely remove the \"%s\" index to make Gitea recreate the indexes", setting.Indexer.RepoConnStr)
+					log.Error("You can completely remove the \"%s\" index to make Gitea recreate the indexes", util.SanitizeCredentialURLs(setting.Indexer.RepoConnStr))
 				}
 			}()
 
@@ -181,7 +189,7 @@ func Init() {
 				cancel()
 				(*globalIndexer.Load()).Close()
 				close(waitChannel)
-				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
+				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), util.SanitizeCredentialURLs(setting.Indexer.RepoConnStr), err)
 			}
 
 		default:

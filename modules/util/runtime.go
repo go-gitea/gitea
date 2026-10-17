@@ -3,11 +3,22 @@
 
 package util
 
-import "runtime"
+import (
+	"runtime"
+	"strings"
+)
 
-func CallerFuncName(skip int) string {
+func CallerFuncName(optSkipParent ...int) string {
 	pc := make([]uintptr, 1)
-	runtime.Callers(skip+1, pc)
+	skipParent := 0
+	if len(optSkipParent) > 0 {
+		skipParent = optSkipParent[0]
+	}
+	runtime.Callers(skipParent+1 /*this*/ +1 /*runtime*/, pc)
 	funcName := runtime.FuncForPC(pc[0]).Name()
+	if pos := strings.LastIndex(funcName, "/"); pos >= 0 {
+		// only keep the last package name and func name
+		funcName = funcName[pos+1:]
+	}
 	return funcName
 }

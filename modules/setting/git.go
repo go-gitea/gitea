@@ -5,10 +5,11 @@ package setting
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 // Git settings
@@ -17,54 +18,45 @@ var Git = struct {
 	HomePath             string
 	DisableDiffHighlight bool
 
-	MaxGitDiffLines           int
-	MaxGitDiffLineCharacters  int
-	MaxGitDiffFiles           int
-	CommitsRangeSize          int // CommitsRangeSize the default commits range size
-	BranchesRangeSize         int // BranchesRangeSize the default branches range size
-	VerbosePush               bool
-	VerbosePushDelay          time.Duration
-	GCArgs                    []string `ini:"GC_ARGS" delim:" "`
-	EnableAutoGitWireProtocol bool
-	PullRequestPushMessage    bool
-	LargeObjectThreshold      int64
-	DisableCoreProtectNTFS    bool
-	DisablePartialClone       bool
-	Timeout                   struct {
-		Default int
+	MaxGitDiffLines               int
+	MaxGitDiffLineCharacters      int
+	MaxGitDiffFiles               int
+	CommitsRangeSize              int // CommitsRangeSize the default commits range size
+	BranchesRangeSize             int // BranchesRangeSize the default branches range size
+	VerbosePush                   bool
+	VerbosePushDelay              time.Duration
+	GCArgs                        []string `ini:"GC_ARGS" delim:" "`
+	EnableAutoGitWireProtocol     bool
+	PullRequestPushMessage        bool
+	DisableCoreProtectNTFS        bool
+	DisablePartialClone           bool
+	DiffRenameSimilarityThreshold string
+	Timeout                       struct {
 		Migrate int
 		Mirror  int
-		Clone   int
-		Pull    int
 		GC      int `ini:"GC"`
 	} `ini:"git.timeout"`
 }{
-	DisableDiffHighlight:      false,
-	MaxGitDiffLines:           1000,
-	MaxGitDiffLineCharacters:  5000,
-	MaxGitDiffFiles:           100,
-	CommitsRangeSize:          50,
-	BranchesRangeSize:         20,
-	VerbosePush:               true,
-	VerbosePushDelay:          5 * time.Second,
-	GCArgs:                    []string{},
-	EnableAutoGitWireProtocol: true,
-	PullRequestPushMessage:    true,
-	LargeObjectThreshold:      1024 * 1024,
-	DisablePartialClone:       false,
+	DisableDiffHighlight:          false,
+	MaxGitDiffLines:               1000,
+	MaxGitDiffLineCharacters:      5000,
+	MaxGitDiffFiles:               100,
+	CommitsRangeSize:              50,
+	BranchesRangeSize:             20,
+	VerbosePush:                   true,
+	VerbosePushDelay:              5 * time.Second,
+	GCArgs:                        []string{},
+	EnableAutoGitWireProtocol:     true,
+	PullRequestPushMessage:        true,
+	DisablePartialClone:           false,
+	DiffRenameSimilarityThreshold: "50%",
 	Timeout: struct {
-		Default int
 		Migrate int
 		Mirror  int
-		Clone   int
-		Pull    int
 		GC      int `ini:"GC"`
 	}{
-		Default: 360,
 		Migrate: 600,
 		Mirror:  300,
-		Clone:   300,
-		Pull:    300,
 		GC:      60,
 	},
 }
@@ -95,7 +87,6 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	GitConfig.Options = make(map[string]string)
 	GitConfig.SetOption("diff.algorithm", "histogram")
 	GitConfig.SetOption("core.logAllRefUpdates", "true")
-	GitConfig.SetOption("gc.reflogExpire", "90")
 
 	secGitReflog := rootCfg.Section("git.reflog")
 	if secGitReflog.HasKey("ENABLED") {
@@ -103,8 +94,8 @@ func loadGitFrom(rootCfg ConfigProvider) {
 		GitConfig.SetOption("core.logAllRefUpdates", secGitReflog.Key("ENABLED").In("true", []string{"true", "false"}))
 	}
 	if secGitReflog.HasKey("EXPIRATION") {
-		deprecatedSetting(rootCfg, "git.reflog", "EXPIRATION", "git.config", "core.reflogExpire", "1.21")
-		GitConfig.SetOption("gc.reflogExpire", secGitReflog.Key("EXPIRATION").String())
+		deprecatedSetting(rootCfg, "git.reflog", "EXPIRATION", "git.config", "gc.reflogExpire", "1.21")
+		GitConfig.SetOption("gc.reflogExpire", secGitReflog.Key("EXPIRATION").String()+".days")
 	}
 
 	for _, key := range secGitConfig.Keys() {
@@ -116,5 +107,10 @@ func loadGitFrom(rootCfg ConfigProvider) {
 		Git.HomePath = filepath.Join(AppDataPath, Git.HomePath)
 	} else {
 		Git.HomePath = filepath.Clean(Git.HomePath)
+	}
+
+	// validate for a integer percentage between 0% and 100%
+	if !regexp.MustCompile(`^([0-9]|[1-9][0-9]|100)%$`).MatchString(Git.DiffRenameSimilarityThreshold) {
+		log.Fatal("Invalid git.DIFF_RENAME_SIMILARITY_THRESHOLD: %s", Git.DiffRenameSimilarityThreshold)
 	}
 }

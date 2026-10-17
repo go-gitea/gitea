@@ -6,10 +6,10 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // GetStopwatches get all stopwatches
@@ -29,7 +29,7 @@ func GetStopwatches(ctx *context.Context) {
 		return
 	}
 
-	apiSWs, err := convert.ToStopWatches(ctx, sws)
+	apiSWs, err := convert.ToStopWatches(ctx, ctx.Doer, sws)
 	if err != nil {
 		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return

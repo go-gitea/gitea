@@ -9,12 +9,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/log"
 )
 
 // lsFileLine is a Quadruplet struct (+error) representing a partially parsed line from ls-files
@@ -54,69 +54,52 @@ func (line *lsFileLine) String() string {
 
 // readUnmergedLsFileLines calls git ls-files -u -z and parses the lines into mode-sha-stage-path quadruplets
 // it will push these to the provided channel closing it at the end
-func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan chan *lsFileLine) {
+func readUnmergedLsFileLines(ctx context.Context, tmpRepo git.RepositoryFacade, outputChan chan *lsFileLine) {
 	defer func() {
 		// Always close the outputChan at the end of this function
 		close(outputChan)
 	}()
 
-	lsFilesReader, lsFilesWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to open stderr pipe: %v", err)
-		outputChan <- &lsFileLine{err: fmt.Errorf("unable to open stderr pipe: %w", err)}
-		return
-	}
-	defer func() {
-		_ = lsFilesWriter.Close()
-		_ = lsFilesReader.Close()
-	}()
+	cmd := gitcmd.NewCommand("ls-files", "-u", "-z")
+	lsFilesReader, lsFilesReaderClose := cmd.MakeStdoutPipe()
+	defer lsFilesReaderClose()
+	err := cmd.WithRepo(tmpRepo).
+		WithPipelineFunc(func(gitcmd.Context) error {
+			bufferedReader := bufio.NewReader(lsFilesReader)
 
-	stderr := &strings.Builder{}
-	err = gitcmd.NewCommand("ls-files", "-u", "-z").
-		Run(ctx, &gitcmd.RunOpts{
-			Dir:    tmpBasePath,
-			Stdout: lsFilesWriter,
-			Stderr: stderr,
-			PipelineFunc: func(_ context.Context, _ context.CancelFunc) error {
-				_ = lsFilesWriter.Close()
-				defer func() {
-					_ = lsFilesReader.Close()
-				}()
-				bufferedReader := bufio.NewReader(lsFilesReader)
-
-				for {
-					line, err := bufferedReader.ReadString('\000')
-					if err != nil {
-						if err == io.EOF {
-							return nil
-						}
-						return err
+			for {
+				line, err := bufferedReader.ReadString('\000')
+				if err != nil {
+					if err == io.EOF {
+						return nil
 					}
-					toemit := &lsFileLine{}
-
-					split := strings.SplitN(line, " ", 3)
-					if len(split) < 3 {
-						return fmt.Errorf("malformed line: %s", line)
-					}
-					toemit.mode = split[0]
-					toemit.sha = split[1]
-
-					if len(split[2]) < 4 {
-						return fmt.Errorf("malformed line: %s", line)
-					}
-
-					toemit.stage, err = strconv.Atoi(split[2][0:1])
-					if err != nil {
-						return fmt.Errorf("malformed line: %s", line)
-					}
-
-					toemit.path = split[2][2 : len(split[2])-1]
-					outputChan <- toemit
+					return err
 				}
-			},
-		})
+				toemit := &lsFileLine{}
+
+				split := strings.SplitN(line, " ", 3)
+				if len(split) < 3 {
+					return fmt.Errorf("malformed line: %s", line)
+				}
+				toemit.mode = split[0]
+				toemit.sha = split[1]
+
+				if len(split[2]) < 4 {
+					return fmt.Errorf("malformed line: %s", line)
+				}
+
+				toemit.stage, err = strconv.Atoi(split[2][0:1])
+				if err != nil {
+					return fmt.Errorf("malformed line: %s", line)
+				}
+
+				toemit.path = split[2][2 : len(split[2])-1]
+				outputChan <- toemit
+			}
+		}).
+		RunWithStderr(ctx)
 	if err != nil {
-		outputChan <- &lsFileLine{err: fmt.Errorf("git ls-files -u -z: %w", gitcmd.ConcatenateError(err, stderr.String()))}
+		outputChan <- &lsFileLine{err: fmt.Errorf("git ls-files -u -z: %w", err)}
 	}
 }
 
@@ -141,7 +124,7 @@ func (u *unmergedFile) String() string {
 
 // unmergedFiles will collate the output from readUnstagedLsFileLines in to file triplets and send them
 // to the provided channel, closing at the end.
-func unmergedFiles(ctx context.Context, tmpBasePath string, unmerged chan *unmergedFile) {
+func unmergedFiles(ctx context.Context, tmpGitRepo git.RepositoryFacade, unmerged chan *unmergedFile) {
 	defer func() {
 		// Always close the channel
 		close(unmerged)
@@ -149,7 +132,7 @@ func unmergedFiles(ctx context.Context, tmpBasePath string, unmerged chan *unmer
 
 	ctx, cancel := context.WithCancel(ctx)
 	lsFileLineChan := make(chan *lsFileLine, 10) // give lsFileLineChan a buffer
-	go readUnmergedLsFileLines(ctx, tmpBasePath, lsFileLineChan)
+	go readUnmergedLsFileLines(ctx, tmpGitRepo, lsFileLineChan)
 	defer func() {
 		cancel()
 		for range lsFileLineChan {

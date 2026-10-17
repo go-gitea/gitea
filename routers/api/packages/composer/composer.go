@@ -5,26 +5,22 @@ package composer
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/optional"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	composer_module "code.gitea.io/gitea/modules/packages/composer"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/packages/helper"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	packages_service "code.gitea.io/gitea/services/packages"
-
-	"github.com/hashicorp/go-version"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/modules/optional"
+	packages_module "gitea.dev/modules/packages"
+	composer_module "gitea.dev/modules/packages/composer"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/packages/helper"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	packages_service "gitea.dev/services/packages"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -150,6 +146,7 @@ func PackageMetadata(ctx *context.Context) {
 	}
 
 	resp := createPackageMetadataResponse(
+		ctx,
 		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/composer",
 		pds,
 	)
@@ -173,11 +170,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		ctx.Req.Method,
 	)
 	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, helper.PackageErrorStatus(err), err)
 		return
 	}
 
@@ -193,7 +186,7 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	cp, err := composer_module.ParsePackage(buf, buf.Size())
+	cp, err := composer_module.ParsePackage(buf, ctx.FormTrim("version"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
@@ -209,12 +202,9 @@ func UploadPackage(ctx *context.Context) {
 	}
 
 	if cp.Version == "" {
-		v, err := version.NewVersion(ctx.FormTrim("version"))
-		if err != nil {
-			apiError(ctx, http.StatusBadRequest, composer_module.ErrInvalidVersion)
-			return
-		}
-		cp.Version = v.String()
+		// the version should be either set in the "composer.json", or as a query parameter "?version=xxx"
+		apiError(ctx, http.StatusBadRequest, composer_module.ErrInvalidVersion)
+		return
 	}
 
 	_, _, err = packages_service.CreatePackageAndAddFile(
@@ -235,7 +225,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: strings.ToLower(fmt.Sprintf("%s.%s.zip", strings.ReplaceAll(cp.Name, "/", "-"), cp.Version)),
+				Filename: cp.Filename,
 			},
 			Creator: ctx.Doer,
 			Data:    buf,

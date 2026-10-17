@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto"
 	"errors"
 	"fmt"
 	"io"
@@ -14,14 +15,14 @@ import (
 	"strings"
 	"time"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	debian_model "code.gitea.io/gitea/models/packages/debian"
-	user_model "code.gitea.io/gitea/models/user"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	debian_module "code.gitea.io/gitea/modules/packages/debian"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	packages_service "code.gitea.io/gitea/services/packages"
+	packages_model "gitea.dev/models/packages"
+	debian_model "gitea.dev/models/packages/debian"
+	user_model "gitea.dev/models/user"
+	packages_module "gitea.dev/modules/packages"
+	debian_module "gitea.dev/modules/packages/debian"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	packages_service "gitea.dev/services/packages"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -38,36 +39,18 @@ func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files
 func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
-	priv, err := user_model.GetSetting(ctx, ownerID, debian_module.SettingKeyPrivate)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return "", "", err
-	}
-
-	pub, err := user_model.GetSetting(ctx, ownerID, debian_module.SettingKeyPublic)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return "", "", err
-	}
-
-	if priv == "" || pub == "" {
-		priv, pub, err = generateKeypair()
-		if err != nil {
-			return "", "", err
-		}
-
-		if err := user_model.SetUserSetting(ctx, ownerID, debian_module.SettingKeyPrivate, priv); err != nil {
-			return "", "", err
-		}
-
-		if err := user_model.SetUserSetting(ctx, ownerID, debian_module.SettingKeyPublic, pub); err != nil {
-			return "", "", err
-		}
-	}
-
-	return priv, pub, nil
+	return packages_service.GetOrCreateKeyPair(ctx, ownerID, debian_module.SettingKeyPrivate, debian_module.SettingKeyPublic, generateKeypair)
 }
 
 func generateKeypair() (string, string, error) {
-	e, err := openpgp.NewEntity("", "Debian Registry", "", nil)
+	// Repository signing keys are long-lived and there is currently no rotation mechanism, choose stronger algorithms
+	cfg := &packet.Config{
+		RSABits:       4096,
+		DefaultHash:   crypto.SHA256,
+		DefaultCipher: packet.CipherAES256,
+	}
+
+	e, err := openpgp.NewEntity("", "Automatically generated Debian Registry Key; created "+time.Now().UTC().Format(time.RFC3339), "", cfg)
 	if err != nil {
 		return "", "", err
 	}

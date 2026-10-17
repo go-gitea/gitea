@@ -8,14 +8,16 @@ import (
 	"errors"
 	"net/http"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/httpauth"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	actions_model "gitea.dev/models/actions"
+	audit_model "gitea.dev/models/audit"
+	auth_model "gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/httpauth"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 )
 
 // Ensure the struct implements the interface.
@@ -29,6 +31,7 @@ const (
 	AccessTokenMethodName = "access_token"
 	OAuth2TokenMethodName = "oauth2_token"
 	ActionTokenMethodName = "action_token"
+	DeployTokenMethodName = "deploy_token"
 )
 
 // Basic implements the Auth interface and authenticates requests (API requests
@@ -41,30 +44,19 @@ func (b *Basic) Name() string {
 	return BasicMethodName
 }
 
-// Verify extracts and validates Basic data (username and password/token) from the
-// "Authorization" header of the request and returns the corresponding user object for that
-// name/token on successful validation.
-// Returns nil if header is empty or validation fails.
-func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	// Basic authentication should only fire on API, Feed, Download, Archives or on Git or LFSPaths
-	// Not all feed (rss/atom) clients feature the ability to add cookies or headers, so we need to allow basic auth for feeds
-	detector := newAuthPathDetector(req)
-	if !detector.isAPIPath() && !detector.isFeedRequest(req) && !detector.isContainerPath() && !detector.isAttachmentDownload() && !detector.isArchivePath() && !detector.isGitRawOrAttachOrLFSPath() {
-		return nil, nil
-	}
-
+func parseAuthBasic(req *http.Request) (ret struct{ authToken, uname, passwd string }) {
 	authHeader := req.Header.Get("Authorization")
 	if authHeader == "" {
-		return nil, nil
+		return ret
 	}
 	parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
 	if !ok || parsed.BasicAuth == nil {
-		return nil, nil
+		return ret
 	}
 	uname, passwd := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 
 	// Check if username or password is a token
-	isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"
+	isUsernameToken := passwd == "" || passwd == "x-oauth-basic"
 	// Assume username is token
 	authToken := uname
 	if !isUsernameToken {
@@ -74,9 +66,14 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	} else {
 		log.Trace("Basic Authorization: Attempting login with username as token")
 	}
+	ret.authToken, ret.uname, ret.passwd = authToken, uname, passwd
+	return ret
+}
 
+// VerifyAuthToken only the access token provided as parameter, used by other auth methods that want to reuse access token verification logic
+func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore, authToken string) (*user_model.User, error) {
 	// get oauth2 token's user's ID
-	_, uid := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
+	accessTokenScope, uid, grantID := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 
@@ -85,9 +82,13 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 			log.Error("GetUserByID:  %v", err)
 			return nil, err
 		}
+		if !u.IsIndividual() {
+			return nil, nil //nolint:nilnil // the auth method is not applicable
+		}
 
 		store.GetData()["LoginMethod"] = OAuth2TokenMethodName
-		store.GetData()["IsApiToken"] = true
+		store.GetData()["ApiTokenScope"] = accessTokenScope
+		setAuthCredential(store, credentialOAuth2Grant, grantID)
 		return u, nil
 	}
 
@@ -107,27 +108,40 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		}
 
 		store.GetData()["LoginMethod"] = AccessTokenMethodName
-		store.GetData()["IsApiToken"] = true
 		store.GetData()["ApiTokenScope"] = token.Scope
+		setAuthCredential(store, credentialAccessToken, token.ID)
 		return u, nil
-	} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
-		log.Error("GetAccessTokenBySha: %v", err)
+	} else if !errors.Is(err, util.ErrNotExist) {
+		log.Error("GetAccessTokenBySHA: %v", err)
 	}
 
 	// check task token
 	task, err := actions_model.GetRunningTaskByToken(req.Context(), authToken)
 	if err == nil && task != nil {
 		log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
-
 		store.GetData()["LoginMethod"] = ActionTokenMethodName
-		store.GetData()["IsActionsToken"] = true
-		store.GetData()["ActionsTaskID"] = task.ID
+		return user_model.NewActionsUserWithTaskID(task.ID), nil
+	}
+	return nil, nil //nolint:nilnil // the auth method is not applicable
+}
 
-		return user_model.NewActionsUser(), nil
+// Verify extracts and validates Basic data (username and password/token) from the
+// "Authorization" header of the request and returns the corresponding user object for that
+// name/token on successful validation.
+// Returns nil if header is empty or validation fails.
+func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
+	parseBasicRet := parseAuthBasic(req)
+	authToken, uname, passwd := parseBasicRet.authToken, parseBasicRet.uname, parseBasicRet.passwd
+	if authToken == "" && uname == "" {
+		return nil, nil //nolint:nilnil // the auth method is not applicable
+	}
+	u, err := b.VerifyAuthToken(req, w, store, sess, authToken)
+	if u != nil || err != nil {
+		return u, err
 	}
 
 	if !setting.Service.EnableBasicAuth {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	log.Trace("Basic Authorization: Attempting SignIn for %s", uname)
@@ -146,7 +160,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 			return nil, err
 		}
 		if hasWebAuthn {
-			return nil, errors.New("basic authorization is not allowed while WebAuthn enrolled")
+			return nil, ErrUserAuthMessage("basic authorization is not allowed while WebAuthn enrolled")
 		}
 
 		if err := validateTOTP(req, u); err != nil {
@@ -169,17 +183,20 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 		}
 		return err
 	}
-	if ok, err := twofa.ValidateTOTP(req.Header.Get("X-Gitea-OTP")); err != nil {
+	// Consume the passcode atomically so a captured OTP cannot be replayed within its validity window.
+	if ok, err := twofa.ValidateAndConsumeTOTP(req.Context(), req.Header.Get("X-Gitea-OTP")); err != nil {
 		return err
 	} else if !ok {
+		audit.RecordAs(req.Context(), u, audit_model.UserAuthenticationFailTwoFactor, u)
+
 		return util.NewInvalidArgumentErrorf("invalid provided OTP")
 	}
 	return nil
 }
 
 func GetAccessScope(store DataStore) auth_model.AccessTokenScope {
-	if v, ok := store.GetData()["ApiTokenScope"]; ok {
-		return v.(auth_model.AccessTokenScope)
+	if scope, hasApiTokenScope := store.GetData()["ApiTokenScope"].(auth_model.AccessTokenScope); hasApiTokenScope {
+		return scope
 	}
 	switch store.GetData()["LoginMethod"] {
 	case OAuth2TokenMethodName:

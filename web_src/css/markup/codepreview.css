@@ -5,6 +5,7 @@
 }
 
 .markup .code-preview-container .code-preview-header {
+  color: var(--color-text-light-1);
   border-bottom: 1px solid var(--color-secondary);
   padding: 0.5em;
   font-size: 12px;
@@ -26,7 +27,6 @@
 .markup .code-preview-container table tr {
   border: 0 !important;
 }
-.markup .code-preview-container table th,
 .markup .code-preview-container table td {
   border: 0 !important;
   padding: 0 0 0 5px !important;

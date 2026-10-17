@@ -6,29 +6,32 @@ package auth
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/services/actions"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/services/actions"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUserIDFromToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("Actions JWT", func(t *testing.T) {
-		const RunningTaskID = 47
+		const RunningTaskID int64 = 47
 		token, err := actions.CreateAuthorizationToken(RunningTaskID, 1, 2)
 		assert.NoError(t, err)
 
 		ds := make(reqctx.ContextData)
 
 		o := OAuth2{}
-		uid := o.userIDFromToken(t.Context(), token, ds)
-		assert.Equal(t, user_model.ActionsUserID, uid)
-		assert.Equal(t, true, ds["IsActionsToken"])
-		assert.Equal(t, ds["ActionsTaskID"], int64(RunningTaskID))
+		u, err := o.userFromToken(t.Context(), token, ds)
+		require.NoError(t, err)
+		assert.Equal(t, user_model.ActionsUserID, u.ID)
+		taskID, ok := user_model.GetActionsUserTaskID(u)
+		assert.True(t, ok)
+		assert.Equal(t, RunningTaskID, taskID)
 	})
 }
 

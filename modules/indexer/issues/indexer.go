@@ -11,20 +11,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	db_model "code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/indexer"
-	"code.gitea.io/gitea/modules/indexer/issues/bleve"
-	"code.gitea.io/gitea/modules/indexer/issues/db"
-	"code.gitea.io/gitea/modules/indexer/issues/elasticsearch"
-	"code.gitea.io/gitea/modules/indexer/issues/internal"
-	"code.gitea.io/gitea/modules/indexer/issues/meilisearch"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/setting"
+	db_model "gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/indexer"
+	"gitea.dev/modules/indexer/issues/bleve"
+	"gitea.dev/modules/indexer/issues/db"
+	"gitea.dev/modules/indexer/issues/elasticsearch"
+	"gitea.dev/modules/indexer/issues/internal"
+	"gitea.dev/modules/indexer/issues/meilisearch"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/queue"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // IndexerMetadata is used to send data to the queue, so it contains only the ids.
@@ -100,7 +101,7 @@ func InitIssueIndexer(syncReindex bool) {
 			issueIndexer = elasticsearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
 			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
-				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
+				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", util.SanitizeCredentialURLs(setting.Indexer.IssueConnStr), err)
 			}
 		case "db":
 			issueIndexer = db.GetIndexer()
@@ -108,7 +109,7 @@ func InitIssueIndexer(syncReindex bool) {
 			issueIndexer = meilisearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
 			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
-				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
+				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", util.SanitizeCredentialURLs(setting.Indexer.IssueConnStr), err)
 			}
 		default:
 			log.Fatal("Unknown issue indexer type: %s", setting.Indexer.IssueType)

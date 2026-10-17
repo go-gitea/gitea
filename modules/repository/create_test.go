@@ -6,8 +6,9 @@ package repository
 import (
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +17,7 @@ func TestGetDirectorySize(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo, err := repo_model.GetRepositoryByID(t.Context(), 1)
 	assert.NoError(t, err)
-	size, err := getDirectorySize(repo.RepoPath())
+	size, err := git.CalcRepositorySize(repo)
 	assert.NoError(t, err)
 	repo.Size = 8165 // real size on the disk
 	assert.Equal(t, repo.Size, size)

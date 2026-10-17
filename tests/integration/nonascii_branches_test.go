@@ -10,16 +10,14 @@ import (
 	"path"
 	"testing"
 
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/require"
 )
 
 func setDefaultBranch(t *testing.T, session *TestSession, user, repo, branch string) {
 	location := path.Join("/", user, repo, "settings/branches")
-	csrf := GetUserCSRFToken(t, session)
 	req := NewRequestWithValues(t, "POST", location, map[string]string{
-		"_csrf":  csrf,
 		"action": "default_branch",
 		"branch": branch,
 	})

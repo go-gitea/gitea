@@ -1,4 +1,4 @@
-{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings account")}}
+{{template "user/settings/layout_head" (dict "pageClass" "user settings account")}}
 	<div class="user-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "settings.password"}}
@@ -7,7 +7,6 @@
 			{{if and (not ($.UserDisabledFeatures.Contains "manage_credentials")) (or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2))}}
 			<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/account" method="post">
 				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
 				{{if .SignedUser.IsPasswordSet}}
 				<div class="required field {{if .Err_OldPassword}}error{{end}}">
 					<label for="old_password">{{ctx.Locale.Tr "settings.old_password"}}</label>
@@ -24,7 +23,7 @@
 				</div>
 
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "settings.change_password"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.change_password"}}</button>
 					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
 				</div>
 			</form>
@@ -57,27 +56,25 @@
 							</div>
 							<div class="flex-text-block">
 							{{if not .IsPrimary}}
-								<button class="ui red tiny button delete-button" data-modal-id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
+								<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete?id={{.ID}}">
 									{{ctx.Locale.Tr "settings.delete_email"}}
 								</button>
 								{{if .CanBePrimary}}
 									<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
-										{{$.CsrfTokenHtml}}
 										<input name="_method" type="hidden" value="PRIMARY">
 										<input name="id" type="hidden" value="{{.ID}}">
-										<button class="ui primary tiny button">{{ctx.Locale.Tr "settings.primary_email"}}</button>
+										<button type="submit" class="ui primary tiny button">{{ctx.Locale.Tr "settings.primary_email"}}</button>
 									</form>
 								{{end}}
 							{{end}}
 							{{if not .IsActivated}}
 								<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
-									{{$.CsrfTokenHtml}}
 									<input name="_method" type="hidden" value="SENDACTIVATION">
 									<input name="id" type="hidden" value="{{.ID}}">
 									{{if $.ActivationsPending}}
-										<button disabled class="ui primary tiny button">{{ctx.Locale.Tr "settings.activations_pending"}}</button>
+										<button type="submit" disabled class="ui primary tiny button">{{ctx.Locale.Tr "settings.activations_pending"}}</button>
 									{{else}}
-										<button class="ui primary tiny button">{{ctx.Locale.Tr "settings.activate_email"}}</button>
+										<button type="submit" class="ui primary tiny button">{{ctx.Locale.Tr "settings.activate_email"}}</button>
 									{{end}}
 								</form>
 							{{end}}
@@ -92,12 +89,11 @@
 		{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
 		<div class="ui bottom attached segment">
 			<form class="ui form" action="{{AppSubUrl}}/user/settings/account/email" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{ctx.Locale.Tr "settings.add_new_email"}}</label>
 					<input id="email" name="email" type="email" required {{if not .CanAddEmails}}disabled{{end}}>
 				</div>
-				<button class="ui primary button" {{if not .CanAddEmails}}disabled{{end}}>
+				<button type="submit" class="ui primary button" {{if not .CanAddEmails}}disabled{{end}}>
 					{{ctx.Locale.Tr "settings.add_email"}}
 				</button>
 			</form>
@@ -119,20 +115,19 @@
 				<p class="text left tw-font-semibold">{{ctx.Locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime}}</p>
 				{{end}}
 			</div>
-			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
+			<form class="ui form ignore-dirty form-fetch-action" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
 				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password-confirmation">{{ctx.Locale.Tr "password"}}</label>
 					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
 				</div>
 				<div class="field">
-					<button class="ui red button delete-button" data-modal-id="delete-account" data-type="form" data-form="#delete-form">
+					<button type="submit" class="ui red button" data-modal-confirm="#delete-account">
 						{{ctx.Locale.Tr "settings.confirm_delete_account"}}
 					</button>
 				</div>
 			</form>
-			<div class="ui g-modal-confirm delete modal" id="delete-account">
+			<div class="ui small modal" id="delete-account">
 				<div class="header">
 					{{svg "octicon-trash"}}
 					{{ctx.Locale.Tr "settings.delete_account_title"}}
@@ -146,7 +141,7 @@
 		{{end}}
 	</div>
 
-<div class="ui g-modal-confirm delete modal" id="delete-email">
+<div class="ui small modal" id="delete-email">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "settings.email_deletion"}}

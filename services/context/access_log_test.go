@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -68,4 +68,9 @@ func TestAccessLogger(t *testing.T) {
 	req.Header.Add("User-Agent", "user-agent")
 	recorder.record(time.Date(2000, 1, 2, 3, 4, 5, 0, time.UTC), &testAccessLoggerResponseWriterMock{}, req)
 	assert.Equal(t, []string{`remote-addr - - [02/Jan/2000:03:04:05 +0000] "GET /path https" 200 123123 "referer" "user-agent"`}, mockLogger.logs)
+}
+
+func TestAccessLoggerRequestID(t *testing.T) {
+	assert.False(t, isSafeRequestID("\x00"))
+	assert.True(t, isSafeRequestID("a b-c"))
 }

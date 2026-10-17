@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 )
 
 func TestAPIRepoSecrets(t *testing.T) {
@@ -131,9 +131,5 @@ func TestAPIRepoSecrets(t *testing.T) {
 		req = NewRequest(t, "DELETE", url).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
-
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/000", repo.FullName())).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusBadRequest)
 	})
 }

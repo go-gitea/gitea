@@ -8,15 +8,17 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/gtprof"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/routing"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/gtprof"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/web/routing"
+	"gitea.dev/services/context"
 
-	"gitea.com/go-chi/session"
 	"github.com/chi-middleware/proxy"
 	"github.com/go-chi/chi/v5"
 )
@@ -26,20 +28,38 @@ func ProtocolMiddlewares() (handlers []any) {
 	// the order is important
 	handlers = append(handlers, ChiRoutePathHandler())   // make sure chi has correct paths
 	handlers = append(handlers, RequestContextHandler()) //	prepare the context and panic recovery
+	handlers = append(handlers, SecurityHeadersHandler())
 
 	if setting.ReverseProxyLimit > 0 && len(setting.ReverseProxyTrustedProxies) > 0 {
 		handlers = append(handlers, ForwardedHeadersHandler(setting.ReverseProxyLimit, setting.ReverseProxyTrustedProxies))
 	}
 
-	if setting.IsRouteLogEnabled() {
-		handlers = append(handlers, routing.NewLoggerHandler())
-	}
+	handlers = append(handlers, routing.NewRequestInfoHandler())
 
 	if setting.IsAccessLogEnabled() {
 		handlers = append(handlers, context.AccessLogger())
 	}
 
+	if !setting.IsProd {
+		handlers = append(handlers, public.ViteDevMiddleware)
+	}
+
 	return handlers
+}
+
+// SecurityHeadersHandler sets headers globally for every response that leaves Gitea.
+func SecurityHeadersHandler() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if setting.Security.XContentTypeOptions != "unset" {
+				resp.Header().Set("X-Content-Type-Options", setting.Security.XContentTypeOptions)
+			}
+			if setting.Security.XFrameOptions != "unset" {
+				resp.Header().Set("X-Frame-Options", setting.Security.XFrameOptions)
+			}
+			next.ServeHTTP(resp, req)
+		})
+	}
 }
 
 func RequestContextHandler() func(h http.Handler) http.Handler {
@@ -62,19 +82,13 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 			}()
 
 			defer func() {
-				if err := recover(); err != nil {
-					RenderPanicErrorPage(respWriter, req, err) // it should never panic
+				if recovered := recover(); recovered != nil {
+					renderPanicErrorPage(respWriter, req, recovered) // it should never panic, and it handles the stack trace internally
 				}
 			}()
 
-			ds := reqctx.GetRequestDataStore(ctx)
-			req = req.WithContext(cache.WithCacheContext(ctx))
-			ds.SetContextValue(httplib.RequestContextKey, req)
-			ds.AddCleanUp(func() {
-				if req.MultipartForm != nil {
-					_ = req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
-				}
-			})
+			ctx = cache.WithCacheContext(req.Context())
+			req = httplib.RequestWithContext(req, reqctx.FromContext(ctx))
 			next.ServeHTTP(respWriter, req)
 		})
 	}
@@ -107,16 +121,10 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 	return proxy.ForwardedHeaders(opt)
 }
 
-func Sessioner() func(next http.Handler) http.Handler {
-	return session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		SameSite:       setting.SessionConfig.SameSite,
-		Domain:         setting.SessionConfig.Domain,
-	})
+func MustInitSessioner() func(next http.Handler) http.Handler {
+	middleware, err := session.Sessioner()
+	if err != nil {
+		log.Fatal("common.Sessioner failed: %v", err)
+	}
+	return middleware
 }

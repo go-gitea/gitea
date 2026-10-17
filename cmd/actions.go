@@ -5,25 +5,25 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/private"
+	"gitea.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	// CmdActions represents the available actions sub-commands.
-	CmdActions = &cli.Command{
+func newActionsCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "actions",
 		Usage: "Manage Gitea Actions",
 		Commands: []*cli.Command{
-			subcmdActionsGenRunnerToken,
+			newActionsGenerateRunnerTokenCommand(),
 		},
 	}
+}
 
-	subcmdActionsGenRunnerToken = &cli.Command{
+func newActionsGenerateRunnerTokenCommand() *cli.Command {
+	return &cli.Command{
 		Name:    "generate-runner-token",
 		Usage:   "Generate a new token for a runner to use to register with the server",
 		Action:  runGenerateActionsRunnerToken,
@@ -37,7 +37,7 @@ var (
 			},
 		},
 	}
-)
+}
 
 func runGenerateActionsRunnerToken(ctx context.Context, c *cli.Command) error {
 	setting.MustInstalled()
@@ -48,6 +48,6 @@ func runGenerateActionsRunnerToken(ctx context.Context, c *cli.Command) error {
 	if extra.HasError() {
 		return handleCliResponseExtra(extra)
 	}
-	_, _ = fmt.Printf("%s\n", respText.Text)
+	cprintln(c, respText.Text)
 	return nil
 }

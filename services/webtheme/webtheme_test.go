@@ -34,4 +34,10 @@ gitea-theme-meta-info {
 	--k2: real;
 }`)
 	assert.Equal(t, map[string]string{"--k2": "real"}, m)
+
+	// compressed CSS, no trailing semicolon
+	m = parseThemeMetaInfoToMap(`gitea-theme-meta-info{--k1:"v1"}`)
+	assert.Equal(t, map[string]string{"--k1": "v1"}, m)
+	m = parseThemeMetaInfoToMap(`gitea-theme-meta-info{--k1:"v1";--k2:"v2"}`)
+	assert.Equal(t, map[string]string{"--k1": "v1", "--k2": "v2"}, m)
 }

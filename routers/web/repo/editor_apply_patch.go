@@ -7,19 +7,20 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/repository/files"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	"gitea.dev/services/repository/files"
 )
 
 func NewDiffPatch(ctx *context.Context) {
-	prepareEditorCommitFormOptions(ctx, "_diffpatch")
+	prepareEditorPage(ctx, "_diffpatch")
 	if ctx.Written() {
 		return
 	}
 
 	ctx.Data["PageIsPatch"] = true
+	ctx.Data["CodeEditorConfig"] = CodeEditorConfig{Filename: "diff.patch"}
 	ctx.HTML(http.StatusOK, tplPatchFile)
 }
 
@@ -41,7 +42,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 		Committer:    parsed.GitCommitter,
 	})
 	if err != nil {
-		err = util.ErrorWrapLocale(err, "repo.editor.fail_to_apply_patch")
+		err = util.ErrorWrapTranslatable(err, "repo.editor.fail_to_apply_patch")
 	}
 	if err != nil {
 		editorHandleFileOperationError(ctx, parsed.NewBranchName, err)

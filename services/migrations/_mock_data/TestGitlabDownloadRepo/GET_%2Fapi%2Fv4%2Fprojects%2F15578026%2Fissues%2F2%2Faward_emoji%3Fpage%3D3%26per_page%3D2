@@ -1,0 +1,28 @@
+Cache-Control: max-age=0, private, must-revalidate
+Cf-Cache-Status: MISS
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json
+Etag: W/"1b206b5cf267607532b738fd49085d11"
+Gitlab-Lb: haproxy-main-20-lb-gprd
+Gitlab-Sv: api-gke-us-east1-c
+Link: <https://gitlab.com/api/v4/projects/15578026/issues/2/award_emoji?id=15578026&issue_iid=2&page=2&per_page=2>; rel="prev", <https://gitlab.com/api/v4/projects/15578026/issues/2/award_emoji?id=15578026&issue_iid=2&page=1&per_page=2>; rel="first", <https://gitlab.com/api/v4/projects/15578026/issues/2/award_emoji?id=15578026&issue_iid=2&page=3&per_page=2>; rel="last"
+Ratelimit-Limit: 2000
+Ratelimit-Name: throttle_authenticated_api
+Ratelimit-Observed: 13
+Ratelimit-Remaining: 1987
+Ratelimit-Reset: 1776937500
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000
+Vary: Origin, Accept-Encoding
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Gitlab-Meta: {"correlation_id":"9f0bee88de9fc27f-VIE","version":"1"}
+X-Next-Page: 
+X-Page: 3
+X-Per-Page: 2
+X-Prev-Page: 2
+X-Runtime: 0.079463
+X-Total: 6
+X-Total-Pages: 3
+
+[{"id":3009636,"name":"confused","user":{"id":1241334,"username":"lafriks","public_email":"","name":"Lauris BH","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/1241334/avatar.png","web_url":"https://gitlab.com/lafriks"},"created_at":"2019-11-28T08:47:27.248Z","updated_at":"2019-11-28T08:47:27.248Z","awardable_id":27687706,"awardable_type":"Issue","url":null},{"id":3009640,"name":"hearts","user":{"id":1241334,"username":"lafriks","public_email":"","name":"Lauris BH","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/1241334/avatar.png","web_url":"https://gitlab.com/lafriks"},"created_at":"2019-11-28T08:47:33.059Z","updated_at":"2019-11-28T08:47:33.059Z","awardable_id":27687706,"awardable_type":"Issue","url":null}]

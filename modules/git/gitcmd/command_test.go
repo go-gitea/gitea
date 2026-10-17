@@ -4,57 +4,110 @@
 package gitcmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/tempdir"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/tempdir"
+	"gitea.dev/modules/testlogger"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestMain(m *testing.M) {
+func testMain(m *testing.M) int {
+	// FIXME: GIT-PACKAGE-DEPENDENCY: the dependency is not right.
+	// "setting.Git.HomePath" is initialized in "git" package but really used in "gitcmd" package
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "unable to create temp dir: %v", err)
-		os.Exit(1)
+		return testlogger.MainErrorf("failed to create temp dir: %v", err)
 	}
 	defer cleanup()
 
 	setting.Git.HomePath = gitHomePath
+	return m.Run()
+}
+
+func TestMain(m *testing.M) {
+	os.Exit(testMain(m))
 }
 
 func TestRunWithContextStd(t *testing.T) {
-	cmd := NewCommand("--version")
-	stdout, stderr, err := cmd.RunStdString(t.Context(), &RunOpts{})
-	assert.NoError(t, err)
-	assert.Empty(t, stderr)
-	assert.Contains(t, stdout, "git version")
-
-	cmd = NewCommand("--no-such-arg")
-	stdout, stderr, err = cmd.RunStdString(t.Context(), &RunOpts{})
-	if assert.Error(t, err) {
-		assert.Equal(t, stderr, err.Stderr())
-		assert.Contains(t, err.Stderr(), "unknown option:")
-		assert.Contains(t, err.Error(), "exit status 129 - unknown option:")
-		assert.Empty(t, stdout)
+	{
+		cmd := NewCommand("--version")
+		stdout, stderr, err := cmd.RunStdString(t.Context())
+		assert.NoError(t, err)
+		assert.Empty(t, stderr)
+		assert.Contains(t, stdout, "git version")
 	}
 
-	cmd = NewCommand()
-	cmd.AddDynamicArguments("-test")
-	assert.ErrorIs(t, cmd.Run(t.Context(), &RunOpts{}), ErrBrokenCommand)
+	{
+		cmd := NewCommand("ls-tree", "no-such")
+		stdout, stderr, err := cmd.RunStdString(t.Context())
+		if assert.Error(t, err) {
+			assert.Equal(t, stderr, err.Stderr())
+			stderrLower := strings.ToLower(stderr) // see: IsStdErrorNotValidObjectName
+			assert.Equal(t, "fatal: not a valid object name no-such\n", stderrLower)
+			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
+			errLower := strings.ToLower(err.Error())
+			assert.Equal(t, "exit status 128 - fatal: not a valid object name no-such", errLower)
+			assert.Empty(t, stdout)
+		}
+	}
 
-	cmd = NewCommand()
-	cmd.AddDynamicArguments("--test")
-	assert.ErrorIs(t, cmd.Run(t.Context(), &RunOpts{}), ErrBrokenCommand)
+	{
+		cmd := NewCommand("ls-tree", "no-such")
+		stdout, stderr, err := cmd.RunStdBytes(t.Context())
+		if assert.Error(t, err) {
+			assert.Equal(t, string(stderr), err.Stderr())
+			stderrLower := strings.ToLower(err.Stderr()) // see: IsStdErrorNotValidObjectName
+			assert.Equal(t, "fatal: not a valid object name no-such\n", stderrLower)
+			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
+			errLower := strings.ToLower(err.Error())
+			assert.Equal(t, "exit status 128 - fatal: not a valid object name no-such", errLower)
+			assert.Empty(t, stdout)
+		}
+	}
 
-	subCmd := "version"
-	cmd = NewCommand().AddDynamicArguments(subCmd) // for test purpose only, the sub-command should never be dynamic for production
-	stdout, stderr, err = cmd.RunStdString(t.Context(), &RunOpts{})
-	assert.NoError(t, err)
-	assert.Empty(t, stderr)
-	assert.Contains(t, stdout, "git version")
+	{
+		cmd := NewCommand()
+		cmd.AddDynamicArguments("-test")
+		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Empty(t, cmd.args)
+
+		cmd = NewCommand()
+		cmd.AddDynamicArguments("--test")
+		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Empty(t, cmd.args)
+
+		cmd = NewCommand()
+		cmd.AddOptionGrepExpr("-x")
+		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Empty(t, cmd.args)
+
+		cmd = NewCommand("any")
+		cmd.AddOptionGrepExpr("-x")
+		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Equal(t, []string{"any"}, cmd.args)
+
+		cmd = NewCommand("grep")
+		cmd.AddOptionGrepExpr("-x")
+		assert.NoError(t, cmd.Run(t.Context()))
+		assert.Equal(t, []string{"grep", "-e", "-x"}, cmd.args)
+	}
+
+	{
+		subCmd := "version"
+		cmd := NewCommand().AddDynamicArguments(subCmd) // for test purpose only, the sub-command should never be dynamic for production
+		stdout, stderr, err := cmd.RunStdString(t.Context())
+		assert.NoError(t, err)
+		assert.Empty(t, stderr)
+		assert.Contains(t, stdout, "git version")
+	}
 }
 
 func TestGitArgument(t *testing.T) {
@@ -73,5 +126,34 @@ func TestCommandString(t *testing.T) {
 	assert.Equal(t, cmd.prog+` a "-m msg" "it's a test" "say \"hello\""`, cmd.LogString())
 
 	cmd = NewCommand("url: https://a:b@c/", "/root/dir-a/dir-b")
-	assert.Equal(t, cmd.prog+` "url: https://sanitized-credential@c/" .../dir-a/dir-b`, cmd.LogString())
+	assert.Equal(t, cmd.prog+` "url: https://(masked)@c/" .../dir-a/dir-b`, cmd.LogString())
+
+	cmd = NewCommand("url: a:b@c/", "/root/dir-a/dir-b")
+	assert.Equal(t, cmd.prog+` "url: (masked)@c/" .../dir-a/dir-b`, cmd.LogString())
+}
+
+func TestRunStdError(t *testing.T) {
+	e := &runStdError{stderr: "some error"}
+	var err RunStdError = e
+
+	var asErr RunStdError
+	require.ErrorAs(t, err, &asErr)
+	require.Equal(t, "some error", asErr.Stderr())
+
+	require.ErrorAs(t, fmt.Errorf("wrapped %w", err), &asErr)
+}
+
+func TestRunWithContextTimeout(t *testing.T) {
+	t.Run("NoTimeout", func(t *testing.T) {
+		// 'git --version' does not block so it must be finished before the timeout triggered.
+		err := NewCommand("--version").Run(t.Context())
+		require.NoError(t, err)
+	})
+	t.Run("WithTimeout", func(t *testing.T) {
+		cmd := NewCommand("hash-object", "--stdin")
+		_, _, pipeClose := cmd.MakeStdinStdoutPipe()
+		defer pipeClose()
+		err := cmd.WithTimeout(1 * time.Millisecond).Run(t.Context())
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+	})
 }

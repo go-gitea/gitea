@@ -12,9 +12,10 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 type DiffTree struct {
@@ -51,17 +52,24 @@ func GetDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase bool
 }
 
 func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase bool, baseSha, headSha string) ([]*DiffTreeRecord, error) {
-	useMergeBase, baseCommitID, headCommitID, err := validateGitDiffTreeArguments(gitRepo, useMergeBase, baseSha, headSha)
+	useMergeBase, baseCommitID, headCommitID, err := validateGitDiffTreeArguments(ctx, gitRepo, useMergeBase, baseSha, headSha)
 	if err != nil {
 		return nil, err
 	}
 
-	cmd := gitcmd.NewCommand("diff-tree", "--raw", "-r", "--find-renames", "--root")
+	cmd := gitcmd.NewCommand("diff-tree", "--raw", "-r", "--root").
+		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold)
+
+	// HINT: GIT-DIFF-TREE-UI-CONFIG: apply the diff.orderfile explicitly
+	if git.GlobalConfig.DiffOrderFile != "" {
+		cmd.AddOptionFormat("-O%s", git.GlobalConfig.DiffOrderFile)
+	}
+
 	if useMergeBase {
 		cmd.AddArguments("--merge-base")
 	}
 	cmd.AddDynamicArguments(baseCommitID, headCommitID)
-	stdout, _, runErr := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: gitRepo.Path})
+	stdout, _, runErr := cmd.WithRepo(gitRepo).RunStdString(ctx)
 	if runErr != nil {
 		log.Warn("git diff-tree: %v", runErr)
 		return nil, runErr
@@ -70,14 +78,14 @@ func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase b
 	return parseGitDiffTree(strings.NewReader(stdout))
 }
 
-func validateGitDiffTreeArguments(gitRepo *git.Repository, useMergeBase bool, baseSha, headSha string) (shouldUseMergeBase bool, resolvedBaseSha, resolvedHeadSha string, err error) {
+func validateGitDiffTreeArguments(ctx context.Context, gitRepo *git.Repository, useMergeBase bool, baseSha, headSha string) (shouldUseMergeBase bool, resolvedBaseSha, resolvedHeadSha string, err error) {
 	// if the head is empty its an error
 	if headSha == "" {
 		return false, "", "", errors.New("headSha is empty")
 	}
 
 	// if the head commit doesn't exist its and error
-	headCommit, err := gitRepo.GetCommit(headSha)
+	headCommit, err := gitRepo.GetCommit(ctx, headSha)
 	if err != nil {
 		return false, "", "", fmt.Errorf("failed to get commit headSha: %v", err)
 	}
@@ -88,7 +96,7 @@ func validateGitDiffTreeArguments(gitRepo *git.Repository, useMergeBase bool, ba
 		// if the headCommit has no parent we should use an empty commit
 		// this can happen when we are generating a diff against an orphaned commit
 		if headCommit.ParentCount() == 0 {
-			objectFormat, err := gitRepo.GetObjectFormat()
+			objectFormat, err := gitRepo.GetObjectFormat(ctx)
 			if err != nil {
 				return false, "", "", err
 			}
@@ -97,7 +105,7 @@ func validateGitDiffTreeArguments(gitRepo *git.Repository, useMergeBase bool, ba
 			return false, objectFormat.EmptyTree().String(), headCommitID, nil
 		}
 
-		baseCommit, err := headCommit.Parent(0)
+		baseCommit, err := headCommit.Parent(ctx, gitRepo, 0)
 		if err != nil {
 			return false, "", "", fmt.Errorf("baseSha is '', attempted to use parent of commit %s, got error: %v", headCommit.ID.String(), err)
 		}
@@ -105,7 +113,7 @@ func validateGitDiffTreeArguments(gitRepo *git.Repository, useMergeBase bool, ba
 	}
 
 	// try and get the base commit
-	baseCommit, err := gitRepo.GetCommit(baseSha)
+	baseCommit, err := gitRepo.GetCommit(ctx, baseSha)
 	// propagate the error if we couldn't get the base commit
 	if err != nil {
 		return useMergeBase, "", "", fmt.Errorf("failed to get base commit %s: %v", baseSha, err)
@@ -115,24 +123,19 @@ func validateGitDiffTreeArguments(gitRepo *git.Repository, useMergeBase bool, ba
 }
 
 func parseGitDiffTree(gitOutput io.Reader) ([]*DiffTreeRecord, error) {
-	/*
-		The output of `git diff-tree --raw -r --find-renames` is of the form:
+	/* The output of `git diff-tree --raw -r --find-renames` is of the form:
+	:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<path>
 
-		:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<path>
+	or for renames:
+	:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<old_path>\t<new_path>
 
-		or for renames:
-
-		:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<old_path>\t<new_path>
-
-		See: <https://git-scm.com/docs/git-diff-tree#_raw_output_format> for more details
-	*/
+	See: <https://git-scm.com/docs/git-diff-tree#_raw_output_format> for more details */
 	results := make([]*DiffTreeRecord, 0)
 
 	lines := bufio.NewScanner(gitOutput)
 	for lines.Scan() {
 		line := lines.Text()
-
-		if len(line) == 0 {
+		if line == "" {
 			continue
 		}
 
@@ -163,16 +166,6 @@ func parseGitDiffTreeLine(line string) (*DiffTreeRecord, error) {
 		return nil, fmt.Errorf("unparsable output for diff-tree --raw: `%s`, expected 5 space delimited values got %d)", line, len(fields))
 	}
 
-	baseMode, err := git.ParseEntryMode(fields[0])
-	if err != nil {
-		return nil, err
-	}
-
-	headMode, err := git.ParseEntryMode(fields[1])
-	if err != nil {
-		return nil, err
-	}
-
 	baseBlobID := fields[2]
 	headBlobID := fields[3]
 
@@ -195,11 +188,18 @@ func parseGitDiffTreeLine(line string) (*DiffTreeRecord, error) {
 		headPath = filePaths[0]
 	}
 
+	if basePath, err = git.UnquoteDiffFilePath(basePath); err != nil {
+		return nil, fmt.Errorf("unparsable output for diff-tree --raw: `%s`, invalid base path: %w", line, err)
+	}
+	if headPath, err = git.UnquoteDiffFilePath(headPath); err != nil {
+		return nil, fmt.Errorf("unparsable output for diff-tree --raw: `%s`, invalid head path: %w", line, err)
+	}
+
 	return &DiffTreeRecord{
 		Status:     status,
 		Score:      score,
-		BaseMode:   baseMode,
-		HeadMode:   headMode,
+		BaseMode:   git.ParseEntryMode(fields[0]),
+		HeadMode:   git.ParseEntryMode(fields[1]),
 		BaseBlobID: baseBlobID,
 		HeadBlobID: headBlobID,
 		BasePath:   basePath,

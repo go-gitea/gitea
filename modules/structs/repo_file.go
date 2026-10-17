@@ -8,25 +8,20 @@ import "time"
 
 // FileOptions options for all file APIs
 type FileOptions struct {
-	// message (optional) for the commit of this file. if not supplied, a default message will be used
+	// message (optional) is the commit message of the changes. If not supplied, a default message will be used
 	Message string `json:"message"`
-	// branch (optional) to base this file from. if not given, the default branch is used
+	// branch (optional) is the base branch for the changes. If not supplied, the default branch is used
 	BranchName string `json:"branch" binding:"GitRefName;MaxSize(100)"`
-	// new_branch (optional) will make a new branch from `branch` before creating the file
+	// new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch
 	NewBranchName string `json:"new_branch" binding:"GitRefName;MaxSize(100)"`
+	// force_push (optional) will do a force-push if the new branch already exists
+	ForcePush bool `json:"force_push"`
 	// `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 	Author    Identity          `json:"author"`
 	Committer Identity          `json:"committer"`
 	Dates     CommitDateOptions `json:"dates"`
 	// Add a Signed-off-by trailer by the committer at the end of the commit log message.
 	Signoff bool `json:"signoff"`
-}
-
-type FileOptionsWithSHA struct {
-	FileOptions
-	// the blob ID (SHA) for the file that already exists, it is required for changing existing files
-	// required: true
-	SHA string `json:"sha" binding:"Required"`
 }
 
 func (f *FileOptions) GetFileOptions() *FileOptions {
@@ -39,7 +34,7 @@ type FileOptionsInterface interface {
 
 var _ FileOptionsInterface = (*FileOptions)(nil)
 
-// CreateFileOptions options for creating files
+// CreateFileOptions options for creating a file
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type CreateFileOptions struct {
 	FileOptions
@@ -48,16 +43,21 @@ type CreateFileOptions struct {
 	ContentBase64 string `json:"content"`
 }
 
-// DeleteFileOptions options for deleting files (used for other File structs below)
+// DeleteFileOptions options for deleting a file
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type DeleteFileOptions struct {
-	FileOptionsWithSHA
+	FileOptions
+	// the blob ID (SHA) for the file to delete
+	// required: true
+	SHA string `json:"sha" binding:"Required"`
 }
 
-// UpdateFileOptions options for updating files
+// UpdateFileOptions options for updating or creating a file
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type UpdateFileOptions struct {
-	FileOptionsWithSHA
+	FileOptions
+	// the blob ID (SHA) for the file that already exists to update, or leave it empty to create a new file
+	SHA string `json:"sha"`
 	// content must be base64 encoded
 	// required: true
 	ContentBase64 string `json:"content"`
@@ -72,7 +72,7 @@ type ChangeFileOperation struct {
 	// indicates what to do with the file: "create" for creating a new file, "update" for updating an existing file,
 	// "upload" for creating or updating a file, "rename" for renaming a file, and "delete" for deleting an existing file.
 	// required: true
-	// enum: create,update,upload,rename,delete
+	// enum: ["create","update","upload","rename","delete"]
 	Operation string `json:"operation" binding:"Required"`
 	// path to the existing or new file
 	// required: true
@@ -139,6 +139,8 @@ type ContentsResponse struct {
 
 	// `type` will be `file`, `dir`, `symlink`, or `submodule`
 	Type string `json:"type"`
+	// `mode` is the Git file mode as an octal string, e.g. `100644` (regular), `100755` (executable), `120000` (symlink), `160000` (submodule)
+	Mode string `json:"mode"`
 	// Size is the file size in bytes
 	Size int64 `json:"size"`
 	// `encoding` is populated when `type` is `file`, otherwise null

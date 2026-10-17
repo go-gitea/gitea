@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +27,10 @@ func TestRepoActivity(t *testing.T) {
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.Equal(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
+			Style:        repo_model.MergeStyleMerge,
+			DeleteBranch: false,
+		})
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feat/better_readme", "README.md", "Hello, World (Edited Again)\n")
 		testPullCreate(t, session, "user1", "repo1", false, "master", "feat/better_readme", "This is a pull title")

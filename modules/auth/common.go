@@ -4,8 +4,8 @@
 package auth
 
 import (
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 )
 
 func UnmarshalGroupTeamMapping(raw string) (map[string]map[string][]string, error) {

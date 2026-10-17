@@ -12,21 +12,28 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 
 	"gopkg.in/ini.v1" //nolint:depguard // wrapper for this package
 )
 
 type ConfigKey interface {
+	internal()
+
 	Name() string
 	Value() string
 	SetValue(v string)
 
-	In(defaultVal string, candidates []string) string
 	String() string
 	Strings(delim string) []string
 	Bool() (bool, error)
+
+	// FIXME: INI-MUST-SIDE-EFFECT: ini package's In/MustXxx functions have bad side-effects:
+	// they will change the origin config content and write the key with default value if the key didn't exist.
+	// Need to completely refactor the ini package to remove this side-effect.
+
+	In(defaultVal string, candidates []string) string
 
 	MustString(defaultVal string) string
 	MustBool(defaultVal ...bool) bool
@@ -41,6 +48,7 @@ type ConfigSection interface {
 	HasKey(key string) bool
 	NewKey(name, value string) (ConfigKey, error)
 	Key(key string) ConfigKey
+	DeleteKey(key string)
 	Keys() []ConfigKey
 	ChildSections() []ConfigSection
 }
@@ -51,6 +59,7 @@ type ConfigProvider interface {
 	Sections() []ConfigSection
 	NewSection(name string) (ConfigSection, error)
 	GetSection(name string) (ConfigSection, error)
+	DeleteSection(name string)
 	Save() error
 	SaveTo(filename string) error
 
@@ -71,10 +80,56 @@ type iniConfigSection struct {
 	sec *ini.Section
 }
 
+type iniConfigKey struct {
+	key *ini.Key
+}
+
+func (k *iniConfigKey) internal() {}
+
+func (k *iniConfigKey) Name() string { return k.key.Name() }
+
+func (k *iniConfigKey) Value() string { return k.key.Value() }
+
+func (k *iniConfigKey) SetValue(v string) { k.key.SetValue(v) }
+
+func (k *iniConfigKey) String() string { return k.key.String() }
+
+func (k *iniConfigKey) Strings(delim string) []string { return k.key.Strings(delim) }
+
+func (k *iniConfigKey) Bool() (bool, error) { return k.key.Bool() }
+
+func (k *iniConfigKey) MustString(defaultVal string) string { return k.key.MustString(defaultVal) }
+
+func (k *iniConfigKey) MustBool(defaultVal ...bool) bool { return k.key.MustBool(defaultVal...) }
+
+func (k *iniConfigKey) MustInt(defaultVal ...int) int { return k.key.MustInt(defaultVal...) }
+
+func (k *iniConfigKey) MustInt64(defaultVal ...int64) int64 { return k.key.MustInt64(defaultVal...) }
+
+func (k *iniConfigKey) In(defaultVal string, candidates []string) string {
+	return k.key.In(defaultVal, candidates)
+}
+
+func (k *iniConfigKey) MustDuration(defaultVal ...time.Duration) time.Duration {
+	s := k.String()
+	v, err := strconv.ParseInt(s, 10, 64)
+	if err == nil {
+		d := time.Duration(v) * time.Second
+		k.key.SetValue(d.String())
+		return d
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		d = util.OptionalArg(defaultVal)
+	}
+	k.key.SetValue(d.String())
+	return d
+}
+
 var (
 	_ ConfigProvider = (*iniConfigProvider)(nil)
 	_ ConfigSection  = (*iniConfigSection)(nil)
-	_ ConfigKey      = (*ini.Key)(nil)
+	_ ConfigKey      = (*iniConfigKey)(nil)
 )
 
 // ConfigSectionKey only searches the keys in the given section, but it is O(n).
@@ -154,18 +209,26 @@ func (s *iniConfigSection) HasKey(key string) bool {
 }
 
 func (s *iniConfigSection) NewKey(name, value string) (ConfigKey, error) {
-	return s.sec.NewKey(name, value)
+	k, err := s.sec.NewKey(name, value)
+	if err != nil {
+		return nil, err
+	}
+	return &iniConfigKey{k}, nil
 }
 
 func (s *iniConfigSection) Key(key string) ConfigKey {
-	return s.sec.Key(key)
+	return &iniConfigKey{s.sec.Key(key)}
 }
 
 func (s *iniConfigSection) Keys() (keys []ConfigKey) {
 	for _, k := range s.sec.Keys() {
-		keys = append(keys, k)
+		keys = append(keys, &iniConfigKey{k})
 	}
 	return keys
+}
+
+func (s *iniConfigSection) DeleteKey(key string) {
+	s.sec.DeleteKey(key)
 }
 
 func (s *iniConfigSection) ChildSections() (sections []ConfigSection) {
@@ -202,11 +265,11 @@ func NewConfigProviderFromFile(file string) (ConfigProvider, error) {
 	loadedFromEmpty := true
 
 	if file != "" {
-		isFile, err := util.IsFile(file)
+		isExist, err := util.IsExist(file)
 		if err != nil {
-			return nil, fmt.Errorf("unable to check if %q is a file. Error: %v", file, err)
+			return nil, fmt.Errorf("unable to check if %q exists: %v", file, err)
 		}
-		if isFile {
+		if isExist {
 			if err = cfg.Append(file); err != nil {
 				return nil, fmt.Errorf("failed to load config file %q: %v", file, err)
 			}
@@ -247,6 +310,10 @@ func (p *iniConfigProvider) GetSection(name string) (ConfigSection, error) {
 		return nil, err
 	}
 	return &iniConfigSection{sec: sec}, nil
+}
+
+func (p *iniConfigProvider) DeleteSection(name string) {
+	p.ini.DeleteSection(name)
 }
 
 var errDisableSaving = errors.New("this config can't be saved, developers should prepare a new config to save")
@@ -327,32 +394,15 @@ func LogStartupProblem(skip int, level log.Level, format string, args ...any) {
 
 func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents, please use `[%s].%s` instead because this fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead because this fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
 	}
 }
 
 // deprecatedSettingDB add a hint that the configuration has been moved to database but still kept in app.ini
 func deprecatedSettingDB(rootCfg ConfigProvider, oldSection, oldKey string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents but it won't take effect because it has been moved to admin panel -> config setting", oldSection, oldKey)
+		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` present but it won't take effect because it has been moved to admin panel -> config setting", oldSection, oldKey)
 	}
-}
-
-// NewConfigProviderForLocale loads locale configuration from source and others. "string" if for a local file path, "[]byte" is for INI content
-func NewConfigProviderForLocale(source any, others ...any) (ConfigProvider, error) {
-	iniFile, err := ini.LoadSources(ini.LoadOptions{
-		IgnoreInlineComment:         true,
-		UnescapeValueCommentSymbols: true,
-		IgnoreContinuation:          true,
-	}, source, others...)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load locale ini: %w", err)
-	}
-	iniFile.BlockMode = false
-	return &iniConfigProvider{
-		ini:             iniFile,
-		loadedFromEmpty: true,
-	}, nil
 }
 
 func init() {

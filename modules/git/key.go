@@ -3,7 +3,11 @@
 
 package git
 
-import "code.gitea.io/gitea/modules/setting"
+import (
+	"context"
+
+	"gitea.dev/modules/setting"
+)
 
 // Based on https://git-scm.com/docs/git-config#Documentation/git-config.txt-gpgformat
 const (
@@ -23,4 +27,29 @@ func (s *SigningKey) String() string {
 	// In case the key is a file path and the struct is rendered in a template, then the server path will be exposed.
 	setting.PanicInDevOrTesting("don't call SigningKey.String() - it exposes the KeyID which might be a local file path")
 	return "SigningKey:" + s.Format
+}
+
+// GetSigningKey returns the KeyID and git Signature for the repo
+func GetSigningKey(ctx context.Context) (*SigningKey, *Signature) {
+	if setting.Repository.Signing.SigningKey == "none" {
+		return nil, nil
+	}
+
+	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
+		commitSignSettings := GlobalCommitSignSettings.Value()
+		if !commitSignSettings.Sign {
+			return nil, nil
+		}
+		sigKey := &SigningKey{KeyID: commitSignSettings.KeyID, Format: commitSignSettings.Format}
+		sig := &Signature{Name: commitSignSettings.Name, Email: commitSignSettings.Email}
+		return sigKey, sig
+	}
+
+	if setting.Repository.Signing.SigningKey == "" {
+		return nil, nil
+	}
+
+	sigKey := &SigningKey{KeyID: setting.Repository.Signing.SigningKey, Format: setting.Repository.Signing.SigningFormat}
+	sig := &Signature{Name: setting.Repository.Signing.SigningName, Email: setting.Repository.Signing.SigningEmail}
+	return sigKey, sig
 }

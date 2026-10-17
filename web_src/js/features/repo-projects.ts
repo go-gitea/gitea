@@ -1,15 +1,18 @@
 import {contrastColor} from '../utils/color.ts';
 import {createSortable} from '../modules/sortable.ts';
-import {POST, request} from '../modules/fetch.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {POST} from '../modules/fetch.ts';
+import {performFetchActionRequest} from '../modules/fetch-action.ts';
+import {hideFomanticModal} from '../modules/fomantic/modal.ts';
 import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 import type {SortableEvent} from 'sortablejs';
 import {toggleFullScreen} from '../utils.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 
 function updateIssueCount(card: HTMLElement): void {
-  const parent = card.parentElement;
+  const parent = card.parentElement!;
   const count = parent.querySelectorAll('.issue-card').length;
-  parent.querySelector('.project-column-issue-count').textContent = String(count);
+  parent.querySelector('.project-column-issue-count')!.textContent = String(count);
 }
 
 async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<void> {
@@ -19,7 +22,7 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
 
   const columnSorting = {
     issues: Array.from(columnCards, (card, i) => ({
-      issueID: parseInt(card.getAttribute('data-issue')),
+      issueID: parseInt(card.getAttribute('data-issue')!),
       sorting: i,
     })),
   };
@@ -30,13 +33,15 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
     });
   } catch (error) {
     console.error(error);
-    from.insertBefore(item, from.children[oldIndex]);
+    if (oldIndex !== undefined) {
+      from.insertBefore(item, from.children[oldIndex]);
+    }
   }
 }
 
-async function initRepoProjectSortable(): Promise<void> {
+function initRepoProjectSortable(): void {
   // the HTML layout is: #project-board.board > .project-column .cards > .issue-card
-  const mainBoard = document.querySelector('#project-board');
+  const mainBoard = document.querySelector<HTMLElement>('#project-board')!;
   let boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
   createSortable(mainBoard, {
     group: 'project-column',
@@ -44,18 +49,18 @@ async function initRepoProjectSortable(): Promise<void> {
     handle: '.project-column-header',
     delayOnTouchOnly: true,
     delay: 500,
-    onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises
+    onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, the body catches its own errors
       boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
 
       const columnSorting = {
         columns: Array.from(boardColumns, (column, i) => ({
-          columnID: parseInt(column.getAttribute('data-id')),
+          columnID: parseInt(column.getAttribute('data-id')!),
           sorting: i,
         })),
       };
 
       try {
-        await POST(mainBoard.getAttribute('data-url'), {
+        await POST(mainBoard.getAttribute('data-url')!, {
           data: columnSorting,
         });
       } catch (error) {
@@ -65,11 +70,11 @@ async function initRepoProjectSortable(): Promise<void> {
   });
 
   for (const boardColumn of boardColumns) {
-    const boardCardList = boardColumn.querySelector('.cards');
+    const boardCardList = boardColumn.querySelector<HTMLElement>('.cards')!;
     createSortable(boardCardList, {
       group: 'shared',
-      onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
-      onUpdate: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
+      onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
+      onUpdate: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
       delayOnTouchOnly: true,
       delay: 500,
     });
@@ -77,12 +82,12 @@ async function initRepoProjectSortable(): Promise<void> {
 }
 
 function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
-  const elModal = document.querySelector<HTMLElement>('.ui.modal#project-column-modal-edit');
-  const elForm = elModal.querySelector<HTMLFormElement>('form');
+  const elModal = document.querySelector<HTMLElement>('.ui.modal#project-column-modal-edit')!;
+  const elForm = elModal.querySelector<HTMLFormElement>('form')!;
 
-  const elColumnId = elForm.querySelector<HTMLInputElement>('input[name="id"]');
-  const elColumnTitle = elForm.querySelector<HTMLInputElement>('input[name="title"]');
-  const elColumnColor = elForm.querySelector<HTMLInputElement>('input[name="color"]');
+  const elColumnId = elForm.querySelector<HTMLInputElement>('input[name="id"]')!;
+  const elColumnTitle = elForm.querySelector<HTMLInputElement>('input[name="title"]')!;
+  const elColumnColor = elForm.querySelector<HTMLInputElement>('input[name="color"]')!;
 
   const attrDataColumnId = 'data-modal-project-column-id';
   const attrDataColumnTitle = 'data-modal-project-column-title-input';
@@ -91,9 +96,9 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
   // the "new" button is not in project board, so need to query from document
   queryElems(document, '.show-project-column-modal-edit', (el) => {
     el.addEventListener('click', () => {
-      elColumnId.value = el.getAttribute(attrDataColumnId);
-      elColumnTitle.value = el.getAttribute(attrDataColumnTitle);
-      elColumnColor.value = el.getAttribute(attrDataColumnColor);
+      elColumnId.value = el.getAttribute(attrDataColumnId)!;
+      elColumnTitle.value = el.getAttribute(attrDataColumnTitle)!;
+      elColumnColor.value = el.getAttribute(attrDataColumnColor)!;
       elColumnColor.dispatchEvent(new Event('input', {bubbles: true})); // trigger the color picker
     });
   });
@@ -109,59 +114,75 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
 
     try {
       elForm.classList.add('is-loading');
-      await request(formLink, {method: formMethod, data: formData});
+      const resp = await performFetchActionRequest(elForm, {url: formLink, method: formMethod, data: formData});
+      if (!resp) return;
       if (!columnId) {
         window.location.reload(); // newly added column, need to reload the page
         return;
       }
 
       // update the newly saved column title and color in the project board (to avoid reload)
-      const elEditButton = writableProjectBoard.querySelector<HTMLButtonElement>(`.show-project-column-modal-edit[${attrDataColumnId}="${columnId}"]`);
+      const elEditButton = writableProjectBoard.querySelector<HTMLButtonElement>(`.show-project-column-modal-edit[${CSS.escape(attrDataColumnId)}="${CSS.escape(columnId)}"]`)!;
       elEditButton.setAttribute(attrDataColumnTitle, elColumnTitle.value);
       elEditButton.setAttribute(attrDataColumnColor, elColumnColor.value);
 
-      const elBoardColumn = writableProjectBoard.querySelector<HTMLElement>(`.project-column[data-id="${columnId}"]`);
-      const elBoardColumnTitle = elBoardColumn.querySelector<HTMLElement>(`.project-column-title-text`);
+      const elBoardColumn = writableProjectBoard.querySelector<HTMLElement>(`.project-column[data-id="${CSS.escape(columnId)}"]`)!;
+      const elBoardColumnTitle = elBoardColumn.querySelector<HTMLElement>(`.project-column-title-text`)!;
       elBoardColumnTitle.textContent = elColumnTitle.value;
       if (elColumnColor.value) {
         const textColor = contrastColor(elColumnColor.value);
         elBoardColumn.style.setProperty('background', elColumnColor.value, 'important');
         elBoardColumn.style.setProperty('color', textColor, 'important');
-        queryElemChildren<HTMLElement>(elBoardColumn, '.divider', (divider) => divider.style.color = textColor);
+        queryElemChildren(elBoardColumn, '.divider', (divider: HTMLElement) => divider.style.color = textColor);
       } else {
         elBoardColumn.style.removeProperty('background');
         elBoardColumn.style.removeProperty('color');
-        queryElemChildren<HTMLElement>(elBoardColumn, '.divider', (divider) => divider.style.removeProperty('color'));
+        queryElemChildren(elBoardColumn, '.divider', (divider: HTMLElement) => divider.style.removeProperty('color'));
       }
 
-      fomanticQuery(elModal).modal('hide');
+      hideFomanticModal(elModal);
     } finally {
       elForm.classList.remove('is-loading');
     }
   });
 }
 
-function initRepoProjectToggleFullScreen(): void {
+function initRepoProjectToggleFullScreen(elProjectsView: HTMLElement): void {
   const enterFullscreenBtn = document.querySelector('.screen-full');
   const exitFullscreenBtn = document.querySelector('.screen-normal');
   if (!enterFullscreenBtn || !exitFullscreenBtn) return;
 
+  const settingKey = 'projects-view-options';
+  type ProjectsViewOptions = {
+    fullScreen: boolean;
+  };
+  const opts = localUserSettings.getJsonObject<ProjectsViewOptions>(settingKey, {fullScreen: false});
   const toggleFullscreenState = (isFullScreen: boolean) => {
-    toggleFullScreen('.projects-view', isFullScreen);
+    toggleFullScreen(elProjectsView, isFullScreen);
     toggleElem(enterFullscreenBtn, !isFullScreen);
     toggleElem(exitFullscreenBtn, isFullScreen);
+
+    opts.fullScreen = isFullScreen;
+    localUserSettings.setJsonObject(settingKey, opts);
   };
 
   enterFullscreenBtn.addEventListener('click', () => toggleFullscreenState(true));
   exitFullscreenBtn.addEventListener('click', () => toggleFullscreenState(false));
+  if (opts.fullScreen) {
+    // a temporary solution to remember the full screen state, not perfect,
+    // just make UX better than before, especially for users who need to change the label filter frequently and want to keep full screen mode.
+    toggleFullscreenState(true);
+  }
 }
 
-export function initRepoProject(): void {
-  initRepoProjectToggleFullScreen();
+export function initRepoProjectsView(): void {
+  registerGlobalInitFunc('initRepoProjectsView', (elProjectsView) => {
+    initRepoProjectToggleFullScreen(elProjectsView);
 
-  const writableProjectBoard = document.querySelector('#project-board[data-project-borad-writable="true"]');
-  if (!writableProjectBoard) return;
+    const writableProjectBoard = document.querySelector('#project-board[data-project-board-writable="true"]');
+    if (!writableProjectBoard) return;
 
-  initRepoProjectSortable(); // no await
-  initRepoProjectColumnEdit(writableProjectBoard);
+    initRepoProjectSortable();
+    initRepoProjectColumnEdit(writableProjectBoard);
+  });
 }

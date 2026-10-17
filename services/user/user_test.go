@@ -9,17 +9,22 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	org_service "code.gitea.io/gitea/services/org"
+	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
+	org_service "gitea.dev/services/org"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -60,6 +65,50 @@ func TestDeleteUser(t *testing.T) {
 
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.Error(t, DeleteUser(t.Context(), org, false))
+
+	t.Run("CleanupOrphanedTables", func(t *testing.T) {
+		assert.NoError(t, unittest.PrepareTestDatabase())
+
+		// assert they exist before deletion
+		unittest.AssertExistsAndLoadBean(t, &auth.TwoFactor{UID: 24})
+		unittest.AssertExistsAndLoadBean(t, &auth.WebAuthnCredential{UserID: 32})
+		unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 2})
+		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueWatch{UserID: 2})
+
+		// delete users
+		user24 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 24})
+		assert.NoError(t, DeleteUser(t.Context(), user24, true))
+
+		user32 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 32})
+		assert.NoError(t, DeleteUser(t.Context(), user32, true))
+
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		assert.NoError(t, DeleteUser(t.Context(), user2, true))
+
+		// assert they do not exist after deletion
+		unittest.AssertNotExistsBean(t, &auth.TwoFactor{UID: 24})
+		unittest.AssertNotExistsBean(t, &auth.WebAuthnCredential{UserID: 32})
+		unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: 2})
+		unittest.AssertNotExistsBean(t, &issues_model.IssueWatch{UserID: 2})
+	})
+}
+
+func TestDeleteUserUnlinkedAttachments(t *testing.T) {
+	t.Run("DeleteExisting", func(t *testing.T) {
+		assert.NoError(t, unittest.PrepareTestDatabase())
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 10})
+
+		assert.NoError(t, deleteUserUnlinkedAttachments(t.Context(), user))
+		unittest.AssertNotExistsBean(t, &repo_model.Attachment{ID: 10})
+	})
+
+	t.Run("NoUnlinkedAttachments", func(t *testing.T) {
+		assert.NoError(t, unittest.PrepareTestDatabase())
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		assert.NoError(t, deleteUserUnlinkedAttachments(t.Context(), user))
+	})
 }
 
 func TestPurgeUser(t *testing.T) {
@@ -101,51 +150,66 @@ func TestRenameUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 21})
 
-	t.Run("Non-Local", func(t *testing.T) {
-		u := &user_model.User{
-			Type:      user_model.UserTypeIndividual,
-			LoginType: auth.OAuth2,
+	t.Run("External user", func(t *testing.T) {
+		adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1, IsAdmin: true})
+		externalUser := &user_model.User{
+			Name:      "external_user",
+			Email:     "external_user@gitea.io",
+			LoginType: auth.LDAP,
 		}
-		assert.ErrorIs(t, RenameUser(t.Context(), u, "user_rename"), user_model.ErrUserIsNotLocal{})
+		require.NoError(t, user_model.CreateUser(t.Context(), externalUser, &user_model.Meta{}))
+
+		err := RenameUser(t.Context(), externalUser, externalUser.Name+"_changed", externalUser)
+		assert.True(t, user_model.IsErrUserIsNotLocal(err), "external user is not allowed to rename themselves")
+
+		err = RenameUser(t.Context(), externalUser, externalUser.Name+"_changed", adminUser)
+		assert.NoError(t, err, "admin can rename external user")
 	})
 
 	t.Run("Same username", func(t *testing.T) {
-		assert.NoError(t, RenameUser(t.Context(), user, user.Name))
+		assert.NoError(t, RenameUser(t.Context(), user, user.Name, user))
 	})
 
 	t.Run("Non usable username", func(t *testing.T) {
 		usernames := []string{"--diff", ".well-known", "gitea-actions", "aaa.atom", "aa.png"}
 		for _, username := range usernames {
 			assert.Error(t, user_model.IsUsableUsername(username), "non-usable username: %s", username)
-			assert.Error(t, RenameUser(t.Context(), user, username), "non-usable username: %s", username)
+			assert.Error(t, RenameUser(t.Context(), user, username, user), "non-usable username: %s", username)
 		}
 	})
 
 	t.Run("Only capitalization", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+
 		caps := strings.ToUpper(user.Name)
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: user.Name})
 
-		assert.NoError(t, RenameUser(t.Context(), user, caps))
+		assert.NoError(t, RenameUser(t.Context(), user, caps, user))
 
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: caps})
+		unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
+			Action:    audit_model.UserName,
+			ScopeType: audit_model.ScopeUser,
+			ScopeID:   user.ID,
+		})
 	})
 
 	t.Run("Already exists", func(t *testing.T) {
 		existUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-		assert.ErrorIs(t, RenameUser(t.Context(), user, existUser.Name), user_model.ErrUserAlreadyExist{Name: existUser.Name})
-		assert.ErrorIs(t, RenameUser(t.Context(), user, existUser.LowerName), user_model.ErrUserAlreadyExist{Name: existUser.LowerName})
+		assert.ErrorIs(t, RenameUser(t.Context(), user, existUser.Name, user), user_model.ErrUserAlreadyExist{Name: existUser.Name})
+		assert.ErrorIs(t, RenameUser(t.Context(), user, existUser.LowerName, user), user_model.ErrUserAlreadyExist{Name: existUser.LowerName})
 		newUsername := fmt.Sprintf("uSEr%d", existUser.ID)
-		assert.ErrorIs(t, RenameUser(t.Context(), user, newUsername), user_model.ErrUserAlreadyExist{Name: newUsername})
+		assert.ErrorIs(t, RenameUser(t.Context(), user, newUsername, user), user_model.ErrUserAlreadyExist{Name: newUsername})
 	})
 
 	t.Run("Normal", func(t *testing.T) {
 		oldUsername := user.Name
 		newUsername := "User_Rename"
 
-		assert.NoError(t, RenameUser(t.Context(), user, newUsername))
+		assert.NoError(t, RenameUser(t.Context(), user, newUsername, user))
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: newUsername, LowerName: strings.ToLower(newUsername)})
 
 		redirectUID, err := user_model.LookupUserRedirect(t.Context(), oldUsername)

@@ -12,9 +12,9 @@ import (
 	"net/url"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/setting"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
@@ -40,13 +40,12 @@ type GiteaBackend struct {
 	logger       transfer.Logger
 }
 
-func New(ctx context.Context, repo, op, token string, logger transfer.Logger) (transfer.Backend, error) {
-	// runServ guarantees repo will be in form [owner]/[name].git
+func New(ctx context.Context, reqPath, op, token string, logger transfer.Logger) (transfer.Backend, error) {
 	server, err := url.Parse(setting.LocalURL)
 	if err != nil {
 		return nil, err
 	}
-	server = server.JoinPath("api/internal/repo", repo, "info/lfs")
+	server = server.JoinPath(reqPath)
 	return &GiteaBackend{ctx: ctx, server: server, op: op, authToken: token, internalAuth: "Bearer " + setting.InternalToken, logger: logger}, nil
 }
 
@@ -95,7 +94,7 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 	var respBody lfs.BatchResponse
 	err = json.Unmarshal(respBytes, &respBody)
 	if err != nil {
-		g.logger.Log("json umarshal error", err)
+		g.logger.Log("json unmarshal error", err)
 		return nil, err
 	}
 
@@ -157,7 +156,7 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 }
 
 // Download implements transfer.Backend. The returned reader must be closed by the caller.
-func (g *GiteaBackend) Download(oid string, args transfer.Args) (io.ReadCloser, int64, error) {
+func (g *GiteaBackend) Download(oid string, args transfer.Args) (_ io.ReadCloser, _ int64, retErr error) {
 	idMapStr, exists := args[argID]
 	if !exists {
 		return nil, 0, ErrMissingID
@@ -188,7 +187,15 @@ func (g *GiteaBackend) Download(oid string, args transfer.Args) (io.ReadCloser, 
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get response: %w", err)
 	}
-	// no need to close the body here by "defer resp.Body.Close()", see below
+	// We must return the ReaderCloser but not "ReadAll", to avoid OOM.
+	// "transfer.Backend" will check io.Closer interface and close the Body reader.
+	// So only close the Body when error occurs
+	defer func() {
+		if retErr != nil {
+			_ = resp.Body.Close()
+		}
+	}()
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, 0, statusCodeToErr(resp.StatusCode)
 	}
@@ -197,7 +204,6 @@ func (g *GiteaBackend) Download(oid string, args transfer.Args) (io.ReadCloser, 
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to parse content length: %w", err)
 	}
-	// transfer.Backend will check io.Closer interface and close this Body reader
 	return resp.Body, respSize, nil
 }
 

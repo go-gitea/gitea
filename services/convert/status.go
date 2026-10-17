@@ -7,9 +7,10 @@ import (
 	"context"
 	"net/url"
 
-	git_model "code.gitea.io/gitea/models/git"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
+	git_model "gitea.dev/models/git"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/commitstatus"
+	api "gitea.dev/modules/structs"
 )
 
 // ToCommitStatus converts git_model.CommitStatus to api.CommitStatus
@@ -55,6 +56,8 @@ func ToCombinedStatus(ctx context.Context, commitID string, statuses []*git_mode
 	if combinedStatus != nil {
 		status.Statuses = ToCommitStatuses(ctx, statuses)
 		status.State = combinedStatus.State
+	} else {
+		status.State = commitstatus.CommitStatusPending
 	}
 	return &status
 }

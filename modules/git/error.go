@@ -4,12 +4,10 @@
 package git
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 // ErrNotExist commit not exist error
@@ -98,52 +96,31 @@ func (err *ErrPushRejected) Unwrap() error {
 
 // GenerateMessage generates the remote message from the stderr
 func (err *ErrPushRejected) GenerateMessage() {
-	messageBuilder := &strings.Builder{}
-	i := strings.Index(err.StdErr, "remote: ")
-	if i < 0 {
-		err.Message = ""
+	// The stderr is like this:
+	//
+	// > remote: error: push is rejected .....
+	// > To /work/gitea/tests/integration/gitea-integration-sqlite/gitea-repositories/user2/repo1.git
+	// >  ! [remote rejected] 44e67c77559211d21b630b902cdcc6ab9d4a4f51 -> develop (pre-receive hook declined)
+	// > error: failed to push some refs to '/work/gitea/tests/integration/gitea-integration-sqlite/gitea-repositories/user2/repo1.git'
+	//
+	// The local message contains sensitive information, so we only need the remote message
+	const prefixRemote = "remote: "
+	const prefixError = "error: "
+	pos := strings.Index(err.StdErr, prefixRemote)
+	if pos < 0 {
+		err.Message = "push is rejected"
 		return
 	}
-	for {
-		if len(err.StdErr) <= i+8 {
-			break
+
+	messageBuilder := &strings.Builder{}
+	lines := strings.SplitSeq(err.StdErr, "\n")
+	for line := range lines {
+		line, ok := strings.CutPrefix(line, prefixRemote)
+		if !ok {
+			continue
 		}
-		if err.StdErr[i:i+8] != "remote: " {
-			break
-		}
-		i += 8
-		nl := strings.IndexByte(err.StdErr[i:], '\n')
-		if nl >= 0 {
-			messageBuilder.WriteString(err.StdErr[i : i+nl+1])
-			i = i + nl + 1
-		} else {
-			messageBuilder.WriteString(err.StdErr[i:])
-			i = len(err.StdErr)
-		}
+		line = strings.TrimPrefix(line, prefixError)
+		messageBuilder.WriteString(strings.TrimSpace(line) + "\n")
 	}
 	err.Message = strings.TrimSpace(messageBuilder.String())
-}
-
-// ErrMoreThanOne represents an error if pull request fails when there are more than one sources (branch, tag) with the same name
-type ErrMoreThanOne struct {
-	StdOut string
-	StdErr string
-	Err    error
-}
-
-// IsErrMoreThanOne checks if an error is a ErrMoreThanOne
-func IsErrMoreThanOne(err error) bool {
-	_, ok := err.(*ErrMoreThanOne)
-	return ok
-}
-
-func (err *ErrMoreThanOne) Error() string {
-	return fmt.Sprintf("ErrMoreThanOne Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
-}
-
-func IsErrCanceledOrKilled(err error) bool {
-	// When "cancel()" a git command's context, the returned error of "Run()" could be one of them:
-	// - context.Canceled
-	// - *exec.ExitError: "signal: killed"
-	return err != nil && (errors.Is(err, context.Canceled) || err.Error() == "signal: killed")
 }

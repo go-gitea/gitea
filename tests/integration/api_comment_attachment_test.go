@@ -6,19 +6,18 @@ package integration
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/convert"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,10 +50,9 @@ func TestAPIGetCommentAttachment(t *testing.T) {
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	var apiAttachment api.Attachment
-	DecodeJSON(t, resp, &apiAttachment)
+	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 
-	expect := convert.ToAPIAttachment(repo, attachment)
+	expect := convert.ToAPIAttachment(t.Context(), repo, attachment)
 	assert.Equal(t, expect.ID, apiAttachment.ID)
 	assert.Equal(t, expect.Name, apiAttachment.Name)
 	assert.Equal(t, expect.UUID, apiAttachment.UUID)
@@ -76,8 +74,7 @@ func TestAPIListCommentAttachments(t *testing.T) {
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	var apiAttachments []*api.Attachment
-	DecodeJSON(t, resp, &apiAttachments)
+	apiAttachments := DecodeJSON(t, resp, []*api.Attachment{})
 	expectedCount := unittest.GetCount(t, &repo_model.Attachment{CommentID: comment.ID})
 	assert.Len(t, apiAttachments, expectedCount)
 
@@ -95,15 +92,13 @@ func TestAPICreateCommentAttachment(t *testing.T) {
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	filename := "image.png"
-	buff := generateImg()
 	body := &bytes.Buffer{}
 
 	// Setup multi-part
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("attachment", filename)
+	part, err := writer.CreateFormFile("attachment", "image.png")
 	assert.NoError(t, err)
-	_, err = io.Copy(part, &buff)
+	_, err = part.Write(testGeneratePngBytes())
 	assert.NoError(t, err)
 	err = writer.Close()
 	assert.NoError(t, err)
@@ -113,9 +108,7 @@ func TestAPICreateCommentAttachment(t *testing.T) {
 		SetHeader("Content-Type", writer.FormDataContentType())
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 
-	apiAttachment := new(api.Attachment)
-	DecodeJSON(t, resp, &apiAttachment)
-
+	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, CommentID: comment.ID})
 }
 
@@ -166,9 +159,7 @@ func TestAPIEditCommentAttachment(t *testing.T) {
 		"name": newAttachmentName,
 	}).AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusCreated)
-	apiAttachment := new(api.Attachment)
-	DecodeJSON(t, resp, &apiAttachment)
-
+	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, CommentID: comment.ID, Name: apiAttachment.Name})
 }
 

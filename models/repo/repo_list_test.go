@@ -7,12 +7,18 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getTestCases() []struct {
@@ -182,7 +188,16 @@ func getTestCases() []struct {
 
 func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("SearchRepositoryPublic", testSearchRepositoryPublic)
+	t.Run("SearchRepositoryPublicRestricted", testSearchRepositoryRestricted)
+	t.Run("SearchRepositoryPrivate", testSearchRepositoryPrivate)
+	t.Run("SearchRepositoryNonExistingOwner", testSearchRepositoryNonExistingOwner)
+	t.Run("SearchRepositoryWithInDescription", testSearchRepositoryWithInDescription)
+	t.Run("SearchRepositoryNotInDescription", testSearchRepositoryNotInDescription)
+	t.Run("SearchRepositoryCases", testSearchRepositoryCases)
+}
 
+func testSearchRepositoryPublic(t *testing.T) {
 	// test search public repository on explore page
 	repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
@@ -211,9 +226,71 @@ func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 	assert.Len(t, repos, 2)
+}
 
+func testSearchRepositoryRestricted(t *testing.T) {
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29, IsRestricted: true})
+
+	performSearch := func(t *testing.T, user *user_model.User) (publicRepoIDs []int64) {
+		repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{Page: 1, PageSize: 10000},
+			Actor:       user,
+		})
+		require.NoError(t, err)
+		assert.Len(t, repos, int(count))
+		for _, repo := range repos {
+			require.NoError(t, repo.LoadOwner(t.Context()))
+			if repo.Owner.Visibility == structs.VisibleTypePublic && !repo.IsPrivate {
+				publicRepoIDs = append(publicRepoIDs, repo.ID)
+			}
+		}
+		return publicRepoIDs
+	}
+
+	normalPublicRepoIDs := performSearch(t, user2)
+	require.Greater(t, len(normalPublicRepoIDs), 10) // quite a lot
+
+	t.Run("RestrictedUser-NoSignInRequirement", func(t *testing.T) {
+		// restricted user can also see public repositories if no "required sign-in"
+		repoIDs := performSearch(t, restrictedUser)
+		assert.ElementsMatch(t, normalPublicRepoIDs, repoIDs)
+	})
+
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+
+	t.Run("NormalUser-RequiredSignIn", func(t *testing.T) {
+		// normal user can still see all public repos, not affected by "required sign-in"
+		repoIDs := performSearch(t, user2)
+		assert.ElementsMatch(t, normalPublicRepoIDs, repoIDs)
+	})
+	t.Run("RestrictedUser-RequiredSignIn", func(t *testing.T) {
+		// restricted user can see only their own repo
+		repoIDs := performSearch(t, restrictedUser)
+		assert.Equal(t, []int64{4}, repoIDs)
+	})
+}
+
+func TestSearchRepositoryExcludesHiddenIndividualOwners(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	hiddenOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{
+		ID:         hiddenOwner.ID,
+		Visibility: structs.VisibleTypePrivate,
+	}, "visibility"))
+
+	repos, _, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{Page: 1, PageSize: 100},
+		Keyword:     "repo1",
+	})
+	require.NoError(t, err)
+	assert.NotContains(t, repoIDs(repos), int64(1))
+}
+
+func testSearchRepositoryPrivate(t *testing.T) {
 	// test search private repository on explore page
-	repos, count, err = repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -242,16 +319,18 @@ func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), count)
 	assert.Len(t, repos, 3)
+}
 
-	// Test non existing owner
-	repos, count, err = repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{OwnerID: unittest.NonexistentID})
+func testSearchRepositoryNonExistingOwner(t *testing.T) {
+	repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{OwnerID: unittest.NonexistentID})
 
 	assert.NoError(t, err)
 	assert.Empty(t, repos)
 	assert.Equal(t, int64(0), count)
+}
 
-	// Test search within description
-	repos, count, err = repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
+func testSearchRepositoryWithInDescription(t *testing.T) {
+	repos, count, err := repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -266,9 +345,10 @@ func TestSearchRepository(t *testing.T) {
 		assert.Equal(t, "test_repo_14", repos[0].Name)
 	}
 	assert.Equal(t, int64(1), count)
+}
 
-	// Test NOT search within description
-	repos, count, err = repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
+func testSearchRepositoryNotInDescription(t *testing.T) {
+	repos, count, err := repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -281,7 +361,9 @@ func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, repos)
 	assert.Equal(t, int64(0), count)
+}
 
+func testSearchRepositoryCases(t *testing.T) {
 	testCases := getTestCases()
 
 	for _, testCase := range testCases {
@@ -401,4 +483,47 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 			assert.Equal(t, int64(testCase.count), count)
 		})
 	}
+}
+
+func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	// user2 is on org3's owner team, so it can access org3's private repo3 (which has the actions unit)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// org3 is a public org owning repo3 (private) and repo32 (public), both with the actions unit
+	const orgID = 3
+
+	all, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user, false))
+	require.NoError(t, err)
+	assert.Contains(t, all, int64(3), "without public-only the private repo's actions are listed")
+
+	publicOnly, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user, true))
+	require.NoError(t, err)
+	assert.NotContains(t, publicOnly, int64(3), "a public-only token must not list a private repo's actions")
+	assert.Contains(t, publicOnly, int64(32), "a public repo under a public owner stays listed")
+}
+
+// TestUserOrgUnitRepoCondTeamAuthorize pins team.authorize vs team_unit.access_mode
+func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	accessibleRepoIDs := func(userID, orgID int64, unitType unit.Type) []int64 {
+		ids, err := repo_model.SearchRepositoryIDsByCondition(t.Context(),
+			repo_model.UserOrgUnitRepoCond("`repository`.id", userID, orgID, unitType))
+		require.NoError(t, err)
+		return ids
+	}
+
+	// Owner team5 has no Actions team_unit row but still grants via authorize=owner.
+	assert.Contains(t, accessibleRepoIDs(18, 17, unit.TypeActions), int64(24))
+
+	// team2 is "authorize=write" with Projects team_unit but no Actions row.
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
+
+	// now team2 is "authorize=none", no Actions row.
+	_, err := db.GetEngine(t.Context()).Exec("UPDATE team SET authorize=0 WHERE id=2")
+	assert.NoError(t, err)
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
+	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
 }

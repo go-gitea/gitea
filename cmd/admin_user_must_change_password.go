@@ -6,10 +6,9 @@ package cmd
 import (
 	"context"
 	"errors"
-	"fmt"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -58,6 +57,7 @@ func runMustChangePassword(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	fmt.Printf("Updated %d users setting MustChangePassword to %t\n", n, mustChangePassword)
+	// codeql[disable-next-line=go/clear-text-logging]
+	cprintf(c, "Updated %d users setting MustChangePassword to %t\n", n, mustChangePassword)
 	return nil
 }

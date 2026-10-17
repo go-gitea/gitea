@@ -6,61 +6,68 @@ package util
 import (
 	"errors"
 	"fmt"
+	"html/template"
 )
 
-// Common Errors forming the base of our error system
-//
-// Many Errors returned by Gitea can be tested against these errors using "errors.Is".
+// This file defines common errors forming the base of our error system.
+// These errors can be used to classify errors and to provide a common,
+// safe (no server-side sensitive information), and translatable error message for end users.
+
+// ErrorTranslatable wraps an error with translation information
+type ErrorTranslatable interface {
+	error
+	Unwrap() error
+	Translate(ErrorLocaleTranslator) template.HTML
+}
+
 var (
-	ErrInvalidArgument  = errors.New("invalid argument")        // also implies HTTP 400
-	ErrPermissionDenied = errors.New("permission denied")       // also implies HTTP 403
-	ErrNotExist         = errors.New("resource does not exist") // also implies HTTP 404
-	ErrAlreadyExist     = errors.New("resource already exists") // also implies HTTP 409
+	ErrInvalidArgument  = errorForUser{400, "invalid argument"}
+	ErrPermissionDenied = errorForUser{403, "permission denied"}
+	ErrNotExist         = errorForUser{404, "resource does not exist"}
+	ErrAlreadyExist     = errorForUser{409, "resource already exists"} // 409 Conflict
+	ErrContentTooLarge  = errorForUser{413, "content exceeds limit"}   // 413 Request Entity Too Large
 
-	// ErrUnprocessableContent implies HTTP 422, the syntax of the request content is correct,
-	// but the server is unable to process the contained instructions
-	ErrUnprocessableContent = errors.New("unprocessable content")
+	// ErrUnprocessableContent means request content is correct, but the server is unable to process the contained instructions
+	ErrUnprocessableContent = errorForUser{422, "unprocessable content"} // 422 Unprocessable Entity
 )
+
+type errorForUser struct {
+	code int // implies HTTP status code
+	msg  string
+}
+
+func (w errorForUser) Error() string {
+	return w.msg
+}
+
+func ErrorUnwrapForUser(err error) (string, int) {
+	if e, ok := errors.AsType[errorForUser](err); ok {
+		return err.Error(), e.code
+	}
+	return "", 0
+}
 
 // errorWrapper provides a simple wrapper for a wrapped error where the wrapped error message plays no part in the error message
-// Especially useful for "untyped" errors created with "errors.New(…)" that can be classified as 'invalid argument', 'permission denied', 'exists already', or 'does not exist'
 type errorWrapper struct {
-	Message string
-	Err     error
+	msg string
+	err error
 }
 
-// Error returns the message
 func (w errorWrapper) Error() string {
-	return w.Message
+	return w.msg
 }
 
-// Unwrap returns the underlying error
 func (w errorWrapper) Unwrap() error {
-	return w.Err
-}
-
-type LocaleWrapper struct {
-	err    error
-	TrKey  string
-	TrArgs []any
-}
-
-// Error returns the message
-func (w LocaleWrapper) Error() string {
-	return w.err.Error()
-}
-
-// Unwrap returns the underlying error
-func (w LocaleWrapper) Unwrap() error {
 	return w.err
 }
 
 // ErrorWrap returns an error that formats as the given text but unwraps as the provided error
+// The message should be safe (no sensitive information) to be shown to end users
 func ErrorWrap(unwrap error, message string, args ...any) error {
 	if len(args) == 0 {
-		return errorWrapper{Message: message, Err: unwrap}
+		return errorWrapper{msg: message, err: unwrap}
 	}
-	return errorWrapper{Message: fmt.Sprintf(message, args...), Err: unwrap}
+	return errorWrapper{msg: fmt.Sprintf(message, args...), err: unwrap}
 }
 
 // NewInvalidArgumentErrorf returns an error that formats as the given text but unwraps as an ErrInvalidArgument
@@ -83,15 +90,31 @@ func NewNotExistErrorf(message string, args ...any) error {
 	return ErrorWrap(ErrNotExist, message, args...)
 }
 
-// ErrorWrapLocale wraps an err with a translation key and arguments
-func ErrorWrapLocale(err error, trKey string, trArgs ...any) error {
-	return LocaleWrapper{err: err, TrKey: trKey, TrArgs: trArgs}
+type errorTranslatableWrapper struct {
+	err    error
+	trKey  string
+	trArgs []any
 }
 
-func ErrorAsLocale(err error) *LocaleWrapper {
-	var e LocaleWrapper
-	if errors.As(err, &e) {
-		return &e
+type ErrorLocaleTranslator interface {
+	Tr(key string, args ...any) template.HTML
+}
+
+func (w *errorTranslatableWrapper) Error() string { return w.err.Error() }
+
+func (w *errorTranslatableWrapper) Unwrap() error { return w.err }
+
+func (w *errorTranslatableWrapper) Translate(t ErrorLocaleTranslator) template.HTML {
+	return t.Tr(w.trKey, w.trArgs...)
+}
+
+func ErrorWrapTranslatable(err error, trKey string, trArgs ...any) ErrorTranslatable {
+	return &errorTranslatableWrapper{err: err, trKey: trKey, trArgs: trArgs}
+}
+
+func ErrorAsTranslatable(err error) ErrorTranslatable {
+	if e, ok := errors.AsType[*errorTranslatableWrapper](err); ok {
+		return e
 	}
 	return nil
 }

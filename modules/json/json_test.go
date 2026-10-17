@@ -4,6 +4,7 @@
 package json
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,4 +16,13 @@ func TestGiteaDBJSONUnmarshal(t *testing.T) {
 	assert.NoError(t, err)
 	err = UnmarshalHandleDoubleEncode([]byte(""), &m)
 	assert.NoError(t, err)
+}
+
+func TestIndent(t *testing.T) {
+	buf := &bytes.Buffer{}
+	err := Indent(buf, []byte(`{"a":1}`), ">", "  ")
+	assert.NoError(t, err)
+	assert.Equal(t, `{
+>  "a": 1
+>}`, buf.String())
 }

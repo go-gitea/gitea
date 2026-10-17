@@ -13,8 +13,8 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
 	"github.com/hashicorp/go-version"
 )
@@ -140,7 +140,7 @@ type nuspecPackage struct {
 func ParsePackageMetaData(r io.ReaderAt, size int64) (*Package, error) {
 	archive, err := zip.NewReader(r, size)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("unable to parse package meta: %v", err)
 	}
 
 	for _, file := range archive.File {
@@ -216,7 +216,7 @@ func ParseNuspecMetaData(archive *zip.Reader, r io.Reader) (*Package, error) {
 	if p.Metadata.Readme != "" {
 		f, err := archive.Open(p.Metadata.Readme)
 		if err == nil {
-			buf, _ := io.ReadAll(f)
+			buf, _ := util.ReadWithLimit(f, 1024*1024)
 			m.Readme = string(buf)
 			_ = f.Close()
 		}
