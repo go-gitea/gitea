@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 )
@@ -57,4 +58,33 @@ func ComputeTaskTokenPermissions(ctx context.Context, task *ActionTask, targetRe
 	}
 
 	return effectivePerms, nil
+}
+
+// GetActionsUserPackageAccessMode returns the package access mode an Actions job token
+// has against the packages of pkgOwnerID. Packages are owner-scoped, so a token may only
+// write to its own owner's registry; access to any other owner is None here and the caller
+// applies the usual visibility-based read floor. The effective mode honors the workflow
+// permissions: packages: block and the org/repo clamps (fork PRs are read-only).
+func GetActionsUserPackageAccessMode(ctx context.Context, taskID, pkgOwnerID int64) (perm.AccessMode, error) {
+	task, err := GetTaskByID(ctx, taskID)
+	if err != nil {
+		return perm.AccessModeNone, err
+	}
+	if err := task.LoadJob(ctx); err != nil {
+		return perm.AccessModeNone, err
+	}
+	if err := task.Job.LoadRepo(ctx); err != nil {
+		return perm.AccessModeNone, err
+	}
+	if task.Job.Repo.OwnerID != pkgOwnerID {
+		return perm.AccessModeNone, nil
+	}
+
+	effectivePerms, err := ComputeTaskTokenPermissions(ctx, task, task.Job.Repo)
+	if err != nil {
+		return perm.AccessModeNone, err
+	}
+	// TODO(packages-perms): once owner/repo-level Packages permissions exist, clamp here
+	// with min(...) against that ceiling — see services/actions/token_permission_design.md.
+	return effectivePerms.UnitAccessModes[unit.TypePackages], nil
 }
