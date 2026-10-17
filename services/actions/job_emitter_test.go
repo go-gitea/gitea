@@ -5,6 +5,7 @@ package actions
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -172,6 +173,15 @@ jobs:
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusFailure},
 			note: "Error when evaluating `concurrency` for job `job2`.",
+		},
+		{
+			name: "invalid evaluated `runs-on` fails the job with an annotation",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, RepoID: 1, JobID: "job1", Status: actions_model.StatusSuccess},
+				{ID: 2, RepoID: 1, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte("jobs: {job2: {runs-on: ''}}")},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusFailure},
+			note: "Error when evaluating `runs-on` for job `job2`.",
 		},
 		{
 			name: "max-parallel: a freed slot promotes the lowest blocked job id",
@@ -661,6 +671,65 @@ func Test_checkJobsOfCurrentRunAttempt_SkippedCallerIsUpdated(t *testing.T) {
 	require.Len(t, result.UpdatedJobs, 1)
 	assert.Equal(t, caller.ID, result.UpdatedJobs[0].ID)
 	assert.Equal(t, actions_model.StatusSkipped, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: caller.ID}).Status)
+
+	// A child skipped in this pass finishes its caller and the outer caller, both are reported Success and the outer one's dependent is resolved by the re-emit.
+	run2 := &actions_model.ActionRun{
+		RepoID: 4, OwnerID: 1, TriggerUserID: 1,
+		WorkflowID: "test.yml", Index: 9915, Ref: "refs/heads/main", Status: actions_model.StatusRunning,
+	}
+	assert.NoError(t, db.Insert(ctx, run2))
+	attempt2 := &actions_model.ActionRunAttempt{RepoID: 4, RunID: run2.ID, Attempt: 1, Status: actions_model.StatusRunning}
+	assert.NoError(t, db.Insert(ctx, attempt2))
+	_, err = db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attempt2.ID, run2.ID)
+	assert.NoError(t, err)
+	run2.LatestAttemptID = attempt2.ID
+	caller2 := &actions_model.ActionRunJob{
+		RunID: run2.ID, RunAttemptID: attempt2.ID, RepoID: 4, OwnerID: 1,
+		JobID: "deploy", Name: "deploy", Status: actions_model.StatusRunning, IsReusableCaller: true, IsExpanded: true,
+		WorkflowPayload:         []byte("jobs: {deploy: {uses: ./.gitea/workflows/mid.yml}}"),
+		ReusableWorkflowContent: []byte("on: {workflow_call: {}}\njobs: {inner: {uses: ./.gitea/workflows/leaf.yml}}"),
+	}
+	assert.NoError(t, db.Insert(ctx, caller2))
+	inner := &actions_model.ActionRunJob{
+		RunID: run2.ID, RunAttemptID: attempt2.ID, RepoID: 4, OwnerID: 1, ParentJobID: caller2.ID,
+		JobID: "inner", Name: "inner", Status: actions_model.StatusRunning, IsReusableCaller: true, IsExpanded: true,
+		WorkflowPayload: []byte("jobs: {inner: {uses: ./.gitea/workflows/leaf.yml}}"),
+	}
+	assert.NoError(t, db.Insert(ctx, inner))
+	assert.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{
+		RunID: run2.ID, RunAttemptID: attempt2.ID, RepoID: 4, OwnerID: 1, ParentJobID: inner.ID,
+		JobID: "work", Status: actions_model.StatusSuccess, WorkflowPayload: minimalWorkflowPayload("work"),
+	}))
+	assert.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{
+		RunID: run2.ID, RunAttemptID: attempt2.ID, RepoID: 4, OwnerID: 1, ParentJobID: inner.ID,
+		JobID: "alert", Status: actions_model.StatusBlocked, Needs: []string{"work"},
+		WorkflowPayload: []byte("jobs: {alert: {if: false, needs: [work], runs-on: ubuntu-latest, steps: [{run: echo}]}}"),
+	}))
+	after := &actions_model.ActionRunJob{
+		RunID: run2.ID, RunAttemptID: attempt2.ID, RepoID: 4, OwnerID: 1,
+		JobID: "after", Status: actions_model.StatusPending, Needs: []string{"deploy"},
+		WorkflowPayload: []byte("jobs: {after: {if: \"github.ref == 'refs/heads/main'\", needs: [deploy], runs-on: ubuntu-latest, steps: [{run: echo}]}}"),
+	}
+	assert.NoError(t, db.Insert(ctx, after))
+
+	result, err = checkJobsOfCurrentRunAttempt(ctx, run2)
+	assert.NoError(t, err)
+	assert.Contains(t, result.RunIDsToReEmit, run2.ID)
+	assert.Equal(t, actions_model.StatusPending, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: after.ID}).Status)
+	updatedJobIDs := make([]string, 0, len(result.UpdatedJobs))
+	for _, job := range result.UpdatedJobs {
+		updatedJobIDs = append(updatedJobIDs, job.JobID)
+	}
+	assert.Equal(t, []string{"alert"}, updatedJobIDs)
+	for _, callerID := range []int64{inner.ID, caller2.ID} {
+		idx := slices.IndexFunc(result.Jobs, func(job *actions_model.ActionRunJob) bool { return job.ID == callerID })
+		require.NotEqual(t, -1, idx)
+		assert.Equal(t, actions_model.StatusSuccess, result.Jobs[idx].Status)
+	}
+
+	_, err = checkJobsOfCurrentRunAttempt(ctx, run2)
+	assert.NoError(t, err)
+	assert.Equal(t, actions_model.StatusWaiting, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: after.ID}).Status)
 }
 
 // Test_checkRunConcurrency_HeldGroupDoesNotWake verifies that only an unoccupied concurrency group can wake up a blocked run/job.

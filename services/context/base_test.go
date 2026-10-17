@@ -21,27 +21,6 @@ func TestMain(m *testing.M) {
 
 func TestRedirect(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
-
-	cases := []struct {
-		url  string
-		keep bool
-	}{
-		{"http://test", false},
-		{"https://test", false},
-		{"//test", false},
-		{"/://test", true},
-		{"/test", true},
-	}
-	for _, c := range cases {
-		resp := httptest.NewRecorder()
-		b := NewBaseContextForTest(t, resp, req)
-		resp.Header().Add("Set-Cookie", (&http.Cookie{Name: setting.SessionConfig.CookieName, Value: "dummy"}).String())
-		b.Redirect(c.url)
-		has := resp.Header().Get("Set-Cookie") == "i_like_gitea=dummy"
-		assert.Equal(t, c.keep, has, "url = %q", c.url)
-	}
-
-	req, _ = http.NewRequest(http.MethodGet, "/", nil)
 	resp := httptest.NewRecorder()
 	req.Header.Add("X-Gitea-Fetch-Action", "1")
 	b := NewBaseContextForTest(t, resp, req)

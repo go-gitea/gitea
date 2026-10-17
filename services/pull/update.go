@@ -123,8 +123,8 @@ func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_
 	}
 	if pb != nil { // override previous results if there is a branch protection rule
 		pb.Repo = repo
-		pushAllowed = pb.CanUserPush(ctx, user)
-		forcePushAllowed = pb.CanUserForcePush(ctx, user)
+		pushAllowed = pb.CanUserPush(ctx, user, repoPerm)
+		forcePushAllowed = pb.CanUserForcePush(ctx, user, repoPerm)
 	}
 	return pushAllowed, forcePushAllowed, nil
 }
