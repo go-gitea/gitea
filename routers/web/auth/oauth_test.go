@@ -15,15 +15,70 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/markbates/goth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestHandleOAuth2SignInRemember(t *testing.T) {
+	defer test.MockVariableValue(&setting.LogInRememberDays, 7)()
+	for _, testCase := range []struct {
+		name            string
+		userID          int64
+		twoFactorPolicy string
+		needsTwoFactor  bool
+	}{
+		{name: "without two-factor", userID: 2},
+		{name: "two-factor skipped", userID: 32, twoFactorPolicy: "skip"},
+		{name: "two-factor required", userID: 32, needsTwoFactor: true},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			addOAuth2Source(t, "remember", oauth2.Source{})
+			source, err := auth.GetActiveOAuth2SourceByAuthName(t.Context(), "remember")
+			require.NoError(t, err)
+			source.TwoFactorPolicy = testCase.twoFactorPolicy
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.userID})
+			require.NoError(t, auth.InsertAuthToken(t.Context(), &auth.AuthToken{ID: "expired", UserID: user.ID, ExpiresUnix: timeutil.TimeStampNow() - 1}))
+			ctx, resp := contexttest.MockContext(t, "/user/oauth2/remember/callback", contexttest.MockContextOption{SessionStore: session.NewMockMemStore("remember")})
+			handleOAuth2SignIn(ctx, source, user, goth.User{UserID: "external-user"})
+			require.Equal(t, http.StatusSeeOther, resp.Code)
+			var rememberCookie *http.Cookie
+			for _, cookie := range resp.Result().Cookies() {
+				if cookie.Name == setting.CookieRememberName {
+					rememberCookie = cookie
+				}
+			}
+			if testCase.needsTwoFactor {
+				assert.Nil(t, rememberCookie)
+				assert.Nil(t, ctx.Session.Get(session.KeyUID))
+				assert.Equal(t, user.ID, ctx.Session.Get("twofaUid"))
+				assert.Equal(t, true, ctx.Session.Get("twofaRemember"))
+			} else {
+				require.NotNil(t, rememberCookie)
+				assert.Equal(t, user.ID, ctx.Session.Get(session.KeyUID))
+				assert.True(t, shouldRedirectToOIDCEndSession(ctx))
+				unittest.AssertNotExistsBean(t, &auth.AuthToken{ID: "expired"})
+				ctx, _ = contexttest.MockContext(t, "/user/login", contexttest.MockContextOption{SessionStore: session.NewMockMemStore("restored")})
+				ctx.Req.AddCookie(rememberCookie)
+				signedIn, err := autoSignIn(ctx)
+				require.NoError(t, err)
+				assert.True(t, signedIn)
+				assert.Equal(t, user.ID, ctx.Session.Get(session.KeyUID))
+			}
+		})
+	}
+}
 
 func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2_provider.OIDCToken {
 	signingKey, err := oauth2_provider.CreateJWTSigningKey("HS256", make([]byte, 32))

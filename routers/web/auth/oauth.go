@@ -420,6 +420,9 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
+		if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
+			log.Error("Failed to delete expired auth tokens: %v", err)
+		}
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
 			ctx.ServerError("CreateAuthTokenForUserID", err)
