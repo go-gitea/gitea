@@ -66,7 +66,19 @@
 			<div id="diff-file-tree" class="tw-hidden not-mobile" data-locale="{{JsonUtils.EncodeToString (dict
 				"filterFiles" (ctx.Locale.Tr "repo.diff.filter_files")
 				"filterFilesClear" (ctx.Locale.Tr "repo.diff.filter_files_clear")
-				"filterByFileExtension" (ctx.Locale.Tr "repo.diff.filter_by_file_extension")
+				"filterOptions" (ctx.Locale.Tr "repo.diff.filter_options")
+				"fileStatus" (ctx.Locale.Tr "repo.diff.file_status")
+				"fileStatusAdded" (ctx.Locale.Tr "repo.diff.file_status_added")
+				"fileStatusModified" (ctx.Locale.Tr "repo.diff.file_status_modified")
+				"fileStatusDeleted" (ctx.Locale.Tr "repo.diff.file_status_deleted")
+				"fileStatusRenamed" (ctx.Locale.Tr "repo.diff.file_status_renamed")
+				"hasComments" (ctx.Locale.Tr "repo.diff.has_comments")
+				"files" (ctx.Locale.Tr "files")
+				"comments" (ctx.Locale.Tr "repo.diff.comments")
+				"noComments" (ctx.Locale.Tr "repo.diff.no_comments")
+				"outdated" (ctx.Locale.Tr "repo.issues.review.outdated")
+				"pending" (ctx.Locale.Tr "repo.issues.review.pending")
+				"resolved" (ctx.Locale.Tr "repo.diff.resolved")
 				"fileExtensions" (ctx.Locale.Tr "repo.diff.file_extensions")
 				"noFileExtension" (ctx.Locale.Tr "repo.diff.no_file_extension")
 				"dotfileExtension" (ctx.Locale.Tr "repo.diff.dotfile_extension")
@@ -85,159 +97,116 @@
 						<h2>{{ctx.Locale.Tr "repo.diff.no_files_matched"}}</h2>
 					</div>
 				{{end}}
-				<div id="diff-file-boxes">
-				{{range $file := .Diff.Files}}
-					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
-					{{$isImage:= $file.IsBlobTypeImage}}
-					{{$isCsv := $file.IsBlobTypeCsv}}
-					{{$showFileViewToggle := $file.CanShowFileViewToggle}}
-					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
-					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
-						<div class="diff-file-header sticky-2nd-row ui top attached header">
-							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">
-								<div class="flex-text-block">
-									<button type="button" class="fold-file btn interact-bg tw-flex-shrink-0 tw-p-1" data-global-click="diffFileViewFold">
-										{{if $file.ShouldBeHidden}}
-											{{svg "octicon-chevron-right" 18}}
-										{{else}}
-											{{svg "octicon-chevron-down" 18}}
-										{{end}}
-									</button>
-									{{$entryModeText := $file.TranslateDiffEntryMode ctx.Locale}}
-									<a class="muted file-link tw-font-mono" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">
-										{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}
-									</a>
-								</div>
-								<button type="button" class="btn interact-fg tw-p-2 tw-shrink-0" data-clipboard-text="{{$file.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_path"}}">{{svg "octicon-copy" 14}}</button>
-								{{if $file.IsLFSFile}}
-									<span class="ui label">LFS</span>
-								{{end}}
-								{{if $file.IsGenerated}}
-									<span class="ui label">{{ctx.Locale.Tr "repo.diff.generated"}}</span>
-								{{end}}
-								{{if $file.IsVendored}}
-									<span class="ui label">{{ctx.Locale.Tr "repo.diff.vendored"}}</span>
-								{{end}}
-								{{if $entryModeText}}
-									<span class="ui label">{{$entryModeText}}</span>
-								{{end}}
-							</div>
-							<div class="diff-file-header-actions flex-text-block tw-justify-end tw-flex-wrap">
-								{{if $file.IsBin}}
-									{{ctx.Locale.Tr "repo.diff.bin"}}
-								{{else}}
-									{{template "repo/diff/stats" dict "Addition" .Addition "Deletion" .Deletion}}
-								{{end}}
-
-								{{if $showFileViewToggle}}
-									<div class="ui compact icon buttons" data-global-init="initDiffFileViewToggle">
-										<button type="button" class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
-										<button type="button" class="ui tiny basic button file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file"}}</button>
-									</div>
-								{{end}}
-								{{if $file.IsProtected}}
-									<span class="ui basic label">{{ctx.Locale.Tr "repo.diff.protected"}}</span>
-								{{end}}
-								{{if and $isReviewFile $file.HasChangedSinceLastReview}}
-									<span class="changed-since-last-review unselectable not-mobile">{{ctx.Locale.Tr "repo.pulls.has_changed_since_last_review"}}</span>
-								{{end}}
-								{{if $isReviewFile}}
-									<label data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.AfterCommitID}}" class="viewed-file-form unselectable {{if $file.IsViewed}}viewed-file-checked-form{{end}}" data-global-init="initDiffFileViewedForm">
-										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off" {{if $file.IsViewed}}checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
-									</label>
-								{{end}}
-								{{if not $file.IsSubmodule}}
-									<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
-									<div class="tippy-target">
-										{{if not (or $file.IsIncomplete $file.IsBin)}}
-											<button type="button" class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-											<button type="button" class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
-										{{end}}
-										<button type="button" class="item" data-clipboard-text="{{$file.GetDiffFileBaseName}}">{{ctx.Locale.Tr "copy_filename"}}</button>
-										{{if not $.PageIsWiki}}
-											{{if $file.IsDeleted}}
-												<a class="item" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
-											{{else}}
-												<a class="item" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
-												{{if and $.Repository.CanContentChange $.CanEditFile}}
-													<a class="item" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
-												{{end}}
-											{{end}}
-										{{end}}
-									</div>
-								{{end}}
-							</div>
-						</div>
-						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
-							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} tw-hidden{{end}}">
-								{{if or $file.IsIncomplete $file.IsBin}}
-									<div class="tw-p-3">
-										{{if $file.IsIncomplete}}
-											{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
-											<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
-										{{else}}
-											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
-										{{end}}
-									</div>
-								{{else if $file.SubmoduleDiffInfo}}
-									<div class="tw-p-3 flex-text-block">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
-										{{- $submoduleName := $submoduleDiffInfo.SubmoduleRepoLinkHTML ctx -}}
-										{{- if $file.IsDeleted -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.PreviousRefID) -}}
-										{{- else if $file.IsCreated -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_added" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.NewRefID) -}}
-										{{- else -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_updated" $submoduleName ($submoduleDiffInfo.CompareRefIDLinkHTML ctx) -}}
-										{{end}}
-									</div>
-								{{else if $file.Sections}}
-									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
-										{{if $.IsSplitStyle}}
-											{{template "repo/diff/section_split" dict "file" $file}}
-										{{else}}
-											{{template "repo/diff/section_unified" dict "file" $file}}
-										{{end}}
-									</table>
-								{{else if $file.IsRenamed}}
-									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_renamed_no_changes"}}</div>
-								{{else if and $file.EntryMode $file.OldEntryMode}}
-									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_mode_changed"}}</div>
-								{{else}}
-									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_whitespace_only_changes"}}</div>
-								{{end}}
-							</div>
-							{{if $showFileViewToggle}}
-								{{/* for image or CSV, it can have a horizontal scroll bar, there won't be review comment context menu (position absolute) which would be clipped by "overflow" */}}
-								<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} tw-overflow-x-scroll">
-									<table class="chroma tw-w-full">
-										{{if $isImage}}
-											{{template "repo/diff/image_diff" dict "file" $file}}
-										{{else if $isCsv}}
-											{{template "repo/diff/csv_diff" dict "file" $file}}
-										{{end}}
-									</table>
-								</div>
-							{{end}}
-						</div>
+				<div id="diff-viewer" data-locale="{{JsonUtils.EncodeToString (dict
+					"loadFailed" (ctx.Locale.Tr "repo.diff.data_not_available")
+					"tooManyFiles" (ctx.Locale.TrString "repo.diff.too_many_files")
+					"load" (ctx.Locale.Tr "repo.diff.load")
+					"fileSuppressed" (ctx.Locale.Tr "repo.diff.file_suppressed")
+					"bin" (ctx.Locale.Tr "repo.diff.bin")
+					"binNotShown" (ctx.Locale.Tr "repo.diff.bin_not_shown")
+					"renamedNoChanges" (ctx.Locale.Tr "repo.diff.file_renamed_no_changes")
+					"modeChanged" (ctx.Locale.Tr "repo.diff.file_mode_changed")
+					"whitespaceOnly" (ctx.Locale.Tr "repo.diff.file_whitespace_only_changes")
+					"submoduleAdded" (ctx.Locale.TrString "repo.diff.submodule_added")
+					"submoduleDeleted" (ctx.Locale.TrString "repo.diff.submodule_deleted")
+					"submoduleUpdated" (ctx.Locale.TrString "repo.diff.submodule_updated")
+					"copyPath" (ctx.Locale.Tr "copy_path")
+					"viewed" (ctx.Locale.Tr "repo.pulls.has_viewed_file")
+					"changedSinceLastReview" (ctx.Locale.Tr "repo.pulls.has_changed_since_last_review")
+					"addLineComment" (ctx.Locale.Tr "repo.diff.comment.add_line_comment")
+					"singleComment" (ctx.Locale.Tr "repo.diff.comment.add_single_comment")
+					"cancel" (ctx.Locale.Tr "cancel")
+					"commentedAt" (ctx.Locale.TrString "repo.issues.commented_at")
+					"outdated" (ctx.Locale.Tr "repo.issues.review.outdated")
+					"pending" (ctx.Locale.Tr "repo.issues.review.pending")
+					"reply" (ctx.Locale.Tr "repo.diff.comment.reply")
+					"resolve" (ctx.Locale.Tr "repo.issues.review.resolve_conversation")
+					"unresolve" (ctx.Locale.Tr "repo.issues.review.un_resolve_conversation")
+					"resolvedBy" (ctx.Locale.Tr "repo.issues.review.resolved_by")
+					"showResolved" (ctx.Locale.Tr "repo.issues.review.show_resolved")
+					"hideResolved" (ctx.Locale.Tr "repo.issues.review.hide_resolved")
+					"previous" (ctx.Locale.Tr "repo.issues.previous")
+					"next" (ctx.Locale.Tr "repo.issues.next")
+					"outdatedDescription" (ctx.Locale.Tr "repo.issues.review.outdated_description")
+					"pendingTooltip" (ctx.Locale.Tr "repo.issues.review.pending.tooltip" (ctx.Locale.Tr "repo.diff.review") (ctx.Locale.Tr "repo.diff.review.approve") (ctx.Locale.Tr "repo.diff.review.comment") (ctx.Locale.Tr "repo.diff.review.reject"))
+					"review" (ctx.Locale.Tr "repo.issues.review.review")
+					"noContent" (ctx.Locale.Tr "repo.issues.no_content")
+					"migratedFrom" (ctx.Locale.TrString "repo.migrated_from")
+					"copyLink" (ctx.Locale.Tr "copy_link")
+					"copySource" (ctx.Locale.Tr "repo.issues.context.copy_source")
+					"quoteReply" (ctx.Locale.Tr "repo.issues.context.quote_reply")
+					"referenceIssue" (ctx.Locale.Tr "repo.issues.context.reference_issue")
+					"edit" (ctx.Locale.Tr "repo.issues.context.edit")
+					"delete" (ctx.Locale.Tr "repo.issues.context.delete")
+					"deleteConfirm" (ctx.Locale.Tr "repo.issues.delete_comment_confirm")
+					"blockUser" (ctx.Locale.Tr "user.block.block.user")
+					"blockOrg" (ctx.Locale.Tr "user.block.block.org")
+					"reactions" (ctx.Locale.Tr "repo.reactions")
+					"reactionsMore" (ctx.Locale.TrString "repo.reactions_more")
+					"openAttachment" (ctx.Locale.TrString "repo.issues.attachment.open_tab")
+					"startReview" (ctx.Locale.Tr "repo.diff.comment.start_review")
+					"addReviewComment" (ctx.Locale.Tr "repo.diff.comment.add_review_comment")
+					"generated" (ctx.Locale.Tr "repo.diff.generated")
+					"vendored" (ctx.Locale.Tr "repo.diff.vendored")
+					"protected" (ctx.Locale.Tr "repo.diff.protected")
+					"modeDirectory" (ctx.Locale.Tr "git.filemode.directory")
+					"modeNormal" (ctx.Locale.Tr "git.filemode.normal_file")
+					"modeExecutable" (ctx.Locale.Tr "git.filemode.executable_file")
+					"modeSymlink" (ctx.Locale.Tr "git.filemode.symbolic_link")
+					"modeSubmodule" (ctx.Locale.Tr "git.filemode.submodule")
+					"modeChangedFormat" (ctx.Locale.TrString "git.filemode.changed_filemode")
+					"escape" (ctx.Locale.Tr "repo.escape_control_characters")
+					"unescape" (ctx.Locale.Tr "repo.unescape_control_characters")
+					"copyFilename" (ctx.Locale.Tr "copy_filename")
+					"viewFile" (ctx.Locale.Tr "repo.diff.view_file")
+					"editFile" (ctx.Locale.Tr "repo.editor.edit_this_file")
+					"numComments1" (ctx.Locale.TrString "repo.issues.num_comments_1")
+					"numComments" (ctx.Locale.TrString "repo.issues.num_comments")
+					"loading" (ctx.Locale.Tr "loading")
+					"viewSource" (ctx.Locale.Tr "repo.file_view_source")
+					"viewRendered" (ctx.Locale.Tr "repo.file_view_rendered")
+					"sideBySide" (ctx.Locale.Tr "repo.diff.image.side_by_side")
+					"swipe" (ctx.Locale.Tr "repo.diff.image.swipe")
+					"overlay" (ctx.Locale.Tr "repo.diff.image.overlay")
+					"fileBefore" (ctx.Locale.Tr "repo.diff.file_before")
+					"fileAfter" (ctx.Locale.Tr "repo.diff.file_after")
+					"imageWidth" (ctx.Locale.Tr "repo.diff.file_image_width")
+					"imageHeight" (ctx.Locale.Tr "repo.diff.file_image_height")
+					"byteSize" (ctx.Locale.Tr "repo.diff.file_byte_size")
+					"csvTooLarge" (ctx.Locale.Tr "repo.error.csv.too_large")
+					"csvUnexpected" (ctx.Locale.TrString "repo.error.csv.unexpected")
+					"csvFieldCount" (ctx.Locale.TrString "repo.error.csv.invalid_field_count")
+					"ambiguousRunesLine" (ctx.Locale.Tr "repo.ambiguous_runes_line")
+					"invisibleRunesLine" (ctx.Locale.Tr "repo.invisible_runes_line")
+					"ambiguousCharacter" (ctx.Locale.TrString "repo.ambiguous_character")
+				)}}">
+					<div class="diff-viewer-status flex-text-block tw-justify-center tw-p-8 tw-text-text-light">
+						<span class="is-loading tw-size-4"></span>{{ctx.Locale.Tr "loading"}}
 					</div>
-				{{end}}
-
-				{{if .Diff.IsIncomplete}}
-					<div class="ui segment flex-left-right" id="diff-incomplete">
-						<span id="diff-load-progress" class="tw-text-text-light-2" data-text-too-many-files="{{ctx.Locale.Tr "repo.diff.too_many_files"}}">
-							{{ctx.Locale.Tr "repo.diff.too_many_files" (len .Diff.Files) .DiffShortStat.NumFiles}}
-						</span>
-						<a class="ui basic tiny button" id="diff-show-more-files" data-global-click="diffLoadMoreFiles" data-href="?skip-to={{.Diff.End}}&file-only=true"
-							data-text-default="{{ctx.Locale.Tr "repo.diff.show_more"}}"
-							data-text-matching="{{ctx.Locale.Tr "repo.diff.show_more_matching"}}"
-						>{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
-					</div>
-				{{end}}
 				</div>
 			</div>
 		{{end}}
 	</div>
 
+	{{if and .PageIsPullFiles $.SignedUserID (not $.Repository.IsArchived) (not .DiffNotAvailable)}}
+		<template id="diff-viewer-editor-template">
+			<div class="field">
+				{{template "shared/combomarkdowneditor" (dict
+					"CustomInit" true
+					"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorComment .Repository)
+					"TextareaName" "content"
+					"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
+					"DropzoneParentContainer" "form"
+					"DisableAutosize" "true"
+				)}}
+			</div>
+			{{if .IsAttachmentEnabled}}
+				<div class="field">
+					{{template "repo/upload" dict "UploadOptions" .UploadOptions}}
+				</div>
+			{{end}}
+		</template>
+	{{end}}
 	{{if and (not $.Repository.IsArchived) (not .DiffNotAvailable)}}
 		<template id="issue-comment-editor-template">
 			<form class="ui form comment">

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 )
 
@@ -91,6 +92,22 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
 	Packages.DefaultRPMSignEnabled = sec.Key("DEFAULT_RPM_SIGN_ENABLED").MustBool(false)
 	return nil
+}
+
+// mustBytesWithDefault parses a byte size like "50 MiB", "-1" means no limit
+func mustBytesWithDefault(section ConfigSection, key string, defaultValue int64) int64 {
+	if !section.HasKey(key) {
+		return defaultValue
+	}
+	value := section.Key(key).String()
+	if value == "-1" {
+		return -1
+	}
+	bytes, err := util.ParseByteSize(value)
+	if err != nil || bytes > math.MaxInt64 {
+		log.Fatal("Invalid %s.%s: %q", section.Name(), key, value) // unlike mustBytes, a typo mustn't remove the limit
+	}
+	return int64(bytes)
 }
 
 func mustBytes(section ConfigSection, key string) int64 {

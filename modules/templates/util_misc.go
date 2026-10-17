@@ -124,8 +124,8 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	return push
 }
 
-// migrationIcon returns a SVG name matching the service an issue/comment was migrated from
-func migrationIcon(hostname string) string {
+// MigrationIcon returns a SVG name matching the service an issue/comment was migrated from
+func MigrationIcon(hostname string) string {
 	switch hostname {
 	case "github.com":
 		return "octicon-mark-github"
@@ -177,19 +177,25 @@ func (ut *RenderUtils) UserTypeLabel(u *user_model.User) template.HTML {
 	return htmlutil.HTMLFormat(` <span class="ui basic label tw-py-0 tw-align-baseline">%s</span>`, ut.locale().TrString("concept_user_bot"))
 }
 
-func filenameIsImage(filename string) bool {
+// FilenameIsImage reports whether the file name has the extension of an image
+func FilenameIsImage(filename string) bool {
 	mimeType := mime.TypeByExtension(filepath.Ext(filename))
 	return strings.HasPrefix(mimeType, "image/")
 }
 
 func tabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
+	return "tab-size-" + strconv.Itoa(TabWidth(ec, filename))
+}
+
+// TabWidth returns the tab width of the file from the editorconfig, its CSS classes support 1 to 16
+func TabWidth(ec *editorconfig.Editorconfig, filename string) int {
 	if ec != nil {
 		def, err := ec.GetDefinitionForFilename(filename)
 		if err == nil && def.TabWidth >= 1 && def.TabWidth <= 16 {
-			return "tab-size-" + strconv.Itoa(def.TabWidth)
+			return def.TabWidth
 		}
 	}
-	return "tab-size-4"
+	return 4
 }
 
 type MiscUtils struct {

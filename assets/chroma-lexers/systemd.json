@@ -1,0 +1,1 @@
+{"name":"SYSTEMD","flags":"m","ensureNL":false,"rules":{"root":[["\\s+","",null],["[;#].*","c",null],["\\[.*?\\]$","k",null],["(.*?)(=)(.*)(\\\\\\n)",{"g":["na","o","s",""]},{"push":["continuation"]}],["(.*?)(=)(.*)",{"g":["na","o","s"]},null]],"continuation":[["(.*?)(\\\\\\n)",{"g":["s",""]},null],["(.*)","s",{"pop":1}]]}}

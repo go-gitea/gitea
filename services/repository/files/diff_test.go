@@ -54,18 +54,16 @@ func TestGetDiffPreview(t *testing.T) {
 	expectedDiff := &gitdiff.Diff{
 		Files: []*gitdiff.DiffFile{
 			{
-				Name:        "README.md",
-				OldName:     "README.md",
-				NameHash:    "8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d",
-				Addition:    2,
-				Deletion:    1,
-				Type:        2,
-				IsCreated:   false,
-				IsDeleted:   false,
-				IsBin:       false,
-				IsLFSFile:   false,
-				IsRenamed:   false,
-				IsSubmodule: false,
+				Name:      "README.md",
+				OldName:   "README.md",
+				NameHash:  "8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d",
+				Addition:  2,
+				Deletion:  1,
+				Type:      2,
+				IsCreated: false,
+				IsDeleted: false,
+				IsBin:     false,
+				IsRenamed: false,
 				Sections: []*gitdiff.DiffSection{
 					{
 						FileName: "README.md",
@@ -75,30 +73,18 @@ func TestGetDiffPreview(t *testing.T) {
 								RightIdx: 0,
 								Type:     4,
 								Content:  "@@ -1,3 +1,4 @@",
-								Comments: nil,
-								SectionInfo: &gitdiff.DiffLineSectionInfo{
-									Path:          "README.md",
-									LastLeftIdx:   0,
-									LastRightIdx:  0,
-									LeftIdx:       1,
-									RightIdx:      1,
-									LeftHunkSize:  3,
-									RightHunkSize: 4,
-								},
 							},
 							{
 								LeftIdx:  1,
 								RightIdx: 1,
 								Type:     1,
 								Content:  " # repo1",
-								Comments: nil,
 							},
 							{
 								LeftIdx:  2,
 								RightIdx: 2,
 								Type:     1,
 								Content:  " ",
-								Comments: nil,
 							},
 							{
 								LeftIdx:  3,
@@ -106,7 +92,6 @@ func TestGetDiffPreview(t *testing.T) {
 								Match:    4,
 								Type:     3,
 								Content:  "-Description for repo1",
-								Comments: nil,
 							},
 							{
 								LeftIdx:  0,
@@ -114,7 +99,6 @@ func TestGetDiffPreview(t *testing.T) {
 								Match:    3,
 								Type:     2,
 								Content:  "+Description for repo1",
-								Comments: nil,
 							},
 							{
 								LeftIdx:  0,
@@ -122,7 +106,6 @@ func TestGetDiffPreview(t *testing.T) {
 								Match:    -1,
 								Type:     2,
 								Content:  "+this is a new line",
-								Comments: nil,
 							},
 						},
 					},

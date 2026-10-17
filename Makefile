@@ -642,6 +642,11 @@ generate-images: | node_modules ## generate images
 .PHONY: generate-codemirror-languages
 generate-codemirror-languages: | node_modules ## generate codemirror languages
 	node tools/generate-codemirror-languages.ts
+	$(MAKE) generate-chroma-lexers
+
+.PHONY: generate-chroma-lexers
+generate-chroma-lexers: ## generate the chroma lexers of the diff viewer for the languages without a codemirror grammar
+	$(GO) run build/generate-chroma-lexers.go
 
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage

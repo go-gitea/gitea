@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -62,15 +61,13 @@ func TestCompareDefault(t *testing.T) {
 }
 
 // Ensure the comparison matches what we expect
-func inspectCompare(t *testing.T, htmlDoc *HTMLDoc, diffCount int, diffChanges []string) {
-	selection := htmlDoc.doc.Find("#diff-file-boxes").Children()
-
-	assert.Lenf(t, selection.Nodes, diffCount, "Expected %v diffed files, found: %v", diffCount, len(selection.Nodes))
-
-	for _, diffChange := range diffChanges {
-		selection = htmlDoc.doc.Find(fmt.Sprintf("[data-new-filename=\"%s\"]", diffChange))
-		assert.Lenf(t, selection.Nodes, 1, "Expected 1 match for [data-new-filename=\"%s\"], found: %v", diffChange, len(selection.Nodes))
+func inspectCompare(t *testing.T, session *TestSession, htmlDoc *HTMLDoc, diffChanges []string) {
+	files, _ := requestDiffStream(t, session, diffViewerConfigOf(t, htmlDoc).StreamURL)
+	var names []string
+	for _, file := range files {
+		names = append(names, file.Name)
 	}
+	assert.ElementsMatch(t, diffChanges, names)
 }
 
 // Git commit graph for repo20
@@ -93,10 +90,9 @@ func TestCompareBranches(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	diffCount := 3
 	diffChanges := []string{"link_hi", "test.csv", "test.txt"}
 
-	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+	inspectCompare(t, session, htmlDoc, diffChanges)
 
 	// Indirect compare remove-files-b (head) with remove-files-a (base) branch
 	//
@@ -106,10 +102,9 @@ func TestCompareBranches(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 
-	diffCount = 3
 	diffChanges = []string{"link_hi", "test.csv", "test.txt"}
 
-	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+	inspectCompare(t, session, htmlDoc, diffChanges)
 
 	// Indirect compare remove-files-a (head) with remove-files-b (base) branch
 	//
@@ -119,10 +114,9 @@ func TestCompareBranches(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 
-	diffCount = 2
 	diffChanges = []string{"link_hi", "test.csv"}
 
-	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+	inspectCompare(t, session, htmlDoc, diffChanges)
 
 	// Direct compare remove-files-b (head) with remove-files-a (base) branch
 	//
@@ -132,10 +126,9 @@ func TestCompareBranches(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 
-	diffCount = 1
 	diffChanges = []string{"test.txt"}
 
-	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+	inspectCompare(t, session, htmlDoc, diffChanges)
 }
 
 func TestCompareWithRefSuffix(t *testing.T) {
@@ -147,7 +140,7 @@ func TestCompareWithRefSuffix(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b^")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	inspectCompare(t, htmlDoc, 2, []string{"link_hi", "test.csv"})
+	inspectCompare(t, session, htmlDoc, []string{"link_hi", "test.csv"})
 
 	// a suffix resolves to a commit rather than a branch, so the page offers no pull request to create
 	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
@@ -156,7 +149,7 @@ func TestCompareWithRefSuffix(t *testing.T) {
 	req = NewRequest(t, "GET", "/user2/repo20/compare/add-csv..remove-files-b^")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	inspectCompare(t, htmlDoc, 2, []string{"link_hi", "test.csv"})
+	inspectCompare(t, session, htmlDoc, []string{"link_hi", "test.csv"})
 
 	// a ~N suffix on the base side resolves and renders the compare page, but also
 	// resolves to a commit rather than a branch, so no pull request form is offered
@@ -287,7 +280,7 @@ func TestCompareCodeExpand(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user1, user1, repo_service.CreateRepoOptions{
-			Name:          "test_blob_excerpt",
+			Name:          "test_code_expand",
 			Readme:        "Default",
 			AutoInit:      true,
 			DefaultBranch: "main",
@@ -299,20 +292,19 @@ func TestCompareCodeExpand(t *testing.T) {
 
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session = loginUser(t, user2.Name)
-		testRepoFork(t, session, user1.Name, repo.Name, user2.Name, "test_blob_excerpt-fork", "")
-		testCreateBranch(t, session, user2.Name, "test_blob_excerpt-fork", "branch/main", "forked-branch", http.StatusSeeOther)
-		testEditFile(t, session, user2.Name, "test_blob_excerpt-fork", "forked-branch", "README.md", strings.Repeat("a\n", 15)+"CHANGED\n"+strings.Repeat("a\n", 15))
+		testRepoFork(t, session, user1.Name, repo.Name, user2.Name, "test_code_expand-fork", "")
+		testCreateBranch(t, session, user2.Name, "test_code_expand-fork", "branch/main", "forked-branch", http.StatusSeeOther)
+		testEditFile(t, session, user2.Name, "test_code_expand-fork", "forked-branch", "README.md", strings.Repeat("a\n", 15)+"CHANGED\n"+strings.Repeat("a\n", 15))
 
-		req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch")
+		req := NewRequest(t, "GET", "/user1/test_code_expand/compare/main...user2/test_code_expand-fork:forked-branch")
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		els := htmlDoc.Find(`button.code-expander-button[data-fetch-url]`)
+		config := diffViewerConfigOf(t, NewHTMLParser(t, resp.Body))
 
-		// all the links in the comparison should be to the forked repo&branch
-		assert.NotZero(t, els.Length())
-		for i := 0; i < els.Length(); i++ {
-			link := els.Eq(i).AttrOr("data-fetch-url", "")
-			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
-		}
+		// the diff and the file contents for expanding are loaded from the forked repo
+		assert.True(t, strings.HasPrefix(config.StreamURL, "/user2/test_code_expand-fork/"), config.StreamURL)
+		assert.Equal(t, "/user2/test_code_expand-fork", config.RepoLink)
+		files, _ := requestDiffStream(t, session, config.StreamURL)
+		require.Len(t, files, 1)
+		assert.Contains(t, files[0].Hunks, "+CHANGED")
 	})
 }

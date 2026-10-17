@@ -1,7 +1,5 @@
 import {reactive} from 'vue';
 import type {Reactive} from 'vue';
-import {toggleElem} from '../utils/dom.ts';
-import {trString} from './i18n.ts';
 import {basename, extname} from '../utils.ts';
 
 const {pageData} = window.config;
@@ -17,6 +15,7 @@ export type DiffTreeEntry = {
   DiffStatus: DiffStatus,
   EntryMode: string,
   IsViewed: boolean,
+  HasChanged: boolean, // since the last review
   Children: DiffTreeEntry[] | null,
   FileIcon: string,
   ParentEntry?: DiffTreeEntry,
@@ -29,6 +28,23 @@ export type DiffFileTreeData = {
 // activeExtensions: 'all' = no filter (every extension passes); string[] = exact set of extensions allowed (empty = nothing passes).
 type ExtensionFilter = 'all' | string[];
 
+export type DiffStatusGroup = 'added' | 'modified' | 'deleted' | 'renamed';
+const diffStatusGroups: DiffStatusGroup[] = ['added', 'modified', 'deleted', 'renamed'];
+
+// the code comment threads of a file, shown in the comments tab of a pull request
+export type DiffTreeCommentThread = {
+  id: number; // of the first comment, its anchor is the target of the thread's link
+  line: number;
+  posterName: string;
+  avatarUrl: string;
+  excerpt: string;
+  count: number;
+  resolved: boolean;
+  outdated: boolean;
+  pending: boolean;
+};
+export type DiffTreeCommentFile = {name: string; threads: DiffTreeCommentThread[]};
+
 type DiffFileTree = {
   folderIcon: string;
   folderOpenIcon: string;
@@ -38,6 +54,10 @@ type DiffFileTree = {
   selectedItem: string;
   filenameFilterQuery: string;
   activeExtensions: ExtensionFilter;
+  activeStatuses: 'all' | DiffStatusGroup[];
+  commentedOnly: boolean;
+  commentFiles: DiffTreeCommentFile[] | null; // null on pages without code comments
+  activeTab: 'files' | 'comments';
 };
 
 type DiffExtensionStats = {
@@ -45,17 +65,29 @@ type DiffExtensionStats = {
   count: number,
 };
 
-export type DiffExtensionFilterLocale = {
-  filterByFileExtension: string,
+export type DiffFileFilterLocale = {
+  filterOptions: string,
+  fileStatus: string,
+  fileStatusAdded: string,
+  fileStatusModified: string,
+  fileStatusDeleted: string,
+  fileStatusRenamed: string,
+  hasComments: string,
   fileExtensions: string,
   noFileExtension: string,
   dotfileExtension: string,
   allFileExtensions: string,
 };
 
-export type DiffFileTreeLocale = DiffExtensionFilterLocale & {
+export type DiffFileTreeLocale = DiffFileFilterLocale & {
   filterFiles: string,
   filterFilesClear: string,
+  files: string,
+  comments: string,
+  noComments: string,
+  outdated: string,
+  pending: string,
+  resolved: string,
 };
 
 let diffTreeStoreReactive: Reactive<DiffFileTree>;
@@ -72,6 +104,7 @@ export function diffTreeStoreSetViewed(store: Reactive<DiffFileTree>, fullName: 
   const entry = store.fullNameMap[fullName];
   if (!entry) return;
   entry.IsViewed = viewed;
+  entry.HasChanged = false;
   for (let parent = entry.ParentEntry; parent; parent = parent.ParentEntry) {
     parent.IsViewed = isEntryViewed(parent);
   }
@@ -96,6 +129,10 @@ export function reactiveDiffTreeStore(data: DiffFileTreeData, folderIcon: string
     selectedItem: '',
     filenameFilterQuery: '',
     activeExtensions: 'all',
+    activeStatuses: 'all',
+    commentedOnly: false,
+    commentFiles: null,
+    activeTab: 'files',
     fullNameMap: {},
   });
   fillFullNameMap(store.fullNameMap, data.TreeRoot);
@@ -138,10 +175,13 @@ function extensionRank(ext: string): number {
   return ext === extDotfile ? 1 : 0;
 }
 
+export function diffTreeFiles(store: Reactive<DiffFileTree>): DiffTreeEntry[] {
+  return Object.values(store.fullNameMap).filter((entry) => entry.Children === null && entry.FullName);
+}
+
 export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffExtensionStats[] {
   const extensionMap = new Map<string, number>();
-  for (const entry of Object.values(store.fullNameMap)) {
-    if (entry.EntryMode === 'tree' || !entry.FullName) continue;
+  for (const entry of diffTreeFiles(store)) {
     const ext = getFileExtension(entry.FullName);
     extensionMap.set(ext, (extensionMap.get(ext) ?? 0) + 1);
   }
@@ -149,13 +189,32 @@ export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffEx
     .sort((a, b) => extensionRank(a.ext) - extensionRank(b.ext) || a.ext.localeCompare(b.ext));
 }
 
+// copies have an old name like renames, type changes are modifications
+function diffStatusGroup(status: DiffStatus): DiffStatusGroup {
+  if (status === 'added' || status === 'deleted' || status === 'renamed') return status;
+  return status === 'copied' ? 'renamed' : 'modified';
+}
+
+export function getDiffTreeStatusStats(store: Reactive<DiffFileTree>): Array<{status: DiffStatusGroup, count: number}> {
+  const counts = new Map<DiffStatusGroup, number>();
+  for (const entry of diffTreeFiles(store)) {
+    const status = diffStatusGroup(entry.DiffStatus);
+    counts.set(status, (counts.get(status) ?? 0) + 1);
+  }
+  return diffStatusGroups.filter((status) => counts.has(status)).map((status) => ({status, count: counts.get(status)!}));
+}
+
 function buildFilter(store: Reactive<DiffFileTree>) {
   const query = store.filenameFilterQuery.trim().toLowerCase();
   const exts = store.activeExtensions === 'all' ? null : new Set(store.activeExtensions);
-  if (!query && !exts) return null;
-  return (newName: string, oldName: string) => {
-    if (query && !newName.toLowerCase().includes(query) && !oldName.toLowerCase().includes(query)) return false;
-    return !exts || exts.has(getFileExtension(newName));
+  const statuses = store.activeStatuses === 'all' ? null : new Set(store.activeStatuses);
+  const commented = store.commentedOnly && store.commentFiles ? new Set(store.commentFiles.map((file) => file.name)) : null;
+  if (!query && !exts && !statuses && !commented) return null;
+  return (entry: DiffTreeEntry) => {
+    if (query && !entry.FullName.toLowerCase().includes(query) && !entry.OldFullName.toLowerCase().includes(query)) return false;
+    if (statuses && !statuses.has(diffStatusGroup(entry.DiffStatus))) return false;
+    if (commented && !commented.has(entry.FullName)) return false;
+    return !exts || exts.has(getFileExtension(entry.FullName));
   };
 }
 
@@ -164,7 +223,7 @@ export function filterDiffTree(store: Reactive<DiffFileTree>): DiffTreeEntry | n
   const matches = buildFilter(store);
   if (!matches) return store.diffFileTree.TreeRoot;
   const visit = (entry: DiffTreeEntry): DiffTreeEntry | null => {
-    if (entry.Children === null) return matches(entry.FullName, entry.OldFullName) ? entry : null;
+    if (entry.Children === null) return matches(entry) ? entry : null;
     const children = entry.Children.map(visit).filter((child): child is DiffTreeEntry => child !== null);
     if (!children.length) return null;
     return {...entry, Children: children};
@@ -172,60 +231,11 @@ export function filterDiffTree(store: Reactive<DiffFileTree>): DiffTreeEntry | n
   return visit(store.diffFileTree.TreeRoot);
 }
 
-export function countMatchingFiles(store: Reactive<DiffFileTree>): number {
+// the names of the files the filters show, null if nothing is filtered
+export function filteredFileNames(store: Reactive<DiffFileTree>): Set<string> | null {
   const matches = buildFilter(store);
-  let totalMatchingFilesCount = 0;
-  for (const entry of Object.values(store.fullNameMap)) {
-    if (entry.EntryMode === 'tree' || !entry.FullName) continue;
-    if (!matches || matches(entry.FullName, entry.OldFullName)) totalMatchingFilesCount++;
-  }
-  return totalMatchingFilesCount;
-}
-
-function countEveryFileInDiff(store: Reactive<DiffFileTree>): number {
-  let totalFilesCount = 0;
-  for (const entry of Object.values(store.fullNameMap)) {
-    if (entry.EntryMode !== 'tree' && entry.FullName) totalFilesCount++;
-  }
-  return totalFilesCount;
-}
-
-function updateLoadProgress(loadedFiles: number, totalFiles: number) {
-  const el = document.querySelector('#diff-load-progress');
-  if (!el) return;
-  el.textContent = trString(el.getAttribute('data-text-too-many-files')!, loadedFiles, totalFiles);
-}
-
-function updateShowMoreButton(matchingBelow: number) {
-  const btn = document.querySelector('#diff-show-more-files');
-  if (!btn) return;
-  if (matchingBelow > 0) {
-    btn.textContent = trString(btn.getAttribute('data-text-matching')!, matchingBelow);
-  } else {
-    btn.textContent = btn.getAttribute('data-text-default')!;
-  }
-}
-
-export function applyFiltersToFileBoxes(store: Reactive<DiffFileTree>) {
-  const boxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
-  const matches = buildFilter(store);
-  if (!matches) {
-    for (const box of boxes) toggleElem(box, true);
-    toggleElem('#diff-no-matches', false);
-    updateShowMoreButton(0);
-    updateLoadProgress(boxes.length, countEveryFileInDiff(store));
-    return;
-  }
-  let visibleCount = 0;
-  for (const box of boxes) {
-    const matched = matches(box.getAttribute('data-new-filename')!, box.getAttribute('data-old-filename')!);
-    if (matched) visibleCount++;
-    toggleElem(box, matched);
-  }
-  const matchingCount = countMatchingFiles(store);
-  updateShowMoreButton(matchingCount - visibleCount);
-  updateLoadProgress(boxes.length, countEveryFileInDiff(store));
-  toggleElem('#diff-no-matches', matchingCount === 0);
+  if (!matches) return null;
+  return new Set(diffTreeFiles(store).filter(matches).map((entry) => entry.FullName));
 }
 
 function isEntryViewed(entry: DiffTreeEntry): boolean {

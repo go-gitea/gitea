@@ -49,7 +49,7 @@ func newFuncMapWebPage() template.FuncMap {
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
 		"svg":           svg.RenderHTML,
-		"MigrationIcon": migrationIcon,
+		"MigrationIcon": MigrationIcon,
 		"ActionIcon":    actionIcon,
 		"SortArrow":     sortArrow,
 		"ContrastColor": util.ContrastColor,
@@ -115,7 +115,7 @@ func newFuncMapWebPage() template.FuncMap {
 		// -----------------------------------------------------------------
 		// render
 		"RenderCodeBlock": renderCodeBlock,
-		"ReactionToEmoji": reactionToEmoji,
+		"ReactionToEmoji": ReactionToEmoji,
 
 		// -----------------------------------------------------------------
 		// misc (TODO: move them to MiscUtils to avoid bloating the main func map)
@@ -123,7 +123,7 @@ func newFuncMapWebPage() template.FuncMap {
 		"CommentMustAsDiff":     gitdiff.CommentMustAsDiff,
 		"MirrorRemoteAddress":   mirrorRemoteAddress,
 
-		"FilenameIsImage": filenameIsImage,
+		"FilenameIsImage": FilenameIsImage,
 		"TabSizeClass":    tabSizeClass,
 	}
 }

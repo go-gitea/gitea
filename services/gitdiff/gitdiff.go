@@ -11,35 +11,24 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"net/url"
-	"path"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/analyze"
-	"gitea.dev/modules/base"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/attribute"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/svg"
 	"gitea.dev/modules/translation"
-	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
 
 	"github.com/alecthomas/chroma/v2"
@@ -78,73 +67,15 @@ type DiffLine struct {
 	Match       int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
 	Type        DiffLineType
 	Content     string
-	Comments    issues_model.CommentList // related PR code comments
-	SectionInfo *DiffLineSectionInfo
 	IsTruncated bool
 
 	cachedDiffInline *DiffInlineComputed
 }
 
-// DiffLineSectionInfo represents diff line section metadata
-type DiffLineSectionInfo struct {
-	language *diffVarMutable[string]
-
-	Path string
-
-	// These line "idx" are 1-based line numbers (inclusive)
-	// Left/Right refer to the left/right side of the diff:
-	//
-	//   LastLeftIdx | LastRightIdx   (the last rendered line number before this hunk)
-	//   [up/down/single expander] @@ hunk info @@
-	//   LeftIdx     | RightIdx       (the next rendered line number after this hunk)
-	//   The hunk has LeftHunkSize lines on left side, RightHunkSize lines on right side.
-	//
-	// For example:
-	//   17 | 31    diff line ...
-	//   [up/down] @@ -40,23 +54,7 @@ ....
-	//   40 | 54    diff line ...
-	//     ...      diff line ...
-	//   62 | 60    diff line ...
-	//   (then file end or another hunk)
-	//
-	// In this case:
-	//   LastLeftIdx = 17, LastRightIdx = 31
-	//   (left lines 18-39, right lines 31-53 are hidden)
-	//   LeftIdx = 40, RightIdx = 54
-	//   LeftHunkSize = 23, RightHunkSize = 7
-	//   Left hunk ends at line 40+23-1=62 (23 lines), right: 54+7-1=60 (7 lines)
-
-	LastLeftIdx   int
-	LastRightIdx  int
-	LeftIdx       int
-	RightIdx      int
-	LeftHunkSize  int
-	RightHunkSize int
-
-	HiddenCommentIDs []int64 // IDs of hidden comments in this section
-}
-
-// DiffHTMLOperation is the HTML version of diffmatchpatch.Diff
-type DiffHTMLOperation struct {
-	Type diffmatchpatch.Operation
-	HTML template.HTML
-}
-
-// BlobExcerptChunkSize represent max lines of excerpt
-const BlobExcerptChunkSize = 20
-
 // Chroma seems extremely slow when highlighting large files, it might take dozens or hundreds of milliseconds.
-// When fully highlighting a diff with a lot of large files, it would take many seconds or even dozens of seconds.
-// So, don't highlight the entire file if it's too large, or highlighting takes too long.
-// When there is no full-file highlighting, the legacy "line-by-line" highlighting is still applied as the fallback.
-const (
-	MaxFullFileHighlightSizeLimit = 256 * 1024
-	MaxFullFileHighlightTimeLimit = 2 * time.Second
-)
+// So, don't highlight the entire file if it's too large, the "line-by-line" highlighting is applied as the fallback.
+const MaxFullFileHighlightSizeLimit = 256 * 1024
 
-func (d *DiffLine) IsDiffLinePlain() bool   { return d.Type == DiffLinePlain }
-func (d *DiffLine) IsDiffLineAdd() bool     { return d.Type == DiffLineAdd }
-func (d *DiffLine) IsDiffLineDel() bool     { return d.Type == DiffLineDel }
 func (d *DiffLine) IsDiffLineSection() bool { return d.Type == DiffLineSection }
 
 // GetHTMLDiffLineType returns the diff line type name for HTML,
@@ -162,19 +93,6 @@ func (d *DiffLine) GetHTMLDiffLineType() string {
 	}
 }
 
-// CanComment returns whether a line can get commented
-func (d *DiffLine) CanComment() bool {
-	return len(d.Comments) == 0 && d.Type != DiffLineSection
-}
-
-// GetCommentSide returns the comment side of the first comment, if not set returns empty string
-func (d *DiffLine) GetCommentSide() string {
-	if len(d.Comments) == 0 {
-		return ""
-	}
-	return d.Comments[0].DiffSide()
-}
-
 // GetLineTypeMarker returns the line type marker
 func (d *DiffLine) GetLineTypeMarker() string {
 	if d.Content == "" {
@@ -186,129 +104,13 @@ func (d *DiffLine) GetLineTypeMarker() string {
 	return ""
 }
 
-func (d *DiffLine) getBlobExcerptQuery() string {
-	language := ""
-	if d.SectionInfo.language != nil { // for normal cases, it can't be nil, this check is only for some tests
-		language = d.SectionInfo.language.value
-	}
-	return fmt.Sprintf(
-		"last_left=%d&last_right=%d&"+
-			"left=%d&right=%d&"+
-			"left_hunk_size=%d&right_hunk_size=%d&"+
-			"path=%s&filelang=%s",
-		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
-		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
-		d.SectionInfo.LeftHunkSize, d.SectionInfo.RightHunkSize,
-		url.QueryEscape(d.SectionInfo.Path), url.QueryEscape(language))
-}
-
-func (d *DiffLine) GetExpandDirection() string {
-	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
-		return ""
-	}
-	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
-		return "up"
-	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx-1 > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
-		return "updown"
-	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
-		return "down"
-	}
-	return "single"
-}
-
-type DiffBlobExcerptData struct {
-	BaseLink       string
-	IsWikiRepo     bool
-	PullIssueIndex int64
-	DiffStyle      string
-	AfterCommitID  string
-}
-
 const (
 	DiffStyleSplit   = "split"
 	DiffStyleUnified = "unified"
 )
 
-func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
-	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
-	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
-
-	makeButton := func(direction, svgName string) template.HTML {
-		style := util.IfZero(data.DiffStyle, "unified")
-		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor)) + "&" + d.getBlobExcerptQuery()
-		if data.PullIssueIndex > 0 {
-			link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
-		}
-		return htmlutil.HTMLFormat(
-			`<button class="code-expander-button" data-fetch-sync="$closest(tr)" data-fetch-url="%s" data-hidden-comment-ids=",%s,">%s</button>`,
-			link, dataHiddenCommentIDs, svg.RenderHTML(svgName),
-		)
-	}
-	var content template.HTML
-
-	if len(d.SectionInfo.HiddenCommentIDs) > 0 {
-		tooltip := fmt.Sprintf("%d hidden comment(s)", len(d.SectionInfo.HiddenCommentIDs))
-		content += htmlutil.HTMLFormat(`<span class="code-comment-more" data-tooltip-content="%s">%d</span>`, tooltip, len(d.SectionInfo.HiddenCommentIDs))
-	}
-
-	expandDirection := d.GetExpandDirection()
-	if expandDirection == "updown" || expandDirection == "down" {
-		content += makeButton("down", "octicon-fold-down")
-	}
-	if expandDirection == "up" || expandDirection == "updown" {
-		content += makeButton("up", "octicon-fold-up")
-	}
-	if expandDirection == "single" {
-		content += makeButton("single", "octicon-fold")
-	}
-	return htmlutil.HTMLFormat(`<div class="code-expander-buttons" data-expand-direction="%s">%s</div>`, expandDirection, content)
-}
-
-// FillHiddenCommentIDsForDiffLine finds comment IDs that are in the hidden range of an expand button
-func FillHiddenCommentIDsForDiffLine(line *DiffLine, lineComments map[int64][]*issues_model.Comment) {
-	if line.Type != DiffLineSection {
-		return
-	}
-
-	var hiddenCommentIDs []int64
-	for commentLineNum, comments := range lineComments {
-		if commentLineNum < 0 {
-			// ATTENTION: BLOB-EXCERPT-COMMENT-RIGHT: skip left-side, unchanged lines always use "right (proposed)" side for comments
-			continue
-		}
-		lineNum := int(commentLineNum)
-		isEndOfFileExpansion := line.SectionInfo.RightHunkSize == 0
-		inRange := lineNum > line.SectionInfo.LastRightIdx &&
-			(isEndOfFileExpansion && lineNum <= line.SectionInfo.RightIdx ||
-				!isEndOfFileExpansion && lineNum < line.SectionInfo.RightIdx)
-
-		if inRange {
-			for _, comment := range comments {
-				hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
-			}
-		}
-	}
-	line.SectionInfo.HiddenCommentIDs = hiddenCommentIDs
-}
-
-func newDiffLineSectionInfo(curFile *DiffFile, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
-	leftLine, leftHunk, rightLine, rightHunk := git.ParseDiffHunkString(line)
-
-	return &DiffLineSectionInfo{
-		Path:          curFile.Name,
-		language:      &curFile.language,
-		LastLeftIdx:   lastLeftIdx,
-		LastRightIdx:  lastRightIdx,
-		LeftIdx:       leftLine,
-		RightIdx:      rightLine,
-		LeftHunkSize:  leftHunk,
-		RightHunkSize: rightHunk,
-	}
-}
-
 // DiffSection represents a section of a DiffFile.
 type DiffSection struct {
-	language              *diffVarMutable[string]
 	highlightedLeftLines  *diffVarMutable[map[int]template.HTML]
 	highlightedRightLines *diffVarMutable[map[int]template.HTML]
 	highlightLexer        *diffVarMutable[chroma.Lexer]
@@ -347,7 +149,7 @@ func computeDiffInline(s template.HTML, isTruncated bool, locale translation.Loc
 	return DiffInlineComputed{EscapeStatus: status, IsTruncated: isTruncated, Content: template.HTML(sb.String())}
 }
 
-func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *DiffLine, fileLanguage string, highlightLines map[int]template.HTML) template.HTML {
+func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *DiffLine, highlightLines map[int]template.HTML) template.HTML {
 	if h, ok := highlightLines[lineIdx-1]; ok && !diffLine.IsTruncated {
 		return h
 	}
@@ -358,7 +160,7 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 		return htmlutil.EscapeString(diffLine.Content[1:])
 	}
 	if diffSection.highlightLexer.value == nil {
-		diffSection.highlightLexer.value = highlight.DetectChromaLexerByFileName(diffSection.FileName, fileLanguage)
+		diffSection.highlightLexer.value = highlight.DetectChromaLexerByFileName(diffSection.FileName, "")
 	}
 	return highlight.RenderCodeByLexer(diffSection.highlightLexer.value, diffLine.Content[1:])
 }
@@ -371,29 +173,27 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 		return *lines[sideIdx].cachedDiffInline
 	}
 
-	var fileLanguage string
 	var highlightedLeftLines, highlightedRightLines map[int]template.HTML
-	// when a "diff section" is manually prepared by ExcerptBlob, it doesn't have "file" information
-	if diffSection.language != nil {
-		fileLanguage = diffSection.language.value
+	// a "diff section" prepared by tests doesn't have "file" information
+	if diffSection.highlightedLeftLines != nil {
 		highlightedLeftLines, highlightedRightLines = diffSection.highlightedLeftLines.value, diffSection.highlightedRightLines.value
 	}
 
 	if diffLineType == DiffLinePlain {
 		// left and right are the same, no need to do line-level diff, can just pick any side
 		// caller always uses the "right side" for this type
-		lineHTML := diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
+		lineHTML := diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, highlightedRightLines)
 		return computeDiffInline(lineHTML, rightLine.IsTruncated, locale)
 	}
 
 	var diffs [2]template.HTML
 	var truncations [2]bool
 	if leftLine != nil {
-		diffs[0] = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
+		diffs[0] = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, highlightedLeftLines)
 		truncations[0] = leftLine.IsTruncated
 	}
 	if rightLine != nil {
-		diffs[1] = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
+		diffs[1] = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, highlightedRightLines)
 		truncations[1] = rightLine.IsTruncated
 	}
 
@@ -462,120 +262,15 @@ type DiffFile struct {
 	IsCreated    bool
 	IsDeleted    bool
 	IsBin        bool
-	IsLFSFile    bool
 	IsRenamed    bool
-	IsSubmodule  bool
 	// basic fields but for render purpose only
-	Sections          []*DiffSection
-	IsIncomplete      bool // file is too large
-	HasTruncatedLines bool // some lines are too long
+	Sections     []*DiffSection
+	IsIncomplete bool // file is too large
 
-	// will be filled by the extra loop in GitDiffForRender
-	IsGenerated       bool
-	IsVendored        bool
-	SubmoduleDiffInfo *SubmoduleDiffInfo // IsSubmodule==true, then there must be a SubmoduleDiffInfo
-
-	// will be filled by route handler
-	IsProtected bool
-
-	// will be filled by SyncUserSpecificDiff
-	IsViewed                  bool // User specific
-	HasChangedSinceLastReview bool // User specific
-
-	// for render purpose only, will be filled by the extra loop in GitDiffForRender, the maps of lines are 0-based
-	language              diffVarMutable[string]
+	// for render purpose only, the maps of lines are 0-based
 	highlightRender       diffVarMutable[chroma.Lexer] // cache render (atm: lexer) for current file, only detect once for line-by-line mode
 	highlightedLeftLines  diffVarMutable[map[int]template.HTML]
 	highlightedRightLines diffVarMutable[map[int]template.HTML]
-
-	// image diff and csv diff need some of the following fields
-	LeftBlob, RightBlob                 *git.Blob
-	LeftBlobSize, RightBlobSize         int64
-	LeftBlobMimeType, RightBlobMimeType string
-
-	IsBlobTypeImage bool
-	IsBlobTypeCsv   bool
-}
-
-// GetType returns type of diff file.
-func (diffFile *DiffFile) GetType() int {
-	return int(diffFile.Type)
-}
-
-func (diffFile *DiffFile) CanShowFileViewToggle() bool {
-	return diffFile.IsBlobTypeImage || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines)
-}
-
-type DiffRenderDetail struct {
-	needTailSection               bool
-	leftLineCount, rightLineCount int
-	leftContent, rightContent     *limitByteWriter
-}
-
-func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) (ret DiffRenderDetail) {
-	if diffFile.IsLFSFile {
-		return ret
-	}
-
-	// pre-fetch the blob info & content
-	// * for "bin" type: need the pre-fetched buffer to detect content type (e.g.: help to render image diff)
-	// * for "text" type: need to read up to "highlight limit size" to do full-file-highlighting
-	contentLimit := util.Iif(diffFile.IsBin, typesniffer.SniffContentSize, MaxFullFileHighlightSizeLimit)
-	var leftBlobType, rightBlobType typesniffer.SniffedType
-	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
-		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, leftCommit, diffFile.OldName, contentLimit)
-		diffFile.LeftBlob, diffFile.LeftBlobSize, ret.leftLineCount, ret.leftContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
-		leftBlobType = typesniffer.DetectContentType(ret.leftContent.buf.Bytes())
-	}
-	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
-		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.OldName, contentLimit)
-		diffFile.RightBlob, diffFile.RightBlobSize, ret.rightLineCount, ret.rightContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
-		rightBlobType = typesniffer.DetectContentType(ret.rightContent.buf.Bytes())
-	}
-
-	isFileTypeImage := func(st typesniffer.SniffedType) bool {
-		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
-	}
-	isFileTypeCsv := func(name string) bool {
-		extension := strings.ToLower(path.Ext(name))
-		return extension == ".csv" || extension == ".tsv"
-	}
-	diffFile.LeftBlobMimeType, diffFile.RightBlobMimeType = leftBlobType.GetMimeType(), rightBlobType.GetMimeType()
-	diffFile.IsBlobTypeImage = isFileTypeImage(leftBlobType) || isFileTypeImage(rightBlobType)
-	diffFile.IsBlobTypeCsv = isFileTypeCsv(diffFile.Name)
-
-	if diffFile.IsBin || len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange {
-		return ret
-	}
-
-	// check whether the text file diff needs a tail section
-	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
-	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
-	if ret.leftLineCount <= lastLine.LeftIdx || ret.rightLineCount <= lastLine.RightIdx {
-		return ret
-	}
-	ret.needTailSection = true
-	return ret
-}
-
-func (diffFile *DiffFile) addTailSection(detail DiffRenderDetail) {
-	// if the last diff section still doesn't reach to the end of file, we need to add a "tail section" to
-	// make users can expand the remaining unchanged lines to see the full file content.
-	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
-	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
-	tailDiffLine := &DiffLine{
-		Type: DiffLineSection,
-		SectionInfo: &DiffLineSectionInfo{
-			language:     &diffFile.language,
-			Path:         diffFile.Name,
-			LastLeftIdx:  lastLine.LeftIdx,
-			LastRightIdx: lastLine.RightIdx,
-			LeftIdx:      detail.leftLineCount,
-			RightIdx:     detail.rightLineCount,
-		},
-	}
-	tailSection := &DiffSection{FileName: diffFile.Name, Lines: []*DiffLine{tailDiffLine}}
-	diffFile.Sections = append(diffFile.Sections, tailSection)
 }
 
 // GetDiffFileName returns the name of the diff file, or its old name in case it was deleted
@@ -586,115 +281,11 @@ func (diffFile *DiffFile) GetDiffFileName() string {
 	return diffFile.Name
 }
 
-// GetDiffFileBaseName returns the short name of the diff file, or its short old name in case it was deleted
-func (diffFile *DiffFile) GetDiffFileBaseName() string {
-	if diffFile.Name == "" {
-		return path.Base(diffFile.OldName)
-	}
-	return path.Base(diffFile.Name)
-}
-
-func (diffFile *DiffFile) ShouldBeHidden() bool {
-	return diffFile.IsGenerated || diffFile.IsViewed
-}
-
-func (diffFile *DiffFile) TranslateDiffEntryMode(locale translation.Locale) string {
-	entryModeTr := func(mode string) string {
-		entryMode := git.ParseEntryMode(mode)
-		switch {
-		case entryMode.IsDir():
-			return locale.TrString("git.filemode.directory")
-		case entryMode.IsRegular():
-			return locale.TrString("git.filemode.normal_file")
-		case entryMode.IsExecutable():
-			return locale.TrString("git.filemode.executable_file")
-		case entryMode.IsLink():
-			return locale.TrString("git.filemode.symbolic_link")
-		case entryMode.IsSubModule():
-			return locale.TrString("git.filemode.submodule")
-		default:
-			return mode
-		}
-	}
-
-	if diffFile.EntryMode != "" && diffFile.OldEntryMode != "" {
-		oldMode := entryModeTr(diffFile.OldEntryMode)
-		newMode := entryModeTr(diffFile.EntryMode)
-		return locale.TrString("git.filemode.changed_filemode", oldMode, newMode)
-	}
-	if diffFile.EntryMode != "" {
-		if entryMode := git.ParseEntryMode(diffFile.EntryMode); !entryMode.IsRegular() {
-			return entryModeTr(diffFile.EntryMode)
-		}
-	}
-	return ""
-}
-
-type limitByteWriter struct {
-	buf   bytes.Buffer
-	limit int
-}
-
-func (l *limitByteWriter) Write(p []byte) (n int, err error) {
-	if l.buf.Len()+len(p) > l.limit {
-		p = p[:l.limit-l.buf.Len()]
-	}
-	return l.buf.Write(p)
-}
-
-func getCommitFileBlobAndLimitedContent(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, filePath string, limit int) (ret struct {
-	gitBlob        *git.Blob
-	blobSize       int64
-	lineCount      int
-	limitedContent *limitByteWriter
-},
-) {
-	var err error
-	ret.limitedContent = &limitByteWriter{limit: limit}
-	ret.gitBlob, err = commit.GetBlobByPath(ctx, gitRepo, filePath)
-	if err != nil {
-		return ret
-	}
-	ret.blobSize, ret.lineCount, err = ret.gitBlob.GetBlobLineCount(ctx, ret.limitedContent)
-	if err != nil {
-		return ret
-	}
-	return ret
-}
-
 // Diff represents a difference between two git trees.
 type Diff struct {
 	Start, End   string
 	Files        []*DiffFile
 	IsIncomplete bool
-}
-
-// LoadComments loads comments into each line
-func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, currentUser *user_model.User, showOutdatedComments bool) error {
-	allComments, err := issues_model.FetchCodeComments(ctx, issue, currentUser, showOutdatedComments)
-	if err != nil {
-		return err
-	}
-	for _, file := range diff.Files {
-		if lineCommits, ok := allComments[file.Name]; ok {
-			for _, section := range file.Sections {
-				for _, line := range section.Lines {
-					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
-					if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
-					sort.SliceStable(line.Comments, func(i, j int) bool {
-						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
-					})
-					// Mark expand buttons that have comments in hidden lines
-					FillHiddenCommentIDsForDiffLine(line, lineCommits)
-				}
-			}
-		}
-	}
-	return nil
 }
 
 const cmdDiffHead = "diff --git "
@@ -809,9 +400,6 @@ func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharact
 				if strings.HasPrefix(line, "new mode ") {
 					curFile.EntryMode = extractGitDiffHead(line, "new mode ")
 				}
-				if strings.HasSuffix(line, " 160000\n") {
-					curFile.IsSubmodule, curFile.SubmoduleDiffInfo = true, &SubmoduleDiffInfo{}
-				}
 			case strings.HasPrefix(line, "rename from "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileRename
@@ -844,19 +432,9 @@ func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharact
 				if strings.HasPrefix(line, "new file mode ") {
 					curFile.EntryMode = extractGitDiffHead(line, "new file mode ")
 				}
-				if strings.HasSuffix(line, " 160000\n") {
-					curFile.IsSubmodule, curFile.SubmoduleDiffInfo = true, &SubmoduleDiffInfo{}
-				}
 			case strings.HasPrefix(line, "deleted"):
 				curFile.Type = DiffFileDel
 				curFile.IsDeleted = true
-				if strings.HasSuffix(line, " 160000\n") {
-					curFile.IsSubmodule, curFile.SubmoduleDiffInfo = true, &SubmoduleDiffInfo{}
-				}
-			case strings.HasPrefix(line, "index"):
-				if strings.HasSuffix(line, " 160000\n") {
-					curFile.IsSubmodule, curFile.SubmoduleDiffInfo = true, &SubmoduleDiffInfo{}
-				}
 			case strings.HasPrefix(line, "similarity index 100%"):
 				curFile.Type = DiffFileRename
 			case strings.HasPrefix(line, "Binary"):
@@ -905,6 +483,18 @@ func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharact
 	}
 }
 
+// detectDecoder returns the decoder of the detected encoding of the content, nil for UTF-8 or an unknown encoding
+func detectDecoder(content []byte) *encoding.Decoder {
+	charsetLabel, _ := charset.DetectEncoding(content)
+	if charsetLabel == "UTF-8" {
+		return nil
+	}
+	if charsetEncoding, _ := charset.Lookup(charsetLabel); charsetEncoding != nil {
+		return charsetEncoding.NewDecoder()
+	}
+	return nil
+}
+
 func (diff *Diff) postProcessFiles() {
 	// TODO: There are numerous issues with this:
 	// - we might want to consider detecting encoding while parsing but...
@@ -931,15 +521,8 @@ func (diff *Diff) postProcessFiles() {
 		}
 		for lineType, buffer := range diffLineTypeBuffers {
 			diffLineTypeDecoders[lineType] = nil
-			if buffer.Len() == 0 {
-				continue
-			}
-			charsetLabel, _ := charset.DetectEncoding(buffer.Bytes())
-			if charsetLabel != "UTF-8" {
-				charsetEncoding, _ := charset.Lookup(charsetLabel)
-				if charsetEncoding != nil {
-					diffLineTypeDecoders[lineType] = charsetEncoding.NewDecoder()
-				}
+			if buffer.Len() != 0 {
+				diffLineTypeDecoders[lineType] = detectDecoder(buffer.Bytes())
 			}
 		}
 		for _, sec := range f.Sections {
@@ -957,7 +540,6 @@ func (diff *Diff) postProcessFiles() {
 
 func newDiffSectionForDiffFile(curFile *DiffFile) *DiffSection {
 	return &DiffSection{
-		language:              &curFile.language,
 		highlightLexer:        &curFile.highlightRender,
 		highlightedLeftLines:  &curFile.highlightedLeftLines,
 		highlightedRightLines: &curFile.highlightedRightLines,
@@ -1050,18 +632,9 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			lastLeftIdx = -1
 			curFile.Sections = append(curFile.Sections, curSection)
 
-			// use "idx-1" as "last idx" (the last line before this hunk)
-			lineSectionInfo := newDiffLineSectionInfo(curFile, line, leftLine-1 /*lastLeftIdx*/, rightLine-1 /*lastRightIdx*/)
-			diffLine := &DiffLine{
-				Type:        DiffLineSection,
-				Content:     line,
-				SectionInfo: lineSectionInfo,
-			}
-			curSection.Lines = append(curSection.Lines, diffLine)
+			curSection.Lines = append(curSection.Lines, &DiffLine{Type: DiffLineSection, Content: line})
 			curSection.FileName = curFile.Name
-			// update line number.
-			leftLine = lineSectionInfo.LeftIdx
-			rightLine = lineSectionInfo.RightIdx
+			leftLine, _, rightLine, _ = git.ParseDiffHunkString(line)
 			continue
 		case '\\':
 			// This is used only to indicate that the current file does not have a terminal newline
@@ -1096,13 +669,6 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 				}
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
-
-			// Parse submodule additions
-			if curFile.SubmoduleDiffInfo != nil {
-				if ref, found := bytes.CutPrefix(lineBytes, []byte("+Subproject commit ")); found {
-					curFile.SubmoduleDiffInfo.NewRefID = string(bytes.TrimSpace(ref))
-				}
-			}
 		case '-':
 			curFile.Deletion++
 			if curFileLineReachesLimit() {
@@ -1125,13 +691,6 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 				lastLeftIdx = len(curSection.Lines)
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
-
-			// Parse submodule deletion
-			if curFile.SubmoduleDiffInfo != nil {
-				if ref, found := bytes.CutPrefix(lineBytes, []byte("-Subproject commit ")); found {
-					curFile.SubmoduleDiffInfo.PreviousRefID = string(bytes.TrimSpace(ref))
-				}
-			}
 		case ' ':
 			if curFileLineReachesLimit() {
 				curFile.IsIncomplete = true
@@ -1157,14 +716,12 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 		curLine.IsTruncated = truncated
 
 		line := string(lineBytes)
-		curFile.HasTruncatedLines = curFile.HasTruncatedLines || truncated
 		if len(line) > maxLineCharacters {
 			line = line[:maxLineCharacters]
 			curLine.IsTruncated = true
 		}
 		curLine.Content = line
 		if curLine.IsTruncated {
-			curFile.HasTruncatedLines = true
 			curLine.Content = tryFixTruncatedString(curLine.Content)
 		}
 
@@ -1179,7 +736,6 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 
 				if err == nil && count > 0 {
 					curFile.IsBin = true
-					curFile.IsLFSFile = true
 					curSection.Lines = nil
 					lastLeftIdx = -1
 				}
@@ -1311,14 +867,13 @@ func prepareDiffCommits(ctx context.Context, gitRepo *git.Repository, opts *Diff
 	return actualBeforeCommit, actualBeforeCommitID, afterCommit, nil
 }
 
-// getDiffBasic builds a Diff between two commits of a repository.
+// GetDiffForAPI builds a Diff between two commits of a repository.
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
-// Returned beforeCommit could be nil if the afterCommit doesn't have parent commit
-func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (_ *Diff, beforeCommit, afterCommit *git.Commit, err error) {
-	beforeCommit, beforeCommitID, afterCommit, err := prepareDiffCommits(ctx, gitRepo, &opts.DiffCommonOptions)
+func GetDiffForAPI(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+	_, beforeCommitID, _, err := prepareDiffCommits(ctx, gitRepo, &opts.DiffCommonOptions)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	// HINT: GIT-DIFF-HIGHLIGHT-LINE-NUMBER: git doesn't treat CR(\r) as EOL, CR is just a plain char which can appear anywhere in the diff output
@@ -1352,79 +907,9 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 	// Ensure the git process is killed if it didn't exit already
 	cmdCancel()
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to ParsePatch: %w", err)
+		return nil, fmt.Errorf("unable to ParsePatch: %w", err)
 	}
 	diff.Start = opts.SkipTo
-	return diff, beforeCommit, afterCommit, nil
-}
-
-func GetDiffForAPI(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
-	diff, _, _, err := getDiffBasic(ctx, gitRepo, opts, files...)
-	return diff, err
-}
-
-func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
-	diff, beforeCommit, afterCommit, err := getDiffBasic(ctx, gitRepo, opts, files...)
-	if err != nil {
-		return nil, err
-	}
-
-	startTime := time.Now()
-
-	checker, err := attribute.NewBatchChecker(ctx, gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage, attribute.Diff})
-	if err != nil {
-		return nil, err
-	}
-	defer checker.Close()
-
-	for _, diffFile := range diff.Files {
-		isVendored := optional.None[bool]()
-		isGenerated := optional.None[bool]()
-		attrDiff := optional.None[string]()
-		attrs, err := checker.CheckPath(diffFile.Name)
-		if err == nil {
-			isVendored, isGenerated = attrs.GetVendored(), attrs.GetGenerated()
-			language := attrs.GetLanguage()
-			if language.Has() {
-				diffFile.language.value = language.Value()
-			}
-			attrDiff = attrs.Get(attribute.Diff).ToString()
-		}
-
-		// Populate Submodule URLs
-		if diffFile.SubmoduleDiffInfo != nil {
-			diffFile.SubmoduleDiffInfo.PopulateURL(ctx, repoLink, gitRepo, diffFile, beforeCommit, afterCommit)
-		}
-
-		if !isVendored.Has() {
-			isVendored = optional.Some(analyze.IsVendor(diffFile.Name))
-		}
-		diffFile.IsVendored = isVendored.Value()
-
-		if !isGenerated.Has() {
-			isGenerated = optional.Some(analyze.IsGenerated(diffFile.Name))
-		}
-		diffFile.IsGenerated = isGenerated.Value()
-
-		// prepare more details for the rendering, e.g.: blob (file) size, type, limited content to highlight, etc
-		renderDetail := diffFile.prepareDiffRenderDetail(ctx, gitRepo, beforeCommit, afterCommit)
-		if renderDetail.needTailSection {
-			diffFile.addTailSection(renderDetail)
-		}
-
-		// only do highlight for text files which have no custom diff command
-		shouldFullFileHighlight := !diffFile.IsBin && !diffFile.IsLFSFile && attrDiff.Value() == ""
-		shouldFullFileHighlight = shouldFullFileHighlight && time.Since(startTime) < MaxFullFileHighlightTimeLimit
-		if shouldFullFileHighlight {
-			if renderDetail.leftContent != nil {
-				diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, renderDetail.leftContent.buf.Bytes())
-			}
-			if renderDetail.rightContent != nil {
-				diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(diffFile, false /* right */, renderDetail.rightContent.buf.Bytes())
-			}
-		}
-	}
-
 	return diff, nil
 }
 
@@ -1434,10 +919,10 @@ func FillDiffFileHighlightLinesByContent(diffFile *DiffFile, left, right []byte)
 }
 
 func highlightCodeLinesForDiffFile(diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
-	return highlightCodeLines(diffFile.Name, diffFile.language.value, diffFile.Sections, isLeft, rawContent)
+	return highlightCodeLines(diffFile.Name, diffFile.Sections, isLeft, rawContent)
 }
 
-func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool, rawContent []byte) map[int]template.HTML {
+func highlightCodeLines(name string, sections []*DiffSection, isLeft bool, rawContent []byte) map[int]template.HTML {
 	if setting.Git.DisableDiffHighlight || len(rawContent) >= MaxFullFileHighlightSizeLimit {
 		return nil
 	}
@@ -1447,7 +932,7 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 		content = strings.ReplaceAll(content, "\r\n", "\n")
 		content = strings.ReplaceAll(content, "\r", "␍")
 	}
-	lexer := highlight.DetectChromaLexerByFileName(name, lang)
+	lexer := highlight.DetectChromaLexerByFileName(name, "")
 	highlightedNewContent := highlight.RenderCodeByLexer(lexer, content)
 	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
 	lines := make(map[int]template.HTML, len(unsafeLines))
@@ -1507,9 +992,9 @@ func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, opts *DiffCo
 	return stat, nil
 }
 
-// SyncUserSpecificDiff inserts user-specific data such as which files the user has already viewed on the given diff
-// Additionally, the database is updated asynchronously if files have changed since the last review
-func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, diff *Diff, opts *DiffOptions) (*pull_model.ReviewState, error) {
+// SyncUserSpecificDiff returns the user's review state of the given files, in which files changed since the last review are marked as HasChanged.
+// The database is updated if files have changed since the last review.
+func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, fileNames []string, afterCommitID string) (*pull_model.ReviewState, error) {
 	review, err := pull_model.GetNewestReviewState(ctx, userID, pull.ID)
 	if err != nil {
 		return nil, err
@@ -1518,9 +1003,9 @@ func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.
 		return review, nil
 	}
 
-	latestCommit := opts.AfterCommitID
+	latestCommit := afterCommitID
 	if latestCommit == "" {
-		latestCommit = pull.HeadBranch // opts.AfterCommitID is preferred because it handles PRs from forks correctly and the branch name doesn't
+		latestCommit = pull.HeadBranch // afterCommitID is preferred because it handles PRs from forks correctly and the branch name doesn't
 	}
 
 	changedFiles, errIgnored := gitRepo.GetFilesChangedBetween(ctx, review.CommitSHA, latestCommit)
@@ -1538,19 +1023,13 @@ func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.
 	}
 
 	filesChangedSinceLastDiff := make(map[string]pull_model.ViewedState)
-	for _, diffFile := range diff.Files {
-		filename := diffFile.GetDiffFileName()
+	for _, filename := range fileNames {
 		fileViewedState := review.UpdatedFiles[filename]
-
 		if fileViewedState == pull_model.HasChanged { // Check whether it was previously detected that the file has changed since the last review
-			diffFile.HasChangedSinceLastReview = true
 			delete(changedFilesSet, filename)
 		} else if _, ok := changedFilesSet[filename]; ok { // Check explicitly whether the file has changed since the last review
-			diffFile.HasChangedSinceLastReview = true
 			filesChangedSinceLastDiff[filename] = pull_model.HasChanged
 			delete(changedFilesSet, filename)
-		} else if fileViewedState == pull_model.Viewed { // Check whether the file has already been viewed
-			diffFile.IsViewed = true
 		}
 	}
 

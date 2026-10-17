@@ -177,8 +177,8 @@ func (ut *RenderUtils) RenderEmoji(text string) template.HTML {
 	return markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), htmlutil.EscapeString(text))
 }
 
-// reactionToEmoji renders emoji for use in reactions
-func reactionToEmoji(reaction string) template.HTML {
+// ReactionToEmoji renders emoji for use in reactions
+func ReactionToEmoji(reaction string) template.HTML {
 	val := emoji.FromCode(reaction)
 	if val != nil {
 		return template.HTML(val.Emoji)

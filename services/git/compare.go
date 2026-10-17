@@ -51,7 +51,7 @@ func (ci *CompareInfo) DirectComparison() bool {
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
 // It does its best to fill the fields as many as it can.
 // MergeBase can be empty if the base and head are unrelated.
-func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseRef, headRef git.RefName, directComparison, fileOnly bool) (compareInfo CompareInfo, err error) {
+func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseRef, headRef git.RefName, directComparison bool) (compareInfo CompareInfo, err error) {
 	baseCommitID, err1 := git.GetFullCommitID(ctx, baseRepo, baseRef.String())
 	headCommitID, err2 := git.GetFullCommitID(ctx, headRepo, headRef.String())
 	compareInfo = CompareInfo{
@@ -93,15 +93,13 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	}
 
 	// We have a common base - therefore we know that ... should work
-	if !fileOnly {
-		// In git log/rev-list, the "..." syntax represents the symmetric difference between two references,
-		// which is different from the meaning of "..." in git diff (where it implies diffing from the merge base).
-		// For listing PR commits, we must use merge-base..head to include only the commits introduced by the head branch.
-		// Otherwise, commits newly pushed to the base branch would also be included, which is incorrect.
-		compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.CompareBase+".."+compareInfo.HeadCommitID)
-		if err != nil {
-			return compareInfo, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
-		}
+	// In git log/rev-list, the "..." syntax represents the symmetric difference between two references,
+	// which is different from the meaning of "..." in git diff (where it implies diffing from the merge base).
+	// For listing PR commits, we must use merge-base..head to include only the commits introduced by the head branch.
+	// Otherwise, commits newly pushed to the base branch would also be included, which is incorrect.
+	compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.CompareBase+".."+compareInfo.HeadCommitID)
+	if err != nil {
+		return compareInfo, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
 	}
 
 	// Count number of changed files.

@@ -126,6 +126,32 @@ function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, co
   });
 }
 
+async function loadContentHistoryOverview(issueBaseUrl: string): Promise<Record<string, number> | null> {
+  try {
+    const response = await GET(`${issueBaseUrl}/content-history/overview`);
+    const resp = await response.json();
+    i18nTextEdited = resp.i18n.textEdited;
+    i18nTextDeleteFromHistory = resp.i18n.textDeleteFromHistory;
+    i18nTextDeleteFromHistoryConfirm = resp.i18n.textDeleteFromHistoryConfirm;
+    i18nTextOptions = resp.i18n.textOptions;
+    return resp.editedHistoryCountMap;
+  } catch (error) {
+    console.error('Error:', error);
+    return null;
+  }
+}
+
+let editedHistoryOverview: ReturnType<typeof loadContentHistoryOverview> | null = null;
+
+// for comments rendered after the page has loaded
+export async function showContentHistoryMenuIfEdited(elComment: Element, commentId: number) {
+  const issuePageInfo = parseIssuePageInfo();
+  if (!issuePageInfo.issueNumber) return;
+  const issueBaseUrl = `${issuePageInfo.repoLink}/issues/${issuePageInfo.issueNumber}`;
+  editedHistoryOverview ??= loadContentHistoryOverview(issueBaseUrl);
+  if ((await editedHistoryOverview)?.[commentId]) showContentHistoryMenu(issueBaseUrl, elComment, String(commentId));
+}
+
 export async function initRepoIssueContentHistory() {
   const issuePageInfo = parseIssuePageInfo();
   if (!issuePageInfo.issueNumber) return;
@@ -135,25 +161,14 @@ export async function initRepoIssueContentHistory() {
   if (!elIssueDescription && !elComments.length) return;
 
   const issueBaseUrl = `${issuePageInfo.repoLink}/issues/${issuePageInfo.issueNumber}`;
-
-  try {
-    const response = await GET(`${issueBaseUrl}/content-history/overview`);
-    const resp = await response.json();
-
-    i18nTextEdited = resp.i18n.textEdited;
-    i18nTextDeleteFromHistory = resp.i18n.textDeleteFromHistory;
-    i18nTextDeleteFromHistoryConfirm = resp.i18n.textDeleteFromHistoryConfirm;
-    i18nTextOptions = resp.i18n.textOptions;
-
-    if (resp.editedHistoryCountMap[0] && elIssueDescription) {
-      showContentHistoryMenu(issueBaseUrl, elIssueDescription, '0');
-    }
-    for (const commentId of Object.keys(resp.editedHistoryCountMap)) {
-      if (commentId === '0') continue;
-      const elIssueComment = document.querySelector(`#issuecomment-${commentId}`);
-      if (elIssueComment) showContentHistoryMenu(issueBaseUrl, elIssueComment, commentId);
-    }
-  } catch (error) {
-    console.error('Error:', error);
+  const editedHistoryCountMap = await loadContentHistoryOverview(issueBaseUrl);
+  if (!editedHistoryCountMap) return;
+  if (editedHistoryCountMap[0] && elIssueDescription) {
+    showContentHistoryMenu(issueBaseUrl, elIssueDescription, '0');
+  }
+  for (const commentId of Object.keys(editedHistoryCountMap)) {
+    if (commentId === '0') continue;
+    const elIssueComment = document.querySelector(`#issuecomment-${commentId}`);
+    if (elIssueComment) showContentHistoryMenu(issueBaseUrl, elIssueComment, commentId);
   }
 }

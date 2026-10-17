@@ -21,8 +21,10 @@ var Git = struct {
 	MaxGitDiffLines               int
 	MaxGitDiffLineCharacters      int
 	MaxGitDiffFiles               int
-	CommitsRangeSize              int // CommitsRangeSize the default commits range size
-	BranchesRangeSize             int // BranchesRangeSize the default branches range size
+	MaxDiffViewSize               int64 `ini:"-"`
+	MaxDiffViewFileSize           int64 `ini:"-"`
+	CommitsRangeSize              int   // CommitsRangeSize the default commits range size
+	BranchesRangeSize             int   // BranchesRangeSize the default branches range size
 	VerbosePush                   bool
 	VerbosePushDelay              time.Duration
 	GCArgs                        []string `ini:"GC_ARGS" delim:" "`
@@ -108,6 +110,9 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	} else {
 		Git.HomePath = filepath.Clean(Git.HomePath)
 	}
+
+	Git.MaxDiffViewSize = mustBytesWithDefault(sec, "MAX_DIFF_VIEW_SIZE", 50*1024*1024)
+	Git.MaxDiffViewFileSize = mustBytesWithDefault(sec, "MAX_DIFF_VIEW_FILE_SIZE", 1024*1024)
 
 	// validate for a integer percentage between 0% and 100%
 	if !regexp.MustCompile(`^([0-9]|[1-9][0-9]|100)%$`).MatchString(Git.DiffRenameSimilarityThreshold) {

@@ -1,17 +1,15 @@
 import {errorMessage} from '../modules/errors.ts';
-import {html, htmlEscape, htmlRaw} from '../utils/html.ts';
+import {htmlEscape} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
-  createElementFromHTML,
   hideElem,
   queryElems,
   showElem,
-  toggleElem, toggleElemClass,
+  toggleElem,
 } from '../utils/dom.ts';
-import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {GET, POST} from '../modules/fetch.ts';
+import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showFomanticModal} from '../modules/fomantic/modal.ts';
@@ -126,21 +124,7 @@ export function initRepoIssueCommentDelete() {
     }
 
     // If the conversation holder has no more comments, remove it.
-    if (!conversationHolder.querySelector('.comment')) {
-      // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
-      // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment" button
-      const parentTr = conversationHolder.closest('tr[data-line-type]');
-      if (parentTr) {
-        // allow to add a new comment on the same line after deleting the existing comments
-        // previous element is the "tr" for the code line, and it contains the "add-code-comment" button
-        const isLineSame = parentTr.getAttribute('data-line-type') === 'same';
-        const side = conversationHolder.getAttribute('data-side')!;
-        const selector = isLineSame ? '.add-code-comment' : `.add-code-comment[data-side=${CSS.escape(side)}]`;
-        const addCodeCommentButtons = parentTr.previousElementSibling!.querySelectorAll(selector);
-        toggleElemClass(addCodeCommentButtons, 'tw-invisible', false);
-      }
-      conversationHolder.remove();
-    }
+    if (!conversationHolder.querySelector('.comment')) conversationHolder.remove();
 
     // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
     if (!parentTimelineGroup?.querySelector('.timeline-item.comment') && !parentTimelineItem?.querySelector('.conversation-holder')) {
@@ -153,12 +137,8 @@ export function initRepoIssueCommentDelete() {
 export function initRepoIssueCodeCommentCancel() {
   registerGlobalEventFunc('click', 'onCancelCodeComment', (el) => {
     const form = el.closest('form')!;
-    if (form.classList.contains('comment-form')) {
-      hideElem(form);
-      showElem(form.closest('.comment-code-cloud')!.querySelectorAll('button.comment-form-reply'));
-    } else {
-      form.closest('.comment-code-cloud')?.remove();
-    }
+    hideElem(form);
+    showElem(form.closest('.comment-code-cloud')!.querySelectorAll('button.comment-form-reply'));
   });
 }
 
@@ -203,14 +183,8 @@ export function initRepoPullRequestReview() {
       const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');
       if (groupID?.startsWith('code-comments-')) {
         const id = groupID.slice(14);
-        const ancestorDiffBox = commentDiv.closest<HTMLElement>('.diff-file-box');
-
         hideElem(`#show-outdated-${id}`);
         showElem(`#code-comments-${id}, #code-preview-${id}, #hide-outdated-${id}`);
-        // if the comment box is folded, expand it
-        if (ancestorDiffBox?.getAttribute('data-folded') === 'true') {
-          setFileFolding(ancestorDiffBox, ancestorDiffBox.querySelector('.fold-file')!, false);
-        }
       }
       // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
       if (window.history.scrollRestoration !== 'manual') window.history.scrollRestoration = 'manual';
@@ -256,40 +230,6 @@ export function initRepoPullRequestReview() {
       hideOnClick: true,
     });
     elReviewPanel.querySelector('.close-review-panel')!.addEventListener('click', () => tippy.hide());
-  });
-
-  addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
-    e.preventDefault();
-
-    const isSplit = el.closest('.code-diff')?.classList.contains('code-diff-split');
-    const side = el.getAttribute('data-side')!;
-    const idx = el.getAttribute('data-idx')!;
-    const path = el.closest('[data-path]')?.getAttribute('data-path');
-    const tr = el.closest('tr')!;
-    const lineType = tr.getAttribute('data-line-type')!;
-
-    let ntr = tr.nextElementSibling;
-    if (!ntr?.classList.contains('add-comment')) {
-      const tdSplit = html`<td class="add-comment-left" colspan="4"></td><td class="add-comment-right" colspan="4"></td>`;
-      const tdUnified = html`<td class="add-comment-left add-comment-right" colspan="5"></td>`;
-      ntr = createElementFromHTML(html`
-        <tr class="add-comment" data-line-type="${lineType}">
-          ${isSplit ? htmlRaw(tdSplit) : htmlRaw(tdUnified)}
-        </tr>
-      `);
-      tr.after(ntr);
-    }
-    const td = ntr.querySelector(`.add-comment-${side}`)!;
-    const commentCloud = td.querySelector('.comment-code-cloud');
-    if (!commentCloud && !ntr.querySelector('button[name="pending_review"]')) {
-      const response = await GET(el.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url') ?? '');
-      td.innerHTML = await response.text();
-      td.querySelector<HTMLInputElement>("input[name='line']")!.value = idx;
-      td.querySelector<HTMLInputElement>("input[name='side']")!.value = (side === 'left' ? 'previous' : 'proposed');
-      td.querySelector<HTMLInputElement>("input[name='path']")!.value = String(path);
-      const editor = await initComboMarkdownEditor(td.querySelector<HTMLElement>('.combo-markdown-editor')!);
-      editor.focus();
-    }
   });
 }
 
