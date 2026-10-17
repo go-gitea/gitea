@@ -344,18 +344,15 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   position: relative;
 }
 
-.markup .code-block-container.code-overflow-wrap pre > code,
-.markup .code-block.code-overflow-wrap > code {
+.markup .code-block-container.code-overflow-wrap pre > code {
   white-space: pre-wrap;
 }
 
-.markup .code-block-container.code-overflow-scroll pre,
-.markup .code-block.code-overflow-scroll {
+.markup .code-block-container.code-overflow-scroll pre {
   overflow-x: auto;
 }
 
-.markup .code-block-container.code-overflow-scroll pre > code,
-.markup .code-block.code-overflow-scroll > code {
+.markup .code-block-container.code-overflow-scroll pre > code {
   white-space: pre;
   overflow-wrap: normal;
 }
@@ -489,8 +486,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   transition: var(--transition-hover-fade);
 }
 
-/* all rendered code-block elements are in their container,
-the manually written code-block elements on "packages" pages don't have the container */
 .markup .code-block-container:hover .auto-hide-control,
 .markup .code-block:hover .auto-hide-control {
   visibility: visible;

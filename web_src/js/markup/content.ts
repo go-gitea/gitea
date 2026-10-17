@@ -10,8 +10,8 @@ import {initExternalRenderIframe} from './render-iframe.ts';
 export function initMarkupContent(): void {
   registerGlobalInitFunc('initExternalRenderIframe', initExternalRenderIframe);
   registerGlobalSelectorFunc('.markup', (el: HTMLElement) => {
-    initMarkupCodeCopy(el);
     initMarkupCodeBlocks(el);
+    initMarkupCodeCopy(el);
     initMarkupTasklist(el);
     initMarkupCodeMermaid(el);
     initMarkupCodeMath(el);

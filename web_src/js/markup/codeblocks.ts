@@ -6,7 +6,13 @@ export function initMarkupCodeBlocks(elMarkup: HTMLElement): void {
   queryElems(elMarkup, '.code-block code:not(.language-math):not(.language-mermaid)', (el) => {
     if (!el.textContent) return;
 
-    const container = el.closest('.code-block-container') ?? el.closest('.code-block')!;
+    let container = el.closest('.code-block-container');
+    if (!container) {
+      const codeBlock = el.closest('.code-block')!;
+      container = createElementFromAttrs('div', {class: 'code-block-container'});
+      codeBlock.replaceWith(container);
+      container.append(codeBlock);
+    }
     const button = createElementFromAttrs<HTMLButtonElement>('button', {
       class: 'ui compact icon button code-wrap auto-hide-control',
       type: 'button',
