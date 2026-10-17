@@ -86,7 +86,7 @@ func TestRetrieveRepoIssueMetaDataWithPrefill(t *testing.T) {
 				"assignee":  {"missing,102,OtherUser,101,Alice,999"},
 			},
 			labelIDs:    []int64{100, 101},
-			milestoneID: 101,
+			milestoneID: 102,
 			projectIDs:  []int64{101, 100},
 			assigneeIDs: []int64{101, 100},
 		},
