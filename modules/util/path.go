@@ -13,6 +13,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"gitea.dev/modules/consts"
 )
 
 var PathNameValidator = sync.OnceValue(func() (ret struct {
@@ -93,7 +95,7 @@ const filepathSeparator = string(os.PathSeparator)
 func FilePathJoinAbs(base string, sub ...string) string {
 	// POSIX filesystem can have `\` in file names. Windows: `\` and `/` are both used for path separators
 	// to keep the behavior consistent, we do not allow `\` in file names, replace all `\` with `/`
-	if !isOSWindows {
+	if !consts.IsWindows {
 		base = strings.ReplaceAll(base, "\\", filepathSeparator)
 	}
 	if !filepath.IsAbs(base) {
@@ -110,7 +112,7 @@ func FilePathJoinAbs(base string, sub ...string) string {
 		if s == "" {
 			continue
 		}
-		if isOSWindows {
+		if consts.IsWindows {
 			elems = append(elems, filepath.Clean(filepathSeparator+s))
 		} else {
 			elems = append(elems, filepath.Clean(filepathSeparator+strings.ReplaceAll(s, "\\", filepathSeparator)))
@@ -284,7 +286,7 @@ func fileURLToPathInternal(u *url.URL, isWindows bool) (string, error) {
 // FileURLToPath extracts the path information from a file://... url.
 // It returns an error only if the URL is not a file URL.
 func FileURLToPath(u *url.URL) (string, error) {
-	return fileURLToPathInternal(u, isOSWindows)
+	return fileURLToPathInternal(u, consts.IsWindows)
 }
 
 // HomeDir returns path of '~'(in Linux) on Windows,
@@ -293,7 +295,7 @@ func HomeDir() (home string, err error) {
 	// TODO: some users run Gitea with mismatched uid  and "HOME=xxx" (they set HOME=xxx by environment manually)
 	// TODO: when running gitea as a sub command inside git, the HOME directory is not the user's home directory
 	// so at the moment we can not use `user.Current().HomeDir`
-	if isOSWindows {
+	if consts.IsWindows {
 		home = os.Getenv("USERPROFILE")
 		if home == "" {
 			home = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")

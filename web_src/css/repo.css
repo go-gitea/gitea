@@ -620,10 +620,6 @@
   min-width: 0;
 }
 
-.repository .comment.form .content .field:first-child {
-  clear: none;
-}
-
 .repository.new.milestone textarea {
   height: 200px;
 }
@@ -950,16 +946,6 @@
 .repository.settings.branches .branch-protection .status-check-matched-mark {
   font-weight: var(--font-weight-semibold);
   font-style: italic;
-}
-
-.repository.settings.webhook .events .column {
-  padding-bottom: 0;
-}
-
-.repository.settings.webhook .events .help {
-  font-size: 13px;
-  margin-left: 26px;
-  padding-top: 0;
 }
 
 .repository .repository-summary {
@@ -1736,7 +1722,6 @@ tbody.commit-list {
 .branch-selector-dropdown .ui.button.branch-dropdown-button {
   margin: 0;
   max-width: 340px;
-  line-height: var(--line-height-default);
   padding: 0 0.5em 0 0.75em;
 }
 

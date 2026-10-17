@@ -797,7 +797,6 @@
   "settings.add_key_success": "Cuireadh an eochair SSH “%s” leis.",
   "settings.add_gpg_key_success": "Cuireadh an eochair GPG “%s” leis.",
   "settings.add_principal_success": "Cuireadh príomhoide an deimhnithe SSH “%s” leis.",
-  "settings.delete_key": "Bain",
   "settings.ssh_key_deletion": "Bain Eochair SSH",
   "settings.gpg_key_deletion": "Bain Eochair GPG",
   "settings.ssh_principal_deletion": "Bain Príomhoide Teastas SSH",

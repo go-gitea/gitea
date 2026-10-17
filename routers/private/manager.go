@@ -5,6 +5,7 @@ package private
 
 import (
 	"net/http"
+	"time"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/graceful"
@@ -34,7 +35,7 @@ func FlushQueues(ctx *context.PrivateContext) {
 		// Save the hammer ctx here - as a new one is created each time you call this.
 		baseCtx := graceful.GetManager().HammerContext()
 		go func() {
-			err := queue.GetManager().FlushAll(baseCtx, opts.Timeout)
+			err := queue.GetManager().FlushAll(baseCtx, time.Duration(opts.Timeout))
 			if err != nil {
 				log.Error("Flushing request timed-out with error: %v", err)
 			}
@@ -44,7 +45,7 @@ func FlushQueues(ctx *context.PrivateContext) {
 		})
 		return
 	}
-	err := queue.GetManager().FlushAll(ctx, opts.Timeout)
+	err := queue.GetManager().FlushAll(ctx, time.Duration(opts.Timeout))
 	if err != nil {
 		ctx.PrivateUserErrorf(http.StatusRequestTimeout, "%v", err)
 		return

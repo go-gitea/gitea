@@ -252,6 +252,7 @@ func TestRelease_Update(t *testing.T) {
 	}
 	assert.NoError(t, CreateRelease(t.Context(), gitRepo, release, nil, ""))
 	assert.Positive(t, release.ID)
+	assert.Empty(t, release.Attachments)
 
 	release.IsDraft = false
 	tagName := release.TagName
@@ -271,7 +272,10 @@ func TestRelease_Update(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, []string{attach.UUID}, nil, nil))
-	assert.NoError(t, repo_model.GetReleaseAttachments(t.Context(), release))
+	unsavedRelease := &repo_model.Release{}
+	release.Attachments = nil
+	assert.NoError(t, repo_model.GetReleaseAttachments(t.Context(), unsavedRelease, release))
+	assert.Empty(t, unsavedRelease.Attachments)
 	assert.Len(t, release.Attachments, 1)
 	assert.Equal(t, attach.UUID, release.Attachments[0].UUID)
 	assert.Equal(t, release.ID, release.Attachments[0].ReleaseID)
