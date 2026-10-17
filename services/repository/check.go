@@ -75,10 +75,16 @@ func maintainRepository(ctx context.Context, repo *repo_model.Repository) error 
 		changed, err := git.MaintainRepository(ctx, gitRepo)
 		if err != nil {
 			log.Error("Failed to maintain %s: %v", gitRepo.LogString(), err)
+			if err := system_model.CreateRepositoryNotice("Failed to maintain %s: %v", gitRepo.LogString(), err); err != nil {
+				log.Error("CreateRepositoryNotice: %v", err)
+			}
 		}
 		if changed && gitRepo == repo {
 			if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
 				log.Error("Failed to update the size of %s: %v", gitRepo.LogString(), err)
+				if err := system_model.CreateRepositoryNotice("Failed to update the size of %s: %v", gitRepo.LogString(), err); err != nil {
+					log.Error("CreateRepositoryNotice: %v", err)
+				}
 			}
 		}
 	}

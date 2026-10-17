@@ -10,6 +10,8 @@ import (
 	"time"
 
 	repo_model "gitea.dev/models/repo"
+	system_model "gitea.dev/models/system"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git/gitrepo"
 
 	"github.com/stretchr/testify/assert"
@@ -32,4 +34,15 @@ func TestMaintainRepositoryRemovesStaleLocksInRepoAndWiki(t *testing.T) {
 	for _, lock := range locks {
 		assert.NoFileExists(t, lock)
 	}
+}
+
+func TestMaintainRepositoryReportsFailure(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	repo := &repo_model.Repository{OwnerName: "owner", Name: t.Name()}
+	repoPath := gitrepo.RepoLocalPath(repo)
+	require.NoError(t, os.MkdirAll(repoPath, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(repoPath, "objects"), nil, 0o644))
+
+	require.NoError(t, maintainRepository(t.Context(), repo))
+	unittest.AssertExistsAndLoadBean(t, &system_model.Notice{Type: system_model.NoticeRepository}, unittest.Cond("description LIKE ?", "Failed to maintain "+repo.LogString()+":%"))
 }
