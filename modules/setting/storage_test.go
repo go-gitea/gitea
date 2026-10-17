@@ -408,17 +408,18 @@ PATH = archives
 }
 
 func Test_getStorageConfiguration25(t *testing.T) {
-	cfg, err := NewConfigProviderFromData(`
+	for _, storageType := range []string{"my_archive", "local"} {
+		cfg, err := NewConfigProviderFromData(`
 [repo-archive]
-STORAGE_TYPE = my_archive
+STORAGE_TYPE = ` + storageType + `
 
-[storage.my_archive]
-; unsupported, storage type should be known type
-STORAGE_TYPE = unknown // should be local or s3
+[storage.` + storageType + `]
+STORAGE_TYPE = unknown
 PATH = archives
 `)
-	assert.NoError(t, err)
-	assert.Error(t, loadRepoArchiveFrom(cfg))
+		assert.NoError(t, err)
+		assert.Error(t, loadRepoArchiveFrom(cfg), storageType)
+	}
 }
 
 func Test_getStorageConfiguration26(t *testing.T) {
@@ -636,5 +637,50 @@ S3_BUCKET = new-bucket
 		assert.NoError(t, err)
 		assert.NoError(t, loadLFSFrom(cfg))
 		assert.Equal(t, "new-bucket", LFS.Storage.S3Config.Bucket)
+	})
+
+	t.Run("legacy overrides stay local after parent migration", func(t *testing.T) {
+		cfg, err := NewConfigProviderFromData(`
+[storage]
+STORAGE_TYPE = minio
+MINIO_BUCKET = default-bucket
+MINIO_BASE_PATH = /default-prefix
+
+[storage.lfs]
+MINIO_BUCKET = lfs-bucket
+MINIO_BASE_PATH = /lfs-prefix
+`)
+		assert.NoError(t, err)
+		assert.NoError(t, loadAttachmentFrom(cfg))
+		assert.NoError(t, loadLFSFrom(cfg))
+		assert.Equal(t, "lfs-bucket", LFS.Storage.S3Config.Bucket)
+		assert.Equal(t, "/lfs-prefix", LFS.Storage.S3Config.BasePath)
+		assert.NoError(t, loadAttachmentFrom(cfg))
+		assert.Equal(t, "default-bucket", Attachment.Storage.S3Config.Bucket)
+		assert.Equal(t, "/default-prefix/attachments/", Attachment.Storage.S3Config.BasePath)
+	})
+
+	t.Run("legacy type selects shared S3 section", func(t *testing.T) {
+		for _, sectionName := range []string{"s3", "minio"} {
+			t.Run(sectionName, func(t *testing.T) {
+				cfg, err := NewConfigProviderFromData(`
+[storage]
+MINIO_ACCESS_KEY_ID = inherited-access
+
+[storage.lfs]
+STORAGE_TYPE = minio
+
+[storage.` + sectionName + `]
+S3_ENDPOINT = s3.example.com:9000
+S3_BUCKET = shared-bucket
+`)
+				assert.NoError(t, err)
+				assert.NoError(t, loadLFSFrom(cfg))
+				assert.Equal(t, S3StorageType, LFS.Storage.Type)
+				assert.Equal(t, "inherited-access", LFS.Storage.S3Config.AccessKeyID)
+				assert.Equal(t, "s3.example.com:9000", LFS.Storage.S3Config.Endpoint)
+				assert.Equal(t, "shared-bucket", LFS.Storage.S3Config.Bucket)
+			})
+		}
 	})
 }

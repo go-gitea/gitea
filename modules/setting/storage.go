@@ -73,25 +73,26 @@ var minioToS3KeyRenames = []struct{ oldKey, newKey string }{
 	{"MINIO_USE_SSL", "S3_USE_SSL"},
 }
 
-const MinioToS3RemovalVersion = "v1.27.0"
+const MinioToS3RemovalVersion = "v30.0.0"
 
 func migrateDeprecatedStorageConfig(sec ConfigSection) {
 	if sec == nil {
 		return
 	}
-	if sec.HasKey("STORAGE_TYPE") && sec.Key("STORAGE_TYPE").String() == string(legacyMinioStorageType) {
+	if storageType := ConfigSectionKey(sec, "STORAGE_TYPE"); storageType != nil && storageType.String() == string(legacyMinioStorageType) {
 		LogStartupProblem(1, log.WARN, "Deprecation: config option `[%s].STORAGE_TYPE = %s` is deprecated, please use `%s` instead because this fallback will be removed in %s", sec.Name(), legacyMinioStorageType, S3StorageType, MinioToS3RemovalVersion)
-		sec.Key("STORAGE_TYPE").SetValue(string(S3StorageType))
+		storageType.SetValue(string(S3StorageType))
 	}
-	for _, r := range minioToS3KeyRenames {
-		if !sec.HasKey(r.oldKey) {
+	for _, rename := range minioToS3KeyRenames {
+		oldKey := ConfigSectionKey(sec, rename.oldKey)
+		if oldKey == nil {
 			continue
 		}
-		LogStartupProblem(1, log.WARN, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead because this fallback will be removed in %s", sec.Name(), r.oldKey, sec.Name(), r.newKey, MinioToS3RemovalVersion)
-		if !sec.HasKey(r.newKey) {
-			sec.Key(r.newKey).SetValue(sec.Key(r.oldKey).String())
+		LogStartupProblem(1, log.WARN, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead because this fallback will be removed in %s", sec.Name(), rename.oldKey, sec.Name(), rename.newKey, MinioToS3RemovalVersion)
+		if ConfigSectionKey(sec, rename.newKey) == nil {
+			_, _ = sec.NewKey(rename.newKey, oldKey.String())
 		}
-		sec.DeleteKey(r.oldKey)
+		sec.DeleteKey(rename.oldKey)
 	}
 }
 
@@ -173,6 +174,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return nil, errors.New("no name for storage")
 	}
 
+	migrateDeprecatedStorageConfig(rootCfg.Section(storageSectionName))
 	migrateDeprecatedStorageConfig(sec)
 	targetSec, tp, err := getStorageTargetSection(rootCfg, name, typ, sec)
 	if err != nil {
@@ -244,9 +246,10 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 		if sec != nil { // check sec's type secondly
 			typ = sec.Key("STORAGE_TYPE").String()
 			if IsValidStorageType(StorageType(typ)) {
-				if targetSec, _, _ := getStorageSectionByType(rootCfg, typ); targetSec == nil {
-					return sec, targetSecIsSec, nil
+				if targetSec, tp, err := getStorageSectionByType(rootCfg, typ); targetSec != nil || err != nil {
+					return targetSec, tp, err
 				}
+				return sec, targetSecIsSec, nil
 			}
 		}
 	}
@@ -261,6 +264,7 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 	// check storage name thirdly
 	targetSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
 	if targetSec != nil {
+		migrateDeprecatedStorageConfig(targetSec)
 		targetType := targetSec.Key("STORAGE_TYPE").String()
 		switch targetType {
 		case "":
