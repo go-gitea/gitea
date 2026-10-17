@@ -3639,6 +3639,8 @@
   "packages.debian.repository.distributions": "Distributions",
   "packages.debian.repository.components": "Components",
   "packages.debian.repository.architectures": "Architectures",
+  "packages.flatpak.registry": "Add the registry as a Flatpak remote:",
+  "packages.flatpak.install": "Install the Flatpak from the command line:",
   "packages.generic.download": "Download package from the command line:",
   "packages.go.install": "Install the package from the command line:",
   "packages.helm.registry": "Set up this registry from the command line:",
