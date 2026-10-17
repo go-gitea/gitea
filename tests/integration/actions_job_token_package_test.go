@@ -60,7 +60,7 @@ func TestActionsJobTokenPackagePush(t *testing.T) {
 	// dockerLogin performs the "GET /v2/token" exchange with the task token as basic auth,
 	// mirroring what `docker login -u gitea-actions -p $GITEA_TOKEN` does.
 	dockerLogin := func(t *testing.T, task *actions_model.ActionTask) (bearer string, status int) {
-		req := NewRequest(t, "GET", setting.AppURL+"v2/token").AddBasicAuth(user_model.ActionsUserName, task.Token)
+		req := NewRequest(t, "GET", setting.AppURL+"v2/token").AddBasicAuth("gitea-actions", task.Token)
 		resp := MakeRequest(t, req, NoExpectedStatus)
 		if resp.Code != http.StatusOK {
 			return "", resp.Code
