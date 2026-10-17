@@ -42,12 +42,9 @@ func GetLanguageStats(ctx context.Context, repo *git.Repository, commitID string
 		return nil, git.ErrNotExist{ID: commitID}
 	}
 
-	commit, err := git.CommitFromReader(sha, io.LimitReader(batchReader, commitInfo.Size))
+	commit, err := git.CommitFromReader(sha, batchReader)
 	if err != nil {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
-		return nil, err
-	}
-	if _, err = batchReader.Discard(1); err != nil {
 		return nil, err
 	}
 
@@ -140,26 +137,14 @@ func GetLanguageStats(ctx context.Context, repo *git.Repository, commitID string
 		// If content can not be read or file is too big just do detection by filename
 
 		if f.GetSize(ctx, repo) <= bigFileSize {
-			info, _, err := batch.QueryContent(f.ID.String())
+			_, blobReader, err := batch.QueryContent(f.ID.String())
 			if err != nil {
 				return nil, err
 			}
-
-			sizeToRead := info.Size
-			discard := int64(1)
-			if info.Size > fileSizeLimit {
-				sizeToRead = fileSizeLimit
-				discard = info.Size - fileSizeLimit + 1
-			}
-
-			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))
-			if err != nil {
+			if _, err = contentBuf.ReadFrom(io.LimitReader(blobReader, fileSizeLimit)); err != nil {
 				return nil, err
 			}
 			content = contentBuf.Bytes()
-			if err := git.DiscardFull(batchReader, discard); err != nil {
-				return nil, err
-			}
 		}
 
 		// if "generated" attribute is set, use it, otherwise use enry.IsGenerated to guess

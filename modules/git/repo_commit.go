@@ -485,15 +485,6 @@ func (repo *Repository) getCommit(_ context.Context, id ObjectID) (*Commit, erro
 	return repo.getCommitWithBatch(batch, id)
 }
 
-func limitDiscardReader(rd BufferedReader, full, limit int64) (io.Reader, func() error) {
-	return io.LimitReader(rd, min(full, limit)), func() error {
-		if full > limit {
-			return DiscardFull(rd, full-limit)
-		}
-		return nil
-	}
-}
-
 func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Commit, error) {
 	info, rd, err := batch.QueryContent(id.String())
 	if err != nil {
@@ -507,15 +498,7 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 	case "missing":
 		return nil, ErrNotExist{ID: id.String()}
 	case "tag":
-		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
-		data, err := io.ReadAll(limitReader)
-		if err != nil {
-			return nil, err
-		}
-		if err = limitDiscard(); err != nil {
-			return nil, err
-		}
-		_, err = rd.Discard(1)
+		data, err := io.ReadAll(io.LimitReader(rd, MaxGitObjectSize))
 		if err != nil {
 			return nil, err
 		}
@@ -525,26 +508,10 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 		}
 		return repo.getCommitWithBatch(batch, tag.Object)
 	case "commit":
-		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
-		commit, err := CommitFromReader(id, limitReader)
-		if err != nil {
-			return nil, err
-		}
-		if err = limitDiscard(); err != nil {
-			return nil, err
-		}
-		_, err = rd.Discard(1)
-		if err != nil {
-			return nil, err
-		}
-
-		return commit, nil
+		return CommitFromReader(id, io.LimitReader(rd, MaxGitObjectSize))
 	default:
 		if info.Type != "blob" && info.Type != "tree" {
 			setting.PanicInDevOrTesting("Unknown cat-file object type %s for object %s in repo %s", info.Type, id.String(), repo.LogString())
-		}
-		if err := DiscardFull(rd, info.Size+1); err != nil {
-			return nil, err
 		}
 		return nil, ErrNotExist{
 			ID: id.String(),

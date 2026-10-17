@@ -320,24 +320,12 @@ func (repo *Repository) getTag(ctx context.Context, tagID ObjectID, name string)
 		}
 		return nil, err
 	}
-	typ, size := info.Type, info.Size
-	if typ != "tag" {
-		if err := DiscardFull(rd, size+1); err != nil {
-			return nil, err
-		}
+	if info.Type != "tag" {
 		return nil, ErrNotExist{ID: tagID.String()}
 	}
 
 	// then we need to parse the tag and load the commit
-	limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
-	data, err := io.ReadAll(limitReader)
-	if err != nil {
-		return nil, err
-	}
-	if err = limitDiscard(); err != nil {
-		return nil, err
-	}
-	_, err = rd.Discard(1)
+	data, err := io.ReadAll(io.LimitReader(rd, MaxGitObjectSize))
 	if err != nil {
 		return nil, err
 	}

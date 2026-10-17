@@ -102,6 +102,11 @@ func TestParseTreeEntriesInvalid(t *testing.T) {
 	entries, err := ParseTreeEntries([]byte("100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af"))
 	assert.Error(t, err)
 	assert.Empty(t, entries)
+
+	input := "100644 valid\x0012345678901234567890" + "100644 incomplete\x00"
+	entries, err = catBatchParseTreeEntries(Sha1ObjectFormat, nil, strings.NewReader(input), int64(len(input)))
+	assert.Error(t, err)
+	assert.Empty(t, entries)
 }
 
 func TestParseCatFileTreeLine(t *testing.T) {

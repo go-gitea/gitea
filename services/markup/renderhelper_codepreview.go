@@ -50,11 +50,11 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", util.ErrPermissionDenied
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, dbRepo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, dbRepo)
 	if err != nil {
 		return "", err
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	commit, err := gitRepo.GetCommit(ctx, opts.CommitID)
 	if err != nil {
