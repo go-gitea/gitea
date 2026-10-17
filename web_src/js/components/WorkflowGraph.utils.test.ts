@@ -59,12 +59,13 @@ const wfTest1Jobs: ActionsJob[] = [
 const mockJob = (id: number, jobId: string, name: string, needs?: string[]): ActionsJob =>
   ({id, link: '', jobId, name, status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '1s', needs});
 
-test('matrix nodes key on job id, not on the display name', () => {
+test('matrix nodes key on job id and take the label legs share with or without a suffix', () => {
   const legs = createWorkflowGraphModel([mockJob(1, 'explicit', 'leg one'), mockJob(2, 'explicit', 'leg two')]);
   expect(legs.nodes).toHaveLength(1);
   expect(legs.nodes[0].type).toBe('matrix');
   expect(legs.nodes[0].name).toBe('explicit');
   expect(legs.nodes[0].jobs.map((j) => j.id)).toEqual([1, 2]);
+  expect(createWorkflowGraphModel([mockJob(1, 'image', 'Image'), mockJob(2, 'image', 'Image (dind)')]).nodes[0].name).toBe('Image');
 
   const lookalikes = createWorkflowGraphModel([
     mockJob(1, 'setup', 'setup'),
@@ -160,7 +161,7 @@ test('reusable callers with identical dependency signature are kept as separate 
     {id: 1, link: '', jobId: 'prepare', name: 'prepare', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '30s'},
     {id: 2, link: '', jobId: 'local_caller', name: 'local caller', status: 'running', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '5m', needs: ['prepare'], callUses: './.gitea/workflows/lib.yml'},
     {id: 3, link: '', jobId: 'cross_caller', name: 'cross-repo caller', status: 'waiting', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '0s', needs: ['prepare'], callUses: 'user2/lib/.gitea/workflows/ext.yml@main'},
-    {id: 4, link: '', jobId: 'final', name: 'final', status: 'blocked', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '0s', needs: ['local_caller', 'cross_caller']},
+    {id: 4, link: '', jobId: 'final', name: 'final', status: 'pending', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '0s', needs: ['local_caller', 'cross_caller']},
   ];
   const graph = createWorkflowGraphModel(jobs);
   expect(graph.nodes.find((n) => n.type === 'group')).toBeUndefined();
@@ -179,7 +180,7 @@ test('matrix legs that call a reusable workflow are folded into a single matrix 
   const matrixNodes = graph.nodes.filter((n) => n.type === 'matrix');
   expect(matrixNodes).toHaveLength(1);
   expect(matrixNodes[0].name).toBe('build-call');
-  expect(matrixNodes[0].jobs.map((j) => j.id).sort()).toEqual([2, 3, 4]);
+  expect(matrixNodes[0].jobs.map((j) => j.id).sort((a, b) => a - b)).toEqual([2, 3, 4]);
 });
 
 test('directed highlight state covers ancestors and descendants of the hovered node', () => {

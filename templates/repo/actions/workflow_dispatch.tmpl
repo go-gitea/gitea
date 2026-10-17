@@ -26,12 +26,12 @@
 							<input name="search" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 						</div>
 						<div class="branch-tag-tab">
-							<a class="branch-tag-item reference column muted active" href="#" data-target="#branch-list">
+							<button type="button" class="btn branch-tag-item reference column active" data-target="#branch-list">
 								{{svg "octicon-git-branch" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.branches"}}
-							</a>
-							<a class="branch-tag-item reference column muted" href="#" data-target="#tag-list">
+							</button>
+							<button type="button" class="btn branch-tag-item reference column" data-target="#tag-list">
 								{{svg "octicon-tag" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.tags"}}
-							</a>
+							</button>
 						</div>
 						<div class="branch-tag-divider"></div>
 						<div id="branch-list" class="scrolling menu reference-list-menu">

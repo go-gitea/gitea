@@ -47,8 +47,10 @@ func newSystemUser(id int64, name, fullName string) *User {
 }
 
 const (
-	ActionsUserID   int64 = -2
-	DeployKeyUserID int64 = -3
+	ActionsUserID    int64 = -2
+	DeployKeyUserID  int64 = -3
+	CliUserID        int64 = -4
+	AuthSourceUserID int64 = -5
 )
 
 // NewActionsUser creates and returns a fake user for running the actions.
@@ -71,7 +73,7 @@ func NewActionsUserWithTaskID(id int64) *User {
 }
 
 func NewDeployKeyUser() *User {
-	return newSystemUser(DeployKeyUserID, "(deploy-key)", "Deploy Key")
+	return newSystemUser(DeployKeyUserID, "gitea:deploy-key", "Deploy Key")
 }
 
 func GetDeployKeyUserDeployKeyID(u *User) (int64, bool) {
@@ -90,16 +92,30 @@ func NewDeployKeyUserWithKeyID(id int64) *User {
 	return u
 }
 
+func NewCliUser() *User {
+	// for audit log only
+	return newSystemUser(CliUserID, "gitea:cli", "Gitea CLI")
+}
+
+func NewAuthSourceUser() *User {
+	// for audit log only
+	return newSystemUser(AuthSourceUserID, "gitea:auth-source", "Gitea Auth Source")
+}
+
 func GetSystemUserByName(name string) *User {
 	lowerName := strings.ToLower(name)
-	uid := globalVars().systemUserNameIdMap[lowerName]
+	uid := globalVars().systemUserLowerNameIdMap[lowerName]
+	return GetSystemUserByID(uid)
+}
+
+func GetSystemUserByID(uid int64) *User {
 	if fn := globalVars().systemUserNewFuncs[uid]; fn != nil {
 		return fn()
 	}
 	return nil
 }
 
-func GetDoerUser(ctx context.Context, id int64, extDoerData string) (u *User, _ error) {
+func GetDoerPermissionUser(ctx context.Context, id int64, extDoerData string) (u *User, _ error) {
 	if id > 0 {
 		return GetUserByID(ctx, id)
 	}
@@ -111,6 +127,7 @@ func GetDoerUser(ctx context.Context, id int64, extDoerData string) (u *User, _ 
 		u = NewDeployKeyUser()
 		u.ExtDoerData = &extDoerDeployKey{}
 	default:
+		// other system users are not real doers for the permission system
 		return nil, ErrUserNotExist{UID: id}
 	}
 	return u, u.ExtDoerData.DecodeFromString(extDoerData)

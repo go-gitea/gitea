@@ -55,8 +55,9 @@
   background: var(--color-secondary);
 }
 
-.ui.menu .item > .svg {
-  margin-right: 0.35em;
+/* TODO: MENU-ITEM-FLEX-MARGIN: need to refactor: flex menu items don't need svg margin */
+.ui.menu:not(.flex-items-block) .item:not(.flex-text-block, .flex-text-inline) > .svg {
+  margin-right: 5px;
 }
 
 .ui.menu .item > a:not(.ui) {
@@ -94,33 +95,6 @@
   background: var(--color-body);
   margin: 0;
   flex-direction: column !important;
-}
-
-.ui.menu .ui.dropdown .menu > .item {
-  margin: 0;
-  text-align: left;
-  font-size: 1em !important;
-  padding: 0.78571429em 1.14285714em !important;
-  background: transparent !important;
-  color: var(--color-text) !important;
-  font-weight: var(--font-weight-normal) !important;
-}
-.ui.menu .ui.dropdown .menu > .item:hover {
-  color: var(--color-text) !important;
-  background: var(--color-hover) !important;
-}
-.ui.menu .ui.dropdown .menu > .selected.item {
-  color: var(--color-text) !important;
-  background: var(--color-hover) !important;
-}
-.ui.menu .ui.dropdown .menu > .active.item {
-  color: var(--color-text) !important;
-  background: var(--color-active) !important;
-  font-weight: var(--font-weight-medium) !important;
-}
-
-.ui.menu .ui.dropdown.item .menu .item {
-  width: 100%;
 }
 
 .ui.menu .ui.dropdown.item .menu .item:not(.filtered) {
@@ -442,7 +416,8 @@
   .ui.stackable.menu {
     flex-direction: column;
   }
-  .ui.stackable.menu .item {
+  .ui.stackable.menu > .item,
+  .ui.stackable.menu > .menu > .item {
     width: 100% !important;
   }
   .ui.stackable.menu .left.menu {

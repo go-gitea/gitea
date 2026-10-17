@@ -91,15 +91,14 @@ func (jobs ActionJobList) LoadAttributes(ctx context.Context, withRepo bool) err
 
 type FindRunJobOptions struct {
 	db.ListOptions
-	RunID            int64
-	RunAttemptID     optional.Option[int64] // use optional to allow filtering by zero (legacy jobs have run_attempt_id=0)
-	RepoID           int64
-	OwnerID          int64
-	CommitSHA        string
-	Statuses         []Status
-	UpdatedBefore    timeutil.TimeStamp
-	ConcurrencyGroup string
-	OrderBy          db.SearchOrderBy
+	RunID         int64
+	RunAttemptID  optional.Option[int64] // use optional to allow filtering by zero (legacy jobs have run_attempt_id=0)
+	RepoID        int64
+	OwnerID       int64
+	CommitSHA     string
+	Statuses      []Status
+	UpdatedBefore timeutil.TimeStamp
+	OrderBy       db.SearchOrderBy
 	// AccessibleRepoIDsSubQuery, when non-nil, restricts results to the repo IDs selected by the
 	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
 	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
@@ -130,12 +129,6 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 	}
 	if opts.UpdatedBefore > 0 {
 		cond = cond.And(builder.Lt{"`action_run_job`.updated": opts.UpdatedBefore})
-	}
-	if opts.ConcurrencyGroup != "" {
-		if opts.RepoID == 0 {
-			panic("Invalid FindRunJobOptions: repo_id is required")
-		}
-		cond = cond.And(builder.Eq{"`action_run_job`.concurrency_group": opts.ConcurrencyGroup})
 	}
 	if opts.AccessibleRepoIDsSubQuery != nil {
 		cond = cond.And(builder.In("`action_run_job`.repo_id", opts.AccessibleRepoIDsSubQuery))

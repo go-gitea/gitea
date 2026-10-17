@@ -211,11 +211,6 @@ func (ctx *Context) DoerNeedTwoFactorAuth() bool {
 	return ctx.Session.Get(session.KeyUserHasTwoFactorAuth) == false
 }
 
-// DoerIsImpersonated returns true if the current session is an admin impersonating the doer
-func (ctx *Context) DoerIsImpersonated() bool {
-	return ctx.Session.Get(session.KeyImpersonatorData) != nil
-}
-
 // HasError returns true if error occurs in form validation.
 // Attention: this function changes ctx.Data and ctx.Flash
 // If HasError is called, then before Redirect, the error message should be stored by ctx.Flash.Error(ctx.GetErrMsg()) again.
@@ -270,8 +265,12 @@ func (ctx *Context) JSONErrorAuto(err error) {
 		ctx.JSON(httpCode, buildJsonErrorMap(errMsg))
 		return
 	}
-	log.ErrorWithSkip(1, "JSONErrorAuto: server internal error: %v", err)
-	ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(ctx.Locale.TrString("error.occurred")))
+
+	logLevel := util.Iif(httplib.IsClientOrNetworkError(ctx, err), log.DEBUG, log.ERROR)
+	log.Log(1, logLevel, "JSONErrorAuto: server internal error: %v", err)
+
+	userErrorMsg := ctx.buildUserErrorMessage("internal server error", err)
+	ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(userErrorMsg))
 }
 
 func (ctx *Context) JSONError[T string | template.HTML](msg T) {

@@ -65,7 +65,7 @@ type CommentType int
 const CommentTypeUndefined CommentType = -1
 
 const (
-	CommentTypeComment CommentType = iota // 0 Plain comment, can be associated with a commit (CommitID > 0) and a line (LineNum > 0)
+	CommentTypeComment CommentType = iota // 0 Plain comment, can be associated with "commit_sha" and a non-zero "line"
 
 	CommentTypeReopen // 1
 	CommentTypeClose  // 2
@@ -253,46 +253,57 @@ type CommentMetaData struct {
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID               int64            `xorm:"pk autoincr"`
-	Type             CommentType      `xorm:"INDEX"`
-	PosterID         int64            `xorm:"INDEX"`
-	Poster           *user_model.User `xorm:"-"`
+	ID   int64 `xorm:"pk autoincr"`
+	Type CommentType
+
+	PosterID int64            `xorm:"INDEX"`
+	Poster   *user_model.User `xorm:"-"`
+
 	OriginalAuthor   string
 	OriginalAuthorID int64
-	IssueID          int64  `xorm:"INDEX"`
-	Issue            *Issue `xorm:"-"`
-	LabelID          int64
-	Label            *Label   `xorm:"-"`
-	AddedLabels      []*Label `xorm:"-"`
-	RemovedLabels    []*Label `xorm:"-"`
-	OldProjectID     int64
-	ProjectID        int64
-	OldProject       *project_model.Project `xorm:"-"`
-	Project          *project_model.Project `xorm:"-"`
-	OldMilestoneID   int64
-	MilestoneID      int64
-	OldMilestone     *Milestone `xorm:"-"`
-	Milestone        *Milestone `xorm:"-"`
-	TimeID           int64
-	Time             *TrackedTime `xorm:"-"`
-	AssigneeID       int64
-	RemovedAssignee  bool
-	Assignee         *user_model.User   `xorm:"-"`
-	AssigneeTeamID   int64              `xorm:"NOT NULL DEFAULT 0"`
-	AssigneeTeam     *organization.Team `xorm:"-"`
-	ResolveDoerID    int64
-	ResolveDoer      *user_model.User `xorm:"-"`
-	OldTitle         string
-	NewTitle         string
-	OldRef           string
-	NewRef           string
+
+	IssueID int64  `xorm:"INDEX"`
+	Issue   *Issue `xorm:"-"`
+
+	LabelID       int64
+	Label         *Label   `xorm:"-"`
+	AddedLabels   []*Label `xorm:"-"`
+	RemovedLabels []*Label `xorm:"-"`
+
+	OldProjectID int64
+	ProjectID    int64
+	OldProject   *project_model.Project `xorm:"-"`
+	Project      *project_model.Project `xorm:"-"`
+
+	OldMilestoneID int64
+	MilestoneID    int64
+	OldMilestone   *Milestone `xorm:"-"`
+	Milestone      *Milestone `xorm:"-"`
+
+	TimeID int64
+	Time   *TrackedTime `xorm:"-"`
+
+	AssigneeID      int64
+	RemovedAssignee bool
+	Assignee        *user_model.User   `xorm:"-"`
+	AssigneeTeamID  int64              `xorm:"NOT NULL DEFAULT 0"`
+	AssigneeTeam    *organization.Team `xorm:"-"`
+
+	ResolveDoerID int64
+	ResolveDoer   *user_model.User `xorm:"-"`
+
+	OldTitle string
+	NewTitle string
+	OldRef   string
+	NewRef   string
+
 	DependentIssueID int64  `xorm:"index"` // This is used by issue_service.deleteIssue
 	DependentIssue   *Issue `xorm:"-"`
 
-	CommitID        int64
-	Line            int64         // - previous line / + proposed line
-	TreePath        string        `xorm:"VARCHAR(4000)"` // SQLServer only supports up to 4000
-	Content         string        `xorm:"LONGTEXT"`
+	Line     int64  // - previous line / + proposed line
+	TreePath string `xorm:"VARCHAR(4000)"` // SQLServer only supports up to 4000
+	Content  string `xorm:"LONGTEXT"`
+
 	ContentVersion  int           `xorm:"NOT NULL DEFAULT 0"`
 	RenderedContent template.HTML `xorm:"-"`
 
@@ -324,11 +335,11 @@ type Comment struct {
 	RefAction    references.XRefAction `xorm:"SMALLINT"` // What happens if RefIssueID resolves
 	RefIsPull    bool
 
-	CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
-
 	RefRepo    *repo_model.Repository `xorm:"-"`
 	RefIssue   *Issue                 `xorm:"-"`
 	RefComment *Comment               `xorm:"-"`
+
+	CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
 
 	Commits    []*git_model.SignCommitWithStatuses `xorm:"-"`
 	OldCommit  string                              `xorm:"-"`
@@ -849,7 +860,6 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 			RemovedAssignee:  opts.RemovedAssignee,
 			AssigneeID:       opts.AssigneeID,
 			AssigneeTeamID:   opts.AssigneeTeamID,
-			CommitID:         opts.CommitID,
 			CommitSHA:        opts.CommitSHA,
 			Line:             opts.LineNum,
 			Content:          opts.Content,
@@ -1015,7 +1025,6 @@ type CreateCommentOptions struct {
 	NewTitle           string
 	OldRef             string
 	NewRef             string
-	CommitID           int64
 	CommitSHA          string
 	Patch              string
 	LineNum            int64
@@ -1257,45 +1266,6 @@ func (c *Comment) GetExternalName() string { return c.OriginalAuthor }
 
 // GetExternalID ExternalUserRemappable interface
 func (c *Comment) GetExternalID() int64 { return c.OriginalAuthorID }
-
-// CountCommentTypeLabelWithEmptyLabel count label comments with empty label
-func CountCommentTypeLabelWithEmptyLabel(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Count(new(Comment))
-}
-
-// FixCommentTypeLabelWithEmptyLabel count label comments with empty label
-func FixCommentTypeLabelWithEmptyLabel(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Delete(new(Comment))
-}
-
-// CountCommentTypeLabelWithOutsideLabels count label comments with outside label
-func CountCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where("comment.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))", CommentTypeLabel).
-		Table("comment").
-		Join("inner", "label", "label.id = comment.label_id").
-		Join("inner", "issue", "issue.id = comment.issue_id ").
-		Join("inner", "repository", "issue.repo_id = repository.id").
-		Count()
-}
-
-// FixCommentTypeLabelWithOutsideLabels count label comments with outside label
-func FixCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
-	res, err := db.GetEngine(ctx).Exec(`DELETE FROM comment WHERE comment.id IN (
-		SELECT il_too.id FROM (
-			SELECT com.id
-				FROM comment AS com
-					INNER JOIN label ON com.label_id = label.id
-					INNER JOIN issue on issue.id = com.issue_id
-					INNER JOIN repository ON issue.repo_id = repository.id
-				WHERE
-					com.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))
-	) AS il_too)`, CommentTypeLabel)
-	if err != nil {
-		return 0, err
-	}
-
-	return res.RowsAffected()
-}
 
 // HasOriginalAuthor returns if a comment was migrated and has an original author.
 func (c *Comment) HasOriginalAuthor() bool {

@@ -167,6 +167,7 @@ func assignTeamPermissionUnits(team *organization.Team, permission string, units
 	oldAccessMode := team.AccessMode
 	oldUnitPerms := team.GetUnitsMap()
 	if len(unitsMap) > 0 {
+		team.AccessMode = perm.AccessModeNone
 		team.Units = make([]*organization.TeamUnit, 0, len(unitsMap))
 		for unitKey, p := range unitsMap {
 			unitType, unitPerm := unit_model.TypeFromKey(unitKey), perm.ParseAccessMode(p)

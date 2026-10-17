@@ -433,7 +433,7 @@ func TestRecalculateReviewsOfficial(t *testing.T) {
 
 	// Once the reviewer is whitelisted, re-evaluating restores the official flag.
 	rule.ApprovalsWhitelistUserIDs = []int64{2, reviewer.ID}
-	_, err = db.GetEngine(t.Context()).ID(rule.ID).Cols("approvals_whitelist_user_i_ds").Update(rule)
+	_, err = db.GetEngine(t.Context()).ID(rule.ID).Cols("config").Update(rule)
 	assert.NoError(t, err)
 
 	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))

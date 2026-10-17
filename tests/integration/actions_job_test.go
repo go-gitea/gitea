@@ -260,6 +260,7 @@ jobs:
       output_2: ${{ steps.gen_output.outputs.output_2 }}
       output_3: ${{ steps.gen_output.outputs.output_3 }}
     strategy:
+      fail-fast: false
       matrix:
         version: [1, 2, 3]
     steps:

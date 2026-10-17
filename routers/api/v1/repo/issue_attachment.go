@@ -386,8 +386,8 @@ func attachmentBelongsToRepoOrIssue(ctx *context.APIContext, attachment *repo_mo
 		ctx.APIErrorNotFound("no such attachment in repo")
 		return false
 	}
-	if attachment.IssueID == 0 {
-		log.Debug("Requested attachment[%d] is not in an issue.", attachment.ID)
+	if attachment.IssueID == 0 || attachment.CommentID != 0 {
+		log.Debug("Requested attachment[%d] is not an issue attachment.", attachment.ID)
 		ctx.APIErrorNotFound("no such attachment in issue")
 		return false
 	} else if issue != nil && attachment.IssueID != issue.ID {

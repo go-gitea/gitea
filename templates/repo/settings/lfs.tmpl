@@ -3,8 +3,8 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "repo.settings.lfs_filelist"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui tiny button" href="{{.Link}}/locks">{{ctx.Locale.Tr "repo.settings.lfs_locks"}}</a>
-				<a class="ui primary tiny button" href="{{.Link}}/pointers">&nbsp;{{ctx.Locale.Tr "repo.settings.lfs_findpointerfiles"}}</a>
+				<a class="ui tiny compact button" href="{{.Link}}/locks">{{ctx.Locale.Tr "repo.settings.lfs_locks"}}</a>
+				<a class="ui primary tiny compact button" href="{{.Link}}/pointers">&nbsp;{{ctx.Locale.Tr "repo.settings.lfs_findpointerfiles"}}</a>
 			</div>
 		</h4>
 		<table id="lfs-files-table" class="ui attached segment single line table">
@@ -12,17 +12,21 @@
 				{{range .LFSFiles}}
 					<tr>
 						<td>
-							<a href="{{$.Link}}/show/{{.Oid}}" title="{{.Oid}}" class="ui button tw-font-mono">
+							<a href="{{$.Link}}/show/{{.Oid}}" title="{{.Oid}}" class="ui label commit-id-short">
 								{{ShortSha .Oid}}
 							</a>
 						</td>
 						<td>{{FormatByteSize .Size}}</td>
 						<td>{{DateUtils.TimeSince .CreatedUnix}}</td>
-						<td class="tw-text-right">
-							<a class="ui primary button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
-							<button type="button" class="ui basic show-modal icon button red" data-modal="#delete-{{.Oid}}">
-								<span class="btn-octicon btn-octicon-danger" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.delete_this_file"}}">{{svg "octicon-trash"}}</span>
-							</button>
+						<td>
+							<div class="flex-text-block tw-justify-end">
+								<a class="ui basic primary tiny compact button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
+								<button type="button" class="ui basic tiny compact red icon button show-modal" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.delete_this_file"}}"
+									data-modal="#delete-lfs-object" data-modal-header="{{ctx.Locale.Tr "repo.settings.lfs_delete" .Oid}}" data-modal-form.url="{{$.Link}}/delete/{{.Oid}}"
+								>
+									{{svg "octicon-trash" 14}}
+								</button>
+							</div>
 						</td>
 					</tr>
 				{{else}}
@@ -33,20 +37,12 @@
 			</tbody>
 		</table>
 		{{template "base/paginate" .}}
-		{{range .LFSFiles}}
-			<div class="ui g-modal-confirm modal" id="delete-{{.Oid}}">
-				<div class="header">
-					{{ctx.Locale.Tr "repo.settings.lfs_delete" .Oid}}
-				</div>
-				<div class="content">
-					<p>
-						{{ctx.Locale.Tr "repo.settings.lfs_delete_warning"}}
-					</p>
-					<form class="ui form" action="{{$.Link}}/delete/{{.Oid}}" method="post">
-						{{template "base/modal_actions_confirm"}}
-					</form>
-				</div>
-			</div>
-		{{end}}
+		<div class="ui g-modal-confirm modal" id="delete-lfs-object">
+			<div class="header"></div>
+			<form class="content" method="post">
+				<p>{{ctx.Locale.Tr "repo.settings.lfs_delete_warning"}}</p>
+				{{template "base/modal_actions_confirm"}}
+			</form>
+		</div>
 	</div>
 {{template "repo/settings/layout_footer" .}}

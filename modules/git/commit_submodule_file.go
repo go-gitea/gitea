@@ -46,11 +46,11 @@ func (sf *CommitSubmoduleFile) getWebLinkInTargetRepo(ctx context.Context, moreL
 		return &SubmoduleWebLink{RepoWebLink: targetLink, CommitWebLink: targetLink + moreLinkPath}
 	}
 	if !sf.parsed {
-		sf.parsed = true
 		parsedURL, err := giturl.ParseRepositoryURL(ctx, sf.refURL)
 		if err != nil {
-			return nil
+			return nil // do not mark as parsed, otherwise later calls would return a link with an empty target
 		}
+		sf.parsed = true
 		sf.parsedTargetLink = giturl.MakeRepositoryWebLink(parsedURL)
 	}
 	return &SubmoduleWebLink{RepoWebLink: sf.parsedTargetLink, CommitWebLink: sf.parsedTargetLink + moreLinkPath}

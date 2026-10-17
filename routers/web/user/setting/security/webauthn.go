@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	wa "gitea.dev/modules/auth/webauthn"
@@ -16,6 +17,7 @@ import (
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 
@@ -124,26 +126,66 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	}
 
 	// Create the credential
-	_, err = auth.CreateCredential(ctx, ctx.Doer.ID, name, cred)
+	dbCred, err = auth.CreateCredential(ctx, ctx.Doer.ID, name, cred)
 	if err != nil {
 		ctx.ServerError("CreateCredential", err)
 		return
 	}
 	_ = ctx.Session.Delete("webauthnName")
 	_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
+
+	audit.Record(ctx, audit_model.UserWebAuthAdd, ctx.Doer, "credential", dbCred.Name)
+
 	ctx.JSON(http.StatusCreated, cred)
 }
 
-// WebauthnDelete deletes an security key by id
+// WebauthnRename changes the nickname of a security key
+func WebauthnRename(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
+	form := context.GetFetchActionForm[*forms.WebauthnRenameForm](ctx)
+	if form == nil {
+		return
+	}
+
+	cred, err := auth.GetWebAuthnCredentialByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+
+	renamed, err := auth.RenameCredential(ctx, ctx.Doer.ID, form.ID, form.Name)
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+	if renamed {
+		audit.Record(ctx, audit_model.UserWebAuthRename, ctx.Doer, "previous_credential", cred.Name, "credential", form.Name)
+	}
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
+}
+
+// WebauthnDelete deletes a security key by id
 func WebauthnDelete(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
 		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
-	if _, err := auth.DeleteCredential(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
-		ctx.ServerError("GetWebAuthnCredentialByID", err)
+	cred, err := auth.GetWebAuthnCredentialByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.JSONErrorAuto(err)
 		return
+	}
+
+	if ok, err := auth.DeleteCredential(ctx, ctx.Doer.ID, cred.ID); err != nil {
+		ctx.ServerError("DeleteCredential", err)
+		return
+	} else if ok {
+		audit.Record(ctx, audit_model.UserWebAuthRemove, ctx.Doer, "credential", cred.Name)
 	}
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }

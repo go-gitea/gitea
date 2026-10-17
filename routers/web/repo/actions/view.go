@@ -252,9 +252,7 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 
 	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, run.CommitSHA)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("GetCommit", err)
 		return
 	}
 	rpath, entries, err := actions.ListWorkflows(ctx, ctx.Repo.GitRepo, commit)
@@ -287,6 +285,7 @@ type ArtifactsViewItem struct {
 	Size        int64  `json:"size"`
 	Status      string `json:"status"`
 	ExpiresUnix int64  `json:"expiresUnix"`
+	PreviewLink string `json:"previewLink,omitempty"`
 }
 
 type ViewResponse struct {
@@ -406,10 +405,9 @@ type ViewJobStep struct {
 }
 
 type ViewStepLog struct {
-	Step    int                `json:"step"`
-	Cursor  int64              `json:"cursor"`
-	Lines   []*ViewStepLogLine `json:"lines"`
-	Started int64              `json:"started"`
+	Step   int                `json:"step"`
+	Cursor int64              `json:"cursor"`
+	Lines  []*ViewStepLogLine `json:"lines"`
 }
 
 type ViewStepLogLine struct {
@@ -594,8 +592,8 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 
 	// Hide the Cancel button once a cancel is already in cancelling progress
 	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && !effectiveStatus.IsCancelling() && ctx.Repo.Permission.CanWrite(unit.TypeActions)
-	resp.State.Run.CanApprove = isLatestAttempt && run.NeedApproval && ctx.Repo.Permission.CanWrite(unit.TypeActions)
-	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.CanApprove = isLatestAttempt && run.IsAwaitingApproval() && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && len(jobs) > 0 && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	if resp.State.Run.CanRerun {
 		for _, job := range jobs {
@@ -683,7 +681,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		return
 	}
 	if len(summaries) > 0 {
-		jobNameByID := make(map[int64]string, len(jobs))
+		jobNameByID := map[int64]string{0: run.WorkflowID} // a workflow-level summary, such as an invalid workflow file
 		for _, j := range jobs {
 			jobNameByID[j.ID] = j.Name
 		}
@@ -709,11 +707,14 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	resp.Artifacts = make([]*ArtifactsViewItem, 0, len(arts))
 	for _, art := range arts {
+		allowPreview := ctx.IsSigned && isArtifactPreviewSizeAllowed(art.FileSize)
+		previewLink := fmt.Sprintf("%s/actions/artifacts/%d/preview", ctx.Repo.RepoLink, art.ID)
 		resp.Artifacts = append(resp.Artifacts, &ArtifactsViewItem{
 			Name:        art.ArtifactName,
 			Size:        art.FileSize,
 			Status:      util.Iif(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
 			ExpiresUnix: int64(art.ExpiredUnix),
+			PreviewLink: util.Iif(allowPreview, previewLink, ""),
 		})
 	}
 }
@@ -745,7 +746,7 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 
 	resp.State.CurrentJob.Title = current.Name
 	resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
-	if run.NeedApproval {
+	if run.IsAwaitingApproval() {
 		resp.State.CurrentJob.Detail = ctx.Locale.TrString("actions.need_approval_desc")
 	} else if detail := describePendingJobDetail(ctx, current, jobs); detail != "" {
 		resp.State.CurrentJob.Detail = detail
@@ -763,18 +764,14 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 	}
 }
 
-// describePendingJobDetail explains why a blocked or waiting job has not started
-// yet, so the user can tell whether it is waiting on its dependencies or on an
-// available runner. It returns an empty string when the job is not pending or the
-// cause can't be determined (the caller keeps the generic status label then).
+// describePendingJobDetail explains why a pending or waiting job has not started, or returns an empty string when it can't tell
 func describePendingJobDetail(ctx *context_module.Context, current *actions_model.ActionRunJob, jobs []*actions_model.ActionRunJob) string {
 	switch {
-	case current.Status.IsBlocked():
-		// A blocked job is held back by the jobs listed in its `needs`.
+	case current.Status.IsPending():
 		if pending := pendingNeeds(current, jobs); len(pending) > 0 {
 			return ctx.Locale.TrString("actions.runs.waiting_for_dependent_jobs", strings.Join(pending, ", "))
 		}
-	case current.Status.IsWaiting():
+	case current.Status.IsWaiting() && !current.IsReusableCaller: // a caller waits on its called jobs, never on a runner
 		// A waiting job has no runner to pick it up yet. A busy runner is still
 		// "online", so distinguish three cases: no runner online at all, online
 		// runners but none match the labels, and a matching runner that is busy.
@@ -849,12 +846,12 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 		viewJobs = append(viewJobs, &ViewJobStep{
 			Summary:  v.Name,
 			Duration: v.Duration().String(),
-			Status:   status.String(),
+			Status:   util.Iif(status.IsWaiting(), actions_model.StatusPending, status).String(),
 		})
 	}
 
 	for _, cursor := range cursors {
-		if !cursor.Expanded {
+		if !cursor.Expanded || cursor.Step < 0 || cursor.Step >= len(steps) {
 			continue
 		}
 
@@ -875,7 +872,6 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 							Timestamp: float64(task.Updated.AsTime().UnixNano()) / float64(time.Second),
 						},
 					},
-					Started: int64(step.Started),
 				})
 			}
 			continue
@@ -911,10 +907,9 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 		}
 
 		logs = append(logs, &ViewStepLog{
-			Step:    cursor.Step,
-			Cursor:  cursor.Cursor + int64(len(logLines)),
-			Lines:   logLines,
-			Started: int64(step.Started),
+			Step:   cursor.Step,
+			Cursor: cursor.Cursor + int64(len(logLines)),
+			Lines:  logLines,
 		})
 	}
 
@@ -965,6 +960,10 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 	if !checkRunRerunAllowed(ctx, run) {
+		return
+	}
+	if len(jobs) == 0 {
+		ctx.JSONError(ctx.Locale.Tr("actions.runs.no_job"))
 		return
 	}
 
@@ -1036,9 +1035,7 @@ func Logs(ctx *context_module.Context) {
 	jobID := ctx.PathParamInt64("job")
 
 	if err := common.DownloadActionsRunJobLogsWithID(ctx.Base, ctx.Repo.Repository, run.ID, jobID); err != nil {
-		ctx.NotFoundOrServerError("DownloadActionsRunJobLogsWithID", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("DownloadActionsRunJobLogsWithID", err)
 	}
 }
 
@@ -1064,9 +1061,7 @@ func Approve(ctx *context_module.Context) {
 		return
 	}
 	if _, err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
-		ctx.NotFoundOrServerError("ApproveRuns", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("ApproveRuns", err)
 		return
 	}
 
@@ -1100,7 +1095,7 @@ func getRunViewLink(run *actions_model.ActionRun, attempt *actions_model.ActionR
 }
 
 // getCurrentRunJobsByPathParam resolves the current run view context from path parameters, including the run, optional attempt, and jobs to render.
-// Any error will be written to the ctx, empty jobs will also result in 404 error, then the return values are all nil.
+// Any error will be written to the ctx, then the return values are all nil.
 func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.ActionRun, *actions_model.ActionRunAttempt, []*actions_model.ActionRunJob) {
 	run := getCurrentRunByPathParam(ctx)
 	if ctx.Written() {
@@ -1114,9 +1109,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		jobID := ctx.PathParamInt64("job")
 		selectedJob, err = actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetRunJobByRepoAndID", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetRunJobByRunAndID", err)
 			return nil, nil, nil
 		}
 	}
@@ -1131,27 +1124,21 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		// Explicit attempt number in the URL — user is viewing a historical attempt.
 		attempt, err = actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetRunAttemptByRunIDAndAttempt", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetRunAttemptByRunIDAndAttemptNum", err)
 			return nil, nil, nil
 		}
 	case selectedJob != nil && selectedJob.RunAttemptID > 0:
 		// No explicit attempt in the URL, but the requested job belongs to a known attempt — resolve via the job.
 		attempt, err = actions_model.GetRunAttemptByRepoAndID(ctx, selectedJob.RepoID, selectedJob.RunAttemptID)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetRunAttemptByRepoAndID", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetRunAttemptByRepoAndID", err)
 			return nil, nil, nil
 		}
 	default:
 		// No attempt context at all — show the latest attempt (nil for legacy runs).
 		attempt, _, err = run.GetLatestAttempt(ctx)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetLatestAttempt", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetLatestAttempt", err)
 			return nil, nil, nil
 		}
 	}
@@ -1165,10 +1152,6 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, resolvedAttemptID)
 	if err != nil {
 		ctx.ServerError("get current jobs", err)
-		return nil, nil, nil
-	}
-	if len(jobs) == 0 {
-		ctx.NotFound(nil)
 		return nil, nil, nil
 	}
 	jobs.SortMatrixGroupsByName()
@@ -1204,9 +1187,7 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 	}
 	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("resolveArtifactAttemptIDFromQuery", err)
 		return
 	}
 	artifactName := ctx.PathParam("artifact_name")
@@ -1224,9 +1205,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	}
 	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("resolveArtifactAttemptIDFromQuery", err)
 		return
 	}
 	artifactName := ctx.PathParam("artifact_name")
@@ -1311,7 +1290,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return
 	}
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, repo.ID, commitStatuses)
 	if err != nil {
 		ctx.ServerError("GetRunsFromCommitStatuses", err)
 		return
@@ -1319,7 +1298,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 
 	runIDs := make([]int64, 0, len(runs))
 	for _, run := range runs {
-		if run.NeedApproval {
+		if run.IsAwaitingApproval() {
 			runIDs = append(runIDs, run.ID)
 		}
 	}
@@ -1330,9 +1309,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 	}
 
 	if _, err := actions_service.ApproveRuns(ctx, repo, ctx.Doer, runIDs); err != nil {
-		ctx.NotFoundOrServerError("ApproveRuns", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("ApproveRuns", err)
 		return
 	}
 
@@ -1385,6 +1362,7 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 		ctx.ServerError("UpdateRepoUnit", err)
 		return
 	}
+	actions_service.RecordWorkflowToggle(ctx, ctx.Repo.Repository, workflow, isEnable)
 
 	if isEnable {
 		ctx.Flash.Success(ctx.Tr("actions.workflow.enable_success", workflow))
@@ -1444,9 +1422,7 @@ func Run(ctx *context_module.Context) {
 func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.ActionRun) {
 	sourceRepo, err := repo_model.GetRepositoryByID(ctx, run.WorkflowRepoID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetRepositoryByID", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("GetRepositoryByID", err)
 		return
 	}
 
@@ -1469,9 +1445,7 @@ func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.Acti
 
 	commit, err := sourceGitRepo.GetCommit(ctx, run.WorkflowCommitSHA)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("GetCommit", err)
 		return
 	}
 	rpath, entries, err := actions.ListScopedWorkflows(ctx, sourceGitRepo, commit)

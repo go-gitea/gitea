@@ -9,6 +9,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	org_model "gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
@@ -21,6 +22,7 @@ import (
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -84,6 +86,8 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	}); err != nil {
 		return err
 	}
+
+	audit.Record(ctx, audit_model.OrganizationDelete, org.AsUser())
 
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
@@ -158,9 +162,10 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 		return nil
 	}
 
+	oldVisibility := org.Visibility
 	org.Visibility = visibility
 	// FIXME: If it's a big forks network(forks and sub forks), the database transaction will be too long to fail.
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := user_model.UpdateUserColsNoAutoTime(ctx, org.AsUser(), "visibility"); err != nil {
 			return err
 		}
@@ -177,7 +182,14 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 			}
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.OrganizationVisibility, org.AsUser(),
+		"old_visibility", oldVisibility.String(), "new_visibility", visibility.String())
+
+	return nil
 }
 
 // UpdateOrgEmailAddress validates and updates the organization's contact email.
