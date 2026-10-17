@@ -20,7 +20,6 @@ import (
 	"gitea.dev/modules/svg"
 	"gitea.dev/modules/templates/eval"
 	"gitea.dev/modules/util"
-	"gitea.dev/services/gitdiff"
 )
 
 func newFuncMapWebPage() template.FuncMap {
@@ -49,7 +48,7 @@ func newFuncMapWebPage() template.FuncMap {
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
 		"svg":           svg.RenderHTML,
-		"MigrationIcon": migrationIcon,
+		"MigrationIcon": MigrationIcon,
 		"ActionIcon":    actionIcon,
 		"SortArrow":     sortArrow,
 		"ContrastColor": util.ContrastColor,
@@ -115,15 +114,14 @@ func newFuncMapWebPage() template.FuncMap {
 		// -----------------------------------------------------------------
 		// render
 		"RenderCodeBlock": renderCodeBlock,
-		"ReactionToEmoji": reactionToEmoji,
+		"ReactionToEmoji": ReactionToEmoji,
 
 		// -----------------------------------------------------------------
 		// misc (TODO: move them to MiscUtils to avoid bloating the main func map)
 		"ActionContent2Commits": ActionContent2Commits,
-		"CommentMustAsDiff":     gitdiff.CommentMustAsDiff,
 		"MirrorRemoteAddress":   mirrorRemoteAddress,
 
-		"FilenameIsImage": filenameIsImage,
+		"FilenameIsImage": FilenameIsImage,
 		"TabSizeClass":    tabSizeClass,
 	}
 }

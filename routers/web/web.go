@@ -1295,12 +1295,14 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.TreeViewNodes)
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeViewNodes)
 		})
-		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
+		m.Get("/diff/stream", repo.MustBeNotEmpty, repo.DiffStream)
+		m.Get("/compare", repo.MustBeNotEmpty, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.PathGroup("/compare/*", func(g *web.RouterPathGroup) {
 			g.MatchPath("GET", "/<basehead:*>.diff", repo.MustBeNotEmpty, repo.DownloadCompareDiff)
 			g.MatchPath("GET", "/<basehead:*>.patch", repo.MustBeNotEmpty, repo.DownloadComparePatch)
-			g.MatchPath("GET", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
-			g.MatchPath("POST", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind[*forms.CreateIssueForm](), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+			g.MatchPath("GET", "/<basehead:*>/diff/stream", repo.MustBeNotEmpty, repo.CompareDiffStream)
+			g.MatchPath("GET", "/<*:*>", repo.MustBeNotEmpty, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
+			g.MatchPath("POST", "/<*:*>", repo.MustBeNotEmpty, reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind[*forms.CreateIssueForm](), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 		})
 		m.Get("/pulls/new/*", repo.PullsNewRedirect)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
@@ -1425,7 +1427,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/issues", func() {
 			m.Post("/request_review", repo.UpdatePullReviewRequest)
 			m.Post("/dismiss_review", reqRepoAdmin, web.Bind[*forms.DismissReviewForm](), repo.DismissReview)
-			m.Post("/resolve_conversation", repo.SetShowOutdatedComments, repo.UpdateResolveConversation)
+			m.Post("/resolve_conversation", repo.UpdateResolveConversation)
 		}, reqUnitPullsReader)
 		m.Post("/pull/{index}/target_branch", reqUnitPullsReader, repo.UpdatePullRequestTarget)
 	}, reqSignIn, context.RepoAssignment, context.RepoMustNotBeArchived())
@@ -1602,9 +1604,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Combo("/*").
 			Get(repo.Wiki).
 			Post(context.RepoMustNotBeArchived(), reqSignIn, reqUnitWikiWriter, repo.WikiPost)
-		m.Get("/blob_excerpt/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
-		m.Get("/commit/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
+		m.Get("/commit/{sha:[a-f0-9]{7,64}}", repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}.{ext:patch|diff}", repo.RawDiff)
+		m.Get("/diff/stream", repo.WikiDiffStream)
 		m.Get("/raw/*", repo.WikiRaw)
 	}, optSignIn, context.RepoAssignment, repo.MustEnableWiki, reqUnitWikiReader, func(ctx *context.Context) {
 		ctx.Data["PageIsWiki"] = true
@@ -1647,7 +1649,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("/commits", func() {
 				m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
 				m.Get("/list", repo.GetPullCommits)
-				m.Get("/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
+				m.Get("/{sha:[a-f0-9]{7,64}}", repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
 			})
 			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind[*forms.MergePullRequestForm](), repo.MergePullRequest)
 			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
@@ -1655,11 +1657,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/set_allow_maintainer_edit", web.Bind[*forms.UpdateAllowEditsForm](), repo.SetAllowEdits)
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), repo.CleanUpPullRequest)
 			m.Group("/files", func() {
-				m.Get("", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
-				m.Get("/{shaFrom:[a-f0-9]{7,64}}..{shaTo:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
+				m.Get("", repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
+				m.Get("/{shaFrom:[a-f0-9]{7,64}}..{shaTo:[a-f0-9]{7,64}}", repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
+				m.Get("/stream", repo.PullFilesStream)
+				m.Get("/comments", repo.PullFilesComments)
 				m.Group("/reviews", func() {
-					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
-					m.Post("/comments", web.Bind[*forms.CodeCommentForm](), repo.SetShowOutdatedComments, repo.CreateCodeComment)
+					m.Post("/comments", web.Bind[*forms.CodeCommentForm](), repo.CreateCodeComment)
 					m.Post("/submit", web.Bind[*forms.SubmitReviewForm](), repo.SubmitReview)
 				}, context.RepoMustNotBeArchived())
 			})
@@ -1719,11 +1722,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.RefBlame)
 		}, repo.MustBeNotEmpty)
 
-		m.Get("/blob_excerpt/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
-
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
-			m.Get("/commit/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
+			m.Get("/commit/{sha:([a-f0-9]{7,64})$}", repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}/load-branches-and-tags", repo.LoadBranchesAndTags)
 
 			// FIXME: this route `/cherry-pick/{sha}` doesn't seem useful or right, the new code always uses `/_cherrypick/` which could handle branch name correctly

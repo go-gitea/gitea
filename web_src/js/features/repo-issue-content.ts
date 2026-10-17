@@ -126,34 +126,55 @@ function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, co
   });
 }
 
-export async function initRepoIssueContentHistory() {
+async function loadContentHistoryOverview(issueBaseUrl: string): Promise<Record<string, number> | null> {
+  try {
+    const response = await GET(`${issueBaseUrl}/content-history/overview`);
+    const resp = await response.json();
+    i18nTextEdited = resp.i18n.textEdited;
+    i18nTextDeleteFromHistory = resp.i18n.textDeleteFromHistory;
+    i18nTextDeleteFromHistoryConfirm = resp.i18n.textDeleteFromHistoryConfirm;
+    i18nTextOptions = resp.i18n.textOptions;
+    return resp.editedHistoryCountMap;
+  } catch (error) {
+    console.error('Error:', error);
+    return null;
+  }
+}
+
+let editedHistoryOverview: ReturnType<typeof loadContentHistoryOverview> | null = null;
+
+// the overview of the issue is loaded once, null outside of issue pages
+function getEditedHistoryOverview(): {issueBaseUrl: string; overview: ReturnType<typeof loadContentHistoryOverview>} | null {
   const issuePageInfo = parseIssuePageInfo();
-  if (!issuePageInfo.issueNumber) return;
+  if (!issuePageInfo.issueNumber) return null;
+  const issueBaseUrl = `${issuePageInfo.repoLink}/issues/${issuePageInfo.issueNumber}`;
+  editedHistoryOverview ??= loadContentHistoryOverview(issueBaseUrl);
+  return {issueBaseUrl, overview: editedHistoryOverview};
+}
+
+// for comments rendered after the page has loaded
+export async function showContentHistoryMenuIfEdited(elComment: Element, commentId: number) {
+  const edited = getEditedHistoryOverview();
+  if (edited && (await edited.overview)?.[commentId]) showContentHistoryMenu(edited.issueBaseUrl, elComment, String(commentId));
+}
+
+export async function initRepoIssueContentHistory() {
+  const edited = getEditedHistoryOverview();
+  if (!edited) return;
 
   const elIssueDescription = document.querySelector('.repository.issue .timeline-item.comment.issue-content-comment'); // issue(PR) main content
   const elComments = document.querySelectorAll('.repository.issue .comment-list .comment'); // includes: issue(PR) comments, review comments, code comments
   if (!elIssueDescription && !elComments.length) return;
 
-  const issueBaseUrl = `${issuePageInfo.repoLink}/issues/${issuePageInfo.issueNumber}`;
-
-  try {
-    const response = await GET(`${issueBaseUrl}/content-history/overview`);
-    const resp = await response.json();
-
-    i18nTextEdited = resp.i18n.textEdited;
-    i18nTextDeleteFromHistory = resp.i18n.textDeleteFromHistory;
-    i18nTextDeleteFromHistoryConfirm = resp.i18n.textDeleteFromHistoryConfirm;
-    i18nTextOptions = resp.i18n.textOptions;
-
-    if (resp.editedHistoryCountMap[0] && elIssueDescription) {
-      showContentHistoryMenu(issueBaseUrl, elIssueDescription, '0');
-    }
-    for (const commentId of Object.keys(resp.editedHistoryCountMap)) {
-      if (commentId === '0') continue;
-      const elIssueComment = document.querySelector(`#issuecomment-${commentId}`);
-      if (elIssueComment) showContentHistoryMenu(issueBaseUrl, elIssueComment, commentId);
-    }
-  } catch (error) {
-    console.error('Error:', error);
+  const {issueBaseUrl} = edited;
+  const editedHistoryCountMap = await edited.overview;
+  if (!editedHistoryCountMap) return;
+  if (editedHistoryCountMap[0] && elIssueDescription) {
+    showContentHistoryMenu(issueBaseUrl, elIssueDescription, '0');
+  }
+  for (const commentId of Object.keys(editedHistoryCountMap)) {
+    if (commentId === '0') continue;
+    const elIssueComment = document.querySelector(`#issuecomment-${commentId}`);
+    if (elIssueComment) showContentHistoryMenu(issueBaseUrl, elIssueComment, commentId);
   }
 }

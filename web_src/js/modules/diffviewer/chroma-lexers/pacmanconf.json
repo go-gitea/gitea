@@ -1,0 +1,1 @@
+{"name":"PacmanConf","flags":"m","ensureNL":false,"rules":{"root":[["#.*$","c1",null],["^\\s*\\[.*?\\]\\s*$","k",null],["(\\w+)(\\s*)(=)",{"g":["na","","o"]},null],["^(\\s*)(\\w+)(\\s*)$",{"g":["","na",""]},null],["(\\$repo|\\$arch|%o|%u)\\b","nv",null],[".","",null]]}}

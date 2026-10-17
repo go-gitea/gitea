@@ -2,6 +2,8 @@
 *.tmpl linguist-language=Handlebars
 *.pb.go linguist-generated
 /assets/*.json linguist-generated
+/web_src/js/modules/diffviewer/chroma-lexers/*.json linguist-generated
+/web_src/js/modules/diffviewer/unicode-escape.json linguist-generated
 /public/assets/emoji.json linguist-generated
 /public/assets/img/svg/*.svg linguist-generated
 /templates/swagger/*.generated.json linguist-generated

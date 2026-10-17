@@ -10,6 +10,8 @@ import {applyAreYouSure} from '../modules/are-you-sure.ts';
 import {registerShortcutHandler} from '../modules/shortcut.ts';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
 
+export const EventCommentContentSaved = 'ce-comment-content-saved';
+
 async function onConvContentEdit(clickTarget: HTMLElement) {
   const commentContent = clickTarget.closest('.comment-header')!.nextElementSibling!;
   const editContentZone = commentContent.querySelector('.edit-content-zone')!;
@@ -71,6 +73,7 @@ async function onConvContentEdit(clickTarget: HTMLElement) {
         commentContent.querySelector('.dropzone-attachments')!.outerHTML = data.attachments;
       }
       comboMarkdownEditor.dropzoneSubmitReload();
+      editContentZone.dispatchEvent(new CustomEvent(EventCommentContentSaved, {bubbles: true}));
     } catch (error) {
       showErrorToast(`Failed to save the content: ${errorMessage(error)}`);
       console.error(error);
@@ -104,7 +107,7 @@ async function onConvContentEdit(clickTarget: HTMLElement) {
   triggerUploadStateChanged(comboMarkdownEditor.container);
 }
 
-function extractSelectedMarkdown(container: HTMLElement) {
+export function extractSelectedMarkdown(container: HTMLElement) {
   const selection = window.getSelection();
   if (!selection?.rangeCount) return '';
   const range = selection.getRangeAt(0);
@@ -124,7 +127,6 @@ async function onConvContentQuoteReply(clickTarget: HTMLElement) {
   const targetMarkupToQuote = targetRawToQuote.parentElement!.querySelector<HTMLElement>('.render-content.markup')!;
   let contentToQuote = extractSelectedMarkdown(targetMarkupToQuote);
   if (!contentToQuote) contentToQuote = targetRawToQuote.textContent;
-  const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n\n`;
 
   let editor;
   const btnReply = clickTarget.closest('.comment-code-cloud')?.querySelector<HTMLElement>('button.comment-form-reply');
@@ -134,7 +136,11 @@ async function onConvContentQuoteReply(clickTarget: HTMLElement) {
     // for normal issue/comment page
     editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'))!;
   }
+  appendQuote(editor, contentToQuote);
+}
 
+export function appendQuote(editor: ComboMarkdownEditor, content: string) {
+  const quotedContent = `${content.replace(/^/mg, '> ')}\n\n`;
   if (editor.value()) {
     editor.value(`${editor.value()}\n\n${quotedContent}`);
   } else {

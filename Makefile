@@ -130,7 +130,7 @@ WEB_DIRS := web_src/js web_src/css
 
 ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.json .github $(wildcard *.go *.md *.yml *.yaml *.toml)
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) ':!web_src/js/modules/diffviewer/chroma-lexers' templates options/locale/locale_en-US.json .github $(wildcard *.go *.md *.yml *.yaml *.toml)
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.json
 
 GO_SOURCES := $(wildcard *.go)
@@ -642,6 +642,11 @@ generate-images: | node_modules ## generate images
 .PHONY: generate-codemirror-languages
 generate-codemirror-languages: | node_modules ## generate codemirror languages
 	node tools/generate-codemirror-languages.ts
+	$(MAKE) generate-chroma-lexers
+
+.PHONY: generate-chroma-lexers
+generate-chroma-lexers: ## generate the chroma lexers of the diff viewer for the languages without a codemirror grammar
+	$(GO) run build/generate-chroma-lexers.go
 
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage
