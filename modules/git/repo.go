@@ -234,6 +234,10 @@ type PushOptions struct {
 	Timeout        time.Duration
 }
 
+type ConfigEntry struct {
+	Key, Value string
+}
+
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 	cmd := gitcmd.NewCommand("push")
