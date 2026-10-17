@@ -1,18 +1,15 @@
 <script lang="ts" setup>
 import SvgIcon from './SvgIcon.vue';
 import type {SvgName} from '../svg.ts';
-import {computed, shallowRef} from 'vue';
+import {shallowRef} from 'vue';
 import {type DiffStatus, type DiffTreeEntry, diffTreeStore} from '../modules/diff-file.ts';
-import {joinPath} from '../utils.ts';
 
 const props = defineProps<{
   item: DiffTreeEntry,
-  path: string,
 }>();
 
 const store = diffTreeStore();
 const collapsed = shallowRef(props.item.IsViewed);
-const boxId = computed(() => store.boxIdMap.get(props.path));
 
 const diffStatusIcons: Record<DiffStatus, {name: SvgName, class: string}> = {
   '': {name: 'octicon-blocked', class: 'tw-text-red'},
@@ -38,13 +35,13 @@ const diffStatusIcons: Record<DiffStatus, {name: SvgName, class: string}> = {
     </div>
 
     <div v-show="!collapsed" class="sub-items">
-      <DiffFileTreeItem v-for="childItem in item.Children!" :key="childItem.Name" :item="childItem" :path="joinPath(path, childItem.Name)"/>
+      <DiffFileTreeItem v-for="childItem in item.Children!" :key="childItem.Name" :item="childItem"/>
     </div>
   </template>
   <a
     v-else
-    class="item-file" :class="{ 'selected': Boolean(boxId) && store.selectedItem === `#${boxId}`, 'viewed': item.IsViewed }"
-    :title="item.Name" :href="boxId ? `#${boxId}` : undefined"
+    class="item-file" :class="{ 'selected': store.selectedItem === `#diff-${item.NameHash}`, 'viewed': item.IsViewed }"
+    :title="item.Name" :href="`#diff-${item.NameHash}`"
   >
     <SvgIcon :use-href="`#${item.IconID}`" :class="item.IconClass ?? store.FileIconClass"/>
     <span class="gt-ellipsis tw-flex-1">{{ item.Name }}</span>

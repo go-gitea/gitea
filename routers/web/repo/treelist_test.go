@@ -45,6 +45,7 @@ func TestTransformDiffTreeForWeb(t *testing.T) {
 					Children: []*WebDiffFileItem{
 						{
 							Name:       "file-deep",
+							NameHash:   "4acf7eef1c943a09e9f754e93ff190db8583236b",
 							DiffStatus: "changed",
 							IsViewed:   true,
 							IconID:     "svg-mfi-file",
@@ -53,11 +54,13 @@ func TestTransformDiffTreeForWeb(t *testing.T) {
 				},
 				{
 					Name:       "file1",
+					NameHash:   "60b27f004e454aca81b0480209cce5081ec52390",
 					DiffStatus: "added",
 					IconID:     "svg-mfi-file",
 				},
 				{
 					Name:       "file2",
+					NameHash:   "cb99b709a1978bd205ab9dfd4c5aaa1fc91c7523",
 					OldPath:    "file2-old",
 					DiffStatus: "renamed",
 					IconID:     "svg-mfi-file",

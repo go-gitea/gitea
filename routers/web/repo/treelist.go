@@ -62,6 +62,7 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 // WebDiffFileItem is used by frontend, check the field names in frontend before changing
 type WebDiffFileItem struct {
 	Name       string
+	NameHash   string             `json:",omitzero"`
 	OldPath    string             `json:",omitzero"`
 	DiffStatus string             `json:",omitzero"`
 	IsViewed   bool               `json:",omitzero"`
@@ -117,7 +118,7 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 	}
 
 	for _, file := range diffTree.Files {
-		item := &WebDiffFileItem{DiffStatus: file.Status}
+		item := &WebDiffFileItem{DiffStatus: file.Status, NameHash: git.HashFilePathForWebUI(file.HeadPath)}
 		if file.BasePath != file.HeadPath {
 			item.OldPath = file.BasePath
 		}

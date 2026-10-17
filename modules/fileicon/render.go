@@ -63,10 +63,12 @@ func RenderEntryIconID(renderedIconPool *RenderedIconPool, entry *EntryInfo) (sv
 	}
 	name := BasicEntryIconName(entry)
 	svgID = "svg-" + name
-	iconHTML := string(RenderEntryIconHTML(nil, entry))
-	if !strings.HasPrefix(iconHTML, "<svg ") {
-		setting.PanicInDevOrTesting("invalid SVG icon for %s", name) // a missing asset would leave "<use>" pointing at nothing
+	if renderedIconPool.IconSVGs[svgID] == "" {
+		iconHTML := string(RenderEntryIconHTML(nil, entry))
+		if !strings.HasPrefix(iconHTML, "<svg ") {
+			setting.PanicInDevOrTesting("invalid SVG icon for %s", name)
+		}
+		renderedIconPool.IconSVGs[svgID] = template.HTML(strings.Replace(iconHTML, "<svg ", `<svg id="`+svgID+`" `, 1))
 	}
-	renderedIconPool.addSVG(svgID, strings.Replace(iconHTML, "<svg ", `<svg id="`+svgID+`" `, 1))
 	return svgID, "svg " + name
 }
