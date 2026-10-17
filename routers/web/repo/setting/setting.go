@@ -682,8 +682,9 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
+			DefaultSquashCommitMessage:    form.PullsDefaultSquashCommitMessage,
 		}
-		if err := prConfig.ValidateUpdateSettings(); err != nil {
+		if err := errors.Join(prConfig.ValidateUpdateSettings(), prConfig.ValidateDefaultSquashCommitMessage()); err != nil {
 			ctx.JSONErrorAuto(err)
 			return
 		}
