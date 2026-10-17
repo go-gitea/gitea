@@ -5,13 +5,16 @@ package project
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
 
@@ -21,6 +24,39 @@ import (
 // ErrIssueNotInProject unwraps as ErrUnprocessableContent, not ErrNotExist: ctx.ServerError
 // diverts ErrNotExist to a 404, which would hide this from the web caller's logs.
 var ErrIssueNotInProject = util.ErrorWrap(util.ErrUnprocessableContent, "all issues have to be added to a project first")
+
+var ErrIssueRepoArchived = util.ErrorWrap(util.ErrPermissionDenied, "repo is archived")
+
+// GetBoardIssue resolves an issue addressable on a board of the repo, or of an owner when
+// repoID is 0. Owner-level boards span repositories, so the issue is looked up globally.
+func GetBoardIssue(ctx context.Context, doer *user_model.User, repoID, issueID int64) (*issues_model.Issue, error) {
+	var issue *issues_model.Issue
+	var err error
+	if repoID != 0 {
+		issue, err = issues_model.GetIssueByRepoID(ctx, repoID, issueID)
+	} else {
+		issue, err = issues_model.GetIssueByID(ctx, issueID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+	perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
+	if err != nil {
+		return nil, err
+	}
+	// hide the issue's existence rather than reporting it as forbidden
+	if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+		return nil, issues_model.ErrIssueNotExist{ID: issueID, RepoID: repoID}
+	}
+	// repo boards are guarded by their route group, owner boards have to check per issue
+	if issue.Repo.IsArchived {
+		return nil, ErrIssueRepoArchived
+	}
+	return issue, nil
+}
 
 // AddIssueToColumn assigns the issue to the column's project if needed, then places it in
 // the column. One transaction, so a failure cannot strand it in the default column.
@@ -67,13 +103,49 @@ func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *is
 		if !exists {
 			return util.NewNotExistErrorf("issue %d is not in column %d", issue.ID, column.ID)
 		}
-		projectIDs, err := issue.ProjectIDs(ctx)
+		return removeIssueFromProject(ctx, doer, issue, column.ProjectID)
+	})
+}
+
+// RemoveIssuesFromColumn detaches the given issues from the column's project and returns
+// the removed ones, skipping those not in the column or not visible, as the caller's list may be stale.
+func RemoveIssuesFromColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, repoID int64, issueIDs []int64) ([]int64, error) {
+	removed := make([]int64, 0, len(issueIDs))
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		columnIssueIDs, err := project_model.GetColumnIssueIDs(ctx, column)
 		if err != nil {
 			return err
 		}
-		remaining := util.SliceRemoveAll(projectIDs, column.ProjectID)
-		return issues_model.IssueAssignOrRemoveProject(ctx, issue, doer, remaining)
+		inColumn := container.SetOf(columnIssueIDs...)
+		for _, issueID := range issueIDs {
+			if !inColumn.Contains(issueID) {
+				continue
+			}
+			issue, err := GetBoardIssue(ctx, doer, repoID, issueID)
+			if errors.Is(err, util.ErrNotExist) {
+				continue
+			} else if err != nil {
+				return err
+			}
+			if err := removeIssueFromProject(ctx, doer, issue, column.ProjectID); err != nil {
+				return err
+			}
+			removed = append(removed, issueID)
+		}
+		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return removed, nil
+}
+
+func removeIssueFromProject(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, projectID int64) error {
+	projectIDs, err := issue.ProjectIDs(ctx)
+	if err != nil {
+		return err
+	}
+	return issues_model.IssueAssignOrRemoveProject(ctx, issue, doer, util.SliceRemoveAll(projectIDs, projectID))
 }
 
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column

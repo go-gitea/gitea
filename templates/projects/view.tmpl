@@ -1,4 +1,5 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
+{{$canRemoveIssues := and $canWriteProject (not .Project.IsClosed)}}
 
 <div class="ui container fluid padded projects-view" data-global-init="initRepoProjectsView">
 	<div class="ui container flex-text-block project-header">
@@ -108,6 +109,16 @@
 									>
 										{{svg "octicon-star"}} {{ctx.Locale.Tr "repo.projects.column.set_default"}}
 									</a>
+								{{end}}
+								{{if $canRemoveIssues}}
+									<a class="item button negative project-column-remove-issues"
+										data-confirm-header="{{ctx.Locale.Tr "repo.projects.column.remove_issues"}}"
+										data-confirm-content="{{ctx.Locale.Tr (Iif (or $.SelectLabels $.AssigneeID $.MilestoneID) "repo.projects.column.remove_filtered_issues_desc" "repo.projects.column.remove_issues_desc")}}"
+									>
+										{{svg "octicon-x"}} {{ctx.Locale.Tr "repo.projects.column.remove_issues"}}
+									</a>
+								{{end}}
+								{{if not .Default}}
 									<a class="item button link-action negative" data-url="{{$.Link}}/{{.ID}}" data-fetch-method="DELETE"
 										data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.delete"}}"
 										data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.column.deletion_desc"}}"
@@ -123,7 +134,7 @@
 				<div class="ui cards" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 					{{range (index $.IssuesMap .ID)}}
 						<div class="issue-card tw-break-anywhere {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}">
-							{{template "repo/issue/card" (dict "Issue" . "Page" $)}}
+							{{template "repo/issue/card" (dict "Issue" . "Page" $ "CanRemoveFromProject" (and $canRemoveIssues (or $.Repository (not .Repo.IsArchived))))}}{{/* owner boards span repos, some may be archived */}}
 						</div>
 					{{end}}
 				</div>

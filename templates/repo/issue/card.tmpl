@@ -20,6 +20,14 @@
 					{{svg "octicon-x" 16}}
 				</a>
 			{{end}}
+			{{if $.CanRemoveFromProject}}
+				<button type="button" class="issue-card-remove btn interact-fg flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.remove_issue"}}"
+					data-confirm-header="{{ctx.Locale.Tr "repo.projects.column.remove_issue"}}"
+					data-confirm-content="{{ctx.Locale.Tr "repo.projects.column.remove_issue_desc"}}"
+				>
+					{{svg "octicon-x" 16}}
+				</button>
+			{{end}}
 		</div>
 		<div class="meta">
 			<span class="tw-text-grey-light muted-links">

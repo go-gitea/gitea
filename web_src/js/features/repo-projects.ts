@@ -3,22 +3,59 @@ import {createSortable} from '../modules/sortable.ts';
 import {POST} from '../modules/fetch.ts';
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {hideFomanticModal} from '../modules/fomantic/modal.ts';
-import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
+import {createConfirmModal, confirmModal} from './comp/ConfirmModal.ts';
+import {html, htmlRaw} from '../utils/html.ts';
 import type {SortableEvent} from 'sortablejs';
 import {toggleFullScreen} from '../utils.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 
-function updateIssueCount(card: HTMLElement): void {
-  const parent = card.parentElement!;
-  const count = parent.querySelectorAll('.issue-card').length;
-  parent.querySelector('.project-column-issue-count')!.textContent = String(count);
+function updateColumn(elColumn: Element): void {
+  elColumn.querySelector('.project-column-issue-count')!.textContent = String(elColumn.querySelectorAll('.issue-card').length);
+  elColumn.querySelector('.project-column-remove-issues')?.classList.toggle('disabled', !elColumn.querySelector('.issue-card-remove'));
+}
+
+async function removeIssuesFromProject(elTrigger: HTMLElement, elColumnCards: HTMLElement, elCards: HTMLElement[]): Promise<void> {
+  if (!elCards.length) return;
+  const elModal = createConfirmModal({header: elTrigger.getAttribute('data-confirm-header')!, confirmButtonColor: 'red'});
+  const titles = elCards.map((card) => card.querySelector('.issue-card-title')!.textContent.trim());
+  elModal.querySelector('.content')!.innerHTML = html`
+    <p>${elTrigger.getAttribute('data-confirm-content')}</p>
+    <ul class="tw-max-h-[40vh] tw-overflow-y-auto">${htmlRaw(titles.map((title) => html`<li>${title}</li>`).join(''))}</ul>
+  `;
+  if (!await confirmModal(elModal)) return;
+
+  const url = `${elColumnCards.getAttribute('data-url')}/remove-issues`;
+  const issueIDs = elCards.map((card) => parseInt(card.getAttribute('data-issue')!));
+  const resp = await performFetchActionRequest(elColumnCards, {method: 'POST', url, data: {issueIDs}, loadingIndicator: '$this'});
+  if (!resp) return;
+  // issues moved or hidden since the page loaded are skipped, so their cards stay
+  const {removedIssueIDs}: {removedIssueIDs: number[]} = await resp.json();
+  for (const card of elCards) {
+    if (removedIssueIDs.includes(parseInt(card.getAttribute('data-issue')!))) card.remove();
+  }
+  updateColumn(elColumnCards.closest('.project-column')!);
+}
+
+function initRepoProjectRemoveIssues(writableProjectBoard: Element): void {
+  for (const elColumn of writableProjectBoard.querySelectorAll('.project-column')) updateColumn(elColumn);
+  addDelegatedEventListener(writableProjectBoard, 'click', '.project-column-remove-issues', (el) => {
+    const elColumnCards = el.closest('.project-column')!.querySelector<HTMLElement>('.cards')!;
+    const elCards = Array.from(elColumnCards.querySelectorAll<HTMLElement>('.issue-card:has(.issue-card-remove)'));
+    return removeIssuesFromProject(el, elColumnCards, elCards);
+  });
+  addDelegatedEventListener(writableProjectBoard, 'click', '.issue-card-remove', (el) => {
+    // the card may have been dragged since the page loaded, so its column is resolved now
+    const elCard = el.closest<HTMLElement>('.issue-card')!;
+    return removeIssuesFromProject(el, elCard.closest<HTMLElement>('.cards')!, [elCard]);
+  });
 }
 
 async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<void> {
   const columnCards = to.querySelectorAll('.issue-card');
-  updateIssueCount(from);
-  updateIssueCount(to);
+  updateColumn(from.closest('.project-column')!);
+  updateColumn(to.closest('.project-column')!);
 
   const columnSorting = {
     issues: Array.from(columnCards, (card, i) => ({
@@ -28,13 +65,16 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
   };
 
   try {
-    await POST(`${to.getAttribute('data-url')}/move`, {
+    const resp = await POST(`${to.getAttribute('data-url')}/move`, {
       data: columnSorting,
     });
+    if (!resp.ok) throw new Error(`Invalid server response: ${resp.status}`);
   } catch (error) {
     console.error(error);
     if (oldIndex !== undefined) {
       from.insertBefore(item, from.children[oldIndex]);
+      updateColumn(from.closest('.project-column')!);
+      updateColumn(to.closest('.project-column')!);
     }
   }
 }
@@ -184,5 +224,6 @@ export function initRepoProjectsView(): void {
 
     initRepoProjectSortable();
     initRepoProjectColumnEdit(writableProjectBoard);
+    initRepoProjectRemoveIssues(writableProjectBoard);
   });
 }
