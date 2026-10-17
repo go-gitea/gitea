@@ -451,6 +451,51 @@ func TestCountRepository(t *testing.T) {
 	}
 }
 
+func TestRepositoryListPaginationTiebreaker(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	collectIDs := func(t *testing.T, list func(db.ListOptions) (repo_model.RepositoryList, int64, error)) []int64 {
+		var ids []int64
+		var count int64
+		for page := 1; page <= 20; page++ {
+			repos, total, err := list(db.ListOptions{Page: page, PageSize: 3})
+			require.NoError(t, err)
+			count = total
+			if len(repos) == 0 {
+				break
+			}
+			for _, repo := range repos {
+				ids = append(ids, repo.ID)
+			}
+		}
+		require.Len(t, ids, int(count))
+		return ids
+	}
+
+	// fixture repos all share updated_unix, so only the tiebreaker orders them
+	t.Run("SearchRepository", func(t *testing.T) {
+		assert.IsDecreasing(t, collectIDs(t, func(opts db.ListOptions) (repo_model.RepositoryList, int64, error) {
+			return repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
+				ListOptions: opts,
+				Actor:       user2,
+				OwnerID:     user2.ID,
+				Private:     true,
+				OrderBy:     db.SearchOrderByRecentUpdated,
+			})
+		}))
+	})
+	t.Run("GetUserRepositories", func(t *testing.T) {
+		assert.IsDecreasing(t, collectIDs(t, func(opts db.ListOptions) (repo_model.RepositoryList, int64, error) {
+			return repo_model.GetUserRepositories(t.Context(), repo_model.SearchRepoOptions{
+				ListOptions: opts,
+				Actor:       user2,
+				Private:     true,
+			})
+		}))
+	})
+}
+
 func TestSearchRepositoryByTopicName(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
