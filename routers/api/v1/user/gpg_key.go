@@ -91,6 +91,10 @@ func ListMyGPGKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	listGPGKeys(ctx, ctx.Doer.ID, utils.GetListOptions(ctx))
 }
@@ -112,6 +116,10 @@ func GetGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKey"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -163,6 +171,10 @@ func GetVerificationToken(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/string"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -182,6 +194,10 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/GPGKey"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -243,6 +259,10 @@ func CreateGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/GPGKey"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -269,6 +289,8 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":

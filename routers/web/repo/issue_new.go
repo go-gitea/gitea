@@ -78,10 +78,9 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		metaData.LabelsData.SetSelectedLabelNames(template.Labels)
 
 		selectedAssigneeIDStrings := make([]string, 0, len(template.Assignees))
-		if userIDs, err := user_model.GetUserIDsByNames(ctx, template.Assignees, true); err == nil {
-			for _, userID := range userIDs {
-				selectedAssigneeIDStrings = append(selectedAssigneeIDStrings, strconv.FormatInt(userID, 10))
-			}
+		selectedAssigneeIDs, _ := user_model.GetDoerUserIDsByNames(ctx, template.Assignees)
+		for _, userID := range selectedAssigneeIDs {
+			selectedAssigneeIDStrings = append(selectedAssigneeIDStrings, strconv.FormatInt(userID, 10))
 		}
 		metaData.AssigneesData.SelectedAssigneeIDs = strings.Join(selectedAssigneeIDStrings, ",")
 
@@ -348,11 +347,6 @@ func NewIssuePost(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
-		return
-	}
-
-	if util.IsEmptyString(form.Title) {
-		ctx.JSONError(ctx.Tr("repo.issues.new.title_empty"))
 		return
 	}
 

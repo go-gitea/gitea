@@ -72,10 +72,10 @@ func TestSSHShellWelcome(t *testing.T) {
 			require.NoError(t, err)
 
 			var stderr bytes.Buffer
-			session.Stderr = &stderr // "gitea serv" writes the welcome with println, which goes to stderr
+			session.Stderr = &stderr
 			require.NoError(t, session.Shell())
 			require.NoError(t, session.Wait()) // fails unless the server reports exit status 0
-			assert.Contains(t, stderr.String(), "You've successfully authenticated with the key named welcome-key")
+			assert.Contains(t, stderr.String(), "You've successfully authenticated with the SSH key named welcome-key.")
 		})
 	})
 }

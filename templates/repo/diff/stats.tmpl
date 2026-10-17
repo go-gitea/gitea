@@ -4,7 +4,7 @@
 * Classes: Additional classes for the root element
 */}}
 {{if or .Addition .Deletion}}
-<div class="flex-text-block flex-shrink-0 text-[13px] {{if .Classes}}{{.Classes}}{{end}}">
+<div class="flex-text-block shrink-0 text-[13px] {{if .Classes}}{{.Classes}}{{end}}">
 	<span>
 		{{if .Addition}}<strong class="text-diff-added-fg">+{{.Addition}}</strong>{{end}}
 		{{if .Deletion}}<strong class="text-diff-removed-fg">-{{.Deletion}}</strong>{{end}}

@@ -74,6 +74,10 @@ type AssignedIssuesOptions struct {
 	RepoOwnerID int64
 }
 
+func (opts *AssignedIssuesOptions) ToOrders() string {
+	return "id"
+}
+
 func (opts *AssignedIssuesOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.AssigneeID != 0 {
@@ -184,5 +188,5 @@ func MakeIDsFromAPIAssigneesToAdd(ctx context.Context, oneAssignee string, multi
 	}
 
 	// Get the IDs of all assignees
-	return user_model.GetUserIDsByNames(ctx, requestAssignees, false)
+	return user_model.GetDoerUserIDsByNames(ctx, requestAssignees)
 }

@@ -59,16 +59,14 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	cmd.AddOptionValues("--context", strconv.Itoa(opts.ContextLineNumber))
 	switch opts.GrepMode {
 	case GrepModeExact:
-		cmd.AddArguments("--fixed-strings")
-		cmd.AddOptionValues("-e", strings.TrimLeft(search, "-"))
+		cmd.AddArguments("--fixed-strings").AddOptionGrepExpr(search)
 	case GrepModeRegexp:
-		cmd.AddArguments("--perl-regexp")
-		cmd.AddOptionValues("-e", strings.TrimLeft(search, "-"))
+		cmd.AddArguments("--perl-regexp").AddOptionGrepExpr(search)
 	default: /* words */
 		words := strings.Fields(search)
 		cmd.AddArguments("--fixed-strings", "--ignore-case")
 		for i, word := range words {
-			cmd.AddOptionValues("-e", strings.TrimLeft(word, "-"))
+			cmd.AddOptionGrepExpr(word)
 			if i < len(words)-1 {
 				cmd.AddOptionValues("--and")
 			}

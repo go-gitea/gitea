@@ -1,7 +1,7 @@
 import './globals.ts';
 
 window.config = {
-  appUrl: 'http://localhost:3000/',
+  appUrl: `${window.location.origin}/`,
   appSubUrl: '',
   assetUrlPrefix: '/assets',
   sharedWorkerUri: '',
@@ -9,7 +9,6 @@ window.config = {
   customEmojis: {},
   pageData: {},
   notificationSettings: {MinTimeout: 0, TimeoutStep: 0, MaxTimeout: 0},
-  enableTimeTracking: true,
   mermaidMaxSourceCharacters: 5000,
   i18n: {},
   frontendInited: false,

@@ -23,7 +23,7 @@
 					</div>
 					{{if $data.IsPullBranchDeletable}}
 						<div>
-							<button class="ui button link-action delete-branch-after-merge" data-url="{{.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
+							<button type="button" class="ui button link-action delete-branch-after-merge" data-url="{{.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
 						</div>
 					{{end}}
 				</div>
@@ -56,7 +56,7 @@
 						{{svg "octicon-x"}} {{ctx.Locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
 					</div>
 					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
-					<button class="ui compact button" data-global-init="initPullRequestWipToggle" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
+					<button type="button" class="ui compact button" data-global-init="initPullRequestWipToggle" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
 						{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}
 					</button>
 					{{end}}

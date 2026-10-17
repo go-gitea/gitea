@@ -15,4 +15,4 @@ type sourceInterface interface {
 	auth.Config
 }
 
-var _ (sourceInterface) = &sspi.Source{}
+var _ sourceInterface = &sspi.Source{}

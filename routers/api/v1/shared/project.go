@@ -612,10 +612,6 @@ func EditProject(ctx *context.APIContext) {
 	}
 
 	form := web.GetForm[*api.EditProjectOption](ctx)
-	if form.Title != nil && util.IsEmptyString(*form.Title) {
-		ctx.APIError(http.StatusUnprocessableEntity, "title must not be empty")
-		return
-	}
 	opts := project_service.UpdateProjectOptions{
 		Title:       optional.FromPtr(form.Title),
 		Description: optional.FromPtr(form.Description),
@@ -1187,10 +1183,6 @@ func EditProjectColumn(ctx *context.APIContext) {
 
 	form := web.GetForm[*api.EditProjectColumnOption](ctx)
 	if form.Title != nil {
-		if util.IsEmptyString(*form.Title) {
-			ctx.APIError(http.StatusUnprocessableEntity, "title must not be empty")
-			return
-		}
 		column.Title = *form.Title
 	}
 	if form.Color != nil {

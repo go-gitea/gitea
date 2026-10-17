@@ -351,13 +351,9 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 			tmp.ItemID = -review.ReviewerTeamID
 		}
 
-		if data.CanChooseReviewer {
-			// Users who can choose reviewers can also remove review requests
-			tmp.CanChange = true
-		} else if ctx.Doer != nil && ctx.Doer.ID == review.ReviewerID && review.Type == issues_model.ReviewTypeRequest {
-			// A user can refuse review requests
-			tmp.CanChange = true
-		}
+		tmp.CanChange = data.CanChooseReviewer || (ctx.Doer != nil && ctx.Doer.ID == review.ReviewerID &&
+			(review.Type == issues_model.ReviewTypeRequest ||
+				(review.Type == issues_model.ReviewTypeApprove && !isClosed && !repo.IsArchived)))
 
 		pullReviews = append(pullReviews, tmp)
 
@@ -516,6 +512,7 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
+	issues_model.SortLabelsForDisplay(labels)
 	labelsData.RepoLabels = labels
 
 	if repo.Owner.IsOrganization() {
@@ -523,6 +520,7 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 		if err != nil {
 			return
 		}
+		issues_model.SortLabelsForDisplay(orgLabels)
 		labelsData.OrgLabels = orgLabels
 	}
 	labelsData.AllLabels = append(labelsData.AllLabels, labelsData.RepoLabels...)

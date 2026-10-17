@@ -4,7 +4,10 @@
 package jobparser
 
 import (
+	"bytes"
 	"testing"
+
+	"gitea.dev/actionslib/pkg/model"
 
 	"github.com/stretchr/testify/require"
 )
@@ -61,4 +64,77 @@ jobs:
 	_, gotJob := roundTripped[0].Job()
 	require.Len(t, gotJob.Steps, 1)
 	require.Equal(t, wantRun, gotJob.Steps[0].Run, "round-trip must preserve run content; got payload:\n%s", payload)
+}
+
+// Typing a step's continue-on-error as a bool used to reject the whole `jobs:` node.
+func TestSingleWorkflowRoundTripStepContinueOnError(t *testing.T) {
+	const wf = `name: demo
+on: push
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    steps:
+      - id: quarantine
+        run: echo "q=true" >> "$GITHUB_OUTPUT"
+      - run: exit 1
+        continue-on-error: ${{ steps.quarantine.outputs.q == 'true' }}
+      - run: exit 1
+        continue-on-error: true
+      - run: exit 1
+        continue-on-error: TRUE
+      - run: exit 1
+        continue-on-error: false
+      - run: exit 1
+        continue-on-error: yes
+`
+	want := []string{"", "${{ steps.quarantine.outputs.q == 'true' }}", "true", "true", "false", "yes"}
+
+	sws, err := Parse([]byte(wf))
+	require.NoError(t, err)
+	require.Len(t, sws, 1)
+
+	payload, err := sws[0].Marshal()
+	require.NoError(t, err)
+
+	rw, err := model.ReadWorkflow(bytes.NewReader(payload))
+	require.NoError(t, err, "payload:\n%s", payload)
+	steps := rw.Jobs["job1"].Steps
+	require.Len(t, steps, len(want))
+	for i, w := range want {
+		require.Equal(t, w, steps[i].RawContinueOnError, "step %d, payload:\n%s", i, payload)
+	}
+}
+
+// Folded (`>`) scalars in with/env used to gain blank lines and have spaces turned into newlines
+// on every Marshal -> Parse cycle.
+func TestSingleWorkflowRoundTripFoldedScalar(t *testing.T) {
+	const wf = `name: demo
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/build
+        with:
+          cfg: >
+            begin
+              first "indented" line with path dir/Installer Scripts/some long path/another long path/some file name.xzy,
+              second "indented" line
+            end
+`
+	const want = "begin\n  first \"indented\" line with path dir/Installer Scripts/some long path/another long path/some file name.xzy,\n  second \"indented\" line\nend\n"
+	sws, err := Parse([]byte(wf))
+	require.NoError(t, err)
+	require.Len(t, sws, 1)
+	for range 3 {
+		payload, err := sws[0].Marshal()
+		require.NoError(t, err)
+		sws, err = Parse(payload)
+		require.NoError(t, err)
+		require.Len(t, sws, 1)
+	}
+	_, job := sws[0].Job()
+	var with map[string]string
+	require.NoError(t, job.Steps[0].With.Decode(&with))
+	require.Equal(t, want, with["cfg"])
 }

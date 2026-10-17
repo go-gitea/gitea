@@ -5,7 +5,6 @@ package runner
 
 import (
 	"context"
-	"crypto/subtle"
 	"errors"
 	"strings"
 	"time"
@@ -28,6 +27,9 @@ const (
 )
 
 var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
+	// A plain gRPC status.Error is treated as unknown by Connect and becomes HTTP 500
+	// To respond an HTTP status code, use connect.Error instead
+	errUnregisteredRunner := connect.NewError(connect.CodeUnauthenticated, errors.New("unregistered runner"))
 	return func(ctx context.Context, request connect.AnyRequest) (connect.AnyResponse, error) {
 		methodName := getMethodName(request)
 		if methodName == "Register" {
@@ -39,12 +41,12 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		runner, err := actions_model.GetRunnerByUUID(ctx, uuid)
 		if err != nil {
 			if errors.Is(err, util.ErrNotExist) {
-				return nil, status.Error(codes.Unauthenticated, "unregistered runner")
+				return nil, errUnregisteredRunner
 			}
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		if subtle.ConstantTimeCompare([]byte(runner.TokenHash), []byte(auth_model.HashToken(token, runner.TokenSalt))) != 1 {
-			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
+		if !util.CryptoConstTimeEqual(runner.TokenHash, auth_model.HashToken(token, runner.TokenSalt)) {
+			return nil, errUnregisteredRunner
 		}
 
 		now := time.Now()

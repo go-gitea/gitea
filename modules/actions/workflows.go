@@ -29,6 +29,8 @@ type DetectedWorkflow struct {
 	EntryName    string
 	TriggerEvent *jobparser.Event
 	Content      []byte
+	// SourceCommitSHA is the commit Content was read from, and must always be filled in together with Content.
+	SourceCommitSHA string
 }
 
 type detectResult int
@@ -119,19 +121,19 @@ func GetContentFromEntry(ctx context.Context, gitRepo *git.Repository, entry *gi
 }
 
 func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
-	workflow, err := model.ReadWorkflow(bytes.NewReader(content))
-	if err != nil {
-		return nil, err
-	}
-	events, err := jobparser.ParseRawOn(&workflow.RawOn)
-	if err != nil {
-		return nil, err
-	}
-	if err := ValidateWorkflowContent(content); err != nil {
-		return nil, err
-	}
+	events, _, err := readWorkflowEvents(content)
+	return events, err
+}
 
-	return events, nil
+// readWorkflowEvents also reports whether its error needs no run-time values to find, as a parse error of a workflow without expressions does.
+func readWorkflowEvents(content []byte) (events []*jobparser.Event, static bool, err error) {
+	if events, err = jobparser.ValidateWorkflowStatic(content); err != nil {
+		return nil, true, err
+	}
+	if err = ValidateWorkflowContent(content); err != nil {
+		return nil, !bytes.Contains(content, []byte("${{")), err
+	}
+	return events, false, nil
 }
 
 // ValidateWorkflowContent catches structural errors (e.g. blank lines in run: | blocks)
@@ -182,22 +184,26 @@ func DetectWorkflows(
 	triggedEvent webhook_module.HookEventType,
 	payload api.Payloader,
 	detectSchedule bool,
-) (workflows, schedules, filtered []*DetectedWorkflow, err error) {
+) (workflows, schedules, filtered []*DetectedWorkflow, invalid map[string]error, err error) {
 	_, entries, err := ListWorkflows(ctx, gitRepo, commit)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
+	invalid = map[string]error{}
 	for _, entry := range entries {
 		content, err := GetContentFromEntry(ctx, gitRepo, entry)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 
 		// one workflow may have multiple events
-		events, err := GetEventsFromContent(content)
+		events, static, err := readWorkflowEvents(content)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
+			if static {
+				invalid[entry.Name()] = err
+			}
 			continue
 		}
 		for _, evt := range events {
@@ -205,17 +211,19 @@ func DetectWorkflows(
 			if evt.IsSchedule() {
 				if detectSchedule {
 					dwf := &DetectedWorkflow{
-						EntryName:    entry.Name(),
-						TriggerEvent: evt,
-						Content:      content,
+						EntryName:       entry.Name(),
+						TriggerEvent:    evt,
+						Content:         content,
+						SourceCommitSHA: commit.ID.String(),
 					}
 					schedules = append(schedules, dwf)
 				}
 			} else {
 				dwf := &DetectedWorkflow{
-					EntryName:    entry.Name(),
-					TriggerEvent: evt,
-					Content:      content,
+					EntryName:       entry.Name(),
+					TriggerEvent:    evt,
+					Content:         content,
+					SourceCommitSHA: commit.ID.String(),
 				}
 				switch detectWorkflowMatch(ctx, gitRepo, commit, triggedEvent, payload, evt) {
 				case detectMatched:
@@ -228,7 +236,7 @@ func DetectWorkflows(
 		}
 	}
 
-	return workflows, schedules, filtered, nil
+	return workflows, schedules, filtered, invalid, nil
 }
 
 func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
@@ -254,9 +262,10 @@ func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, comm
 			if evt.IsSchedule() {
 				log.Trace("detect scheduled workflow: %q", entry.Name())
 				dwf := &DetectedWorkflow{
-					EntryName:    entry.Name(),
-					TriggerEvent: evt,
-					Content:      content,
+					EntryName:       entry.Name(),
+					TriggerEvent:    evt,
+					Content:         content,
+					SourceCommitSHA: commit.ID.String(),
 				}
 				wfs = append(wfs, dwf)
 			}
@@ -523,7 +532,7 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			}
 
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -566,7 +575,7 @@ func matchPullRequestEvent(ctx context.Context, gitRepo *git.Repository, commit 
 		}
 		log.Trace("matching pull_request %s with %v", action, vals)
 		for _, val := range vals {
-			if glob.MustCompile(val, '/').Match(string(action)) {
+			if matchActivityType(val, string(action)) {
 				activityTypeMatched = true
 				matchTimes++
 				break
@@ -669,7 +678,7 @@ func matchIssueCommentEvent(issueCommentPayload *api.IssueCommentPayload, evt *j
 			// NONE
 
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(issueCommentPayload.Action)) {
+				if matchActivityType(val, string(issueCommentPayload.Action)) {
 					matchTimes++
 					break
 				}
@@ -709,7 +718,7 @@ func matchPullRequestReviewEvent(prPayload *api.PullRequestPayload, evt *jobpars
 			}
 
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -749,7 +758,7 @@ func matchPullRequestReviewCommentEvent(prPayload *api.PullRequestPayload, evt *
 			}
 
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -786,7 +795,7 @@ func matchReleaseEvent(payload *api.ReleasePayload, evt *jobparser.Event) bool {
 				action = "edited"
 			}
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
+				if matchActivityType(val, string(action)) {
 					matchTimes++
 					break
 				}
@@ -823,7 +832,7 @@ func matchPackageEvent(payload *api.PackagePayload, evt *jobparser.Event) bool {
 				action = "published"
 			}
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
+				if matchActivityType(val, string(action)) {
 					matchTimes++
 					break
 				}
@@ -848,7 +857,7 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 		case "types":
 			action := payload.Action
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(action) {
+				if matchActivityType(val, action) {
 					matchTimes++
 					break
 				}
@@ -883,4 +892,14 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 		}
 	}
 	return matchTimes == len(evt.Acts())
+}
+
+// matchActivityType treats an invalid user-provided pattern as no match instead of panicking
+func matchActivityType(pattern string, actions ...string) bool {
+	g, err := glob.Compile(pattern, '/')
+	if err != nil {
+		log.Debug("invalid activity type pattern %q: %v", pattern, err)
+		return false
+	}
+	return slices.ContainsFunc(actions, g.Match)
 }

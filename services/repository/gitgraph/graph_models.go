@@ -130,7 +130,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 
 		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, repository, user.ID)
+			return repo_model.HasAccessToRepoCodeUnit(ctx, repository, user.ID)
 		}, &keyMap)
 
 		statuses, err := git_model.GetLatestCommitStatus(ctx, repository.ID, c.Commit.ID.String(), db.ListOptionsAll)
@@ -216,7 +216,7 @@ func parseGitTime(timeStr string) time.Time {
 
 // NewCommit creates a new commit from a provided line
 func NewCommit(row, column int, line []byte) (*Commit, error) {
-	data := bytes.SplitN(line, []byte("|"), 5)
+	data := bytes.SplitN(line, []byte(gitLogGraphFormatSep), 5)
 	if len(data) < 5 {
 		return nil, fmt.Errorf("malformed data section on line %d with commit: %s", row, string(line))
 	}

@@ -6,6 +6,7 @@ package git
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +34,7 @@ func TestRepository_GetTagInfos(t *testing.T) {
 	assert.Equal(t, "test", tags[1].Name)
 	assert.Equal(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", tags[1].ID.String())
 	assert.Equal(t, "tag", tags[1].Type)
+	assert.False(t, tags[0].CommitDate.IsZero(), "for-each-ref resolves the tagged commit's date")
 }
 
 func TestRepository_GetTag(t *testing.T) {
@@ -207,7 +209,9 @@ func TestRepository_parseTagRef(t *testing.T) {
 * add changelog of v1.9.1
 * Update CHANGELOG.md
 `,
-				"contents:signature": "",
+				"contents:signature":  "",
+				"committerdate:unix":  "1565789218",
+				"*committerdate:unix": "",
 			},
 
 			want: &Tag{
@@ -216,6 +220,7 @@ func TestRepository_parseTagRef(t *testing.T) {
 				Object:        MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
 				Type:          "commit",
 				Tagger:        parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
+				CommitDate:    time.Unix(1565789218, 0),
 				CommitMessage: CommitMessage{MessageRaw: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n"},
 				Signature:     nil,
 			},
@@ -237,6 +242,9 @@ func TestRepository_parseTagRef(t *testing.T) {
 * Update CHANGELOG.md
 `,
 				"contents:signature": "",
+				// an annotated tag can be made long after the commit, so its own date is not the commit date
+				"committerdate:unix":  "",
+				"*committerdate:unix": "1565700000",
 			},
 
 			want: &Tag{
@@ -245,6 +253,7 @@ func TestRepository_parseTagRef(t *testing.T) {
 				Object:        MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
 				Type:          "tag",
 				Tagger:        parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
+				CommitDate:    time.Unix(1565700000, 0),
 				CommitMessage: CommitMessage{MessageRaw: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n"},
 				Signature:     nil,
 			},

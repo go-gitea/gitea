@@ -6,6 +6,7 @@ import {parseIssuePageInfo} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import type {JQueryElem} from '../types.ts';
 
 let i18nTextEdited: string;
 let i18nTextOptions: string;
@@ -15,16 +16,16 @@ let i18nTextDeleteFromHistoryConfirm: string;
 function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
   const elDetailDialog = createElementFromHTML(html`
     <div class="ui modal content-history-detail-dialog">
-      ${svgRaw('octicon-x', 16, 'close icon inside')}
       <div class="header flex-left-right">
         <div>${htmlRaw(itemTitleHtml)}</div>
-        <div class="ui dropdown dialog-header-options mr-8 hidden">
+        <div class="ui dropdown dialog-header-options mx-4 hidden">
           ${i18nTextOptions}
           ${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
           <div class="menu">
             <div class="item text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
           </div>
         </div>
+        <button type="button" class="close-modal"></button>
       </div>
       <div class="comment-diff-data is-loading"></div>
     </div>
@@ -35,9 +36,10 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
   $fomanticDropdownOptions.dropdown({
     showOnFocus: false,
     allowReselection: true,
-    async onChange(_value: string, _text: string, $item: any) {
+    async onChange(_value: string, _text: string, $item: JQueryElem) {
       const optionItem = $item.data('option-item');
       if (optionItem === 'delete') {
+        // TODO: to use confirmModal instead of window.confirm, need to support multiple modals on the same page first.
         if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
           try {
             const params = new URLSearchParams();
@@ -96,7 +98,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {
   const elHeaderLeft = elCommentItem.querySelector('.comment-header-left')!;
   const menuHtml = html`
-    <div class="ui dropdown interact-fg content-history-menu flex-shrink-0" data-comment-id="${commentId}">
+    <div class="ui dropdown interact-fg content-history-menu shrink-0" data-comment-id="${commentId}">
       &bull; ${i18nTextEdited}${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
       </div>
@@ -111,14 +113,12 @@ function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, co
   $fomanticDropdown.dropdown({
     action: 'hide',
     apiSettings: {
-      cache: false,
       url: `${issueBaseUrl}/content-history/list?comment_id=${commentId}`,
     },
-    saveRemoteData: false,
     onHide() {
       $fomanticDropdown.dropdown('change values', null);
     },
-    onChange(value: string, itemHtml: string, $item: any) {
+    onChange(value: string, itemHtml: string, $item: JQueryElem) {
       if (value && !$item.find('[data-history-is-deleted=1]').length) {
         showContentHistoryDetail(issueBaseUrl, commentId, value, itemHtml);
       }

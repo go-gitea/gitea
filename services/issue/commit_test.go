@@ -42,7 +42,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 			CommitterName:  "User Two",
 			AuthorEmail:    "user2@example.com",
 			AuthorName:     "User Two",
-			Message:        "close #2",
+			Message:        "close #2, reopen #2",
 		},
 	}
 
@@ -56,7 +56,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 		PosterID:  user.ID,
 		IssueID:   1,
 	}
-	issueBean := &issues_model.Issue{RepoID: repo.ID, Index: 4}
+	issueBean := &issues_model.Issue{RepoID: repo.ID, Index: 2}
 
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
@@ -117,6 +117,13 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
+
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 48})
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), admin, repo, []*repository.PushCommit{{Sha1: "abcdef4", Message: "close #1"}}, repo.DefaultBranch))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1}, "is_closed=0")
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), admin, repo, []*repository.PushCommit{{Sha1: "abcdef5", Message: "close !1"}}, repo.DefaultBranch))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1}, "is_closed=1")
 }
 
 func TestUpdateIssuesCommit_Colon(t *testing.T) {

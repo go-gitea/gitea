@@ -15,7 +15,7 @@
 					{{template "repo/release/label" (dict "Release" .LatestRelease "IsLatest" true)}}
 				</div>
 			</div>
-			<div class="ml-[24px] text-12">{{DateUtils.TimeSince .LatestRelease.CreatedUnix}}</div>
+			<div class="ml-[24px] text-12">{{DateUtils.TimeSince .LatestRelease.PublishedUnix}}</div>
 		</div>
 	{{end}}
 

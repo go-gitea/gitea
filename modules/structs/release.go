@@ -36,7 +36,7 @@ type Release struct {
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	PublishedAt time.Time `json:"published_at"`
+	PublishedAt *time.Time `json:"published_at"`
 	// The user who published the release
 	Publisher *User `json:"author"`
 	// The files attached to the release

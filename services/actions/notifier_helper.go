@@ -4,13 +4,11 @@
 package actions
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"slices"
 	"strings"
 
-	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -20,6 +18,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
@@ -68,6 +67,8 @@ type notifyInput struct {
 	Ref         git.RefName
 	Payload     api.Payloader
 	PullRequest *issues_model.PullRequest
+
+	encodedPayload string // cached by EncodedPayload
 }
 
 func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event webhook_module.HookEventType) *notifyInput {
@@ -81,6 +82,12 @@ func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event we
 func newNotifyInputForSchedules(repo *repo_model.Repository) *notifyInput {
 	// the doer here will be ignored as we force using action user when handling schedules
 	return newNotifyInput(repo, user_model.NewActionsUser(), webhook_module.HookEventSchedule)
+}
+
+func newPullRequestReviewNotifyInput(repo *repo_model.Repository, reviewer *user_model.User, event webhook_module.HookEventType, commitID string, pr *issues_model.PullRequest) *notifyInput {
+	return newNotifyInput(repo, reviewer, event).
+		WithRef(commitID).
+		WithPullRequest(pr)
 }
 
 func (input *notifyInput) WithDoer(doer *user_model.User) *notifyInput {
@@ -106,6 +113,18 @@ func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyI
 	return input
 }
 
+// EncodedPayload marshals Payload once, as one event can start repo, scheduled and scoped workflows
+func (input *notifyInput) EncodedPayload() (string, error) {
+	if input.encodedPayload == "" {
+		p, err := json.Marshal(input.Payload)
+		if err != nil {
+			return "", fmt.Errorf("EncodedPayload: %w", err)
+		}
+		input.encodedPayload = string(p)
+	}
+	return input.encodedPayload, nil
+}
+
 func (input *notifyInput) Notify(ctx context.Context) {
 	log.Trace("execute %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
 
@@ -116,7 +135,7 @@ func (input *notifyInput) Notify(ctx context.Context) {
 
 func notify(ctx context.Context, input *notifyInput) error {
 	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && input.Ref.BranchName() == input.Repo.DefaultBranch
-	if input.Doer.IsGiteaActions() {
+	if input.Doer.ID == user_model.ActionsUserID {
 		// avoiding triggering cyclically, for example:
 		// a comment of an issue will trigger the runner to add a new comment as reply,
 		// and the new comment will trigger the runner again.
@@ -183,7 +202,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	var filteredWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-	workflows, schedules, filtered, err := actions_module.DetectWorkflows(ctx, gitRepo, commit,
+	workflows, schedules, filtered, invalid, err := actions_module.DetectWorkflows(ctx, gitRepo, commit,
 		input.Event,
 		input.Payload,
 		shouldDetectSchedules,
@@ -229,7 +248,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
-		baseWorkflows, _, baseFiltered, err := actions_module.DetectWorkflows(ctx, gitRepo, baseCommit, input.Event, input.Payload, false)
+		baseWorkflows, _, baseFiltered, _, err := actions_module.DetectWorkflows(ctx, gitRepo, baseCommit, input.Event, input.Payload, false)
 		if err != nil {
 			return fmt.Errorf("DetectWorkflows: %w", err)
 		}
@@ -261,6 +280,10 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
 			return err
 		}
+	}
+
+	if input.Event == webhook_module.HookEventPush {
+		handleInvalidWorkflows(ctx, input, ref, commit, invalid)
 	}
 
 	if err := handleWorkflows(ctx, detectedWorkflows, commit, input, ref); err != nil {
@@ -328,16 +351,16 @@ func handleWorkflows(
 		return nil
 	}
 
-	p, err := json.Marshal(input.Payload)
+	payload, err := input.EncodedPayload()
 	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+		return err
 	}
 
 	isForkPullRequest := isForkPullRequestInput(input)
 
 	for _, dwf := range detectedWorkflows {
-		// repo-level run: the workflow content is this repo at this commit
-		if err := buildApproveAndInsertRun(ctx, input, ref, commit, string(p), isForkPullRequest, dwf, input.Repo.ID, commit.ID.String(), false); err != nil {
+		// repo-level run: the workflow content is this repo at dwf.SourceCommitSHA
+		if err := buildApproveAndInsertRun(ctx, input, ref, commit, payload, isForkPullRequest, dwf, input.Repo.ID, false); err != nil {
 			log.Error("repo %s: %v", input.Repo.FullName(), err)
 			continue
 		}
@@ -348,7 +371,7 @@ func handleWorkflows(
 // buildApproveAndInsertRun assembles an ActionRun for a detected workflow, runs the
 // fork-PR approval gate, and inserts it. Repo-level and scoped runs share this path so
 // run construction and the approval flow have a single implementation that can't drift.
-// workflowRepoID/workflowCommitSHA point at the repo+commit the workflow content comes
+// workflowRepoID and dwf.SourceCommitSHA point at the repo+commit the workflow content comes
 // from (the repo itself for repo-level runs, the source repo for scoped runs).
 func buildApproveAndInsertRun(
 	ctx context.Context,
@@ -359,9 +382,12 @@ func buildApproveAndInsertRun(
 	isForkPullRequest bool,
 	dwf *actions_module.DetectedWorkflow,
 	workflowRepoID int64,
-	workflowCommitSHA string,
 	isScopedRun bool,
 ) error {
+	if dwf.SourceCommitSHA == "" {
+		// unreachable in the normal flow; catches a test case that builds a DetectedWorkflow without it
+		setting.PanicInDevOrTesting("workflow %q has no source commit", dwf.EntryName)
+	}
 	run := &actions_model.ActionRun{
 		Title:             commit.MessageTitle(),
 		RepoID:            input.Repo.ID,
@@ -378,15 +404,32 @@ func buildApproveAndInsertRun(
 		TriggerEvent:      dwf.TriggerEvent.Name,
 		Status:            actions_model.StatusWaiting,
 		WorkflowRepoID:    workflowRepoID,
-		WorkflowCommitSHA: workflowCommitSHA,
+		WorkflowCommitSHA: dwf.SourceCommitSHA,
 		IsScopedRun:       isScopedRun,
 	}
 
-	need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
-	if err != nil {
-		return fmt.Errorf("check if need approval for user %d: %w", input.Doer.ID, err)
+	if err := validateCalledWorkflows(ctx, run, dwf.Content); err != nil {
+		if isScopedRun {
+			return err
+		}
+		insertInvalidWorkflowRun(ctx, run, err)
+		return nil
 	}
-	run.NeedApproval = need
+
+	approvalUsers, err := getApprovalUsers(ctx, input, isForkPullRequest)
+	if err != nil {
+		return err
+	}
+	for _, user := range approvalUsers {
+		need, err := ifNeedApproval(ctx, run, input.Repo, user)
+		if err != nil {
+			return fmt.Errorf("check if need approval for user %d: %w", user.ID, err)
+		}
+		if need {
+			run.NeedApproval = true
+			break
+		}
+	}
 
 	if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
 		return fmt.Errorf("PrepareRunAndInsert: %w", err)
@@ -409,11 +452,18 @@ func handleFilteredWorkflows(ctx context.Context, input *notifyInput, filteredWo
 		return
 	}
 	for _, dwf := range filteredWorkflows {
+		if !shouldCreateSkippedCommitStatusForFilteredWorkflow(input, dwf) {
+			continue
+		}
 		if err := CreateSkippedCommitStatusForFilteredWorkflow(ctx, input.Repo, input.Event, dwf.TriggerEvent.Name, dwf.EntryName, dwf.Content, input.Payload, "", requiredGlobs); err != nil {
 			log.Error("repo %s: skipped commit status for workflow %s: %v", input.Repo.FullName(), dwf.EntryName, err)
 			continue
 		}
 	}
+}
+
+func shouldCreateSkippedCommitStatusForFilteredWorkflow(input *notifyInput, workflow *actions_module.DetectedWorkflow) bool {
+	return !isForkPullRequestInput(input) || workflow.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget
 }
 
 func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_module.HookEventType) *notifyInput {
@@ -460,6 +510,23 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 			Sender:  convert.ToUser(ctx, sender, nil),
 		}).
 		Notify(ctx)
+}
+
+// getApprovalUsers returns the event actor, plus the fork PR author when the workflow comes from the PR
+func getApprovalUsers(ctx context.Context, input *notifyInput, isForkPullRequest bool) ([]*user_model.User, error) {
+	if !isForkPullRequest || input.PullRequest == nil || actions_module.IsDefaultBranchWorkflow(input.Event) {
+		return []*user_model.User{input.Doer}, nil
+	}
+	if err := input.PullRequest.LoadIssue(ctx); err != nil {
+		return nil, fmt.Errorf("load pull request issue: %w", err)
+	}
+	if err := input.PullRequest.Issue.LoadPoster(ctx); err != nil {
+		return nil, fmt.Errorf("load pull request author: %w", err)
+	}
+	if input.PullRequest.Issue.PosterID == input.Doer.ID {
+		return []*user_model.User{input.Doer}, nil
+	}
+	return []*user_model.User{input.Doer, input.PullRequest.Issue.Poster}, nil
 }
 
 func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, user *user_model.User) (bool, error) {
@@ -532,8 +599,9 @@ func handleSchedules(
 		log.Error("CountSchedules: %v", err)
 		return err
 	} else if count > 0 {
-		if err := CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
-			log.Error("CleanRepoScheduleTasks: %v", err)
+		// replacing the schedules leaves their in-progress runs alone, as GitHub does
+		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
+			log.Error("DeleteScheduleTaskByRepo: %v", err)
 		}
 	}
 
@@ -542,15 +610,15 @@ func handleSchedules(
 		return nil
 	}
 
-	p, err := json.Marshal(input.Payload)
+	payload, err := input.EncodedPayload()
 	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+		return err
 	}
 
 	crons := make([]*actions_model.ActionSchedule, 0, len(detectedWorkflows))
 	for _, dwf := range detectedWorkflows {
 		// Check cron job condition. Only working in default branch
-		workflow, err := model.ReadWorkflow(bytes.NewReader(dwf.Content))
+		workflow, err := jobparser.ReadWorkflow(dwf.Content)
 		if err != nil {
 			log.Error("ReadWorkflow: %v", err)
 			continue
@@ -572,7 +640,7 @@ func handleSchedules(
 			Ref:           ref.String(),
 			CommitSHA:     commit.ID.String(),
 			Event:         input.Event,
-			EventPayload:  string(p),
+			EventPayload:  payload,
 			Specs:         schedules,
 			Content:       dwf.Content,
 		}
@@ -580,7 +648,7 @@ func handleSchedules(
 		crons = append(crons, run)
 	}
 
-	return actions_model.CreateScheduleTask(ctx, crons)
+	return actions_model.CreateScheduleTaskBySchedules(ctx, crons)
 }
 
 // DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks
@@ -656,9 +724,9 @@ func detectAndHandleScopedWorkflows(
 		return nil
 	}
 
-	p, err := json.Marshal(input.Payload)
+	payload, err := input.EncodedPayload()
 	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+		return err
 	}
 	isForkPullRequest := isForkPullRequestInput(input)
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
@@ -693,7 +761,7 @@ func detectAndHandleScopedWorkflows(
 			continue
 		}
 
-		sourceCommitSHA, detected, filtered, err := detectScopedWorkflowsForSource(ctx, input, consumerGitRepo, consumerCommit, sourceRepo)
+		detected, filtered, err := detectScopedWorkflowsForSource(ctx, input, consumerGitRepo, consumerCommit, sourceRepo)
 		if err != nil {
 			log.Error("scoped workflows: source %d for consumer %s: %v", sourceRepoID, input.Repo.FullName(), err)
 			continue
@@ -706,7 +774,7 @@ func detectAndHandleScopedWorkflows(
 				continue
 			}
 
-			if err := buildApproveAndInsertRun(ctx, input, ref, consumerCommit, string(p), isForkPullRequest, dwf, sourceRepo.ID, sourceCommitSHA, true); err != nil {
+			if err := buildApproveAndInsertRun(ctx, input, ref, consumerCommit, payload, isForkPullRequest, dwf, sourceRepo.ID, true); err != nil {
 				log.Error("scoped workflows: source %s workflow %s: %v", sourceRepo.FullName(), dwf.EntryName, err)
 				continue
 			}
@@ -739,13 +807,13 @@ func detectScopedWorkflowsForSource(
 	consumerGitRepo *git.Repository,
 	consumerCommit *git.Commit,
 	sourceRepo *repo_model.Repository,
-) (sourceCommitSHA string, detected, filtered []*actions_module.DetectedWorkflow, err error) {
+) (detected, filtered []*actions_module.DetectedWorkflow, err error) {
 	// scoped workflow content is always taken from the source repo's default branch; the parse is cached per (source, default-branch SHA) and reused across consuming repos/events
 
 	sourceCommitSHA, parsed, err := LoadParsedScopedWorkflows(ctx, sourceRepo)
 	if err != nil {
-		return "", nil, nil, err
+		return nil, nil, err
 	}
-	detected, filtered = actions_module.MatchScopedWorkflows(ctx, parsed, consumerGitRepo, consumerCommit, input.Event, input.Payload)
-	return sourceCommitSHA, detected, filtered, nil
+	detected, filtered = actions_module.MatchScopedWorkflows(ctx, parsed, sourceCommitSHA, consumerGitRepo, consumerCommit, input.Event, input.Payload)
+	return detected, filtered, nil
 }

@@ -21,7 +21,7 @@
 			<input name="{{$cfg.DynKey}}" value="{{$cfg.Value ctx}}" placeholder="{{$cfg.DefaultValue}}" maxlength="100" dir="auto" required pattern="^[A-Za-z0-9][\-_A-Za-z0-9]*$">
 		</div>
 		<div class="field">
-			<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+			<button type="submit" class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
 		</div>
 	</form>
 </div>
