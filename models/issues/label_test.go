@@ -324,13 +324,29 @@ func TestUpdateLabel(t *testing.T) {
 func TestDeleteLabel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
-	assert.NoError(t, issues_model.DeleteLabel(t.Context(), label.RepoID, label.ID))
+	orgLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 3})
+	repoLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 10, RepoID: orgLabel.OrgID})
+	assert.NoError(t, issues_model.DeleteOrgLabel(t.Context(), repoLabel.RepoID, repoLabel.ID))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: repoLabel.ID})
+
+	assert.NoError(t, issues_model.DeleteRepoLabel(t.Context(), orgLabel.OrgID, orgLabel.ID))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: orgLabel.ID})
+
+	assert.NoError(t, issues_model.DeleteOrgLabel(t.Context(), unittest.NonexistentID, orgLabel.ID))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: orgLabel.ID})
+	assert.NoError(t, issues_model.DeleteOrgLabel(t.Context(), orgLabel.OrgID, orgLabel.ID))
+	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: orgLabel.ID})
+
+	assert.NoError(t, issues_model.DeleteRepoLabel(t.Context(), unittest.NonexistentID, label.ID))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: label.ID})
+	assert.NoError(t, issues_model.DeleteRepoLabel(t.Context(), label.RepoID, label.ID))
 	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: label.ID, RepoID: label.RepoID})
 
-	assert.NoError(t, issues_model.DeleteLabel(t.Context(), label.RepoID, label.ID))
+	assert.NoError(t, issues_model.DeleteRepoLabel(t.Context(), label.RepoID, label.ID))
 	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: label.ID})
 
-	assert.NoError(t, issues_model.DeleteLabel(t.Context(), unittest.NonexistentID, unittest.NonexistentID))
+	assert.NoError(t, issues_model.DeleteRepoLabel(t.Context(), unittest.NonexistentID, unittest.NonexistentID))
+	assert.NoError(t, issues_model.DeleteOrgLabel(t.Context(), unittest.NonexistentID, unittest.NonexistentID))
 	unittest.CheckConsistencyFor(t, &issues_model.Label{}, &repo_model.Repository{})
 }
 

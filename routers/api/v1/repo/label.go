@@ -268,7 +268,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := issues_model.DeleteLabel(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id")); err != nil {
+	if err := issues_model.DeleteRepoLabel(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id")); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

@@ -75,8 +75,7 @@ STORED_VERSION_FILE := VERSION
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
-# VERSION: the branch name for the build and filenames, e.g.: "feature/foo-bar", "main"
-#          branch name "release/v1.27.2" is stripped to "1.27.2".
+# VERSION: the name for the build and filenames, e.g.: "1.2.3" for tag "v1.2.3", "main-nightly" for branch "main"
 # GITEA_VERSION: the Gitea's internal version for display, e.g. "1.28.0+dev-356-ge47d0b66ea"
 ifeq ($(GITHUB_REF_TYPE),tag)
 	# convert tag "v1.2.3" to "1.2.3"
@@ -99,11 +98,6 @@ else ifeq ($(GITHUB_REF_TYPE),branch)
 	endif
 else
 	$(error unsupported ref type $(GITHUB_REF_TYPE))
-endif
-
-# if version == "main" then add "-nightly" to the version for nightly builds: "main-nightly"
-ifeq ($(VERSION),main)
-	VERSION := main-nightly
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
@@ -556,7 +550,7 @@ release-compress: | $(DIST_DIRS)
 
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS)
-	echo $(VERSION) > $(STORED_VERSION_FILE)
+	echo $(GITEA_VERSION) > $(STORED_VERSION_FILE)
 # bsdtar needs a ^ to prevent matching subdirectories
 	$(eval EXCL := --exclude=$(shell tar --help | grep -q bsdtar && echo "^")./)
 # use transform to a add a release-folder prefix; in bsdtar the transform parameter equivalent is -s
