@@ -1494,6 +1494,7 @@
   "repo.issues.filter_type.mentioning_you": "Mentioning you",
   "repo.issues.filter_type.review_requested": "Review requested",
   "repo.issues.filter_type.reviewed_by_you": "Reviewed by you",
+  "repo.issues.filter_type.running_timer": "Issues with running timer",
   "repo.issues.filter_sort": "Sort",
   "repo.issues.filter_sort.latest": "Newest",
   "repo.issues.filter_sort.oldest": "Oldest",
