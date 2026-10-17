@@ -1,9 +1,9 @@
 import type {DiffHunk, DiffLine, DiffSide} from './parse.ts';
 import {html, htmlEscape, htmlRaw} from '../../utils/html.ts';
 import {svg} from '../../svg.ts';
-import type {Segment} from './highlight.ts';
-import type {CharRange} from './worddiff.ts';
-import type {Escape} from './escape.ts';
+import {highlightLines, type LineHighlighter, type Segment} from './highlight.ts';
+import {wordDiffRanges, type CharRange} from './worddiff.ts';
+import type {Escape, LineEscapes} from './escape.ts';
 
 type RowRenderOptions = {
   addCommentLabel: string | null; // null when commenting is not possible
@@ -158,4 +158,35 @@ export function renderSplitRows(hunks: DiffHunk[], lineHtml: string[], pairs: In
     }
   }
   return out + tailRow(hunks, true, opts);
+}
+
+// "same" lines are taken from the new side, so every line is highlighted with the context of its own side
+export function highlightHunkLines(lines: DiffLine[], highlighter: LineHighlighter | null | undefined): Segment[][] {
+  const newSide = highlightLines(highlighter, lines.filter((line) => line.type !== 'del').map((line) => line.content));
+  const oldSide = highlightLines(highlighter, lines.filter((line) => line.type === 'del').map((line) => line.content));
+  let newIdx = 0;
+  let oldIdx = 0;
+  return lines.map((line) => (line.type === 'del' ? oldSide[oldIdx++] : newSide[newIdx++]));
+}
+
+// the html of every line, a deleted line and its paired added line get their changed words marked
+export function linesToHtml(lines: DiffLine[], segments: Segment[][], pairs: Int32Array, escapes: Array<LineEscapes | null>): string[] {
+  const lineHtml: string[] = new Array(lines.length);
+  for (const [idx, line] of lines.entries()) {
+    if (line.type !== 'del' || pairs[idx] === -1) {
+      lineHtml[idx] ??= segmentsToHtml(segments[idx], [], '', escapes[idx]?.escapes);
+      continue;
+    }
+    const addIdx = pairs[idx];
+    const ranges = wordDiffRanges(line.content, lines[addIdx].content);
+    lineHtml[idx] = segmentsToHtml(segments[idx], ranges?.old, 'removed-code', escapes[idx]?.escapes);
+    lineHtml[addIdx] = segmentsToHtml(segments[addIdx], ranges?.new, 'added-code', escapes[addIdx]?.escapes);
+  }
+  return lineHtml;
+}
+
+// mirrors RenderUnicodeEscapeToggleButton in modules/templates/util_render.go
+export function escapeButton(escape: LineEscapes | null, titles: {ambiguousRunesLine: string; invisibleRunesLine: string}): string {
+  if (!escape || (!escape.hasAmbiguous && !escape.hasInvisible)) return '';
+  return html`<button type="button" class="toggle-escape-button btn interact-bg" title="${escape.hasAmbiguous ? titles.ambiguousRunesLine : titles.invisibleRunesLine}"></button>`;
 }

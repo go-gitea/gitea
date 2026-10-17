@@ -5,7 +5,6 @@
 package gitdiff
 
 import (
-	"html/template"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,7 +17,6 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -484,16 +482,6 @@ func TestParsePatchExactLineLimit(t *testing.T) {
 	}
 }
 
-func TestDiffLine_GetLineTypeMarker(t *testing.T) {
-	assert.Equal(t, "", (&DiffLine{Content: ""}).GetLineTypeMarker())
-	assert.Equal(t, "+", (&DiffLine{Content: "+added line"}).GetLineTypeMarker())
-	assert.Equal(t, "-", (&DiffLine{Content: "-deleted line"}).GetLineTypeMarker())
-	assert.Equal(t, " ", (&DiffLine{Content: " unchanged line"}).GetLineTypeMarker())
-	// for a real diff line (including hunk header) from diff output, "Content" should always have a prefix char in [" ", "+", "-"].
-	// for other cases, e.g.: a diff line constructed by our code without real diff output, it is undefined behavior at the moment.
-	assert.Equal(t, "", (&DiffLine{Content: "any-content"}).GetLineTypeMarker())
-}
-
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 	gitRepo, err := git.OpenRepositoryLocal(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
@@ -652,93 +640,6 @@ func TestGeneratePatchForUnchangedLineFromReader(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestDiffSection_GetComputedInlineDiffFor(t *testing.T) {
-	t.Run("Section", func(t *testing.T) {
-		diffLine := &DiffLine{Type: DiffLineSection, Content: "@@ -1,3 +1,3 @@ func \u202ename() <b>"}
-		diffInline := (&DiffSection{}).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
-		assert.True(t, diffInline.EscapeStatus.Escaped)
-		assert.Equal(t, `@@ -1,3 +1,3 @@ func <span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">`+"\u202e"+`</span></span>name() &lt;b&gt;`, string(diffInline.Content))
-	})
-	t.Run("ShortLineUseHighlight", func(t *testing.T) {
-		diffFile := &DiffFile{}
-		diffFile.highlightedRightLines.value = map[int]template.HTML{0: "highlighted short line"}
-		diffLine := &DiffLine{Type: DiffLinePlain, RightIdx: 1, Content: " short line", IsTruncated: false}
-		inline := newDiffSectionForDiffFile(diffFile).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
-		assert.Equal(t, template.HTML("highlighted short line"), inline.Content)
-		assert.False(t, inline.IsTruncated)
-	})
-	t.Run("LongLineTruncated", func(t *testing.T) {
-		diffFile := &DiffFile{}
-		diffFile.highlightedRightLines.value = map[int]template.HTML{0: "highlighted line"}
-		diffLine := &DiffLine{Type: DiffLinePlain, RightIdx: 1, Content: " truncated line", IsTruncated: true}
-		inline := newDiffSectionForDiffFile(diffFile).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
-		assert.Equal(t, template.HTML(`truncated line<span class="ui label diff-line-truncated">repo.diff.line_truncated</span>`), inline.Content)
-		assert.True(t, inline.IsTruncated)
-	})
-}
-
-func TestHighlightCodeLines(t *testing.T) {
-	t.Run("CharsetDetecting", func(t *testing.T) {
-		diffFile := &DiffFile{
-			Name: "a.c",
-			Sections: []*DiffSection{
-				{
-					Lines: []*DiffLine{{LeftIdx: 1}},
-				},
-			},
-		}
-		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("// abc\xcc def\xcd")) // ISO-8859-1 bytes
-		assert.Equal(t, "<span class=\"c1\">// abcÌ defÍ\n</span>", string(ret[0]))
-	})
-
-	t.Run("LeftLines", func(t *testing.T) {
-		diffFile := &DiffFile{
-			Name: "a.c",
-			Sections: []*DiffSection{
-				{
-					Lines: []*DiffLine{
-						{LeftIdx: 1},
-						{LeftIdx: 2},
-						{LeftIdx: 3},
-					},
-				},
-			},
-		}
-		const nl = "\n"
-		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\nb\n"))
-		assert.Equal(t, map[int]template.HTML{
-			0: `<span class="n">a</span>` + nl,
-			1: `<span class="n">b</span>` + nl,
-		}, ret)
-	})
-	t.Run("CharCR", func(t *testing.T) {
-		diffFile := &DiffFile{
-			Name: "a.txt",
-			Sections: []*DiffSection{
-				{
-					Lines: []*DiffLine{{LeftIdx: 1}, {LeftIdx: 2}},
-				},
-			},
-		}
-		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\rb\r\nc"))
-		assert.Equal(t, "a␍b\n", string(ret[0]))
-		assert.Equal(t, `c`, string(ret[1]))
-	})
-
-	t.Run("LongLineTruncated", func(t *testing.T) {
-		diffFile := &DiffFile{
-			Name: "a.c",
-			Sections: []*DiffSection{
-				{
-					Lines: []*DiffLine{{LeftIdx: 1, IsTruncated: true}},
-				},
-			},
-		}
-		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("// anything"))
-		assert.Empty(t, ret)
-	})
 }
 
 func diffFileNames(diff *Diff) (names []string) {

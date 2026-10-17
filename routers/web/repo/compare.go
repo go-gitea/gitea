@@ -373,9 +373,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["CompareInfo"] = ci
-	if basehead := ctx.PathParam("*"); basehead != "" {
-		ctx.Data["CompareDownloadLink"] = ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(basehead)
-	}
 
 	// TODO: need to refactor "prepare compare" related functions together
 	comparePageInfo.prepareCompareDiff(ctx, gitdiff.GetWhitespaceFlag(GetWhitespaceBehavior(ctx)))

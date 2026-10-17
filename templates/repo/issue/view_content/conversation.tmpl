@@ -46,18 +46,10 @@ making this template fragile, hard to read and maintain. */}}
 				{{end}}
 			</div>
 		</div>
-		{{$diff := (CommentMustAsDiff ctx $firstComment)}}
-		{{if $diff}}
-			{{$file := (index $diff.Files 0)}}
+		{{if $firstComment.Patch}}
 			<div id="code-preview-{{$firstComment.ID}}" class="ui table segment {{if $resolved}}tw-hidden{{end}}">
-				<div class="diff-file-box file-content {{TabSizeClass $editorconfig $file.Name}}">
-					<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
-						<table>
-							<tbody>
-								{{template "repo/diff/section_unified" dict "file" $file}}
-							</tbody>
-						</table>
-					</div>
+				<div class="diff-file-box file-content {{TabSizeClass $editorconfig $firstComment.TreePath}}">
+					{{ctx.RenderUtils.RenderDiffSnippet $firstComment.Patch $firstComment.TreePath}}
 				</div>
 			</div>
 		{{end}}

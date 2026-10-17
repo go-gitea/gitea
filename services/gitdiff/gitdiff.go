@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"html/template"
 	"io"
 	"slices"
 	"strconv"
@@ -23,16 +22,11 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/highlight"
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 
-	"github.com/alecthomas/chroma/v2"
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/transform"
 )
@@ -68,40 +62,6 @@ type DiffLine struct {
 	Type        DiffLineType
 	Content     string
 	IsTruncated bool
-
-	cachedDiffInline *DiffInlineComputed
-}
-
-// Chroma seems extremely slow when highlighting large files, it might take dozens or hundreds of milliseconds.
-// So, don't highlight the entire file if it's too large, the "line-by-line" highlighting is applied as the fallback.
-const MaxFullFileHighlightSizeLimit = 256 * 1024
-
-func (d *DiffLine) IsDiffLineSection() bool { return d.Type == DiffLineSection }
-
-// GetHTMLDiffLineType returns the diff line type name for HTML,
-// it will generate CSS names for styles ".del-code", ".add-code", ".same-code", ".tag-code"
-func (d *DiffLine) GetHTMLDiffLineType() string {
-	switch d.Type {
-	case DiffLineAdd:
-		return "add"
-	case DiffLineDel:
-		return "del"
-	case DiffLineSection:
-		return "tag"
-	default:
-		return "same"
-	}
-}
-
-// GetLineTypeMarker returns the line type marker
-func (d *DiffLine) GetLineTypeMarker() string {
-	if d.Content == "" {
-		return ""
-	}
-	if strings.IndexByte(" +-", d.Content[0]) > -1 {
-		return d.Content[0:1]
-	}
-	return ""
 }
 
 const (
@@ -111,138 +71,8 @@ const (
 
 // DiffSection represents a section of a DiffFile.
 type DiffSection struct {
-	highlightedLeftLines  *diffVarMutable[map[int]template.HTML]
-	highlightedRightLines *diffVarMutable[map[int]template.HTML]
-	highlightLexer        *diffVarMutable[chroma.Lexer]
-
 	FileName string
 	Lines    []*DiffLine
-}
-
-func (diffSection *DiffSection) GetLine(idx int) *DiffLine {
-	if idx <= 0 {
-		return nil
-	}
-	return diffSection.Lines[idx]
-}
-
-func defaultDiffMatchPatch() *diffmatchpatch.DiffMatchPatch {
-	dmp := diffmatchpatch.New()
-	dmp.DiffEditCost = 100
-	return dmp
-}
-
-// DiffInlineComputed is the final computed diff line for template rendering
-type DiffInlineComputed struct {
-	EscapeStatus *charset.EscapeStatus
-	Content      template.HTML
-	IsTruncated  bool
-}
-
-// computeDiffInline makes a DiffInline with computed content, e.g.: Unicode escaping, truncation hint, etc
-func computeDiffInline(s template.HTML, isTruncated bool, locale translation.Locale) DiffInlineComputed {
-	sb, w := htmlutil.NewHTMLStringWriter()
-	status, _ := charset.EscapeControlReader(strings.NewReader(string(s)), w, locale)
-	if isTruncated {
-		w.WriteFormatf(`<span class="ui label diff-line-truncated">%s</span>`, locale.Tr("repo.diff.line_truncated"))
-	}
-	return DiffInlineComputed{EscapeStatus: status, IsTruncated: isTruncated, Content: template.HTML(sb.String())}
-}
-
-func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *DiffLine, highlightLines map[int]template.HTML) template.HTML {
-	if h, ok := highlightLines[lineIdx-1]; ok && !diffLine.IsTruncated {
-		return h
-	}
-	if diffLine.Content == "" {
-		return ""
-	}
-	if setting.Git.DisableDiffHighlight {
-		return htmlutil.EscapeString(diffLine.Content[1:])
-	}
-	if diffSection.highlightLexer.value == nil {
-		diffSection.highlightLexer.value = highlight.DetectChromaLexerByFileName(diffSection.FileName, "")
-	}
-	return highlight.RenderCodeByLexer(diffSection.highlightLexer.value, diffLine.Content[1:])
-}
-
-func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInlineComputed {
-	sideIdx := util.Iif(diffLineType == DiffLineDel, 0, 1) // del=left, add=right
-	lines := [2]*DiffLine{leftLine, rightLine}
-
-	if lines[sideIdx] != nil && lines[sideIdx].cachedDiffInline != nil {
-		return *lines[sideIdx].cachedDiffInline
-	}
-
-	var highlightedLeftLines, highlightedRightLines map[int]template.HTML
-	// a "diff section" prepared by tests doesn't have "file" information
-	if diffSection.highlightedLeftLines != nil {
-		highlightedLeftLines, highlightedRightLines = diffSection.highlightedLeftLines.value, diffSection.highlightedRightLines.value
-	}
-
-	if diffLineType == DiffLinePlain {
-		// left and right are the same, no need to do line-level diff, can just pick any side
-		// caller always uses the "right side" for this type
-		lineHTML := diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, highlightedRightLines)
-		return computeDiffInline(lineHTML, rightLine.IsTruncated, locale)
-	}
-
-	var diffs [2]template.HTML
-	var truncations [2]bool
-	if leftLine != nil {
-		diffs[0] = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, highlightedLeftLines)
-		truncations[0] = leftLine.IsTruncated
-	}
-	if rightLine != nil {
-		diffs[1] = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, highlightedRightLines)
-		truncations[1] = rightLine.IsTruncated
-	}
-
-	if leftLine != nil && rightLine != nil && !truncations[0] && !truncations[1] {
-		// if only some parts of a line are changed, highlight these changed parts as "deleted/added".
-		// "diff" the left&right sides together, then cache the diff result for another side,
-		// because when viewing the diff page, both "deleted" and "added" lines will to be rendered eventually,
-		// so here only diff them once, then next render can just use the cached result, no need to "diff" again.
-		hcd := newHighlightCodeDiff()
-		lineHTMLDel, lineHTMLAdd := hcd.diffLineWithHighlight(diffs[0], diffs[1])
-		leftLine.cachedDiffInline = new(computeDiffInline(lineHTMLDel, truncations[0], locale))
-		rightLine.cachedDiffInline = new(computeDiffInline(lineHTMLAdd, truncations[1], locale))
-		return *lines[sideIdx].cachedDiffInline
-	}
-
-	// if left is empty or right is empty (a line is fully deleted or added), or either side is truncated (too long),
-	// then we do not need to diff anymore, the tmpl code already adds background colors for these cases.
-	return computeDiffInline(diffs[sideIdx], truncations[sideIdx], locale)
-}
-
-// GetComputedInlineDiffFor computes inline diff for the given line.
-func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, locale translation.Locale) DiffInlineComputed {
-	defer func() {
-		if err := recover(); err != nil {
-			// the logic is too complex in this function, help to catch any panic because Golang template doesn't print the stack
-			log.Error("panic in GetComputedInlineDiffFor: %v\nStack: %s", err, log.Stack(2))
-		}
-	}()
-	// try to find equivalent diff line. ignore, otherwise
-	switch diffLine.Type {
-	case DiffLineSection:
-		// section content is a diff hunk header, it isn't code diff, its trailing context might come from the file content, might not
-		return computeDiffInline(htmlutil.EscapeString(diffLine.Content), diffLine.IsTruncated, locale)
-	case DiffLineAdd:
-		compareDiffLine := diffSection.GetLine(diffLine.Match)
-		return diffSection.getDiffLineForRender(DiffLineAdd, compareDiffLine, diffLine, locale)
-	case DiffLineDel:
-		compareDiffLine := diffSection.GetLine(diffLine.Match)
-		return diffSection.getDiffLineForRender(DiffLineDel, diffLine, compareDiffLine, locale)
-	default: // Plain
-		// Here it always uses "right side" to render the plain content (unchanged lines)
-		// tmpl also uses "RightIdx" to check whether to add "lines-code-old" CSS class to a line
-		return diffSection.getDiffLineForRender(DiffLinePlain, nil, diffLine, locale)
-	}
-}
-
-// diffVarMutable is a wrapper to make a variable mutable to be shared across structs
-type diffVarMutable[T any] struct {
-	value T
 }
 
 // DiffFile represents a file diff.
@@ -266,11 +96,6 @@ type DiffFile struct {
 	// basic fields but for render purpose only
 	Sections     []*DiffSection
 	IsIncomplete bool // file is too large
-
-	// for render purpose only, the maps of lines are 0-based
-	highlightRender       diffVarMutable[chroma.Lexer] // cache render (atm: lexer) for current file, only detect once for line-by-line mode
-	highlightedLeftLines  diffVarMutable[map[int]template.HTML]
-	highlightedRightLines diffVarMutable[map[int]template.HTML]
 }
 
 // GetDiffFileName returns the name of the diff file, or its old name in case it was deleted
@@ -538,14 +363,6 @@ func (diff *Diff) postProcessFiles() {
 	}
 }
 
-func newDiffSectionForDiffFile(curFile *DiffFile) *DiffSection {
-	return &DiffSection{
-		highlightLexer:        &curFile.highlightRender,
-		highlightedLeftLines:  &curFile.highlightedLeftLines,
-		highlightedRightLines: &curFile.highlightedRightLines,
-	}
-}
-
 func readGitDiffLineWithDiscard(r *bufio.Reader) (_ []byte, truncated bool, _ error) {
 	// HINT: GIT-DIFF-PARSE-LONG-LINE: it can't use Scanner which has a default limit and will cause errors if a line is very long
 	line, isPrefix, err := r.ReadLine()
@@ -628,7 +445,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			line := string(lineBytes)
 
 			// Create a new section to represent this hunk
-			curSection = newDiffSectionForDiffFile(curFile)
+			curSection = &DiffSection{}
 			lastLeftIdx = -1
 			curFile.Sections = append(curFile.Sections, curSection)
 
@@ -656,7 +473,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			rightLine++
 			if curSection == nil {
 				// Create a new section to represent this hunk
-				curSection = newDiffSectionForDiffFile(curFile)
+				curSection = &DiffSection{}
 				curFile.Sections = append(curFile.Sections, curSection)
 				lastLeftIdx = -1
 			}
@@ -683,7 +500,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			}
 			if curSection == nil {
 				// Create a new section to represent this hunk
-				curSection = newDiffSectionForDiffFile(curFile)
+				curSection = &DiffSection{}
 				curFile.Sections = append(curFile.Sections, curSection)
 				lastLeftIdx = -1
 			}
@@ -703,7 +520,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			lastLeftIdx = -1
 			if curSection == nil {
 				// Create a new section to represent this hunk
-				curSection = newDiffSectionForDiffFile(curFile)
+				curSection = &DiffSection{}
 				curFile.Sections = append(curFile.Sections, curSection)
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
@@ -913,47 +730,6 @@ func GetDiffForAPI(ctx context.Context, gitRepo *git.Repository, opts *DiffOptio
 	return diff, nil
 }
 
-func FillDiffFileHighlightLinesByContent(diffFile *DiffFile, left, right []byte) {
-	diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, left)
-	diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(diffFile, false /* right */, right)
-}
-
-func highlightCodeLinesForDiffFile(diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
-	return highlightCodeLines(diffFile.Name, diffFile.Sections, isLeft, rawContent)
-}
-
-func highlightCodeLines(name string, sections []*DiffSection, isLeft bool, rawContent []byte) map[int]template.HTML {
-	if setting.Git.DisableDiffHighlight || len(rawContent) >= MaxFullFileHighlightSizeLimit {
-		return nil
-	}
-	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
-	// HINT: GIT-DIFF-HIGHLIGHT-LINE-NUMBER: it should handle all CR(\r) before highlight to make line numbers match
-	if strings.Contains(content, "\r") {
-		content = strings.ReplaceAll(content, "\r\n", "\n")
-		content = strings.ReplaceAll(content, "\r", "␍")
-	}
-	lexer := highlight.DetectChromaLexerByFileName(name, "")
-	highlightedNewContent := highlight.RenderCodeByLexer(lexer, content)
-	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
-	lines := make(map[int]template.HTML, len(unsafeLines))
-	// only save the highlighted lines we need, but not the whole file, to save memory
-	for _, sec := range sections {
-		for _, ln := range sec.Lines {
-			lineIdx := ln.LeftIdx
-			if !isLeft {
-				lineIdx = ln.RightIdx
-			}
-			if lineIdx >= 1 {
-				idx := lineIdx - 1
-				if idx < len(unsafeLines) && !ln.IsTruncated {
-					lines[idx] = template.HTML(util.UnsafeBytesToString(unsafeLines[idx]))
-				}
-			}
-		}
-	}
-	return lines
-}
-
 type DiffShortStat struct {
 	NumFiles, TotalAddition, TotalDeletion int // these fields are used in templates directly
 }
@@ -1057,24 +833,6 @@ func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.
 	return review, nil
 }
 
-// CommentAsDiff returns c.Patch as *Diff
-func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) {
-	diff, err := ParsePatch(ctx, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch))
-	if err != nil {
-		log.Error("Unable to parse patch: %v", err)
-		return nil, err
-	}
-	if len(diff.Files) == 0 {
-		return nil, fmt.Errorf("no file found for comment ID: %d", c.ID)
-	}
-	secs := diff.Files[0].Sections
-	if len(secs) == 0 {
-		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
-	}
-	return diff, nil
-}
-
 // GeneratePatchForUnchangedLine creates a patch showing code context for an unchanged line
 func GeneratePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int) (string, error) {
 	commit, err := gitRepo.GetCommit(ctx, commitID)
@@ -1142,23 +900,6 @@ func generatePatchForUnchangedLineFromReader(reader io.Reader, treePath string, 
 	}
 
 	return patchBuilder.String(), nil
-}
-
-// CommentMustAsDiff executes AsDiff and logs the error instead of returning
-func CommentMustAsDiff(ctx context.Context, c *issues_model.Comment) *Diff {
-	if c == nil {
-		return nil
-	}
-	defer func() {
-		if err := recover(); err != nil {
-			log.Error("PANIC whilst retrieving diff for comment[%d] Error: %v\nStack: %s", c.ID, err, log.Stack(2))
-		}
-	}()
-	diff, err := CommentAsDiff(ctx, c)
-	if err != nil {
-		log.Warn("CommentMustAsDiff: %v", err)
-	}
-	return diff
 }
 
 // GetWhitespaceFlag returns git diff flag for treating whitespaces

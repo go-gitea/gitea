@@ -12,8 +12,7 @@ import {showErrorToast} from '../toast.ts';
 import {errorMessage} from '../errors.ts';
 import {fetchOk, streamDiff, type DiffStreamFile} from './stream.ts';
 import {highlightLines, loadHighlighter, type Segment} from './highlight.ts';
-import {hunksLineCount, pairChangedLines, renderSplitRows, renderUnifiedRows, segmentsToHtml, splitColgroup, unifiedColgroup} from './render.ts';
-import {wordDiffRanges} from './worddiff.ts';
+import {escapeButton, highlightHunkLines, hunksLineCount, linesToHtml, pairChangedLines, renderSplitRows, renderUnifiedRows, splitColgroup, unifiedColgroup} from './render.ts';
 import {buildHunks} from './linediff.ts';
 import {detectEscapes, loadEscapeTables, type EscapeTables, type LineEscapes} from './escape.ts';
 import {imageDiffHtml, renderCsvView, renderedKind} from './rendered.ts';
@@ -175,10 +174,10 @@ export class DiffViewer {
   renderLines(entry: DiffFileEntry): NonNullable<DiffFileEntry['renderedLines']> {
     if (entry.renderedLines) return entry.renderedLines;
     const lines = entry.hunks.flatMap((hunk) => hunk.lines);
-    const highlight = (code: string[]) => highlightLines(entry.highlighter, code);
     let segments: Segment[][];
     if (entry.content) {
       // with the full file, the lines are highlighted with the context of the whole file
+      const highlight = (code: string[]) => highlightLines(entry.highlighter, code);
       entry.contentSegments ??= {old: entry.content.old && highlight(entry.content.old), new: highlight(entry.content.new)};
       const {old: oldSegments, new: newSegments} = entry.contentSegments;
       segments = lines.map((line) => {
@@ -187,32 +186,13 @@ export class DiffViewer {
         return lineSegments?.map(([text]) => text).join('') === line.content ? lineSegments : [[line.content, '']];
       });
     } else {
-      // "same" lines are taken from the new side, so every line is highlighted with the context of its own side
-      const newSide = highlight(lines.filter((line) => line.type !== 'del').map((line) => line.content));
-      const oldSide = highlight(lines.filter((line) => line.type === 'del').map((line) => line.content));
-      let newIdx = 0;
-      let oldIdx = 0;
-      segments = lines.map((line) => (line.type === 'del' ? oldSide[oldIdx++] : newSide[newIdx++]));
+      segments = highlightHunkLines(lines, entry.highlighter);
     }
-    const pairs = this.linePairs(entry);
     const escapes = lines.map((line) => this.lineEscapes(line.content));
-    const lineHtml: string[] = new Array(lines.length);
-    for (const [idx, line] of lines.entries()) {
-      if (line.type !== 'del' || pairs[idx] === -1) {
-        lineHtml[idx] ??= segmentsToHtml(segments[idx], [], '', escapes[idx]?.escapes);
-        continue;
-      }
-      const addIdx = pairs[idx];
-      const ranges = wordDiffRanges(line.content, lines[addIdx].content);
-      lineHtml[idx] = segmentsToHtml(segments[idx], ranges?.old, 'removed-code', escapes[idx]?.escapes);
-      lineHtml[addIdx] = segmentsToHtml(segments[addIdx], ranges?.new, 'added-code', escapes[addIdx]?.escapes);
-    }
-    // mirrors RenderUnicodeEscapeToggleButton in modules/templates/util_render.go
-    const escapeButtons = escapes.map((escape) => {
-      if (!escape || (!escape.hasAmbiguous && !escape.hasInvisible)) return '';
-      return html`<button type="button" class="toggle-escape-button btn interact-bg" title="${escape.hasAmbiguous ? this.locale.ambiguousRunesLine : this.locale.invisibleRunesLine}"></button>`;
-    });
-    entry.renderedLines = {html: lineHtml, escapeButtons};
+    entry.renderedLines = {
+      html: linesToHtml(lines, segments, this.linePairs(entry), escapes),
+      escapeButtons: escapes.map((escape) => escapeButton(escape, this.locale)),
+    };
     return entry.renderedLines;
   }
 

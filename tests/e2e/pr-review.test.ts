@@ -61,6 +61,10 @@ test('pr review comments', async ({page, request}) => {
   await replyForm.getByRole('button', {name: 'Reply', exact: true}).click();
   await expect(conversation.locator('.comment-body .markup')).toHaveText(['inline to reply to', 'my reply body']);
 
+  // the conversation tab shows the commented lines as a client-rendered excerpt
+  await page.goto(pullUrl);
+  await expect(page.locator('[id^="code-preview-"] tr.add-code').first()).toBeVisible();
+
   // the reviewer, who isn't a collaborator, drafts, cancels, adds and deletes a pending review comment
   await logout(page);
   await loginUser(page, reviewer);
