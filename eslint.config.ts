@@ -1117,7 +1117,6 @@ export default defineConfig([
     languageOptions: {globals: {...globals.nodeBuiltin, ...globals.browser}},
     rules: {
       ...playwright.configs['flat/recommended'].rules,
-      'gitea/unescaped-html-literal': [0],
       'playwright/expect-expect': [0],
     },
   },
@@ -1241,6 +1240,9 @@ export default defineConfig([
   {
     files: ['*', 'tools/**/*', 'tests/**/*'],
     languageOptions: {globals: globals.nodeBuiltin},
+    rules: {
+      'gitea/unescaped-html-literal': [0],
+    },
   },
   {
     files: ['web_src/**/*'],
