@@ -8,6 +8,7 @@ import (
 	"compress/gzip"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
@@ -171,18 +172,6 @@ func ParsePackageMetaData(r io.Reader) (*Package, error) {
 	return nil, ErrMissingMetadataFile
 }
 
-// containsLineBreak reports whether any value carries a CR or LF. Such a value
-// would forge extra lines when written verbatim into the line-based compact
-// index (the per-package info/<name> file and the shared /versions listing).
-func containsLineBreak(ss ...string) bool {
-	for _, s := range ss {
-		if strings.ContainsAny(s, "\r\n") {
-			return true
-		}
-	}
-	return false
-}
-
 func parseMetadataFile(r io.Reader) (*Package, error) {
 	zr, err := gzip.NewReader(r)
 	if err != nil {
@@ -228,14 +217,6 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 			Name:    gemdep.Name,
 			Version: gemdep.Requirement.AsVersionRequirement(),
 		}
-		if containsLineBreak(dep.Name) {
-			return nil, ErrInvalidName
-		}
-		for _, req := range dep.Version {
-			if containsLineBreak(req.Restriction, req.Version) {
-				return nil, ErrInvalidMetadata
-			}
-		}
 		if gemdep.Type == ":runtime" {
 			m.RuntimeDependencies = append(m.RuntimeDependencies, dep)
 		} else {
@@ -243,16 +224,17 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 		}
 	}
 
-	for _, reqs := range [][]VersionRequirement{m.RequiredRubyVersion, m.RequiredRubygemsVersion} {
-		for _, req := range reqs {
-			if containsLineBreak(req.Restriction, req.Version) {
-				return nil, ErrInvalidMetadata
-			}
-		}
+	values := []string{m.Platform}
+	reqs := slices.Concat(m.RequiredRubyVersion, m.RequiredRubygemsVersion)
+	for _, dep := range slices.Concat(m.RuntimeDependencies, m.DevelopmentDependencies) {
+		values = append(values, dep.Name)
+		reqs = append(reqs, dep.Version...)
 	}
-
-	if containsLineBreak(m.Platform) {
-		return nil, ErrInvalidMetadata
+	for _, req := range reqs {
+		values = append(values, req.Restriction, req.Version)
+	}
+	if slices.ContainsFunc(values, func(s string) bool { return strings.ContainsAny(s, "\r\n") }) {
+		return nil, ErrInvalidMetadata // the compact index is line-based, a line break would forge entries
 	}
 
 	return &Package{

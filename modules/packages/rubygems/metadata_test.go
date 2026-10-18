@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -44,59 +43,19 @@ version:
 			assert.Nil(t, rp)
 		}
 	})
-}
 
-func TestParseMetadataFileLineBreakRejected(t *testing.T) {
-	// the platform, dependency names and version requirements are written
-	// verbatim into the line-based compact index (info/<name> and /versions),
-	// so a value carrying a line break must be rejected to keep an upload from
-	// forging extra index entries
-	cases := map[string]string{
-		"platform": `
-name: g
-version:
-  version: 1
-platform: "ruby\ng 9.9.9 deadbeef"
-`,
-		"dependency name": `
-name: g
-version:
-  version: 1
-dependencies:
-- name: "d\n9.9.9 x:>= 0|checksum:deadbeef"
-  requirement:
-    requirements: []
-  type: :runtime
-`,
-		"dependency requirement": `
-name: g
-version:
-  version: 1
-dependencies:
-- name: d
-  requirement:
-    requirements:
-    - - ">="
-      - version: "1.0\n9.9.9 x:>= 0|checksum:deadbeef"
-  type: :runtime
-`,
-		"required ruby version": `
-name: g
-version:
-  version: 1
-required_ruby_version:
-  requirements:
-  - - ">="
-    - version: "2.3.0\n9.9.9 x:>= 0|checksum:deadbeef"
-`,
-	}
-	for name, content := range cases {
-		t.Run(name, func(t *testing.T) {
-			rp, err := parseMetadataFile(test.CompressGzip(content))
-			assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	t.Run("LineBreakInIndexedMetadata", func(t *testing.T) {
+		for _, field := range []string{
+			`platform: "ruby\nx"`,
+			`dependencies: [{name: "d\nx"}]`,
+			`dependencies: [{name: d, requirement: {requirements: [[">=", {version: "1\nx"}]]}}]`,
+			`required_ruby_version: {requirements: [[">=", {version: "1\nx"}]]}`,
+		} {
+			rp, err := parseMetadataFile(test.CompressGzip("name: g\nversion:\n  version: 1\n" + field + "\n"))
+			assert.ErrorIs(t, err, ErrInvalidMetadata, field)
 			assert.Nil(t, rp)
-		})
-	}
+		}
+	})
 }
 
 func TestParseMetadataFile(t *testing.T) {
