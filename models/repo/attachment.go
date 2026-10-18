@@ -133,6 +133,9 @@ func ExistAttachmentsByUUID(ctx context.Context, uuid string) (bool, error) {
 
 // GetAttachmentsByIssueID returns all attachments of an issue.
 func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment, error) {
+	if issueID == 0 { // unsaved issue, would match every issue-less attachment
+		return []*Attachment{}, nil
+	}
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
 }
