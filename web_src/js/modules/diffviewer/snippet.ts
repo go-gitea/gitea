@@ -1,4 +1,5 @@
 import {registerGlobalInitFunc} from '../observer.ts';
+import {html, htmlRaw} from '../../utils/html.ts';
 import {trString} from '../i18n.ts';
 import {parseHunks} from './parse.ts';
 import {loadHighlighter} from './highlight.ts';
@@ -31,6 +32,6 @@ export function initDiffSnippet(): void {
     const rows = renderUnifiedRows(hunks, lineHtml, {addCommentLabel: null, expanders: new Map(), escapeButtons: escapes.map((escape) => escapeButton(escape, config))});
     el.classList.add('lezer-highlight');
     if (highlighter?.language) el.setAttribute('data-language', highlighter.language);
-    el.innerHTML = `<table class="chroma">${unifiedColgroup}<tbody>${rows}</tbody></table>`;
+    el.innerHTML = html`<table class="chroma">${htmlRaw(unifiedColgroup)}<tbody>${htmlRaw(rows)}</tbody></table>`;
   });
 }

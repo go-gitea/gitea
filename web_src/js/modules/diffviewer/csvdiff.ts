@@ -1,5 +1,5 @@
 import type {DiffHunk} from './parse.ts';
-import {html, htmlEscape} from '../../utils/html.ts';
+import {html, htmlEscape, htmlRaw} from '../../utils/html.ts';
 import {extname} from '../../utils.ts';
 
 // a parse error at a 1-based position, fieldCount marks a row with a wrong number of fields
@@ -254,30 +254,33 @@ export function createCsvDiff(baseRows: string[][] | null, headRows: string[][] 
   return sections;
 }
 
-function cellHtml(cell: TableDiffCell | null, tag: 'th' | 'td'): string {
-  if (!cell) return `<${tag}></${tag}>`;
-  const removed = html`<span class="removed-code">${cell.left}</span>`;
-  const added = html`<span class="added-code">${cell.right}</span>`;
-  switch (cell.type) {
-    case cellChanged: return `<${tag} class="modified">${removed} ${added}</${tag}>`;
-    case cellAdd: return `<${tag} class="added">${added}</${tag}>`;
-    case cellDel: return `<${tag} class="removed">${removed}</${tag}>`;
-    case cellMovedUnchanged: return `<${tag} class="moved">${htmlEscape(cell.right)}</${tag}>`;
-    case cellMovedChanged: return `<${tag} class="moved">${removed} ${added}</${tag}>`;
-    default: return `<${tag}>${htmlEscape(cell.right)}</${tag}>`;
+// the content must be escaped already, the lint rule for HTML literals doesn't see the variable tag
+function cell(tag: 'th' | 'td', className: string, content: string): string {
+  return `<${tag}${className ? html` class="${className}"` : ''}>${content}</${tag}>`;
+}
+
+function cellHtml(c: TableDiffCell | null, tag: 'th' | 'td'): string {
+  if (!c) return cell(tag, '', '');
+  const removed = html`<span class="removed-code">${c.left}</span>`;
+  const added = html`<span class="added-code">${c.right}</span>`;
+  switch (c.type) {
+    case cellChanged: return cell(tag, 'modified', `${removed} ${added}`);
+    case cellAdd: return cell(tag, 'added', added);
+    case cellDel: return cell(tag, 'removed', removed);
+    case cellMovedUnchanged: return cell(tag, 'moved', htmlEscape(c.right));
+    case cellMovedChanged: return cell(tag, 'moved', `${removed} ${added}`);
+    default: return cell(tag, '', htmlEscape(c.right));
   }
 }
 
 // the first row of the first section is the header
 export function renderCsvDiff(sections: TableDiffSection[]): string {
-  let out = '<table class="data-table">';
-  for (const [sectionIdx, rows] of sections.entries()) {
-    out += sectionIdx > 0 ? '<tbody class="section">' : '<tbody>';
-    for (const [rowIdx, row] of rows.entries()) {
+  const bodies = sections.map((rows, sectionIdx) => {
+    const rowsHtml = rows.map((row, rowIdx) => {
       const tag = sectionIdx === 0 && rowIdx === 0 ? 'th' : 'td';
-      out += `<tr><${tag} class="line-num">${row.rowIdx || ''}</${tag}>${row.cells.map((cell) => cellHtml(cell, tag)).join('')}</tr>`;
-    }
-    out += '</tbody>';
-  }
-  return `${out}</table>`;
+      return html`<tr>${htmlRaw(cell(tag, 'line-num', String(row.rowIdx || '')))}${htmlRaw(row.cells.map((c) => cellHtml(c, tag)).join(''))}</tr>`;
+    }).join('');
+    return sectionIdx > 0 ? html`<tbody class="section">${htmlRaw(rowsHtml)}</tbody>` : html`<tbody>${htmlRaw(rowsHtml)}</tbody>`;
+  });
+  return html`<table class="data-table">${htmlRaw(bodies.join(''))}</table>`;
 }

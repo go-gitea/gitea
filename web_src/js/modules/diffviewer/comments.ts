@@ -429,7 +429,7 @@ export class DiffComments {
       }
     }
     if (comment.canBlockUser || comment.canBlockOrg) {
-      items += '<div class="divider"></div>';
+      items += html`<div class="divider"></div>`;
       if (comment.canBlockUser) {
         items += html`<div class="item js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="${comment.poster.name}" data-modal-modal-blockee-name="${comment.poster.displayName}" data-modal-modal-form.url="${window.config.appSubUrl}/user/settings/blocked_users">${locale.blockUser}</div>`;
       }
@@ -437,7 +437,7 @@ export class DiffComments {
         items += html`<div class="item js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="${comment.poster.name}" data-modal-modal-blockee-name="${comment.poster.displayName}" data-modal-modal-form.url="${data.orgBlockLink!}">${locale.blockOrg}</div>`;
       }
     }
-    const menu = createElementFromHTML<HTMLElement>(`<div class="item action ui dropdown jump pointing top right">${svg('octicon-kebab-horizontal')}<div class="menu">${items}</div></div>`);
+    const menu = createElementFromHTML<HTMLElement>(html`<div class="item action ui dropdown jump pointing top right">${htmlRaw(svg('octicon-kebab-horizontal'))}<div class="menu">${htmlRaw(items)}</div></div>`);
     menu.addEventListener('click', (e) => {
       const item = (e.target as Element).closest<HTMLElement>('[data-diff-viewer-action]');
       const action = item?.getAttribute('data-diff-viewer-action');

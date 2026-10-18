@@ -107,7 +107,7 @@ export function detectEscapes(text: string, tables: EscapeTables, ambiguousTitle
     const char = String.fromCodePoint(rune.cp);
     let escapedHtml: string;
     if (rune.type === runeBroken) {
-      escapedHtml = '<span class="broken-code-point">�</span>';
+      escapedHtml = html`<span class="broken-code-point">�</span>`;
     } else if (rune.type === runeAmbiguous) {
       result.hasAmbiguous = true;
       const confusable = String.fromCodePoint(rune.confusable);

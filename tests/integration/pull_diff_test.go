@@ -190,7 +190,7 @@ func TestDiffStream(t *testing.T) {
 	fastImport := func(t *testing.T, before, after []git.FastImportFile) string {
 		ref := "refs/heads/" + t.Name()
 		require.NoError(t, git.ForceFastImport(t.Context(), repo.CodeStorageRepo(), []git.FastImportCommit{{Ref: ref + "-before", Files: before}, {Ref: ref + "-after", Files: after}}))
-		return "/user2/repo1/diff/stream?before=" + url.QueryEscape(ref+"-before") + "&after=" + url.QueryEscape(ref+"-after")
+		return "/user2/repo1/diff/stream?" + url.Values{"before": {ref + "-before"}, "after": {ref + "-after"}}.Encode()
 	}
 
 	t.Run("LongLine", func(t *testing.T) {

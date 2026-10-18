@@ -406,11 +406,11 @@ export class DiffViewer {
       };
       const {hunks} = entry;
       const rows = this.config.isSplit ?
-        `${splitColgroup}<tbody>${renderSplitRows(hunks, lineHtml, this.linePairs(entry), opts)}</tbody>` :
-        `${unifiedColgroup}<tbody>${renderUnifiedRows(hunks, lineHtml, opts)}</tbody>`;
+        html`${htmlRaw(splitColgroup)}<tbody>${htmlRaw(renderSplitRows(hunks, lineHtml, this.linePairs(entry), opts))}</tbody>` :
+        html`${htmlRaw(unifiedColgroup)}<tbody>${htmlRaw(renderUnifiedRows(hunks, lineHtml, opts))}</tbody>`;
       source.classList.add('lezer-highlight');
       if (entry.highlighter?.language) source.setAttribute('data-language', entry.highlighter.language);
-      source.innerHTML = `<table class="chroma">${rows}</table>`;
+      source.innerHTML = html`<table class="chroma">${htmlRaw(rows)}</table>`;
       return source;
     }
     if (entry.file.submodule) {

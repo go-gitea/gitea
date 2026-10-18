@@ -20,7 +20,7 @@ export function applyFolded(entry: DiffFileEntry, folded: boolean) {
   const box = entry.element;
   if (!box) return;
   box.setAttribute('data-folded', String(folded));
-  box.querySelector('.fold-file')!.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
+  box.querySelector('.fold-file')!.replaceChildren(createElementFromHTML(svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18)));
 }
 
 function entryModeLabel(file: DiffStreamFile, locale: DiffViewerLocale): string {
@@ -68,7 +68,7 @@ export function buildFileBox(entry: DiffFileEntry, config: DiffViewerConfig, loc
   } else if (additions + deletions) {
     stats = html`
       <div class="flex-text-block tw-flex-shrink-0 tw-text-[13px]">
-        <span>${htmlRaw(additions ? `<strong class="tw-text-diff-added-fg">+${additions}</strong>` : '')} ${htmlRaw(deletions ? `<strong class="tw-text-diff-removed-fg">-${deletions}</strong>` : '')}</span>
+        <span>${htmlRaw(additions ? html`<strong class="tw-text-diff-added-fg">+${additions}</strong>` : '')} ${htmlRaw(deletions ? html`<strong class="tw-text-diff-removed-fg">-${deletions}</strong>` : '')}</span>
         <span class="diff-stats-bar"><div class="diff-stats-add-bar" style="width: ${100 * additions / (additions + deletions)}%"></div></span>
       </div>
     `;
@@ -125,5 +125,5 @@ export function submoduleNotice(file: DiffStreamFile, locale: DiffViewerLocale):
     const range = `${shortSha(submodule!.oldCommit)}...${shortSha(submodule!.newCommit)}`;
     message = trString(locale.submoduleUpdated, nameHtml, link(submodule!.compareLink, range));
   }
-  return createElementFromHTML(`<div class="tw-p-3 flex-text-block">${svg('octicon-file-submodule')} <span>${message}</span></div>`);
+  return createElementFromHTML(html`<div class="tw-p-3 flex-text-block">${htmlRaw(svg('octicon-file-submodule'))} <span>${htmlRaw(message)}</span></div>`);
 }

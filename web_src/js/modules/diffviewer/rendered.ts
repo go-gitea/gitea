@@ -106,7 +106,7 @@ export async function renderCsvView(entry: DiffFileEntry, container: HTMLElement
     const content = await loadContent();
     const rows = (text: string | null, name: string) => (text === null ? null : parseCsv(text, determineDelimiter(name, text)));
     const sections = createCsvDiff(rows(content.old, file.oldName), rows(content.new, file.name), entry.hunks);
-    container.innerHTML = `<table class="chroma tw-w-full"><tr><td>${renderCsvDiff(sections)}</td></tr></table>`;
+    container.innerHTML = html`<table class="chroma tw-w-full"><tr><td>${htmlRaw(renderCsvDiff(sections))}</td></tr></table>`;
   } catch (error) {
     if (!(error instanceof CsvParseError)) {
       message(window.config.i18n.error_occurred);
