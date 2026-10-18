@@ -1416,7 +1416,7 @@ func GetAdminUser(ctx context.Context) (*User, error) {
 }
 
 func isUserVisibleToViewerCond(viewer *User) builder.Cond {
-	if DoerIsSiteAdmin(viewer) {
+	if DoerIsSiteAdminFullAccess(viewer) {
 		return builder.NewCond()
 	}
 

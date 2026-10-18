@@ -503,7 +503,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	}
 
 	// check readable repositories by doer/actor
-	if !user_model.DoerIsSiteAdmin(opts.Actor) {
+	if !user_model.DoerIsSiteAdminFullAccess(opts.Actor) {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 

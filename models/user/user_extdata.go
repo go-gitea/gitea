@@ -111,7 +111,7 @@ func DoerCanViewPrivate(doer *User) bool {
 	return doer != nil && !IsPublicOnlyDoer(doer)
 }
 
-func DoerIsSiteAdmin(doer *User) bool {
+func DoerIsSiteAdminFullAccess(doer *User) bool {
 	return DoerCanViewPrivate(doer) && doer.IsAdmin
 }
 
