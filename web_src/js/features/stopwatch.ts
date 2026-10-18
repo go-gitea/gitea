@@ -1,4 +1,4 @@
-import {createTippy} from '../modules/tippy.ts';
+import {createFloatingElement} from '../modules/floating.ts';
 import {GET} from '../modules/fetch.ts';
 import {hideElem, showElem} from '../utils/dom.ts';
 import {onUserEvent} from '../modules/worker.ts';
@@ -10,7 +10,7 @@ const {appSubUrl, notificationSettings} = window.config;
 export const initStopwatch = () => registerGlobalInitFunc('initActiveStopwatchNotification', (btn: HTMLElement) => {
   // Init the icon + popup even when no stopwatch is active so a real-time push has a target to toggle.
   const popup = btn.nextElementSibling!;
-  const tippy = createTippy(btn, {
+  const popupInstance = createFloatingElement(btn, {
     content: popup,
     placement: 'bottom-end',
     trigger: 'click',
@@ -30,7 +30,7 @@ export const initStopwatch = () => registerGlobalInitFunc('initActiveStopwatchNo
   const updateStopwatchData = (data: Array<StopwatchData>) => {
     const watch = data[0];
     if (!watch) {
-      tippy.hide();
+      popupInstance.hide();
       hideElem(btn);
       return false;
     }

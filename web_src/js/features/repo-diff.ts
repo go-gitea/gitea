@@ -7,7 +7,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
-import {createTippy} from '../modules/tippy.ts';
+import {createFloatingElement} from '../modules/floating.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
@@ -136,8 +136,8 @@ function initRepoDiffConversationNav() {
 
 function initDiffHeaderPopupMenu(btn: HTMLElement) {
   const popup = btn.nextElementSibling;
-  if (!popup?.matches('.tippy-target')) throw new Error('Popup element not found');
-  createTippy(btn, {
+  if (!popup?.matches('.floating-target')) throw new Error('Popup element not found');
+  createFloatingElement(btn, {
     content: popup,
     theme: 'menu',
     placement: 'bottom-end',

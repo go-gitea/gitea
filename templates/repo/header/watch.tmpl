@@ -13,7 +13,7 @@
 			<span class="ui small label">{{$count}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</button>
-		<div class="tippy-target">
+		<div class="floating-target">
 			{{$testParticipating := ctx.Locale.Tr "repo.watch.mode.participating"}}
 			<a class="item{{if $isParticipating}} active{{end}}" role="menuitem" aria-label="{{$testParticipating}}"
 				data-fetch-method="post" data-fetch-url="{{$.RepoLink}}/action/participate" data-fetch-sync="$body #repo-header-watch"

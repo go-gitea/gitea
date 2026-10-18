@@ -5,9 +5,8 @@ import ActionStatusIcon from './ActionStatusIcon.vue';
 import {addDelegatedEventListener, createElementFromAttrs} from '../utils/dom.ts';
 import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
-import {createTippy} from '../modules/tippy.ts';
+import {createFloatingElement, type FloatingElement} from '../modules/floating.ts';
 import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
-import type {Instance} from 'tippy.js';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
@@ -132,7 +131,7 @@ const stepsContainer = ref<HTMLElement | null>(null);
 const jobStepLogs = ref<Array<StepContainerElement | undefined>>([]);
 const menuTriggerEl = useTemplateRef<HTMLButtonElement>('menuTriggerEl');
 const menuPanelEl = useTemplateRef<HTMLDivElement>('menuPanelEl');
-let menuTippy: Instance;
+let menuPopup: FloatingElement;
 
 // Reusable workflow caller view: the right pane shows just the header (name + uses path +
 // status). Callers don't run on a runner, and the dependency graph for their children lives
@@ -149,7 +148,7 @@ watch(optionAlwaysExpandRunning, () => {
 });
 
 onMounted(async () => {
-  menuTippy = createTippy(menuTriggerEl.value!, {
+  menuPopup = createFloatingElement(menuTriggerEl.value!, {
     content: menuPanelEl.value!,
     trigger: 'click',
     interactive: true,
@@ -181,7 +180,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  menuTippy.destroy();
+  menuPopup.destroy();
   window.removeEventListener('hashchange', hashChangeListener);
   // clear the interval timer when the component is unmounted
   // even our page is rendered once, not spa style
@@ -474,7 +473,7 @@ async function hashChangeListener() {
       <button ref="menuTriggerEl" type="button" class="btn interact-bg tw-p-2">
         <SvgIcon name="octicon-gear" :size="18"/>
       </button>
-      <div ref="menuPanelEl" class="tippy-target" @click="menuTippy.hide()">
+      <div ref="menuPanelEl" class="floating-target" @click="menuPopup.hide()">
         <a class="item" role="menuitemcheckbox" :aria-checked="timeVisible['log-time-seconds']" @click="toggleTimeDisplay('seconds')">
           <SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'gitea-empty-checkbox'"/>
           {{ locale.showLogSeconds }}

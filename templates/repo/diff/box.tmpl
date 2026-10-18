@@ -148,7 +148,7 @@
 								{{end}}
 								{{if not $file.IsSubmodule}}
 									<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
-									<div class="tippy-target">
+									<div class="floating-target">
 										{{if not (or $file.IsIncomplete $file.IsBin)}}
 											<button type="button" class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 											<button type="button" class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>

@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import {computed, onBeforeUnmount, onMounted} from 'vue';
-import tippy, {createSingleton} from 'tippy.js';
-import type {CreateSingletonInstance, Instance} from 'tippy.js';
+import {delegate} from '../modules/floating.ts';
 import {getCurrentLocale} from '../utils.ts';
 
 type HeatmapValue = {date: Date; count: number};
@@ -127,32 +126,18 @@ const grid = computed(() => {
 
 const legendViewBox = `${cellSize} 0 ${squareSize * (colorRange.length + 2)} ${squareSize}`;
 
-const cellInstances = new Map<Element, Instance>();
-let singleton: CreateSingletonInstance | null = null;
-
+let disposeDelegate: (() => void) | null = null;
 onMounted(() => {
-  singleton = createSingleton([], {
-    overrides: [],
-    moveTransition: 'transform 0.1s ease-out',
-    allowHTML: true,
+  disposeDelegate = delegate('.heatmap-grid', {
+    target: '.heatmap-day',
     theme: 'tooltip',
     role: 'tooltip',
-    placement: 'top',
+    allowHTML: true,
+    arrow: false,
+    content: (el) => el.getAttribute('data-tooltip')!,
   });
 });
-
-onBeforeUnmount(() => {
-  singleton?.destroy();
-  for (const instance of cellInstances.values()) instance.destroy();
-  cellInstances.clear();
-});
-
-function lazyInitTooltip(e: MouseEvent) {
-  const el = e.target as Element;
-  if (!singleton || cellInstances.has(el) || !el.classList.contains('heatmap-day')) return;
-  cellInstances.set(el, tippy(el, {content: el.getAttribute('data-tooltip')!}));
-  singleton.setInstances([...cellInstances.values()]);
-}
+onBeforeUnmount(() => disposeDelegate?.());
 
 function handleDayClick(date: Date) {
   const params = new URLSearchParams(document.location.search);
@@ -197,7 +182,7 @@ function handleDayClick(date: Date) {
           {{ locale.heatMapLocale.days[day.dayIdx] }}
         </text>
       </g>
-      <g class="heatmap-grid" :transform="`translate(${gridLeft}, ${gridTop})`" @mouseover="lazyInitTooltip">
+      <g class="heatmap-grid" :transform="`translate(${gridLeft}, ${gridTop})`">
         <g
           v-for="(week, w) in grid.calendar"
           :key="w"

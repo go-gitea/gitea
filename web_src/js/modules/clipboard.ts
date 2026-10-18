@@ -1,5 +1,5 @@
 import {clippie, type ClippieContent} from 'clippie';
-import {showTemporaryTooltip} from './tippy.ts';
+import {showTemporaryTooltip} from './floating.ts';
 import {sleep} from '../utils.ts';
 import {svg} from '../svg.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
