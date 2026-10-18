@@ -478,7 +478,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
 			).From("`user`"),
 		))
-	} else if !opts.Actor.IsAdmin {
+	} else if !user_model.DoerIsSiteAdminFullAccess(opts.Actor) {
 		uidCond := builder.Select("`user`.id").From("`user`").Where(
 			builder.Eq{"keep_activity_private": false}.
 				And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).

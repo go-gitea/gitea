@@ -178,7 +178,7 @@ type FindOrgMembersOpts struct {
 }
 
 func (opts FindOrgMembersOpts) PublicOnly() bool {
-	return !user_model.DoerCanViewPrivate(opts.Doer) || !(opts.IsDoerMember || opts.Doer.IsAdmin)
+	return !user_model.DoerCanViewPrivate(opts.Doer) || !(opts.IsDoerMember || user_model.DoerIsSiteAdminFullAccess(opts.Doer))
 }
 
 // applyKeywordFilter adds keyword search conditions to session

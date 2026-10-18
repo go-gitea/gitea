@@ -113,7 +113,7 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 	if !user_model.DoerTokenAllowsOwner(doer, pkgOwner) {
 		return perm.AccessModeNone, nil
 	}
-	if doer != nil && doer.IsAdmin {
+	if user_model.DoerIsSiteAdminFullAccess(doer) {
 		return perm.AccessModeOwner, nil
 	}
 
