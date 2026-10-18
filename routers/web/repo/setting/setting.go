@@ -680,7 +680,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultUpdateStyle:            defaultUpdateStyle,
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
-			DefaultSquashMergeMessage:     repo_model.SquashMergeMessage(form.PullsDefaultSquashMergeMessage),
+			DefaultSquashMergeMessage:     util.IfZero(repo_model.SquashMergeMessage(form.PullsDefaultSquashMergeMessage), repo_model.DefaultPullRequestsConfig().DefaultSquashMergeMessage),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
 		}

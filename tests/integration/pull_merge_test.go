@@ -1374,6 +1374,7 @@ Co-authored-by: user4 <user4@example.com>
 			commit, err := gitRepo.GetCommit(t.Context(), pullRequest.MergedCommitID)
 			require.NoError(t, err)
 			assert.Contains(t, commit.CommitMessage.MessageRaw, "Pull for test-branch-0 (#1)\n\n* commit msg 1\n\n* commit msg 2\n")
+			assert.Contains(t, commit.CommitMessage.MessageRaw, "\nReviewed-on: ")
 		})
 	})
 }
