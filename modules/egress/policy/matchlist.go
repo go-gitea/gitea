@@ -369,19 +369,29 @@ func containsPrefix(prefixes []netip.Prefix, ip netip.Addr) bool {
 	return slices.ContainsFunc(prefixes, func(p netip.Prefix) bool { return p.Contains(ip) })
 }
 
-func (m *matchList) MatchHostname(host string, port uint16) bool {
+// normalizeHost lowercases a host, strips a port suffix and a trailing dot
+func normalizeHost(host string) string {
 	host = strings.ToLower(strings.TrimSpace(host))
 	if hostname, _, err := net.SplitHostPort(host); err == nil {
 		host = hostname
 	}
-	host = strings.TrimSuffix(host, ".")
+	return strings.TrimSuffix(host, ".")
+}
 
+func (m *matchList) MatchHostname(host string, port uint16) bool {
+	_, ok := m.MatchHostnameEntry(host, port)
+	return ok
+}
+
+// MatchHostnameEntry returns the hostname entry matching host, if any
+func (m *matchList) MatchHostnameEntry(host string, port uint16) (string, bool) {
+	host = normalizeHost(host)
 	for _, pattern := range m.patterns {
 		if pattern.Contains(host, port) {
-			return true
+			return pattern.pattern, true
 		}
 	}
-	return false
+	return "", false
 }
 
 // MatchHostnameInRanges matches a non-public target: the host must be exactly a listed
@@ -432,11 +442,7 @@ func matchDomain(pattern, host string) bool {
 
 // matchDomainExact reports whether host is exactly pattern, case-insensitive and ignoring a trailing dot
 func matchDomainExact(pattern, host string) bool {
-	host = strings.ToLower(strings.TrimSpace(host))
-	if hostname, _, err := net.SplitHostPort(host); err == nil {
-		host = hostname
-	}
-	return pattern == strings.TrimSuffix(host, ".")
+	return pattern == normalizeHost(host)
 }
 
 // validDomainPattern reports whether p is a usable domain pattern: any glob
@@ -459,18 +465,48 @@ func (m *matchList) Rejected() []string {
 	return slices.Clone(m.rejected)
 }
 
+// NeverMatching returns the IP entries that can never match a target, so callers can warn about them at startup.
+func (m *matchList) NeverMatching() []string {
+	var out []string
+	for _, rule := range slices.Concat(m.ipv4List, m.ipv6List) {
+		switch {
+		case rule.prefix.Addr().Is4In6():
+			out = append(out, fmt.Sprintf("%s is an IPv4-mapped CIDR and never matches, use the IPv4 form", rule.prefix))
+		case classifyAddr(rule.prefix.Addr()) == classReserved:
+			out = append(out, fmt.Sprintf("%s is a reserved range and is never dialable", rule.prefix))
+		}
+	}
+	return out
+}
+
 // MatchIPAddr checks if the given IP is in the list.
 func (m *matchList) MatchIPAddr(ip netip.AddrPort) bool {
+	_, ok := m.MatchIPAddrEntry(ip)
+	return ok
+}
+
+// MatchIPAddrEntry returns the IP entry matching ip, if any
+func (m *matchList) MatchIPAddrEntry(ip netip.AddrPort) (netip.Prefix, bool) {
 	match := m.ipv4List
 	if ip.Addr().Is6() {
 		match = m.ipv6List
 	}
 	for _, prefix := range match {
 		if prefix.Contains(ip) {
-			return true
+			return prefix.prefix, true
 		}
 	}
-	return false
+	return netip.Prefix{}, false
+}
+
+// reservedPrefix returns the reserved range containing ip, if any
+func reservedPrefix(ip netip.Addr) (netip.Prefix, bool) {
+	for _, prefix := range reservedRanges {
+		if prefix.Contains(ip) {
+			return prefix, true
+		}
+	}
+	return netip.Prefix{}, false
 }
 
 func (m *matchList) IsEmpty() bool {

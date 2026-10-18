@@ -100,19 +100,18 @@ func ProxyDialAddr(u *url.URL) string {
 	return net.JoinHostPort(u.Hostname(), cmp.Or(u.Port(), proxyPorts[u.Scheme]))
 }
 
-func (p *Policy) blockedError(target string) error {
-	return fmt.Errorf("%s can not call blocked HTTP servers (check your %s setting), deny '%s'", p.usage, p.blockKey, target)
-}
-
 func (p *Policy) notAllowedError(target string) error {
-	return fmt.Errorf("%s can only call allowed HTTP servers (check your %s setting), deny '%s'", p.usage, p.allowKey, target)
+	return fmt.Errorf("%s can only call allowed HTTP servers (no allow entry matches, check your %s setting), deny '%s'", p.usage, p.allowKey, target)
 }
 
 func (p *Policy) checkAddr(host string, ip netip.AddrPort) error {
 	ip = netip.AddrPortFrom(ip.Addr().Unmap(), ip.Port())
 	class := classifyAddr(ip.Addr())
 	if class == classReserved {
-		return fmt.Errorf("%s can not call reserved addresses, deny '%s'", p.usage, denyTarget(host, ip))
+		if prefix, ok := reservedPrefix(ip.Addr()); ok {
+			return fmt.Errorf("%s can not call reserved addresses (%s), deny '%s'", p.usage, prefix, denyTarget(host, ip))
+		}
+		return fmt.Errorf("%s can not call reserved addresses (zoned address), deny '%s'", p.usage, denyTarget(host, ip))
 	}
 	return p.gate(host, ip, class)
 }
@@ -149,18 +148,22 @@ func (p *Policy) allowCheck(host string, ip netip.AddrPort, class addrClass) err
 	if class != classRestricted && p.allow.MatchHostname(host, ip.Port()) {
 		return nil
 	}
-	if p.mode == Strict {
-		return p.notAllowedError(denyTarget(host, ip))
-	}
 	if class == classRestricted {
-		return fmt.Errorf("%s needs an explicit IP allow entry (non-public address)", denyTarget(host, ip))
+		err := fmt.Errorf("%s can not call non-public addresses without an allow entry (check your %s setting), deny '%s'", p.usage, p.allowKey, denyTarget(host, ip))
+		if _, ok := p.allow.matchHostnameExact(host); ok && len(p.internalRanges) == 0 {
+			err = fmt.Errorf("%w — set %s to let hostname entries cover non-public targets", err, p.internalRangesKey)
+		}
+		return err
 	}
-	return fmt.Errorf("%s needs an explicit allow entry (non-public address)", denyTarget(host, ip))
+	return p.notAllowedError(denyTarget(host, ip))
 }
 
 func (p *Policy) blockReason(host string, ip netip.AddrPort) error {
-	if p.block.MatchHostname(host, ip.Port()) || p.block.MatchIPAddr(ip) {
-		return p.blockedError(denyTarget(host, ip))
+	if entry, ok := p.block.MatchHostnameEntry(host, ip.Port()); ok {
+		return fmt.Errorf("%s can not call blocked HTTP servers (matched hostname entry %q, check your %s setting), deny '%s'", p.usage, entry, p.blockKey, denyTarget(host, ip))
+	}
+	if entry, ok := p.block.MatchIPAddrEntry(ip); ok {
+		return fmt.Errorf("%s can not call blocked HTTP servers (matched IP entry %s, check your %s setting), deny '%s'", p.usage, entry, p.blockKey, denyTarget(host, ip))
 	}
 	return nil
 }
@@ -187,7 +190,8 @@ func (p *Policy) CheckHost(u *url.URL) error {
 	return p.checkAddr(host, addrPort) // invalid ip doesn't match anything
 }
 
-// CheckHostIPs reports whether u's host may be called, it resolves the host and every address must pass as the dialer may pick any.
+// CheckHostIPs reports whether u's host may be called, it resolves the host and at least one
+// address must pass, matching the dialer which tries the resolved addresses in turn.
 func (p *Policy) CheckHostIPs(u *url.URL) error {
 	// hosts behind a proxy may have no DNS resolver, the name-only CheckHost screen still applies
 	ips, _ := net.LookupIP(u.Hostname())
@@ -199,14 +203,19 @@ func (p *Policy) checkHostIPs(u *url.URL, ips []net.IP) error {
 		return p.CheckHost(u)
 	}
 	host, port := u.Hostname(), dialPort(u)
+	var firstErr error
 	for _, ip := range ips {
 		addr, _ := netip.AddrFromSlice(ip)
 		addrPort := netip.AddrPortFrom(addr, port)
-		if err := p.checkAddr(host, addrPort); err != nil {
-			return err
+		err := p.checkAddr(host, addrPort)
+		if err == nil {
+			return nil // the dialer falls back to the next address, one passing address is enough
+		}
+		if firstErr == nil {
+			firstErr = err
 		}
 	}
-	return nil
+	return firstErr
 }
 
 // NewDialContext returns a dial function that checks the resolved address at connect time, so DNS rebinding can't bypass it.

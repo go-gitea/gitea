@@ -86,10 +86,42 @@ func TestPolicyWithoutLists(t *testing.T) {
 
 func TestDenialNamesSetting(t *testing.T) {
 	err := NewPolicy("webhook", Strict, WithAllow("example.com", "security.ALLOWED_HOST_LIST")).checkAddr("other.com", netip.AddrPortFrom(netip.MustParseAddr("8.8.8.8"), 80))
-	assert.EqualError(t, err, "webhook can only call allowed HTTP servers (check your security.ALLOWED_HOST_LIST setting), deny 'other.com(8.8.8.8)'")
+	assert.EqualError(t, err, "webhook can only call allowed HTTP servers (no allow entry matches, check your security.ALLOWED_HOST_LIST setting), deny 'other.com(8.8.8.8)'")
 
 	err = NewPolicy("webhook", Lax, WithBlock("evil.com", "migrations.BLOCKED_HOST_LIST")).CheckHost(hostURL(t, "http://evil.com"))
-	assert.EqualError(t, err, "webhook can not call blocked HTTP servers (check your migrations.BLOCKED_HOST_LIST setting), deny 'evil.com'")
+	assert.EqualError(t, err, `webhook can not call blocked HTTP servers (matched hostname entry "evil.com", check your migrations.BLOCKED_HOST_LIST setting), deny 'evil.com'`)
+}
+
+func TestDenialReasons(t *testing.T) {
+	addr := func(ip string, port uint16) netip.AddrPort {
+		return netip.AddrPortFrom(netip.MustParseAddr(ip), port)
+	}
+
+	// reserved names the matching range, zoned addresses say so
+	lax := NewPolicy("test", Lax)
+	err := lax.checkAddr("", addr("64:ff9b::a00:1", 80))
+	assert.EqualError(t, err, "test can not call reserved addresses (64:ff9b::/96), deny '64:ff9b::a00:1'")
+	err = lax.checkAddr("", addr("fe80::1%eth0", 80))
+	assert.EqualError(t, err, "test can not call reserved addresses (zoned address), deny 'fe80::1%eth0'")
+
+	// a block names the matched entry, hostname or IP
+	blocked := NewPolicy("test", Lax, WithBlock("evil.com, 10.0.0.0/8", "test.BLOCKED_HOST_LIST"))
+	err = blocked.checkAddr("evil.com", addr("8.8.8.8", 80))
+	assert.EqualError(t, err, `test can not call blocked HTTP servers (matched hostname entry "evil.com", check your test.BLOCKED_HOST_LIST setting), deny 'evil.com(8.8.8.8)'`)
+	err = blocked.checkAddr("", addr("10.1.2.3", 80))
+	assert.EqualError(t, err, "test can not call blocked HTTP servers (matched IP entry 10.0.0.0/8, check your test.BLOCKED_HOST_LIST setting), deny '10.1.2.3'")
+
+	// a restricted target names the allow setting, and hints at the internal ranges when a hostname entry matches
+	restricted := NewPolicy("test", Lax, WithAllow("ci.internal.example.com", "test.ALLOWED_HOST_LIST"), WithInternalRanges("", "test.ALLOWED_INTERNAL_RANGES"))
+	err = restricted.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80))
+	assert.EqualError(t, err, "test can not call non-public addresses without an allow entry (check your test.ALLOWED_HOST_LIST setting), deny 'ci.internal.example.com(10.1.2.3)' — set test.ALLOWED_INTERNAL_RANGES to let hostname entries cover non-public targets")
+	err = restricted.checkAddr("other.com", addr("10.1.2.3", 80))
+	assert.EqualError(t, err, "test can not call non-public addresses without an allow entry (check your test.ALLOWED_HOST_LIST setting), deny 'other.com(10.1.2.3)'")
+
+	// the same clear message in strict mode
+	strict := NewPolicy("test", Strict, WithAllow("ci.internal.example.com", "test.ALLOWED_HOST_LIST"), WithInternalRanges("", "test.ALLOWED_INTERNAL_RANGES"))
+	err = strict.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80))
+	assert.EqualError(t, err, "test can not call non-public addresses without an allow entry (check your test.ALLOWED_HOST_LIST setting), deny 'ci.internal.example.com(10.1.2.3)' — set test.ALLOWED_INTERNAL_RANGES to let hostname entries cover non-public targets")
 }
 
 func hostURL(t *testing.T, raw string) *url.URL {
@@ -118,7 +150,8 @@ func TestCheckHostIPs(t *testing.T) {
 	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://git.example.com"), ips("192.168.0.1"))) // a hostname entry doesn't cover a restricted target
 	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://git.example.com"), ips("10.0.0.5")))  // an IP entry does
 	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://git.example.com"), nil))
-	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), ips("10.0.0.5", "192.168.0.1")))
+	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), ips("10.0.0.5", "192.168.0.1"))) // one passing address is enough
+	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), ips("192.168.0.1", "172.16.0.1"))) // none passes
 	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), nil))
 
 	builtins := NewPolicy("test", Lax, WithAllow("private, loopback", ""))
@@ -256,7 +289,27 @@ func TestCheckHostIPsInternalRanges(t *testing.T) {
 		return ret
 	}
 	assert.NoError(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("10.1.2.3")))
-	assert.Error(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("10.1.2.3", "192.168.5.5"))) // one IP outside the ranges
+	assert.NoError(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("10.1.2.3", "192.168.5.5"))) // one in-range address is enough
+	assert.Error(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("192.168.5.5", "172.16.0.1"))) // none in the ranges
 	assert.Error(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("169.254.169.254")))
 	assert.NoError(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), nil)) // unresolved, the dialer re-checks
+}
+
+func TestCheckHostIPsMultipleAddresses(t *testing.T) {
+	ips := func(addrs ...string) (ret []net.IP) {
+		for _, addr := range addrs {
+			ret = append(ret, net.ParseIP(addr))
+		}
+		return ret
+	}
+	// the dialer tries the resolved addresses in turn, so one passing address is enough:
+	// a DNS64-synthesized NAT64 address (reserved, never dialable) mixed with a regular IPv4
+	lax := NewPolicy("test", Lax)
+	assert.NoError(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822", "93.184.216.34")))
+	assert.Error(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822")))             // only the NAT64 address
+	assert.Error(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822", "10.0.0.5"))) // reserved + restricted, none passes
+	// all addresses denied reports the first denial
+	strict := NewPolicy("test", Strict, WithAllow("example.com", ""))
+	err := strict.checkHostIPs(hostURL(t, "http://example.com"), ips("10.0.0.5", "192.168.0.1"))
+	assert.ErrorContains(t, err, "10.0.0.5")
 }

@@ -5,6 +5,7 @@ package policy
 
 import (
 	"net/netip"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -196,4 +197,17 @@ func TestMatchHostnameInRanges(t *testing.T) {
 func TestHostnameCount(t *testing.T) {
 	assert.Equal(t, 2, NewAllowList("example.com, other.com, *.wild.com, .dot.com, 10.0.0.0/8", Strict).HostnameCount())
 	assert.Equal(t, 0, NewAllowList("", Strict).HostnameCount())
+}
+
+func TestNeverMatching(t *testing.T) {
+	list := NewAllowList("::ffff:10.0.0.0/104, 224.0.0.0/4, 2001::/32, 10.0.0.0/8, example.com, 192.168.1.1", Strict)
+	never := list.NeverMatching()
+	assert.Len(t, never, 3)
+	joined := strings.Join(never, "\n")
+	assert.Contains(t, joined, "224.0.0.0/4")
+	assert.Contains(t, joined, "::ffff:10.0.0.0/104")
+	assert.Contains(t, joined, "2001::/32")
+
+	assert.Empty(t, NewAllowList("10.0.0.0/8, example.com, 192.168.1.1", Strict).NeverMatching())
+	assert.Len(t, NewBlockList("224.0.0.0/4").NeverMatching(), 1)
 }
