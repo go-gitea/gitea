@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -29,6 +30,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
@@ -131,8 +133,11 @@ func TestViewIssuesKeyword(t *testing.T) {
 		Index:  1,
 	})
 	issues.UpdateIssueIndexer(t.Context(), issue.ID)
-	time.Sleep(time.Second * 1)
 	const keyword = "first"
+	require.Eventually(t, func() bool {
+		issueIDs, _, err := issues.SearchIssues(t.Context(), &issues.SearchOptions{Keyword: keyword, RepoIDs: []int64{repo.ID}})
+		return err == nil && slices.Contains(issueIDs, issue.ID)
+	}, 10*time.Second, 10*time.Millisecond)
 	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.Link(), keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
 
