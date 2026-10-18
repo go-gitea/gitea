@@ -78,17 +78,20 @@ func TestUpdateRepoContributors(t *testing.T) {
 		assertStats(t, countedContributors)
 	})
 
-	t.Run("ChangedMailmap", func(t *testing.T) {
+	t.Run("ChangedMailmapAndMerge", func(t *testing.T) {
 		setStats(t, headID, []*repo_model.RepoContributor{new(*marker)}, nil)
 		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		require.NoError(t, err)
 		defer gitRepo.Close()
 		require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{
 			{Ref: "refs/heads/master", Parent: headID, Files: []git.FastImportFile{{Path: ".mailmap", Content: "User Two <user2@example.com>\n"}}},
+			{Ref: "refs/heads/master", Parent: ":1", Merge: parentID},
 		}))
 
 		require.NoError(t, UpdateRepoContributors(t.Context(), repoID))
 		unittest.AssertNotExistsBean(t, &repo_model.RepoContributor{RepoID: repoID, Email: marker.Email})
+		unittest.AssertExistsAndLoadBean(t, &repo_model.RepoContributor{RepoID: repoID, Email: "gitea@example.com", Commits: 2})
+		unittest.AssertExistsAndLoadBean(t, &repo_model.RepoContributorWeek{RepoID: repoID, Email: "gitea@example.com", Commits: 1})
 	})
 
 	t.Run("Locked", func(t *testing.T) {

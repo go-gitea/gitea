@@ -9690,6 +9690,12 @@
             "description": "page size of results",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, alias of limit",
+            "name": "per_page",
+            "in": "query"
           }
         ],
         "responses": {
@@ -9698,6 +9704,9 @@
           },
           "202": {
             "description": "The contributors are still being counted, retry later"
+          },
+          "204": {
+            "description": "The repository is empty"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -26848,12 +26857,12 @@
           "x-go-name": "Additions"
         },
         "avatar_url": {
-          "description": "only set for type \"User\"",
+          "description": "not set for type \"Anonymous\"",
           "type": "string",
           "x-go-name": "AvatarURL"
         },
         "contributions": {
-          "description": "number of non-merge commits",
+          "description": "number of commits, merges included",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Contributions"
@@ -26869,18 +26878,18 @@
           "x-go-name": "Email"
         },
         "html_url": {
-          "description": "only set for type \"User\"",
+          "description": "not set for type \"Anonymous\"",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "id": {
-          "description": "only set for type \"User\"",
+          "description": "not set for type \"Anonymous\"",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "login": {
-          "description": "only set for type \"User\"",
+          "description": "not set for type \"Anonymous\"",
           "type": "string",
           "x-go-name": "Login"
         },
@@ -26890,7 +26899,7 @@
           "x-go-name": "Name"
         },
         "type": {
-          "description": "\"User\" for authors matched to a user, otherwise \"Anonymous\"",
+          "description": "\"User\" or \"Bot\" for authors matched to a user, otherwise \"Anonymous\"",
           "type": "string",
           "x-go-name": "Type"
         }

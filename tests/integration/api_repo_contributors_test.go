@@ -18,15 +18,15 @@ func TestAPIRepoContributors(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
 
-	listContributors := func(t *testing.T, link string) ([]*api.Contributor, string) {
+	listContributors := func(t *testing.T, link string) ([]*api.Contributor, http.Header) {
 		MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(token), http.StatusAccepted)
 		resp := MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(token), http.StatusOK)
-		return DecodeJSON(t, resp, []*api.Contributor{}), resp.Header().Get("X-Total-Count")
+		return DecodeJSON(t, resp, []*api.Contributor{}), resp.Header()
 	}
 
 	t.Run("Users", func(t *testing.T) {
-		contributors, total := listContributors(t, "/api/v1/repos/user2/repo16/contributors")
-		assert.Equal(t, "2", total)
+		contributors, header := listContributors(t, "/api/v1/repos/user2/repo16/contributors")
+		assert.Equal(t, "2", header.Get("X-Total-Count"))
 		if assert.Len(t, contributors, 2) {
 			assert.Equal(t, "user2", contributors[0].Login)
 			assert.Equal(t, &api.Contributor{
@@ -43,8 +43,9 @@ func TestAPIRepoContributors(t *testing.T) {
 	})
 
 	t.Run("Anonymous", func(t *testing.T) {
-		contributors, total := listContributors(t, "/api/v1/repos/user2/repo2/contributors?anon=true&limit=1")
-		assert.Equal(t, "3", total)
+		contributors, header := listContributors(t, "/api/v1/repos/user2/repo2/contributors?anon=1&per_page=1")
+		assert.Equal(t, "3", header.Get("X-Total-Count"))
+		assert.Contains(t, header.Get("Link"), `rel="next"`)
 		assert.Equal(t, []*api.Contributor{{
 			Type:          "Anonymous",
 			Name:          "Ethan Koenig",
@@ -57,8 +58,9 @@ func TestAPIRepoContributors(t *testing.T) {
 		assert.Equal(t, "0", resp.Header().Get("X-Total-Count"))
 	})
 
-	t.Run("NoCodeAccess", func(t *testing.T) {
+	t.Run("NoAccessOrEmpty", func(t *testing.T) {
 		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo16/contributors"), http.StatusNotFound)
 		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user30/repo50/contributors").AddTokenAuth(token), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/org3/repo21/contributors").AddTokenAuth(token), http.StatusNoContent)
 	})
 }

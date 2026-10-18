@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"cmp"
 	"errors"
 	"net/http"
 
@@ -11,6 +12,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -43,14 +45,24 @@ func ListContributors(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
+	// - name: per_page
+	//   in: query
+	//   description: page size of results, alias of limit
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ContributorList"
 	//   "202":
 	//     description: The contributors are still being counted, retry later
+	//   "204":
+	//     description: The repository is empty
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Status(http.StatusNoContent)
+		return
+	}
 	if err := repo_service.EnsureContributorStats(ctx, ctx.Repo.Repository); errors.Is(err, repo_service.ErrAwaitGeneration) {
 		ctx.Status(http.StatusAccepted)
 		return
@@ -58,8 +70,10 @@ func ListContributors(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	listOptions := utils.GetListOptions(ctx)
+	listOptions.PageSize = convert.ToCorrectPageSize(cmp.Or(ctx.FormInt("per_page"), ctx.FormInt("limit")))
 	contributors, total, err := repo_service.FindRepoContributors(ctx, ctx.Repo.Repository, repo_model.FindRepoContributorsOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		OnlyUsers:   !ctx.FormBool("anon"),
 	})
 	if err != nil {
@@ -71,11 +85,12 @@ func ListContributors(ctx *context.APIContext) {
 	for i, contributor := range contributors {
 		apiContributor := &api.Contributor{Type: "Anonymous", Name: contributor.Name, Email: contributor.Email, Contributions: contributor.Commits, Additions: contributor.Additions, Deletions: contributor.Deletions}
 		if user := contributor.User; user != nil {
-			apiContributor.Type, apiContributor.ID, apiContributor.Login = "User", user.ID, user.Name
+			apiContributor.Type, apiContributor.ID, apiContributor.Login = string(convert.UserTypeToString(user.Type)), user.ID, user.Name
 			apiContributor.AvatarURL, apiContributor.HTMLURL = user.AvatarLink(ctx), user.HTMLURL(ctx)
 		}
 		apiContributors[i] = apiContributor
 	}
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, apiContributors)
 }

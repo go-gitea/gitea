@@ -148,8 +148,9 @@ type contributionStats struct {
 }
 
 type authorStats struct {
-	name  string
-	weeks map[int64]*contributionStats
+	name   string
+	merges int64
+	weeks  map[int64]*contributionStats
 }
 
 type contributorKey struct {
@@ -187,6 +188,7 @@ func collectContributorStats(ctx context.Context, gitRepo *git.Repository, repoI
 				contributor = &repo_model.RepoContributor{RepoID: repoID, UserID: key.userID, Email: key.email, Name: name}
 				contributors[key] = contributor
 			}
+			contributor.Commits += author.merges
 			for weekStart, stats := range author.weeks {
 				week := weeks[contributorWeekKey{key, weekStart}]
 				if week == nil {
@@ -210,7 +212,7 @@ func collectContributorStats(ctx context.Context, gitRepo *git.Repository, repoI
 }
 
 func getAuthorStats(ctx context.Context, gitRepo *git.Repository, revision string) (map[string]*authorStats, error) {
-	cmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--format=%x00%aN%x00%aE%x00%as").AddDynamicArguments(revision)
+	cmd := gitcmd.NewCommand("log", "--shortstat", "--format=%x00%aN%x00%aE%x00%as%x00%P").AddDynamicArguments(revision)
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
 
@@ -222,10 +224,20 @@ func getAuthorStats(ctx context.Context, gitRepo *git.Repository, revision strin
 			line := scanner.Text()
 			if header, ok := strings.CutPrefix(line, "\x00"); ok {
 				name, rest, _ := strings.Cut(header, "\x00")
-				email, date, _ := strings.Cut(rest, "\x00")
+				email, rest, _ := strings.Cut(rest, "\x00")
+				date, parents, _ := strings.Cut(rest, "\x00")
 				email = strings.ToLower(strings.TrimSpace(email))
 				week = nil
 				if email == "" {
+					continue
+				}
+				author := authors[email]
+				if author == nil {
+					author = &authorStats{name: name, weeks: make(map[int64]*contributionStats)}
+					authors[email] = author
+				}
+				if strings.Contains(parents, " ") {
+					author.merges++
 					continue
 				}
 				authorDate, err := time.Parse(time.DateOnly, date)
@@ -233,11 +245,6 @@ func getAuthorStats(ctx context.Context, gitRepo *git.Repository, revision strin
 					return err
 				}
 				weekStart := authorDate.AddDate(0, 0, -int(authorDate.Weekday())).UnixMilli()
-				author := authors[email]
-				if author == nil {
-					author = &authorStats{name: name, weeks: make(map[int64]*contributionStats)}
-					authors[email] = author
-				}
 				week = author.weeks[weekStart]
 				if week == nil {
 					week = &contributionStats{}

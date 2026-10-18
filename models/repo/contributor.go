@@ -14,7 +14,7 @@ import (
 	"xorm.io/xorm"
 )
 
-// RepoContributor holds an author's non-merge commit totals on the default branch, keyed by UserID if matched to a user, else by lower-cased Email
+// RepoContributor holds an author's default branch commits including merges, keyed by UserID if matched to a user, else by lower-cased Email
 type RepoContributor struct { //revive:disable-line:exported
 	ID        int64  `xorm:"pk autoincr"`
 	RepoID    int64  `xorm:"UNIQUE(s) NOT NULL"`
@@ -28,7 +28,7 @@ type RepoContributor struct { //revive:disable-line:exported
 	User *user_model.User `xorm:"-"`
 }
 
-// RepoContributorWeek holds the totals of RepoContributor per week, Week being the Unix milliseconds of its starting Sunday
+// RepoContributorWeek holds the non-merge commits of a RepoContributor per week, Week being the Unix milliseconds of its starting Sunday
 type RepoContributorWeek struct { //revive:disable-line:exported
 	ID        int64  `xorm:"pk autoincr"`
 	RepoID    int64  `xorm:"UNIQUE(s) NOT NULL"`
