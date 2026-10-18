@@ -154,7 +154,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		return comment, nil
 	}
 
-	// atomic: a pending review left behind with a bad commit ID would break all later comments
+	// atomic: a failed comment must not leave an empty pending review behind
 	comment, err := db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
 		review, err := issues_model.GetCurrentReview(ctx, doer, issue)
 		if err != nil {
@@ -239,7 +239,11 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			} else {
 				review, err := issues_model.GetReviewByID(ctx, reviewID)
 				if err == nil && len(review.CommitID) > 0 {
-					head = review.CommitID
+					if _, err := gitRepo.GetCommit(ctx, review.CommitID); err == nil {
+						head = review.CommitID
+					} else if !git.IsErrNotExist(err) { // an unknown commit falls back to the PR head
+						return nil, err
+					}
 				} else if err != nil && !issues_model.IsErrReviewNotExist(err) {
 					return nil, fmt.Errorf("GetReviewByID %d. Error: %w", reviewID, err)
 				}
