@@ -108,6 +108,9 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		refName = git.RefNameFromBranch(ref)
 		runTargetCommit, err = gitRepo.GetBranchCommit(ctx, ref)
 	}
+	if err == nil && !git.IsReferenceExist(ctx, repo, refName.String()) { // the lookups also resolve a tag named like a missing branch
+		err = util.ErrNotExist
+	}
 	if err != nil {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("ref %q doesn't exist", ref),

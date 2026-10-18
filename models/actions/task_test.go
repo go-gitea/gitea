@@ -94,14 +94,14 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 		{
 			name: "very long name truncated",
 			jobStep: &jobparser.Step{
-				Name: jobparser.BlockSafeString(strings.Repeat("a", 300)),
+				Name: strings.Repeat("a", 300),
 			},
 			expected: strings.Repeat("a", 252) + "…",
 		},
 		{
 			name: "very long run truncated",
 			jobStep: &jobparser.Step{
-				Run: jobparser.BlockSafeString(strings.Repeat("a", 300)),
+				Run: strings.Repeat("a", 300),
 			},
 			expected: "Run " + strings.Repeat("a", 248) + "…",
 		},

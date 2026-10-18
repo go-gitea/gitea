@@ -24,6 +24,7 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -992,6 +993,13 @@ jobs:
 			CommitSHA:  branch.CommitID,
 		})
 		assert.NotNil(t, run)
+
+		_, _, err = gitcmd.NewCommand("update-ref").AddDynamicArguments("refs/tags/refs/heads/spoof", branch.CommitID).WithRepo(repo).RunStdString(t.Context())
+		require.NoError(t, err)
+		values.Set("ref", "spoof")
+		req = NewRequestWithURLValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), values).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 }
 
