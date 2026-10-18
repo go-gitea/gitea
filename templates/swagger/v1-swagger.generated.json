@@ -31446,7 +31446,7 @@
           "$ref": "#/definitions/Repository"
         },
         "repo_id": {
-          "description": "The unique identifier of the repository, -1 if it was deleted or is not visible to the caller",
+          "description": "The unique identifier of the repository",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepoID"

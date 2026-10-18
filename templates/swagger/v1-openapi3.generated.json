@@ -8365,7 +8365,7 @@
             "$ref": "#/components/schemas/Repository"
           },
           "repo_id": {
-            "description": "The unique identifier of the repository, -1 if it was deleted or is not visible to the caller",
+            "description": "The unique identifier of the repository",
             "format": "int64",
             "type": "integer",
             "x-go-name": "RepoID"

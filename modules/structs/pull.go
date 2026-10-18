@@ -103,9 +103,9 @@ type PRBranchInfo struct {
 	Ref string `json:"ref"`
 	// The commit SHA of the branch head
 	Sha string `json:"sha"`
-	// The unique identifier of the repository, -1 if it was deleted or is not visible to the caller
+	// The unique identifier of the repository
 	RepoID int64 `json:"repo_id"`
-	// The repository information, null if it was deleted or is not visible to the caller
+	// The repository information
 	Repository *Repository `json:"repo"`
 }
 
