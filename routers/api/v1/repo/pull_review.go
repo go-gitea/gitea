@@ -517,16 +517,6 @@ func CreatePullReview(ctx *context.APIContext) {
 		return
 	}
 
-	if opts.CommitID != "" {
-		if _, err := ctx.Repo.GitRepo.GetCommit(ctx, opts.CommitID); err != nil {
-			if !git.IsErrNotExist(err) {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			opts.CommitID = "" // tolerate an unknown commit
-		}
-	}
-
 	// if CommitID is empty, set it as lastCommitID
 	if opts.CommitID == "" {
 		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.Issue.Repo)

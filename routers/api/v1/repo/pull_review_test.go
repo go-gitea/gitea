@@ -29,13 +29,10 @@ func TestCreatePullReviewUnknownCommitID(t *testing.T) {
 	defer ctx.Repo.GitRepo.Close()
 	ctx.SetPathParam("index", "2")
 
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
-	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
-	require.NoError(t, err)
-
+	unknownCommitID := strings.Repeat("a", 40)
 	web.SetForm(ctx, &api.CreatePullReviewOptions{
 		Event:    api.ReviewStateComment,
-		CommitID: strings.Repeat("a", 40),
+		CommitID: unknownCommitID,
 		Comments: []api.CreatePullReviewComment{{Path: "README.md", Body: "inline", NewLineNum: 1}},
 	})
 	CreatePullReview(ctx)
@@ -43,6 +40,6 @@ func TestCreatePullReviewUnknownCommitID(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
 	var review api.PullReview
 	require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &review))
-	assert.Equal(t, headCommitID, review.CommitID)
+	assert.Equal(t, unknownCommitID, review.CommitID)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeCode, Content: "inline"})
 }

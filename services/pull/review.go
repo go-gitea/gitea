@@ -241,7 +241,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 				if err == nil && len(review.CommitID) > 0 {
 					if _, err := gitRepo.GetCommit(ctx, review.CommitID); err == nil {
 						head = review.CommitID
-					} else if !git.IsErrNotExist(err) { // an unknown commit falls back to the PR head
+					} else if !git.IsErrNotExist(err) { // the stored commit can be gone (e.g. force push), then use the PR head
 						return nil, err
 					}
 				} else if err != nil && !issues_model.IsErrReviewNotExist(err) {
