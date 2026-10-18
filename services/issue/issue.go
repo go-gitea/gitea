@@ -318,15 +318,15 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 // * If the doer is not the content poser, then the doer can access the content if they have the required access mode to the unit type (issues or pull requests).
 // * If the issue is locked, then the doer can only access the content if they have write access.
 func CanSelfChangeOrAccessContent(doer *user_model.User, doerPerm access_model.Permission, refIssue *issues_model.Issue, contentPoserID int64, accessMode perm.AccessMode) bool {
-	if doer == nil {
+	unitType := util.Iif(refIssue.IsPull, unit.TypePullRequests, unit.TypeIssues)
+	if doer == nil || !doerPerm.CanAccess(perm.AccessModeRead, unitType) {
 		return false
 	}
-	unitType := util.Iif(refIssue.IsPull, unit.TypePullRequests, unit.TypeIssues)
-	doerSelfRead := doer.ID == contentPoserID && doerPerm.CanAccess(perm.AccessModeRead, unitType)
-	ok := doerSelfRead || doerPerm.CanAccess(accessMode, unitType)
+	ok := doer.ID == contentPoserID || doerPerm.CanAccess(accessMode, unitType)
 	if !ok {
 		return false
 	}
+	// TODO: the UI can also be updated in the future to hide the "edit" menu
 	if refIssue.IsLocked && !doerPerm.CanWrite(unitType) {
 		return false
 	}
