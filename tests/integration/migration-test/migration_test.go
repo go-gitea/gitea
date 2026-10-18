@@ -34,7 +34,13 @@ var currentEngine db.EngineMigration
 
 func initMigrationTest(t *testing.T) func() {
 	testlogger.Init()
-	require.NoError(t, setting.PrepareIntegrationTestConfig())
+	workPath, err := setting.PrepareIntegrationTestConfig()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if !t.Failed() {
+			_ = os.RemoveAll(workPath)
+		}
+	})
 	setting.SetupGiteaTestEnv()
 
 	assert.NotEmpty(t, setting.RepoRootPath)

@@ -119,7 +119,7 @@ jobs:
 				}
 				runner.execTask(t, task, outcome)
 			}
-			runner.fetchNoTask(t, 300*time.Millisecond)
+			runner.fetchNoTask(t)
 			return names
 		}
 
