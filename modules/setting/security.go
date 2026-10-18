@@ -47,11 +47,14 @@ func normalizePolicyMode(mode string) string {
 
 // checkHostList reports the entries an egress host list drops, a dropped block entry would allow a blocked host so it stops startup
 func checkHostList(key, hostList string, isBlockList bool) {
-	rejected := policy.NewAllowList(hostList, policy.Lax).Rejected()
-	for _, reason := range rejected {
+	list := policy.NewAllowList(hostList, policy.Lax)
+	for _, reason := range list.Rejected() {
 		LogStartupProblem(1, log.ERROR, "%s ignores an invalid entry: %s", key, reason)
 	}
-	if isBlockList && len(rejected) > 0 {
+	for _, entry := range list.NeverMatching() {
+		LogStartupProblem(1, log.WARN, "%s has an entry that never matches: %s", key, entry)
+	}
+	if isBlockList && len(list.Rejected()) > 0 {
 		log.Fatal("%s has invalid entries, fix them so no blocked host is allowed", key)
 	}
 }
