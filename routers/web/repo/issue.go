@@ -14,6 +14,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/models/renderhelper"
@@ -481,13 +482,13 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
-func canChangeIssueOrCommentContent(ctx *context.Context, refIssue *issues_model.Issue, contentPoserID int64) bool {
-	isPull := refIssue.IsPull
-	if !ctx.IsSigned || (ctx.Doer.ID != contentPoserID && !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull)) {
+func canSelfWriteOrAccessContent(ctx *context.Context, refIssue *issues_model.Issue, contentPoserID int64, accessMode perm.AccessMode) bool {
+	unit := util.Iif(refIssue.IsPull, unit.TypePullRequests, unit.TypeIssues)
+	if !ctx.IsSigned || (ctx.Doer.ID != contentPoserID && !ctx.Repo.Permission.CanAccess(accessMode, unit)) {
 		ctx.HTTPError(http.StatusForbidden)
 		return false
 	}
-	if refIssue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(isPull) && !ctx.Doer.IsAdmin {
+	if refIssue.IsLocked && !ctx.Repo.Permission.CanWrite(unit) && !ctx.Doer.IsAdmin {
 		ctx.HTTPError(http.StatusForbidden)
 		return false
 	}
@@ -501,7 +502,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 	if issue == nil {
 		return
 	}
-	if !canChangeIssueOrCommentContent(ctx, issue, issue.PosterID) {
+	if !canSelfWriteOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeRead) {
 		return
 	}
 

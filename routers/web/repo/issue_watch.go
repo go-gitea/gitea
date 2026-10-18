@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/context"
 )
@@ -22,7 +23,7 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	if !canChangeIssueOrCommentContent(ctx, issue, issue.PosterID) {
+	if !canSelfWriteOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeRead) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}

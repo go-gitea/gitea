@@ -12,6 +12,7 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	"gitea.dev/models/renderhelper"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
@@ -169,12 +170,12 @@ func getRepoIssueComment(ctx *context.Context, commentID int64) *issues_model.Co
 	return comment
 }
 
-func getRepoIssueCommentForContentEdit(ctx *context.Context, commentID int64) *issues_model.Comment {
+func getRepoIssueCommentForSelfWriteOrAccess(ctx *context.Context, commentID int64, accessMode perm.AccessMode) *issues_model.Comment {
 	comment := getRepoIssueComment(ctx, commentID)
 	if comment == nil {
 		return nil
 	}
-	if !canChangeIssueOrCommentContent(ctx, comment.Issue, comment.PosterID) {
+	if !canSelfWriteOrAccessContent(ctx, comment.Issue, comment.PosterID, accessMode) {
 		ctx.HTTPError(http.StatusForbidden)
 		return nil
 	}
@@ -187,7 +188,7 @@ func getRepoIssueCommentForContentEdit(ctx *context.Context, commentID int64) *i
 
 // UpdateCommentContent change comment of issue's content
 func UpdateCommentContent(ctx *context.Context) {
-	comment := getRepoIssueCommentForContentEdit(ctx, ctx.PathParamInt64("id"))
+	comment := getRepoIssueCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeWrite)
 	if comment == nil {
 		return
 	}
@@ -251,7 +252,7 @@ func UpdateCommentContent(ctx *context.Context) {
 
 // DeleteComment delete comment of issue
 func DeleteComment(ctx *context.Context) {
-	comment := getRepoIssueCommentForContentEdit(ctx, ctx.PathParamInt64("id"))
+	comment := getRepoIssueCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeWrite)
 	if comment == nil {
 		return
 	}
@@ -266,15 +267,12 @@ func DeleteComment(ctx *context.Context) {
 
 // ChangeCommentReaction create a reaction for comment
 func ChangeCommentReaction(ctx *context.Context) {
-	comment := getRepoIssueCommentForContentEdit(ctx, ctx.PathParamInt64("id"))
+	comment := getRepoIssueCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeRead)
 	if comment == nil {
 		return
 	}
 
 	form := web.GetForm[*forms.ReactionForm](ctx)
-	if !canChangeIssueOrCommentContent(ctx, comment.Issue, comment.PosterID) {
-		return
-	}
 	switch ctx.PathParam("action") {
 	case "react":
 		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Content)
