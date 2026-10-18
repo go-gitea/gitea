@@ -154,33 +154,36 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		return comment, nil
 	}
 
-	review, err := issues_model.GetCurrentReview(ctx, doer, issue)
-	if err != nil {
-		if !issues_model.IsErrReviewNotExist(err) {
-			return nil, err
+	// atomic: a pending review left behind with a bad commit ID would break all later comments
+	comment, err := db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+		review, err := issues_model.GetCurrentReview(ctx, doer, issue)
+		if err != nil {
+			if !issues_model.IsErrReviewNotExist(err) {
+				return nil, err
+			}
+
+			if review, err = issues_model.CreateReview(ctx, issues_model.CreateReviewOptions{
+				Type:     issues_model.ReviewTypePending,
+				Reviewer: doer,
+				Issue:    issue,
+				Official: false,
+				CommitID: latestCommitID,
+			}); err != nil {
+				return nil, err
+			}
 		}
 
-		if review, err = issues_model.CreateReview(ctx, issues_model.CreateReviewOptions{
-			Type:     issues_model.ReviewTypePending,
-			Reviewer: doer,
-			Issue:    issue,
-			Official: false,
-			CommitID: latestCommitID,
-		}); err != nil {
-			return nil, err
-		}
-	}
-
-	comment, err := createCodeComment(ctx,
-		doer,
-		issue.Repo,
-		issue,
-		content,
-		treePath,
-		line,
-		review.ID,
-		attachments,
-	)
+		return createCodeComment(ctx,
+			doer,
+			issue.Repo,
+			issue,
+			content,
+			treePath,
+			line,
+			review.ID,
+			attachments,
+		)
+	})
 	if err != nil {
 		return nil, err
 	}

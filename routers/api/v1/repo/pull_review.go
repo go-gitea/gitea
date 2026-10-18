@@ -533,6 +533,13 @@ func CreatePullReview(ctx *context.APIContext) {
 		}
 
 		opts.CommitID = headCommitID
+	} else if _, err := ctx.Repo.GitRepo.GetCommit(ctx, opts.CommitID); err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, "commit_id does not exist")
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
 	}
 
 	// create review comments

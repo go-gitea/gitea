@@ -105,3 +105,31 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateCodeCommentInvalidCommitID(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 6})
+	require.NoError(t, pr.LoadBaseRepo(ctx))
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
+	require.NoError(t, issue.LoadRepo(ctx))
+
+	const treePath = "file.txt"
+	require.NoError(t, git.ForceFastImport(ctx, pr.BaseRepo, []git.FastImportCommit{
+		{Ref: pr.GetGitHeadRefName(), Files: []git.FastImportFile{{Path: treePath, Content: "line 1\nline 2\n"}}},
+	}))
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	headCommit, err := gitRepo.GetCommit(ctx, pr.GetGitHeadRefName())
+	require.NoError(t, err)
+
+	_, err = pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, 1, "test", treePath, true, 0, strings.Repeat("a", 40), nil)
+	require.Error(t, err)
+	_, err = issues_model.GetCurrentReview(ctx, doer, issue)
+	assert.True(t, issues_model.IsErrReviewNotExist(err), "no pending review should be left behind, got: %v", err)
+
+	_, err = pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, 1, "test", treePath, true, 0, headCommit.ID.String(), nil)
+	require.NoError(t, err)
+}
