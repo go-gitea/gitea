@@ -30,9 +30,7 @@
 		<div class="tw-flex tw-flex-wrap tw-gap-1">
 			{{range $contributor := .TopContributors}}
 				{{if $contributor.User}}
-					<a {{if gt $contributor.User.ID 0}}href="{{$contributor.User.HomeLink}}"{{end}} data-tooltip-content="{{$contributor.User.GetDisplayName}}">
-						{{ctx.AvatarUtils.Avatar $contributor.User 32}}
-					</a>
+					{{template "shared/user/avatarlink" dict "user" $contributor.User "size" 32 "tooltip" true}}
 				{{else}}
 					<span data-tooltip-content="{{$contributor.Name}}">
 						{{ctx.AvatarUtils.AvatarByEmail $contributor.Email $contributor.Name 32}}

@@ -11,11 +11,9 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
 	repo_service "gitea.dev/services/repository"
 )
 
-// ListContributors lists the commit authors of the default branch of a repository
 func ListContributors(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/contributors repository repoListContributors
 	// ---
@@ -70,8 +68,13 @@ func ListContributors(ctx *context.APIContext) {
 	}
 
 	apiContributors := make([]*api.Contributor, len(contributors))
-	for i, c := range contributors {
-		apiContributors[i] = convert.ToContributor(ctx, c)
+	for i, contributor := range contributors {
+		apiContributor := &api.Contributor{Type: "Anonymous", Name: contributor.Name, Email: contributor.Email, Contributions: contributor.Commits, Additions: contributor.Additions, Deletions: contributor.Deletions}
+		if user := contributor.User; user != nil {
+			apiContributor.Type, apiContributor.ID, apiContributor.Login = "User", user.ID, user.Name
+			apiContributor.AvatarURL, apiContributor.HTMLURL = user.AvatarLink(ctx), user.HTMLURL(ctx)
+		}
+		apiContributors[i] = apiContributor
 	}
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, apiContributors)

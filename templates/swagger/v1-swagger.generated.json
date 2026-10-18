@@ -26843,7 +26843,6 @@
       "type": "object",
       "properties": {
         "additions": {
-          "description": "number of lines added by these commits",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Additions"
@@ -26860,7 +26859,6 @@
           "x-go-name": "Contributions"
         },
         "deletions": {
-          "description": "number of lines deleted by these commits",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Deletions"

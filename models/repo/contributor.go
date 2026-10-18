@@ -9,18 +9,16 @@ import (
 
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
-// RepoContributor holds the non-merge commit totals of one author on the default branch of a repository.
-// Authors matched to a user are identified by UserID, the others by their lower-cased Email.
+// RepoContributor holds an author's non-merge commit totals on the default branch, keyed by UserID if matched to a user, else by lower-cased Email
 type RepoContributor struct { //revive:disable-line:exported
 	ID        int64  `xorm:"pk autoincr"`
 	RepoID    int64  `xorm:"UNIQUE(s) NOT NULL"`
-	UserID    int64  `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
+	UserID    int64  `xorm:"UNIQUE(s) NOT NULL DEFAULT 0"`
 	Email     string `xorm:"UNIQUE(s) VARCHAR(255) NOT NULL DEFAULT ''"`
 	Name      string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	Commits   int64  `xorm:"NOT NULL DEFAULT 0"`
@@ -47,31 +45,6 @@ func init() {
 	db.RegisterModel(new(RepoContributorWeek))
 }
 
-type RepoContributorList []*RepoContributor //revive:disable-line:exported
-
-// LoadUsers loads the users of the contributors matched to one, deleted users become ghosts
-func (contributors RepoContributorList) LoadUsers(ctx context.Context) error {
-	userIDs := make(container.Set[int64])
-	for _, c := range contributors {
-		if c.UserID > 0 {
-			userIDs.Add(c.UserID)
-		}
-	}
-	users, err := user_model.GetUsersMapByIDs(ctx, userIDs.Values())
-	if err != nil {
-		return err
-	}
-	for _, c := range contributors {
-		if c.UserID > 0 {
-			c.User = users[c.UserID]
-			if c.User == nil {
-				c.User = user_model.NewGhostUser()
-			}
-		}
-	}
-	return nil
-}
-
 type FindRepoContributorsOptions struct {
 	db.ListOptions
 	RepoID    int64
@@ -90,27 +63,21 @@ func (opts FindRepoContributorsOptions) ToOrders() string {
 	return "commits DESC, id ASC"
 }
 
-// GetRepoContributorWeeks returns all weekly stats of a repository
 func GetRepoContributorWeeks(ctx context.Context, repoID int64) ([]*RepoContributorWeek, error) {
 	weeks := make([]*RepoContributorWeek, 0, 64)
-	return weeks, db.GetEngine(ctx).Where("repo_id = ?", repoID).Asc("week").Find(&weeks)
+	return weeks, db.GetEngine(ctx).Where("repo_id = ?", repoID).Find(&weeks)
 }
 
-// GetRepoWeeklyTotals returns the stats of all contributors of a repository summed up per week
 func GetRepoWeeklyTotals(ctx context.Context, repoID int64) ([]*RepoContributorWeek, error) {
 	weeks := make([]*RepoContributorWeek, 0, 64)
 	return weeks, db.GetEngine(ctx).Table("repo_contributor_week").
 		Select("week, SUM(commits) AS commits, SUM(additions) AS additions, SUM(deletions) AS deletions").
-		Where("repo_id = ?", repoID).GroupBy("week").Asc("week").Find(&weeks)
+		Where("repo_id = ?", repoID).GroupBy("week").Find(&weeks)
 }
 
-// ReplaceRepoContributors replaces all contributor stats of a repository
 func ReplaceRepoContributors(ctx context.Context, repoID int64, contributors []*RepoContributor, weeks []*RepoContributorWeek) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if _, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Delete(new(RepoContributor)); err != nil {
-			return err
-		}
-		if _, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Delete(new(RepoContributorWeek)); err != nil {
+		if err := db.DeleteBeans(ctx, &RepoContributor{RepoID: repoID}, &RepoContributorWeek{RepoID: repoID}); err != nil {
 			return err
 		}
 		if err := insertInBatches(ctx, contributors); err != nil {
@@ -121,9 +88,6 @@ func ReplaceRepoContributors(ctx context.Context, repoID int64, contributors []*
 }
 
 func insertInBatches[T any](ctx context.Context, beans []*T) error {
-	if len(beans) == 0 {
-		return nil
-	}
 	for batch := range slices.Chunk(beans, db.MaxBatchInsertSize(new(T))) {
 		if _, err := db.GetEngine(ctx).Insert(batch); err != nil {
 			return err
@@ -132,18 +96,12 @@ func insertInBatches[T any](ctx context.Context, beans []*T) error {
 	return nil
 }
 
-// AddRepoContributors adds the given stats to the existing contributor stats of a repository
 func AddRepoContributors(ctx context.Context, contributors []*RepoContributor, weeks []*RepoContributorWeek) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, c := range contributors {
 			sess := db.GetEngine(ctx).Where("repo_id = ? AND user_id = ? AND email = ?", c.RepoID, c.UserID, c.Email).
 				Incr("commits", c.Commits).Incr("additions", c.Additions).Incr("deletions", c.Deletions)
-			update := &RepoContributor{}
-			if c.Name != "" {
-				update.Name = c.Name
-				sess.Cols("name")
-			}
-			if err := updateOrInsert(ctx, sess, update, c); err != nil {
+			if err := updateOrInsert(ctx, sess, &RepoContributor{Name: c.Name}, c); err != nil {
 				return err
 			}
 		}

@@ -20,8 +20,7 @@ const (
 	RepoIndexerTypeCode RepoIndexerType = iota // 0
 	// RepoIndexerTypeStats repository stats indexer
 	RepoIndexerTypeStats // 1
-	// RepoIndexerTypeContributors repository contributor stats
-	RepoIndexerTypeContributors // 2
+	RepoIndexerTypeContributors
 )
 
 // RepoIndexerStatus status of a repo's entry in the repo indexer

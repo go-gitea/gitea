@@ -22,8 +22,6 @@ type Contributor struct {
 	Email string `json:"email,omitzero"`
 	// number of non-merge commits
 	Contributions int64 `json:"contributions"`
-	// number of lines added by these commits
-	Additions int64 `json:"additions"`
-	// number of lines deleted by these commits
-	Deletions int64 `json:"deletions"`
+	Additions     int64 `json:"additions"`
+	Deletions     int64 `json:"deletions"`
 }

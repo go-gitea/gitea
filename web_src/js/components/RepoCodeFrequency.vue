@@ -84,9 +84,8 @@ function toGraphData(data: DayData[]): ChartData<'line'> {
     datasets: [
       {
         data: data.map((i) => ({x: i.week, y: i.additions})),
-        // a line needs two points, so a single week is drawn as a point
-        pointRadius: data.length === 1 ? 3 : 0,
-        pointHitRadius: data.length === 1 ? 3 : 0,
+        pointRadius: 0,
+        pointHitRadius: 0,
         fill: true,
         label: 'Additions',
         backgroundColor: chartJsColors['additions'],
@@ -95,8 +94,8 @@ function toGraphData(data: DayData[]): ChartData<'line'> {
       },
       {
         data: data.map((i) => ({x: i.week, y: -i.deletions})),
-        pointRadius: data.length === 1 ? 3 : 0,
-        pointHitRadius: data.length === 1 ? 3 : 0,
+        pointRadius: 0,
+        pointHitRadius: 0,
         fill: true,
         label: 'Deletions',
         backgroundColor: chartJsColors['deletions'],

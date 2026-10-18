@@ -3746,7 +3746,6 @@
         "description": "Contributor represents a commit author of the default branch of a repository",
         "properties": {
           "additions": {
-            "description": "number of lines added by these commits",
             "format": "int64",
             "type": "integer",
             "x-go-name": "Additions"
@@ -3764,7 +3763,6 @@
             "x-go-name": "Contributions"
           },
           "deletions": {
-            "description": "number of lines deleted by these commits",
             "format": "int64",
             "type": "integer",
             "x-go-name": "Deletions"

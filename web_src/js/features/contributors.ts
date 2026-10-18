@@ -18,7 +18,7 @@ export async function initRepoContributors() {
           additions_deletions: el.getAttribute('data-locale-contribution-type-additions-deletions'),
         },
         periodFilterLabel: el.getAttribute('data-locale-period-filter-label'),
-        period: Object.fromEntries(['all', '1', '3', '6', '12', '24'].map((period) => [period, el.getAttribute(`data-locale-period-${period}`)])),
+        periods: ['all', '1', '3', '6', '12', '24'].map((value) => ({value, label: el.getAttribute(`data-locale-period-${value}`)})),
 
         loadingTitle: el.getAttribute('data-locale-loading-title'),
         loadingTitleFailed: el.getAttribute('data-locale-loading-title-failed'),

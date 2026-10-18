@@ -8,19 +8,10 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/organization"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
-	org_service "gitea.dev/services/org"
-	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAPIRepoContributors(t *testing.T) {
@@ -28,7 +19,6 @@ func TestAPIRepoContributors(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
 
 	listContributors := func(t *testing.T, link string) ([]*api.Contributor, string) {
-		// the first request queues the counting, which the test queues run right away
 		MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(token), http.StatusAccepted)
 		resp := MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(token), http.StatusOK)
 		return DecodeJSON(t, resp, []*api.Contributor{}), resp.Header().Get("X-Total-Count")
@@ -67,21 +57,8 @@ func TestAPIRepoContributors(t *testing.T) {
 		assert.Equal(t, "0", resp.Header().Get("X-Total-Count"))
 	})
 
-	t.Run("NoAccess", func(t *testing.T) {
+	t.Run("NoCodeAccess", func(t *testing.T) {
 		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo16/contributors"), http.StatusNotFound)
-	})
-
-	t.Run("IssuesOnlyAccess", func(t *testing.T) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-		team := &organization.Team{OrgID: repo.OwnerID, Name: "issues-only", Units: []*organization.TeamUnit{
-			{OrgID: repo.OwnerID, Type: unit.TypeIssues, AccessMode: perm.AccessModeRead},
-		}}
-		require.NoError(t, org_service.NewTeam(t.Context(), team))
-		require.NoError(t, org_service.AddTeamMember(t.Context(), team, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})))
-		require.NoError(t, repo_service.TeamAddRepository(t.Context(), team, repo))
-
-		user5Token := getUserToken(t, "user5", auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopeReadIssue)
-		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/org3/repo3/issues").AddTokenAuth(user5Token), http.StatusOK)
-		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/org3/repo3/contributors").AddTokenAuth(user5Token), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user30/repo50/contributors").AddTokenAuth(token), http.StatusForbidden)
 	})
 }

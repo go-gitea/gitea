@@ -13,6 +13,9 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/util"
 )
 
 // ErrAwaitGeneration is returned while the contributor stats of a repository are generated for the first time
@@ -35,35 +38,39 @@ type ContributorData struct {
 	Weeks        map[int64]*WeekData `json:"weeks"`
 }
 
-// EnsureContributorStats queues the generation of the contributor stats of a repository if they were never generated
+// EnsureContributorStats queues counting when the stats lag behind the default branch
 func EnsureContributorStats(ctx context.Context, repo *repo_model.Repository) error {
-	if repo.IsEmpty {
-		return nil
-	}
-	status, err := repo_model.GetIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeContributors)
-	if err != nil {
+	headID, countedID, err := getContributorStatsCommits(ctx, repo)
+	if err != nil || headID == countedID {
 		return err
 	}
-	if status.CommitSha != "" {
-		return nil
+	if countErr, failed := cache.GetCache().Get(contributorsErrorCacheKey(repo.ID)); failed {
+		return util.Iif(countedID == "", errors.New(countErr), nil)
 	}
 	if err := AddRepoToContributorsQueue(repo.ID); err != nil {
 		return err
 	}
-	return ErrAwaitGeneration
+	return util.Iif(countedID == "", ErrAwaitGeneration, nil)
 }
 
-// FindRepoContributors returns the generated contributors of a repository with their users loaded, most commits first
-func FindRepoContributors(ctx context.Context, repo *repo_model.Repository, opts repo_model.FindRepoContributorsOptions) (repo_model.RepoContributorList, int64, error) {
+func FindRepoContributors(ctx context.Context, repo *repo_model.Repository, opts repo_model.FindRepoContributorsOptions) ([]*repo_model.RepoContributor, int64, error) {
 	opts.RepoID = repo.ID
 	contributors, total, err := db.FindAndCount[repo_model.RepoContributor](ctx, opts)
 	if err != nil {
 		return nil, 0, err
 	}
-	return contributors, total, repo_model.RepoContributorList(contributors).LoadUsers(ctx)
+	users, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(contributors, func(contributor *repo_model.RepoContributor) (int64, bool) {
+		return contributor.UserID, contributor.UserID > 0
+	}))
+	if err != nil {
+		return nil, 0, err
+	}
+	for _, contributor := range contributors {
+		contributor.User = user_model.GetPossibleUserFromMap(contributor.UserID, users)
+	}
+	return contributors, total, nil
 }
 
-// GetContributorStats returns the weekly stats of the default branch contributors keyed by email, and their sum keyed by "total"
 func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[string]*ContributorData, error) {
 	if err := EnsureContributorStats(ctx, repo); err != nil {
 		return nil, err
@@ -76,59 +83,65 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 	if err != nil {
 		return nil, err
 	}
-	total, err := getWeeklyTotals(ctx, repo)
-	if err != nil {
-		return nil, err
-	}
 
 	ghostAvatarLink := user_model.NewGhostUser().AvatarLinkWithSize(ctx, 0)
 	stats := make(map[string]*ContributorData, len(contributors)+1)
 	byKey := make(map[contributorKey]*ContributorData, len(contributors))
 	for _, c := range contributors {
-		data := &ContributorData{TotalCommits: c.Commits, Weeks: make(map[int64]*WeekData)}
 		key := c.Email
 		if c.User != nil {
 			key = cmp.Or(c.User.GetEmail(), fmt.Sprintf("ghost-%d", c.UserID))
+		}
+		// an email counted before it was added to a user also has a row of its own
+		data := stats[key]
+		if data == nil {
+			data = &ContributorData{Weeks: make(map[int64]*WeekData)}
+			stats[key] = data
+		}
+		if c.User != nil {
 			data.Name, data.AvatarLink = c.User.DisplayName(), c.User.AvatarLinkWithSize(ctx, 0)
 			if c.User.ID > 0 {
 				data.Login, data.HomeLink = c.User.LowerName, c.User.HomeLink()
 			}
-		} else {
+		} else if data.Name == "" {
 			data.Name, data.AvatarLink = c.Name, cmp.Or(avatars.GenerateEmailAvatarFastLink(ctx, c.Email, 0), ghostAvatarLink)
 		}
-		stats[key] = data
 		byKey[contributorKey{c.UserID, c.Email}] = data
 	}
+	total := &ContributorData{Name: "Total", Weeks: make(map[int64]*WeekData)}
 	for _, w := range weeks {
+		total.addWeek(w)
 		if data := byKey[contributorKey{w.UserID, w.Email}]; data != nil {
-			data.Weeks[w.Week] = &WeekData{Week: w.Week, Additions: int(w.Additions), Deletions: int(w.Deletions), Commits: int(w.Commits)}
+			data.addWeek(w)
 		}
 	}
-
-	totalData := &ContributorData{Name: "Total", Weeks: total}
-	for _, w := range total {
-		totalData.TotalCommits += int64(w.Commits)
-	}
-	stats["total"] = totalData
+	stats["total"] = total
 	return stats, nil
 }
 
-// GetWeeklyTotals returns the stats of all default branch contributors summed up per week
+func (data *ContributorData) addWeek(w *repo_model.RepoContributorWeek) {
+	week := data.Weeks[w.Week]
+	if week == nil {
+		week = &WeekData{Week: w.Week}
+		data.Weeks[w.Week] = week
+	}
+	week.Additions += int(w.Additions)
+	week.Deletions += int(w.Deletions)
+	week.Commits += int(w.Commits)
+	data.TotalCommits += w.Commits
+}
+
 func GetWeeklyTotals(ctx context.Context, repo *repo_model.Repository) (map[int64]*WeekData, error) {
 	if err := EnsureContributorStats(ctx, repo); err != nil {
 		return nil, err
 	}
-	return getWeeklyTotals(ctx, repo)
-}
-
-func getWeeklyTotals(ctx context.Context, repo *repo_model.Repository) (map[int64]*WeekData, error) {
 	weeks, err := repo_model.GetRepoWeeklyTotals(ctx, repo.ID)
 	if err != nil {
 		return nil, err
 	}
-	totals := make(map[int64]*WeekData, len(weeks))
+	total := &ContributorData{Weeks: make(map[int64]*WeekData, len(weeks))}
 	for _, w := range weeks {
-		totals[w.Week] = &WeekData{Week: w.Week, Additions: int(w.Additions), Deletions: int(w.Deletions), Commits: int(w.Commits)}
+		total.addWeek(w)
 	}
-	return totals, nil
+	return total.Weeks, nil
 }

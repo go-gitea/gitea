@@ -18,12 +18,12 @@ import (
 )
 
 func TestUpdateRepoContributors(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
+	unittest.PrepareTestEnv(t)
 
 	const repoID = 16
 	const headID = "69554a64c1e6030f051e5c3f94bfbd773cd6a324"
 	const parentID = "27566bd5738fc8b4e3fef3c5e72cce608537bd95"
-	const week = 1501977600000 // sunday 2017-08-06
+	const week = 1501977600000
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 	countedContributors := []*repo_model.RepoContributor{
 		{RepoID: repoID, UserID: 2, Commits: 2, Additions: 2, Deletions: 1},
@@ -33,7 +33,6 @@ func TestUpdateRepoContributors(t *testing.T) {
 		{RepoID: repoID, UserID: 2, Week: week, Commits: 2, Additions: 2, Deletions: 1},
 		{RepoID: repoID, UserID: 21, Week: week, Commits: 1, Additions: 1, Deletions: 1},
 	}
-	// not in the git history, so it only survives updates that add to the existing stats
 	marker := &repo_model.RepoContributor{RepoID: repoID, Email: "marker@example.com", Name: "Marker", Commits: 9}
 
 	assertStats := func(t *testing.T, contributors []*repo_model.RepoContributor) {
@@ -42,17 +41,11 @@ func TestUpdateRepoContributors(t *testing.T) {
 		assert.Equal(t, headID, status.CommitSha)
 
 		var actualContributors []*repo_model.RepoContributor
-		require.NoError(t, db.GetEngine(t.Context()).Where("repo_id = ?", repoID).Asc("user_id", "email").Find(&actualContributors))
-		for _, c := range actualContributors {
-			c.ID = 0
-		}
+		require.NoError(t, db.GetEngine(t.Context()).Where("repo_id = ?", repoID).Omit("id").Asc("user_id", "email").Find(&actualContributors))
 		assert.Equal(t, contributors, actualContributors)
 
 		var actualWeeks []*repo_model.RepoContributorWeek
-		require.NoError(t, db.GetEngine(t.Context()).Where("repo_id = ?", repoID).Asc("user_id", "email").Find(&actualWeeks))
-		for _, w := range actualWeeks {
-			w.ID = 0
-		}
+		require.NoError(t, db.GetEngine(t.Context()).Where("repo_id = ?", repoID).Omit("id").Asc("user_id", "email").Find(&actualWeeks))
 		assert.Equal(t, countedWeeks, actualWeeks)
 	}
 
@@ -72,17 +65,30 @@ func TestUpdateRepoContributors(t *testing.T) {
 		defer gitRepo.Close()
 		contributors, weeks, err := collectContributorStats(t.Context(), gitRepo, repoID, parentID)
 		require.NoError(t, err)
-		setStats(t, parentID, append(contributors, &repo_model.RepoContributor{RepoID: repoID, Email: marker.Email, Name: marker.Name, Commits: marker.Commits}), weeks)
+		setStats(t, parentID, append(contributors, new(*marker)), weeks)
 
 		require.NoError(t, UpdateRepoContributors(t.Context(), repoID))
 		assertStats(t, append([]*repo_model.RepoContributor{marker}, countedContributors...))
 	})
 
 	t.Run("RewrittenHistory", func(t *testing.T) {
-		setStats(t, "0123456789012345678901234567890123456789", []*repo_model.RepoContributor{{RepoID: repoID, Email: marker.Email, Name: marker.Name, Commits: marker.Commits}}, nil)
+		setStats(t, "0123456789012345678901234567890123456789", []*repo_model.RepoContributor{new(*marker)}, nil)
 
 		require.NoError(t, UpdateRepoContributors(t.Context(), repoID))
 		assertStats(t, countedContributors)
+	})
+
+	t.Run("ChangedMailmap", func(t *testing.T) {
+		setStats(t, headID, []*repo_model.RepoContributor{new(*marker)}, nil)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+		require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{
+			{Ref: "refs/heads/master", Parent: headID, Files: []git.FastImportFile{{Path: ".mailmap", Content: "User Two <user2@example.com>\n"}}},
+		}))
+
+		require.NoError(t, UpdateRepoContributors(t.Context(), repoID))
+		unittest.AssertNotExistsBean(t, &repo_model.RepoContributor{RepoID: repoID, Email: marker.Email})
 	})
 
 	t.Run("Locked", func(t *testing.T) {

@@ -118,10 +118,10 @@ func Init(ctx context.Context) error {
 	if err := repo_module.LoadRepoConfig(); err != nil {
 		return err
 	}
-	if err := initPushQueue(); err != nil {
+	if err := initContributorsQueue(); err != nil {
 		return err
 	}
-	if err := initContributorsQueue(); err != nil {
+	if err := initPushQueue(); err != nil {
 		return err
 	}
 	return initBranchSyncQueue(graceful.GetManager().ShutdownContext())
