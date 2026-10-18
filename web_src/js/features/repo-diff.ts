@@ -15,6 +15,7 @@ import {performFetchActionTrigger} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
+import {registerAsyncHashChangeListener} from "../modules/hashchange.ts";
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -271,6 +272,7 @@ export function initRepoDiffView() {
   initRepoDiffConversationNav(); // "previous" and "next" buttons only appear on "diff" page
   initExpandAndCollapseFilesButton();
 
-  window.addEventListener('hashchange', onLocationHashChange);
-  onLocationHashChange();
+  // onLocationHashChange does very complicate things (e.g.: load incomplete content and scroll), and it might change the URL hash
+  // so make it run after all other hash change listeners
+  registerAsyncHashChangeListener(onLocationHashChange, 999);
 }
