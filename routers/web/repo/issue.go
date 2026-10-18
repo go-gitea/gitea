@@ -81,11 +81,20 @@ func MustAllowUserComment(ctx *context.Context) {
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
+	if isIssueLockedForDoer(ctx, issue) {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
 		ctx.Redirect(issue.Link())
 		return
 	}
+}
+
+// canParticipateInIssue returns whether the doer is the poster or can read the issue
+func canParticipateInIssue(ctx *context.Context, issue *issues_model.Issue, posterID int64) bool {
+	return ctx.IsSigned && (ctx.Doer.ID == posterID || ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull))
+}
+
+func isIssueLockedForDoer(ctx *context.Context, issue *issues_model.Issue) bool {
+	return issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin
 }
 
 // MustEnableIssues check if repository enable internal issues
@@ -489,30 +498,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {
-		if log.IsTrace() {
-			if ctx.IsSigned {
-				issueType := "issues"
-				if issue.IsPull {
-					issueType = "pulls"
-				}
-				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
-					"User in Repo has Permissions: %-+v",
-					ctx.Doer,
-					issue.PosterID,
-					issueType,
-					ctx.Repo.Repository,
-					ctx.Repo.Permission)
-			} else {
-				log.Trace("Permission Denied: Not logged in")
-			}
-		}
-
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-
-	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
+	if !canParticipateInIssue(ctx, issue, issue.PosterID) || isIssueLockedForDoer(ctx, issue) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}

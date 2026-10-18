@@ -191,12 +191,8 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 	}
 
 	for i := range attachments {
-		if attachments[i].IssueID != 0 || attachments[i].CommentID != 0 {
-			return util.NewPermissionDeniedErrorf("attachment belongs to an issue")
-		}
-
-		if attachments[i].ReleaseID != 0 {
-			return util.NewPermissionDeniedErrorf("release permission denied")
+		if attachments[i].IssueID != 0 || attachments[i].CommentID != 0 || attachments[i].ReleaseID != 0 {
+			return util.NewPermissionDeniedErrorf("attachment is already linked")
 		}
 
 		if attachments[i].RepoID == 0 && attachments[i].CreatedUnix < LegacyAttachmentMissingRepoIDCutoff {

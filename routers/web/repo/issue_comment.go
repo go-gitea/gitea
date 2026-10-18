@@ -40,21 +40,18 @@ func NewComment(ctx *context.Context) {
 	}
 
 	form := web.GetForm[*forms.CreateCommentForm](ctx)
-	issueType := util.Iif(issue.IsPull, "pulls", "issues")
 
-	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {
-		log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
-			"User in Repo has Permissions: %-+v", ctx.Doer, issue.PosterID, issueType, ctx.Repo.Repository, ctx.Repo.Permission)
+	if !canParticipateInIssue(ctx, issue, issue.PosterID) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
+	if isIssueLockedForDoer(ctx, issue) {
 		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}
 
-	redirect := fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, issueType, issue.Index)
+	redirect := issue.Link()
 	attachments := util.Iif(setting.Attachment.Enabled, form.Files, nil)
 
 	// allow empty content if there are attachments
@@ -283,30 +280,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull)) {
-		if log.IsTrace() {
-			if ctx.IsSigned {
-				issueType := "issues"
-				if comment.Issue.IsPull {
-					issueType = "pulls"
-				}
-				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
-					"User in Repo has Permissions: %-+v",
-					ctx.Doer,
-					comment.Issue.PosterID,
-					issueType,
-					ctx.Repo.Repository,
-					ctx.Repo.Permission)
-			} else {
-				log.Trace("Permission Denied: Not logged in")
-			}
-		}
-
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-
-	if comment.Issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull) && !ctx.Doer.IsAdmin {
+	if !canParticipateInIssue(ctx, comment.Issue, comment.PosterID) || isIssueLockedForDoer(ctx, comment.Issue) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}

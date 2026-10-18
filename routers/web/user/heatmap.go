@@ -48,17 +48,13 @@ func writeHeatmapJSON(ctx *context.Context, hdata []*activities_model.UserHeatma
 
 // DashboardHeatmap returns heatmap data as JSON, for the individual user, organization or team dashboard.
 func DashboardHeatmap(ctx *context.Context) {
-	if !setting.Service.EnableUserHeatmap {
+	if !setting.Service.EnableUserHeatmap || (ctx.Org.Organization == nil && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer)) {
 		ctx.NotFound(nil)
 		return
 	}
 	var data []*activities_model.UserHeatmapData
 	var err error
 	if ctx.Org.Organization == nil {
-		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-			ctx.NotFound(nil)
-			return
-		}
 		data, err = activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 	} else {
 		data, err = activities_model.GetUserHeatmapDataByOrgTeam(ctx, ctx.Org.Organization, ctx.Org.Team, ctx.Doer)
