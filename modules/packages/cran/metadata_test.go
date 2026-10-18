@@ -159,3 +159,20 @@ func TestParseDescription(t *testing.T) {
 		assert.True(t, p.Metadata.NeedsCompilation)
 	})
 }
+
+func TestCompareVersions(t *testing.T) {
+	cases := []struct {
+		a, b     string
+		expected int
+	}{
+		{"1.0.3", "1.0.2", 1},
+		{"0.9.10", "0.9.9", 1},
+		{"2.5.2", "3.0.2", -1},
+		{"1.0-1", "1.0.0", 1},
+		{"1.0-2", "1.0.2", 0},
+		{"1.0", "1.0.0", -1},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.expected, CompareVersions(c.a, c.b), "%s vs %s", c.a, c.b)
+	}
+}

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -60,6 +61,14 @@ func TestWriterReader(t *testing.T) {
 		require.NoError(t, reader.Close())
 
 		assert.Equal(t, testData, data)
+	})
+
+	t.Run("rejects window above 128 MiB", func(t *testing.T) {
+		frameWith256MiBWindow := []byte{0x28, 0xb5, 0x2f, 0xfd, 0x00, 0x90, 0x01, 0x00, 0x00}
+		reader, err := NewReader(bytes.NewReader(frameWith256MiBWindow))
+		require.NoError(t, err)
+		_, err = io.ReadAll(reader)
+		assert.ErrorIs(t, err, zstd.ErrWindowSizeExceeded)
 	})
 }
 
