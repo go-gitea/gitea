@@ -512,6 +512,11 @@ func ChangeIssueReaction(ctx *context.Context) {
 		return
 	}
 
+	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
 	if ctx.HasError() {
 		ctx.ServerError("ChangeIssueReaction", errors.New(ctx.GetErrMsg()))
 		return

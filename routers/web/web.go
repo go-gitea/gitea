@@ -1523,7 +1523,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Post("/topics", repo.TopicsPost)
-	}, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
+	}, crossOriginProtect, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
 
 	m.Group("/{username}/{reponame}", func() {
 		if setting.Packages.Enabled {

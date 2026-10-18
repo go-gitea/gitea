@@ -306,6 +306,11 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
+	if comment.Issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull) && !ctx.Doer.IsAdmin {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
 	if !comment.Type.HasContentSupport() {
 		ctx.HTTPError(http.StatusNoContent)
 		return

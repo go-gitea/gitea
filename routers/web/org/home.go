@@ -42,6 +42,10 @@ func Home(ctx *context.Context) {
 }
 
 func Repositories(ctx *context.Context) {
+	if ctx.Org.Organization == nil {
+		ctx.NotFound(nil)
+		return
+	}
 	home(ctx, true)
 }
 

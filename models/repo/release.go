@@ -191,6 +191,14 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 	}
 
 	for i := range attachments {
+		if attachments[i].IssueID != 0 || attachments[i].CommentID != 0 {
+			return util.NewPermissionDeniedErrorf("attachment belongs to an issue")
+		}
+
+		if attachments[i].ReleaseID != 0 {
+			return util.NewPermissionDeniedErrorf("release permission denied")
+		}
+
 		if attachments[i].RepoID == 0 && attachments[i].CreatedUnix < LegacyAttachmentMissingRepoIDCutoff {
 			attachments[i].RepoID = rel.RepoID
 			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Cols("repo_id").Update(attachments[i]); err != nil {
@@ -200,10 +208,6 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 
 		if attachments[i].RepoID != rel.RepoID {
 			return util.NewPermissionDeniedErrorf("attachment belongs to different repository")
-		}
-
-		if attachments[i].ReleaseID != 0 {
-			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
