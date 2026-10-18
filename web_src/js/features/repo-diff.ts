@@ -1,6 +1,6 @@
+import {createApp} from 'vue';
+import DiffFileTree from '../components/DiffFileTree.vue';
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
-import {initDiffFileTree} from './repo-diff-filetree.ts';
-import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initExpandAndCollapseFilesButton, initDiffFileViewedForm} from './pull-view-file.ts';
 import {showErrorToast} from '../modules/toast.ts';
@@ -12,8 +12,9 @@ import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import {performFetchActionTrigger} from '../modules/fetch-action.ts';
-import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
+import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
+import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -245,6 +246,15 @@ async function onLocationHashChange() {
   }
 }
 
+function initDiffFileTree(el: HTMLElement) {
+  const locale = JSON.parse(el.getAttribute('data-locale')!) as DiffFileTreeLocale;
+  createApp(DiffFileTree, {locale}).mount(el);
+}
+
+function initDiffCommitSelect(el: HTMLElement) {
+  createApp(DiffCommitSelector).mount(el);
+}
+
 export function initRepoDiffView() {
   initRepoDiffConversationForm(); // such form appears on the "conversation" page and "diff" page
   registerGlobalEventFunc('click', 'diffLoadMoreFiles', (el) => { diffLoadMoreFiles(el) });
@@ -254,11 +264,11 @@ export function initRepoDiffView() {
   registerGlobalInitFunc('initDiffFileViewedForm', initDiffFileViewedForm);
   registerGlobalInitFunc('initDiffFileImageDiff', initImageDiff);
   registerGlobalInitFunc('initDiffFileViewToggle', initDiffFileViewToggle);
+  registerGlobalInitFunc('initDiffFileTree', initDiffFileTree);
+  registerGlobalInitFunc('initDiffCommitSelect', initDiffCommitSelect);
 
   if (!document.querySelector('#diff-file-boxes')) return;
   initRepoDiffConversationNav(); // "previous" and "next" buttons only appear on "diff" page
-  initDiffFileTree();
-  initDiffCommitSelect();
   initExpandAndCollapseFilesButton();
 
   window.addEventListener('hashchange', onLocationHashChange);
