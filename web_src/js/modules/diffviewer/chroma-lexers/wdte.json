@@ -1,0 +1,1 @@
+{"name":"WDTE","flags":"m","ensureNL":false,"rules":{"root":[["\\n","",null],["\\s+","",null],["\\\\\\n","",null],["#(.*?)\\n","c1",null],["-?[0-9]+","mi",null],["-?[0-9]*\\.[0-9]+","mf",null],["\"[^\"]*\"","s",null],["'[^']*'","s",null],["(default|switch|memo)\\b","kr",null],["{|}|;|->|=>|\\(|\\)|\\[|\\]|\\.","o",null],["[^{};()[\\].\\s]+","nv",null]]}}

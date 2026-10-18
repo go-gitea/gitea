@@ -103,6 +103,7 @@ PATH = $WORK_DIR/data/gitea.db
 HTTP_PORT = $FREE_PORT
 ROOT_URL = http://localhost:$FREE_PORT
 STATIC_ROOT_PATH = $(pwd)
+LFS_START_SERVER = true
 
 [security]
 INSTALL_LOCK = true

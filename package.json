@@ -29,6 +29,7 @@
     "@replit/codemirror-lang-svelte": "6.0.0",
     "@replit/codemirror-vscode-keymap": "6.0.2",
     "@resvg/resvg-wasm": "2.6.2",
+    "@tanstack/virtual-core": "3.17.11",
     "@vitejs/plugin-vue": "6.0.9",
     "asciinema-player": "3.17.0",
     "chart.js": "4.5.1",

@@ -1,9 +1,10 @@
+{{/* the reply form of a code comment conversation in the PR timeline */ -}}
 {{$root := ctx.RootData -}}
-{{$replyReviewComment := $.ReplyReviewComment -}}{{/* can be nil */ -}}
+{{$replyReviewComment := $.ReplyReviewComment -}}
 {{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived) -}}
 {{if $canAddComment}}
-	<form class="ui form {{if $replyReviewComment}}tw-hidden comment-form{{end}}" action="{{$root.Issue.Link}}/files/reviews/comments" method="post">
-		<input type="hidden" name="origin" value="{{if $root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
+	<form class="ui form tw-hidden comment-form" action="{{$root.Issue.Link}}/files/reviews/comments" method="post">
+		<input type="hidden" name="origin" value="timeline">
 		<input type="hidden" name="latest_commit_id" value="{{$root.AfterCommitID}}">
 		<input type="hidden" name="side" value="{{$replyReviewComment.DiffSide}}">
 		<input type="hidden" name="line" value="{{$replyReviewComment.UnsignedLine}}">
@@ -29,18 +30,9 @@
 
 		<div class="field footer">
 			<div class="flex-text-block tw-justify-end">
-				{{if $replyReviewComment}}
-					<button class="ui submit primary tiny button" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>
-					<input type="hidden" name="reply" value="{{$replyReviewComment.ReviewID}}">
-					<input type="hidden" name="single_review" value="true">
-				{{else}}
-					{{if $root.CurrentReview}}
-						<button name="pending_review" type="submit" class="ui submit primary tiny button">{{ctx.Locale.Tr "repo.diff.comment.add_review_comment"}}</button>
-					{{else}}
-						<button name="pending_review" type="submit" class="ui submit primary tiny button">{{ctx.Locale.Tr "repo.diff.comment.start_review"}}</button>
-						<button name="single_review" value="true" type="submit" class="ui submit tiny basic button">{{ctx.Locale.Tr "repo.diff.comment.add_single_comment"}}</button>
-					{{end}}
-				{{end}}
+				<button class="ui submit primary tiny button" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>
+				<input type="hidden" name="reply" value="{{$replyReviewComment.ReviewID}}">
+				<input type="hidden" name="single_review" value="true">
 				<button type="button" class="ui submit tiny basic button" data-global-click="onCancelCodeComment">{{ctx.Locale.Tr "cancel"}}</button>
 			</div>
 		</div>

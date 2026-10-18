@@ -73,15 +73,29 @@ export async function apiStartStopwatch(requestContext: APIRequestContext, owner
   }), 'apiStartStopwatch');
 }
 
-/** Commit one or more files in a single API call. */
-export async function apiCreateFiles(requestContext: APIRequestContext, owner: string, repo: string, files: Array<{path: string; content: string}>, {branch, newBranch, headers}: {branch?: string; newBranch?: string; headers?: Record<string, string>} = {}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents`, {
+type FileChange = {operation: 'create' | 'update' | 'delete'; path: string; fromPath?: string; content?: string; base64?: string};
+
+/** Changes files in one commit, an "update" with "fromPath" renames the file. */
+export async function apiChangeFiles(requestContext: APIRequestContext, owner: string, repo: string, files: FileChange[], {branch, newBranch, headers}: {branch?: string; newBranch?: string; headers?: Record<string, string>} = {}) {
+  const api = `${baseUrl()}/api/v1/repos/${owner}/${repo}`;
+  const data = await Promise.all(files.map(async ({operation, path, fromPath, content, base64}) => {
+    let sha: string | undefined;
+    if (operation !== 'create') {
+      const response = await requestContext.get(`${api}/contents/${fromPath ?? path}${branch ? `?ref=${branch}` : ''}`, {headers: headers || apiHeaders()});
+      if (!response.ok()) throw new Error(`apiChangeFiles: ${fromPath ?? path} not found: ${response.status()}`);
+      sha = (await response.json()).sha;
+    }
+    return {operation, path, from_path: fromPath, sha, content: base64 ?? (content === undefined ? undefined : Buffer.from(content, 'utf8').toString('base64'))};
+  }));
+  await apiRetry(() => requestContext.post(`${api}/contents`, {
     headers: headers || apiHeaders(),
-    data: {
-      branch, new_branch: newBranch,
-      files: files.map((file) => ({operation: 'create', path: file.path, content: Buffer.from(file.content, 'utf8').toString('base64')})),
-    },
-  }), 'apiCreateFiles');
+    data: {branch, new_branch: newBranch, files: data},
+  }), 'apiChangeFiles');
+}
+
+/** Commit one or more files in a single API call. */
+export async function apiCreateFiles(requestContext: APIRequestContext, owner: string, repo: string, files: Array<{path: string; content: string}>, opts: {branch?: string; newBranch?: string; headers?: Record<string, string>} = {}) {
+  await apiChangeFiles(requestContext, owner, repo, files.map((file) => ({operation: 'create' as const, ...file})), opts);
 }
 
 export async function apiCloseIssue(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {

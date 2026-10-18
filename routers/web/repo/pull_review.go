@@ -26,39 +26,9 @@ import (
 )
 
 const (
-	tplDiffConversation     templates.TplName = "repo/diff/conversation"
 	tplConversationOutdated templates.TplName = "repo/diff/conversation_outdated"
 	tplTimelineConversation templates.TplName = "repo/issue/view_content/conversation"
-	tplNewComment           templates.TplName = "repo/diff/new_comment"
 )
-
-// RenderNewCodeCommentForm will render the form for creating a new review comment
-func RenderNewCodeCommentForm(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
-		return
-	}
-	if !issue.IsPull {
-		return
-	}
-	currentReview, err := issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
-	if err != nil && !issues_model.IsErrReviewNotExist(err) {
-		ctx.ServerError("GetCurrentReview", err)
-		return
-	}
-	ctx.Data["PageIsPullFiles"] = true
-	ctx.Data["Issue"] = issue
-	ctx.Data["CurrentReview"] = currentReview
-	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, issue.PullRequest.GetGitHeadRefName())
-	if err != nil {
-		ctx.ServerError("GetRefCommitID", err)
-		return
-	}
-	ctx.Data["AfterCommitID"] = pullHeadCommitID
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	upload.AddUploadContext(ctx, "comment")
-	ctx.HTML(http.StatusOK, tplNewComment)
-}
 
 // CreateCodeComment will create a code comment including an pending review if required
 func CreateCodeComment(ctx *context.Context) {
@@ -72,8 +42,7 @@ func CreateCodeComment(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.Flash.Error(ctx.GetErrMsg())
-		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
@@ -167,10 +136,16 @@ func UpdateResolveConversation(ctx *context.Context) {
 }
 
 func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
-	ctx.Data["PageIsPullFiles"] = origin == "diff"
+	if origin == "diff" {
+		ctx.JSONOK() // the diff viewer reloads the comments itself
+		return
+	}
+	if origin != "timeline" {
+		ctx.HTTPError(http.StatusBadRequest, "Unknown origin: "+origin)
+		return
+	}
 
-	showOutdatedComments := origin == "timeline" || GetShowOutdatedComments(ctx)
-	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
+	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, true)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
@@ -209,14 +184,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 
-	switch origin {
-	case "diff":
-		ctx.HTML(http.StatusOK, tplDiffConversation)
-	case "timeline":
-		ctx.HTML(http.StatusOK, tplTimelineConversation)
-	default:
-		ctx.HTTPError(http.StatusBadRequest, "Unknown origin: "+origin)
-	}
+	ctx.HTML(http.StatusOK, tplTimelineConversation)
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist

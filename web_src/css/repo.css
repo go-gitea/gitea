@@ -1301,8 +1301,7 @@ tbody.commit-list {
 }
 
 .tag-code,
-.tag-code td,
-.tag-code.line-expanded {
+.tag-code td {
   background-color: var(--color-box-body-highlight);
   vertical-align: middle;
 }
@@ -1385,12 +1384,6 @@ tbody.commit-list {
 #diff-boxes-column {
   flex: 1;
   min-width: 0;
-}
-
-#diff-file-boxes {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 #diff-file-tree {
