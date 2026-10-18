@@ -159,6 +159,15 @@ func (m *webhookNotifier) MigrateRepository(ctx context.Context, doer, u *user_m
 }
 
 func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
+	action := api.HookIssueAssigned
+	changes := &api.ChangesPayload{}
+	if removed {
+		action = api.HookIssueUnassigned
+		changes.RemovedAssignees = []*api.User{convert.ToUser(ctx, assignee, nil)}
+	} else {
+		changes.AddedAssignees = []*api.User{convert.ToUser(ctx, assignee, nil)}
+	}
+
 	if issue.IsPull {
 		permission, _ := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 
@@ -167,15 +176,12 @@ func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 			return
 		}
 		apiPullRequest := &api.PullRequestPayload{
+			Action:      action,
+			Changes:     changes,
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, doer),
 			Repository:  convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, doer, nil),
-		}
-		if removed {
-			apiPullRequest.Action = api.HookIssueUnassigned
-		} else {
-			apiPullRequest.Action = api.HookIssueAssigned
 		}
 		// Assignee comment triggers a webhook
 		if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequestAssign, apiPullRequest); err != nil {
@@ -185,15 +191,12 @@ func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 	} else {
 		permission, _ := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		apiIssue := &api.IssuePayload{
+			Action:     action,
+			Changes:    changes,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
-		}
-		if removed {
-			apiIssue.Action = api.HookIssueUnassigned
-		} else {
-			apiIssue.Action = api.HookIssueAssigned
 		}
 		// Assignee comment triggers a webhook
 		if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssueAssign, apiIssue); err != nil {
