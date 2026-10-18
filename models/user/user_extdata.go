@@ -112,7 +112,11 @@ func DoerCanViewPrivate(doer *User) bool {
 }
 
 func DoerIsSiteAdminFullAccess(doer *User) bool {
-	return DoerCanViewPrivate(doer) && doer.IsAdmin && doer.ExtDoerData == nil
+	if !DoerCanViewPrivate(doer) || !doer.IsAdmin {
+		return false
+	}
+	scope, hasScope := GetDoerTokenScope(doer)
+	return !hasScope || scope == auth.AccessTokenScopeAll
 }
 
 func DoerTokenAllowsOwner(doer, owner *User) bool {
