@@ -38,19 +38,20 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	home(ctx, false)
+	orgHome(ctx, false)
 }
 
 func Repositories(ctx *context.Context) {
-	if ctx.Org.Organization == nil {
+	orgHome(ctx, true)
+}
+
+func orgHome(ctx *context.Context, viewRepositories bool) {
+	org := ctx.Org.Organization
+	if org == nil {
+		// some requests may reach here by "user" route patterns, e.g.: "/{owner}/-/repositories"
 		ctx.NotFound(nil)
 		return
 	}
-	home(ctx, true)
-}
-
-func home(ctx *context.Context, viewRepositories bool) {
-	org := ctx.Org.Organization
 
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
