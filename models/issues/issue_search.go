@@ -351,6 +351,7 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, owner *user_mod
 			cond = cond.And(
 				builder.Or(
 					repo_model.UserOrgUnitRepoCond(repoIDstr, userID, owner.ID, unitType), // team member repos
+					repo_model.UserCollaborationRepoCond(repoIDstr, userID),               // user is a direct collaborator of the repos
 					repo_model.UserOrgPublicUnitRepoCond(userID, owner.ID),                // user org public non-member repos, TODO: check repo has issues
 				),
 			)
