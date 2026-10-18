@@ -22,12 +22,12 @@ import (
 	"gitea.dev/services/gitdiff"
 )
 
-// ToAPIPullRequest converts a pull request for an API response, hiding a head repository the doer cannot see
+// ToAPIPullRequest hides a head repository the doer cannot see
 func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
 	return toAPIPullRequest(ctx, pr, doer, false)
 }
 
-// ToPayloadPullRequest converts a pull request for webhook and Actions payloads, which always carry the head repository
+// ToPayloadPullRequest keeps the head repository regardless of the doer, for webhook and Actions payloads
 func ToPayloadPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
 	return toAPIPullRequest(ctx, pr, doer, true)
 }
@@ -433,7 +433,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
 		}
 
-		// pull request head branch, both repository and branch could not exist or be hidden from the doer
+		// pull request head branch, both repository and branch could not exist
 		if pr.HeadRepo != nil && pr.HeadRepoID != pr.BaseRepoID {
 			p, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
 			if err != nil {
@@ -444,7 +444,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 			}
 		}
-		if pr.HeadRepo != nil && apiPullRequest.Head.Repository != nil {
+		if apiPullRequest.Head.Repository != nil {
 			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 			exist, err := git_model.IsBranchExist(ctx, pr.HeadRepo.ID, pr.HeadBranch)
 			if err != nil {

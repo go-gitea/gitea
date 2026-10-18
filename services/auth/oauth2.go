@@ -25,9 +25,9 @@ import (
 
 var _ Method = &OAuth2{}
 
-// getOAuthAccessTokenScopeAndUserID returns access token scope, user id and the
+// GetOAuthAccessTokenScopeAndUserID returns access token scope, user id and the
 // grant the token was issued for.
-func getOAuthAccessTokenScopeAndUserID(ctx context.Context, accessToken string) (_ auth_model.AccessTokenScope, userID, grantID int64) {
+func GetOAuthAccessTokenScopeAndUserID(ctx context.Context, accessToken string) (_ auth_model.AccessTokenScope, userID, grantID int64) {
 	var accessTokenScope auth_model.AccessTokenScope
 	if !setting.OAuth2.Enabled {
 		return accessTokenScope, 0, 0
@@ -106,7 +106,7 @@ func parseToken(req *http.Request) (string, bool) {
 	return "", false
 }
 
-// userFromToken returns the user corresponding to the OAuth token, bound to the token and its scope.
+// userFromToken returns the user corresponding to the OAuth token.
 func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string) (*user_model.User, error) {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
@@ -118,7 +118,7 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string) (*user_mode
 		}
 
 		// Otherwise, check if this is an OAuth access token
-		accessTokenScope, uid, grantID := getOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
+		accessTokenScope, uid, grantID := GetOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
 		user, err := user_model.GetUserByID(ctx, uid)
 		if err != nil || !user.IsIndividual() {
 			return nil, err

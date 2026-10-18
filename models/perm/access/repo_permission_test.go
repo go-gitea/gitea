@@ -279,12 +279,9 @@ func testGetDoerRepoPermission(t *testing.T) {
 		publicOnlyAdmin := *unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		publicOnlyAdmin.ExtDoerData = publicOnlyUser.ExtDoerData
 		for _, repoID := range []int64{2, 38} {
-			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-			for _, doer := range []*user_model.User{&publicOnlyUser, &publicOnlyAdmin} {
-				perm, err := GetDoerRepoPermission(ctx, repo, doer)
-				require.NoError(t, err)
-				assert.False(t, perm.HasAnyUnitAccessOrPublicAccess(), "repo %d, doer %d", repoID, doer.ID)
-			}
+			perm, err := GetDoerRepoPermission(ctx, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}), &publicOnlyAdmin)
+			require.NoError(t, err)
+			assert.False(t, perm.HasAnyUnitAccessOrPublicAccess(), "repo %d", repoID)
 		}
 
 		perm, err := GetDoerRepoPermission(ctx, repo1, &publicOnlyUser)

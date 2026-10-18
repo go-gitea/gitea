@@ -63,7 +63,7 @@ var _ ExtDoerData = (*extDoerToken)(nil)
 
 func NewTokenExtDoerData(credentialKind string, credentialID int64, scope auth.AccessTokenScope) ExtDoerData {
 	publicOnly, err := scope.PublicOnly()
-	e := &extDoerToken{scope: scope, publicOnly: publicOnly || err != nil} // an unparsable scope fails closed
+	e := &extDoerToken{scope: scope, publicOnly: publicOnly || err != nil}
 	if credentialKind != "" {
 		e.credential = credentialKind + ":" + strconv.FormatInt(credentialID, 10)
 	}
@@ -111,12 +111,14 @@ func DoerCanViewPrivate(doer *User) bool {
 	return doer != nil && !IsPublicOnlyDoer(doer)
 }
 
-// DoerTokenAllowsOwner reports whether the doer's token may reach the owner at all
+func DoerIsSiteAdmin(doer *User) bool {
+	return DoerCanViewPrivate(doer) && doer.IsAdmin
+}
+
 func DoerTokenAllowsOwner(doer, owner *User) bool {
 	return !IsPublicOnlyDoer(doer) || owner.Visibility.IsPublic()
 }
 
-// GetDoerCredential names the credential the doer acted with, for audit
 func GetDoerCredential(u *User) string {
 	if u == nil || u.ExtDoerData == nil {
 		return ""

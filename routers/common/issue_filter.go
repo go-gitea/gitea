@@ -67,7 +67,7 @@ func SearchIssuesRepoIDs(ctx context.Context, opts SearchIssuesRepoIDsOptions) (
 	allPublic = opts.OwnerName == ""
 	cond := repo_model.SearchRepositoryCondition(searchOpts)
 	if allPublic {
-		if !searchOpts.Private || user_model.IsPublicOnlyDoer(opts.Doer) {
+		if !user_model.DoerCanViewPrivate(opts.Doer) {
 			return []int64{0}, allPublic, nil // sees nothing beyond is_public, so skip the query
 		}
 		cond = cond.And(repo_model.NotPublicRepoUnderPublicOwnerCond()) // enumerating them scales with the instance

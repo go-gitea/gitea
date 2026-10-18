@@ -175,7 +175,7 @@ type User struct {
 	// When the user model is used as a doer (all existing code does so), the doer can have extra details.
 	// * Actions task doer needs to bind to the task
 	// * Deploy-key doer needs to bind to the key
-	// * Real user doer authenticated by an API token needs to bind to the token and its scope
+	// * API token doer needs to bind to the token and its scope
 	ExtDoerData ExtDoerData `xorm:"-" json:"-"`
 }
 
@@ -1416,12 +1416,11 @@ func GetAdminUser(ctx context.Context) (*User, error) {
 }
 
 func isUserVisibleToViewerCond(viewer *User) builder.Cond {
-	canViewPrivate := DoerCanViewPrivate(viewer)
-	if canViewPrivate && viewer.IsAdmin {
+	if DoerIsSiteAdmin(viewer) {
 		return builder.NewCond()
 	}
 
-	if !canViewPrivate || viewer.IsRestricted {
+	if !DoerCanViewPrivate(viewer) || viewer.IsRestricted {
 		return builder.Eq{
 			"`user`.visibility": structs.VisibleTypePublic,
 		}
