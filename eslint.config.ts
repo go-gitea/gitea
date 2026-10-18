@@ -311,6 +311,7 @@ export default defineConfig([
       'func-names': [0],
       'func-style': [0],
       'getter-return': [2],
+      'gitea/unescaped-html-literal': [2],
       'grouped-accessor-pairs': [2],
       'guard-for-in': [0],
       'id-denylist': [0],
@@ -1239,6 +1240,9 @@ export default defineConfig([
   {
     files: ['*', 'tools/**/*', 'tests/**/*'],
     languageOptions: {globals: globals.nodeBuiltin},
+    rules: {
+      'gitea/unescaped-html-literal': [0],
+    },
   },
   {
     files: ['web_src/**/*'],
