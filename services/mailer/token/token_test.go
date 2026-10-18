@@ -21,14 +21,26 @@ func TestMain(m *testing.M) {
 
 func TestDecodeTokenRejectsUserWhoCannotSignIn(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-
-	for _, id := range []int64{9, 37} { // user9 is inactive, user37 is prohibited from signing in
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: id})
+	type testCase struct {
+		id  int64
+		err string
+	}
+	testCases := []testCase{
+		{2, ""},
+		{3, "not a doer"},
+		{9, "inactive"},
+		{37, "prohibited"},
+	}
+	for _, tc := range testCases {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.id})
 		token, err := CreateToken(ReplyHandlerType, user, []byte{1})
 		require.NoError(t, err)
 
 		_, _, _, err = DecodeToken(t.Context(), token)
-		var errToken *ErrToken
-		assert.ErrorAs(t, err, &errToken)
+		if tc.err == "" {
+			assert.NoError(t, err, "user ID %d, err: %v", tc.id, err)
+		} else {
+			assert.ErrorContains(t, err, tc.err, "user ID %d, err: %v", tc.id, err)
+		}
 	}
 }

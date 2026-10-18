@@ -98,17 +98,13 @@ func DecodeToken(ctx context.Context, token string) (HandlerType, *user_model.Us
 		return UnknownHandlerType, nil, nil, err
 	}
 
-	user, err := user_model.GetUserByID(ctx, userID)
+	user, err := user_model.GetValidDoerUserByID(ctx, userID)
 	if err != nil {
 		return UnknownHandlerType, nil, nil, err
 	}
 
 	if !crypto_hmac.Equal(hmac, generateHmac([]byte(user.Rands), payload)) {
 		return UnknownHandlerType, nil, nil, &ErrToken{"verification failed"}
-	}
-
-	if !user.IsActive || user.ProhibitLogin {
-		return UnknownHandlerType, nil, nil, &ErrToken{"user is inactive or prohibited from signing in"}
 	}
 
 	var expiresUnix int64
