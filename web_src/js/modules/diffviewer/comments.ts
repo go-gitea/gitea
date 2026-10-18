@@ -1,71 +1,42 @@
 import {performFetchActionRequest} from '../fetch-action.ts';
 import {fetchOk} from './stream.ts';
-import {trString} from '../i18n.ts';
 import {animateOnce, createElementFromAttrs, createElementFromHTML, toggleElem} from '../../utils/dom.ts';
-import {html, htmlEscape, htmlRaw} from '../../utils/html.ts';
-import {formatBytes, parseDom} from '../../utils.ts';
-import {formatDatetimeISO} from '../../utils/time.ts';
-import {svg, svgRaw, type SvgName} from '../../svg.ts';
+import {parseDom} from '../../utils.ts';
+import {svg} from '../../svg.ts';
 import type {DiffSide} from './parse.ts';
+import type {Gap} from './expand.ts';
 import {diffTreeFiles, diffTreeStore, type DiffTreeCommentFile, type DiffTreeCommentThread} from '../diff-file.ts';
 import {initComboMarkdownEditor, type ComboMarkdownEditor} from '../../features/comp/ComboMarkdownEditor.ts';
 import {confirmModal} from '../../features/comp/ConfirmModal.ts';
 import {appendQuote, EventCommentContentSaved, extractSelectedMarkdown} from '../../features/repo-issue-edit.ts';
-import {showContentHistoryMenuIfEdited} from '../../features/repo-issue-content.ts';
 import {showErrorToast} from '../toast.ts';
 import {errorMessage} from '../errors.ts';
-import type {DiffFileEntry} from './types.ts';
-import type {DiffViewer} from './viewer.ts';
+import {buildCommentElement} from './comment-element.ts';
+import type {DiffFile} from './entry.ts';
+import type {CommentsData, DiffViewerConfig, DiffViewerLocale, ViewerComment} from './types.ts';
 
-// matches diffViewerComment in routers/web/repo/pull_files_comments.go
-type ViewerComment = {
-  id: number;
-  path: string;
-  side: DiffSide;
-  line: number;
-  poster: {name: string; displayName: string; homeLink?: string; avatar: string};
-  originalAuthor?: string;
-  body: string;
-  bodyHtml: string;
-  contentVersion: number;
-  created: number;
-  outdated: boolean;
-  pending: boolean;
-  reviewId: number;
-  resolved: boolean;
-  resolvedBy: string;
-  canEdit: boolean;
-  canBlockUser: boolean;
-  canBlockOrg: boolean;
-  reactions: Array<{content: string; emojiHtml: string; count: number; users: string; moreCount: number; hasReacted: boolean}>;
-  attachments: Array<{name: string; size: number; downloadUrl: string; isImage: boolean; inContent: boolean}>;
-};
-
-type CommentsData = {
-  isSigned: boolean;
-  canComment: boolean;
-  canResolve: boolean;
-  canReferenceIssue: boolean;
-  hasPendingReview: boolean;
-  pendingCount: number;
-  issueHtmlUrl: string;
-  repoLink: string;
-  orgBlockLink?: string;
-  originalUrl?: string;
-  originalHostname?: string;
-  migrationIcon?: SvgName;
-  reactions: Array<{content: string; emojiHtml: string}>;
-  comments: ViewerComment[];
+// what the comments need from the viewer
+export type CommentsHost = {
+  config: DiffViewerConfig;
+  locale: DiffViewerLocale;
+  entries: DiffFile[];
+  visibleEntries: DiffFile[];
+  findEntry(path: string): DiffFile | undefined;
+  hiddenGap(entry: DiffFile, side: DiffSide, line: number): Gap | null;
+  scrollToComment(commentId: number): Promise<void>;
 };
 
 type LineTarget = {path: string; side: DiffSide; line: number};
 
 type Thread = {target: LineTarget; comments: ViewerComment[]};
 
+type Composer = {form: HTMLFormElement; editorPromise: Promise<ComboMarkdownEditor>};
+
 const targetKey = (target: LineTarget) => `${target.path}|${target.side}|${target.line}`;
 
+// the code comments of a pull request: their threads below the lines, the composers of new comments and replies
 export class DiffComments {
-  host: DiffViewer;
+  host: CommentsHost;
   data: CommentsData = {
     isSigned: false, canComment: false, canResolve: false, canReferenceIssue: false, hasPendingReview: false, pendingCount: 0,
     issueHtmlUrl: '', repoLink: '', reactions: [], comments: [],
@@ -73,10 +44,10 @@ export class DiffComments {
   byPath = new Map<string, ViewerComment[]>();
   byId = new Map<number, ViewerComment>();
   drafts = new Map<string, {target: LineTarget; el: HTMLElement}>();
-  replyForms = new Map<string, {form: HTMLElement; editorPromise: Promise<ComboMarkdownEditor>}>();
-  expandedThreads = new Set<number>();
+  replyForms = new Map<string, Composer>();
+  expandedThreads = new Set<number>(); // resolved threads which were unfolded
 
-  constructor(host: DiffViewer) {
+  constructor(host: CommentsHost) {
     this.host = host;
     // the issue page's edit handler only updates the comment's element
     document.addEventListener(EventCommentContentSaved, () => this.reload());
@@ -137,16 +108,16 @@ export class DiffComments {
     return oldName && oldName !== name ? [...comments, ...this.byPath.get(oldName) ?? []] : comments;
   }
 
-  commentsFor(entry: DiffFileEntry): ViewerComment[] {
+  commentsFor(entry: DiffFile): ViewerComment[] {
     return this.commentsAt(entry.file.name, entry.file.oldName);
   }
 
-  // comments on lines outside the diff go to line 0
-  threadsOf(entry: DiffFileEntry): Map<string, Thread> {
+  // the threads of the shown lines, comments on lines outside the diff go to line 0, comments in hidden gaps wait for their expansion
+  threadsOf(entry: DiffFile): Map<string, Thread> {
     const threads = new Map<string, Thread>();
     for (const comment of this.commentsFor(entry)) {
       if (this.host.hiddenGap(entry, comment.side, comment.line)) continue;
-      const inDiff = this.host.rowIndex(entry, comment.side, comment.line) >= 0;
+      const inDiff = entry.rowIndex(comment.side, comment.line) >= 0;
       const target = {path: entry.file.name, side: comment.side, line: inDiff ? comment.line : 0};
       const key = targetKey(target);
       const thread = threads.get(key);
@@ -166,7 +137,7 @@ export class DiffComments {
     const result: ViewerComment[] = [];
     for (const entry of this.host.visibleEntries) {
       const threads = [...this.threadsOf(entry).values()].map(({target, comments}) => {
-        return {row: target.line ? this.host.rowIndex(entry, target.side, target.line) : -1, first: comments[0]};
+        return {row: target.line ? entry.rowIndex(target.side, target.line) : -1, first: comments[0]};
       });
       threads.sort((a, b) => a.row - b.row);
       result.push(...threads.map((thread) => thread.first));
@@ -174,13 +145,13 @@ export class DiffComments {
     return result;
   }
 
-  hasThreadAt(entry: DiffFileEntry, side: DiffSide, line: number): boolean {
+  hasThreadAt(entry: DiffFile, side: DiffSide, line: number): boolean {
     return this.threadsOf(entry).has(targetKey({path: entry.file.name, side, line}));
   }
 
   // inserts the threads and open composers below their lines, in the split view each side has its own cell
   // previous is the replaced diff of a file rendered again
-  renderAnnotations(entry: DiffFileEntry, previous: Element | null = null): void {
+  renderAnnotations(entry: DiffFile, previous: Element | null = null): void {
     // the diff of LFS objects can't be commented, the comments are about the pointer
     const body = entry.lfsState === null ? entry.element?.querySelector('.code-diff > table > tbody') : null;
     if (!body) return;
@@ -203,6 +174,7 @@ export class DiffComments {
         if (line) rows.set(`${side}|${line}`, row);
       }
     }
+    // the annotations below a row, grouped by side, the ones of line 0 go above the first row
     const groups = new Map<HTMLElement | null, Record<DiffSide, HTMLElement[]>>();
     const add = (side: DiffSide, line: number, content: HTMLElement) => {
       const anchor = rows.get(`${side}|${line}`) ?? null;
@@ -247,9 +219,16 @@ export class DiffComments {
     };
     const actions = this.buildThreadActions(key, first);
     actions.prepend(createElementFromAttrs('div', {class: 'ui buttons'}, navButton(-1), navButton(1)));
+    const commentContext = {
+      data: this.data,
+      locale,
+      onToggleReaction: (el: HTMLElement, comment: ViewerComment, content: string) => this.toggleReaction(el, comment, content),
+      onQuoteReply: (comment: ViewerComment, menu: HTMLElement) => this.quoteReply(comment, menu),
+      onDelete: (el: HTMLElement, comment: ViewerComment) => this.deleteComment(el, comment),
+    };
     const cloud = createElementFromAttrs('div', {class: 'field comment-code-cloud'},
       createElementFromAttrs('div', {class: 'comment-list'},
-        createElementFromAttrs('div', {class: 'ui comments'}, ...comments.map((comment) => editing.get(comment.id) ?? this.buildComment(comment))),
+        createElementFromAttrs('div', {class: 'ui comments'}, ...comments.map((comment) => editing.get(comment.id) ?? buildCommentElement(comment, commentContext))),
       ),
       actions,
     );
@@ -283,168 +262,10 @@ export class DiffComments {
     return createElementFromAttrs('div', {class: 'resolved-placeholder'}, info, createElementFromAttrs('div', {class: 'flex-text-block'}, toggle));
   }
 
-  buildComment(comment: ViewerComment): HTMLElement {
-    const {locale} = this.host;
-    const {data} = this;
-    const anchor = `issuecomment-${comment.id}`;
-    const timeHtml = html`<relative-time datetime="${formatDatetimeISO(comment.created)}"></relative-time>`;
-    const commentedAt = trString(locale.commentedAt, htmlEscape(anchor), timeHtml);
-    const posterHref = comment.poster.homeLink ? html` href="${comment.poster.homeLink}"` : '';
-    let avatarHtml: string;
-    let headerLeftHtml: string;
-    if (comment.originalAuthor) {
-      avatarHtml = html`<span class="avatar"><img class="ui avatar tw-align-middle" src="${comment.poster.avatar}" alt="" width="20" height="20"></span>`;
-      const migratedFrom = data.originalUrl ? html`<span class="text migrate">(${htmlRaw(trString(locale.migratedFrom, htmlEscape(data.originalUrl), htmlEscape(data.originalHostname!)))})</span>` : '';
-      headerLeftHtml = html`<span class="tw-text-text tw-font-semibold tw-mr-1">${htmlRaw(data.migrationIcon ? svg(data.migrationIcon) : '')} ${comment.originalAuthor}</span><span class="tw-text-text-light muted-links">${htmlRaw(commentedAt)}</span>${htmlRaw(migratedFrom)}`;
-    } else {
-      avatarHtml = html`<a class="avatar-with-link"${htmlRaw(posterHref)}><img class="ui avatar tw-align-middle" src="${comment.poster.avatar}" alt="" loading="lazy" width="20" height="20"></a>`;
-      headerLeftHtml = html`<span class="tw-text-text-light muted-links"><a${htmlRaw(posterHref)}>${comment.poster.displayName}</a> ${htmlRaw(commentedAt)}</span>`;
-    }
-    let labelsHtml = '';
-    if (comment.outdated) labelsHtml += html`<a href="${data.issueHtmlUrl}#${anchor}" class="ui label basic small" data-tooltip-content="${locale.outdatedDescription}">${locale.outdated}</a>`;
-    if (comment.pending) labelsHtml += html`<div class="ui label basic small yellow pending-label" data-tooltip-content="${locale.pendingTooltip}">${locale.pending}</div>`;
-    else if (comment.reviewId) labelsHtml += html`<div class="ui label basic small">${locale.review}</div>`;
-    const el = createElementFromHTML<HTMLElement>(html`
-      <div class="comment" id="${anchor}" data-comment-id="${comment.id}">
-        <div class="tw-mt-2 tw-mr-4">${htmlRaw(avatarHtml)}</div>
-        <div class="content comment-container">
-          <div class="comment-header avatar-content-left-arrow">
-            <div class="comment-header-left">${htmlRaw(headerLeftHtml)}</div>
-            <div class="comment-header-right">${htmlRaw(labelsHtml)}</div>
-          </div>
-          <div class="ui attached segment comment-body">
-            <div class="render-content markup"></div>
-            <div id="${anchor}-raw" class="raw-content tw-hidden"></div>
-            <div class="edit-content-zone tw-hidden" data-update-url="${data.repoLink}/comments/${comment.id}" data-content-version="${comment.contentVersion}"
-              data-context="${data.repoLink}" data-attachment-url="${data.repoLink}/comments/${comment.id}/attachments"></div>
-          </div>
-        </div>
-      </div>
-    `);
-    const headerRight = el.querySelector('.comment-header-right')!;
-    if (data.canComment && data.reactions.length) headerRight.append(this.buildReactionPicker(comment));
-    headerRight.append(this.buildContextMenu(comment));
-    const markup = el.querySelector<HTMLElement>('.render-content')!;
-    if (comment.canEdit) markup.setAttribute('data-can-edit', 'true');
-    if (comment.bodyHtml) markup.innerHTML = comment.bodyHtml;
-    else markup.append(createElementFromAttrs('span', {class: 'no-content'}, locale.noContent));
-    el.querySelector('.raw-content')!.textContent = comment.body;
-    if (comment.attachments.length) el.querySelector('.comment-body')!.append(this.buildAttachments(comment));
-    if (comment.reactions.length) el.querySelector('.comment-container')!.append(this.buildReactions(comment));
-    showContentHistoryMenuIfEdited(el, comment.id);
-    return el;
-  }
-
-  // mirrors templates/repo/issue/view_content/attachments.tmpl
-  buildAttachments(comment: ViewerComment): HTMLElement {
-    const {locale} = this.host;
-    const container = createElementFromAttrs('div', {class: 'dropzone-attachments'}, createElementFromAttrs('div', {class: 'divider'}));
-    for (const att of comment.attachments) {
-      container.append(createElementFromHTML(html`
-        <div class="tw-flex">
-          <div class="tw-flex-1 tw-p-2">
-            <a target="_blank" href="${att.downloadUrl}" title="${trString(locale.openAttachment, att.name)}">
-              ${htmlRaw(svg(att.isImage ? 'octicon-file' : 'octicon-desktop-download'))}
-              <span><strong>${att.name}</strong></span>
-            </a>
-          </div>
-          <div class="flex-text-block tw-p-2"><span class="ui tw-text-text-light">${formatBytes(att.size)}</span></div>
-        </div>
-      `));
-    }
-    const thumbnails = comment.attachments.filter((att) => att.isImage && !att.inContent);
-    if (thumbnails.length) {
-      container.append(createElementFromAttrs('div', {class: 'divider'}), createElementFromHTML(html`<div class="ui small thumbnails">${htmlRaw(thumbnails.map((att) => html`
-        <a target="_blank" href="${att.downloadUrl}"><img loading="lazy" alt="${att.name}" src="${att.downloadUrl}" title="${trString(locale.openAttachment, att.name)}"></a>
-      `).join(''))}</div>`));
-    }
-    return container;
-  }
-
-  // mirrors templates/repo/issue/view_content/add_reaction.tmpl
-  buildReactionPicker(comment: ViewerComment): HTMLElement {
-    const picker = createElementFromHTML<HTMLElement>(html`
-      <div class="item action ui dropdown jump pointing top right select-reaction" aria-label="${this.host.locale.reactions}">
-        <a class="muted">${htmlRaw(svg('octicon-smiley'))}</a>
-        <div class="menu">${htmlRaw(this.data.reactions.map((reaction) => html`
-          <a class="item emoji" data-tooltip-content="${reaction.content}" aria-label="${reaction.content}" data-reaction-content="${reaction.content}">${htmlRaw(reaction.emojiHtml)}</a>
-        `).join(''))}
-        </div>
-      </div>
-    `);
-    picker.addEventListener('click', (e) => {
-      const item = (e.target as Element).closest<HTMLElement>('[data-reaction-content]');
-      if (item) this.toggleReaction(item, comment, item.getAttribute('data-reaction-content')!);
-    });
-    return picker;
-  }
-
-  // mirrors templates/repo/issue/view_content/reactions.tmpl
-  buildReactions(comment: ViewerComment): HTMLElement {
-    const {locale} = this.host;
-    const container = createElementFromAttrs('div', {class: 'bottom-reactions', role: 'group', 'aria-label': locale.reactions});
-    for (const reaction of comment.reactions) {
-      const title = reaction.users + (reaction.moreCount > 0 ? ` ${trString(locale.reactionsMore, reaction.moreCount)}` : '');
-      const button = createElementFromHTML<HTMLElement>(html`
-        <a role="button" class="ui label basic${reaction.hasReacted ? ' primary' : ''}${this.data.isSigned ? '' : ' disabled'}"
-          data-tooltip-content title="${title}" aria-label="${reaction.content}: ${title}" data-tooltip-placement="bottom-start">
-          <span class="reaction">${htmlRaw(reaction.emojiHtml)}</span>
-          <span class="reaction-count">${reaction.count}</span>
-        </a>
-      `);
-      if (this.data.isSigned) button.addEventListener('click', () => this.toggleReaction(button, comment, reaction.content));
-      container.append(button);
-    }
-    if (this.data.canComment && this.data.reactions.length) container.append(this.buildReactionPicker(comment));
-    return container;
-  }
-
   async toggleReaction(el: HTMLElement, comment: ViewerComment, content: string): Promise<void> {
     const hasReacted = comment.reactions.some((reaction) => reaction.content === content && reaction.hasReacted);
     const url = `${this.data.repoLink}/comments/${comment.id}/reactions/${hasReacted ? 'unreact' : 'react'}`;
     if (await performFetchActionRequest(el, {method: 'POST', url, data: new URLSearchParams({content})})) await this.reload();
-  }
-
-  // mirrors templates/repo/issue/view_content/context_menu.tmpl
-  buildContextMenu(comment: ViewerComment): HTMLElement {
-    const {locale} = this.host;
-    const {data} = this;
-    const anchor = `issuecomment-${comment.id}`;
-    const referenceUrl = `${data.issueHtmlUrl}/files#${anchor}`;
-    let items = html`
-      <div class="item js-aria-clickable" data-clipboard-text="${referenceUrl}">${locale.copyLink}</div>
-      <div class="item js-aria-clickable" data-clipboard-target="#${anchor}-raw">${locale.copySource}</div>
-    `;
-    if (data.canComment) {
-      items += html`<div class="item js-aria-clickable" data-diff-viewer-action="quote" data-shortcut-keys="r" data-shortcut-handler="quoteSelectedReply">${locale.quoteReply}</div>`;
-      if (data.canReferenceIssue) {
-        items += html`<div class="item js-aria-clickable reference-issue" data-target="${anchor}-raw" data-modal="#reference-issue-modal" data-poster="${comment.poster.displayName}" data-poster-username="${comment.poster.name}" data-reference="${referenceUrl}">${locale.referenceIssue}</div>`;
-      }
-      if (comment.canEdit) {
-        items += html`
-          <div class="divider"></div>
-          <div class="item js-aria-clickable" data-global-click="onConvContentEdit">${locale.edit}</div>
-          <div class="item js-aria-clickable" data-diff-viewer-action="delete">${locale.delete}</div>
-        `;
-      }
-    }
-    if (comment.canBlockUser || comment.canBlockOrg) {
-      items += html`<div class="divider"></div>`;
-      if (comment.canBlockUser) {
-        items += html`<div class="item js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="${comment.poster.name}" data-modal-modal-blockee-name="${comment.poster.displayName}" data-modal-modal-form.url="${window.config.appSubUrl}/user/settings/blocked_users">${locale.blockUser}</div>`;
-      }
-      if (comment.canBlockOrg) {
-        items += html`<div class="item js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="${comment.poster.name}" data-modal-modal-blockee-name="${comment.poster.displayName}" data-modal-modal-form.url="${data.orgBlockLink!}">${locale.blockOrg}</div>`;
-      }
-    }
-    const menu = createElementFromHTML<HTMLElement>(html`<div class="item action ui dropdown jump pointing top right">${svgRaw('octicon-kebab-horizontal')}<div class="menu">${htmlRaw(items)}</div></div>`);
-    menu.addEventListener('click', (e) => {
-      const item = (e.target as Element).closest<HTMLElement>('[data-diff-viewer-action]');
-      const action = item?.getAttribute('data-diff-viewer-action');
-      if (action === 'quote') this.quoteReply(comment, menu);
-      else if (action === 'delete') this.deleteComment(item!, comment);
-    });
-    return menu;
   }
 
   async quoteReply(comment: ViewerComment, menu: HTMLElement): Promise<void> {
@@ -498,6 +319,7 @@ export class DiffComments {
     if (await performFetchActionRequest(el, {method: 'POST', url: `${this.data.repoLink}/issues/resolve_conversation`, data})) await this.reload();
   }
 
+  // opens the composer of a new thread below a line
   openDraft(target: LineTarget): void {
     const key = targetKey(target);
     const entry = this.host.findEntry(target.path);
@@ -516,7 +338,7 @@ export class DiffComments {
     this.renderAnnotations(entry);
   }
 
-  buildComposer(buttons: Array<{label: string; singleReview: boolean}>, onCancel: () => void, onSubmit: (content: string, files: string[], singleReview: boolean) => Promise<void>) {
+  buildComposer(buttons: Array<{label: string; singleReview: boolean}>, onCancel: () => void, onSubmit: (content: string, files: string[], singleReview: boolean) => Promise<void>): Composer {
     const template = document.querySelector<HTMLTemplateElement>('#diff-viewer-editor-template')!;
     const fields = template.content.cloneNode(true) as DocumentFragment;
     const editorEl = fields.querySelector<HTMLElement>('.combo-markdown-editor')!;

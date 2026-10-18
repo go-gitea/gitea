@@ -1,7 +1,5 @@
-import type {DiffHunk, DiffSide} from './parse.ts';
-import type {DiffStreamFile} from './stream.ts';
-import type {LineHighlighter, Segment} from './highlight.ts';
-import type {Gap} from './expand.ts';
+import type {DiffSide} from './parse.ts';
+import type {SvgName} from '../../svg.ts';
 
 // matches diffViewerConfig in routers/web/repo/diff_viewer.go
 export type DiffViewerConfig = {
@@ -39,20 +37,44 @@ export type DiffViewerLocale = Record<
   'csvFieldCount' | 'ambiguousRunesLine' | 'invisibleRunesLine' | 'ambiguousCharacter',
   string>;
 
-export type DiffFileEntry = {
-  file: DiffStreamFile;
-  hunks: DiffHunk[];
-  missing: boolean; // listed by the file tree but not streamed, because the diff was truncated or it only has whitespace changes
-  folded: boolean;
-  element: HTMLElement | null; // built once and kept while scrolled out, so remounting doesn't flash
-  highlighter: LineHighlighter | null | undefined; // undefined while loading
-  renderedLines: {html: string[]; escapeButtons: string[]} | null; // in hunk order, escapeButtons are the unicode escape toggles
-  linePairs: Int32Array | null;
-  content: {old: string[] | null; new: string[]} | null; // the full file, for highlighting and expanding the context
-  contentPromise: Promise<NonNullable<DiffFileEntry['content']>> | null; // while it loads
-  lfsState: 'loading' | 'tooLarge' | 'binary' | 'diff' | 'failed' | null; // the diff of the LFS objects instead of their pointers
-  contentSegments: {old: Segment[][] | null; new: Segment[][]} | null;
-  rowIndex: Record<DiffSide, Map<number, number>> | null; // the row of each line number, for ordering conversations
-  gaps: Gap[] | null; // the hidden lines between the hunks
-  rowCount: number | null; // of the rendered table, for the height estimate
+// matches diffViewerComment in routers/web/repo/pull_files_comments.go
+export type ViewerComment = {
+  id: number;
+  path: string;
+  side: DiffSide;
+  line: number;
+  poster: {name: string; displayName: string; homeLink?: string; avatar: string};
+  originalAuthor?: string;
+  body: string;
+  bodyHtml: string;
+  contentVersion: number;
+  created: number;
+  outdated: boolean;
+  pending: boolean;
+  reviewId: number;
+  resolved: boolean;
+  resolvedBy: string;
+  canEdit: boolean;
+  canBlockUser: boolean;
+  canBlockOrg: boolean;
+  reactions: Array<{content: string; emojiHtml: string; count: number; users: string; moreCount: number; hasReacted: boolean}>;
+  attachments: Array<{name: string; size: number; downloadUrl: string; isImage: boolean; inContent: boolean}>;
+};
+
+// the response of the comments route in routers/web/repo/pull_files_comments.go
+export type CommentsData = {
+  isSigned: boolean;
+  canComment: boolean;
+  canResolve: boolean;
+  canReferenceIssue: boolean;
+  hasPendingReview: boolean;
+  pendingCount: number;
+  issueHtmlUrl: string;
+  repoLink: string;
+  orgBlockLink?: string;
+  originalUrl?: string;
+  originalHostname?: string;
+  migrationIcon?: SvgName;
+  reactions: Array<{content: string; emojiHtml: string}>;
+  comments: ViewerComment[];
 };

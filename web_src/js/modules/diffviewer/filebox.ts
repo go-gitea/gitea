@@ -5,17 +5,12 @@ import {basename} from '../../utils.ts';
 import {svg, svgRaw} from '../../svg.ts';
 import {trString} from '../i18n.ts';
 import {diffTreeStore} from '../diff-file.ts';
-import type {DiffSide} from './parse.ts';
+import {fileUrl} from './content.ts';
 import type {DiffStreamFile} from './stream.ts';
-import type {DiffFileEntry, DiffViewerConfig, DiffViewerLocale} from './types.ts';
+import type {DiffFile} from './entry.ts';
+import type {DiffViewerConfig, DiffViewerLocale} from './types.ts';
 
-// a file of the commit before ("old") or after ("new") the changes, only for configs with a repo link
-export function fileUrl(config: DiffViewerConfig, view: 'src' | 'raw' | 'media', side: DiffSide, path: string): string {
-  const commitId = side === 'old' ? config.beforeCommitId! : config.afterCommitId;
-  return `${config.repoLink}/${view}/commit/${encodeURIComponent(commitId)}/${pathEscapeSegments(path)}`;
-}
-
-export function applyFolded(entry: DiffFileEntry, folded: boolean) {
+export function applyFolded(entry: DiffFile, folded: boolean) {
   entry.folded = folded;
   const box = entry.element;
   if (!box) return;
@@ -34,7 +29,7 @@ function entryModeLabel(file: DiffStreamFile, locale: DiffViewerLocale): string 
   return '';
 }
 
-function fileMenuHtml(entry: DiffFileEntry, config: DiffViewerConfig, locale: DiffViewerLocale): string {
+function fileMenuHtml(entry: DiffFile, config: DiffViewerConfig, locale: DiffViewerLocale): string {
   const {file} = entry;
   if (file.submodule) return '';
   let items = '';
@@ -55,13 +50,11 @@ function fileMenuHtml(entry: DiffFileEntry, config: DiffViewerConfig, locale: Di
   return html`<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">${htmlRaw(svg('octicon-kebab-horizontal', 18))}</button><div class="tippy-target">${htmlRaw(items)}</div>`;
 }
 
-export function buildFileBox(entry: DiffFileEntry, config: DiffViewerConfig, locale: DiffViewerLocale, hasRenderedView: boolean): HTMLElement {
+export function buildFileBox(entry: DiffFile, config: DiffViewerConfig, locale: DiffViewerLocale, hasRenderedView: boolean): HTMLElement {
   const {file} = entry;
   const treeItem = diffTreeStore().fullNameMap[file.name];
   const fileName = file.oldName !== file.name ? `${file.oldName} → ${file.name}` : file.name;
-  const lines = entry.hunks.flatMap((hunk) => hunk.lines);
-  const additions = lines.filter((line) => line.type === 'add').length;
-  const deletions = lines.filter((line) => line.type === 'del').length;
+  const {additions, deletions} = entry.changeCounts();
   let stats = '';
   if (file.isBinary) {
     stats = htmlEscape(locale.bin);

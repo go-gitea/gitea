@@ -3,13 +3,14 @@ import {createElementFromAttrs} from '../../utils/dom.ts';
 import {extname, formatBytes} from '../../utils.ts';
 import {trString} from '../i18n.ts';
 import {CsvParseError, createCsvDiff, determineDelimiter, parseCsv, renderCsvDiff} from './csvdiff.ts';
-import {fileUrl} from './filebox.ts';
-import type {DiffFileEntry, DiffViewerConfig, DiffViewerLocale} from './types.ts';
+import {fileUrl} from './content.ts';
+import type {DiffFile} from './entry.ts';
+import type {DiffViewerConfig, DiffViewerLocale} from './types.ts';
 
 type ImageSide = {path: string; mime: string; size: number} | null;
 
 // the kind of view shown besides the source
-export function renderedKind(entry: DiffFileEntry, config: DiffViewerConfig): 'image' | 'csv' | null {
+export function renderedKind(entry: DiffFile, config: DiffViewerConfig): 'image' | 'csv' | null {
   const {file} = entry;
   if (!config.repoLink || entry.missing || file.tooLarge || file.submodule) return null; // the wiki can't load the files
   if (file.oldImage || file.newImage) return 'image';
@@ -18,7 +19,7 @@ export function renderedKind(entry: DiffFileEntry, config: DiffViewerConfig): 'i
   return null;
 }
 
-function imageSides(entry: DiffFileEntry, config: DiffViewerConfig): [ImageSide, ImageSide] {
+function imageSides(entry: DiffFile, config: DiffViewerConfig): [ImageSide, ImageSide] {
   const {file} = entry;
   const view = file.lfs ? 'media' : 'raw';
   return [
@@ -28,7 +29,7 @@ function imageSides(entry: DiffFileEntry, config: DiffViewerConfig): [ImageSide,
 }
 
 // the global init "initDiffFileImageDiff" loads the images
-export function imageDiffHtml(entry: DiffFileEntry, config: DiffViewerConfig, locale: DiffViewerLocale): string {
+export function imageDiffHtml(entry: DiffFile, config: DiffViewerConfig, locale: DiffViewerLocale): string {
   const {nameHash} = entry.file;
   const [before, after] = imageSides(entry, config);
   const both = before !== null && after !== null;
@@ -93,7 +94,7 @@ export function imageDiffHtml(entry: DiffFileEntry, config: DiffViewerConfig, lo
   `;
 }
 
-export async function renderCsvView(entry: DiffFileEntry, container: HTMLElement, loadContent: () => Promise<{old: string | null; new: string | null}>,
+export async function renderCsvView(entry: DiffFile, container: HTMLElement, loadContent: () => Promise<{old: string | null; new: string | null}>,
   maxFileSize: number, locale: DiffViewerLocale): Promise<void> {
   const message = (text: string) => container.replaceChildren(createElementFromAttrs('div', {class: 'ui center'}, text));
   const {file} = entry;
