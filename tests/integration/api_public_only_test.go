@@ -103,7 +103,7 @@ func TestAPIActivityFeedsPublicOnly(t *testing.T) {
 	assertPublicActivitiesOnly(t, activities)
 }
 
-func TestAPIOrgPermissionsPublicOnly(t *testing.T) {
+func TestAPIOrgMembershipPublicOnly(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// user2 is a member of the private org private_org35
@@ -118,6 +118,14 @@ func TestAPIOrgPermissionsPublicOnly(t *testing.T) {
 	publicToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopePublicOnly)
 	req = NewRequestf(t, "GET", "/api/v1/users/user2/orgs/%s/permissions", org.Name).AddTokenAuth(publicToken)
 	MakeRequest(t, req, http.StatusNotFound)
+
+	var members, publicMembers []*api.User
+	DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs/org3/members").AddTokenAuth(token), http.StatusOK), &members)
+	DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs/org3/members").AddTokenAuth(publicToken), http.StatusOK), &publicMembers)
+	assert.Len(t, members, 3)
+	assert.Len(t, publicMembers, 2)
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs/org3/members/user4").AddTokenAuth(token), http.StatusNoContent)
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs/org3/members/user4").AddTokenAuth(publicToken), http.StatusSeeOther)
 }
 
 func TestAPITeamReposPublicOnly(t *testing.T) {
