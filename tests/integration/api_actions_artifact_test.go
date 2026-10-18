@@ -210,9 +210,12 @@ func TestActionsArtifactUploadSingleFile(t *testing.T) {
 	req = NewRequestWithBody(t, "PUT", url, strings.NewReader(body)).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
 		SetHeader("Content-Range", "bytes 0-1023/1024").
+		SetHeader("Content-Encoding", "video/mp4,text/html"). // must not be stored, it would become the content type of a v4 download
 		SetHeader("x-tfs-filelength", "1024").
 		SetHeader("x-actions-results-md5", "XVlf820rMInUi64wmMi6EA==") // base64(md5(body))
 	MakeRequest(t, req, http.StatusOK)
+	artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{RunID: 791, ArtifactName: "artifact", ArtifactPath: "abc-2.txt"})
+	assert.Empty(t, artifact.ContentEncodingOrType)
 
 	t.Logf("Create artifact confirm")
 

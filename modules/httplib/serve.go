@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"mime"
 	"net/http"
 	"path"
 	"strconv"
@@ -60,10 +61,11 @@ func serveSetHeaderContentRelated(w http.ResponseWriter, contentType string) {
 	header.Set("X-Content-Type-Options", "nosniff")
 
 	csp := serveHeaderCspDefault
-	if strings.HasPrefix(contentType, "application/pdf") {
+	mediaType, _, _ := mime.ParseMediaType(contentType) // browsers may read a malformed value like "video/mp4,text/html" as HTML, keep it sandboxed
+	if mediaType == "application/pdf" {
 		csp = serveHeaderCspPdf
 	}
-	if strings.HasPrefix(contentType, "video/") || strings.HasPrefix(contentType, "audio/") {
+	if strings.HasPrefix(mediaType, "video/") || strings.HasPrefix(mediaType, "audio/") {
 		csp = serveHeaderCspAudioVideo
 	}
 	if csp != "" {
