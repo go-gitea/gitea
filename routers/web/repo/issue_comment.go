@@ -204,7 +204,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		oldContent := comment.Content
 		comment.Content = newContent
 
-		if err = issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
+		if err := issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
 			if errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
 			} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
@@ -234,6 +234,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
 			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
 		})
+		var err error
 		renderedContent, err = markdown.RenderString(rctx, comment.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -301,7 +302,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		// Reload new reactions
 		comment.Reactions = nil
-		if err = comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
+		if err := comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
 			log.Info("comment.LoadReactions: %s", err)
 			break
 		}

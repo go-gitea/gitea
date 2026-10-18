@@ -18,11 +18,11 @@ const (
 // IssueWatch sets issue watching
 func IssueWatch(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	if ctx.Written() {
+	if issue == nil {
 		return
 	}
 
-	if !canParticipateInIssue(ctx, issue, issue.PosterID) {
+	if !canChangeIssueOrCommentContent(ctx, issue, issue.PosterID) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
