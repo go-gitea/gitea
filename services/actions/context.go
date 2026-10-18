@@ -58,6 +58,10 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	}
 
 	refName := git.RefName(ref)
+	refType := refName.RefType()
+	if refName.IsPull() {
+		refType = git.RefTypeBranch // GitHub reports pull request refs as branches
+	}
 	refProtected, err := git_model.IsRefProtected(ctx, run.RepoID, refName)
 	if err != nil {
 		log.Error("GenerateGiteaContext: check protection for ref %q: %v", refName, err)
@@ -84,7 +88,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"ref":               ref,                                      // string, The fully-formed ref of the branch or tag that triggered the workflow run. For workflows triggered by push, this is the branch or tag ref that was pushed. For workflows triggered by pull_request, this is the pull request merge branch. For workflows triggered by release, this is the release tag created. For other triggers, this is the branch or tag ref that triggered the workflow run. This is only set if a branch or tag is available for the event type. The ref given is fully-formed, meaning that for branches the format is refs/heads/<branch_name>, for pull requests it is refs/pull/<pr_number>/merge, and for tags it is refs/tags/<tag_name>. For example, refs/heads/feature-branch-1.
 		"ref_name":          refName.ShortName(),                      // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
 		"ref_protected":     refProtected,                             // boolean, true if protection rules are configured for the ref that triggered the workflow run.
-		"ref_type":          string(refName.RefType()),                // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
+		"ref_type":          string(refType),                          // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
 		"path":              "",                                       // string, Path on the runner to the file that sets system PATH variables from workflow commands. This file is unique to the current step and is a different file for each step in a job. For more information, see "Workflow commands for GitHub Actions."
 		"repository":        run.Repo.OwnerName + "/" + run.Repo.Name, // string, The owner and repository name. For example, Codertocat/Hello-World.
 		"repository_owner":  run.Repo.OwnerName,                       // string, The repository owner's name. For example, Codertocat.
