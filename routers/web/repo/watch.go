@@ -49,7 +49,7 @@ func ActionWatch(ctx *context.Context) {
 // ActionWatchOptions watches the repository with a custom selection of events
 func ActionWatchOptions(ctx *context.Context) {
 	opts := repo_model.WatchOptions{ // clearing every event is allowed, it leaves the participating state
-		Mode:              repo_model.WatchModeNormal,
+		Mode:              repo_model.WatchModeCustom,
 		WatchPullRequests: ctx.FormBool("pull_requests"),
 		WatchIssues:       ctx.FormBool("issues"),
 		WatchReleases:     ctx.FormBool("releases"),

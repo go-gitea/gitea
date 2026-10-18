@@ -2,8 +2,8 @@
   /* fonts */
   --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
   --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
-  /* Chromium's "math" is a font Linux and ChromeOS don't ship, so fall back to the math fonts they do, https://issues.chromium.org/issues/40069293 */
-  --fonts-math: math, "STIX Two Math", "DejaVu Math TeX Gyre", "Noto Sans Math";
+  /* sturdier fonts precede "math", which is thin Latin Modern Math in Firefox and Linux Chromium, DejaVu Math follows it for its small display operators, https://issues.chromium.org/issues/40069293 */
+  --fonts-math: "Cambria Math", "STIX Two Math", gitea-math-book, "Libertinus Math", math, "DejaVu Math TeX Gyre", "Noto Sans Math";
   /* GitHub explicitly sets font names like: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
   Actually "Twemoji Mozilla" emoji font is widely used by browsers like Firefox, Pale Moon, and it is more likely up-to-dated than the system emoji font.
   So not setting emoji font seems to be the best choice, here we just use a non-existing dummy font name and let browsers choose. */
@@ -107,6 +107,11 @@ code,
 samp,
 .tw-font-mono {
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
+}
+
+@font-face {
+  font-family: gitea-math-book; /* the Book weight shares its family name with the thinner Regular */
+  src: local("NewComputerModernMath-Book"), local("NewCMMath-Book");
 }
 
 math {
