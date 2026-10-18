@@ -475,7 +475,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
-func canSelfWriteOrAccessContent(ctx *context.Context, refIssue *issues_model.Issue, contentPoserID int64, accessMode perm.AccessMode) bool {
+func canSelfChangeOrAccessContent(ctx *context.Context, refIssue *issues_model.Issue, contentPoserID int64, accessMode perm.AccessMode) bool {
 	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, refIssue, contentPoserID, accessMode) {
 		ctx.HTTPError(http.StatusForbidden)
 		return false
@@ -494,7 +494,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 	if issue == nil {
 		return
 	}
-	if !canSelfWriteOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeRead) {
+	if !canSelfChangeOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeRead) {
 		return
 	}
 

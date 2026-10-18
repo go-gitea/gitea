@@ -175,8 +175,7 @@ func getRepoIssueCommentForSelfWriteOrAccess(ctx *context.Context, commentID int
 	if comment == nil {
 		return nil
 	}
-	if !canSelfWriteOrAccessContent(ctx, comment.Issue, comment.PosterID, accessMode) {
-		ctx.HTTPError(http.StatusForbidden)
+	if !canSelfChangeOrAccessContent(ctx, comment.Issue, comment.PosterID, accessMode) {
 		return nil
 	}
 	if !comment.Type.HasContentSupport() {

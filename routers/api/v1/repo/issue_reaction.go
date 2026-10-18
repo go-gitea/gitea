@@ -191,7 +191,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		return
 	}
 	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeRead) {
-		ctx.APIErrorNotFound()
+		ctx.APIError(http.StatusForbidden, "no permission to change reaction")
 		return
 	}
 
