@@ -353,8 +353,8 @@ func Merge(outerCtx context.Context, prID int64, doer *user_model.User, mergeSty
 				},
 			})
 			if err != nil {
-				// keep the intent only if the commit actually reached the base branch
-				if merged, _ := hasPullRequestCommitBeenMerged(ctx, pr); !merged && pr.MergedCommitID != "" {
+				// clear the intent only if the commit verifiably didn't reach the base branch
+				if merged, checkErr := hasPullRequestCommitBeenMerged(ctx, pr); checkErr == nil && !merged && pr.MergedCommitID != "" {
 					if clearErr := clearMergeIntent(ctx, pr); clearErr != nil {
 						log.Error("Unable to clear merge intent of %-v: %v", pr, clearErr)
 					}
