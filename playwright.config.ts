@@ -36,7 +36,7 @@ export default defineConfig({
         ...devices['Desktop Firefox'],
         launchOptions: {
           firefoxUserPrefs: {
-            'dom.events.testing.asyncClipboard': true, // Playwright can't grant clipboard-read in Firefox, a read before the page's write lands would hang
+            'dom.events.testing.asyncClipboard': true, // clipboard reads can hang without it, https://github.com/microsoft/playwright/issues/13037
           },
         },
       },
