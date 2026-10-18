@@ -86,6 +86,7 @@ func (w *SingleWorkflow) Marshal() ([]byte, error) {
 	return marshalYAML(&payload)
 }
 
+// marshalYAML never wraps lines, re-encoding must not reflow long values.
 func marshalYAML(v any) ([]byte, error) {
 	return yaml.Dump(v, yaml.WithV3Defaults(), yaml.WithIndent(2), yaml.WithLineWidth(-1))
 }
