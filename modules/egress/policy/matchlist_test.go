@@ -18,10 +18,10 @@ func TestMatchHostname(t *testing.T) {
 		port          uint16
 		want          bool
 	}{
-		// a bare entry matches its host and subdomains like NO_PROXY, a wildcard or leading dot matches subdomains only
+		// a bare entry matches the exact host only, a wildcard or leading dot matches subdomains only
 		{pattern: "example.com", host: "example.com", port: 80, want: true},
-		{pattern: "example.com", host: "sub.example.com", port: 80, want: true},
-		{pattern: "example.com", host: "notexample.com", port: 80}, // dot-anchored
+		{pattern: "example.com", host: "sub.example.com", port: 80}, // subdomains need the wildcard
+		{pattern: "example.com", host: "notexample.com", port: 80},
 		{pattern: "*.example.com", host: "sub.example.com", port: 80, want: true},
 		{pattern: ".example.com", host: "sub.example.com", port: 80, want: true},
 		{pattern: "*.example.com", host: "example.com", port: 80}, // apex never matches

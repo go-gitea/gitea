@@ -426,18 +426,16 @@ func (m *matchList) HostnameCount() int {
 	return count
 }
 
-// matchDomain implements the domain-matching model of x/net/http/httpproxy
-// (dot-anchored suffix), like curl's and Go's NO_PROXY:
-//   - "example.com" matches that host and any subdomain, dot-anchored so
-//     "notexample.com" never matches
-//   - "*.example.com" and ".example.com" match only subdomains, apex
-//     excluded — the two spellings are equivalent, mirroring httpproxy's normalization
+// matchDomain matches a hostname entry, like CSP source lists, CORS origins and TLS
+// wildcards: a bare entry matches the exact host only, a "*." or "." prefixed entry
+// matches subdomains only, the apex excluded — the two spellings are equivalent.
+// List both forms for the host and its subdomains.
 func matchDomain(pattern, host string) bool {
 	if strings.HasPrefix(pattern, "*.") || strings.HasPrefix(pattern, ".") {
 		suffix := strings.TrimPrefix(pattern, "*")
 		return strings.HasSuffix(host, suffix) && len(host) > len(suffix)
 	}
-	return pattern == host || strings.HasSuffix(host, "."+pattern)
+	return pattern == host
 }
 
 // matchDomainExact reports whether host is exactly pattern, case-insensitive and ignoring a trailing dot
