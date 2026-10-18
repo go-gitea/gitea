@@ -841,9 +841,11 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 	if err != nil {
 		return nil, err
 	}
-	ret.TimerTrackerCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.TimerTrackerID = optional.Some(doerID) }))
-	if err != nil {
-		return nil, err
+	if setting.Service.EnableTimetracking && !opts.IsPull.Value() {
+		ret.TimerTrackerCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.TimerTrackerID = optional.Some(doerID) }))
+		if err != nil {
+			return nil, err
+		}
 	}
 	return ret, nil
 }

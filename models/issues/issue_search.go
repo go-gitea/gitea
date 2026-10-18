@@ -54,7 +54,7 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	Owner          *user_model.User   // issues permission scope, it could be an organization or a user
 	Team           *organization.Team // issues permission scope
 	Doer           *user_model.User   // issues permission scope
-	TimerTrackerID int64              // filter issues by running stopwatch/timer for this user ID
+	TimerTrackerID int64
 }
 
 // Copy returns a copy of the options.
