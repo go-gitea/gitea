@@ -10,6 +10,7 @@ import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
 import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 import {trString} from '../modules/i18n.ts';
+import {confirmModal} from '../features/comp/ConfirmModal.ts';
 
 defineOptions({
   name: 'RepoActionView',
@@ -92,7 +93,7 @@ function isJobCollapsed(jobID: number) {
 }
 
 const visibleJobListItems = computed<JobListItem[]>(() => {
-  const jobs = [...(run.value.jobs || [])].sort((a, b) => a.id - b.id);
+  const jobs = (run.value.jobs || []).filter((job) => job.status !== 'pending' || job.id === props.jobId).sort((a, b) => a.id - b.id);
   const childrenByParent = buildJobsByParentJobID(jobs);
 
   const result: JobListItem[] = [];
@@ -142,8 +143,9 @@ function approveRun() {
 }
 
 async function deleteArtifact(name: string) {
-  if (!window.confirm(trString(locale.confirmDeleteArtifact, name))) return;
-  await DELETE(buildArtifactLink(name));
+  const artifactLink = buildArtifactLink(name);
+  if (!await confirmModal({content: trString(locale.confirmDeleteArtifact, name), confirmButtonColor: 'red'})) return;
+  await DELETE(artifactLink);
   await store.forceReloadCurrentRun();
 }
 

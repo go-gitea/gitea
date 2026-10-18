@@ -430,7 +430,6 @@
   "settings.key_name": "යතුරෙහි නම",
   "settings.key_content": "අන්තර්ගතය",
   "settings.principal_content": "අන්තර්ගතය",
-  "settings.delete_key": "ඉවත් කරන්න",
   "settings.ssh_key_deletion": "SSH කී ඉවත් කරන්න",
   "settings.gpg_key_deletion": "ජීපීජී යතුර ඉවත් කරන්න",
   "settings.ssh_principal_deletion": "SSH සහතිකය විදුහල්පති ඉවත් කරන්න",
@@ -2083,6 +2082,7 @@
   "packages.owner.settings.cleanuprules.enabled": "සබල කර ඇත",
   "secrets.creation.description": "සවිස්තරය",
   "audit.details": "වැණුම",
+  "actions.status.pending": "වංගු",
   "actions.runners.name": "නම",
   "actions.runners.owner_type": "වර්ගය",
   "actions.runners.description": "සවිස්තරය",
@@ -2095,5 +2095,6 @@
   "actions.runs.summary": "සාරාංශය",
   "actions.workflow.scope_owner": "හිමිකරු",
   "actions.workflow.required": "ඇවැසිය",
+  "actions.job_queue.filter_repo_no_select": "සියළුම කෝෂ්ඨ",
   "actions.general.token_permissions.mode.restricted": "සීමා"
 }

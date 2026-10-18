@@ -274,7 +274,11 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			ctx.ServerError("GetUserOrganizations", err)
 			return
 		}
-		ctx.Data["Cards"] = orgs
+		cards := make([]*user_model.User, 0, len(orgs))
+		for _, org := range orgs {
+			cards = append(cards, org.AsUser())
+		}
+		ctx.Data["Cards"] = cards // user_cards needs User-only methods
 		total = count
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
@@ -322,6 +326,13 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 // ActionUserFollow is for follow/unfollow user request
 func ActionUserFollow(ctx *context.Context) {
+	isOrg := ctx.ContextUser.IsOrganization()
+	if isOrg && !organization.HasOrgOrUserVisible(ctx, ctx.ContextUser, ctx.Doer) ||
+		!isOrg && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+		ctx.NotFound(nil)
+		return
+	}
+
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":

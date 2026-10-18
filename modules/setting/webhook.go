@@ -37,6 +37,9 @@ func loadWebhookFrom(rootCfg ConfigProvider) {
 
 	deprecatedSetting(rootCfg, "webhook", "ALLOWED_HOST_LIST", "security", "ALLOWED_HOST_LIST", "v28.0.0")
 	Webhook.AllowedHostList = sec.Key("ALLOWED_HOST_LIST").MustString(Security.AllowedHostList)
+	if Webhook.AllowedHostList != Security.AllowedHostList {
+		checkHostList("[webhook] ALLOWED_HOST_LIST", Webhook.AllowedHostList, false)
+	}
 
 	Webhook.Types = []string{"gitea", "gogs", "slack", "discord", "dingtalk", "telegram", "msteams", "feishu", "matrix", "wechatwork", "packagist"}
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)

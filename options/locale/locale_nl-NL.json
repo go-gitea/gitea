@@ -445,7 +445,6 @@
   "settings.key_name": "Sleutel naam",
   "settings.key_content": "Inhoud",
   "settings.principal_content": "Inhoud",
-  "settings.delete_key": "Verwijder",
   "settings.ssh_key_deletion": "Verwijder SSH-sleutel",
   "settings.gpg_key_deletion": "Verwijder GPG-sleutel",
   "settings.ssh_principal_deletion": "Verwijder de SSH-certificaat verantwoordelijke",
@@ -1992,6 +1991,7 @@
   "packages.settings.link.button": "Repository link bijwerken",
   "packages.owner.settings.cleanuprules.enabled": "Ingeschakeld",
   "secrets.creation.description": "Omschrijving",
+  "actions.status.pending": "In behandeling",
   "actions.runners.name": "Naam",
   "actions.runners.description": "Omschrijving",
   "actions.runners.task_list.repository": "Opslagplaats",
@@ -2000,5 +2000,6 @@
   "actions.runs.summary": "Overzicht",
   "actions.workflow.scope_owner": "Eigenaar",
   "actions.workflow.required": "Vereist",
+  "actions.job_queue.filter_repo_no_select": "Alle repositories",
   "actions.general.token_permissions.mode.restricted": "Beperkt"
 }

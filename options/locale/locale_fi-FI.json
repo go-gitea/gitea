@@ -423,7 +423,6 @@
   "settings.key_name": "Avaimen nimi",
   "settings.key_content": "Sisältö",
   "settings.principal_content": "Sisältö",
-  "settings.delete_key": "Poista",
   "settings.ssh_key_deletion": "Poista SSH-avain",
   "settings.gpg_key_deletion": "Poista GPG-avain",
   "settings.gpg_key_deletion_desc": "GPG-avaimen poistaminen peruuttaa sillä allekirjoitettujen committien vahvistukset. Jatketaanko?",
@@ -1411,6 +1410,7 @@
   "packages.terraform.unlock": "Avaa",
   "packages.owner.settings.cleanuprules.enabled": "Käytössä",
   "secrets.creation.description": "Kuvaus",
+  "actions.status.pending": "Odottaa",
   "actions.runners.name": "Nimi",
   "actions.runners.owner_type": "Tyyppi",
   "actions.runners.description": "Kuvaus",
@@ -1420,5 +1420,6 @@
   "actions.runs.branch": "Haara",
   "actions.runs.summary": "Yhteenveto",
   "actions.workflow.scope_owner": "Omistaja",
+  "actions.job_queue.filter_repo_no_select": "Kaikki repot",
   "actions.general.token_permissions.mode.restricted": "Rajoitettu"
 }
