@@ -1,17 +1,12 @@
 type HashChangeListener = (e: HashChangeEvent) => void | Promise<void>;
 
-export type HashChangeListenerOptions = {
-  priority: number;
-};
+const hashChangeListeners: Array<{listener: HashChangeListener, priority: number}> = [];
+let hashChangeListenersInited = false;
 
-const hashChangeListeners: Array<{
-  opts: HashChangeListenerOptions;
-  listener: HashChangeListener;
-}> = [];
-
-export function registerAsyncHashChangeListener(listener: HashChangeListener, priority: number = 0): void {
-  hashChangeListeners.push({opts: {priority}, listener});
-  hashChangeListeners.sort((a, b) => a.opts.priority - b.opts.priority);
+export function registerAsyncHashChangeListener(listener: HashChangeListener, priority = 0): void {
+  hashChangeListeners.push({listener, priority});
+  hashChangeListeners.sort((a, b) => a.priority - b.priority);
+  if (hashChangeListenersInited) listener(new HashChangeEvent('hashchange')); // late registrants missed the initial run
 }
 
 export function removeAsyncHashChangeListener(listener: HashChangeListener): void {
@@ -19,11 +14,12 @@ export function removeAsyncHashChangeListener(listener: HashChangeListener): voi
   if (index !== -1) hashChangeListeners.splice(index, 1);
 }
 
+async function runHashChangeListeners(e: HashChangeEvent) {
+  for (const {listener} of hashChangeListeners) await listener(e);
+}
+
 export async function initAsyncHashChangeListeners() {
-  for (const {listener} of hashChangeListeners) {
-    await listener(new HashChangeEvent('hashchange'));
-  }
-  window.addEventListener('hashchange', async (e) => {
-    for (const {listener} of hashChangeListeners) await listener(e);
-  });
+  hashChangeListenersInited = true;
+  window.addEventListener('hashchange', runHashChangeListeners);
+  await runHashChangeListeners(new HashChangeEvent('hashchange'));
 }

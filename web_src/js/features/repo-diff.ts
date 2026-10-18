@@ -272,7 +272,7 @@ export function initRepoDiffView() {
   initRepoDiffConversationNav(); // "previous" and "next" buttons only appear on "diff" page
   initExpandAndCollapseFilesButton();
 
-  // onLocationHashChange does very complicate things (e.g.: load incomplete content and scroll), and it might change the URL hash
+  // onLocationHashChange does very complicated things (e.g.: load incomplete content and scroll), and it might change the URL hash
   // so make it run after all other hash change listeners
   registerAsyncHashChangeListener(onLocationHashChange, 999);
 }
