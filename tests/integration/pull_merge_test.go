@@ -747,7 +747,6 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 		createPullResp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "Indexer notifier test pull")
 
 		assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 0))
-		time.Sleep(time.Second)
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 			OwnerName: "user2",
@@ -788,7 +787,6 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 		assert.True(t, issue.IsClosed)
 
 		assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 0))
-		time.Sleep(time.Second)
 
 		// search issues again
 		searchIssuesResp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
@@ -937,7 +935,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		time.Sleep(2 * time.Second)
+		require.NoError(t, automergequeue.AutoMergeQueue.FlushWithContext(t.Context(), 5*time.Second))
 
 		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
