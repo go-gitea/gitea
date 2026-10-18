@@ -405,7 +405,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, issue, issue.PosterID, perm.AccessModeRead) {
 		ctx.APIError(http.StatusForbidden, "no permission to change reaction")
 		return
 	}

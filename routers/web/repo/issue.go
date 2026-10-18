@@ -475,8 +475,8 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
-func canSelfChangeOrAccessContent(ctx *context.Context, refIssue *issues_model.Issue, contentPoserID int64, accessMode perm.AccessMode) bool {
-	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, refIssue, contentPoserID, accessMode) {
+func canSelfChangeOrAccessContent(ctx *context.Context, refIssue *issues_model.Issue, contentPosterID int64, accessMode perm.AccessMode) bool {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, refIssue, contentPosterID, accessMode) {
 		ctx.HTTPError(http.StatusForbidden)
 		return false
 	}

@@ -148,21 +148,11 @@ func NewComment(ctx *context.Context) {
 }
 
 func getRepoIssueComment(ctx *context.Context, commentID int64) *issues_model.Comment {
-	comment, err := issues_model.GetCommentByID(ctx, commentID)
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, commentID)
 	if err != nil {
-		ctx.ServerError("GetCommentByID", err)
+		ctx.ServerError("GetCommentWithRepoID", err)
 		return nil
 	}
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.ServerError("LoadIssue", err)
-		return nil
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(nil)
-		return nil
-	}
-
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.NotFound(nil)
 		return nil

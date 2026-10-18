@@ -345,21 +345,13 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 }
 
 func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return nil
 	}
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return nil
-	}
-	if comment.Issue == nil || comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIError(http.StatusNotFound, "no matching issue comment found")
-		return nil
-	}
-
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+		ctx.APIErrorNotFound()
 		return nil
 	}
 
