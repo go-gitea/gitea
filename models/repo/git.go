@@ -39,7 +39,7 @@ const (
 	UpdateStyleRebase UpdateStyle = "rebase"
 )
 
-// SquashMergeMessage is the source of the default squash merge commit message body, values match GitHub's squash_merge_commit_message
+// SquashMergeMessage is the source of the default squash merge commit message body, values match GitHub's squash_merge_commit_message: https://docs.github.com/en/rest/repos/repos#update-a-repository
 type SquashMergeMessage string
 
 const (
