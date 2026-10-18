@@ -187,8 +187,8 @@ func GetActionIssue(ctx *context.Context) *issues_model.Issue {
 		return nil
 	}
 	issue.Repo = ctx.Repo.Repository
-	checkIssueRights(ctx, issue)
-	if ctx.Written() {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound(nil)
 		return nil
 	}
 	if err = issue.LoadAttributes(ctx); err != nil {
@@ -196,13 +196,6 @@ func GetActionIssue(ctx *context.Context) *issues_model.Issue {
 		return nil
 	}
 	return issue
-}
-
-func checkIssueRights(ctx *context.Context, issue *issues_model.Issue) {
-	if issue.IsPull && !ctx.Repo.Permission.CanRead(unit.TypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.Permission.CanRead(unit.TypeIssues) {
-		ctx.NotFound(nil)
-	}
 }
 
 func getActionIssues(ctx *context.Context) issues_model.IssueList {
@@ -483,7 +476,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 }
 
 func canSelfWriteOrAccessContent(ctx *context.Context, refIssue *issues_model.Issue, contentPoserID int64, accessMode perm.AccessMode) bool {
-	if !issue_service.CanDoerWriteOrAccessContent(ctx.Doer, ctx.Repo.Permission, refIssue, contentPoserID, accessMode) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, refIssue, contentPoserID, accessMode) {
 		ctx.HTTPError(http.StatusForbidden)
 		return false
 	}

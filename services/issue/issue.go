@@ -313,12 +313,21 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	return attachmentPaths, err
 }
 
-func CanDoerWriteOrAccessContent(doer *user_model.User, perm access_model.Permission, refIssue *issues_model.Issue, contentPoserID int64, accessMode perm.AccessMode) bool {
-	unitType := util.Iif(refIssue.IsPull, unit.TypePullRequests, unit.TypeIssues)
-	if doer == nil || (doer.ID != contentPoserID && !perm.CanAccess(accessMode, unitType)) {
+// CanSelfChangeOrAccessContent checks whether the doer can access the content:
+// * If the doer is the content poser, then the doer can access the content if they have read access to issues.
+// * If the doer is not the content poser, then the doer can access the content if they have the required access mode to the unit type (issues or pull requests).
+// * If the issue is locked, then the doer can only access the content if they have write access.
+func CanSelfChangeOrAccessContent(doer *user_model.User, doerPerm access_model.Permission, refIssue *issues_model.Issue, contentPoserID int64, accessMode perm.AccessMode) bool {
+	if doer == nil {
 		return false
 	}
-	if refIssue.IsLocked && !perm.CanWrite(unitType) && !doer.IsAdmin {
+	unitType := util.Iif(refIssue.IsPull, unit.TypePullRequests, unit.TypeIssues)
+	doerSelfRead := doer.ID == contentPoserID && doerPerm.CanAccess(perm.AccessModeRead, unit.TypeIssues)
+	ok := doerSelfRead || doerPerm.CanAccess(accessMode, unitType)
+	if !ok {
+		return false
+	}
+	if refIssue.IsLocked && !doerPerm.CanWrite(unitType) {
 		return false
 	}
 	return true

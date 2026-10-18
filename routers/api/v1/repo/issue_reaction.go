@@ -190,7 +190,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		ctx.APIErrorAuto(err)
 		return
 	}
-	if !issue_service.CanDoerWriteOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeRead) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeRead) {
 		ctx.APIErrorNotFound()
 		return
 	}
