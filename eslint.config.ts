@@ -311,6 +311,7 @@ export default defineConfig([
       'func-names': [0],
       'func-style': [0],
       'getter-return': [2],
+      'gitea/unescaped-html-literal': [2],
       'grouped-accessor-pairs': [2],
       'guard-for-in': [0],
       'id-denylist': [0],
@@ -1116,6 +1117,7 @@ export default defineConfig([
     languageOptions: {globals: {...globals.nodeBuiltin, ...globals.browser}},
     rules: {
       ...playwright.configs['flat/recommended'].rules,
+      'gitea/unescaped-html-literal': [0],
       'playwright/expect-expect': [0],
     },
   },
