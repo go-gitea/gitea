@@ -20,9 +20,10 @@ type WatchMode int8
 const (
 	WatchModeNone WatchMode = iota // 0 watch nothing unless mentioned
 
-	WatchModeNormal // 1 proactively watching (all or custom)
+	WatchModeNormal // 1 proactively watching (all, or custom before WatchModeCustom)
 	WatchModeDont   // 2 ignore the repo
 	WatchModeAuto   // 3 automatically watching (from AutoWatchOnChanges)
+	WatchModeCustom // 4 watching the events picked in the custom watch options
 )
 
 // WatchType is the `watch` column gating one kind of notification
@@ -79,7 +80,7 @@ func (w *Watch) IsWatching() bool {
 
 // IsWatchingAll reports whether every event is enabled, which is the "all activity" mode
 func (w *Watch) IsWatchingAll() bool {
-	return w.IncludePullRequests && w.IncludeIssues && w.IncludeReleases
+	return w.Mode != WatchModeCustom && w.IncludePullRequests && w.IncludeIssues && w.IncludeReleases
 }
 
 func (w *Watch) IsWatchingAny() bool {
@@ -166,6 +167,9 @@ func WatchRepoAuto(ctx context.Context, doer *user_model.User, repo *Repository,
 	if user_model.IsUserBlockedBy(ctx, doer, repo.OwnerID) {
 		return user_model.ErrBlockedUser
 	}
+	if watch.Mode == WatchModeCustom { // keep the events the user picked
+		return nil
+	}
 
 	return watchRepoByMode(ctx, watch, WatchModeNormal)
 }
@@ -189,7 +193,7 @@ func WatchRepoWithOptions(ctx context.Context, doer *user_model.User, repo *Repo
 		if err != nil {
 			return err
 		}
-		if opts.Mode == WatchModeNormal {
+		if opts.Mode == WatchModeNormal || opts.Mode == WatchModeCustom {
 			_, err = db.GetEngine(ctx).Where("user_id=? AND repo_id=?", doer.ID, repo.ID).
 				Cols("include_pull_requests", "include_issues", "include_releases").
 				Update(&Watch{IncludePullRequests: opts.WatchPullRequests, IncludeIssues: opts.WatchIssues, IncludeReleases: opts.WatchReleases})
@@ -247,6 +251,16 @@ func GetRepoIgnorersIDs(ctx context.Context, repoID int64) ([]int64, error) {
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetRepoWatchersIDs(ctx context.Context, repoID int64, watchType WatchType) ([]int64, error) {
+	return getRepoWatchersIDs(ctx, repoID, watchType, false)
+}
+
+// GetRepoCustomWatchersIDs is GetRepoWatchersIDs limited to custom watches, which unlike
+// watching all activity are never set up automatically (e.g. by AutoWatchNewRepos)
+func GetRepoCustomWatchersIDs(ctx context.Context, repoID int64, watchType WatchType) ([]int64, error) {
+	return getRepoWatchersIDs(ctx, repoID, watchType, true)
+}
+
+func getRepoWatchersIDs(ctx context.Context, repoID int64, watchType WatchType, customOnly bool) ([]int64, error) {
 	ids := make([]int64, 0, 64)
 	var watchColName string
 	switch watchType {
@@ -259,12 +273,19 @@ func GetRepoWatchersIDs(ctx context.Context, repoID int64, watchType WatchType) 
 	default:
 		panic("invalid WatchType")
 	}
-	return ids, db.GetEngine(ctx).Table("watch").
+	sess := db.GetEngine(ctx).Table("watch").
 		Where("watch.repo_id=?", repoID).
 		And("watch.mode<>?", WatchModeDont).
-		And(builder.Eq{watchColName: true}).
-		Select("user_id").
-		Find(&ids)
+		And(builder.Eq{watchColName: true})
+	if customOnly { // matches SelectedMode() == "custom"
+		sess = sess.And(builder.Or(
+			builder.Eq{"watch.mode": WatchModeCustom},
+			builder.Eq{"watch.include_pull_requests": false},
+			builder.Eq{"watch.include_issues": false},
+			builder.Eq{"watch.include_releases": false},
+		))
+	}
+	return ids, sess.Select("user_id").Find(&ids)
 }
 
 // GetRepoWatchers returns range of users watching given repository.
