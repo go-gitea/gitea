@@ -41,19 +41,7 @@ func TestAddRunnerNameToActionTask(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, AddRunnerNameToActionTask(t.Context(), x))
 
-	type ActionTaskNew struct {
-		ID         int64 `xorm:"pk"`
-		RunnerName string
-	}
-	get := func(id int64) string {
-		tBean := &ActionTaskNew{}
-		has, err := x.Table("action_task").ID(id).Get(tBean)
-		require.NoError(t, err)
-		require.True(t, has)
-		return tBean.RunnerName
-	}
-	assert.Equal(t, "live-runner", get(1))
-	assert.Equal(t, "deleted-runner", get(2)) // soft-deleted runner still has its row
-	assert.Empty(t, get(3))                   // runner row is gone
-	assert.Empty(t, get(4))                   // never assigned
+	var names []string
+	require.NoError(t, x.Table("action_task").Cols("runner_name").Asc("id").Find(&names))
+	assert.Equal(t, []string{"live-runner", "deleted-runner", "", ""}, names)
 }

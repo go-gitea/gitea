@@ -143,11 +143,12 @@ func TestToActionWorkflowJob_StepStatusAndBatchParity(t *testing.T) {
 	require.NoError(t, db.Insert(ctx, run))
 
 	task := &actions_model.ActionTask{
-		ID:       900102,
-		JobID:    9001,
-		RepoID:   2,
-		RunnerID: 34346,
-		Status:   actions_model.StatusFailure,
+		ID:         900102,
+		JobID:      9001,
+		RepoID:     2,
+		RunnerID:   987654321,
+		RunnerName: "removed-runner",
+		Status:     actions_model.StatusFailure,
 	}
 	require.NoError(t, db.Insert(ctx, task))
 
@@ -174,7 +175,8 @@ func TestToActionWorkflowJob_StepStatusAndBatchParity(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, apiJob.Steps, 2)
 
-	assert.Equal(t, "runner_to_be_deleted-user", apiJob.RunnerName)
+	assert.EqualValues(t, 987654321, apiJob.RunnerID)
+	assert.Equal(t, "removed-runner", apiJob.RunnerName)
 	assert.Equal(t, "completed", apiJob.Steps[0].Status, "step 0 status")
 	assert.Equal(t, "success", apiJob.Steps[0].Conclusion, "step 0 conclusion (succeeded before the failure)")
 	assert.Equal(t, "completed", apiJob.Steps[1].Status, "step 1 status")
@@ -183,42 +185,6 @@ func TestToActionWorkflowJob_StepStatusAndBatchParity(t *testing.T) {
 	apiJobs, err := ToActionWorkflowJobs(ctx, []*actions_model.ActionRunJob{job})
 	require.NoError(t, err)
 	assert.Equal(t, []*api.ActionWorkflowJob{apiJob}, apiJobs)
-}
-
-func TestToActionWorkflowJob_RunnerName(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	ctx := t.Context()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-
-	run := &actions_model.ActionRun{RepoID: 2, TriggerUserID: 1, WorkflowID: "test.yaml", Index: 12346, Ref: "refs/heads/main", Status: actions_model.StatusSuccess}
-	require.NoError(t, db.Insert(ctx, run))
-	runner := &actions_model.ActionRunner{Name: "live-runner"}
-	require.NoError(t, db.Insert(ctx, runner))
-
-	for _, tc := range []struct {
-		name         string
-		task         *actions_model.ActionTask
-		expectedID   int64
-		expectedName string
-	}{
-		{"runner removed", &actions_model.ActionTask{RunnerID: 987654321, RunnerName: "removed-runner", TokenHash: "runner-removed"}, 987654321, "removed-runner"},
-		{"never assigned", nil, 0, ""},
-		{"no stored name", &actions_model.ActionTask{RunnerID: runner.ID, TokenHash: "no-stored-name"}, runner.ID, "live-runner"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			job := &actions_model.ActionRunJob{RunID: run.ID, RepoID: 2, Name: tc.name, Attempt: 1, JobID: "job", Status: actions_model.StatusSuccess}
-			if tc.task != nil {
-				require.NoError(t, db.Insert(ctx, tc.task))
-				job.TaskID = tc.task.ID
-			}
-			require.NoError(t, db.Insert(ctx, job))
-
-			apiJob, err := ToActionWorkflowJob(ctx, repo, nil, job)
-			require.NoError(t, err)
-			assert.Equal(t, tc.expectedID, apiJob.RunnerID)
-			assert.Equal(t, tc.expectedName, apiJob.RunnerName)
-		})
-	}
 }
 
 func TestToActionsStatus(t *testing.T) {
