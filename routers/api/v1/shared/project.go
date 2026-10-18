@@ -1686,8 +1686,11 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	} else {
 		// an owner-level board spans repositories, so filter to what this doer may see
 		issuesOpts.Owner = scope.Owner
-		issuesOpts.Doer = ctx.Doer
-		issuesOpts.AllPublic = ctx.Doer == nil
+		if user_model.DoerCanViewPrivate(ctx.Doer) {
+			issuesOpts.Doer = ctx.Doer
+		} else {
+			issuesOpts.AllPublic = true
+		}
 	}
 
 	count, err := issues_model.CountIssues(ctx, issuesOpts)
