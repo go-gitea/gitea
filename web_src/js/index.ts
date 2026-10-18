@@ -36,8 +36,8 @@ import {initRepoEditor} from './features/repo-editor.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
 import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
+import {initCompLabelEdit} from './features/comp/LabelEdit.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
-import {initCommonOrganization} from './features/common-organization.ts';
 import {initRepoWiki} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCaptcha} from './features/captcha.ts';
@@ -86,11 +86,11 @@ const initPerformanceTracer = callInitFunctions([
   initGlobalInput,
   initGlobalShortcut,
 
-  initCommonOrganization,
   initCommonIssueListQuickGoto,
 
   initCompSearchUserBox,
   initCompWebHookEditor,
+  initCompLabelEdit,
 
   initInstall,
 

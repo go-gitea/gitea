@@ -1,7 +1,7 @@
 import {registerGlobalInitFunc} from './observer.ts';
 import {createElementFromHTML, hideElem, toggleElem} from '../utils/dom.ts';
 import {showFomanticModal} from './fomantic/modal.ts';
-import {html} from '../utils/html.ts';
+import {html, htmlRaw} from '../utils/html.ts';
 
 type ShortcutHandler = (el: HTMLElement) => boolean;
 
@@ -87,6 +87,7 @@ function showShortcutHelp() {
     document.body.append(modal);
   }
 
+  const seenShortcuts = new Set<string>();
   const list = modal.querySelector<HTMLElement>('.shortcut-list')!;
   list.replaceChildren(createElementFromHTML(html`<tr><td><kbd>?</kbd></td><td>Keyboard Shortcuts</td></tr>`));
   for (const elem of document.querySelectorAll<HTMLElement>('[data-shortcut-keys]')) {
@@ -99,15 +100,24 @@ function showShortcutHelp() {
       target.getAttribute('placeholder') ||
       target.getAttribute('title') ||
       getShortcutTextContent(target);
-    list.append(createElementFromHTML(html`<tr><td><kbd>${elem.getAttribute('data-shortcut-keys')}</kbd></td><td>${label}</td></tr>`));
+
+    const shortcutKeys = elem.getAttribute('data-shortcut-keys')!;
+    const shortcutHandler = elem.getAttribute('data-shortcut-handler') ?? '';
+    const shortcutIdentifier = `${shortcutKeys}::${shortcutHandler}`;
+    if (seenShortcuts.has(shortcutIdentifier)) continue;
+    seenShortcuts.add(shortcutIdentifier);
+    let keysHtml = '';
+    for (const keys of shortcutKeys.split(' ')) {
+      keysHtml += html`<kbd>${keys}</kbd> `;
+    }
+    list.append(createElementFromHTML(html`<tr><td>${htmlRaw(keysHtml)}</td><td>${label}</td></tr>`));
   }
   showFomanticModal(modal);
 }
 
-export function registerShortcutHandler(fullKey: string, handler: ShortcutHandler) {
-  fullKey = fullKey.toLowerCase();
-  shortcutHandlers[fullKey] ||= [];
-  shortcutHandlers[fullKey].push(handler);
+export function registerShortcutHandler(name: string, handler: ShortcutHandler) {
+  shortcutHandlers[name] ||= [];
+  shortcutHandlers[name].push(handler);
 }
 
 export function initGlobalShortcut() {
@@ -169,20 +179,22 @@ export function initGlobalShortcut() {
     shortcutPresses.push({fullKey, pressTime});
 
     const fullKeys = shortcutPresses.map((p) => p.fullKey).join(' ');
-    for (const handler of shortcutHandlers[fullKeys.toLowerCase()] || []) {
-      if (handler(target)) {
-        e.preventDefault();
-        shortcutPresses.length = 0;
-        return;
-      }
-    }
-
     // It's said that "spaces in aria-keyshortcuts separate alternative shortcuts", but we want to support multi-key shortcuts
     // So here we use our own data attribute to store the full shortcut keys, and match it case-insensitively.
     const matchedElems = document.querySelectorAll<HTMLElement>(`[data-shortcut-keys="${CSS.escape(fullKeys)}" i]`);
     if (!matchedElems.length) return;
     // TODO: if there are multiple matches, maybe we could introduce some priority rules to determine which one to trigger
     const matchedElem = matchedElems[0];
+    const handlerName = matchedElem.getAttribute('data-shortcut-handler')!;
+    if (shortcutHandlers[handlerName]) {
+      for (const handler of shortcutHandlers[handlerName]) {
+        if (handler(target)) break;
+      }
+      e.preventDefault();
+      shortcutPresses.length = 0;
+      return;
+    }
+
     e.preventDefault();
     shortcutPresses.length = 0;
     matchedElem.click();

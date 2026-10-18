@@ -131,20 +131,21 @@
   max-width: calc(100vw - 70px); /* leave enough space on left, and align the page content */
 }
 
-#review-box {
+.ui.button.review-box-button {
   position: relative;
+  padding-right: 0.5em !important; /* override .repository .diff-detail-box .ui.button */
 }
 
-#review-box .review-comments-counter {
+.review-box-button .review-comments-counter {
   background-color: var(--color-primary-light-4);
   color: var(--color-primary-contrast);
 }
 
-#review-box:hover .review-comments-counter {
+.review-box-button:hover .review-comments-counter {
   background-color: var(--color-primary-light-5);
 }
 
-#review-box .review-comments-counter[data-pending-comment-number="0"] {
+.review-box-button .review-comments-counter[data-pending-comment-number="0"] {
   display: none;
 }
 
