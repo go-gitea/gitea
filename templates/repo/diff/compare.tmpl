@@ -168,7 +168,7 @@
 			</div>
 		</div>
 
-		{{$showDiffBox := and (not .IsNothingToCompare) (or .CommitCount (not .DiffNotAvailable))}}
+		{{$showDiffBox := or .CommitCount .DiffShortStat.NumFiles}}
 		{{if and .IsSigned .PageIsComparePull}}
 			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare))}}
 			{{if .IsNothingToCompare}}
