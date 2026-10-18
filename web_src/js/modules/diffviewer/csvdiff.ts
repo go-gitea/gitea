@@ -254,21 +254,20 @@ export function createCsvDiff(baseRows: string[][] | null, headRows: string[][] 
   return sections;
 }
 
-// the content must be escaped already, the lint rule for HTML literals doesn't see the variable tag
 function cell(tag: 'th' | 'td', className: string, content: string): string {
-  return `<${tag}${className ? html` class="${className}"` : ''}>${content}</${tag}>`;
+  return html`<${htmlRaw(tag)}${htmlRaw(className ? html` class="${className}"` : '')}>${htmlRaw(content)}</${htmlRaw(tag)}>`;
 }
 
 function cellHtml(c: TableDiffCell | null, tag: 'th' | 'td'): string {
   if (!c) return cell(tag, '', '');
-  const removed = html`<span class="removed-code">${c.left}</span>`;
-  const added = html`<span class="added-code">${c.right}</span>`;
+  const removed = () => html`<span class="removed-code">${c.left}</span>`;
+  const added = () => html`<span class="added-code">${c.right}</span>`;
   switch (c.type) {
-    case cellChanged: return cell(tag, 'modified', `${removed} ${added}`);
-    case cellAdd: return cell(tag, 'added', added);
-    case cellDel: return cell(tag, 'removed', removed);
+    case cellChanged: return cell(tag, 'modified', `${removed()} ${added()}`);
+    case cellAdd: return cell(tag, 'added', added());
+    case cellDel: return cell(tag, 'removed', removed());
     case cellMovedUnchanged: return cell(tag, 'moved', htmlEscape(c.right));
-    case cellMovedChanged: return cell(tag, 'moved', `${removed} ${added}`);
+    case cellMovedChanged: return cell(tag, 'moved', `${removed()} ${added()}`);
     default: return cell(tag, '', htmlEscape(c.right));
   }
 }

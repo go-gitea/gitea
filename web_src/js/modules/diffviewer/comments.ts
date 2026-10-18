@@ -5,7 +5,7 @@ import {animateOnce, createElementFromAttrs, createElementFromHTML, toggleElem} 
 import {html, htmlEscape, htmlRaw} from '../../utils/html.ts';
 import {formatBytes, parseDom} from '../../utils.ts';
 import {formatDatetimeISO} from '../../utils/time.ts';
-import {svg, type SvgName} from '../../svg.ts';
+import {svg, svgRaw, type SvgName} from '../../svg.ts';
 import type {DiffSide} from './parse.ts';
 import {diffTreeFiles, diffTreeStore, type DiffTreeCommentFile, type DiffTreeCommentThread} from '../diff-file.ts';
 import {initComboMarkdownEditor, type ComboMarkdownEditor} from '../../features/comp/ComboMarkdownEditor.ts';
@@ -437,7 +437,7 @@ export class DiffComments {
         items += html`<div class="item js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="${comment.poster.name}" data-modal-modal-blockee-name="${comment.poster.displayName}" data-modal-modal-form.url="${data.orgBlockLink!}">${locale.blockOrg}</div>`;
       }
     }
-    const menu = createElementFromHTML<HTMLElement>(html`<div class="item action ui dropdown jump pointing top right">${htmlRaw(svg('octicon-kebab-horizontal'))}<div class="menu">${htmlRaw(items)}</div></div>`);
+    const menu = createElementFromHTML<HTMLElement>(html`<div class="item action ui dropdown jump pointing top right">${svgRaw('octicon-kebab-horizontal')}<div class="menu">${htmlRaw(items)}</div></div>`);
     menu.addEventListener('click', (e) => {
       const item = (e.target as Element).closest<HTMLElement>('[data-diff-viewer-action]');
       const action = item?.getAttribute('data-diff-viewer-action');

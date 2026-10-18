@@ -1,6 +1,6 @@
 import type {DiffHunk, DiffLine, DiffSide} from './parse.ts';
 import {html, htmlEscape, htmlRaw} from '../../utils/html.ts';
-import {svg} from '../../svg.ts';
+import {svgRaw} from '../../svg.ts';
 import {highlightLines, type LineHighlighter, type Segment} from './highlight.ts';
 import {wordDiffRanges, type CharRange} from './worddiff.ts';
 import type {Escape, LineEscapes} from './escape.ts';
@@ -12,6 +12,7 @@ type RowRenderOptions = {
 };
 
 const typeMarkers = {same: '', add: '+', del: '-'};
+const spanClose = html`</span>`;
 
 export const unifiedColgroup = html`<colgroup><col width="50"><col width="50"><col width="10"><col width="10"><col></colgroup>`;
 export const splitColgroup = html`<colgroup><col width="50"><col width="10"><col width="10"><col><col width="50"><col width="10"><col width="10"><col></colgroup>`;
@@ -55,7 +56,9 @@ export function segmentsToHtml(segments: Segment[], ranges: CharRange[] = [], ra
   let pos = 0;
   let rangeIdx = 0;
   let escapeIdx = 0;
+  const rangeOpen = html`<span class="${rangeClass}">`;
   for (const [text, classes] of segments) {
+    const classOpen = classes ? html`<span class="${classes}">` : '';
     let start = 0;
     while (start < text.length) {
       const at = pos + start;
@@ -74,8 +77,8 @@ export function segmentsToHtml(segments: Segment[], ranges: CharRange[] = [], ra
         if (escape) end = Math.min(end, escape.start - pos);
         piece = htmlEscape(text.slice(start, end));
       }
-      const pieceHtml = classes ? html`<span class="${classes}">${htmlRaw(piece)}</span>` : piece;
-      out += inRange ? html`<span class="${rangeClass}">${htmlRaw(pieceHtml)}</span>` : pieceHtml;
+      const pieceHtml = classOpen ? classOpen + piece + spanClose : piece;
+      out += inRange ? rangeOpen + pieceHtml + spanClose : pieceHtml;
       start = end;
     }
     pos += text.length;
@@ -85,7 +88,7 @@ export function segmentsToHtml(segments: Segment[], ranges: CharRange[] = [], ra
 
 function addButton(opts: RowRenderOptions, side: DiffSide): string {
   if (opts.addCommentLabel === null) return '';
-  return html`<button type="button" class="ui primary button add-code-comment" data-side="${side}" aria-label="${opts.addCommentLabel}">${htmlRaw(svg('octicon-plus'))}</button>`;
+  return html`<button type="button" class="ui primary button add-code-comment" data-side="${side}" aria-label="${opts.addCommentLabel}">${svgRaw('octicon-plus')}</button>`;
 }
 
 // the row of a hunk header, with the expand buttons of the gap above it, the tail gap has an empty header
@@ -109,10 +112,7 @@ export function renderUnifiedRows(hunks: DiffHunk[], lineHtml: string[], opts: R
     for (const line of hunk.lines) {
       const oldNum = line.oldNum || '';
       const newNum = line.newNum || '';
-      out += html`<tr class="${line.type}-code${line.expanded ? ' line-expanded' : ''}" data-line-type="${line.type}" data-old="${oldNum}" data-new="${newNum}">` +
-        html`<td class="lines-num lines-num-old" data-line-num="${oldNum}"></td><td class="lines-num lines-num-new" data-line-num="${newNum}"></td>` +
-        html`<td class="lines-escape">${htmlRaw(opts.escapeButtons[idx])}</td><td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="${typeMarkers[line.type]}"></span></td>` +
-        html`<td class="chroma lines-code${line.type === 'del' ? ' lines-code-old' : ''}">${htmlRaw(addButton(opts, line.newNum ? 'new' : 'old'))}<code class="code-inner">${htmlRaw(lineHtml[idx++])}</code></td></tr>`;
+      out += html`<tr class="${line.type}-code${line.expanded ? ' line-expanded' : ''}" data-line-type="${line.type}" data-old="${oldNum}" data-new="${newNum}"><td class="lines-num lines-num-old" data-line-num="${oldNum}"></td><td class="lines-num lines-num-new" data-line-num="${newNum}"></td><td class="lines-escape">${htmlRaw(opts.escapeButtons[idx])}</td><td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="${typeMarkers[line.type]}"></span></td><td class="chroma lines-code${line.type === 'del' ? ' lines-code-old' : ''}">${htmlRaw(addButton(opts, line.newNum ? 'new' : 'old'))}<code class="code-inner">${htmlRaw(lineHtml[idx++])}</code></td></tr>`;
     }
   }
   return out + tailRow(hunks, false, opts);
@@ -123,10 +123,7 @@ function splitHalf(side: DiffSide, line: DiffLine | null, lineIdx: number, conte
   const marker = line ? html`<span class="tw-font-mono" data-type-marker="${typeMarkers[line.type]}"></span>` : '';
   // like the legacy excerpts, expanded lines are only commented on the new side
   const button = line && !(side === 'old' && line.expanded) ? addButton(opts, side) : '';
-  return html`<td class="lines-num lines-num-${side}${cellClass}" data-line-num="${num}"></td>` +
-    html`<td class="lines-escape lines-escape-${side}${cellClass}">${htmlRaw(line ? opts.escapeButtons[lineIdx] : '')}</td>` +
-    html`<td class="lines-type-marker lines-type-marker-${side}${cellClass}">${htmlRaw(marker)}</td>` +
-    html`<td class="chroma lines-code lines-code-${side}${cellClass}">${htmlRaw(button)}<code class="code-inner">${htmlRaw(content)}</code></td>`;
+  return html`<td class="lines-num lines-num-${side}${cellClass}" data-line-num="${num}"></td><td class="lines-escape lines-escape-${side}${cellClass}">${htmlRaw(line ? opts.escapeButtons[lineIdx] : '')}</td><td class="lines-type-marker lines-type-marker-${side}${cellClass}">${htmlRaw(marker)}</td><td class="chroma lines-code lines-code-${side}${cellClass}">${htmlRaw(button)}<code class="code-inner">${htmlRaw(content)}</code></td>`;
 }
 
 // a deleted line and its paired added line share a row

@@ -2,7 +2,7 @@ import {html, htmlEscape, htmlRaw} from '../../utils/html.ts';
 import {createElementFromHTML} from '../../utils/dom.ts';
 import {pathEscapeSegments} from '../../utils/url.ts';
 import {basename} from '../../utils.ts';
-import {svg} from '../../svg.ts';
+import {svg, svgRaw} from '../../svg.ts';
 import {trString} from '../i18n.ts';
 import {diffTreeStore} from '../diff-file.ts';
 import type {DiffSide} from './parse.ts';
@@ -68,7 +68,7 @@ export function buildFileBox(entry: DiffFileEntry, config: DiffViewerConfig, loc
   } else if (additions + deletions) {
     stats = html`
       <div class="flex-text-block tw-flex-shrink-0 tw-text-[13px]">
-        <span>${htmlRaw(additions ? html`<strong class="tw-text-diff-added-fg">+${additions}</strong>` : '')} ${htmlRaw(deletions ? html`<strong class="tw-text-diff-removed-fg">-${deletions}</strong>` : '')}</span>
+        <span>${additions ? htmlRaw`<strong class="tw-text-diff-added-fg">+${additions}</strong>` : ''} ${deletions ? htmlRaw`<strong class="tw-text-diff-removed-fg">-${deletions}</strong>` : ''}</span>
         <span class="diff-stats-bar"><div class="diff-stats-add-bar" style="width: ${100 * additions / (additions + deletions)}%"></div></span>
       </div>
     `;
@@ -125,5 +125,5 @@ export function submoduleNotice(file: DiffStreamFile, locale: DiffViewerLocale):
     const range = `${shortSha(submodule!.oldCommit)}...${shortSha(submodule!.newCommit)}`;
     message = trString(locale.submoduleUpdated, nameHtml, link(submodule!.compareLink, range));
   }
-  return createElementFromHTML(html`<div class="tw-p-3 flex-text-block">${htmlRaw(svg('octicon-file-submodule'))} <span>${htmlRaw(message)}</span></div>`);
+  return createElementFromHTML(html`<div class="tw-p-3 flex-text-block">${svgRaw('octicon-file-submodule')} <span>${htmlRaw(message)}</span></div>`);
 }
