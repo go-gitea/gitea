@@ -15,7 +15,7 @@ import {performFetchActionTrigger} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
-import {registerAsyncHashChangeListener} from "../modules/hashchange.ts";
+import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files

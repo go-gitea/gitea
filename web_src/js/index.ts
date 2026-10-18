@@ -68,7 +68,7 @@ import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initDevtest} from './modules/devtest.ts';
 import {initRepoWatch} from './features/repo-watch.ts';
 import {initPackagesView} from './features/packages.ts';
-import {initAsyncHashChangeListeners} from "./modules/hashchange.ts";
+import {initAsyncHashChangeListeners} from './modules/hashchange.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([

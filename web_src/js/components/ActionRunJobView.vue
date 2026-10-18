@@ -15,7 +15,7 @@ import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../mo
 import {AnsiLineRenderer} from '../render/ansi.ts';
 import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
 import type {ActionRunViewStore, LogLine, LogLineCommand} from './ActionRunView.ts';
-import {registerAsyncHashChangeListener, removeAsyncHashChangeListener} from "../modules/hashchange.ts";
+import {registerAsyncHashChangeListener, removeAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight} = {extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
