@@ -562,6 +562,7 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		IsReusableCaller:        templateJob.IsReusableCaller,
 		CallUses:                templateJob.CallUses,
 		ReusableWorkflowContent: slices.Clone(templateJob.ReusableWorkflowContent),
+		ReusableWorkflowRef:     templateJob.ReusableWorkflowRef,
 		CallSecrets:             templateJob.CallSecrets,
 		CallPayload:             templateJob.CallPayload,
 		IsExpanded:              templateJob.IsExpanded,
