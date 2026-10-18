@@ -1,7 +1,7 @@
 import {checkAppUrl} from '../common-page.ts';
 import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
-import {showFomanticModal} from '../../modules/fomantic/modal.ts';
+import {showModal} from '../../modules/modal.ts';
 import {pathEscape} from '../../utils/url.ts';
 import {registerGlobalInitFunc} from '../../modules/observer.ts';
 
@@ -282,7 +282,7 @@ function initAdminNotice() {
     const elNoticeDesc = el.closest('tr')!.querySelector('.notice-description')!;
     const elModalDesc = detailModal.querySelector('.content pre')!;
     elModalDesc.textContent = elNoticeDesc.textContent;
-    showFomanticModal(detailModal);
+    showModal(detailModal);
   }));
 
   // Select actions

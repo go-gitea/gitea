@@ -1,8 +1,6 @@
-import '../../fomantic/build/fomantic.js';
 import {userEvent} from 'vitest/browser';
 import {initGlobalShortcut, makeFullKeyFromEvent} from './shortcut.ts';
 import {initGlobalSelectorObserver} from './observer.ts';
-import {initGiteaFomantic} from './fomantic.ts';
 
 function press(key: string, options: KeyboardEventInit = {}, target: HTMLElement = document.body) {
   const event = new KeyboardEvent('keydown', {key, bubbles: true, cancelable: true, ...options});
@@ -21,7 +19,6 @@ beforeAll(() => {
     <select><option>Value</option></select>
     <div contenteditable="true"><span>Editable</span></div>
   `;
-  initGiteaFomantic();
   initGlobalShortcut();
   initGlobalSelectorObserver(null);
 });
@@ -116,7 +113,7 @@ test('shows current shortcuts with ? and closes with Escape or the close button'
   press('g');
   expect(press('?', {shiftKey: true}).defaultPrevented).toBe(true);
   const modal = document.querySelector<HTMLElement>('#global-shortcut-help')!;
-  expect(modal.classList.contains('active')).toBe(true);
+  expect(modal.closest('dialog')!.open).toBe(true);
   expect(modal.querySelector('.shortcut-list tr:nth-child(2) td:last-child')!.textContent).toBe('Issues');
   expect(modal.querySelector('.shortcut-list')!.textContent).toContain('Search code');
   expect(modal.querySelectorAll('.shortcut-list tr')).toHaveLength(3);
@@ -124,7 +121,7 @@ test('shows current shortcuts with ? and closes with Escape or the close button'
   press('i');
   expect(click).not.toHaveBeenCalled();
   await userEvent.keyboard('{Escape}');
-  expect(modal.classList.contains('active')).toBe(false);
+  expect(modal.closest('dialog')!.open).toBe(false);
 
   input.setAttribute('placeholder', '<b>Updated search</b>');
   press('?');

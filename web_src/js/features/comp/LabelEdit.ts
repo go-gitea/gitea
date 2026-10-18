@@ -1,5 +1,5 @@
 import {queryElems, toggleElem} from '../../utils/dom.ts';
-import {showFomanticModal} from '../../modules/fomantic/modal.ts';
+import {showModal} from '../../modules/modal.ts';
 import {submitFormFetchAction} from '../../modules/fetch-action.ts';
 import {registerGlobalInitFunc} from '../../modules/observer.ts';
 
@@ -59,7 +59,7 @@ function initLabelEditModal(elModal: HTMLElement) {
     form.action = isEdit ? `${curPageLink}/edit` : `${curPageLink}/new`;
     toggleElem(elIsArchivedField, isEdit);
     syncModalUi();
-    showFomanticModal(elModal, {
+    showModal(elModal, {
       onApprove() {
         if (!form.checkValidity()) {
           form.reportValidity();

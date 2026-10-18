@@ -1,17 +1,34 @@
+/* hosts a shown ".ui.modal", covers the viewport and scrolls a tall modal */
+.modal-dialog {
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  padding: 8px 0;
+  background: none;
+  color: inherit;
+  overscroll-behavior: contain;
+}
+
+.modal-dialog[open] {
+  display: flex;
+  justify-content: center;
+}
+
+.modal-dialog::backdrop {
+  background: var(--color-overlay-backdrop);
+  animation: fadein 0.2s;
+}
+
 /* to keep the changes minimal and easy to revert or fine tune, the legacy classes
 like "small" and "mini" are still kept for the HTML elements, these can be cleaned up in the future */
 .ui.modal {
-  position: absolute;
   display: none;
-  z-index: var(--z-index-modal);
   text-align: left;
   background: var(--color-body);
   border: none;
   box-shadow: 1px 3px 3px 0 var(--color-shadow), 1px 3px 15px 2px var(--color-shadow);
-  transform-origin: 50% 25%;
   border-radius: var(--border-radius);
-  user-select: text;
-  will-change: top, left, margin, transform, opacity;
 
   width: fit-content;
   /* on small screens, the modal should not exceed 90% of the viewport width;
@@ -97,8 +114,10 @@ like "small" and "mini" are still kept for the HTML elements, these can be clean
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.ui.active.modal {
+.modal-dialog > .ui.modal {
   display: block;
+  margin-block: auto;
+  animation: fadein 100ms ease-in-out;
 }
 
 .ui.modal .content > form > .actions,

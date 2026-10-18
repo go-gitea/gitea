@@ -14,7 +14,7 @@ import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} fr
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {showFomanticModal} from '../modules/fomantic/modal.ts';
+import {showModal} from '../modules/modal.ts';
 import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import type {FomanticApiResponse} from '../types.ts';
@@ -328,7 +328,7 @@ export function initRepoIssueReferenceIssue() {
     const modal = document.querySelector(modalSelector)!;
     const textarea = modal.querySelector<HTMLTextAreaElement>('textarea[name="content"]')!;
     textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
-    showFomanticModal(modal);
+    showModal(modal);
   });
 }
 

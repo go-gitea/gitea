@@ -4,7 +4,8 @@ import {GET, POST} from '../modules/fetch.ts';
 import {createElementFromHTML, showElem} from '../utils/dom.ts';
 import {parseIssuePageInfo} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
+import {hideModal, showModal} from '../modules/modal.ts';
+import {confirmModal} from './comp/ConfirmModal.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import type {JQueryElem} from '../types.ts';
 
@@ -13,7 +14,7 @@ let i18nTextOptions: string;
 let i18nTextDeleteFromHistory: string;
 let i18nTextDeleteFromHistoryConfirm: string;
 
-function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
+async function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
   const elDetailDialog = createElementFromHTML(html`
     <div class="ui modal content-history-detail-dialog">
       <div class="header flex-left-right">
@@ -39,8 +40,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
     async onChange(_value: string, _text: string, $item: JQueryElem) {
       const optionItem = $item.data('option-item');
       if (optionItem === 'delete') {
-        // TODO: to use confirmModal instead of window.confirm, need to support multiple modals on the same page first.
-        if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
+        if (await confirmModal({content: i18nTextDeleteFromHistoryConfirm, confirmButtonColor: 'red'})) {
           try {
             const params = new URLSearchParams();
             params.append('comment_id', commentId);
@@ -50,7 +50,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
             const resp = await response.json();
 
             if (resp.ok) {
-              hideFomanticModal(elDetailDialog);
+              hideModal(elDetailDialog);
             } else {
               showErrorToast(resp.message);
             }
@@ -67,32 +67,26 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
       $fomanticDropdownOptions.dropdown('clear', true);
     },
   });
-  showFomanticModal(elDetailDialog, {
-    async onShow() {
-      try {
-        const params = new URLSearchParams();
-        params.append('comment_id', commentId);
-        params.append('history_id', historyId);
+  showModal(elDetailDialog, {onHidden: () => elDetailDialog.remove()});
+  try {
+    const params = new URLSearchParams();
+    params.append('comment_id', commentId);
+    params.append('history_id', historyId);
 
-        const url = `${issueBaseUrl}/content-history/detail?${params.toString()}`;
-        const response = await GET(url);
-        const resp = await response.json();
+    const url = `${issueBaseUrl}/content-history/detail?${params.toString()}`;
+    const response = await GET(url);
+    const resp = await response.json();
 
-        const commentDiffData = elDetailDialog.querySelector('.comment-diff-data')!;
-        commentDiffData.classList.remove('is-loading');
-        commentDiffData.innerHTML = resp.diffHtml;
-        // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
-        if (resp.canSoftDelete) {
-          showElem(elOptionsDropdown);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    },
-    onHidden() {
-      elDetailDialog.remove();
-    },
-  });
+    const commentDiffData = elDetailDialog.querySelector('.comment-diff-data')!;
+    commentDiffData.classList.remove('is-loading');
+    commentDiffData.innerHTML = resp.diffHtml;
+    // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
+    if (resp.canSoftDelete) {
+      showElem(elOptionsDropdown);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
 }
 
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {

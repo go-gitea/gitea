@@ -67,7 +67,7 @@
 
 				<div class="actions">
 					<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-					{{/* explicitly focus the submit button, to avoid Fomantic modal focuses and popups the dropdown */}}
+					{{/* explicitly focus the submit button, otherwise the modal focuses and pops up the dropdown */}}
 					<button type="submit" class="ui red button" autofocus>
 						{{if .Issue.IsLocked}}
 							{{ctx.Locale.Tr "repo.issues.unlock_confirm"}}
