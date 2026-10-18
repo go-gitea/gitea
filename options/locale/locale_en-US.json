@@ -930,7 +930,7 @@
   "settings.delete_account_title": "Delete User Account",
   "settings.delete_account_desc": "Are you sure you want to permanently delete this user account?",
   "settings.email_notifications.enable": "Enable Email Notifications",
-  "settings.email_notifications.onmention": "Only Email on Mention",
+  "settings.email_notifications.onmention_and_custom": "Only Email on Mention and Custom Watches",
   "settings.email_notifications.disable": "Disable Email Notifications",
   "settings.email_notifications.submit": "Set Email Preference",
   "settings.email_notifications.andyourown": "And Your Own Notifications",
