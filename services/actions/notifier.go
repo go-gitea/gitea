@@ -211,17 +211,11 @@ func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 
 	changes := &api.ChangesPayload{}
 	if addedLabels != nil {
-		changes.AddedLabels = make([]*api.Label, 0, len(addedLabels))
-		for _, label := range addedLabels {
-			changes.AddedLabels = append(changes.AddedLabels, convert.ToLabel(label, issue.Repo, doer))
-		}
+		changes.AddedLabels = convert.ToLabelList(addedLabels, issue.Repo, doer)
 	}
 
 	if removedLabels != nil {
-		changes.RemovedLabels = make([]*api.Label, 0, len(removedLabels))
-		for _, label := range removedLabels {
-			changes.RemovedLabels = append(changes.RemovedLabels, convert.ToLabel(label, issue.Repo, doer))
-		}
+		changes.RemovedLabels = convert.ToLabelList(removedLabels, issue.Repo, doer)
 	}
 
 	notifyIssueChange(ctx, doer, issue, hookEvent, api.HookIssueLabelUpdated, changes)
