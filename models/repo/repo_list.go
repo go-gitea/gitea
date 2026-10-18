@@ -806,7 +806,7 @@ func UserActionsAccessibleOwnerRepoCond(ownerID int64, user *user_model.User) bu
 // condition so that a large owner does not materialize every repo ID into the SQL statement, which could
 // exceed database parameter limits.
 func FindUserActionsAccessibleOwnerRepoIDsSubQuery(ownerID int64, user *user_model.User) *builder.Builder {
-	if ownerID <= 0 || user != nil && user.IsAdmin && !user_model.IsPublicOnlyDoer(user) {
+	if ownerID <= 0 || user_model.DoerCanViewPrivate(user) && user.IsAdmin {
 		return nil
 	}
 	return builder.Select("id").From("repository").Where(UserActionsAccessibleOwnerRepoCond(ownerID, user))

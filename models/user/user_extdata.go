@@ -107,6 +107,10 @@ func IsPublicOnlyDoer(u *User) bool {
 	return token != nil && token.publicOnly
 }
 
+func DoerCanViewPrivate(doer *User) bool {
+	return doer != nil && !IsPublicOnlyDoer(doer)
+}
+
 // DoerTokenAllowsOwner reports whether the doer's token may reach the owner at all
 func DoerTokenAllowsOwner(doer, owner *User) bool {
 	return !IsPublicOnlyDoer(doer) || owner.Visibility.IsPublic()

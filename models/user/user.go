@@ -1416,11 +1416,12 @@ func GetAdminUser(ctx context.Context) (*User, error) {
 }
 
 func isUserVisibleToViewerCond(viewer *User) builder.Cond {
-	if viewer != nil && viewer.IsAdmin && !IsPublicOnlyDoer(viewer) {
+	canViewPrivate := DoerCanViewPrivate(viewer)
+	if canViewPrivate && viewer.IsAdmin {
 		return builder.NewCond()
 	}
 
-	if viewer == nil || viewer.IsRestricted || IsPublicOnlyDoer(viewer) {
+	if !canViewPrivate || viewer.IsRestricted {
 		return builder.Eq{
 			"`user`.visibility": structs.VisibleTypePublic,
 		}

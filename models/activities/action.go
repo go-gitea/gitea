@@ -471,10 +471,10 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 		opts.RequestedUser = org
 	}
 
-	publicOnly := user_model.IsPublicOnlyDoer(opts.Actor)
+	canViewPrivate := user_model.DoerCanViewPrivate(opts.Actor)
 
 	// check activity visibility for actor ( similar to activityReadable() )
-	if opts.Actor == nil || publicOnly {
+	if !canViewPrivate {
 		cond = cond.And(builder.In("act_user_id",
 			builder.Select("`user`.id").Where(
 				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
@@ -505,7 +505,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	}
 
 	// check readable repositories by doer/actor
-	if opts.Actor == nil || !opts.Actor.IsAdmin || publicOnly {
+	if !canViewPrivate || !opts.Actor.IsAdmin {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
@@ -535,7 +535,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 		}
 	}
 
-	if !opts.IncludePrivate || publicOnly {
+	if !opts.IncludePrivate || user_model.IsPublicOnlyDoer(opts.Actor) {
 		cond = cond.And(builder.Eq{"`action`.is_private": false})
 	}
 	if !opts.IncludeDeleted {

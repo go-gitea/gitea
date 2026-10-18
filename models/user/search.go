@@ -171,16 +171,16 @@ func SearchUsers(ctx context.Context, opts SearchUserOptions) (users []*User, _ 
 
 // BuildCanSeeUserCondition creates a condition which can be used to restrict results to users/orgs the actor can see
 func BuildCanSeeUserCondition(actor *User) builder.Cond {
-	publicOnly := IsPublicOnlyDoer(actor)
+	canViewPrivate := DoerCanViewPrivate(actor)
 	cond := builder.NewCond()
-	if actor != nil && !actor.IsAdmin && (!publicOnly || actor.IsRestricted) {
+	if actor != nil && !actor.IsAdmin && (canViewPrivate || actor.IsRestricted) {
 		cond = builder.In("`user`.id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": actor.ID}))
 		if !actor.IsRestricted {
 			cond = cond.Or(builder.In("`user`.visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 		}
 		cond = cond.Or(builder.Eq{"`user`.id": actor.ID})
 	}
-	if actor == nil || publicOnly {
+	if !canViewPrivate {
 		cond = cond.And(builder.In("`user`.visibility", structs.VisibleTypePublic))
 	}
 	return cond

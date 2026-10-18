@@ -77,7 +77,7 @@ func (opts FindOrgOptions) ToOrders() string {
 }
 
 func DoerViewOtherVisibility(doer, other *user_model.User) structs.VisibleType {
-	if doer == nil || other == nil || user_model.IsPublicOnlyDoer(doer) {
+	if other == nil || !user_model.DoerCanViewPrivate(doer) {
 		return structs.VisibleTypePublic
 	}
 	if doer.IsAdmin || doer.ID == other.ID {
