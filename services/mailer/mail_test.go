@@ -354,6 +354,34 @@ func TestTemplateServices(t *testing.T) {
 		"//Re: //")
 }
 
+func TestIssueNotificationEmailsRespectDefaultShowFullName(t *testing.T) {
+	doer, _, issue, _ := prepareMailerTest(t)
+	doer.FullName = "Test User Full Name"
+	recipients := []*user_model.User{{Name: "recipient", Email: "test@gitea.com"}}
+	compose := func(t *testing.T, comment *mailComment) *sender_service.Message {
+		msgs, err := composeIssueCommentMessages(t.Context(), comment, "mock", recipients, false, "issue notification")
+		require.NoError(t, err)
+		require.Len(t, msgs, 1)
+		return msgs[0]
+	}
+
+	t.Run("issue action", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.UI.DefaultShowFullName, true)()
+		msg := compose(t, &mailComment{
+			Issue: issue, Doer: doer, ActionType: activities_model.ActionCloseIssue,
+		})
+		assert.Contains(t, msg.Body, "mail.issue.action.close:Test User Full Name,1")
+	})
+
+	t.Run("assignment", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.UI.DefaultShowFullName, true)()
+		msg := compose(t, &mailComment{
+			Issue: issue, Doer: doer, Comment: &issues_model.Comment{Type: issues_model.CommentTypeAssignees},
+		})
+		assert.Contains(t, msg.Body, "mail.issue_assigned.issue:Test User Full Name,")
+	})
+}
+
 func testComposeIssueCommentMessage(t *testing.T, ctx *mailComment, recipients []*user_model.User, fromMention bool, info string) *sender_service.Message {
 	msgs, err := composeIssueCommentMessages(t.Context(), ctx, "en-US", recipients, fromMention, info)
 	assert.NoError(t, err)
