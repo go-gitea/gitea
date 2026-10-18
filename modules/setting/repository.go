@@ -340,12 +340,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
-	prSec := rootCfg.Section("repository.pull-request")
-	deprecatedSetting(rootCfg, "repository.pull-request", "POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES", "repository.pull-request", "DEFAULT_SQUASH_MERGE_MESSAGE", "v30.0.0")
-	if !prSec.HasKey("DEFAULT_SQUASH_MERGE_MESSAGE") && prSec.Key("POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES").MustBool() {
-		Repository.PullRequest.DefaultSquashMergeMessage = "COMMIT_MESSAGES"
-	}
-	if !slices.Contains([]string{"BLANK", "COMMIT_MESSAGES", "PR_BODY"}, Repository.PullRequest.DefaultSquashMergeMessage) {
+	if !slices.Contains([]string{"BLANK", "COMMIT_MESSAGES", "PR_BODY"}, Repository.PullRequest.DefaultSquashMergeMessage) { // uppercase unlike other config values, to match GitHub's squash_merge_commit_message which the API also uses
 		log.Fatal("Invalid repository.pull-request.DEFAULT_SQUASH_MERGE_MESSAGE: %s", Repository.PullRequest.DefaultSquashMergeMessage)
 	}
 
