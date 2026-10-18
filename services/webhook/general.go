@@ -226,11 +226,7 @@ func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, w
 	}
 
 	if p.Action != api.HookReleaseDeleted && len(p.Release.Attachments) > 0 {
-		assets := make([]string, 0, len(p.Release.Attachments))
-		for _, attachment := range p.Release.Attachments {
-			assets = append(assets, linkFormatter(attachment.DownloadURL, attachment.Name))
-		}
-		text += fmt.Sprintf(" (assets: %s)", strings.Join(assets, ", "))
+		text += fmt.Sprintf(" (assets: %d)", len(p.Release.Attachments))
 	}
 
 	return text, color

@@ -579,6 +579,7 @@ func TestGetWikiPayloadInfo(t *testing.T) {
 
 func TestGetReleasePayloadInfo(t *testing.T) {
 	p := pullReleaseTestPayload()
+	p.Release.Attachments = []*api.Attachment{{}, {}}
 
 	cases := []struct {
 		action api.HookReleaseAction
@@ -587,49 +588,12 @@ func TestGetReleasePayloadInfo(t *testing.T) {
 	}{
 		{
 			api.HookReleasePublished,
-			"[test/repo] Release created: v1.0 by user1",
+			"[test/repo] Release created: v1.0 by user1 (assets: 2)",
 			greenColor,
 		},
 		{
 			api.HookReleaseUpdated,
-			"[test/repo] Release updated: v1.0 by user1",
-			yellowColor,
-		},
-		{
-			api.HookReleaseDeleted,
-			"[test/repo] Release deleted: v1.0 by user1",
-			redColor,
-		},
-	}
-
-	for i, c := range cases {
-		p.Action = c.action
-		text, color := getReleasePayloadInfo(p, noneLinkFormatter, true)
-		assert.Equal(t, c.text, text, "case %d", i)
-		assert.Equal(t, c.color, color, "case %d", i)
-	}
-}
-
-func TestGetReleasePayloadInfoWithAssets(t *testing.T) {
-	p := pullReleaseTestPayload()
-	p.Release.Attachments = []*api.Attachment{
-		{Name: "app.zip", DownloadURL: "http://localhost:3000/test/repo/releases/download/v1.0/app.zip"},
-		{Name: "app.tar.gz", DownloadURL: "http://localhost:3000/test/repo/releases/download/v1.0/app.tar.gz"},
-	}
-
-	cases := []struct {
-		action api.HookReleaseAction
-		text   string
-		color  int
-	}{
-		{
-			api.HookReleasePublished,
-			"[test/repo] Release created: v1.0 by user1 (assets: app.zip, app.tar.gz)",
-			greenColor,
-		},
-		{
-			api.HookReleaseUpdated,
-			"[test/repo] Release updated: v1.0 by user1 (assets: app.zip, app.tar.gz)",
+			"[test/repo] Release updated: v1.0 by user1 (assets: 2)",
 			yellowColor,
 		},
 		{
