@@ -322,7 +322,7 @@ func CanSelfChangeOrAccessContent(doer *user_model.User, doerPerm access_model.P
 		return false
 	}
 	unitType := util.Iif(refIssue.IsPull, unit.TypePullRequests, unit.TypeIssues)
-	doerSelfRead := doer.ID == contentPoserID && doerPerm.CanAccess(perm.AccessModeRead, unit.TypeIssues)
+	doerSelfRead := doer.ID == contentPoserID && doerPerm.CanAccess(perm.AccessModeRead, unitType)
 	ok := doerSelfRead || doerPerm.CanAccess(accessMode, unitType)
 	if !ok {
 		return false

@@ -486,6 +486,10 @@ func canSelfWriteOrAccessContent(ctx *context.Context, refIssue *issues_model.Is
 // ChangeIssueReaction create a reaction for issue
 func ChangeIssueReaction(ctx *context.Context) {
 	form := web.GetForm[*forms.ReactionForm](ctx)
+	if ctx.HasError() {
+		ctx.HTTPError(http.StatusBadRequest, ctx.GetErrMsg())
+		return
+	}
 	issue := GetActionIssue(ctx)
 	if issue == nil {
 		return
