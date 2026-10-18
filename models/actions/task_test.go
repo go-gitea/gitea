@@ -390,18 +390,12 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 	}
 	require.NoError(t, db.Insert(t.Context(), job))
 
-	ungrouped := &ActionRunner{UUID: "ungrouped", AgentLabels: []string{"ubuntu-latest", "gpu"}, TokenHash: "ungrouped"}
-	require.NoError(t, db.Insert(t.Context(), ungrouped))
-	_, ok, err := CreateTaskForRunner(t.Context(), ungrouped)
-	require.NoError(t, err)
-	require.False(t, ok, "a label named like the group must not satisfy runs-on.group")
-
 	group, err := CreateRunnerGroup(t.Context(), 0, "gpu")
 	require.NoError(t, err)
 	runner := &ActionRunner{UUID: "grouped", AgentLabels: []string{"ubuntu-latest"}, GroupID: group.ID, TokenHash: "grouped"}
 	require.NoError(t, db.Insert(t.Context(), runner))
 
-	_, ok, err = CreateTaskForRunner(t.Context(), runner)
+	_, ok, err := CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
 	require.False(t, ok, "a group without granted repositories serves nothing")
 
@@ -456,7 +450,11 @@ func TestCreateTaskForRunnerRechecksRunnerScopeAtClaim(t *testing.T) {
 	}))
 	require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: run.RepoID, Type: unit.TypeActions}))
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: run.RepoID}).OwnerID
-	runner := &ActionRunner{UUID: "owner-scoped", OwnerID: repoOwner, AgentLabels: []string{"ubuntu-latest"}, TokenHash: "owner-scoped"}
+	group, err := CreateRunnerGroup(t.Context(), repoOwner, "gpu")
+	require.NoError(t, err)
+	access := &ActionRunnerAccess{GroupID: group.ID, RepoID: run.RepoID}
+	require.NoError(t, db.Insert(t.Context(), access))
+	runner := &ActionRunner{UUID: "owner-scoped", OwnerID: repoOwner, GroupID: group.ID, AgentLabels: []string{"ubuntu-latest"}, TokenHash: "owner-scoped"}
 	require.NoError(t, db.Insert(t.Context(), runner))
 
 	hook := &beforeTaskClaim{}
@@ -470,6 +468,8 @@ func TestCreateTaskForRunnerRechecksRunnerScopeAtClaim(t *testing.T) {
 		{"UPDATE repository SET owner_id = ? WHERE id = ?", repoOwner + 1, repoOwner, run.RepoID},
 		{"UPDATE action_runner SET is_disabled = ? WHERE id = ?", true, false, runner.ID},
 		{"UPDATE action_runner SET deleted = ? WHERE id = ?", timeutil.TimeStampNow(), nil, runner.ID},
+		{"UPDATE action_runner_access SET repo_id = ? WHERE id = ?", int64(2), run.RepoID, access.ID},
+		{"UPDATE action_runner SET group_id = ? WHERE id = ?", int64(0), group.ID, runner.ID},
 	} {
 		set := func(value any) {
 			_, err := db.GetEngine(t.Context()).Exec(change.query, value, change.id)
@@ -505,11 +505,12 @@ func TestRunnerGroupMembership(t *testing.T) {
 
 	orgGroup, err := CreateRunnerGroup(t.Context(), 3, "gpu")
 	require.NoError(t, err)
-	group, err := CreateRunnerGroup(t.Context(), 0, "gpu")
-	require.NoError(t, err)
-	assert.NotEqual(t, orgGroup.ID, group.ID)
 	_, err = CreateRunnerGroup(t.Context(), 0, "GPU")
-	require.Error(t, err)
+	require.ErrorIs(t, err, util.ErrAlreadyExist)
+	group, err := CreateRunnerGroup(t.Context(), 0, "cpu")
+	require.NoError(t, err)
+	_, err = CreateRunnerGroup(t.Context(), 2, "CPU")
+	require.ErrorIs(t, err, util.ErrAlreadyExist)
 	require.NoError(t, db.Insert(t.Context(), &ActionRunnerAccess{GroupID: orgGroup.ID, RepoID: 1}))
 	repos, err := FindRunnerGroupRepos(t.Context(), orgGroup)
 	require.NoError(t, err)

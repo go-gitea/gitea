@@ -7,28 +7,18 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
 
-func getRunnerGroupsCtx(ctx *context.Context) *runnersCtx {
+func RunnerGroups(ctx *context.Context) {
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
 		ctx.ServerError("getRunnersCtx", err)
-		return nil
-	}
-	return rCtx
-}
-
-func RunnerGroups(ctx *context.Context) {
-	rCtx := getRunnerGroupsCtx(ctx)
-	if rCtx == nil {
 		return
 	}
 
@@ -55,8 +45,9 @@ func RunnerGroups(ctx *context.Context) {
 }
 
 func RunnerGroupCreate(ctx *context.Context) {
-	rCtx := getRunnerGroupsCtx(ctx)
-	if rCtx == nil {
+	rCtx, err := getRunnersCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getRunnersCtx", err)
 		return
 	}
 	group, err := actions_model.CreateRunnerGroup(ctx, rCtx.OwnerID, ctx.FormTrim("name"))
@@ -105,34 +96,21 @@ func RunnerGroupEdit(ctx *context.Context) {
 }
 
 func RunnerGroupEditPost(ctx *context.Context) {
-	rCtx, group := runnerGroupInScope(ctx)
+	_, group := runnerGroupInScope(ctx)
 	if group == nil {
 		return
 	}
-	repoIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("repos"), ","))
-	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "invalid repos")
-		return
-	}
-	runnerIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("runners"), ","))
-	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "invalid runners")
-		return
-	}
-	err = actions_model.UpdateRunnerGroup(ctx, group, ctx.FormString("repo_access") == "all", repoIDs, runnerIDs)
-	switch {
+	switch err := actions_model.UpdateRunnerGroup(ctx, group, ctx.FormString("repo_access") == "all", ctx.FormStringInt64s("repos"), ctx.FormStringInt64s("runners")); {
 	case err == nil:
-		ctx.Flash.Success(ctx.Tr("actions.runners.groups.update_success"))
 	case errors.Is(err, util.ErrPermissionDenied):
-		ctx.Flash.Error(ctx.Tr("actions.runners.groups.target_invalid"))
-	case errors.Is(err, util.ErrNotExist):
-		ctx.NotFound(err)
+		ctx.JSONError(ctx.Tr("actions.runners.groups.target_invalid"))
 		return
 	default:
-		ctx.ServerError("RunnerGroupEditPost", err)
+		ctx.ServerError("UpdateRunnerGroup", err)
 		return
 	}
-	ctx.Redirect(fmt.Sprintf("%s/%d", rCtx.RunnerGroupsLink, group.ID))
+	ctx.Flash.Success(ctx.Tr("actions.runners.groups.update_success"))
+	ctx.JSONRedirect("")
 }
 
 func RunnerGroupDelete(ctx *context.Context) {
@@ -145,9 +123,6 @@ func RunnerGroupDelete(ctx *context.Context) {
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.JSONError(ctx.Tr("actions.runners.groups.delete_not_empty"))
 		return
-	case errors.Is(err, util.ErrNotExist):
-		ctx.NotFound(err)
-		return
 	default:
 		ctx.ServerError("DeleteRunnerGroup", err)
 		return
@@ -157,8 +132,9 @@ func RunnerGroupDelete(ctx *context.Context) {
 }
 
 func runnerGroupInScope(ctx *context.Context) (*runnersCtx, *actions_model.ActionRunnerGroup) {
-	rCtx := getRunnerGroupsCtx(ctx)
-	if rCtx == nil {
+	rCtx, err := getRunnersCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getRunnersCtx", err)
 		return nil, nil
 	}
 	group, _, err := db.GetByID[actions_model.ActionRunnerGroup](ctx, ctx.PathParamInt64("groupid"))

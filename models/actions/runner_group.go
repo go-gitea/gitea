@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -125,10 +126,12 @@ func setRunnerAccess(ctx context.Context, group *ActionRunnerGroup, repoIDs []in
 	for _, repoID := range repoIDs {
 		rows = append(rows, &ActionRunnerAccess{GroupID: group.ID, RepoID: repoID})
 	}
-	if len(rows) == 0 {
-		return nil
+	for chunk := range slices.Chunk(rows, db.MaxBatchInsertSize(new(ActionRunnerAccess))) {
+		if err := db.Insert(ctx, chunk); err != nil {
+			return err
+		}
 	}
-	return db.Insert(ctx, rows)
+	return nil
 }
 
 func PruneRunnerAccessOutsideOwner(ctx context.Context, repoID int64) error {
@@ -169,7 +172,11 @@ func CreateRunnerGroup(ctx context.Context, ownerID int64, name string) (*Action
 		return nil, util.NewInvalidArgumentErrorf("invalid runner group name %q", name)
 	}
 	group := &ActionRunnerGroup{OwnerID: ownerID, Name: name, LowerName: strings.ToLower(name)}
-	exists, err := db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID, "lower_name": group.LowerName}).Exist(new(ActionRunnerGroup))
+	cond := builder.Eq{"lower_name": group.LowerName}
+	if ownerID != 0 {
+		cond["owner_id"] = []int64{ownerID, 0}
+	}
+	exists, err := db.GetEngine(ctx).Where(cond).Exist(new(ActionRunnerGroup)) // global and owner names never overlap, an unprefixed runs-on.group would match both
 	if err != nil {
 		return nil, err
 	}
