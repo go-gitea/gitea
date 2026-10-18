@@ -130,7 +130,7 @@ func SetupGiteaTestEnv() {
 	_ = os.Setenv("GITEA_CONF", giteaConf) // test fixture git hooks use "$GITEA_ROOT/$GITEA_CONF" in their scripts
 }
 
-// PrepareIntegrationTestConfig gives each process its own work path, config file and ports, so test processes can run in parallel
+// PrepareIntegrationTestConfig isolates each process for parallel runs
 func PrepareIntegrationTestConfig() (workPath string, err error) {
 	giteaTestRoot := detectGiteaTestRoot()
 	isInCI := os.Getenv("CI") != ""

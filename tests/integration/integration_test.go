@@ -68,7 +68,7 @@ func testMain(m *testing.M) int {
 	exitCode := m.Run()
 
 	if exitCode == 0 {
-		graceful.GetManager().DoGracefulShutdown() // background tasks like pull request checks write into the work path until shutdown completes
+		graceful.GetManager().DoGracefulShutdown() // let background tasks finish writing
 		<-graceful.GetManager().Done()
 		if err = os.RemoveAll(workPath); err != nil {
 			log.Error("Failed to remove work path: %v", err)
