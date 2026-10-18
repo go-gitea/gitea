@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -29,8 +30,9 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/queue"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -746,9 +748,6 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		createPullResp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "Indexer notifier test pull")
 
-		assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 0))
-		time.Sleep(time.Second)
-
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 			OwnerName: "user2",
 			Name:      "repo1",
@@ -759,6 +758,13 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 			IsPull:   true,
 			IsClosed: false,
 		})
+		waitIndexed := func(isClosed bool) { // elasticsearch makes documents searchable asynchronously
+			require.Eventually(t, func() bool {
+				ids, _, err := issue_indexer.SearchIssues(t.Context(), &issue_indexer.SearchOptions{Keyword: "notifier", RepoIDs: []int64{repo1.ID}, IsClosed: optional.Some(isClosed)})
+				return err == nil && slices.Contains(ids, issue.ID)
+			}, 10*time.Second, 10*time.Millisecond)
+		}
+		waitIndexed(false)
 
 		// build the request for searching issues
 		link, _ := url.Parse("/api/v1/repos/issues/search")
@@ -786,9 +792,7 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 			ID: issue.ID,
 		})
 		assert.True(t, issue.IsClosed)
-
-		assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 0))
-		time.Sleep(time.Second)
+		waitIndexed(true)
 
 		// search issues again
 		searchIssuesResp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
@@ -937,7 +941,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		time.Sleep(2 * time.Second)
+		require.NoError(t, automergequeue.AutoMergeQueue.FlushWithContext(t.Context(), 5*time.Second))
 
 		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})

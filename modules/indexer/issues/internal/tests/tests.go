@@ -8,6 +8,7 @@
 package tests
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"testing"
@@ -744,6 +745,9 @@ func countIndexerData(data map[int64]*internal.IndexerData, f func(v *internal.I
 // waitData waits for the indexer to index all data.
 // Some engines like Elasticsearch index data asynchronously, so we need to wait for a while.
 func waitData(t *testing.T, indexer internal.Indexer, total int64) {
+	if refresher, ok := indexer.(interface{ Refresh(context.Context) error }); ok {
+		require.NoError(t, refresher.Refresh(t.Context()))
+	}
 	assert.Eventually(t, func() bool {
 		result, err := indexer.Search(t.Context(), &internal.SearchOptions{Paginator: &db.ListOptions{}})
 		require.NoError(t, err)
