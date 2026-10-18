@@ -76,7 +76,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	// Handle Deprecations and map on to new configuration
 	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
-	deprecatedSetting(rootCfg, "mailer", "HOST", "mailer", "SMTP_ADDR", "v1.19.0")
+	deprecatedSetting(rootCfg, "mailer", "HOST", "mailer", "SMTP_ADDR")
 	if sec.HasKey("HOST") && !sec.HasKey("SMTP_ADDR") {
 		givenHost := sec.Key("HOST").String()
 		addr, port, err := net.SplitHostPort(givenHost)
@@ -93,7 +93,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	}
 
 	if sec.HasKey("PROTOCOL") && sec.Key("PROTOCOL").String() == "smtp+startls" {
-		log.Error("Deprecated fallback `[mailer]` `PROTOCOL = smtp+startls` present. Use `[mailer]` `PROTOCOL = smtp+starttls`` instead. This fallback will be removed in v1.19.0")
+		log.Error("Deprecated fallback `[mailer]` `PROTOCOL = smtp+startls` present. Use `[mailer]` `PROTOCOL = smtp+starttls` instead.")
 		sec.Key("PROTOCOL").SetValue("smtp+starttls")
 	}
 
