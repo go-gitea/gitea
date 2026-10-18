@@ -158,11 +158,13 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 func (n *actionsNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 	ctx = withMethod(ctx, "IssueChangeAssignee")
 
-	var action api.HookIssueAction
+	action := api.HookIssueAssigned
+	changes := &api.ChangesPayload{}
 	if removed {
 		action = api.HookIssueUnassigned
+		changes.RemovedAssignees = []*api.User{convert.ToUser(ctx, assignee, nil)}
 	} else {
-		action = api.HookIssueAssigned
+		changes.AddedAssignees = []*api.User{convert.ToUser(ctx, assignee, nil)}
 	}
 
 	hookEvent := webhook_module.HookEventIssueAssign
@@ -170,7 +172,7 @@ func (n *actionsNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 		hookEvent = webhook_module.HookEventPullRequestAssign
 	}
 
-	notifyIssueChange(ctx, doer, issue, hookEvent, action, nil, nil)
+	notifyIssueChange(ctx, doer, issue, hookEvent, action, changes)
 }
 
 // IssueChangeMilestone notifies assignee to notifiers
@@ -189,7 +191,7 @@ func (n *actionsNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 		hookEvent = webhook_module.HookEventPullRequestMilestone
 	}
 
-	notifyIssueChange(ctx, doer, issue, hookEvent, action, nil, nil)
+	notifyIssueChange(ctx, doer, issue, hookEvent, action, &api.ChangesPayload{})
 }
 
 func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
@@ -202,40 +204,35 @@ func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 		hookEvent = webhook_module.HookEventPullRequestLabel
 	}
 
-	notifyIssueChange(ctx, doer, issue, hookEvent, api.HookIssueLabelUpdated, addedLabels, removedLabels)
-}
-
-func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction, addedLabels, removedLabels []*issues_model.Label) {
-	var err error
-	if err = issue.LoadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
 		return
 	}
 
-	if err = issue.LoadPoster(ctx); err != nil {
+	changes := &api.ChangesPayload{}
+	if addedLabels != nil {
+		changes.AddedLabels = convert.ToLabelList(addedLabels, issue.Repo, doer)
+	}
+
+	if removedLabels != nil {
+		changes.RemovedLabels = convert.ToLabelList(removedLabels, issue.Repo, doer)
+	}
+
+	notifyIssueChange(ctx, doer, issue, hookEvent, api.HookIssueLabelUpdated, changes)
+}
+
+func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction, changes *api.ChangesPayload) {
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+	if err := issue.LoadPoster(ctx); err != nil {
 		log.Error("LoadPoster: %v", err)
 		return
 	}
 
-	var addedAPILabels []*api.Label
-	if addedLabels != nil {
-		addedAPILabels = make([]*api.Label, 0, len(addedLabels))
-		for _, label := range addedLabels {
-			addedAPILabels = append(addedAPILabels, convert.ToLabel(label, issue.Repo, doer))
-		}
-	}
-
-	// Get removed labels from context if present
-	var removedAPILabels []*api.Label
-	if removedLabels != nil {
-		removedAPILabels = make([]*api.Label, 0, len(removedLabels))
-		for _, label := range removedLabels {
-			removedAPILabels = append(removedAPILabels, convert.ToLabel(label, issue.Repo, doer))
-		}
-	}
-
 	if issue.IsPull {
-		if err = issue.LoadPullRequest(ctx); err != nil {
+		if err := issue.LoadPullRequest(ctx); err != nil {
 			log.Error("loadPullRequest: %v", err)
 			return
 		}
@@ -246,10 +243,7 @@ func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues
 			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
 			Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 			Sender:      convert.ToUser(ctx, doer, nil),
-			Changes: &api.ChangesPayload{
-				AddedLabels:   addedAPILabels,
-				RemovedLabels: removedAPILabels,
-			},
+			Changes:     changes,
 		}
 
 		newNotifyInputFromIssue(issue, event).
@@ -267,10 +261,7 @@ func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues
 		Issue:      convert.ToAPIIssue(ctx, doer, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
-		Changes: &api.ChangesPayload{
-			AddedLabels:   addedAPILabels,
-			RemovedLabels: removedAPILabels,
-		},
+		Changes:    changes,
 	}
 
 	newNotifyInputFromIssue(issue, event).
