@@ -416,8 +416,26 @@ func (repo *Repository) GetCommitsFromIDs(ctx context.Context, commitIDs []strin
 	return commits
 }
 
-// IsCommitInBranch check if the commit is on the branch
+// IsCommitInRepo checks if the commit exists in the repository.
+func IsCommitInRepo(ctx context.Context, repo gitrepo.RepositoryFacade, commitID string) (bool, error) {
+	// "--quiet" makes it exit with 1 and no output if the commit doesn't exist
+	_, _, err := gitcmd.NewCommand("rev-parse", "--verify", "--quiet").
+		AddDynamicArguments(commitID + "^{commit}").
+		WithRepo(repo).
+		RunStdString(ctx)
+	if gitcmd.IsErrorExitCode(err, 1) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// IsCommitInBranch checks if the commit is on the branch.
+// It returns false (no error) if the commit doesn't exist or isn't on the branch.
 func IsCommitInBranch(ctx context.Context, repo gitrepo.RepositoryFacade, commitID, branch string) (r bool, err error) {
+	if exist, err := IsCommitInRepo(ctx, repo, commitID); err != nil || !exist {
+		return false, err
+	}
+
 	stdout, _, err := gitcmd.NewCommand("branch", "--contains").
 		AddDynamicArguments(commitID, branch).
 		WithRepo(repo).
@@ -425,7 +443,7 @@ func IsCommitInBranch(ctx context.Context, repo gitrepo.RepositoryFacade, commit
 	if err != nil {
 		return false, err
 	}
-	return len(stdout) > 0, err
+	return len(stdout) > 0, nil
 }
 
 // GetCommitBranchStart returns the commit where the branch diverged
