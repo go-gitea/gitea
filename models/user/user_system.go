@@ -7,7 +7,9 @@ import (
 	"context"
 	"strings"
 
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 const (
@@ -55,7 +57,10 @@ const (
 
 // NewActionsUser creates and returns a fake user for running the actions.
 func NewActionsUser() *User {
-	return newSystemUser(ActionsUserID, "gitea-actions", "Gitea Actions")
+	u := newSystemUser(ActionsUserID, "gitea-actions", util.IfZero(setting.Actions.BotFullName, "Gitea Actions"))
+	u.Email = setting.Actions.BotEmail
+	u.AvatarEmail = u.Email
+	return u
 }
 
 func GetActionsUserTaskID(u *User) (int64, bool) {
