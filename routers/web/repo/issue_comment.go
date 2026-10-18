@@ -40,18 +40,21 @@ func NewComment(ctx *context.Context) {
 	}
 
 	form := web.GetForm[*forms.CreateCommentForm](ctx)
+	issueType := util.Iif(issue.IsPull, "pulls", "issues")
 
-	if !canParticipateInIssue(ctx, issue, issue.PosterID) {
+	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {
+		log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
+			"User in Repo has Permissions: %-+v", ctx.Doer, issue.PosterID, issueType, ctx.Repo.Repository, ctx.Repo.Permission)
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
-	if isIssueLockedForDoer(ctx, issue) {
+	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}
 
-	redirect := issue.Link()
+	redirect := fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, issueType, issue.Index)
 	attachments := util.Iif(setting.Attachment.Enabled, form.Files, nil)
 
 	// allow empty content if there are attachments
@@ -143,31 +146,49 @@ func NewComment(ctx *context.Context) {
 	ctx.JSONRedirect(redirect)
 }
 
-// UpdateCommentContent change comment of issue's content
-func UpdateCommentContent(ctx *context.Context) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+func getRepoIssueComment(ctx *context.Context, commentID int64) *issues_model.Comment {
+	comment, err := issues_model.GetCommentByID(ctx, commentID)
 	if err != nil {
 		ctx.ServerError("GetCommentByID", err)
-		return
+		return nil
 	}
-
 	if err := comment.LoadIssue(ctx); err != nil {
 		ctx.ServerError("LoadIssue", err)
-		return
+		return nil
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
-		return
+		ctx.NotFound(nil)
+		return nil
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+		ctx.NotFound(nil)
+		return nil
+	}
+	return comment
+}
+
+func getRepoIssueCommentForContentEdit(ctx *context.Context, commentID int64) *issues_model.Comment {
+	comment := getRepoIssueComment(ctx, commentID)
+	if comment == nil {
+		return nil
+	}
+	if !canChangeIssueOrCommentContent(ctx, comment.Issue, comment.PosterID) {
 		ctx.HTTPError(http.StatusForbidden)
-		return
+		return nil
 	}
-
 	if !comment.Type.HasContentSupport() {
-		ctx.HTTPError(http.StatusNoContent)
+		ctx.HTTPError(http.StatusBadRequest)
+		return nil
+	}
+	return comment
+}
+
+// UpdateCommentContent change comment of issue's content
+func UpdateCommentContent(ctx *context.Context) {
+	comment := getRepoIssueCommentForContentEdit(ctx, ctx.PathParamInt64("id"))
+	if comment == nil {
 		return
 	}
 
@@ -229,31 +250,12 @@ func UpdateCommentContent(ctx *context.Context) {
 
 // DeleteComment delete comment of issue
 func DeleteComment(ctx *context.Context) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
-	if err != nil {
-		ctx.ServerError("GetCommentByID", err)
+	comment := getRepoIssueCommentForContentEdit(ctx, ctx.PathParamInt64("id"))
+	if comment == nil {
 		return
 	}
 
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.ServerError("LoadIssue", err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
-		return
-	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	} else if !comment.Type.HasContentSupport() {
-		ctx.HTTPError(http.StatusNoContent)
-		return
-	}
-
-	if err = issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+	if err := issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
 		ctx.ServerError("DeleteComment", err)
 		return
 	}
@@ -263,33 +265,15 @@ func DeleteComment(ctx *context.Context) {
 
 // ChangeCommentReaction create a reaction for comment
 func ChangeCommentReaction(ctx *context.Context) {
+	comment := getRepoIssueCommentForContentEdit(ctx, ctx.PathParamInt64("id"))
+	if comment == nil {
+		return
+	}
+
 	form := web.GetForm[*forms.ReactionForm](ctx)
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
-	if err != nil {
-		ctx.ServerError("GetCommentByID", err)
+	if !canChangeIssueOrCommentContent(ctx, comment.Issue, comment.PosterID) {
 		return
 	}
-
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.ServerError("LoadIssue", err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
-		return
-	}
-
-	if !canParticipateInIssue(ctx, comment.Issue, comment.PosterID) || isIssueLockedForDoer(ctx, comment.Issue) {
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-
-	if !comment.Type.HasContentSupport() {
-		ctx.HTTPError(http.StatusNoContent)
-		return
-	}
-
 	switch ctx.PathParam("action") {
 	case "react":
 		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Content)
@@ -351,24 +335,8 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 // GetCommentAttachments returns attachments for the comment
 func GetCommentAttachments(ctx *context.Context) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
-	if err != nil {
-		ctx.ServerError("GetCommentByID", err)
-		return
-	}
-
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.ServerError("LoadIssue", err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
-		return
-	}
-
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
+	comment := getRepoIssueComment(ctx, ctx.PathParamInt64("id"))
+	if comment == nil {
 		return
 	}
 

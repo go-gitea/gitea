@@ -81,20 +81,11 @@ func MustAllowUserComment(ctx *context.Context) {
 		return
 	}
 
-	if isIssueLockedForDoer(ctx, issue) {
+	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
 		ctx.Redirect(issue.Link())
 		return
 	}
-}
-
-// canParticipateInIssue returns whether the doer is the poster or can read the issue
-func canParticipateInIssue(ctx *context.Context, issue *issues_model.Issue, posterID int64) bool {
-	return ctx.IsSigned && (ctx.Doer.ID == posterID || ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull))
-}
-
-func isIssueLockedForDoer(ctx *context.Context, issue *issues_model.Issue) bool {
-	return issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin
 }
 
 // MustEnableIssues check if repository enable internal issues
@@ -490,21 +481,27 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
+func canChangeIssueOrCommentContent(ctx *context.Context, refIssue *issues_model.Issue, contentPoserID int64) bool {
+	isPull := refIssue.IsPull
+	if !ctx.IsSigned || (ctx.Doer.ID != contentPoserID && !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull)) {
+		ctx.HTTPError(http.StatusForbidden)
+		return false
+	}
+	if refIssue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(isPull) && !ctx.Doer.IsAdmin {
+		ctx.HTTPError(http.StatusForbidden)
+		return false
+	}
+	return true
+}
+
 // ChangeIssueReaction create a reaction for issue
 func ChangeIssueReaction(ctx *context.Context) {
 	form := web.GetForm[*forms.ReactionForm](ctx)
 	issue := GetActionIssue(ctx)
-	if ctx.Written() {
+	if issue == nil {
 		return
 	}
-
-	if !canParticipateInIssue(ctx, issue, issue.PosterID) || isIssueLockedForDoer(ctx, issue) {
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.ServerError("ChangeIssueReaction", errors.New(ctx.GetErrMsg()))
+	if !canChangeIssueOrCommentContent(ctx, issue, issue.PosterID) {
 		return
 	}
 
