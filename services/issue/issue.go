@@ -10,14 +10,17 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -308,4 +311,15 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	}
 
 	return attachmentPaths, err
+}
+
+func CanDoerWriteOrAccessContent(doer *user_model.User, perm access_model.Permission, refIssue *issues_model.Issue, contentPoserID int64, accessMode perm.AccessMode) bool {
+	unitType := util.Iif(refIssue.IsPull, unit.TypePullRequests, unit.TypeIssues)
+	if doer == nil || (doer.ID != contentPoserID && !perm.CanAccess(accessMode, unitType)) {
+		return false
+	}
+	if refIssue.IsLocked && !perm.CanWrite(unitType) && !doer.IsAdmin {
+		return false
+	}
+	return true
 }

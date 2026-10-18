@@ -483,12 +483,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 }
 
 func canSelfWriteOrAccessContent(ctx *context.Context, refIssue *issues_model.Issue, contentPoserID int64, accessMode perm.AccessMode) bool {
-	unit := util.Iif(refIssue.IsPull, unit.TypePullRequests, unit.TypeIssues)
-	if !ctx.IsSigned || (ctx.Doer.ID != contentPoserID && !ctx.Repo.Permission.CanAccess(accessMode, unit)) {
-		ctx.HTTPError(http.StatusForbidden)
-		return false
-	}
-	if refIssue.IsLocked && !ctx.Repo.Permission.CanWrite(unit) && !ctx.Doer.IsAdmin {
+	if !issue_service.CanDoerWriteOrAccessContent(ctx.Doer, ctx.Repo.Permission, refIssue, contentPoserID, accessMode) {
 		ctx.HTTPError(http.StatusForbidden)
 		return false
 	}
