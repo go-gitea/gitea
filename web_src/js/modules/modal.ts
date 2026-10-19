@@ -1,24 +1,36 @@
+import {hideAll} from 'tippy.js';
 import {generateElemId, queryElems} from '../utils/dom.ts';
-import {hideToastsAll, hideToastsFrom} from './toast.ts';
+import {hideToastsAll} from './toast.ts';
 
 type ModalOpts = {
   onApprove?: () => boolean | void, // return false to keep the modal open
   onHidden?: () => void,
 };
 
-const modalOpts = new WeakMap<Element, ModalOpts>();
+const modalStates = new WeakMap<Element, {opts: ModalOpts, opener: HTMLElement | null}>();
+
+const topDialog = () => Array.from(document.querySelectorAll<HTMLDialogElement>('.modal-dialog[open]')).at(-1);
+
+function blockPage(dialog: HTMLDialogElement | undefined) {
+  const locked = Boolean(dialog);
+  if (document.body.classList.contains('tw-overflow-hidden') !== locked) {
+    document.body.style.marginRight = locked ? `${window.innerWidth - document.documentElement.clientWidth}px` : ''; // keep the page width when its scrollbar disappears
+    document.body.classList.toggle('tw-overflow-hidden', locked);
+  }
+  for (const el of document.body.children) (el as HTMLElement).inert = locked && el !== dialog;
+}
+
+window.addEventListener('keydown', (e) => { // on window, so popups handling Escape on document can consume it first
+  if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
+  const elModal = topDialog()?.querySelector(':scope > .modal');
+  if (elModal) hideModal(elModal);
+});
 
 function defaultApprove(elApprove: Element): boolean {
   const elForm = elApprove.closest('form');
   if (!elForm) return true;
   if (!elForm.matches('.form-fetch-action') && elForm.reportValidity()) elForm.classList.add('is-loading'); // keep the modal open while its form submits
   return false;
-}
-
-function lockPageScroll(locked: boolean) {
-  if (document.body.classList.contains('tw-overflow-hidden') === locked) return;
-  document.body.style.marginRight = locked ? `${window.innerWidth - document.documentElement.clientWidth}px` : ''; // keep the page width when its scrollbar disappears
-  document.body.classList.toggle('tw-overflow-hidden', locked);
 }
 
 function createModalDialog(elModal: Element): HTMLDialogElement {
@@ -36,23 +48,15 @@ function createModalDialog(elModal: Element): HTMLDialogElement {
   dialog.addEventListener('click', (event) => {
     const target = event.target as Element;
     if (target === dialog) {
-      if (backdropPressed) dialog.close();
+      if (backdropPressed) hideModal(elModal);
     } else if (target.closest('.close-modal, .actions .cancel')) {
-      dialog.close();
+      hideModal(elModal);
     } else {
       const elApprove = target.closest('.actions :is(.approve, .ok)');
       if (!elApprove) return;
-      const {onApprove} = modalOpts.get(elModal)!;
-      if ((onApprove ? onApprove() : defaultApprove(elApprove)) !== false) dialog.close();
+      const {onApprove} = modalStates.get(elModal)!.opts;
+      if ((onApprove ? onApprove() : defaultApprove(elApprove)) !== false) hideModal(elModal);
     }
-  });
-  dialog.addEventListener('close', () => {
-    if (dialog.open) return; // re-opened before this event was dispatched
-    hideToastsFrom(dialog);
-    queryElems(elModal, 'form', (form: HTMLFormElement) => form.reset());
-    if (!document.querySelector('.modal-dialog[open]')) lockPageScroll(false);
-    modalOpts.get(elModal)!.onHidden?.();
-    if (!dialog.contains(elModal)) dialog.remove();
   });
   document.body.append(dialog);
   return dialog;
@@ -61,14 +65,25 @@ function createModalDialog(elModal: Element): HTMLDialogElement {
 export function showModal(elModal: Element, opts: ModalOpts = {}) {
   const dialog = elModal.parentElement instanceof HTMLDialogElement ? elModal.parentElement : createModalDialog(elModal);
   if (dialog.open) return;
-  modalOpts.set(elModal, opts);
+  modalStates.set(elModal, {opts, opener: document.activeElement as HTMLElement | null});
   elModal.querySelector('.close-modal')?.setAttribute('aria-label', 'Close');
   queryElems(elModal, 'form button.cancel:not([type])', (button) => button.setAttribute('type', 'button')); // otherwise "Enter" in the form clicks this "cancel" button before the "ok" button
-  lockPageScroll(true);
-  hideToastsAll(); // toasts outside of the dialog would be inert behind it
-  dialog.showModal();
+  hideToastsAll();
+  hideAll();
+  blockPage(dialog);
+  dialog.show(); // not showModal: popups and toasts mounted on body must stay usable above it, see https://github.com/whatwg/html/issues/9936
 }
 
 export function hideModal(elModal: Element) {
-  if (elModal.parentElement instanceof HTMLDialogElement) elModal.parentElement.close();
+  const dialog = elModal.parentElement;
+  if (!(dialog instanceof HTMLDialogElement) || !dialog.open) return;
+  const {opts, opener} = modalStates.get(elModal)!;
+  dialog.close();
+  blockPage(topDialog());
+  (document.activeElement as HTMLElement).blur(); // don't leave the focus in the closed dialog when the opener is gone
+  opener?.focus();
+  hideToastsAll();
+  queryElems(elModal, 'form', (form: HTMLFormElement) => form.reset());
+  opts.onHidden?.();
+  if (!dialog.contains(elModal)) dialog.remove();
 }

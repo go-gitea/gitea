@@ -1,8 +1,11 @@
 import {userEvent} from 'vitest/browser';
+import {createElementFromHTML} from '../utils/dom.ts';
 import {hideModal, showModal} from './modal.ts';
+import {showErrorToast} from './toast.ts';
 
-test('showModal closes by actions, backdrop and Escape unless approval is vetoed, and cleans up when closed', async () => {
+test('showModal blocks the page and restores focus until closed by actions, backdrop or unconsumed Escape on the topmost modal', async () => {
   document.body.innerHTML = `
+    <button id="opener">Opener</button>
     <div class="modal">
       <div class="header">Header <button type="button" class="close-modal"></button></div>
       <form class="content">
@@ -11,13 +14,15 @@ test('showModal closes by actions, backdrop and Escape unless approval is vetoed
       </form>
     </div>
   `;
+  const opener = document.querySelector<HTMLElement>('#opener')!;
   const modal = document.querySelector<HTMLElement>('.modal')!;
   const onHidden = vi.fn();
   let approve = false;
+  opener.focus();
   showModal(modal, {onApprove: () => approve, onHidden});
   const dialog = modal.parentElement as HTMLDialogElement;
-  const closed = () => new Promise((resolve) => dialog.addEventListener('close', resolve, {once: true}));
-  expect(dialog.matches(':modal')).toBe(true);
+  expect(opener.inert).toBe(true);
+  expect(dialog.inert).toBe(false);
   expect(dialog.getAttribute('aria-labelledby')).toBe(modal.querySelector('.header')!.id);
   expect(document.body.classList.contains('tw-overflow-hidden')).toBe(true);
   expect(modal.querySelector('.cancel')!.getAttribute('type')).toBe('button');
@@ -26,12 +31,12 @@ test('showModal closes by actions, backdrop and Escape unless approval is vetoed
   modal.querySelector<HTMLElement>('.ok')!.click();
   expect(dialog.open).toBe(true);
   approve = true;
-  let close = closed();
   modal.querySelector<HTMLElement>('.ok')!.click();
-  await close;
   expect(onHidden).toHaveBeenCalledOnce();
   expect(modal.querySelector('input')!.value).toBe('');
   expect(document.body.classList.contains('tw-overflow-hidden')).toBe(false);
+  expect(opener.inert).toBe(false);
+  expect(document.activeElement).toBe(opener);
 
   for (const selector of ['.cancel', '.close-modal']) {
     showModal(modal);
@@ -46,12 +51,35 @@ test('showModal closes by actions, backdrop and Escape unless approval is vetoed
   expect(dialog.open).toBe(false);
 
   showModal(modal);
+  document.addEventListener('keydown', (e) => e.preventDefault(), {once: true});
+  await userEvent.keyboard('{Escape}');
+  expect(dialog.open).toBe(true);
+
+  const nested = createElementFromHTML('<div class="modal"></div>');
+  showModal(nested, {onHidden: () => nested.remove()});
+  const nestedDialog = nested.parentElement!;
+  expect(dialog.inert).toBe(true);
+  await userEvent.keyboard('{Escape}');
+  expect(nestedDialog.isConnected).toBe(false);
+  expect(dialog.open).toBe(true);
+  expect(dialog.inert).toBe(false);
+  expect(opener.inert).toBe(true);
+  expect(dialog.contains(document.activeElement)).toBe(true);
+
+  showErrorToast('error in modal');
+  expect(document.querySelector('.toastify.on')).not.toBeNull();
   await userEvent.keyboard('{Escape}');
   expect(dialog.open).toBe(false);
+  expect(document.querySelector('.toastify.on')).toBeNull();
+
+  (document.activeElement as HTMLElement).blur();
+  showModal(modal);
+  hideModal(modal);
+  expect(document.activeElement).toBe(document.body);
 
   showModal(modal, {onHidden: () => modal.remove()});
-  close = closed();
   hideModal(modal);
-  await close;
+  opener.focus();
   expect(dialog.isConnected).toBe(false);
+  expect(document.activeElement).toBe(opener);
 });

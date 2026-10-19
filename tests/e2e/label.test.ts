@@ -12,7 +12,7 @@ test('create a label in the modal with a color from the picker popup', async ({p
   await modal.getByPlaceholder('Label name').fill('e2e-label');
   const colorInput = modal.locator('.color-picker-combo input');
   await colorInput.fill('');
-  await modal.locator('hex-color-picker').click({position: {x: 10, y: 10}});
+  await page.locator('hex-color-picker').click({position: {x: 10, y: 10}});
   await expect(colorInput).toHaveValue(/^#[0-9a-f]{6}$/);
   await modal.getByRole('button', {name: 'Save'}).click();
   await expect(page.locator('.issue-label-list')).toContainText('e2e-label');

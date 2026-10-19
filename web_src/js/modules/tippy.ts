@@ -100,7 +100,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
 
   const instance: Instance = tippy(target, {
-    appendTo: (reference) => reference.closest('dialog') ?? document.body, // content outside an open modal dialog is inert
+    appendTo: document.body,
     animation: false,
     allowHTML: false,
     hideOnClick: false,
