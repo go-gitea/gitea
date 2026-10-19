@@ -231,10 +231,10 @@ export async function submitFormFetchAction(elForm: HTMLFormElement, opts: Submi
 }
 
 async function confirmFetchAction(el: HTMLElement) {
-  let elModal: HTMLElement | null = null;
+  let elModal: HTMLDialogElement | null = null;
   const dataModalConfirm = el.getAttribute('data-modal-confirm') || '';
   if (dataModalConfirm.startsWith('#') && dataModalConfirm.length > 1) {
-    elModal = document.querySelector<HTMLElement>(`#${CSS.escape(dataModalConfirm.substring(1))}`);
+    elModal = document.querySelector<HTMLDialogElement>(`#${CSS.escape(dataModalConfirm.substring(1))}`);
     if (elModal) {
       elModal = createElementFromHTML(elModal.outerHTML);
       elModal.removeAttribute('id');

@@ -84,7 +84,7 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
   const textMissingTag = buttonShowModal.getAttribute('data-text-missing-tag')!;
   const generateUrl = buttonShowModal.getAttribute('data-generate-url')!;
 
-  const elModal = document.querySelector('#generate-release-notes-modal')!;
+  const elModal = document.querySelector<HTMLDialogElement>('#generate-release-notes-modal')!;
 
   const doSubmit = async (tagName: string) => {
     const elPreviousTag = elModal.querySelector<HTMLSelectElement>('[name=previous_tag]')!;

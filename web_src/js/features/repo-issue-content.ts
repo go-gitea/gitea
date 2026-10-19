@@ -14,9 +14,9 @@ let i18nTextOptions: string;
 let i18nTextDeleteFromHistory: string;
 let i18nTextDeleteFromHistoryConfirm: string;
 
-async function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
-  const elDetailDialog = createElementFromHTML(html`
-    <div class="modal content-history-detail-dialog">
+function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
+  const elDetailDialog = createElementFromHTML<HTMLDialogElement>(html`
+    <dialog class="modal-dialog content-history-detail-dialog">
       <div class="header flex-left-right">
         <div>${htmlRaw(itemTitleHtml)}</div>
         <div class="ui dropdown dialog-header-options tw-mx-4 tw-hidden">
@@ -29,7 +29,7 @@ async function showContentHistoryDetail(issueBaseUrl: string, commentId: string,
         <button type="button" class="close-modal"></button>
       </div>
       <div class="comment-diff-data is-loading"></div>
-    </div>
+    </dialog>
   `);
   const elOptionsDropdown = elDetailDialog.querySelector('.ui.dropdown.dialog-header-options')!;
   const $fomanticDropdownOptions = fomanticQuery(elOptionsDropdown);
@@ -66,26 +66,32 @@ async function showContentHistoryDetail(issueBaseUrl: string, commentId: string,
       $fomanticDropdownOptions.dropdown('clear', true);
     },
   });
-  showModal(elDetailDialog, {onHidden: () => elDetailDialog.remove()});
-  try {
-    const params = new URLSearchParams();
-    params.append('comment_id', commentId);
-    params.append('history_id', historyId);
+  showModal(elDetailDialog, {
+    async onShow() {
+      try {
+        const params = new URLSearchParams();
+        params.append('comment_id', commentId);
+        params.append('history_id', historyId);
 
-    const url = `${issueBaseUrl}/content-history/detail?${params.toString()}`;
-    const response = await GET(url);
-    const resp = await response.json();
+        const url = `${issueBaseUrl}/content-history/detail?${params.toString()}`;
+        const response = await GET(url);
+        const resp = await response.json();
 
-    const commentDiffData = elDetailDialog.querySelector('.comment-diff-data')!;
-    commentDiffData.classList.remove('is-loading');
-    commentDiffData.innerHTML = resp.diffHtml;
-    // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
-    if (resp.canSoftDelete) {
-      showElem(elOptionsDropdown);
-    }
-  } catch (error) {
-    console.error('Error:', error);
-  }
+        const commentDiffData = elDetailDialog.querySelector('.comment-diff-data')!;
+        commentDiffData.classList.remove('is-loading');
+        commentDiffData.innerHTML = resp.diffHtml;
+        // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
+        if (resp.canSoftDelete) {
+          showElem(elOptionsDropdown);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    },
+    onHidden() {
+      elDetailDialog.remove();
+    },
+  });
 }
 
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {

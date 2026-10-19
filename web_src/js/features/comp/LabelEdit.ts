@@ -7,7 +7,7 @@ function nameHasScope(name: string): boolean {
   return /.*[^/]\/[^/].*/.test(name);
 }
 
-function initLabelEditModal(elModal: HTMLElement) {
+function initLabelEditModal(elModal: HTMLDialogElement) {
   const elLabelId = elModal.querySelector<HTMLInputElement>('input[name="id"]')!;
   const elNameInput = elModal.querySelector<HTMLInputElement>('.label-name-input')!;
   const elExclusiveField = elModal.querySelector('.label-exclusive-input-field')!;

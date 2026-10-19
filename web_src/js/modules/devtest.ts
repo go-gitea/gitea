@@ -25,7 +25,7 @@ function initDevtestPage() {
 
   const modalButtons = document.querySelector('.modal-buttons');
   if (modalButtons) {
-    for (const el of document.querySelectorAll('.modal:not([data-skip-button])')) {
+    for (const el of document.querySelectorAll<HTMLDialogElement>('.modal-dialog:not([data-skip-button])')) {
       const btn = createElementFromHTML(html`<button class="ui button">${el.id}</button`);
       btn.addEventListener('click', () => showModal(el));
       modalButtons.append(btn);

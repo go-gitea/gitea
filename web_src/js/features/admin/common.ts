@@ -274,7 +274,7 @@ function initAdminNotice() {
   const pageContent = document.querySelector('.page-content.admin.notice');
   if (!pageContent) return;
 
-  const detailModal = document.querySelector<HTMLDivElement>('#detail-modal')!;
+  const detailModal = document.querySelector<HTMLDialogElement>('#detail-modal')!;
 
   // Attach view detail modals
   queryElems(pageContent, '.view-detail', (el) => el.addEventListener('click', (e) => {

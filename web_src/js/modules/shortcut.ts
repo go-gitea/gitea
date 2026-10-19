@@ -69,10 +69,10 @@ function getShortcutTextContent(elem: Element): string {
 }
 
 function showShortcutHelp() {
-  let modal = document.querySelector<HTMLElement>('#global-shortcut-help');
+  let modal = document.querySelector<HTMLDialogElement>('#global-shortcut-help');
   if (!modal) {
-    modal = createElementFromHTML<HTMLElement>(html`
-      <div id="global-shortcut-help" class="modal">
+    modal = createElementFromHTML<HTMLDialogElement>(html`
+      <dialog id="global-shortcut-help" class="modal-dialog">
         <div class="header">
           Keyboard Shortcuts
           <button type="button" class="close-modal"></button>
@@ -82,7 +82,7 @@ function showShortcutHelp() {
             <tbody class="shortcut-list"></tbody>
           </table>
         </div>
-      </div>
+      </dialog>
     `);
   }
 

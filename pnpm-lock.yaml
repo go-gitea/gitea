@@ -248,8 +248,8 @@ importers:
         specifier: 2.2.0
         version: 2.2.0(chart.js@4.5.1)
       clippie:
-        specifier: 4.3.0
-        version: 4.3.0
+        specifier: 4.2.2
+        version: 4.2.2
       codemirror-lang-elixir:
         specifier: 4.0.1
         version: 4.0.1
@@ -1935,8 +1935,8 @@ packages:
     resolution: {integrity: sha512-77PSwercCZU2Fc4sX94eF8k8Pxte6JAwL4/ICZLFjJLqegs7kCuAsqqj/70NQF6TvDpgFjkubQB2FW2ZZddvQg==}
     engines: {node: '>=8'}
 
-  clippie@4.3.0:
-    resolution: {integrity: sha512-cM9mDKhw/PDjZOvCK7lcf5QnJPCEb4T+/QqG2s2wf3hFMMDLoyGlAD+d7Y1Bh/jhxV3sQ/HHKHofWhO7M3VyBQ==}
+  clippie@4.2.2:
+    resolution: {integrity: sha512-3AvQdP8ET9U2ERV2AU0ejcvfVbAHBMJKvFnJNBpHI9fBbRjDV1FpH5x1PKSWnoV/gHOAZLPhQlQHwTvP/0lLBQ==}
 
   codemirror-lang-elixir@4.0.1:
     resolution: {integrity: sha512-z6W/XB4b7TZrp9EZYBGVq93vQfvKbff+1iM8YZaVErL0dguBAeLmVRlEv1NuDZHOP1qjJ3NwyibkUkNWn7q9VQ==}
@@ -5981,7 +5981,7 @@ snapshots:
 
   ci-info@4.4.0: {}
 
-  clippie@4.3.0: {}
+  clippie@4.2.2: {}
 
   codemirror-lang-elixir@4.0.1:
     dependencies:

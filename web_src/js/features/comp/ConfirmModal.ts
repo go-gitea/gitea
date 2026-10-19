@@ -11,22 +11,22 @@ type ConfirmModalOptions = {
   confirmButtonColor?: 'primary' | 'red' | 'green' | 'blue';
 };
 
-export function createConfirmModal({header = '', content = '', confirmButtonColor = 'primary'}:ConfirmModalOptions = {}): HTMLElement {
+export function createConfirmModal({header = '', content = '', confirmButtonColor = 'primary'}:ConfirmModalOptions = {}): HTMLDialogElement {
   const headerHtml = header ? html`<div class="header">${header}</div>` : '';
   return createElementFromHTML(html`
-    <div class="modal">
+    <dialog class="modal-dialog">
       ${htmlRaw(headerHtml)}
       <div class="content">${content}</div>
       <div class="actions">
         <button class="ui cancel button">${htmlRaw(svg('octicon-x'))} ${i18n.modal_cancel}</button>
         <button class="ui ${confirmButtonColor} ok button" autofocus>${htmlRaw(svg('octicon-check'))} ${i18n.modal_confirm}</button>
       </div>
-    </div>
+    </dialog>
   `.trim());
 }
 
-export function confirmModal(modal: HTMLElement | ConfirmModalOptions): Promise<boolean> {
-  if (!(modal instanceof HTMLElement)) modal = createConfirmModal(modal);
+export function confirmModal(modal: HTMLDialogElement | ConfirmModalOptions): Promise<boolean> {
+  if (!(modal instanceof HTMLDialogElement)) modal = createConfirmModal(modal);
   return new Promise((resolve) => {
     showModal(modal, {
       onApprove() {

@@ -1,0 +1,24 @@
+.modal-backdrop {
+  position: fixed;
+  display: none;
+  inset: 0;
+  background: var(--color-overlay-backdrop);
+  z-index: var(--z-index-modal);
+  overflow-y: auto;
+  justify-content: center;
+  padding: 8px 0;
+  animation-name: fadein;
+  animation-duration: .2s;
+  overscroll-behavior: contain;
+  user-select: none;
+}
+
+.modal-backdrop:has(> [open]) {
+  display: flex;
+}
+
+.modal-backdrop > .modal-dialog {
+  position: static;
+  margin-top: auto;
+  margin-bottom: auto;
+}

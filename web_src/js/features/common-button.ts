@@ -90,7 +90,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // to make the template variables get correctly escaped in the URL.
   e.preventDefault();
   const modalSelector = el.getAttribute('data-modal')!;
-  const elModal = document.querySelector(modalSelector);
+  const elModal = document.querySelector<HTMLDialogElement>(modalSelector);
   if (!elModal) throw new Error('no modal for this action');
 
   const modalAttrPrefix = 'data-modal-';

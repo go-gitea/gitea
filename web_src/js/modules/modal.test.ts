@@ -6,30 +6,30 @@ import {showErrorToast} from './toast.ts';
 test('showModal blocks the page and restores focus until closed by actions, backdrop or unconsumed Escape on the topmost modal', async () => {
   document.body.innerHTML = `
     <button id="opener">Opener</button>
-    <div class="modal">
+    <dialog class="modal-dialog">
       <div class="header">Header <button type="button" class="close-modal"></button></div>
       <form class="content">
         <input name="text">
         <div class="actions"><button class="ui cancel button">Cancel</button><button type="button" class="ui ok button">OK</button></div>
       </form>
-    </div>
+    </dialog>
   `;
   const opener = document.querySelector<HTMLElement>('#opener')!;
-  const modal = document.querySelector<HTMLElement>('.modal')!;
+  const modal = document.querySelector<HTMLDialogElement>('.modal-dialog')!;
   const onHidden = vi.fn();
   let approve = false;
   opener.focus();
   showModal(modal, {onApprove: () => approve, onHidden});
-  const dialog = modal.parentElement as HTMLDialogElement;
+  const backdrop = modal.parentElement!;
   expect(opener.inert).toBe(true);
-  expect(dialog.inert).toBe(false);
-  expect(dialog.getAttribute('aria-labelledby')).toBe(modal.querySelector('.header')!.id);
+  expect(backdrop.inert).toBe(false);
+  expect(modal.getAttribute('aria-labelledby')).toBe(modal.querySelector('.header')!.id);
   expect(document.body.classList.contains('tw-overflow-hidden')).toBe(true);
   expect(modal.querySelector('.cancel')!.getAttribute('type')).toBe('button');
 
   modal.querySelector('input')!.value = 'changed';
   modal.querySelector<HTMLElement>('.ok')!.click();
-  expect(dialog.open).toBe(true);
+  expect(modal.open).toBe(true);
   approve = true;
   modal.querySelector<HTMLElement>('.ok')!.click();
   expect(onHidden).toHaveBeenCalledOnce();
@@ -41,35 +41,36 @@ test('showModal blocks the page and restores focus until closed by actions, back
   for (const selector of ['.cancel', '.close-modal']) {
     showModal(modal);
     modal.querySelector<HTMLElement>(selector)!.click();
-    expect(dialog.open).toBe(false);
+    expect(modal.open).toBe(false);
   }
 
   showModal(modal);
   await userEvent.click(modal.querySelector('input')!);
-  expect(dialog.open).toBe(true);
-  await userEvent.click(dialog, {position: {x: 5, y: 5}});
-  expect(dialog.open).toBe(false);
+  expect(modal.open).toBe(true);
+  backdrop.dispatchEvent(new PointerEvent('pointerdown'));
+  backdrop.click();
+  expect(modal.open).toBe(false);
 
   showModal(modal);
   document.addEventListener('keydown', (e) => e.preventDefault(), {once: true});
   await userEvent.keyboard('{Escape}');
-  expect(dialog.open).toBe(true);
+  expect(modal.open).toBe(true);
 
-  const nested = createElementFromHTML('<div class="modal"></div>');
+  const nested = createElementFromHTML<HTMLDialogElement>('<dialog class="modal-dialog"></dialog>');
   showModal(nested, {onHidden: () => nested.remove()});
-  const nestedDialog = nested.parentElement!;
-  expect(dialog.inert).toBe(true);
+  const nestedBackdrop = nested.parentElement!;
+  expect(backdrop.inert).toBe(true);
   await userEvent.keyboard('{Escape}');
-  expect(nestedDialog.isConnected).toBe(false);
-  expect(dialog.open).toBe(true);
-  expect(dialog.inert).toBe(false);
+  expect(nestedBackdrop.isConnected).toBe(false);
+  expect(modal.open).toBe(true);
+  expect(backdrop.inert).toBe(false);
   expect(opener.inert).toBe(true);
-  expect(dialog.contains(document.activeElement)).toBe(true);
+  expect(modal.contains(document.activeElement)).toBe(true);
 
   showErrorToast('error in modal');
   expect(document.querySelector('.toastify.on')).not.toBeNull();
   await userEvent.keyboard('{Escape}');
-  expect(dialog.open).toBe(false);
+  expect(modal.open).toBe(false);
   expect(document.querySelector('.toastify.on')).toBeNull();
 
   (document.activeElement as HTMLElement).blur();
@@ -80,6 +81,6 @@ test('showModal blocks the page and restores focus until closed by actions, back
   showModal(modal, {onHidden: () => modal.remove()});
   hideModal(modal);
   opener.focus();
-  expect(dialog.isConnected).toBe(false);
+  expect(backdrop.isConnected).toBe(false);
   expect(document.activeElement).toBe(opener);
 });

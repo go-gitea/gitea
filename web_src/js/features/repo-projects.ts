@@ -82,7 +82,7 @@ function initRepoProjectSortable(): void {
 }
 
 function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
-  const elModal = document.querySelector<HTMLElement>('#project-column-modal-edit')!;
+  const elModal = document.querySelector<HTMLDialogElement>('#project-column-modal-edit')!;
   const elForm = elModal.querySelector<HTMLFormElement>('form')!;
 
   const elColumnId = elForm.querySelector<HTMLInputElement>('input[name="id"]')!;
