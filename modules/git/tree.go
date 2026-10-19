@@ -109,7 +109,7 @@ func (t *Tree) ListEntries(_ctx context.Context, gitRepo *Repository) (Entries, 
 			return nil, err
 		}
 	}
-	if info.Type != "tree" { // peel annotated tags, a blob yields ErrNotExist
+	if info.Type != "tree" { // resolve annotated tags to their tree, a blob yields ErrNotExist
 		if err := DiscardFull(rd, info.Size+1); err != nil {
 			return nil, err
 		}

@@ -27,7 +27,7 @@ func TestSubTree_Issue29101(t *testing.T) {
 	}
 }
 
-func TestTreeListEntriesPeelsTagAndRejectsBlob(t *testing.T) {
+func TestTreeListEntriesResolvesTagAndRejectsBlob(t *testing.T) {
 	repo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer repo.Close()
