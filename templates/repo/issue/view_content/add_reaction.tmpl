@@ -1,10 +1,8 @@
 {{if ctx.RootData.IsSigned}}
-{{$allowed := .AllowedReactions}}
-{{if not $allowed}}{{$allowed = AllowedReactions}}{{end}}
 <div class="item action ui dropdown jump pointing top right select-reaction" data-action-url="{{.ActionURL}}" aria-label="{{ctx.Locale.Tr "repo.reactions"}}">
 	<a class="muted">{{svg "octicon-smiley"}}</a>
 	<div class="menu">
-		{{range $value := $allowed}}
+		{{range $value := or .AllowedReactions AllowedReactions}}
 		<a class="item emoji" data-tooltip-content="{{$value}}" aria-label="{{$value}}" data-reaction-content="{{$value}}" data-global-click="onCommentReactionButtonClick">{{ReactionToEmoji $value}}</a>
 		{{end}}
 	</div>

@@ -36,9 +36,9 @@
 								{{template "repo/commit_statuses" dict "Status" $info.CommitStatus "Statuses" $info.CommitStatuses "AdditionalClasses" "tw-flex"}}
 								{{template "repo/release/label" (dict "Release" $release)}}
 							</h4>
-							<div class="tw-flex tw-items-center tw-gap-2">
-								{{if not $.Repository.IsArchived}}
-									{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/releases/%d/reactions" $.RepoLink $release.ID) "AllowedReactions" $.ReleaseAllowedReactions}}
+							<div class="flex-text-block">
+								{{if and $.AllowedReleaseReactions (not $release.IsTag) (not $.Repository.IsArchived)}}
+									{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/releases/%d/reactions" $.RepoLink $release.ID) "AllowedReactions" $.AllowedReleaseReactions}}
 								{{end}}
 								{{if and $.CanCreateRelease (not $.PageIsSingleTag)}}
 									<a class="muted" data-tooltip-content="{{ctx.Locale.Tr "repo.release.edit"}}" href="{{$.RepoLink}}/releases/edit/{{$release.TagName | PathEscapeSegments}}" rel="nofollow">

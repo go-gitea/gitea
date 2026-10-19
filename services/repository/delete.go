@@ -140,7 +140,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	}
 
 	if _, err := db.GetEngine(ctx).In("release_id", builder.Select("id").From("`release`").Where(builder.Eq{"repo_id": repoID})).
-		Delete(&repo_model.Reaction{}); err != nil {
+		Delete(&issues_model.Reaction{}); err != nil {
 		return err
 	}
 

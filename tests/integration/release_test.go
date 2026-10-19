@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -287,36 +288,25 @@ func TestReleaseReaction(t *testing.T) {
 	reactReq := func(releaseID int64, action, content string) *RequestWrapper {
 		return NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/releases/%d/reactions/%s", releaseID, action), map[string]string{"content": content})
 	}
-	countReactions := func(releaseID int64) int64 {
-		_, count, err := repo_model.FindReactions(t.Context(), repo_model.FindReactionsOptions{ReleaseID: releaseID})
-		assert.NoError(t, err)
-		return count
-	}
 
-	// thumbs-down isn't in the reduced release reaction set
-	session.MakeRequest(t, reactReq(1, "react", "-1"), http.StatusInternalServerError)
+	session.MakeRequest(t, reactReq(1, "react", "-1"), http.StatusForbidden)
 
 	resp := session.MakeRequest(t, reactReq(1, "react", "heart"), http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "bottom-reactions")
-	assert.Equal(t, int64(1), countReactions(1))
-
-	// reacting twice (e.g. from a stale tab) is not an error
 	session.MakeRequest(t, reactReq(1, "react", "heart"), http.StatusOK)
-	assert.Equal(t, int64(1), countReactions(1))
+	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 1}, 1)
 
 	resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/releases"), http.StatusOK)
-	assert.Equal(t, 1, NewHTMLParser(t, resp.Body).Find(`.bottom-reactions a[data-reaction-content="heart"]`).Length())
+	AssertHTMLElement(t, NewHTMLParser(t, resp.Body), `.bottom-reactions a[data-reaction-content="heart"]`, 1)
 
 	resp = session.MakeRequest(t, reactReq(1, "unreact", "heart"), http.StatusOK)
-	assert.Contains(t, resp.Body.String(), `"empty":true`)
-	assert.Equal(t, int64(0), countReactions(1))
+	assert.JSONEq(t, `{"html":""}`, resp.Body.String())
+	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 1}, 0)
 
-	// a release of another repository can't be reached through this repository
 	session.MakeRequest(t, reactReq(2, "react", "heart"), http.StatusNotFound)
+	session.MakeRequest(t, reactReq(3, "react", "heart"), http.StatusNotFound)
 
-	// drafts are only visible to writers
-	readerSession := loginUser(t, "user4")
-	readerSession.MakeRequest(t, reactReq(4, "react", "heart"), http.StatusNotFound)
+	loginUser(t, "user4").MakeRequest(t, reactReq(4, "react", "heart"), http.StatusNotFound)
 	session.MakeRequest(t, reactReq(4, "react", "heart"), http.StatusOK)
-	assert.Equal(t, int64(1), countReactions(4))
+	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 4}, 1)
 }

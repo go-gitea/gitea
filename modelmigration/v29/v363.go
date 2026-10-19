@@ -7,45 +7,20 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-
-	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddReleaseIDToReaction(ctx context.Context, x base.EngineMigration) error {
-	// Drop the old 6-column UNIQUE(s) index. xorm Sync cannot reliably update an
-	// index when its column set changes.
-	indexes, err := x.Dialect().GetIndexes(x.DB(), ctx, "reaction")
-	if err != nil {
-		return err
-	}
-	for _, idx := range indexes {
-		if idx.Name == "s" {
-			if _, err := x.Exec(x.Dialect().DropIndexSQL("reaction", idx)); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Add the release_id column. No index tag on the partial struct: SyncWithOptions
-	// would otherwise reconcile indexes from it and recreate a broken unique index on
-	// release_id alone, failing with a unique constraint error when rows already exist.
+func AddReleaseIDToReaction(_ context.Context, x base.EngineMigration) error {
 	type Reaction struct {
-		ReleaseID int64 `xorm:"NOT NULL DEFAULT(0)"`
+		ID               int64              `xorm:"pk autoincr"`
+		Type             string             `xorm:"INDEX UNIQUE(s) NOT NULL"`
+		IssueID          int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
+		CommentID        int64              `xorm:"INDEX UNIQUE(s)"`
+		ReleaseID        int64              `xorm:"INDEX UNIQUE(s) NOT NULL DEFAULT(0)"`
+		UserID           int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
+		OriginalAuthorID int64              `xorm:"INDEX UNIQUE(s) NOT NULL DEFAULT(0)"`
+		OriginalAuthor   string             `xorm:"INDEX UNIQUE(s)"`
+		CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
 	}
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-		IgnoreConstrains:  true,
-	}, new(Reaction)); err != nil {
-		return err
-	}
-
-	// Create the new 7-column UNIQUE(s) index; xorm prefixes the name to UQE_reaction_s.
-	newIndex := schemas.NewIndex("s", schemas.UniqueType)
-	newIndex.AddColumn("type", "issue_id", "comment_id", "release_id", "user_id", "original_author_id", "original_author")
-	if _, err := x.Exec(x.Dialect().CreateIndexSQL("reaction", newIndex)); err != nil {
-		return err
-	}
-
-	return nil
+	return x.Sync(new(Reaction))
 }

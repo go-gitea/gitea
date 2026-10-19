@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -27,19 +27,6 @@ import (
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m)
-}
-
-// setReactionsForTest overrides setting.UI.Reactions for the duration of the test.
-func setReactionsForTest(t *testing.T, reactions ...string) {
-	oldReactions := setting.UI.Reactions
-	oldReactionsLookup := setting.UI.ReactionsLookup
-	setting.UI.Reactions = reactions
-	setting.UI.ReactionsLookup = make(container.Set[string])
-	setting.UI.ReactionsLookup.AddMultiple(reactions...)
-	t.Cleanup(func() {
-		setting.UI.Reactions = oldReactions
-		setting.UI.ReactionsLookup = oldReactionsLookup
-	})
 }
 
 func TestRelease_Create(t *testing.T) {
@@ -425,81 +412,20 @@ func TestCreateNewTag(t *testing.T) {
 func TestCreateReleaseReaction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1, RepoID: repo.ID})
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1})
 
-	setReactionsForTest(t, "heart")
+	assert.Equal(t, []string{"+1", "laugh", "hooray", "heart", "rocket", "eyes"}, AllowedReleaseReactions())
 
-	reaction, err := CreateReleaseReaction(t.Context(), user, release, "heart")
+	_, err := CreateReleaseReaction(t.Context(), user, release, "heart")
 	assert.NoError(t, err)
-	assert.NotNil(t, reaction)
-	assert.Equal(t, "heart", reaction.Type)
-	assert.Equal(t, user.ID, reaction.UserID)
-	assert.Equal(t, release.ID, reaction.ReleaseID)
+	assert.NoError(t, DeleteReleaseByID(t.Context(), repo, release, user, false))
+	unittest.AssertNotExistsBean(t, &issues_model.Reaction{ReleaseID: release.ID})
 
-	// Blocked user should not be able to react
 	assert.NoError(t, db.Insert(t.Context(), &user_model.Blocking{BlockerID: repo.OwnerID, BlockeeID: user.ID}))
 	_, err = CreateReleaseReaction(t.Context(), user, release, "heart")
 	assert.ErrorIs(t, err, user_model.ErrBlockedUser)
-}
-
-func TestCreateReleaseReactionReducedSet(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	// the global reactions list allows all eight; only the release-specific
-	// reduced set may reject thumbs-down and confused
-	setReactionsForTest(t, `+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`)
-
-	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1, RepoID: repo.ID})
-
-	_, err := CreateReleaseReaction(t.Context(), user, release, "+1")
-	assert.NoError(t, err)
-
-	_, err = CreateReleaseReaction(t.Context(), user, release, "-1")
-	assert.True(t, repo_model.IsErrForbiddenReaction(err))
-
-	_, err = CreateReleaseReaction(t.Context(), user, release, "confused")
-	assert.True(t, repo_model.IsErrForbiddenReaction(err))
-}
-
-func TestDeleteReleaseByID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1, RepoID: repo.ID})
-
-	setReactionsForTest(t, "heart")
-
-	reaction, err := CreateReleaseReaction(t.Context(), user, release, "heart")
-	assert.NoError(t, err)
-	assert.NotNil(t, reaction)
-
-	// Verify reaction exists
-	_, countBefore, err := repo_model.FindReactions(t.Context(), repo_model.FindReactionsOptions{ReleaseID: release.ID})
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), countBefore)
-
-	// Delete release
-	assert.NoError(t, DeleteReleaseByID(t.Context(), repo, release, user, true))
-
-	// Verify reaction is deleted
-	_, countAfter, err := repo_model.FindReactions(t.Context(), repo_model.FindReactionsOptions{ReleaseID: release.ID})
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), countAfter)
-
-	// Demoting a release to a tag (delTag=false) keeps the row and its reactions
-	release = unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 5, RepoID: repo.ID})
-	_, err = CreateReleaseReaction(t.Context(), user, release, "heart")
-	assert.NoError(t, err)
-	assert.NoError(t, DeleteReleaseByID(t.Context(), repo, release, user, false))
-	_, countAfterDemote, err := repo_model.FindReactions(t.Context(), repo_model.FindReactionsOptions{ReleaseID: release.ID})
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), countAfterDemote)
 }
 
 func TestRelease_DatedByTargetCommit(t *testing.T) {
