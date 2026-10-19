@@ -702,6 +702,10 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 // ChangeReleaseReaction create or delete a reaction for a release
 func ChangeReleaseReaction(ctx *context.Context) {
 	form := web.GetForm[*forms.ReactionForm](ctx)
+	if ctx.HasError() {
+		ctx.HTTPError(http.StatusBadRequest, ctx.GetErrMsg())
+		return
+	}
 	relID := ctx.PathParamInt64("id")
 
 	rel, err := repo_model.GetReleaseByID(ctx, relID)
@@ -722,11 +726,6 @@ func ChangeReleaseReaction(ctx *context.Context) {
 	// drafts are only visible to writers; read-only users shouldn't react to one
 	if rel.IsDraft && !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
 		ctx.NotFound(nil)
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.ServerError("ChangeReleaseReaction", errors.New(ctx.GetErrMsg()))
 		return
 	}
 
