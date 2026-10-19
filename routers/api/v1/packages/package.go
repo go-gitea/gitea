@@ -58,6 +58,7 @@ func ListPackages(ctx *context.APIContext) {
 
 	apiPackages, count, err := searchPackages(ctx, &packages.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
+		TeamID:     optional.Some(ctx.Package.TeamID()),
 		Type:       packages.Type(ctx.FormTrim("type")),
 		Name:       packages.SearchValue{Value: ctx.FormTrim("q")},
 		IsInternal: optional.Some(false),
@@ -274,6 +275,7 @@ func ListPackageVersions(ctx *context.APIContext) {
 
 	apiPackages, count, err := searchPackages(ctx, &packages.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
+		TeamID:     optional.Some(ctx.Package.TeamID()),
 		Type:       packages.Type(ctx.PathParam("type")),
 		Name:       packages.SearchValue{Value: ctx.PathParam("name"), ExactMatch: true},
 		IsInternal: optional.Some(false),
@@ -320,6 +322,7 @@ func GetLatestPackageVersion(ctx *context.APIContext) {
 
 	pvs, _, err := packages.SearchLatestVersions(ctx, &packages.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
+		TeamID:     optional.Some(ctx.Package.TeamID()),
 		Type:       packages.Type(ctx.PathParam("type")),
 		Name:       packages.SearchValue{Value: ctx.PathParam("name"), ExactMatch: true},
 		IsInternal: optional.Some(false),
@@ -380,7 +383,13 @@ func LinkPackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	var pkg *packages.Package
+	var err error
+	if ctx.Package.TeamID() > 0 {
+		pkg, err = packages.GetTeamPackageByName(ctx, ctx.ContextUser.ID, ctx.Package.TeamID(), packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	} else {
+		pkg, err = packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	}
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err.Error())
@@ -442,7 +451,13 @@ func UnlinkPackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	var pkg *packages.Package
+	var err error
+	if ctx.Package.TeamID() > 0 {
+		pkg, err = packages.GetTeamPackageByName(ctx, ctx.ContextUser.ID, ctx.Package.TeamID(), packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	} else {
+		pkg, err = packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	}
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err.Error())

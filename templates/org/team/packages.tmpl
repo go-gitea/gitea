@@ -1,0 +1,15 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content organization teams">
+	{{template "org/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<div class="ui stackable grid">
+			{{template "org/team/sidebar" .}}
+			<div class="ui ten wide column">
+				{{template "org/team/navbar" .}}
+				{{template "package/shared/list" .}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -22,6 +22,8 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
+	packages_service "gitea.dev/services/packages"
+	container_service "gitea.dev/services/packages/container"
 	repo_service "gitea.dev/services/repository"
 
 	"xorm.io/builder"
@@ -114,6 +116,12 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		t.Description = t.Description[:255]
 	}
 
+	oldTeam, err := organization.GetTeamByID(ctx, t.ID)
+	if err != nil {
+		return err
+	}
+	nameChanged := !strings.EqualFold(oldTeam.LowerName, t.Name)
+
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		t.LowerName = strings.ToLower(t.Name)
 		has, err := db.Exist[organization.Team](ctx, builder.Eq{
@@ -131,6 +139,16 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
 			"can_create_org_repo", "authorize", "includes_all_repositories", "visibility").Update(t); err != nil {
 			return fmt.Errorf("update: %w", err)
+		}
+
+		if nameChanged {
+			org, err := user_model.GetUserByID(ctx, t.OrgID)
+			if err != nil {
+				return err
+			}
+			if err := container_service.UpdateTeamRepositoryNames(ctx, org, t, t.Name); err != nil {
+				return fmt.Errorf("UpdateTeamRepositoryNames: %w", err)
+			}
 		}
 
 		if authChanged {
@@ -188,7 +206,18 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 
 // DeleteTeam deletes given team.
 // It's caller's responsibility to assign organization ID.
-func DeleteTeam(ctx context.Context, t *organization.Team) error {
+func DeleteTeam(ctx context.Context, t *organization.Team, deletePackages ...bool) error {
+	delPkgs := len(deletePackages) > 0 && deletePackages[0]
+	if delPkgs {
+		if _, err := packages_service.RemoveAllTeamPackages(ctx, t.OrgID, t.ID); err != nil {
+			return fmt.Errorf("RemoveAllTeamPackages: %w", err)
+		}
+	} else {
+		if err := packages_service.ReparentTeamPackages(ctx, t.OrgID, t.ID); err != nil {
+			return fmt.Errorf("ReparentTeamPackages: %w", err)
+		}
+	}
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := t.LoadMembers(ctx); err != nil {
 			return err

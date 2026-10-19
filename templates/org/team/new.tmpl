@@ -183,7 +183,7 @@
 							{{else}}
 								<button type="submit" class="ui primary button">{{ctx.Locale.Tr "org.teams.update_settings"}}</button>
 								{{if not .Team.IsOwnerTeam}}
-									<button type="button" class="ui red button link-action" data-modal-confirm="#delete-team" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
+									<button type="button" class="ui red button show-modal" data-modal="#delete-team">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
 								{{end}}
 							{{end}}
 						</div>
@@ -199,9 +199,18 @@
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "org.teams.delete_team_title"}}
 	</div>
-	<div class="content">
+	<form class="content ui form form-fetch-action" action="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/delete" method="post">
 		<p>{{ctx.Locale.Tr "org.teams.delete_team_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
+		{{if .IsPackageEnabled}}
+		<div class="field tw-mt-4">
+			<div class="ui checkbox">
+				<input type="checkbox" name="delete_packages" value="true">
+				<label>{{ctx.Locale.Tr "org.teams.delete_team_packages"}}</label>
+			</div>
+			<p class="help">{{ctx.Locale.Tr "org.teams.delete_team_packages_help"}}</p>
+		</div>
+		{{end}}
+		{{template "base/modal_actions_confirm" .}}
+	</form>
 </div>
 {{template "base/footer" .}}

@@ -76,9 +76,10 @@ func (s Specialization) RenderSetupManual(ctx context.Context, pkg *packages_mod
 		w.WriteHTML(`</div>`)
 	}
 	{
+		keyringName := strings.ReplaceAll(pkg.RegistryRootPath(), "/", "-")
 		w.WriteHTML(`<div class="markup"><pre class="code-block"><code>`)
-		w.WriteFormatf(`sudo curl %s/api/packages/%s/debian/repository.key -o /etc/apt/keyrings/gitea-%s.asc`+nl+nl, appFullLink, pkg.Owner.Name, pkg.Owner.Name)
-		w.WriteFormatf(`echo "deb [signed-by=/etc/apt/keyrings/gitea-%s.asc] %s/api/packages/%s/debian <span>$distribution</span> <span>$component</span>" | sudo tee -a /etc/apt/sources.list.d/gitea.list`+nl+nl, pkg.Owner.Name, appFullLink, pkg.Owner.Name)
+		w.WriteFormatf(`sudo curl %s/api/packages/%s/debian/repository.key -o /etc/apt/keyrings/gitea-%s.asc`+nl+nl, appFullLink, pkg.RegistryRootPath(), keyringName)
+		w.WriteFormatf(`echo "deb [signed-by=/etc/apt/keyrings/gitea-%s.asc] %s/api/packages/%s/debian <span>$distribution</span> <span>$component</span>" | sudo tee -a /etc/apt/sources.list.d/gitea.list`+nl+nl, keyringName, appFullLink, pkg.RegistryRootPath())
 		w.WriteHTML(`sudo apt update` + nl)
 		w.WriteHTML(`</code></pre></div>`)
 	}

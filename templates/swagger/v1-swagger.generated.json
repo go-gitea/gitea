@@ -20902,6 +20902,12 @@
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "whether to delete team packages, or reparent to organization",
+            "name": "delete_packages",
+            "in": "query"
           }
         ],
         "responses": {

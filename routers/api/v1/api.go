@@ -1681,7 +1681,7 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
-		m.Group("/packages/{username}", func() {
+		registerPackageRoutes := func() {
 			m.Group("/{type}/{name}", func() {
 				m.Get("/", packages.ListPackageVersions)
 				m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
@@ -1700,7 +1700,16 @@ func Routes() *web.Router {
 			})
 
 			m.Get("/", packages.ListPackages)
-		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
+		}
+
+		m.Group("/packages/{username}", func() {
+			m.Group("", func() {
+				registerPackageRoutes()
+			}, context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
+			m.Group("/teams/{team}", func() {
+				registerPackageRoutes()
+			}, context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
+		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI())
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), org.ListMyOrgs)

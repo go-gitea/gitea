@@ -16,6 +16,7 @@ import (
 
 type PackageSearchOptions struct {
 	OwnerID      int64
+	TeamID       int64
 	Distribution string
 	Component    string
 	Architecture string
@@ -26,6 +27,7 @@ func (opts *PackageSearchOptions) toCond() builder.Cond {
 		"package_file.is_lead":        true,
 		"package.type":                packages.TypeDebian,
 		"package.owner_id":            opts.OwnerID,
+		"package.team_id":             opts.TeamID,
 		"package.is_internal":         false,
 		"package_version.is_internal": false,
 	}
@@ -98,24 +100,36 @@ func SearchPackages(ctx context.Context, opts *PackageSearchOptions) ([]*package
 	return pfds, nil
 }
 
-// GetDistributions gets all available distributions
+// GetDistributions gets all available distributions (team_id = 0)
 func GetDistributions(ctx context.Context, ownerID int64) ([]string, error) {
-	return packages.GetDistinctPropertyValues(
+	return GetTeamDistributions(ctx, ownerID, 0)
+}
+
+// GetTeamDistributions gets all available distributions for a team
+func GetTeamDistributions(ctx context.Context, ownerID, teamID int64) ([]string, error) {
+	return packages.GetDistinctPropertyValuesForTeam(
 		ctx,
 		packages.TypeDebian,
 		ownerID,
+		teamID,
 		packages.PropertyTypeFile,
 		debian_module.PropertyDistribution,
 		nil,
 	)
 }
 
-// GetComponents gets all available components for the given distribution
+// GetComponents gets all available components for the given distribution (team_id = 0)
 func GetComponents(ctx context.Context, ownerID int64, distribution string) ([]string, error) {
-	return packages.GetDistinctPropertyValues(
+	return GetTeamComponents(ctx, ownerID, 0, distribution)
+}
+
+// GetTeamComponents gets all available components for the given distribution and team
+func GetTeamComponents(ctx context.Context, ownerID, teamID int64, distribution string) ([]string, error) {
+	return packages.GetDistinctPropertyValuesForTeam(
 		ctx,
 		packages.TypeDebian,
 		ownerID,
+		teamID,
 		packages.PropertyTypeFile,
 		debian_module.PropertyComponent,
 		&packages.DistinctPropertyDependency{
@@ -125,12 +139,18 @@ func GetComponents(ctx context.Context, ownerID int64, distribution string) ([]s
 	)
 }
 
-// GetArchitectures gets all available architectures for the given distribution
+// GetArchitectures gets all available architectures for the given distribution (team_id = 0)
 func GetArchitectures(ctx context.Context, ownerID int64, distribution string) ([]string, error) {
-	return packages.GetDistinctPropertyValues(
+	return GetTeamArchitectures(ctx, ownerID, 0, distribution)
+}
+
+// GetTeamArchitectures gets all available architectures for the given distribution and team
+func GetTeamArchitectures(ctx context.Context, ownerID, teamID int64, distribution string) ([]string, error) {
+	return packages.GetDistinctPropertyValuesForTeam(
 		ctx,
 		packages.TypeDebian,
 		ownerID,
+		teamID,
 		packages.PropertyTypeFile,
 		debian_module.PropertyArchitecture,
 		&packages.DistinctPropertyDependency{

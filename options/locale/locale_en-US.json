@@ -2881,6 +2881,8 @@
   "org.teams.delete_team_title": "Delete Team",
   "org.teams.delete_team_desc": "Deleting a team revokes repository access from its members. Continue?",
   "org.teams.delete_team_success": "The team has been deleted.",
+  "org.teams.delete_team_packages": "Delete all team packages",
+  "org.teams.delete_team_packages_help": "If not checked, non-internal packages will be transferred to the organization.",
   "org.teams.read_permission_desc": "This team grants <strong>Read</strong> access: members can view and clone team repositories.",
   "org.teams.write_permission_desc": "This team grants <strong>Write</strong> access: members can read from and push to team repositories.",
   "org.teams.admin_permission_desc": "This team grants <strong>Admin</strong> access: members can read from, push to and add collaborators to team repositories.",

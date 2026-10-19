@@ -13,8 +13,10 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -44,9 +46,17 @@ type Specialization interface {
 // PackageInfo describes a package
 type PackageInfo struct {
 	Owner       *user_model.User
+	Team        *org_model.Team
 	PackageType packages_model.Type
 	Name        string
 	Version     string
+}
+
+func (pi *PackageInfo) TeamID() int64 {
+	if pi != nil && pi.Team != nil {
+		return pi.Team.ID
+	}
+	return 0
 }
 
 // PackageCreationInfo describes a package to create
@@ -82,7 +92,7 @@ func CreatePackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfc
 
 // CreatePackageOrAddFileToExisting creates a package with a file or adds the file if the package exists already
 func CreatePackageOrAddFileToExisting(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (pv *packages_model.PackageVersion, pf *packages_model.PackageFile, err error) {
-	lockKey := fmt.Sprintf("pkg-upsert-%v-%v-%v", pvci.PackageType, pvci.Name, pvci.Version)
+	lockKey := fmt.Sprintf("pkg-upsert-%v-%v-%v-%v-%v", pvci.Owner.ID, pvci.TeamID(), pvci.PackageType, pvci.Name, pvci.Version)
 	err = globallock.LockAndDo(ctx, lockKey, func(ctx context.Context) error {
 		pv, pf, err = createPackageAndAddFile(ctx, pvci, pfci, true)
 		return err
@@ -140,6 +150,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 	packageCreated := true
 	p := &packages_model.Package{
 		OwnerID:          pvci.Owner.ID,
+		TeamID:           pvci.TeamID(),
 		Type:             pvci.PackageType,
 		Name:             pvci.Name,
 		LowerName:        strings.ToLower(pvci.Name),
@@ -204,7 +215,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 // AddFileToExistingPackage adds a file to an existing package. If the package does not exist, ErrPackageNotExist is returned
 func AddFileToExistingPackage(ctx context.Context, pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
 	return addFileToPackageWrapper(ctx, func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+		pv, err := packages_model.GetTeamVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.TeamID(), pvi.PackageType, pvi.Name, pvi.Version)
 		if err != nil {
 			return nil, nil, false, err
 		}
@@ -464,11 +475,17 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 // GetOrCreateInternalPackageVersion gets or creates an internal package
 // Some package types need such internal packages for housekeeping.
 func GetOrCreateInternalPackageVersion(ctx context.Context, ownerID int64, packageType packages_model.Type, name, version string) (*packages_model.PackageVersion, error) {
+	return GetOrCreateTeamInternalPackageVersion(ctx, ownerID, 0, packageType, name, version)
+}
+
+// GetOrCreateTeamInternalPackageVersion gets or creates an internal package for a team
+func GetOrCreateTeamInternalPackageVersion(ctx context.Context, ownerID, teamID int64, packageType packages_model.Type, name, version string) (*packages_model.PackageVersion, error) {
 	var pv *packages_model.PackageVersion
 
 	return pv, db.WithTx(ctx, func(ctx context.Context) error {
 		p := &packages_model.Package{
 			OwnerID:    ownerID,
+			TeamID:     teamID,
 			Type:       packageType,
 			Name:       name,
 			LowerName:  name,
@@ -503,7 +520,7 @@ func GetOrCreateInternalPackageVersion(ctx context.Context, ownerID int64, packa
 
 // RemovePackageVersionByNameAndVersion deletes a package version and all associated files
 func RemovePackageVersionByNameAndVersion(ctx context.Context, doer *user_model.User, pvi *PackageInfo) error {
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+	pv, err := packages_model.GetTeamVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.TeamID(), pvi.PackageType, pvi.Name, pvi.Version)
 	if err != nil {
 		return err
 	}
@@ -600,9 +617,9 @@ func DeletePackageFile(ctx context.Context, pf *packages_model.PackageFile) erro
 
 // OpenFileForDownloadByPackageNameAndVersion returns the content of the specific package file and increases the download counter.
 func OpenFileForDownloadByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo, method string) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
-	log.Trace("Getting package file stream: %v, %v, %s, %s, %s, %s", pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pfi.Filename, pfi.CompositeKey)
+	log.Trace("Getting package file stream: %v, %v, %v, %s, %s, %s, %s", pvi.Owner.ID, pvi.TeamID(), pvi.PackageType, pvi.Name, pvi.Version, pfi.Filename, pfi.CompositeKey)
 
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+	pv, err := packages_model.GetTeamVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.TeamID(), pvi.PackageType, pvi.Name, pvi.Version)
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			return nil, nil, nil, err
@@ -742,4 +759,180 @@ func RemoveAllPackages(ctx context.Context, userID int64) (int, error) {
 		}
 	}
 	return count, nil
+}
+
+type RepositoryRebuilder func(ctx context.Context, ownerID, teamID int64) error
+
+var (
+	repoRebuildersMutex sync.RWMutex
+	repoRebuilders      = make(map[packages_model.Type]RepositoryRebuilder)
+)
+
+func RegisterRepositoryRebuilder(packageType packages_model.Type, rebuilder RepositoryRebuilder) {
+	repoRebuildersMutex.Lock()
+	defer repoRebuildersMutex.Unlock()
+	repoRebuilders[packageType] = rebuilder
+}
+
+func RebuildRepositoryFiles(ctx context.Context, ownerID, teamID int64, packageType packages_model.Type) error {
+	repoRebuildersMutex.RLock()
+	rebuilder, ok := repoRebuilders[packageType]
+	repoRebuildersMutex.RUnlock()
+	if ok {
+		return rebuilder(ctx, ownerID, teamID)
+	}
+	return nil
+}
+
+// RemoveAllTeamPackages removes all packages belonging to a team
+func RemoveAllTeamPackages(ctx context.Context, orgID, teamID int64) (int, error) {
+	count := 0
+	for {
+		pkgVersions, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: repo_model.RepositoryListDefaultPageSize,
+				Page:     1,
+			},
+			OwnerID:    orgID,
+			TeamID:     optional.Some(teamID),
+			IsInternal: optional.None[bool](),
+		})
+		if err != nil {
+			return count, fmt.Errorf("RemoveAllTeamPackages[%d, %d]: %w", orgID, teamID, err)
+		}
+		if len(pkgVersions) == 0 {
+			break
+		}
+		for _, pv := range pkgVersions {
+			if err := DeletePackageVersionAndReferences(ctx, pv); err != nil {
+				return count, fmt.Errorf("unable to delete package version %d:%s[%d]. Error: %w", pv.PackageID, pv.Version, pv.ID, err)
+			}
+			count++
+		}
+	}
+
+	var pkgs []*packages_model.Package
+	if err := db.GetEngine(ctx).Where("owner_id = ? AND team_id = ?", orgID, teamID).Find(&pkgs); err != nil {
+		return count, fmt.Errorf("find team packages: %w", err)
+	}
+	for _, p := range pkgs {
+		if err := packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypePackage, p.ID); err != nil {
+			return count, fmt.Errorf("delete package properties: %w", err)
+		}
+		if err := packages_model.DeletePackageByID(ctx, p.ID); err != nil {
+			return count, fmt.Errorf("delete package: %w", err)
+		}
+	}
+
+	return count, nil
+}
+
+// ReparentTeamPackages reparents all non-internal packages owned by a team to the parent organization (team_id = 0)
+// and deletes internal repository packages.
+func ReparentTeamPackages(ctx context.Context, orgID, teamID int64) error {
+	org, err := user_model.GetUserByID(ctx, orgID)
+	if err != nil {
+		return fmt.Errorf("GetUserByID[%d]: %w", orgID, err)
+	}
+
+	reparentedTypes := make(map[packages_model.Type]bool)
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		// 1. Delete internal repository packages belonging to this team
+		var internalPkgs []*packages_model.Package
+		if err := db.GetEngine(ctx).Where("owner_id = ? AND team_id = ? AND is_internal = ?", orgID, teamID, true).Find(&internalPkgs); err != nil {
+			return fmt.Errorf("find internal team packages: %w", err)
+		}
+		for _, ip := range internalPkgs {
+			pvs, err := packages_model.GetVersionsByPackageID(ctx, ip.ID)
+			if err != nil {
+				return fmt.Errorf("GetVersionsByPackageID[%d]: %w", ip.ID, err)
+			}
+			for _, pv := range pvs {
+				if err := DeletePackageVersionAndReferences(ctx, pv); err != nil {
+					return fmt.Errorf("DeletePackageVersionAndReferences[%d]: %w", pv.ID, err)
+				}
+			}
+			if err := packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypePackage, ip.ID); err != nil {
+				return fmt.Errorf("DeletePropertiesByPackageID[%d]: %w", ip.ID, err)
+			}
+			if err := packages_model.DeletePackageByID(ctx, ip.ID); err != nil {
+				return fmt.Errorf("DeletePackageByID[%d]: %w", ip.ID, err)
+			}
+		}
+
+		// 2. Fetch all non-internal packages belonging to (orgID, teamID)
+		var teamPkgs []*packages_model.Package
+		if err := db.GetEngine(ctx).Where("owner_id = ? AND team_id = ? AND is_internal = ?", orgID, teamID, false).Find(&teamPkgs); err != nil {
+			return fmt.Errorf("find non-internal team packages: %w", err)
+		}
+
+		for _, tp := range teamPkgs {
+			reparentedTypes[tp.Type] = true
+
+			// Check if an org-level package already exists
+			orgPkg, err := packages_model.GetPackageByName(ctx, orgID, tp.Type, tp.Name)
+			if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
+				return fmt.Errorf("GetPackageByName[%s]: %w", tp.Name, err)
+			}
+
+			if orgPkg == nil {
+				// No collision at package level: simply reparent package to team_id = 0
+				tp.TeamID = 0
+				if _, err := db.GetEngine(ctx).ID(tp.ID).Cols("team_id").Update(tp); err != nil {
+					return fmt.Errorf("reparent package %d: %w", tp.ID, err)
+				}
+				if tp.Type == packages_model.TypeContainer {
+					// Update container.repository property
+					if err := packages_model.DeletePropertiesByName(ctx, packages_model.PropertyTypePackage, tp.ID, "container.repository"); err != nil {
+						return fmt.Errorf("DeletePropertiesByName: %w", err)
+					}
+					if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, tp.ID, "container.repository", org.LowerName+"/"+tp.LowerName); err != nil {
+						return fmt.Errorf("InsertProperty: %w", err)
+					}
+				}
+			} else {
+				// An org-level package exists. Check for duplicate versions.
+				teamVersions, err := packages_model.GetVersionsByPackageID(ctx, tp.ID)
+				if err != nil {
+					return fmt.Errorf("GetVersionsByPackageID[%d]: %w", tp.ID, err)
+				}
+				for _, tv := range teamVersions {
+					has, err := db.GetEngine(ctx).Where("package_id = ? AND lower_version = ?", orgPkg.ID, tv.LowerVersion).Exist(new(packages_model.PackageVersion))
+					if err != nil {
+						return fmt.Errorf("check version collision [%s]: %w", tv.Version, err)
+					}
+					if has {
+						return packages_model.ErrDuplicatePackageVersion
+					}
+				}
+
+				// Move all versions from tp.ID to orgPkg.ID
+				if _, err := db.GetEngine(ctx).Exec("UPDATE package_version SET package_id = ? WHERE package_id = ?", orgPkg.ID, tp.ID); err != nil {
+					return fmt.Errorf("move versions from %d to %d: %w", tp.ID, orgPkg.ID, err)
+				}
+
+				// Delete empty team Package row and its package-level properties
+				if err := packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypePackage, tp.ID); err != nil {
+					return fmt.Errorf("DeletePropertiesByPackageID[%d]: %w", tp.ID, err)
+				}
+				if err := packages_model.DeletePackageByID(ctx, tp.ID); err != nil {
+					return fmt.Errorf("DeletePackageByID[%d]: %w", tp.ID, err)
+				}
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	// 3. Rebuild indices for affected repository types
+	for pType := range reparentedTypes {
+		if err := RebuildRepositoryFiles(ctx, orgID, 0, pType); err != nil {
+			log.Error("RebuildRepositoryFiles failed for org %d type %s: %v", orgID, pType, err)
+		}
+	}
+
+	return nil
 }

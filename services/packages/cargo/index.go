@@ -12,6 +12,7 @@ import (
 	"path"
 	"strconv"
 
+	org_model "gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -232,9 +233,17 @@ type Config struct {
 }
 
 func BuildConfig(owner *user_model.User, isPrivate bool) *Config {
+	return BuildTeamConfig(owner, nil, isPrivate)
+}
+
+func BuildTeamConfig(owner *user_model.User, team *org_model.Team, isPrivate bool) *Config {
+	prefix := owner.Name
+	if team != nil {
+		prefix = fmt.Sprintf("%s/teams/%s", owner.Name, team.LowerName)
+	}
 	return &Config{
-		DownloadURL:  setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
-		APIURL:       setting.AppURL + "api/packages/" + owner.Name + "/cargo",
+		DownloadURL:  setting.AppURL + "api/packages/" + prefix + "/cargo/api/v1/crates",
+		APIURL:       setting.AppURL + "api/packages/" + prefix + "/cargo",
 		AuthRequired: isPrivate,
 	}
 }

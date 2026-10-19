@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
 	arch_module "gitea.dev/modules/packages/arch"
 	"gitea.dev/modules/util"
@@ -33,6 +34,10 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
+func init() {
+	packages_service.RegisterRepositoryRebuilder(packages_model.TypeArch, BuildAllTeamRepositoryFiles)
+}
+
 const (
 	IndexArchiveFilename = "packages.db"
 )
@@ -41,10 +46,14 @@ func AcquireRegistryLock(ctx context.Context, ownerID int64) (globallock.Release
 	return globallock.Lock(ctx, fmt.Sprintf("packages_arch_%d", ownerID))
 }
 
-// GetOrCreateRepositoryVersion gets or creates the internal repository package
-// The Arch registry needs multiple index files which are stored in this package.
+// GetOrCreateRepositoryVersion gets or creates the internal repository package (team_id = 0)
 func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
-	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeArch, arch_module.RepositoryPackage, arch_module.RepositoryVersion)
+	return GetOrCreateTeamRepositoryVersion(ctx, ownerID, 0)
+}
+
+// GetOrCreateTeamRepositoryVersion gets or creates the internal repository package for a team
+func GetOrCreateTeamRepositoryVersion(ctx context.Context, ownerID, teamID int64) (*packages_model.PackageVersion, error) {
+	return packages_service.GetOrCreateTeamInternalPackageVersion(ctx, ownerID, teamID, packages_model.TypeArch, arch_module.RepositoryPackage, arch_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files
@@ -106,9 +115,14 @@ func SignData(ctx context.Context, ownerID int64, r io.Reader) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// BuildAllRepositoryFiles (re)builds all repository files for every available repositories and architectures
+// BuildAllRepositoryFiles (re)builds all repository files for every available repositories and architectures (team_id = 0)
 func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
-	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
+	return BuildAllTeamRepositoryFiles(ctx, ownerID, 0)
+}
+
+// BuildAllTeamRepositoryFiles (re)builds all repository files for a team or owner
+func BuildAllTeamRepositoryFiles(ctx context.Context, ownerID, teamID int64) error {
+	pv, err := GetOrCreateTeamRepositoryVersion(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
@@ -126,17 +140,17 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	}
 
 	// 2. (Re)Build repository files for existing packages
-	repositories, err := arch_model.GetRepositories(ctx, ownerID)
+	repositories, err := arch_model.GetTeamRepositories(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
 	for _, repository := range repositories {
-		architectures, err := arch_model.GetArchitectures(ctx, ownerID, repository)
+		architectures, err := arch_model.GetTeamArchitectures(ctx, ownerID, teamID, repository)
 		if err != nil {
 			return err
 		}
 		for _, architecture := range architectures {
-			if err := buildPackagesIndex(ctx, ownerID, pv, repository, architecture); err != nil {
+			if err := buildPackagesIndex(ctx, ownerID, teamID, pv, repository, architecture); err != nil {
 				return fmt.Errorf("failed to build repository files [%s/%s]: %w", repository, architecture, err)
 			}
 		}
@@ -145,9 +159,14 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	return nil
 }
 
-// BuildSpecificRepositoryFiles builds index files for the repository
+// BuildSpecificRepositoryFiles builds index files for the repository (team_id = 0)
 func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, repository, architecture string) error {
-	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
+	return BuildSpecificTeamRepositoryFiles(ctx, ownerID, 0, repository, architecture)
+}
+
+// BuildSpecificTeamRepositoryFiles builds index files for the team repository
+func BuildSpecificTeamRepositoryFiles(ctx context.Context, ownerID, teamID int64, repository, architecture string) error {
+	pv, err := GetOrCreateTeamRepositoryVersion(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
@@ -155,7 +174,7 @@ func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, repository
 	architectures := container.SetOf(architecture)
 	if architecture == arch_module.AnyArch {
 		// Update all other architectures too when updating the any index
-		additionalArchitectures, err := arch_model.GetArchitectures(ctx, ownerID, repository)
+		additionalArchitectures, err := arch_model.GetTeamArchitectures(ctx, ownerID, teamID, repository)
 		if err != nil {
 			return err
 		}
@@ -163,16 +182,17 @@ func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, repository
 	}
 
 	for architecture := range architectures {
-		if err := buildPackagesIndex(ctx, ownerID, pv, repository, architecture); err != nil {
+		if err := buildPackagesIndex(ctx, ownerID, teamID, pv, repository, architecture); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func searchPackageFiles(ctx context.Context, ownerID int64, repository, architecture string) ([]*packages_model.PackageFile, error) {
+func searchPackageFiles(ctx context.Context, ownerID, teamID int64, repository, architecture string) ([]*packages_model.PackageFile, error) {
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     ownerID,
+		TeamID:      optional.Some(teamID),
 		PackageType: packages_model.TypeArch,
 		Query:       "%.pkg.tar.%",
 		Properties: map[string]string{
@@ -186,14 +206,14 @@ func searchPackageFiles(ctx context.Context, ownerID int64, repository, architec
 	return pfs, nil
 }
 
-func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, repository, architecture string) error {
-	pfs, err := searchPackageFiles(ctx, ownerID, repository, architecture)
+func buildPackagesIndex(ctx context.Context, ownerID, teamID int64, repoVersion *packages_model.PackageVersion, repository, architecture string) error {
+	pfs, err := searchPackageFiles(ctx, ownerID, teamID, repository, architecture)
 	if err != nil {
 		return err
 	}
 	if architecture != arch_module.AnyArch {
 		// Add all any packages too
-		anyarchFiles, err := searchPackageFiles(ctx, ownerID, repository, arch_module.AnyArch)
+		anyarchFiles, err := searchPackageFiles(ctx, ownerID, teamID, repository, arch_module.AnyArch)
 		if err != nil {
 			return err
 		}

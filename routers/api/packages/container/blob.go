@@ -79,12 +79,12 @@ func mountBlob(ctx context.Context, pi *packages_service.PackageInfo, pb *packag
 	})
 }
 
-func containerGlobalLockKey(piOwnerID int64, piName, usage string) string {
-	return fmt.Sprintf("pkg_%d_container_%s_%s", piOwnerID, strings.ToLower(piName), usage)
+func containerGlobalLockKey(piOwnerID, piTeamID int64, piName, usage string) string {
+	return fmt.Sprintf("pkg_%d_%d_container_%s_%s", piOwnerID, piTeamID, strings.ToLower(piName), usage)
 }
 
 func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageInfo) (*packages_model.PackageVersion, error) {
-	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(pi.Owner.ID, pi.Name, "package"))
+	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(pi.Owner.ID, pi.TeamID(), pi.Name, "package"))
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +94,7 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 		created := true
 		p := &packages_model.Package{
 			OwnerID:   pi.Owner.ID,
+			TeamID:    pi.TeamID(),
 			Type:      packages_model.TypeContainer,
 			Name:      strings.ToLower(pi.Name),
 			LowerName: strings.ToLower(pi.Name),
@@ -108,7 +109,11 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 		}
 
 		if created {
-			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(pi.Owner.LowerName+"/"+pi.Name)); err != nil {
+			repoProp := strings.ToLower(pi.Owner.LowerName + "/" + pi.Name)
+			if pi.Team != nil {
+				repoProp = strings.ToLower(pi.Owner.LowerName + "/teams/" + pi.Team.LowerName + "/" + pi.Name)
+			}
+			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, repoProp); err != nil {
 				log.Error("Error setting package property: %v", err)
 				return nil, err
 			}
@@ -159,8 +164,8 @@ func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, p
 	return nil
 }
 
-func deleteBlob(ctx context.Context, ownerID int64, image string, digest digest.Digest) error {
-	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(ownerID, image, "blob"))
+func deleteBlob(ctx context.Context, ownerID, teamID int64, image string, digest digest.Digest) error {
+	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(ownerID, teamID, image, "blob"))
 	if err != nil {
 		return err
 	}
@@ -169,6 +174,7 @@ func deleteBlob(ctx context.Context, ownerID int64, image string, digest digest.
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		pfds, err := container_model.GetContainerBlobs(ctx, &container_model.BlobSearchOptions{
 			OwnerID: ownerID,
+			TeamID:  teamID,
 			Image:   image,
 			Digest:  string(digest),
 		})

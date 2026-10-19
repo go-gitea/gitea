@@ -936,6 +936,28 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}
 	}
 
+	registerPackageWebRoutes := func() {
+		m.Get("", user.ListPackages)
+		m.Group("/{type}/{name}", func() {
+			m.Get("", user.RedirectToLastVersion)
+			m.Get("/versions", user.ListPackageVersions)
+			m.Group("/{version}", func() {
+				m.Get("", user.ViewPackageVersion)
+				m.Post("", reqPackageAccess(perm.AccessModeWrite), user.PackageVersionDelete)
+				m.Get("/{version_sub}", user.ViewPackageVersion)
+				m.Group("/terraform", func() {
+					m.Post("/lock", user.ActionPackageTerraformLock)
+					m.Post("/unlock", user.ActionPackageTerraformUnlock)
+				}, reqPackageAccess(perm.AccessModeWrite))
+				m.Get("/files/{fileid}", user.DownloadPackageFile)
+			})
+		})
+		m.Group("/settings/{type}/{name}", func() {
+			m.Get("", user.PackageSettings)
+			m.Post("", web.Bind[*forms.PackageSettingForm](), user.PackageSettingsPost)
+		}, reqPackageAccess(perm.AccessModeWrite))
+	}
+
 	individualPermsChecker := func(ctx *context.Context) {
 		// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
 		if ctx.ContextUser.IsIndividual() {
@@ -993,6 +1015,16 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/teams/{team}/action/{action}", org.TeamsAction)
 			m.Post("/teams/{team}/action/repo/{action}", org.TeamsRepoAction)
 		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamMember: true}))
+
+		if setting.Packages.Enabled {
+			m.Group("/{org}/teams/{team}/packages", func() {
+				registerPackageWebRoutes()
+			}, context.OrgAssignment(context.OrgAssignmentOptions{}), func(ctx *context.Context) {
+				if ctx.Org.Organization != nil {
+					ctx.ContextUser = ctx.Org.Organization.AsUser()
+				}
+			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+		}
 
 		m.Group("/{org}", func() {
 			m.Get("/teams/-/search", org.SearchTeam)
@@ -1100,25 +1132,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/-", func() {
 		if setting.Packages.Enabled {
 			m.Group("/packages", func() {
-				m.Get("", user.ListPackages)
-				m.Group("/{type}/{name}", func() {
-					m.Get("", user.RedirectToLastVersion)
-					m.Get("/versions", user.ListPackageVersions)
-					m.Group("/{version}", func() {
-						m.Get("", user.ViewPackageVersion)
-						m.Post("", reqPackageAccess(perm.AccessModeWrite), user.PackageVersionDelete)
-						m.Get("/{version_sub}", user.ViewPackageVersion)
-						m.Group("/terraform", func() {
-							m.Post("/lock", user.ActionPackageTerraformLock)
-							m.Post("/unlock", user.ActionPackageTerraformUnlock)
-						}, reqPackageAccess(perm.AccessModeWrite))
-						m.Get("/files/{fileid}", user.DownloadPackageFile)
-					})
-				})
-				m.Group("/settings/{type}/{name}", func() {
-					m.Get("", user.PackageSettings)
-					m.Post("", web.Bind[*forms.PackageSettingForm](), user.PackageSettingsPost)
-				}, reqPackageAccess(perm.AccessModeWrite))
+				registerPackageWebRoutes()
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 

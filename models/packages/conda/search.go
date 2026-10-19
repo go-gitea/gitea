@@ -16,6 +16,7 @@ import (
 
 type FileSearchOptions struct {
 	OwnerID  int64
+	TeamID   int64
 	Channel  string
 	Subdir   string
 	Filename string
@@ -26,6 +27,7 @@ func SearchFiles(ctx context.Context, opts *FileSearchOptions) ([]*packages.Pack
 	var cond builder.Cond = builder.Eq{
 		"package.type":                packages.TypeConda,
 		"package.owner_id":            opts.OwnerID,
+		"package.team_id":             opts.TeamID,
 		"package_version.is_internal": false,
 	}
 

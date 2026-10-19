@@ -20,6 +20,7 @@ import (
 	rpm_model "gitea.dev/models/packages/rpm"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
 	rpm_module "gitea.dev/modules/packages/rpm"
 	packages_service "gitea.dev/services/packages"
@@ -29,10 +30,18 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
-// GetOrCreateRepositoryVersion gets or creates the internal repository package
-// The RPM registry needs multiple metadata files which are stored in this package.
+func init() {
+	packages_service.RegisterRepositoryRebuilder(packages_model.TypeRpm, BuildAllTeamRepositoryFiles)
+}
+
+// GetOrCreateRepositoryVersion gets or creates the internal repository package (team_id = 0)
 func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
-	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeRpm, rpm_module.RepositoryPackage, rpm_module.RepositoryVersion)
+	return GetOrCreateTeamRepositoryVersion(ctx, ownerID, 0)
+}
+
+// GetOrCreateTeamRepositoryVersion gets or creates the internal repository package for a team
+func GetOrCreateTeamRepositoryVersion(ctx context.Context, ownerID, teamID int64) (*packages_model.PackageVersion, error) {
+	return packages_service.GetOrCreateTeamInternalPackageVersion(ctx, ownerID, teamID, packages_model.TypeRpm, rpm_module.RepositoryPackage, rpm_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository metadata files
@@ -70,9 +79,14 @@ func generateKeypair() (string, string, error) {
 	return priv.String(), pub.String(), nil
 }
 
-// BuildAllRepositoryFiles (re)builds all repository files for every available group
+// BuildAllRepositoryFiles (re)builds all repository files for every available group (team_id = 0)
 func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
-	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
+	return BuildAllTeamRepositoryFiles(ctx, ownerID, 0)
+}
+
+// BuildAllTeamRepositoryFiles (re)builds all repository files for a team or owner
+func BuildAllTeamRepositoryFiles(ctx context.Context, ownerID, teamID int64) error {
+	pv, err := GetOrCreateTeamRepositoryVersion(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
@@ -90,12 +104,12 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	}
 
 	// 2. (Re)Build repository files for existing packages
-	groups, err := rpm_model.GetGroups(ctx, ownerID)
+	groups, err := rpm_model.GetTeamGroups(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
 	for _, group := range groups {
-		if err := BuildSpecificRepositoryFiles(ctx, ownerID, group); err != nil {
+		if err := BuildSpecificTeamRepositoryFiles(ctx, ownerID, teamID, group); err != nil {
 			return fmt.Errorf("failed to build repository files [%s]: %w", group, err)
 		}
 	}
@@ -132,15 +146,21 @@ type packageData struct {
 
 type packageCache = map[*packages_model.PackageFile]*packageData
 
-// BuildSpecificRepositoryFiles builds metadata files for the repository
+// BuildSpecificRepositoryFiles builds metadata files for the repository (team_id = 0)
 func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, group string) error {
-	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
+	return BuildSpecificTeamRepositoryFiles(ctx, ownerID, 0, group)
+}
+
+// BuildSpecificTeamRepositoryFiles builds metadata files for the team repository
+func BuildSpecificTeamRepositoryFiles(ctx context.Context, ownerID, teamID int64, group string) error {
+	pv, err := GetOrCreateTeamRepositoryVersion(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:      ownerID,
+		TeamID:       optional.Some(teamID),
 		PackageType:  packages_model.TypeRpm,
 		Query:        "%.rpm",
 		CompositeKey: group,

@@ -146,7 +146,7 @@ func createPackageSearchResponse(ctx context.Context, pds []*packages_model.Pack
 				Maintainers: []npm_module.User{}, // npm cli needs this field
 				Keywords:    metadata.Keywords,
 				Links: &npm_module.PackageSearchPackageLinks{
-					Registry: buildNpmRegistryURL(ctx, pd.Owner),
+					Registry: buildNpmRegistryURL(ctx, pd.RegistryRootPath()),
 					Homepage: metadata.ProjectURL,
 				},
 			},

@@ -6,7 +6,7 @@
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.generic.download"}}</label>
 				<div class="markup"><pre class="code-block"><code>
 {{- range .PackageDescriptor.Files -}}
-curl -OJ {{ctx.AppFullLink}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/generic/{{$.PackageDescriptor.Package.Name}}/{{$.PackageDescriptor.Version.Version}}/{{.File.Name}}
+curl -OJ {{ctx.AppFullLink}}/api/packages/{{$.PackageDescriptor.RegistryRootPath}}/generic/{{$.PackageDescriptor.Package.Name}}/{{$.PackageDescriptor.Version.Version}}/{{.File.Name}}
 {{end -}}
 				</code></pre></div>
 			</div>

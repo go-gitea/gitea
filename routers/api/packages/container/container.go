@@ -251,13 +251,13 @@ func PostBlobsUploads(ctx *context.Context) {
 			}
 
 			if accessible {
-				if err := mountBlob(ctx, &packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
+				if err := mountBlob(ctx, &packages_service.PackageInfo{Owner: ctx.Package.Owner, Team: ctx.Package.Team, Name: image}, blob.Blob); err != nil {
 					apiError(ctx, http.StatusInternalServerError, err)
 					return
 				}
 
 				writeResponseHeaders(ctx.Resp, &containerHeaders{
-					Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
+					Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.ContainerRootPath(), image, mount),
 					ContentDigest: mount,
 					Status:        http.StatusCreated,
 				})
@@ -285,6 +285,7 @@ func PostBlobsUploads(ctx *context.Context) {
 			&packages_service.PackageCreationInfo{
 				PackageInfo: packages_service.PackageInfo{
 					Owner: ctx.Package.Owner,
+					Team:  ctx.Package.Team,
 					Name:  image,
 				},
 				Creator: ctx.Doer,
@@ -300,7 +301,7 @@ func PostBlobsUploads(ctx *context.Context) {
 		}
 
 		writeResponseHeaders(ctx.Resp, &containerHeaders{
-			Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, digest),
+			Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.ContainerRootPath(), image, digest),
 			ContentDigest: digest,
 			Status:        http.StatusCreated,
 		})
@@ -314,7 +315,7 @@ func PostBlobsUploads(ctx *context.Context) {
 	}
 
 	writeResponseHeaders(ctx.Resp, &containerHeaders{
-		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, upload.ID),
+		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.ContainerRootPath(), image, upload.ID),
 		UploadUUID: upload.ID,
 		Status:     http.StatusAccepted,
 	})
@@ -337,7 +338,7 @@ func GetBlobsUpload(ctx *context.Context) {
 
 	// FIXME: undefined behavior when the uploaded content is empty: https://github.com/opencontainers/distribution-spec/issues/578
 	respHeaders := &containerHeaders{
-		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, upload.ID),
+		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.ContainerRootPath(), image, upload.ID),
 		UploadUUID: upload.ID,
 		Status:     http.StatusNoContent,
 	}
@@ -386,7 +387,7 @@ func PatchBlobsUpload(ctx *context.Context) {
 	}
 
 	respHeaders := &containerHeaders{
-		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, uploader.ID),
+		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.ContainerRootPath(), image, uploader.ID),
 		UploadUUID: uploader.ID,
 		Status:     http.StatusAccepted,
 	}
@@ -434,6 +435,7 @@ func PutBlobsUpload(ctx *context.Context) {
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner: ctx.Package.Owner,
+				Team:  ctx.Package.Team,
 				Name:  image,
 			},
 			Creator: ctx.Doer,
@@ -459,7 +461,7 @@ func PutBlobsUpload(ctx *context.Context) {
 	}
 
 	writeResponseHeaders(ctx.Resp, &containerHeaders{
-		Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, digest),
+		Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.ContainerRootPath(), image, digest),
 		ContentDigest: digest,
 		Status:        http.StatusCreated,
 	})
@@ -495,6 +497,7 @@ func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescri
 
 	return getExistingContainerBlob(ctx, &container_model.BlobSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
+		TeamID:  ctx.Package.TeamID(),
 		Image:   ctx.PathParam("image"),
 		Digest:  string(d),
 	})
@@ -543,7 +546,7 @@ func DeleteBlob(ctx *context.Context) {
 		return
 	}
 
-	if err := deleteBlob(ctx, ctx.Package.Owner.ID, ctx.PathParam("image"), d); err != nil {
+	if err := deleteBlob(ctx, ctx.Package.Owner.ID, ctx.Package.TeamID(), ctx.PathParam("image"), d); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -558,6 +561,7 @@ func PutManifest(ctx *context.Context) {
 	mci := &manifestCreationInfo{
 		MediaType: ctx.Req.Header.Get("Content-Type"),
 		Owner:     ctx.Package.Owner,
+		Team:      ctx.Package.Team,
 		Creator:   ctx.Doer,
 		Image:     ctx.PathParam("image"),
 		Reference: reference,
@@ -599,7 +603,7 @@ func PutManifest(ctx *context.Context) {
 	}
 
 	writeResponseHeaders(ctx.Resp, &containerHeaders{
-		Location:      fmt.Sprintf("/v2/%s/%s/manifests/%s", ctx.Package.Owner.LowerName, mci.Image, reference),
+		Location:      fmt.Sprintf("/v2/%s/%s/manifests/%s", ctx.Package.ContainerRootPath(), mci.Image, reference),
 		ContentDigest: digest,
 		Status:        http.StatusCreated,
 	})
@@ -608,6 +612,7 @@ func PutManifest(ctx *context.Context) {
 func getBlobSearchOptionsFromContext(ctx *context.Context) (*container_model.BlobSearchOptions, error) {
 	opts := &container_model.BlobSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
+		TeamID:     ctx.Package.TeamID(),
 		Image:      ctx.PathParam("image"),
 		IsManifest: true,
 	}
@@ -735,7 +740,7 @@ func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor, 
 func GetTagsList(ctx *context.Context) {
 	image := ctx.PathParam("image")
 
-	if _, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeContainer, image); err != nil {
+	if _, err := packages_model.GetTeamPackageByName(ctx, ctx.Package.Owner.ID, ctx.Package.TeamID(), packages_model.TypeContainer, image); err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiErrorDefined(ctx, errNameUnknown)
 		} else {
@@ -750,7 +755,7 @@ func GetTagsList(ctx *context.Context) {
 	}
 	last := ctx.FormTrim("last")
 
-	tags, err := container_model.GetImageTags(ctx, ctx.Package.Owner.ID, image, n, last)
+	tags, err := container_model.GetTeamImageTags(ctx, ctx.Package.Owner.ID, ctx.Package.TeamID(), image, n, last)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -768,11 +773,11 @@ func GetTagsList(ctx *context.Context) {
 		}
 		v.Add("last", tags[len(tags)-1])
 
-		ctx.Resp.Header().Set("Link", fmt.Sprintf(`</v2/%s/%s/tags/list?%s>; rel="next"`, ctx.Package.Owner.LowerName, image, v.Encode()))
+		ctx.Resp.Header().Set("Link", fmt.Sprintf(`</v2/%s/%s/tags/list?%s>; rel="next"`, ctx.Package.ContainerRootPath(), image, v.Encode()))
 	}
 
 	jsonResponse(ctx, http.StatusOK, TagList{
-		Name: strings.ToLower(ctx.Package.Owner.LowerName + "/" + image),
+		Name: strings.ToLower(ctx.Package.ContainerRootPath() + "/" + image),
 		Tags: tags,
 	})
 }

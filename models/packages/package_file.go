@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -137,6 +138,7 @@ func UpdateFile(ctx context.Context, pf *PackageFile, cols []string) error {
 // PackageFileSearchOptions are options for SearchXXX methods
 type PackageFileSearchOptions struct {
 	OwnerID       int64
+	TeamID        optional.Option[int64]
 	PackageType   Type
 	VersionID     int64
 	Query         string
@@ -153,12 +155,15 @@ func (opts *PackageFileSearchOptions) toConds() builder.Cond {
 
 	if opts.VersionID != 0 {
 		cond = cond.And(builder.Eq{"package_file.version_id": opts.VersionID})
-	} else if opts.OwnerID != 0 || (opts.PackageType != "" && opts.PackageType != "all") {
+	} else if opts.OwnerID != 0 || opts.TeamID.Has() || (opts.PackageType != "" && opts.PackageType != "all") {
 		var versionCond builder.Cond = builder.Eq{
 			"package_version.is_internal": false,
 		}
 		if opts.OwnerID != 0 {
 			versionCond = versionCond.And(builder.Eq{"package.owner_id": opts.OwnerID})
+		}
+		if opts.TeamID.Has() {
+			versionCond = versionCond.And(builder.Eq{"package.team_id": opts.TeamID.Value()})
 		}
 		if opts.PackageType != "" && opts.PackageType != "all" {
 			versionCond = versionCond.And(builder.Eq{"package.type": opts.PackageType})

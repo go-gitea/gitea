@@ -117,6 +117,9 @@ func (t *Team) CanNonMemberReadMeta(ctx context.Context, org, doer *user_model.U
 	case structs.VisibleTypePublic:
 		return HasOrgOrUserVisible(ctx, org, doer), nil
 	case structs.VisibleTypeLimited:
+		if doer == nil || doer.IsGhost() {
+			return false, nil
+		}
 		return IsOrganizationMember(ctx, t.OrgID, doer.ID)
 	default:
 		return false, nil

@@ -11,12 +11,14 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	container_model "gitea.dev/models/packages/container"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
 	container_module "gitea.dev/modules/packages/container"
 	notify_service "gitea.dev/services/notify"
@@ -31,11 +33,19 @@ import (
 type manifestCreationInfo struct {
 	MediaType  string
 	Owner      *user_model.User
+	Team       *org_model.Team
 	Creator    *user_model.User
 	Image      string
 	Reference  string
 	IsTagged   bool
 	Properties map[string]string
+}
+
+func (mci *manifestCreationInfo) TeamID() int64 {
+	if mci != nil && mci.Team != nil {
+		return mci.Team.ID
+	}
+	return 0
 }
 
 func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
@@ -58,7 +68,7 @@ func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packag
 	}
 
 	// .../container/manifest.go:453:createManifestBlob() [E] Error inserting package blob: Error 1062 (23000): Duplicate entry '..........' for key 'package_blob.UQE_package_blob_md5'
-	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(mci.Owner.ID, mci.Image, "manifest"))
+	releaser, err := globallock.Lock(ctx, containerGlobalLockKey(mci.Owner.ID, mci.TeamID(), mci.Image, "manifest"))
 	if err != nil {
 		return "", err
 	}
@@ -98,7 +108,7 @@ func handleCreateManifestResult(ctx context.Context, err error, mci *manifestCre
 }
 
 func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (manifestDigest string, errRet error) {
-	manifest, configDescriptor, metadata, err := container_service.ParseManifestMetadata(ctx, buf, mci.Owner.ID, mci.Image)
+	manifest, configDescriptor, metadata, err := container_service.ParseManifestMetadata(ctx, buf, mci.Owner.ID, mci.TeamID(), mci.Image)
 	if err != nil {
 		return "", err
 	}
@@ -120,6 +130,7 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 		for _, layer := range manifest.Layers {
 			pfd, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
 				OwnerID: mci.Owner.ID,
+				TeamID:  mci.TeamID(),
 				Image:   mci.Image,
 				Digest:  string(layer.Digest),
 			})
@@ -140,7 +151,7 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 			return err
 		}
 
-		uploadVersion, err := packages_model.GetInternalVersionByNameAndVersion(ctx, mci.Owner.ID, packages_model.TypeContainer, mci.Image, container_module.UploadVersion)
+		uploadVersion, err := packages_model.GetTeamInternalVersionByNameAndVersion(ctx, mci.Owner.ID, mci.TeamID(), packages_model.TypeContainer, mci.Image, container_module.UploadVersion)
 		if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
 			return err
 		}
@@ -190,6 +201,7 @@ func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *p
 
 			pfd, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
 				OwnerID:    mci.Owner.ID,
+				TeamID:     mci.TeamID(),
 				Image:      mci.Image,
 				Digest:     string(manifest.Digest),
 				IsManifest: true,
@@ -232,6 +244,7 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	created := true
 	p := &packages_model.Package{
 		OwnerID:   mci.Owner.ID,
+		TeamID:    mci.TeamID(),
 		Type:      packages_model.TypeContainer,
 		Name:      strings.ToLower(mci.Image),
 		LowerName: strings.ToLower(mci.Image),
@@ -246,7 +259,11 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	}
 
 	if created {
-		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(mci.Owner.LowerName+"/"+mci.Image)); err != nil {
+		repoProp := strings.ToLower(mci.Owner.LowerName + "/" + mci.Image)
+		if mci.Team != nil {
+			repoProp = strings.ToLower(mci.Owner.LowerName + "/teams/" + mci.Team.LowerName + "/" + mci.Image)
+		}
+		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, repoProp); err != nil {
 			log.Error("Error setting package property: %v", err)
 			return nil, fmt.Errorf("InsertProperty(PropertyRepository): %w", err)
 		}
@@ -397,6 +414,7 @@ func createManifestBlob(ctx context.Context, contentStore *packages_module.Conte
 
 	oldManifestFiles, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     mci.Owner.ID,
+		TeamID:      optional.Some(mci.TeamID()),
 		PackageType: packages_model.TypeContainer,
 		VersionID:   pv.ID,
 		Query:       container_module.ManifestFilename,

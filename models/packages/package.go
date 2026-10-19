@@ -191,6 +191,7 @@ func (pt Type) SVGName() string {
 type Package struct {
 	ID               int64  `xorm:"pk autoincr"`
 	OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	TeamID           int64  `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
 	RepoID           int64  `xorm:"INDEX"`
 	Type             Type   `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name             string `xorm:"NOT NULL"`
@@ -207,6 +208,7 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 
 	has, err := e.Where(builder.Eq{
 		"owner_id":   p.OwnerID,
+		"team_id":    p.TeamID,
 		"type":       p.Type,
 		"lower_name": p.LowerName,
 	}).Get(existing)
@@ -271,10 +273,16 @@ func UpdatePackageNameByID(ctx context.Context, ownerID int64, packageType Type,
 	return err
 }
 
-// GetPackageByName gets a package by name
+// GetPackageByName gets a package by name (excluding team-owned packages)
 func GetPackageByName(ctx context.Context, ownerID int64, packageType Type, name string) (*Package, error) {
+	return GetTeamPackageByName(ctx, ownerID, 0, packageType, name)
+}
+
+// GetTeamPackageByName gets a package by name for an owner and team
+func GetTeamPackageByName(ctx context.Context, ownerID, teamID int64, packageType Type, name string) (*Package, error) {
 	var cond builder.Cond = builder.Eq{
 		"package.owner_id":    ownerID,
+		"package.team_id":     teamID,
 		"package.type":        packageType,
 		"package.lower_name":  strings.ToLower(name),
 		"package.is_internal": false,
@@ -294,10 +302,16 @@ func GetPackageByName(ctx context.Context, ownerID int64, packageType Type, name
 	return p, nil
 }
 
-// GetPackagesByType gets all packages of a specific type
+// GetPackagesByType gets all packages of a specific type (excluding team-owned packages)
 func GetPackagesByType(ctx context.Context, ownerID int64, packageType Type) ([]*Package, error) {
+	return GetTeamPackagesByType(ctx, ownerID, 0, packageType)
+}
+
+// GetTeamPackagesByType gets all packages of a specific type for an owner and team
+func GetTeamPackagesByType(ctx context.Context, ownerID, teamID int64, packageType Type) ([]*Package, error) {
 	var cond builder.Cond = builder.Eq{
 		"package.owner_id":    ownerID,
+		"package.team_id":     teamID,
 		"package.type":        packageType,
 		"package.is_internal": false,
 	}
@@ -339,8 +353,34 @@ func (err ErrUserOwnPackages) Error() string {
 	return fmt.Sprintf("user still has ownership of packages [uid: %d]", err.UID)
 }
 
-// HasOwnerPackages tests if a user/org has accessible packages
+// HasOwnerPackages tests if a user/org has accessible packages (excluding team-owned packages)
 func HasOwnerPackages(ctx context.Context, ownerID int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Table("package_version").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Where(builder.Eq{
+			"package_version.is_internal": false,
+			"package.owner_id":            ownerID,
+			"package.team_id":             0,
+		}).
+		Exist(&PackageVersion{})
+}
+
+// HasTeamPackages tests if a team has accessible packages
+func HasTeamPackages(ctx context.Context, ownerID, teamID int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Table("package_version").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Where(builder.Eq{
+			"package_version.is_internal": false,
+			"package.owner_id":            ownerID,
+			"package.team_id":             teamID,
+		}).
+		Exist(&PackageVersion{})
+}
+
+// HasAnyPackages tests if an owner has any packages (including team-owned packages)
+func HasAnyPackages(ctx context.Context, ownerID int64) (bool, error) {
 	return db.GetEngine(ctx).
 		Table("package_version").
 		Join("INNER", "package", "package.id = package_version.package_id").

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
@@ -15,13 +16,43 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 )
 
-// Package contains owner, access mode and optional the package descriptor
+// Package contains owner, optional team, access mode and optional the package descriptor
 type Package struct {
 	Owner      *user_model.User
+	Team       *organization.Team
 	AccessMode perm.AccessMode
 	Descriptor *packages_model.PackageDescriptor
+}
+
+func (p *Package) TeamID() int64 {
+	if p.Team != nil {
+		return p.Team.ID
+	}
+	return 0
+}
+
+func (p *Package) RegistryRootPath() string {
+	if p.Team != nil {
+		return fmt.Sprintf("%s/teams/%s", url.PathEscape(p.Owner.Name), url.PathEscape(p.Team.LowerName))
+	}
+	return url.PathEscape(p.Owner.Name)
+}
+
+func (p *Package) ContainerRootPath() string {
+	if p.Team != nil {
+		return fmt.Sprintf("%s/teams/%s", p.Owner.LowerName, p.Team.LowerName)
+	}
+	return p.Owner.LowerName
+}
+
+func (p *Package) PackagesListWebLink() string {
+	if p.Team != nil {
+		return fmt.Sprintf("/org/%s/teams/%s/packages", url.PathEscape(p.Owner.LowerName), url.PathEscape(p.Team.LowerName))
+	}
+	return p.Owner.HomeLink() + "/-/packages"
 }
 
 type packageAssignmentCtx struct {
@@ -56,7 +87,26 @@ func PackageAssignmentAPI() func(ctx *APIContext) {
 
 func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Package {
 	pkgOwner := ctx.ContextUser
-	accessMode, err := determineAccessMode(ctx.Base, pkgOwner, ctx.Doer)
+	teamName := ctx.PathParam("team")
+	var pkgTeam *organization.Team
+	if teamName != "" {
+		if !pkgOwner.IsOrganization() {
+			errCb(http.StatusNotFound, "Owner is not an organization")
+			return nil
+		}
+		var err error
+		pkgTeam, err = organization.GetTeam(ctx, pkgOwner.ID, teamName)
+		if err != nil {
+			if errors.Is(err, util.ErrNotExist) || organization.IsErrTeamNotExist(err) {
+				errCb(http.StatusNotFound, fmt.Sprintf("GetTeam: %v", err))
+			} else {
+				errCb(http.StatusInternalServerError, fmt.Sprintf("GetTeam: %v", err))
+			}
+			return nil
+		}
+	}
+
+	accessMode, err := determineAccessMode(ctx.Base, pkgOwner, pkgTeam, ctx.Doer)
 	if err != nil {
 		errCb(http.StatusInternalServerError, fmt.Sprintf("determineAccessMode: %v", err))
 		return nil
@@ -64,6 +114,7 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 
 	pkg := &Package{
 		Owner:      pkgOwner,
+		Team:       pkgTeam,
 		AccessMode: accessMode,
 	}
 	packageType := ctx.PathParam("type")
@@ -74,12 +125,12 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 
 	version := ctx.PathParam("version")
 	if version != "" {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packages_model.Type(packageType), name, version)
+		pv, err := packages_model.GetTeamVersionByNameAndVersion(ctx, pkg.Owner.ID, pkg.TeamID(), packages_model.Type(packageType), name, version)
 		if err != nil {
 			if errors.Is(err, packages_model.ErrPackageNotExist) {
-				errCb(http.StatusNotFound, fmt.Sprintf("GetVersionByNameAndVersion: %v", err))
+				errCb(http.StatusNotFound, fmt.Sprintf("GetTeamVersionByNameAndVersion: %v", err))
 			} else {
-				errCb(http.StatusInternalServerError, fmt.Sprintf("GetVersionByNameAndVersion: %v", err))
+				errCb(http.StatusInternalServerError, fmt.Sprintf("GetTeamVersionByNameAndVersion: %v", err))
 			}
 			return pkg
 		}
@@ -90,12 +141,12 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 			return pkg
 		}
 	} else {
-		p, err := packages_model.GetPackageByName(ctx, pkg.Owner.ID, packages_model.Type(packageType), name)
+		p, err := packages_model.GetTeamPackageByName(ctx, pkg.Owner.ID, pkg.TeamID(), packages_model.Type(packageType), name)
 		if err != nil {
 			if errors.Is(err, packages_model.ErrPackageNotExist) {
-				errCb(http.StatusNotFound, fmt.Sprintf("GetPackageByName: %v", err))
+				errCb(http.StatusNotFound, fmt.Sprintf("GetTeamPackageByName: %v", err))
 			} else {
-				errCb(http.StatusInternalServerError, fmt.Sprintf("GetPackageByName: %v", err))
+				errCb(http.StatusInternalServerError, fmt.Sprintf("GetTeamPackageByName: %v", err))
 			}
 			return pkg
 		}
@@ -103,14 +154,18 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 		pkg.Descriptor = &packages_model.PackageDescriptor{
 			Package: p,
 			Owner:   pkg.Owner,
+			Team:    pkg.Team,
 		}
 	}
 
 	return pkg
 }
 
-func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.AccessMode, error) {
+func determineAccessMode(ctx *Base, pkgOwner *user_model.User, pkgTeam *organization.Team, doer *user_model.User) (perm.AccessMode, error) {
 	if !user_model.DoerTokenAllowsOwner(doer, pkgOwner) {
+		return perm.AccessModeNone, nil
+	}
+	if pkgTeam != nil && user_model.IsPublicOnlyDoer(doer) && !pkgTeam.IsPublic() {
 		return perm.AccessModeNone, nil
 	}
 	if user_model.DoerIsSiteAdminFullAccess(doer) {
@@ -125,8 +180,38 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 		return perm.AccessModeNone, nil
 	}
 
-	// TODO: ActionUser permission check
 	accessMode := perm.AccessModeNone
+	if pkgTeam != nil {
+		if doer != nil && !doer.IsGhost() {
+			isOrgOwner, err := organization.IsOrganizationOwner(ctx, pkgOwner.ID, doer.ID)
+			if err != nil {
+				return accessMode, err
+			}
+			if isOrgOwner {
+				return perm.AccessModeOwner, nil
+			}
+
+			isTeamMember, err := organization.IsTeamMember(ctx, pkgOwner.ID, pkgTeam.ID, doer.ID)
+			if err != nil {
+				return accessMode, err
+			}
+			if isTeamMember {
+				accessMode = pkgTeam.UnitAccessMode(ctx, unit.TypePackages)
+			}
+		}
+
+		if accessMode == perm.AccessModeNone {
+			canRead, err := pkgTeam.CanNonMemberReadMeta(ctx, pkgOwner, doer)
+			if err != nil {
+				return accessMode, err
+			}
+			if canRead {
+				accessMode = perm.AccessModeRead
+			}
+		}
+		return accessMode, nil
+	}
+
 	if pkgOwner.IsOrganization() {
 		org := organization.OrgFromUser(pkgOwner)
 
