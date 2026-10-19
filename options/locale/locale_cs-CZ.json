@@ -742,7 +742,6 @@
   "settings.delete_account_title": "Smazat uživatelský účet",
   "settings.delete_account_desc": "Jste si jisti, že chcete trvale smazat tento účet?",
   "settings.email_notifications.enable": "Povolit e-mailová oznámení",
-  "settings.email_notifications.onmention": "E-mail pouze při zmínce",
   "settings.email_notifications.disable": "Zakázat e-mailová oznámení",
   "settings.email_notifications.submit": "Nastavit předvolby e-mailu",
   "settings.email_notifications.andyourown": "A Vaše vlastní upozornění",

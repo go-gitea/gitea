@@ -927,7 +927,6 @@
   "settings.delete_account_title": "ユーザーアカウントの削除",
   "settings.delete_account_desc": "このユーザーアカウントを恒久的に削除してもよろしいですか？",
   "settings.email_notifications.enable": "メール通知有効",
-  "settings.email_notifications.onmention": "メンションのみメール通知",
   "settings.email_notifications.disable": "メール通知無効",
   "settings.email_notifications.submit": "メール設定を保存",
   "settings.email_notifications.andyourown": "自分に関する通知も含める",
