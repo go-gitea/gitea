@@ -20,6 +20,7 @@ var UI = struct {
 	FeedMaxCommitNum        int
 	FeedPagingNum           int
 	PackagesPagingNum       int
+	RepoFilesPagingNum      int
 	GraphMaxCommitNum       int
 	CodeCommentLines        int
 	ReactionMaxUserNum      int
@@ -90,6 +91,7 @@ var UI = struct {
 	FeedMaxCommitNum:        5,
 	FeedPagingNum:           20,
 	PackagesPagingNum:       20,
+	RepoFilesPagingNum:      200,
 	GraphMaxCommitNum:       100,
 	CodeCommentLines:        4,
 	ReactionMaxUserNum:      10,

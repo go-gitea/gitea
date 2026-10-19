@@ -42,6 +42,7 @@ func TestRepoView(t *testing.T) {
 	t.Run("ViewFileInRepo", testViewFileInRepo)
 	t.Run("BlameFileInRepo", testBlameFileInRepo)
 	t.Run("ViewRepoDirectory", testViewRepoDirectory)
+	t.Run("ViewRepoDirectoryPagination", testViewRepoDirectoryPagination)
 	t.Run("ViewRepoDirectoryReadme", testViewRepoDirectoryReadme)
 	t.Run("ViewRepoSymlink", testViewRepoSymlink)
 	t.Run("ViewRepoCitationPicksCFFCaseInsensitivelyThroughSymlink", testViewRepoCitationPicksCFFCaseInsensitivelyThroughSymlink)
@@ -297,6 +298,42 @@ func testViewRepoDirectory(t *testing.T) {
 	assert.Zero(t, description.Length())
 	assert.Zero(t, repoTopics.Length())
 	assert.Zero(t, repoSummary.Length())
+}
+
+func testViewRepoDirectoryPagination(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
+	defer test.MockVariableValue(&setting.UI.RepoFilesPagingNum, 2)()
+
+	session := loginUser(t, "user2")
+
+	// repo20 has 5 files (a, link_b, link_d, link_hi, link_link).
+	// With RepoFilesPagingNum = 2:
+	// Page 1 should contain 2 items and a pagination bar.
+	req := NewRequest(t, "GET", "/user2/repo20")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	files := htmlDoc.doc.Find("#repo-files-table .repo-file-cell.name")
+	assert.Equal(t, 2, files.Length())
+
+	pagination := htmlDoc.doc.Find(".pagination.menu")
+	assert.NotEmpty(t, pagination.Nodes)
+
+	// Page 2 should contain the next 2 items.
+	req = NewRequest(t, "GET", "/user2/repo20?page=2")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	files = htmlDoc.doc.Find("#repo-files-table .repo-file-cell.name")
+	assert.Equal(t, 2, files.Length())
+
+	// Page 3 should contain the remaining 1 item.
+	req = NewRequest(t, "GET", "/user2/repo20?page=3")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	files = htmlDoc.doc.Find("#repo-files-table .repo-file-cell.name")
+	assert.Equal(t, 1, files.Length())
 }
 
 // ensure that the all the different ways to find and render a README work
