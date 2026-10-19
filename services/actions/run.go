@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	act_model "gitea.dev/actionslib/pkg/model"
@@ -12,6 +13,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
@@ -167,8 +169,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		return err
 	}
 
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledConcurrencyJobs)
-	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
+	notifyAndEmitFinishedJobs(ctx, cancelledConcurrencyJobs)
 
 	// Post-commit kick: let the job emitter resolve jobs if needed
 	if needPostCommitEmit {
@@ -185,10 +186,14 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	id, job := workflowJob.Job()
 	needs := job.Needs()
 	isMatrixDeferred := jobparser.HasDeferredMatrix(job)
+	runsOnProblem := job.RunsOnProblem() // SetJob's encoding drops the node's null tag
 	if err := workflowJob.SetJob(id, job.EraseNeeds()); err != nil {
 		return nil, nil, false, err
 	}
-	payload, _ := workflowJob.Marshal()
+	payload, err := workflowJob.Marshal()
+	if err != nil {
+		return nil, nil, false, fmt.Errorf("insertRunJob: marshal job %q: %w", id, err)
+	}
 
 	isReusableWorkflowCaller := job.Uses != ""
 	status := util.Iif(runAttempt.Status == actions_model.StatusBlocked || run.NeedApproval, actions_model.StatusBlocked, actions_model.StatusWaiting)
@@ -238,9 +243,14 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	}
 
 	// a skipped job must neither cancel its group peers nor take a slot
-	invalidIf, err := decideJobIf(ctx, run, runAttempt, runJob, vars)
+	invalidErr, err := decideJobIf(ctx, run, runAttempt, runJob, vars)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("evaluate job if: %w", err)
+	}
+	invalidKey := "if"
+	if runsOnProblem != "" && runJob.Status.IsWaiting() && slots.available(runJob) {
+		invalidKey, invalidErr = "runs-on", errors.New(runsOnProblem)
+		runJob.Status, runJob.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
 	}
 
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
@@ -252,8 +262,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		}
 		runJob.RawConcurrency = string(rawConcurrency)
 
-		// the job emitter evaluates it for jobs with `needs`, a skipped job never takes part
-		if len(needs) == 0 && runJob.Status != actions_model.StatusSkipped {
+		// a job enters its group at its gate, ApproveRuns gates an approval-blocked one with this evaluation
+		if runJob.Status == actions_model.StatusWaiting && slots.available(runJob) || len(needs) == 0 && run.NeedApproval {
 			if err := EvaluateJobConcurrencyFillModel(ctx, run, runAttempt, runJob, vars, inputs); err != nil {
 				return nil, nil, false, fmt.Errorf("evaluate job concurrency: %w", err)
 			}
@@ -275,8 +285,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	if err := db.Insert(ctx, runJob); err != nil {
 		return nil, nil, false, err
 	}
-	if invalidIf != nil {
-		if err := upsertJobErrorSummary(ctx, runJob, "if", invalidIf); err != nil {
+	if invalidErr != nil {
+		if err := upsertJobErrorSummary(ctx, runJob, invalidKey, invalidErr); err != nil {
 			return nil, nil, false, err
 		}
 	}
@@ -287,8 +297,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		}
 	}
 
-	// the emitter resolves an expanded caller's children and a skipped job's dependents
-	return runJob, cancelledConcurrencyJobs, runJob.IsExpanded || runJob.Status == actions_model.StatusSkipped, nil
+	// the emitter resolves an expanded caller's children and a skipped or failed job's dependents
+	return runJob, cancelledConcurrencyJobs, runJob.IsExpanded || runJob.Status.In(actions_model.StatusSkipped, actions_model.StatusFailure), nil
 }
 
 func expandInlineReusableCaller(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, vars map[string]string) error {

@@ -35,7 +35,7 @@
 			{{template "repo/diff/whitespace_dropdown" .}}
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
-				<div id="diff-commit-select" data-merge-base="{{$.CompareInfo.CompareBase}}" data-issuelink="{{$.Issue.Link}}"
+				<div id="diff-commit-select" data-global-init="initDiffCommitSelect" data-merge-base="{{$.CompareInfo.CompareBase}}" data-issuelink="{{$.Issue.Link}}"
 					data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}"
 					data-text-filter-changes-by-commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
 					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
@@ -63,7 +63,7 @@
 	<div id="diff-container">
 		{{if $showFileTree}}
 			{{$.FileIconPoolHTML}}
-			<div id="diff-file-tree" class="tw-hidden not-mobile" data-locale="{{JsonUtils.EncodeToString (dict
+			<div id="diff-file-tree" data-global-init="initDiffFileTree" class="tw-hidden not-mobile" data-locale="{{JsonUtils.EncodeToString (dict
 				"filterFiles" (ctx.Locale.Tr "repo.diff.filter_files")
 				"filterFilesClear" (ctx.Locale.Tr "repo.diff.filter_files_clear")
 				"filterByFileExtension" (ctx.Locale.Tr "repo.diff.filter_by_file_extension")
@@ -86,7 +86,7 @@
 					</div>
 				{{end}}
 				<div id="diff-file-boxes">
-				{{range $i, $file := .Diff.Files}}
+				{{range $file := .Diff.Files}}
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 					{{$isImage:= $file.IsBlobTypeImage}}
 					{{$isCsv := $file.IsBlobTypeCsv}}
@@ -193,9 +193,9 @@
 								{{else if $file.Sections}}
 									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
 										{{if $.IsSplitStyle}}
-											{{template "repo/diff/section_split" dict "file" . "root" $}}
+											{{template "repo/diff/section_split" dict "file" $file}}
 										{{else}}
-											{{template "repo/diff/section_unified" dict "file" . "root" $}}
+											{{template "repo/diff/section_unified" dict "file" $file}}
 										{{end}}
 									</table>
 								{{else if $file.IsRenamed}}

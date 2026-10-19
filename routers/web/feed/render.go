@@ -12,7 +12,7 @@ import (
 // feed serves private repository content, mirroring checkDownloadTokenScope for
 // downloads. Returns false (and writes the response) when the token is denied.
 func checkRepoFeedTokenScope(ctx *context.Context) bool {
-	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	return !ctx.Written()
 }
 

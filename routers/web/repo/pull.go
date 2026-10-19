@@ -428,7 +428,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", ctx.Repo.Repository.Link(), headCommitID)
 
 	statusCheckData.ActionsStatuses = actions_module.GetCommitActionsStatusMap(ctx, commitStatuses) // fills status.Repo for GetRunsFromCommitStatuses below
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, ctx.Repo.Repository.ID, commitStatuses)
 	if err != nil {
 		log.Error("GetRunsFromCommitStatuses: %v", err)
 	}
@@ -1109,7 +1109,7 @@ func MergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	if err := pull_service.Merge(pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
@@ -1267,7 +1267,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
 		return
 	}
-	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)
+	validateRet := ValidateRepoMetasForCreateIssue(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}

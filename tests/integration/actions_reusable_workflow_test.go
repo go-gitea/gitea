@@ -405,8 +405,8 @@ jobs:
       from: 'consumer'
 `)
 
-			// Phase 1: no grant. The cross-repo read check fails, and NO ActionRun row gets persisted.
-			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumerRepo.ID}))
+			// Phase 1: no grant.
+			assertInvalidWorkflowRun(t, consumerRepo.ID, "cross-caller.yaml", "reusable workflow repository user2/reusable-lib-private does not exist or is not readable")
 			runner.fetchNoTask(t)
 
 			// Phase 2: user2 (libRepo owner) adds user4 (consumer owner) as a Collaborative Owner of libRepo.
@@ -418,7 +418,7 @@ jobs:
 			// Phase 3: trigger the workflow again
 			createRepoWorkflowFile(t, user4, user4Token, consumerRepo, "marker.txt", "trigger after grant")
 
-			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumerRepo.ID})
+			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumerRepo.ID, Index: 2})
 			crossJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "cross_job"})
 			assert.True(t, crossJob.IsReusableCaller)
 			assert.True(t, crossJob.IsExpanded)
@@ -484,8 +484,7 @@ jobs:
     uses: user2/reusable-lib-public-denied/.gitea/workflows/reusable_lib.yaml@main
 `)
 
-			// Denied: the cross-repo read check fails for the public caller, so NO ActionRun is persisted and no task is dispatched.
-			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumerRepo.ID}))
+			assertInvalidWorkflowRun(t, consumerRepo.ID, "cross-caller.yaml", "reusable workflow repository user2/reusable-lib-public-denied does not exist or is not readable")
 			runner.fetchNoTask(t)
 		})
 
@@ -563,35 +562,32 @@ jobs:
 			unittest.AssertNotExistsBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "util_consumer_job"})
 		})
 
-		t.Run("Missing callee file", func(t *testing.T) {
-			// A caller workflow references a callee path that does not exist in the repo.
-
-			apiRepo := createActionsTestRepo(t, user2Token, "caller-missing-callee", false)
-			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-
-			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
-				`name: Caller
-on: push
-jobs:
-  plain_job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'job'
-  call_missing:
-    uses: ./.gitea/workflows/does-not-exist.yml
-`)
-
-			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+		t.Run("Missing or invalid callee fails the run as an invalid workflow file", func(t *testing.T) {
+			for name, testCase := range map[string]struct{ callee, want string }{
+				"missing":    {"", "job call: read user2/caller-missing-callee@"},
+				"no-runs-on": {"on: workflow_call\njobs:\n  inner:\n    steps:\n      - run: echo\n", "job call: Error from called workflow ./.gitea/workflows/callee.yml: job inner: Required property is missing: runs-on"},
+			} {
+				apiRepo := createActionsTestRepo(t, user2Token, "caller-"+name+"-callee", false)
+				repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+				if testCase.callee != "" {
+					createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/callee.yml", testCase.callee)
+				}
+				createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
+					"on: push\njobs:\n  plain_job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n  call:\n    needs: plain_job\n    uses: ./.gitea/workflows/callee.yml\n")
+				assertInvalidWorkflowRun(t, repo.ID, "caller.yaml", testCase.want)
+			}
 		})
 
-		t.Run("Nested caller with missing callee fails with the error as summary instead of blocking", func(t *testing.T) {
-			// When the expansion hits a terminal error (e.g. missing callee), the emitter must fail the caller and let the run finish as failed, not retry the expansion forever.
-			apiRepo := createActionsTestRepo(t, user2Token, "nested-caller-missing-callee", false)
+		t.Run("Nested caller failing to expand fails with the error as summary instead of blocking", func(t *testing.T) {
+			// When the expansion hits a terminal error, the emitter must fail the caller and let the run finish as failed, not retry the expansion forever.
+			apiRepo := createActionsTestRepo(t, user2Token, "nested-caller-bad-callee", false)
 			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 
 			runner := newMockRunner()
 			runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/lib.yml",
+				"on:\n  workflow_call:\n    secrets:\n      token:\n        required: true\njobs:\n  inner:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n")
 			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
 				`name: Caller
 on: push
@@ -602,7 +598,7 @@ jobs:
       - run: echo 'job'
   bad_caller:
     needs: plain_job
-    uses: ./.gitea/workflows/does-not-exist.yml
+    uses: ./.gitea/workflows/lib.yml
 `)
 
 			plainTask := runner.fetchTask(t)
@@ -614,7 +610,7 @@ jobs:
 
 			runner.execTask(t, plainTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 
-			// The emitter now tries to expand bad_caller, hits the missing callee, and fails the caller.
+			// The emitter now tries to expand bad_caller, misses the required secret, and fails the caller.
 			badCaller := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: badCallerPre.ID})
 			assert.Equal(t, actions_model.StatusFailure, badCaller.Status)
 			// No children were inserted (the terminal error precedes the child inserts).
@@ -626,7 +622,7 @@ jobs:
 			runner.fetchNoTask(t) // no task scheduled for the failed caller; the run is not stuck
 			summary, err := actions_model.GetActionRunJobSummary(t.Context(), repo.ID, run.ID, badCaller.RunAttemptID, badCaller.ID, 0)
 			require.NoError(t, err)
-			assert.Contains(t, summary.Content, "does-not-exist.yml")
+			assert.Contains(t, summary.Content, "secret token is required, but not provided while calling")
 		})
 
 		t.Run("Fork PR with secrets: inherit does not leak base repo secrets", func(t *testing.T) {
@@ -911,7 +907,7 @@ jobs:
 			assert.Equal(t, actions_model.StatusSuccess, run.Status)
 		})
 
-		t.Run("No-needs caller if evaluated inline: false skips, true expands", func(t *testing.T) {
+		t.Run("No-needs callers: if evaluated inline, called job concurrency serializes them", func(t *testing.T) {
 			// A no-needs reusable-workflow caller is processed inline during InsertRun, where its own
 			// `if:` is now evaluated before expansion:
 			//   - a false `if:` skips the caller without inserting any children, and the skip is
@@ -928,6 +924,8 @@ on:
 jobs:
   inner:
     runs-on: ubuntu-latest
+    concurrency:
+      group: called-job
     steps:
       - run: echo inner
 `)
@@ -944,6 +942,9 @@ jobs:
 
   will_run:
     if: ${{ true }}
+    uses: ./.gitea/workflows/lib.yaml
+
+  will_run_too:
     uses: ./.gitea/workflows/lib.yaml
 
   after_skip:
@@ -970,13 +971,28 @@ jobs:
 			willRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "will_run"})
 			assert.True(t, willRun.IsReusableCaller)
 			assert.True(t, willRun.IsExpanded)
-			innerChild := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner"})
-			assert.Equal(t, willRun.ID, innerChild.ParentJobID)
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner", ParentJobID: willRun.ID})
 
 			afterSkip := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "after_skip"})
 			assert.Equal(t, actions_model.StatusSkipped, afterSkip.Status)
+
+			unittest.AssertCount(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner", Status: actions_model.StatusBlocked}, 1)
+			runner := newMockRunner()
+			runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+			runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+			runner.fetchTask(t)
 		})
 	})
+}
+
+func assertInvalidWorkflowRun(t *testing.T, repoID int64, workflowID, want string) {
+	t.Helper()
+	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repoID, WorkflowID: workflowID})
+	assert.Equal(t, actions_model.StatusFailure, run.Status)
+	assert.Zero(t, unittest.GetCount(t, &actions_model.ActionRunJob{RunID: run.ID}))
+	summary, err := actions_model.GetActionRunJobSummary(t.Context(), repoID, run.ID, run.LatestAttemptID, 0, 0)
+	require.NoError(t, err)
+	assert.Contains(t, summary.Content, want)
 }
 
 // token must belong to u (the commit identity) and have write access to repo. Reuse the caller's

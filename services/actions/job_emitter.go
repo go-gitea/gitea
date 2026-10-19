@@ -103,8 +103,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 			log.Error("re-emit run %d: %v", rid, err)
 		}
 	}
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, result.CancelledJobs)
-	EmitJobsIfReadyByJobs(result.CancelledJobs)
+	notifyAndEmitFinishedJobs(ctx, result.CancelledJobs)
 	if err := createCommitStatusesForJobsByRun(ctx, result.Jobs); err != nil {
 		return err
 	}
@@ -157,27 +156,23 @@ func findConcurrencyWaiterToWake(ctx context.Context, repoID, excludeRunID int64
 		return 0, nil
 	}
 
-	// The slot should be free before any waiter can proceed.
-	holderAttempts, holderJobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, repoID, concurrencyGroup, []actions_model.Status{actions_model.StatusRunning, actions_model.StatusCancelling})
-	if err != nil {
-		return 0, fmt.Errorf("find concurrency-group holders: %w", err)
-	}
-	if len(holderAttempts) > 0 || len(holderJobs) > 0 {
-		return 0, nil
-	}
-
-	cAttempts, cJobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, repoID, concurrencyGroup, []actions_model.Status{actions_model.StatusBlocked})
+	cAttempts, cJobs, err := actions_model.GetConcurrencyWaiters(ctx, repoID, concurrencyGroup)
 	if err != nil {
 		return 0, fmt.Errorf("find blocked concurrent runs: %w", err)
 	}
+	// the waiter's own gate decides, it ignores holders that are the waiter's own run or callers
 	for _, a := range cAttempts {
 		if a.RunID != excludeRunID {
-			return a.RunID, nil
+			if blocked, err := shouldBlockRunByConcurrency(ctx, a); err != nil || !blocked {
+				return a.RunID, err
+			}
 		}
 	}
 	for _, j := range cJobs {
 		if j.RunID != excludeRunID {
-			return j.RunID, nil
+			if blocked, err := shouldBlockJobByConcurrency(ctx, j); err != nil || !blocked {
+				return j.RunID, err
+			}
 		}
 	}
 	return 0, nil
@@ -366,13 +361,48 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 
 	result.UpdatedJobs = append(result.UpdatedJobs, resolver.matrixUpdatedJobs...)
-	// Caller and matrix expansion both insert Pending or Blocked jobs, which only a follow-up pass resolves.
+	hasFinishedCaller, err := reloadCallersFinishedByChildren(ctx, run.ID, resolver.jobMap, result.UpdatedJobs)
+	if err != nil {
+		return nil, err
+	}
+	// Only a follow-up pass resolves:
+	//   - the children a caller expansion inserted, or the dependents of a caller that failed to expand
+	//   - the siblings a matrix expansion inserted and the expanded job's dependents, or the dependents of a placeholder that failed to expand
+	//   - a job the deferred gate left Blocked
+	//   - the dependents of a caller finished by its children, which was still unfinished to the resolver
 	// Like the caller's children, matrix siblings are left out of result.Jobs and picked up there.
-	if expandedAnyCaller || resolver.matrixChanged {
+	if expandedAnyCaller || resolver.matrixChanged || resolver.gateDeferred || hasFinishedCaller {
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
 	}
 	result.CancelledJobs = append(result.CancelledJobs, resolver.cancelledJobs...)
 	return result, nil
+}
+
+// reloadCallersFinishedByChildren reloads the callers the children's cascade finished in this pass,
+// so this pass's commit statuses and run notification see the callers finished.
+// They are kept out of result.UpdatedJobs, so no workflow_job webhook is sent for them, as for callers finished through a runner.
+func reloadCallersFinishedByChildren(ctx context.Context, runID int64, jobMap map[int64]*actions_model.ActionRunJob, updatedJobs []*actions_model.ActionRunJob) (bool, error) {
+	hasFinishedCaller := false
+	checkedCallers := make(container.Set[int64])
+	finishedJobs := slices.Clone(updatedJobs)
+	for i := 0; i < len(finishedJobs); i++ {
+		child := finishedJobs[i]
+		caller := jobMap[child.ParentJobID]
+		if caller == nil || !child.Status.IsDone() || caller.Status.IsDone() || !checkedCallers.Add(caller.ID) {
+			continue
+		}
+		freshCaller, err := actions_model.GetRunJobByRunAndID(ctx, runID, caller.ID)
+		if err != nil {
+			return false, fmt.Errorf("reloadCallersFinishedByChildren: reload caller %d: %w", caller.ID, err)
+		}
+		if !freshCaller.Status.IsDone() {
+			continue
+		}
+		caller.Status, caller.Started, caller.Stopped = freshCaller.Status, freshCaller.Started, freshCaller.Stopped
+		finishedJobs = append(finishedJobs, caller)
+		hasFinishedCaller = true
+	}
+	return hasFinishedCaller, nil
 }
 
 func cancelFailedMatrixSiblings(ctx context.Context, jobs actions_model.ActionJobList) ([]*actions_model.ActionRunJob, error) {
@@ -413,6 +443,9 @@ type jobStatusResolver struct {
 	// matrixUpdatedJobs holds jobs whose status matrix expansion persisted itself, so they are
 	// notified like the ones the caller updates from the resolved status map.
 	matrixUpdatedJobs []*actions_model.ActionRunJob
+	// admittedGroups are the groups a job was admitted to in this pass, which the gate only sees in the database once the pass commits
+	admittedGroups []string
+	gateDeferred   bool
 }
 
 func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]string) *jobStatusResolver {
@@ -591,6 +624,14 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 			continue
 		}
 
+		if err := invalidRunsOn(actionRunJob); err != nil {
+			if err := upsertJobErrorSummary(ctx, actionRunJob, "runs-on", err); err != nil {
+				return nil, err
+			}
+			ret[id] = actions_model.StatusFailure
+			continue
+		}
+
 		// update concurrency and check whether the job can run now
 		if err := updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars); errors.Is(err, util.ErrInvalidArgument) {
 			if err := upsertJobErrorSummary(ctx, actionRunJob, "concurrency", err); err != nil {
@@ -602,12 +643,22 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 			log.Debug("updateConcurrencyEvaluationForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
 			continue
 		}
+		if actionRunJob.ConcurrencyGroup != "" && slices.Contains(r.admittedGroups, actionRunJob.ConcurrencyGroup) {
+			r.gateDeferred = true
+			continue
+		}
 
 		newStatus, cancelledJobs, err := PrepareToStartJobWithConcurrency(ctx, actionRunJob)
 		if err != nil {
-			log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
+			log.Error("PrepareToStartJobWithConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
 		} else {
 			r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
+			for _, cancelled := range cancelledJobs {
+				if sibling, ok := r.jobMap[cancelled.ID]; ok { // a sibling replaced here must not reach the gate again in this pass
+					sibling.Status = cancelled.Status
+					r.statuses[cancelled.ID] = cancelled.Status
+				}
+			}
 		}
 
 		if newStatus == actions_model.StatusWaiting && !slots.take(actionRunJob) {
@@ -616,6 +667,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 
 		if newStatus != actions_model.StatusBlocked {
 			ret[id] = newStatus
+			r.admittedGroups = append(r.admittedGroups, actionRunJob.ConcurrencyGroup)
 		}
 	}
 	return ret, nil

@@ -226,6 +226,7 @@ func TestPrepareRunAndInsert_MaxParallelStarvedSkipsConcurrency(t *testing.T) {
 
 	holder = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: holder.ID})
 	assert.Equal(t, actions_model.StatusRunning, holder.Status, "the starved job must not cancel the group holder")
+	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, Status: actions_model.StatusBlocked}).ConcurrencyGroup)
 }
 
 func Test_jobStatusResolver_MaxParallelStarvedSkipsConcurrency(t *testing.T) {

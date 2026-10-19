@@ -59,8 +59,8 @@ func prepareLoggerConfig(rootCfg ConfigProvider) {
 		sec.Key("logger.default.MODE").MustString(",") // FIXME: INI-MUST-SIDE-EFFECT
 	}
 
-	deprecatedSetting(rootCfg, "log", "ACCESS", "log", "logger.access.MODE", "1.21")
-	deprecatedSetting(rootCfg, "log", "ENABLE_ACCESS_LOG", "log", "logger.access.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "ACCESS", "log", "logger.access.MODE")
+	deprecatedSetting(rootCfg, "log", "ENABLE_ACCESS_LOG", "log", "logger.access.MODE")
 	if val := sec.Key("ACCESS").String(); val != "" {
 		sec.Key("logger.access.MODE").MustString(val) // FIXME: INI-MUST-SIDE-EFFECT
 	}
@@ -68,8 +68,8 @@ func prepareLoggerConfig(rootCfg ConfigProvider) {
 		sec.Key("logger.access.MODE").SetValue("")
 	}
 
-	deprecatedSetting(rootCfg, "log", "ROUTER", "log", "logger.router.MODE", "1.21")
-	deprecatedSetting(rootCfg, "log", "DISABLE_ROUTER_LOG", "log", "logger.router.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "ROUTER", "log", "logger.router.MODE")
+	deprecatedSetting(rootCfg, "log", "DISABLE_ROUTER_LOG", "log", "logger.router.MODE")
 	if val := sec.Key("ROUTER").String(); val != "" {
 		sec.Key("logger.router.MODE").MustString(val) // FIXME: INI-MUST-SIDE-EFFECT
 	}
@@ -81,8 +81,8 @@ func prepareLoggerConfig(rootCfg ConfigProvider) {
 		sec.Key("logger.router.MODE").SetValue("")
 	}
 
-	deprecatedSetting(rootCfg, "log", "XORM", "log", "logger.xorm.MODE", "1.21")
-	deprecatedSetting(rootCfg, "log", "ENABLE_XORM_LOG", "log", "logger.xorm.MODE", "1.21")
+	deprecatedSetting(rootCfg, "log", "XORM", "log", "logger.xorm.MODE")
+	deprecatedSetting(rootCfg, "log", "ENABLE_XORM_LOG", "log", "logger.xorm.MODE")
 	if val := sec.Key("XORM").String(); val != "" {
 		sec.Key("logger.xorm.MODE").MustString(val) // FIXME: INI-MUST-SIDE-EFFECT
 	}

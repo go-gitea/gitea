@@ -543,6 +543,9 @@ func TestPostProcess(t *testing.T) {
 		`Some text with <span class="emoji" data-alias="smile">😄</span> in the middle`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
 		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
+	test(
+		"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>",
+		"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>")
 
 	// special tags, GitHub's behavior, and for unclosed tags, output as text content as much as possible
 	test("<script>a", `&lt;script&gt;a`)
@@ -601,4 +604,19 @@ func TestIssue18471(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, `<a href="`+markup.TestAppURL+`org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
+}
+
+func TestRender_TeamMention(t *testing.T) {
+	// the "org" meta is lower-cased, see Repository.composeCommonMetas
+	metas := map[string]string{"user": "Org1", "repo": "repo1", "org": "org1", "teams": ",developers,"}
+	test := func(input, expected string) {
+		rctx := markup.NewTestRenderContext(markup.TestAppURL, metas).WithRelativePath("a.md")
+		buffer, err := testRenderString(rctx, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+	}
+	test("@org1/developers", `<p><a href="/org/org1/teams/developers" rel="nofollow">@org1/developers</a></p>`)
+	test("@Org1/Developers", `<p><a href="/org/Org1/teams/Developers" rel="nofollow">@Org1/Developers</a></p>`)
+	test("@org2/developers", `<p>@org2/developers</p>`)
+	test("@org1/testers", `<p>@org1/testers</p>`)
 }

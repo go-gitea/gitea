@@ -8,17 +8,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/user"
 	"gitea.dev/modules/util"
 )
-
-const IsWindows = runtime.GOOS == "windows"
 
 var (
 	// AppVer is the version of the current build of Gitea. It is set in main.go from main.Version.
@@ -52,7 +50,7 @@ func init() {
 // This check is ignored under Windows since SSH remote login is not the main
 // method to login on Windows.
 func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
-	if IsWindows || SSH.StartBuiltinServer {
+	if consts.IsWindows || SSH.StartBuiltinServer {
 		return "", true
 	}
 
@@ -119,6 +117,7 @@ func LoadCommonSettings() {
 func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	// a lot of logic depends on InstallLock value, so it must be loaded before any other settings
 	InstallLock = HasInstallLock(cfg)
+	applyDeprecatedKeys(cfg)
 
 	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)

@@ -108,6 +108,9 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		refName = git.RefNameFromBranch(ref)
 		runTargetCommit, err = gitRepo.GetBranchCommit(ctx, ref)
 	}
+	if err == nil && !git.IsReferenceExist(ctx, repo, refName.String()) { // the lookups also resolve a tag named like a missing branch
+		err = util.ErrNotExist
+	}
 	if err != nil {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("ref %q doesn't exist", ref),
@@ -140,7 +143,10 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return 0, err
 	}
 
-	if _, err := jobparser.ValidateWorkflowStatic(content); err != nil {
+	if _, err = jobparser.ValidateWorkflowStatic(content); err == nil {
+		err = validateCalledWorkflows(ctx, run, content)
+	}
+	if err != nil {
 		return 0, util.ErrorWrapTranslatable(util.NewInvalidArgumentErrorf("invalid workflow %q: %v", workflowID, err), "actions.runs.invalid_workflow_helper", err.Error())
 	}
 	workflow, err := jobparser.ReadWorkflow(content)

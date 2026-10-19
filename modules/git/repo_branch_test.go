@@ -102,10 +102,6 @@ func TestRepository_IsObjectExist(t *testing.T) {
 	require.NoError(t, err)
 	defer repo.Close()
 
-	// FIXME: Inconsistent behavior between gogit and nogogit editions
-	// See the comment of IsObjectExist in gogit edition for more details.
-	supportShortHash := !isGogit
-
 	tests := []struct {
 		name string
 		arg  string
@@ -129,7 +125,7 @@ func TestRepository_IsObjectExist(t *testing.T) {
 		{
 			name: "short commit hash",
 			arg:  "ce06481",
-			want: supportShortHash,
+			want: true,
 		},
 		{
 			name: "blob hash",
@@ -139,7 +135,7 @@ func TestRepository_IsObjectExist(t *testing.T) {
 		{
 			name: "short blob hash",
 			arg:  "153f451",
-			want: supportShortHash,
+			want: true,
 		},
 	}
 	for _, tt := range tests {
@@ -155,10 +151,6 @@ func TestRepository_IsReferenceExist(t *testing.T) {
 	require.NoError(t, err)
 	defer repo.Close()
 
-	// FIXME: Inconsistent behavior between gogit and nogogit editions
-	// See the comment of IsReferenceExist in gogit edition for more details.
-	supportBlobHash := !isGogit
-
 	tests := []struct {
 		name string
 		arg  string
@@ -187,12 +179,12 @@ func TestRepository_IsReferenceExist(t *testing.T) {
 		{
 			name: "blob hash",
 			arg:  "153f451b9ee7fa1da317ab17a127e9fd9d384310",
-			want: supportBlobHash,
+			want: true,
 		},
 		{
 			name: "short blob hash",
 			arg:  "153f451",
-			want: supportBlobHash,
+			want: true,
 		},
 	}
 	for _, tt := range tests {
