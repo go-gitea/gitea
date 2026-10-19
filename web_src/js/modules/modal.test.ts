@@ -3,7 +3,7 @@ import {hideModal, showModal} from './modal.ts';
 
 test('showModal closes by actions, backdrop and Escape unless approval is vetoed, and cleans up when closed', async () => {
   document.body.innerHTML = `
-    <div class="ui modal">
+    <div class="modal">
       <div class="header">Header <button type="button" class="close-modal"></button></div>
       <form class="content">
         <input name="text">
@@ -11,7 +11,7 @@ test('showModal closes by actions, backdrop and Escape unless approval is vetoed
       </form>
     </div>
   `;
-  const modal = document.querySelector<HTMLElement>('.ui.modal')!;
+  const modal = document.querySelector<HTMLElement>('.modal')!;
   const onHidden = vi.fn();
   let approve = false;
   showModal(modal, {onApprove: () => approve, onHidden});

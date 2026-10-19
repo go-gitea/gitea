@@ -125,7 +125,7 @@ test('shows current shortcuts with ? and closes with Escape or the close button'
 
   input.setAttribute('placeholder', '<b>Updated search</b>');
   press('?');
-  expect(document.querySelectorAll('.ui.modal')).toHaveLength(1);
+  expect(document.querySelectorAll('.modal')).toHaveLength(1);
   expect(modal.querySelector('.shortcut-list')!.textContent).toContain('<b>Updated search</b>');
   expect(modal.querySelector('.shortcut-list b')).toBeNull();
   expect(modal.querySelectorAll('.shortcut-list tr')).toHaveLength(3);

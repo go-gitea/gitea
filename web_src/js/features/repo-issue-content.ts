@@ -16,7 +16,7 @@ let i18nTextDeleteFromHistoryConfirm: string;
 
 async function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
   const elDetailDialog = createElementFromHTML(html`
-    <div class="ui modal content-history-detail-dialog">
+    <div class="modal content-history-detail-dialog">
       <div class="header flex-left-right">
         <div>${htmlRaw(itemTitleHtml)}</div>
         <div class="ui dropdown dialog-header-options tw-mx-4 tw-hidden">

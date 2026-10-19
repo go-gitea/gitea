@@ -101,7 +101,7 @@
 	</div>
 </div>
 
-<div class="ui small modal" id="delete-token">
+<div class="modal" id="delete-token">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "settings.access_token_deletion"}}
@@ -113,7 +113,7 @@
 </div>
 
 {{if not .IsBot}}
-	<div class="ui small modal" id="regenerate-token">
+	<div class="modal" id="regenerate-token">
 		<div class="header">
 			{{ctx.Locale.Tr "settings.access_token_regeneration"}}
 		</div>

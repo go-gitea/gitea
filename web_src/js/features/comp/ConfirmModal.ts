@@ -15,7 +15,7 @@ type ConfirmModalOptions = {
 export function createConfirmModal({header = '', content = '', confirmButtonColor = 'primary'}:ConfirmModalOptions = {}): HTMLElement {
   const headerHtml = header ? html`<div class="header">${header}</div>` : '';
   return createElementFromHTML(html`
-    <div class="ui g-modal-confirm modal">
+    <div class="modal">
       ${htmlRaw(headerHtml)}
       <div class="content">${content}</div>
       <div class="actions">

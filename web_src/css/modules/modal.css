@@ -1,4 +1,4 @@
-/* hosts a shown ".ui.modal", covers the viewport and scrolls a tall modal */
+/* hosts a shown ".modal", covers the viewport and scrolls a tall modal */
 .modal-dialog {
   width: auto;
   height: auto;
@@ -20,9 +20,7 @@
   animation: fadein 0.2s;
 }
 
-/* to keep the changes minimal and easy to revert or fine tune, the legacy classes
-like "small" and "mini" are still kept for the HTML elements, these can be cleaned up in the future */
-.ui.modal {
+.modal {
   display: none;
   text-align: left;
   background: var(--color-body);
@@ -39,17 +37,17 @@ like "small" and "mini" are still kept for the HTML elements, these can be clean
   min-width: min(800px, max(min(300px, 90vw), 30vw));
 }
 
-.ui.modal > :first-child {
+.modal > :first-child {
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
 }
 
-.ui.modal > :last-child {
+.modal > :last-child {
   border-bottom-left-radius: var(--border-radius);
   border-bottom-right-radius: var(--border-radius);
 }
 
-.ui.modal .close-modal {
+.modal .close-modal {
   cursor: pointer;
   position: absolute;
   top: 50%;
@@ -64,7 +62,7 @@ like "small" and "mini" are still kept for the HTML elements, these can be clean
   height: 1.5rem;
 }
 
-.ui.modal .close-modal::before {
+.modal .close-modal::before {
   content: "";
   display: block;
   width: 100%;
@@ -74,11 +72,11 @@ like "small" and "mini" are still kept for the HTML elements, these can be clean
   mask-size: cover;
 }
 
-.ui.modal .close-modal:hover {
+.modal .close-modal:hover {
   opacity: 1;
 }
 
-.ui.modal > .header {
+.modal > .header {
   display: block;
   position: relative;
   font-size: 18px;
@@ -93,8 +91,8 @@ like "small" and "mini" are still kept for the HTML elements, these can be clean
   border-top-right-radius: var(--border-radius);
 }
 
-.ui.modal > .content,
-.ui.modal form > .content {
+.modal > .content,
+.modal form > .content {
   display: block;
   width: 100%;
   font-size: 1em;
@@ -104,9 +102,9 @@ like "small" and "mini" are still kept for the HTML elements, these can be clean
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.ui.modal > .actions,
-.ui.modal .content + .actions,
-.ui.modal .content + form > .actions {
+.modal > .actions,
+.modal .content + .actions,
+.modal .content + form > .actions {
   background: var(--color-secondary-bg);
   padding: 1rem;
   border-top: 1px solid var(--color-secondary);
@@ -114,19 +112,19 @@ like "small" and "mini" are still kept for the HTML elements, these can be clean
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.modal-dialog > .ui.modal {
+.modal-dialog > .modal {
   display: block;
   margin-block: auto;
   animation: fadein 100ms ease-in-out;
 }
 
-.ui.modal .content > form > .actions,
-.ui.modal .content > .actions {
+.modal .content > form > .actions,
+.modal .content > .actions {
   padding-top: 1em;
   text-align: right;
 }
 
-.ui.modal .actions > .ui.button {
+.modal .actions > .ui.button {
   display: inline-flex;
   gap: var(--gap-inline);
   align-items: center;
@@ -135,7 +133,7 @@ like "small" and "mini" are still kept for the HTML elements, these can be clean
   margin-right: 0;
 }
 
-.ui.modal .actions > .ui.button.danger {
+.modal .actions > .ui.button.danger {
   display: block;
   width: 100%;
   margin: 0 auto;

@@ -35,7 +35,7 @@
 		</div>
 		<button type="button" id="register-webauthn" class="ui primary button">{{svg "octicon-key"}} {{ctx.Locale.Tr "settings.webauthn_register_key"}}</button>
 	</div>
-	<div class="ui small modal" id="rename-webauthn-nickname">
+	<div class="modal" id="rename-webauthn-nickname">
 		<div class="header">
 			{{svg "octicon-pencil"}}
 			{{ctx.Locale.Tr "rename"}}
@@ -49,7 +49,7 @@
 			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 		</form>
 	</div>
-	<div class="ui small modal" id="delete-registration">
+	<div class="modal" id="delete-registration">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.webauthn_delete_key"}}

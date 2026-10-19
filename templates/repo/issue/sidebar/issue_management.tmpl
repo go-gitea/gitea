@@ -24,7 +24,7 @@
 			{{svg "octicon-lock"}} {{ctx.Locale.Tr "repo.issues.lock"}}
 		{{end}}
 	</button>
-	<div class="ui tiny modal" id="lock-conversation">
+	<div class="modal" id="lock-conversation">
 		<div class="header">
 			{{if .Issue.IsLocked}}
 				{{ctx.Locale.Tr "repo.issues.unlock.title"}}
@@ -83,7 +83,7 @@
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "repo.issues.delete"}}
 	</button>
-	<div class="ui g-modal-confirm modal" id="sidebar-delete-issue">
+	<div class="modal" id="sidebar-delete-issue">
 		<div class="header">
 			{{if .Issue.IsPull}}
 				{{ctx.Locale.Tr "repo.pulls.delete.title"}}

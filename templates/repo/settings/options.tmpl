@@ -910,7 +910,7 @@
 
 {{if $.CanManagerDangerZone}}
 	{{if .Repository.IsMirror}}
-		<div class="ui small modal" id="convert-mirror-repo-modal">
+		<div class="modal" id="convert-mirror-repo-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "repo.settings.convert"}}
 			</div>
@@ -928,7 +928,7 @@
 		</div>
 	{{end}}
 	{{if .CanConvertFork}}
-		<div class="ui small modal" id="convert-fork-repo-modal">
+		<div class="modal" id="convert-fork-repo-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "repo.settings.convert_fork"}}
 			</div>
@@ -945,7 +945,7 @@
 			</div>
 		</div>
 	{{end}}
-	<div class="ui small modal" id="transfer-repo-modal">
+	<div class="modal" id="transfer-repo-modal">
 		<div class="header">
 			{{ctx.Locale.Tr "repo.settings.transfer"}}
 		</div>
@@ -965,7 +965,7 @@
 		</div>
 	</div>
 
-	<div class="ui small modal" id="delete-repo-modal">
+	<div class="modal" id="delete-repo-modal">
 		<div class="header">
 			{{ctx.Locale.Tr "repo.settings.delete"}}
 		</div>
@@ -987,7 +987,7 @@
 	</div>
 
 	{{if not .Repository.IsFork}}
-		<div class="ui small modal" id="visibility-repo-modal">
+		<div class="modal" id="visibility-repo-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "repo.visibility"}}
 			</div>
@@ -1035,7 +1035,7 @@
 	{{end}}
 
 	{{if .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeWiki}}
-	<div class="ui small modal" id="delete-wiki-modal">
+	<div class="modal" id="delete-wiki-modal">
 		<div class="header">
 			{{ctx.Locale.Tr "repo.settings.wiki_delete"}}
 		</div>
@@ -1055,7 +1055,7 @@
 	{{end}}
 
 	{{if not .Repository.IsMirror}}
-		<div class="ui g-modal-confirm modal" id="archive-repo-modal">
+		<div class="modal" id="archive-repo-modal">
 			<div class="header">
 				{{if .Repository.IsArchived}}
 					{{ctx.Locale.Tr "repo.settings.unarchive.header"}}

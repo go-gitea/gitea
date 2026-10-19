@@ -127,7 +127,7 @@
 	</div>
 
 	{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
-		<form id="issue-remove-dependency-confirm" class="ui g-modal-confirm modal form-fetch-action" method="post" action="{{.Issue.Link}}/dependency/delete">
+		<form id="issue-remove-dependency-confirm" class="modal form-fetch-action" method="post" action="{{.Issue.Link}}/dependency/delete">
 			<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.dependency.remove_header"}}</div>
 			<div class="content">
 				<input type="hidden" value="" name="removeDependencyID" class="remove-dependency-id">

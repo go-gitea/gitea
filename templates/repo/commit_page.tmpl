@@ -49,7 +49,7 @@
 										data-modal-cherry-pick-header="{{ctx.Locale.Tr "repo.commit.cherry-pick-header" (ShortSha .CommitID)}}"
 										data-modal-cherry-pick-content="{{ctx.Locale.Tr "repo.commit.cherry-pick-content"}}"
 										data-modal-cherry-pick-submit="{{ctx.Locale.Tr "repo.commit.cherry-pick"}}">{{ctx.Locale.Tr "repo.commit.cherry-pick"}}</div>
-									<div class="ui g-modal-confirm modal" id="cherry-pick-modal">
+									<div class="modal" id="cherry-pick-modal">
 										<div class="header">
 											<span id="cherry-pick-header"></span>
 										</div>
@@ -69,7 +69,7 @@
 											</form>
 										</div>
 									</div>
-									<div class="ui small modal" id="create-branch-modal">
+									<div class="modal" id="create-branch-modal">
 										<div class="header">
 											{{ctx.Locale.Tr "repo.branch.new_branch"}}
 										</div>
@@ -92,7 +92,7 @@
 											</form>
 										</div>
 									</div>
-									<div class="ui small modal" id="create-tag-modal">
+									<div class="modal" id="create-tag-modal">
 										<div class="header">
 											{{ctx.Locale.Tr "repo.tag.create_tag_operation"}}
 										</div>

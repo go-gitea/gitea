@@ -35,7 +35,7 @@
 			{{end}}
 
 			{{/* set time estimate modal */}}
-			<div class="ui mini modal" id="issue-time-set-estimate-modal">
+			<div class="modal" id="issue-time-set-estimate-modal">
 				<div class="header">{{ctx.Locale.Tr "repo.issues.time_estimate_set"}}</div>
 				<form method="post" class="ui form form-fetch-action" action="{{.Issue.Link}}/time_estimate">
 					<div class="content">
@@ -49,7 +49,7 @@
 			</div>
 
 			{{/* manually add time modal */}}
-			<div class="ui mini modal" id="issue-time-manually-add-modal">
+			<div class="modal" id="issue-time-manually-add-modal">
 				<div class="header">{{ctx.Locale.Tr "repo.issues.add_time_manually"}}</div>
 				<form method="post" class="ui form form-fetch-action" action="{{.Issue.Link}}/times/add">
 					<div class="content flex-text-block">

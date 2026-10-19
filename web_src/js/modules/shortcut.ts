@@ -72,7 +72,7 @@ function showShortcutHelp() {
   let modal = document.querySelector<HTMLElement>('#global-shortcut-help');
   if (!modal) {
     modal = createElementFromHTML<HTMLElement>(html`
-      <div id="global-shortcut-help" class="ui small modal">
+      <div id="global-shortcut-help" class="modal">
         <div class="header">
           Keyboard Shortcuts
           <button type="button" class="close-modal"></button>

@@ -37,7 +37,7 @@
 			</tbody>
 		</table>
 		{{template "base/paginate" .}}
-		<div class="ui g-modal-confirm modal" id="delete-lfs-object">
+		<div class="modal" id="delete-lfs-object">
 			<div class="header"></div>
 			<form class="content" method="post">
 				<p>{{ctx.Locale.Tr "repo.settings.lfs_delete_warning"}}</p>

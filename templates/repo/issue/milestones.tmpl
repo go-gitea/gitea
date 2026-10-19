@@ -92,7 +92,7 @@
 </div>
 
 {{if or .CanWriteIssues .CanWritePulls}}
-	<div class="ui small modal" id="repo-milestone-delete-modal">
+	<div class="modal" id="repo-milestone-delete-modal">
 		<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.milestones.deletion"}}</div>
 		<div class="content"><p>{{ctx.Locale.Tr "repo.milestones.deletion_desc"}}</p></div>
 		{{template "base/modal_actions_confirm" .}}
