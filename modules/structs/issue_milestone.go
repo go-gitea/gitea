@@ -54,6 +54,6 @@ type EditMilestoneOption struct {
 	// State indicates the updated state of the milestone
 	// enum: ["open","closed"]
 	State *string `json:"state"`
-	// Deadline is the updated due date for the milestone
+	// Deadline is the updated due date for the milestone, the existing one is kept if omitted, use "1970-01-01T00:00:00Z" to remove it
 	Deadline *time.Time `json:"due_on"`
 }

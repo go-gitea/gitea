@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	issues_model "gitea.dev/models/issues"
@@ -41,12 +42,26 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	apiMilestone := DecodeJSON(t, resp, &structs.Milestone{})
 	assert.EqualValues(t, "closed", apiMilestone.State)
+	// the due date is kept when the request doesn't contain one
+	if assert.NotNil(t, apiMilestone.Deadline) {
+		assert.Equal(t, milestone.DeadlineUnix.AsTime().Unix(), apiMilestone.Deadline.Unix())
+	}
 
 	req = NewRequest(t, "GET", urlStr).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiMilestone2 := DecodeJSON(t, resp, &structs.Milestone{})
 	assert.EqualValues(t, "closed", apiMilestone2.State)
+	assert.NotNil(t, apiMilestone2.Deadline)
+
+	// the Unix epoch removes the due date
+	req = NewRequestWithJSON(t, "PATCH", urlStr, structs.EditMilestoneOption{
+		Deadline: new(time.Unix(0, 0).UTC()),
+	}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiMilestone = DecodeJSON(t, resp, &structs.Milestone{})
+	assert.Nil(t, apiMilestone.Deadline)
+	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: milestone.ID}).DeadlineUnix)
 
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/milestones", owner.Name, repo.Name), structs.CreateMilestoneOption{
 		Title:       "wow",

@@ -214,7 +214,11 @@ func EditMilestone(ctx *context.APIContext) {
 	if form.Description != nil {
 		milestone.Content = *form.Description
 	}
-	milestone.DeadlineUnix = common.ParseAPIDeadlineToEndOfDay(form.Deadline)
+	// keep the existing due date when the request doesn't contain one,
+	// a zero time (or the Unix epoch) removes it
+	if form.Deadline != nil {
+		milestone.DeadlineUnix = common.ParseAPIDeadlineToEndOfDay(form.Deadline)
+	}
 
 	oldIsClosed := milestone.IsClosed
 	if form.State != nil {
