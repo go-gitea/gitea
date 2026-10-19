@@ -87,6 +87,10 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 	require.NoError(t, err)
 	mergeBase, err := headCommit.ParentID(0)
 	require.NoError(t, err)
+	mergeBaseCommit, err := gitRepo.GetCommit(ctx, mergeBase.String())
+	require.NoError(t, err)
+	lineCommitID, err := mergeBaseCommit.ParentID(0)
+	require.NoError(t, err)
 	pr.MergeBase = mergeBase.String()
 	require.NoError(t, pr.UpdateCols(ctx, "merge_base"))
 
@@ -100,9 +104,15 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
 			require.NoError(t, issue.LoadRepo(ctx))
-			comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, c.line, "test", treePath, true, 0, headCommit.ID.String(), nil)
+			comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, c.line, "test", treePath, true, 0, "", nil)
 			require.NoError(t, err)
 			assert.True(t, strings.HasSuffix(comment.Patch, "\n old 10\n"), "patch: %q", comment.Patch)
+			if c.line > 0 {
+				assert.Equal(t, lineCommitID.String(), comment.CommitSHA)
+				require.NoError(t, pull_service.InvalidateCodeComments(ctx, issues_model.PullRequestList{pr}, pr.BaseRepo, headRef))
+				comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID})
+				assert.False(t, comment.Invalidated)
+			}
 		})
 	}
 }

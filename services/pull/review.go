@@ -51,7 +51,7 @@ var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or 
 // If the line got changed the comment is going to be invalidated.
 func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *repo_model.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
-	commitID, err := git.LineBlame(ctx, repo, branch, c.TreePath, uint(c.UnsignedLine()))
+	commitID, err := git.LineBlameCommitID(ctx, repo, branch, c.TreePath, uint(c.UnsignedLine()))
 	if isErrBlameInvalidated(err) {
 		c.Invalidated = true
 		return issues_model.UpdateCommentInvalidate(ctx, c)
@@ -225,10 +225,11 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			} else {
 				// otherwise, try to get the commitID from the review itself
 				review, err := issues_model.GetReviewByID(ctx, reviewID)
+				if err != nil && !errors.Is(err, util.ErrNotExist) {
+					return nil, fmt.Errorf("createCodeComment: get review %d: %w", reviewID, err)
+				}
 				if review != nil && review.CommitID != "" {
 					headRef = review.CommitID
-				} else if !errors.Is(err, util.ErrNotExist) {
-					return nil, fmt.Errorf("GetReviewByID %d: %w", reviewID, err)
 				}
 			}
 		}
@@ -236,7 +237,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		if commitID == "" {
 			// FIXME validate treePath (TODO: unclear comment)
 			// Get latest commit referencing the commented line, error can be ignored then the head commit will be used as fallback
-			commitID, err = git.LineBlame(ctx, pr.BaseRepo, headRef, treePath, uint(line))
+			commitID, err = git.LineBlameCommitID(ctx, pr.BaseRepo, headRef, treePath, uint(line))
 			if err != nil {
 				log.Debug("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitHeadRefName(), gitRepo.LogString(), treePath, line, err)
 			}
