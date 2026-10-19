@@ -59,7 +59,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	if ctx.Written() {
 		return
 	}
@@ -148,7 +148,7 @@ func PostLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
+	context.CheckRepoScopedToken(ctx, auth_model.Write)
 	if ctx.Written() {
 		return
 	}
@@ -213,7 +213,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	if ctx.Written() {
 		return
 	}
@@ -281,7 +281,7 @@ func UnLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
+	context.CheckRepoScopedToken(ctx, auth_model.Write)
 	if ctx.Written() {
 		return
 	}
