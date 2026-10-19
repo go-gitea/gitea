@@ -50,6 +50,7 @@ var (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
+	status = helper.ErrorStatus(status, obj)
 	message := helper.ProcessErrorForUser(ctx, status, obj)
 	// Maven client doesn't present the error message to end users; site admin can check the server logs that outputted by ProcessErrorForUser
 	ctx.PlainText(status, message)
