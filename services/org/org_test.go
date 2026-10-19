@@ -4,14 +4,17 @@
 package org
 
 import (
+	"errors"
 	"testing"
 
+	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -87,4 +90,39 @@ func TestOrg(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &repo_model.Watch{UserID: watcher.ID, RepoID: repo.ID})
 		unittest.AssertNotExistsBean(t, &repo_model.Star{UID: watcher.ID, RepoID: repo.ID})
 	})
+}
+
+func TestSetOrganizationArchived(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	_, err := db.GetEngine(ctx).ID(32).Cols("is_archived", "archived_unix").
+		Update(&repo_model.Repository{IsArchived: true, ArchivedUnix: 1})
+	require.NoError(t, err)
+
+	err = SetOrganizationArchived(ctx, org, true)
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	errHasMirrors, ok := errors.AsType[ErrOrgHasMirrors](err)
+	require.True(t, ok)
+	assert.Equal(t, []string{"repo5"}, errHasMirrors.Mirrors)
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).IsArchived)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: false})
+
+	_, err = db.GetEngine(ctx).ID(5).Cols("is_mirror").Update(&repo_model.Repository{IsMirror: false})
+	require.NoError(t, err)
+	require.NoError(t, SetOrganizationArchived(ctx, org, true))
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).IsArchived)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: true})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5, IsArchived: true})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32, IsArchived: true, ArchivedUnix: 1})
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	_, err = repo_service.CreateRepositoryDirectly(ctx, doer, org.AsUser(), repo_service.CreateRepoOptions{Name: "new-repo"}, false)
+	assert.ErrorIs(t, err, util.ErrPermissionDenied)
+
+	require.NoError(t, SetOrganizationArchived(ctx, org, false))
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).IsArchived)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: true})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32, IsArchived: true, ArchivedUnix: 1})
 }

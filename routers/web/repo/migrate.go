@@ -94,6 +94,8 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error)
 		ctx.JSONErrorWithField(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), "repo_name")
 	case errors.As(err, &errNamePatternNotAllowed):
 		ctx.JSONErrorWithField(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), "repo_name")
+	case errors.Is(err, util.ErrPermissionDenied):
+		ctx.JSONError(ctx.Tr("org.settings.archived_create_repo_not_allowed"))
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
 		if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {

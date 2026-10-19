@@ -6,6 +6,7 @@
 				<span class="tw-text-2xl">{{.Org.DisplayName}}</span>
 				{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
 				{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
+				{{if .Org.IsArchived}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>{{end}}
 			</div>
 			<div class="flex-text-block">
 				{{if .EnableFeed}}

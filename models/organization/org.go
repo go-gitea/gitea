@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -262,6 +263,16 @@ func FindOrgMembers(ctx context.Context, opts *FindOrgMembersOpts) (user_model.U
 // AsUser returns the org as user object
 func (org *Organization) AsUser() *user_model.User {
 	return (*user_model.User)(org)
+}
+
+// SetArchiveOrgState sets if an organization is archived
+func SetArchiveOrgState(ctx context.Context, org *Organization, isArchived bool) error {
+	org.IsArchived = isArchived
+	org.ArchivedUnix = 0
+	if isArchived {
+		org.ArchivedUnix = timeutil.TimeStampNow()
+	}
+	return user_model.UpdateUserColsNoAutoTime(ctx, org.AsUser(), "is_archived", "archived_unix")
 }
 
 // DisplayName returns full name if it's not empty,

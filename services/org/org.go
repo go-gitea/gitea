@@ -6,6 +6,7 @@ package org
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
@@ -24,6 +25,8 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
+
+	"xorm.io/builder"
 )
 
 // deleteOrganization deletes models associated to an organization.
@@ -189,6 +192,70 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 	audit.Record(ctx, audit_model.OrganizationVisibility, org.AsUser(),
 		"old_visibility", oldVisibility.String(), "new_visibility", visibility.String())
 
+	return nil
+}
+
+// ErrOrgHasMirrors is returned when archiving an organization that still owns pull mirrors
+type ErrOrgHasMirrors struct {
+	Mirrors []string
+}
+
+func (e ErrOrgHasMirrors) Error() string {
+	return "organization has mirror repositories: " + strings.Join(e.Mirrors, ", ")
+}
+
+func (e ErrOrgHasMirrors) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
+// GetMirrorNames returns the names of the pull mirrors owned by the organization
+func GetMirrorNames(ctx context.Context, orgID int64) ([]string, error) {
+	var names []string
+	return names, db.GetEngine(ctx).Table("repository").Where(builder.Eq{"owner_id": orgID, "is_mirror": true}).
+		Asc("lower_name").Cols("name").Find(&names)
+}
+
+// SetOrganizationArchived archives the organization and its repositories; unarchiving leaves the repositories archived
+func SetOrganizationArchived(ctx context.Context, org *org_model.Organization, archived bool) error {
+	var repos []*repo_model.Repository
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if archived {
+			mirrors, err := GetMirrorNames(ctx, org.ID)
+			if err != nil {
+				return err
+			}
+			if len(mirrors) > 0 {
+				return ErrOrgHasMirrors{Mirrors: mirrors}
+			}
+		}
+		if err := org_model.SetArchiveOrgState(ctx, org, archived); err != nil {
+			return err
+		}
+		if !archived {
+			return nil
+		}
+		if err := db.GetEngine(ctx).Where(builder.Eq{"owner_id": org.ID, "is_archived": false}).Find(&repos); err != nil {
+			return err
+		}
+		for _, repo := range repos {
+			if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if !archived {
+		audit.Record(ctx, audit_model.OrganizationUnarchive, org.AsUser())
+		return nil
+	}
+	audit.Record(ctx, audit_model.OrganizationArchive, org.AsUser())
+	for _, repo := range repos {
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+		audit.Record(ctx, audit_model.RepositoryArchive, repo)
+	}
 	return nil
 }
 
