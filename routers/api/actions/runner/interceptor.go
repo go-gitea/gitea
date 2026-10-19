@@ -16,7 +16,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

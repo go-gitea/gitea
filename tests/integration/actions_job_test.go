@@ -27,7 +27,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	actions_service "gitea.dev/services/actions"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

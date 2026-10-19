@@ -12,7 +12,7 @@ import (
 	"gitea.dev/actionslib/ping/v1/pingv1connect"
 	"gitea.dev/modules/log"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 )
 
 func NewPingServiceHandler() (string, http.Handler) {
