@@ -293,6 +293,11 @@ func NotificationSubscriptions(ctx *context.Context) {
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
 	}
+	ctx.Data["HiddenHeadRepoIssueIDs"], err = pull_service.GetHiddenHeadRepoIssueIDs(ctx, ctx.Doer, issues)
+	if err != nil {
+		ctx.ServerError("GetHiddenHeadRepoIssueIDs", err)
+		return
+	}
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["Issues"] = issues

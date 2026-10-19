@@ -451,13 +451,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout)
 
-		_, _, err = gitcmd.NewCommand("branch", "unrelated").
-			AddDynamicArguments(commitSha).
-			WithRepo(repo1).
-			RunStdString(t.Context())
-		assert.NoError(t, err)
-
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "unrelated", "README.md", "Hello, World (Edited Once)\n")
 
 		// Use API to create a conflicting pr
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -467,6 +461,12 @@ func TestCantMergeUnrelated(t *testing.T) {
 			Title: "create an unrelated pr",
 		}).AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusCreated)
+
+		assert.NoError(t, git.UpdateRef(t.Context(), repo1, git.BranchPrefix+"unrelated", commitSha))
+		session.MakeRequest(t, NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user1/repo1/pulls", &api.CreatePullRequestOption{
+			Head: "unrelated", Base: "base", Title: "create an unrelated pr",
+		}).AddTokenAuth(token), http.StatusUnprocessableEntity)
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user1/repo1/compare/master..unrelated", map[string]string{"title": "create an unrelated pr"}), http.StatusBadRequest)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
