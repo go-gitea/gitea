@@ -29,6 +29,8 @@ BLOCKED_DOMAINS = gitlab.com`: {"10.0.0.0/8", "evil.com", "lax", ""},
 EGRESS_MODE = lax`: {"github.com:*", "", "lax", ""},
 		`ALLOWED_HOST_LIST = example.com
 ALLOWED_INTERNAL_RANGES = 10.0.0.0/8, cgnat`: {"example.com", "", "lax", "10.0.0.0/8, cgnat"},
+		// an invalid block entry is logged and dropped, startup continues
+		`BLOCKED_HOST_LIST = 10.0.0.5/8`: {"", "10.0.0.5/8", "lax", ""},
 	} {
 		cfg, err := NewConfigProviderFromData("[migrations]\n" + ini)
 		require.NoError(t, err)
