@@ -91,7 +91,7 @@ So `ALLOWED_HOST_LIST = ci.internal.example.com` with `ALLOWED_INTERNAL_RANGES =
 
 Security notes:
 
-- The setting widens **every** hostname entry in the section, including entries listed for public hosts. At startup Gitea logs how many hostname entries may now reach restricted targets.
+- The setting widens **every** hostname entry in the section, including entries listed for public hosts. At startup Gitea logs how many hostname entries may now reach restricted targets, including the effective `[webhook]` allow list when it overrides `[security]`'s.
 - The ranges are the trust boundary for the listed domains' DNS: an expired, re-registered or hijacked listed domain can reach any IP within the ranges. Keep them narrow (`10.0.0.0/8`, not `private`).
 - A startup warning fires when a configured range overlaps metadata-bearing ranges (`169.254.0.0/16`, `100.64.0.0/10`, `fc00::/7`).
 - Behind a proxy the target is not dialed locally, so the range is not enforced — the proxy must enforce it.
@@ -142,11 +142,11 @@ Rejected: `*` (catch-all hostname), `0.0.0.0/0` / `::/0` (catch-all CIDR), `exte
 
 **Proxy caveat**: when a proxy is configured, the egress policy does not IP-check the target — the dial goes to the proxy and the proxy is expected to enforce restrictions. Hostname block screening still runs for the webhook-specific proxy case. This is a trust delegation, not enforcement.
 
-**Upgrade note**: restricted targets are denied by default, so existing webhooks, migrations and remotes pointing at internal hosts start failing after upgrade until they are allow-listed (via an IP entry or `ALLOWED_INTERNAL_RANGES`). Hostname entries match the exact host only — previously an apex entry covered subdomains (`NO_PROXY`-style); add `*.example.com` to keep subdomain coverage. Deprecated `BLOCKED_DOMAINS` entries the stricter parser rejects (host-bit CIDRs, `*`, glob patterns, `external`) fail startup until fixed — invalid block entries are fatal by design, and the error names the key the value came from. Documented as a breaking change.
+**Upgrade note**: restricted targets are denied by default, so existing webhooks, migrations and remotes pointing at internal hosts start failing after upgrade until they are allow-listed (via an IP entry or `ALLOWED_INTERNAL_RANGES`). Hostname entries match the exact host only — previously an apex entry covered subdomains (`NO_PROXY`-style); add `*.example.com` to keep subdomain coverage. Deprecated `BLOCKED_DOMAINS` entries the stricter parser rejects (host-bit CIDRs, `*`, glob patterns, `external`) are logged and dropped at startup — the valid entries still apply — and the message names the key the value came from. Documented as a breaking change.
 
 ## Implementation Notes
 
-- Settings are loaded once at startup and immutable until restart. Invalid entries are rejected at parse time; `Rejected()` returns them. At startup, `checkHostList()` logs invalid entries — invalid **block** entries are fatal.
+- Settings are loaded once at startup and immutable until restart. Invalid entries are rejected at parse time; `Rejected()` returns them. At startup, `checkHostList()` logs invalid and never-matching entries; dropped entries are logged, startup continues.
 - Denial errors state the reason and name the offending setting: the matching reserved range, the matched block entry, or the missing allow entry (e.g. `check your migrations.ALLOWED_HOST_LIST setting`). `ErrDenied` wraps dial-time rejections so callers can use `errors.Is`.
 - Scheme default ports: targets default to 80 (HTTPS=443, git=9418). Proxies: http=80, https=443, socks5/socks5h=1080. Git config HTTP proxies default to 1080 (curl).
 - Deprecated: `[migrations] ALLOWED_DOMAINS`, `BLOCKED_DOMAINS`, `ALLOW_LOCALNETWORKS` → use `ALLOWED_HOST_LIST`/`BLOCKED_HOST_LIST`. `[webhook] ALLOWED_HOST_LIST` → use `[security] ALLOWED_HOST_LIST` (still works as override). With `ALLOWED_DOMAINS` set and `EGRESS_MODE` unset, the mode defaults to strict — matching the old behavior where `ALLOWED_DOMAINS` locked the dialer to the listed hosts — and a startup warning says so. The mode also applies to git operations, which the old key never gated. With `EGRESS_MODE = lax`, the converted list only restricts non-public targets — a startup warning says so too.
@@ -166,4 +166,4 @@ Rejected: `*` (catch-all hostname), `0.0.0.0/0` / `::/0` (catch-all CIDR), `exte
 ## Open Questions
 
 - **Lax port scoping** — in Lax mode public targets bypass the allow list, so a port-scoped entry for a public host is a no-op. Worth revisiting: portless entries could default to all ports while port-scoped entries limit ports for public hosts in Lax too.
-- **Dead entries** — 4-in-6 CIDRs (`::ffff:10.0.0.0/104`) and reserved-range entries (e.g. `224.0.0.0/4`) parse fine but never match; a startup warning now names them.
+- **Dead entries** — 4-in-6 CIDRs (`::ffff:10.0.0.0/104`) and fully reserved ranges (e.g. `224.0.0.0/4`) parse fine but never match; a startup warning names them. Partially reserved prefixes (e.g. `0.0.0.0/7`, which includes dialable `1.0.0.1`) still match and are not flagged.
