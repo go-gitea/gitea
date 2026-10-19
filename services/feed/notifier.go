@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -310,7 +311,18 @@ func (*actionNotifier) NotifyPullRevieweDismiss(ctx context.Context, doer *user_
 	}
 }
 
+// truncateCommitsForFeed caps Commits for feed display without mutating the shared object other notifiers also receive.
+func truncateCommitsForFeed(commits *repository.PushCommits) *repository.PushCommits {
+	if len(commits.Commits) <= setting.UI.FeedMaxCommitNum {
+		return commits
+	}
+	truncated := *commits
+	truncated.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
+	return &truncated
+}
+
 func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	commits = truncateCommitsForFeed(commits)
 	data, err := json.Marshal(commits)
 	if err != nil {
 		log.Error("Marshal: %v", err)
@@ -393,6 +405,7 @@ func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model
 		return
 	}
 
+	commits = truncateCommitsForFeed(commits)
 	data, err := json.Marshal(commits)
 	if err != nil {
 		log.Error("json.Marshal: %v", err)
