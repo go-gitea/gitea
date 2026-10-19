@@ -105,6 +105,12 @@ type SubmitPullReviewOptions struct {
 	Body  string          `json:"body"`
 }
 
+// UpdatePullReviewOptions are options to update the body of a submitted pull request review
+type UpdatePullReviewOptions struct {
+	// required: true
+	Body string `json:"body" binding:"Required"`
+}
+
 // DismissPullReviewOptions are options to dismiss a pull request review
 type DismissPullReviewOptions struct {
 	Message string `json:"message"`
