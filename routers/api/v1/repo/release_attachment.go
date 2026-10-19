@@ -98,7 +98,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
-	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
+	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attach))
 }
 
 // ListReleaseAttachments lists all attachments of the release
@@ -263,7 +263,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attach))
 }
 
 // EditReleaseAttachment updates the given attachment
@@ -310,7 +310,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
+	form := web.GetForm[*api.EditAttachmentOptions](ctx)
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
@@ -346,7 +346,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attach))
 }
 
 // DeleteReleaseAttachment delete a given attachment

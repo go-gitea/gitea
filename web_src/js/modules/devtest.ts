@@ -1,21 +1,19 @@
-import {showInfoToast, showWarningToast, showErrorToast} from './toast.ts';
-import type {Toast} from './toast.ts';
+import {showSuccessToast, showInfoToast, showWarningToast, showErrorToast} from './toast.ts';
 import {registerGlobalInitFunc} from './observer.ts';
 import {showFomanticModal} from './fomantic/modal.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 import {showGlobalErrorMessage} from './errors.ts';
 import {AnsiLineRenderer} from '../render/ansi.ts';
-
-type LevelMap = Record<string, (message: string) => Toast | null>;
+import type {Intent} from '../types.ts';
 
 function initDevtestPage() {
   const toastButtons = document.querySelectorAll('.toast-test-button');
   if (toastButtons.length) {
-    const levelMap: LevelMap = {info: showInfoToast, warning: showWarningToast, error: showErrorToast};
+    const levelMap = {success: showSuccessToast, info: showInfoToast, warning: showWarningToast, error: showErrorToast};
     for (const el of toastButtons) {
       el.addEventListener('click', () => {
-        const level = el.getAttribute('data-toast-level')!;
+        const level = el.getAttribute('data-toast-level') as Intent;
         const message = el.getAttribute('data-toast-message')!;
         levelMap[level](message);
       });
@@ -87,7 +85,7 @@ function initDevtestAnsiRender(container: HTMLElement) {
     ...withSource(`first${esc}[Ksecond${esc}[2Jthird`),
     ...withSource(`cursor ${esc}[3Amovement, private ${esc}[?25lCSI, ${esc}]0;title${esc}\\titles, ${esc}Pquery${esc}\\strings, truncated${esc}[38;5;`),
     ...withSource('Reading... 10%\b\b\b100%'),
-    ...withSource('<script>alert(1)</script> & "quotes", and a bare url https://example.com'),
+    ...withSource('<script>alert(1)</script> & "quotes", and a bare url https://example.com'), // eslint-disable-line gitea/unescaped-html-literal -- plain text that the console must escape
     ' ',
     `${esc}[31man unterminated color`,
     'carries into the following lines',

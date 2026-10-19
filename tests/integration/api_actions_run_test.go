@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -67,6 +67,12 @@ func testAPIActionsGetWorkflowRun(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/803", repo.FullName())).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
+	})
+
+	t.Run("ListRunsUnknownActor", func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs?actor=no-such-user", repo.FullName())).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("GetJobSteps", func(t *testing.T) {
@@ -207,6 +213,13 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 
 	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	for _, jobID := range []int64{198, 199} {
+		job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: jobID})
+		job.WorkflowPayload = minimalConcurrentWorkflowPayload(job.JobID)
+		_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "workflow_payload")
+		require.NoError(t, err)
+	}
 
 	t.Run("RunLogs", func(t *testing.T) {
 		// run 795 (workflow "test.yaml") has job 198 "job_1" on task 53 and job 199 "job_2" on task 54
@@ -522,6 +535,7 @@ func testAPIActionsApproveWorkflowRun(t *testing.T) {
 		require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunJob{
 			RunID: run.ID, RepoID: run.RepoID, OwnerID: run.OwnerID, CommitSHA: run.CommitSHA,
 			Name: "job1", Attempt: 1, JobID: "job1", Status: actions_model.StatusBlocked, RunsOn: []string{"ubuntu-latest"},
+			WorkflowPayload: minimalConcurrentWorkflowPayload("job1"),
 		}))
 		return run
 	}

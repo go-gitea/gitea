@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -379,7 +380,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
+	form := web.GetForm[*api.CreateIssueCommentOption](ctx)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -511,7 +512,7 @@ func EditIssueComment(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.EditIssueCommentOption)
+	form := web.GetForm[*api.EditIssueCommentOption](ctx)
 	editIssueComment(ctx, *form)
 }
 
@@ -561,7 +562,7 @@ func EditIssueCommentDeprecated(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditIssueCommentOption)
+	form := web.GetForm[*api.EditIssueCommentOption](ctx)
 	editIssueComment(ctx, *form)
 }
 
@@ -571,8 +572,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		ctx.APIErrorAuto(err)
 		return
 	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeWrite) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -676,11 +676,11 @@ func deleteIssueComment(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeWrite) {
 		ctx.Status(http.StatusForbidden)
 		return
-	} else if !comment.Type.HasContentSupport() {
+	}
+	if !comment.Type.HasContentSupport() {
 		ctx.Status(http.StatusBadRequest)
 		return
 	}

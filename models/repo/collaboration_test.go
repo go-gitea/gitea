@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 
@@ -69,59 +67,37 @@ func TestRepository_IsCollaborator(t *testing.T) {
 	test(4, 4, true)
 }
 
-func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeAdmin))
-
-	collaboration := unittest.AssertExistsAndLoadBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: 4})
-	assert.Equal(t, perm.AccessModeAdmin, collaboration.Mode)
-
-	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: repo.ID})
-	assert.Equal(t, perm.AccessModeAdmin, access.Mode)
-
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeAdmin))
-
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, unittest.NonexistentID, perm.AccessModeAdmin))
-
-	// Discard invalid input.
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessMode(-1)))
-
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
-}
-
 func TestRepository_IsOwnerMemberCollaborator(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 
 	// Organisation owner.
-	actual, err := repo_model.IsOwnerMemberCollaborator(t.Context(), repo1, 2)
+	actual, err := repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 2)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 
 	// Team member.
-	actual, err = repo_model.IsOwnerMemberCollaborator(t.Context(), repo1, 4)
+	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 4)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 
 	// Normal user.
-	actual, err = repo_model.IsOwnerMemberCollaborator(t.Context(), repo1, 1)
+	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 1)
 	assert.NoError(t, err)
 	assert.False(t, actual)
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 
 	// Collaborator.
-	actual, err = repo_model.IsOwnerMemberCollaborator(t.Context(), repo2, 4)
+	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo2, 4)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 15})
 
 	// Repository owner.
-	actual, err = repo_model.IsOwnerMemberCollaborator(t.Context(), repo3, 2)
+	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo3, 2)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 }

@@ -199,7 +199,7 @@ func AddTime(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.AddTimeOption)
+	form := web.GetForm[*api.AddTimeOption](ctx)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.APIErrorAuto(err)

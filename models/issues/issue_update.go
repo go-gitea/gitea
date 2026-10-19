@@ -626,16 +626,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 				unittype = unit.TypePullRequests
 			}
 			for _, team := range teams {
-				if team.HasAdminAccess() {
-					checked = append(checked, team.ID)
-					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
-					continue
-				}
-				has, err := db.Exist[organization.TeamUnit](ctx, builder.Eq{"org_id": issue.Repo.Owner.ID, "team_id": team.ID, "`type`": unittype})
-				if err != nil {
-					return nil, fmt.Errorf("get team units (%d): %w", team.ID, err)
-				}
-				if has {
+				if team.UnitEnabled(ctx, unittype) {
 					checked = append(checked, team.ID)
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 				}

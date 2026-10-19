@@ -20,7 +20,7 @@ test('renderAnsi', () => {
 
   // treat "\033[0K" and "\033[0J" (Erase display/line) as "\r", then it will be covered to "\n" finally.
   expect(renderAnsi('a\x1b[Kb\x1b[2Jc')).toEqual('a\nb\nc');
-  expect(renderAnsi('\x1b[48;5;88ma\x1b[38;208;48;5;159mb\x1b[m')).toEqual(`<span style="background-color: #870000;">a</span><span style="background-color: #afffff;">b</span>`);
+  expect(renderAnsi('\x1b[48;5;88ma\x1b[38;208;48;5;159mb\x1b[m')).toEqual(`<span style="background-color: rgb(135, 0, 0);">a</span><span style="background-color: rgb(175, 255, 255);">b</span>`);
 
   // URLs in ANSI output become clickable links
   const link = (url: string) => `<a href="${url}" target="_blank">${url}</a>`;
@@ -39,7 +39,7 @@ test('renderAnsi', () => {
   expect(renderAnsi('\x1b[4;58;5;9mx')).toEqual('<span class="ansi-underline" style="text-decoration-color: var(--color-ansi-bright-red);">x</span>');
 
   // a color as ":" sub-parameters, with and without a color space id, not consuming the codes after
-  expect(renderAnsi('\x1b[38:2::255:0:0ma\x1b[48:2:0:0:255mb')).toEqual('<span style="color: #ff0000;">a</span><span style="color: #ff0000; background-color: #0000ff;">b</span>');
+  expect(renderAnsi('\x1b[38:2::255:0:0ma\x1b[48:2:0:0:255mb')).toEqual('<span style="color: rgb(255, 0, 0);">a</span><span style="color: rgb(255, 0, 0); background-color: rgb(0, 0, 255);">b</span>');
   expect(renderAnsi('\x1b[1;38:5:9;4mx')).toEqual('<span class="ansi-bold ansi-underline ansi-bright-red-fg">x</span>');
   // a private CSI carries no style, even ending in "m", and does not split the run around it
   expect(renderAnsi('\x1b[31mred\x1b[>4;2m!')).toEqual('<span class="ansi-red-fg">red!</span>');

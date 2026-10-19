@@ -25,7 +25,7 @@ func TestWithCacheContext(t *testing.T) {
 	c.Put(field, "my_config1", 1)
 	v, _ = c.Get(field, "my_config1")
 	assert.NotNil(t, v)
-	assert.Equal(t, 1, v.(int))
+	assert.Equal(t, 1, v)
 
 	c.Delete(field, "my_config1")
 	c.Delete(field, "my_config2") // remove a non-exist key

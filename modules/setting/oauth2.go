@@ -108,7 +108,7 @@ var OAuth2 = struct {
 	JWTSigningAlgorithm:        "RS256",
 	JWTSigningPrivateKeyFile:   "jwt/private.pem",
 	MaxTokenLength:             math.MaxInt16,
-	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea"},
+	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea", "gitea-app", "gitea-vscode"},
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {
@@ -120,12 +120,6 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 
 	if sec.HasKey("DEFAULT_APPLICATIONS") && sec.Key("DEFAULT_APPLICATIONS").String() == "" {
 		OAuth2.DefaultApplications = nil
-	}
-
-	// Handle the rename of ENABLE to ENABLED
-	deprecatedSetting(rootCfg, "oauth2", "ENABLE", "oauth2", "ENABLED", "v1.23.0")
-	if sec.HasKey("ENABLE") && !sec.HasKey("ENABLED") {
-		OAuth2.Enabled = sec.Key("ENABLE").MustBool(OAuth2.Enabled)
 	}
 
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {

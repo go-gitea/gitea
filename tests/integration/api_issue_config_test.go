@@ -183,7 +183,7 @@ func TestAPIRepoIssueConfigRequiresCodeUnit(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 24})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadRepository)
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadUser)
 
 	for _, path := range []string{
 		fmt.Sprintf("/api/v1/repos/%s/issue_config", repo.FullName()),

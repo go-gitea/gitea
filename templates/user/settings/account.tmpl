@@ -23,7 +23,7 @@
 				</div>
 
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "settings.change_password"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.change_password"}}</button>
 					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
 				</div>
 			</form>
@@ -56,14 +56,14 @@
 							</div>
 							<div class="flex-text-block">
 							{{if not .IsPrimary}}
-								<button class="ui red tiny button link-action" data-modal-confirm="#delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete?id={{.ID}}">
+								<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete?id={{.ID}}">
 									{{ctx.Locale.Tr "settings.delete_email"}}
 								</button>
 								{{if .CanBePrimary}}
 									<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 										<input name="_method" type="hidden" value="PRIMARY">
 										<input name="id" type="hidden" value="{{.ID}}">
-										<button class="ui primary tiny button">{{ctx.Locale.Tr "settings.primary_email"}}</button>
+										<button type="submit" class="ui primary tiny button">{{ctx.Locale.Tr "settings.primary_email"}}</button>
 									</form>
 								{{end}}
 							{{end}}
@@ -72,9 +72,9 @@
 									<input name="_method" type="hidden" value="SENDACTIVATION">
 									<input name="id" type="hidden" value="{{.ID}}">
 									{{if $.ActivationsPending}}
-										<button disabled class="ui primary tiny button">{{ctx.Locale.Tr "settings.activations_pending"}}</button>
+										<button type="submit" disabled class="ui primary tiny button">{{ctx.Locale.Tr "settings.activations_pending"}}</button>
 									{{else}}
-										<button class="ui primary tiny button">{{ctx.Locale.Tr "settings.activate_email"}}</button>
+										<button type="submit" class="ui primary tiny button">{{ctx.Locale.Tr "settings.activate_email"}}</button>
 									{{end}}
 								</form>
 							{{end}}
@@ -93,7 +93,7 @@
 					<label for="email">{{ctx.Locale.Tr "settings.add_new_email"}}</label>
 					<input id="email" name="email" type="email" required {{if not .CanAddEmails}}disabled{{end}}>
 				</div>
-				<button class="ui primary button" {{if not .CanAddEmails}}disabled{{end}}>
+				<button type="submit" class="ui primary button" {{if not .CanAddEmails}}disabled{{end}}>
 					{{ctx.Locale.Tr "settings.add_email"}}
 				</button>
 			</form>
@@ -122,7 +122,7 @@
 					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
 				</div>
 				<div class="field">
-					<button class="ui red button" data-modal-confirm="#delete-account">
+					<button type="submit" class="ui red button" data-modal-confirm="#delete-account">
 						{{ctx.Locale.Tr "settings.confirm_delete_account"}}
 					</button>
 				</div>

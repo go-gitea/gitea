@@ -77,7 +77,7 @@ func TestOrg(t *testing.T) {
 
 		// an outside user watches and stars the repo while the org is still visible
 		watcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-		require.NoError(t, repo_model.WatchRepo(t.Context(), watcher, repo, true))
+		require.NoError(t, repo_model.WatchRepoAuto(t.Context(), watcher, repo, true))
 		require.NoError(t, repo_model.StarRepo(t.Context(), watcher, repo, true))
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Watch{UserID: watcher.ID, RepoID: repo.ID})
 

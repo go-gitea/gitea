@@ -16,7 +16,7 @@ const tplStarUnstar templates.TplName = "repo/header/star"
 func ActionStar(ctx *context.Context) {
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.PathParam("action") == "star")
 	if err != nil {
-		handleActionError(ctx, err)
+		handleRepoActionError(ctx, err)
 		return
 	}
 

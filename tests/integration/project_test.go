@@ -62,7 +62,7 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	columns, err := project1.GetColumns(t.Context())
+	columns, err := project_model.GetColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
 	assert.EqualValues(t, 0, columns[0].Sorting)
@@ -82,7 +82,7 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	})
 	sess.MakeRequest(t, req, http.StatusOK)
 
-	columnsAfter, err := project1.GetColumns(t.Context())
+	columnsAfter, err := project_model.GetColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columnsAfter, 3)
 	assert.Equal(t, columns[1].ID, columnsAfter[0].ID)
@@ -160,7 +160,7 @@ func TestUpdateIssueProjectColumn(t *testing.T) {
 			Title:     "other column",
 			ProjectID: project2.ID,
 		}))
-		columns, err := project2.GetColumns(t.Context())
+		columns, err := project_model.GetColumns(t.Context(), project2.ID, db.ListOptionsAll)
 		require.NoError(t, err)
 		require.NotEmpty(t, columns)
 

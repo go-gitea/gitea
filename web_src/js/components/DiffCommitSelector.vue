@@ -12,13 +12,13 @@ type Commit = {
   committer_or_author_name: string,
   time: string,
   short_sha: string,
-}
+};
 
 type CommitListResult = {
   commits: Array<Commit>,
   last_review_commit_sha: string,
   locale: Record<string, string>,
-}
+};
 
 const elRoot = useTemplateRef('elRoot') as Readonly<ShallowRef<HTMLDivElement>>;
 const elExpandBtn = useTemplateRef('elExpandBtn') as Readonly<ShallowRef<HTMLButtonElement>>;
@@ -33,7 +33,7 @@ const uniqueIdShowAll = generateElemId('diff-commit-selector-show-all-');
 
 const menuVisible = shallowRef(false);
 const isLoading = shallowRef(false);
-const locale = shallowRef<Record<string, string>>({filter_changes_by_commit: elMount.getAttribute('data-filter_changes_by_commit')!});
+const locale = shallowRef<Record<string, string>>({filter_changes_by_commit: elMount.getAttribute('data-text-filter-changes-by-commit')!});
 const commits = ref<Array<Commit>>([]); // deep, the commit objects are mutated in place
 const hoverActivated = shallowRef(false);
 const lastReviewCommitSha = shallowRef<string | null>(null);
@@ -154,7 +154,7 @@ async function fetchCommits() {
   commits.value.push(...results.commits);
   commits.value.reverse();
   lastReviewCommitSha.value = results.last_review_commit_sha || null;
-  if (lastReviewCommitSha.value && !commits.value.some((x) => x.id === lastReviewCommitSha.value)) {
+  if (lastReviewCommitSha.value && commits.value.every((x) => x.id !== lastReviewCommitSha.value)) {
     // the lastReviewCommit is not available (probably due to a force push)
     // reset the last review commit sha
     lastReviewCommitSha.value = null;
@@ -290,6 +290,7 @@ function commitClickedShift(commit: Commit) {
 <style scoped>
   .ui.dropdown.diff-commit-selector .menu {
     margin-top: 0.25em;
+    padding: 0;
     overflow-x: hidden;
     max-height: 450px;
   }
@@ -305,7 +306,10 @@ function commitClickedShift(commit: Commit) {
     flex-direction: row;
     line-height: 1.4;
     gap: 0.25em;
+    width: auto;
+    margin: 0;
     padding: 7px 14px !important;
+    border-radius: 0;
   }
 
   .ui.dropdown.diff-commit-selector .menu > .item:not(:first-child),

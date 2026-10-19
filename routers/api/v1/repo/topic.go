@@ -100,8 +100,10 @@ func UpdateTopics(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.RepoTopicOptions)
+	form := web.GetForm[*api.RepoTopicOptions](ctx)
 	topicNames := form.Topics
 	validTopics, invalidTopics := repo_model.SanitizeAndValidateTopics(topicNames)
 
@@ -161,6 +163,8 @@ func AddTopic(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam("topic")))
 
@@ -228,6 +232,8 @@ func DeleteTopic(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam("topic")))
 

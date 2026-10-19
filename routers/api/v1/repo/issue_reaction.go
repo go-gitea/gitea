@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
@@ -135,7 +136,7 @@ func PostIssueCommentReaction(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 
 	changeIssueCommentReaction(ctx, *form, true)
 }
@@ -178,34 +179,18 @@ func DeleteIssueCommentReaction(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 
 	changeIssueCommentReaction(ctx, *form, false)
 }
 
 func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOption, isCreateType bool) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
-
-	if err = comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIErrorNotFound()
-		return
-	}
-
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.APIErrorNotFound()
-		return
-	}
-
-	if comment.Issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeRead) {
 		ctx.APIError(http.StatusForbidden, "no permission to change reaction")
 		return
 	}
@@ -364,7 +349,7 @@ func PostIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 	changeIssueReaction(ctx, *form, true)
 }
 
@@ -405,7 +390,7 @@ func DeleteIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 	changeIssueReaction(ctx, *form, false)
 }
 
@@ -420,7 +405,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, issue, issue.PosterID, perm.AccessModeRead) {
 		ctx.APIError(http.StatusForbidden, "no permission to change reaction")
 		return
 	}

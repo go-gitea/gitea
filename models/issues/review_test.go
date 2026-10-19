@@ -12,6 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,6 +27,15 @@ func TestGetReviewByID(t *testing.T) {
 	_, err = issues_model.GetReviewByID(t.Context(), 23892)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewNotExist(err), "IsErrReviewNotExist")
+}
+
+func TestReview_HTMLURL(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 1})
+	assert.Equal(t, setting.AppURL+"user2/repo1/pulls/2#pullrequestreview-1", review.HTMLURL(t.Context()))
+
+	pendingReview := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 4})
+	assert.Empty(t, pendingReview.HTMLURL(t.Context()))
 }
 
 func TestReview_LoadAttributes(t *testing.T) {
@@ -423,7 +433,7 @@ func TestRecalculateReviewsOfficial(t *testing.T) {
 
 	// Once the reviewer is whitelisted, re-evaluating restores the official flag.
 	rule.ApprovalsWhitelistUserIDs = []int64{2, reviewer.ID}
-	_, err = db.GetEngine(t.Context()).ID(rule.ID).Cols("approvals_whitelist_user_i_ds").Update(rule)
+	_, err = db.GetEngine(t.Context()).ID(rule.ID).Cols("config").Update(rule)
 	assert.NoError(t, err)
 
 	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))

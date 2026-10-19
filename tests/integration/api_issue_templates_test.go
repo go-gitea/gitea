@@ -57,7 +57,7 @@ func TestAPIIssueTemplateRequiresCodeUnit(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 24})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadRepository)
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadUser)
 	issueTemplatesURL := "/api/v1/repos/" + repo.FullName() + "/issue_templates"
 	languagesURL := "/api/v1/repos/" + repo.FullName() + "/languages"
 
