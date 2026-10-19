@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/util"
 	pull_service "gitea.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
@@ -110,36 +111,38 @@ func TestCreateCodeCommentUnknownCommitID(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx := t.Context()
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// org3/repo3.git: "test_branch" exists, but "refs/pull/2/head" (PR ID: 6) doesn't exist yet
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 6})
 	require.NoError(t, pr.LoadBaseRepo(ctx))
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
 	require.NoError(t, issue.LoadRepo(ctx))
+
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
+
 	const treePath = "file.txt"
 
 	t.Run("RollbackOnFailure", func(t *testing.T) {
 		// the PR head ref doesn't exist yet, so creating the comment fails
-		_, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, 1, "test", treePath, true, 0, "", nil)
+		_, err := gitRepo.GetCommit(ctx, pr.GetGitHeadRefName())
+		require.ErrorIs(t, err, util.ErrNotExist)
+		_, err = pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, 1, "test", treePath, true, 0, "", nil)
 		require.Error(t, err)
 		_, err = issues_model.GetCurrentReview(ctx, doer, issue)
 		assert.True(t, issues_model.IsErrReviewNotExist(err), "got: %v", err)
 	})
 
 	t.Run("FallbackToHead", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-		require.NoError(t, git.ForceFastImport(ctx, pr.BaseRepo, []git.FastImportCommit{
-			{Ref: pr.GetGitHeadRefName(), Files: []git.FastImportFile{{Path: treePath, Content: "line 1\nline 2\n"}}},
-		}))
-		headCommit, err := gitRepo.GetCommit(ctx, pr.GetGitHeadRefName())
+		headCommitID, err := gitRepo.GetBranchCommitID(ctx, pr.HeadBranch)
 		require.NoError(t, err)
-
+		require.NoError(t, git.UpdateRef(ctx, gitRepo, pr.GetGitHeadRefName(), headCommitID))
 		// the first comment creates the pending review with the unknown commit, the second one reuses it
-		for i, commitID := range []string{strings.Repeat("a", 40), headCommit.ID.String()} {
+		for i, commitID := range []string{strings.Repeat("a", 40), headCommitID} {
 			comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, int64(i+1), "test", treePath, true, 0, commitID, nil)
 			require.NoError(t, err)
-			assert.Equal(t, headCommit.ID.String(), comment.CommitSHA)
+			assert.Equal(t, headCommitID, comment.CommitSHA)
 		}
 	})
 }
