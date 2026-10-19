@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/container"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -359,12 +360,22 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		}
 		labelIDs = append(labelIDs, repoLabelIDs...)
 		if ctx.Repo.Owner.IsOrganization() {
-			orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, labelNames)
+			// A repository label and an organization label may share a name.
+			// In that case the repository label wins, so look up organization
+			// labels only for the names that did not match a repository label.
+			orgLabelNames, err := namesWithoutRepoLabel(ctx, repoLabelIDs, labelNames)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return nil, nil, err
 			}
-			labelIDs = append(labelIDs, orgLabelIDs...)
+			if len(orgLabelNames) > 0 {
+				orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, orgLabelNames)
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return nil, nil, err
+				}
+				labelIDs = append(labelIDs, orgLabelIDs...)
+			}
 		}
 	}
 
@@ -375,4 +386,26 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 	}
 
 	return issue, labels, err
+}
+
+// namesWithoutRepoLabel returns the label names that are not used by any of the given repository labels.
+func namesWithoutRepoLabel(ctx *context.APIContext, repoLabelIDs []int64, labelNames []string) ([]string, error) {
+	if len(repoLabelIDs) == 0 {
+		return labelNames, nil
+	}
+	repoLabels, err := issues_model.GetLabelsByIDs(ctx, repoLabelIDs, "id", "name")
+	if err != nil {
+		return nil, err
+	}
+	repoLabelNames := make(container.Set[string], len(repoLabels))
+	for _, label := range repoLabels {
+		repoLabelNames.Add(label.Name)
+	}
+	names := make([]string, 0, len(labelNames))
+	for _, name := range labelNames {
+		if !repoLabelNames.Contains(name) {
+			names = append(names, name)
+		}
+	}
+	return names, nil
 }
