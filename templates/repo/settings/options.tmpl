@@ -606,6 +606,15 @@
 							</div>
 						</div>
 						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message"}}</label>
+							{{$squashMergeMessage := $prUnit.PullRequestsConfig.DefaultSquashMergeMessage}}
+							<select class="ui selection dropdown" name="pulls_default_squash_merge_message">
+								<option value="BLANK" {{if eq $squashMergeMessage "BLANK"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title"}}</option>
+								<option value="COMMIT_MESSAGES" {{if eq $squashMergeMessage "COMMIT_MESSAGES"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title_and_commit_details"}}</option>
+								<option value="PR_BODY" {{if eq $squashMergeMessage "PR_BODY"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title_and_description"}}</option>
+							</select>
+						</div>
+						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch"}}</label>
 							<div class="ui search selection dropdown">
 								<input type="hidden" name="default_target_branch" value="{{$prUnit.PullRequestsConfig.DefaultTargetBranch}}">
