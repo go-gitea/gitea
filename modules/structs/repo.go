@@ -121,6 +121,7 @@ type Repository struct {
 	DefaultMergeStyle             string           `json:"default_merge_style"`
 	DefaultUpdateStyle            string           `json:"default_update_style"`
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
+	DefaultSquashCommitMessage    string           `json:"default_squash_commit_message"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
@@ -238,6 +239,8 @@ type EditRepoOption struct {
 	DefaultUpdateStyle *string `json:"default_update_style,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
+	// set to the default squash commit message: "pr-title", "pr-title-commits", "pr-title-description", or "" to use the instance default.
+	DefaultSquashCommitMessage *string `json:"default_squash_commit_message,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time
