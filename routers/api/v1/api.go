@@ -1587,8 +1587,8 @@ func Routes() *web.Router {
 					})
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetIssue).
-							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue).
-							Delete(reqToken(), reqAdmin(), context.ReferencesGitRepo(), repo.DeleteIssue)
+							Patch(reqToken(), mustNotBeArchived, bind(api.EditIssueOption{}), repo.EditIssue).
+							Delete(reqToken(), reqAdmin(), mustNotBeArchived, context.ReferencesGitRepo(), repo.DeleteIssue)
 						m.Combo("/assignees").
 							Post(reqToken(), mustNotBeArchived, bind(api.IssueAssigneesOption{}), repo.AddIssueAssignees).
 							Delete(reqToken(), mustNotBeArchived, bind(api.IssueAssigneesOption{}), repo.DeleteIssueAssignees)
@@ -1602,10 +1602,10 @@ func Routes() *web.Router {
 						m.Get("/timeline", repo.ListIssueCommentsAndTimeline)
 						m.Group("/labels", func() {
 							m.Combo("").Get(repo.ListIssueLabels).
-								Post(reqToken(), bind(api.IssueLabelsOption{}), repo.AddIssueLabels).
-								Put(reqToken(), bind(api.IssueLabelsOption{}), repo.ReplaceIssueLabels).
-								Delete(reqToken(), repo.ClearIssueLabels)
-							m.Delete("/{id}", reqToken(), repo.DeleteIssueLabel)
+								Post(reqToken(), mustNotBeArchived, bind(api.IssueLabelsOption{}), repo.AddIssueLabels).
+								Put(reqToken(), mustNotBeArchived, bind(api.IssueLabelsOption{}), repo.ReplaceIssueLabels).
+								Delete(reqToken(), mustNotBeArchived, repo.ClearIssueLabels)
+							m.Delete("/{id}", reqToken(), mustNotBeArchived, repo.DeleteIssueLabel)
 						})
 						m.Group("/times", func() {
 							m.Combo("").

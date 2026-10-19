@@ -384,12 +384,15 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	ctx.Data["BeforeCommitID"] = ci.CompareBase
 	ctx.Data["AfterCommitID"] = headCommitID
 
-	// follow GitHub's behavior: autofill the form and expand
 	newPrFormTitle := ctx.FormTrim("title")
 	newPrFormBody := ctx.FormTrim("body")
-	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand") || ctx.FormBool("quick_pull") || newPrFormTitle != "" || newPrFormBody != ""
 	ctx.Data["TitleQuery"] = newPrFormTitle
 	ctx.Data["BodyQuery"] = newPrFormBody
+
+	// follow GitHub's behavior: autofill the form and expand
+	prefillParams := issuePrefillQuery(ctx)
+	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand") || ctx.FormBool("quick_pull") ||
+		newPrFormTitle != "" || newPrFormBody != "" || prefillParams != ""
 
 	if headCommitID == ci.CompareBase {
 		config := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
@@ -623,7 +626,7 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 
 		if !cpi.nothingToCompare {
 			// Setup information for new form.
-			pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, true)
+			pageMetaData := retrieveRepoIssueMetaDataWithPrefill(ctx, ctx.Repo.Repository, true)
 			if ctx.Written() {
 				return
 			}

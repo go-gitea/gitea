@@ -13,12 +13,8 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 )
 
-type TreeCommon struct {
-	ID ObjectID
-}
-
 func newTree(id ObjectID) *Tree {
-	return &Tree{TreeCommon: TreeCommon{ID: id}}
+	return &Tree{ID: id}
 }
 
 // SubTree get a subtree by the sub dir path
@@ -80,7 +76,7 @@ func (repo *Repository) GetTreePathLatestCommit(ctx context.Context, refName, tr
 
 // Tree represents a flat directory listing.
 type Tree struct {
-	TreeCommon
+	ID ObjectID
 
 	entries       Entries
 	entriesParsed bool

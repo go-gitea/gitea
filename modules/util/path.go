@@ -223,7 +223,7 @@ func listDirRecursively(result *[]string, fsDir, recordParentPath string, opts *
 	}
 	defer dir.Close()
 
-	fis, err := dir.Readdir(0)
+	fis, err := dir.ReadDir(0)
 	if err != nil {
 		return err
 	}
