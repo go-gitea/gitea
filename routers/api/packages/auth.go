@@ -43,6 +43,9 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, _ auth.DataStore
 		}
 		u = user_model.NewGhostUser()
 	case user_model.ActionsUserID:
+		if !auth.CheckTaskIsRunning(req.Context(), packageMeta.ActionsUserTaskID) {
+			return nil, nil //nolint:nilnil // expired task identity is not applicable
+		}
 		u = user_model.NewActionsUserWithTaskID(packageMeta.ActionsUserTaskID)
 	default:
 		u, err = user_model.GetUserByID(req.Context(), packageMeta.UserID)

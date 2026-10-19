@@ -513,6 +513,9 @@ func RemovePackageVersionByNameAndVersion(ctx context.Context, doer *user_model.
 
 // RemovePackageVersion deletes the package version and all associated files
 func RemovePackageVersion(ctx context.Context, doer *user_model.User, pv *packages_model.PackageVersion) error {
+	if err := packages_model.CheckActionsPackageWriteAccess(ctx, pv.PackageID); err != nil {
+		return err
+	}
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
 		return err
@@ -674,6 +677,9 @@ func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb
 
 // RemovePackage deletes the package and all its versions
 func RemovePackage(ctx context.Context, doer *user_model.User, p *packages_model.Package) error {
+	if err := packages_model.CheckActionsPackageWriteAccess(ctx, p.ID); err != nil {
+		return err
+	}
 	pds, err := packages_model.GetAllPackageDescriptors(ctx, p)
 	if err != nil {
 		return err

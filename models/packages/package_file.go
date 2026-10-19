@@ -44,6 +44,9 @@ type PackageFile struct {
 
 // TryInsertFile inserts a file. If the file exists already ErrDuplicatePackageFile is returned
 func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
+	if err := checkActionsVersionAccess(ctx, pf.VersionID); err != nil {
+		return nil, err
+	}
 	e := db.GetEngine(ctx)
 
 	existing := &PackageFile{}
@@ -111,6 +114,9 @@ func GetFileForVersionByName(ctx context.Context, versionID int64, name, key str
 
 // DeleteFileByID deletes a file
 func DeleteFileByID(ctx context.Context, fileID int64) error {
+	if err := checkActionsFileAccess(ctx, fileID); err != nil {
+		return err
+	}
 	_, err := db.GetEngine(ctx).ID(fileID).Delete(&PackageFile{})
 	return err
 }
@@ -118,6 +124,9 @@ func DeleteFileByID(ctx context.Context, fileID int64) error {
 // DeleteFilesByPackageID deletes all files of a specific package
 // Versions must not be deleted prior to this call
 func DeleteFilesByPackageID(ctx context.Context, packageID int64) error {
+	if err := checkActionsPackageAccess(ctx, packageID); err != nil {
+		return err
+	}
 	deleteStmt := builder.Delete(builder.In("version_id", builder.Select("package_version.id").From("package_version").Where(builder.Eq{"package_id": packageID}))).From("package_file")
 	_, err := db.GetEngine(ctx).Exec(deleteStmt)
 	return err
@@ -125,11 +134,22 @@ func DeleteFilesByPackageID(ctx context.Context, packageID int64) error {
 
 // DeleteFilesByVersionID deletes all files of a specific version
 func DeleteFilesByVersionID(ctx context.Context, versionID int64) error {
+	if err := checkActionsVersionAccess(ctx, versionID); err != nil {
+		return err
+	}
 	_, err := db.GetEngine(ctx).Where("version_id = ?", versionID).Delete(&PackageFile{})
 	return err
 }
 
 func UpdateFile(ctx context.Context, pf *PackageFile, cols []string) error {
+	if err := checkActionsFileAccess(ctx, pf.ID); err != nil {
+		return err
+	}
+	if pf.VersionID != 0 {
+		if err := checkActionsVersionAccess(ctx, pf.VersionID); err != nil {
+			return err
+		}
+	}
 	_, err := db.GetEngine(ctx).ID(pf.ID).Cols(cols...).Update(pf)
 	return err
 }

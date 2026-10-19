@@ -245,6 +245,9 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 		created = false
 	}
 
+	if err := linkTaskPackage(ctx, p, mci.Creator); err != nil {
+		return nil, err
+	}
 	if created {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(mci.Owner.LowerName+"/"+mci.Image)); err != nil {
 			log.Error("Error setting package property: %v", err)
