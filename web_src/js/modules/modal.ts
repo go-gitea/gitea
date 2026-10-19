@@ -26,7 +26,10 @@ function createModalDialog(elModal: Element): HTMLDialogElement {
   dialog.className = 'modal-dialog';
   dialog.append(elModal);
   const elLabel = elModal.querySelector(':scope > .header, :scope > .content');
-  if (elLabel) dialog.setAttribute('aria-labelledby', elLabel.id ||= generateElemId('_modal_label_'));
+  if (elLabel) {
+    elLabel.id ||= generateElemId('_modal_label_');
+    dialog.setAttribute('aria-labelledby', elLabel.id);
+  }
 
   let backdropPressed = false;
   dialog.addEventListener('pointerdown', (event) => { backdropPressed = event.target === dialog });
