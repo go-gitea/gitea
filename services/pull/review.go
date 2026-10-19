@@ -248,12 +248,15 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			// Get latest commit referencing the commented line
 			// No need for get commit for base branch changes
 			commit, err := lineBlame(ctx, pr.BaseRepo, gitRepo, head, treePath, uint(line))
+			// A force push may have removed the review's stored commit.
+			if err != nil && head != pr.GetGitHeadRefName() {
+				head = pr.GetGitHeadRefName()
+				commit, err = lineBlame(ctx, pr.BaseRepo, gitRepo, head, treePath, uint(line))
+			}
 			if err == nil {
 				commitID = commit.ID.String()
 			} else {
-				// The stored commit id might be invalid if the git repository commits have been rewritten (e.g. force push).
-				// Tolerate this error and log it for debugging purposes, but don't fail comment creation.
-				log.Debug("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitHeadRefName(), gitRepo.LogString(), treePath, line, err)
+				log.Debug("LineBlame[%s, %s, %s, %d]: %v", head, gitRepo.LogString(), treePath, line, err)
 			}
 		}
 	}
