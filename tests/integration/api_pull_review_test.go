@@ -137,7 +137,7 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	req = NewRequestWithJSON(t, http.MethodPut, updateReviewURL, &api.UpdatePullReviewOptions{Body: "just one nit"}).AddTokenAuth(token)
 	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
 	assert.Equal(t, "just one nit", review.Body)
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID, Content: "just one nit"})
+	assert.Equal(t, "just one nit", unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID}).Content)
 
 	// test dismiss review
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/dismissals", repo.OwnerName, repo.Name, pullIssue.Index, review.ID), &api.DismissPullReviewOptions{
