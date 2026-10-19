@@ -926,7 +926,6 @@
   "settings.delete_account_title": "Scrios Cuntas Úsáide",
   "settings.delete_account_desc": "An bhfuil tú cinnte gur mhaith leat an cuntas úsáideora seo a scriosadh go buan?",
   "settings.email_notifications.enable": "Cumasaigh Fógraí Ríomhphoist",
-  "settings.email_notifications.onmention": "Ríomhphost amháin ar luaigh",
   "settings.email_notifications.disable": "Díchumasaigh Fógraí Ríomhphoist",
   "settings.email_notifications.submit": "Socraigh rogha ríomhphoist",
   "settings.email_notifications.andyourown": "Agus Do Fógraí Féin",

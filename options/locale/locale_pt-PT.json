@@ -929,7 +929,6 @@
   "settings.delete_account_title": "Eliminar conta de utilizador",
   "settings.delete_account_desc": "Tem a certeza que quer eliminar permanentemente esta conta de utilizador?",
   "settings.email_notifications.enable": "Habilitar notificações por email",
-  "settings.email_notifications.onmention": "Enviar email somente quando mencionado(a)",
   "settings.email_notifications.disable": "Desabilitar notificações por email",
   "settings.email_notifications.submit": "Definir preferência do email",
   "settings.email_notifications.andyourown": "e as suas próprias notificações",

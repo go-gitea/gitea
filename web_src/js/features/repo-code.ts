@@ -1,6 +1,7 @@
 import {svg} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
+import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 function changeHash(hash: string) {
   if (window.history.pushState) {
@@ -142,6 +143,5 @@ export function initRepoCodeView() {
       showLineButton();
     }
   };
-  onHashChange();
-  window.addEventListener('hashchange', onHashChange);
+  registerAsyncHashChangeListener(onHashChange);
 }

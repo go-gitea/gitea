@@ -23,7 +23,7 @@ import (
 )
 
 func TestRetrieveRepoIssueMetaDataWithPrefill(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	require.NoError(t, unittest.PrepareTestDatabase())
 	require.NoError(t, db.Insert(t.Context(),
 		[]*issues_model.Label{
 			{ID: 100, RepoID: 1, Name: "Bug"},

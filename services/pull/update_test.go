@@ -122,6 +122,32 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 
 	pr3Poster := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
 
+	t.Run("PublicOnlyTokenCannotUpdatePrivateHeadEvenWhitelisted", func(t *testing.T) {
+		pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
+		protectedBranch := &git_model.ProtectedBranch{
+			RepoID:           pr3.HeadRepoID,
+			RuleName:         pr3.HeadBranch,
+			CanPush:          true,
+			EnableWhitelist:  true,
+			WhitelistUserIDs: []int64{pr3Poster.ID},
+		}
+		_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
+		require.NoError(t, err)
+		defer db.DeleteByBean(t.Context(), protectedBranch)
+		require.NoError(t, pr3.LoadHeadRepo(t.Context()))
+		pr3.HeadRepo.IsPrivate = true
+
+		pushAllowed, _, _, err := checkUserAllowedToUpdate(t.Context(), pr3, pr3Poster)
+		assert.NoError(t, err)
+		assert.True(t, pushAllowed)
+
+		publicOnlyPoster := *pr3Poster
+		publicOnlyPoster.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,write:repository")
+		pushAllowed, _, _, err = checkUserAllowedToUpdate(t.Context(), pr3, &publicOnlyPoster)
+		assert.NoError(t, err)
+		assert.False(t, pushAllowed)
+	})
+
 	t.Run("MaintainerEditRespectsPosterPermissions", func(t *testing.T) {
 		pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
 		pr3.AllowMaintainerEdit = true
