@@ -31,9 +31,10 @@ func ParseIssueFilterTypeIsPull(typ string) optional.Option[bool] {
 }
 
 type SearchIssuesRepoIDsOptions struct {
-	Doer      *user_model.User
-	OwnerName string
-	TeamName  string
+	Doer       *user_model.User
+	PublicOnly bool
+	OwnerName  string
+	TeamName   string
 }
 
 // SearchIssuesRepoIDs resolves the repository filter of an issue search. allPublic makes the indexer
@@ -44,6 +45,7 @@ func SearchIssuesRepoIDs(ctx context.Context, opts SearchIssuesRepoIDsOptions) (
 		Collaborate: optional.None[bool](),
 		Actor:       opts.Doer,
 	}
+	searchOpts.ApplyPublicOnly(opts.PublicOnly)
 	if opts.OwnerName != "" {
 		owner, err := user_model.GetUserByName(ctx, opts.OwnerName)
 		if err != nil {
@@ -67,7 +69,7 @@ func SearchIssuesRepoIDs(ctx context.Context, opts SearchIssuesRepoIDsOptions) (
 	allPublic = opts.OwnerName == ""
 	cond := repo_model.SearchRepositoryCondition(searchOpts)
 	if allPublic {
-		if !user_model.DoerCanViewPrivate(opts.Doer) {
+		if !searchOpts.Private {
 			return []int64{0}, allPublic, nil // sees nothing beyond is_public, so skip the query
 		}
 		cond = cond.And(repo_model.NotPublicRepoUnderPublicOwnerCond()) // enumerating them scales with the instance

@@ -265,7 +265,7 @@ func checkUnadoptedRepositories(ctx context.Context, userName string, repoNamesT
 		return err
 	}
 	repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
-		OwnerID: ctxUser.ID,
+		Actor:   ctxUser,
 		Private: true,
 		ListOptions: db.ListOptions{
 			Page:     1,

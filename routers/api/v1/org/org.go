@@ -42,6 +42,7 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 		UserID:            u.ID,
 		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, u),
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -146,6 +147,13 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 
 	op := api.OrganizationPermissions{}
 
+	// A public-only token must not disclose membership/permission details of a
+	// non-public org, even for the token owner's own private orgs.
+	if ctx.PublicOnly && !o.Visibility.IsPublic() {
+		ctx.APIErrorNotFound()
+		return
+	}
+
 	if !organization.HasOrgOrUserVisible(ctx, o, ctx.Doer) {
 		ctx.APIErrorNotFound()
 		return
@@ -217,6 +225,7 @@ func GetAll(ctx *context.APIContext) {
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Visible:     vMode,
 	}
+	searchOpts.ApplyPublicOnly(ctx.PublicOnly)
 
 	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, searchOpts)
 	if err != nil {
@@ -500,6 +509,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
