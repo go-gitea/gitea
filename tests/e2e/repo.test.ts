@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateRepo, apiHeaders, baseUrl, randomString} from './utils.ts';
+import {login, apiCreateBranch, apiCreateRepo, randomString} from './utils.ts';
 
 test('create a repository', async ({page}) => {
   const repoName = `e2e-repo-${randomString(8)}`;
@@ -17,7 +17,7 @@ test('delete a branch via its modal', async ({page, request}) => {
   await Promise.all([
     (async () => {
       await apiCreateRepo(request, {name: repoName});
-      await request.post(`${baseUrl()}/api/v1/repos/${owner}/${repoName}/branches`, {headers: apiHeaders(), data: {new_branch_name: 'feature'}});
+      await apiCreateBranch(request, owner, repoName, 'feature');
     })(),
     login(page),
   ]);

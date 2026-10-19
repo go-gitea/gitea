@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateRepo, apiCreateIssue, apiHeaders, baseUrl, randomString} from './utils.ts';
+import {login, apiCreateRepo, apiCreateIssue, apiEditIssue, randomString} from './utils.ts';
 
 test('comment on and close an issue', async ({page, request}) => {
   const repoName = `e2e-issue-comment-${randomString(8)}`;
@@ -52,11 +52,11 @@ test('unsaved issue description prompts before leaving', async ({page, request})
 test('delete an edit history entry via a confirm over the history modal', async ({page, request}) => {
   const repoName = `e2e-issue-history-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
-  await apiCreateRepo(request, {name: repoName, autoInit: false});
   await Promise.all([
     (async () => {
+      await apiCreateRepo(request, {name: repoName, autoInit: false});
       await apiCreateIssue(request, {owner, repo: repoName, title: 'History test', body: 'first'});
-      await request.patch(`${baseUrl()}/api/v1/repos/${owner}/${repoName}/issues/1`, {headers: apiHeaders(), data: {body: 'second'}});
+      await apiEditIssue(request, owner, repoName, 1, {body: 'second'});
     })(),
     login(page),
   ]);

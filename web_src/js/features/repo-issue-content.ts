@@ -31,7 +31,6 @@ async function showContentHistoryDetail(issueBaseUrl: string, commentId: string,
       <div class="comment-diff-data is-loading"></div>
     </div>
   `);
-  document.body.append(elDetailDialog);
   const elOptionsDropdown = elDetailDialog.querySelector('.ui.dropdown.dialog-header-options')!;
   const $fomanticDropdownOptions = fomanticQuery(elOptionsDropdown);
   $fomanticDropdownOptions.dropdown({

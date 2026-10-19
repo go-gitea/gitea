@@ -111,18 +111,18 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
       } else {
         comboEditor.value(data.content);
       }
-    } finally {
-      elModal.classList.remove('loading', 'disabled');
       hideModal(elModal);
       comboEditor.focus();
+    } finally {
+      elModal.classList.remove('loading', 'disabled');
     }
   };
 
   let inited = false;
   const doShowModal = () => {
-    hideToastsAll();
     const tagName = tagNameInput.value.trim();
     if (!tagName) {
+      hideToastsAll();
       showErrorToast(textMissingTag, {duration: 3000});
       tagNameInput.focus();
       return;

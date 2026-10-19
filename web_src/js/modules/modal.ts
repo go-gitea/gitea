@@ -1,5 +1,5 @@
 import {generateElemId, queryElems} from '../utils/dom.ts';
-import {hideToastsFrom} from './toast.ts';
+import {hideToastsAll, hideToastsFrom} from './toast.ts';
 
 type ModalOpts = {
   onApprove?: () => boolean | void, // return false to keep the modal open
@@ -65,6 +65,7 @@ export function showModal(elModal: Element, opts: ModalOpts = {}) {
   elModal.querySelector('.close-modal')?.setAttribute('aria-label', 'Close');
   queryElems(elModal, 'form button.cancel:not([type])', (button) => button.setAttribute('type', 'button')); // otherwise "Enter" in the form clicks this "cancel" button before the "ok" button
   lockPageScroll(true);
+  hideToastsAll(); // toasts outside of the dialog would be inert behind it
   dialog.showModal();
 }
 

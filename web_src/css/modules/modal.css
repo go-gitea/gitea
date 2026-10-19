@@ -1,5 +1,4 @@
-/* hosts a shown ".modal", covers the viewport and scrolls a tall modal */
-.modal-dialog {
+.modal-dialog { /* hosts a shown ".modal", covers the viewport and scrolls a tall modal */
   width: auto;
   height: auto;
   max-width: none;

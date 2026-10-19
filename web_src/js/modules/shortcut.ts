@@ -84,7 +84,6 @@ function showShortcutHelp() {
         </div>
       </div>
     `);
-    document.body.append(modal);
   }
 
   const seenShortcuts = new Set<string>();
