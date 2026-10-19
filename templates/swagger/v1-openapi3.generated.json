@@ -12791,6 +12791,7 @@
           },
           {
             "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned.",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -12798,10 +12799,12 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "filter notifications by subject type",
+            "explode": true,
             "in": "query",
             "name": "subject-type",
             "schema": {
@@ -12815,7 +12818,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
@@ -12884,6 +12888,7 @@
           },
           {
             "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread.",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -12891,7 +12896,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Status to mark notifications as, Defaults to read.",
@@ -19559,6 +19565,7 @@
           },
           {
             "description": "subpath of the repository to download",
+            "explode": true,
             "in": "query",
             "name": "path",
             "schema": {
@@ -19566,7 +19573,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           }
         ],
         "responses": {
@@ -27657,6 +27665,7 @@
           },
           {
             "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -27664,10 +27673,12 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "filter notifications by subject type",
+            "explode": true,
             "in": "query",
             "name": "subject-type",
             "schema": {
@@ -27681,7 +27692,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
@@ -27759,6 +27771,7 @@
           },
           {
             "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread.",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -27766,7 +27779,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Status to mark notifications as. Defaults to read.",
@@ -28894,6 +28908,7 @@
           },
           {
             "description": "Label IDs",
+            "explode": true,
             "in": "query",
             "name": "labels",
             "schema": {
@@ -28902,7 +28917,8 @@
                 "type": "integer"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Filter by pull request author",
