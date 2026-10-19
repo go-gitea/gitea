@@ -469,6 +469,7 @@ func (u *User) EmailTo() string {
 }
 
 // TODO: DefaultShowFullName causes messy logic, there are already too many methods to display a user's "display name", need to refactor them
+// Search this TODO to see more details
 // * user.Name / user.FullName: directly used in templates
 // * user.DisplayName(): always show FullName if it's not empty, otherwise show Name
 // * user.GetDisplayName(): show FullName if it's not empty and DefaultShowFullName is set, otherwise show Name
@@ -495,13 +496,12 @@ func (u *User) GetDisplayName() string {
 	return u.Name
 }
 
-// GetDisplayNameWithUsername returns the username and, when configured, the full name.
-func (u *User) GetDisplayNameWithUsername() string {
-	displayName := u.GetDisplayName()
-	if displayName == u.Name {
-		return u.Name
+// DisplayNameWithFullName returns the username, full name is included if it is not empty
+func (u *User) DisplayNameWithFullName() string {
+	if fullName := strings.TrimSpace(u.FullName); fullName != "" {
+		return fmt.Sprintf("%s (%s)", u.Name, fullName)
 	}
-	return fmt.Sprintf("%s (%s)", u.Name, displayName)
+	return u.Name
 }
 
 // ShortName ellipses username to length (still used by many templates), it calls GetDisplayName and respects DEFAULT_SHOW_FULL_NAME
