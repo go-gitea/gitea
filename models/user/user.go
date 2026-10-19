@@ -495,6 +495,15 @@ func (u *User) GetDisplayName() string {
 	return u.Name
 }
 
+// GetDisplayNameWithUsername returns the username and, when configured, the full name.
+func (u *User) GetDisplayNameWithUsername() string {
+	displayName := u.GetDisplayName()
+	if displayName == u.Name {
+		return u.Name
+	}
+	return fmt.Sprintf("%s (%s)", u.Name, displayName)
+}
+
 // ShortName ellipses username to length (still used by many templates), it calls GetDisplayName and respects DEFAULT_SHOW_FULL_NAME
 func (u *User) ShortName(length int) string {
 	return util.EllipsisDisplayString(u.GetDisplayName(), length)

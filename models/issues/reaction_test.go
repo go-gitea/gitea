@@ -24,7 +24,7 @@ func TestReactionListGetFirstUsersUsesConfiguredDisplayName(t *testing.T) {
 
 	t.Run("full names enabled", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.UI.DefaultShowFullName, true)()
-		assert.Equal(t, "User One, User Two", list.GetFirstUsers())
+		assert.Equal(t, "user1 (User One), user2 (User Two)", list.GetFirstUsers())
 	})
 
 	t.Run("full names disabled", func(t *testing.T) {

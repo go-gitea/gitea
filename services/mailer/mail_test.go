@@ -356,6 +356,7 @@ func TestTemplateServices(t *testing.T) {
 
 func TestIssueNotificationEmailsRespectDefaultShowFullName(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
+	doer.Name = "testuser"
 	doer.FullName = "Test User Full Name"
 	recipients := []*user_model.User{{Name: "recipient", Email: "test@gitea.com"}}
 	compose := func(t *testing.T, comment *mailComment) *sender_service.Message {
@@ -370,7 +371,7 @@ func TestIssueNotificationEmailsRespectDefaultShowFullName(t *testing.T) {
 		msg := compose(t, &mailComment{
 			Issue: issue, Doer: doer, ActionType: activities_model.ActionCloseIssue,
 		})
-		assert.Contains(t, msg.Body, "mail.issue.action.close:Test User Full Name,1")
+		assert.Contains(t, msg.Body, "mail.issue.action.close:testuser (Test User Full Name),1")
 	})
 
 	t.Run("assignment", func(t *testing.T) {
@@ -378,7 +379,15 @@ func TestIssueNotificationEmailsRespectDefaultShowFullName(t *testing.T) {
 		msg := compose(t, &mailComment{
 			Issue: issue, Doer: doer, Comment: &issues_model.Comment{Type: issues_model.CommentTypeAssignees},
 		})
-		assert.Contains(t, msg.Body, "mail.issue_assigned.issue:Test User Full Name,")
+		assert.Contains(t, msg.Body, "mail.issue_assigned.issue:testuser (Test User Full Name),")
+	})
+
+	t.Run("full names disabled", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.UI.DefaultShowFullName, false)()
+		msg := compose(t, &mailComment{
+			Issue: issue, Doer: doer, ActionType: activities_model.ActionCloseIssue,
+		})
+		assert.Contains(t, msg.Body, "mail.issue.action.close:testuser,1")
 	})
 }
 
