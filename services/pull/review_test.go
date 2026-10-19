@@ -54,7 +54,6 @@ func TestDismissReview(t *testing.T) {
 func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 6})
 	require.NoError(t, pr.LoadBaseRepo(ctx))
 
@@ -95,16 +94,20 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 	require.NoError(t, pr.UpdateCols(ctx, "merge_base"))
 
 	for _, c := range []struct {
-		name string
-		line int64
+		name     string
+		line     int64
+		doerID   int64
+		commitID string
 	}{
-		{"NewSide", 17},
-		{"OldSide", -15},
+		{"NewSide", 17, 2, ""},
+		{"OldSide", -15, 2, ""},
+		{"UnknownReviewCommit", 17, 4, strings.Repeat("a", 40)},
 	} {
 		t.Run(c.name, func(t *testing.T) {
+			doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: c.doerID})
 			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
 			require.NoError(t, issue.LoadRepo(ctx))
-			comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, c.line, "test", treePath, true, 0, "", nil)
+			comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, c.line, "test", treePath, true, 0, c.commitID, nil)
 			require.NoError(t, err)
 			assert.True(t, strings.HasSuffix(comment.Patch, "\n old 10\n"), "patch: %q", comment.Patch)
 			if c.line > 0 {

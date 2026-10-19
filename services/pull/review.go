@@ -238,6 +238,10 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			// FIXME validate treePath (TODO: unclear comment)
 			// Get latest commit referencing the commented line, error can be ignored then the head commit will be used as fallback
 			commitID, err = git.LineBlameCommitID(ctx, pr.BaseRepo, headRef, treePath, uint(line))
+			// Preserve attribution to the reviewed revision, falling back to the PR head if blame fails.
+			if err != nil && headRef != pr.GetGitHeadRefName() {
+				commitID, err = git.LineBlameCommitID(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), treePath, uint(line))
+			}
 			if err != nil {
 				log.Debug("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitHeadRefName(), gitRepo.LogString(), treePath, line, err)
 			}
