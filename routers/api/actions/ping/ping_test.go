@@ -11,7 +11,7 @@ import (
 	pingv1 "gitea.dev/actionslib/ping/v1"
 	"gitea.dev/actionslib/ping/v1/pingv1connect"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

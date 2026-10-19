@@ -20,7 +20,7 @@ import (
 	"gitea.dev/modules/util"
 	actions_service "gitea.dev/services/actions"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
