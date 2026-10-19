@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
@@ -19,7 +20,7 @@ func LineBlame(ctx context.Context, repo RepositoryFacade, revision, file string
 		AddOptionValues("-p", revision).
 		AddDashesAndList(file).
 		RunStdString(ctx)
-	return stdout, err
+	return strings.TrimSpace(stdout), err
 }
 
 // BlamePart represents block of blame - continuous lines with one sha
