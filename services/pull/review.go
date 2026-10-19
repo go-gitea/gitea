@@ -104,28 +104,24 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 	return nil
 }
 
-// CreateCodeComment creates a comment on the code line
-func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string, attachments []string) (*issues_model.Comment, error) {
-	var (
-		existsReview bool
-		err          error
-	)
-
-	// CreateCodeComment() is used for:
-	// - Single comments
-	// - Comments that are part of a review
-	// - Comments that reply to an existing review
-
-	if !pendingReview && replyReviewID != 0 {
+// CreateCodeComment creates a code comment in a review on the code line:
+// When pendingReview=false:
+// * no replyReviewID: create a new review and add the comment to it, and submit the review
+// * replyReviewID is set: add the comment to the existing submitted review
+// When pendingReview=true: get current pending review or create a new one, and add the comment to it
+func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string, attachments []string) (_ *issues_model.Comment, err error) {
+	replyToSubmittedReview := !pendingReview && replyReviewID != 0
+	if replyToSubmittedReview {
 		// It's not part of a review; maybe a reply to a review comment or a single comment.
 		// Check if there are reviews for that line already; if there are, this is a reply
-		if existsReview, err = issues_model.ReviewExists(ctx, issue, treePath, line); err != nil {
+		if replyToSubmittedReview, err = issues_model.ReviewExists(ctx, issue, treePath, line); err != nil {
 			return nil, err
 		}
 	}
 
 	// Comments that are replies don't require a review header to show up in the issue view
-	if !pendingReview && existsReview {
+	// Add the code comment to existing submitted review
+	if replyToSubmittedReview {
 		if err = issue.LoadRepo(ctx); err != nil {
 			return nil, err
 		}
@@ -154,15 +150,13 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		return comment, nil
 	}
 
-	// atomic: a failed comment must not leave an empty pending review behind
+	// If no existing submitted review, create a pending review and its comment in a single transaction
+	// to avoid failed code comment creation leaving a pending review without any comments
 	comment, err := db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
-		review, err := issues_model.GetCurrentReview(ctx, doer, issue)
-		if err != nil {
-			if !issues_model.IsErrReviewNotExist(err) {
-				return nil, err
-			}
-
-			if review, err = issues_model.CreateReview(ctx, issues_model.CreateReviewOptions{
+		curReview, err := issues_model.GetCurrentReview(ctx, doer, issue)
+		if errors.Is(err, util.ErrNotExist) {
+			// create a new pending review for the code comment
+			if curReview, err = issues_model.CreateReview(ctx, issues_model.CreateReviewOptions{
 				Type:     issues_model.ReviewTypePending,
 				Reviewer: doer,
 				Issue:    issue,
@@ -171,8 +165,10 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			}); err != nil {
 				return nil, err
 			}
+		} else if err != nil {
+			return nil, err
 		}
-
+		// add the code comment to the pending review
 		return createCodeComment(ctx,
 			doer,
 			issue.Repo,
@@ -180,7 +176,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			content,
 			treePath,
 			line,
-			review.ID,
+			curReview.ID,
 			attachments,
 		)
 	})
@@ -188,8 +184,9 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		return nil, err
 	}
 
-	if !pendingReview && !existsReview {
-		// Submit the review we've just created so the comment shows up in the issue view
+	if !pendingReview {
+		// Doer is creating a submitted review, so submit the pending review we've just created,
+		// then the comment shows up in the issue view
 		if _, _, err = SubmitReview(ctx, doer, gitRepo, issue, issues_model.ReviewTypeComment, "", latestCommitID, nil); err != nil {
 			return nil, err
 		}
