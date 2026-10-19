@@ -24,7 +24,7 @@ import (
 )
 
 func isErrBlameNotFoundOrNotEnoughLines(err error) bool {
-	return gitcmd.IsStderr(err, gitcmd.StderrNoSuchPath, gitcmd.StderrFileNoEnoughLines)
+	return gitcmd.IsStderr(err, gitcmd.StderrNoSuchPath, gitcmd.StderrFileNoEnoughLines, gitcmd.StderrBadObject)
 }
 
 // ErrDismissRequestOnClosedPR represents an error when a user tries to dismiss a review associated to a closed or merged PR.
@@ -250,8 +250,10 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			commit, err := lineBlame(ctx, pr.BaseRepo, gitRepo, head, treePath, uint(line))
 			if err == nil {
 				commitID = commit.ID.String()
-			} else if !isErrBlameNotFoundOrNotEnoughLines(err) {
-				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %w", pr.GetGitHeadRefName(), gitRepo.LogString(), treePath, line, err)
+			} else {
+				// The stored commit id might be invalid if the git repository commits have been rewritten (e.g. force push).
+				// Tolerate this error and log it for debugging purposes, but don't fail comment creation.
+				log.Debug("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitHeadRefName(), gitRepo.LogString(), treePath, line, err)
 			}
 		}
 	}
