@@ -59,6 +59,9 @@ func toConds(opts *packages_model.PackageSearchOptions) builder.Cond {
 		"package.owner_id":    opts.OwnerID,
 		"package.type":        packages_model.TypeNuGet,
 	}
+	if opts.TeamID.Has() {
+		cond = cond.And(builder.Eq{"package.team_id": opts.TeamID.Value()})
+	}
 	if opts.Name.Value != "" {
 		if opts.Name.ExactMatch {
 			cond = cond.And(builder.Eq{"package.lower_name": strings.ToLower(opts.Name.Value)})

@@ -17,6 +17,7 @@ import (
 
 type SearchOptions struct {
 	OwnerID  int64
+	TeamID   int64
 	FileType string
 	Platform string
 	RVersion string
@@ -27,6 +28,7 @@ func (opts *SearchOptions) toConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{
 		"package.type":                packages.TypeCran,
 		"package.owner_id":            opts.OwnerID,
+		"package.team_id":             opts.TeamID,
 		"package_version.is_internal": false,
 	}
 

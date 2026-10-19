@@ -73,8 +73,8 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 		}
 
 		// Check ownership of packages.
-		if ownsPackages, err := packages_model.HasOwnerPackages(ctx, org.ID); err != nil {
-			return fmt.Errorf("HasOwnerPackages: %w", err)
+		if ownsPackages, err := packages_model.HasAnyPackages(ctx, org.ID); err != nil {
+			return fmt.Errorf("HasAnyPackages: %w", err)
 		} else if ownsPackages {
 			return packages_model.ErrUserOwnPackages{UID: org.ID}
 		}

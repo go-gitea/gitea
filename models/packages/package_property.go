@@ -143,14 +143,21 @@ type DistinctPropertyDependency struct {
 	Value string
 }
 
-// GetDistinctPropertyValues returns all distinct property values for a given type.
+// GetDistinctPropertyValues returns all distinct property values for a given type (team_id = 0).
 // Optional: Search only in dependence of another property.
 func GetDistinctPropertyValues(ctx context.Context, packageType Type, ownerID int64, refType PropertyType, propertyName string, dep *DistinctPropertyDependency) ([]string, error) {
+	return GetDistinctPropertyValuesForTeam(ctx, packageType, ownerID, 0, refType, propertyName, dep)
+}
+
+// GetDistinctPropertyValuesForTeam returns all distinct property values for a given type and team.
+// Optional: Search only in dependence of another property.
+func GetDistinctPropertyValuesForTeam(ctx context.Context, packageType Type, ownerID, teamID int64, refType PropertyType, propertyName string, dep *DistinctPropertyDependency) ([]string, error) {
 	var cond builder.Cond = builder.Eq{
 		"package_property.ref_type": refType,
 		"package_property.name":     propertyName,
 		"package.type":              packageType,
 		"package.owner_id":          ownerID,
+		"package.team_id":           teamID,
 	}
 	if dep != nil {
 		innerCond := builder.

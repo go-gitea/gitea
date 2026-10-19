@@ -10,9 +10,11 @@ import (
 	"net/url"
 
 	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/packages/alpine"
 	"gitea.dev/modules/packages/arch"
@@ -57,6 +59,7 @@ type PackageDescriptor struct {
 	// basic package info
 	Package *Package
 	Owner   *user_model.User
+	Team    *org_model.Team
 
 	// package version info
 	Repository        *repo_model.Repository
@@ -78,11 +81,17 @@ type PackageFileDescriptor struct {
 
 // PackageWebLink returns the relative package web link
 func (pd *PackageDescriptor) PackageWebLink() string {
+	if pd.Team != nil {
+		return fmt.Sprintf("/org/%s/teams/%s/packages/%s/%s", url.PathEscape(pd.Owner.LowerName), url.PathEscape(pd.Team.LowerName), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+	}
 	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
 // PackageSettingsLink returns the relative package settings link
 func (pd *PackageDescriptor) PackageSettingsLink() string {
+	if pd.Team != nil {
+		return fmt.Sprintf("/org/%s/teams/%s/packages/settings/%s/%s", url.PathEscape(pd.Owner.LowerName), url.PathEscape(pd.Team.LowerName), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+	}
 	return fmt.Sprintf("%s/-/packages/settings/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
@@ -93,12 +102,31 @@ func (pd *PackageDescriptor) VersionWebLink() string {
 
 // PackageHTMLURL returns the absolute package HTML URL
 func (pd *PackageDescriptor) PackageHTMLURL(ctx context.Context) string {
+	if pd.Team != nil {
+		return httplib.MakeAbsoluteURL(ctx, pd.PackageWebLink())
+	}
 	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(ctx), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
 // VersionHTMLURL returns the absolute package version HTML URL
 func (pd *PackageDescriptor) VersionHTMLURL(ctx context.Context) string {
 	return fmt.Sprintf("%s/%s", pd.PackageHTMLURL(ctx), url.PathEscape(pd.Version.LowerVersion))
+}
+
+// RegistryRootPath returns the registry path prefix (e.g. "org" or "org/teams/team")
+func (pd *PackageDescriptor) RegistryRootPath() string {
+	if pd.Team != nil {
+		return fmt.Sprintf("%s/teams/%s", pd.Owner.Name, pd.Team.LowerName)
+	}
+	return pd.Owner.Name
+}
+
+// ContainerRootPath returns the container registry path prefix (e.g. "org" or "org/teams/team")
+func (pd *PackageDescriptor) ContainerRootPath() string {
+	if pd.Team != nil {
+		return fmt.Sprintf("%s/teams/%s", pd.Owner.LowerName, pd.Team.LowerName)
+	}
+	return pd.Owner.LowerName
 }
 
 // CalculateBlobSize returns the total blobs size in bytes
@@ -123,6 +151,13 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 	o, err := cache.GetWithEphemeralCache(ctx, c, "user", p.OwnerID, user_model.GetUserByID)
 	if err != nil {
 		return nil, err
+	}
+	var team *org_model.Team
+	if p.TeamID > 0 {
+		team, err = cache.GetWithEphemeralCache(ctx, c, "team", p.TeamID, org_model.GetTeamByID)
+		if err != nil && !org_model.IsErrTeamNotExist(err) {
+			return nil, err
+		}
 	}
 	var repository *repo_model.Repository
 	if p.RepoID > 0 {
@@ -228,6 +263,7 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 	return &PackageDescriptor{
 		Package:           p,
 		Owner:             o,
+		Team:              team,
 		Repository:        repository,
 		Version:           pv,
 		SemVer:            semVer,

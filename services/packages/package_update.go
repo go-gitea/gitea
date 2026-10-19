@@ -24,17 +24,22 @@ func LinkToRepository(ctx context.Context, pkg *packages_model.Package, repo *re
 	if pkg.RepoID > 0 {
 		return util.ErrInvalidArgument
 	}
+	if pkg.TeamID > 0 {
+		if !org_model.HasTeamRepo(ctx, pkg.OwnerID, pkg.TeamID, repo.ID) {
+			return util.ErrPermissionDenied
+		}
+	}
 
 	perms, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
 	if err != nil {
-		return fmt.Errorf("error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
+		return fmt.Errorf("LinkToRepository: error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
 	}
 	if !perms.CanWrite(unit.TypePackages) {
 		return util.ErrPermissionDenied
 	}
 
 	if err := packages_model.SetRepositoryLink(ctx, pkg.ID, repo.ID); err != nil {
-		return fmt.Errorf("error while linking package '%v' to repo '%v' : %w", pkg.Name, repo.FullName(), err)
+		return fmt.Errorf("LinkToRepository: error while linking package '%v' to repo '%v' : %w", pkg.Name, repo.FullName(), err)
 	}
 	return nil
 }
@@ -54,6 +59,14 @@ func canDoerManagePackage(ctx context.Context, pkg *packages_model.Package, doer
 	teams, _ := org_model.GetUserOrgTeams(ctx, owner.ID, doer.ID)
 	if teams.HasAllRepoAdminAccess() {
 		return true
+	}
+
+	if pkg.TeamID > 0 {
+		for _, team := range teams {
+			if team.ID == pkg.TeamID && team.UnitAccessMode(ctx, unit.TypePackages) >= perm.AccessModeWrite {
+				return true
+			}
+		}
 	}
 
 	if pkg.RepoID != 0 {

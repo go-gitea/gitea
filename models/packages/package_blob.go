@@ -144,7 +144,7 @@ func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model
 		InnerJoin("team_unit", "team_unit.team_id = team.id").
 		Where(builder.Eq{"team_user.uid": user.ID, "team_unit.type": unit.TypePackages}.And(builder.Expr("team_user.org_id = `user`.id")))
 
-	cond := builder.Eq{"package_blob.id": blobID}.And(
+	orgLevelCond := builder.Eq{"package.team_id": 0}.And(
 		// owner = user
 		builder.Eq{"`user`.id": user.ID}.
 			// user can see owner
@@ -153,6 +153,35 @@ func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model
 			Or(builder.Eq{"`user`.type": user_model.UserTypeOrganization}.
 				And(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): maxTeamAuthorize}.Or(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): maxTeamUnitAccessMode}))),
 	)
+
+	owningTeamUnitAccessMode := builder.
+		Select("max(team_unit.access_mode)").
+		From("team_user").
+		InnerJoin("team_unit", "team_unit.team_id = team_user.team_id").
+		Where(builder.Eq{"team_user.uid": user.ID, "team_unit.type": unit.TypePackages}.And(builder.Expr("team_user.team_id = package.team_id")))
+
+	owningTeamAuthorize := builder.
+		Select("max(team.authorize)").
+		From("team_user").
+		InnerJoin("team", "team.id = team_user.team_id").
+		Where(builder.Eq{"team_user.uid": user.ID}.And(builder.Expr("team_user.team_id = package.team_id")))
+
+	var isOrgMember builder.Cond
+	if user != nil && !user.IsGhost() {
+		isOrgMember = builder.Expr("EXISTS (SELECT 1 FROM org_user WHERE org_user.uid = ? AND org_user.org_id = `user`.id)", user.ID)
+	} else {
+		isOrgMember = builder.Eq{"1": "0"}
+	}
+
+	teamLevelCond := builder.Gt{"package.team_id": 0}.And(
+		builder.Lte{strconv.Itoa(int(perm.AccessModeAdmin)): maxTeamAuthorize}.
+			Or(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): owningTeamAuthorize}).
+			Or(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): owningTeamUnitAccessMode}).
+			Or(builder.Eq{"team.visibility": structs.VisibleTypePublic}.And(builder.In("`user`.visibility", ownerVisibilities))).
+			Or(builder.Eq{"team.visibility": structs.VisibleTypeLimited}.And(isOrgMember)),
+	)
+
+	cond := builder.Eq{"package_blob.id": blobID}.And(orgLevelCond.Or(teamLevelCond))
 	if !user_model.DoerCanViewPrivate(user) {
 		cond = cond.And(builder.Eq{"`user`.visibility": structs.VisibleTypePublic})
 	}
@@ -163,6 +192,7 @@ func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model
 		Join("INNER", "package_version", "package_version.id = package_file.version_id").
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Join("INNER", "user", "`user`.id = package.owner_id").
+		Join("LEFT", "team", "team.id = package.team_id").
 		Where(cond).
 		Exist(&PackageBlob{})
 }

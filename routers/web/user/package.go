@@ -40,6 +40,7 @@ import (
 
 const (
 	tplPackagesList       templates.TplName = "user/overview/packages"
+	tplOrgTeamPackages    templates.TplName = "org/team/packages"
 	tplPackagesView       templates.TplName = "package/view"
 	tplPackageVersionList templates.TplName = "user/overview/package_versions"
 	tplPackagesSettings   templates.TplName = "package/settings"
@@ -55,7 +56,7 @@ func ListPackages(ctx *context.Context) {
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
 
-	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+	searchOpts := &packages_model.PackageSearchOptions{
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
@@ -64,7 +65,14 @@ func ListPackages(ctx *context.Context) {
 		Type:       packages_model.Type(packageType),
 		Name:       packages_model.SearchValue{Value: query},
 		IsInternal: optional.Some(false),
-	})
+	}
+	var teamID int64
+	if ctx.Package != nil {
+		teamID = ctx.Package.TeamID()
+	}
+	searchOpts.TeamID = optional.Some(teamID)
+
+	pvs, total, err := packages_model.SearchLatestVersions(ctx, searchOpts)
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
 		return
@@ -93,9 +101,14 @@ func ListPackages(ctx *context.Context) {
 		repositoryAccessMap[pd.Repository.ID] = permission.HasAnyUnitAccess()
 	}
 
-	hasPackages, err := packages_model.HasOwnerPackages(ctx, ctx.ContextUser.ID)
+	var hasPackages bool
+	if ctx.Package != nil && ctx.Package.TeamID() > 0 {
+		hasPackages, err = packages_model.HasTeamPackages(ctx, ctx.ContextUser.ID, ctx.Package.TeamID())
+	} else {
+		hasPackages, err = packages_model.HasOwnerPackages(ctx, ctx.ContextUser.ID)
+	}
 	if err != nil {
-		ctx.ServerError("HasOwnerPackages", err)
+		ctx.ServerError("HasPackages", err)
 		return
 	}
 
@@ -130,12 +143,24 @@ func ListPackages(ctx *context.Context) {
 	}
 	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.PackagesPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
-	ctx.HTML(http.StatusOK, tplPackagesList)
+	tpl := tplPackagesList
+	if ctx.Package != nil && ctx.Package.Team != nil {
+		tpl = tplOrgTeamPackages
+		ctx.Data["Team"] = ctx.Package.Team
+		ctx.Data["PageIsOrgTeamPackages"] = true
+	}
+	ctx.HTML(http.StatusOK, tpl)
 }
 
 // RedirectToLastVersion redirects to the latest package version
 func RedirectToLastVersion(ctx *context.Context) {
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	var p *packages_model.Package
+	var err error
+	if ctx.Package != nil && ctx.Package.TeamID() > 0 {
+		p, err = packages_model.GetTeamPackageByName(ctx, ctx.Package.Owner.ID, ctx.Package.TeamID(), packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	} else {
+		p, err = packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	}
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			ctx.NotFound(err)
@@ -169,6 +194,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 func viewPackageContainerImage(ctx gocontext.Context, pd *packages_model.PackageDescriptor, digest string) (*container_module.Metadata, error) {
 	manifestBlob, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
 		OwnerID: pd.Owner.ID,
+		TeamID:  pd.Package.TeamID,
 		Image:   pd.Package.LowerName,
 		Digest:  digest,
 	})
@@ -180,7 +206,7 @@ func viewPackageContainerImage(ctx gocontext.Context, pd *packages_model.Package
 		return nil, err
 	}
 	defer manifestReader.Close()
-	_, _, metadata, err := container_service.ParseManifestMetadata(ctx, manifestReader, pd.Owner.ID, pd.Package.LowerName)
+	_, _, metadata, err := container_service.ParseManifestMetadata(ctx, manifestReader, pd.Owner.ID, pd.Package.TeamID, pd.Package.LowerName)
 	return metadata, err
 }
 
@@ -325,7 +351,13 @@ func ListPackageVersions(ctx *context.Context) {
 		return
 	}
 
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	var p *packages_model.Package
+	var err error
+	if ctx.Package != nil && ctx.Package.TeamID() > 0 {
+		p, err = packages_model.GetTeamPackageByName(ctx, ctx.Package.Owner.ID, ctx.Package.TeamID(), packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	} else {
+		p, err = packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+	}
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			ctx.NotFound(err)
@@ -349,6 +381,7 @@ func ListPackageVersions(ctx *context.Context) {
 	ctx.Data["PackageDescriptor"] = &packages_model.PackageDescriptor{
 		Package: p,
 		Owner:   ctx.Package.Owner,
+		Team:    ctx.Package.Team,
 	}
 	ctx.Data["Query"] = query
 	ctx.Data["Sort"] = sort
@@ -447,7 +480,7 @@ func PackageSettingsPost(ctx *context.Context) {
 func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSettingForm) {
 	pd := ctx.Package.Descriptor
 	if form.RepoName == "" { // remove the link
-		if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, 0); err != nil {
+		if err := packages_service.UnlinkFromRepository(ctx, pd.Package, ctx.Doer); err != nil {
 			ctx.JSONError(ctx.Tr("packages.settings.unlink.error"))
 			return
 		}
@@ -467,7 +500,7 @@ func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSett
 		return
 	}
 
-	if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, repo.ID); err != nil {
+	if err := packages_service.LinkToRepository(ctx, pd.Package, repo, ctx.Doer); err != nil {
 		ctx.JSONError(ctx.Tr("packages.settings.link.error"))
 		return
 	}
@@ -496,7 +529,7 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
-	ctx.Redirect(ctx.Package.Owner.HomeLink() + "/-/packages")
+	ctx.Redirect(ctx.Package.PackagesListWebLink())
 }
 
 // PackageVersionDelete deletes a package version
@@ -519,7 +552,7 @@ func PackageVersionDelete(ctx *context.Context) {
 	}
 
 	// redirect to the package if there are still versions available
-	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
+	redirectURL := ctx.Package.PackagesListWebLink()
 	if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: pd.Package.ID, IsInternal: optional.Some(false)}); has {
 		redirectURL = pd.PackageWebLink()
 	}

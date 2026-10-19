@@ -25,21 +25,30 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
 	alpine_module "gitea.dev/modules/packages/alpine"
 	"gitea.dev/modules/util"
 	packages_service "gitea.dev/services/packages"
 )
 
+func init() {
+	packages_service.RegisterRepositoryRebuilder(packages_model.TypeAlpine, BuildAllTeamRepositoryFiles)
+}
+
 const (
 	IndexFilename        = "APKINDEX"
 	IndexArchiveFilename = IndexFilename + ".tar.gz"
 )
 
-// GetOrCreateRepositoryVersion gets or creates the internal repository package
-// The Alpine registry needs multiple index files which are stored in this package.
+// GetOrCreateRepositoryVersion gets or creates the internal repository package (team_id = 0)
 func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
-	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeAlpine, alpine_module.RepositoryPackage, alpine_module.RepositoryVersion)
+	return GetOrCreateTeamRepositoryVersion(ctx, ownerID, 0)
+}
+
+// GetOrCreateTeamRepositoryVersion gets or creates the internal repository package for a team
+func GetOrCreateTeamRepositoryVersion(ctx context.Context, ownerID, teamID int64) (*packages_model.PackageVersion, error) {
+	return packages_service.GetOrCreateTeamInternalPackageVersion(ctx, ownerID, teamID, packages_model.TypeAlpine, alpine_module.RepositoryPackage, alpine_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the RSA keys used to sign repository files
@@ -49,9 +58,14 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 	})
 }
 
-// BuildAllRepositoryFiles (re)builds all repository files for every available branches, repositories and architectures
+// BuildAllRepositoryFiles (re)builds all repository files for every available branches, repositories and architectures (team_id = 0)
 func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
-	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
+	return BuildAllTeamRepositoryFiles(ctx, ownerID, 0)
+}
+
+// BuildAllTeamRepositoryFiles (re)builds all repository files for a team or owner
+func BuildAllTeamRepositoryFiles(ctx context.Context, ownerID, teamID int64) error {
+	pv, err := GetOrCreateTeamRepositoryVersion(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
@@ -69,22 +83,22 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	}
 
 	// 2. (Re)Build repository files for existing packages
-	branches, err := alpine_model.GetBranches(ctx, ownerID)
+	branches, err := alpine_model.GetTeamBranches(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
 	for _, branch := range branches {
-		repositories, err := alpine_model.GetRepositories(ctx, ownerID, branch)
+		repositories, err := alpine_model.GetTeamRepositories(ctx, ownerID, teamID, branch)
 		if err != nil {
 			return err
 		}
 		for _, repository := range repositories {
-			architectures, err := alpine_model.GetArchitectures(ctx, ownerID, repository)
+			architectures, err := alpine_model.GetTeamArchitectures(ctx, ownerID, teamID, repository)
 			if err != nil {
 				return err
 			}
 			for _, architecture := range architectures {
-				if err := buildPackagesIndex(ctx, ownerID, pv, branch, repository, architecture); err != nil {
+				if err := buildPackagesIndex(ctx, ownerID, teamID, pv, branch, repository, architecture); err != nil {
 					return fmt.Errorf("failed to build repository files [%s/%s/%s]: %w", branch, repository, architecture, err)
 				}
 			}
@@ -94,9 +108,14 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	return nil
 }
 
-// BuildSpecificRepositoryFiles builds index files for the repository
+// BuildSpecificRepositoryFiles builds index files for the repository (team_id = 0)
 func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, branch, repository, architecture string) error {
-	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
+	return BuildSpecificTeamRepositoryFiles(ctx, ownerID, 0, branch, repository, architecture)
+}
+
+// BuildSpecificTeamRepositoryFiles builds index files for the team repository
+func BuildSpecificTeamRepositoryFiles(ctx context.Context, ownerID, teamID int64, branch, repository, architecture string) error {
+	pv, err := GetOrCreateTeamRepositoryVersion(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
@@ -104,7 +123,7 @@ func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, branch, re
 	architectures := container.SetOf(architecture)
 	if architecture == alpine_module.NoArch {
 		// Update all other architectures too when updating the noarch index
-		additionalArchitectures, err := alpine_model.GetArchitectures(ctx, ownerID, repository)
+		additionalArchitectures, err := alpine_model.GetTeamArchitectures(ctx, ownerID, teamID, repository)
 		if err != nil {
 			return err
 		}
@@ -112,7 +131,7 @@ func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, branch, re
 	}
 
 	for architecture := range architectures {
-		if err := buildPackagesIndex(ctx, ownerID, pv, branch, repository, architecture); err != nil {
+		if err := buildPackagesIndex(ctx, ownerID, teamID, pv, branch, repository, architecture); err != nil {
 			return err
 		}
 	}
@@ -129,9 +148,10 @@ type packageData struct {
 
 type packageCache = map[*packages_model.PackageFile]*packageData
 
-func searchPackageFiles(ctx context.Context, ownerID int64, branch, repository, architecture string) ([]*packages_model.PackageFile, error) {
+func searchPackageFiles(ctx context.Context, ownerID, teamID int64, branch, repository, architecture string) ([]*packages_model.PackageFile, error) {
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     ownerID,
+		TeamID:      optional.Some(teamID),
 		PackageType: packages_model.TypeAlpine,
 		Query:       "%.apk",
 		Properties: map[string]string{
@@ -147,14 +167,14 @@ func searchPackageFiles(ctx context.Context, ownerID int64, branch, repository, 
 }
 
 // https://wiki.alpinelinux.org/wiki/Apk_spec#APKINDEX_Format
-func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, branch, repository, architecture string) error {
-	pfs, err := searchPackageFiles(ctx, ownerID, branch, repository, architecture)
+func buildPackagesIndex(ctx context.Context, ownerID, teamID int64, repoVersion *packages_model.PackageVersion, branch, repository, architecture string) error {
+	pfs, err := searchPackageFiles(ctx, ownerID, teamID, branch, repository, architecture)
 	if err != nil {
 		return err
 	}
 	if architecture != alpine_module.NoArch {
 		// Add all noarch packages too
-		noarchFiles, err := searchPackageFiles(ctx, ownerID, branch, repository, alpine_module.NoArch)
+		noarchFiles, err := searchPackageFiles(ctx, ownerID, teamID, branch, repository, alpine_module.NoArch)
 		if err != nil {
 			return err
 		}

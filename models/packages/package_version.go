@@ -92,19 +92,30 @@ func GetVersionByID(ctx context.Context, versionID int64) (*PackageVersion, erro
 	return pv, nil
 }
 
-// GetVersionByNameAndVersion gets a version by name and version number
+// GetVersionByNameAndVersion gets a version by name and version number (for team_id = 0)
 func GetVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType Type, name, version string) (*PackageVersion, error) {
-	return getVersionByNameAndVersion(ctx, ownerID, packageType, name, version, false)
+	return GetTeamVersionByNameAndVersion(ctx, ownerID, 0, packageType, name, version)
 }
 
-// GetInternalVersionByNameAndVersion gets a version by name and version number
+// GetTeamVersionByNameAndVersion gets a version by name and version number for an owner and team
+func GetTeamVersionByNameAndVersion(ctx context.Context, ownerID, teamID int64, packageType Type, name, version string) (*PackageVersion, error) {
+	return getTeamVersionByNameAndVersion(ctx, ownerID, teamID, packageType, name, version, false)
+}
+
+// GetInternalVersionByNameAndVersion gets a version by name and version number (for team_id = 0)
 func GetInternalVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType Type, name, version string) (*PackageVersion, error) {
-	return getVersionByNameAndVersion(ctx, ownerID, packageType, name, version, true)
+	return GetTeamInternalVersionByNameAndVersion(ctx, ownerID, 0, packageType, name, version)
 }
 
-func getVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType Type, name, version string, isInternal bool) (*PackageVersion, error) {
+// GetTeamInternalVersionByNameAndVersion gets an internal version by name and version number for an owner and team
+func GetTeamInternalVersionByNameAndVersion(ctx context.Context, ownerID, teamID int64, packageType Type, name, version string) (*PackageVersion, error) {
+	return getTeamVersionByNameAndVersion(ctx, ownerID, teamID, packageType, name, version, true)
+}
+
+func getTeamVersionByNameAndVersion(ctx context.Context, ownerID, teamID int64, packageType Type, name, version string, isInternal bool) (*PackageVersion, error) {
 	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
 		OwnerID: ownerID,
+		TeamID:  optional.Some(teamID),
 		Type:    packageType,
 		Name: SearchValue{
 			ExactMatch: true,
@@ -126,20 +137,32 @@ func getVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType 
 	return pvs[0], nil
 }
 
-// GetVersionsByPackageType gets all versions of a specific type
+// GetVersionsByPackageType gets all versions of a specific type (team_id = 0)
 func GetVersionsByPackageType(ctx context.Context, ownerID int64, packageType Type) ([]*PackageVersion, error) {
+	return GetTeamVersionsByPackageType(ctx, ownerID, 0, packageType)
+}
+
+// GetTeamVersionsByPackageType gets all versions of a specific type for an owner and team
+func GetTeamVersionsByPackageType(ctx context.Context, ownerID, teamID int64, packageType Type) ([]*PackageVersion, error) {
 	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
 		OwnerID:    ownerID,
+		TeamID:     optional.Some(teamID),
 		Type:       packageType,
 		IsInternal: optional.Some(false),
 	})
 	return pvs, err
 }
 
-// GetVersionsByPackageName gets all versions of a specific package
+// GetVersionsByPackageName gets all versions of a specific package (team_id = 0)
 func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Type, name string) ([]*PackageVersion, error) {
+	return GetTeamVersionsByPackageName(ctx, ownerID, 0, packageType, name)
+}
+
+// GetTeamVersionsByPackageName gets all versions of a specific package for an owner and team
+func GetTeamVersionsByPackageName(ctx context.Context, ownerID, teamID int64, packageType Type, name string) ([]*PackageVersion, error) {
 	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
 		OwnerID: ownerID,
+		TeamID:  optional.Some(teamID),
 		Type:    packageType,
 		Name: SearchValue{
 			ExactMatch: true,
@@ -154,6 +177,13 @@ func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Ty
 func DeleteVersionByID(ctx context.Context, versionID int64) error {
 	_, err := db.GetEngine(ctx).ID(versionID).Delete(&PackageVersion{})
 	return err
+}
+
+// GetVersionsByPackageID gets all versions of a specific package
+func GetVersionsByPackageID(ctx context.Context, packageID int64) ([]*PackageVersion, error) {
+	var pvs []*PackageVersion
+	err := db.GetEngine(ctx).Where("package_id = ?", packageID).Find(&pvs)
+	return pvs, err
 }
 
 // DeleteVersionsByPackageID deletes all versions of a specific package
@@ -189,6 +219,7 @@ const (
 // All fields optional and are not used if they have their default value (nil, "", 0)
 type PackageSearchOptions struct {
 	OwnerID         int64
+	TeamID          optional.Option[int64]
 	RepoID          int64
 	Type            Type
 	PackageID       int64
@@ -212,6 +243,9 @@ func (opts *PackageSearchOptions) ToConds() builder.Cond {
 
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"package.owner_id": opts.OwnerID})
+	}
+	if opts.TeamID.Has() {
+		cond = cond.And(builder.Eq{"package.team_id": opts.TeamID.Value()})
 	}
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"package.repo_id": opts.RepoID})

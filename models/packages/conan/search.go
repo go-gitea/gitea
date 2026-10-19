@@ -27,6 +27,7 @@ func buildCondition(name, value string) builder.Cond {
 
 type RecipeSearchOptions struct {
 	OwnerID int64
+	TeamID  int64
 	Name    string
 	Version string
 	User    string
@@ -39,6 +40,7 @@ func SearchRecipes(ctx context.Context, opts *RecipeSearchOptions) ([]string, er
 		"package_file.is_lead":        true,
 		"package.type":                packages.TypeConan,
 		"package.owner_id":            opts.OwnerID,
+		"package.team_id":             opts.TeamID,
 		"package_version.is_internal": false,
 	}
 
@@ -121,12 +123,18 @@ func SearchRecipes(ctx context.Context, opts *RecipeSearchOptions) ([]string, er
 	return recipes, nil
 }
 
-// GetPackageInfo gets the Conaninfo for a package
+// GetPackageInfo gets the Conaninfo for a package (team_id = 0)
 func GetPackageInfo(ctx context.Context, ownerID int64, ref *conan_module.PackageReference) (string, error) {
+	return GetTeamPackageInfo(ctx, ownerID, 0, ref)
+}
+
+// GetTeamPackageInfo gets the Conaninfo for a package of a team
+func GetTeamPackageInfo(ctx context.Context, ownerID, teamID int64, ref *conan_module.PackageReference) (string, error) {
 	values, err := findPropertyValues(
 		ctx,
 		conan_module.PropertyPackageInfo,
 		ownerID,
+		teamID,
 		ref.Recipe.Name,
 		ref.Recipe.Version,
 		map[string]string{

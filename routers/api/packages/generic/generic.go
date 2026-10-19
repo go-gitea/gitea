@@ -33,6 +33,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
+			Team:        ctx.Package.Team,
 			PackageType: packages_model.TypeGeneric,
 			Name:        ctx.PathParam("packagename"),
 			Version:     ctx.PathParam("packageversion"),
@@ -106,6 +107,7 @@ func UploadPackage(ctx *context.Context) {
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
+				Team:        ctx.Package.Team,
 				PackageType: packages_model.TypeGeneric,
 				Name:        packageName,
 				Version:     packageVersion,
@@ -143,6 +145,7 @@ func DeletePackage(ctx *context.Context) {
 		ctx.Doer,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
+			Team:        ctx.Package.Team,
 			PackageType: packages_model.TypeGeneric,
 			Name:        ctx.PathParam("packagename"),
 			Version:     ctx.PathParam("packageversion"),
@@ -163,7 +166,13 @@ func DeletePackage(ctx *context.Context) {
 // DeletePackageFile deletes the specific file of a generic package.
 func DeletePackageFile(ctx *context.Context) {
 	pv, pf, err := func() (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, ctx.PathParam("packagename"), ctx.PathParam("packageversion"))
+		var pv *packages_model.PackageVersion
+		var err error
+		if ctx.Package.TeamID() > 0 {
+			pv, err = packages_model.GetTeamVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, ctx.Package.TeamID(), packages_model.TypeGeneric, ctx.PathParam("packagename"), ctx.PathParam("packageversion"))
+		} else {
+			pv, err = packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, ctx.PathParam("packagename"), ctx.PathParam("packageversion"))
+		}
 		if err != nil {
 			return nil, nil, err
 		}

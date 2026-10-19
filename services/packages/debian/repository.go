@@ -31,10 +31,18 @@ import (
 	"github.com/ulikunitz/xz"
 )
 
-// GetOrCreateRepositoryVersion gets or creates the internal repository package
-// The Debian registry needs multiple index files which are stored in this package.
+func init() {
+	packages_service.RegisterRepositoryRebuilder(packages_model.TypeDebian, BuildAllTeamRepositoryFiles)
+}
+
+// GetOrCreateRepositoryVersion gets or creates the internal repository package (team_id = 0)
 func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
-	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeDebian, debian_module.RepositoryPackage, debian_module.RepositoryVersion)
+	return GetOrCreateTeamRepositoryVersion(ctx, ownerID, 0)
+}
+
+// GetOrCreateTeamRepositoryVersion gets or creates the internal repository package for a team
+func GetOrCreateTeamRepositoryVersion(ctx context.Context, ownerID, teamID int64) (*packages_model.PackageVersion, error) {
+	return packages_service.GetOrCreateTeamInternalPackageVersion(ctx, ownerID, teamID, packages_model.TypeDebian, debian_module.RepositoryPackage, debian_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files
@@ -79,9 +87,14 @@ func generateKeypair() (string, string, error) {
 	return priv.String(), pub.String(), nil
 }
 
-// BuildAllRepositoryFiles (re)builds all repository files for every available distributions, components and architectures
+// BuildAllRepositoryFiles (re)builds all repository files for every available distributions, components and architectures (team_id = 0)
 func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
-	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
+	return BuildAllTeamRepositoryFiles(ctx, ownerID, 0)
+}
+
+// BuildAllTeamRepositoryFiles (re)builds all repository files for a team or owner
+func BuildAllTeamRepositoryFiles(ctx context.Context, ownerID, teamID int64) error {
+	pv, err := GetOrCreateTeamRepositoryVersion(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
@@ -99,23 +112,23 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	}
 
 	// 2. (Re)Build repository files for existing packages
-	distributions, err := debian_model.GetDistributions(ctx, ownerID)
+	distributions, err := debian_model.GetTeamDistributions(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
 	for _, distribution := range distributions {
-		components, err := debian_model.GetComponents(ctx, ownerID, distribution)
+		components, err := debian_model.GetTeamComponents(ctx, ownerID, teamID, distribution)
 		if err != nil {
 			return err
 		}
-		architectures, err := debian_model.GetArchitectures(ctx, ownerID, distribution)
+		architectures, err := debian_model.GetTeamArchitectures(ctx, ownerID, teamID, distribution)
 		if err != nil {
 			return err
 		}
 
 		for _, component := range components {
 			for _, architecture := range architectures {
-				if err := buildRepositoryFiles(ctx, ownerID, pv, distribution, component, architecture); err != nil {
+				if err := buildRepositoryFiles(ctx, ownerID, teamID, pv, distribution, component, architecture); err != nil {
 					return fmt.Errorf("failed to build repository files [%s/%s/%s]: %w", distribution, component, architecture, err)
 				}
 			}
@@ -125,28 +138,34 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	return nil
 }
 
-// BuildSpecificRepositoryFiles builds index files for the repository
+// BuildSpecificRepositoryFiles builds index files for the repository (team_id = 0)
 func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, distribution, component, architecture string) error {
-	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
+	return BuildSpecificTeamRepositoryFiles(ctx, ownerID, 0, distribution, component, architecture)
+}
+
+// BuildSpecificTeamRepositoryFiles builds index files for the team repository
+func BuildSpecificTeamRepositoryFiles(ctx context.Context, ownerID, teamID int64, distribution, component, architecture string) error {
+	pv, err := GetOrCreateTeamRepositoryVersion(ctx, ownerID, teamID)
 	if err != nil {
 		return err
 	}
 
-	return buildRepositoryFiles(ctx, ownerID, pv, distribution, component, architecture)
+	return buildRepositoryFiles(ctx, ownerID, teamID, pv, distribution, component, architecture)
 }
 
-func buildRepositoryFiles(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, distribution, component, architecture string) error {
-	if err := buildPackagesIndices(ctx, ownerID, repoVersion, distribution, component, architecture); err != nil {
+func buildRepositoryFiles(ctx context.Context, ownerID, teamID int64, repoVersion *packages_model.PackageVersion, distribution, component, architecture string) error {
+	if err := buildPackagesIndices(ctx, ownerID, teamID, repoVersion, distribution, component, architecture); err != nil {
 		return err
 	}
 
-	return buildReleaseFiles(ctx, ownerID, repoVersion, distribution)
+	return buildReleaseFiles(ctx, ownerID, teamID, repoVersion, distribution)
 }
 
 // https://wiki.debian.org/DebianRepository/Format#A.22Packages.22_Indices
-func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, distribution, component, architecture string) error {
+func buildPackagesIndices(ctx context.Context, ownerID, teamID int64, repoVersion *packages_model.PackageVersion, distribution, component, architecture string) error {
 	opts := &debian_model.PackageSearchOptions{
 		OwnerID:      ownerID,
+		TeamID:       teamID,
 		Distribution: distribution,
 		Component:    component,
 		Architecture: architecture,
@@ -248,7 +267,7 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 }
 
 // https://wiki.debian.org/DebianRepository/Format#A.22Release.22_files
-func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, distribution string) error {
+func buildReleaseFiles(ctx context.Context, ownerID, teamID int64, repoVersion *packages_model.PackageVersion, distribution string) error {
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		VersionID: repoVersion.ID,
 		Properties: map[string]string{
@@ -278,14 +297,14 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 		return nil
 	}
 
-	components, err := debian_model.GetComponents(ctx, ownerID, distribution)
+	components, err := debian_model.GetTeamComponents(ctx, ownerID, teamID, distribution)
 	if err != nil {
 		return err
 	}
 
 	sort.Strings(components)
 
-	architectures, err := debian_model.GetArchitectures(ctx, ownerID, distribution)
+	architectures, err := debian_model.GetTeamArchitectures(ctx, ownerID, teamID, distribution)
 	if err != nil {
 		return err
 	}

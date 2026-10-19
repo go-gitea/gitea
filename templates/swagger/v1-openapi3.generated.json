@@ -33662,6 +33662,14 @@
               "format": "int64",
               "type": "integer"
             }
+          },
+          {
+            "description": "whether to delete team packages, or reparent to organization",
+            "in": "query",
+            "name": "delete_packages",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {

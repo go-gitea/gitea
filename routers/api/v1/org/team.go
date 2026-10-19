@@ -333,13 +333,17 @@ func DeleteTeam(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: delete_packages
+	//   in: query
+	//   description: whether to delete team packages, or reparent to organization
+	//   type: boolean
 	// responses:
 	//   "204":
 	//     description: team deleted
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := org_service.DeleteTeam(ctx, ctx.Org.Team); err != nil {
+	if err := org_service.DeleteTeam(ctx, ctx.Org.Team, ctx.FormBool("delete_packages")); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

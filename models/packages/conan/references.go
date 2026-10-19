@@ -22,9 +22,14 @@ var (
 	ErrPackageReferenceNotExist = util.NewNotExistErrorf("package reference does not exist")
 )
 
-// RecipeExists checks if a recipe exists
+// RecipeExists checks if a recipe exists (team_id = 0)
 func RecipeExists(ctx context.Context, ownerID int64, ref *conan_module.RecipeReference) (bool, error) {
-	revisions, err := GetRecipeRevisions(ctx, ownerID, ref)
+	return TeamRecipeExists(ctx, ownerID, 0, ref)
+}
+
+// TeamRecipeExists checks if a recipe exists for a team
+func TeamRecipeExists(ctx context.Context, ownerID, teamID int64, ref *conan_module.RecipeReference) (bool, error) {
+	revisions, err := GetTeamRecipeRevisions(ctx, ownerID, teamID, ref)
 	if err != nil {
 		return false, err
 	}
@@ -37,7 +42,7 @@ type PropertyValue struct {
 	CreatedUnix timeutil.TimeStamp
 }
 
-func findPropertyValues(ctx context.Context, propertyName string, ownerID int64, name, version string, propertyFilter map[string]string) ([]*PropertyValue, error) {
+func findPropertyValues(ctx context.Context, propertyName string, ownerID, teamID int64, name, version string, propertyFilter map[string]string) ([]*PropertyValue, error) {
 	var propsCond builder.Cond = builder.Eq{
 		"package_property.ref_type": packages.PropertyTypeFile,
 	}
@@ -55,6 +60,7 @@ func findPropertyValues(ctx context.Context, propertyName string, ownerID int64,
 	var cond builder.Cond = builder.Eq{
 		"package.type":                    packages.TypeConan,
 		"package.owner_id":                ownerID,
+		"package.team_id":                 teamID,
 		"package.lower_name":              strings.ToLower(name),
 		"package_version.lower_version":   strings.ToLower(version),
 		"package_version.is_internal":     false,
@@ -80,12 +86,18 @@ func findPropertyValues(ctx context.Context, propertyName string, ownerID int64,
 	return values, db.GetEngine(ctx).SQL(query).Find(&values)
 }
 
-// GetRecipeRevisions gets all revisions of a recipe
+// GetRecipeRevisions gets all revisions of a recipe (team_id = 0)
 func GetRecipeRevisions(ctx context.Context, ownerID int64, ref *conan_module.RecipeReference) ([]*PropertyValue, error) {
+	return GetTeamRecipeRevisions(ctx, ownerID, 0, ref)
+}
+
+// GetTeamRecipeRevisions gets all revisions of a recipe for a team
+func GetTeamRecipeRevisions(ctx context.Context, ownerID, teamID int64, ref *conan_module.RecipeReference) ([]*PropertyValue, error) {
 	values, err := findPropertyValues(
 		ctx,
 		conan_module.PropertyRecipeRevision,
 		ownerID,
+		teamID,
 		ref.Name,
 		ref.Version,
 		map[string]string{
@@ -100,9 +112,14 @@ func GetRecipeRevisions(ctx context.Context, ownerID int64, ref *conan_module.Re
 	return values, nil
 }
 
-// GetLastRecipeRevision gets the latest recipe revision
+// GetLastRecipeRevision gets the latest recipe revision (team_id = 0)
 func GetLastRecipeRevision(ctx context.Context, ownerID int64, ref *conan_module.RecipeReference) (*PropertyValue, error) {
-	revisions, err := GetRecipeRevisions(ctx, ownerID, ref)
+	return GetTeamLastRecipeRevision(ctx, ownerID, 0, ref)
+}
+
+// GetTeamLastRecipeRevision gets the latest recipe revision for a team
+func GetTeamLastRecipeRevision(ctx context.Context, ownerID, teamID int64, ref *conan_module.RecipeReference) (*PropertyValue, error) {
+	revisions, err := GetTeamRecipeRevisions(ctx, ownerID, teamID, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -113,12 +130,18 @@ func GetLastRecipeRevision(ctx context.Context, ownerID int64, ref *conan_module
 	return revisions[0], nil
 }
 
-// GetPackageReferences gets all package references of a recipe
+// GetPackageReferences gets all package references of a recipe (team_id = 0)
 func GetPackageReferences(ctx context.Context, ownerID int64, ref *conan_module.RecipeReference) ([]*PropertyValue, error) {
+	return GetTeamPackageReferences(ctx, ownerID, 0, ref)
+}
+
+// GetTeamPackageReferences gets all package references of a recipe for a team
+func GetTeamPackageReferences(ctx context.Context, ownerID, teamID int64, ref *conan_module.RecipeReference) ([]*PropertyValue, error) {
 	values, err := findPropertyValues(
 		ctx,
 		conan_module.PropertyPackageReference,
 		ownerID,
+		teamID,
 		ref.Name,
 		ref.Version,
 		map[string]string{
@@ -134,12 +157,18 @@ func GetPackageReferences(ctx context.Context, ownerID int64, ref *conan_module.
 	return values, nil
 }
 
-// GetPackageRevisions gets all revision of a package
+// GetPackageRevisions gets all revision of a package (team_id = 0)
 func GetPackageRevisions(ctx context.Context, ownerID int64, ref *conan_module.PackageReference) ([]*PropertyValue, error) {
+	return GetTeamPackageRevisions(ctx, ownerID, 0, ref)
+}
+
+// GetTeamPackageRevisions gets all revision of a package for a team
+func GetTeamPackageRevisions(ctx context.Context, ownerID, teamID int64, ref *conan_module.PackageReference) ([]*PropertyValue, error) {
 	values, err := findPropertyValues(
 		ctx,
 		conan_module.PropertyPackageRevision,
 		ownerID,
+		teamID,
 		ref.Recipe.Name,
 		ref.Recipe.Version,
 		map[string]string{
@@ -156,9 +185,14 @@ func GetPackageRevisions(ctx context.Context, ownerID int64, ref *conan_module.P
 	return values, nil
 }
 
-// GetLastPackageRevision gets the latest package revision
+// GetLastPackageRevision gets the latest package revision (team_id = 0)
 func GetLastPackageRevision(ctx context.Context, ownerID int64, ref *conan_module.PackageReference) (*PropertyValue, error) {
-	revisions, err := GetPackageRevisions(ctx, ownerID, ref)
+	return GetTeamLastPackageRevision(ctx, ownerID, 0, ref)
+}
+
+// GetTeamLastPackageRevision gets the latest package revision for a team
+func GetTeamLastPackageRevision(ctx context.Context, ownerID, teamID int64, ref *conan_module.PackageReference) (*PropertyValue, error) {
+	revisions, err := GetTeamPackageRevisions(ctx, ownerID, teamID, ref)
 	if err != nil {
 		return nil, err
 	}

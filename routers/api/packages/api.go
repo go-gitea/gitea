@@ -102,153 +102,164 @@ func CommonRoutes() *web.Router {
 	}, verifyAuthOptions{})
 
 	r.Group("/{username}", func() {
-		r.Group("/alpine", func() {
-			r.Get("/key", alpine.GetRepositoryKey)
-			r.Group("/{branch}/{repository}", func() {
-				r.Put("", reqPackageAccess(perm.AccessModeWrite), alpine.UploadPackageFile)
-				r.Group("/{architecture}", func() {
-					r.Methods("HEAD,GET", "/APKINDEX.tar.gz", alpine.GetRepositoryFile)
-					r.Group("/{filename}", func() {
-						r.Get("", alpine.DownloadPackageFile)
-						r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)
-					})
+		r.Group("", func() {
+			registerCommonPackageRoutes(r)
+		}, context.PackageAssignment())
+		r.Group("/teams/{team}", func() {
+			registerCommonPackageRoutes(r)
+		}, context.PackageAssignment())
+	}, context.UserAssignmentWeb())
+
+	return r
+}
+
+func registerCommonPackageRoutes(r *web.Router) {
+	r.Group("/alpine", func() {
+		r.Get("/key", alpine.GetRepositoryKey)
+		r.Group("/{branch}/{repository}", func() {
+			r.Put("", reqPackageAccess(perm.AccessModeWrite), alpine.UploadPackageFile)
+			r.Group("/{architecture}", func() {
+				r.Methods("HEAD,GET", "/APKINDEX.tar.gz", alpine.GetRepositoryFile)
+				r.Group("/{filename}", func() {
+					r.Get("", alpine.DownloadPackageFile)
+					r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)
 				})
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/arch", func() {
-			r.Methods("HEAD,GET", "/repository.key", arch.GetRepositoryKey)
-			r.Methods("PUT", "" /* no repository */, reqPackageAccess(perm.AccessModeWrite), arch.UploadPackageFile)
-			r.PathGroup("/*", func(g *web.RouterPathGroup) {
-				g.MatchPath("PUT", "/<repository:*>", reqPackageAccess(perm.AccessModeWrite), arch.UploadPackageFile)
-				g.MatchPath("HEAD,GET", "/<repository:*>/<architecture>/<filename>", arch.GetPackageOrRepositoryFile)
-				g.MatchPath("DELETE", "/<repository:*>/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), arch.DeletePackageVersion)
+		})
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/arch", func() {
+		r.Methods("HEAD,GET", "/repository.key", arch.GetRepositoryKey)
+		r.Methods("PUT", "" /* no repository */, reqPackageAccess(perm.AccessModeWrite), arch.UploadPackageFile)
+		r.PathGroup("/*", func(g *web.RouterPathGroup) {
+			g.MatchPath("PUT", "/<repository:*>", reqPackageAccess(perm.AccessModeWrite), arch.UploadPackageFile)
+			g.MatchPath("HEAD,GET", "/<repository:*>/<architecture>/<filename>", arch.GetPackageOrRepositoryFile)
+			g.MatchPath("DELETE", "/<repository:*>/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), arch.DeletePackageVersion)
+		})
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/cargo", func() {
+		r.Group("/api/v1/crates", func() {
+			r.Get("", cargo.SearchPackages)
+			r.Put("/new", reqPackageAccess(perm.AccessModeWrite), cargo.UploadPackage)
+			r.Group("/{package}", func() {
+				r.Group("/{version}", func() {
+					r.Get("/download", cargo.DownloadPackageFile)
+					r.Delete("/yank", reqPackageAccess(perm.AccessModeWrite), cargo.YankPackage)
+					r.Put("/unyank", reqPackageAccess(perm.AccessModeWrite), cargo.UnyankPackage)
+				})
+				r.Get("/owners", cargo.ListOwners)
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/cargo", func() {
-			r.Group("/api/v1/crates", func() {
-				r.Get("", cargo.SearchPackages)
-				r.Put("/new", reqPackageAccess(perm.AccessModeWrite), cargo.UploadPackage)
-				r.Group("/{package}", func() {
-					r.Group("/{version}", func() {
-						r.Get("/download", cargo.DownloadPackageFile)
-						r.Delete("/yank", reqPackageAccess(perm.AccessModeWrite), cargo.YankPackage)
-						r.Put("/unyank", reqPackageAccess(perm.AccessModeWrite), cargo.UnyankPackage)
+		})
+		r.Get("/config.json", cargo.RepositoryConfig)
+		r.Get("/1/{package}", cargo.EnumeratePackageVersions)
+		r.Get("/2/{package}", cargo.EnumeratePackageVersions)
+		// Use dummy placeholders because these parts are not of interest
+		r.Get("/3/{_}/{package}", cargo.EnumeratePackageVersions)
+		r.Get("/{_}/{__}/{package}", cargo.EnumeratePackageVersions)
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/chef", func() {
+		r.Group("/api/v1", func() {
+			r.Get("/universe", chef.PackagesUniverse)
+			r.Get("/search", chef.EnumeratePackages)
+			r.Group("/cookbooks", func() {
+				r.Get("", chef.EnumeratePackages)
+				r.Post("", reqPackageAccess(perm.AccessModeWrite), chef.UploadPackage)
+				r.Group("/{name}", func() {
+					r.Get("", chef.PackageMetadata)
+					r.Group("/versions/{version}", func() {
+						r.Get("", chef.PackageVersionMetadata)
+						r.Delete("", reqPackageAccess(perm.AccessModeWrite), chef.DeletePackageVersion)
+						r.Get("/download", chef.DownloadPackage)
 					})
-					r.Get("/owners", cargo.ListOwners)
+					r.Delete("", reqPackageAccess(perm.AccessModeWrite), chef.DeletePackage)
 				})
 			})
-			r.Get("/config.json", cargo.RepositoryConfig)
-			r.Get("/1/{package}", cargo.EnumeratePackageVersions)
-			r.Get("/2/{package}", cargo.EnumeratePackageVersions)
-			// Use dummy placeholders because these parts are not of interest
-			r.Get("/3/{_}/{package}", cargo.EnumeratePackageVersions)
-			r.Get("/{_}/{__}/{package}", cargo.EnumeratePackageVersions)
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/chef", func() {
-			r.Group("/api/v1", func() {
-				r.Get("/universe", chef.PackagesUniverse)
-				r.Get("/search", chef.EnumeratePackages)
-				r.Group("/cookbooks", func() {
-					r.Get("", chef.EnumeratePackages)
-					r.Post("", reqPackageAccess(perm.AccessModeWrite), chef.UploadPackage)
-					r.Group("/{name}", func() {
-						r.Get("", chef.PackageMetadata)
-						r.Group("/versions/{version}", func() {
-							r.Get("", chef.PackageVersionMetadata)
-							r.Delete("", reqPackageAccess(perm.AccessModeWrite), chef.DeletePackageVersion)
-							r.Get("/download", chef.DownloadPackage)
+		})
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/composer", func() {
+		r.Get("/packages.json", composer.ServiceIndex)
+		r.Get("/search.json", composer.SearchPackages)
+		r.Get("/list.json", composer.EnumeratePackages)
+		r.Get("/p2/{vendorname}/{projectname}~dev.json", composer.PackageMetadata)
+		r.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
+		r.Get("/files/{package}/{version}/{filename}", composer.DownloadPackageFile)
+		r.Put("", reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/conan", func() {
+		r.Group("/v1", func() {
+			r.Get("/ping", conan.Ping)
+			r.Group("/users", func() {
+				r.Get("/authenticate", conan.Authenticate)
+				r.Get("/check_credentials", conan.CheckCredentials)
+			})
+			r.Group("/conans", func() {
+				r.Get("/search", conan.SearchRecipes)
+				r.Group("/{name}/{version}/{user}/{channel}", func() {
+					r.Get("", conan.RecipeSnapshot)
+					r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV1)
+					r.Get("/search", conan.SearchPackagesV1)
+					r.Get("/digest", conan.RecipeDownloadURLs)
+					r.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.RecipeUploadURLs)
+					r.Get("/download_urls", conan.RecipeDownloadURLs)
+					r.Group("/packages", func() {
+						r.Post("/delete", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV1)
+						r.Group("/{package_reference}", func() {
+							r.Get("", conan.PackageSnapshot)
+							r.Get("/digest", conan.PackageDownloadURLs)
+							r.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.PackageUploadURLs)
+							r.Get("/download_urls", conan.PackageDownloadURLs)
 						})
-						r.Delete("", reqPackageAccess(perm.AccessModeWrite), chef.DeletePackage)
-					})
-				})
-			})
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/composer", func() {
-			r.Get("/packages.json", composer.ServiceIndex)
-			r.Get("/search.json", composer.SearchPackages)
-			r.Get("/list.json", composer.EnumeratePackages)
-			r.Get("/p2/{vendorname}/{projectname}~dev.json", composer.PackageMetadata)
-			r.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
-			r.Get("/files/{package}/{version}/{filename}", composer.DownloadPackageFile)
-			r.Put("", reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/conan", func() {
-			r.Group("/v1", func() {
-				r.Get("/ping", conan.Ping)
-				r.Group("/users", func() {
-					r.Get("/authenticate", conan.Authenticate)
-					r.Get("/check_credentials", conan.CheckCredentials)
-				})
-				r.Group("/conans", func() {
-					r.Get("/search", conan.SearchRecipes)
-					r.Group("/{name}/{version}/{user}/{channel}", func() {
-						r.Get("", conan.RecipeSnapshot)
-						r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV1)
-						r.Get("/search", conan.SearchPackagesV1)
-						r.Get("/digest", conan.RecipeDownloadURLs)
-						r.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.RecipeUploadURLs)
-						r.Get("/download_urls", conan.RecipeDownloadURLs)
-						r.Group("/packages", func() {
-							r.Post("/delete", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV1)
-							r.Group("/{package_reference}", func() {
-								r.Get("", conan.PackageSnapshot)
-								r.Get("/digest", conan.PackageDownloadURLs)
-								r.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.PackageUploadURLs)
-								r.Get("/download_urls", conan.PackageDownloadURLs)
-							})
-						})
-					}, conan.ExtractPathParameters)
-				})
-				r.Group("/files/{name}/{version}/{user}/{channel}/{recipe_revision}", func() {
-					r.Group("/recipe/{filename}", func() {
-						r.Get("", conan.DownloadRecipeFile)
-						r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadRecipeFile)
-					})
-					r.Group("/package/{package_reference}/{package_revision}/{filename}", func() {
-						r.Get("", conan.DownloadPackageFile)
-						r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
 					})
 				}, conan.ExtractPathParameters)
 			})
-			r.Group("/v2", func() {
-				r.Get("/ping", conan.Ping)
-				r.Group("/users", func() {
-					r.Get("/authenticate", conan.Authenticate)
-					r.Get("/check_credentials", conan.CheckCredentials)
+			r.Group("/files/{name}/{version}/{user}/{channel}/{recipe_revision}", func() {
+				r.Group("/recipe/{filename}", func() {
+					r.Get("", conan.DownloadRecipeFile)
+					r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadRecipeFile)
 				})
-				r.Group("/conans", func() {
-					r.Get("/search", conan.SearchRecipes)
-					r.Group("/{name}/{version}/{user}/{channel}", func() {
-						r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV2)
-						r.Get("/search", conan.SearchPackagesV2)
-						r.Get("/latest", conan.LatestRecipeRevision)
-						r.Group("/revisions", func() {
-							r.Get("", conan.ListRecipeRevisions)
-							r.Group("/{recipe_revision}", func() {
-								r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV2)
-								r.Get("/search", conan.SearchPackagesV2)
-								r.Group("/files", func() {
-									r.Get("", conan.ListRecipeRevisionFiles)
-									r.Group("/{filename}", func() {
-										r.Get("", conan.DownloadRecipeFile)
-										r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadRecipeFile)
-									})
+				r.Group("/package/{package_reference}/{package_revision}/{filename}", func() {
+					r.Get("", conan.DownloadPackageFile)
+					r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
+				})
+			}, conan.ExtractPathParameters)
+		})
+		r.Group("/v2", func() {
+			r.Get("/ping", conan.Ping)
+			r.Group("/users", func() {
+				r.Get("/authenticate", conan.Authenticate)
+				r.Get("/check_credentials", conan.CheckCredentials)
+			})
+			r.Group("/conans", func() {
+				r.Get("/search", conan.SearchRecipes)
+				r.Group("/{name}/{version}/{user}/{channel}", func() {
+					r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV2)
+					r.Get("/search", conan.SearchPackagesV2)
+					r.Get("/latest", conan.LatestRecipeRevision)
+					r.Group("/revisions", func() {
+						r.Get("", conan.ListRecipeRevisions)
+						r.Group("/{recipe_revision}", func() {
+							r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV2)
+							r.Get("/search", conan.SearchPackagesV2)
+							r.Group("/files", func() {
+								r.Get("", conan.ListRecipeRevisionFiles)
+								r.Group("/{filename}", func() {
+									r.Get("", conan.DownloadRecipeFile)
+									r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadRecipeFile)
 								})
-								r.Group("/packages", func() {
+							})
+							r.Group("/packages", func() {
+								r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
+								r.Group("/{package_reference}", func() {
 									r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-									r.Group("/{package_reference}", func() {
-										r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-										r.Get("/latest", conan.LatestPackageRevision)
-										r.Group("/revisions", func() {
-											r.Get("", conan.ListPackageRevisions)
-											r.Group("/{package_revision}", func() {
-												r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-												r.Group("/files", func() {
-													r.Get("", conan.ListPackageRevisionFiles)
-													r.Group("/{filename}", func() {
-														r.Get("", conan.DownloadPackageFile)
-														r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
-													})
+									r.Get("/latest", conan.LatestPackageRevision)
+									r.Group("/revisions", func() {
+										r.Get("", conan.ListPackageRevisions)
+										r.Group("/{package_revision}", func() {
+											r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
+											r.Group("/files", func() {
+												r.Get("", conan.ListPackageRevisionFiles)
+												r.Group("/{filename}", func() {
+													r.Get("", conan.DownloadPackageFile)
+													r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
 												})
 											})
 										})
@@ -256,251 +267,249 @@ func CommonRoutes() *web.Router {
 								})
 							})
 						})
-					}, conan.ExtractPathParameters)
-				})
+					})
+				}, conan.ExtractPathParameters)
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.PathGroup("/conda/*", func(g *web.RouterPathGroup) {
-			g.MatchPath("GET", "/<architecture>/<filename>", conda.ListOrGetPackages)
-			g.MatchPath("GET", "/<channel:*>/<architecture>/<filename>", conda.ListOrGetPackages)
-			g.MatchPath("PUT", "/<channel:*>/<filename>", reqPackageAccess(perm.AccessModeWrite), conda.UploadPackageFile)
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/cran", func() {
-			r.Group("/src", func() {
-				r.Group("/contrib", func() {
-					r.Get("/PACKAGES", cran.EnumerateSourcePackages)
-					r.Get("/PACKAGES{format}", cran.EnumerateSourcePackages)
-					r.Get("/{filename}", cran.DownloadSourcePackageFile)
-					r.Get("/Archive/{packagename}/{filename}", cran.DownloadSourcePackageFile)
-				})
-				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadSourcePackageFile)
+		})
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.PathGroup("/conda/*", func(g *web.RouterPathGroup) {
+		g.MatchPath("GET", "/<architecture>/<filename>", conda.ListOrGetPackages)
+		g.MatchPath("GET", "/<channel:*>/<architecture>/<filename>", conda.ListOrGetPackages)
+		g.MatchPath("PUT", "/<channel:*>/<filename>", reqPackageAccess(perm.AccessModeWrite), conda.UploadPackageFile)
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/cran", func() {
+		r.Group("/src", func() {
+			r.Group("/contrib", func() {
+				r.Get("/PACKAGES", cran.EnumerateSourcePackages)
+				r.Get("/PACKAGES{format}", cran.EnumerateSourcePackages)
+				r.Get("/{filename}", cran.DownloadSourcePackageFile)
+				r.Get("/Archive/{packagename}/{filename}", cran.DownloadSourcePackageFile)
 			})
-			r.Group("/bin", func() {
-				r.Group("/{platform}/contrib/{rversion}", func() {
-					r.Get("/PACKAGES", cran.EnumerateBinaryPackages)
-					r.Get("/PACKAGES{format}", cran.EnumerateBinaryPackages)
-					r.Get("/{filename}", cran.DownloadBinaryPackageFile)
-				})
-				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadBinaryPackageFile)
+			r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadSourcePackageFile)
+		})
+		r.Group("/bin", func() {
+			r.Group("/{platform}/contrib/{rversion}", func() {
+				r.Get("/PACKAGES", cran.EnumerateBinaryPackages)
+				r.Get("/PACKAGES{format}", cran.EnumerateBinaryPackages)
+				r.Get("/{filename}", cran.DownloadBinaryPackageFile)
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/debian", func() {
-			r.Get("/repository.key", debian.GetRepositoryKey)
-			r.Group("/dists/{distribution}", func() {
+			r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadBinaryPackageFile)
+		})
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/debian", func() {
+		r.Get("/repository.key", debian.GetRepositoryKey)
+		r.Group("/dists/{distribution}", func() {
+			r.Get("/{filename}", debian.GetRepositoryFile)
+			r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
+			r.Group("/{component}/{architecture}", func() {
 				r.Get("/{filename}", debian.GetRepositoryFile)
 				r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
-				r.Group("/{component}/{architecture}", func() {
-					r.Get("/{filename}", debian.GetRepositoryFile)
-					r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
-				})
 			})
-			r.Group("/pool/{distribution}/{component}", func() {
-				r.Get("/{name}_{version}_{architecture}.deb", debian.DownloadPackageFile)
-				r.Group("", func() {
-					r.Put("/upload", debian.UploadPackageFile)
-					r.Delete("/{name}/{version}/{architecture}", debian.DeletePackageFile)
-				}, reqPackageAccess(perm.AccessModeWrite))
-			})
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/go", func() {
-			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), goproxy.UploadPackage)
-			r.Get("/sumdb/sum.golang.org/supported", http.NotFound)
-
-			// https://go.dev/ref/mod#goproxy-protocol
-			r.PathGroup("/*", func(g *web.RouterPathGroup) {
-				g.MatchPath("GET", "/<name:*>/@<version:latest>", goproxy.PackageVersionMetadata)
-				g.MatchPath("GET", "/<name:*>/@v/list", goproxy.EnumeratePackageVersions)
-				g.MatchPath("GET", "/<name:*>/@v/<version>.zip", goproxy.DownloadPackageFile)
-				g.MatchPath("GET", "/<name:*>/@v/<version>.info", goproxy.PackageVersionMetadata)
-				g.MatchPath("GET", "/<name:*>/@v/<version>.mod", goproxy.PackageVersionGoModContent)
-			})
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/generic", func() {
-			r.Group("/{packagename}/{packageversion}", func() {
-				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
-				r.Group("/{filename}", func() {
-					r.Methods("HEAD,GET", "", generic.DownloadPackageFile)
-					r.Group("", func() {
-						r.Put("", generic.UploadPackage)
-						r.Delete("", generic.DeletePackageFile)
-					}, reqPackageAccess(perm.AccessModeWrite))
-				})
-			})
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/helm", func() {
-			r.Get("/index.yaml", helm.Index)
-			r.Get("/{filename}", helm.DownloadPackageFile)
-			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
-			r.Post("/api/prov", reqPackageAccess(perm.AccessModeWrite), helm.UploadProvenanceFile)
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/maven", func() {
-			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
-			r.Get("/*", maven.DownloadPackageFile)
-			r.Head("/*", maven.ProvidePackageFileHeader)
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/nuget", func() {
-			r.Group("", func() { // Needs to be unauthenticated for the NuGet client.
-				r.Get("/", nuget.ServiceIndexV2)
-				r.Get("/index.json", nuget.ServiceIndexV3)
-				r.Get("/$metadata", nuget.FeedCapabilityResource)
-			})
-			r.Group("", func() {
-				r.Get("/query", nuget.SearchServiceV3)
-				r.Group("/registration/{id}", func() {
-					r.Get("/index.json", nuget.RegistrationIndex)
-					r.Get("/{version}", nuget.RegistrationLeafV3)
-				})
-				r.Group("/package/{id}", func() {
-					r.Get("/index.json", nuget.EnumeratePackageVersionsV3)
-					r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
-				})
-				r.Group("", func() {
-					r.Put("/", nuget.UploadPackage)
-					r.Put("/symbolpackage", nuget.UploadSymbolPackage)
-					r.Delete("/{id}/{version}", nuget.DeletePackage)
-				}, reqPackageAccess(perm.AccessModeWrite))
-				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
-				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
-				r.Group("/Packages()", func() {
-					r.Get("", nuget.SearchServiceV2)
-					r.Get("/$count", nuget.SearchServiceV2Count)
-				})
-				r.Group("/FindPackagesById()", func() {
-					r.Get("", nuget.EnumeratePackageVersionsV2)
-					r.Get("/$count", nuget.EnumeratePackageVersionsV2Count)
-				})
-				r.Group("/Search()", func() {
-					r.Get("", nuget.SearchServiceV2)
-					r.Get("/$count", nuget.SearchServiceV2Count)
-				})
-			}, reqPackageAccess(perm.AccessModeRead))
 		})
-		r.Group("/npm", func() {
-			r.Get("/-/v1/search", npm.PackageSearch)
-			r.Get("/-/ping", npm.Ping)
-			r.Get("/-/whoami", npm.Whoami)
-			r.PathGroup("/*", func(g *web.RouterPathGroup) {
-				// HINT: NPM-ROUTE-PATH-PATTERN: search this keyword to see more details
-				packageId := `/<id:(@` + npm_module.RegexpNamePart + `/)?` + npm_module.RegexpNamePart + ">"
-				g.UseUnescapedPath()
-				g.MatchPath("DELETE", packageId+"/-/<version>/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
-				g.MatchPath("DELETE", packageId+"/-/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
-				g.MatchPath("GET", packageId+"/-/<version>/<filename>", npm.DownloadPackageFileByName) // 1.27 and 28.0 URL, still advertised for older uploads
-				g.MatchPath("GET", packageId+"/-/<filename>", npm.DownloadPackageFileByName)
-				g.MatchPath("DELETE", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackage)
-				g.MatchPath("PUT", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePreview)
-				g.MatchPath("GET", packageId+"/<version>", npm.PackageVersionMetadata)
-				g.MatchPath("GET", packageId, npm.PackageMetadata)
-				g.MatchPath("PUT", packageId, reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
-
-				packageDistTags := "/-/package" + packageId + "/dist-tags"
-				g.MatchPath("GET", packageDistTags, npm.ListPackageTags)
-				g.MatchPath("PUT", packageDistTags+"/<tag>", reqPackageAccess(perm.AccessModeWrite), npm.AddPackageTag)
-				g.MatchPath("DELETE", packageDistTags+"/<tag>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageTag)
-			})
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/pub", func() {
-			r.Group("/api/packages", func() {
-				r.Group("/versions/new", func() {
-					r.Get("", pub.RequestUpload)
-					r.Post("/upload", pub.UploadPackageFile)
-					r.Get("/finalize/{id}/{version}", pub.FinalizePackage)
-				}, reqPackageAccess(perm.AccessModeWrite))
-				r.Group("/{id}", func() {
-					r.Get("", pub.EnumeratePackageVersions)
-					r.Get("/files/{version}", pub.DownloadPackageFile)
-					r.Get("/{version}", pub.PackageVersionMetadata)
-				})
-			})
-		}, reqPackageAccess(perm.AccessModeRead))
-
-		r.Group("/pypi", func() {
-			r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
-			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
-			r.Get("/simple/{id}", pypi.PackageMetadata)
-		}, reqPackageAccess(perm.AccessModeRead))
-
-		r.Methods("HEAD,GET", "/rpm.repo", reqPackageAccess(perm.AccessModeRead), rpm.GetRepositoryConfig)
-		r.PathGroup("/rpm/*", func(g *web.RouterPathGroup) {
-			g.MatchPath("HEAD,GET", "/repository.key", rpm.GetRepositoryKey)
-			g.MatchPath("HEAD,GET", "/<group:*>.repo", rpm.GetRepositoryConfig)
-			g.MatchPath("HEAD", "/<group:*>/repodata/<filename>", rpm.CheckRepositoryFileExistence)
-			g.MatchPath("GET", "/<group:*>/repodata/<filename>", rpm.GetRepositoryFile)
-			g.MatchPath("PUT", "/<group:*>/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
-			g.MatchPath("POST", "/<group:*>/package/<name>/<version>/errata", reqPackageAccess(perm.AccessModeWrite), rpm.UploadErrata)
-			// this URL pattern is only used internally in the RPM index, it is generated by us, the filename part is not really used (can be anything)
-			g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>/<filename>", rpm.DownloadPackageFile)
-			g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>", rpm.DownloadPackageFile)
-			g.MatchPath("DELETE", "/<group:*>/package/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
-		}, reqPackageAccess(perm.AccessModeRead))
-
-		r.Group("/rubygems", func() {
-			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
-			r.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
-			r.Get("/prerelease_specs.4.8.gz", rubygems.EnumeratePackagesPreRelease)
-			r.Get("/quick/Marshal.4.8/{filename}", rubygems.ServePackageSpecification)
-			r.Get("/gems/{filename}", rubygems.DownloadPackageFile)
-			r.Get("/info/{packagename}", rubygems.GetPackageInfo)
-			r.Get("/versions", rubygems.GetAllPackagesVersions)
-			r.Group("/api/v1/gems", func() {
-				r.Post("/", rubygems.UploadPackageFile)
-				r.Delete("/yank", rubygems.DeletePackage)
-			}, reqPackageAccess(perm.AccessModeWrite))
-		}, reqPackageAccess(perm.AccessModeRead))
-
-		r.Group("/swift", func() {
-			r.Group("", func() { // Needs to be unauthenticated.
-				r.Post("", swift.CheckAuthenticate)
-				r.Post("/login", swift.CheckAuthenticate)
-			})
+		r.Group("/pool/{distribution}/{component}", func() {
+			r.Get("/{name}_{version}_{architecture}.deb", debian.DownloadPackageFile)
 			r.Group("", func() {
-				r.Group("/{scope}/{name}", func() {
-					r.Group("", func() {
-						r.Get("", swift.EnumeratePackageVersions)
-						r.Get(".json", swift.EnumeratePackageVersions)
-					}, swift.CheckAcceptMediaType(swift.AcceptJSON))
-					r.PathGroup("/*", func(g *web.RouterPathGroup) {
-						g.MatchPath("GET", "/<version>.json", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.PackageVersionMetadata)
-						g.MatchPath("GET", "/<version>.zip", swift.CheckAcceptMediaType(swift.AcceptZip), swift.DownloadPackageFile)
-						g.MatchPath("GET", "/<version>/Package.swift", swift.CheckAcceptMediaType(swift.AcceptSwift), swift.DownloadManifest)
-						g.MatchPath("GET", "/<version>", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.PackageVersionMetadata)
-						g.MatchPath("PUT", "/<version>", reqPackageAccess(perm.AccessModeWrite), swift.CheckAcceptMediaType(swift.AcceptJSON), swift.UploadPackageFile)
-					})
-				})
-				r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
-			}, reqPackageAccess(perm.AccessModeRead))
+				r.Put("/upload", debian.UploadPackageFile)
+				r.Delete("/{name}/{version}/{architecture}", debian.DeletePackageFile)
+			}, reqPackageAccess(perm.AccessModeWrite))
 		})
-		// See https://docs.gitlab.com/ci/jobs/fine_grained_permissions/#terraform-state-endpoints
-		// For endpoint and permission reference
-		r.Group("/terraform/state/{name}", func() {
-			r.Get("", terraform.GetTerraformState)
-			r.Get("/versions/{serial}", terraform.GetTerraformStateBySerial)
-			r.Group("", func() {
-				r.Post("", terraform.UploadState)
-				r.Delete("", terraform.DeleteState)
-				r.Delete("/versions/{serial}", terraform.DeleteStateBySerial)
-			}, reqPackageAccess(perm.AccessModeWrite))
-			r.Group("/lock", func() {
-				r.Post("", terraform.LockState)
-				r.Delete("", terraform.UnlockState)
-			}, reqPackageAccess(perm.AccessModeWrite))
-		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/vagrant", func() {
-			r.Group("/authenticate", func() {
-				r.Get("", vagrant.CheckAuthenticate)
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/go", func() {
+		r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), goproxy.UploadPackage)
+		r.Get("/sumdb/sum.golang.org/supported", http.NotFound)
+
+		// https://go.dev/ref/mod#goproxy-protocol
+		r.PathGroup("/*", func(g *web.RouterPathGroup) {
+			g.MatchPath("GET", "/<name:*>/@<version:latest>", goproxy.PackageVersionMetadata)
+			g.MatchPath("GET", "/<name:*>/@v/list", goproxy.EnumeratePackageVersions)
+			g.MatchPath("GET", "/<name:*>/@v/<version>.zip", goproxy.DownloadPackageFile)
+			g.MatchPath("GET", "/<name:*>/@v/<version>.info", goproxy.PackageVersionMetadata)
+			g.MatchPath("GET", "/<name:*>/@v/<version>.mod", goproxy.PackageVersionGoModContent)
+		})
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/generic", func() {
+		r.Group("/{packagename}/{packageversion}", func() {
+			r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
+			r.Group("/{filename}", func() {
+				r.Methods("HEAD,GET", "", generic.DownloadPackageFile)
+				r.Group("", func() {
+					r.Put("", generic.UploadPackage)
+					r.Delete("", generic.DeletePackageFile)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			})
-			r.Group("/{name}", func() {
-				r.Head("", vagrant.CheckBoxAvailable)
-				r.Get("", vagrant.EnumeratePackageVersions)
-				r.Group("/{version}/{provider}", func() {
-					r.Get("", vagrant.DownloadPackageFile)
-					r.Put("", reqPackageAccess(perm.AccessModeWrite), vagrant.UploadPackageFile)
+		})
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/helm", func() {
+		r.Get("/index.yaml", helm.Index)
+		r.Get("/{filename}", helm.DownloadPackageFile)
+		r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
+		r.Post("/api/prov", reqPackageAccess(perm.AccessModeWrite), helm.UploadProvenanceFile)
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/maven", func() {
+		r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
+		r.Get("/*", maven.DownloadPackageFile)
+		r.Head("/*", maven.ProvidePackageFileHeader)
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/nuget", func() {
+		r.Group("", func() { // Needs to be unauthenticated for the NuGet client.
+			r.Get("/", nuget.ServiceIndexV2)
+			r.Get("/index.json", nuget.ServiceIndexV3)
+			r.Get("/$metadata", nuget.FeedCapabilityResource)
+		})
+		r.Group("", func() {
+			r.Get("/query", nuget.SearchServiceV3)
+			r.Group("/registration/{id}", func() {
+				r.Get("/index.json", nuget.RegistrationIndex)
+				r.Get("/{version}", nuget.RegistrationLeafV3)
+			})
+			r.Group("/package/{id}", func() {
+				r.Get("/index.json", nuget.EnumeratePackageVersionsV3)
+				r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
+			})
+			r.Group("", func() {
+				r.Put("/", nuget.UploadPackage)
+				r.Put("/symbolpackage", nuget.UploadSymbolPackage)
+				r.Delete("/{id}/{version}", nuget.DeletePackage)
+			}, reqPackageAccess(perm.AccessModeWrite))
+			r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
+			r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
+			r.Group("/Packages()", func() {
+				r.Get("", nuget.SearchServiceV2)
+				r.Get("/$count", nuget.SearchServiceV2Count)
+			})
+			r.Group("/FindPackagesById()", func() {
+				r.Get("", nuget.EnumeratePackageVersionsV2)
+				r.Get("/$count", nuget.EnumeratePackageVersionsV2Count)
+			})
+			r.Group("/Search()", func() {
+				r.Get("", nuget.SearchServiceV2)
+				r.Get("/$count", nuget.SearchServiceV2Count)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+	})
+	r.Group("/npm", func() {
+		r.Get("/-/v1/search", npm.PackageSearch)
+		r.Get("/-/ping", npm.Ping)
+		r.Get("/-/whoami", npm.Whoami)
+		r.PathGroup("/*", func(g *web.RouterPathGroup) {
+			// HINT: NPM-ROUTE-PATH-PATTERN: search this keyword to see more details
+			packageId := `/<id:(@` + npm_module.RegexpNamePart + `/)?` + npm_module.RegexpNamePart + ">"
+			g.UseUnescapedPath()
+			g.MatchPath("DELETE", packageId+"/-/<version>/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+			g.MatchPath("DELETE", packageId+"/-/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+			g.MatchPath("GET", packageId+"/-/<version>/<filename>", npm.DownloadPackageFileByName) // 1.27 and 28.0 URL, still advertised for older uploads
+			g.MatchPath("GET", packageId+"/-/<filename>", npm.DownloadPackageFileByName)
+			g.MatchPath("DELETE", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackage)
+			g.MatchPath("PUT", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePreview)
+			g.MatchPath("GET", packageId+"/<version>", npm.PackageVersionMetadata)
+			g.MatchPath("GET", packageId, npm.PackageMetadata)
+			g.MatchPath("PUT", packageId, reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
+
+			packageDistTags := "/-/package" + packageId + "/dist-tags"
+			g.MatchPath("GET", packageDistTags, npm.ListPackageTags)
+			g.MatchPath("PUT", packageDistTags+"/<tag>", reqPackageAccess(perm.AccessModeWrite), npm.AddPackageTag)
+			g.MatchPath("DELETE", packageDistTags+"/<tag>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageTag)
+		})
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/pub", func() {
+		r.Group("/api/packages", func() {
+			r.Group("/versions/new", func() {
+				r.Get("", pub.RequestUpload)
+				r.Post("/upload", pub.UploadPackageFile)
+				r.Get("/finalize/{id}/{version}", pub.FinalizePackage)
+			}, reqPackageAccess(perm.AccessModeWrite))
+			r.Group("/{id}", func() {
+				r.Get("", pub.EnumeratePackageVersions)
+				r.Get("/files/{version}", pub.DownloadPackageFile)
+				r.Get("/{version}", pub.PackageVersionMetadata)
+			})
+		})
+	}, reqPackageAccess(perm.AccessModeRead))
+
+	r.Group("/pypi", func() {
+		r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
+		r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
+		r.Get("/simple/{id}", pypi.PackageMetadata)
+	}, reqPackageAccess(perm.AccessModeRead))
+
+	r.Methods("HEAD,GET", "/rpm.repo", reqPackageAccess(perm.AccessModeRead), rpm.GetRepositoryConfig)
+	r.PathGroup("/rpm/*", func(g *web.RouterPathGroup) {
+		g.MatchPath("HEAD,GET", "/repository.key", rpm.GetRepositoryKey)
+		g.MatchPath("HEAD,GET", "/<group:*>.repo", rpm.GetRepositoryConfig)
+		g.MatchPath("HEAD", "/<group:*>/repodata/<filename>", rpm.CheckRepositoryFileExistence)
+		g.MatchPath("GET", "/<group:*>/repodata/<filename>", rpm.GetRepositoryFile)
+		g.MatchPath("PUT", "/<group:*>/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
+		g.MatchPath("POST", "/<group:*>/package/<name>/<version>/errata", reqPackageAccess(perm.AccessModeWrite), rpm.UploadErrata)
+		// this URL pattern is only used internally in the RPM index, it is generated by us, the filename part is not really used (can be anything)
+		g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>/<filename>", rpm.DownloadPackageFile)
+		g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>", rpm.DownloadPackageFile)
+		g.MatchPath("DELETE", "/<group:*>/package/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
+	}, reqPackageAccess(perm.AccessModeRead))
+
+	r.Group("/rubygems", func() {
+		r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
+		r.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
+		r.Get("/prerelease_specs.4.8.gz", rubygems.EnumeratePackagesPreRelease)
+		r.Get("/quick/Marshal.4.8/{filename}", rubygems.ServePackageSpecification)
+		r.Get("/gems/{filename}", rubygems.DownloadPackageFile)
+		r.Get("/info/{packagename}", rubygems.GetPackageInfo)
+		r.Get("/versions", rubygems.GetAllPackagesVersions)
+		r.Group("/api/v1/gems", func() {
+			r.Post("/", rubygems.UploadPackageFile)
+			r.Delete("/yank", rubygems.DeletePackage)
+		}, reqPackageAccess(perm.AccessModeWrite))
+	}, reqPackageAccess(perm.AccessModeRead))
+
+	r.Group("/swift", func() {
+		r.Group("", func() { // Needs to be unauthenticated.
+			r.Post("", swift.CheckAuthenticate)
+			r.Post("/login", swift.CheckAuthenticate)
+		})
+		r.Group("", func() {
+			r.Group("/{scope}/{name}", func() {
+				r.Group("", func() {
+					r.Get("", swift.EnumeratePackageVersions)
+					r.Get(".json", swift.EnumeratePackageVersions)
+				}, swift.CheckAcceptMediaType(swift.AcceptJSON))
+				r.PathGroup("/*", func(g *web.RouterPathGroup) {
+					g.MatchPath("GET", "/<version>.json", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.PackageVersionMetadata)
+					g.MatchPath("GET", "/<version>.zip", swift.CheckAcceptMediaType(swift.AcceptZip), swift.DownloadPackageFile)
+					g.MatchPath("GET", "/<version>/Package.swift", swift.CheckAcceptMediaType(swift.AcceptSwift), swift.DownloadManifest)
+					g.MatchPath("GET", "/<version>", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.PackageVersionMetadata)
+					g.MatchPath("PUT", "/<version>", reqPackageAccess(perm.AccessModeWrite), swift.CheckAcceptMediaType(swift.AcceptJSON), swift.UploadPackageFile)
 				})
 			})
+			r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
 		}, reqPackageAccess(perm.AccessModeRead))
-	}, context.UserAssignmentWeb(), context.PackageAssignment())
-
-	return r
+	})
+	// See https://docs.gitlab.com/ci/jobs/fine_grained_permissions/#terraform-state-endpoints
+	// For endpoint and permission reference
+	r.Group("/terraform/state/{name}", func() {
+		r.Get("", terraform.GetTerraformState)
+		r.Get("/versions/{serial}", terraform.GetTerraformStateBySerial)
+		r.Group("", func() {
+			r.Post("", terraform.UploadState)
+			r.Delete("", terraform.DeleteState)
+			r.Delete("/versions/{serial}", terraform.DeleteStateBySerial)
+		}, reqPackageAccess(perm.AccessModeWrite))
+		r.Group("/lock", func() {
+			r.Post("", terraform.LockState)
+			r.Delete("", terraform.UnlockState)
+		}, reqPackageAccess(perm.AccessModeWrite))
+	}, reqPackageAccess(perm.AccessModeRead))
+	r.Group("/vagrant", func() {
+		r.Group("/authenticate", func() {
+			r.Get("", vagrant.CheckAuthenticate)
+		})
+		r.Group("/{name}", func() {
+			r.Head("", vagrant.CheckBoxAvailable)
+			r.Get("", vagrant.EnumeratePackageVersions)
+			r.Group("/{version}/{provider}", func() {
+				r.Get("", vagrant.DownloadPackageFile)
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), vagrant.UploadPackageFile)
+			})
+		})
+	}, reqPackageAccess(perm.AccessModeRead))
 }
 
 // ContainerRoutes provides endpoints that implement the OCI API to serve containers
@@ -534,25 +543,30 @@ func ContainerRoutes() *web.Router {
 	r.Get("/_catalog", container.ReqContainerAccess, container.GetRepositoryList)
 	r.Group("/{username}", func() {
 		r.PathGroup("/*", func(g *web.RouterPathGroup) {
-			g.MatchPath("POST", "/<image:*>/blobs/uploads", reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.PostBlobsUploads)
-			g.MatchPath("GET", "/<image:*>/tags/list", container.VerifyImageName, container.GetTagsList)
+			registerContainerMatchers := func(prefix string) {
+				g.MatchPath("POST", prefix+"/<image:*>/blobs/uploads", context.PackageAssignment(), reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.PostBlobsUploads)
+				g.MatchPath("GET", prefix+"/<image:*>/tags/list", context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead), container.VerifyImageName, container.GetTagsList)
 
-			patternBlobsUploadsUUID := g.PatternRegexp(`/<image:*>/blobs/uploads/<uuid:[-.=\w]+>`, reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName)
-			g.MatchPattern("GET", patternBlobsUploadsUUID, container.GetBlobsUpload)
-			g.MatchPattern("PATCH", patternBlobsUploadsUUID, container.PatchBlobsUpload)
-			g.MatchPattern("PUT", patternBlobsUploadsUUID, container.PutBlobsUpload)
-			g.MatchPattern("DELETE", patternBlobsUploadsUUID, container.DeleteBlobsUpload)
+				patternBlobsUploadsUUID := g.PatternRegexp(prefix+`/<image:*>/blobs/uploads/<uuid:[-.=\w]+>`, context.PackageAssignment(), reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName)
+				g.MatchPattern("GET", patternBlobsUploadsUUID, container.GetBlobsUpload)
+				g.MatchPattern("PATCH", patternBlobsUploadsUUID, container.PatchBlobsUpload)
+				g.MatchPattern("PUT", patternBlobsUploadsUUID, container.PutBlobsUpload)
+				g.MatchPattern("DELETE", patternBlobsUploadsUUID, container.DeleteBlobsUpload)
 
-			g.MatchPath("HEAD", `/<image:*>/blobs/<digest>`, container.VerifyImageName, container.HeadBlob)
-			g.MatchPath("GET", `/<image:*>/blobs/<digest>`, container.VerifyImageName, container.GetBlob)
-			g.MatchPath("DELETE", `/<image:*>/blobs/<digest>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteBlob)
+				g.MatchPath("HEAD", prefix+`/<image:*>/blobs/<digest>`, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead), container.VerifyImageName, container.HeadBlob)
+				g.MatchPath("GET", prefix+`/<image:*>/blobs/<digest>`, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead), container.VerifyImageName, container.GetBlob)
+				g.MatchPath("DELETE", prefix+`/<image:*>/blobs/<digest>`, context.PackageAssignment(), reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.DeleteBlob)
 
-			g.MatchPath("HEAD", `/<image:*>/manifests/<reference>`, container.VerifyImageName, container.HeadManifest)
-			g.MatchPath("GET", `/<image:*>/manifests/<reference>`, container.VerifyImageName, container.GetManifest)
-			g.MatchPath("PUT", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.PutManifest)
-			g.MatchPath("DELETE", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteManifest)
+				g.MatchPath("HEAD", prefix+`/<image:*>/manifests/<reference>`, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead), container.VerifyImageName, container.HeadManifest)
+				g.MatchPath("GET", prefix+`/<image:*>/manifests/<reference>`, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead), container.VerifyImageName, container.GetManifest)
+				g.MatchPath("PUT", prefix+`/<image:*>/manifests/<reference>`, context.PackageAssignment(), reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.PutManifest)
+				g.MatchPath("DELETE", prefix+`/<image:*>/manifests/<reference>`, context.PackageAssignment(), reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.DeleteManifest)
+			}
+
+			registerContainerMatchers("/teams/<team>")
+			registerContainerMatchers("")
 		})
-	}, container.ReqContainerAccess, context.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+	}, container.ReqContainerAccess, context.UserAssignmentWeb())
 
 	return r
 }

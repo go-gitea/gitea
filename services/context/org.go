@@ -196,6 +196,15 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				ctx.ServerError("SearchTeam", err)
 				return
 			}
+		default:
+			ctx.Org.Teams, _, err = organization.SearchTeam(ctx, &organization.SearchTeamOptions{
+				OrgID:               org.ID,
+				IncludeVisibilities: organization.VisibleTeamVisibilitiesFor(false, false),
+			})
+			if err != nil {
+				ctx.ServerError("SearchTeam", err)
+				return
+			}
 		}
 		if ctx.Org.IsMember {
 			ctx.Data["NumTeams"] = len(ctx.Org.Teams)

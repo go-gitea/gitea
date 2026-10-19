@@ -10,8 +10,10 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/packages"
+	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
 	container_module "gitea.dev/modules/packages/container"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -21,6 +23,7 @@ var ErrContainerBlobNotExist = util.NewNotExistErrorf("container blob does not e
 
 type BlobSearchOptions struct {
 	OwnerID    int64
+	TeamID     int64
 	Image      string
 	Digest     string
 	Tag        string
@@ -36,6 +39,9 @@ func (opts *BlobSearchOptions) toConds() builder.Cond {
 
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"package.owner_id": opts.OwnerID})
+	}
+	if opts.TeamID != 0 {
+		cond = cond.And(builder.Eq{"package.team_id": opts.TeamID})
 	}
 	if opts.Image != "" {
 		cond = cond.And(builder.Eq{"package.lower_name": strings.ToLower(opts.Image)})
@@ -118,9 +124,14 @@ func GetManifestVersions(ctx context.Context, opts *BlobSearchOptions) ([]*packa
 		Find(&pvs)
 }
 
-// GetImageTags gets a sorted list of the tags of an image
+// GetImageTags gets a sorted list of the tags of an image (team_id = 0)
 // The result is suitable for the api call.
 func GetImageTags(ctx context.Context, ownerID int64, image string, n int, last string) ([]string, error) {
+	return GetTeamImageTags(ctx, ownerID, 0, image, n, last)
+}
+
+// GetTeamImageTags gets a sorted list of the tags of an image for an owner and team
+func GetTeamImageTags(ctx context.Context, ownerID, teamID int64, image string, n int, last string) ([]string, error) {
 	// Short circuit: n == 0 should return an empty list
 	if n == 0 {
 		return []string{}, nil
@@ -129,6 +140,7 @@ func GetImageTags(ctx context.Context, ownerID int64, image string, n int, last 
 	var cond builder.Cond = builder.Eq{
 		"package.type":                packages.TypeContainer,
 		"package.owner_id":            ownerID,
+		"package.team_id":             teamID,
 		"package.lower_name":          strings.ToLower(image),
 		"package_version.is_internal": false,
 	}
@@ -273,11 +285,33 @@ func GetRepositories(ctx context.Context, actor *user_model.User, n int, last st
 
 	cond = cond.And(user_model.BuildCanSeeUserCondition(actor))
 
+	if actor != nil && user_model.DoerIsSiteAdminFullAccess(actor) {
+		// site admin can see all
+	} else {
+		var isTeamMember builder.Cond = builder.Eq{"1": "0"}
+		var isOrgOwner builder.Cond = builder.Eq{"1": "0"}
+		var isOrgMember builder.Cond = builder.Eq{"1": "0"}
+		if actor != nil && !actor.IsGhost() {
+			isTeamMember = builder.Expr("EXISTS (SELECT 1 FROM team_user WHERE team_user.uid = ? AND team_user.team_id = package.team_id)", actor.ID)
+			isOrgOwner = builder.Expr("EXISTS (SELECT 1 FROM team_user INNER JOIN team ON team.id = team_user.team_id WHERE team_user.uid = ? AND team.org_id = package.owner_id AND team.authorize >= ?)", actor.ID, perm.AccessModeAdmin)
+			isOrgMember = builder.Expr("EXISTS (SELECT 1 FROM org_user WHERE org_user.uid = ? AND org_user.org_id = package.owner_id)", actor.ID)
+		}
+		teamCond := builder.Gt{"package.team_id": 0}.And(
+			isOrgOwner.
+				Or(isTeamMember).
+				Or(builder.Eq{"team.visibility": structs.VisibleTypePublic}).
+				Or(builder.Eq{"team.visibility": structs.VisibleTypeLimited}.And(isOrgMember)),
+		)
+		orgCond := builder.Eq{"package.team_id": 0}
+		cond = cond.And(orgCond.Or(teamCond))
+	}
+
 	sess := db.GetEngine(ctx).
 		Table("package").
 		Select("package_property.value").
 		Join("INNER", "user", "`user`.id = package.owner_id").
 		Join("INNER", "package_property", "package_property.ref_id = package.id").
+		Join("LEFT", "team", "team.id = package.team_id").
 		Where(cond).
 		Asc("package_property.value").
 		Limit(n)

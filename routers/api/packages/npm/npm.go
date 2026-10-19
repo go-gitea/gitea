@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -19,7 +18,6 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/optional"
@@ -53,12 +51,26 @@ func packageNameFromParams(ctx *context.Context) string {
 	return ctx.PathParam("id") // id is the full package name, e.g.: "@angular/core" or "lodash"
 }
 
-func buildNpmRegistryURL(ctx std_ctx.Context, owner *user_model.User) string {
-	return httplib.GuessCurrentAppURL(ctx) + "api/packages/" + url.PathEscape(owner.Name) + "/npm"
+func buildNpmRegistryURL(ctx std_ctx.Context, rootPath string) string {
+	return httplib.GuessCurrentAppURL(ctx) + "api/packages/" + rootPath + "/npm"
+}
+
+func getVersionsByPackageName(ctx *context.Context, packageName string) ([]*packages_model.PackageVersion, error) {
+	if ctx.Package.TeamID() > 0 {
+		return packages_model.GetTeamVersionsByPackageName(ctx, ctx.Package.Owner.ID, ctx.Package.TeamID(), packages_model.TypeNpm, packageName)
+	}
+	return packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
+}
+
+func getVersionByNameAndVersion(ctx *context.Context, txCtx std_ctx.Context, packageName, version string) (*packages_model.PackageVersion, error) {
+	if ctx.Package.TeamID() > 0 {
+		return packages_model.GetTeamVersionByNameAndVersion(txCtx, ctx.Package.Owner.ID, ctx.Package.TeamID(), packages_model.TypeNpm, packageName, version)
+	}
+	return packages_model.GetVersionByNameAndVersion(txCtx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName, version)
 }
 
 func packageMetadata(ctx *context.Context) *npm_module.PackageMetadata {
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageNameFromParams(ctx))
+	pvs, err := getVersionsByPackageName(ctx, packageNameFromParams(ctx))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return nil
@@ -74,7 +86,7 @@ func packageMetadata(ctx *context.Context) *npm_module.PackageMetadata {
 		return nil
 	}
 
-	return createPackageMetadataResponse(buildNpmRegistryURL(ctx, ctx.Package.Owner), pds)
+	return createPackageMetadataResponse(buildNpmRegistryURL(ctx, ctx.Package.RegistryRootPath()), pds)
 }
 
 // PackageMetadata returns the metadata for a single package
@@ -100,6 +112,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 
 	opts := &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
+		TeamID:     optional.Some(ctx.Package.TeamID()),
 		Type:       packages_model.TypeNpm,
 		Name:       packages_model.SearchValue{ExactMatch: true, Value: packageNameFromParams(ctx)},
 		IsInternal: optional.Some(false),
@@ -129,12 +142,13 @@ func PackageVersionMetadata(ctx *context.Context) {
 		return
 	}
 
-	serveMetadata(ctx, createPackageMetadataVersion(buildNpmRegistryURL(ctx, ctx.Package.Owner), pd))
+	serveMetadata(ctx, createPackageMetadataVersion(buildNpmRegistryURL(ctx, ctx.Package.RegistryRootPath()), pd))
 }
 
 func packageVersionByFilename(ctx *context.Context) *packages_model.PackageVersion {
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:         ctx.Package.Owner.ID,
+		TeamID:          optional.Some(ctx.Package.TeamID()),
 		Type:            packages_model.TypeNpm,
 		Name:            packages_model.SearchValue{ExactMatch: true, Value: packageNameFromParams(ctx)},
 		HasFileWithName: ctx.PathParam("filename"),
@@ -227,6 +241,7 @@ func UploadPackage(ctx *context.Context) {
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
+				Team:        ctx.Package.Team,
 				PackageType: packages_model.TypeNpm,
 				Name:        npmPackage.Name,
 				Version:     npmPackage.Version,
@@ -296,7 +311,7 @@ func deprecatePackage(ctx *context.Context, dep *npm_module.PackageDeprecation) 
 	// not leave the package in a half-applied state.
 	err := db.WithTx(ctx, func(txCtx std_ctx.Context) error {
 		for version, message := range dep.Versions {
-			pv, err := packages_model.GetVersionByNameAndVersion(txCtx, ctx.Package.Owner.ID, packages_model.TypeNpm, dep.PackageName, version)
+			pv, err := getVersionByNameAndVersion(ctx, txCtx, dep.PackageName, version)
 			if err != nil {
 				if errors.Is(err, packages_model.ErrPackageNotExist) {
 					continue
@@ -353,7 +368,7 @@ func DeletePackageVersion(ctx *context.Context) {
 func DeletePackage(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
 
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
+	pvs, err := getVersionsByPackageName(ctx, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -376,7 +391,7 @@ func DeletePackage(ctx *context.Context) {
 
 // ListPackageTags returns all tags for a package
 func ListPackageTags(ctx *context.Context) {
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageNameFromParams(ctx))
+	pvs, err := getVersionsByPackageName(ctx, packageNameFromParams(ctx))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -419,7 +434,7 @@ func AddPackageTag(ctx *context.Context) {
 	}
 	version := strings.Trim(string(body), "\"") // is as "version" in the body
 
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName, version)
+	pv, err := getVersionByNameAndVersion(ctx, ctx, packageName, version)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -443,7 +458,7 @@ func AddPackageTag(ctx *context.Context) {
 func DeletePackageTag(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
 
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
+	pvs, err := getVersionsByPackageName(ctx, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -523,6 +538,7 @@ func Whoami(ctx *context.Context) {
 func PackageSearch(ctx *context.Context) {
 	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
+		TeamID:     optional.Some(ctx.Package.TeamID()),
 		Type:       packages_model.TypeNpm,
 		IsInternal: optional.Some(false),
 		Name: packages_model.SearchValue{
