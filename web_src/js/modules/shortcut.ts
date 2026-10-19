@@ -108,7 +108,7 @@ function showShortcutHelp() {
     seenShortcuts.add(shortcutIdentifier);
     let keysHtml = '';
     for (const keys of shortcutKeys.split(' ')) {
-      keysHtml += `<kbd>${keys}</kbd> `;
+      keysHtml += html`<kbd>${keys}</kbd> `;
     }
     list.append(createElementFromHTML(html`<tr><td>${htmlRaw(keysHtml)}</td><td>${label}</td></tr>`));
   }

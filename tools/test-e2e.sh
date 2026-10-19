@@ -103,6 +103,7 @@ PATH = $WORK_DIR/data/gitea.db
 HTTP_PORT = $FREE_PORT
 ROOT_URL = http://localhost:$FREE_PORT
 STATIC_ROOT_PATH = $(pwd)
+SSH_ROOT_PATH = $WORK_DIR/ssh
 
 [security]
 INSTALL_LOCK = true

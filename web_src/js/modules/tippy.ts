@@ -166,8 +166,7 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
 
   let allowHTML = target.getAttribute('data-tooltip-render') === 'html';
   if (!allowHTML && typeof content === 'string') {
-    content = htmlEscape(content);
-    content = content.replace(/\n/g, '<br>');
+    content = htmlEscape(content).split('\n').join(html`<br>`);
     allowHTML = true;
   }
 

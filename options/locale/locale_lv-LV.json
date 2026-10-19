@@ -683,7 +683,6 @@
   "settings.delete_account_title": "Dzēst lietotāja kontu",
   "settings.delete_account_desc": "Vai tiešām vēlaties dzēst šo kontu?",
   "settings.email_notifications.enable": "Iespējot e-pasta paziņojumus",
-  "settings.email_notifications.onmention": "Tikai, ja esmu pieminēts",
   "settings.email_notifications.disable": "Nesūtīt paziņojumus",
   "settings.email_notifications.submit": "Saglabāt sūtīšanas iestatījumus",
   "settings.email_notifications.andyourown": "Iekļaut savus paziņojumus",

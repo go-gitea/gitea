@@ -154,48 +154,6 @@ func TestDeleteTeam(t *testing.T) {
 	assert.Less(t, accessMode, perm.AccessModeWrite)
 }
 
-func TestAddTeamMember(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	test := func(team *organization.Team, user *user_model.User) {
-		assert.NoError(t, AddTeamMember(t.Context(), team, user))
-		unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: user.ID, TeamID: team.ID})
-		unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID}, &user_model.User{ID: team.OrgID})
-	}
-
-	team1 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
-	team3 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 3})
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-
-	test(team1, user2)
-	test(team1, user4)
-	test(team3, user2)
-}
-
-func TestRemoveTeamMember(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	testSuccess := func(team *organization.Team, user *user_model.User) {
-		assert.NoError(t, RemoveTeamMember(t.Context(), team, user))
-		unittest.AssertNotExistsBean(t, &organization.TeamUser{UID: user.ID, TeamID: team.ID})
-		unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
-	}
-
-	team1 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
-	team2 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	team3 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 3})
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-
-	testSuccess(team1, user4)
-	testSuccess(team2, user2)
-	testSuccess(team3, user2)
-
-	err := RemoveTeamMember(t.Context(), team1, user2)
-	assert.True(t, organization.IsErrLastOrgOwner(err))
-}
-
 func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

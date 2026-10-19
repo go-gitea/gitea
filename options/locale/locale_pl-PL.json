@@ -898,7 +898,6 @@
   "settings.delete_account_title": "Usuń swoje konto",
   "settings.delete_account_desc": "Czy na pewno chcesz permanentnie usunąć to konto użytkownika?",
   "settings.email_notifications.enable": "Włącz powiadomienia e-mail",
-  "settings.email_notifications.onmention": "Wyślij wiadomość e-mail wyłącznie przy wzmiankach",
   "settings.email_notifications.disable": "Wyłącz powiadomienia e-mail",
   "settings.email_notifications.submit": "Ustaw preferencje wiadomości e-mail",
   "settings.email_notifications.andyourown": "I Twoje własne powiadomienia",

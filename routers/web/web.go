@@ -930,7 +930,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
-			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
+			if ctx.Package.AccessMode < accessMode {
 				ctx.NotFound(nil)
 			}
 		}
@@ -1523,7 +1523,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Post("/topics", repo.TopicsPost)
-	}, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
+	}, optSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
 
 	m.Group("/{username}/{reponame}", func() {
 		if setting.Packages.Enabled {

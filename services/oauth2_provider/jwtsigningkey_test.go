@@ -5,10 +5,9 @@ package oauth2_provider
 
 import (
 	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"encoding/base64"
 	"math/big"
+	"path/filepath"
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -18,19 +17,20 @@ import (
 
 func TestECDSASigningKeyToJWK(t *testing.T) {
 	for _, tc := range []struct {
-		curve         elliptic.Curve
 		signingMethod jwt.SigningMethod
 		expectedAlg   string
 		expectedCrv   string
 		coordLen      int
 	}{
-		{elliptic.P256(), jwt.SigningMethodES256, "ES256", "P-256", 32},
-		{elliptic.P384(), jwt.SigningMethodES384, "ES384", "P-384", 48},
-		{elliptic.P521(), jwt.SigningMethodES512, "ES512", "P-521", 66},
+		{jwt.SigningMethodES256, "ES256", "P-256", 32},
+		{jwt.SigningMethodES384, "ES384", "P-384", 48},
+		{jwt.SigningMethodES512, "ES512", "P-521", 66},
 	} {
 		t.Run(tc.expectedCrv, func(t *testing.T) {
-			privKey, err := ecdsa.GenerateKey(tc.curve, rand.Reader)
+			key, err := LoadOrCreateAsymmetricKey(filepath.Join(t.TempDir(), "key.pem"), tc.expectedAlg)
 			require.NoError(t, err)
+			privKey, ok := key.(*ecdsa.PrivateKey)
+			require.True(t, ok)
 
 			signingKey, err := newECDSASingingKey(tc.signingMethod, privKey)
 			require.NoError(t, err)
