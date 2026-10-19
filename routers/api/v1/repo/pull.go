@@ -1069,7 +1069,15 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
-	if !ctx.TokenCanAccessRepo(headRepo) {
+	// user should have permission to read headRepo's codes
+	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
+	permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil, nil
+	}
+	if !permHead.CanRead(unit.TypeCode) {
+		log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v", ctx.Doer, headRepo, permHead)
 		ctx.APIErrorNotFound()
 		return nil, nil
 	}
@@ -1104,19 +1112,6 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	if !permBase.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User %-v cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
 		ctx.APIErrorNotFound("can't read baseRepo UnitTypeCode")
-		return nil, nil
-	}
-
-	// user should have permission to read headRepo's codes
-	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
-	permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return nil, nil
-	}
-	if !permHead.CanRead(unit.TypeCode) {
-		log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v", ctx.Doer, headRepo, permHead)
-		ctx.APIErrorNotFound("Can't read headRepo UnitTypeCode")
 		return nil, nil
 	}
 
@@ -1220,18 +1215,6 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if err = pr.LoadHeadRepo(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	// a public-only token must not update (push into) a private head repo,
-	// even when the base repo named in the route is public
-	if !ctx.TokenCanAccessRepo(pr.HeadRepo) {
-		ctx.APIErrorNotFound()
-		return
-	}
-
 	// keep API back-compat: when no style is given, default to "merge" rather than the repo's DefaultUpdateStyle,
 	// so existing API clients keep getting a merge update.
 	rebase := repo_model.UpdateStyle(ctx.FormString("style", string(repo_model.UpdateStyleMerge))) == repo_model.UpdateStyleRebase
