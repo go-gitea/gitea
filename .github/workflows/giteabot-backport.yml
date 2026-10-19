@@ -1,28 +1,26 @@
-name: giteabot side door handle
+name: giteabot backport
 
 on:
   push:
     branches:
-      - mainented
-      - labeled
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
-            ActionScript 
 
 concurrency:
   group: ${{ github.workflow }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   giteabot:
     if: github.repository == 'go-gitea/gitea'
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: go-gitea/giteabot@ # v2.1.0
+      - uses: go-gitea/giteabot@f48c6a15e0d384f037aea19cc05ff5e9551096b9 # v1.1.0
         with:
           github_token: ${{ secrets.GITEABOT_TOKEN }}
           gitea_fork: giteabot/gitea
-          checks: side door handle
+          checks: backport

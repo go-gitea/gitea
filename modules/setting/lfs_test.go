@@ -29,7 +29,6 @@ PATH = path_used
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
-	applyDeprecatedKeys(cfg)
 	assert.NoError(t, loadLFSFrom(cfg))
 
 	assert.EqualValues(t, "local", LFS.Storage.Type)
@@ -41,7 +40,6 @@ LFS_CONTENT_PATH = deprecatedpath
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
-	applyDeprecatedKeys(cfg)
 	assert.NoError(t, loadLFSFrom(cfg))
 
 	assert.EqualValues(t, "local", LFS.Storage.Type)

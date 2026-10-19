@@ -56,7 +56,6 @@ ENABLED = false
 EXPIRATION = 123
 `)
 	assert.NoError(t, err)
-	applyDeprecatedKeys(cfg)
 	loadGitFrom(cfg)
 
 	assert.Equal(t, "false", GitConfig.GetOption("core.logAllRefUpdates"))
