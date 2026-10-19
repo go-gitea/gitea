@@ -245,9 +245,9 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		db.SetSessionPagination(sess, &opts)
 
 		if opts.DontCount {
-			err = sess.Desc("`action`.created_unix").Find(&actions)
+			err = sess.Desc("`action`.created_unix", "`action`.id").Find(&actions)
 		} else {
-			count, err = sess.Desc("`action`.created_unix").FindAndCount(&actions)
+			count, err = sess.Desc("`action`.created_unix", "`action`.id").FindAndCount(&actions)
 		}
 		if err != nil {
 			return nil, 0, fmt.Errorf("FindAndCount: %w", err)
@@ -258,7 +258,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		db.SetSessionPagination(sess, &opts)
 
 		actionIDs := make([]int64, 0, opts.PageSize)
-		if err := sess.Table("action").Desc("`action`.created_unix").Find(&actionIDs); err != nil {
+		if err := sess.Table("action").Desc("`action`.created_unix", "`action`.id").Find(&actionIDs); err != nil {
 			return nil, 0, fmt.Errorf("Find(actionsIDs): %w", err)
 		}
 
@@ -271,7 +271,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 			}
 		}
 
-		if err := db.GetEngine(ctx).In("`action`.id", actionIDs).Desc("`action`.created_unix").Find(&actions); err != nil {
+		if err := db.GetEngine(ctx).In("`action`.id", actionIDs).Desc("`action`.created_unix", "`action`.id").Find(&actions); err != nil {
 			return nil, 0, fmt.Errorf("Find: %w", err)
 		}
 	}

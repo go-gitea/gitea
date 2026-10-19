@@ -164,7 +164,7 @@ func SearchUsers(ctx context.Context, opts SearchUserOptions) (users []*User, _ 
 
 	sessQuery := opts.toSearchQueryBase(ctx)
 	defer sessQuery.Close()
-	sessQuery.OrderBy(opts.OrderBy.String())
+	sessQuery.OrderBy(db.WithIDTiebreaker(opts.OrderBy, "user").String())
 	if opts.Page > 0 {
 		db.SetSessionPagination(sessQuery, &opts)
 	}

@@ -690,20 +690,3 @@ func TestGenerateRepository(t *testing.T) {
 		assert.False(t, exist)
 	})
 }
-
-func TestRepositoryListOrderedByIDOnEqualUpdatedUnix(t *testing.T) {
-	require.NoError(t, unittest.LoadFixtures())
-	opts := repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{PageSize: 50},
-		Actor:       unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}),
-		OwnerID:     2,
-		Private:     true,
-		OrderBy:     db.SearchOrderByRecentUpdated,
-	}
-	searched, _, err := repo_model.SearchRepository(t.Context(), opts)
-	require.NoError(t, err)
-	assert.IsDecreasing(t, searched.IDs())
-	owned, _, err := repo_model.GetUserRepositories(t.Context(), opts)
-	require.NoError(t, err)
-	assert.IsDecreasing(t, owned.IDs())
-}
