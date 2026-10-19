@@ -54,6 +54,12 @@ type FindOrgOptions struct {
 	IncludeVisibility structs.VisibleType
 }
 
+func (opts *FindOrgOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludeVisibility = structs.VisibleTypePublic
+	}
+}
+
 func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 	cond := builder.Eq{"uid": userID}
 	if !includePrivate {
@@ -77,7 +83,7 @@ func (opts FindOrgOptions) ToOrders() string {
 }
 
 func DoerViewOtherVisibility(doer, other *user_model.User) structs.VisibleType {
-	if other == nil || !user_model.DoerCanViewPrivate(doer) {
+	if doer == nil || other == nil {
 		return structs.VisibleTypePublic
 	}
 	if doer.IsAdmin || doer.ID == other.ID {

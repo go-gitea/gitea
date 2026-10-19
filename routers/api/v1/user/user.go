@@ -73,6 +73,7 @@ func Search(ctx *context.APIContext) {
 			SearchByEmail: true,
 			ListOptions:   listOptions,
 		}
+		opts.ApplyPublicOnly(ctx.PublicOnly)
 		var err error
 		users, maxResults, err = user_model.SearchUsers(ctx, opts)
 		if err != nil {
@@ -207,6 +208,7 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 		Date:            ctx.FormString("date"),
 		ListOptions:     listOptions,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

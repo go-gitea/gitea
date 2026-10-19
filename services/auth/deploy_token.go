@@ -42,5 +42,6 @@ func (d *DeployToken) Verify(req *http.Request, _ http.ResponseWriter, store Dat
 		log.Error("UpdateDeployKeyUpdated: %v", err)
 	}
 
+	store.GetData()["LoginMethod"] = DeployTokenMethodName
 	return user_model.NewDeployKeyUserWithKeyID(key.ID), nil
 }

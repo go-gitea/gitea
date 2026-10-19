@@ -930,7 +930,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
-			if ctx.Package.AccessMode < accessMode {
+			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 				ctx.NotFound(nil)
 			}
 		}
