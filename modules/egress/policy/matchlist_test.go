@@ -210,4 +210,9 @@ func TestNeverMatching(t *testing.T) {
 
 	assert.Empty(t, NewAllowList("10.0.0.0/8, example.com, 192.168.1.1", Strict).NeverMatching())
 	assert.Len(t, NewBlockList("224.0.0.0/4").NeverMatching(), 1)
+
+	// partially reserved prefixes still match dialable addresses and are not flagged
+	assert.Empty(t, NewAllowList("0.0.0.0/7, 2001::/16, 10.0.0.0/8", Strict).NeverMatching())
+	// fully reserved prefixes are flagged, including subnets of a reserved range
+	assert.Len(t, NewAllowList("0.0.0.0/8, 224.0.0.0/5, 2001::/32, 64:ff9b::/96", Strict).NeverMatching(), 4)
 }

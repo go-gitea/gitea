@@ -472,11 +472,22 @@ func (m *matchList) NeverMatching() []string {
 		switch {
 		case rule.prefix.Addr().Is4In6():
 			out = append(out, fmt.Sprintf("%s is an IPv4-mapped CIDR and never matches, use the IPv4 form", rule.prefix))
-		case classifyAddr(rule.prefix.Addr()) == classReserved:
+		case fullyReserved(rule.prefix):
 			out = append(out, fmt.Sprintf("%s is a reserved range and is never dialable", rule.prefix))
 		}
 	}
 	return out
+}
+
+// fullyReserved reports whether every address of the prefix is reserved, so the entry never matches.
+// A partially reserved prefix (e.g. 0.0.0.0/7, which includes dialable 1.0.0.1) still matches and is not flagged.
+func fullyReserved(prefix netip.Prefix) bool {
+	for _, reserved := range reservedRanges {
+		if reserved.Contains(prefix.Addr()) && prefix.Bits() >= reserved.Bits() {
+			return true
+		}
+	}
+	return false
 }
 
 // MatchIPAddr checks if the given IP is in the list.

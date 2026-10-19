@@ -45,17 +45,14 @@ func normalizePolicyMode(mode string) string {
 	}
 }
 
-// checkHostList reports the entries an egress host list drops, a dropped block entry would allow a blocked host so it stops startup
-func checkHostList(key, hostList string, isBlockList bool) {
+// checkHostList reports the entries an egress host list drops, so the operator can fix them
+func checkHostList(key, hostList string) {
 	list := policy.NewAllowList(hostList, policy.Lax)
 	for _, reason := range list.Rejected() {
 		LogStartupProblem(1, log.ERROR, "%s ignores an invalid entry: %s", key, reason)
 	}
 	for _, entry := range list.NeverMatching() {
 		LogStartupProblem(1, log.WARN, "%s has an entry that never matches: %s", key, entry)
-	}
-	if isBlockList && len(list.Rejected()) > 0 {
-		log.Fatal("%s has invalid entries, fix them so no blocked host is allowed", key)
 	}
 }
 
@@ -83,8 +80,18 @@ func checkInternalRanges(key, rangesList, allowList, allowKey string) {
 			}
 		}
 	}
+	checkInternalRangesWidening(key, rangesList, allowList, allowKey)
+}
+
+// checkInternalRangesWidening logs how many hostname entries of an allow list gain non-public
+// coverage within the internal ranges, so the widening is never silent
+func checkInternalRangesWidening(rangesKey, rangesList, allowList, allowKey string) {
+	prefixes, _ := policy.ParseInternalRanges(rangesList)
+	if len(prefixes) == 0 {
+		return
+	}
 	if count := policy.NewAllowList(allowList, policy.Lax).HostnameCount(); count > 0 {
-		LogStartupProblem(1, log.WARN, "%s: %d hostname entries in %s may now reach non-public targets within the internal ranges", key, count, allowKey)
+		LogStartupProblem(1, log.WARN, "%s: %d hostname entries in %s may now reach non-public targets within the internal ranges", rangesKey, count, allowKey)
 	}
 }
 
@@ -223,7 +230,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	}
 	egressModeSet := sec.HasKey("EGRESS_MODE")
 	Security.EgressMode = normalizePolicyMode(sec.Key("EGRESS_MODE").String())
-	checkHostList("[security] ALLOWED_HOST_LIST", Security.AllowedHostList, false)
+	checkHostList("[security] ALLOWED_HOST_LIST", Security.AllowedHostList)
 	Security.AllowedInternalRanges = ConfigSectionKeyString(sec, "ALLOWED_INTERNAL_RANGES")
 	checkInternalRanges("[security] ALLOWED_INTERNAL_RANGES", Security.AllowedInternalRanges, Security.AllowedHostList, "[security] ALLOWED_HOST_LIST")
 	if Security.AllowedHostList != "" && !egressModeSet {
