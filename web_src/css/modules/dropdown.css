@@ -5,6 +5,7 @@
   position: relative;
   display: inline-block;
   outline: none;
+  line-height: var(--line-height-default);
   text-align: left;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -39,9 +40,6 @@
 }
 
 .ui.dropdown > .dropdown.icon {
-  line-height: 1;
-  height: 1em;
-  width: auto;
   backface-visibility: hidden;
   text-align: center;
 }
@@ -50,7 +48,6 @@
   position: relative;
   width: auto;
   font-size: 0.85714286em;
-  margin: 0 0 0 1em;
 }
 
 .ui.dropdown > .text {
@@ -173,15 +170,13 @@ select.ui.dropdown {
 .ui.selection.dropdown {
   cursor: pointer;
   overflow-wrap: break-word;
-  line-height: 1em;
   white-space: normal;
   outline: 0;
   transform: rotateZ(0deg);
-  min-width: 14em;
   min-height: 2.71428571em;
   background: var(--color-input-background);
   display: inline-block;
-  padding: 0.78571429em 3.2em 0.78571429em 1em;
+  padding: 0.43em 3.2em 0.43em 1em;
   color: var(--color-input-text);
   box-shadow: none;
   border: 1px solid var(--color-input-border);
@@ -197,13 +192,8 @@ select.ui.dropdown {
   cursor: pointer;
   position: absolute;
   width: auto;
-  height: auto;
   line-height: 1.21428571em;
-  top: 0.78571429em;
-  right: 1em;
   z-index: 3;
-  margin: -0.78571429em;
-  padding: 0.91666667em;
   opacity: 0.8;
 }
 
@@ -409,10 +399,6 @@ select.ui.dropdown {
 .ui.dropdown > .remove.icon {
   cursor: pointer;
   font-size: 0.85714286em;
-  margin: -0.78571429em;
-  padding: 0.91666667em;
-  right: 3em;
-  top: 0.78571429em;
   position: absolute;
   opacity: 0.6;
   z-index: 3;
@@ -799,13 +785,6 @@ select.ui.dropdown {
   font-size: 0.92857143rem;
 }
 
-/* This rule must come AFTER .ui.selection.dropdown because both have
-   specificity (0,3,0) and source order determines the winner.
-   In the original codebase this was in base.css which loaded after fomantic. */
-.ui.dropdown:not(.button) {
-  line-height: var(--line-height-default);
-}
-
 /* Icons / Flags / Labels / Image */
 .ui.dropdown > .text > img,
 .ui.dropdown .menu > .item > img {
@@ -815,10 +794,6 @@ select.ui.dropdown {
   vertical-align: top;
   width: auto;
   max-height: 2em;
-}
-
-.ui.dropdown .menu > .item > svg {
-  margin-right: 0.78rem;
 }
 
 /* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
@@ -893,12 +868,18 @@ select.ui.dropdown {
 }
 
 /* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content
-the "!important" is necessary to override Fomantic UI menu item styles, meanwhile we should keep the "hidden" items still hidden */
+the "!important" is necessary to override Fomantic UI menu item styles, meanwhile we should keep the "hidden" items still hidden
+TODO: rename it to "flex-items-dropdown" in the future since it is only used for dropdown menu items, not for other menu items */
 .ui.dropdown .menu.flex-items-menu > .item:not(.hidden, .filtered, .tw-hidden) {
   display: flex !important;
   align-items: center;
   gap: var(--gap-block);
   min-width: 0;
+}
+
+/* TODO: MENU-ITEM-FLEX-MARGIN: need to refactor: flex menu items don't need svg margin, too many patches (see below ...) */
+.ui.dropdown .menu:not(.flex-items-menu) > .item:not(.flex-text-block, .flex-text-inline) > .svg {
+  margin-right: 10px;
 }
 
 .ui.dropdown .menu.flex-items-menu > .item img,

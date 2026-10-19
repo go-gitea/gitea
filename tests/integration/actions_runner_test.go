@@ -98,8 +98,8 @@ func (r *mockRunner) fetchTask(t *testing.T, timeout ...time.Duration) *runnerv1
 	return task
 }
 
-func (r *mockRunner) fetchNoTask(t *testing.T, timeout ...time.Duration) {
-	task := r.tryFetchTask(t, timeout...)
+func (r *mockRunner) fetchNoTask(t *testing.T) {
+	task, _ := r.fetchTaskOnce(t, 0)
 	require.Nil(t, task, "a task is fetched")
 }
 

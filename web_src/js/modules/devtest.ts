@@ -85,7 +85,7 @@ function initDevtestAnsiRender(container: HTMLElement) {
     ...withSource(`first${esc}[Ksecond${esc}[2Jthird`),
     ...withSource(`cursor ${esc}[3Amovement, private ${esc}[?25lCSI, ${esc}]0;title${esc}\\titles, ${esc}Pquery${esc}\\strings, truncated${esc}[38;5;`),
     ...withSource('Reading... 10%\b\b\b100%'),
-    ...withSource('<script>alert(1)</script> & "quotes", and a bare url https://example.com'),
+    ...withSource('<script>alert(1)</script> & "quotes", and a bare url https://example.com'), // eslint-disable-line gitea/unescaped-html-literal -- plain text that the console must escape
     ' ',
     `${esc}[31man unterminated color`,
     'carries into the following lines',

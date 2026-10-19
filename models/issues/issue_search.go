@@ -283,6 +283,7 @@ func applyConditions(sess db.Session, opts *IssuesOptions) {
 		sess.And(repo_model.UserOwnedRepoCond(opts.Owner.ID))
 	}
 
+	sess.And(repo_model.DoerTokenRepoCond(opts.Doer))
 	if opts.Doer != nil && !opts.Doer.IsAdmin {
 		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.Doer.ID, opts.Owner, opts.Team, opts.IsPull.Value()))
 	}
@@ -477,7 +478,7 @@ func applySubscribedCondition(sess db.Session, subscriberID int64) {
 				Select("repo_id").
 				From("watch").
 				Where(builder.And(builder.Eq{"user_id": subscriberID},
-					builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
+					builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto, repo_model.WatchModeCustom))),
 			),
 		),
 	)

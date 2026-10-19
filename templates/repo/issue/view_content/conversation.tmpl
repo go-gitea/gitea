@@ -1,19 +1,26 @@
-{{/* FIXME: DIFF-CONVERSATION-DATA: in the future this template should be refactor to avoid called by {{... "." $}}
-At the moment, two kinds of request handler call this template:
+{{/* TODO: At the moment, two kinds of request handler call this template:
 * ExcerptBlob -> blob_excerpt.tmpl -> this
 * Other compare and diff pages -> ... -> {section_unified.tmpl|section_split.tmpl} -> this)
 The variables in "ctx.Data" are different in each case, making this template fragile, hard to read and maintain. */}}
 {{if len .comments}}
-	{{$comment := index .comments 0}}
-	{{$invalid := $comment.Invalidated}}
-	{{$resolved := $comment.IsResolved}}
-	{{$resolveDoer := $comment.ResolveDoer}}
-	{{$hasReview := and $comment.Review}}
-	{{$isReviewPending := and $hasReview (eq $comment.Review.Type 0)}}
+	{{$firstComment := index .comments 0 -}}
+	{{$invalid := $firstComment.Invalidated -}}
+	{{$resolved := $firstComment.IsResolved -}}
+	{{$resolveDoer := $firstComment.ResolveDoer -}}
+	{{$hasReview := and $firstComment.Review -}}
+	{{$isReviewPending := and $hasReview (eq $firstComment.Review.Type 0) -}}
+	{{$root := ctx.RootData -}}
+	{{$repo := $root.Repository -}}
+	{{$repoLink := $root.RepoLink -}}
+	{{$editorconfig := $root.Editorconfig -}}
+	{{$canWrite := or $root.Permission.IsAdmin $root.HasIssuesOrPullsWritePermission -}}
+	{{$signedUserID := or $root.SignedUserID NIL -}}
+	{{$canMarkAsResolved := and $root.CanMarkConversation $hasReview (not $isReviewPending)}}
+	{{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived)}}
 	<div class="ui segments conversation-holder">
 		<div class="ui segment collapsible-comment-box tw-py-2 flex-left-right">
 			<div class="tw-flex tw-items-center">
-				<a href="{{$comment.CodeCommentLink ctx}}" class="file-comment tw-ml-2 tw-break-anywhere">{{$comment.TreePath}}</a>
+				<a href="{{$firstComment.CodeCommentLink ctx}}" class="file-comment tw-ml-2 tw-break-anywhere">{{$firstComment.TreePath}}</a>
 				{{if $invalid}}
 					<span class="ui label basic small tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
@@ -22,7 +29,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 			</div>
 			<div class="tw-flex tw-items-center">
 				{{if or $invalid $resolved}}
-					<button type="button" id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}tw-hidden{{end}} btn tiny show-outdated">
+					<button type="button" id="show-outdated-{{$firstComment.ID}}" data-comment="{{$firstComment.ID}}" class="{{if not $resolved}}tw-hidden{{end}} btn tiny show-outdated">
 						{{svg "octicon-unfold" 16 "tw-mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
@@ -30,7 +37,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 							{{ctx.Locale.Tr "repo.issues.review.show_outdated"}}
 						{{end}}
 					</button>
-					<button type="button" id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}tw-hidden {{end}} btn tiny hide-outdated">
+					<button type="button" id="hide-outdated-{{$firstComment.ID}}" data-comment="{{$firstComment.ID}}" class="{{if $resolved}}tw-hidden{{end}} btn tiny hide-outdated">
 						{{svg "octicon-fold" 16 "tw-mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
@@ -41,74 +48,73 @@ The variables in "ctx.Data" are different in each case, making this template fra
 				{{end}}
 			</div>
 		</div>
-		{{$diff := (CommentMustAsDiff ctx $comment)}}
+		{{$diff := (CommentMustAsDiff ctx $firstComment)}}
 		{{if $diff}}
 			{{$file := (index $diff.Files 0)}}
-			<div id="code-preview-{{$comment.ID}}" class="ui table segment{{if $resolved}} tw-hidden{{end}}">
-				<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
+			<div id="code-preview-{{$firstComment.ID}}" class="ui table segment {{if $resolved}}tw-hidden{{end}}">
+				<div class="diff-file-box file-content {{TabSizeClass $editorconfig $file.Name}}">
 					<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
 						<table>
 							<tbody>
-								{{template "repo/diff/section_unified" dict "file" $file "root" $}}
+								{{template "repo/diff/section_unified" dict "file" $file}}
 							</tbody>
 						</table>
 					</div>
 				</div>
 			</div>
 		{{end}}
-		<div id="code-comments-{{$comment.ID}}" class="comment-code-cloud ui segment{{if $resolved}} tw-hidden{{end}}">
+		<div id="code-comments-{{$firstComment.ID}}" class="comment-code-cloud ui segment {{if $resolved}}tw-hidden{{end}}">
 			<div class="ui comments tw-mb-0">
-				{{range .comments}}
-					{{$createdSubStr:= DateUtils.TimeSince .CreatedUnix}}
-					<div class="comment code-comment" id="{{.HashTag}}">
+				{{range $comment := .comments}}
+					{{$createdSubStr:= DateUtils.TimeSince $comment.CreatedUnix}}
+					<div class="comment code-comment" id="{{$comment.HashTag}}">
 						<div class="content comment-container">
 							<div class="comment-header">
 								<div class="comment-header-left">
-									{{if not .OriginalAuthor}}
-										<a class="avatar">
-											{{ctx.AvatarUtils.Avatar .Poster 20}}
-										</a>
+									{{if not $comment.OriginalAuthor}}
+										<a class="avatar">{{ctx.AvatarUtils.Avatar $comment.Poster 20}}</a>
 									{{end}}
 									<span class="tw-text-text-light muted-links">
-										{{if .OriginalAuthor}}
+										{{if $comment.OriginalAuthor}}
 											<span class="tw-text-text">
-												{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-												{{.OriginalAuthor}}
+												{{svg (MigrationIcon $repo.GetOriginalURLHostname)}}
+												{{$comment.OriginalAuthor}}
 											</span>
-											{{if $.Repository.OriginalURL}}
-											<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname}})</span>
+											{{if $repo.OriginalURL}}
+											<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" $repo.OriginalURL $repo.GetOriginalURLHostname}})</span>
 											{{end}}
 										{{else}}
-											{{template "shared/user/authorlink" .Poster}}
+											{{template "shared/user/authorlink" $comment.Poster}}
 										{{end}}
-										{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdSubStr}}
+										{{ctx.Locale.Tr "repo.issues.commented_at" $comment.HashTag $createdSubStr}}
 									</span>
 								</div>
 								<div class="comment-header-right">
-									{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
-									{{if not $.Repository.IsArchived}}
-										{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-										{{template "repo/issue/view_content/context_menu" dict "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+									{{template "repo/issue/view_content/show_role" dict "ShowRole" $comment.ShowRole}}
+									{{if not $repo.IsArchived}}
+										{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $repoLink $comment.ID)}}
+										{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment}}
 									{{end}}
 								</div>
 							</div>
 							<div class="text comment-content">
-								<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
-								{{if .RenderedContent}}
-									{{.RenderedContent}}
+								{{$doerIsPoster := eq $signedUserID $comment.PosterID}}
+								<div class="render-content markup" {{if or $canWrite $doerIsPoster}}data-can-edit="true"{{end}}>
+								{{if $comment.RenderedContent}}
+									{{$comment.RenderedContent}}
 								{{else}}
 									<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 								{{end}}
 								</div>
-								<div id="{{.HashTag}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
-								<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
-								{{if .Attachments}}
-									{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
+								<div id="{{$comment.HashTag}}-raw" class="raw-content tw-hidden">{{$comment.Content}}</div>
+								<div class="edit-content-zone tw-hidden" data-update-url="{{$repoLink}}/comments/{{$comment.ID}}" data-content-version="{{$comment.ContentVersion}}" data-context="{{$repoLink}}" data-attachment-url="{{$repoLink}}/comments/{{$comment.ID}}/attachments"></div>
+								{{if $comment.Attachments}}
+									{{template "repo/issue/view_content/attachments" dict "Attachments" $comment.Attachments "RenderedContent" $comment.RenderedContent}}
 								{{end}}
 							</div>
-							{{$reactions := .Reactions.GroupByType}}
+							{{$reactions := $comment.Reactions.GroupByType}}
 							{{if $reactions}}
-								{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+								{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $repoLink $comment.ID) "Reactions" $reactions}}
 							{{end}}
 						</div>
 					</div>
@@ -124,8 +130,8 @@ The variables in "ctx.Data" are different in each case, making this template fra
 					{{end}}
 				</div>
 				<div class="flex-text-block">
-					{{if and $.CanMarkConversation $hasReview (not $isReviewPending)}}
-						<button type="button" class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
+					{{if $canMarkAsResolved}}
+						<button type="button" class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{Iif $resolved "UnResolve" "Resolve"}}" data-comment-id="{{$firstComment.ID}}" data-update-url="{{$repoLink}}/issues/resolve_conversation">
 							{{if $resolved}}
 								{{ctx.Locale.Tr "repo.issues.review.un_resolve_conversation"}}
 							{{else}}
@@ -133,14 +139,14 @@ The variables in "ctx.Data" are different in each case, making this template fra
 							{{end}}
 						</button>
 					{{end}}
-					{{if and $.SignedUserID (not $.Repository.IsArchived)}}
+					{{if $canAddComment}}
 						<button type="button" class="comment-form-reply ui primary icon tiny button">
 							{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 						</button>
 					{{end}}
 				</div>
 			</div>
-			{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" $comment.ReviewID "root" $ "comment" $comment}}
+			{{template "repo/diff/comment_form" dict "ReplyReviewComment" $firstComment}}
 		</div>
 	</div>
 {{else}}

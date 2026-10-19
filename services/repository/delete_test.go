@@ -52,19 +52,16 @@ func TestTeam_RemoveRepository(t *testing.T) {
 func TestDeleteOwnerRepositoriesDirectly(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	assert.NoError(t, repo_service.DeleteOwnerRepositoriesDirectly(t.Context(), user))
-
 	t.Run("RejectedInTransaction", func(t *testing.T) {
-		unittest.PrepareTestEnv(t)
-
 		err := db.WithTx(t.Context(), func(ctx context.Context) error {
 			return repo_service.DeleteRepositoryDirectly(ctx, 1)
 		})
 		assert.ErrorContains(t, err, "must not be called within a transaction")
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	})
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.NoError(t, repo_service.DeleteOwnerRepositoriesDirectly(t.Context(), user))
 }
 
 func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {

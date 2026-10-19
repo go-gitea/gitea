@@ -3,9 +3,8 @@ name: release-tag-version
 on:
   push:
     tags:
-      - "v1.*"
-      - "!v1*-rc*"
-      - "!v1*-dev"
+      - "v[0-9]*"
+      - "!v[0-9]*-*"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -73,12 +72,23 @@ jobs:
         uses: dev-hanz-ops/install-gh-cli-action@6089bdde54118ad7ca3d22053eb2d69387fd2779 # v0.3.0
         with:
           gh-cli-version: 2.39.1
+      - id: range
+        run: |
+          previous=$(git tag --list --sort=-v:refname | grep -xE 'v[0-9]+\.[0-9]+\.[0-9]+' | grep -A1 -xF "$GITHUB_REF_NAME" | tail -1) # highest stable version below this one
+          echo "range=$previous..$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+      - name: skip reverts and reverted commits in changelog
+        env:
+          RANGE: ${{ steps.range.outputs.range }}
+        run: ./tools/generate-cliffignore.sh "$RANGE" | sort -u > .cliffignore
+      - uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
+        with:
+          args: --tag ${{ github.ref_name }} ${{ steps.range.outputs.range }}
       - name: create github release
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG" --title "$TAG" --notes-from-tag dist/release/*
+          gh release create "$TAG" --title "$TAG" --notes-file git-cliff/CHANGELOG.md dist/release/*
 
   container:
     runs-on: namespace-profile-gitea-release-docker

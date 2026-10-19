@@ -29,6 +29,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	shared_actions "gitea.dev/routers/web/shared/actions"
 	shared_user "gitea.dev/routers/web/shared/user"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
@@ -39,6 +40,7 @@ const (
 	tplListActions           templates.TplName = "repo/actions/list"
 	tplDispatchInputsActions templates.TplName = "repo/actions/workflow_dispatch_inputs"
 	tplViewActions           templates.TplName = "repo/actions/view"
+	tplArtifactPreviewAction templates.TplName = "repo/actions/artifact_preview"
 )
 
 type WorkflowInfo struct {
@@ -541,20 +543,21 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 		return false
 	}
 
+	activeRuns := slices.DeleteFunc(slices.Clone(data.ActionRuns), func(run *actions_model.ActionRun) bool {
+		return !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked)
+	})
+	jobsByRun, err := actions_model.GetLatestAttemptJobsByRuns(ctx, activeRuns)
+	if err != nil {
+		ctx.ServerError("GetLatestAttemptJobsByRuns", err)
+		return false
+	}
+
 	data.RunErrors = make(map[int64]string)
-	for _, run := range data.ActionRuns {
-		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
-			continue
-		}
-		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
-		if err != nil {
-			ctx.ServerError("GetRunJobsByRunID", err)
-			return false
-		}
-		for _, job := range jobs {
+	for _, run := range activeRuns {
+		for _, job := range jobsByRun[run.ID] {
 			// A deferred matrix is unresolvable until its needs finish, so the whole per-job block
 			// is skipped: parsing the payload would report a valid workflow as invalid.
-			if job.IsMatrixDeferred || !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
+			if job.IsMatrixDeferred || !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending) {
 				continue
 			}
 			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
@@ -567,7 +570,7 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 					break
 				}
 			}
-			if job.Status.IsWaiting() {
+			if job.Status.IsWaiting() && !job.IsReusableCaller {
 				hasOnlineRunner := false
 				for _, runner := range runners {
 					if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
@@ -594,10 +597,7 @@ func (data *actionRunListData) fillRefreshMeta(ctx *context.Context) bool {
 		}
 		actionRunIDs = append(actionRunIDs, run.ID)
 	}
-	data.RefreshIntervalMs = util.Iif[int64](hasActiveRuns, 3*1000, 12*1000)
-	if !setting.IsProd {
-		data.RefreshIntervalMs = util.Iif[int64](hasActiveRuns, 1000, 2*1000) // faster in dev mode to make debug easier
-	}
+	data.RefreshIntervalMs = shared_actions.RefreshIntervalMs(hasActiveRuns)
 	if len(data.ActionRuns) == 0 {
 		data.RefreshIntervalMs = 0
 	}
@@ -643,7 +643,15 @@ func (data *actionRunListData) preparePartialRefreshRuns(ctx *context.Context) b
 		ctx.ServerError("GetRunsByRepoAndID", err)
 		return false
 	}
-	data.ActionRuns = runs
+	runsMap := make(map[int64]*actions_model.ActionRun, len(runs))
+	for _, run := range runs {
+		runsMap[run.ID] = run
+	}
+	for _, id := range data.refreshRunIDs {
+		if run, ok := runsMap[id]; ok {
+			data.ActionRuns = append(data.ActionRuns, run)
+		}
+	}
 	return true
 }
 
@@ -657,7 +665,7 @@ func (data *actionRunListData) prepareCommon(ctx *context.Context, workflows []W
 		return false
 	}
 	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, data.ActionRuns); err != nil {
-		log.Error("LoadIsRefDeleted", err)
+		log.Error("loadIsRefDeleted: %v", err)
 	}
 
 	if !data.processActionRuns(ctx) {

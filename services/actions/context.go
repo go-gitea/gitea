@@ -25,7 +25,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
 )
 
 type GiteaContext map[string]any
@@ -59,6 +58,10 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	}
 
 	refName := git.RefName(ref)
+	refType := refName.RefType()
+	if refName.IsPull() {
+		refType = git.RefTypeBranch // GitHub reports pull request refs as branches
+	}
 	refProtected, err := git_model.IsRefProtected(ctx, run.RepoID, refName)
 	if err != nil {
 		log.Error("GenerateGiteaContext: check protection for ref %q: %v", refName, err)
@@ -85,7 +88,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"ref":               ref,                                      // string, The fully-formed ref of the branch or tag that triggered the workflow run. For workflows triggered by push, this is the branch or tag ref that was pushed. For workflows triggered by pull_request, this is the pull request merge branch. For workflows triggered by release, this is the release tag created. For other triggers, this is the branch or tag ref that triggered the workflow run. This is only set if a branch or tag is available for the event type. The ref given is fully-formed, meaning that for branches the format is refs/heads/<branch_name>, for pull requests it is refs/pull/<pr_number>/merge, and for tags it is refs/tags/<tag_name>. For example, refs/heads/feature-branch-1.
 		"ref_name":          refName.ShortName(),                      // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
 		"ref_protected":     refProtected,                             // boolean, true if protection rules are configured for the ref that triggered the workflow run.
-		"ref_type":          string(refName.RefType()),                // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
+		"ref_type":          string(refType),                          // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
 		"path":              "",                                       // string, Path on the runner to the file that sets system PATH variables from workflow commands. This file is unique to the current step and is a different file for each step in a job. For more information, see "Workflow commands for GitHub Actions."
 		"repository":        run.Repo.OwnerName + "/" + run.Repo.Name, // string, The owner and repository name. For example, Codertocat/Hello-World.
 		"repository_owner":  run.Repo.OwnerName,                       // string, The repository owner's name. For example, Codertocat.
@@ -113,31 +116,6 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	if job != nil {
 		gitContext["job"] = job.JobID
 		gitContext["run_attempt"] = strconv.FormatInt(job.Attempt, 10)
-
-		if job.ParentJobID > 0 {
-			// Inject the caller's resolved workflow_call inputs into gitea.event.inputs.
-			// The rest of gitea.event stays as the caller's actual trigger event (push/pull_request/etc.)
-			// to match GitHub's semantics (see https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations#github-context).
-			// FIXME: If the run is triggered by "workflow_dispatch", the original inputs of "workflow_dispatch" will be overridden.
-			// If necessary, the caller can send these values to the called workflow via `with:`.
-			caller, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
-			if err != nil {
-				log.Error("GenerateGiteaContext: load caller job %d of job %d: %v", job.ParentJobID, job.ID, err)
-			} else if caller.CallPayload != "" {
-				var cp api.WorkflowCallPayload
-				if err := json.Unmarshal([]byte(caller.CallPayload), &cp); err != nil {
-					log.Error("GenerateGiteaContext: decode CallPayload of caller %d: %v", caller.ID, err)
-				} else if cp.Inputs != nil {
-					event["inputs"] = cp.Inputs
-				}
-			}
-
-			// Override gitea.event_name to "workflow_call", so that the runner-side `getEvaluatorInputs` can get inputs from event["inputs"].
-			// https://gitea.com/gitea/runner/src/commit/0b9f251b6abb30d5f292a49cfe0c611f7c26d857/act/runner/expression.go#L509
-			// FIXME: The trade-off is that `${{ gitea.event_name }}` inside a reusable workflow's child job reads "workflow_call"
-			// instead of the caller's real trigger event name (push/pull_request/etc.) This is a small deviation from GitHub spec.
-			gitContext["event_name"] = "workflow_call"
-		}
 	}
 
 	if attempt == nil {
@@ -288,15 +266,14 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 	if err != nil {
 		return nil, err
 	}
-	inputs := map[string]any{}
-	if caller.CallPayload != "" {
-		var p api.WorkflowCallPayload
-		if err := json.Unmarshal([]byte(caller.CallPayload), &p); err != nil {
-			return nil, fmt.Errorf("decode caller payload: %w", err)
-		}
-		if p.Inputs != nil {
-			inputs = p.Inputs
-		}
+	workflowCallInputs, err := decodeWorkflowCallInputs(caller)
+	if err != nil {
+		return nil, err
+	}
+
+	inputs, err := calledWorkflowInputs(ctx, caller.Run, caller, workflowCallInputs)
+	if err != nil {
+		return nil, err
 	}
 
 	// See `on.workflow_call.outputs.<output_id>.value` in https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability

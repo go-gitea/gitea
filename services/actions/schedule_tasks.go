@@ -17,6 +17,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
@@ -142,6 +143,14 @@ func CreateScheduleTaskBySpec(ctx context.Context, spec *actions_model.ActionSch
 		// schedule runs the repo's own workflow at the recorded commit
 		WorkflowRepoID:    cron.RepoID,
 		WorkflowCommitSHA: cron.CommitSHA,
+	}
+
+	_, err := jobparser.ValidateWorkflowStatic(cron.Content)
+	if err == nil {
+		err = validateCalledWorkflows(ctx, run, cron.Content)
+	}
+	if err != nil {
+		return fmt.Errorf("invalid workflow: %w", err)
 	}
 
 	// FIXME cron.Content might be outdated if the workflow file has been changed.

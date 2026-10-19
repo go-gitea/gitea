@@ -200,11 +200,19 @@ func (r *ActionRunner) GenerateAndFillToken() {
 // CanMatchLabels checks whether the runner's labels can match a job's "runs-on"
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
 func (r *ActionRunner) CanMatchLabels(jobRunsOn []string) bool {
-	return !slices.ContainsFunc(jobRunsOn, func(label string) bool { return !util.SliceContainsString(r.AgentLabels, label, true) })
+	return len(jobRunsOn) > 0 && !slices.ContainsFunc(jobRunsOn, func(label string) bool { return !util.SliceContainsString(r.AgentLabels, label, true) })
 }
 
 func init() {
 	db.RegisterModel(&ActionRunner{})
+}
+
+func GetRunnersMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionRunner, error) {
+	runners := make(map[int64]*ActionRunner, len(ids))
+	if len(ids) == 0 {
+		return runners, nil
+	}
+	return runners, db.GetEngine(ctx).In("id", ids).Find(&runners)
 }
 
 // FindRunnerOptions

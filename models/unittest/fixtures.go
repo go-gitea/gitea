@@ -51,12 +51,15 @@ func loadFixtureResetSeqPgsql(e *xorm.Engine) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate sequence update: %w", err)
 	}
-	for _, r := range results {
-		for _, value := range r {
-			_, err = e.Exec(value)
-			if err != nil {
-				return fmt.Errorf("failed to update sequence: %s, error: %w", value, err)
-			}
+	var statements []string
+	for _, result := range results {
+		for _, statement := range result {
+			statements = append(statements, statement)
+		}
+	}
+	if len(statements) > 0 {
+		if _, err := e.Exec(strings.Join(statements, "\n")); err != nil {
+			return fmt.Errorf("loadFixtureResetSeqPgsql: %w", err)
 		}
 	}
 	return nil

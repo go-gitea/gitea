@@ -1,3 +1,5 @@
+import type {Promisable} from '../types.ts';
+
 // there are 2 kinds of plugins:
 // * "inplace" plugins: render file content in-place, e.g. PDF viewer
 // * "frontend" plugins: render file content in a separate iframe by a huge frontend library (need to protect from XSS risks)
@@ -18,4 +20,4 @@ export type FrontendRenderOptions = {
   contentBytes(): Uint8Array<ArrayBuffer>;
 };
 
-export type FrontendRenderFunc = (opts: FrontendRenderOptions) => Promise<boolean>;
+export type FrontendRenderFunc = (opts: FrontendRenderOptions) => Promisable<boolean>;

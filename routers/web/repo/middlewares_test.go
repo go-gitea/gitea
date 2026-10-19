@@ -14,7 +14,7 @@ import (
 )
 
 func TestDiffViewStyle(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("AnonymousUser", func(t *testing.T) {
 		ctx, _ := contexttest.MockContext(t, "/any")
