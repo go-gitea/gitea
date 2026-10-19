@@ -27,9 +27,26 @@ type packageBeforeV363 struct {
 
 func (packageBeforeV363) TableName() string { return "package" }
 
+type packageAfterV363 struct {
+	ID               int64  `xorm:"pk autoincr"`
+	OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	TeamID           int64  `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
+	RepoID           int64  `xorm:"INDEX"`
+	Type             string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name             string `xorm:"NOT NULL"`
+	LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
+	IsInternal       bool   `xorm:"NOT NULL DEFAULT false"`
+}
+
+func (packageAfterV363) TableName() string { return "package" }
+
 func Test_AddTeamIDToPackage(t *testing.T) {
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(packageBeforeV363))
 	defer deferable()
+	if x == nil || t.Failed() {
+		return
+	}
 
 	_, err := x.Insert(&packageBeforeV363{OwnerID: 1, Type: "generic", Name: "pkg1", LowerName: "pkg1"})
 	require.NoError(t, err)
@@ -64,10 +81,10 @@ func Test_AddTeamIDToPackage(t *testing.T) {
 	assert.Equal(t, int64(0), row.TeamID)
 
 	// Same owner and package name but different team_id should be permitted
-	_, err = x.Exec("INSERT INTO package (owner_id, team_id, repo_id, type, name, lower_name, semver_compatible, is_internal) VALUES (1, 10, 0, 'generic', 'pkg1', 'pkg1', 0, 0)")
+	_, err = x.Insert(&packageAfterV363{OwnerID: 1, TeamID: 10, Type: "generic", Name: "pkg1", LowerName: "pkg1"})
 	require.NoError(t, err)
 
 	// Duplicate within the same team should be rejected
-	_, err = x.Exec("INSERT INTO package (owner_id, team_id, repo_id, type, name, lower_name, semver_compatible, is_internal) VALUES (1, 10, 0, 'generic', 'pkg1', 'pkg1', 0, 0)")
+	_, err = x.Insert(&packageAfterV363{OwnerID: 1, TeamID: 10, Type: "generic", Name: "pkg1", LowerName: "pkg1"})
 	require.Error(t, err)
 }
