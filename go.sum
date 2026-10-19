@@ -2,10 +2,8 @@ cloud.google.com/go/compute/metadata v0.9.0 h1:pDUj4QMoPejqq20dK0Pg2N4yG9zIkYGdB
 cloud.google.com/go/compute/metadata v0.9.0/go.mod h1:E0bWwX5wTnLPedCKqk3pJmVgCBSM6qQI1yTBdEb3C10=
 code.pfad.fr/check v1.1.0 h1:GWvjdzhSEgHvEHe2uJujDcpmZoySKuHQNrZMfzfO0bE=
 code.pfad.fr/check v1.1.0/go.mod h1:NiUH13DtYsb7xp5wll0U4SXx7KhXQVCtRgdC96IPfoM=
-connectrpc.com/connect v1.21.0 h1:LhqSJt7jHf5NJBo9Jq/t/9FjcYAideif0mg+qe2jCUs=
-connectrpc.com/connect v1.21.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
-connectrpc.com/connect/v2 v2.0.0 h1:PVVpWl2Xv9dIWN2gijs4HK40NSnPFzLqCEEmZ8fCUQ8=
-connectrpc.com/connect/v2 v2.0.0/go.mod h1:N32OLrstcPUzkykFynnefFro3+xzSdOrZlK2jHmS/xo=
+connectrpc.com/connect/v2 v2.0.1 h1:WTAycxe87UqxSM5oxS30d1dalZ+C5xz8Ec8O6zVYkHQ=
+connectrpc.com/connect/v2 v2.0.1/go.mod h1:N32OLrstcPUzkykFynnefFro3+xzSdOrZlK2jHmS/xo=
 filippo.io/edwards25519 v1.2.0 h1:crnVqOiS4jqYleHd9vaKZ+HKtHfllngJIiOpNpoJsjo=
 filippo.io/edwards25519 v1.2.0/go.mod h1:xzAOLCNug/yB62zG1bQ8uziwrIqIuxhctzJT18Q77mc=
 gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96 h1:+wWBi6Qfruqu7xJgjOIrKVQGiLUZdpKYCZewJ4clqhw=
@@ -14,8 +12,8 @@ gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4 h1:IFT+hup2xejHq
 gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
-gitea.dev/actionslib v1.4.1 h1:DWlUnzDfuuMArQWS6yZ+vwJu9av7sZVMOox7li/kyu4=
-gitea.dev/actionslib v1.4.1/go.mod h1:RbXaZudZ04YndjBBxZJF9rZAqU6SKGkaSD1sob5lQbE=
+gitea.dev/actionslib v1.4.2-0.20261019014634-1fd849368a92 h1:qjj0mqRCwZ269pJo4LH8e4ePMVK/iWMA0tO6Dxiey+M=
+gitea.dev/actionslib v1.4.2-0.20261019014634-1fd849368a92/go.mod h1:NWzFSnEG5EEXaq66Ql3moZ31g4H7+sAmSCyBirjj2R4=
 gitea.dev/sdk v1.3.0 h1:4U95+Ou6WHCQiRPDEyAzvl1Q7cxg5RUTWkqmOXr5w4I=
 gitea.dev/sdk v1.3.0/go.mod h1:85EBqSAqUn1KlFCk40y3sTjWjBsB/KouL3slGXMA/2o=
 github.com/42wim/httpsig v1.3.0 h1:HK2bieeZ99X9IvOoc1ST6yrhLek0f4MqlEGES2JCP3g=

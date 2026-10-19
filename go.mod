@@ -5,10 +5,10 @@ go 1.27
 toolchain go1.27.2
 
 require (
-	connectrpc.com/connect/v2 v2.0.0
+	connectrpc.com/connect/v2 v2.0.1
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
-	gitea.dev/actionslib v1.4.1
+	gitea.dev/actionslib v1.4.2-0.20261019014634-1fd849368a92
 	gitea.dev/sdk v1.3.0
 	github.com/42wim/httpsig v1.3.0
 	github.com/42wim/sshsig v0.0.0-20260317195500-b9f38cf0d432
@@ -107,7 +107,6 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
-	connectrpc.com/connect v1.21.0 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/RoaringBitmap/roaring/v2 v2.18.2 // indirect
 	github.com/STARRY-S/zip v0.2.3 // indirect
