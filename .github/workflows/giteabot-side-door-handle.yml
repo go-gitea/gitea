@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - mainented
-      - labeled
+      - main
   workflow_dispatch:
 
 permissions:
