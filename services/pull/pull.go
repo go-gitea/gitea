@@ -781,9 +781,15 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		return "", err
 	}
 
-	mergeMessage := strings.TrimSpace(pr.Issue.Content) // use PR's title and description as squash commit message
-	if setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
-		mergeMessage = formatSquashMergeCommitMessages(limitedCommits) // use PR's commit messages as squash commit message
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return "", err
+	}
+	var mergeMessage string
+	switch pr.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultSquashMergeMessage {
+	case repo_model.SquashMergeMessageCommitMessages:
+		mergeMessage = formatSquashMergeCommitMessages(limitedCommits)
+	case repo_model.SquashMergeMessagePRBody:
+		mergeMessage = strings.TrimSpace(pr.Issue.Content)
 	}
 	coAuthors := collectSquashMergeCommitCoAuthors(ctx, gitRepo, pr, headCommitRef, mergeBaseRef, limit, limitedCommits)
 	return buildSquashMergeCommitMessages(mergeMessage, coAuthors), nil
@@ -797,7 +803,7 @@ func buildSquashMergeCommitMessages(mergeMessage string, coAuthors []string) str
 	msgContent, msgSep, msgTrailer := git.CommitMessageSplitTrailer(mergeMessage)
 	if (msgSep == "" || msgSep == "\n\n") && msgTrailer == "" {
 		msgContent = strings.TrimRightFunc(msgContent, unicode.IsSpace)
-		msgSep = "\n\n---------\n\n"
+		msgSep = util.Iif(msgContent == "", "", "\n\n---------\n\n")
 	}
 	var sb strings.Builder
 	sb.WriteString(msgContent)

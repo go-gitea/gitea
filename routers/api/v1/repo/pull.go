@@ -981,14 +981,23 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	message := strings.TrimSpace(form.MergeTitleField)
-	if len(message) == 0 {
-		message, _, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
+	useDefaultSquashBody := !form.HasMergeMessageField && !ctx.Req.Form.Has("merge_message_field") && repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash
+	if len(message) == 0 || useDefaultSquashBody {
+		defaultTitle, defaultBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
+		message = util.IfZero(message, defaultTitle)
+		if useDefaultSquashBody {
+			squashCommitMessages, err := pull_service.GetSquashMergeCommitMessages(ctx, pr)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			form.MergeMessageField = git.CommitMessageMerge(squashCommitMessages, defaultBody)
+		}
 	}
-
 	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
 	if len(form.MergeMessageField) > 0 {
 		message += "\n\n" + form.MergeMessageField

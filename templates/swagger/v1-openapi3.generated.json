@@ -6167,6 +6167,11 @@
             "type": "string",
             "x-go-name": "ProjectsMode"
           },
+          "squash_merge_commit_message": {
+            "description": "set the default squash merge commit message body: \"PR_BODY\", \"COMMIT_MESSAGES\", or \"BLANK\".",
+            "type": "string",
+            "x-go-name": "SquashMergeCommitMessage"
+          },
           "template": {
             "description": "either `true` to make this repository a template or `false` to make it a normal repository",
             "type": "boolean",
@@ -9875,6 +9880,10 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "Size"
+          },
+          "squash_merge_commit_message": {
+            "type": "string",
+            "x-go-name": "SquashMergeCommitMessage"
           },
           "ssh_url": {
             "format": "uri",

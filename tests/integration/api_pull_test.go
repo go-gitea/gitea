@@ -283,6 +283,17 @@ func TestAPIMergePull(t *testing.T) {
 			performMerge(t, prDTO.Index, map[string]any{"do": "merge", "delete_branch_after_merge": true})
 			checkBranchExists(t, newBranch, http.StatusNotFound)
 		})
+
+		t.Run("SquashMergePreservesFormMessage", func(t *testing.T) {
+			req := NewRequestWithValues(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, createTestBranchPR(t, "squash-form-message").Index), map[string]string{
+				"do":                  "squash",
+				"merge_message_field": "custom squash message",
+			}).AddTokenAuth(apiCtx.Token)
+			MakeRequest(t, req, http.StatusOK)
+
+			req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/git/commits/%s", owner.Name, repo.Name, repo.DefaultBranch).AddTokenAuth(apiCtx.Token)
+			assert.Contains(t, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Commit{}).RepoCommit.Message, "\n\ncustom squash message")
+		})
 	})
 }
 
