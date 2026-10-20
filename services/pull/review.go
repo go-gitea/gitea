@@ -23,8 +23,8 @@ import (
 	notify_service "gitea.dev/services/notify"
 )
 
-func isErrBlameNotFoundOrNotEnoughLines(err error) bool {
-	return gitcmd.IsStderr(err, gitcmd.StderrNoSuchPath, gitcmd.StderrFileNoEnoughLines)
+func isErrBlameInvalidated(err error) bool {
+	return gitcmd.IsStderr(err, gitcmd.StderrNoSuchPath, gitcmd.StderrFileNoEnoughLines, gitcmd.StderrBadObject)
 }
 
 // ErrDismissRequestOnClosedPR represents an error when a user tries to dismiss a review associated to a closed or merged PR.
@@ -47,41 +47,27 @@ func (err ErrDismissRequestOnClosedPR) Unwrap() error {
 // ErrSubmitReviewOnClosedPR represents an error when a user tries to submit an approve or reject review associated to a closed or merged PR.
 var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or merged PR")
 
-// LineBlame returns the latest commit at the given line
-func lineBlame(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, branch, file string, line uint) (*git.Commit, error) {
-	sha, err := git.LineBlame(ctx, repo, branch, file, line)
-	if err != nil {
-		return nil, err
-	}
-	if len(sha) < 40 {
-		return nil, fmt.Errorf("invalid result of blame: %s", sha)
-	}
-
-	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
-	return gitRepo.GetCommit(ctx, sha[:objectFormat.FullLength()])
-}
-
 // checkInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
-func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *repo_model.Repository, gitRepo *git.Repository, branch string) error {
+func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *repo_model.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
-	commit, err := lineBlame(ctx, repo, gitRepo, branch, c.TreePath, uint(c.UnsignedLine()))
-	if isErrBlameNotFoundOrNotEnoughLines(err) {
+	commitID, err := git.LineBlameCommitID(ctx, repo, branch, c.TreePath, uint(c.UnsignedLine()))
+	if isErrBlameInvalidated(err) {
 		c.Invalidated = true
 		return issues_model.UpdateCommentInvalidate(ctx, c)
 	}
 	if err != nil {
 		return err
 	}
-	if c.CommitSHA != "" && c.CommitSHA != commit.ID.String() {
+	if c.CommitSHA != "" && c.CommitSHA != commitID {
 		c.Invalidated = true
 		return issues_model.UpdateCommentInvalidate(ctx, c)
 	}
 	return nil
 }
 
-// InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
-func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestList, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branch string) error {
+// InvalidateCodeComments will look up the prs for code comments which got invalidated by change
+func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestList, repo *repo_model.Repository, branch string) error {
 	if len(prs) == 0 {
 		return nil
 	}
@@ -97,35 +83,31 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 		return fmt.Errorf("find code comments: %v", err)
 	}
 	for _, comment := range codeComments {
-		if err := checkInvalidation(ctx, comment, repo, gitRepo, branch); err != nil {
+		if err := checkInvalidation(ctx, comment, repo, branch); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// CreateCodeComment creates a comment on the code line
-func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string, attachments []string) (*issues_model.Comment, error) {
-	var (
-		existsReview bool
-		err          error
-	)
-
-	// CreateCodeComment() is used for:
-	// - Single comments
-	// - Comments that are part of a review
-	// - Comments that reply to an existing review
-
-	if !pendingReview && replyReviewID != 0 {
+// CreateCodeComment creates a code comment in a review on the code line:
+// When pendingReview=false:
+// * no replyReviewID: create a new review and add the comment to it, and submit the review
+// * replyReviewID is set: add the comment to the existing submitted review
+// When pendingReview=true: get current pending review or create a new one, and add the comment to it
+func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string, attachments []string) (_ *issues_model.Comment, err error) {
+	replyToSubmittedReview := !pendingReview && replyReviewID != 0
+	if replyToSubmittedReview {
 		// It's not part of a review; maybe a reply to a review comment or a single comment.
 		// Check if there are reviews for that line already; if there are, this is a reply
-		if existsReview, err = issues_model.ReviewExists(ctx, issue, treePath, line); err != nil {
+		if replyToSubmittedReview, err = issues_model.ReviewExists(ctx, issue, treePath, line); err != nil {
 			return nil, err
 		}
 	}
 
 	// Comments that are replies don't require a review header to show up in the issue view
-	if !pendingReview && existsReview {
+	// Add the code comment to existing submitted review
+	if replyToSubmittedReview {
 		if err = issue.LoadRepo(ctx); err != nil {
 			return nil, err
 		}
@@ -154,39 +136,43 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		return comment, nil
 	}
 
-	review, err := issues_model.GetCurrentReview(ctx, doer, issue)
-	if err != nil {
-		if !issues_model.IsErrReviewNotExist(err) {
+	// If no existing submitted review, create a pending review and its comment in a single transaction
+	// to avoid failed code comment creation leaving a pending review without any comments
+	comment, err := db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+		curReview, err := issues_model.GetCurrentReview(ctx, doer, issue)
+		if errors.Is(err, util.ErrNotExist) {
+			// create a new pending review for the code comment
+			if curReview, err = issues_model.CreateReview(ctx, issues_model.CreateReviewOptions{
+				Type:     issues_model.ReviewTypePending,
+				Reviewer: doer,
+				Issue:    issue,
+				Official: false,
+				CommitID: latestCommitID,
+			}); err != nil {
+				return nil, err
+			}
+		} else if err != nil {
 			return nil, err
 		}
-
-		if review, err = issues_model.CreateReview(ctx, issues_model.CreateReviewOptions{
-			Type:     issues_model.ReviewTypePending,
-			Reviewer: doer,
-			Issue:    issue,
-			Official: false,
-			CommitID: latestCommitID,
-		}); err != nil {
-			return nil, err
-		}
-	}
-
-	comment, err := createCodeComment(ctx,
-		doer,
-		issue.Repo,
-		issue,
-		content,
-		treePath,
-		line,
-		review.ID,
-		attachments,
-	)
+		// add the code comment to the pending review
+		return createCodeComment(ctx,
+			doer,
+			issue.Repo,
+			issue,
+			content,
+			treePath,
+			line,
+			curReview.ID,
+			attachments,
+		)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if !pendingReview && !existsReview {
-		// Submit the review we've just created so the comment shows up in the issue view
+	if !pendingReview {
+		// Doer is creating a submitted review, so submit the pending review we've just created,
+		// then the comment shows up in the issue view
 		if _, _, err = SubmitReview(ctx, doer, gitRepo, issue, issues_model.ReviewTypeComment, "", latestCommitID, nil); err != nil {
 			return nil, err
 		}
@@ -214,7 +200,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	defer closer.Close()
 
 	invalidated := false
-	head := pr.GetGitHeadRefName()
+	headRef := pr.GetGitHeadRefName()
 	if line > 0 {
 		if reviewID != 0 {
 			first, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{
@@ -227,42 +213,48 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 					Page:     1,
 				},
 			})
-			if err == nil && len(first) > 0 {
+			if err != nil {
+				return nil, fmt.Errorf("find first comment for %d line %d path %s. Error: %w", reviewID, line, treePath, err)
+			}
+
+			if len(first) > 0 {
+				// if there are existing comments, use the first comment's information to create the new comment
 				commitID = first[0].CommitSHA
 				invalidated = first[0].Invalidated
 				patch = first[0].Patch
-			} else if err != nil && !issues_model.IsErrCommentNotExist(err) {
-				return nil, fmt.Errorf("Find first comment for %d line %d path %s. Error: %w", reviewID, line, treePath, err)
 			} else {
+				// otherwise, try to get the commitID from the review itself
 				review, err := issues_model.GetReviewByID(ctx, reviewID)
-				if err == nil && len(review.CommitID) > 0 {
-					head = review.CommitID
-				} else if err != nil && !issues_model.IsErrReviewNotExist(err) {
-					return nil, fmt.Errorf("GetReviewByID %d. Error: %w", reviewID, err)
+				if err != nil && !errors.Is(err, util.ErrNotExist) {
+					return nil, fmt.Errorf("createCodeComment: get review %d: %w", reviewID, err)
+				}
+				if review != nil && review.CommitID != "" {
+					headRef = review.CommitID
 				}
 			}
 		}
 
-		if len(commitID) == 0 {
-			// FIXME validate treePath
-			// Get latest commit referencing the commented line
-			// No need for get commit for base branch changes
-			commit, err := lineBlame(ctx, pr.BaseRepo, gitRepo, head, treePath, uint(line))
-			if err == nil {
-				commitID = commit.ID.String()
-			} else if !isErrBlameNotFoundOrNotEnoughLines(err) {
-				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %w", pr.GetGitHeadRefName(), gitRepo.LogString(), treePath, line, err)
+		if commitID == "" {
+			// FIXME validate treePath (TODO: unclear comment)
+			// Get latest commit referencing the commented line, error can be ignored then the head commit will be used as fallback
+			commitID, err = git.LineBlameCommitID(ctx, pr.BaseRepo, headRef, treePath, uint(line))
+			// Preserve attribution to the reviewed revision, falling back to the PR head if blame fails.
+			if err != nil && headRef != pr.GetGitHeadRefName() {
+				commitID, err = git.LineBlameCommitID(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), treePath, uint(line))
+			}
+			if err != nil {
+				log.Debug("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitHeadRefName(), gitRepo.LogString(), treePath, line, err)
 			}
 		}
 	}
 
 	// Only fetch diff if comment is review comment
-	if len(patch) == 0 && reviewID != 0 {
+	if patch == "" && reviewID != 0 {
 		headCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", pr.GetGitHeadRefName(), err)
 		}
-		if len(commitID) == 0 {
+		if commitID == "" {
 			commitID = headCommitID
 		}
 
