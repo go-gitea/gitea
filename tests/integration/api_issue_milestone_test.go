@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
@@ -49,7 +51,7 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	apiMilestone2 := DecodeJSON(t, resp, &structs.Milestone{})
 	assert.EqualValues(t, "closed", apiMilestone2.State)
 
-	req = NewRequestWithJSON(t, "PATCH", urlStr, structs.EditMilestoneOption{RemoveDeadline: new(true)}).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, "PATCH", urlStr, structs.EditMilestoneOption{Deadline: optional.Some[*time.Time](nil)}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	assert.Nil(t, DecodeJSON(t, resp, &structs.Milestone{}).Deadline)
 
