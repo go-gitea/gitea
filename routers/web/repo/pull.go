@@ -908,12 +908,13 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["IsIssuePoster"] = ctx.Doer != nil && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	// For files changed page
 	PrepareBranchList(ctx)
 	if ctx.Written() {
 		return
 	}
+
+	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
@@ -1326,7 +1327,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
 		return
 	}
-	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)
+	validateRet := ValidateRepoMetasForCreateIssue(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}

@@ -1,0 +1,28 @@
+{{$allowedReactions := $.AllowedReactions}}
+{{$canReact := and $allowedReactions ctx.RootData.IsSigned (not ctx.RootData.Repository.IsArchived)}}
+{{if or .Reactions $canReact}}
+<div class="bottom-reactions" data-action-url="{{$.ActionURL}}" role="group" aria-label="{{ctx.Locale.Tr "repo.reactions"}}">
+{{if $canReact}}
+	<button type="button" class="select-reaction" data-global-click="onReactionPickerClick" aria-label="{{ctx.Locale.Tr "repo.reactions"}}">{{svg "octicon-smiley"}}</button>
+	<div class="tippy-target">
+		<div class="reaction-picker">
+			{{range $value := $allowedReactions}}
+			<a class="item emoji" role="menuitem" data-tooltip-content="{{$value}}" aria-label="{{$value}}" data-reaction-content="{{$value}}" data-has-reacted="{{(index $.Reactions $value).HasUser ctx.RootData.SignedUserID}}" data-global-click="onCommentReactionButtonClick">{{ReactionToEmoji $value}}</a>
+			{{end}}
+		</div>
+	</div>
+{{end}}
+{{range $key, $value := .Reactions}}
+	{{$hasReacted := $value.HasUser ctx.RootData.SignedUserID}}
+	<a role="button" class="ui label basic{{if not $canReact}} disabled{{end}}"
+		data-global-click="onCommentReactionButtonClick"
+		data-tooltip-content="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{ctx.Locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
+		aria-label="{{$key}}: {{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{ctx.Locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
+		data-tooltip-placement="bottom-start"
+		data-reaction-content="{{$key}}" data-has-reacted="{{$hasReacted}}">
+		<span class="reaction">{{ReactionToEmoji $key}}</span>
+		<span>{{len $value}}</span>
+	</a>
+{{end}}
+</div>
+{{end}}

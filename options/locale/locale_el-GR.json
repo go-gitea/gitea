@@ -675,7 +675,6 @@
   "settings.delete_account_title": "Διαγραφή Λογαριασμού Χρήστη",
   "settings.delete_account_desc": "Είστε βέβαιοι ότι θέλετε να διαγράψετε μόνιμα αυτό τον λογαριασμό χρήστη;",
   "settings.email_notifications.enable": "Ενεργοποίηση Ειδοποιήσεων Μέσω Email",
-  "settings.email_notifications.onmention": "Email Μόνο κατά την Αναφορά",
   "settings.email_notifications.disable": "Απενεργοποίηση Ειδοποιήσεων μέσω Email",
   "settings.email_notifications.submit": "Ορισμός Προτιμότερου Email",
   "settings.email_notifications.andyourown": "Και Τις Δικές Σας Ειδοποιήσεις",

@@ -41,6 +41,9 @@ func testViewUser(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2")
 	MakeRequest(t, req, http.StatusOK)
 
+	req = NewRequest(t, "GET", "/user2/-/repositories")
+	MakeRequest(t, req, http.StatusNotFound)
+
 	req = NewRequest(t, "GET", "/user2.keys")
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, `# Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.

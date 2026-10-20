@@ -167,6 +167,28 @@ func TestMailMentionsComment(t *testing.T) {
 	assert.Equal(t, 3, mails)
 }
 
+func TestMailParticipantsOnMentionCustomWatch(t *testing.T) {
+	doer, repo, issue, comment := prepareMailerTest(t)
+	comment.Poster = doer
+	defer mockMailTemplates("mail/repo/issue/comment", subjectTpl, bodyTpl)()
+
+	// users 4 and 9 only get mail on mention and watch repo 1 with all activity
+	customWatcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	allWatcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
+	require.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), customWatcher, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeCustom, WatchPullRequests: true, WatchIssues: true, WatchReleases: true}))
+
+	var recipients []string
+	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
+		for _, msg := range msgs {
+			recipients = append(recipients, msg.To)
+		}
+	})()
+
+	require.NoError(t, MailParticipantsComment(t.Context(), comment, activities_model.ActionCommentIssue, issue, nil))
+	assert.Contains(t, recipients, customWatcher.Email)
+	assert.NotContains(t, recipients, allWatcher.Email)
+}
+
 func TestMailsSkipBots(t *testing.T) {
 	doer, repo, issue, comment := prepareMailerTest(t)
 	comment.Poster = doer

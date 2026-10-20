@@ -403,7 +403,6 @@
   "settings.webauthn_nickname": "Gælunafn",
   "settings.link_account": "Tengja Notanda",
   "settings.email_notifications.enable": "Virkja Tölvupósttilkynningar",
-  "settings.email_notifications.onmention": "Aðeins Tölvupóst Þegar Minnst Er á Mig",
   "settings.email_notifications.disable": "Óvirkja Tölvupósttilkynningar",
   "settings.email_notifications.submit": "Stilla Val á Tölvupósti",
   "settings.visibility": "Sýnileiki notanda",

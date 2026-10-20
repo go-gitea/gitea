@@ -5,7 +5,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "settings.profile_desc"}}</p>
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form" action="{{.Link}}" method="post" data-global-init="initUserSettingsForm">
 				<div class="required field {{if .Err_Name}}error{{end}}">
 					<label for="username">{{ctx.Locale.Tr "username"}}
 						<span class="tw-text-red tw-hidden" id="name-change-prompt"> {{ctx.Locale.Tr "settings.change_username_prompt"}}</span>
