@@ -756,19 +756,5 @@ func ChangeReleaseReaction(ctx *context.Context) {
 		ctx.ServerError("LoadUsers", err)
 		return
 	}
-
-	if len(reactions) == 0 {
-		ctx.JSON(http.StatusOK, map[string]any{"html": ""})
-		return
-	}
-	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ActionURL":       fmt.Sprintf("%s/releases/%d/reactions", ctx.Repo.RepoLink, rel.ID),
-		"Reactions":       reactions.GroupByType(),
-		"HideAddReaction": true,
-	})
-	if err != nil {
-		ctx.ServerError("RenderToHTML", err)
-		return
-	}
-	ctx.JSON(http.StatusOK, map[string]any{"html": html})
+	renderReactions(ctx, fmt.Sprintf("%s/releases/%d/reactions", ctx.Repo.RepoLink, rel.ID), reactions, release_service.AllowedReleaseReactions())
 }

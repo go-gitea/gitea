@@ -536,25 +536,20 @@ func ChangeIssueReaction(ctx *context.Context) {
 		return
 	}
 
-	if len(issue.Reactions) == 0 {
-		ctx.JSON(http.StatusOK, map[string]any{
-			"empty": true,
-			"html":  "",
-		})
-		return
-	}
+	renderReactions(ctx, fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index), issue.Reactions, nil)
+}
 
+func renderReactions(ctx *context.Context, actionURL string, reactions issues_model.ReactionList, allowedReactions []string) {
 	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
-		"Reactions": issue.Reactions.GroupByType(),
+		"ActionURL":        actionURL,
+		"Reactions":        reactions.GroupByType(),
+		"AllowedReactions": allowedReactions,
 	})
 	if err != nil {
-		ctx.ServerError("ChangeIssueReaction.HTMLString", err)
+		ctx.ServerError("RenderToHTML", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]any{
-		"html": html,
-	})
+	ctx.JSON(http.StatusOK, map[string]any{"html": html})
 }
 
 // GetIssueAttachments returns attachments for the issue

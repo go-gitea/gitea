@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -297,10 +298,14 @@ func TestReleaseReaction(t *testing.T) {
 	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 1}, 1)
 
 	resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/releases"), http.StatusOK)
-	AssertHTMLElement(t, NewHTMLParser(t, resp.Body), `.bottom-reactions a[data-reaction-content="heart"]`, 1)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	AssertHTMLElement(t, htmlDoc, `.bottom-reactions a.ui.label[data-reaction-content="heart"]`, 1)
+	AssertHTMLElement(t, htmlDoc, `.reaction-picker [data-reaction-content="-1"]`, 0)
 
-	resp = session.MakeRequest(t, reactReq(1, "unreact", "heart"), http.StatusOK)
-	assert.JSONEq(t, `{"html":""}`, resp.Body.String())
+	reactions := DecodeJSON(t, session.MakeRequest(t, reactReq(1, "unreact", "heart"), http.StatusOK), struct{ HTML string }{})
+	htmlDoc = NewHTMLParser(t, strings.NewReader(reactions.HTML))
+	AssertHTMLElement(t, htmlDoc, `.bottom-reactions a.ui.label`, 0)
+	AssertHTMLElement(t, htmlDoc, `.reaction-picker .item`, 6)
 	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 1}, 0)
 
 	session.MakeRequest(t, reactReq(2, "react", "heart"), http.StatusNotFound)
