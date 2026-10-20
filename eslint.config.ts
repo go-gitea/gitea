@@ -1,5 +1,6 @@
 import comments from '@eslint-community/eslint-plugin-eslint-comments';
 import globals from 'globals';
+import html from '@html-eslint/eslint-plugin';
 import importPlugin from 'eslint-plugin-import-x';
 import playwright from 'eslint-plugin-playwright';
 import regexp from 'eslint-plugin-regexp';
@@ -63,6 +64,7 @@ export default defineConfig([
       '@stylistic': stylistic,
       '@typescript-eslint': typescriptPlugin.plugin,
       'gitea': {rules: {'unescaped-html-literal': unescapedHtmlLiteral}},
+      html,
       'import-x': importPlugin,
       regexp,
       unicorn,
@@ -314,6 +316,7 @@ export default defineConfig([
       'gitea/unescaped-html-literal': [2],
       'grouped-accessor-pairs': [2],
       'guard-for-in': [0],
+      'html/require-button-type': [2],
       'id-denylist': [0],
       'id-length': [0],
       'id-match': [0],
@@ -1129,6 +1132,7 @@ export default defineConfig([
     rules: {
       '@typescript-eslint/no-redundant-type-constituents': [0], // types imported from .vue files resolve to any via typescript-eslint's *.vue shim
       'vue/attributes-order': [0],
+      'vue/html-button-has-type': [2],
       'vue/html-closing-bracket-spacing': [2, {startTag: 'never', endTag: 'never', selfClosingTag: 'never'}],
       'vue/max-attributes-per-line': [0],
       'vue/no-potential-component-option-typo': [2],

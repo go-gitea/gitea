@@ -66,7 +66,7 @@ function showToast(message: string, level: Intent = 'info', {gravity, position, 
     text: html`
       <div class='toast-icon'>${svgRaw(icon)}</div>
       <div class='toast-body'><span class="toast-duplicate-number tw-hidden">1</span>${htmlRaw(bodyHtml)}</div>
-      <button class='btn toast-close'>${svgRaw('octicon-x')}</button>
+      <button type="button" class='btn toast-close'>${svgRaw('octicon-x')}</button>
     `,
     escapeMarkup: false,
     className: `toast-${level}`,
