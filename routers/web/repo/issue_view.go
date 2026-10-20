@@ -362,7 +362,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanRead(unit.TypeProjects)
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
 	if err := issue.LoadAttributes(ctx); err != nil {

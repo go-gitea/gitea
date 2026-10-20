@@ -90,9 +90,7 @@ func TestIssueReactionCount(t *testing.T) {
 	addReaction(t, user4, issue, nil, "heart")
 	addReaction(t, ghost, issue, nil, "-1")
 
-	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{
-		IssueID: issue.ID,
-	})
+	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{IssueIDOnly: issue.ID})
 	assert.NoError(t, err)
 	assert.Len(t, reactionsList, 7)
 	_, err = reactionsList.LoadUsers(t.Context(), repo)
@@ -136,10 +134,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 	addReaction(t, org3, nil, comment, "heart")
 	addReaction(t, user4, nil, comment, "+1")
 
-	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{
-		IssueID:   comment.IssueID,
-		CommentID: comment.ID,
-	})
+	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{CommentID: comment.ID})
 	assert.NoError(t, err)
 	assert.Len(t, reactionsList, 4)
 
