@@ -25,6 +25,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -536,7 +537,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 		return
 	}
 
-	renderReactions(ctx, fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index), issue.Reactions, nil)
+	renderReactions(ctx, fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index), issue.Reactions, setting.UI.Reactions)
 }
 
 func renderReactions(ctx *context.Context, actionURL string, reactions issues_model.ReactionList, allowedReactions []string) {

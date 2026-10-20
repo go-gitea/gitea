@@ -300,7 +300,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	renderReactions(ctx, fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID), comment.Reactions, nil)
+	renderReactions(ctx, fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID), comment.Reactions, setting.UI.Reactions)
 }
 
 // GetCommentAttachments returns attachments for the comment

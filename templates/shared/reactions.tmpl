@@ -1,4 +1,4 @@
-{{$allowedReactions := or .AllowedReactions AllowedReactions}}
+{{$allowedReactions := $.AllowedReactions}}
 {{$canReact := and $allowedReactions ctx.RootData.IsSigned (not ctx.RootData.Repository.IsArchived)}}
 {{if or .Reactions $canReact}}
 <div class="bottom-reactions" data-action-url="{{$.ActionURL}}" role="group" aria-label="{{ctx.Locale.Tr "repo.reactions"}}">
