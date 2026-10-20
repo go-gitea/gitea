@@ -118,6 +118,9 @@ func Init(ctx context.Context) error {
 	if err := repo_module.LoadRepoConfig(); err != nil {
 		return err
 	}
+	if err := initContributorsQueue(); err != nil {
+		return err
+	}
 	if err := initPushQueue(); err != nil {
 		return err
 	}

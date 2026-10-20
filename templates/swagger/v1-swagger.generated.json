@@ -9648,6 +9648,72 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/contributors": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List the commit authors of the default branch of a repository, most commits first",
+        "operationId": "repoListContributors",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "include authors that are not matched to a user",
+            "name": "anon",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, alias of limit",
+            "name": "per_page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContributorList"
+          },
+          "202": {
+            "description": "The contributors are still being counted, retry later"
+          },
+          "204": {
+            "description": "The repository is empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/diffpatch": {
       "post": {
         "consumes": [
@@ -26799,6 +26865,65 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "Contributor": {
+      "description": "Contributor represents a commit author of the default branch of a repository",
+      "type": "object",
+      "properties": {
+        "additions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Additions"
+        },
+        "avatar_url": {
+          "description": "not set for type \"Anonymous\"",
+          "type": "string",
+          "x-go-name": "AvatarURL"
+        },
+        "contributions": {
+          "description": "number of commits, merges included",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Contributions"
+        },
+        "deletions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Deletions"
+        },
+        "email": {
+          "description": "the git author email, only set for type \"Anonymous\"",
+          "type": "string",
+          "x-go-name": "Email"
+        },
+        "html_url": {
+          "description": "not set for type \"Anonymous\"",
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "description": "not set for type \"Anonymous\"",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "login": {
+          "description": "not set for type \"Anonymous\"",
+          "type": "string",
+          "x-go-name": "Login"
+        },
+        "name": {
+          "description": "the git author name, only set for type \"Anonymous\"",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "type": {
+          "description": "\"User\" or \"Bot\" for authors matched to a user, otherwise \"Anonymous\"",
+          "type": "string",
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "CreateAccessTokenOption": {
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
@@ -34447,6 +34572,15 @@
       "description": "ContentsResponse",
       "schema": {
         "$ref": "#/definitions/ContentsResponse"
+      }
+    },
+    "ContributorList": {
+      "description": "ContributorList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Contributor"
+        }
       }
     },
     "CronList": {

@@ -4,36 +4,22 @@
 package repository
 
 import (
-	"bufio"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 
 	"gitea.dev/models/avatars"
+	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/util"
 )
 
-const (
-	contributorStatsCacheKey           = "GetContributorStats/%s/%s"
-	contributorStatsCacheTimeout int64 = 60 * 10
-)
-
-var (
-	ErrAwaitGeneration  = errors.New("generation took longer than ")
-	awaitGenerationTime = time.Second * 5
-	generateLock        = sync.Map{}
-)
+// ErrAwaitGeneration is returned while the contributor stats of a repository are generated for the first time
+var ErrAwaitGeneration = errors.New("contributor stats are being generated")
 
 type WeekData struct {
 	Week      int64 `json:"week"`      // Starting day of the week as Unix timestamp
@@ -52,245 +38,110 @@ type ContributorData struct {
 	Weeks        map[int64]*WeekData `json:"weeks"`
 }
 
-// ExtendedCommitStats contains information for commit stats with author data
-type ExtendedCommitStats struct {
-	Author *api.CommitUser  `json:"author"`
-	Stats  *api.CommitStats `json:"stats"`
+// EnsureContributorStats queues counting when the stats lag behind the default branch
+func EnsureContributorStats(ctx context.Context, repo *repo_model.Repository) error {
+	headID, countedID, err := getContributorStatsCommits(ctx, repo)
+	if err != nil || headID == countedID {
+		return err
+	}
+	if countErr, failed := cache.GetCache().Get(contributorsErrorCacheKey(repo.ID)); failed {
+		return util.Iif(countedID == "", errors.New(countErr), nil)
+	}
+	if err := AddRepoToContributorsQueue(repo.ID); err != nil {
+		return err
+	}
+	return util.Iif(countedID == "", ErrAwaitGeneration, nil)
 }
 
-const layout = time.DateOnly
-
-func findLastSundayBeforeDate(dateStr string) (string, error) {
-	date, err := time.Parse(layout, dateStr)
+func FindRepoContributors(ctx context.Context, repo *repo_model.Repository, opts repo_model.FindRepoContributorsOptions) ([]*repo_model.RepoContributor, int64, error) {
+	opts.RepoID = repo.ID
+	contributors, total, err := db.FindAndCount[repo_model.RepoContributor](ctx, opts)
 	if err != nil {
-		return "", err
+		return nil, 0, err
 	}
-
-	weekday := date.Weekday()
-	daysToSubtract := int(weekday) - int(time.Sunday)
-	if daysToSubtract < 0 {
-		daysToSubtract += 7
+	users, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(contributors, func(contributor *repo_model.RepoContributor) (int64, bool) {
+		return contributor.UserID, contributor.UserID > 0
+	}))
+	if err != nil {
+		return nil, 0, err
 	}
-
-	lastSunday := date.AddDate(0, 0, -daysToSubtract)
-	return lastSunday.Format(layout), nil
+	for _, contributor := range contributors {
+		contributor.User = user_model.GetPossibleUserFromMap(contributor.UserID, users)
+	}
+	return contributors, total, nil
 }
 
-// GetContributorStats returns contributors stats for git commits for given revision or default branch
-func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *repo_model.Repository, revision string) (map[string]*ContributorData, error) {
-	// as GetContributorStats is resource intensive we cache the result
-	cacheKey := fmt.Sprintf(contributorStatsCacheKey, repo.FullName(), revision)
-	if !cache.IsExist(cacheKey) {
-		genReady := make(chan struct{})
-
-		// don't start multiple async generations
-		_, run := generateLock.Load(cacheKey)
-		if run {
-			return nil, ErrAwaitGeneration
-		}
-
-		generateLock.Store(cacheKey, struct{}{})
-		// run generation async
-		go generateContributorStats(genReady, cache, cacheKey, repo, revision)
-
-		select {
-		case <-time.After(awaitGenerationTime):
-			return nil, ErrAwaitGeneration
-		case <-genReady:
-			// we got generation ready before timeout
-			break
-		}
+func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[string]*ContributorData, error) {
+	if err := EnsureContributorStats(ctx, repo); err != nil {
+		return nil, err
 	}
-	// TODO: renew timeout of cache cache.UpdateTimeout(cacheKey, contributorStatsCacheTimeout)
-	var res map[string]*ContributorData
-	if _, cacheErr := cache.GetJSON(cacheKey, &res); cacheErr != nil {
-		return nil, fmt.Errorf("cached error: %w", cacheErr.ToError())
+	contributors, _, err := FindRepoContributors(ctx, repo, repo_model.FindRepoContributorsOptions{ListOptions: db.ListOptionsAll})
+	if err != nil {
+		return nil, err
 	}
-	return res, nil
-}
-
-// getExtendedCommitStats return the list of *ExtendedCommitStats for the given revision
-func getExtendedCommitStats(ctx context.Context, repo *git.Repository, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
-	baseCommit, err := repo.GetCommit(ctx, revision)
+	weeks, err := repo_model.GetRepoContributorWeeks(ctx, repo.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	gitCmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
-	// AddOptionFormat("--max-count=%d", limit)
-	gitCmd.AddDynamicArguments(baseCommit.ID.String())
-
-	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
-	defer stdoutReaderClose()
-
-	var extendedCommitStats []*ExtendedCommitStats
-	err = gitCmd.WithRepo(repo).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			scanner := bufio.NewScanner(stdoutReader)
-
-			for scanner.Scan() {
-				line := strings.TrimSpace(scanner.Text())
-				if line != "---" {
-					continue
-				}
-				scanner.Scan()
-				authorName := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				authorEmail := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				date := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				stats := strings.TrimSpace(scanner.Text())
-				if authorName == "" || authorEmail == "" || date == "" || stats == "" {
-					// FIXME: find a better way to parse the output so that we will handle this properly
-					log.Warn("Something is wrong with git log output, skipping...")
-					log.Warn("authorName: %s,  authorEmail: %s,  date: %s,  stats: %s", authorName, authorEmail, date, stats)
-					continue
-				}
-				//  1 file changed, 1 insertion(+), 1 deletion(-)
-				fields := strings.Split(stats, ",")
-
-				commitStats := api.CommitStats{}
-				for _, field := range fields[1:] {
-					parts := strings.Split(strings.TrimSpace(field), " ")
-					value, contributionType := parts[0], parts[1]
-					amount, _ := strconv.Atoi(value)
-
-					if strings.HasPrefix(contributionType, "insertion") {
-						commitStats.Additions = amount
-					} else {
-						commitStats.Deletions = amount
-					}
-				}
-				commitStats.Total = commitStats.Additions + commitStats.Deletions
-				scanner.Text() // empty line at the end
-
-				res := &ExtendedCommitStats{
-					Author: &api.CommitUser{
-						Identity: api.Identity{
-							Name:  authorName,
-							Email: authorEmail,
-						},
-						Date: date,
-					},
-					Stats: &commitStats,
-				}
-				extendedCommitStats = append(extendedCommitStats, res)
+	ghostAvatarLink := user_model.NewGhostUser().AvatarLinkWithSize(ctx, 0)
+	stats := make(map[string]*ContributorData, len(contributors)+1)
+	byKey := make(map[contributorKey]*ContributorData, len(contributors))
+	for _, c := range contributors {
+		key := c.Email
+		if c.User != nil {
+			key = cmp.Or(c.User.GetEmail(), fmt.Sprintf("ghost-%d", c.UserID))
+		}
+		// an email counted before it was added to a user also has a row of its own
+		data := stats[key]
+		if data == nil {
+			data = &ContributorData{Weeks: make(map[int64]*WeekData)}
+			stats[key] = data
+		}
+		if c.User != nil {
+			data.Name, data.AvatarLink = c.User.DisplayName(), c.User.AvatarLinkWithSize(ctx, 0)
+			if c.User.ID > 0 {
+				data.Login, data.HomeLink = c.User.LowerName, c.User.HomeLink()
 			}
-			return nil
-		}).
-		RunWithStderr(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("ContributorsCommitStats: %w", err)
+		} else if data.Name == "" {
+			data.Name, data.AvatarLink = c.Name, cmp.Or(avatars.GenerateEmailAvatarFastLink(ctx, c.Email, 0), ghostAvatarLink)
+		}
+		byKey[contributorKey{c.UserID, c.Email}] = data
 	}
-
-	return extendedCommitStats, nil
+	total := &ContributorData{Name: "Total", Weeks: make(map[int64]*WeekData)}
+	for _, w := range weeks {
+		total.addWeek(w)
+		if data := byKey[contributorKey{w.UserID, w.Email}]; data != nil {
+			data.addWeek(w)
+		}
+	}
+	stats["total"] = total
+	return stats, nil
 }
 
-func generateContributorStats(genDone chan struct{}, cache cache.StringCache, cacheKey string, repo *repo_model.Repository, revision string) {
-	ctx := graceful.GetManager().HammerContext()
+func (data *ContributorData) addWeek(w *repo_model.RepoContributorWeek) {
+	week := data.Weeks[w.Week]
+	if week == nil {
+		week = &WeekData{Week: w.Week}
+		data.Weeks[w.Week] = week
+	}
+	week.Additions += int(w.Additions)
+	week.Deletions += int(w.Deletions)
+	week.Commits += int(w.Commits)
+	data.TotalCommits += w.Commits
+}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
+func GetWeeklyTotals(ctx context.Context, repo *repo_model.Repository) (map[int64]*WeekData, error) {
+	if err := EnsureContributorStats(ctx, repo); err != nil {
+		return nil, err
+	}
+	weeks, err := repo_model.GetRepoWeeklyTotals(ctx, repo.ID)
 	if err != nil {
-		_ = cache.PutJSON(cacheKey, fmt.Errorf("OpenRepository: %w", err), contributorStatsCacheTimeout)
-		return
+		return nil, err
 	}
-	defer closer.Close()
-
-	if len(revision) == 0 {
-		revision = repo.DefaultBranch
+	total := &ContributorData{Weeks: make(map[int64]*WeekData, len(weeks))}
+	for _, w := range weeks {
+		total.addWeek(w)
 	}
-	extendedCommitStats, err := getExtendedCommitStats(ctx, gitRepo, revision)
-	if err != nil {
-		_ = cache.PutJSON(cacheKey, fmt.Errorf("ExtendedCommitStats: %w", err), contributorStatsCacheTimeout)
-		return
-	}
-	if len(extendedCommitStats) == 0 {
-		_ = cache.PutJSON(cacheKey, fmt.Errorf("no commit stats returned for revision '%s'", revision), contributorStatsCacheTimeout)
-		return
-	}
-
-	layout := time.DateOnly
-
-	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLinkWithSize(ctx, 0)
-	contributorsCommitStats := make(map[string]*ContributorData)
-	contributorsCommitStats["total"] = &ContributorData{
-		Name:  "Total",
-		Weeks: make(map[int64]*WeekData),
-	}
-	total := contributorsCommitStats["total"]
-
-	for _, v := range extendedCommitStats {
-		userEmail := v.Author.Email
-		if len(userEmail) == 0 {
-			continue
-		}
-		u, _ := user_model.GetUserByEmail(ctx, userEmail)
-		if u != nil {
-			// update userEmail with user's primary email address so
-			// that different mail addresses will linked to same account
-			userEmail = u.GetEmail()
-		}
-		// duplicated logic
-		if _, ok := contributorsCommitStats[userEmail]; !ok {
-			if u == nil {
-				avatarLink := avatars.GenerateEmailAvatarFastLink(ctx, userEmail, 0)
-				if avatarLink == "" {
-					avatarLink = unknownUserAvatarLink
-				}
-				contributorsCommitStats[userEmail] = &ContributorData{
-					Name:       v.Author.Name,
-					AvatarLink: avatarLink,
-					Weeks:      make(map[int64]*WeekData),
-				}
-			} else {
-				contributorsCommitStats[userEmail] = &ContributorData{
-					Name:       u.DisplayName(),
-					Login:      u.LowerName,
-					AvatarLink: u.AvatarLinkWithSize(ctx, 0),
-					HomeLink:   u.HomeLink(),
-					Weeks:      make(map[int64]*WeekData),
-				}
-			}
-		}
-		// Update user statistics
-		user := contributorsCommitStats[userEmail]
-		startingOfWeek, _ := findLastSundayBeforeDate(v.Author.Date)
-
-		val, _ := time.Parse(layout, startingOfWeek)
-		week := val.UnixMilli()
-
-		if user.Weeks[week] == nil {
-			user.Weeks[week] = &WeekData{
-				Additions: 0,
-				Deletions: 0,
-				Commits:   0,
-				Week:      week,
-			}
-		}
-		if total.Weeks[week] == nil {
-			total.Weeks[week] = &WeekData{
-				Additions: 0,
-				Deletions: 0,
-				Commits:   0,
-				Week:      week,
-			}
-		}
-		user.Weeks[week].Additions += v.Stats.Additions
-		user.Weeks[week].Deletions += v.Stats.Deletions
-		user.Weeks[week].Commits++
-		user.TotalCommits++
-
-		// Update overall statistics
-		total.Weeks[week].Additions += v.Stats.Additions
-		total.Weeks[week].Deletions += v.Stats.Deletions
-		total.Weeks[week].Commits++
-		total.TotalCommits++
-	}
-
-	_ = cache.PutJSON(cacheKey, contributorsCommitStats, contributorStatsCacheTimeout)
-	generateLock.Delete(cacheKey)
-	if genDone != nil {
-		genDone <- struct{}{}
-	}
+	return total.Weeks, nil
 }

@@ -386,6 +386,19 @@
         },
         "description": "ContentsResponse"
       },
+      "ContributorList": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/Contributor"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "description": "ContributorList"
+      },
       "CronList": {
         "content": {
           "application/json": {
@@ -3724,6 +3737,67 @@
             "format": "uri",
             "type": "string",
             "x-go-name": "URL"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "Contributor": {
+        "description": "Contributor represents a commit author of the default branch of a repository",
+        "properties": {
+          "additions": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Additions"
+          },
+          "avatar_url": {
+            "description": "not set for type \"Anonymous\"",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "AvatarURL"
+          },
+          "contributions": {
+            "description": "number of commits, merges included",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Contributions"
+          },
+          "deletions": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Deletions"
+          },
+          "email": {
+            "description": "the git author email, only set for type \"Anonymous\"",
+            "type": "string",
+            "x-go-name": "Email"
+          },
+          "html_url": {
+            "description": "not set for type \"Anonymous\"",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "HTMLURL"
+          },
+          "id": {
+            "description": "not set for type \"Anonymous\"",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "login": {
+            "description": "not set for type \"Anonymous\"",
+            "type": "string",
+            "x-go-name": "Login"
+          },
+          "name": {
+            "description": "the git author name, only set for type \"Anonymous\"",
+            "type": "string",
+            "x-go-name": "Name"
+          },
+          "type": {
+            "description": "\"User\" or \"Bot\" for authors matched to a user, otherwise \"Anonymous\"",
+            "type": "string",
+            "x-go-name": "Type"
           }
         },
         "type": "object",
@@ -21458,6 +21532,81 @@
           }
         },
         "summary": "Update a file in a repository if SHA is set, or create the file if SHA is not set",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/contributors": {
+      "get": {
+        "operationId": "repoListContributors",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "include authors that are not matched to a user",
+            "in": "query",
+            "name": "anon",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results, alias of limit",
+            "in": "query",
+            "name": "per_page",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ContributorList"
+          },
+          "202": {
+            "description": "The contributors are still being counted, retry later"
+          },
+          "204": {
+            "description": "The repository is empty"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "List the commit authors of the default branch of a repository, most commits first",
         "tags": [
           "repository"
         ]

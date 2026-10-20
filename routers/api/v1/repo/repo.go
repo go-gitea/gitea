@@ -744,6 +744,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 			ctx.APIErrorInternal(err)
 			return err
 		}
+		if err := repo_service.AddRepoToContributorsQueue(ctx.Repo.Repository.ID); err != nil {
+			ctx.APIErrorInternal(err)
+			return err
+		}
 	}
 
 	log.Trace("Repository basic settings updated: %s/%s", owner.Name, repo.Name)

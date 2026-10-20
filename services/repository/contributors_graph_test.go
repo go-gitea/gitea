@@ -4,39 +4,26 @@
 package repository
 
 import (
+	"maps"
 	"slices"
 	"testing"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepository_ContributorsGraph(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	require.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	assert.NoError(t, repo.LoadOwner(t.Context()))
-	mockCache, err := cache.NewStringCache(setting.Cache{})
-	assert.NoError(t, err)
+	require.NoError(t, UpdateRepoContributors(t.Context(), repo.ID))
 
-	generateContributorStats(nil, mockCache, "key", repo, "404ref")
-	var data map[string]*ContributorData
-	_, getErr := mockCache.GetJSON("key", &data)
-	assert.NotNil(t, getErr)
-	assert.ErrorContains(t, getErr.ToError(), "object does not exist")
-
-	generateContributorStats(nil, mockCache, "key2", repo, "master")
-	exist, _ := mockCache.GetJSON("key2", &data)
-	assert.True(t, exist)
-	var keys []string
-	for k := range data {
-		keys = append(keys, k)
-	}
-	slices.Sort(keys)
+	data, err := GetContributorStats(t.Context(), repo)
+	require.NoError(t, err)
+	keys := slices.Sorted(maps.Keys(data))
 	assert.Equal(t, []string{
 		"ethantkoenig@gmail.com",
 		"jimmy.praet@telenet.be",

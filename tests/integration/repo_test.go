@@ -49,6 +49,25 @@ func TestRepoView(t *testing.T) {
 	t.Run("MarkDownReadmeImageSubfolder", testMarkDownReadmeImageSubfolder)
 	t.Run("GeneratedSourceLink", testGeneratedSourceLink)
 	t.Run("ViewCommit", testViewCommit)
+	t.Run("ViewRepoSidebarContributors", testViewRepoSidebarContributors)
+}
+
+func testViewRepoSidebarContributors(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
+	session := loginUser(t, "user2")
+
+	findContributors := func() *goquery.Selection {
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo16"), http.StatusOK)
+		return NewHTMLParser(t, resp.Body).doc.Find(`.repo-home-sidebar-bottom a[href="/user2/repo16/activity/contributors"]`)
+	}
+	findContributors()
+	assert.Zero(t, findContributors().Length())
+	session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo16/activity/contributors/data"), http.StatusAccepted)
+
+	header := findContributors().Parent()
+	assert.Equal(t, "2", strings.TrimSpace(header.Find(".ui.label").Text()))
+	avatarLinks := header.Next().Find("a").Map(func(_ int, a *goquery.Selection) string { return a.AttrOr("href", "") })
+	assert.Equal(t, []string{"/user2", "/user21"}, avatarLinks)
 }
 
 func testViewRepoPublic(t *testing.T) {
