@@ -216,16 +216,10 @@ func (pr *PullRequest) OptionalHeadUserName(ctx context.Context) string {
 // LoadAttributes loads pull request attributes from database
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
-	if pr.HasMerged && pr.Merger == nil {
-		pr.Merger, err = user_model.GetUserByID(ctx, pr.MergerID)
-		if user_model.IsErrUserNotExist(err) {
-			pr.MergerID = user_model.GhostUserID
-			pr.Merger = user_model.NewGhostUser()
-		} else if err != nil {
-			return fmt.Errorf("getUserByID [%d]: %w", pr.MergerID, err)
-		}
+	if pr.Merger == nil && pr.MergerID != 0 {
+		pr.MergerID, pr.Merger, err = user_model.GetPossibleUserByID(ctx, pr.MergerID)
+		return err
 	}
-
 	return nil
 }
 
@@ -411,6 +405,21 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 // GetGitHeadRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefName but not string
 	return git.RefNameFromPullIndex(pr.Index).String()
+}
+
+func (pr *PullRequest) GetInstructionsCliArgs() (ret struct {
+	BaseBranchArg  string
+	HeadBranchArg  string
+	LocalBranchArg string
+},
+) {
+	ret.BaseBranchArg = util.ShellEscape(pr.BaseBranch)
+	ret.HeadBranchArg = util.ShellEscape(pr.HeadBranch)
+	ret.LocalBranchArg = ret.HeadBranchArg
+	if pr.HeadRepo != nil && pr.HeadRepoID != pr.BaseRepoID {
+		ret.LocalBranchArg = util.ShellEscape(pr.HeadRepo.OwnerName) + "-" + ret.HeadBranchArg
+	}
+	return ret
 }
 
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)

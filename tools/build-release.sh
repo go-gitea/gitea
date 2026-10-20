@@ -13,12 +13,9 @@ RELEASE_PLATFORMS_DEFAULT=(
   freebsd/amd64
 )
 
-RELEASE_PLATFORMS_GOGIT=(windows/amd64 windows/arm64)
-
 build() {
   echo "building ${*} ..."
   local target="${1:?}"
-  local variant="${2:-}"
 
   local goos="${target%%/*}"
   local goarch="${target##*/}"
@@ -28,21 +25,12 @@ build() {
     goarch="arm"
   fi
 
-  local tags="${RELEASE_TAGS}"
-  local suffix
-  if [[ "$variant" == "gogit" ]]; then
-    tags="gogit${tags:+ ${tags}}"
-    suffix="-gogit-${target//\//-}"
-  else
-    suffix="-${target//\//-}"
-  fi
-
-  local output="${RELEASE_PATH_PREFIX}${suffix}"
+  local output="${RELEASE_PATH_PREFIX}-${target//\//-}"
   local args=()
   if [[ "$goos" == "windows" ]]; then
     output="${output}.exe"
   fi
-  args+=(-tags "$tags")
+  args+=(-tags "$RELEASE_TAGS")
   args+=(-ldflags "$RELEASE_LDFLAGS")
   echo "  args: ${args[*]}"
   echo "  output: ${output}"
@@ -61,16 +49,6 @@ main() {
       build "$target"
     fi
   done
-
-  # Only build with gogit for main-nightly, disable gogit for stable releases since there seems no real requirement for them.
-  # If no real requirement (no user feedbacks), we can completely remove gogit support in the future.
-  if [ "$VERSION" = "main-nightly" ]; then
-    for target in "${RELEASE_PLATFORMS_GOGIT[@]}"; do
-      if [[ -z "$platform" || "$target" == "$platform/"* ]]; then
-        build "$target" "gogit"
-      fi
-    done
-  fi
 }
 
 main "$@"

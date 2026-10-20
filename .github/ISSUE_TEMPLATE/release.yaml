@@ -1,0 +1,59 @@
+name: Release
+description: Track a Gitea release (for release managers).
+title: "Release Gitea "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Follow the [release management guide](https://github.com/go-gitea/gitea/blob/main/docs/release-management.md).
+        Set the issue title and milestone to the version being released. Replace the examples below and mark inapplicable tasks as such.
+        CI signs the tag, generates release notes, and publishes binaries and containers. Track verification here; no manual changelog PR or release upload is needed.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "28.0.1"
+    validations:
+      required: true
+  - type: input
+    id: branch
+    attributes:
+      label: Release branch
+      placeholder: "release/v28"
+    validations:
+      required: true
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Release checklist
+      description: Keep workflow runs, release URLs, and follow-up PRs alongside the relevant tasks.
+      value: |
+        ### Preparation
+
+        - [ ] Resolve release blockers and confirm milestone issues and PRs are resolved or deferred.
+        - [ ] Confirm required backports are merged and release branch CI passes.
+        - [ ] For a new release line, create the release branch and tag its fork point on main with the next version's -dev tag.
+
+        ### Release
+
+        - [ ] Run https://github.com/go-gitea/gitea/actions/workflows/release-create-tag.yml on the release branch with the selected version and obtain maintainer approval.
+        - [ ] Confirm https://github.com/go-gitea/gitea/actions/workflows/release-tag-version.yml succeeds for the new tag (binaries and containers).
+        - [ ] Verify the public GitHub release, generated notes, binary attachments, and signatures at https://github.com/go-gitea/gitea/releases.
+        - [ ] Verify binaries and signatures at https://dl.gitea.com/gitea/ for this version.
+        - [ ] Verify versioned regular and rootless images on Docker Hub and GHCR, and smoke-test the release.
+
+        ### Follow-up
+
+        - [ ] Verify the automated https://dl.gitea.com/gitea/version.json update, where applicable to this release line.
+        - [ ] Verify automated Helm chart and Terraform provider update PRs and follow up if needed.
+        - [ ] Check Homebrew and Snap availability; record any outstanding packaging follow-up.
+        - [ ] Confirm documentation reflects the release, where applicable.
+        - [ ] Confirm and merge the release blog post, if planned: https://gitea.com/gitea/blog.
+        - [ ] Announce the release in Discord #announcements.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Blockers and notes
+      description: Link outstanding work or release-specific checks using full URLs. Do not include undisclosed security details.

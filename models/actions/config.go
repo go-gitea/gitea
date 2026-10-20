@@ -64,7 +64,7 @@ func (cfg *OwnerActionsConfig) GetMaxTokenPermissions() repo_model.ActionsTokenP
 		return *cfg.MaxTokenPermissions
 	}
 	// Default max is write for everything
-	return repo_model.MakeActionsTokenPermissions(perm.AccessModeWrite)
+	return repo_model.MakeWriteAllActionsTokenPermissions()
 }
 
 // ClampPermissions ensures that the given permissions don't exceed the maximum

@@ -62,15 +62,3 @@ func SetDefaultPasswordHashAlgorithm(algorithmName string) (string, *PasswordHas
 	DefaultHashAlgorithm = Parse(algoSpec)
 	return algoSpec, DefaultHashAlgorithm
 }
-
-// ConfigHashAlgorithm will try to find a "recommended algorithm name" defined by RecommendedHashAlgorithms for config
-// This function is not fast and is only used for the installation page
-func ConfigHashAlgorithm(algorithm string) string {
-	algorithm = hashAlgorithmToSpec(algorithm)
-	for _, recommAlgo := range RecommendedHashAlgorithms {
-		if algorithm == hashAlgorithmToSpec(recommAlgo) {
-			return recommAlgo
-		}
-	}
-	return algorithm
-}

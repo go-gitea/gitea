@@ -47,6 +47,20 @@
 						</div>
 					</div>
 
+					<!-- Authentication Source Filter Menu Item -->
+					{{if .HasAuthSources}}
+						<div class="ui dropdown type jump item">
+							<span class="text">{{ctx.Locale.Tr "admin.users.auth_source"}}</span>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu flex-items-menu">
+								{{range $index, $option := .AuthSourceFilterOptions}}
+									{{if eq $index 1}}<div class="divider"></div>{{end}}
+									<label class="item"><input type="radio" name="source_id" value="{{$option.Value}}" {{if $option.Selected}}checked{{end}}> {{$option.Label}}</label>
+								{{end}}
+							</div>
+						</div>
+					{{end}}
+
 					<!-- Sort Menu Item -->
 					<div class="ui dropdown type jump item">
 						<span class="text">
@@ -75,6 +89,7 @@
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType true}}
 						</th>
 						<th>{{ctx.Locale.Tr "email"}}</th>
+						<th>{{ctx.Locale.Tr "admin.users.auth_source"}}</th>
 						<th>{{ctx.Locale.Tr "admin.users.activated"}}</th>
 						<th>{{ctx.Locale.Tr "admin.users.restricted"}}</th>
 						<th>{{ctx.Locale.Tr "admin.users.2fa"}}</th>
@@ -102,6 +117,7 @@
 								{{template "shared/user/user_type_label" .}}
 							</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
+							<td class="gt-ellipsis tw-max-w-32">{{if .LoginSource}}{{index $.SourceNames .LoginSource}}{{else}}{{ctx.Locale.Tr "admin.users.local"}}{{end}}</td>
 							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>
 							<td>{{svg (Iif .IsRestricted "octicon-check" "octicon-x")}}</td>
 							<td>{{svg (Iif (index $.UsersTwoFaStatus .ID) "octicon-check" "octicon-x")}}</td>
@@ -119,7 +135,7 @@
 							</td>
 						</tr>
 					{{else}}
-						<tr class="no-results-row"><td class="tw-text-center" colspan="9">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
+						<tr class="no-results-row"><td class="tw-text-center" colspan="10">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>

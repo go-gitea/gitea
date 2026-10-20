@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"gitea.dev/modules/cache"
@@ -24,13 +23,11 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-const RequiredVersion = "2.25.0" // the minimum Git version required
+const RequiredVersion = "2.34.0" // the minimum Git version required
 
 type Features struct {
 	gitVersion *version.Version
 
-	UsingGogit                 bool
-	SupportProcReceive         bool           // >= 2.29
 	SupportHashSha256          bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
 	SupportedObjectFormats     []ObjectFormat // sha1, sha256
 	SupportCheckAttrOnBare     bool           // >= 2.40
@@ -79,9 +76,8 @@ func loadGitVersionFeatures() (*Features, error) {
 		return nil, err
 	}
 
-	features := &Features{gitVersion: ver, UsingGogit: isGogit}
-	features.SupportProcReceive = features.CheckVersionAtLeast("2.29")
-	features.SupportHashSha256 = features.CheckVersionAtLeast("2.42") && !isGogit
+	features := &Features{gitVersion: ver}
+	features.SupportHashSha256 = features.CheckVersionAtLeast("2.42")
 	features.SupportedObjectFormats = []ObjectFormat{Sha1ObjectFormat}
 	if features.SupportHashSha256 {
 		features.SupportedObjectFormats = append(features.SupportedObjectFormats, Sha256ObjectFormat)
@@ -129,16 +125,8 @@ func checkGitVersionCompatibility(gitVer *version.Version) error {
 func ensureGitVersion() error {
 	if !DefaultFeatures().CheckVersionAtLeast(RequiredVersion) {
 		moreHint := "get git: https://git-scm.com/downloads"
-		if runtime.GOOS == "linux" {
-			// there are a lot of CentOS/RHEL users using old git, so we add a special hint for them
-			if _, err := os.Stat("/etc/redhat-release"); err == nil {
-				// ius.io is the recommended official(git-scm.com) method to install git
-				moreHint = "get git: https://git-scm.com/downloads/linux and https://ius.io"
-			}
-		}
 		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", DefaultFeatures().gitVersion.Original(), RequiredVersion, moreHint)
 	}
-
 	if err := checkGitVersionCompatibility(DefaultFeatures().gitVersion); err != nil {
 		return fmt.Errorf("installed git version %s has a known compatibility issue with Gitea: %w, please upgrade (or downgrade) git", DefaultFeatures().gitVersion.String(), err)
 	}
@@ -208,8 +196,4 @@ func runGitTests(m interface{ Run() int }) int {
 
 func LockConfigAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
 	return globallock.LockAndDo(ctx, "repo-config:"+repo.GitRepoManagedID(), fn)
-}
-
-func LockWriteAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
-	return globallock.LockAndDo(ctx, "repo-write:"+repo.GitRepoManagedID(), fn)
 }

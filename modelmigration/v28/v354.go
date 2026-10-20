@@ -7,21 +7,28 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func AddIssueWIP(_ context.Context, x base.EngineMigration) error {
-	type Issue struct {
-		RepoID   int64 `xorm:"INDEX(repo_wip)"`
-		IsClosed bool  `xorm:"INDEX(repo_wip)"`
-		IsPull   bool  `xorm:"INDEX(repo_wip)"`
-		IsWIP    bool  `xorm:"NOT NULL DEFAULT false INDEX(repo_wip)"`
+// AddActionQueueIndexes indexes the runner pickup query and repository-scoped status lookups.
+func AddActionQueueIndexes(_ context.Context, x base.EngineMigration) error {
+	type ActionRunJob struct {
+		RepoID  int64              `xorm:"index(repo_status)"`
+		TaskID  int64              `xorm:"index(pickup)"`
+		Status  int                `xorm:"index(pickup) index(repo_status)"`
+		Updated timeutil.TimeStamp `xorm:"index(pickup)"`
 	}
-	// Startup backfills using the current prefixes, also covering later configuration changes.
+
+	type ActionRun struct {
+		RepoID int64 `xorm:"index(repo_status)"`
+		Status int   `xorm:"index(repo_status)"`
+	}
+
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
-	}, new(Issue))
+		IgnoreConstrains:  true,
+	}, new(ActionRunJob), new(ActionRun))
 	return err
 }

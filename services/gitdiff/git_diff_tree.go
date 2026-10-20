@@ -123,24 +123,19 @@ func validateGitDiffTreeArguments(ctx context.Context, gitRepo *git.Repository, 
 }
 
 func parseGitDiffTree(gitOutput io.Reader) ([]*DiffTreeRecord, error) {
-	/*
-		The output of `git diff-tree --raw -r --find-renames` is of the form:
+	/* The output of `git diff-tree --raw -r --find-renames` is of the form:
+	:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<path>
 
-		:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<path>
+	or for renames:
+	:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<old_path>\t<new_path>
 
-		or for renames:
-
-		:<old_mode> <new_mode> <old_sha> <new_sha> <status>\t<old_path>\t<new_path>
-
-		See: <https://git-scm.com/docs/git-diff-tree#_raw_output_format> for more details
-	*/
+	See: <https://git-scm.com/docs/git-diff-tree#_raw_output_format> for more details */
 	results := make([]*DiffTreeRecord, 0)
 
 	lines := bufio.NewScanner(gitOutput)
 	for lines.Scan() {
 		line := lines.Text()
-
-		if len(line) == 0 {
+		if line == "" {
 			continue
 		}
 
@@ -191,6 +186,13 @@ func parseGitDiffTreeLine(line string) (*DiffTreeRecord, error) {
 	} else {
 		basePath = filePaths[0]
 		headPath = filePaths[0]
+	}
+
+	if basePath, err = git.UnquoteDiffFilePath(basePath); err != nil {
+		return nil, fmt.Errorf("unparsable output for diff-tree --raw: `%s`, invalid base path: %w", line, err)
+	}
+	if headPath, err = git.UnquoteDiffFilePath(headPath); err != nil {
+		return nil, fmt.Errorf("unparsable output for diff-tree --raw: `%s`, invalid head path: %w", line, err)
 	}
 
 	return &DiffTreeRecord{

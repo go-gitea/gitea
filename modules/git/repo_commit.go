@@ -7,11 +7,13 @@ package git
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"strconv"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 )
 
@@ -414,8 +416,26 @@ func (repo *Repository) GetCommitsFromIDs(ctx context.Context, commitIDs []strin
 	return commits
 }
 
-// IsCommitInBranch check if the commit is on the branch
-func (repo *Repository) IsCommitInBranch(ctx context.Context, commitID, branch string) (r bool, err error) {
+// IsCommitInRepo checks if the commit exists in the repository.
+func IsCommitInRepo(ctx context.Context, repo gitrepo.RepositoryFacade, commitID string) (bool, error) {
+	// "--quiet" makes it exit with 1 and no output if the commit doesn't exist
+	_, _, err := gitcmd.NewCommand("rev-parse", "--verify", "--quiet").
+		AddDynamicArguments(commitID + "^{commit}").
+		WithRepo(repo).
+		RunStdString(ctx)
+	if gitcmd.IsErrorExitCode(err, 1) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// IsCommitInBranch checks if the commit is on the branch.
+// It returns false (no error) if the commit doesn't exist or isn't on the branch.
+func IsCommitInBranch(ctx context.Context, repo gitrepo.RepositoryFacade, commitID, branch string) (r bool, err error) {
+	if exist, err := IsCommitInRepo(ctx, repo, commitID); err != nil || !exist {
+		return false, err
+	}
+
 	stdout, _, err := gitcmd.NewCommand("branch", "--contains").
 		AddDynamicArguments(commitID, branch).
 		WithRepo(repo).
@@ -423,7 +443,7 @@ func (repo *Repository) IsCommitInBranch(ctx context.Context, commitID, branch s
 	if err != nil {
 		return false, err
 	}
-	return len(stdout) > 0, err
+	return len(stdout) > 0, nil
 }
 
 // GetCommitBranchStart returns the commit where the branch diverged
@@ -456,4 +476,125 @@ func (repo *Repository) GetCommitBranchStart(ctx context.Context, env []string, 
 	}
 
 	return "", nil
+}
+
+// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
+func (repo *Repository) GetRefCommitID(ctx context.Context, name string) (string, error) {
+	batch, cancel, err := repo.CatFileBatch()
+	if err != nil {
+		return "", err
+	}
+	defer cancel()
+	info, err := batch.QueryInfo(name)
+	if IsErrNotExist(err) {
+		return "", ErrNotExist{name, ""}
+	} else if err != nil {
+		return "", err
+	}
+	return info.ID, nil
+}
+
+func (repo *Repository) getCommit(_ context.Context, id ObjectID) (*Commit, error) {
+	batch, cancel, err := repo.CatFileBatch()
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+	return repo.getCommitWithBatch(batch, id)
+}
+
+func limitDiscardReader(rd BufferedReader, full, limit int64) (io.Reader, func() error) {
+	return io.LimitReader(rd, min(full, limit)), func() error {
+		if full > limit {
+			return DiscardFull(rd, full-limit)
+		}
+		return nil
+	}
+}
+
+func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Commit, error) {
+	info, rd, err := batch.QueryContent(id.String())
+	if err != nil {
+		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
+			return nil, ErrNotExist{ID: id.String()}
+		}
+		return nil, err
+	}
+
+	switch info.Type {
+	case "missing":
+		return nil, ErrNotExist{ID: id.String()}
+	case "tag":
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
+		data, err := io.ReadAll(limitReader)
+		if err != nil {
+			return nil, err
+		}
+		if err = limitDiscard(); err != nil {
+			return nil, err
+		}
+		_, err = rd.Discard(1)
+		if err != nil {
+			return nil, err
+		}
+		tag, err := parseTagData(id.Type(), data)
+		if err != nil {
+			return nil, err
+		}
+		return repo.getCommitWithBatch(batch, tag.Object)
+	case "commit":
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
+		commit, err := CommitFromReader(id, limitReader)
+		if err != nil {
+			return nil, err
+		}
+		if err = limitDiscard(); err != nil {
+			return nil, err
+		}
+		_, err = rd.Discard(1)
+		if err != nil {
+			return nil, err
+		}
+
+		return commit, nil
+	default:
+		if info.Type != "blob" && info.Type != "tree" {
+			setting.PanicInDevOrTesting("Unknown cat-file object type %s for object %s in repo %s", info.Type, id.String(), repo.LogString())
+		}
+		if err := DiscardFull(rd, info.Size+1); err != nil {
+			return nil, err
+		}
+		return nil, ErrNotExist{
+			ID: id.String(),
+		}
+	}
+}
+
+// ConvertToGitID returns a git object ID from the git ref, it doesn't guarantee the returned ID really exists
+func (repo *Repository) ConvertToGitID(ctx context.Context, ref string) (ObjectID, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if IsStringValidObjectID(objectFormat, ref) {
+		id, err := NewIDFromString(ref)
+		if err == nil {
+			return id, nil
+		}
+	}
+
+	batch, cancel, err := repo.CatFileBatch()
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+	info, err := batch.QueryInfo(ref)
+	if err != nil {
+		if IsErrNotExist(err) {
+			return nil, ErrNotExist{ref, ""}
+		}
+		return nil, err
+	}
+
+	return MustIDFromString(info.ID), nil
 }

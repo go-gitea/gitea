@@ -84,17 +84,25 @@ export async function apiCreateFiles(requestContext: APIRequestContext, owner: s
   }), 'apiCreateFiles');
 }
 
-export async function apiCancelStopwatch(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
-  await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}/stopwatch/delete`, {
-    headers: headers || apiHeaders(),
-  }), 'apiCancelStopwatch');
-}
-
 export async function apiCloseIssue(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
   await apiRetry(() => requestContext.patch(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}`, {
     headers: headers || apiHeaders(),
     data: {state: 'closed'},
   }), 'apiCloseIssue');
+}
+
+export async function apiEditIssue(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, data: Record<string, unknown>) {
+  await apiRetry(() => requestContext.patch(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}`, {
+    headers: apiHeaders(),
+    data,
+  }), 'apiEditIssue');
+}
+
+export async function apiCreateBranch(requestContext: APIRequestContext, owner: string, repo: string, name: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branches`, {
+    headers: apiHeaders(),
+    data: {new_branch_name: name},
+  }), 'apiCreateBranch');
 }
 
 /** Create a PR via API. Returns the PR index for subsequent operations. */

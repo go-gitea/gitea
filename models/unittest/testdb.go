@@ -61,7 +61,6 @@ func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 	}
 
 	setting.AppURL = "https://try.gitea.io/"
-	setting.Domain = "try.gitea.io"
 	setting.RunUser = "runuser"
 	setting.SSH.User = "sshuser"
 	setting.SSH.BuiltinServerUser = "builtinuser"
@@ -207,7 +206,7 @@ type FixturesOptions struct {
 
 // CreateTestEngine creates a test database and loads the fixture data from fixturesDir
 func CreateTestEngine(testSQLiteFile string, opts FixturesOptions) error {
-	driver, connStr, err := db.ConnStr(db.ConnOptions{Type: setting.DatabaseTypeSQLite3, SQLitePath: testSQLiteFile, SQLiteBusyTimeout: setting.DefaultSQLiteBusyTimeout})
+	driver, connStr, err := db.ConnStr(db.ConnOptions{Type: setting.DatabaseTypeSQLite3, SQLitePath: testSQLiteFile, SQLiteBusyTimeout: setting.DefaultSQLiteBusyTimeout, SQLiteJournalMode: "MEMORY"})
 	if err != nil {
 		return err
 	}

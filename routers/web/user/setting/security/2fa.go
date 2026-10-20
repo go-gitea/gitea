@@ -114,7 +114,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 		}
 	}
 	// Filter unsafe character ':' in issuer
-	issuer := strings.ReplaceAll(setting.AppName+" ("+setting.Domain+")", ":", "")
+	issuer := strings.ReplaceAll(setting.AppName+" ("+setting.AppDomain+")", ":", "")
 	if otpKey == nil {
 		otpKey, err = totp.Generate(totp.GenerateOpts{
 			SecretSize:  40,
