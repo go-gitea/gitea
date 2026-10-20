@@ -67,8 +67,12 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 		errChan <- lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan)
 	}()
 
+	var ref string
+	if repo.DefaultBranch != "" {
+		ref = git.RefNameFromBranch(repo.DefaultBranch).String()
+	}
 	downloadObjects := func(pointers []lfs.Pointer) error {
-		err := lfsClient.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
+		err := lfsClient.Download(ctx, ref, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
 			if errors.Is(objectError, lfs.ErrObjectNotExist) {
 				log.Warn("Ignoring missing upstream LFS object %-v: %v", p, objectError)
 				return nil
