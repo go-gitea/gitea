@@ -28848,7 +28848,7 @@
           "x-go-name": "Description"
         },
         "due_on": {
-          "description": "Deadline is the updated due date for the milestone, the existing one is kept if omitted, use \"1970-01-01T00:00:00Z\" to remove it",
+          "description": "Deadline is the updated due date for the milestone, the existing one is kept if omitted",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -28866,6 +28866,11 @@
           "description": "Title is the updated title of the milestone",
           "type": "string",
           "x-go-name": "Title"
+        },
+        "unset_due_on": {
+          "description": "RemoveDeadline removes the due date of the milestone",
+          "type": "boolean",
+          "x-go-name": "RemoveDeadline"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
