@@ -200,7 +200,7 @@ function switchTitleToTooltip(target: Element): void {
   const title = target.getAttribute('title');
   if (title) {
     target.setAttribute('data-tooltip-content', title);
-    if (!target.hasAttribute('aria-label')) target.setAttribute('aria-label', title);
+    target.setAttribute('aria-label', title);
     target.setAttribute('title', '');
   }
 }
