@@ -661,6 +661,12 @@ jobs:
 		}))
 		assert.NoError(t, err)
 
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: actionTask.RunnerID})
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/actions/jobs/%d", baseRepo.OwnerName, baseRepo.Name, actionRunJob.ID).AddTokenAuth(user2Token)
+		apiJob := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionWorkflowJob{})
+		assert.Equal(t, actionTask.RunnerID, apiJob.RunnerID)
+		assert.Equal(t, "mock-runner", apiJob.RunnerName)
+
 		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
 		}))
