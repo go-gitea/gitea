@@ -126,7 +126,7 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"reaction.issue_id": opts.IssueIDOnly}).And(builder.Expr("reaction.comment_id = 0"))
 	}
 	if opts.IssueIDWithComments > 0 {
-		cond = cond.And(builder.Eq{"reaction.issue_id": opts.IssueIDOnly})
+		cond = cond.And(builder.Eq{"reaction.issue_id": opts.IssueIDWithComments})
 	}
 	if opts.CommentID > 0 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
