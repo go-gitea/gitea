@@ -798,7 +798,6 @@
   "settings.delete_account_title": "Excluir Conta de Usuário",
   "settings.delete_account_desc": "Tem certeza que deseja apagar sua conta de usuário permanentemente?",
   "settings.email_notifications.enable": "Habilitar Notificações de E-mail",
-  "settings.email_notifications.onmention": "Somente E-mail com Menção",
   "settings.email_notifications.disable": "Desabilitar Notificações de E-mail",
   "settings.email_notifications.submit": "Definir Preferências de E-mail",
   "settings.email_notifications.andyourown": "E Suas Próprias Notificações",

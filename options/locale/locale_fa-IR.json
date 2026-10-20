@@ -513,7 +513,6 @@
   "settings.delete_account_title": "حذف حساب کاربری",
   "settings.delete_account_desc": "آیا شما مطمئن هستید که می‎خواهیدحساب کاربری خود را حذف کنید؟",
   "settings.email_notifications.enable": "فعال‌سازی اعلان‌های ایمیل",
-  "settings.email_notifications.onmention": "فقط یادآوری توسط ایمیل",
   "settings.email_notifications.disable": "غیرفعال‌ کردن اعلان‌های ایمیل",
   "settings.email_notifications.submit": "ثبت اولویت ایمیل",
   "settings.visibility": "پدیداری کاربر",

@@ -175,7 +175,8 @@ type User struct {
 	// When the user model is used as a doer (all existing code does so), the doer can have extra details.
 	// * Actions task doer needs to bind to the task
 	// * Deploy-key doer needs to bind to the key
-	ExtDoerData ExtDoerData `xorm:"-"`
+	// * API token doer needs to bind to the token and its scope
+	ExtDoerData ExtDoerData `xorm:"-" json:"-"`
 }
 
 // Meta defines the meta information of a user, to be stored in the K/V table
@@ -445,11 +446,6 @@ func (u *User) IsTypeBot() bool {
 	return u.Type == UserTypeBot
 }
 
-// IsTokenAccessAllowed returns whether the user is an individual or a bot (which allows for token access)
-func (u *User) IsTokenAccessAllowed() bool {
-	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
-}
-
 // EmailTo returns a string suitable to be put into a e-mail `To:` header.
 func (u *User) EmailTo() string {
 	sanitizedDisplayName := globalVars().emailToReplacer.Replace(u.DisplayName())
@@ -469,6 +465,7 @@ func (u *User) EmailTo() string {
 }
 
 // TODO: DefaultShowFullName causes messy logic, there are already too many methods to display a user's "display name", need to refactor them
+// Search this TODO to see more details
 // * user.Name / user.FullName: directly used in templates
 // * user.DisplayName(): always show FullName if it's not empty, otherwise show Name
 // * user.GetDisplayName(): show FullName if it's not empty and DefaultShowFullName is set, otherwise show Name
@@ -491,6 +488,14 @@ func (u *User) GetDisplayName() string {
 		if fullName != "" {
 			return fullName
 		}
+	}
+	return u.Name
+}
+
+// DisplayNameWithFullName returns the username, full name is included if it is not empty
+func (u *User) DisplayNameWithFullName() string {
+	if fullName := strings.TrimSpace(u.FullName); fullName != "" {
+		return fmt.Sprintf("%s (%s)", u.Name, fullName)
 	}
 	return u.Name
 }
@@ -1446,11 +1451,11 @@ func GetAdminUser(ctx context.Context) (*User, error) {
 }
 
 func isUserVisibleToViewerCond(viewer *User) builder.Cond {
-	if viewer != nil && viewer.IsAdmin {
+	if DoerIsSiteAdminFullAccess(viewer) {
 		return builder.NewCond()
 	}
 
-	if viewer == nil || viewer.IsRestricted {
+	if !DoerCanViewPrivate(viewer) || viewer.IsRestricted {
 		return builder.Eq{
 			"`user`.visibility": structs.VisibleTypePublic,
 		}
@@ -1484,6 +1489,9 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
+	if !DoerTokenAllowsOwner(viewer, u) {
+		return false
+	}
 	if viewer != nil && (viewer.IsAdmin || viewer.ID == u.ID) {
 		return true
 	}

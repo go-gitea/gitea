@@ -748,7 +748,6 @@
   "settings.delete_account_title": "刪除使用者帳戶",
   "settings.delete_account_desc": "您確定要永久刪除此帳戶嗎？",
   "settings.email_notifications.enable": "啟用郵件通知",
-  "settings.email_notifications.onmention": "只在被提到時傳送郵件通知",
   "settings.email_notifications.disable": "關閉郵件通知",
   "settings.email_notifications.submit": "套用郵件偏好設定",
   "settings.email_notifications.andyourown": "和您自己的通知",
