@@ -45,7 +45,7 @@ const (
 	tplIssueView   templates.TplName = "repo/issue/view"
 
 	tplPullMergeBox templates.TplName = "repo/issue/view_content/pull_merge_box"
-	tplReactions    templates.TplName = "repo/issue/view_content/reactions"
+	tplReactions    templates.TplName = "shared/reactions"
 
 	issueTemplateKey      = "IssueTemplate"
 	issueTemplateTitleKey = "IssueTemplateTitle"

@@ -70,7 +70,7 @@
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 						{{end}}
 					</div>
-					{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" .Reactions.GroupByType}}
+					{{template "shared/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" .Reactions.GroupByType}}
 				</div>
 			</div>
 		{{else if eq .Type 1}}
@@ -435,7 +435,7 @@
 								{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 							{{end}}
 						</div>
-						{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" .Reactions.GroupByType}}
+						{{template "shared/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" .Reactions.GroupByType}}
 					</div>
 				</div>
 				{{end}}

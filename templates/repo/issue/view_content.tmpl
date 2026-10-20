@@ -55,7 +55,7 @@
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Issue.Attachments "RenderedContent" .Issue.RenderedContent}}
 						{{end}}
 					</div>
-					{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" .Issue.Reactions.GroupByType}}
+					{{template "shared/reactions" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" .Issue.Reactions.GroupByType}}
 				</div>
 			</div>
 
