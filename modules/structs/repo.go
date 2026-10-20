@@ -120,6 +120,7 @@ type Repository struct {
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
 	DefaultUpdateStyle            string           `json:"default_update_style"`
+	SquashMergeCommitMessage      string           `json:"squash_merge_commit_message"`
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
@@ -236,6 +237,8 @@ type EditRepoOption struct {
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
 	// set to an update style to be used by this repository: "merge" or "rebase".
 	DefaultUpdateStyle *string `json:"default_update_style,omitempty"`
+	// set the default squash merge commit message body: "PR_BODY", "COMMIT_MESSAGES", or "BLANK".
+	SquashMergeCommitMessage *string `json:"squash_merge_commit_message,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
 	// set to `true` to archive this repository.

@@ -59,10 +59,6 @@ func (s Status) HasRun() bool {
 	return s.In(StatusSuccess, StatusFailure)
 }
 
-func (s Status) IsUnknown() bool {
-	return s == StatusUnknown
-}
-
 func (s Status) IsSuccess() bool {
 	return s == StatusSuccess
 }

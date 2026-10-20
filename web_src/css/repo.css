@@ -620,10 +620,6 @@
   min-width: 0;
 }
 
-.repository .comment.form .content .field:first-child {
-  clear: none;
-}
-
 .repository.new.milestone textarea {
   height: 200px;
 }
@@ -1726,7 +1722,6 @@ tbody.commit-list {
 .branch-selector-dropdown .ui.button.branch-dropdown-button {
   margin: 0;
   max-width: 340px;
-  line-height: var(--line-height-default);
   padding: 0 0.5em 0 0.75em;
 }
 

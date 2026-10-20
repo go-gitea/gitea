@@ -300,8 +300,6 @@ func TestPrepareWikiFileName(t *testing.T) {
 }
 
 func TestPrepareWikiFileName_FirstPage(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-
 	// Now create a temporaryDirectory
 	tmpDir := t.TempDir()
 

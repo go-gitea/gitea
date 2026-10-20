@@ -14,6 +14,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
@@ -435,13 +436,13 @@ func CreateTagProtection(ctx *context.APIContext) {
 	}
 
 	var whitelistUsers, whitelistTeams []int64
-	whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.WhitelistUsernames, false)
+	whitelistUsers, err = user_model.GetDoerUserIDsByNames(ctx, form.WhitelistUsernames)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-			return
+		} else {
+			ctx.APIErrorInternal(err)
 		}
-		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -557,13 +558,13 @@ func EditTagProtection(ctx *context.APIContext) {
 	}
 
 	if form.WhitelistUsernames != nil {
-		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.WhitelistUsernames, false)
+		whitelistUsers, err = user_model.GetDoerUserIDsByNames(ctx, form.WhitelistUsernames)
 		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
+			if errors.Is(err, util.ErrNotExist) {
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-				return
+			} else {
+				ctx.APIErrorInternal(err)
 			}
-			ctx.APIErrorInternal(err)
 			return
 		}
 		pt.AllowlistUserIDs = whitelistUsers

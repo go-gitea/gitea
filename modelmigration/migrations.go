@@ -434,6 +434,11 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(356, "Add index on action_run commit_sha", v29.AddActionRunCommitSHAIndex),
 		newMigration(357, "Normalize legacy team authorize values", v29.NormalizeLegacyTeamAuthorize),
+		newMigration(358, "Track previous remember-me token hashes", v29.AddPreviousAuthTokenHash),
+		newMigration(359, "Add stage and number columns to action_task_step", v29.AddStageAndNumberToActionTaskStep),
+		newMigration(360, "Move branch protection settings to JSON", v29.MoveBranchProtectionConfigToJSON),
+		newMigration(361, "Drop legacy commit_id column from comment", v29.DropCommentCommitID),
+		newMigration(362, "Add reusable_workflow_ref column to action_run_job", v29.AddReusableWorkflowRefToActionRunJob),
 	}
 	return preparedMigrations
 }

@@ -543,17 +543,18 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 		return false
 	}
 
+	activeRuns := slices.DeleteFunc(slices.Clone(data.ActionRuns), func(run *actions_model.ActionRun) bool {
+		return !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked)
+	})
+	jobsByRun, err := actions_model.GetLatestAttemptJobsByRuns(ctx, activeRuns)
+	if err != nil {
+		ctx.ServerError("GetLatestAttemptJobsByRuns", err)
+		return false
+	}
+
 	data.RunErrors = make(map[int64]string)
-	for _, run := range data.ActionRuns {
-		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
-			continue
-		}
-		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
-		if err != nil {
-			ctx.ServerError("GetRunJobsByRunID", err)
-			return false
-		}
-		for _, job := range jobs {
+	for _, run := range activeRuns {
+		for _, job := range jobsByRun[run.ID] {
 			// A deferred matrix is unresolvable until its needs finish, so the whole per-job block
 			// is skipped: parsing the payload would report a valid workflow as invalid.
 			if job.IsMatrixDeferred || !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending) {
@@ -664,7 +665,7 @@ func (data *actionRunListData) prepareCommon(ctx *context.Context, workflows []W
 		return false
 	}
 	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, data.ActionRuns); err != nil {
-		log.Error("LoadIsRefDeleted", err)
+		log.Error("loadIsRefDeleted: %v", err)
 	}
 
 	if !data.processActionRuns(ctx) {
