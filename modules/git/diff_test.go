@@ -124,9 +124,13 @@ func TestCutDiffAroundLine(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, emptyResult)
 
-	noNewlineResult, err := CutDiffAroundLine(strings.NewReader("diff --git a/a b/a\n--- a/a\n+++ b/a\n@@ -1,2 +1 @@\n-a\n-b\n\\ No newline at end of file\n+b"), 1, false, 2)
+	noNewlineDiff := "diff --git a/a b/a\n--- a/a\n+++ b/a\n@@ -1 +1 @@\n-a\n\\ No newline at end of file\n+a"
+	result, err = CutDiffAroundLine(strings.NewReader(noNewlineDiff), 1, false, 2)
 	assert.NoError(t, err)
-	assert.Equal(t, "diff --git a/a b/a\n--- a/a\n+++ b/a\n@@ -2,1 +1,1 @@\n-b\n\\ No newline at end of file\n+b", noNewlineResult)
+	assert.Equal(t, "diff --git a/a b/a\n--- a/a\n+++ b/a\n@@ -1,1 +1,1 @@\n-a\n\\ No newline at end of file\n+a", result)
+	result, err = CutDiffAroundLine(strings.NewReader(noNewlineDiff), 1, true, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, "diff --git a/a b/a\n--- a/a\n+++ b/a\n@@ -1 +1 @@\n-a", result)
 
 	// Handle minus diffs properly
 	minusDiff, err := CutDiffAroundLine(strings.NewReader(breakingDiff), 2, false, 4)
