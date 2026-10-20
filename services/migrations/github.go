@@ -417,7 +417,7 @@ func (g *GithubDownloaderV3) GetReleases(ctx context.Context) ([]*base.Release, 
 
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
-	if page == 1 || g.issueCursors == nil {
+	if g.issueCursors == nil {
 		g.issueCursors = make(map[int]string)
 	}
 	if perPage > g.maxPerPage {
