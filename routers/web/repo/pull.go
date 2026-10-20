@@ -370,8 +370,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Conte
 	pull := prInfo.issue.PullRequest
 	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseRef, git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
-		isKnownErrorForBroken := errors.Is(err, util.ErrNotExist) || gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(err, gitcmd.StderrUnknownRevisionOrPath)
-		if !isKnownErrorForBroken {
+		if !errors.Is(err, util.ErrNotExist) && !gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) {
 			log.Error("GetCompareInfo: %v", err)
 		}
 		prInfo.IsPullRequestBroken = true
