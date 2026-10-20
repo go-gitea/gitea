@@ -112,6 +112,9 @@ func IsWatchingRepo(ctx context.Context, userID, repoID int64) bool {
 }
 
 func watchRepoByMode(ctx context.Context, watch *Watch, mode WatchMode) (err error) {
+	if watch.UserID <= 0 {
+		return nil
+	}
 	if watch.Mode == mode {
 		return nil
 	}
