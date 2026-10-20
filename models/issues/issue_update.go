@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -26,6 +27,10 @@ import (
 
 // UpdateIssueCols updates cols of issue
 func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
+	if slices.Contains(cols, "name") {
+		issue.IsWIP = issue.IsPull && HasWorkInProgressPrefix(issue.Title)
+		cols = append(cols, "is_wip")
+	}
 	_, err := db.GetEngine(ctx).ID(issue.ID).Cols(cols...).Update(issue)
 	return err
 }
@@ -361,6 +366,7 @@ type NewIssueOptions struct {
 func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssueOptions) (err error) {
 	e := db.GetEngine(ctx)
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
+	opts.Issue.IsWIP = opts.Issue.IsPull && HasWorkInProgressPrefix(opts.Issue.Title)
 
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := GetMilestoneByRepoID(ctx, opts.Issue.RepoID, opts.Issue.MilestoneID)

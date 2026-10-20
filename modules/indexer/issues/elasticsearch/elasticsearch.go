@@ -16,7 +16,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-const issueIndexerLatestVersion = 5
+const issueIndexerLatestVersion = 6
 
 var _ internal.Indexer = &Indexer{}
 
