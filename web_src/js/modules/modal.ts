@@ -13,12 +13,12 @@ const modalStates = new WeakMap<Element, {opts: ModalOpts, opener: HTMLElement |
 const topModal = () => Array.from(document.querySelectorAll<HTMLDialogElement>('.modal-dialog[open]')).at(-1);
 
 function blockPage(elBackdrop?: Element | null) {
-  const locked = Boolean(elBackdrop);
-  if (document.body.classList.contains('tw-overflow-hidden') !== locked) {
-    document.body.style.marginRight = locked ? `${window.innerWidth - document.documentElement.clientWidth}px` : ''; // keep the page width when its scrollbar disappears
-    document.body.classList.toggle('tw-overflow-hidden', locked);
+  const blocked = Boolean(elBackdrop);
+  if (document.body.classList.contains('modal-page-blocked') !== blocked) {
+    document.body.style.marginRight = blocked ? `${window.innerWidth - document.documentElement.clientWidth}px` : ''; // keep the page width when its scrollbar disappears
+    document.body.classList.toggle('modal-page-blocked', blocked);
   }
-  for (const el of document.body.children) (el as HTMLElement).inert = locked && el !== elBackdrop;
+  for (const el of document.body.children) (el as HTMLElement).inert = blocked && el !== elBackdrop;
 }
 
 window.addEventListener('keydown', (e) => { // on window, so popups handling Escape on document can consume it first

@@ -1,3 +1,7 @@
+.modal-page-blocked {
+  overflow: hidden;
+}
+
 .modal-dialog {
   text-align: left;
   background: var(--color-body);

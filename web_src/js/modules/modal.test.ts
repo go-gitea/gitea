@@ -24,7 +24,7 @@ test('showModal blocks the page and restores focus until closed by actions, back
   expect(opener.inert).toBe(true);
   expect(backdrop.inert).toBe(false);
   expect(modal.getAttribute('aria-labelledby')).toBe(modal.querySelector('.header')!.id);
-  expect(document.body.classList.contains('tw-overflow-hidden')).toBe(true);
+  expect(document.body.classList.contains('modal-page-blocked')).toBe(true);
   expect(modal.querySelector('.cancel')!.getAttribute('type')).toBe('button');
 
   modal.querySelector('input')!.value = 'changed';
@@ -34,7 +34,7 @@ test('showModal blocks the page and restores focus until closed by actions, back
   modal.querySelector<HTMLElement>('.ok')!.click();
   expect(onHidden).toHaveBeenCalledOnce();
   expect(modal.querySelector('input')!.value).toBe('');
-  expect(document.body.classList.contains('tw-overflow-hidden')).toBe(false);
+  expect(document.body.classList.contains('modal-page-blocked')).toBe(false);
   expect(opener.inert).toBe(false);
   expect(document.activeElement).toBe(opener);
 
