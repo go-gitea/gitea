@@ -88,16 +88,11 @@ func bbsMockServer(t *testing.T, handlers map[string]string, requests *[]*http.R
 	return srv
 }
 
-func TestBitbucketServerRepoAndReleases(t *testing.T) {
+func TestBitbucketServerRepoInfo(t *testing.T) {
 	const api = "/rest/api/1.0/projects/PROJ/repos/repo"
 	var requests []*http.Request
-	srv := bbsMockServer(t, map[string]string{
-		api: bbsRepoJSON,
-		// no default branch: empty repository answers 404
-		api + "/tags?0": `{"values":[{"displayId":"v1","latestCommit":"` + strings.Repeat("a", 40) + `"}],"isLastPage":false,"nextPageStart":1}`,
-		api + "/tags?1": `{"values":[{"displayId":"v2","latestCommit":"` + strings.Repeat("b", 40) + `"}],"isLastPage":true}`,
-		api + "/commits/" + strings.Repeat("a", 40): `{"committerTimestamp":1700000000000,"author":{"name":"jdoe","emailAddress":"j@example.com"}}`,
-	}, &requests)
+	// no default branch: an empty repository answers 404
+	srv := bbsMockServer(t, map[string]string{api: bbsRepoJSON}, &requests)
 
 	d := NewBitbucketServerDownloader(t.Context(), srv.URL, "", "", "secret", "PROJ", "repo")
 	repo, err := d.GetRepoInfo(t.Context())
@@ -112,17 +107,9 @@ func TestBitbucketServerRepoAndReleases(t *testing.T) {
 	}, repo)
 	assert.Equal(t, "Bearer secret", requests[0].Header.Get("Authorization"))
 
-	releases, err := d.GetReleases(t.Context())
-	require.NoError(t, err)
-	require.Len(t, releases, 2)
-	assert.Equal(t, "v1", releases[0].TagName)
-	assert.Equal(t, strings.Repeat("a", 40), releases[0].TargetCommitish)
-	assert.Equal(t, time.UnixMilli(1700000000000), releases[0].Published)
-	assert.Equal(t, "jdoe", releases[0].PublisherName)
-	assert.Equal(t, "j@example.com", releases[0].PublisherEmail)
-	// commit lookup failed for v2: the release is still migrated, without a time
-	assert.Equal(t, "v2", releases[1].TagName)
-	assert.True(t, releases[1].Created.IsZero())
+	// releases are not provided, tags are synced from git
+	_, err = d.GetReleases(t.Context())
+	assert.True(t, base.IsErrNotSupported(err))
 }
 
 func TestBitbucketServerBasicAuth(t *testing.T) {

@@ -90,8 +90,8 @@ func parseBitbucketServerURL(rawURL string) (baseURL, projectKey, repoSlug strin
 }
 
 // BitbucketServerDownloader implements a Downloader for Bitbucket Server (Data Center) REST API 1.0.
-// Bitbucket Server has no issue tracker, wiki, labels or milestones, so only the repository
-// (git data and LFS), pull requests (with comments and reviews) and tags (as releases) are migrated.
+// Bitbucket Server has no issue tracker, wiki, labels, milestones or releases, so only the repository
+// (git data including tags and LFS) and pull requests (with comments and reviews) are migrated.
 type BitbucketServerDownloader struct {
 	base.NullDownloader
 	client     *http.Client
@@ -345,41 +345,6 @@ func (d *BitbucketServerDownloader) GetRepoInfo(ctx context.Context) (*base.Repo
 		OriginalURL:   d.browseURL(),
 		DefaultBranch: branch.DisplayID,
 	}, nil
-}
-
-// GetReleases returns the tags of the repository as releases, Bitbucket Server has no release concept
-func (d *BitbucketServerDownloader) GetReleases(ctx context.Context) ([]*base.Release, error) {
-	tags, err := bbsGetAll[struct {
-		DisplayID    string `json:"displayId"`
-		LatestCommit string `json:"latestCommit"`
-	}](ctx, d, d.repoPath()+"/tags", url.Values{"orderBy": {"ALPHABETICAL"}})
-	if err != nil {
-		return nil, err
-	}
-
-	releases := make([]*base.Release, 0, len(tags))
-	for _, tag := range tags {
-		release := &base.Release{
-			TagName:         tag.DisplayID,
-			TargetCommitish: tag.LatestCommit,
-			Name:            tag.DisplayID,
-		}
-		var commit struct {
-			CommitterTimestamp int64   `json:"committerTimestamp"`
-			Author             bbsUser `json:"author"`
-		}
-		// the commit only provides the time and the publisher, so a failure is not fatal
-		if err := d.callAPI(ctx, d.repoPath()+"/commits/"+url.PathEscape(tag.LatestCommit), nil, &commit); err != nil {
-			log.Warn("Bitbucket Server: unable to load commit %s of tag %s: %v", tag.LatestCommit, tag.DisplayID, err)
-		} else if commit.CommitterTimestamp > 0 {
-			release.Created = time.UnixMilli(commit.CommitterTimestamp)
-			release.Published = release.Created
-			release.PublisherName = commit.Author.login()
-			release.PublisherEmail = commit.Author.EmailAddress
-		}
-		releases = append(releases, release)
-	}
-	return releases, nil
 }
 
 // GetPullRequests returns a page of pull requests, oldest first
