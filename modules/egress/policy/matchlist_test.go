@@ -161,31 +161,24 @@ func TestParseInternalRanges(t *testing.T) {
 	assert.Empty(t, rejected)
 }
 
-func TestMatchDomainExact(t *testing.T) {
-	assert.True(t, matchDomainExact("example.com", "example.com"))
-	assert.True(t, matchDomainExact("example.com", " EXAMPLE.com.:8080 "))
-	assert.False(t, matchDomainExact("example.com", "www.example.com"))
-	assert.False(t, matchDomainExact("example.com", "notexample.com"))
-	assert.False(t, matchDomainExact("*.example.com", "sub.example.com"))
-	assert.False(t, matchDomainExact("example.com", ""))
-}
-
 func TestMatchHostnameInRanges(t *testing.T) {
 	ranges := []netip.Prefix{netip.MustParsePrefix("10.0.0.0/8"), netip.MustParsePrefix("100.64.0.0/10")}
 	list := NewAllowList("ci.internal.example.com, *.wild.example.com, other.com", Lax)
 	match := func(host, ip string, port uint16) bool {
 		return list.MatchHostnameInRanges(host, netip.AddrPortFrom(netip.MustParseAddr(ip), port), ranges)
 	}
-	// the exact host only, within the ranges
+	// hostname entries match like for public targets, within the ranges: a bare entry covers
+	// the host and its subdomains, a wildcard covers subdomains only
 	assert.True(t, match("ci.internal.example.com", "10.1.2.3", 80))
 	assert.True(t, match("ci.internal.example.com", "100.100.100.200", 80))
-	assert.True(t, match("CI.INTERNAL.EXAMPLE.COM.", "10.1.2.3", 80)) // case and trailing dot
-	assert.False(t, match("www.ci.internal.example.com", "10.1.2.3", 80))
+	assert.True(t, match("CI.INTERNAL.EXAMPLE.COM.", "10.1.2.3", 80))     // case and trailing dot
+	assert.True(t, match("sub.wild.example.com", "10.1.2.3", 80))         // wildcard covers subdomains
+	assert.True(t, match("www.ci.internal.example.com", "10.1.2.3", 80)) // a bare entry covers subdomains (dot-anchored suffix, as for public targets)
+	assert.False(t, match("wild.example.com", "10.1.2.3", 80))            // a wildcard never covers the apex
 	assert.False(t, match("ci.internal.example.com", "11.0.0.1", 80))
 	assert.False(t, match("ci.internal.example.com", "169.254.169.254", 80))
 	assert.False(t, match("unlisted.com", "10.1.2.3", 80))
-	assert.False(t, match("", "10.1.2.3", 80))                     // IP literal dials never match
-	assert.False(t, match("sub.wild.example.com", "10.1.2.3", 80)) // wildcards never match exactly
+	assert.False(t, match("", "10.1.2.3", 80)) // IP literal dials never match
 
 	// a portless entry covers every port in lax mode, a port-scoped entry only its ports
 	assert.True(t, NewAllowList("ci.internal.example.com", Lax).MatchHostnameInRanges("ci.internal.example.com", netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 8080), ranges))
@@ -195,7 +188,7 @@ func TestMatchHostnameInRanges(t *testing.T) {
 }
 
 func TestHostnameCount(t *testing.T) {
-	assert.Equal(t, 2, NewAllowList("example.com, other.com, *.wild.com, .dot.com, 10.0.0.0/8", Strict).HostnameCount())
+	assert.Equal(t, 4, NewAllowList("example.com, other.com, *.wild.com, .dot.com, 10.0.0.0/8", Strict).HostnameCount())
 	assert.Equal(t, 0, NewAllowList("", Strict).HostnameCount())
 }
 
