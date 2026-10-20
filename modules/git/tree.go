@@ -100,7 +100,7 @@ func (t *Tree) ListEntries(ctx context.Context, gitRepo *Repository) (Entries, e
 	}
 
 	if info.Type == "commit" {
-		treeID, err := ReadTreeID(rd, info.Size)
+		treeID, err := ReadTreeID(rd)
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
@@ -119,10 +119,6 @@ func (t *Tree) ListEntries(ctx context.Context, gitRepo *Repository) (Entries, e
 	}
 
 	// Not a tree just use ls-tree instead
-	if err := DiscardFull(rd, info.Size+1); err != nil {
-		return nil, err
-	}
-
 	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).WithRepo(gitRepo).RunStdBytes(ctx)
 	if runErr != nil {
 		if gitcmd.IsStderr(runErr, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(runErr, gitcmd.StderrNotTreeObject) {

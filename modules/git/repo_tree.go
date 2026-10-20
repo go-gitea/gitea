@@ -84,7 +84,7 @@ func (repo *Repository) getTree(ctx context.Context, id ObjectID) (*Tree, error)
 
 	switch info.Type {
 	case "tag":
-		data, err := io.ReadAll(io.LimitReader(rd, info.Size))
+		data, err := io.ReadAll(rd)
 		if err != nil {
 			return nil, err
 		}
@@ -100,11 +100,8 @@ func (repo *Repository) getTree(ctx context.Context, id ObjectID) (*Tree, error)
 		tree := commit.Tree()
 		return tree, nil
 	case "commit":
-		commit, err := CommitFromReader(id, io.LimitReader(rd, info.Size))
+		commit, err := CommitFromReader(id, rd)
 		if err != nil {
-			return nil, err
-		}
-		if _, err := rd.Discard(1); err != nil {
 			return nil, err
 		}
 		tree := commit.Tree()
@@ -122,9 +119,6 @@ func (repo *Repository) getTree(ctx context.Context, id ObjectID) (*Tree, error)
 		tree.entriesParsed = true
 		return tree, nil
 	default:
-		if err := DiscardFull(rd, info.Size+1); err != nil {
-			return nil, err
-		}
 		return nil, ErrNotExist{
 			ID: id.String(),
 		}
