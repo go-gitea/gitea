@@ -38,7 +38,7 @@ func loadWebhookFrom(rootCfg ConfigProvider) {
 	deprecatedSetting(rootCfg, "webhook", "ALLOWED_HOST_LIST", "security", "ALLOWED_HOST_LIST")
 	Webhook.AllowedHostList = sec.Key("ALLOWED_HOST_LIST").MustString(Security.AllowedHostList)
 	if Webhook.AllowedHostList != Security.AllowedHostList {
-		checkHostList("[webhook] ALLOWED_HOST_LIST", Webhook.AllowedHostList)
+		checkHostList("[webhook] ALLOWED_HOST_LIST", Webhook.AllowedHostList, false)
 		// the webhook policy pairs its own allow list with the security internal ranges
 		checkInternalRangesWidening("[security] ALLOWED_INTERNAL_RANGES", Security.AllowedInternalRanges, Webhook.AllowedHostList, "[webhook] ALLOWED_HOST_LIST")
 	}

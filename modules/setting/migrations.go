@@ -63,8 +63,8 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 	if !sec.HasKey("BLOCKED_HOST_LIST") {
 		blockKey = "[migrations] BLOCKED_DOMAINS"
 	}
-	checkHostList(allowKey, Migrations.AllowedHostList)
-	checkHostList(blockKey, Migrations.BlockedHostList)
+	checkHostList(allowKey, Migrations.AllowedHostList, false)
+	checkHostList(blockKey, Migrations.BlockedHostList, true)
 	Migrations.AllowedInternalRanges = ConfigSectionKeyString(sec, "ALLOWED_INTERNAL_RANGES")
 	checkInternalRanges("[migrations] ALLOWED_INTERNAL_RANGES", Migrations.AllowedInternalRanges, Migrations.AllowedHostList, allowKey)
 

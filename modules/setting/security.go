@@ -45,14 +45,17 @@ func normalizePolicyMode(mode string) string {
 	}
 }
 
-// checkHostList reports the entries an egress host list drops, so the operator can fix them
-func checkHostList(key, hostList string) {
+// checkHostList reports the entries an egress host list drops, a dropped block entry would allow a blocked host so it stops startup
+func checkHostList(key, hostList string, isBlockList bool) {
 	list := policy.NewAllowList(hostList, policy.Lax)
 	for _, reason := range list.Rejected() {
 		LogStartupProblem(1, log.ERROR, "%s ignores an invalid entry: %s", key, reason)
 	}
 	for _, entry := range list.NeverMatching() {
 		LogStartupProblem(1, log.WARN, "%s has an entry that never matches: %s", key, entry)
+	}
+	if isBlockList && len(list.Rejected()) > 0 {
+		log.Fatal("%s has invalid entries, fix them so no blocked host is allowed", key)
 	}
 }
 
@@ -226,7 +229,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	}
 	egressModeSet := sec.HasKey("EGRESS_MODE")
 	Security.EgressMode = normalizePolicyMode(sec.Key("EGRESS_MODE").String())
-	checkHostList("[security] ALLOWED_HOST_LIST", Security.AllowedHostList)
+	checkHostList("[security] ALLOWED_HOST_LIST", Security.AllowedHostList, false)
 	Security.AllowedInternalRanges = ConfigSectionKeyString(sec, "ALLOWED_INTERNAL_RANGES")
 	checkInternalRanges("[security] ALLOWED_INTERNAL_RANGES", Security.AllowedInternalRanges, Security.AllowedHostList, "[security] ALLOWED_HOST_LIST")
 	if Security.AllowedHostList != "" && !egressModeSet {
