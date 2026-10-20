@@ -152,9 +152,29 @@ func TestParseInternalRanges(t *testing.T) {
 	assert.False(t, contains("8.8.8.8"))
 	assert.False(t, contains("169.254.169.254"))
 
+	// IPv4-mapped forms are normalized to the IPv4 form, like in the allow and block lists
+	prefixes, rejected = ParseInternalRanges("::ffff:10.0.0.0/104, ::ffff:192.168.1.1")
+	assert.Empty(t, rejected)
+	assert.True(t, containsPrefix(prefixes, netip.MustParseAddr("10.1.2.3")))     // ::ffff:10.0.0.0/104 -> 10.0.0.0/8
+	assert.True(t, containsPrefix(prefixes, netip.MustParseAddr("192.168.1.1")))  // ::ffff:192.168.1.1 -> 192.168.1.1/32
+	assert.False(t, containsPrefix(prefixes, netip.MustParseAddr("192.168.1.2"))) // the bare address is a /32
+
 	// invalid entries are rejected and match nothing
-	_, rejected = ParseInternalRanges("example.com, *.example.com, 0.0.0.0/0, 10.0.0.5/8, ::ffff:10.0.0.0/104, fe80::1%eth0, 999.1.1.1")
-	assert.Len(t, rejected, 7)
+	prefixes, rejected = ParseInternalRanges("example.com, *.example.com, 0.0.0.0/0, 10.0.0.5/8, fe80::1%eth0, 999.1.1.1")
+	assert.Len(t, rejected, 6)
+	assert.Empty(t, prefixes)
+
+	// ports are not supported, a range covers every port
+	_, rejected = ParseInternalRanges("10.0.0.0/8:80, [2001:db8::/64]:9418, private:22, 2001:db8::/64:9418")
+	assert.Len(t, rejected, 4)
+	for _, reason := range rejected {
+		assert.Contains(t, reason, "ports are not supported")
+	}
+
+	// a mapped form that unmaps to the catch-all is rejected
+	_, rejected = ParseInternalRanges("::ffff:0:0/96")
+	assert.Len(t, rejected, 1)
+	assert.Contains(t, rejected[0], "catch-all")
 
 	prefixes, rejected = ParseInternalRanges("")
 	assert.Empty(t, prefixes)
