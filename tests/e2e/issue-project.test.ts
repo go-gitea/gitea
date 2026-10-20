@@ -37,7 +37,7 @@ test('remove issues from project board', async ({page}) => {
     await Promise.all(['Card one', 'Card two'].map((title) => apiCreateIssue(page.request, {owner: user, repo: repoName, title, projects: [project.id]})));
     await page.goto(`/${user}/${repoName}/projects/${project.id}`);
     const cards = page.locator('.issue-card');
-    const confirmDialog = page.locator('.g-modal-confirm');
+    const confirmDialog = page.getByRole('dialog');
     await expect(cards).toHaveCount(2);
 
     const cardOne = cards.filter({hasText: 'Card one'});
