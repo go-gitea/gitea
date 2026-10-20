@@ -103,7 +103,7 @@ func InfoOAuth(ctx *context.Context) {
 	// enforce the same user scope the REST API requires before returning identity
 	// claims; OIDC access tokens map to the "all" scope, so standard OIDC clients
 	// are unaffected and only explicitly-restricted tokens are rejected
-	tokenScope, _ := ctx.Data["ApiTokenScope"].(auth.AccessTokenScope)
+	tokenScope, _ := user_model.GetDoerTokenScope(ctx.Doer)
 	if allowed, err := tokenScope.HasScope(auth.AccessTokenScopeReadUser); err != nil {
 		ctx.ServerError("HasScope", err)
 		return
@@ -121,17 +121,7 @@ func InfoOAuth(ctx *context.Context) {
 		Picture:           ctx.Doer.AvatarLink(ctx),
 	}
 
-	var accessTokenScope auth.AccessTokenScope
-	if auHead := ctx.Req.Header.Get("Authorization"); auHead != "" {
-		if parsed, ok := httpauth.ParseAuthorizationHeader(auHead); ok && parsed.BearerToken != nil {
-			accessTokenScope, _, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, parsed.BearerToken.Token)
-		}
-	}
-
-	// since version 1.22 does not verify if groups should be public-only,
-	// onlyPublicGroups will be set only if 'public-only' is included in a valid scope
-	onlyPublicGroups, _ := accessTokenScope.PublicOnly()
-	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, onlyPublicGroups)
+	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, user_model.IsPublicOnlyDoer(ctx.Doer))
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
 		return
@@ -197,7 +187,7 @@ func IntrospectOAuth(ctx *context.Context) {
 	}
 
 	response.Active = true
-	response.Scope = grant.Scope
+	response.Scope = oauth2_provider.NormalizeGrantScope(grant.Scope)
 	response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
 	user, err := user_model.GetUserByID(ctx, grant.UserID)
 	if err != nil {
@@ -323,12 +313,15 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
+	if grant != nil && form.Scope == "" {
+		form.Scope = grant.Scope
+	}
+	form.Scope = oauth2_provider.NormalizeGrantScope(form.Scope)
+
 	var addedScopes, removedScopes []string
 	if grant != nil {
-		if form.Scope == "" {
-			form.Scope = grant.Scope
-		}
-		addedScopes, removedScopes = util.DiffSlice(strings.Fields(grant.Scope), strings.Fields(form.Scope))
+		grantedScope := oauth2_provider.NormalizeGrantScope(grant.Scope)
+		addedScopes, removedScopes = util.DiffSlice(strings.Fields(grantedScope), strings.Fields(form.Scope))
 	}
 	scopeChanged := len(addedScopes) > 0 || len(removedScopes) > 0
 
@@ -431,6 +424,8 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
 	}
+	form.Scope = oauth2_provider.NormalizeGrantScope(form.Scope)
+
 	if grant == nil {
 		grant, err = app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
 		if err != nil {

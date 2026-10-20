@@ -927,7 +927,6 @@
   "settings.delete_account_title": "사용자 계정 삭제",
   "settings.delete_account_desc": "이 계정을 정말로 삭제하시겠습니까?",
   "settings.email_notifications.enable": "이메일 알림 켜기",
-  "settings.email_notifications.onmention": "언급될 때만 이메일로 알림",
   "settings.email_notifications.disable": "이메일 알림 끄기",
   "settings.email_notifications.submit": "이메일 사전설정",
   "settings.email_notifications.andyourown": "그리고 내 소유의 알림",

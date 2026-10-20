@@ -6,6 +6,7 @@ package setting
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -129,40 +130,58 @@ func SetupGiteaTestEnv() {
 	_ = os.Setenv("GITEA_CONF", giteaConf) // test fixture git hooks use "$GITEA_ROOT/$GITEA_CONF" in their scripts
 }
 
-func PrepareIntegrationTestConfig() error {
+// PrepareIntegrationTestConfig isolates each process for parallel runs
+func PrepareIntegrationTestConfig() (workPath string, err error) {
 	giteaTestRoot := detectGiteaTestRoot()
 	isInCI := os.Getenv("CI") != ""
 	testDatabase := os.Getenv("GITEA_TEST_DATABASE")
 	if testDatabase == "" {
 		if isInCI {
-			return errors.New("GITEA_TEST_DATABASE environment variable not set")
+			return "", errors.New("GITEA_TEST_DATABASE environment variable not set")
 		}
 		// for local development, default to sqlite. CI needs to explicitly set a database to avoid unexpected results
 		testDatabase = "sqlite"
 		_, _ = fmt.Fprintf(os.Stderr, "Environment variable GITEA_TEST_DATABASE not set - defaulting to %s\n", testDatabase)
 	}
 
-	_ = os.Setenv("GITEA_TEST_ROOT", giteaTestRoot)
-	_ = os.Setenv("GITEA_TEST_CONF", filepath.Join("tests", testDatabase+".ini"))
-
-	workPath := filepath.Join(giteaTestRoot, "tests/integration/gitea-integration-"+testDatabase)
-	if err := os.MkdirAll(workPath, 0o755); err != nil {
-		return err
-	}
-
-	confFile := filepath.Join(giteaTestRoot, "tests", testDatabase+".ini")
-	tmplBuf, err := os.ReadFile(confFile + ".tmpl")
+	workPath, err = os.MkdirTemp(filepath.Join(giteaTestRoot, "tests/integration"), "gitea-integration-"+testDatabase+"-")
 	if err != nil {
-		return err
+		return "", err
+	}
+	confFile := filepath.Join(workPath, "app.ini")
+	giteaConf, err := filepath.Rel(giteaTestRoot, confFile)
+	if err != nil {
+		return "", err
+	}
+	_ = os.Setenv("GITEA_TEST_ROOT", giteaTestRoot)
+	_ = os.Setenv("GITEA_TEST_CONF", giteaConf)
+
+	tmplBuf, err := os.ReadFile(filepath.Join(giteaTestRoot, "tests", testDatabase+".ini.tmpl"))
+	if err != nil {
+		return "", err
 	}
 	tmpl := string(tmplBuf)
 	envVars, err := shellquote.Split(os.Getenv("MAKEFILE_VARS"))
 	if err != nil {
-		return err
+		return "", err
 	}
+	httpListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return "", err
+	}
+	defer httpListener.Close()
+	sshListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return "", err
+	}
+	defer sshListener.Close()
+	_, httpPort, _ := net.SplitHostPort(httpListener.Addr().String())
+	_, sshPort, _ := net.SplitHostPort(sshListener.Addr().String())
 	envVarMap := map[string]string{
 		"TEST_WORK_PATH": workPath,
 		"TEST_LOGGER":    "test,file",
+		"TEST_HTTP_PORT": httpPort,
+		"TEST_SSH_PORT":  sshPort,
 	}
 	for _, env := range append(os.Environ(), envVars...) {
 		k, v, _ := strings.Cut(env, "=")
@@ -173,6 +192,5 @@ func PrepareIntegrationTestConfig() error {
 	for k, v := range envVarMap {
 		tmpl = strings.ReplaceAll(tmpl, fmt.Sprintf("{{%s}}", k), v)
 	}
-	err = os.WriteFile(confFile, []byte(tmpl), 0o644)
-	return err
+	return workPath, os.WriteFile(confFile, []byte(tmpl), 0o644)
 }

@@ -11,12 +11,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWriterReader(t *testing.T) {
-	testData := prepareTestData(t, 1_000_000)
+	testData := prepareTestData(t, 300000)
 
 	result := bytes.NewBuffer(nil)
 
@@ -61,16 +62,24 @@ func TestWriterReader(t *testing.T) {
 
 		assert.Equal(t, testData, data)
 	})
+
+	t.Run("rejects window above 128 MiB", func(t *testing.T) {
+		frameWith256MiBWindow := []byte{0x28, 0xb5, 0x2f, 0xfd, 0x00, 0x90, 0x01, 0x00, 0x00}
+		reader, err := NewReader(bytes.NewReader(frameWith256MiBWindow))
+		require.NoError(t, err)
+		_, err = io.ReadAll(reader)
+		assert.ErrorIs(t, err, zstd.ErrWindowSizeExceeded)
+	})
 }
 
 func TestSeekableWriterReader(t *testing.T) {
-	testData := prepareTestData(t, 2_000_000)
+	testData := prepareTestData(t, 200000)
 
 	result := bytes.NewBuffer(nil)
 
 	t.Run("regular", func(t *testing.T) {
 		result.Reset()
-		blockSize := 100_000
+		blockSize := 10000
 
 		writer, err := NewSeekableWriter(result, blockSize)
 		require.NoError(t, err)
@@ -93,7 +102,7 @@ func TestSeekableWriterReader(t *testing.T) {
 
 	t.Run("seek read", func(t *testing.T) {
 		result.Reset()
-		blockSize := 100_000
+		blockSize := 10000
 
 		writer, err := NewSeekableWriter(result, blockSize)
 		require.NoError(t, err)
@@ -109,7 +118,7 @@ func TestSeekableWriterReader(t *testing.T) {
 		reader, err := NewSeekableReader(assertReader)
 		require.NoError(t, err)
 
-		_, err = reader.Seek(1_000_000, io.SeekStart)
+		_, err = reader.Seek(100000, io.SeekStart)
 		require.NoError(t, err)
 
 		data := make([]byte, 1000)
@@ -117,7 +126,7 @@ func TestSeekableWriterReader(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, reader.Close())
 
-		assert.Equal(t, testData[1_000_000:1_000_000+1000], data)
+		assert.Equal(t, testData[100000:100000+1000], data)
 
 		// Should seek 3 times,
 		// the first two times are for getting the index,
@@ -134,7 +143,7 @@ func TestSeekableWriterReader(t *testing.T) {
 		testData := prepareTestData(t, 1000) // data size is less than a block
 
 		result.Reset()
-		blockSize := 100_000
+		blockSize := 10000
 
 		writer, err := NewSeekableWriter(result, blockSize)
 		require.NoError(t, err)
@@ -183,7 +192,7 @@ func TestSeekableWriterReader(t *testing.T) {
 
 	t.Run("compatible reader", func(t *testing.T) {
 		result.Reset()
-		blockSize := 100_000
+		blockSize := 10000
 
 		writer, err := NewSeekableWriter(result, blockSize)
 		require.NoError(t, err)

@@ -343,6 +343,7 @@ func packageTestPayload() *api.PackagePayload {
 
 func TestGetIssuesPayloadInfo(t *testing.T) {
 	p := issueTestPayload()
+	p.Changes = &api.ChangesPayload{AddedAssignees: p.Issue.Assignees}
 
 	cases := []struct {
 		action         api.HookIssueAction
@@ -442,6 +443,7 @@ func TestGetIssuesPayloadInfo(t *testing.T) {
 
 func TestGetPullRequestPayloadInfo(t *testing.T) {
 	p := pullRequestTestPayload()
+	p.Changes = &api.ChangesPayload{AddedAssignees: p.PullRequest.Assignees}
 
 	cases := []struct {
 		action         api.HookIssueAction
@@ -536,6 +538,49 @@ func TestGetPullRequestPayloadInfo(t *testing.T) {
 		assert.Equal(t, c.issueTitle, issueTitle, "case %d", i)
 		assert.Equal(t, c.attachmentText, extraMarkdown, "case %d", i)
 		assert.Equal(t, c.color, color, "case %d", i)
+	}
+}
+
+func TestAssigneeChanges(t *testing.T) {
+	changes := &api.ChangesPayload{
+		AddedAssignees:   []*api.User{{UserName: "user2"}, {UserName: "user3"}},
+		RemovedAssignees: []*api.User{{UserName: "user4"}},
+	}
+	cases := []struct {
+		name      string
+		action    api.HookIssueAction
+		changes   *api.ChangesPayload
+		operation string
+		text      string
+	}{
+		{"assigned", api.HookIssueAssigned, changes, "user1 assign this to user2, user3", "assigned to user2, user3"},
+		{"unassigned", api.HookIssueUnassigned, changes, "user1 unassigned this for user4", "unassigned from user4"},
+		{"assigned without changes", api.HookIssueAssigned, nil, "user1 assigned this", "assigned"},
+		{"unassigned without changes", api.HookIssueUnassigned, nil, "user1 unassigned this for someone", "unassigned"},
+		{"assigned with empty changes", api.HookIssueAssigned, &api.ChangesPayload{}, "user1 assigned this", "assigned"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			for _, assignees := range [][]*api.User{nil, {{UserName: "unrelated"}}} {
+				issue := issueTestPayload()
+				issue.Action = c.action
+				issue.Changes = c.changes
+				issue.Issue.Assignees = assignees
+				_, _, _, _, operation, _ := getIssuesInfo(issue)
+				assert.Equal(t, c.operation, operation)
+				text, _, _, _ := getIssuesPayloadInfo(issue, noneLinkFormatter, true)
+				assert.Equal(t, "[test/repo] Issue "+c.text+": #2 crash by user1", text)
+
+				pull := pullRequestTestPayload()
+				pull.Action = c.action
+				pull.Changes = c.changes
+				pull.PullRequest.Assignees = assignees
+				_, _, _, _, operation, _ = getPullRequestInfo(pull)
+				assert.Equal(t, c.operation, operation)
+				text, _, _, _ = getPullRequestPayloadInfo(pull, noneLinkFormatter, true)
+				assert.Equal(t, "[test/repo] Pull request "+c.text+": #12 Fix bug by user1", text)
+			}
+		})
 	}
 }
 

@@ -385,8 +385,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 		return nil, err
 	}
 
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledConcurrencyJobs)
-	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
+	notifyAndEmitFinishedJobs(ctx, cancelledConcurrencyJobs)
 
 	CreateCommitStatusForRunJobs(ctx, plan.run, newJobs...)
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, newJobsToRerun)
@@ -562,6 +561,7 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		IsReusableCaller:        templateJob.IsReusableCaller,
 		CallUses:                templateJob.CallUses,
 		ReusableWorkflowContent: slices.Clone(templateJob.ReusableWorkflowContent),
+		ReusableWorkflowRef:     templateJob.ReusableWorkflowRef,
 		CallSecrets:             templateJob.CallSecrets,
 		CallPayload:             templateJob.CallPayload,
 		IsExpanded:              templateJob.IsExpanded,
