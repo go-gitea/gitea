@@ -12,15 +12,17 @@ import (
 
 func AddReleaseIDToReaction(_ctx context.Context, x base.EngineMigration) error {
 	type Reaction struct {
-		ID               int64              `xorm:"pk autoincr"`
-		Type             string             `xorm:"INDEX UNIQUE(s) NOT NULL"`
-		IssueID          int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
-		CommentID        int64              `xorm:"INDEX UNIQUE(s)"`
-		ReleaseID        int64              `xorm:"INDEX UNIQUE(s) NOT NULL DEFAULT(0)"`
-		UserID           int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
-		OriginalAuthorID int64              `xorm:"INDEX UNIQUE(s) NOT NULL DEFAULT(0)"`
-		OriginalAuthor   string             `xorm:"INDEX UNIQUE(s)"`
-		CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
+		ID int64 `xorm:"pk autoincr"`
+
+		UserID           int64  `xorm:"UNIQUE(s) NOT NULL"` // first unique column implies INDEX
+		IssueID          int64  `xorm:"UNIQUE(s) INDEX(issue_comment) NOT NULL"`
+		CommentID        int64  `xorm:"UNIQUE(s) INDEX(issue_comment) INDEX NOT NULL"`
+		ReleaseID        int64  `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT(0)"`
+		OriginalAuthorID int64  `xorm:"UNIQUE(s) NOT NULL DEFAULT(0)"`
+		OriginalAuthor   string `xorm:"UNIQUE(s) NOT NULL DEFAULT('')"`
+		Type             string `xorm:"UNIQUE(s) NOT NULL"`
+
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	}
 	return x.Sync(new(Reaction))
 }

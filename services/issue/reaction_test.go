@@ -138,7 +138,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 
 	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{
 		IssueID:   comment.IssueID,
-		CommentID: comment.ID,
+		CommentID: new(comment.ID),
 	})
 	assert.NoError(t, err)
 	assert.Len(t, reactionsList, 4)

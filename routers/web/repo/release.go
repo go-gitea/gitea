@@ -729,12 +729,8 @@ func ChangeReleaseReaction(ctx *context.Context) {
 			return
 		}
 	case "unreact":
-		if err = issues_model.DeleteReaction(ctx, &issues_model.ReactionOptions{
-			Type:      form.Content,
-			DoerID:    ctx.Doer.ID,
-			ReleaseID: rel.ID,
-		}); err != nil {
-			ctx.ServerError("DeleteReaction", err)
+		if err = issues_model.DeleteReleaseReaction(ctx, ctx.Doer.ID, rel.ID, form.Content); err != nil {
+			ctx.ServerError("DeleteReleaseReaction", err)
 			return
 		}
 	default:
