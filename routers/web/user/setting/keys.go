@@ -367,32 +367,23 @@ func loadKeysData(ctx *context.Context) {
 	ctx.Data["VerifyingFingerprint"] = ctx.FormString("verify_ssh")
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
-	// Load SSH mirror keypair if it exists
-	mirrorKeypair, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctx.Doer.ID)
-	if err == nil {
-		ctx.Data["HasManagedSSHKey"] = true
-
-		// Create a struct with the public key including comment
-		publicKeyWithComment, _ := mirrorKeypair.GetPublicKeyWithComment(ctx)
-		mirrorKeyData := struct {
-			*user_model.SSHKeypair
-			PublicKeyWithComment string
-		}{
-			SSHKeypair:           mirrorKeypair,
-			PublicKeyWithComment: publicKeyWithComment,
-		}
-
-		ctx.Data["ManagedSSHKey"] = mirrorKeyData
-	} else {
-		ctx.Data["HasManagedSSHKey"] = false
+	managedKeypair, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetOrCreateSSHKeypair", err)
+		return
 	}
+	publicKeyWithComment, _ := managedKeypair.GetPublicKeyWithComment(ctx)
+	ctx.Data["ManagedSSHKey"] = struct {
+		*user_model.SSHKeypair
+		PublicKeyWithComment string
+	}{managedKeypair, publicKeyWithComment}
 }
 
 // RegenerateSSHKeypair regenerates the SSH keypair for repository mirroring
 func RegenerateSSHKeypair(ctx *context.Context) {
-	_, err := user_model.RegenerateSSHKeypair(ctx, ctx.Doer.ID)
+	_, err := user_model.CreateSSHKeypair(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("RegenerateSSHKeypairForUser", err)
+		ctx.ServerError("CreateSSHKeypair", err)
 		return
 	}
 

@@ -75,7 +75,7 @@ func GetSSHKeypairByOwner(ctx context.Context, ownerID int64) (*SSHKeypair, erro
 	return keypair, nil
 }
 
-// CreateSSHKeypair creates a new SSH keypair for mirroring
+// CreateSSHKeypair generates a new managed SSH keypair for the owner, replacing the existing one
 func CreateSSHKeypair(ctx context.Context, ownerID int64) (*SSHKeypair, error) {
 	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
@@ -147,29 +147,4 @@ func (k *SSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, error
 
 	comment := fmt.Sprintf("%s-%s@%s", owner.Name, keyID, domain)
 	return strings.TrimSpace(k.PublicKey) + " " + comment, nil
-}
-
-// DeleteSSHKeypair deletes an SSH keypair
-func DeleteSSHKeypair(ctx context.Context, ownerID int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err := DeleteUserSetting(ctx, ownerID, UserSSHMirrorPrivPem); err != nil {
-			return err
-		}
-		return DeleteUserSetting(ctx, ownerID, UserSSHMirrorPubPem)
-	})
-}
-
-// RegenerateSSHKeypair regenerates an SSH keypair for the given owner
-func RegenerateSSHKeypair(ctx context.Context, ownerID int64) (*SSHKeypair, error) {
-	return db.WithTx2(ctx, func(ctx context.Context) (*SSHKeypair, error) {
-		if err := DeleteSSHKeypair(ctx, ownerID); err != nil {
-			return nil, fmt.Errorf("failed to delete existing keypair: %w", err)
-		}
-
-		newKeypair, err := CreateSSHKeypair(ctx, ownerID)
-		if err != nil {
-			return nil, err
-		}
-		return newKeypair, nil
-	})
 }

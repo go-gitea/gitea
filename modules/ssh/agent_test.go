@@ -25,13 +25,13 @@ func withTestAppDataPath(t *testing.T) func() {
 	return func() { setting.AppDataPath = orig }
 }
 
-func TestCreateTemporaryAgent(t *testing.T) {
+func TestStartAgent(t *testing.T) {
 	defer withTestAppDataPath(t)()
 
 	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
 
-	socketPath, cleanup, err := CreateTemporaryAgent(privateKey)
+	socketPath, cleanup, err := startAgent(privateKey)
 	require.NoError(t, err)
 	defer cleanup()
 	require.NotEmpty(t, socketPath)
@@ -56,24 +56,21 @@ func TestCreateTemporaryAgent(t *testing.T) {
 	assert.True(t, ed25519.Verify(publicKey, data, sig.Blob))
 }
 
-func TestNewSSHAgentRejectsInvalidKey(t *testing.T) {
-	defer withTestAppDataPath(t)()
-
-	_, err := NewSSHAgent(ed25519.PrivateKey("too short"))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid Ed25519 private key size")
+func TestStartAgentRejectsInvalidKey(t *testing.T) {
+	_, _, err := startAgent(ed25519.PrivateKey("too short"))
+	assert.ErrorContains(t, err, "invalid Ed25519 private key size")
 }
 
-func TestSSHAgentCloseIsIdempotent(t *testing.T) {
+func TestStartAgentCleanupIsIdempotent(t *testing.T) {
 	defer withTestAppDataPath(t)()
 
 	_, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
 
-	sa, err := NewSSHAgent(privateKey)
+	_, cleanup, err := startAgent(privateKey)
 	require.NoError(t, err)
 
-	// mirror sync defers a cleanup that may run after an explicit close
-	require.NoError(t, sa.Close())
-	require.NoError(t, sa.Close())
+	// mirror sync defers a cleanup that may run after an explicit one
+	cleanup()
+	cleanup()
 }

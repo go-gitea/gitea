@@ -67,7 +67,7 @@ func RegenerateManagedSSHKey(ctx *context.APIContext) {
 	//         fingerprint:
 	//           type: string
 
-	keypair, err := user_model.RegenerateSSHKeypair(ctx, ctx.Doer.ID)
+	keypair, err := user_model.CreateSSHKeypair(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

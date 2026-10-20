@@ -6,22 +6,35 @@ package mirror
 import (
 	"context"
 	"errors"
-	"os"
+	"fmt"
 
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
-// gitEnvsWithSSH builds the environment for a mirror git command that may need
-// the managed SSH key. Returning nil keeps gitcmd's default of inheriting the
-// process environment.
-func gitEnvsWithSSH(sshEnvs []string) []string {
-	if len(sshEnvs) == 0 {
-		return nil
+// pullMirrorSSHKeyOwnerID returns whose managed SSH key authenticates the pull mirror.
+// A personal key stays usable only while its owner can still administer the repository.
+func pullMirrorSSHKeyOwnerID(ctx context.Context, m *repo_model.Mirror) (int64, error) {
+	if m.SSHKeyOwnerID == 0 || m.SSHKeyOwnerID == m.Repo.OwnerID {
+		return m.Repo.OwnerID, nil
 	}
-	return append(os.Environ(), sshEnvs...)
+	keyOwner, err := user_model.GetValidDoerUserByID(ctx, m.SSHKeyOwnerID)
+	if err != nil {
+		return 0, fmt.Errorf("pullMirrorSSHKeyOwnerID: SSH key owner %d: %w", m.SSHKeyOwnerID, err)
+	}
+	perm, err := access_model.GetIndividualUserRepoPermission(ctx, m.Repo, keyOwner)
+	if err != nil {
+		return 0, fmt.Errorf("pullMirrorSSHKeyOwnerID: %w", err)
+	}
+	if !perm.IsAdmin() {
+		return 0, util.NewPermissionDeniedErrorf("SSH key owner %s can no longer administer %s", keyOwner.Name, m.Repo.FullName())
+	}
+	return keyOwner.ID, nil
 }
 
 // doMirrorSync causes this request to mirror itself

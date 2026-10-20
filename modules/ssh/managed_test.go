@@ -5,10 +5,10 @@ package ssh
 
 import (
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
@@ -43,7 +43,7 @@ func TestIsSSHURL(t *testing.T) {
 
 func TestSetupManagedSSHAgentNonSSHURL(t *testing.T) {
 	// a non-SSH remote must short-circuit before any keypair lookup
-	sshEnvs, cleanup, err := SetupManagedSSHAgent(t.Context(), &repo_model.Repository{OwnerID: 1}, "https://github.com/user/repo.git", 0)
+	sshEnvs, cleanup, err := SetupManagedSSHAgent(t.Context(), 1, "https://github.com/user/repo.git")
 	require.NoError(t, err)
 	assert.Empty(t, sshEnvs)
 	require.NotNil(t, cleanup)
@@ -54,12 +54,11 @@ func TestSetupManagedSSHAgent(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	defer withTestAppDataPath(t)()
 
-	t.Run("uses the repository owner's key", func(t *testing.T) {
-		sshEnvs, cleanup, err := SetupManagedSSHAgent(t.Context(), &repo_model.Repository{OwnerID: 2}, "ssh://git@github.com/user/repo.git", 0)
+	t.Run("uses the key owner's key", func(t *testing.T) {
+		sshEnvs, cleanup, err := SetupManagedSSHAgent(t.Context(), 2, "ssh://git@github.com/user/repo.git")
 		require.NoError(t, err)
 		defer cleanup()
 
-		require.Len(t, sshEnvs, 2)
 		authSock := envValue(t, sshEnvs, "SSH_AUTH_SOCK=")
 		assert.NotEmpty(t, authSock)
 
@@ -76,23 +75,10 @@ func TestSetupManagedSSHAgent(t *testing.T) {
 		cleanup()
 		assert.NoFileExists(t, identityFile)
 	})
-
-	t.Run("sshKeyOwnerID overrides the repository owner", func(t *testing.T) {
-		sshEnvs, cleanup, err := SetupManagedSSHAgent(t.Context(), &repo_model.Repository{OwnerID: 2}, "ssh://git@github.com/user/repo.git", 4)
-		require.NoError(t, err)
-		defer cleanup()
-
-		identityFile := identityFileFrom(t, envValue(t, sshEnvs, "GIT_SSH_COMMAND="))
-		content, err := os.ReadFile(identityFile)
-		require.NoError(t, err)
-
-		keypair, err := user_model.GetSSHKeypairByOwner(t.Context(), 4)
-		require.NoError(t, err)
-		assert.Equal(t, keypair.PublicKey, string(content))
-	})
 }
 
 func TestWriteManagedPublicKey(t *testing.T) {
+	defer withTestAppDataPath(t)()
 	const publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItest gitea"
 
 	path, cleanup, err := writeManagedPublicKey(publicKey)
@@ -108,7 +94,8 @@ func TestWriteManagedPublicKey(t *testing.T) {
 
 func envValue(t *testing.T, envs []string, prefix string) string {
 	t.Helper()
-	for _, env := range envs {
+	// the last one wins, as for the git command
+	for _, env := range slices.Backward(envs) {
 		if after, ok := strings.CutPrefix(env, prefix); ok {
 			return after
 		}

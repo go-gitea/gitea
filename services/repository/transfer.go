@@ -179,6 +179,11 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("update owner: %w", err)
 	}
 
+	// the new owner's key takes over, a personal key must not serve a repo under a different owner
+	if err := repo_model.ResetMirrorSSHKeyOwner(ctx, repo.ID); err != nil {
+		return fmt.Errorf("reset mirror SSH key owner: %w", err)
+	}
+
 	// Remove redundant collaborators.
 	collaborators, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: repo.ID})
 	if err != nil {

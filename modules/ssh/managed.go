@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"os"
 
-	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
@@ -36,78 +36,54 @@ func GetOrCreateSSHKeypair(ctx context.Context, ownerID int64) (*user_model.SSHK
 	return keypair, nil
 }
 
-// GetSSHKeypairForRepository gets the managed SSH keypair for the repository's owner.
-func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository) (*user_model.SSHKeypair, error) {
-	return GetOrCreateSSHKeypair(ctx, repo.OwnerID)
-}
-
-// SetupManagedSSHAgent prepares SSH key-based authentication for a mirror or
-// migration git operation against remoteURL on behalf of repo, and returns the
-// environment variables the git command must run with. For non-SSH URLs (or
-// when no keypair is available) it returns no variables. The returned cleanup
-// is never nil and must always be called by the caller (typically via defer).
-// If sshKeyOwnerID is non-zero, the keypair of that owner is used instead of
-// the repository owner's (used when migrating to an org and the user wants
-// to authenticate with their personal managed key).
-func SetupManagedSSHAgent(ctx context.Context, repo *repo_model.Repository, remoteURL string, sshKeyOwnerID int64) (sshEnvs []string, cleanup func(), err error) {
+// SetupManagedSSHAgent returns the environment for a git command reaching remoteURL with keyOwnerID's managed SSH key.
+// Non-SSH remotes get nil, which keeps the process environment. cleanup is never nil.
+func SetupManagedSSHAgent(ctx context.Context, keyOwnerID int64, remoteURL string) (envs []string, cleanup func(), err error) {
 	noop := func() {}
 	if !IsSSHURL(remoteURL) {
 		return nil, noop, nil
 	}
 
-	ownerID := repo.OwnerID
-	if sshKeyOwnerID != 0 {
-		ownerID = sshKeyOwnerID
-	}
-	keypair, err := GetOrCreateSSHKeypair(ctx, ownerID)
+	keypair, err := GetOrCreateSSHKeypair(ctx, keyOwnerID)
 	if err != nil {
-		return nil, noop, fmt.Errorf("failed to get SSH keypair for owner %d: %w", ownerID, err)
+		return nil, noop, err
 	}
-	if keypair == nil {
-		return nil, noop, nil
-	}
-
 	privateKey, err := keypair.GetDecryptedPrivateKey()
 	if err != nil {
-		return nil, noop, fmt.Errorf("failed to decrypt SSH private key: %w", err)
+		return nil, noop, err
 	}
 
-	socketPath, agentCleanup, err := CreateTemporaryAgent(privateKey)
+	socketPath, agentCleanup, err := startAgent(privateKey)
 	if err != nil {
 		return nil, noop, fmt.Errorf("failed to create SSH agent: %w", err)
 	}
-
 	identityFile, keyCleanup, err := writeManagedPublicKey(keypair.PublicKey)
 	if err != nil {
 		agentCleanup()
 		return nil, noop, fmt.Errorf("failed to write managed public key: %w", err)
 	}
 
-	cleanup = func() {
+	// appended last so they win over SSH_AUTH_SOCK or GIT_SSH_COMMAND inherited from the process
+	envs = append(os.Environ(), "SSH_AUTH_SOCK="+socketPath, "GIT_SSH_COMMAND="+managedSSHCommand(identityFile))
+	return envs, func() {
 		keyCleanup()
 		agentCleanup()
-	}
-
-	log.Debug("SSH agent ready for %s (socket: %s)", repo.FullName(), socketPath)
-	return []string{"SSH_AUTH_SOCK=" + socketPath, "GIT_SSH_COMMAND=" + managedSSHCommand(identityFile)}, cleanup, nil
+	}, nil
 }
 
-// writeManagedPublicKey writes the managed public key to a temporary file so the
-// git SSH command can pin authentication to it via "-i". The returned cleanup
-// removes the file.
+// writeManagedPublicKey lets GIT_SSH_COMMAND pin authentication to the managed key via "-i"
 func writeManagedPublicKey(publicKey string) (path string, cleanup func(), err error) {
-	f, err := os.CreateTemp("", "gitea-managed-ssh-*.pub")
+	f, cleanup, err := setting.AppDataTempDir("ssh-agent").CreateTempFileRandom("gitea-managed-ssh-*.pub")
 	if err != nil {
 		return "", nil, err
 	}
 	if _, err = f.WriteString(publicKey); err != nil {
-		f.Close()
-		os.Remove(f.Name())
+		cleanup()
 		return "", nil, err
 	}
 	if err = f.Close(); err != nil {
-		os.Remove(f.Name())
+		cleanup()
 		return "", nil, err
 	}
-	return f.Name(), func() { os.Remove(f.Name()) }, nil
+	return f.Name(), cleanup, nil
 }

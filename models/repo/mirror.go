@@ -36,6 +36,9 @@ type Mirror struct {
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
+
+	// 0 means the repository owner's managed SSH key
+	SSHKeyOwnerID int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 // IsSSHRemoteAddress returns true if the mirror's remote address uses SSH.
@@ -104,6 +107,12 @@ func UpdateMirror(ctx context.Context, m *Mirror) error {
 func TouchMirror(ctx context.Context, m *Mirror) error {
 	m.UpdatedUnix = timeutil.TimeStampNow()
 	_, err := db.GetEngine(ctx).ID(m.ID).Cols("updated_unix").Update(m)
+	return err
+}
+
+// ResetMirrorSSHKeyOwner makes the mirror of the repository authenticate with its owner's managed SSH key again
+func ResetMirrorSSHKeyOwner(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Cols("ssh_key_owner_id").Update(&Mirror{})
 	return err
 }
 

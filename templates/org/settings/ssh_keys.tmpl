@@ -9,7 +9,6 @@
 			<div class="field">
 				<label>{{ctx.Locale.Tr "settings.managed_ssh_description"}}</label>
 			</div>
-			{{if .SSHKeypair}}
 			<div class="field">
 				<label>{{ctx.Locale.Tr "settings.managed_ssh_current_key"}}</label>
 				<div class="ui action input">
@@ -20,16 +19,9 @@
 				</div>
 				<small class="text grey">{{ctx.Locale.Tr "settings.managed_ssh_fingerprint"}}: {{.SSHKeypair.Fingerprint}}</small>
 			</div>
-			{{end}}
 			<div class="field">
 				<form action="{{.OrgLink}}/settings/ssh_keys/regenerate" method="post">
-					<button class="ui primary button" type="submit">
-						{{if .SSHKeypair}}
-							{{ctx.Locale.Tr "settings.managed_ssh_regenerate"}}
-						{{else}}
-							{{ctx.Locale.Tr "settings.managed_ssh_generate"}}
-						{{end}}
-					</button>
+					<button class="ui primary button" type="submit">{{ctx.Locale.Tr "settings.managed_ssh_regenerate"}}</button>
 				</form>
 			</div>
 			<div class="field">

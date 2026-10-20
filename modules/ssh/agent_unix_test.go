@@ -30,7 +30,7 @@ func TestSSHAgentSocketPermissions(t *testing.T) {
 	_, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
 
-	socketPath, cleanup, err := CreateTemporaryAgent(privateKey)
+	socketPath, cleanup, err := startAgent(privateKey)
 	require.NoError(t, err)
 
 	info, err := os.Stat(socketPath)

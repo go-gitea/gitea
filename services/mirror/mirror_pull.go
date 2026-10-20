@@ -37,6 +37,17 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 
 	remoteName := m.GetRemoteName()
 	repo := m.GetRepository(ctx)
+
+	// a personal key must not follow the mirror to an address its owner didn't choose
+	if m.SSHKeyOwnerID != 0 {
+		if oldURL, err := git.ParseRemoteAddressURL(ctx, repo, remoteName); err != nil || util.SanitizeCredentialURLs(oldURL.String()) != util.SanitizeCredentialURLs(u.String()) {
+			m.SSHKeyOwnerID = 0
+			if err := repo_model.ResetMirrorSSHKeyOwner(ctx, repo.ID); err != nil {
+				return err
+			}
+		}
+	}
+
 	// Remove old remote
 	err = git.ManagedRemoteRemove(ctx, repo, remoteName)
 	if err != nil && !git.IsRemoteNotExistError(err) {
@@ -50,12 +61,16 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 
 	if repo_service.HasWiki(ctx, m.Repo) {
 		// the agent must exist before probing, otherwise an SSH wiki looks inaccessible
-		sshEnvs, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, repo, addr, 0)
+		sshKeyOwnerID, sshErr := pullMirrorSSHKeyOwnerID(ctx, m)
+		if sshErr != nil {
+			return sshErr
+		}
+		envs, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, sshKeyOwnerID, addr)
 		if sshErr != nil {
 			return sshErr
 		}
 		defer cleanup()
-		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr, gitEnvsWithSSH(sshEnvs))
+		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr, envs)
 		// Remove old remote of wiki
 		err = git.ManagedRemoteRemove(ctx, repo.WikiStorageRepo(), remoteName)
 		if err != nil && !git.IsRemoteNotExistError(err) {
@@ -128,13 +143,17 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	sshEnvs, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String(), 0)
+	sshKeyOwnerID, sshErr := pullMirrorSSHKeyOwnerID(ctx, m)
+	if sshErr != nil {
+		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, sshErr)
+		return nil, false
+	}
+	envs, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, sshKeyOwnerID, remoteURL.String())
 	if sshErr != nil {
 		log.Error("SyncMirrors [repo: %-v]: SSH setup error %v", m.Repo, sshErr)
 		return nil, false
 	}
 	defer cleanup()
-	envs := gitEnvsWithSSH(sshEnvs)
 
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {

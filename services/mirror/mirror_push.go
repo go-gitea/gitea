@@ -47,12 +47,12 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 
 	if repo_service.HasWiki(ctx, m.Repo) {
 		// the agent must exist before probing, otherwise an SSH wiki looks inaccessible
-		sshEnvs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, addr, 0)
+		envs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, m.Repo.OwnerID, addr)
 		if err != nil {
 			return err
 		}
 		defer cleanup()
-		wikiRemoteURL := repository.WikiRemoteURL(ctx, addr, gitEnvsWithSSH(sshEnvs))
+		wikiRemoteURL := repository.WikiRemoteURL(ctx, addr, envs)
 		if len(wikiRemoteURL) > 0 {
 			if err := addRemoteAndConfig(m.Repo.WikiStorageRepo(), wikiRemoteURL); err != nil {
 				return err
@@ -165,7 +165,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
-		sshEnvs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String(), 0)
+		envs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, m.Repo.OwnerID, remoteURL.String())
 		if err != nil {
 			return fmt.Errorf("SetupManagedSSHAgent failed: %w", err)
 		}
@@ -176,7 +176,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
-			Env:     gitEnvsWithSSH(sshEnvs),
+			Env:     envs,
 		}); err != nil {
 			return fmt.Errorf("PushToExternal failed: %w", err)
 		}

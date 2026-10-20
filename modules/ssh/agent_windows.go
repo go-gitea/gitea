@@ -14,8 +14,7 @@ import (
 	"github.com/Microsoft/go-winio"
 )
 
-// createAgentListener creates a Windows named pipe listener for the SSH agent.
-// Returns the listener, pipe path, and a cleanup function for early-return error paths.
+// createAgentListener listens on a named pipe, which is removed once closed
 func createAgentListener() (net.Listener, string, func(), error) {
 	agentID := util.CryptoRandomString(16)
 	pipePath := `\\.\pipe\gitea-ssh-agent-` + agentID
@@ -25,12 +24,5 @@ func createAgentListener() (net.Listener, string, func(), error) {
 		return nil, "", nil, fmt.Errorf("failed to create named pipe: %w", err)
 	}
 
-	cleanup := func() {
-		listener.Close()
-	}
-
-	return listener, pipePath, cleanup, nil
+	return listener, pipePath, func() { listener.Close() }, nil
 }
-
-// cleanupAgentSocket is a no-op on Windows; named pipes are automatically cleaned up when closed.
-func cleanupAgentSocket(_ string) {}

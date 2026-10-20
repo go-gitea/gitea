@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	admin_model "gitea.dev/models/admin"
@@ -70,46 +71,29 @@ func Migrate(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
 }
 
-// setManagedSSHKeyFingerprints pre-loads the SignedUser's and each candidate
-// org's managed SSH key fingerprint, so the migrate form can display the
-// fingerprint that will be used to authenticate an SSH clone. The keypair is
-// created lazily by GetOrCreateSSHKeypair, so this also doubles as a primer.
+// setManagedSSHKeyFingerprints lets the migrate form show which managed key an SSH clone will use.
+// It only reads: a missing key is created on its settings page, which the form links to.
 func setManagedSSHKeyFingerprints(ctx *context.Context, ctxUser *user_model.User) {
-	if ctx.Doer == nil {
-		return
-	}
-	if kp, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctx.Doer.ID); err == nil {
+	if kp, err := user_model.GetSSHKeypairByOwner(ctx, ctx.Doer.ID); err == nil {
 		ctx.Data["SignedUserSSHFingerprint"] = kp.Fingerprint
 	}
 
+	orgs, _ := ctx.Data["Orgs"].([]*organization.Organization)
+	if ctxUser.IsOrganization() && !slices.ContainsFunc(orgs, func(org *organization.Organization) bool { return org.ID == ctxUser.ID }) {
+		orgs = append(orgs, organization.OrgFromUser(ctxUser))
+	}
 	fingerprints := map[int64]string{}
-	// keysURLs maps an org owner id to its managed SSH keys settings page, so the
-	// form links to the right page to copy the key when authenticating as that org.
 	keysURLs := map[int64]string{}
-	if orgs, ok := ctx.Data["Orgs"].([]*organization.Organization); ok {
-		for _, org := range orgs {
-			if kp, err := ssh_module.GetOrCreateSSHKeypair(ctx, org.ID); err == nil {
-				fingerprints[org.ID] = kp.Fingerprint
-				keysURLs[org.ID] = org.OrganisationLink() + "/settings/ssh_keys"
-			}
+	for _, org := range orgs {
+		keysURLs[org.ID] = org.OrganisationLink() + "/settings/ssh_keys"
+		if kp, err := user_model.GetSSHKeypairByOwner(ctx, org.ID); err == nil {
+			fingerprints[org.ID] = kp.Fingerprint
 		}
 	}
-	if ctxUser != nil && ctxUser.ID != ctx.Doer.ID {
-		if _, seen := fingerprints[ctxUser.ID]; !seen {
-			if kp, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctxUser.ID); err == nil {
-				fingerprints[ctxUser.ID] = kp.Fingerprint
-				if ctxUser.IsOrganization() {
-					keysURLs[ctxUser.ID] = ctxUser.OrganisationLink() + "/settings/ssh_keys"
-				}
-			}
-		}
-	}
-	if data, err := json.Marshal(fingerprints); err == nil {
-		ctx.Data["OwnerSSHFingerprintsJSON"] = string(data)
-	}
-	if data, err := json.Marshal(keysURLs); err == nil {
-		ctx.Data["OwnerSSHKeysURLsJSON"] = string(data)
-	}
+	fingerprintsJSON, _ := json.Marshal(fingerprints)
+	keysURLsJSON, _ := json.Marshal(keysURLs)
+	ctx.Data["OwnerSSHFingerprintsJSON"] = string(fingerprintsJSON)
+	ctx.Data["OwnerSSHKeysURLsJSON"] = string(keysURLsJSON)
 }
 
 func handleMigrateError(ctx *context.Context, owner *user_model.User, err error) {

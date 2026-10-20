@@ -946,7 +946,6 @@
   "settings.managed_ssh_description": "Managed SSH keys allow you to authenticate with remote Git repositories using SSH for mirroring and migrations. Each user and organization has their own SSH keypair stored securely.",
   "settings.managed_ssh_current_key": "Current SSH Public Key",
   "settings.managed_ssh_fingerprint": "Fingerprint",
-  "settings.managed_ssh_generate": "Generate SSH Key",
   "settings.managed_ssh_regenerate": "Regenerate SSH Key",
   "settings.managed_ssh_regenerated": "SSH keypair has been regenerated successfully.",
   "settings.managed_ssh_documentation": "SSH keys are automatically used for SSH-based repository mirrors and migrations. Add the public key to your remote Git service (GitHub, GitLab, etc.) to enable authentication.",

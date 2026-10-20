@@ -82,34 +82,16 @@ func TestSSHKeypair(t *testing.T) {
 		assert.Len(t, publicKey, ed25519.PublicKeySize)
 	})
 
-	t.Run("DeleteSSHKeypair", func(t *testing.T) {
-		// Create a keypair
-		_, err := user_model.CreateSSHKeypair(t.Context(), 5)
-		require.NoError(t, err)
-
-		// Verify it exists
-		_, err = user_model.GetSSHKeypairByOwner(t.Context(), 5)
-		require.NoError(t, err)
-
-		// Delete it
-		err = user_model.DeleteSSHKeypair(t.Context(), 5)
-		require.NoError(t, err)
-
-		// Verify it's gone
-		_, err = user_model.GetSSHKeypairByOwner(t.Context(), 5)
-		assert.ErrorIs(t, err, util.ErrNotExist)
-	})
-
-	t.Run("RegenerateSSHKeypair", func(t *testing.T) {
-		// Create initial keypair
+	t.Run("CreateSSHKeypair replaces the existing one", func(t *testing.T) {
 		original, err := user_model.CreateSSHKeypair(t.Context(), 6)
 		require.NoError(t, err)
 
-		// Regenerate it
-		regenerated, err := user_model.RegenerateSSHKeypair(t.Context(), 6)
+		regenerated, err := user_model.CreateSSHKeypair(t.Context(), 6)
 		require.NoError(t, err)
 
-		// Verify it's different
+		stored, err := user_model.GetSSHKeypairByOwner(t.Context(), 6)
+		require.NoError(t, err)
+		assert.Equal(t, regenerated.PublicKey, stored.PublicKey)
 		assert.NotEqual(t, original.PublicKey, regenerated.PublicKey)
 		assert.NotEqual(t, original.PrivateKeyEncrypted, regenerated.PrivateKeyEncrypted)
 		assert.NotEqual(t, original.Fingerprint, regenerated.Fingerprint)

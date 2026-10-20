@@ -34,20 +34,16 @@ func SSHKeys(ctx *context.Context) {
 		return
 	}
 
-	publicKeyWithComment, _ := keypair.GetPublicKeyWithComment(ctx)
-	ctx.Data["SSHKeypair"] = struct {
-		*user_model.SSHKeypair
-		PublicKeyWithComment string
-	}{keypair, publicKeyWithComment}
+	ctx.Data["SSHKeypair"] = keypair
 
 	ctx.HTML(http.StatusOK, tplSettingsSSHKeys)
 }
 
 // RegenerateSSHKey regenerates the SSH keypair for organization mirror operations
 func RegenerateSSHKey(ctx *context.Context) {
-	_, err := user_model.RegenerateSSHKeypair(ctx, ctx.Org.Organization.ID)
+	_, err := user_model.CreateSSHKeypair(ctx, ctx.Org.Organization.ID)
 	if err != nil {
-		ctx.ServerError("RegenerateSSHKeypairForOrg", err)
+		ctx.ServerError("CreateSSHKeypair", err)
 		return
 	}
 
