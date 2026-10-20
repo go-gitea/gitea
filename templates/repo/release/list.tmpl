@@ -107,6 +107,13 @@
 								{{end}}
 							</ul>
 						</details>
+						{{if not (or $release.IsTag $release.IsDraft)}}
+							{{template "shared/reactions" dict
+								"ActionURL" (printf "%s/releases/%d/reactions" $.RepoLink $release.ID)
+								"Reactions" $info.Reactions.GroupByType
+								"AllowedReactions" $.AllowedReleaseReactions
+							}}
+						{{end}}
 					</div>
 				</li>
 			{{end}}
@@ -115,18 +122,5 @@
 		{{template "base/paginate" .}}
 	</div>
 </div>
-
-{{if (and ($.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) .PageIsTagList)}}
-	<div class="ui g-modal-confirm delete modal">
-		<div class="header">
-			{{svg "octicon-trash"}}
-			{{ctx.Locale.Tr "repo.release.delete_tag"}}
-		</div>
-		<div class="content">
-			<p>{{ctx.Locale.Tr "repo.release.deletion_tag_desc"}}</p>
-		</div>
-		{{template "base/modal_actions_confirm" .}}
-	</div>
-{{end}}
 
 {{template "base/footer" .}}
