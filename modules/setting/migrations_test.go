@@ -18,8 +18,8 @@ func TestLoadMigrationsFrom(t *testing.T) {
 	for ini, want := range map[string][4]string{
 		`ALLOWED_DOMAINS = github.com
 BLOCKED_DOMAINS = gitlab.com
-ALLOW_LOCALNETWORKS = true`: {"github.com:*,private:*,loopback:*", "gitlab.com", "strict", ""},
-		`ALLOW_LOCALNETWORKS = true`: {"private:*,loopback:*", "", "lax", ""},
+ALLOW_LOCALNETWORKS = true`: {"github.com:*,private:*,loopback:*,cgnat:*", "gitlab.com", "strict", ""},
+		`ALLOW_LOCALNETWORKS = true`: {"private:*,loopback:*,cgnat:*", "", "lax", ""},
 		`ALLOWED_HOST_LIST = 10.0.0.0/8
 ALLOWED_DOMAINS = github.com
 ALLOW_LOCALNETWORKS = true

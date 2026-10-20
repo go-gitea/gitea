@@ -54,7 +54,7 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 			LogStartupProblem(1, log.WARN, "[migrations] ALLOWED_DOMAINS with EGRESS_MODE = lax only restricts non-public targets, migrations from any public host are allowed — the old ALLOWED_DOMAINS allowed only the listed hosts")
 		}
 		if ConfigSectionKeyBool(sec, "ALLOW_LOCALNETWORKS") {
-			hosts = append(hosts, "private:*", "loopback:*")
+			hosts = append(hosts, "private:*", "loopback:*", "cgnat:*") // cgnat keeps the legacy coverage, "private" no longer includes it
 		}
 		Migrations.AllowedHostList = strings.Join(hosts, ",")
 	}

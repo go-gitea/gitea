@@ -138,7 +138,7 @@ Rejected: `*` (catch-all hostname), `0.0.0.0/0` / `::/0` (catch-all CIDR), `exte
 
 **Positive**: SSRF protection by default; per-component policies; block-list override; dial-time DNS rebinding protection; hostname entries never cover restricted targets without an explicit range (`ALLOWED_INTERNAL_RANGES`); IPv6 support; port-level control.
 
-**Negative**: matching logic is complex; operators must understand modes and per-component settings; minor DNS/classification overhead; cloud metadata endpoints (AWS IMDS, Alibaba) are reachable when a range covering them is configured explicitly (`cgnat`, `169.254.0.0/16`, `fc00::/7`). `private` no longer includes CGNAT. A startup warning fires when `ALLOWED_INTERNAL_RANGES` overlaps metadata-bearing ranges. Targeted block entries can deny specific metadata IPs (migrations and git only).
+**Negative**: matching logic is complex; operators must understand modes and per-component settings; minor DNS/classification overhead; cloud metadata endpoints (AWS IMDS, Alibaba) are reachable when a range covering them is configured explicitly (`cgnat`, `169.254.0.0/16`, `fc00::/7`). `private` no longer includes CGNAT (the legacy `ALLOW_LOCALNETWORKS` mapping adds `cgnat` explicitly, so its coverage is unchanged). A startup warning fires when `ALLOWED_INTERNAL_RANGES` overlaps metadata-bearing ranges. Targeted block entries can deny specific metadata IPs (migrations and git only).
 
 **Proxy caveat**: when a proxy is configured, the egress policy does not IP-check the target — the dial goes to the proxy and the proxy is expected to enforce restrictions. Hostname block screening still runs for the webhook-specific proxy case. This is a trust delegation, not enforcement.
 
