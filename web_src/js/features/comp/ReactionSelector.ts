@@ -35,10 +35,6 @@ export function initCompReactionSelector() {
     if (!res) return;
 
     const data = await res.json();
-    if (!data.html) {
-      handleFetchActionSuccessJson(bottomReactions, data);
-      return;
-    }
     const hadFocus = bottomReactions.contains(document.activeElement);
     bottomReactions.querySelector('.select-reaction')?._tippy?.destroy();
     const newBottomReactions = createElementFromHTML(data.html);

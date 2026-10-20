@@ -224,13 +224,13 @@ func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.C
 		}
 
 		if options.SignInRequired && !ctx.IsSigned {
-			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
+			ctx.RedirectForLogin(middleware.RedirectLinkUserLogin(ctx.Req))
 			return
 		}
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
 		if !options.SignOutRequired && !ctx.IsSigned && ctx.GetSiteCookie(setting.CookieRememberName) != "" {
-			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
+			ctx.RedirectForLogin(middleware.RedirectLinkUserLogin(ctx.Req))
 			return
 		}
 
