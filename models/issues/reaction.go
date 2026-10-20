@@ -193,7 +193,7 @@ func FindReleaseReactions(ctx context.Context, releaseIDs ...int64) (ReactionLis
 		return nil, err
 	}
 	// filtered here because an IN on `type` could make the database pick the type index for this large table
-	return slices.DeleteFunc(reactions, func(r *Reaction) bool { return !slices.Contains(setting.UI.Reactions, r.Type) }), nil
+	return slices.DeleteFunc(reactions, func(reaction *Reaction) bool { return !setting.UI.ReactionsLookup.Contains(reaction.Type) }), nil
 }
 
 func createReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, error) {
@@ -325,23 +325,15 @@ func (list ReactionList) getUserIDs() []int64 {
 	})
 }
 
-func valuesUser(m map[int64]*user_model.User) []*user_model.User {
-	values := make([]*user_model.User, 0, len(m))
-	for _, v := range m {
-		values = append(values, v)
-	}
-	return values
-}
-
 // newMigrationOriginalUser creates and returns a fake user for external user
 func newMigrationOriginalUser(name string) *user_model.User {
 	return &user_model.User{ID: 0, Name: name, LowerName: strings.ToLower(name)}
 }
 
 // LoadUsers loads reactions' all users
-func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Repository) ([]*user_model.User, error) {
+func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Repository) (map[int64]*user_model.User, error) {
 	if len(list) == 0 {
-		return nil, nil
+		return map[int64]*user_model.User{}, nil
 	}
 
 	userIDs := list.getUserIDs()
@@ -362,7 +354,7 @@ func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Reposit
 			reaction.User = user_model.NewGhostUser()
 		}
 	}
-	return valuesUser(userMaps), nil
+	return userMaps, nil
 }
 
 // GetFirstUsers returns first reacted user display names separated by comma

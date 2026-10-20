@@ -45,7 +45,7 @@
 .bottom-reactions .ui.basic.label[data-has-reacted="true"] {
   border-color: var(--color-primary);
   background: var(--color-reaction-active-bg);
-  color: var(--color-primary-dark-3);
+  color: var(--color-text);
 }
 
 .bottom-reactions .ui.label:not(.disabled):hover {

@@ -10,7 +10,7 @@ import (
 	"gitea.dev/modules/timeutil"
 )
 
-func AddReleaseIDToReaction(_ context.Context, x base.EngineMigration) error {
+func AddReleaseIDToReaction(_ctx context.Context, x base.EngineMigration) error {
 	type Reaction struct {
 		ID               int64              `xorm:"pk autoincr"`
 		Type             string             `xorm:"INDEX UNIQUE(s) NOT NULL"`

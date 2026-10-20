@@ -1,4 +1,4 @@
-import {performFetchActionRequest} from '../../modules/fetch-action.ts';
+import {handleFetchActionSuccessJson, performFetchActionRequest} from '../../modules/fetch-action.ts';
 import {registerGlobalEventFunc} from '../../modules/observer.ts';
 import {createTippy} from '../../modules/tippy.ts';
 import {createElementFromHTML} from '../../utils/dom.ts';
@@ -25,9 +25,9 @@ export function initCompReactionSelector() {
 
     const picker = target.closest('[data-tippy-root]')?._tippy;
     picker?.hide();
-    const bottomReactions = (picker?.reference ?? target).closest('.bottom-reactions')!;
+    const bottomReactions = (picker?.reference ?? target).closest<HTMLElement>('.bottom-reactions')!;
     const hasReacted = target.getAttribute('data-has-reacted') === 'true';
-    const res = await performFetchActionRequest(target, {
+    const res = await performFetchActionRequest(bottomReactions, {
       method: 'POST',
       url: `${bottomReactions.getAttribute('data-action-url')}/${hasReacted ? 'unreact' : 'react'}`,
       data: new URLSearchParams({content: target.getAttribute('data-reaction-content')!}),
@@ -35,6 +35,10 @@ export function initCompReactionSelector() {
     if (!res) return;
 
     const data = await res.json();
+    if (!data.html) {
+      handleFetchActionSuccessJson(bottomReactions, data);
+      return;
+    }
     const hadFocus = bottomReactions.contains(document.activeElement);
     bottomReactions.querySelector('.select-reaction')?._tippy?.destroy();
     const newBottomReactions = createElementFromHTML(data.html);

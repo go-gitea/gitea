@@ -97,7 +97,8 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 	if err != nil {
 		return nil, err
 	}
-	if _, err = reactions.LoadUsers(ctx, ctx.Repo.Repository); err != nil {
+	cacheUsers, err := reactions.LoadUsers(ctx, ctx.Repo.Repository)
+	if err != nil {
 		return nil, err
 	}
 	reactionsByRelease := make(map[int64]issues_model.ReactionList)
@@ -107,7 +108,6 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 
 	// Temporary cache commits count of used branches to speed up.
 	countCache := make(map[string]int64)
-	cacheUsers := make(map[int64]*user_model.User)
 	if ctx.Doer != nil {
 		cacheUsers[ctx.Doer.ID] = ctx.Doer
 	}
