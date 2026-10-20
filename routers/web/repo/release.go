@@ -171,11 +171,22 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 	return releaseInfos, nil
 }
 
-// Releases render releases list page
-func Releases(ctx *context.Context) {
+func prepareReleasePageCommon(ctx *context.Context) (ret struct {
+	writeAccess bool
+},
+) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["AllowedReleaseReactions"] = release_service.AllowedReleaseReactions()
+
+	ret.writeAccess = ctx.Repo.Permission.CanWrite(unit.TypeReleases)
+	ctx.Data["CanCreateRelease"] = ret.writeAccess && !ctx.Repo.Repository.IsArchived
+	return ret
+}
+
+// Releases render releases list page
+func Releases(ctx *context.Context) {
+	preparedData := prepareReleasePageCommon(ctx)
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
@@ -188,13 +199,10 @@ func Releases(ctx *context.Context) {
 		listOptions.PageSize = setting.API.MaxResponseItems
 	}
 
-	writeAccess := ctx.Repo.Permission.CanWrite(unit.TypeReleases)
-	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
-
 	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
 		ListOptions: listOptions,
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
-		IncludeDrafts: writeAccess,
+		IncludeDrafts: preparedData.writeAccess,
 		RepoID:        ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -293,18 +301,14 @@ func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType st
 
 // SingleRelease renders a single release's page
 func SingleRelease(ctx *context.Context) {
-	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["AllowedReleaseReactions"] = release_service.AllowedReleaseReactions()
-
-	writeAccess := ctx.Repo.Permission.CanWrite(unit.TypeReleases)
-	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
+	preparedData := prepareReleasePageCommon(ctx)
 
 	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{Page: 1, PageSize: 1},
 		RepoID:      ctx.Repo.Repository.ID,
 		TagNames:    []string{ctx.PathParam("*")},
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
-		IncludeDrafts: writeAccess,
+		IncludeDrafts: preparedData.writeAccess,
 		IncludeTags:   true,
 	})
 	if err != nil {
