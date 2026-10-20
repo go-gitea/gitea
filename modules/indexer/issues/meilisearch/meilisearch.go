@@ -104,15 +104,22 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 }
 
 // Index will save the index data
-func (b *Indexer) Index(_ context.Context, issues ...*internal.IndexerData) error {
+func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	}
 	for _, issue := range issues {
 		// use default primary key which should be "id"
-		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).AddDocuments(issue, nil)
+		task, err := b.inner.Client.Index(b.inner.VersionedIndexName()).AddDocumentsWithContext(ctx, issue, nil)
 		if err != nil {
 			return err
+		}
+		result, err := b.inner.Client.WaitForTaskWithContext(ctx, task.TaskUID, 0)
+		if err != nil {
+			return err
+		}
+		if result.Status != meilisearch.TaskStatusSucceeded {
+			return fmt.Errorf("Index: task %d %s: %s", task.TaskUID, result.Status, result.Error.Message)
 		}
 	}
 	// TODO: bulk send index data

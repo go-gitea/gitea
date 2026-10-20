@@ -7,14 +7,34 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"time"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/system"
 	"gitea.dev/modules/indexer/issues/internal"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 
 	"xorm.io/builder"
 )
+
+func retryWIPIndexerSync(ctx context.Context, sync func() error) error {
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if err := sync(); err == nil {
+			return nil
+		} else {
+			log.Error("Unable to synchronize indexed WIP state, retrying in 30s: %v", err)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(30 * time.Second):
+		}
+	}
+}
 
 func syncWIPIndexer(ctx context.Context, indexer internal.Indexer, prefixes string, existed bool) error {
 	if setting.Indexer.IssueType == "db" {

@@ -122,8 +122,12 @@ func InitIssueIndexer(syncReindex bool) {
 		}
 		// A configuration-triggered rebuild must not be limited by the index opening timeout.
 		close(indexerOpened)
-		if err := syncWIPIndexer(ctx, issueIndexer, wipPrefixes, existed); err != nil {
-			log.Fatal("Unable to synchronize indexed WIP state: %v", err)
+		syncCtx := graceful.GetManager().ShutdownContext()
+		if err := retryWIPIndexerSync(syncCtx, func() error {
+			return syncWIPIndexer(syncCtx, issueIndexer, wipPrefixes, existed)
+		}); err != nil {
+			issueIndexer.Close()
+			return
 		}
 		globalIndexer.Store(&issueIndexer)
 

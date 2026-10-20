@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
@@ -19,6 +21,44 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestRetryWIPIndexerSync(t *testing.T) {
+	t.Run("recovery", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			calls := 0
+			start := time.Now()
+			err := retryWIPIndexerSync(t.Context(), func() error {
+				calls++
+				if calls == 1 {
+					return errors.New("indexer unavailable")
+				}
+				return nil
+			})
+			require.NoError(t, err)
+			assert.Equal(t, 2, calls)
+			assert.Equal(t, 30*time.Second, time.Since(start))
+		})
+	})
+	t.Run("shutdown during retry", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			calls := 0
+			var err error
+			go func() {
+				err = retryWIPIndexerSync(ctx, func() error {
+					calls++
+					return errors.New("indexer unavailable")
+				})
+			}()
+			synctest.Wait()
+			cancel()
+			synctest.Wait()
+			assert.ErrorIs(t, err, context.Canceled)
+			assert.Equal(t, 1, calls)
+		})
+	})
+}
 
 type wipTestIndexer struct {
 	internal.Indexer
