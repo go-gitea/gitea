@@ -56,6 +56,10 @@ func ListIssueLabels(ctx *context.APIContext) {
 		}
 		return
 	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.APIErrorNotFound()
+		return
+	}
 
 	if err := issue.LoadAttributes(ctx); err != nil {
 		ctx.APIErrorInternal(err)

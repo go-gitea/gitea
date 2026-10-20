@@ -80,6 +80,10 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.APIErrorNotFound()
+		return
+	}
 
 	opts := &issues_model.FindTrackedTimesOptions{
 		ListOptions:  utils.GetListOptions(ctx),

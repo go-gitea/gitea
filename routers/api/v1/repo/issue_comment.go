@@ -178,6 +178,10 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.APIErrorNotFound()
+		return
+	}
 	issue.Repo = ctx.Repo.Repository
 
 	opts := &issues_model.FindCommentsOptions{

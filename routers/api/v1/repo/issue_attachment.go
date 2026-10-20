@@ -339,6 +339,10 @@ func getIssueFromContext(ctx *context.APIContext) *issues_model.Issue {
 		ctx.APIErrorAuto(err)
 		return nil
 	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.APIErrorNotFound()
+		return nil
+	}
 
 	issue.Repo = ctx.Repo.Repository
 

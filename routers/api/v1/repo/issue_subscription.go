@@ -114,6 +114,10 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 
 		return
 	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.APIErrorNotFound()
+		return
+	}
 
 	user, err := user_model.GetUserByName(ctx, ctx.PathParam("user"))
 	if err != nil {
@@ -195,6 +199,10 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 
 		return
 	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.APIErrorNotFound()
+		return
+	}
 
 	watching, err := issues_model.CheckIssueWatch(ctx, ctx.Doer, issue)
 	if err != nil {
@@ -259,6 +267,10 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 		}
 
+		return
+	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.APIErrorNotFound()
 		return
 	}
 
