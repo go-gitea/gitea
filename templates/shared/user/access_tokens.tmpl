@@ -101,7 +101,7 @@
 	</div>
 </div>
 
-<div class="ui small modal" id="delete-token">
+<dialog class="modal-dialog" id="delete-token">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "settings.access_token_deletion"}}
@@ -110,10 +110,10 @@
 		<p>{{ctx.Locale.Tr "settings.access_token_deletion_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm"}}
-</div>
+</dialog>
 
 {{if not .IsBot}}
-	<div class="ui small modal" id="regenerate-token">
+	<dialog class="modal-dialog" id="regenerate-token">
 		<div class="header">
 			{{ctx.Locale.Tr "settings.access_token_regeneration"}}
 		</div>
@@ -121,5 +121,5 @@
 			<p>{{ctx.Locale.Tr "settings.access_token_regeneration_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm"}}
-	</div>
+	</dialog>
 {{end}}
