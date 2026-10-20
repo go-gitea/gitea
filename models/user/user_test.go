@@ -295,18 +295,13 @@ func TestNewGitSig(t *testing.T) {
 }
 
 func TestDisplayName(t *testing.T) {
-	users := make([]*user_model.User, 0, 20)
-	err := db.GetEngine(t.Context()).Find(&users)
-	assert.NoError(t, err)
+	u := &user_model.User{Name: "name"}
+	assert.Equal(t, "name", u.DisplayName())
+	assert.Equal(t, "name", u.DisplayNameWithFullName())
 
-	for _, user := range users {
-		displayName := user.DisplayName()
-		assert.Equal(t, strings.TrimSpace(displayName), displayName)
-		if len(strings.TrimSpace(user.FullName)) == 0 {
-			assert.Equal(t, user.Name, displayName)
-		}
-		assert.NotEmpty(t, strings.TrimSpace(displayName))
-	}
+	u = &user_model.User{Name: "name", FullName: "Full Name"}
+	assert.Equal(t, "Full Name", u.DisplayName())
+	assert.Equal(t, "name (Full Name)", u.DisplayNameWithFullName())
 }
 
 func TestCreateUserEmailAlreadyUsed(t *testing.T) {
