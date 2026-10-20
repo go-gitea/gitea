@@ -6,6 +6,7 @@ package setting
 import (
 	"testing"
 
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -29,12 +30,31 @@ BLOCKED_DOMAINS = gitlab.com`: {"10.0.0.0/8", "evil.com", "lax", ""},
 EGRESS_MODE = lax`: {"github.com:*", "", "lax", ""},
 		`ALLOWED_HOST_LIST = example.com
 ALLOWED_INTERNAL_RANGES = 10.0.0.0/8, cgnat`: {"example.com", "", "lax", "10.0.0.0/8, cgnat"},
-		// an invalid block entry is logged and dropped, startup continues
-		`BLOCKED_HOST_LIST = 10.0.0.5/8`: {"", "10.0.0.5/8", "lax", ""},
+		// an invalid allow entry is logged and dropped, startup continues
+		`ALLOWED_HOST_LIST = 10.0.0.5/8`: {"10.0.0.5/8", "", "lax", ""},
 	} {
 		cfg, err := NewConfigProviderFromData("[migrations]\n" + ini)
 		require.NoError(t, err)
 		loadMigrationsFrom(cfg)
 		assert.Equal(t, want, [4]string{Migrations.AllowedHostList, Migrations.BlockedHostList, Migrations.EgressMode, Migrations.AllowedInternalRanges}, ini)
 	}
+}
+
+func TestLoadMigrationsFromBlockListInvalid(t *testing.T) {
+	defer test.MockVariableValue(&Migrations)()
+	defer test.MockVariableValue(&StartupProblems)()
+	exitCode := 0
+	defer test.MockVariableValue(&log.OsExiter, func(code int) { exitCode = code })()
+
+	// a valid block list starts up
+	cfg, err := NewConfigProviderFromData("[migrations]\nBLOCKED_HOST_LIST = evil.com\n")
+	require.NoError(t, err)
+	loadMigrationsFrom(cfg)
+	assert.Equal(t, 0, exitCode)
+
+	// an invalid block entry stops startup, a dropped block entry would allow a blocked host
+	cfg, err = NewConfigProviderFromData("[migrations]\nBLOCKED_HOST_LIST = 10.0.0.5/8\n")
+	require.NoError(t, err)
+	loadMigrationsFrom(cfg)
+	assert.Equal(t, 1, exitCode)
 }
