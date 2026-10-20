@@ -223,13 +223,15 @@ func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 }
 
 func DeleteIssueReaction(ctx context.Context, doerID, issueID int64, content string) error {
-	sess := db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0 AND user_id = ? AND `type` = ?", issueID, doerID, content)
+	// here and below: the migration reactions have unrelated user_id (might be the doer?)
+	// so skip the deletion if the reaction is from an external user (original_author_id != 0)
+	sess := db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0 AND user_id = ? AND original_author_id = 0 AND `type` = ?", issueID, doerID, content)
 	_, err := sess.Delete(&Reaction{})
 	return err
 }
 
 func DeleteCommentReaction(ctx context.Context, doerID, issueID, commentID int64, content string) error {
-	sess := db.GetEngine(ctx).Where("issue_id = ? AND comment_id = ? AND user_id = ? AND `type` = ?", issueID, commentID, doerID, content)
+	sess := db.GetEngine(ctx).Where("issue_id = ? AND comment_id = ? AND user_id = ? AND original_author_id = 0 AND `type` = ?", issueID, commentID, doerID, content)
 	_, err := sess.Delete(&Reaction{})
 	return err
 }
