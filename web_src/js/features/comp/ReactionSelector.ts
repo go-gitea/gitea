@@ -1,4 +1,4 @@
-import {handleFetchActionSuccessJson, performFetchActionRequest} from '../../modules/fetch-action.ts';
+import {performFetchActionRequest} from '../../modules/fetch-action.ts';
 import {registerGlobalEventFunc} from '../../modules/observer.ts';
 import {createTippy} from '../../modules/tippy.ts';
 import {createElementFromHTML} from '../../utils/dom.ts';

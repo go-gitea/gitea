@@ -112,17 +112,21 @@ func init() {
 // FindReactionsOptions describes the conditions to Find reactions
 type FindReactionsOptions struct {
 	db.ListOptions
-	IssueOnlyID int64
-	CommentID   int64
-	ReleaseID   int64
-	UserID      int64
+	IssueIDOnly         int64
+	IssueIDWithComments int64
+	CommentID           int64
+	ReleaseID           int64
+	UserID              int64
 }
 
 func (opts *FindReactionsOptions) toConds() builder.Cond {
 	// If Issue ID is set add to Query
 	cond := builder.NewCond()
-	if opts.IssueOnlyID > 0 {
-		cond = cond.And(builder.Eq{"reaction.issue_id": opts.IssueOnlyID}).And(builder.Expr("reaction.comment_id = 0"))
+	if opts.IssueIDOnly > 0 {
+		cond = cond.And(builder.Eq{"reaction.issue_id": opts.IssueIDOnly}).And(builder.Expr("reaction.comment_id = 0"))
+	}
+	if opts.IssueIDWithComments > 0 {
+		cond = cond.And(builder.Eq{"reaction.issue_id": opts.IssueIDOnly})
 	}
 	if opts.CommentID > 0 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
@@ -149,7 +153,7 @@ func FindCommentReactions(ctx context.Context, commentID int64) (ReactionList, i
 func FindIssueReactions(ctx context.Context, issueID int64, listOptions db.ListOptions) (ReactionList, int64, error) {
 	return FindReactions(ctx, FindReactionsOptions{
 		ListOptions: listOptions,
-		IssueOnlyID: issueID,
+		IssueIDOnly: issueID,
 	})
 }
 
