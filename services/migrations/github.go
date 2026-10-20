@@ -72,6 +72,7 @@ type GithubDownloaderV3 struct {
 	rates         []*github.Rate
 	curClientIdx  int
 	maxPerPage    int
+	issueCursors  map[int]string
 	SkipReactions bool
 	SkipReviews   bool
 }
@@ -416,6 +417,9 @@ func (g *GithubDownloaderV3) GetReleases(ctx context.Context) ([]*base.Release, 
 
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
+	if page == 1 || g.issueCursors == nil {
+		g.issueCursors = make(map[int]string)
+	}
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -428,12 +432,16 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 			Page:    page,
 		},
 	}
+	if cursor := g.issueCursors[page]; cursor != "" {
+		opt.ListOptions.Page = 0
+		opt.ListCursorOptions.After = cursor
+	}
 
 	allIssues := make([]*base.Issue, 0, perPage)
 	g.waitAndPickClient(ctx)
 	issues, resp, err := g.getClient().Issues.ListByRepo(ctx, g.repoOwner, g.repoName, opt)
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %w", err)
+		return nil, false, fmt.Errorf("GetIssues: %w", err)
 	}
 	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
 	g.setRate(&resp.Rate)
@@ -500,7 +508,8 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 		})
 	}
 
-	return allIssues, len(issues) < perPage, nil
+	g.issueCursors[page+1] = resp.After
+	return allIssues, resp.NextPage == 0 && resp.After == "", nil
 }
 
 // SupportGetRepoComments return true if it supports get repo comments
