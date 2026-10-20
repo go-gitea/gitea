@@ -885,24 +885,27 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
-	currentReview, err := issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
-	if err != nil && !issues_model.IsErrReviewNotExist(err) {
-		ctx.ServerError("GetCurrentReview", err)
-		return
-	}
-	numPendingCodeComments := int64(0)
-	if currentReview != nil {
-		numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
-			Type:     issues_model.CommentTypeCode,
-			ReviewID: currentReview.ID,
-			IssueID:  issue.ID,
-		})
-		if err != nil {
-			ctx.ServerError("CountComments", err)
+	var numPendingCodeComments int64
+	var currentPendingReview *issues_model.Review
+	if ctx.Doer != nil {
+		currentPendingReview, err = issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
+		if err != nil && !issues_model.IsErrReviewNotExist(err) {
+			ctx.ServerError("GetCurrentReview", err)
 			return
 		}
+		if currentPendingReview != nil {
+			numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
+				Type:     issues_model.CommentTypeCode,
+				ReviewID: currentPendingReview.ID,
+				IssueID:  issue.ID,
+			})
+			if err != nil {
+				ctx.ServerError("CountComments", err)
+				return
+			}
+		}
 	}
-	ctx.Data["CurrentReview"] = currentReview
+	ctx.Data["CurrentReview"] = currentPendingReview
 	ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
 
 	ctx.Data["IsIssuePoster"] = ctx.Doer != nil && issue.IsPoster(ctx.Doer.ID)
