@@ -214,8 +214,8 @@ func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 
 	err := db.Insert(ctx, reaction)
 	if err != nil {
-		if has, _ := db.GetEngine(ctx).Exist(reaction); has {
-			return nil, ErrReactionAlreadyExist{Reaction: opts.Type}
+		if has, _ := db.GetEngine(ctx).Get(reaction); has {
+			return reaction, ErrReactionAlreadyExist{Reaction: opts.Type}
 		}
 		return nil, err
 	}
