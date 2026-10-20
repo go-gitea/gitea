@@ -1,5 +1,6 @@
 import {initGlobalShortcut, makeFullKeyFromEvent} from './shortcut.ts';
 import {initGlobalSelectorObserver} from './observer.ts';
+import {initGlobalModal} from './modal.ts';
 
 function press(key: string, options: KeyboardEventInit = {}, target: HTMLElement = document.body) {
   const event = new KeyboardEvent('keydown', {key, bubbles: true, cancelable: true, ...options});
@@ -18,6 +19,7 @@ beforeAll(() => {
     <select><option>Value</option></select>
     <div contenteditable="true"><span>Editable</span></div>
   `;
+  initGlobalModal();
   initGlobalShortcut();
   initGlobalSelectorObserver(null);
 });

@@ -1,9 +1,10 @@
 import {userEvent} from 'vitest/browser';
 import {createElementFromHTML} from '../utils/dom.ts';
-import {hideModal, showModal} from './modal.ts';
+import {hideModal, initGlobalModal, showModal} from './modal.ts';
 import {showErrorToast} from './toast.ts';
 
 test('showModal blocks the page and restores focus until closed by actions, backdrop or unconsumed Escape on the topmost modal', async () => {
+  initGlobalModal();
   document.body.innerHTML = `
     <button id="opener">Opener</button>
     <dialog class="modal-dialog">
