@@ -336,29 +336,49 @@ func NewBlockList(hostList string) *BlockList {
 // ParseInternalRanges parses a comma-separated list of CIDRs, IPs and named ranges into
 // prefixes, returning the entries it rejects so callers can log them at startup.
 func ParseInternalRanges(hostList string) (prefixes []netip.Prefix, rejected []string) {
+	rejectPorts := func(entry string) {
+		rejected = append(rejected, fmt.Sprintf("invalid range %q: ports are not supported, a range covers every port (ports come from the allow entries)", entry))
+	}
 	for entry := range strings.SplitSeq(hostList, ",") {
 		entry = strings.ToLower(strings.TrimSpace(entry))
 		if entry == "" {
 			continue
 		}
-		if expanded, ok := newNamedRanges(entry, nil); ok {
+		target, portSpec, err := splitEntry(entry)
+		if err != nil {
+			rejected = append(rejected, fmt.Sprintf("invalid range %q: %v", entry, err))
+			continue
+		}
+		if portSpec != "" {
+			rejectPorts(entry)
+			continue
+		}
+		if expanded, ok := newNamedRanges(target, nil); ok {
 			for _, rule := range expanded {
 				prefixes = append(prefixes, rule.prefix)
 			}
 			continue
 		}
-		rule, err := newPrefixRule(entry, nil)
+		rule, err := newPrefixRule(target, nil)
 		if err != nil {
-			if errors.Is(err, errNotIP) {
+			switch {
+			case errors.Is(err, errNotIP):
 				rejected = append(rejected, fmt.Sprintf("invalid range %q: not an IP, CIDR, or named range", entry))
-			} else {
+			case strings.Contains(target, "/") && strings.Contains(target, ":"):
+				rejectPorts(entry) // an unbracketed IPv6 CIDR with a port
+			default:
 				rejected = append(rejected, err.Error())
 			}
 			continue
 		}
 		if rule.prefix.Addr().Is4In6() {
-			rejected = append(rejected, fmt.Sprintf("invalid range %q: IPv4-mapped CIDR never matches, use the IPv4 form", entry))
-			continue
+			// normalize like the bare addresses newPrefixRule unmaps
+			if bits := rule.prefix.Bits() - 96; bits > 0 {
+				rule.prefix = netip.PrefixFrom(rule.prefix.Addr().Unmap(), bits)
+			} else {
+				rejected = append(rejected, fmt.Sprintf("invalid range %q: unmaps to the catch-all CIDR 0.0.0.0/0, which covers every address and is not allowed", entry))
+				continue
+			}
 		}
 		prefixes = append(prefixes, rule.prefix)
 	}

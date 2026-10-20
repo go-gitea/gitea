@@ -79,7 +79,7 @@ A restricted target needs an IP allow entry (IP, CIDR, or named range) or a host
 
 ## Internal Ranges for Hostname Entries
 
-`ALLOWED_INTERNAL_RANGES` (per policy section, same list format as the allow list: CIDRs, IPs, named ranges) lets hostname allow entries cover restricted targets. It exists for hosts whose IP roams within a known range (DHCP, containers, Tailscale's CGNAT space) where pinning an exact IP is impractical.
+`ALLOWED_INTERNAL_RANGES` (per policy section, CIDRs, IPs and named ranges like the allow list, but no ports or hostnames) lets hostname allow entries cover restricted targets. IPv4-mapped entries are normalized to their IPv4 form (`::ffff:10.0.0.0/104` becomes `10.0.0.0/8`). It exists for hosts whose IP roams within a known range (DHCP, containers, Tailscale's CGNAT space) where pinning an exact IP is impractical.
 
 A hostname entry matches a restricted target only when **all** of these hold, checked at dial time on the actually-resolved IP:
 
