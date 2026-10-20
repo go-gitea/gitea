@@ -5,7 +5,6 @@ package release
 
 import (
 	"context"
-	"slices"
 
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
@@ -13,20 +12,11 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-// GitHub doesn't allow negative reactions on releases
-func isNegativeReaction(reaction string) bool {
-	return reaction == "-1" || reaction == "confused"
-}
-
 func AllowedReleaseReactions() []string {
-	return slices.DeleteFunc(slices.Clone(setting.UI.Reactions), isNegativeReaction)
+	return setting.UI.ReleaseReactions
 }
 
 func CreateReleaseReaction(ctx context.Context, doer *user_model.User, rel *repo_model.Release, content string) (*issues_model.Reaction, error) {
-	if isNegativeReaction(content) {
-		return nil, issues_model.ErrForbiddenIssueReaction{Reaction: content}
-	}
-
 	if err := rel.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -35,7 +25,7 @@ func CreateReleaseReaction(ctx context.Context, doer *user_model.User, rel *repo
 		return nil, user_model.ErrBlockedUser
 	}
 
-	return issues_model.CreateReaction(ctx, &issues_model.ReactionOptions{
+	return issues_model.CreateReaction(ctx, setting.UI.ReleaseReactionsLookup, &issues_model.ReactionOptions{
 		Type:      content,
 		DoerID:    doer.ID,
 		ReleaseID: rel.ID,

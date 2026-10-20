@@ -199,8 +199,8 @@ type ReactionOptions struct {
 }
 
 // CreateReaction creates reaction for issue, comment or release.
-func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, error) {
-	if !setting.UI.ReactionsLookup.Contains(opts.Type) {
+func CreateReaction(ctx context.Context, allowed container.Set[string], opts *ReactionOptions) (*Reaction, error) {
+	if !allowed.Contains(opts.Type) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
