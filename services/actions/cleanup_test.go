@@ -133,13 +133,16 @@ func TestCleanupRetentionZeroKeepsForever(t *testing.T) {
 		require.NoError(t, err)
 		assert.Zero(t, reuploaded.ExpiredUnix)
 
-		// a past expiry must stay reapable, not land on the sentinel
+		// a past expiry from a skewed runner clock must not land on the sentinel or be reaped at once
 		past, err := actions_model.CreateArtifact(t.Context(), task, "long-gone", "c.txt", optional.Some(timeutil.TimeStamp(-1000)))
 		require.NoError(t, err)
-		assert.Positive(t, past.ExpiredUnix)
+		assert.Greater(t, past.ExpiredUnix, timeutil.TimeStampNow())
 
 		_, err = db.GetEngine(t.Context()).In("id", art.ID, past.ID).Cols("status").
 			Update(&actions_model.ActionArtifact{Status: actions_model.ArtifactStatusUploadConfirmed})
+		require.NoError(t, err)
+		_, err = db.GetEngine(t.Context()).ID(past.ID).Cols("expired_unix").
+			Update(&actions_model.ActionArtifact{ExpiredUnix: 1})
 		require.NoError(t, err)
 		expiring, err := actions_model.ListNeedExpiredArtifacts(t.Context())
 		require.NoError(t, err)

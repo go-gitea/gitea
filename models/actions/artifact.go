@@ -92,13 +92,20 @@ type ActionArtifact struct {
 const artifactKeepForever timeutil.TimeStamp = 0
 
 func artifactExpiry(requested optional.Option[timeutil.TimeStamp]) timeutil.TimeStamp {
-	if requested.Has() {
-		return max(requested.Value(), artifactKeepForever+1)
+	now := timeutil.TimeStampNow()
+	instanceExpiry := artifactKeepForever
+	if setting.Actions.ArtifactRetentionDays > 0 {
+		instanceExpiry = now.Add(timeutil.Day * setting.Actions.ArtifactRetentionDays)
 	}
-	if setting.Actions.ArtifactRetentionDays <= 0 {
-		return artifactKeepForever
+	if !requested.Has() {
+		return instanceExpiry
 	}
-	return timeutil.TimeStampNow().Add(timeutil.Day * setting.Actions.ArtifactRetentionDays)
+	// the requested expiry is computed with the runner's clock, so bound it by the instance's clock
+	expiry := max(requested.Value(), now.Add(timeutil.Day))
+	if instanceExpiry != artifactKeepForever {
+		expiry = min(expiry, instanceExpiry)
+	}
+	return expiry
 }
 
 // CreateArtifact returns the artifact for the name and path, creating it on first upload and refreshing its expiry either way.
