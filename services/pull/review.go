@@ -24,7 +24,7 @@ import (
 )
 
 func isErrBlameNotFoundOrNotEnoughLines(err error) bool {
-	return gitcmd.IsStderr(err, gitcmd.StderrNoSuchPath, gitcmd.StderrFileNoEnoughLines)
+	return gitcmd.IsStderr(err, gitcmd.StderrNoSuchPath, gitcmd.StderrFileNoEnoughLines, gitcmd.StderrBadObject)
 }
 
 // ErrDismissRequestOnClosedPR represents an error when a user tries to dismiss a review associated to a closed or merged PR.
@@ -248,10 +248,15 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			// Get latest commit referencing the commented line
 			// No need for get commit for base branch changes
 			commit, err := lineBlame(ctx, pr.BaseRepo, gitRepo, head, treePath, uint(line))
+			// A force push may have removed the review's stored commit.
+			if err != nil && head != pr.GetGitHeadRefName() {
+				head = pr.GetGitHeadRefName()
+				commit, err = lineBlame(ctx, pr.BaseRepo, gitRepo, head, treePath, uint(line))
+			}
 			if err == nil {
 				commitID = commit.ID.String()
-			} else if !isErrBlameNotFoundOrNotEnoughLines(err) {
-				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %w", pr.GetGitHeadRefName(), gitRepo.LogString(), treePath, line, err)
+			} else {
+				log.Debug("LineBlame[%s, %s, %s, %d]: %v", head, gitRepo.LogString(), treePath, line, err)
 			}
 		}
 	}
