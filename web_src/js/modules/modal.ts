@@ -8,17 +8,21 @@ type ModalOpts = {
   onHidden?: () => void,
 };
 
-const modalStates = new WeakMap<Element, {opts: ModalOpts, opener: HTMLElement | null}>();
+const modalStates = new WeakMap<Element, {opts: ModalOpts, opener: Element | null}>();
 
 const topModal = () => Array.from(document.querySelectorAll<HTMLDialogElement>('.modal-dialog[open]')).at(-1);
 
 function blockPage(elBackdrop?: Element | null) {
-  const blocked = Boolean(elBackdrop);
-  if (document.body.classList.contains('modal-page-blocked') !== blocked) {
-    document.body.style.marginRight = blocked ? `${window.innerWidth - document.documentElement.clientWidth}px` : ''; // keep the page width when its scrollbar disappears
-    document.body.classList.toggle('modal-page-blocked', blocked);
+  const wasBlocked = document.body.classList.contains('modal-page-blocked');
+  const shouldBlock = Boolean(elBackdrop);
+  if (wasBlocked !== shouldBlock) {
+    // keep the page width when its scrollbar disappears
+    document.body.style.marginRight = shouldBlock ? `${window.innerWidth - document.documentElement.clientWidth}px` : '';
+    document.body.classList.toggle('modal-page-blocked', shouldBlock);
   }
-  for (const el of document.body.children) (el as HTMLElement).inert = blocked && el !== elBackdrop;
+  for (const el of document.body.children) {
+    (el as HTMLElement).inert = shouldBlock && el !== elBackdrop;
+  }
 }
 
 window.addEventListener('keydown', (e) => { // on window, so popups handling Escape on document can consume it first
@@ -30,7 +34,12 @@ window.addEventListener('keydown', (e) => { // on window, so popups handling Esc
 function defaultApprove(elApprove: Element): boolean {
   const elForm = elApprove.closest('form');
   if (!elForm) return true;
-  if (!elForm.matches('.form-fetch-action') && elForm.reportValidity()) elForm.classList.add('is-loading'); // keep the modal open while its form submits
+
+  // if there is traditional form, keep the modal open while the form submits
+  // "form-fetch-action" form's submit (is-loading) is handled by the fetch-action module
+  if (!elForm.matches('.form-fetch-action') && elForm.reportValidity()) {
+    elForm.classList.add('is-loading');
+  }
   return false;
 }
 
@@ -38,10 +47,11 @@ function createModalBackdrop(elModal: HTMLDialogElement): HTMLElement {
   const elBackdrop = document.createElement('div');
   elBackdrop.className = 'modal-backdrop';
   elBackdrop.append(elModal);
-  const elLabel = elModal.querySelector(':scope > .header, :scope > .content');
-  if (elLabel) {
-    elLabel.id ||= generateElemId('_modal_label_');
-    elModal.setAttribute('aria-labelledby', elLabel.id);
+
+  const elAriaLabelTarget = elModal.querySelector(':scope > .header, :scope > .content');
+  if (elAriaLabelTarget) {
+    elAriaLabelTarget.id ||= generateElemId('_modal_label_');
+    elModal.setAttribute('aria-labelledby', elAriaLabelTarget.id);
   }
 
   let backdropPressed = false;
@@ -65,13 +75,18 @@ function createModalBackdrop(elModal: HTMLDialogElement): HTMLElement {
 
 export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
   if (elModal.open) return;
+
   const elBackdrop = elModal.parentElement?.matches('.modal-backdrop') ? elModal.parentElement : createModalBackdrop(elModal);
-  modalStates.set(elModal, {opts, opener: document.activeElement as HTMLElement | null});
+  modalStates.set(elModal, {opts, opener: document.activeElement});
   elModal.querySelector('.close-modal')?.setAttribute('aria-label', 'Close');
-  queryElems(elModal, 'form button.cancel:not([type])', (button) => button.setAttribute('type', 'button')); // otherwise "Enter" in the form clicks this "cancel" button before the "ok" button
+
+  // Avoid "cancel" buttons submitting the form, otherwise "Enter" in the form clicks this "cancel" button before the "ok" button
+  queryElems(elModal, 'form button.cancel:not([type])', (button) => button.setAttribute('type', 'button'));
+
   hideToastsAll();
   hideAll();
   blockPage(elBackdrop);
+
   elModal.show(); // not showModal: popups and toasts mounted on body must stay usable above it, see https://github.com/whatwg/html/issues/9936
   opts.onShow?.();
 }
@@ -82,8 +97,11 @@ export function hideModal(elModal: HTMLDialogElement) {
   const elBackdrop = elModal.parentElement!;
   elModal.close();
   blockPage(topModal()?.parentElement);
-  (document.activeElement as HTMLElement).blur(); // don't leave the focus in the closed dialog when the opener is gone
-  opener?.focus();
+
+  // don't leave the focus in the closed dialog when the opener is gone
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  if (opener instanceof HTMLElement) opener.focus();
+
   hideToastsAll();
   queryElems(elModal, 'form', (form: HTMLFormElement) => form.reset());
   opts.onHidden?.();
