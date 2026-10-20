@@ -72,9 +72,12 @@ type GithubDownloaderV3 struct {
 	rates         []*github.Rate
 	curClientIdx  int
 	maxPerPage    int
-	issueCursors  map[int]string
 	SkipReactions bool
 	SkipReviews   bool
+
+	issuePage       int
+	issueCursor     string
+	nextIssueCursor string
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
@@ -417,9 +420,6 @@ func (g *GithubDownloaderV3) GetReleases(ctx context.Context) ([]*base.Release, 
 
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
-	if g.issueCursors == nil {
-		g.issueCursors = make(map[int]string)
-	}
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -432,7 +432,14 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 			Page:    page,
 		},
 	}
-	if cursor := g.issueCursors[page]; cursor != "" {
+	var cursor string
+	switch page {
+	case g.issuePage:
+		cursor = g.issueCursor
+	case g.issuePage + 1:
+		cursor = g.nextIssueCursor
+	}
+	if cursor != "" {
 		opt.ListOptions.Page = 0
 		opt.ListCursorOptions.After = cursor
 	}
@@ -508,7 +515,7 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 		})
 	}
 
-	g.issueCursors[page+1] = resp.After
+	g.issuePage, g.issueCursor, g.nextIssueCursor = page, cursor, resp.After
 	return allIssues, resp.NextPage == 0 && resp.After == "", nil
 }
 
