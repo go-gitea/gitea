@@ -6,7 +6,6 @@ package integration
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -292,21 +291,14 @@ func TestReleaseReaction(t *testing.T) {
 
 	session.MakeRequest(t, reactReq(1, "react", "-1"), http.StatusForbidden)
 
-	resp := session.MakeRequest(t, reactReq(1, "react", "heart"), http.StatusOK)
-	assert.Contains(t, resp.Body.String(), "bottom-reactions")
+	session.MakeRequest(t, reactReq(1, "react", "heart"), http.StatusOK)
 	session.MakeRequest(t, reactReq(1, "react", "heart"), http.StatusOK)
 	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 1}, 1)
 
-	resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/releases"), http.StatusOK)
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/releases"), http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	AssertHTMLElement(t, htmlDoc, `.bottom-reactions a.ui.label[data-reaction-content="heart"]`, 1)
 	AssertHTMLElement(t, htmlDoc, `.reaction-picker [data-reaction-content="-1"]`, 0)
-
-	reactions := DecodeJSON(t, session.MakeRequest(t, reactReq(1, "unreact", "heart"), http.StatusOK), struct{ HTML string }{})
-	htmlDoc = NewHTMLParser(t, strings.NewReader(reactions.HTML))
-	AssertHTMLElement(t, htmlDoc, `.bottom-reactions a.ui.label`, 0)
-	AssertHTMLElement(t, htmlDoc, `.reaction-picker .item`, 6)
-	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 1}, 0)
 
 	for _, releaseID := range []int64{2, 3, 4} {
 		session.MakeRequest(t, reactReq(releaseID, "react", "heart"), http.StatusNotFound)

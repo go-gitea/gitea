@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -186,10 +187,13 @@ func FindReleaseReactions(ctx context.Context, releaseIDs ...int64) (ReactionLis
 	reactions := make(ReactionList, 0, 10)
 	err := db.GetEngine(ctx).
 		In("release_id", releaseIDs).
-		In("`type`", setting.UI.Reactions).
 		Asc("created_unix", "id").
 		Find(&reactions)
-	return reactions, err
+	if err != nil {
+		return nil, err
+	}
+	// filtered here because an IN on `type` could make the database pick the type index for this large table
+	return slices.DeleteFunc(reactions, func(r *Reaction) bool { return !slices.Contains(setting.UI.Reactions, r.Type) }), nil
 }
 
 func createReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, error) {

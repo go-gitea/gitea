@@ -702,19 +702,14 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 }
 
 func ChangeReleaseReaction(ctx *context.Context) {
-	form := web.GetForm[*forms.ReactionForm](ctx)
-	if ctx.HasError() {
-		ctx.HTTPError(http.StatusBadRequest, ctx.GetErrMsg())
+	form := context.GetFetchActionForm[*forms.ReactionForm](ctx)
+	if form == nil {
 		return
 	}
 
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
-		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetReleaseForRepoByID", err)
-		}
+		ctx.ServerError("GetReleaseForRepoByID", err)
 		return
 	}
 	if rel.IsTag || rel.IsDraft {

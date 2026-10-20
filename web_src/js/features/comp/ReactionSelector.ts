@@ -1,4 +1,4 @@
-import {POST} from '../../modules/fetch.ts';
+import {performFetchActionRequest} from '../../modules/fetch-action.ts';
 import {registerGlobalEventFunc} from '../../modules/observer.ts';
 import {createTippy} from '../../modules/tippy.ts';
 import {createElementFromHTML} from '../../utils/dom.ts';
@@ -27,10 +27,12 @@ export function initCompReactionSelector() {
     picker?.hide();
     const bottomReactions = (picker?.reference ?? target).closest('.bottom-reactions')!;
     const hasReacted = target.getAttribute('data-has-reacted') === 'true';
-    const res = await POST(`${bottomReactions.getAttribute('data-action-url')}/${hasReacted ? 'unreact' : 'react'}`, {
+    const res = await performFetchActionRequest(target, {
+      method: 'POST',
+      url: `${bottomReactions.getAttribute('data-action-url')}/${hasReacted ? 'unreact' : 'react'}`,
       data: new URLSearchParams({content: target.getAttribute('data-reaction-content')!}),
     });
-    if (!res.ok) return;
+    if (!res) return;
 
     const data = await res.json();
     const hadFocus = bottomReactions.contains(document.activeElement);
