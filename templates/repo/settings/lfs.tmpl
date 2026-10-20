@@ -37,12 +37,12 @@
 			</tbody>
 		</table>
 		{{template "base/paginate" .}}
-		<div class="ui g-modal-confirm modal" id="delete-lfs-object">
+		<dialog class="modal-dialog" id="delete-lfs-object">
 			<div class="header"></div>
 			<form class="content" method="post">
 				<p>{{ctx.Locale.Tr "repo.settings.lfs_delete_warning"}}</p>
 				{{template "base/modal_actions_confirm"}}
 			</form>
-		</div>
+		</dialog>
 	</div>
 {{template "repo/settings/layout_footer" .}}
