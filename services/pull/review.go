@@ -15,9 +15,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/gitdiff"
 	notify_service "gitea.dev/services/notify"
@@ -266,22 +264,9 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			commitID = headCommitID
 		}
 
-		patch, err = git.GetFileDiffCutAroundLine(ctx,
-			gitRepo, pr.MergeBase, headCommitID, treePath,
-			int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
-		)
+		patch, err = gitdiff.GetCodeCommentPatch(ctx, gitRepo, pr.MergeBase, headCommitID, treePath, line)
 		if err != nil {
 			return nil, err
-		}
-
-		// If patch is still empty (unchanged line), generate code context
-		contextCommitID := util.Iif(line < 0, pr.MergeBase, headCommitID) // the line number is relative to the diff sides, not to the blamed commitID
-		if patch == "" && contextCommitID != "" {
-			patch, err = gitdiff.GeneratePatchForUnchangedLine(ctx, gitRepo, contextCommitID, treePath, line, setting.UI.CodeCommentLines)
-			if err != nil {
-				// Log the error but don't fail comment creation
-				log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, contextCommitID, err)
-			}
 		}
 	}
 	return issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
