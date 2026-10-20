@@ -88,59 +88,39 @@ func TestMisc_IsReadmeFileName(t *testing.T) {
 	for _, testCase := range falseTestCases {
 		assert.False(t, IsReadmeFileName(testCase))
 	}
+}
 
-	type extensionTestcase struct {
+func TestMatchFileStem(t *testing.T) {
+	exts := []string{".md", ".txt", ""}
+	testCases := []struct {
 		name     string
+		stems    []string
 		expected bool
 		idx      int
+	}{
+		{name: "readme", stems: []string{"readme"}, expected: true, idx: 2},
+		{name: "README.md", stems: []string{"readme"}, expected: true, idx: 0},
+		{name: "ReAdMe.Md", stems: []string{"readme"}, expected: true, idx: 0},
+		{name: "readme.txt", stems: []string{"readme"}, expected: true, idx: 1},
+		{name: "readme.doc", stems: []string{"readme"}, expected: true, idx: 3},
+		{name: "readme..", stems: []string{"readme"}, expected: true, idx: 3},
+		{name: "readmee.md", stems: []string{"readme"}},
+		{name: "contributing.md", stems: []string{"contributing"}, expected: true, idx: 0},
+		{name: "CONTRIBUTING.MD", stems: []string{"contributing"}, expected: true, idx: 0},
+		{name: "contributing", stems: []string{"contributing"}, expected: true, idx: 2},
+		{name: "CODE-OF-CONDUCT.md", stems: []string{"code_of_conduct", "code-of-conduct"}, expected: true, idx: 0},
+		{name: "CODE_OF_CONDUCT.md", stems: []string{"code_of_conduct", "code-of-conduct"}, expected: true, idx: 0},
+		{name: "CONTRIBUTING_GUIDE.md", stems: []string{"contributing"}},
+		{name: "LICENSE-MIT.md", stems: []string{"license"}},
+		{name: "licenses.md", stems: []string{"license"}},
+		{name: "README.md.bak", stems: []string{"readme"}, expected: true, idx: 3},
 	}
-
-	exts := []string{".md", ".txt", ""}
-	testCasesExtensions := []extensionTestcase{
-		{
-			name:     "readme",
-			expected: true,
-			idx:      2,
-		},
-		{
-			name:     "readme.md",
-			expected: true,
-			idx:      0,
-		},
-		{
-			name:     "README.md",
-			expected: true,
-			idx:      0,
-		},
-		{
-			name:     "ReAdMe.Md",
-			expected: true,
-			idx:      0,
-		},
-		{
-			name:     "readme.txt",
-			expected: true,
-			idx:      1,
-		},
-		{
-			name:     "readme.doc",
-			expected: true,
-			idx:      3,
-		},
-		{
-			name: "readmee.md",
-		},
-		{
-			name:     "readme..",
-			expected: true,
-			idx:      3,
-		},
-	}
-
-	for _, testCase := range testCasesExtensions {
-		idx, ok := IsReadmeFileExtension(testCase.name, exts...)
-		assert.Equal(t, testCase.expected, ok)
-		assert.Equal(t, testCase.idx, idx)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			idx, ok := MatchFileStem(testCase.name, testCase.stems, exts)
+			assert.Equal(t, testCase.expected, ok)
+			assert.Equal(t, testCase.idx, idx)
+		})
 	}
 }
 

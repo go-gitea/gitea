@@ -43,6 +43,7 @@ func TestRepoView(t *testing.T) {
 	t.Run("BlameFileInRepo", testBlameFileInRepo)
 	t.Run("ViewRepoDirectory", testViewRepoDirectory)
 	t.Run("ViewRepoDirectoryReadme", testViewRepoDirectoryReadme)
+	t.Run("ViewRepoDirectoryDocTabs", testViewRepoDirectoryDocTabs)
 	t.Run("ViewRepoSymlink", testViewRepoSymlink)
 	t.Run("ViewRepoCitationPicksCFFCaseInsensitivelyThroughSymlink", testViewRepoCitationPicksCFFCaseInsensitivelyThroughSymlink)
 	t.Run("MarkDownReadmeImage", testMarkDownReadmeImage)
@@ -404,11 +405,15 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 			resp := session.MakeRequest(t, req, http.StatusOK)
 
 			htmlDoc := NewHTMLParser(t, resp.Body)
-			readmeName := htmlDoc.doc.Find("h4.file-header")
+			readmeName := htmlDoc.doc.Find(".repo-doc-tabs .item.active")
+			readmeFilename := readmeName.AttrOr("title", "")
+			if readmeName.Length() == 0 {
+				readmeFilename = strings.TrimSpace(htmlDoc.doc.Find(".file-header-left strong").Text())
+			}
 			readmeContent := htmlDoc.doc.Find(".file-view") // TODO: add a id="readme" to the output to make this test more precise
 			readmeType, _ := readmeContent.Attr("class")
 
-			assert.Equal(t, expectedFilename, strings.TrimSpace(readmeName.Text()))
+			assert.Equal(t, expectedFilename, readmeFilename)
 			assert.Contains(t, readmeType, expectedReadmeType)
 			assert.Contains(t, readmeContent.Text(), expectedContent)
 		})
@@ -486,6 +491,79 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 	missing("nested-special", "/user2/readme-test/src/branch/special-subdir-nested/subproject") // the special sub-dirs should only trigger on the repo root
 	missing("special-subdir-nested", "/user2/readme-test/src/branch/special-subdir-nested/")
 	missing("symlink-loop", "/user2/readme-test/src/branch/symlink-loop/")
+}
+
+func testViewRepoDirectoryDocTabs(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	repo56 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "readme-test"})
+
+	err := git.ForceFastImport(t.Context(), repo56.CodeStorageRepo(), []git.FastImportCommit{
+		{Ref: "refs/heads/doc-tabs", Message: "init doc tabs", Files: []git.FastImportFile{
+			{Path: "README.md", Content: "readme content"},
+			{Path: "CODE_OF_CONDUCT.md", Content: "conduct content"},
+			{Path: "CONTRIBUTING.md", Content: "contributing content"},
+			{Path: "LICENSE", Content: "license content"},
+			{Path: "SECURITY.md", Content: "security content"},
+			{Path: "sub/README.md", Content: "sub readme content"},
+			{Path: "sub/SECURITY.md", Content: "sub security content"},
+		}},
+		{Ref: "refs/heads/doc-tabs-security", Message: "init security only", Files: []git.FastImportFile{
+			{Path: "SECURITY.md", Content: "security only content"},
+		}},
+	})
+	require.NoError(t, err)
+
+	session := loginUser(t, "user2")
+
+	check := func(name, url, expectedActive, expectedContent string, expectedTabs int) {
+		t.Run(name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", url)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+
+			tabs := htmlDoc.doc.Find(".repo-doc-tabs .item")
+			assert.Equal(t, expectedTabs, tabs.Length())
+			assert.Equal(t, expectedActive, strings.TrimSpace(htmlDoc.doc.Find(".repo-doc-tabs .item.active").Text()))
+			assert.Contains(t, htmlDoc.doc.Find(".file-view").Text(), expectedContent)
+		})
+	}
+
+	check("default", "/user2/readme-test/src/branch/doc-tabs/", "README", "readme content", 5)
+	check("contributing", "/user2/readme-test/src/branch/doc-tabs/?doc-tab=contributing", "Contributing", "contributing content", 5)
+	check("license", "/user2/readme-test/src/branch/doc-tabs/?doc-tab=license", "License", "license content", 5)
+	check("unknown", "/user2/readme-test/src/branch/doc-tabs/?doc-tab=unknown", "README", "readme content", 5)
+	check("subdir-readme-only", "/user2/readme-test/src/branch/doc-tabs/sub/", "", "sub readme content", 0)
+	check("security-only", "/user2/readme-test/src/branch/doc-tabs-security/", "Security", "security only content", 1)
+
+	t.Run("subdir-readme-filename", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/user2/readme-test/src/branch/doc-tabs/sub/")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+
+		assert.Equal(t, "README.md", strings.TrimSpace(htmlDoc.doc.Find(".file-header-left strong").Text()))
+		assert.Zero(t, htmlDoc.doc.Find(".repo-doc-tabs").Length())
+	})
+
+	t.Run("only-content-tab-links", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/user2/readme-test/src/branch/doc-tabs/?doc-tab=contributing&only_content=true")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+
+		tabs := htmlDoc.doc.Find(".repo-doc-tabs .item")
+		assert.Equal(t, 5, tabs.Length())
+		for i := range tabs.Length() {
+			href, _ := tabs.Eq(i).Attr("href")
+			assert.NotContains(t, href, "only_content")
+		}
+	})
 }
 
 func testViewRepoSymlink(t *testing.T) {

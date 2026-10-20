@@ -182,12 +182,16 @@ func prepareToRenderDirectory(ctx *context.Context) {
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+ctx.Repo.TreePath, ctx.Repo.RefFullName.ShortName())
 	}
 
-	subfolder, readmeFile, err := findReadmeFileInRepoTree(ctx, ctx.Repo.TreePath, treeEntry, subEntries)
+	docFiles, err := findDocFilesInRepoTree(ctx, ctx.Repo.TreePath, treeEntry, subEntries)
 	if err != nil {
-		ctx.ServerError("findReadmeFileInRepo", err)
+		ctx.ServerError("findDocFilesInRepoTree", err)
 		return
 	}
-	prepareToRenderReadmeFile(ctx, subfolder, readmeFile)
+	if len(docFiles) == 0 {
+		return
+	}
+
+	prepareToRenderDocView(ctx, docFiles)
 }
 
 func prepareHomeSidebarLanguageStats(ctx *context.Context) {

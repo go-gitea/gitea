@@ -341,28 +341,26 @@ func IsReadmeFileName(name string) bool {
 	return name[:7] == "readme."
 }
 
-// IsReadmeFileExtension reports whether name looks like a README file
-// based on its name. It will look through the provided extensions and check if the file matches
-// one of the extensions and provide the index in the extension list.
-// If the filename is `readme.` with an unmatched extension it will match with the index equaling
+// MatchFileStem reports whether name is one of the stems followed by one of exts,
+// returning the index of the matched extension. Matching is case-insensitive.
+// If the filename is one of the stems with an unmatched extension it will match with the index equaling
 // the length of the provided extension list.
-// Note that the '.' should be provided in ext, e.g ".md"
-func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
+func MatchFileStem(name string, stems, exts []string) (int, bool) {
 	name = strings.ToLower(name)
-	if len(name) < 6 || name[:6] != "readme" {
-		return 0, false
-	}
-
-	for i, extension := range ext {
-		extension = strings.ToLower(extension)
-		if name[6:] == extension {
-			return i, true
+	for _, stem := range stems {
+		stem = strings.ToLower(stem)
+		if !strings.HasPrefix(name, stem) {
+			continue
+		}
+		rest := name[len(stem):] // "", ".md", ".en.md", ...
+		for i, ext := range exts {
+			if strings.EqualFold(rest, ext) {
+				return i, true
+			}
+		}
+		if strings.HasPrefix(rest, ".") {
+			return len(exts), true
 		}
 	}
-
-	if name[6] == '.' {
-		return len(ext), true
-	}
-
 	return 0, false
 }

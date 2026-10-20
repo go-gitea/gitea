@@ -1359,6 +1359,29 @@ tbody.commit-list {
   font-size: 13px !important;
 }
 
+/* the base .file-header padding uses !important, so reset it the same way */
+.file-header.repo-doc-tabs-header {
+  align-items: stretch;
+  overflow: visible;
+  padding: 0 !important;
+}
+
+.file-header.repo-doc-tabs-header .file-header-left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.file-header.repo-doc-tabs-header .file-header-right {
+  padding: 6px 12px;
+}
+
+.file-header .repo-doc-tabs.ui.menu {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0 !important; /* overflow-menu draws a 1px border by default */
+  font-size: inherit;
+}
+
 .file-info {
   display: flex;
   align-items: center;
