@@ -36,7 +36,7 @@ export default defineConfig({
         ...devices['Desktop Firefox'],
         launchOptions: {
           firefoxUserPrefs: {
-            'dom.events.testing.asyncClipboard': true, // clipboard reads can hang without it, https://github.com/microsoft/playwright/issues/13037
+            'dom.events.testing.asyncClipboard': true, // disable paste prompt
           },
         },
       },
