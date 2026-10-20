@@ -308,10 +308,7 @@ func TestReleaseReaction(t *testing.T) {
 	AssertHTMLElement(t, htmlDoc, `.reaction-picker .item`, 6)
 	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 1}, 0)
 
-	session.MakeRequest(t, reactReq(2, "react", "heart"), http.StatusNotFound)
-	session.MakeRequest(t, reactReq(3, "react", "heart"), http.StatusNotFound)
-
-	loginUser(t, "user4").MakeRequest(t, reactReq(4, "react", "heart"), http.StatusNotFound)
-	session.MakeRequest(t, reactReq(4, "react", "heart"), http.StatusOK)
-	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 4}, 1)
+	for _, releaseID := range []int64{2, 3, 4} {
+		session.MakeRequest(t, reactReq(releaseID, "react", "heart"), http.StatusNotFound)
+	}
 }

@@ -107,7 +107,7 @@
 								{{end}}
 							</ul>
 						</details>
-						{{if not $release.IsTag}}
+						{{if not (or $release.IsTag $release.IsDraft)}}
 							{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/releases/%d/reactions" $.RepoLink $release.ID) "Reactions" $info.Reactions.GroupByType "AllowedReactions" $.AllowedReleaseReactions}}
 						{{end}}
 					</div>

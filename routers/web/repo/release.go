@@ -717,7 +717,7 @@ func ChangeReleaseReaction(ctx *context.Context) {
 		}
 		return
 	}
-	if rel.IsTag || (rel.IsDraft && !ctx.Repo.Permission.CanWrite(unit.TypeReleases)) {
+	if rel.IsTag || rel.IsDraft {
 		ctx.NotFound(nil)
 		return
 	}
