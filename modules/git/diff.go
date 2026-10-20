@@ -5,6 +5,7 @@ package git
 
 import (
 	"bufio"
+	"cmp"
 	"context"
 	"fmt"
 	"io"
@@ -200,22 +201,18 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 			}
 			if old {
 				begin, _ = strconv.ParseInt(groups["beginOld"], 10, 64)
-				end, _ = strconv.ParseInt(groups["endOld"], 10, 64)
+				end, _ = strconv.ParseInt(cmp.Or(groups["endOld"], "1"), 10, 64)
 				// init otherLine with begin of opposite side
 				otherLine, _ = strconv.ParseInt(groups["beginNew"], 10, 64)
 			} else {
 				begin, _ = strconv.ParseInt(groups["beginNew"], 10, 64)
-				if groups["endNew"] != "" {
-					end, _ = strconv.ParseInt(groups["endNew"], 10, 64)
-				} else {
-					end = 0
-				}
+				end, _ = strconv.ParseInt(cmp.Or(groups["endNew"], "1"), 10, 64)
 				// init otherLine with begin of opposite side
 				otherLine, _ = strconv.ParseInt(groups["beginOld"], 10, 64)
 			}
-			end += begin // end is for real only the number of lines in hunk
+			end += begin // exclusive end of the hunk
 			// lof is between begin and end
-			if begin <= line && end >= line {
+			if begin <= line && line < end {
 				hunk = append(hunk, lof)
 				currentLine = begin
 				continue
