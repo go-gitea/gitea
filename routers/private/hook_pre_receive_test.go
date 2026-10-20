@@ -91,6 +91,45 @@ func TestPreReceiveActionsBranch(t *testing.T) {
 	}
 }
 
+func TestPreReceiveActionsTag(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	for _, tc := range []struct {
+		name      string
+		allowlist []int64
+		allowed   bool
+	}{
+		{name: "allowlisted", allowlist: []int64{user_model.ActionsUserID}, allowed: true},
+		{name: "not allowlisted", allowlist: []int64{2}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtx, resp := contexttest.MockPrivateContext(t, "/")
+			ctx := &preReceiveContext{PrivateContext: mockCtx, opts: &private.HookOptions{UserID: user_model.ActionsUserID}}
+			ctx.SetPathParam("owner", "user2")
+			ctx.SetPathParam("repo", "repo2")
+			RepoAssignment(ctx.PrivateContext)
+			require.False(t, ctx.Written())
+			defer ctx.Repo.GitRepo.Close()
+
+			doer := user_model.NewActionsUserWithTaskID(53)
+			loadContextDoerPermission(ctx.PrivateContext, doer.ID, doer.ExtDoerData.EncodeToString())
+
+			protectedTag := &git_model.ProtectedTag{RepoID: ctx.Repo.Repository.ID, NamePattern: "v*", AllowlistUserIDs: tc.allowlist}
+			require.NoError(t, git_model.InsertProtectedTag(t.Context(), protectedTag))
+			defer func() {
+				require.NoError(t, git_model.DeleteProtectedTag(t.Context(), protectedTag))
+			}()
+
+			preReceiveTag(ctx, git.RefNameFromTag("v1.0.0"))
+			if tc.allowed {
+				assert.False(t, ctx.Written(), resp.Body.String())
+			} else {
+				assert.Equal(t, http.StatusForbidden, resp.Code)
+				assert.Contains(t, resp.Body.String(), "Tag v1.0.0 is protected")
+			}
+		})
+	}
+}
+
 // TestPreReceiveCanWriteCodePerBranch ensures the maintainer-edit write grant is evaluated against
 // the exact ref being pushed on every call, derived from that ref rather than shared mutable state.
 // Otherwise, a per-branch grant (an open PR with "allow edits from maintainers") could be batched
