@@ -219,10 +219,16 @@ func TestInternalRanges(t *testing.T) {
 	assert.NoError(t, lax.checkAddr("ci.internal.example.com", addr("::ffff:10.1.2.3", 80))) // mapped form is unmapped, still via the domain
 	assert.Error(t, lax.checkAddr("ci.internal.example.com", addr("192.168.5.5", 80)))       // restricted, outside the ranges
 	assert.Error(t, lax.checkAddr("ci.internal.example.com", addr("169.254.169.254", 80)))
-	assert.Error(t, lax.checkAddr("www.ci.internal.example.com", addr("10.1.2.3", 80))) // subdomain
+	assert.Error(t, lax.checkAddr("www.ci.internal.example.com", addr("10.1.2.3", 80))) // subdomain of a bare entry
 	assert.Error(t, lax.checkAddr("other.com", addr("10.1.2.3", 80)))                   // unlisted host
 	assert.Error(t, lax.checkAddr("", addr("10.1.2.3", 80)))                            // direct IP dial
 	assert.Error(t, lax.checkAddr("", addr("::ffff:10.1.2.3", 80)))                     // direct IP dial, mapped form
+
+	// a wildcard entry covers subdomains within the ranges, never the apex
+	wildcard := newPolicy(Lax, "*.internal.example.com", "10.0.0.0/8")
+	assert.NoError(t, wildcard.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80)))
+	assert.Error(t, wildcard.checkAddr("internal.example.com", addr("10.1.2.3", 80)))       // apex
+	assert.Error(t, wildcard.checkAddr("ci.internal.example.com", addr("192.168.5.5", 80))) // out of range
 
 	// the denial names the ranges setting when the host matches but the IP is outside
 	err := lax.checkAddr("ci.internal.example.com", addr("192.168.5.5", 80))

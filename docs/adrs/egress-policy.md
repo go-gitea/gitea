@@ -17,7 +17,7 @@ Key properties:
 
 - **Dial-time enforcement**: the resolved IP is checked in the `Dialer.Control` callback, after DNS resolution but before connect. DNS rebinding can't bypass it.
 - **Three address classes**: *reserved* (never dialable — multicast, "this network", IPv4-embedding ranges), *restricted* (private, loopback, link-local, CGNAT and special-use ranges — dialable only with an explicit allow entry), *public* (allowed by default in Lax mode).
-- **Hostname entries never cover restricted targets alone**: a hostname allow entry like `internal.example.com` does not match a restricted IP by itself. The dial-time check resolves the hostname and verifies the actual IP. A hostname entry covers restricted targets only within `ALLOWED_INTERNAL_RANGES`, and only for the exact host (see "Internal Ranges for Hostname Entries").
+- **Hostname entries never cover restricted targets alone**: a hostname allow entry like `internal.example.com` does not match a restricted IP by itself. The dial-time check resolves the hostname and verifies the actual IP. A hostname entry covers restricted targets only within `ALLOWED_INTERNAL_RANGES`, and only for a matching host (see "Internal Ranges for Hostname Entries").
 - **Proxies are operator config, not user input**: when a proxy is selected, the dial goes to the proxy (exempt from checks) and the target is not IP-checked locally. The proxy is expected to carry the egress restrictions. The one exception is the webhook-specific proxy, which still screens the target hostname before the request is handed over.
 - **Per-component policies**: migrations, git, webhooks, and general security each get their own policy instance with their own settings, defined in one place (`policies.go`).
 
@@ -83,11 +83,11 @@ A restricted target needs an IP allow entry (IP, CIDR, or named range) or a host
 
 A hostname entry matches a restricted target only when **all** of these hold, checked at dial time on the actually-resolved IP:
 
-- the request host **exactly equals** the entry's hostname (subdomains and wildcards never match),
+- the request host matches the entry's hostname (same matching as for public targets: a bare entry is exact, `*.` covers subdomains),
 - the resolved IP is within one of the configured ranges,
 - the port matches the entry's port spec.
 
-So `ALLOWED_HOST_LIST = ci.internal.example.com` with `ALLOWED_INTERNAL_RANGES = 10.0.0.0/8` allows dials to that host wherever it roams in 10/8 — and nothing else: direct IP dials, subdomains, other hostnames and out-of-range resolutions are denied. The hostname match never short-circuits the IP check (GHSA-fqjr-23c8-gg9m).
+So `ALLOWED_HOST_LIST = ci.internal.example.com` with `ALLOWED_INTERNAL_RANGES = 10.0.0.0/8` allows dials to that host wherever it roams in 10/8 — and nothing else: direct IP dials, unlisted hostnames and out-of-range resolutions are denied. The hostname match never short-circuits the IP check (GHSA-fqjr-23c8-gg9m).
 
 Security notes:
 

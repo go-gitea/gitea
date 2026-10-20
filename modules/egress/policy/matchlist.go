@@ -66,7 +66,7 @@ var namedRanges = sync.OnceValue(func() map[string][]netip.Prefix {
 		AliasLoopback: {"127.0.0.0/8", "::1/128"},
 		AliasCGNAT:    {"100.64.0.0/10"}, // carrier NAT, eg Tailscale
 	}
-	out := make(map[string][]netip.Prefix, 2)
+	out := make(map[string][]netip.Prefix, len(base))
 	for name, ranges := range base {
 		out[name] = make([]netip.Prefix, 0, len(ranges))
 		for _, r := range ranges {
@@ -394,36 +394,30 @@ func (m *matchList) MatchHostnameEntry(host string, port uint16) (string, bool) 
 	return "", false
 }
 
-// MatchHostnameInRanges matches a non-public target: the host must be exactly a listed
-// hostname (subdomains and wildcards never match) and the IP within one of the given
-// ranges, on the entry's ports.
+// MatchHostnameInRanges matches a non-public target: a hostname entry matches the host
+// (same matching as for public targets) and the IP is within one of the given ranges,
+// on the entry's ports.
 func (m *matchList) MatchHostnameInRanges(host string, ip netip.AddrPort, ranges []netip.Prefix) bool {
 	return slices.ContainsFunc(m.patterns, func(rule domainRule) bool {
-		return matchDomainExact(rule.pattern, host) &&
-			slices.ContainsFunc(rule.portRanges, func(r portRange) bool { return r.Contains(ip.Port()) }) &&
-			containsPrefix(ranges, ip.Addr())
+		return rule.Contains(normalizeHost(host), ip.Port()) && containsPrefix(ranges, ip.Addr())
 	})
 }
 
-// matchHostnameExact returns the first hostname entry exactly matching host
-func (m *matchList) matchHostnameExact(host string) (domainRule, bool) {
+// matchHostEntry returns the first hostname entry matching host, ignoring ports
+func (m *matchList) matchHostEntry(host string) (domainRule, bool) {
+	host = normalizeHost(host)
 	for _, rule := range m.patterns {
-		if matchDomainExact(rule.pattern, host) {
+		if matchDomain(rule.pattern, host) {
 			return rule, true
 		}
 	}
 	return domainRule{}, false
 }
 
-// HostnameCount returns the number of hostname entries that can cover a non-public target, wildcards excluded
+// HostnameCount returns the number of hostname entries, all of which may cover non-public
+// targets within the internal ranges
 func (m *matchList) HostnameCount() int {
-	count := 0
-	for _, rule := range m.patterns {
-		if !strings.HasPrefix(rule.pattern, "*.") && !strings.HasPrefix(rule.pattern, ".") {
-			count++
-		}
-	}
-	return count
+	return len(m.patterns)
 }
 
 // matchDomain matches a hostname entry, like CSP source lists, CORS origins and TLS
@@ -436,11 +430,6 @@ func matchDomain(pattern, host string) bool {
 		return strings.HasSuffix(host, suffix) && len(host) > len(suffix)
 	}
 	return pattern == host
-}
-
-// matchDomainExact reports whether host is exactly pattern, case-insensitive and ignoring a trailing dot
-func matchDomainExact(pattern, host string) bool {
-	return pattern == normalizeHost(host)
 }
 
 // validDomainPattern reports whether p is a usable domain pattern: any glob
@@ -508,16 +497,6 @@ func (m *matchList) MatchIPAddrEntry(ip netip.AddrPort) (netip.Prefix, bool) {
 	return netip.Prefix{}, false
 }
 
-// reservedPrefix returns the reserved range containing ip, if any
-func reservedPrefix(ip netip.Addr) (netip.Prefix, bool) {
-	for _, prefix := range reservedRanges {
-		if prefix.Contains(ip) {
-			return prefix, true
-		}
-	}
-	return netip.Prefix{}, false
-}
-
 func (m *matchList) IsEmpty() bool {
 	return len(m.patterns) == 0 && len(m.ipv4List) == 0 && len(m.ipv6List) == 0
 }
@@ -578,15 +557,22 @@ var restrictedRanges = func() (ranges []netip.Prefix) {
 	return ranges
 }()
 
-// classifyAddr reports the class of a canonical address.
-func classifyAddr(ip netip.Addr) addrClass {
-	switch {
-	case ip.Zone() != "" || !ip.IsLoopback() && inRange(reservedRanges, ip):
-		return classReserved
-	case ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || cgnatRange.Contains(ip) || inRange(restrictedRanges, ip):
-		return classRestricted
+// classifyAddr reports the class of a canonical address, and for reserved addresses the matching range.
+func classifyAddr(ip netip.Addr) (addrClass, netip.Prefix) {
+	if ip.Zone() != "" {
+		return classReserved, netip.Prefix{}
 	}
-	return classPublic
+	if !ip.IsLoopback() {
+		for _, prefix := range reservedRanges {
+			if prefix.Contains(ip) {
+				return classReserved, prefix
+			}
+		}
+	}
+	if ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || cgnatRange.Contains(ip) || inRange(restrictedRanges, ip) {
+		return classRestricted, netip.Prefix{}
+	}
+	return classPublic, netip.Prefix{}
 }
 
 func inRange(p []netip.Prefix, ip netip.Addr) bool {
