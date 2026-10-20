@@ -91,6 +91,20 @@ export async function apiCloseIssue(requestContext: APIRequestContext, owner: st
   }), 'apiCloseIssue');
 }
 
+export async function apiEditIssue(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, data: Record<string, unknown>) {
+  await apiRetry(() => requestContext.patch(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}`, {
+    headers: apiHeaders(),
+    data,
+  }), 'apiEditIssue');
+}
+
+export async function apiCreateBranch(requestContext: APIRequestContext, owner: string, repo: string, name: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branches`, {
+    headers: apiHeaders(),
+    data: {new_branch_name: name},
+  }), 'apiCreateBranch');
+}
+
 /** Create a PR via API. Returns the PR index for subsequent operations. */
 export async function apiCreatePR(requestContext: APIRequestContext, owner: string, repo: string, head: string, base: string, title: string, {headers}: {headers?: Record<string, string>} = {}): Promise<number> {
   const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {

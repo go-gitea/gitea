@@ -370,7 +370,7 @@ func TestRunnerDisableEnable(t *testing.T) {
 			MakeRequest(t, req, http.StatusOK)
 
 			testData.runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-			testData.runner.fetchNoTask(t, 2*time.Second)
+			testData.runner.fetchNoTask(t)
 
 			req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), false).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
@@ -398,7 +398,6 @@ func TestRunnerDisableEnable(t *testing.T) {
 
 			// Trigger a second run so there is a pending job after we re-enable the runner
 			triggerRunnerDisableEnableRun(t, user2, token, testData.repo, "second-push.txt")
-			time.Sleep(500 * time.Millisecond) // allow workflow run to be created
 
 			req := newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), true).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
@@ -533,7 +532,7 @@ jobs:
 		assert.Equal(t, actionRun.Ref, gtCtx["ref"].GetStringValue())
 		assert.Equal(t, git.RefName(actionRun.Ref).ShortName(), gtCtx["ref_name"].GetStringValue())
 		assert.False(t, gtCtx["ref_protected"].GetBoolValue())
-		assert.Equal(t, string(git.RefName(actionRun.Ref).RefType()), gtCtx["ref_type"].GetStringValue())
+		assert.Equal(t, "branch", gtCtx["ref_type"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
@@ -625,7 +624,7 @@ jobs:
 		assert.Equal(t, actionRun.Ref, gtCtx["ref"].GetStringValue())
 		assert.Equal(t, git.RefName(actionRun.Ref).ShortName(), gtCtx["ref_name"].GetStringValue())
 		assert.False(t, gtCtx["ref_protected"].GetBoolValue())
-		assert.Equal(t, string(git.RefName(actionRun.Ref).RefType()), gtCtx["ref_type"].GetStringValue())
+		assert.Equal(t, "branch", gtCtx["ref_type"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())

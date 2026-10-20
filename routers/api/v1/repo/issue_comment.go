@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -571,8 +572,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		ctx.APIErrorAuto(err)
 		return
 	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeWrite) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -676,11 +676,11 @@ func deleteIssueComment(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeWrite) {
 		ctx.Status(http.StatusForbidden)
 		return
-	} else if !comment.Type.HasContentSupport() {
+	}
+	if !comment.Type.HasContentSupport() {
 		ctx.Status(http.StatusBadRequest)
 		return
 	}

@@ -175,7 +175,8 @@ type User struct {
 	// When the user model is used as a doer (all existing code does so), the doer can have extra details.
 	// * Actions task doer needs to bind to the task
 	// * Deploy-key doer needs to bind to the key
-	ExtDoerData ExtDoerData `xorm:"-"`
+	// * API token doer needs to bind to the token and its scope
+	ExtDoerData ExtDoerData `xorm:"-" json:"-"`
 }
 
 // Meta defines the meta information of a user, to be stored in the K/V table
@@ -445,11 +446,6 @@ func (u *User) IsTypeBot() bool {
 	return u.Type == UserTypeBot
 }
 
-// IsTokenAccessAllowed returns whether the user is an individual or a bot (which allows for token access)
-func (u *User) IsTokenAccessAllowed() bool {
-	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
-}
-
 // EmailTo returns a string suitable to be put into a e-mail `To:` header.
 func (u *User) EmailTo() string {
 	sanitizedDisplayName := globalVars().emailToReplacer.Replace(u.DisplayName())
@@ -469,6 +465,7 @@ func (u *User) EmailTo() string {
 }
 
 // TODO: DefaultShowFullName causes messy logic, there are already too many methods to display a user's "display name", need to refactor them
+// Search this TODO to see more details
 // * user.Name / user.FullName: directly used in templates
 // * user.DisplayName(): always show FullName if it's not empty, otherwise show Name
 // * user.GetDisplayName(): show FullName if it's not empty and DefaultShowFullName is set, otherwise show Name
@@ -491,6 +488,14 @@ func (u *User) GetDisplayName() string {
 		if fullName != "" {
 			return fullName
 		}
+	}
+	return u.Name
+}
+
+// DisplayNameWithFullName returns the username, full name is included if it is not empty
+func (u *User) DisplayNameWithFullName() string {
+	if fullName := strings.TrimSpace(u.FullName); fullName != "" {
+		return fmt.Sprintf("%s (%s)", u.Name, fullName)
 	}
 	return u.Name
 }
@@ -1021,7 +1026,8 @@ func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, er
 		Find(&users)
 }
 
-// GetUserByID returns the user object by given ID if exists.
+// GetUserByID returns the user object by given ID if exists. TODO: for most cases, this function should be avoided.
+// Use correct GetXxxUser functions instead to handle user types & states correctly.
 func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	u := new(User)
 	has, err := db.GetEngine(ctx).ID(id).Get(u)
@@ -1033,7 +1039,8 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	return u, nil
 }
 
-// GetUserByIDs returns the user objects by given IDs if exists.
+// GetUserByIDs returns the user objects by given IDs if exists. TODO: for most cases, this function should be avoided.
+// Use correct GetXxxUser functions instead to handle user types & states correctly.
 func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	if len(ids) == 0 {
 		return nil, nil
@@ -1045,6 +1052,13 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 		Find(&users)
 	return users, err
 }
+
+// Glossaries for XxxUser:
+// * Possible: The user may or may not exist in the database, but we can still return a valid user object (e.g. Ghost user) for the given ID.
+// * Individual: The user is a real person, not an organization or a bot.
+// * Doer: The user is the one performing an action
+// * Valid: The user is an active user and not prohibited from signing in
+// * System: Negative ID (e.g. Ghost, Actions, DeployKey, etc.) and not a real person, Ghost is not included if there is no "Possible" keyword
 
 // GetPossibleUserByID returns the possible user and its ID. If the user doesn't exist, it returns Ghost user
 func GetPossibleUserByID(ctx context.Context, id int64) (_ int64, u *User, err error) {
@@ -1080,6 +1094,23 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	}
 	users = append(users, res...)
 	return users, nil
+}
+
+func GetValidDoerUserByID(ctx context.Context, id int64) (*User, error) {
+	u, err := GetUserByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !u.IsIndividual() && !u.IsTypeBot() {
+		return nil, util.NewNotExistErrorf("user %d is not a doer", id)
+	}
+	if !u.IsActive {
+		return nil, util.NewPermissionDeniedErrorf("user %d is inactive", id)
+	}
+	if u.ProhibitLogin {
+		return nil, util.NewPermissionDeniedErrorf("user %d is prohibited from login", id)
+	}
+	return u, nil
 }
 
 func getUserByNameWithTypes(ctx context.Context, name string, types ...UserType) (*User, error) {
@@ -1420,11 +1451,11 @@ func GetAdminUser(ctx context.Context) (*User, error) {
 }
 
 func isUserVisibleToViewerCond(viewer *User) builder.Cond {
-	if viewer != nil && viewer.IsAdmin {
+	if DoerIsSiteAdminFullAccess(viewer) {
 		return builder.NewCond()
 	}
 
-	if viewer == nil || viewer.IsRestricted {
+	if !DoerCanViewPrivate(viewer) || viewer.IsRestricted {
 		return builder.Eq{
 			"`user`.visibility": structs.VisibleTypePublic,
 		}
@@ -1458,6 +1489,9 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
+	if !DoerTokenAllowsOwner(viewer, u) {
+		return false
+	}
 	if viewer != nil && (viewer.IsAdmin || viewer.ID == u.ID) {
 		return true
 	}

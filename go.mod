@@ -2,7 +2,7 @@ module gitea.dev
 
 go 1.27
 
-toolchain go1.27.2
+toolchain go1.27.3
 
 require (
 	connectrpc.com/connect v1.21.0
@@ -76,7 +76,6 @@ require (
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
-	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sergi/go-diff v1.4.0
 	github.com/stretchr/testify v1.12.1
 	github.com/syndtr/goleveldb v1.0.0
@@ -88,7 +87,7 @@ require (
 	github.com/yuin/goldmark v1.8.6
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	gitlab.com/gitlab-org/api/client-go/v3 v3.16.0
-	go.yaml.in/yaml/v4 v4.0.0-rc.6
+	go.yaml.in/yaml/v4 v4.0.0-rc.6.0.20261013184558-04dd63131525
 	golang.org/x/crypto v0.57.0
 	golang.org/x/image v0.46.0
 	golang.org/x/mod v0.41.0
@@ -109,7 +108,6 @@ require (
 require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
-	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/RoaringBitmap/roaring/v2 v2.18.2 // indirect
 	github.com/STARRY-S/zip v0.2.3 // indirect
 	github.com/andybalholm/brotli v1.2.1 // indirect
@@ -220,7 +218,6 @@ require (
 	github.com/stangelandcl/ppmd v0.1.1 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.etcd.io/bbolt v1.4.3 // indirect

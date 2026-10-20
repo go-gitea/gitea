@@ -1686,11 +1686,10 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	} else {
 		// an owner-level board spans repositories, so filter to what this doer may see
 		issuesOpts.Owner = scope.Owner
-		issuesOpts.Doer = ctx.Doer
-		issuesOpts.AllPublic = ctx.Doer == nil
-		if ctx.PublicOnly {
+		if user_model.DoerCanViewPrivate(ctx.Doer) {
+			issuesOpts.Doer = ctx.Doer
+		} else {
 			issuesOpts.AllPublic = true
-			issuesOpts.Doer = nil // a public-only token must not reach the doer's private repos
 		}
 	}
 

@@ -358,26 +358,6 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	})
 }
 
-func checkForInvalidation(ctx context.Context, requests issues_model.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
-	}
-	gitRepo, err := git.OpenRepository(ctx, repo)
-	if err != nil {
-		return fmt.Errorf("gitrepo.OpenRepository: %w", err)
-	}
-	go func() {
-		// FIXME: graceful: We need to tell the manager we're doing something...
-		err := InvalidateCodeComments(ctx, requests, doer, repo, gitRepo, branch)
-		if err != nil {
-			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
-		}
-		gitRepo.Close()
-	}()
-	return nil
-}
-
 type TestPullRequestOptions struct {
 	RepoID      int64
 	Doer        *user_model.User
@@ -436,8 +416,8 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			if err = headBranchPRs.LoadAttributes(ctx); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
-			if invalidationErr := checkForInvalidation(ctx, headBranchPRs, opts.RepoID, opts.Doer, opts.Branch); invalidationErr != nil {
-				log.Error("checkForInvalidation: %v", invalidationErr)
+			if invalidationErr := InvalidateCodeComments(ctx, headBranchPRs, repo, opts.Branch); invalidationErr != nil {
+				log.Error("InvalidateCodeComments: %v", invalidationErr)
 			}
 			if err == nil {
 				for _, pr := range headBranchPRs {
@@ -781,9 +761,15 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		return "", err
 	}
 
-	mergeMessage := strings.TrimSpace(pr.Issue.Content) // use PR's title and description as squash commit message
-	if setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
-		mergeMessage = formatSquashMergeCommitMessages(limitedCommits) // use PR's commit messages as squash commit message
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return "", err
+	}
+	var mergeMessage string
+	switch pr.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultSquashMergeMessage {
+	case repo_model.SquashMergeMessageCommitMessages:
+		mergeMessage = formatSquashMergeCommitMessages(limitedCommits)
+	case repo_model.SquashMergeMessagePRBody:
+		mergeMessage = strings.TrimSpace(pr.Issue.Content)
 	}
 	coAuthors := collectSquashMergeCommitCoAuthors(ctx, gitRepo, pr, headCommitRef, mergeBaseRef, limit, limitedCommits)
 	return buildSquashMergeCommitMessages(mergeMessage, coAuthors), nil
@@ -797,7 +783,7 @@ func buildSquashMergeCommitMessages(mergeMessage string, coAuthors []string) str
 	msgContent, msgSep, msgTrailer := git.CommitMessageSplitTrailer(mergeMessage)
 	if (msgSep == "" || msgSep == "\n\n") && msgTrailer == "" {
 		msgContent = strings.TrimRightFunc(msgContent, unicode.IsSpace)
-		msgSep = "\n\n---------\n\n"
+		msgSep = util.Iif(msgContent == "", "", "\n\n---------\n\n")
 	}
 	var sb strings.Builder
 	sb.WriteString(msgContent)

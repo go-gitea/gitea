@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"hash"
 	"strconv"
+	"strings"
 	"time"
 
 	"gitea.dev/modules/setting"
@@ -116,4 +117,8 @@ func Int64sToStrings(ints []int64) []string {
 		strs[i] = strconv.FormatInt(ints[i], 10)
 	}
 	return strs
+}
+
+func JoinInt64s(ints []int64, sep string) string {
+	return strings.Join(Int64sToStrings(ints), sep)
 }

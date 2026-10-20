@@ -981,14 +981,23 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	message := strings.TrimSpace(form.MergeTitleField)
-	if len(message) == 0 {
-		message, _, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
+	useDefaultSquashBody := !form.HasMergeMessageField && !ctx.Req.Form.Has("merge_message_field") && repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash
+	if len(message) == 0 || useDefaultSquashBody {
+		defaultTitle, defaultBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
+		message = util.IfZero(message, defaultTitle)
+		if useDefaultSquashBody {
+			squashCommitMessages, err := pull_service.GetSquashMergeCommitMessages(ctx, pr)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			form.MergeMessageField = git.CommitMessageMerge(squashCommitMessages, defaultBody)
+		}
 	}
-
 	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
 	if len(form.MergeMessageField) > 0 {
 		message += "\n\n" + form.MergeMessageField
@@ -1069,7 +1078,15 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
-	if !ctx.TokenCanAccessRepo(headRepo) {
+	// user should have permission to read headRepo's codes
+	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
+	permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil, nil
+	}
+	if !permHead.CanRead(unit.TypeCode) {
+		log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v", ctx.Doer, headRepo, permHead)
 		ctx.APIErrorNotFound()
 		return nil, nil
 	}
@@ -1104,19 +1121,6 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	if !permBase.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User %-v cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
 		ctx.APIErrorNotFound("can't read baseRepo UnitTypeCode")
-		return nil, nil
-	}
-
-	// user should have permission to read headRepo's codes
-	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
-	permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return nil, nil
-	}
-	if !permHead.CanRead(unit.TypeCode) {
-		log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v", ctx.Doer, headRepo, permHead)
-		ctx.APIErrorNotFound("Can't read headRepo UnitTypeCode")
 		return nil, nil
 	}
 
@@ -1220,18 +1224,6 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if err = pr.LoadHeadRepo(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	// a public-only token must not update (push into) a private head repo,
-	// even when the base repo named in the route is public
-	if !ctx.TokenCanAccessRepo(pr.HeadRepo) {
-		ctx.APIErrorNotFound()
-		return
-	}
-
 	// keep API back-compat: when no style is given, default to "merge" rather than the repo's DefaultUpdateStyle,
 	// so existing API clients keep getting a merge update.
 	rebase := repo_model.UpdateStyle(ctx.FormString("style", string(repo_model.UpdateStyleMerge))) == repo_model.UpdateStyleRebase

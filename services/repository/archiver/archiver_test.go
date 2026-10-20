@@ -5,7 +5,6 @@ package archiver
 
 import (
 	"testing"
-	"time"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -105,9 +104,6 @@ func TestArchive_Basic(t *testing.T) {
 	// Make sure sending an unprocessed request through doesn't affect the queue
 	// count.
 	doArchive(t.Context(), zipReq)
-
-	// Sleep two seconds to make sure the queue doesn't change.
-	time.Sleep(2 * time.Second)
 
 	zipReq2, err := NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".zip", nil)
 	assert.NoError(t, err)
