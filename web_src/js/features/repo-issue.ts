@@ -135,9 +135,13 @@ export function initRepoIssueCommentDelete() {
         // previous element is the "tr" for the code line, and it contains the "add-code-comment" button
         const isLineSame = parentTr.getAttribute('data-line-type') === 'same';
         const side = conversationHolder.getAttribute('data-side')!;
-        const selector = isLineSame ? '.add-code-comment' : `.add-code-comment[data-side=${CSS.escape(side)}]`;
-        const addCodeCommentButtons = parentTr.previousElementSibling!.querySelectorAll(selector);
-        toggleElemClass(addCodeCommentButtons, 'tw-invisible', false);
+        // a commit diff row can keep a thread on its other side: only free this side's button, and none if that thread shares the cell
+        const otherHolders = Array.from(parentTr.querySelectorAll('.conversation-holder')).filter((el) => el !== conversationHolder);
+        if (otherHolders.every((el) => el.closest('td') !== conversationHolder.closest('td'))) {
+          const selector = isLineSame && !otherHolders.length ? '.add-code-comment' : `.add-code-comment[data-side=${CSS.escape(side)}]`;
+          const addCodeCommentButtons = parentTr.previousElementSibling!.querySelectorAll(selector);
+          toggleElemClass(addCodeCommentButtons, 'tw-invisible', false);
+        }
       }
       conversationHolder.remove();
     }

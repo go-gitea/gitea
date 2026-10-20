@@ -1,6 +1,6 @@
 {{$file := $.file -}}
 {{$diffBlobExcerptData := ctx.RootData.DiffBlobExcerptData -}}
-{{$canAddComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex -}}
+{{$canAddComment := and ctx.RootData.SignedUserID (or $diffBlobExcerptData.PullIssueIndex ctx.RootData.CanCommentOnCommit) -}}
 <colgroup>
 	<col width="50">
 	<col width="10">
@@ -30,7 +30,7 @@
 					<td class="lines-type-marker lines-type-marker-old del-code"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 					<td class="lines-code lines-code-old del-code">
 						{{- if $canAddComment -}}
-							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if (not $line.CanComment)}}tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">
+							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if not $line.CanCommentLeft}}tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">
 								{{- svg "octicon-plus" -}}
 							</button>
 						{{- end -}}
@@ -45,7 +45,7 @@
 					<td class="lines-type-marker lines-type-marker-new add-code">{{if $match.RightIdx}}<span class="tw-font-mono" data-type-marker="{{$match.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-new add-code">
 						{{- if $canAddComment -}}
-							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if (not $match.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$match.RightIdx}}">
+							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if not $match.CanCommentRight}} tw-invisible{{end}}" data-side="right" data-idx="{{$match.RightIdx}}">
 								{{- svg "octicon-plus" -}}
 							</button>
 						{{- end -}}
@@ -62,7 +62,7 @@
 					<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-old">
 						{{- if and $canAddComment (not $line.IsDiffLineAdd) -}}
-							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">
+							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if not $line.CanCommentLeft}} tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">
 								{{- svg "octicon-plus" -}}
 							</button>
 						{{- end -}}
@@ -77,7 +77,7 @@
 					<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-new">
 						{{- if and $canAddComment (not $line.IsDiffLineDel) -}}
-							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
+							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if not $line.CanCommentRight}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
 								{{- svg "octicon-plus" -}}
 							</button>
 						{{- end -}}
@@ -133,6 +133,11 @@
 					</td>
 				</tr>
 			{{end}}
+			{{/* Render commit comments (not PR review comments) */}}
+			{{$rightCC := $line.CommitCommentsRight}}
+			{{/* a DEL line holds no new side of its own, its match does */}}
+			{{if and $line.IsDiffLineDel $hasMatch}}{{$rightCC = (index $section.Lines $line.Match).CommitCommentsRight}}{{end}}
+			{{template "repo/diff/commit_conversation_row" dict "Left" $line.CommitCommentsLeft "Right" $rightCC "LineType" $line.GetHTMLDiffLineType "Split" true}}
 		{{end}}
 	{{end}}
 {{end}}

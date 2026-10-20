@@ -1,0 +1,17 @@
+{{if or $.Left $.Right}}
+	<tr class="add-comment" data-line-type="{{$.LineType}}">
+		{{if $.Split}}
+			<td class="add-comment-left" colspan="4">
+				{{if $.Left}}{{template "repo/diff/commit_conversation" dict "Comments" $.Left}}{{end}}
+			</td>
+			<td class="add-comment-right" colspan="4">
+				{{if $.Right}}{{template "repo/diff/commit_conversation" dict "Comments" $.Right}}{{end}}
+			</td>
+		{{else}}
+			<td class="add-comment-left add-comment-right" colspan="5">
+				{{if $.Right}}{{template "repo/diff/commit_conversation" dict "Comments" $.Right}}{{end}}
+				{{if $.Left}}{{template "repo/diff/commit_conversation" dict "Comments" $.Left}}{{end}}
+			</td>
+		{{end}}
+	</tr>
+{{end}}

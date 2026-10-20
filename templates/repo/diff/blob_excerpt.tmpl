@@ -1,5 +1,7 @@
 {{$diffBlobExcerptData := .DiffBlobExcerptData}}
 {{$canCreateComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex}}
+{{/* the commit diff has its own standalone inline comments */}}
+{{$canCommitComment := and ctx.RootData.SignedUserID ctx.RootData.CanCommentOnCommit}}
 {{if $.IsSplitStyle}}
 	{{range $line := $.section.Lines}}
 	<tr class="{{.GetHTMLDiffLineType}}-code line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
@@ -16,8 +18,8 @@
 			<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="lines-code lines-code-old">
 				{{/* ATTENTION: BLOB-EXCERPT-COMMENT-RIGHT: here it intentionally use "right" side to comment, because the backend code depends on the assumption that the comment only happens on right side*/}}
-				{{- if and $canCreateComment $line.RightIdx -}}
-					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
+				{{- if and (or $canCreateComment $canCommitComment) $line.RightIdx -}}
+					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if not $line.CanCommentRight}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
 						{{- svg "octicon-plus" -}}
 					</button>
 				{{- end -}}
@@ -31,8 +33,8 @@
 			<td class="lines-escape lines-escape-new">{{if and $line.RightIdx}}{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}{{end}}</td>
 			<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="lines-code lines-code-new">
-				{{- if and $canCreateComment $line.RightIdx -}}
-					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
+				{{- if and (or $canCreateComment $canCommitComment) $line.RightIdx -}}
+					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if not $line.CanCommentRight}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
 						{{- svg "octicon-plus" -}}
 					</button>
 				{{- end -}}
@@ -58,6 +60,7 @@
 			</td>
 		</tr>
 	{{end}}
+	{{template "repo/diff/commit_conversation_row" dict "Left" $line.CommitCommentsLeft "Right" $line.CommitCommentsRight "LineType" $line.GetHTMLDiffLineType "Split" true}}
 	{{end}}
 {{else}}
 	{{range $line := $.section.Lines}}
@@ -72,8 +75,8 @@
 		<td class="lines-escape">{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}</td>
 		<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 		<td class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
-			{{- if and $canCreateComment -}}
-				<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
+			{{- if or $canCreateComment $canCommitComment -}}
+				<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if not $line.CanCommentUnified}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
 					{{- svg "octicon-plus" -}}
 				</button>
 			{{- end -}}
@@ -87,5 +90,6 @@
 			</td>
 		</tr>
 	{{end}}
+	{{template "repo/diff/commit_conversation_row" dict "Left" $line.CommitCommentsLeft "Right" $line.CommitCommentsRight "LineType" $line.GetHTMLDiffLineType}}
 	{{end}}
 {{end}}

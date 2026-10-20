@@ -191,7 +191,7 @@
 										{{end}}
 									</div>
 								{{else if $file.Sections}}
-									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
+									<table class="chroma" data-new-comment-url="{{$.DiffNewCommentURL}}" data-path="{{$file.Name}}">
 										{{if $.IsSplitStyle}}
 											{{template "repo/diff/section_split" dict "file" $file}}
 										{{else}}
