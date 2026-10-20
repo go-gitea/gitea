@@ -214,7 +214,7 @@ func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 
 	err := db.Insert(ctx, reaction)
 	if err != nil {
-		if has, _ := db.GetEngine(ctx).Where("comment_id = ? AND original_author_id = 0", reaction.CommentID).Get(reaction); has {
+		if has, _ := db.GetEngine(ctx).Get(reaction); has {
 			return reaction, ErrReactionAlreadyExist{Reaction: opts.Type}
 		}
 		return nil, err
