@@ -93,6 +93,7 @@ const (
 	StderrPathSpec           StderrPrefix = "fatal: pathspec"
 	StderrBadRevision        StderrPrefix = "fatal: bad revision"
 	StderrNoSuchPath         StderrPrefix = "fatal: no such path"
+	StderrGcAlreadyRunning   StderrPrefix = "fatal: gc is already running"
 
 	StderrNoSuchRemote StderrPrefix = "error: no such remote"
 
