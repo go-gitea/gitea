@@ -11,6 +11,11 @@ import (
 )
 
 func AddReleaseIDToReaction(_ctx context.Context, x base.EngineMigration) error {
+	// rows older than v123 can hold NULL, which the unique index doesn't treat as a duplicate of ''
+	if _, err := x.Exec("UPDATE reaction SET original_author = '' WHERE original_author IS NULL"); err != nil {
+		return err
+	}
+
 	type Reaction struct {
 		ID int64 `xorm:"pk autoincr"`
 
