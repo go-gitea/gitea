@@ -8,8 +8,10 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -91,27 +93,39 @@ func TestPreReceiveActionsBranch(t *testing.T) {
 	}
 }
 
-func TestPreReceiveActionsTag(t *testing.T) {
+func TestPreReceiveSystemUserTag(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
+
+	deployKey, err := deploykey_model.AddDeployKeyToken(t.Context(), 2, "tag-pusher", perm.AccessModeWrite)
+	require.NoError(t, err)
+	defer func() {
+		_, err := db.DeleteByID[deploykey_model.DeployKey](t.Context(), deployKey.ID)
+		require.NoError(t, err)
+	}()
+	actionsDoer := user_model.NewActionsUserWithTaskID(53)
+	deployKeyDoer := user_model.NewDeployKeyUserWithKeyID(deployKey.ID)
+
 	for _, tc := range []struct {
 		name      string
+		doer      *user_model.User
 		allowlist []int64
 		allowed   bool
 	}{
-		{name: "allowlisted", allowlist: []int64{user_model.ActionsUserID}, allowed: true},
-		{name: "not allowlisted", allowlist: []int64{2}},
+		{name: "actions allowlisted", doer: actionsDoer, allowlist: []int64{user_model.ActionsUserID}, allowed: true},
+		{name: "actions not allowlisted", doer: actionsDoer, allowlist: []int64{2, user_model.DeployKeyUserID}},
+		{name: "deploy key allowlisted", doer: deployKeyDoer, allowlist: []int64{user_model.DeployKeyUserID}, allowed: true},
+		{name: "deploy key not allowlisted", doer: deployKeyDoer, allowlist: []int64{2, user_model.ActionsUserID}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtx, resp := contexttest.MockPrivateContext(t, "/")
-			ctx := &preReceiveContext{PrivateContext: mockCtx, opts: &private.HookOptions{UserID: user_model.ActionsUserID}}
+			ctx := &preReceiveContext{PrivateContext: mockCtx, opts: &private.HookOptions{UserID: tc.doer.ID}}
 			ctx.SetPathParam("owner", "user2")
 			ctx.SetPathParam("repo", "repo2")
 			RepoAssignment(ctx.PrivateContext)
 			require.False(t, ctx.Written())
 			defer ctx.Repo.GitRepo.Close()
 
-			doer := user_model.NewActionsUserWithTaskID(53)
-			loadContextDoerPermission(ctx.PrivateContext, doer.ID, doer.ExtDoerData.EncodeToString())
+			require.True(t, loadContextDoerPermission(ctx.PrivateContext, tc.doer.ID, tc.doer.ExtDoerData.EncodeToString()))
 
 			protectedTag := &git_model.ProtectedTag{RepoID: ctx.Repo.Repository.ID, NamePattern: "v*", AllowlistUserIDs: tc.allowlist}
 			require.NoError(t, git_model.InsertProtectedTag(t.Context(), protectedTag))
