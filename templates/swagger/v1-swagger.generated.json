@@ -31037,7 +31037,8 @@
             "onedev",
             "gitbucket",
             "codebase",
-            "codecommit"
+            "codecommit",
+            "bitbucketserver"
           ],
           "x-go-name": "Service"
         },
