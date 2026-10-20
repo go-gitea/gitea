@@ -25,11 +25,14 @@ function blockPage(elBackdrop?: Element | null) {
   }
 }
 
-window.addEventListener('keydown', (e) => { // on window, so popups handling Escape on document can consume it first
-  if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
-  const elModal = topModal();
-  if (elModal) hideModal(elModal);
-});
+export function initGlobalModal() {
+  // on window, so popups handling Escape on document can consume it first
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
+    const elModal = topModal();
+    if (elModal) hideModal(elModal);
+  });
+}
 
 function defaultApprove(elApprove: Element): boolean {
   const elForm = elApprove.closest('form');
