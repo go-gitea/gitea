@@ -624,7 +624,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 	showArchivedLabels := ctx.FormBool("archived_labels")
 	ctx.Data["ShowArchivedLabels"] = showArchivedLabels
 	ctx.Data["PinnedIssues"] = pinned
-	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.Permission.IsAdmin() || ctx.Doer.IsAdmin)
+	ctx.Data["IsRepoAdmin"] = ctx.Repo.Permission.IsAdmin()
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount

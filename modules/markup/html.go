@@ -349,12 +349,14 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		// TextNode emoji will be converted to `<span class="emoji">`, then the next iteration will visit the "span"
 		// if we don't stop it, it will go into the TextNode again and create an infinite recursion
 		return node.NextSibling
-	} else if node.Data == "code" || node.Data == "pre" {
-		return node.NextSibling // ignore code and pre nodes
+	} else if node.Data == "code" || node.Data == "pre" || node.Data == "math" {
+		return node.NextSibling // ignore code, pre and math nodes
 	} else if node.Data == "img" {
 		return visitNodeImg(ctx, node)
 	} else if node.Data == "video" {
 		return visitNodeVideo(ctx, node)
+	} else if node.Data == "source" {
+		return visitNodePictureSource(ctx, node)
 	}
 
 	if node.Data == "a" {
@@ -363,10 +365,11 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		// because the content there is not processable, for example: the content is a commit id or a full URL.
 		procs = emojiProcessors
 	}
+	next := node.NextSibling
 	for n := node.FirstChild; n != nil; {
 		n = visitNode(ctx, procs, n)
 	}
-	return node.NextSibling
+	return next
 }
 
 // createKeyword() renders a highlighted version of an action keyword

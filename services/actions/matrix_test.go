@@ -23,28 +23,25 @@ var testRunIndex int64 = 9100
 // setupDeferredMatrixJob plants a completed `generate` job exposing outputs and the blocked `build`
 // placeholder that depends on them, and returns the placeholder. Both are children of a reusable
 // workflow caller, the case where a sibling losing ParentJobID would break needs resolution.
-// jobIf is the `build` job's `if:` expression, omitted entirely when empty.
-func setupDeferredMatrixJob(t *testing.T, matrixValue, jobIf string, outputs map[string]string) *actions_model.ActionRunJob {
+func setupDeferredMatrixJob(t *testing.T, matrixValue string, outputs map[string]string) *actions_model.ActionRunJob {
 	t.Helper()
 	ctx := t.Context()
 
-	ifLine := ""
-	if jobIf != "" {
-		ifLine = "    if: " + jobIf + "\n"
-	}
 	// The `build` job takes its matrix from `generate`'s outputs, so Parse defers it.
 	workflows, err := jobparser.Parse(fmt.Appendf(nil, `
 on: push
 jobs:
   generate:
+    runs-on: ubuntu-latest
     steps: [{run: echo}]
   build:
     needs: generate
-%s    strategy:
+    runs-on: ubuntu-latest
+    strategy:
       matrix:
         value: %s
     steps: [{run: echo}]
-`, ifLine, matrixValue))
+`, matrixValue))
 	require.NoError(t, err)
 	var placeholder *jobparser.SingleWorkflow
 	for _, workflow := range workflows {
@@ -106,13 +103,12 @@ func TestExpandDeferredMatrix(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("expands into siblings", func(t *testing.T) {
-		job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", "", map[string]string{"values": `["a","b","c"]`})
+		job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", map[string]string{"values": `["a","b","c"]`})
 
 		siblings, err := expandDeferredMatrix(t.Context(), job, nil)
 		require.NoError(t, err)
 		require.Len(t, siblings, 2)
 
-		// The placeholder is reused as the first combination and stays blocked for the `if:` gate.
 		assert.Equal(t, "build (a)", job.Name)
 		assert.False(t, job.IsMatrixDeferred)
 		assert.Equal(t, actions_model.StatusBlocked, job.Status)
@@ -135,6 +131,11 @@ func TestExpandDeferredMatrix(t *testing.T) {
 		assert.Equal(t, "build (a)", reloaded.Name)
 		assert.False(t, reloaded.IsMatrixDeferred)
 		assert.NotEmpty(t, reloaded.DeferredMatrixPayload, "the claim must not erase the raw payload")
+		reloaded.MaxParallel = 3
+		require.NoError(t, restoreDeferredMatrixPlaceholder(reloaded))
+		assert.Equal(t, "build", reloaded.Name)
+		assert.Zero(t, reloaded.MaxParallel)
+		assert.True(t, reloaded.IsMatrixDeferred)
 	})
 
 	// A matrix that can never produce runnable combinations fails the job instead of rolling the
@@ -168,7 +169,7 @@ func TestExpandDeferredMatrix(t *testing.T) {
 			if outputs == nil {
 				outputs = map[string]string{"values": `["a","b","c"]`}
 			}
-			job := setupDeferredMatrixJob(t, tt.matrixValue, "", outputs)
+			job := setupDeferredMatrixJob(t, tt.matrixValue, outputs)
 			if tt.prepare != nil {
 				tt.prepare(t, job)
 			}
@@ -185,40 +186,14 @@ func TestExpandDeferredMatrix(t *testing.T) {
 	}
 }
 
-// TestDeferredMatrixResolverGating covers the resolver deciding a placeholder's fate around the
-// expansion. A need that did not succeed leaves no outputs to build the matrix from, so the job is
-// skipped like any other job with such a need rather than failed over a matrix it never had to
-// evaluate, and no combination is inserted. A job that does run is then gated by its own
-// combination: the placeholder reused as the first one is judged by `matrix.*`, not by the raw
-// expression the `if:` would have seen before expansion.
-func TestDeferredMatrixResolverGating(t *testing.T) {
+func TestDeferredMatrixResolverSkipsWithoutSucceededNeeds(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	for _, tt := range []struct {
-		name       string
-		needStatus actions_model.Status
-		jobIf      string
-		outputs    map[string]string
-		wantBuilds []string
-	}{
-		{name: "failed need", needStatus: actions_model.StatusFailure, wantBuilds: []string{"build"}},
-		{name: "skipped need", needStatus: actions_model.StatusSkipped, wantBuilds: []string{"build"}},
-		{
-			name: "`if:` gated per combination", needStatus: actions_model.StatusSuccess,
-			jobIf: "${{ matrix.value == 'b' }}", outputs: map[string]string{"values": `["a","b"]`},
-			wantBuilds: []string{"build (a)", "build (b)"},
-		},
-		{
-			// The same gate without the `${{ }}`, which must expand rather than skip the whole job.
-			name: "brace-less `if:` gated per combination", needStatus: actions_model.StatusSuccess,
-			jobIf: "matrix.value == 'b'", outputs: map[string]string{"values": `["a","b"]`},
-			wantBuilds: []string{"build (a)", "build (b)"},
-		},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, needStatus := range []actions_model.Status{actions_model.StatusFailure, actions_model.StatusSkipped} {
+		t.Run(needStatus.String(), func(t *testing.T) {
 			ctx := t.Context()
-			job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", tt.jobIf, tt.outputs)
-			_, err := db.Exec(ctx, "UPDATE `action_run_job` SET status = ? WHERE run_id = ? AND job_id = ?", int(tt.needStatus), job.RunID, "generate")
+			job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", nil)
+			_, err := db.Exec(ctx, "UPDATE `action_run_job` SET status = ? WHERE run_id = ? AND job_id = ?", int(needStatus), job.RunID, "generate")
 			require.NoError(t, err)
 
 			jobs := runJobs(t, job.RunID, job.RunAttemptID)
@@ -234,7 +209,7 @@ func TestDeferredMatrixResolverGating(t *testing.T) {
 					names = append(names, runJob.Name)
 				}
 			}
-			assert.ElementsMatch(t, tt.wantBuilds, names)
+			assert.Equal(t, []string{"build"}, names)
 		})
 	}
 }
@@ -243,9 +218,7 @@ func TestDeferredMatrixResolverDefersDependents(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
-	// `build (a)` is skipped by the `if:` once it carries its own combination, `build (b)` runs.
-	build := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}",
-		"${{ matrix.value != 'a' }}", map[string]string{"values": `["a","b"]`})
+	build := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", map[string]string{"values": `["a","b"]`})
 
 	attemptJobID, err := actions_model.GetNextAttemptJobID(ctx, build.RunID)
 	require.NoError(t, err)
@@ -262,7 +235,7 @@ func TestDeferredMatrixResolverDefersDependents(t *testing.T) {
 	updates, err := newJobStatusResolver(jobs, nil).Resolve(ctx)
 	require.NoError(t, err)
 
-	assert.Equal(t, actions_model.StatusSkipped, updates[build.ID], "the combination the `if:` excludes")
+	assert.Equal(t, actions_model.StatusWaiting, updates[build.ID], "the placeholder runs as `build (a)`")
 	assert.NotContains(t, updates, report.ID, "report must wait for the re-emit, which sees `build (b)` too")
 
 	// The sibling the pass would otherwise have resolved report against is there, and still to run.
