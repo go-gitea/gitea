@@ -244,7 +244,7 @@ func PostBlobsUploads(ctx *context.Context) {
 			Digest:     mount,
 		})
 		if blob != nil {
-			accessible, err := packages_model.IsBlobAccessibleForUser(ctx, blob.Blob.ID, ctx.Doer)
+			accessible, err := packages_model.IsBlobAccessibleForUser(ctx, blob.Blob.ID, ctx.Doer, context.TokenIsPublicOnly(ctx))
 			if err != nil {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
