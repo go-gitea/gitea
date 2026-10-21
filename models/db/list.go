@@ -124,14 +124,6 @@ type FindOptionsJoin interface {
 	ToJoins() []JoinFunc
 }
 
-func withTableIDTiebreaker[T any](orderBy string) string {
-	table, err := xormEngine.TableInfo(new(T))
-	if err != nil || !slices.Equal(table.PrimaryKeys, []string{"id"}) {
-		return orderBy
-	}
-	return WithIDTiebreaker(orderBy, table.Name)
-}
-
 // Find represents a common find function which accept an options interface
 func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 	sess := GetEngine(ctx).Where(opts.ToConds())
@@ -143,16 +135,14 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 			}
 		}
 	}
-	orders := opts.ToOrders()
+	sess.OrderBy(opts.ToOrders())
 	page, pageSize := opts.GetPage(), opts.GetPageSize()
 	if !opts.IsListAll() && pageSize > 0 {
 		if page == 0 {
 			page = 1
 		}
 		sess.Limit(pageSize, (page-1)*pageSize)
-		orders = withTableIDTiebreaker[T](orders)
 	}
-	sess.OrderBy(orders)
 
 	findPageSize := defaultFindSliceSize
 	if pageSize > 0 {
@@ -185,11 +175,9 @@ func Count[T any](ctx context.Context, opts FindOptions) (int64, error) {
 // FindAndCount represents a common findandcount function which accept an options interface
 func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, error) {
 	sess := GetEngine(ctx).Where(opts.ToConds())
-	orders := opts.ToOrders()
 	page, pageSize := opts.GetPage(), opts.GetPageSize()
 	if !opts.IsListAll() && pageSize > 0 && page >= 1 {
 		sess.Limit(pageSize, (page-1)*pageSize)
-		orders = withTableIDTiebreaker[T](orders)
 	}
 	if joinOpt, ok := opts.(FindOptionsJoin); ok {
 		for _, joinFunc := range joinOpt.ToJoins() {
@@ -198,7 +186,7 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, er
 			}
 		}
 	}
-	sess.OrderBy(orders)
+	sess.OrderBy(opts.ToOrders())
 
 	findPageSize := defaultFindSliceSize
 	if pageSize > 0 {
