@@ -74,6 +74,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation, ref string, objects [
 
 	// `ref` is optional, but some servers like aliyun require it, while others like Hugging Face reject an empty or null one
 	// https://github.com/git-lfs/git-lfs/blob/a32a02b44bf8a511aa14f047627c49e1a7fd5021/docs/api/batch.md?plain=1#L37
+	// Related issues: #32838, #33453, #39891
 	request := &BatchRequest{Operation: operation, Transfers: c.transferNames(), Objects: objects}
 	if ref != "" {
 		request.Ref = &Reference{Name: ref}
