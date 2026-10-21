@@ -4,6 +4,7 @@
 package migrations
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -472,4 +473,61 @@ func TestBitbucketServerInlineCommentRange(t *testing.T) {
 	assert.Equal(t, [2]int{7, 9}, [2]int{start, end})
 	_, _, ok = (&bbsAnchor{Line: 9, FileType: "TO"}).lineRange()
 	assert.False(t, ok)
+}
+
+func TestBitbucketServerRateLimit(t *testing.T) {
+	var calls int
+	retryAfter, limitedUntil := "3", 2
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if calls <= limitedUntil {
+			if retryAfter != "" {
+				w.Header().Set("Retry-After", retryAfter)
+			}
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		_, _ = w.Write([]byte(bbsRepoJSON))
+	}))
+	defer srv.Close()
+
+	var waits []time.Duration
+	newDownloader := func() *BitbucketServerDownloader {
+		d := NewBitbucketServerDownloader(t.Context(), srv.URL, "", "", "", "PROJ", "repo")
+		d.sleep = func(_ context.Context, wait time.Duration) error {
+			waits = append(waits, wait)
+			return nil
+		}
+		return d
+	}
+
+	// the server is asked again after the time it names
+	var repo bbsRepository
+	require.NoError(t, newDownloader().callAPI(t.Context(), "/projects/PROJ/repos/repo", nil, &repo))
+	assert.Equal(t, "repo", repo.Slug)
+	assert.Equal(t, []time.Duration{3 * time.Second, 3 * time.Second}, waits)
+
+	// without a hint the wait grows exponentially, and is capped
+	calls, limitedUntil, retryAfter, waits = 0, 2, "", nil
+	require.NoError(t, newDownloader().callAPI(t.Context(), "/projects/PROJ/repos/repo", nil, &repo))
+	assert.Equal(t, []time.Duration{time.Second, 2 * time.Second}, waits)
+	assert.Equal(t, time.Minute, bitbucketServerRetryAfter("100000", 1))
+
+	// a server that never recovers is given up on
+	calls, limitedUntil, waits = 0, 100, nil
+	err := newDownloader().callAPI(t.Context(), "/projects/PROJ/repos/repo", nil, &repo)
+	var statusErr *bbsStatusError
+	require.ErrorAs(t, err, &statusErr)
+	assert.Equal(t, http.StatusTooManyRequests, statusErr.Status)
+	assert.Len(t, waits, bitbucketServerMaxAttempts-1)
+	assert.Equal(t, bitbucketServerMaxAttempts, calls)
+}
+
+func TestBitbucketServerGitUser(t *testing.T) {
+	assert.Equal(t, "admin", bitbucketServerGitUser("admin"))
+	assert.Equal(t, "j.doe", bitbucketServerGitUser("j.doe"))
+	// project and repository access tokens report a technical user
+	assert.Equal(t, "x-token-auth", bitbucketServerGitUser("access-token-user%2F1%2F2"))
+	assert.Equal(t, "x-token-auth", bitbucketServerGitUser("access-token-user/2/2"))
+	assert.Empty(t, bitbucketServerGitUser(""))
 }

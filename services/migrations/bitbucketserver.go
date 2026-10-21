@@ -30,6 +30,8 @@ var (
 const (
 	bitbucketServerMaxPageSize     = 100
 	bitbucketServerMaxResponseSize = 64 * 1024 * 1024
+	bitbucketServerMaxAttempts     = 5
+	bitbucketServerMaxRetryWait    = time.Minute
 )
 
 func init() {
@@ -99,7 +101,8 @@ type BitbucketServerDownloader struct {
 	username   string
 	password   string
 	token      string
-	tokenUser  string // owner of the token, git over HTTP needs it as the basic-auth user name
+	tokenUser  string // user name git over HTTP needs together with the token as the basic-auth password
+	sleep      func(context.Context, time.Duration) error
 	projectKey string
 	repoSlug   string
 
@@ -119,6 +122,7 @@ func NewBitbucketServerDownloader(_ context.Context, baseURL, username, password
 		projectKey: projectKey,
 		repoSlug:   repoSlug,
 		activities: map[int64][]*bbsActivity{},
+		sleep:      sleepContext,
 	}
 }
 
@@ -284,14 +288,46 @@ func (d *BitbucketServerDownloader) browseURL() string {
 	return d.baseURL + "/projects/" + url.PathEscape(d.projectKey) + "/repos/" + url.PathEscape(d.repoSlug)
 }
 
+// callAPI sends a GET request, a rate limited (429) request is repeated after the time the server asks for
 func (d *BitbucketServerDownloader) callAPI(ctx context.Context, path string, query url.Values, result any) error {
 	apiURL := d.baseURL + "/rest/api/1.0" + path
 	if len(query) > 0 {
 		apiURL += "?" + query.Encode()
 	}
+
+	for attempt := 1; ; attempt++ {
+		resp, err := d.doRequest(ctx, apiURL)
+		if err != nil {
+			return err
+		}
+		if resp.StatusCode == http.StatusTooManyRequests && attempt < bitbucketServerMaxAttempts {
+			wait := bitbucketServerRetryAfter(resp.Header.Get("Retry-After"), attempt)
+			resp.Body.Close()
+			log.Warn("Bitbucket Server rate limited the request to %s, retrying in %s", d.baseURL+"/rest/api/1.0"+path, wait)
+			if err := d.sleep(ctx, wait); err != nil {
+				return err
+			}
+			continue
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return &bbsStatusError{Status: resp.StatusCode, URL: d.baseURL + "/rest/api/1.0" + path}
+		}
+		data, err := io.ReadAll(io.LimitReader(resp.Body, bitbucketServerMaxResponseSize+1))
+		if err != nil {
+			return err
+		}
+		if len(data) > bitbucketServerMaxResponseSize {
+			return errors.New("bitbucket server API response is too large")
+		}
+		return json.Unmarshal(data, result)
+	}
+}
+
+func (d *BitbucketServerDownloader) doRequest(ctx context.Context, apiURL string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	if d.token != "" {
@@ -302,23 +338,46 @@ func (d *BitbucketServerDownloader) callAPI(ctx context.Context, path string, qu
 
 	resp, err := d.client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer resp.Body.Close()
 	if d.token != "" {
-		d.tokenUser = cmp.Or(resp.Header.Get("X-AUSERNAME"), d.tokenUser)
+		d.tokenUser = cmp.Or(bitbucketServerGitUser(resp.Header.Get("X-AUSERNAME")), d.tokenUser)
 	}
-	if resp.StatusCode != http.StatusOK {
-		return &bbsStatusError{Status: resp.StatusCode, URL: d.baseURL + "/rest/api/1.0" + path}
+	return resp, nil
+}
+
+// bitbucketServerGitUser returns the user name to clone with for the user name an API response reports.
+// Project and repository access tokens act as a technical user, which git does not accept, but "x-token-auth".
+func bitbucketServerGitUser(reported string) string {
+	name, err := url.PathUnescape(reported)
+	if err != nil || name == "" {
+		return ""
 	}
-	data, err := io.ReadAll(io.LimitReader(resp.Body, bitbucketServerMaxResponseSize+1))
-	if err != nil {
-		return err
+	if strings.HasPrefix(name, "access-token-user/") {
+		return "x-token-auth"
 	}
-	if len(data) > bitbucketServerMaxResponseSize {
-		return errors.New("bitbucket server API response is too large")
+	return name
+}
+
+// bitbucketServerRetryAfter returns the time to wait for a rate limited request: the Retry-After header,
+// otherwise an exponential backoff.
+func bitbucketServerRetryAfter(header string, attempt int) time.Duration {
+	wait := time.Duration(1<<(attempt-1)) * time.Second
+	if seconds, err := strconv.Atoi(strings.TrimSpace(header)); err == nil && seconds >= 0 {
+		wait = time.Duration(seconds) * time.Second
 	}
-	return json.Unmarshal(data, result)
+	return min(wait, bitbucketServerMaxRetryWait)
+}
+
+func sleepContext(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 func bbsGetPage[T any](ctx context.Context, d *BitbucketServerDownloader, path string, query url.Values, start, limit int) (*bbsPage[T], error) {
