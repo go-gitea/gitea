@@ -90,4 +90,14 @@ func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
 	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(t.Context(), "", []string{"user1", "user2"})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{1, 2}, IDs)
+
+	// An empty string anywhere in the list (not just the first element) should be ignored
+	// instead of discarding the whole list or being looked up as a username.
+	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(t.Context(), "", []string{"", "user1", "user2"})
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{1, 2}, IDs)
+
+	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(t.Context(), "", []string{"user1", ""})
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{1}, IDs)
 }

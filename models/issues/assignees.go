@@ -183,8 +183,10 @@ func MakeIDsFromAPIAssigneesToAdd(ctx context.Context, oneAssignee string, multi
 	}
 
 	// Prevent empty assignees
-	if len(multipleAssignees) > 0 && multipleAssignees[0] != "" {
-		requestAssignees = append(requestAssignees, multipleAssignees...)
+	for _, assignee := range multipleAssignees {
+		if assignee != "" {
+			requestAssignees = append(requestAssignees, assignee)
+		}
 	}
 
 	// Get the IDs of all assignees
