@@ -1,6 +1,7 @@
 import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 export function initRepoMigrationStatusChecker() {
   const repoMigrating = document.querySelector('#repo_migrating');
@@ -77,7 +78,8 @@ export function initRepoMigrationForm() {
     const keysLink = form.querySelector<HTMLAnchorElement>('.js-ssh-keys-link')!;
     const fingerprintOnly = form.querySelector('.ssh-key-fingerprint-only')!;
     const selector = form.querySelector('.ssh-key-owner-selector')!;
-    const keyOwnerInput = selector.querySelector<HTMLInputElement>('input[name="ssh_key_owner_id"]')!;
+    const ownerDropdown = selector.querySelector('.ui.dropdown')!;
+    const keyOwnerInput = ownerDropdown.querySelector<HTMLInputElement>('input[name="ssh_key_owner_id"]')!;
     const orgDefaultFingerprint = selector.querySelector('.menu .item[data-value="0"] .item-fingerprint')!;
     const signedUserID = selector.getAttribute('data-signed-user-id')!;
     const personalKeysURL = selector.getAttribute('data-personal-keys-link')!;
@@ -94,16 +96,21 @@ export function initRepoMigrationForm() {
       }
       toggleElem(sshHelpField, isSSH);
 
-      // only an org target offers a choice between its key and the personal one
+      // only an org target with its own key offers a choice, otherwise the personal key is used
       const isOrgTarget = isSSH && uidInput.value !== signedUserID;
-      toggleElem(fingerprintOnly, isSSH && !isOrgTarget);
-      toggleElem(selector, isOrgTarget);
-      if (!isOrgTarget) {
-        keyOwnerInput.value = '0';
+      const orgFingerprint = ownerFingerprints[uidInput.value];
+      const canChoose = isOrgTarget && Boolean(orgFingerprint);
+      const wasChoosing = !selector.classList.contains('tw-hidden');
+      toggleElem(fingerprintOnly, isSSH && !canChoose);
+      toggleElem(selector, canChoose);
+      if (!canChoose) {
+        // "0" would mean the org's key, which a keyless org can't provide
+        keyOwnerInput.value = isOrgTarget ? signedUserID : '0';
         if (isSSH) keysLink.href = personalKeysURL;
         return;
       }
-      orgDefaultFingerprint.textContent = ownerFingerprints[uidInput.value] ?? '';
+      if (!wasChoosing) fomanticQuery(ownerDropdown).dropdown('set selected', '0');
+      orgDefaultFingerprint.textContent = orgFingerprint;
       keysLink.href = keyOwnerInput.value === signedUserID ? personalKeysURL : (ownerKeysURLs[uidInput.value] ?? personalKeysURL);
     };
 
