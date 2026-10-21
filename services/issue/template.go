@@ -213,7 +213,7 @@ func TemplateRepoForPaths(ctx reqctx.RequestContext, doer *user_model.User, targ
 	if hasAnyPath(ctx, targetRepo, targetGitRepo, templatePath, paths) {
 		return targetRepo, targetGitRepo
 	}
-	sourceRepo, sourceGitRepo, err := ownerTemplateRepo(ctx, doer, targetRepo)
+	sourceRepo, sourceGitRepo, err := ownerTemplateRepo(ctx, doer, targetRepo, templatePath, paths)
 	if err != nil {
 		log.Error("ownerTemplateRepo: %v", err)
 	}
@@ -223,7 +223,7 @@ func TemplateRepoForPaths(ctx reqctx.RequestContext, doer *user_model.User, targ
 	return sourceRepo, sourceGitRepo
 }
 
-func ownerTemplateRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository) (*repo.Repository, *git.Repository, error) {
+func ownerTemplateRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, templatePath string, paths []string) (*repo.Repository, *git.Repository, error) {
 	for _, name := range []string{".gitea", ".github"} {
 		sourceRepo, err := repo.GetRepositoryByName(ctx, targetRepo.OwnerID, name)
 		if repo.IsErrRepoNotExist(err) {
@@ -243,7 +243,12 @@ func ownerTemplateRepo(ctx reqctx.RequestContext, doer *user_model.User, targetR
 			continue
 		}
 		sourceGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, sourceRepo)
-		return sourceRepo, sourceGitRepo, err
+		if err != nil {
+			return nil, nil, err
+		}
+		if hasAnyPath(ctx, sourceRepo, sourceGitRepo, templatePath, paths) {
+			return sourceRepo, sourceGitRepo, nil
+		}
 	}
 	return nil, nil, nil
 }
