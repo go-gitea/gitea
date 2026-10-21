@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/graceful"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/optional"
@@ -263,4 +265,45 @@ func TestGiteaUploadReviewCommentResolved(t *testing.T) {
 		}
 	}
 	assert.Equal(t, map[string]bool{"resolved thread": true, "open thread": false}, resolved)
+}
+
+func TestGiteaUploadForkPullRequestHeadInRepository(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, repo.Name)
+	var err error
+	uploader.repo = repo
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer uploader.Close()
+
+	headCommitID, err := uploader.gitRepo.GetBranchCommitID(ctx, repo.DefaultBranch)
+	require.NoError(t, err)
+
+	// the fork cannot be reached, but its head commit is already in the repository
+	pr := &base.PullRequest{
+		Number: 99,
+		State:  "open",
+		Head:   base.PullRequestBranch{OwnerName: "fork-owner", RepoName: "repo", Ref: "feature", SHA: headCommitID, CloneURL: "https://fork.invalid/fork-owner/repo.git"},
+		Base:   base.PullRequestBranch{OwnerName: repo.OwnerName, RepoName: repo.Name, Ref: repo.DefaultBranch},
+	}
+	pr.EnsuredSafe = true
+	require.True(t, pr.IsForkPullRequest())
+
+	head, err := uploader.updateGitForPullRequest(ctx, pr)
+	require.NoError(t, err)
+	assert.Equal(t, "fork-owner/feature", head)
+	assert.True(t, uploader.gitRepo.IsBranchExist(ctx, "fork-owner/feature"))
+	branchCommitID, err := uploader.gitRepo.GetBranchCommitID(ctx, "fork-owner/feature")
+	require.NoError(t, err)
+	assert.Equal(t, headCommitID, branchCommitID)
+	refCommitID, err := uploader.gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
+	require.NoError(t, err)
+	assert.Equal(t, headCommitID, refCommitID)
+	remotes, _, err := gitcmd.NewCommand("remote").WithRepo(repo).RunStdString(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, strings.TrimSpace(remotes), "no remote is added for a local head")
 }

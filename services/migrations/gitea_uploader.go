@@ -573,6 +573,11 @@ func (g *GiteaLocalUploader) CreatePullRequests(ctx context.Context, prs ...*bas
 	return nil
 }
 
+func (g *GiteaLocalUploader) commitExists(ctx context.Context, sha string) bool {
+	_, _, err := gitcmd.NewCommand("rev-list", "--quiet", "-1").AddDynamicArguments(sha).WithRepo(g.repo).RunStdString(ctx)
+	return err == nil
+}
+
 func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *base.PullRequest) (head string, err error) {
 	// SECURITY: this pr must have been must have been ensured safe
 	if !pr.EnsuredSafe {
@@ -622,10 +627,14 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 			return head, nil
 		}
 
+		// ... the head commit may already be in the repository (e.g. fetched by the mirror clone as a hidden
+		// pull request ref), then no remote is needed and a private fork does not need credentials either
+		headIsLocal := pr.Head.SHA != "" && g.commitExists(ctx, pr.Head.SHA)
+
 		// 3. We need to create a remote for this clone url
 		// ... maybe we already have a name for this remote
 		remote, ok := g.prHeadCache[pr.Head.CloneURL+":"]
-		if !ok {
+		if !ok && !headIsLocal {
 			// ... let's try ownername as a reasonable name
 			remote = pr.Head.OwnerName
 			if !git.IsValidRefPattern(remote) {
@@ -641,7 +650,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				ok = true
 			}
 		}
-		if !ok {
+		if !ok && !headIsLocal {
 			return head, nil
 		}
 
@@ -666,15 +675,22 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				}
 			}
 
-			fetchArg := pr.Head.Ref + ":" + git.BranchPrefix + localRef
-			if strings.HasPrefix(fetchArg, "-") {
-				fetchArg = git.BranchPrefix + fetchArg
-			}
+			if headIsLocal {
+				if err = git.UpdateRef(ctx, g.repo, git.BranchPrefix+localRef, pr.Head.SHA); err != nil {
+					log.Error("Creating branch %s for PR #%d in %s/%s failed: %v", localRef, pr.Number, g.repoOwner, g.repoName, err)
+					return head, nil
+				}
+			} else {
+				fetchArg := pr.Head.Ref + ":" + git.BranchPrefix + localRef
+				if strings.HasPrefix(fetchArg, "-") {
+					fetchArg = git.BranchPrefix + fetchArg
+				}
 
-			_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithRepo(g.repo).RunStdString(ctx)
-			if err != nil {
-				log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
-				return head, nil
+				_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithRepo(g.repo).RunStdString(ctx)
+				if err != nil {
+					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+					return head, nil
+				}
 			}
 			g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref] = localRef
 			head = localRef

@@ -221,10 +221,10 @@ func TestBitbucketServerPullRequests(t *testing.T) {
 	assert.Equal(t, "open", fork.State)
 	assert.True(t, fork.IsDraft)
 	assert.Equal(t, "bob", fork.PosterName)
-	assert.False(t, fork.IsForkPullRequest(), "the head commit is available as refs/pull-requests/<id>/from of the target")
-	assert.Equal(t, "BOB/patch", fork.Head.Ref)
-	assert.Equal(t, "PROJ", fork.Head.OwnerName)
-	assert.Equal(t, "repo", fork.Head.RepoName)
+	assert.True(t, fork.IsForkPullRequest())
+	assert.Equal(t, srv.URL+"/scm/~BOB/repo-fork.git", fork.Head.CloneURL)
+	assert.Equal(t, "~BOB", fork.Head.OwnerName)
+	assert.Equal(t, "patch", fork.Head.Ref)
 	assert.Nil(t, fork.Closed)
 
 	declined := prs[2]
@@ -389,13 +389,14 @@ func TestBitbucketServerDownloadRepo(t *testing.T) {
 	assert.False(t, declined.Merged)
 	assert.NotNil(t, declined.Closed)
 
-	// draft PR from a fork is handed over with its head in the target repository
+	// draft PR from a private fork
 	fork := prs[3]
 	assert.True(t, fork.IsDraft)
 	assert.Equal(t, "bob", fork.PosterName)
-	assert.Equal(t, "BOB/forkbranch", fork.Head.Ref)
+	assert.Equal(t, "forkbranch", fork.Head.Ref)
 	assert.Equal(t, "aa537b277722995337c78d4d75018202091c0793", fork.Head.SHA)
-	assert.False(t, fork.IsForkPullRequest())
+	assert.True(t, fork.IsForkPullRequest())
+	assert.Equal(t, mockServer.URL+"/scm/~BOB/demo.git", fork.Head.CloneURL)
 
 	comments, _, err := d.GetComments(ctx, open)
 	require.NoError(t, err)

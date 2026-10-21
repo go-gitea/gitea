@@ -417,13 +417,6 @@ func (d *BitbucketServerDownloader) convertPullRequest(ctx context.Context, orig
 		Head:         d.convertRef(&orig.FromRef),
 		Base:         d.convertRef(&orig.ToRef),
 	}
-	// Bitbucket keeps the head commit of every PR as refs/pull-requests/<id>/from in the target repository, so the
-	// objects of a fork are already migrated. Fetching from the fork would need its own credentials, therefore
-	// fork PRs are handed over as if their head lived in the target repository, under a name that cannot clash.
-	if !strings.EqualFold(pr.Head.OwnerName, pr.Base.OwnerName) || !strings.EqualFold(pr.Head.RepoName, pr.Base.RepoName) {
-		pr.Head.Ref = strings.TrimPrefix(pr.Head.OwnerName, "~") + "/" + pr.Head.Ref
-		pr.Head.OwnerName, pr.Head.RepoName, pr.Head.CloneURL = pr.Base.OwnerName, pr.Base.RepoName, pr.Base.CloneURL
-	}
 	// the merge base is computed by the uploader, the target branch tip given by the API may have moved on
 	pr.Base.SHA = ""
 
