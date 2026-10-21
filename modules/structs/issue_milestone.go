@@ -57,5 +57,6 @@ type EditMilestoneOption struct {
 	// enum: ["open","closed"]
 	State *string `json:"state"`
 	// Deadline is the updated due date for the milestone, set it to null to remove the deadline
+	// swagger:strfmt date-time
 	Deadline optional.Option[*time.Time] `json:"due_on,omitzero"`
 }

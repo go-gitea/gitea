@@ -28848,7 +28848,7 @@
           "x-go-name": "Description"
         },
         "due_on": {
-          "description": "Deadline is the updated due date for the milestone, the existing one is kept if omitted",
+          "description": "Deadline is the updated due date for the milestone, set it to null to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -28866,11 +28866,6 @@
           "description": "Title is the updated title of the milestone",
           "type": "string",
           "x-go-name": "Title"
-        },
-        "unset_due_on": {
-          "description": "RemoveDeadline removes the due date of the milestone",
-          "type": "boolean",
-          "x-go-name": "RemoveDeadline"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -31060,7 +31055,7 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "Milestone": {
-      "description": "Milestone milestone is a collection of issues on one repository",
+      "description": "Milestone is a collection of issues on one repository",
       "type": "object",
       "properties": {
         "closed_at": {
