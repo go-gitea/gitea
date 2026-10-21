@@ -262,7 +262,11 @@ type bbsStatusError struct {
 }
 
 func (e *bbsStatusError) Error() string {
-	return fmt.Sprintf("bitbucket server API %s returned status %d", e.URL, e.Status)
+	msg := fmt.Sprintf("bitbucket server API %s returned status %d", e.URL, e.Status)
+	if e.Status == http.StatusUnauthorized || e.Status == http.StatusForbidden {
+		msg += ", check the credentials and the permission to read the repository"
+	}
+	return msg
 }
 
 func (d *BitbucketServerDownloader) repoPath() string {
@@ -391,16 +395,12 @@ func (d *BitbucketServerDownloader) GetPullRequests(ctx context.Context, page, p
 	clear(d.activities)
 	prs := make([]*base.PullRequest, 0, len(result.Values))
 	for i := range result.Values {
-		pr := d.convertPullRequest(&result.Values[i])
-		if pr.Merged {
-			d.setMergeCommit(ctx, pr)
-		}
-		prs = append(prs, pr)
+		prs = append(prs, d.convertPullRequest(ctx, &result.Values[i]))
 	}
 	return prs, result.IsLastPage || len(result.Values) == 0, nil
 }
 
-func (d *BitbucketServerDownloader) convertPullRequest(orig *bbsPullRequest) *base.PullRequest {
+func (d *BitbucketServerDownloader) convertPullRequest(ctx context.Context, orig *bbsPullRequest) *base.PullRequest {
 	pr := &base.PullRequest{
 		Number:       orig.ID,
 		ForeignIndex: orig.ID,
@@ -436,21 +436,40 @@ func (d *BitbucketServerDownloader) convertPullRequest(orig *bbsPullRequest) *ba
 		}
 	}
 
+	if pr.Merged {
+		d.completeMergedPullRequest(ctx, pr)
+	}
+
 	_ = CheckAndEnsureSafePR(pr, d.baseURL, d)
 	return pr
 }
 
-// setMergeCommit takes the merge commit from the MERGED activity, the pull request itself does not carry it
-func (d *BitbucketServerDownloader) setMergeCommit(ctx context.Context, pr *base.PullRequest) {
+// completeMergedPullRequest adds what the pull request itself does not carry: the merge commit from the MERGED
+// activity, and the merge base from the oldest commit of the PR. The uploader could only derive the merge base from
+// the current target branch, which already contains the merged head and would leave an empty diff.
+func (d *BitbucketServerDownloader) completeMergedPullRequest(ctx context.Context, pr *base.PullRequest) {
 	activities, err := d.getActivities(ctx, pr.Number)
 	if err != nil {
 		log.Warn("Bitbucket Server: unable to load activities of pull request %d: %v", pr.Number, err)
-		return
 	}
 	for _, activity := range activities {
 		if activity.Action == "MERGED" && activity.Commit != nil {
 			pr.MergeCommitSHA = activity.Commit.ID
 		}
+	}
+
+	commits, err := bbsGetAll[struct {
+		Parents []struct {
+			ID string `json:"id"`
+		} `json:"parents"`
+	}](ctx, d, d.repoPath()+"/pull-requests/"+strconv.FormatInt(pr.Number, 10)+"/commits", nil)
+	if err != nil {
+		log.Warn("Bitbucket Server: unable to load commits of pull request %d: %v", pr.Number, err)
+		return
+	}
+	// newest first
+	if len(commits) > 0 && len(commits[len(commits)-1].Parents) > 0 {
+		pr.Base.SHA = commits[len(commits)-1].Parents[0].ID
 	}
 }
 

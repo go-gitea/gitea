@@ -175,10 +175,14 @@ const bbsPullRequestsJSON = `{"isLastPage":true,"values":[
 ]}`
 
 func TestBitbucketServerPullRequests(t *testing.T) {
-	headSHA, baseSHA, mergeSHA := strings.Repeat("1", 40), strings.Repeat("2", 40), strings.Repeat("3", 40)
+	headSHA, baseSHA, mergeSHA, forkPoint := strings.Repeat("1", 40), strings.Repeat("2", 40), strings.Repeat("3", 40), strings.Repeat("4", 40)
 	const api = "/rest/api/1.0/projects/PROJ/repos/repo"
 	var query string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == api+"/pull-requests/1/commits" {
+			_, _ = w.Write([]byte(`{"isLastPage":true,"values":[{"id":"c2","parents":[{"id":"c1"}]},{"id":"c1","parents":[{"id":"` + forkPoint + `"}]}]}`))
+			return
+		}
 		if r.URL.Path == api+"/pull-requests/1/activities" {
 			_, _ = w.Write([]byte(`{"isLastPage":true,"values":[{"action":"MERGED","commit":{"id":"` + mergeSHA + `"}}]}`))
 			return
@@ -209,7 +213,7 @@ func TestBitbucketServerPullRequests(t *testing.T) {
 	assert.Equal(t, "feature", merged.Head.Ref)
 	assert.Equal(t, headSHA, merged.Head.SHA)
 	assert.Equal(t, "main", merged.Base.Ref)
-	assert.Empty(t, merged.Base.SHA, "merge base is computed by the uploader")
+	assert.Equal(t, forkPoint, merged.Base.SHA, "parent of the oldest PR commit, the target branch has moved on")
 	assert.False(t, merged.IsForkPullRequest())
 	assert.True(t, merged.EnsuredSafe)
 
@@ -377,6 +381,7 @@ func TestBitbucketServerDownloadRepo(t *testing.T) {
 	assert.Equal(t, "closed", merged.State)
 	assert.True(t, merged.Merged)
 	assert.Equal(t, "504e78ed1c8fcbc0e55f5f0b6d3c49a0bc1ae861", merged.MergeCommitSHA)
+	assert.Equal(t, "a41991381bd1e6944b3422cd1dc933b65c74cf67", merged.Base.SHA)
 	assert.NotNil(t, merged.MergedTime)
 
 	declined := prs[2]
