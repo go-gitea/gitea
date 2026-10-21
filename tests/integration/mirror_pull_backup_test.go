@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	mirror_service "gitea.dev/services/mirror"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
@@ -41,8 +42,9 @@ func gitForMirrorBackupTest(t *testing.T, dir string, args ...string) string {
 	return strings.TrimSpace(string(output))
 }
 
-func newMirrorBackupFixture(t *testing.T, name string, backup, prune bool) *mirrorBackupFixture {
+func newMirrorBackupFixture(t *testing.T, name string, backupLimit int, prune bool) *mirrorBackupFixture {
 	t.Helper()
+	t.Cleanup(test.MockVariableValue(&setting.Mirror.DefaultForcePushBackupLimit, backupLimit))
 	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	base := t.TempDir()
@@ -59,11 +61,10 @@ func newMirrorBackupFixture(t *testing.T, name string, backup, prune bool) *mirr
 	gitForMirrorBackupTest(t, remote, "symbolic-ref", "HEAD", "refs/heads/main")
 
 	opts := migration.MigrateOptions{
-		RepoName:        name,
-		Mirror:          true,
-		CloneAddr:       remote,
-		ForcePushBackup: &backup,
-		EnablePrune:     &prune,
+		RepoName:    name,
+		Mirror:      true,
+		CloneAddr:   remote,
+		EnablePrune: &prune,
 	}
 	repo, err := repo_service.CreateRepositoryDirectly(ctx, user, user, repo_service.CreateRepoOptions{
 		Name:     name,
@@ -133,7 +134,7 @@ func (f *mirrorBackupFixture) backupRefs(t *testing.T, prefix string) []string {
 
 func TestMirrorPullBackupSyncsAllRefs(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	f := newMirrorBackupFixture(t, "test_mirror_backup_all_refs", true, true)
+	f := newMirrorBackupFixture(t, "test_mirror_backup_all_refs", 5, true)
 	mainOID := f.mirrorRef(t, "refs/heads/main")
 	f.setRemoteRef(t, "refs/meta/config", mainOID)
 	gitForMirrorBackupTest(t, f.work, "notes", "add", "-m", "mirror note", "HEAD")
@@ -143,9 +144,36 @@ func TestMirrorPullBackupSyncsAllRefs(t *testing.T) {
 	require.Equal(t, gitForMirrorBackupTest(t, f.remote, "rev-parse", "refs/notes/commits"), f.mirrorRef(t, "refs/notes/commits"))
 }
 
+func TestMirrorPullZeroBackupLimitSyncsWithoutBackups(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	f := newMirrorBackupFixture(t, "test_mirror_zero_backup_limit", 0, true)
+	initialOID := f.mirrorRef(t, "refs/heads/main")
+	firstOID := f.commit(t, "first history")
+	f.setRemoteRef(t, "refs/heads/main", firstOID)
+	f.setRemoteRef(t, "refs/heads/deleted", firstOID)
+	f.setRemoteRef(t, "refs/tags/replaced", firstOID)
+	f.setRemoteRef(t, "refs/tags/deleted", firstOID)
+	require.True(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID))
+	gitForMirrorBackupTest(t, f.work, "reset", "--hard", initialOID)
+	secondOID := f.commit(t, "alternate history")
+	f.setRemoteRef(t, "refs/heads/main", secondOID)
+	f.setRemoteRef(t, "refs/tags/replaced", secondOID)
+	f.setRemoteRef(t, "refs/notes/commits", secondOID)
+	f.deleteRemoteRef(t, "refs/heads/deleted")
+	f.deleteRemoteRef(t, "refs/tags/deleted")
+	require.True(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID))
+	require.Equal(t, secondOID, f.mirrorRef(t, "refs/heads/main"))
+	require.Equal(t, secondOID, f.mirrorRef(t, "refs/tags/replaced"))
+	require.Equal(t, secondOID, f.mirrorRef(t, "refs/notes/commits"))
+	require.False(t, f.hasMirrorRef(t, "refs/heads/deleted"))
+	require.False(t, f.hasMirrorRef(t, "refs/tags/deleted"))
+	require.Empty(t, f.backupRefs(t, "refs/heads/mirror-backup/"))
+	require.Empty(t, f.backupRefs(t, "refs/tags/mirror-backup/"))
+}
+
 func TestMirrorPullBackupSurvivesDisabledBackupPrune(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	f := newMirrorBackupFixture(t, "test_mirror_backup_survives_disabled", true, true)
+	f := newMirrorBackupFixture(t, "test_mirror_backup_survives_disabled", 5, true)
 	oldOID := f.mirrorRef(t, "refs/heads/main")
 	firstOID := f.commit(t, "first history")
 	f.setRemoteRef(t, "refs/heads/main", firstOID)
@@ -159,18 +187,28 @@ func TestMirrorPullBackupSurvivesDisabledBackupPrune(t *testing.T) {
 	require.Len(t, backups, 1)
 	require.Contains(t, backups[0], firstOID)
 
-	mirror, err := repo_model.GetMirrorByRepoID(t.Context(), f.repo.ID)
-	require.NoError(t, err)
-	mirror.ForcePushBackup = false
-	mirror.EnablePrune = true
-	require.NoError(t, repo_model.UpdateMirror(t.Context(), mirror))
+	setting.Mirror.DefaultForcePushBackupLimit = 0
+	gitForMirrorBackupTest(t, f.work, "reset", "--hard", oldOID)
+	thirdOID := f.commit(t, "disabled backup history")
+	f.setRemoteRef(t, "refs/heads/main", thirdOID)
+	f.setRemoteRef(t, "refs/heads/deleted", secondOID)
+	f.setRemoteRef(t, "refs/tags/deleted", secondOID)
 	require.True(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID))
+	f.deleteRemoteRef(t, "refs/heads/deleted")
+	f.deleteRemoteRef(t, "refs/tags/deleted")
+	require.True(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID))
+
+	require.Equal(t, thirdOID, f.mirrorRef(t, "refs/heads/main"))
+	require.False(t, f.hasMirrorRef(t, "refs/heads/deleted"))
+	require.False(t, f.hasMirrorRef(t, "refs/tags/deleted"))
 	require.Equal(t, backups, f.backupRefs(t, backupPrefix))
+	require.Empty(t, f.backupRefs(t, "refs/heads/mirror-backup/branch/deleted-"))
+	require.Empty(t, f.backupRefs(t, "refs/tags/mirror-backup/tag/deleted-"))
 }
 
 func TestMirrorPullBackupFetchFailurePreservesRefs(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	f := newMirrorBackupFixture(t, "test_mirror_backup_fetch_failure", true, true)
+	f := newMirrorBackupFixture(t, "test_mirror_backup_fetch_failure", 5, true)
 	initialOID := f.mirrorRef(t, "refs/heads/main")
 	firstOID := f.commit(t, "first history")
 	f.setRemoteRef(t, "refs/heads/main", firstOID)
@@ -195,7 +233,7 @@ func TestMirrorPullBackupFetchFailurePreservesRefs(t *testing.T) {
 
 func TestMirrorPullBackupLockFailurePreservesRefsAndRetries(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	f := newMirrorBackupFixture(t, "test_mirror_backup_lock_failure", true, true)
+	f := newMirrorBackupFixture(t, "test_mirror_backup_lock_failure", 5, true)
 	initialOID := f.mirrorRef(t, "refs/heads/main")
 	firstOID := f.commit(t, "first history")
 	f.setRemoteRef(t, "refs/heads/main", firstOID)
@@ -242,7 +280,7 @@ func TestMirrorPullBackupDirectoryFileTransitions(t *testing.T) {
 		{"tag_directory_to_file", "tags", "release/nested", "release"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			f := newMirrorBackupFixture(t, "test_mirror_backup_"+tc.name, true, true)
+			f := newMirrorBackupFixture(t, "test_mirror_backup_"+tc.name, 5, true)
 			objectID := f.mirrorRef(t, "refs/heads/main")
 			oldRef := "refs/" + tc.refType + "/" + tc.old
 			newRef := "refs/" + tc.refType + "/" + tc.new
@@ -267,7 +305,7 @@ func TestMirrorPullBackupDirectoryFileTransitions(t *testing.T) {
 
 func TestMirrorPullBackupPruneDisabledDirectoryFileConflict(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	f := newMirrorBackupFixture(t, "test_mirror_backup_prune_disabled_conflict", true, false)
+	f := newMirrorBackupFixture(t, "test_mirror_backup_prune_disabled_conflict", 5, false)
 	objectID := f.mirrorRef(t, "refs/heads/main")
 	f.setRemoteRef(t, "refs/heads/topic", objectID)
 	require.True(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID))
@@ -281,7 +319,7 @@ func TestMirrorPullBackupPruneDisabledDirectoryFileConflict(t *testing.T) {
 
 func TestMirrorPullBackupRecordsOldObjectIDs(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	f := newMirrorBackupFixture(t, "test_mirror_backup_old_oids", true, true)
+	f := newMirrorBackupFixture(t, "test_mirror_backup_old_oids", 5, true)
 	initialOID := f.mirrorRef(t, "refs/heads/main")
 	firstOID := f.commit(t, "first history")
 	f.setRemoteRef(t, "refs/heads/main", firstOID)
@@ -313,7 +351,7 @@ func TestMirrorPullBackupRecordsOldObjectIDs(t *testing.T) {
 
 func TestMirrorPullBackupIgnoresReplacementRefsForAncestry(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	f := newMirrorBackupFixture(t, "test_mirror_backup_replace_ancestry", true, true)
+	f := newMirrorBackupFixture(t, "test_mirror_backup_replace_ancestry", 5, true)
 	initialOID := f.mirrorRef(t, "refs/heads/main")
 	oldOID := f.commit(t, "upstream old history")
 	f.setRemoteRef(t, "refs/heads/main", oldOID)
@@ -347,34 +385,43 @@ func TestMirrorPullBackupIgnoresReplacementRefsForAncestry(t *testing.T) {
 
 func TestMirrorPullBackupRetentionKeepsNewestAcrossSequences(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	oldLimit := setting.Mirror.DefaultForcePushBackupLimit
-	setting.Mirror.DefaultForcePushBackupLimit = 1
-	defer func() {
-		setting.Mirror.DefaultForcePushBackupLimit = oldLimit
-	}()
-	f := newMirrorBackupFixture(t, "test_mirror_backup_retention_sequence", true, true)
-	initialOID := f.mirrorRef(t, "refs/heads/main")
-	firstOID := f.commit(t, "first branch tip")
-	f.setRemoteRef(t, "refs/heads/main", firstOID)
-	require.True(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID))
-	gitForMirrorBackupTest(t, f.work, "reset", "--hard", initialOID)
-	secondOID := f.commit(t, "alternate branch tip")
-	futureTimestamp := time.Now().UTC().Add(time.Hour).Format("20060102-150405")
-	prefix := "refs/heads/mirror-backup/branch/main-"
-	gitForMirrorBackupTest(t, gitrepo.RepoLocalPath(f.repo), "update-ref", prefix+futureTimestamp, initialOID)
+	for _, limit := range []int{-1, 1} {
+		t.Run(strconv.Itoa(limit), func(t *testing.T) {
+			f := newMirrorBackupFixture(t, "test_mirror_backup_retention_"+strconv.Itoa(limit), limit, true)
+			initialOID := f.mirrorRef(t, "refs/heads/main")
+			firstOID := f.commit(t, "first branch tip")
+			f.setRemoteRef(t, "refs/heads/main", firstOID)
+			f.setRemoteRef(t, "refs/tags/release", firstOID)
+			require.True(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID))
+			gitForMirrorBackupTest(t, f.work, "reset", "--hard", initialOID)
+			secondOID := f.commit(t, "alternate branch tip")
+			futureTimestamp := time.Now().UTC().Add(time.Hour).Format("20060102-150405")
+			prefixes := []string{"refs/heads/mirror-backup/branch/main-", "refs/tags/mirror-backup/tag/release-"}
+			for _, prefix := range prefixes {
+				gitForMirrorBackupTest(t, gitrepo.RepoLocalPath(f.repo), "update-ref", prefix+futureTimestamp, initialOID)
+			}
 
-	for i := range 12 {
-		oldOID, newOID := firstOID, secondOID
-		if i%2 == 1 {
-			oldOID, newOID = secondOID, firstOID
-		}
-		f.setRemoteRef(t, "refs/heads/main", newOID)
-		require.True(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID), "sync %d", i)
-		require.Equal(t, newOID, f.mirrorRef(t, "refs/heads/main"))
-		backups := f.backupRefs(t, prefix)
-		require.Len(t, backups, 1, "sync %d", i)
-		require.Equal(t, prefix+futureTimestamp+"-"+strconv.Itoa(i+2), strings.Fields(backups[0])[0])
-		require.Equal(t, oldOID, strings.Fields(backups[0])[1])
+			for i := range 12 {
+				oldOID, newOID := firstOID, secondOID
+				if i%2 == 1 {
+					oldOID, newOID = secondOID, firstOID
+				}
+				f.setRemoteRef(t, "refs/heads/main", newOID)
+				f.setRemoteRef(t, "refs/tags/release", newOID)
+				require.True(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID), "sync %d", i)
+				require.Equal(t, newOID, f.mirrorRef(t, "refs/heads/main"))
+				for _, prefix := range prefixes {
+					backups := f.backupRefs(t, prefix)
+					newest := prefix + futureTimestamp + "-" + strconv.Itoa(i+2) + " " + oldOID
+					if limit == -1 {
+						require.Len(t, backups, i+2, "sync %d", i)
+						require.Contains(t, backups, newest)
+					} else {
+						require.Equal(t, []string{newest}, backups, "sync %d", i)
+					}
+				}
+			}
+		})
 	}
 }
 
@@ -392,7 +439,7 @@ func TestMirrorPullBackupRejectsReservedUpstreamRefs(t *testing.T) {
 		{"fetch_namespace_root", "refs/mirror-fetch"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			f := newMirrorBackupFixture(t, "test_mirror_backup_reserved_"+tc.name, true, true)
+			f := newMirrorBackupFixture(t, "test_mirror_backup_reserved_"+tc.name, 5, true)
 			oldOID := f.mirrorRef(t, "refs/heads/main")
 			newOID := f.commit(t, "upstream new main")
 			f.setRemoteRef(t, "refs/heads/main", newOID)
@@ -413,7 +460,7 @@ func TestMirrorPullBackupRejectsReservedUpstreamRefs(t *testing.T) {
 func TestMirrorPullBackupPhaseFailureRetainsRefsAndRetries(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	requireMirrorBackupReferenceTransactionHook(t)
-	f := newMirrorBackupFixture(t, "test_mirror_backup_phase_failure", true, true)
+	f := newMirrorBackupFixture(t, "test_mirror_backup_phase_failure", 1, true)
 	initialOID := f.mirrorRef(t, "refs/heads/main")
 	firstOID := f.commit(t, "first history")
 	f.setRemoteRef(t, "refs/heads/main", firstOID)
@@ -422,15 +469,25 @@ func TestMirrorPullBackupPhaseFailureRetainsRefsAndRetries(t *testing.T) {
 	secondOID := f.commit(t, "alternate history")
 	f.setRemoteRef(t, "refs/heads/main", secondOID)
 
+	prefix := "refs/heads/mirror-backup/branch/main-"
+	previousBackup := prefix + time.Now().UTC().Add(-time.Hour).Format("20060102-150405")
+	gitForMirrorBackupTest(t, gitrepo.RepoLocalPath(f.repo), "update-ref", previousBackup, initialOID)
 	hook := installMirrorBackupRejectingHook(t, f, "refs/heads/main", secondOID)
 	last, err := repo_model.GetMirrorByRepoID(t.Context(), f.repo.ID)
 	require.NoError(t, err)
 	require.False(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID))
 	require.Equal(t, firstOID, f.mirrorRef(t, "refs/heads/main"))
-	backups := f.backupRefs(t, "refs/heads/mirror-backup/branch/main-")
-	require.Len(t, backups, 1)
-	require.Contains(t, backups[0], firstOID)
-	backupName := strings.TrimPrefix(strings.Fields(backups[0])[0], "refs/heads/")
+	backups := f.backupRefs(t, prefix)
+	require.Len(t, backups, 2)
+	require.Contains(t, backups, previousBackup+" "+initialOID)
+	var newBackup string
+	for _, backup := range backups {
+		if strings.Fields(backup)[1] == firstOID {
+			newBackup = backup
+		}
+	}
+	require.NotEmpty(t, newBackup)
+	backupName := strings.TrimPrefix(strings.Fields(newBackup)[0], "refs/heads/")
 	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: f.repo.ID, Name: backupName})
 	require.False(t, branch.IsDeleted)
 	current, err := repo_model.GetMirrorByRepoID(t.Context(), f.repo.ID)
@@ -439,13 +496,15 @@ func TestMirrorPullBackupPhaseFailureRetainsRefsAndRetries(t *testing.T) {
 	require.NoError(t, os.Remove(hook))
 	require.True(t, mirror_service.SyncPullMirror(t.Context(), f.repo.ID))
 	require.Equal(t, secondOID, f.mirrorRef(t, "refs/heads/main"))
-	require.Contains(t, f.backupRefs(t, "refs/heads/mirror-backup/branch/main-"), backups[0])
+	remaining := f.backupRefs(t, prefix)
+	require.Len(t, remaining, 1)
+	require.Contains(t, remaining[0], firstOID)
 }
 
 func TestMirrorPullBackupDirectoryFilePhaseFailure(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	requireMirrorBackupReferenceTransactionHook(t)
-	f := newMirrorBackupFixture(t, "test_mirror_backup_df_phase_failure", true, true)
+	f := newMirrorBackupFixture(t, "test_mirror_backup_df_phase_failure", 5, true)
 	objectID := f.mirrorRef(t, "refs/heads/main")
 	oldRef := "refs/heads/topic"
 	newRef := "refs/heads/topic/nested"
@@ -472,7 +531,7 @@ func TestMirrorPullBackupDirectoryFilePhaseFailure(t *testing.T) {
 func TestMirrorPullBackupRejectsStaleLiveRef(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	requireMirrorBackupReferenceTransactionHook(t)
-	f := newMirrorBackupFixture(t, "test_mirror_backup_stale_live", true, true)
+	f := newMirrorBackupFixture(t, "test_mirror_backup_stale_live", 5, true)
 	initialOID := f.mirrorRef(t, "refs/heads/main")
 	firstOID := f.commit(t, "first history")
 	f.setRemoteRef(t, "refs/heads/main", firstOID)

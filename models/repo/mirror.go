@@ -35,9 +35,6 @@ type Mirror struct {
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
-
-	// ForcePushBackup creates backup refs before destructive mirror updates.
-	ForcePushBackup bool `xorm:"NOT NULL DEFAULT false"`
 }
 
 func init() {

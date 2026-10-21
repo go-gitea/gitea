@@ -244,8 +244,6 @@ type EditRepoOption struct {
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
 	// enable prune - remove obsolete remote-tracking references when mirroring
 	EnablePrune *bool `json:"enable_prune,omitempty"`
-	// create backup refs before destructive mirror updates
-	ForcePushBackup *bool `json:"force_push_backup,omitempty"`
 	// authentication username for the remote repository (mirrors)
 	MirrorUsername *string `json:"mirror_username,omitempty"`
 	// authentication password for the remote repository (mirrors)
@@ -421,8 +419,6 @@ type MigrateRepoOptions struct {
 	MirrorInterval string `json:"mirror_interval"`
 	// enable prune - remove obsolete remote-tracking references when mirroring
 	EnablePrune *bool `json:"enable_prune,omitempty"`
-	// create backup refs before destructive mirror updates
-	ForcePushBackup *bool `json:"force_push_backup,omitempty"`
 
 	AWSAccessKeyID     string `json:"aws_access_key_id"`
 	AWSSecretAccessKey string `json:"aws_secret_access_key"`

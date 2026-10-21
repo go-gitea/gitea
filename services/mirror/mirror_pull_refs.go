@@ -60,7 +60,7 @@ type mirrorRefPlan struct {
 }
 
 func needsStagedMirrorSync(ctx context.Context, m *repo_model.Mirror) (bool, error) {
-	if m.ForcePushBackup {
+	if setting.Mirror.DefaultForcePushBackupLimit != 0 {
 		return true, nil
 	}
 	for _, prefix := range []string{mirrorBackupBranchPrefix, mirrorBackupTagPrefix} {
@@ -267,7 +267,7 @@ func planMirrorRefChanges(ctx context.Context, m *repo_model.Mirror, localRefs [
 		if !exists && !m.EnablePrune {
 			continue
 		}
-		if m.ForcePushBackup && (strings.HasPrefix(name, git.BranchPrefix) || strings.HasPrefix(name, git.TagPrefix)) {
+		if setting.Mirror.DefaultForcePushBackupLimit != 0 && (strings.HasPrefix(name, git.BranchPrefix) || strings.HasPrefix(name, git.TagPrefix)) {
 			backup := !exists || strings.HasPrefix(name, git.TagPrefix)
 			if exists && !backup {
 				canFastForward, err := canFastForwardRef(ctx, m.Repo, oldRef.objectID, newRef.objectID)
@@ -514,6 +514,10 @@ func sortBackupRefsNewestFirst(refs []mirrorRef, prefix string) {
 }
 
 func pruneBackupRefs(ctx context.Context, m *repo_model.Mirror, refType, shortName, newestName string) error {
+	limit := setting.Mirror.DefaultForcePushBackupLimit
+	if limit <= 0 {
+		return nil
+	}
 	prefix := backupRefPrefix(refType) + shortName + "-"
 	refs, err := listRefsWithPrefix(ctx, m.Repo, backupRefPrefix(refType))
 	if err != nil {
@@ -525,7 +529,6 @@ func pruneBackupRefs(ctx context.Context, m *repo_model.Mirror, refType, shortNa
 			matching = append(matching, ref)
 		}
 	}
-	limit := setting.Mirror.DefaultForcePushBackupLimit
 	if len(matching) <= limit {
 		return nil
 	}

@@ -625,7 +625,6 @@ func Edit(ctx *context.APIContext) {
 
 	if opts.MirrorInterval != nil ||
 		opts.EnablePrune != nil ||
-		opts.ForcePushBackup != nil ||
 		opts.MirrorUsername != nil ||
 		opts.MirrorPassword != nil ||
 		opts.MirrorToken != nil {
@@ -1070,11 +1069,6 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 		log.Trace("Repository %s Mirror[%d] Set EnablePrune: %t", repo.FullName(), mirror.ID, mirror.EnablePrune)
 	}
 
-	// update ForcePushBackup
-	if opts.ForcePushBackup != nil {
-		mirror.ForcePushBackup = *opts.ForcePushBackup
-		log.Trace("Repository %s Mirror[%d] Set ForcePushBackup: %t", repo.FullName(), mirror.ID, mirror.ForcePushBackup)
-	}
 	authUpdateRequested := opts.MirrorPassword != nil || opts.MirrorToken != nil || opts.MirrorUsername != nil
 	if authUpdateRequested {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, repo, mirror.GetRemoteName())

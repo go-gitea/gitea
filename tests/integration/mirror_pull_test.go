@@ -136,11 +136,10 @@ func TestMirrorPull(t *testing.T) {
 
 func TestMirrorPullForcePushBackupRefIsNotRestored(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.Mirror.DefaultForcePushBackupLimit, 1)()
 
 	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	f := newMirrorBackupFixture(t, "test_mirror_force_push_backup", true, true)
+	f := newMirrorBackupFixture(t, "test_mirror_force_push_backup", 1, true)
 	firstOID := f.commit(t, "first")
 	f.setRemoteRef(t, "refs/heads/main", firstOID)
 	require.True(t, mirror_service.SyncPullMirror(ctx, f.repo.ID))
@@ -160,6 +159,10 @@ func TestMirrorPullForcePushBackupRefIsNotRestored(t *testing.T) {
 	require.NoError(t, repo_service.DeleteBranch(ctx, user, f.repo, mirrorGitRepo, backupBranch.Name))
 	assert.False(t, git.IsBranchExist(ctx, f.repo, backupBranch.Name))
 
+	require.True(t, mirror_service.SyncPullMirror(ctx, f.repo.ID))
+	assert.False(t, git.IsBranchExist(ctx, f.repo, backupBranch.Name))
+
+	setting.Mirror.DefaultForcePushBackupLimit = 0
 	require.True(t, mirror_service.SyncPullMirror(ctx, f.repo.ID))
 	assert.False(t, git.IsBranchExist(ctx, f.repo, backupBranch.Name))
 	deletedBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: f.repo.ID, Name: backupBranch.Name})

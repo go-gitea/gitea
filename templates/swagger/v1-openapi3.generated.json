@@ -6084,11 +6084,6 @@
           "external_wiki": {
             "$ref": "#/components/schemas/ExternalWiki"
           },
-          "force_push_backup": {
-            "description": "create backup refs before destructive mirror updates",
-            "type": "boolean",
-            "x-go-name": "ForcePushBackup"
-          },
           "has_actions": {
             "description": "either `true` to enable actions unit, or `false` to disable them.",
             "type": "boolean",
@@ -7869,11 +7864,6 @@
             "description": "enable prune - remove obsolete remote-tracking references when mirroring",
             "type": "boolean",
             "x-go-name": "EnablePrune"
-          },
-          "force_push_backup": {
-            "description": "create backup refs before destructive mirror updates",
-            "type": "boolean",
-            "x-go-name": "ForcePushBackup"
           },
           "issues": {
             "type": "boolean",
