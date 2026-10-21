@@ -47,9 +47,20 @@ type SlackPayload struct {
 }
 
 // SlackAttachment contains the slack message
+//
+// This is Slack's "secondary message attachment" format, documented (as
+// legacy, but still functional and with no newer replacement for this exact
+// author-row layout) at:
+// https://docs.slack.dev/legacy/legacy-messaging/legacy-secondary-message-attachments/
+// Gitea has sent every Slack webhook notification through this same struct
+// since Slack support was first added, so this predates and is unrelated to
+// the author fields below.
 type SlackAttachment struct {
-	Fallback   string `json:"fallback"`
-	Color      string `json:"color"`
+	Fallback string `json:"fallback"`
+	Color    string `json:"color"`
+	// AuthorName, AuthorLink, and AuthorIcon render as a small avatar and a
+	// linked username in a row above the title (see the package doc above).
+	// Populated from the event's Sender (or Pusher, for push events).
 	AuthorName string `json:"author_name,omitempty"`
 	AuthorLink string `json:"author_link,omitempty"`
 	AuthorIcon string `json:"author_icon,omitempty"`
