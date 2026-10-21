@@ -561,14 +561,14 @@ deps-backend: ## install backend dependencies
 	$(GO) mod download
 
 .PHONY: deps-tools
-deps-tools: ## install tool dependencies
-	$(GO) install $(AIR_PACKAGE) & \
-	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE) & \
-	$(GO) install $(GOLANGCI_LINT_PACKAGE) & \
-	$(GO) install $(GXZ_PACKAGE) & \
-	$(GO) install $(SWAGGER_PACKAGE) & \
-	$(GO) install $(GOVULNCHECK_PACKAGE) & \
-	$(GO) install $(ACTIONLINT_PACKAGE) & \
+deps-tools: ## fetch and compile tool dependencies
+	$(GO) run -exec true $(AIR_PACKAGE) & \
+	$(GO) run -exec true $(EDITORCONFIG_CHECKER_PACKAGE) & \
+	$(GO) run -exec true $(GOLANGCI_LINT_PACKAGE) & \
+	$(GO) run -exec true $(GXZ_PACKAGE) & \
+	$(GO) run -exec true $(SWAGGER_PACKAGE) & \
+	$(GO) run -exec true $(GOVULNCHECK_PACKAGE) & \
+	$(GO) run -exec true $(ACTIONLINT_PACKAGE) & \
 	wait
 
 node_modules: pnpm-lock.yaml
