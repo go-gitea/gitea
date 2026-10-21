@@ -120,7 +120,7 @@ type EditIssueOption struct {
 	// list of project ids to set (replaces existing projects)
 	Projects *[]int64 `json:"projects"`
 	State    *string  `json:"state"`
-	// Deadline is the updated due date for the issue, use empty string to remove the deadline
+	// Deadline is the updated due date for the issue, use null or empty string to remove the deadline
 	// swagger:strfmt date-time
 	Deadline       optional.Option[*string] `json:"due_date,omitzero"`
 	RemoveDeadline *bool                    `json:"unset_due_date"`
@@ -135,7 +135,7 @@ type IssueAssigneesOption struct {
 
 // EditDeadlineOption options for editing a deadline
 type EditDeadlineOption struct {
-	// Deadline is the updated due date for the issue or pull request, use empty string to remove the deadline
+	// Deadline is the updated due date for the issue or pull request, use null or empty string to remove the deadline
 	// swagger:strfmt date-time
 	Deadline optional.Option[*string] `json:"due_date,omitzero"`
 }

@@ -527,12 +527,12 @@ func TestAPIEditPull(t *testing.T) {
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pull.IssueID})
 	assert.NotZero(t, issue.DeadlineUnix)
 
-	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), map[string]any{"due_date": nil}).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), map[string]any{}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pull.IssueID})
 	assert.NotZero(t, issue.DeadlineUnix)
 
-	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), map[string]any{"due_date": ""}).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), map[string]any{"due_date": nil}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pull.IssueID})
 	assert.Zero(t, issue.DeadlineUnix)

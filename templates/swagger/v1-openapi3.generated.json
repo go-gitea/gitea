@@ -5565,7 +5565,7 @@
         "description": "EditDeadlineOption options for editing a deadline",
         "properties": {
           "due_date": {
-            "description": "Deadline is the updated due date for the issue or pull request, use empty string to remove the deadline",
+            "description": "Deadline is the updated due date for the issue or pull request, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -5671,7 +5671,7 @@
             "x-go-name": "ContentVersion"
           },
           "due_date": {
-            "description": "Deadline is the updated due date for the issue, use empty string to remove the deadline",
+            "description": "Deadline is the updated due date for the issue, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -5751,7 +5751,7 @@
             "x-go-name": "Description"
           },
           "due_on": {
-            "description": "Deadline is the due date for the milestone, use empty string to remove the deadline",
+            "description": "Deadline is the due date for the milestone, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -5901,7 +5901,7 @@
             "x-go-name": "ContentVersion"
           },
           "due_date": {
-            "description": "Deadline is the updated due date for the pull request, use empty string to remove the deadline",
+            "description": "Deadline is the updated due date for the pull request, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
