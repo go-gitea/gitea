@@ -75,13 +75,8 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.APIErrorNotFound("timetracker is disabled")
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIErrorNotFound()
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -104,6 +99,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		opts.UserID = user.ID
 	}
 
+	var err error
 	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = context.GetQueryBeforeSince(ctx.Base); err != nil {
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
@@ -204,9 +200,8 @@ func AddTime(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm[*api.AddTimeOption](ctx)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -223,6 +218,7 @@ func AddTime(ctx *context.APIContext) {
 	if form.User != "" {
 		if (ctx.IsUserRepoAdmin() && ctx.Doer.Name != form.User) || ctx.Doer.IsAdmin {
 			// allow only RepoAdmin, Admin and User to add time
+			var err error
 			user, err = user_model.GetUserByName(ctx, form.User)
 			if err != nil {
 				ctx.APIErrorAuto(err)
@@ -284,9 +280,8 @@ func ResetIssueTime(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -299,7 +294,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		return
 	}
 
-	err = issues_model.DeleteIssueUserTimes(ctx, issue, ctx.Doer)
+	err := issues_model.DeleteIssueUserTimes(ctx, issue, ctx.Doer)
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err.Error())
@@ -353,9 +348,8 @@ func DeleteTime(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
