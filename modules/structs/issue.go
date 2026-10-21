@@ -98,7 +98,7 @@ type CreateIssueOption struct {
 	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	// swagger:strfmt date-time
-	Deadline optional.Option[*string] `json:"due_date"`
+	Deadline optional.Option[*string] `json:"due_date,omitzero"`
 	// milestone id
 	Milestone int64 `json:"milestone"`
 	// list of label ids
@@ -121,7 +121,7 @@ type EditIssueOption struct {
 	Projects *[]int64 `json:"projects"`
 	State    *string  `json:"state"`
 	// swagger:strfmt date-time
-	Deadline       optional.Option[*string] `json:"due_date"`
+	Deadline       optional.Option[*string] `json:"due_date,omitzero"`
 	RemoveDeadline *bool                    `json:"unset_due_date"`
 	// The current version of the issue content to detect conflicts during editing
 	ContentVersion *int `json:"content_version"`
@@ -135,7 +135,7 @@ type IssueAssigneesOption struct {
 // EditDeadlineOption options for creating a deadline
 type EditDeadlineOption struct {
 	// swagger:strfmt date-time
-	Deadline optional.Option[*string] `json:"due_date"`
+	Deadline optional.Option[*string] `json:"due_date,omitzero"`
 }
 
 // IssueDeadline represents an issue deadline

@@ -894,7 +894,8 @@ func DeleteIssue(ctx *context.APIContext) {
 }
 
 func editIssueDeadline(ctx *context.APIContext, issue *issues_model.Issue, deadline optional.Option[*string], removeDeadline *bool) bool {
-	changed, err := common.ApplyAPIDeadlineTimestamp(&issue.DeadlineUnix, deadline, removeDeadline)
+	newDeadlineUnix := issue.DeadlineUnix
+	changed, err := common.ApplyAPIDeadlineTimestamp(&newDeadlineUnix, deadline, removeDeadline)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return false
@@ -902,7 +903,7 @@ func editIssueDeadline(ctx *context.APIContext, issue *issues_model.Issue, deadl
 	if !changed {
 		return true
 	}
-	if err := issues_model.UpdateIssueDeadline(ctx, issue, issue.DeadlineUnix, ctx.Doer); err != nil {
+	if err := issues_model.UpdateIssueDeadline(ctx, issue, newDeadlineUnix, ctx.Doer); err != nil {
 		ctx.APIErrorAuto(err)
 		return false
 	}
@@ -962,13 +963,14 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		return
 	}
 
-	changed, err := common.ApplyAPIDeadlineTimestamp(&issue.DeadlineUnix, form.Deadline, nil)
+	newDeadlineUnix := issue.DeadlineUnix
+	changed, err := common.ApplyAPIDeadlineTimestamp(&newDeadlineUnix, form.Deadline, nil)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
 	if changed {
-		if err := issues_model.UpdateIssueDeadline(ctx, issue, issue.DeadlineUnix, ctx.Doer); err != nil {
+		if err := issues_model.UpdateIssueDeadline(ctx, issue, newDeadlineUnix, ctx.Doer); err != nil {
 			ctx.APIErrorAuto(err)
 			return
 		}

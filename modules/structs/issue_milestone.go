@@ -41,7 +41,7 @@ type CreateMilestoneOption struct {
 	Description string `json:"description"`
 	// swagger:strfmt date-time
 	// Deadline is the due date for the milestone
-	Deadline optional.Option[*string] `json:"due_on"`
+	Deadline optional.Option[*string] `json:"due_on,omitzero"`
 	// enum: ["open","closed"]
 	// State indicates the initial state of the milestone
 	State string `json:"state"`
