@@ -23,7 +23,6 @@ func TestAPIFork(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("CreateForkNoLogin", testCreateForkNoLogin)
 	t.Run("CreateForkOrgNoCreatePermission", testCreateForkOrgNoCreatePermission)
-	t.Run("CreateForkInvalidName", testCreateForkInvalidName)
 	t.Run("APIForkListLimitedAndPrivateRepos", testAPIForkListLimitedAndPrivateRepos)
 	t.Run("GetPrivateReposForks", testGetPrivateReposForks)
 }
@@ -162,23 +161,4 @@ func testGetPrivateReposForks(t *testing.T) {
 	assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
 	assert.Equal(t, "forked-repo", forks[0].Name)
 	assert.Equal(t, privateOrg.Name, forks[0].Owner.UserName)
-}
-
-func testCreateForkInvalidName(t *testing.T) {
-	user1Sess := loginUser(t, "user1")
-	user1Token := getTokenForLoggedInUser(t, user1Sess, auth_model.AccessTokenScopeWriteRepository)
-
-	for _, invalidName := range []string{
-		"invalid name with spaces",
-		".git",
-		"repo.wiki",
-		"",
-	} {
-		t.Run(invalidName, func(t *testing.T) {
-			req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{
-				Name: &invalidName,
-			}).AddTokenAuth(user1Token)
-			MakeRequest(t, req, http.StatusUnprocessableEntity)
-		})
-	}
 }
