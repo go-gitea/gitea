@@ -79,6 +79,7 @@ func TestOAuth2Application_GenerateClientSecret(t *testing.T) {
 func BenchmarkOAuth2Application_GenerateClientSecret(b *testing.B) {
 	assert.NoError(b, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(b, &auth_model.OAuth2Application{ID: 1})
+	defer test.MockVariableValue(&setting.IsInTesting, false)()
 	for b.Loop() {
 		_, _ = app.GenerateClientSecret(b.Context())
 	}

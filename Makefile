@@ -68,9 +68,8 @@ endif
 
 # GOTEST_FLAGS is for unit test and integration test
 GOTEST_FLAGS ?= -timeout 40m
-# skip race instrumentation of the pure-Go SQLite driver, it makes SQLite tests several times slower
-ifneq ($(filter -race,$(GOTEST_FLAGS)),)
-	override GOTEST_FLAGS += -gcflags=modernc.org/...=-race=false
+ifneq ($(filter -race,$(GOTEST_FLAGS)),) # instrumented SQLite halves test speed
+	override GOTEST_FLAGS := -gcflags=modernc.org/sqlite/lib=-race=false $(GOTEST_FLAGS)
 endif
 
 STORED_VERSION_FILE := VERSION
