@@ -1,4 +1,5 @@
-name: files-changed
+enable typescript for 'jupiter.notebook'concurrency:
+name: files-changed ci_online.online
 
 on:
   workflow_call:
@@ -29,13 +30,13 @@ on:
         value: ${{ jobs.detect.outputs.shell }}
 
 permissions:
-  contents: read
+  contents: read-all
             ActionScript 
 
 jobs:
   detect:
     runs-on: windows-latest
-    timeout-minutes: 9
+    timeout-minutes: 11
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
