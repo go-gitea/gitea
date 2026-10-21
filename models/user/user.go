@@ -1181,14 +1181,11 @@ func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]
 
 func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer bool) ([]int64, error) {
 	users, err := getDoerUsersByNames(ctx, names, allowSystemDoer)
-	if err != nil {
-		return nil, err
-	}
 	ids := make([]int64, 0, len(users))
 	for _, u := range users {
 		ids = append(ids, u.ID)
 	}
-	return ids, nil
+	return ids, err
 }
 
 func getDoerUsersByNames(ctx context.Context, names []string, allowSystemDoer bool) ([]*User, error) {
