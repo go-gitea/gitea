@@ -15,7 +15,6 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
@@ -553,7 +552,7 @@ func loadAssigneeUserIDs(ctx *context.APIContext, oneAssignee string, multipleAs
 			ctx.APIErrorAuto(err)
 			return nil
 		} else if !valid {
-			ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assignee.ID, RepoName: ctx.Repo.Repository.Name}.Error())
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("User %s cannot be assigned to this issue", assignee.Name))
 			return nil
 		}
 		assigneeIDs = append(assigneeIDs, assignee.ID)

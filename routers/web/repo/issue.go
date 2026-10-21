@@ -462,7 +462,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 			if !valid {
-				ctx.ServerError("canBeAssigned", repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name})
+				ctx.HTTPError(http.StatusForbidden, fmt.Sprintf("User %d cannot be assigned to this issue", assigneeID))
 				return
 			}
 
