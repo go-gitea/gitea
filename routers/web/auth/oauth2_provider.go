@@ -103,7 +103,7 @@ func InfoOAuth(ctx *context.Context) {
 	// enforce the same user scope the REST API requires before returning identity
 	// claims; OIDC access tokens map to the "all" scope, so standard OIDC clients
 	// are unaffected and only explicitly-restricted tokens are rejected
-	tokenScope, _ := user_model.GetDoerTokenScope(ctx.Doer)
+	tokenScope, _ := ctx.Data["ApiTokenScope"].(auth.AccessTokenScope)
 	if allowed, err := tokenScope.HasScope(auth.AccessTokenScopeReadUser); err != nil {
 		ctx.ServerError("HasScope", err)
 		return
@@ -121,7 +121,8 @@ func InfoOAuth(ctx *context.Context) {
 		Picture:           ctx.Doer.AvatarLink(ctx),
 	}
 
-	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, user_model.IsPublicOnlyDoer(ctx.Doer))
+	onlyPublicGroups, _ := tokenScope.PublicOnly()
+	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, onlyPublicGroups)
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
 		return

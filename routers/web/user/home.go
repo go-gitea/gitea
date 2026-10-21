@@ -706,10 +706,16 @@ func UsernameSubRoute(ctx *context.Context) {
 	// WORKAROUND to support usernames with "." in it
 	// https://github.com/go-chi/chi/issues/781
 	username := ctx.PathParam("username")
+	assignContextUser := func() bool {
+		context.UserAssignmentWeb()(ctx)
+		if !ctx.Written() && context.TokenIsPublicOnly(ctx) && !ctx.ContextUser.Visibility.IsPublic() {
+			ctx.NotFound(nil)
+		}
+		return !ctx.Written()
+	}
 	reloadParam := func(suffix string) (success bool) {
 		ctx.SetPathParam("username", strings.TrimSuffix(username, suffix))
-		context.UserAssignmentWeb()(ctx)
-		if ctx.Written() {
+		if !assignContextUser() {
 			return false
 		}
 
@@ -742,8 +748,7 @@ func UsernameSubRoute(ctx *context.Context) {
 			feed.ShowUserFeedAtom(ctx)
 		}
 	default:
-		context.UserAssignmentWeb()(ctx)
-		if !ctx.Written() {
+		if assignContextUser() {
 			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 			OwnerProfile(ctx)
 		}

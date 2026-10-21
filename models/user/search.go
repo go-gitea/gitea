@@ -60,6 +60,12 @@ func (opts *SearchUserOptions) ToOrders() string {
 	return "id"
 }
 
+func (opts *SearchUserOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.Visible = []structs.VisibleType{structs.VisibleTypePublic}
+	}
+}
+
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) db.Session {
 	var cond builder.Cond
 	cond = builder.In("type", opts.Types)
@@ -171,17 +177,23 @@ func SearchUsers(ctx context.Context, opts SearchUserOptions) (users []*User, _ 
 
 // BuildCanSeeUserCondition creates a condition which can be used to restrict results to users/orgs the actor can see
 func BuildCanSeeUserCondition(actor *User) builder.Cond {
-	canViewPrivate := DoerCanViewPrivate(actor)
-	cond := builder.NewCond()
-	if actor != nil && !actor.IsAdmin && (canViewPrivate || actor.IsRestricted) {
-		cond = builder.In("`user`.id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": actor.ID}))
-		if !actor.IsRestricted {
-			cond = cond.Or(builder.In("`user`.visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
+	if actor != nil {
+		// If Admin - they see all users!
+		if !actor.IsAdmin {
+			// Users can see an organization they are a member of
+			cond := builder.In("`user`.id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": actor.ID}))
+			if !actor.IsRestricted {
+				// Not-Restricted users can see public and limited users/organizations
+				cond = cond.Or(builder.In("`user`.visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
+			}
+			// Don't forget about self
+			return cond.Or(builder.Eq{"`user`.id": actor.ID})
 		}
-		cond = cond.Or(builder.Eq{"`user`.id": actor.ID})
+
+		return nil
 	}
-	if !canViewPrivate {
-		cond = cond.And(builder.In("`user`.visibility", structs.VisibleTypePublic))
-	}
-	return cond
+
+	// Force visibility for privacy
+	// Not logged in - only public users
+	return builder.In("`user`.visibility", structs.VisibleTypePublic)
 }

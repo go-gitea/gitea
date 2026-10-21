@@ -13,7 +13,6 @@ import (
 	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
@@ -130,7 +129,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	t.Scope = scope
 
 	// a token-authenticated request must not mint a token with a broader scope than its own
-	apiTokenScope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
+	apiTokenScope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
 	if hasApiTokenScope {
 		hasScope, err := apiTokenScope.CanCreateChildScope(scope)
 		if err != nil {

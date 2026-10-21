@@ -1123,6 +1123,12 @@ func testOAuthGrantScopesClaimPublicOnlyGroups(t *testing.T) {
 	require.NoError(t, json.Unmarshal(userinfoResp.Body.Bytes(), userinfoParsed))
 	assert.Contains(t, userinfoParsed.Email, "user2@example.com")
 
+	defer test.MockVariableValue(&setting.DisableQueryAuthToken, false)()
+	queryUserinfoResp := MakeRequest(t, NewRequest(t, "GET", "/login/oauth/userinfo?access_token="+parsed.AccessToken), http.StatusOK)
+	queryUserinfoParsed := new(userinfoResponse)
+	require.NoError(t, json.Unmarshal(queryUserinfoResp.Body.Bytes(), queryUserinfoParsed))
+	assert.Equal(t, userinfoParsed.Groups, queryUserinfoParsed.Groups)
+
 	// test both id_token and call to /login/oauth/userinfo
 	for _, publicGroup := range []string{
 		"org17",

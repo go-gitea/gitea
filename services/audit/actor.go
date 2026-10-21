@@ -50,6 +50,23 @@ func doerFromContext(ctx context.Context) *user_model.User {
 	return nil
 }
 
+// credentialFromContext returns the credential the surrounding request
+// authenticated with. It is dropped when the event is recorded for someone
+// other than the signed-in user, so an explicit actor is never tied to a
+// credential that is not theirs.
+func credentialFromContext(ctx context.Context, doer *user_model.User) string {
+	data := middleware.GetContextData(ctx)
+	if data == nil {
+		return ""
+	}
+	signedUser, _ := data[middleware.ContextDataKeySignedUser].(*user_model.User)
+	if signedUser == nil || signedUser.ID != doer.ID {
+		return ""
+	}
+	credential, _ := data[middleware.ContextDataKeyAuthCredential].(string)
+	return credential
+}
+
 // ImpersonatorFromContext resolves the admin acting as the doer, so an event
 // recorded during an impersonated session cannot be pinned on the impersonated
 // user alone. Returns nil for ordinary sessions.

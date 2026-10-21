@@ -10,7 +10,6 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
@@ -24,7 +23,7 @@ func canAccessReleaseDraft(ctx *context.APIContext) bool {
 	if !ctx.IsSigned || !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
 		return false
 	}
-	scope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
+	scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
 	if !hasApiTokenScope {
 		// not API token request, the request is from a user session with write access
 		return true

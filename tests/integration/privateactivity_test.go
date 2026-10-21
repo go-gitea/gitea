@@ -123,7 +123,7 @@ func testPrivateActivityHelperHasHeatmapContentFromPublic(t *testing.T) bool {
 }
 
 func testPrivateActivityHelperHasHeatmapContentFromSession(t *testing.T, session *TestSession) bool {
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/heatmap", privateActivityTestUser).
 		AddTokenAuth(token)

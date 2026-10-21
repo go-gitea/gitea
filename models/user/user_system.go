@@ -111,17 +111,15 @@ func GetSystemUserByName(name string) *User {
 	return nil
 }
 
-func GetDoerPermissionUser(ctx context.Context, id int64, extDoerData string) (u *User, err error) {
-	switch {
-	case id > 0:
-		if u, err = GetUserByID(ctx, id); err != nil || extDoerData == "" {
-			return u, err
-		}
-		u.ExtDoerData = &extDoerToken{}
-	case id == ActionsUserID:
+func GetDoerPermissionUser(ctx context.Context, id int64, extDoerData string) (u *User, _ error) {
+	if id > 0 {
+		return GetUserByID(ctx, id)
+	}
+	switch id {
+	case ActionsUserID:
 		u = NewActionsUser()
 		u.ExtDoerData = &extDoerGiteaActions{}
-	case id == DeployKeyUserID:
+	case DeployKeyUserID:
 		u = NewDeployKeyUser()
 		u.ExtDoerData = &extDoerDeployKey{}
 	default:

@@ -22,8 +22,9 @@ func getWatchedRepos(ctx *context.APIContext, user *user_model.User, private boo
 		ListOptions:    utils.GetListOptions(ctx),
 		WatcherID:      user.ID,
 		IncludePrivate: private,
-		Actor:          ctx.Doer,
+		Actor:          user,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	watchedRepos, total, err := repo_model.GetWatchedRepos(ctx, opts)
 	if err != nil {

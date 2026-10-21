@@ -107,7 +107,8 @@ func parseToken(req *http.Request) (string, bool) {
 }
 
 // userFromToken returns the user corresponding to the OAuth token.
-func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string) (*user_model.User, error) {
+// It will set 'ApiTokenScope' to the scope of the access token (TODO: this behavior should be fixed, don't set ctx.Data)
+func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataStore) (*user_model.User, error) {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
 		// First attempt to decode an actions JWT, returning the actions user
@@ -123,7 +124,8 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string) (*user_mode
 		if err != nil || !user.IsIndividual() {
 			return nil, err
 		}
-		user.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialOAuth2Grant, grantID, accessTokenScope)
+		store.GetData()["ApiTokenScope"] = accessTokenScope
+		setAuthCredential(store, credentialOAuth2Grant, grantID)
 		return user, nil
 	}
 	t, err := auth_model.GetAccessTokenBySHA(ctx, tokenSHA)
@@ -142,25 +144,22 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string) (*user_mode
 	if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
 		log.Error("UpdateAccessToken: %v", err)
 	}
-	user, err := user_model.GetUserByID(ctx, t.UID)
-	if err != nil {
-		return nil, err
-	}
-	user.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, t.ID, t.Scope)
-	return user, nil
+	store.GetData()["ApiTokenScope"] = t.Scope
+	setAuthCredential(store, credentialAccessToken, t.ID)
+	return user_model.GetUserByID(ctx, t.UID)
 }
 
 // Verify extracts the user ID from the OAuth token in the query parameters
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
-func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, _ DataStore, sess SessionStore) (*user_model.User, error) {
+func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	token, ok := parseToken(req)
 	if !ok {
 		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
-	user, err := o.userFromToken(req.Context(), token)
+	user, err := o.userFromToken(req.Context(), token, store)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		log.Error("userFromToken: %v", err) // the callers might ignore the error, so log it here
 	}

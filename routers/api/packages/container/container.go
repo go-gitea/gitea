@@ -153,7 +153,7 @@ func DetermineSupport(ctx *context.Context) {
 // If the current user is anonymous, the ghost user is used unless RequireSignInView is enabled.
 func Authenticate(ctx *context.Context) {
 	u := ctx.Doer
-	packageScope := auth_service.GetAccessScope(ctx.Doer, ctx.Data)
+	packageScope := auth_service.GetAccessScope(ctx.Data)
 	if u == nil {
 		if setting.Service.RequireSignInViewStrict {
 			APIUnauthorizedError(ctx)
@@ -244,7 +244,7 @@ func PostBlobsUploads(ctx *context.Context) {
 			Digest:     mount,
 		})
 		if blob != nil {
-			accessible, err := packages_model.IsBlobAccessibleForUser(ctx, blob.Blob.ID, ctx.Doer)
+			accessible, err := packages_model.IsBlobAccessibleForUser(ctx, blob.Blob.ID, ctx.Doer, context.TokenIsPublicOnly(ctx))
 			if err != nil {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return

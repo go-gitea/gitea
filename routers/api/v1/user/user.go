@@ -73,6 +73,7 @@ func Search(ctx *context.APIContext) {
 			SearchByEmail: true,
 			ListOptions:   listOptions,
 		}
+		opts.ApplyPublicOnly(ctx.PublicOnly)
 		var err error
 		users, maxResults, err = user_model.SearchUsers(ctx, opts)
 		if err != nil {
@@ -153,7 +154,11 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
+	doer := ctx.Doer
+	if ctx.PublicOnly {
+		doer = nil
+	}
+	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -207,6 +212,7 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 		Date:            ctx.FormString("date"),
 		ListOptions:     listOptions,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

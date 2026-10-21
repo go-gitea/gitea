@@ -21,7 +21,7 @@ func TestUserHeatmap(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
-	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeAll)
+	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeReadUser)
 
 	fakeNow := time.Date(2011, 10, 20, 0, 0, 0, 0, time.Local)
 	timeutil.MockSet(fakeNow)
@@ -35,4 +35,8 @@ func TestUserHeatmap(t *testing.T) {
 	dummyheatmap = append(dummyheatmap, &activities_model.UserHeatmapData{Timestamp: 1603227600, Contributions: 1})
 
 	assert.Equal(t, dummyheatmap, heatmap)
+
+	publicOnlyToken := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/heatmap", normalUsername)).AddTokenAuth(publicOnlyToken)
+	assert.Empty(t, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*activities_model.UserHeatmapData{}))
 }
