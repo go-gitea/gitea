@@ -63,7 +63,7 @@
 	{{template "base/paginate" .}}
 	</div>
 </div>
-<div class="ui mini modal" id="org-member-leave-team">
+<dialog class="modal-dialog" id="org-member-leave-team">
 	<div class="header">
 		{{ctx.Locale.Tr "org.teams.leave"}}
 	</div>
@@ -71,5 +71,5 @@
 		<p>{{ctx.Locale.Tr "org.teams.leave.detail" (HTMLFormat `<span class="%s"></span>` "to-leave-team-name")}}</p>
 		{{template "base/modal_actions_confirm" .}}
 	</form>
-</div>
+</dialog>
 {{template "base/footer" .}}

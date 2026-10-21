@@ -4,10 +4,12 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	access_model "gitea.dev/models/perm/access"
@@ -15,6 +17,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -24,20 +27,45 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIUserReposNotLogin(t *testing.T) {
+func TestAPIUserRepos(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	userOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	userOther := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	targetUser := userOwner
 
-	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
-	resp := MakeRequest(t, req, http.StatusOK)
+	testCases := []struct {
+		name         string
+		doer         *user_model.User
+		count        int
+		privateCount int
+	}{
+		{name: "Anonymous", doer: nil, count: 7},
+		{name: "UserOwner", doer: userOwner, count: 14, privateCount: 7},
+		{name: "UserOther", doer: userOther, count: 7},
+	}
 
-	apiRepos := DecodeJSON(t, resp, []api.Repository{})
-	expectedLen := unittest.GetCount(t, repo_model.Repository{OwnerID: user.ID},
-		unittest.Cond("is_private = ?", false))
-	assert.Len(t, apiRepos, expectedLen)
-	for _, repo := range apiRepos {
-		assert.Equal(t, user.ID, repo.Owner.ID)
-		assert.False(t, repo.Private)
+	for _, tc := range testCases {
+		var token string
+		if tc.doer != nil {
+			session := loginUser(t, tc.doer.Name)
+			token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
+		}
+
+		t.Run(tc.name, func(t *testing.T) {
+			req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", targetUser.Name).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			apiRepos := DecodeJSON(t, resp, []*api.Repository{})
+			assert.Len(t, apiRepos, tc.count)
+			privateCount := 0
+			for _, repo := range apiRepos {
+				assert.Equal(t, targetUser.ID, repo.Owner.ID)
+				if repo.Private {
+					privateCount++
+				}
+			}
+			assert.Equal(t, tc.privateCount, privateCount)
+		})
 	}
 }
 
@@ -175,6 +203,13 @@ func TestAPISearchRepo(t *testing.T) {
 		}},
 	}
 
+	repoCache := cache.NewEphemeralCache(time.Hour)
+	getRepo := func(t *testing.T, id int64) *repo_model.Repository {
+		r, _ := cache.GetWithEphemeralCache(t.Context(), repoCache, "cache-group-test", fmt.Sprintf("repo:%d", id), func(context.Context, string) (*repo_model.Repository, error) {
+			return unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: id}), nil
+		})
+		return r
+	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			for userToLogin, expected := range testCase.expectedResults {
@@ -230,15 +265,6 @@ func TestAPISearchRepo(t *testing.T) {
 	}
 }
 
-var repoCache = make(map[int64]*repo_model.Repository)
-
-func getRepo(t *testing.T, repoID int64) *repo_model.Repository {
-	if _, ok := repoCache[repoID]; !ok {
-		repoCache[repoID] = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-	}
-	return repoCache[repoID]
-}
-
 func TestAPIViewRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -269,39 +295,46 @@ func TestAPIViewRepo(t *testing.T) {
 
 func TestAPIOrgRepos(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	// org3 is an Org. Check their repos.
-	sourceOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	userOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	userAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	userOther := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	expectedResults := map[*user_model.User]struct {
-		count           int
-		includesPrivate bool
+	// org3 is an Org. Try to log in as different doers to list its repos.
+	targetOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+
+	testCases := []struct {
+		name         string
+		doer         *user_model.User
+		count        int
+		privateCount int
 	}{
-		user:  {count: 1},
-		user:  {count: 3, includesPrivate: true},
-		user2: {count: 3, includesPrivate: true},
-		org3:  {count: 1},
+		{name: "Anonymous", doer: nil, count: 1},
+		{name: "UserNormal", doer: userOwner, count: 3, privateCount: 2},
+		{name: "UserAdmin", doer: userAdmin, count: 3, privateCount: 2},
+		{name: "UserOther", doer: userOther, count: 1},
 	}
 
-	for userToLogin, expected := range expectedResults {
-		testName := fmt.Sprintf("LoggedUser%d", userToLogin.ID)
-		session := loginUser(t, userToLogin.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
+	for _, tc := range testCases {
+		var token string
+		if tc.doer != nil {
+			session := loginUser(t, tc.doer.Name)
+			token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
+		}
 
-		t.Run(testName, func(t *testing.T) {
-			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", sourceOrg.Name).
-				AddTokenAuth(token)
+		t.Run(tc.name, func(t *testing.T) {
+			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", targetOrg.Name).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			apiRepos := DecodeJSON(t, resp, []*api.Repository{})
-			assert.Len(t, apiRepos, expected.count)
+			assert.Len(t, apiRepos, tc.count)
+			privateCount := 0
 			for _, repo := range apiRepos {
-				if !expected.includesPrivate {
-					assert.False(t, repo.Private)
+				assert.Equal(t, targetOrg.ID, repo.Owner.ID)
+				if repo.Private {
+					privateCount++
 				}
 			}
+			assert.Equal(t, tc.privateCount, privateCount)
 		})
 	}
 }

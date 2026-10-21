@@ -899,7 +899,7 @@ func testActionRunAttemptArtifactV4(t *testing.T, repo *repo_model.Repository, s
 	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "artifact-attempt-1", strings.Repeat("A", 32))
 	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "artifact-shared", strings.Repeat("C", 32))
 	attempt1Names := listArtifactNamesForRunV4(t, run.ID, job1.ID, taskToken1)
-	assert.ElementsMatch(t, []string{"artifact-attempt-1", "artifact-shared"}, attempt1Names)
+	assert.Equal(t, []string{"artifact-attempt-1", "artifact-shared"}, attempt1Names)
 
 	runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 
@@ -915,7 +915,7 @@ func testActionRunAttemptArtifactV4(t *testing.T, repo *repo_model.Repository, s
 	uploadTestArtifactFileV4(t, run.ID, job2.ID, taskToken2, "artifact-attempt-2", strings.Repeat("B", 32))
 	uploadTestArtifactFileV4(t, run.ID, job2.ID, taskToken2, "artifact-shared", strings.Repeat("D", 32))
 	attempt2Names := listArtifactNamesForRunV4(t, run.ID, job2.ID, taskToken2)
-	assert.ElementsMatch(t, []string{"artifact-attempt-2", "artifact-shared"}, attempt2Names)
+	assert.Equal(t, []string{"artifact-attempt-2", "artifact-shared"}, attempt2Names)
 	assert.NotContains(t, attempt2Names, "artifact-attempt-1")
 
 	// "artifact-attempt-1" belongs to the first attempt, so the rerun token cannot access it

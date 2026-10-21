@@ -530,7 +530,6 @@
   "settings.delete_account_title": "Elimina account utente",
   "settings.delete_account_desc": "Sei sicuro di voler rimuovere questo account utente permanentemente?",
   "settings.email_notifications.enable": "Abilita Notifiche Email",
-  "settings.email_notifications.onmention": "Solo email su Menzione",
   "settings.email_notifications.disable": "Disabilita notifiche email",
   "settings.email_notifications.submit": "Imposta Preferenze Email",
   "settings.email_notifications.andyourown": "E Le Tue Notifiche",

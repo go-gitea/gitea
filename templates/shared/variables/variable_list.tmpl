@@ -64,7 +64,7 @@
 </div>
 
 {{/** Edit variable dialog */}}
-<div class="ui small modal" id="edit-variable-modal">
+<dialog class="modal-dialog" id="edit-variable-modal">
 	<div class="header"></div>
 	<form class="ui form form-fetch-action" method="post">
 		<div class="content">
@@ -103,5 +103,5 @@
 		</div>
 		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 	</form>
-</div>
+</dialog>
 

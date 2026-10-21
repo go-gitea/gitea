@@ -601,7 +601,6 @@
   "settings.delete_account_title": "Odstrániť používateľský účet",
   "settings.delete_account_desc": "Naozaj chcete natrvalo odstrániť tento účet?",
   "settings.email_notifications.enable": "Povoliť e-mailové upozornenia",
-  "settings.email_notifications.onmention": "E-mail iba pri zmienke",
   "settings.email_notifications.disable": "Vypnúť e-mailové upozornenia",
   "settings.email_notifications.submit": "Nastaviť predvoľby e-mailu",
   "settings.email_notifications.andyourown": "A vaše vlastné upozornenia",

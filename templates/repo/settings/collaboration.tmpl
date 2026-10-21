@@ -118,10 +118,10 @@
 		{{end}}
 	</div>
 
-<div class="ui small modal" id="repo-collaborator-delete-modal">
+<dialog class="modal-dialog" id="repo-collaborator-delete-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.settings.collaborator_deletion"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.collaborator_deletion_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</dialog>
 
 {{template "repo/settings/layout_footer" .}}

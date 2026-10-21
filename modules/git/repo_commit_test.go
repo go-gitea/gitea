@@ -70,6 +70,20 @@ func TestGetCommitWithBadCommitID(t *testing.T) {
 	assert.True(t, IsErrNotExist(err))
 }
 
+func TestIsCommitInRepo(t *testing.T) {
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
+	assert.NoError(t, err)
+	defer bareRepo1.Close()
+
+	exist, err := IsCommitInRepo(t.Context(), bareRepo1, "2839944139e0de9737a044f78b0e4b40d989a9e3")
+	assert.NoError(t, err)
+	assert.True(t, exist)
+
+	exist, err = IsCommitInRepo(t.Context(), bareRepo1, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	assert.NoError(t, err)
+	assert.False(t, exist)
+}
+
 func TestIsCommitInBranch(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
@@ -81,6 +95,10 @@ func TestIsCommitInBranch(t *testing.T) {
 	assert.True(t, result)
 
 	result, err = IsCommitInBranch(t.Context(), bareRepo1, "2839944139e0de9737a044f78b0e4b40d989a9e3", "branch2")
+	assert.NoError(t, err)
+	assert.False(t, result)
+
+	result, err = IsCommitInBranch(t.Context(), bareRepo1, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "branch1")
 	assert.NoError(t, err)
 	assert.False(t, result)
 }
