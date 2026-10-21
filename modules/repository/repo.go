@@ -67,10 +67,8 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 		errChan <- lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan)
 	}()
 
-	var ref string
-	if repo.DefaultBranch != "" {
-		ref = git.RefNameFromBranch(repo.DefaultBranch).String()
-	}
+	// some servers require `ref`, send the default branch for objects from all refs like `git lfs fetch --all` does
+	ref := git.RefNameFromBranch(repo.DefaultBranch).String()
 	downloadObjects := func(pointers []lfs.Pointer) error {
 		err := lfsClient.Download(ctx, ref, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
 			if errors.Is(objectError, lfs.ErrObjectNotExist) {
