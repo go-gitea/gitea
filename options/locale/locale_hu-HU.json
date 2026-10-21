@@ -409,7 +409,6 @@
   "settings.delete_account_title": "Fiók törlése",
   "settings.delete_account_desc": "Biztosan véglegesen törölni szeretné ezt a fiókot?",
   "settings.email_notifications.enable": "Email értesítés engedélyezése",
-  "settings.email_notifications.onmention": "Email küldése csak megjelölés esetén",
   "settings.email_notifications.disable": "Email értesítés kikapcsolása",
   "settings.email_notifications.submit": "E-mail beállítások megadása",
   "settings.visibility.public": "Nyilvános",

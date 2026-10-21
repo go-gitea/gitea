@@ -875,7 +875,6 @@
   "settings.delete_account_title": "Kullanıcı Hesabını Silin",
   "settings.delete_account_desc": "Bu kullanıcı hesabını kalıcı olarak silmek istediğinizden emin misiniz?",
   "settings.email_notifications.enable": "E-posta Bildirimlerini Etkinleştir",
-  "settings.email_notifications.onmention": "Sadece Bahsedilen E-posta",
   "settings.email_notifications.disable": "E-posta Bildirimlerini Devre Dışı Bırak",
   "settings.email_notifications.submit": "E-posta Tercihlerini Ayarla",
   "settings.email_notifications.andyourown": "Ve Sizin Bildirimleriniz",

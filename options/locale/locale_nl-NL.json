@@ -526,7 +526,6 @@
   "settings.delete_account_title": "Verwijder gebruikers account",
   "settings.delete_account_desc": "Weet je zeker dat je dit gebruikersaccount permanent wil verwijderen?",
   "settings.email_notifications.enable": "E-mailnotificaties inschakelen",
-  "settings.email_notifications.onmention": "Alleen e-mail op vermelding",
   "settings.email_notifications.disable": "E-mailnotificaties uitschakelen",
   "settings.email_notifications.submit": "E-mailvoorkeur instellen",
   "settings.email_notifications.andyourown": "En je eigen notificaties",

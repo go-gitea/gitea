@@ -25,6 +25,8 @@ jobs:
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
         ports:
           - "5432:5432"
       ldap:
@@ -61,6 +63,8 @@ jobs:
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
         ports:
           - "5432:5432"
       ldap:

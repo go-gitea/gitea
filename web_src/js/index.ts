@@ -69,11 +69,14 @@ import {initProjectWorkflow} from './features/project-workflow.ts';
 import {initDevtest} from './modules/devtest.ts';
 import {initRepoWatch} from './features/repo-watch.ts';
 import {initPackagesView} from './features/packages.ts';
+import {initAsyncHashChangeListeners} from './modules/hashchange.ts';
+import {initGlobalModal} from './modules/modal.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
   initGiteaFomantic,
 
+  initGlobalModal,
   initGlobalComponent,
   initGlobalDropdown,
   initGlobalFetchAction,
@@ -179,3 +182,7 @@ if (initDur > 500) {
 }
 
 window.config.frontendInited = true;
+
+// then init the async hash change handlers, then they can do async content loading by URL hash
+// e.g.: expand hidden comments or load incomplete diff files
+initAsyncHashChangeListeners();

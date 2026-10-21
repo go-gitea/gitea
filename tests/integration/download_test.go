@@ -201,7 +201,7 @@ func TestDownloadRepoContentTokenScopes(t *testing.T) {
 			MakeRequest(t, NewRequest(t, tc.method, tc.url).AddTokenAuth(miscToken), http.StatusForbidden)
 			MakeRequest(t, NewRequest(t, tc.method, tc.url).AddTokenAuth(ownerReadToken), tc.withScope)
 
-			publicOnlyStatus := http.StatusForbidden
+			publicOnlyStatus := http.StatusNotFound
 			if tc.publicOnlyOK {
 				publicOnlyStatus = tc.withScope
 			}

@@ -431,7 +431,6 @@
   "settings.delete_account_title": "Ta Bort Användarkonto",
   "settings.delete_account_desc": "Är du säker på att du vill ta bort ditt konto permanent?",
   "settings.email_notifications.enable": "Aktivera notiser via mejl",
-  "settings.email_notifications.onmention": "Endast e-post vid omnämnanden",
   "settings.email_notifications.disable": "Inaktivera notiser via mejl",
   "settings.email_notifications.submit": "Ställ in e-post inställningar",
   "settings.visibility.public": "Offentlig",

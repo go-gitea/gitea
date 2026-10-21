@@ -18,7 +18,7 @@ import (
 )
 
 func GetWorkflowBadge(ctx *context.Context) {
-	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	if ctx.Written() {
 		return
 	}

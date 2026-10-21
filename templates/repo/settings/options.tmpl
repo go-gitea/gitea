@@ -606,6 +606,15 @@
 							</div>
 						</div>
 						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message"}}</label>
+							{{$squashMergeMessage := $prUnit.PullRequestsConfig.DefaultSquashMergeMessage}}
+							<select class="ui selection dropdown" name="pulls_default_squash_merge_message">
+								<option value="BLANK" {{if eq $squashMergeMessage "BLANK"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title"}}</option>
+								<option value="COMMIT_MESSAGES" {{if eq $squashMergeMessage "COMMIT_MESSAGES"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title_and_commit_details"}}</option>
+								<option value="PR_BODY" {{if eq $squashMergeMessage "PR_BODY"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title_and_description"}}</option>
+							</select>
+						</div>
+						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch"}}</label>
 							<div class="ui search selection dropdown">
 								<input type="hidden" name="default_target_branch" value="{{$prUnit.PullRequestsConfig.DefaultTargetBranch}}">
@@ -910,7 +919,7 @@
 
 {{if $.CanManagerDangerZone}}
 	{{if .Repository.IsMirror}}
-		<div class="ui small modal" id="convert-mirror-repo-modal">
+		<dialog class="modal-dialog" id="convert-mirror-repo-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "repo.settings.convert"}}
 			</div>
@@ -925,10 +934,10 @@
 					"RepoOperationText" (ctx.Locale.Tr "repo.settings.convert_confirm")
 				)}}
 			</div>
-		</div>
+		</dialog>
 	{{end}}
 	{{if .CanConvertFork}}
-		<div class="ui small modal" id="convert-fork-repo-modal">
+		<dialog class="modal-dialog" id="convert-fork-repo-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "repo.settings.convert_fork"}}
 			</div>
@@ -943,9 +952,9 @@
 					"RepoOperationText" (ctx.Locale.Tr "repo.settings.convert_fork_confirm")
 				)}}
 			</div>
-		</div>
+		</dialog>
 	{{end}}
-	<div class="ui small modal" id="transfer-repo-modal">
+	<dialog class="modal-dialog" id="transfer-repo-modal">
 		<div class="header">
 			{{ctx.Locale.Tr "repo.settings.transfer"}}
 		</div>
@@ -963,9 +972,9 @@
 				"RepoOperationText" (ctx.Locale.Tr "repo.settings.transfer_perform")
 			)}}
 		</div>
-	</div>
+	</dialog>
 
-	<div class="ui small modal" id="delete-repo-modal">
+	<dialog class="modal-dialog" id="delete-repo-modal">
 		<div class="header">
 			{{ctx.Locale.Tr "repo.settings.delete"}}
 		</div>
@@ -984,10 +993,10 @@
 				"RepoOperationText" (ctx.Locale.Tr "repo.settings.confirm_delete")
 			)}}
 		</div>
-	</div>
+	</dialog>
 
 	{{if not .Repository.IsFork}}
-		<div class="ui small modal" id="visibility-repo-modal">
+		<dialog class="modal-dialog" id="visibility-repo-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "repo.visibility"}}
 			</div>
@@ -1031,11 +1040,11 @@
 					{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (Iif .Repository.IsPrivate (ctx.Locale.Tr "repo.settings.visibility.public.button") (ctx.Locale.Tr "repo.settings.visibility.private.button")))}}
 				</form>
 			</div>
-		</div>
+		</dialog>
 	{{end}}
 
 	{{if .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeWiki}}
-	<div class="ui small modal" id="delete-wiki-modal">
+	<dialog class="modal-dialog" id="delete-wiki-modal">
 		<div class="header">
 			{{ctx.Locale.Tr "repo.settings.wiki_delete"}}
 		</div>
@@ -1051,11 +1060,11 @@
 				"RepoOperationText" (ctx.Locale.Tr "repo.settings.confirm_wiki_delete")
 			)}}
 		</div>
-	</div>
+	</dialog>
 	{{end}}
 
 	{{if not .Repository.IsMirror}}
-		<div class="ui g-modal-confirm modal" id="archive-repo-modal">
+		<dialog class="modal-dialog" id="archive-repo-modal">
 			<div class="header">
 				{{if .Repository.IsArchived}}
 					{{ctx.Locale.Tr "repo.settings.unarchive.header"}}
@@ -1077,7 +1086,7 @@
 				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
 				{{template "base/modal_actions_confirm" .}}
 			</form>
-		</div>
+		</dialog>
 	{{end}}
 {{end}}
 

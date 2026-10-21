@@ -34,15 +34,16 @@ test('createTippy handles keys in menus only', async () => {
   panelButton.remove();
 });
 
-test('createTippy keeps space and enter in non-item menu controls', async () => {
+test('createTippy keeps space, enter and left/right in non-item menu controls', async () => {
   const menuButton = createElementFromHTML('<button>menu</button>');
   document.body.append(menuButton);
   const menu = createTippy(menuButton, {content: createElementFromHTML('<div><input><button class="item">a</button></div>'), theme: 'menu', trigger: 'manual', interactive: true});
   menu.show();
   const filter = menu.popper.querySelector('input')!;
   filter.focus();
-  await userEvent.keyboard('a b{Enter}');
-  expect(filter.value).toEqual('a b');
+  await userEvent.keyboard('a b{ArrowLeft}c{Enter}');
+  expect(filter.value).toEqual('a cb');
+  expect(document.activeElement).toBe(filter);
   expect(menu.state.isVisible).toBe(true);
 
   menu.destroy();

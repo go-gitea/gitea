@@ -39,6 +39,10 @@ func TestGetByCommentOrIssueID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, attachments, 1)
 
+	attachments, err = repo_model.GetAttachmentsByIssueID(t.Context(), 0)
+	assert.NoError(t, err)
+	assert.Empty(t, attachments)
+
 	attachments, err = repo_model.GetAttachmentsByCommentID(t.Context(), 1)
 	assert.NoError(t, err)
 	assert.Len(t, attachments, 2)
