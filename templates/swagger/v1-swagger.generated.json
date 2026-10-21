@@ -28779,7 +28779,7 @@
           "x-go-name": "Description"
         },
         "due_on": {
-          "description": "Deadline is the updated due date for the milestone",
+          "description": "Deadline is the due date for the milestone, use null or empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
