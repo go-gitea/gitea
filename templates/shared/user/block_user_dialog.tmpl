@@ -1,4 +1,4 @@
-<div class="ui small modal" id="block-user-modal">
+<dialog class="modal-dialog" id="block-user-modal">
 	<div class="header">{{ctx.Locale.Tr "user.block.title"}}</div>
 	<div class="content">
 		<div class="ui warning message">{{ctx.Locale.Tr "user.block.info"}} <a target="_blank" href="https://docs.gitea.com/usage/access-control/blocking-user">{{ctx.Locale.Tr "user.block.info.docs"}}</a></div>
@@ -10,7 +10,7 @@
 			</div>
 			<div class="field">
 				<label for="block-note">{{ctx.Locale.Tr "user.block.note.title"}}</label>
-				<input id="block-note" name="note">
+				<input id="block-note" name="note" autofocus>
 				<p class="help">{{ctx.Locale.Tr "user.block.note.info"}}</p>
 			</div>
 			<div class="actions">
@@ -19,4 +19,4 @@
 			</div>
 		</form>
 	</div>
-</div>
+</dialog>

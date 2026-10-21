@@ -255,6 +255,10 @@ func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, w
 		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	}
 
+	if p.Action != api.HookReleaseDeleted && len(p.Release.Attachments) > 0 {
+		text += fmt.Sprintf(" (assets: %d)", len(p.Release.Attachments))
+	}
+
 	return text, color
 }
 
