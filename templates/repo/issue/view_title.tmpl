@@ -21,7 +21,7 @@
 			<button type="button" id="issue-title-edit-show" class="ui small basic button">{{ctx.Locale.Tr "repo.issues.edit"}}</button>
 			{{end}}
 			{{if not .Issue.IsPull}}
-			<a role="button" class="ui small primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
+			<a role="button" class="ui small primary button" href="{{.RepoLink}}/issues/new/choose">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 			{{end}}
 		</div>
 	</div>

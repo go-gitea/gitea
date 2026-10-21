@@ -8,17 +8,43 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 
+	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/issue/template"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/reqctx"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 )
+
+var IssueTemplateCandidates = []string{
+	"ISSUE_TEMPLATE.md",
+	"ISSUE_TEMPLATE.yaml",
+	"ISSUE_TEMPLATE.yml",
+	"issue_template.md",
+	"issue_template.yaml",
+	"issue_template.yml",
+	".gitea/ISSUE_TEMPLATE.md",
+	".gitea/ISSUE_TEMPLATE.yaml",
+	".gitea/ISSUE_TEMPLATE.yml",
+	".gitea/issue_template.md",
+	".gitea/issue_template.yaml",
+	".gitea/issue_template.yml",
+	".github/ISSUE_TEMPLATE.md",
+	".github/ISSUE_TEMPLATE.yaml",
+	".github/ISSUE_TEMPLATE.yml",
+	".github/issue_template.md",
+	".github/issue_template.yaml",
+	".github/issue_template.yml",
+}
 
 // templateDirCandidates issue templates directory
 var templateDirCandidates = []string{
@@ -177,6 +203,64 @@ func GetTemplateConfigFromDefaultBranch(ctx context.Context, repo *repo.Reposito
 	}
 
 	return GetDefaultTemplateConfig(), nil
+}
+
+func TemplateRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, targetGitRepo *git.Repository, templatePath string) (*repo.Repository, *git.Repository) {
+	return TemplateRepoForPaths(ctx, doer, targetRepo, targetGitRepo, templatePath, slices.Concat(templateDirCandidates, IssueTemplateCandidates))
+}
+
+func TemplateRepoForPaths(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, targetGitRepo *git.Repository, templatePath string, paths []string) (*repo.Repository, *git.Repository) {
+	if hasAnyPath(ctx, targetRepo, targetGitRepo, templatePath, paths) {
+		return targetRepo, targetGitRepo
+	}
+	sourceRepo, sourceGitRepo, err := ownerTemplateRepo(ctx, doer, targetRepo)
+	if err != nil {
+		log.Error("ownerTemplateRepo: %v", err)
+	}
+	if sourceGitRepo == nil {
+		return targetRepo, targetGitRepo
+	}
+	return sourceRepo, sourceGitRepo
+}
+
+func ownerTemplateRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository) (*repo.Repository, *git.Repository, error) {
+	for _, name := range []string{".gitea", ".github"} {
+		sourceRepo, err := repo.GetRepositoryByName(ctx, targetRepo.OwnerID, name)
+		if repo.IsErrRepoNotExist(err) {
+			continue
+		} else if err != nil {
+			return nil, nil, err
+		}
+		if sourceRepo.IsEmpty {
+			continue
+		}
+		sourceRepo.Owner = targetRepo.Owner
+		perm, err := access_model.GetDoerRepoPermission(ctx, sourceRepo, doer)
+		if err != nil {
+			return nil, nil, err
+		}
+		if !perm.CanRead(unit.TypeCode) {
+			continue
+		}
+		sourceGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, sourceRepo)
+		return sourceRepo, sourceGitRepo, err
+	}
+	return nil, nil, nil
+}
+
+func hasAnyPath(ctx context.Context, repo *repo.Repository, gitRepo *git.Repository, templatePath string, paths []string) bool {
+	if repo.IsEmpty {
+		return false
+	}
+	commit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
+	if err != nil {
+		return false
+	}
+	exists := func(treePath string) bool {
+		_, err := commit.GetTreeEntryByPath(ctx, gitRepo, treePath)
+		return err == nil
+	}
+	return templatePath != "" && exists(templatePath) || slices.ContainsFunc(paths, exists)
 }
 
 func HasTemplatesOrContactLinks(ctx context.Context, repo *repo.Repository, gitRepo *git.Repository) bool {

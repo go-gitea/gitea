@@ -37,8 +37,8 @@ import (
 )
 
 // Tries to load and set an issue template. The first return value indicates if a template was loaded.
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string, metaData *IssuePageMetaData) (bool, map[string]error) {
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
+func setTemplateIfExists(ctx *context.Context, templateRepo *repo_model.Repository, templateGitRepo *git.Repository, ctxDataKey string, possibleFiles []string, metaData *IssuePageMetaData) (bool, map[string]error) {
+	commit, err := templateGitRepo.GetBranchCommit(ctx, templateRepo.DefaultBranch)
 	if err != nil {
 		return false, nil
 	}
@@ -51,7 +51,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 
 	templateErrs := map[string]error{}
 	for _, filename := range templateCandidates {
-		template, err := issue_template.UnmarshalFromCommit(ctx, ctx.Repo.GitRepo, commit, filename)
+		template, err := issue_template.UnmarshalFromCommit(ctx, templateGitRepo, commit, filename)
 		if errors.Is(err, util.ErrNotExist) {
 			continue
 		}
@@ -97,12 +97,12 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 
 // NewIssue render creating issue page
 func NewIssue(ctx *context.Context) {
-	issueConfig, _ := issue_service.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
-	hasTemplates := issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+	templateRepo, templateGitRepo := issue_service.TemplateRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.FormString("template"))
+	issueConfig, _ := issue_service.GetTemplateConfigFromDefaultBranch(ctx, templateRepo, templateGitRepo)
+	hasTemplates := issue_service.HasTemplatesOrContactLinks(ctx, templateRepo, templateGitRepo)
 
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["NewIssueChooseTemplate"] = hasTemplates
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	title := ctx.FormString("title")
 	ctx.Data["TitleQuery"] = title
@@ -129,8 +129,8 @@ func NewIssue(ctx *context.Context) {
 	}
 	ctx.Data["Tags"] = tags
 
-	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
-	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates, pageMetaData)
+	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx, templateRepo, templateGitRepo)
+	templateLoaded, errs := setTemplateIfExists(ctx, templateRepo, templateGitRepo, issueTemplateKey, issue_service.IssueTemplateCandidates, pageMetaData)
 	maps.Copy(ret.TemplateErrors, errs)
 	if ctx.Written() {
 		return
@@ -181,20 +181,21 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 
-	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+	templateRepo, templateGitRepo := issue_service.TemplateRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, "")
+	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx, templateRepo, templateGitRepo)
 	ctx.Data["IssueTemplates"] = ret.IssueTemplates
 
 	if len(ret.TemplateErrors) > 0 {
 		ctx.Flash.Warning(renderErrorOfTemplates(ctx, ret.TemplateErrors), true)
 	}
 
-	if !issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo) {
+	if !issue_service.HasTemplatesOrContactLinks(ctx, templateRepo, templateGitRepo) {
 		// The "issues/new" and "issues/new/choose" share the same prefill query parameters, if no template here, just redirect to the "issues/new" page with these parameters.
 		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
 
-	issueConfig, err := issue_service.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+	issueConfig, err := issue_service.GetTemplateConfigFromDefaultBranch(ctx, templateRepo, templateGitRepo)
 	ctx.Data["IssueConfig"] = issueConfig
 	ctx.Data["IssueConfigError"] = err // ctx.Flash.Err makes problems here
 
@@ -347,7 +348,8 @@ func NewIssuePost(ctx *context.Context) {
 
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
-		if template, err := issue_template.UnmarshalFromRepo(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+		templateRepo, templateGitRepo := issue_service.TemplateRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, filename)
+		if template, err := issue_template.UnmarshalFromRepo(ctx, templateGitRepo, templateRepo.DefaultBranch, filename); err == nil {
 			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
 		}
 	}
