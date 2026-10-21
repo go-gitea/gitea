@@ -1,5 +1,7 @@
 #user-heatmap {
   width: 100%;
+  min-width: 0;
+  overflow: hidden; /* the heatmap must not widen its container, its width decides how many weeks are shown */
   font-size: 10px;
   position: relative;
 }

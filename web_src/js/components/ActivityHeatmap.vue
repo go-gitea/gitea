@@ -283,7 +283,8 @@ watch(pageStart, () => {
 onMounted(() => {
   createTooltipSingleton();
   resizeObserver = new ResizeObserver(([entry]) => {
-    containerWidth.value = entry.contentRect.width;
+    // applied in the next frame, re-rendering in the observer callback is reported as a ResizeObserver loop
+    requestAnimationFrame(() => containerWidth.value = entry.contentRect.width);
   });
   // observe the mount point, its width does not depend on the rendered weeks, unlike the width of this component
   const container = elRoot.value!.parentElement;
