@@ -95,3 +95,22 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		assert.JSONEq(t, tc.JSONResult, string(jsonData))
 	}
 }
+
+func TestGetUserHeatmapDataByUserYearAndPrivate(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	count := func(year int, showPrivate bool) (n int64) {
+		heatmap, err := activities_model.GetUserHeatmapDataByUser(t.Context(), user, user, year, showPrivate)
+		assert.NoError(t, err)
+		for _, hm := range heatmap {
+			n += hm.Contributions
+		}
+		return n
+	}
+	// the only action of user 2 is in a private repository in October 2020
+	assert.EqualValues(t, 1, count(2020, true))
+	assert.EqualValues(t, 0, count(2019, true))
+	assert.EqualValues(t, 0, count(2021, true))
+	assert.EqualValues(t, 0, count(2020, false))
+}

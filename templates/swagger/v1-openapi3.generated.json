@@ -37253,6 +37253,22 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "year of the heatmap, the last 12 months if omitted",
+            "in": "query",
+            "name": "year",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "include contributions to private repositories the caller can access, default true",
+            "in": "query",
+            "name": "show-private",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {

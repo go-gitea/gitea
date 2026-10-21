@@ -63,25 +63,17 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		return nil, err
 	}
 
-	var startTime, endTime int64
-	if year > 0 {
-		loc := setting.DefaultUILocation
-		start := time.Date(year-1, time.December, 25, 0, 0, 0, 0, loc)
-		end := time.Date(year, time.December, 31, 23, 59, 59, 999999999, loc)
-		startTime = start.Unix()
-		endTime = end.Unix()
-	} else {
-		startTime = int64(timeutil.TimeStampNow() - (366+7)*86400)
-	}
-
 	query := db.GetEngine(ctx).
-		Select(groupBy+" AS timestamp, count(user_id) as contributions").
+		Select(groupBy + " AS timestamp, count(user_id) as contributions").
 		Table("action").
-		Where(cond).
-		And("created_unix > ?", startTime)
-
-	if endTime > 0 {
-		query = query.And("created_unix <= ?", endTime)
+		Where(cond)
+	if year > 0 {
+		// exactly the requested year, so that the total matches it
+		query = query.And("created_unix >= ? AND created_unix < ?",
+			time.Date(year, time.January, 1, 0, 0, 0, 0, setting.DefaultUILocation).Unix(),
+			time.Date(year+1, time.January, 1, 0, 0, 0, 0, setting.DefaultUILocation).Unix())
+	} else {
+		query = query.And("created_unix > ?", timeutil.TimeStampNow()-(366+7)*86400) // (366+7) days to include the first week for the heatmap
 	}
 
 	// HINT: USER-ACTIVITY-PUSH-COMMITS: it only uses the doer's action time, it doesn't use git commit's time

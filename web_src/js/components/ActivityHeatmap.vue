@@ -47,7 +47,6 @@ const squareBorder = 2;
 const cellSize = squareSize + squareBorder;
 const daysInWeek = 7;
 const trailingDays = 365;
-const pagedWeeks = 26; // about 6 months are shown at a time when the full range does not fit
 const gridLeft = Math.ceil(squareSize * 2.5);
 const gridTop = squareSize + squareSize / 2;
 
@@ -55,10 +54,12 @@ const now = new Date();
 const currentYear = now.getFullYear();
 
 const urlParams = new URLSearchParams(window.location.search);
-const selectedYear = ref(parseInt(urlParams.get('year') || '0') || 0); // 0 means the last 12 months
+const initialYear = parseInt(urlParams.get('year') || '0') || 0; // 0 means the last 12 months
+const selectedYear = ref(initialYear);
 const showPrivate = ref(urlParams.get('show-private') !== 'false');
 const years = [0];
-for (let y = currentYear; y >= Math.min(props.userCreatedYear || currentYear, currentYear); y--) years.push(y);
+const firstYear = Math.min(props.userCreatedYear || currentYear, currentYear, initialYear || currentYear);
+for (let y = currentYear; y >= firstYear; y--) years.push(y);
 
 const values = ref<HeatmapValue[]>([]);
 const totalContributions = ref(0);
@@ -73,7 +74,7 @@ async function loadData() {
     const url = new URL(props.heatmapUrl, window.location.origin);
     if (selectedYear.value) url.searchParams.set('year', String(selectedYear.value));
     if (!showPrivate.value) url.searchParams.set('show-private', 'false');
-    const resp = await GET(url.toString());
+    const resp = await GET(url.href);
     if (!resp.ok) throw new Error(`Failed to load heatmap data: ${resp.status} ${resp.statusText}`);
     const {heatmapData, totalContributions: total} = await resp.json() as HeatmapResponse;
 
@@ -188,11 +189,13 @@ const calendar = computed(() => {
   return weeks;
 });
 
-// cells and fonts keep their size, a viewport too narrow for the whole range shows a window of weeks instead
+// cells and fonts keep their size, a viewport too narrow for the whole range pages through equally sized windows
+// of weeks instead, e.g. two halves of about 6 months on a phone
 const weeksPerPage = computed(() => {
+  const weekCount = calendar.value.length;
   const fitting = Math.floor((containerWidth.value - gridLeft - squareBorder) / cellSize);
-  if (!containerWidth.value || fitting >= calendar.value.length) return calendar.value.length;
-  return Math.max(1, Math.min(pagedWeeks, fitting));
+  if (!containerWidth.value || fitting >= weekCount) return weekCount;
+  return Math.ceil(weekCount / Math.ceil(weekCount / Math.max(1, fitting)));
 });
 const pageEnd = ref(0); // exclusive week index, the window starts with the most recent weeks
 watch([() => calendar.value.length, weeksPerPage], () => {

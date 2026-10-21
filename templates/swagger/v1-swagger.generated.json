@@ -24399,6 +24399,18 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "year of the heatmap, the last 12 months if omitted",
+            "name": "year",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include contributions to private repositories the caller can access, default true",
+            "name": "show-private",
+            "in": "query"
           }
         ],
         "responses": {
