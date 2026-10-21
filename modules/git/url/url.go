@@ -44,6 +44,12 @@ func (u *GitURL) String() string {
 	}
 }
 
+// IsSSH reports whether remote is an ssh:// URL or SCP short syntax
+func IsSSH(remote string) bool {
+	u, err := ParseGitURL(remote)
+	return err == nil && u.Scheme == "ssh"
+}
+
 // ParseGitURL parse all kinds of git URL:
 // * Full URL: http://git@host/path, http://git@host:port/path
 // * SCP short syntax: git@host:/path

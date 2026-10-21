@@ -275,3 +275,22 @@ func TestMakeRepositoryBaseLink(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "https://[::1]/owner/repo", MakeRepositoryWebLink(u))
 }
+
+func TestIsSSH(t *testing.T) {
+	cases := []struct {
+		remote string
+		isSSH  bool
+	}{
+		{"ssh://git@github.com/user/repo.git", true},
+		{"ssh://git@example.com:2222/user/repo.git", true},
+		{"git@github.com:user/repo.git", true},
+		{"https://github.com/user/repo.git", false},
+		{"http://github.com/user/repo.git", false},
+		{"git://github.com/user/repo.git", false},
+		{"/srv/git/repo.git", false},
+		{"", false},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.isSSH, IsSSH(c.remote), "remote %q", c.remote)
+	}
+}

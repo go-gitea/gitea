@@ -5,46 +5,23 @@ package ssh
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 
 	user_model "gitea.dev/models/user"
 	giturl "gitea.dev/modules/git/url"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 )
-
-// IsSSHURL checks if a URL is an SSH URL
-func IsSSHURL(remote string) bool {
-	u, err := giturl.ParseGitURL(remote)
-	return err == nil && u.Scheme == "ssh"
-}
-
-// GetOrCreateSSHKeypair gets or creates the managed SSH keypair for the given
-// owner (user or organization — they share the same backing storage).
-func GetOrCreateSSHKeypair(ctx context.Context, ownerID int64) (*user_model.SSHKeypair, error) {
-	keypair, err := user_model.GetSSHKeypairByOwner(ctx, ownerID)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			log.Debug("Creating new SSH keypair for owner %d", ownerID)
-			return user_model.CreateSSHKeypair(ctx, ownerID)
-		}
-		return nil, fmt.Errorf("failed to get SSH keypair for owner %d: %w", ownerID, err)
-	}
-	return keypair, nil
-}
 
 // SetupManagedSSHAgent returns the environment for a git command reaching remoteURL with keyOwnerID's managed SSH key.
 // Non-SSH remotes get nil, which keeps the process environment. cleanup is never nil.
 func SetupManagedSSHAgent(ctx context.Context, keyOwnerID int64, remoteURL string) (envs []string, cleanup func(), err error) {
 	noop := func() {}
-	if !IsSSHURL(remoteURL) {
+	if !giturl.IsSSH(remoteURL) {
 		return nil, noop, nil
 	}
 
-	keypair, err := GetOrCreateSSHKeypair(ctx, keyOwnerID)
+	keypair, err := user_model.GetOrCreateSSHKeypair(ctx, keyOwnerID)
 	if err != nil {
 		return nil, noop, err
 	}

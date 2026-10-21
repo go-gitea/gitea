@@ -782,6 +782,16 @@
         },
         "description": "LicensesList"
       },
+      "ManagedSSHKey": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ManagedSSHKey"
+            }
+          }
+        },
+        "description": ""
+      },
       "MarkdownRender": {
         "content": {
           "application/json": {
@@ -7706,6 +7716,21 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "ManagedSSHKey": {
+        "description": "ManagedSSHKey is the public half of a Gitea-managed SSH keypair used for SSH mirrors and migrations",
+        "properties": {
+          "fingerprint": {
+            "type": "string",
+            "x-go-name": "Fingerprint"
+          },
+          "public_key": {
+            "type": "string",
+            "x-go-name": "PublicKey"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "MarkdownOption": {
         "description": "MarkdownOption markdown options",
         "properties": {
@@ -14613,22 +14638,7 @@
         ],
         "responses": {
           "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "fingerprint": {
-                      "type": "string"
-                    },
-                    "public_key": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "SSH public key"
+            "$ref": "#/components/responses/ManagedSSHKey"
           },
           "403": {
             "$ref": "#/components/responses/forbidden"
@@ -14659,22 +14669,7 @@
         ],
         "responses": {
           "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "fingerprint": {
-                      "type": "string"
-                    },
-                    "public_key": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "New SSH public key"
+            "$ref": "#/components/responses/ManagedSSHKey"
           },
           "403": {
             "$ref": "#/components/responses/forbidden"
@@ -35880,22 +35875,7 @@
         "operationId": "userGetManagedSSHKey",
         "responses": {
           "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "fingerprint": {
-                      "type": "string"
-                    },
-                    "public_key": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "SSH public key"
+            "$ref": "#/components/responses/ManagedSSHKey"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -35912,22 +35892,7 @@
         "operationId": "userRegenerateManagedSSHKey",
         "responses": {
           "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "fingerprint": {
-                      "type": "string"
-                    },
-                    "public_key": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "New SSH public key"
+            "$ref": "#/components/responses/ManagedSSHKey"
           }
         },
         "summary": "Regenerate SSH keypair for user mirroring",

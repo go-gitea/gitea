@@ -18,11 +18,11 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -184,10 +184,8 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
-	// Managed SSH keys are only wired up for the plain Git migration form.
-	// Forge migrations (GitHub/GitLab/etc.) authenticate against both the
-	// git remote and the forge API with a token, so reject ssh:// here.
-	if ssh_module.IsSSHURL(strings.TrimSpace(form.CloneAddr)) {
+	// forge migrations authenticate with a token, managed SSH keys only serve the plain Git one
+	if giturl.IsSSH(strings.TrimSpace(form.CloneAddr)) {
 		if form.Service != structs.PlainGitService {
 			ctx.JSONErrorWithField(ctx.Tr("repo.migrate.ssh_not_supported_for_forge"), "clone_addr")
 			return
@@ -199,8 +197,7 @@ func MigratePost(ctx *context.Context) {
 		}
 	}
 
-	// The managed SSH key must belong to the doer or the migration target owner,
-	// never to an arbitrary third party (0 means "the target owner's key").
+	// never authenticate with a third party's managed key
 	if form.SSHKeyOwnerID != 0 && form.SSHKeyOwnerID != ctx.Doer.ID && form.SSHKeyOwnerID != ctxUser.ID {
 		ctx.JSONError(ctx.Tr("repo.migrate.invalid_ssh_key_owner"))
 		return

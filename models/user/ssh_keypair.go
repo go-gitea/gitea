@@ -7,10 +7,12 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"strings"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/secret"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -18,7 +20,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// SSHKeypair represents an SSH keypair for repository mirroring
+// SSHKeypair is a Gitea-managed SSH keypair that authenticates the owner's SSH mirrors and migrations
 type SSHKeypair struct {
 	OwnerID             int64
 	PrivateKeyEncrypted string
@@ -26,52 +28,40 @@ type SSHKeypair struct {
 	Fingerprint         string
 }
 
-// fingerprintFromPublicKey derives the canonical SHA256 fingerprint from a
-// stored authorized-key string. The public key is the single source of truth,
-// so the displayed format never drifts from however the fingerprint happened
-// to be stored historically.
-func fingerprintFromPublicKey(publicKey string) (string, error) {
-	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(publicKey))
-	if err != nil {
-		return "", fmt.Errorf("failed to parse stored public key: %w", err)
-	}
-	return ssh.FingerprintSHA256(pk), nil
-}
-
-// GetSSHKeypairByOwner gets the SSH keypair for the given owner
+// GetSSHKeypairByOwner returns the owner's managed SSH keypair, a NotExist error if it was never generated
 func GetSSHKeypairByOwner(ctx context.Context, ownerID int64) (*SSHKeypair, error) {
-	settings, err := GetSettings(ctx, ownerID, []string{
-		UserSSHMirrorPrivPem,
-		UserSSHMirrorPubPem,
-	})
+	settings, err := GetSettings(ctx, ownerID, []string{UserSSHMirrorPrivPem, UserSSHMirrorPubPem})
 	if err != nil {
 		return nil, err
 	}
-	if len(settings) == 0 {
+	privSetting, pubSetting := settings[UserSSHMirrorPrivPem], settings[UserSSHMirrorPubPem]
+	if privSetting == nil || pubSetting == nil || privSetting.SettingValue == "" || pubSetting.SettingValue == "" {
 		return nil, util.NewNotExistErrorf("SSH keypair does not exist for owner %d", ownerID)
 	}
 
-	keypair := &SSHKeypair{
-		OwnerID: ownerID,
-	}
-
-	if privSetting, exists := settings[UserSSHMirrorPrivPem]; exists {
-		keypair.PrivateKeyEncrypted = privSetting.SettingValue
-	}
-	if pubSetting, exists := settings[UserSSHMirrorPubPem]; exists {
-		keypair.PublicKey = pubSetting.SettingValue
-	}
-
-	if keypair.PrivateKeyEncrypted == "" || keypair.PublicKey == "" {
-		return nil, util.NewNotExistErrorf("SSH keypair incomplete for owner %d", ownerID)
-	}
-
-	// same canonical SHA256 fingerprint.
-	keypair.Fingerprint, err = fingerprintFromPublicKey(keypair.PublicKey)
+	// the fingerprint is derived rather than stored, so its format can't drift
+	publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubSetting.SettingValue))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse stored public key: %w", err)
 	}
+	return &SSHKeypair{
+		OwnerID:             ownerID,
+		PrivateKeyEncrypted: privSetting.SettingValue,
+		PublicKey:           pubSetting.SettingValue,
+		Fingerprint:         ssh.FingerprintSHA256(publicKey),
+	}, nil
+}
 
+// GetOrCreateSSHKeypair returns the owner's managed SSH keypair, generating it on first use
+func GetOrCreateSSHKeypair(ctx context.Context, ownerID int64) (*SSHKeypair, error) {
+	keypair, err := GetSSHKeypairByOwner(ctx, ownerID)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			log.Debug("Creating new SSH keypair for owner %d", ownerID)
+			return CreateSSHKeypair(ctx, ownerID)
+		}
+		return nil, fmt.Errorf("failed to get SSH keypair for owner %d: %w", ownerID, err)
+	}
 	return keypair, nil
 }
 
@@ -88,9 +78,6 @@ func CreateSSHKeypair(ctx context.Context, ownerID int64) (*SSHKeypair, error) {
 	}
 
 	publicKeyStr := string(ssh.MarshalAuthorizedKey(sshPublicKey))
-
-	fingerprintStr := ssh.FingerprintSHA256(sshPublicKey)
-
 	privateKeyEncrypted, err := secret.EncryptSecret(setting.SecretKey, string(privateKey))
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt private key: %w", err)
@@ -109,14 +96,12 @@ func CreateSSHKeypair(ctx context.Context, ownerID int64) (*SSHKeypair, error) {
 		return nil, err
 	}
 
-	keypair := &SSHKeypair{
+	return &SSHKeypair{
 		OwnerID:             ownerID,
 		PrivateKeyEncrypted: privateKeyEncrypted,
 		PublicKey:           publicKeyStr,
-		Fingerprint:         fingerprintStr,
-	}
-
-	return keypair, nil
+		Fingerprint:         ssh.FingerprintSHA256(sshPublicKey),
+	}, nil
 }
 
 // GetDecryptedPrivateKey returns the decrypted private key
@@ -128,13 +113,8 @@ func (k *SSHKeypair) GetDecryptedPrivateKey() (ed25519.PrivateKey, error) {
 	return ed25519.PrivateKey(decrypted), nil
 }
 
-// GetPublicKeyWithComment returns the public key with a descriptive comment (namespace-fingerprint@domain)
-func (k *SSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, error) {
-	owner, err := GetUserByID(ctx, k.OwnerID)
-	if err != nil {
-		return k.PublicKey, nil
-	}
-
+// PublicKeyWithComment returns the public key commented as "owner-fingerprint@domain", so it is recognizable on the remote
+func (k *SSHKeypair) PublicKeyWithComment(ownerName string) string {
 	domain := setting.AppDomain
 	if domain == "" {
 		domain = "gitea"
@@ -145,6 +125,5 @@ func (k *SSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, error
 		keyID = keyID[:8]
 	}
 
-	comment := fmt.Sprintf("%s-%s@%s", owner.Name, keyID, domain)
-	return strings.TrimSpace(k.PublicKey) + " " + comment, nil
+	return fmt.Sprintf("%s %s-%s@%s", strings.TrimSpace(k.PublicKey), ownerName, keyID, domain)
 }

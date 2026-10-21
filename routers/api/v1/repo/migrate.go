@@ -17,12 +17,12 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
-	ssh_module "gitea.dev/modules/ssh"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -108,8 +108,7 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
-	// The managed SSH key must belong to the doer or the migration target owner,
-	// never to an arbitrary third party (0 means "the target owner's key").
+	// never authenticate with a third party's managed key
 	if form.SSHKeyOwnerID != 0 && form.SSHKeyOwnerID != ctx.Doer.ID && form.SSHKeyOwnerID != repoOwner.ID {
 		ctx.APIError(http.StatusForbidden, "ssh_key_owner_id must be 0, the authenticated user, or the repository owner")
 		return
@@ -117,9 +116,8 @@ func Migrate(ctx *context.APIContext) {
 
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
-	if ssh_module.IsSSHURL(remoteAddr) {
-		// Managed SSH keys are only wired up for the plain Git migration, same as the web flow:
-		// forge migrations authenticate the API with a token, which must not reach an SSH remote.
+	if giturl.IsSSH(remoteAddr) {
+		// forge migrations authenticate with a token, which must not end up in an SSH remote
 		if gitServiceType != api.PlainGitService {
 			ctx.APIError(http.StatusUnprocessableEntity, "SSH clone addresses are only supported for the plain Git migration")
 			return

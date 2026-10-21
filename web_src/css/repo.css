@@ -1782,11 +1782,7 @@ tbody.commit-list {
   height: 4em;
 }
 
-/* SSH key authentication UI on the repository migration form.
-   The fingerprint reads as secondary metadata beneath the key label —
-   small monospace muted text, never an inline-code chip.
-   All rules are scoped to .ssh-key-fingerprint-only / .ssh-key-owner-selector
-   so nothing leaks into the global stylesheet. */
+/* managed SSH key choice on the migration form */
 
 .ssh-key-fingerprint-only .inline-right {
   gap: 2px;

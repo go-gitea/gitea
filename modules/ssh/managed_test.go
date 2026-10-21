@@ -22,25 +22,6 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{FixtureFiles: []string{ /* keypairs are created by the tests themselves */ }})
 }
 
-func TestIsSSHURL(t *testing.T) {
-	cases := []struct {
-		remote string
-		isSSH  bool
-	}{
-		{"ssh://git@github.com/user/repo.git", true},
-		{"ssh://git@example.com:2222/user/repo.git", true},
-		{"git@github.com:user/repo.git", true},
-		{"https://github.com/user/repo.git", false},
-		{"http://github.com/user/repo.git", false},
-		{"git://github.com/user/repo.git", false},
-		{"/srv/git/repo.git", false},
-		{"", false},
-	}
-	for _, c := range cases {
-		assert.Equal(t, c.isSSH, IsSSHURL(c.remote), "remote %q", c.remote)
-	}
-}
-
 func TestSetupManagedSSHAgentNonSSHURL(t *testing.T) {
 	// a non-SSH remote must short-circuit before any keypair lookup
 	sshEnvs, cleanup, err := SetupManagedSSHAgent(t.Context(), 1, "https://github.com/user/repo.git")

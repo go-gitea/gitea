@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	user_model "gitea.dev/models/user"
-	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/templates"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
@@ -28,7 +27,7 @@ func SSHKeys(ctx *context.Context) {
 		return
 	}
 
-	keypair, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctx.Org.Organization.ID)
+	keypair, err := user_model.GetOrCreateSSHKeypair(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.ServerError("GetOrCreateSSHKeypair", err)
 		return

@@ -3364,18 +3364,7 @@
         ],
         "responses": {
           "200": {
-            "description": "SSH public key",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "fingerprint": {
-                  "type": "string"
-                },
-                "public_key": {
-                  "type": "string"
-                }
-              }
-            }
+            "$ref": "#/responses/ManagedSSHKey"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -3407,18 +3396,7 @@
         ],
         "responses": {
           "200": {
-            "description": "New SSH public key",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "fingerprint": {
-                  "type": "string"
-                },
-                "public_key": {
-                  "type": "string"
-                }
-              }
-            }
+            "$ref": "#/responses/ManagedSSHKey"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -23087,18 +23065,7 @@
         "operationId": "userGetManagedSSHKey",
         "responses": {
           "200": {
-            "description": "SSH public key",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "fingerprint": {
-                  "type": "string"
-                },
-                "public_key": {
-                  "type": "string"
-                }
-              }
-            }
+            "$ref": "#/responses/ManagedSSHKey"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -23118,18 +23085,7 @@
         "operationId": "userRegenerateManagedSSHKey",
         "responses": {
           "200": {
-            "description": "New SSH public key",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "fingerprint": {
-                  "type": "string"
-                },
-                "public_key": {
-                  "type": "string"
-                }
-              }
-            }
+            "$ref": "#/responses/ManagedSSHKey"
           }
         }
       }
@@ -30956,6 +30912,21 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "ManagedSSHKey": {
+      "description": "ManagedSSHKey is the public half of a Gitea-managed SSH keypair used for SSH mirrors and migrations",
+      "type": "object",
+      "properties": {
+        "fingerprint": {
+          "type": "string",
+          "x-go-name": "Fingerprint"
+        },
+        "public_key": {
+          "type": "string",
+          "x-go-name": "PublicKey"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "MarkdownOption": {
       "description": "MarkdownOption markdown options",
       "type": "object",
@@ -34851,6 +34822,12 @@
         "items": {
           "type": "string"
         }
+      }
+    },
+    "ManagedSSHKey": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/ManagedSSHKey"
       }
     },
     "MarkdownRender": {

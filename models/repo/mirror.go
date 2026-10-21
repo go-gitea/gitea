@@ -43,8 +43,7 @@ type Mirror struct {
 
 // IsSSHRemoteAddress returns true if the mirror's remote address uses SSH.
 func (m *Mirror) IsSSHRemoteAddress() bool {
-	u, err := giturl.ParseGitURL(m.RemoteAddress)
-	return err == nil && u.Scheme == "ssh"
+	return giturl.IsSSH(m.RemoteAddress)
 }
 
 func init() {

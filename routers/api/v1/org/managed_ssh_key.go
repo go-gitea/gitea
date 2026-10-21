@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
@@ -27,14 +28,7 @@ func GetManagedSSHKey(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     description: SSH public key
-	//     schema:
-	//       type: object
-	//       properties:
-	//         public_key:
-	//           type: string
-	//         fingerprint:
-	//           type: string
+	//     "$ref": "#/responses/ManagedSSHKey"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -51,10 +45,7 @@ func GetManagedSSHKey(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]string{
-		"public_key":  keypair.PublicKey,
-		"fingerprint": keypair.Fingerprint,
-	})
+	ctx.JSON(http.StatusOK, &api.ManagedSSHKey{PublicKey: keypair.PublicKey, Fingerprint: keypair.Fingerprint})
 }
 
 // RegenerateManagedSSHKey regenerates the SSH keypair for organization mirroring
@@ -72,14 +63,7 @@ func RegenerateManagedSSHKey(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     description: New SSH public key
-	//     schema:
-	//       type: object
-	//       properties:
-	//         public_key:
-	//           type: string
-	//         fingerprint:
-	//           type: string
+	//     "$ref": "#/responses/ManagedSSHKey"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
@@ -89,8 +73,5 @@ func RegenerateManagedSSHKey(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]string{
-		"public_key":  keypair.PublicKey,
-		"fingerprint": keypair.Fingerprint,
-	})
+	ctx.JSON(http.StatusOK, &api.ManagedSSHKey{PublicKey: keypair.PublicKey, Fingerprint: keypair.Fingerprint})
 }

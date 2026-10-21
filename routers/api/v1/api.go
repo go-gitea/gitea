@@ -1778,9 +1778,9 @@ func Routes() *web.Router {
 			}, reqToken(), reqOrgOwnership())
 
 			m.Group("/managed-ssh-key", func() {
-				m.Get("", reqToken(), reqOrgOwnership(), org.GetManagedSSHKey)
-				m.Post("/regenerate", reqToken(), reqOrgOwnership(), org.RegenerateManagedSSHKey)
-			})
+				m.Get("", org.GetManagedSSHKey)
+				m.Post("/regenerate", org.RegenerateManagedSSHKey)
+			}, reqToken(), reqOrgOwnership())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Patch(reqToken(), reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).

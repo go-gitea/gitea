@@ -11,11 +11,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// managedSSHCommand builds the GIT_SSH_COMMAND used for Gitea-managed SSH
-// operations (migration / mirror with a generated keypair). ssh runs
-// non-interactively (BatchMode) so the worker never hangs on an unknown host,
-// and the configured host-key policy is applied. The ssh executable is
-// configurable (Migrations.SSHCommand) for hosts where "ssh" is not on PATH.
+// managedSSHCommand builds GIT_SSH_COMMAND for managed-key operations, in BatchMode so a worker never waits on a prompt
 func managedSSHCommand(identityFile string) string {
 	ssh := util.ShellEscape(setting.Migrations.SSHCommand)
 	var cmd string

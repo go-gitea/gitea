@@ -13,7 +13,6 @@ import (
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
-	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	asymkey_service "gitea.dev/services/asymkey"
@@ -367,16 +366,12 @@ func loadKeysData(ctx *context.Context) {
 	ctx.Data["VerifyingFingerprint"] = ctx.FormString("verify_ssh")
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
-	managedKeypair, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctx.Doer.ID)
+	managedKeypair, err := user_model.GetOrCreateSSHKeypair(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetOrCreateSSHKeypair", err)
 		return
 	}
-	publicKeyWithComment, _ := managedKeypair.GetPublicKeyWithComment(ctx)
-	ctx.Data["ManagedSSHKey"] = struct {
-		*user_model.SSHKeypair
-		PublicKeyWithComment string
-	}{managedKeypair, publicKeyWithComment}
+	ctx.Data["ManagedSSHKey"] = managedKeypair
 }
 
 // RegenerateSSHKeypair regenerates the SSH keypair for repository mirroring
