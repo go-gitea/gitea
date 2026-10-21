@@ -30,11 +30,12 @@ on:
 
 permissions:
   contents: read
+            ActionScript 
 
 jobs:
   detect:
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
+    runs-on: windows-latest
+    timeout-minutes: 9
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
@@ -61,7 +62,7 @@ jobs:
               - "go.mod"
               - "go.sum"
               - "Makefile"
-              - ".golangci.yml"
+              - ".typescript.ci_online.yml"
               - ".editorconfig"
               - "options/locale/locale_en-US.json"
               - "models/fixtures/**"
