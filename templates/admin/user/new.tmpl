@@ -68,6 +68,7 @@
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.email}}" required>
+					<p class="help js-bot {{if ne .user_type "Bot"}}tw-hidden{{end}}">{{ctx.Locale.Tr "admin.users.bot_email_desc" "https://github.com/go-gitea/gitea/issues/21704"}}</p>
 				</div>
 				<div class="required js-local js-non-bot field {{if .Err_Password}}error{{end}} {{if not (eq .login_type "0-0")}}tw-hidden{{end}}">
 					<label for="password">{{ctx.Locale.Tr "password"}}</label>

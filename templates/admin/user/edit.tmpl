@@ -6,6 +6,17 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="./edit" method="post">
 				{{template "base/disable_form_autofill"}}
+				{{if and .User.IsTypeBot (or .User.Passwd .User.MustChangePassword .TwoFactorEnabled)}}
+					<div class="ui warning message">
+						<p>{{ctx.Locale.Tr "admin.users.bot_legacy_states"}}</p>
+						<ul>
+							{{if .User.Passwd}}<li>{{ctx.Locale.Tr "admin.users.bot_legacy_password"}}</li>{{end}}
+							{{if .User.MustChangePassword}}<li>{{ctx.Locale.Tr "admin.users.bot_legacy_must_change_password"}}</li>{{end}}
+							{{if .TwoFactorEnabled}}<li>{{ctx.Locale.Tr "admin.users.bot_legacy_two_factor"}}</li>{{end}}
+						</ul>
+					</div>
+				{{end}}
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "settings.account"}}</h5>
 				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 					<input id="user_name" name="user_name" value="{{.User.Name}}" maxlength="40">
@@ -71,13 +82,10 @@
 					<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.User.LoginName}}">
 				</div>
-				<div class="field {{if .Err_FullName}}error{{end}}">
-					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
-					<input id="full_name" name="full_name" value="{{.User.FullName}}" maxlength="100">
-				</div>
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" required>
+					<p class="help js-bot {{if not .User.IsTypeBot}}tw-hidden{{end}}">{{ctx.Locale.Tr "admin.users.bot_email_desc" "https://github.com/go-gitea/gitea/issues/21704"}}</p>
 				</div>
 				{{if not .User.IsTypeBot}}
 					<div class="js-local js-non-bot field {{if .Err_Password}}error{{end}} {{if not (or .User.IsLocal .User.IsOAuth2)}}tw-hidden{{end}}">
@@ -87,6 +95,11 @@
 					</div>
 				{{end}}
 
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "settings.profile"}}</h5>
+				<div class="field {{if .Err_FullName}}error{{end}}">
+					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
+					<input id="full_name" name="full_name" value="{{.User.FullName}}" maxlength="100">
+				</div>
 				<div class="field {{if .Err_Language}}error{{end}}">
 					<label for="language">{{ctx.Locale.Tr "settings.language"}}</label>
 					<div class="ui selection dropdown">
@@ -110,15 +123,12 @@
 					<input id="location" name="location" value="{{.User.Location}}" maxlength="50">
 				</div>
 
-				<div class="divider"></div>
-
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "admin.users.access_and_permissions"}}</h5>
 				<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
 					<label for="max_repo_creation">{{ctx.Locale.Tr "admin.users.max_repo_creation"}}</label>
 					<input id="max_repo_creation" name="max_repo_creation" type="number" min="-1" value="{{.User.MaxRepoCreation}}">
 					<p class="help">{{ctx.Locale.Tr "admin.users.max_repo_creation_desc"}}</p>
 				</div>
-
-				<div class="divider"></div>
 
 				<div class="inline field">
 					<div class="ui checkbox">
@@ -128,9 +138,13 @@
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{ctx.Locale.Tr "admin.users.prohibit_login"}}</strong></label>
+						<label><strong>
+							<span class="js-non-bot {{if .User.IsTypeBot}}tw-hidden{{end}}">{{ctx.Locale.Tr "admin.users.prohibit_login"}}</span>
+							<span class="js-bot {{if not .User.IsTypeBot}}tw-hidden{{end}}">{{ctx.Locale.Tr "admin.users.prohibit_login_bot"}}</span>
+						</strong></label>
 						<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}} {{if (eq .User.ID .SignedUserID)}}disabled{{end}}>
 					</div>
+					<p class="help js-bot {{if not .User.IsTypeBot}}tw-hidden{{end}}">{{ctx.Locale.Tr "admin.users.prohibit_login_bot_desc"}}</p>
 				</div>
 				{{if not .User.IsTypeBot}}
 					<div class="inline js-non-bot field">

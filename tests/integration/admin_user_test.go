@@ -220,6 +220,8 @@ func TestAdminBotUser(t *testing.T) {
 		assert.Equal(t, "Bot", doc.Find("#user_type").AttrOr("value", ""))
 		assert.Empty(t, doc.Find("#login_type").Nodes)
 		assert.Empty(t, doc.Find("#password").Nodes)
+		assert.Empty(t, doc.Find(".ui.warning.message").Nodes)
+		assert.Equal(t, 1, doc.Find(`.help a[href="https://github.com/go-gitea/gitea/issues/21704"]`).Length())
 		doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/-/admin/users/%d", bot.ID)), http.StatusOK).Body)
 		assert.NotEmpty(t, doc.Find(`form[action$="/access_tokens"]`).Nodes)
 	})
@@ -331,5 +333,12 @@ func TestAdminBotUser(t *testing.T) {
 		converted := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 		assert.True(t, converted.IsTypeBot())
 		assert.Equal(t, user4.Passwd, converted.Passwd)
+		converted.MustChangePassword = true
+		require.NoError(t, user_model.UpdateUserCols(t.Context(), converted, "must_change_password"))
+		require.NoError(t, auth_model.NewTwoFactor(t.Context(), &auth_model.TwoFactor{UID: converted.ID}))
+		warning := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/-/admin/users/4/edit"), http.StatusOK).Body).Find(".ui.warning.message").Text()
+		assert.Contains(t, warning, "A password is set.")
+		assert.Contains(t, warning, "The user must change the password at the next sign-in.")
+		assert.Contains(t, warning, "Two-factor authentication is enrolled.")
 	})
 }
