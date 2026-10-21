@@ -929,7 +929,6 @@
   "settings.delete_account_title": "Benutzerkonto löschen",
   "settings.delete_account_desc": "Bist du sicher, dass du diesen Account dauerhaft löschen möchtest?",
   "settings.email_notifications.enable": "E-Mail Benachrichtigungen aktivieren",
-  "settings.email_notifications.onmention": "Nur E-Mail bei Erwähnung",
   "settings.email_notifications.disable": "E-Mail Benachrichtigungen deaktivieren",
   "settings.email_notifications.submit": "E-Mail-Einstellungen festlegen",
   "settings.email_notifications.andyourown": "Und deine Eigenen Benachrichtigungen",

@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -405,6 +407,25 @@ func TestCreateNewTag(t *testing.T) {
 
 	assert.NoError(t, CreateNewTag(t.Context(), user, repo, "master", "v2.0",
 		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))
+}
+
+func TestCreateReleaseReaction(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1})
+
+	assert.Equal(t, []string{"+1", "laugh", "hooray", "heart", "rocket", "eyes"}, AllowedReleaseReactions())
+
+	_, err := CreateReleaseReaction(t.Context(), user, release, "heart")
+	assert.NoError(t, err)
+	assert.NoError(t, DeleteReleaseByID(t.Context(), repo, release, user, false))
+	unittest.AssertNotExistsBean(t, &issues_model.Reaction{ReleaseID: release.ID})
+
+	assert.NoError(t, db.Insert(t.Context(), &user_model.Blocking{BlockerID: repo.OwnerID, BlockeeID: user.ID}))
+	_, err = CreateReleaseReaction(t.Context(), user, release, "heart")
+	assert.ErrorIs(t, err, user_model.ErrBlockedUser)
 }
 
 func TestRelease_DatedByTargetCommit(t *testing.T) {

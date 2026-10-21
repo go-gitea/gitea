@@ -215,6 +215,11 @@ func TestSearchUsers(t *testing.T) {
 
 	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsTwoFactorEnabled: optional.Some(true)},
 		[]int64{24})
+
+	restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
+	testUserSuccess(user_model.SearchUserOptions{Actor: restrictedUser}, []int64{29})
+	restrictedUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:user")
+	testUserSuccess(user_model.SearchUserOptions{Actor: restrictedUser}, []int64{29})
 }
 
 func TestEmailNotificationPreferences(t *testing.T) {
@@ -290,18 +295,13 @@ func TestNewGitSig(t *testing.T) {
 }
 
 func TestDisplayName(t *testing.T) {
-	users := make([]*user_model.User, 0, 20)
-	err := db.GetEngine(t.Context()).Find(&users)
-	assert.NoError(t, err)
+	u := &user_model.User{Name: "name"}
+	assert.Equal(t, "name", u.DisplayName())
+	assert.Equal(t, "name", u.DisplayNameWithFullName())
 
-	for _, user := range users {
-		displayName := user.DisplayName()
-		assert.Equal(t, strings.TrimSpace(displayName), displayName)
-		if len(strings.TrimSpace(user.FullName)) == 0 {
-			assert.Equal(t, user.Name, displayName)
-		}
-		assert.NotEmpty(t, strings.TrimSpace(displayName))
-	}
+	u = &user_model.User{Name: "name", FullName: "Full Name"}
+	assert.Equal(t, "Full Name", u.DisplayName())
+	assert.Equal(t, "name (Full Name)", u.DisplayNameWithFullName())
 }
 
 func TestCreateUserEmailAlreadyUsed(t *testing.T) {
@@ -525,6 +525,10 @@ func TestIsUserVisibleToViewer(t *testing.T) {
 	test(user20, user1, true)
 	test(user31, user1, true)
 	test(user33, user1, true)
+	publicOnlyAdmin := *user1
+	publicOnlyAdmin.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:user")
+	test(user31, &publicOnlyAdmin, false)
+	test(user33, &publicOnlyAdmin, false)
 
 	// non admin viewer
 	test(user4, user4, true)

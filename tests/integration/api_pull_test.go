@@ -142,6 +142,34 @@ func TestAPIViewPulls(t *testing.T) {
 				assert.Len(t, files, 1)
 			}))
 	}
+
+	t.Run("HeadRepoHiddenWhenInaccessible", func(t *testing.T) {
+		session := loginUser(t, "user31")
+		forkToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{}).AddTokenAuth(forkToken), http.StatusAccepted)
+		visible := DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls", &api.CreatePullRequestOption{
+			Head: "user31:branch2", Base: "master", Title: "pull from a private user's fork",
+		}).AddTokenAuth(forkToken), http.StatusCreated), &api.PullRequest{})
+		require.NotNil(t, visible.Head.Repository)
+		require.NotEmpty(t, visible.Head.Sha)
+
+		prURL := fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d", visible.Index)
+		var listed []*api.PullRequest
+		DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/pulls?poster=user31"), http.StatusOK), &listed)
+		require.Len(t, listed, 1)
+		for _, hidden := range []*api.PullRequest{
+			DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", prURL), http.StatusOK), &api.PullRequest{}),
+			listed[0],
+		} {
+			assert.Nil(t, hidden.Head.Repository)
+			assert.EqualValues(t, -1, hidden.Head.RepoID)
+			assert.Equal(t, visible.Head.Name, hidden.Head.Name)
+			assert.Equal(t, visible.Head.Sha, hidden.Head.Sha)
+		}
+
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Index: visible.Index})
+		assert.NotNil(t, convert.ToPayloadPullRequest(t.Context(), pr, nil).Head.Repository)
+	})
 }
 
 func TestAPIViewPullsByBaseHead(t *testing.T) {
@@ -254,6 +282,17 @@ func TestAPIMergePull(t *testing.T) {
 			updateRepoUnitDefaultDeleteBranchAfterMerge(t, repo, false)
 			performMerge(t, prDTO.Index, map[string]any{"do": "merge", "delete_branch_after_merge": true})
 			checkBranchExists(t, newBranch, http.StatusNotFound)
+		})
+
+		t.Run("SquashMergePreservesFormMessage", func(t *testing.T) {
+			req := NewRequestWithValues(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, createTestBranchPR(t, "squash-form-message").Index), map[string]string{
+				"do":                  "squash",
+				"merge_message_field": "custom squash message",
+			}).AddTokenAuth(apiCtx.Token)
+			MakeRequest(t, req, http.StatusOK)
+
+			req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/git/commits/%s", owner.Name, repo.Name, repo.DefaultBranch).AddTokenAuth(apiCtx.Token)
+			assert.Contains(t, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Commit{}).RepoCommit.Message, "\n\ncustom squash message")
 		})
 	})
 }

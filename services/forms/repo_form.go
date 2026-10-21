@@ -133,6 +133,7 @@ type RepoSettingForm struct {
 	PullsAllowMergeUpdate            bool
 	PullsAllowRebaseUpdate           bool
 	PullsDefaultUpdateStyle          string
+	PullsDefaultSquashMergeMessage   string
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
 	DefaultTargetBranch              string
@@ -424,20 +425,21 @@ type MergePullRequestForm struct {
 	ForceMerge             bool   `json:"force_merge,omitempty"`
 	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge,omitempty"`
+	HasMergeMessageField   bool   `form:"-" json:"-"`
 }
 
 func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {
 	// This is for backward compatibility, to support both field names like "do" and "Do",
 	// because old code doesn't have "json" tag for these fields
 	type aux struct {
-		Do1                string `json:"do"`
-		Do2                string `json:"Do"`
-		MergeTitleField1   string `json:"merge_title_field"`
-		MergeTitleField2   string `json:"MergeTitleField"`
-		MergeMessageField1 string `json:"merge_message_field"`
-		MergeMessageField2 string `json:"MergeMessageField"`
-		MergeCommitID1     string `json:"merge_commit_id"`
-		MergeCommitID2     string `json:"MergeCommitID"`
+		Do1                string  `json:"do"`
+		Do2                string  `json:"Do"`
+		MergeTitleField1   string  `json:"merge_title_field"`
+		MergeTitleField2   string  `json:"MergeTitleField"`
+		MergeMessageField1 *string `json:"merge_message_field"`
+		MergeMessageField2 *string `json:"MergeMessageField"`
+		MergeCommitID1     string  `json:"merge_commit_id"`
+		MergeCommitID2     string  `json:"MergeCommitID"`
 
 		HeadCommitID           string `json:"head_commit_id"`
 		ForceMerge             bool   `json:"force_merge"`
@@ -450,7 +452,10 @@ func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {
 	}
 	f.Do = util.IfZero(a.Do1, a.Do2)
 	f.MergeTitleField = util.IfZero(a.MergeTitleField1, a.MergeTitleField2)
-	f.MergeMessageField = util.IfZero(a.MergeMessageField1, a.MergeMessageField2)
+	f.MergeMessageField, f.HasMergeMessageField = "", false
+	if mergeMessageField := util.IfZero(a.MergeMessageField1, a.MergeMessageField2); mergeMessageField != nil {
+		f.MergeMessageField, f.HasMergeMessageField = *mergeMessageField, true
+	}
 	f.MergeCommitID = util.IfZero(a.MergeCommitID1, a.MergeCommitID2)
 	f.HeadCommitID = a.HeadCommitID
 	f.ForceMerge = a.ForceMerge

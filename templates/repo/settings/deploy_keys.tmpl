@@ -60,16 +60,16 @@
 	</div>
 </div>
 
-<div class="ui small modal" id="repo-deploy-key-delete-modal">
+<dialog class="modal-dialog" id="repo-deploy-key-delete-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "remove"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.deploy_key_deletion_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</dialog>
 
-<div class="ui small modal" id="repo-deploy-token-regenerate-modal">
+<dialog class="modal-dialog" id="repo-deploy-token-regenerate-modal">
 	<div class="header">{{svg "octicon-sync"}} {{ctx.Locale.Tr "settings.regenerate_token"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.regenerate_deploy_token_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</dialog>
 
 {{template "repo/settings/layout_footer" .}}

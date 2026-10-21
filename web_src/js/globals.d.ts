@@ -1,12 +1,9 @@
 interface JQuery {
   fomanticExt: {
     onDropdownAfterFiltered?: (this: HTMLElement) => void,
-    onModalBeforeHidden?: (this: HTMLElement) => void,
   }; // fomantic extension
   api: any, // fomantic
-  dimmer: any, // fomantic
   dropdown: any; // fomantic
-  modal: any; // fomantic
   transition: any, // fomantic
 }
 
