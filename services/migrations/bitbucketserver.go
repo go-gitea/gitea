@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -382,9 +383,7 @@ func sleepContext(ctx context.Context, d time.Duration) error {
 
 func bbsGetPage[T any](ctx context.Context, d *BitbucketServerDownloader, path string, query url.Values, start, limit int) (*bbsPage[T], error) {
 	q := url.Values{}
-	for k, v := range query {
-		q[k] = v
-	}
+	maps.Copy(q, query)
 	q.Set("start", strconv.Itoa(start))
 	q.Set("limit", strconv.Itoa(limit))
 	var page bbsPage[T]
