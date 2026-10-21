@@ -11,10 +11,12 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -71,6 +73,17 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	if !doer.CanCreateRepoIn(owner) {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: owner.MaxRepoCreation,
+		}
+	}
+
+	if opts.GitHooks || opts.Webhooks {
+		// hooks carry admin-only data like webhook secrets and git hook scripts
+		perm, err := access_model.GetDoerRepoPermission(ctx, templateRepo, doer)
+		if err != nil {
+			return nil, err
+		}
+		if !perm.IsAdmin() {
+			return nil, util.NewPermissionDeniedErrorf("only admins of the template repository can copy its git hooks and webhooks")
 		}
 	}
 

@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -665,6 +666,17 @@ func TestGenerateRepository(t *testing.T) {
 
 		err = repo_service.DeleteRepositoryDirectly(t.Context(), generatedRepo.ID)
 		assert.NoError(t, err)
+	})
+
+	t.Run("HooksRequireTemplateAdmin", func(t *testing.T) {
+		for _, opts := range []repo_service.GenerateRepoOptions{
+			{Name: "generated-webhooks-from-template-44", Webhooks: true},
+			{Name: "generated-git-hooks-from-template-44", GitHooks: true},
+		} {
+			_, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, opts)
+			assert.ErrorIs(t, err, util.ErrPermissionDenied)
+			unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: opts.Name})
+		}
 	})
 
 	t.Run("Failure", func(t *testing.T) {
