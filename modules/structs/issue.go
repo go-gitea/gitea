@@ -132,7 +132,7 @@ type IssueAssigneesOption struct {
 	Assignees []string `json:"assignees"`
 }
 
-// EditDeadlineOption options for creating a deadline
+// EditDeadlineOption options for editing a deadline
 type EditDeadlineOption struct {
 	// swagger:strfmt date-time
 	Deadline optional.Option[*string] `json:"due_date,omitzero"`

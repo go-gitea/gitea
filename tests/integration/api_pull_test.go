@@ -522,10 +522,15 @@ func TestAPIEditPull(t *testing.T) {
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
-	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), &api.EditPullRequestOption{
-		RemoveDeadline: new(false),
-	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusBadRequest)
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), map[string]any{"due_date": "2000-01-02"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pull.IssueID})
+	assert.NotZero(t, issue.DeadlineUnix)
+
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), map[string]any{"due_date": nil}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pull.IssueID})
+	assert.Zero(t, issue.DeadlineUnix)
 
 	t.Run("PullContentVersion", func(t *testing.T) {
 		testAPIPullContentVersion(t, pull.ID)

@@ -5562,7 +5562,7 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "EditDeadlineOption": {
-        "description": "EditDeadlineOption options for creating a deadline",
+        "description": "EditDeadlineOption options for editing a deadline",
         "properties": {
           "due_date": {
             "format": "date-time",

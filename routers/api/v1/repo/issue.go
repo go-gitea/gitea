@@ -975,6 +975,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 			return
 		}
 	}
+	// StatusCreated is the copied & pasted garbage
 	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: issue.DeadlineUnix.AsTimePtr()})
 }
 
