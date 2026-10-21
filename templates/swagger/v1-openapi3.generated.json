@@ -5562,17 +5562,15 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "EditDeadlineOption": {
-        "description": "EditDeadlineOption options for creating a deadline",
+        "description": "EditDeadlineOption options for editing a deadline",
         "properties": {
           "due_date": {
+            "description": "Deadline is the updated due date for the issue or pull request, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
           }
         },
-        "required": [
-          "due_date"
-        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -5673,6 +5671,7 @@
             "x-go-name": "ContentVersion"
           },
           "due_date": {
+            "description": "Deadline is the updated due date for the issue, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -5752,7 +5751,7 @@
             "x-go-name": "Description"
           },
           "due_on": {
-            "description": "Deadline is the updated due date for the milestone",
+            "description": "Deadline is the due date for the milestone, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -5902,6 +5901,7 @@
             "x-go-name": "ContentVersion"
           },
           "due_date": {
+            "description": "Deadline is the updated due date for the pull request, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -7954,7 +7954,7 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "Milestone": {
-        "description": "Milestone milestone is a collection of issues on one repository",
+        "description": "Milestone is a collection of issues on one repository",
         "properties": {
           "closed_at": {
             "format": "date-time",

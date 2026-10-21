@@ -73,7 +73,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
-	reactions, _, err := issues_model.FindCommentReactions(ctx, comment.IssueID, comment.ID)
+	reactions, _, err := issues_model.FindCommentReactions(ctx, comment.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

@@ -358,26 +358,6 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	})
 }
 
-func checkForInvalidation(ctx context.Context, requests issues_model.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
-	}
-	gitRepo, err := git.OpenRepository(ctx, repo)
-	if err != nil {
-		return fmt.Errorf("gitrepo.OpenRepository: %w", err)
-	}
-	go func() {
-		// FIXME: graceful: We need to tell the manager we're doing something...
-		err := InvalidateCodeComments(ctx, requests, doer, repo, gitRepo, branch)
-		if err != nil {
-			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
-		}
-		gitRepo.Close()
-	}()
-	return nil
-}
-
 type TestPullRequestOptions struct {
 	RepoID      int64
 	Doer        *user_model.User
@@ -436,8 +416,8 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			if err = headBranchPRs.LoadAttributes(ctx); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
-			if invalidationErr := checkForInvalidation(ctx, headBranchPRs, opts.RepoID, opts.Doer, opts.Branch); invalidationErr != nil {
-				log.Error("checkForInvalidation: %v", invalidationErr)
+			if invalidationErr := InvalidateCodeComments(ctx, headBranchPRs, repo, opts.Branch); invalidationErr != nil {
+				log.Error("InvalidateCodeComments: %v", invalidationErr)
 			}
 			if err == nil {
 				for _, pr := range headBranchPRs {

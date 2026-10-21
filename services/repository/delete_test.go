@@ -10,6 +10,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -75,6 +76,7 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 		&git_model.RenamedBranch{RepoID: 1, From: "old-name", To: "new-name"},
 		&git_model.CommitStatusSummary{RepoID: 1, SHA: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", State: "success"},
 		&repo_model.RepoTransfer{RepoID: 1, DoerID: 2, RecipientID: 3},
+		&issues_model.Reaction{Type: "heart", UserID: 2, ReleaseID: 1},
 	))
 	unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatusIndex{RepoID: 1})
 
@@ -87,4 +89,5 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &git_model.CommitStatusSummary{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &git_model.CommitStatusIndex{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{RepoID: 1})
+	unittest.AssertNotExistsBean(t, &issues_model.Reaction{ReleaseID: 1})
 }
