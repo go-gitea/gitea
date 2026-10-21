@@ -1596,6 +1596,22 @@ func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) 
 	return diff, nil
 }
 
+// GetCodeCommentPatch returns the code snippet stored with a code comment
+func GetCodeCommentPatch(ctx context.Context, gitRepo *git.Repository, mergeBase, headCommitID, treePath string, line int64) (string, error) {
+	patch, err := git.GetFileDiffCutAroundLine(ctx, gitRepo, mergeBase, headCommitID, treePath,
+		int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
+	)
+	contextCommitID := util.Iif(line < 0, mergeBase, headCommitID)
+	if err != nil || patch != "" || contextCommitID == "" {
+		return patch, err
+	}
+	patch, err = GeneratePatchForUnchangedLine(ctx, gitRepo, contextCommitID, treePath, line, setting.UI.CodeCommentLines)
+	if err != nil {
+		log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, contextCommitID, err)
+	}
+	return patch, nil
+}
+
 // GeneratePatchForUnchangedLine creates a patch showing code context for an unchanged line
 func GeneratePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int) (string, error) {
 	commit, err := gitRepo.GetCommit(ctx, commitID)
