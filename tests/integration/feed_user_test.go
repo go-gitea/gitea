@@ -83,24 +83,47 @@ func TestFeedUserPublicOnlyToken(t *testing.T) {
 	assert.NotContains(t, respPublicOnly.Body.String(), privateMarker)
 }
 
-func TestProfilePublicOnlyToken(t *testing.T) {
+// TestProfileActivityPublicOnlyToken ensures the HTML profile activity tab does not
+// surface a user's private activity to a public-only API token, mirroring the RSS/Atom
+// guard. The /{username} route is AllowBasic, so a public-only PAT used as the Basic
+// password must still be downgraded even for the feed owner.
+func TestProfileActivityPublicOnlyToken(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user2 has activity on the private repo user2/repo2
+	const privateMarker = "user2/repo2"
+
+	// a normal read:user token authenticated as the owner sees private activity
+	fullToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
+	reqFull := NewRequest(t, "GET", "/user2?tab=activity")
+	reqFull.SetBasicAuth("user2", fullToken)
+	respFull := MakeRequest(t, reqFull, http.StatusOK)
+	assert.Contains(t, respFull.Body.String(), privateMarker)
+
+	// a public-only token must not surface the private activity
+	publicOnlyToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
+	reqPublicOnly := NewRequest(t, "GET", "/user2?tab=activity")
+	reqPublicOnly.SetBasicAuth("user2", publicOnlyToken)
+	respPublicOnly := MakeRequest(t, reqPublicOnly, http.StatusOK)
+	assert.NotContains(t, respPublicOnly.Body.String(), privateMarker)
+}
+
+func TestProfileReposAndLimitedOwnersPublicOnlyToken(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	fullToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
 	publicOnlyToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
-	for link, privateMarker := range map[string]string{
-		"/user2?tab=activity":             "user2/repo2",
+	for link, privateRepoLink := range map[string]string{
 		"/user2?tab=repositories&q=repo2": `"/user2/repo2"`,
 		"/user2?tab=stars":                `"/user2/repo2"`,
 		"/org3":                           `"/org3/repo3"`,
 	} {
 		reqFull := NewRequest(t, "GET", link)
 		reqFull.SetBasicAuth("user2", fullToken)
-		assert.Contains(t, MakeRequest(t, reqFull, http.StatusOK).Body.String(), privateMarker, link)
-
+		assert.Contains(t, MakeRequest(t, reqFull, http.StatusOK).Body.String(), privateRepoLink, link)
 		reqPublicOnly := NewRequest(t, "GET", link)
 		reqPublicOnly.SetBasicAuth("user2", publicOnlyToken)
-		assert.NotContains(t, MakeRequest(t, reqPublicOnly, http.StatusOK).Body.String(), privateMarker, link)
+		assert.NotContains(t, MakeRequest(t, reqPublicOnly, http.StatusOK).Body.String(), privateRepoLink, link)
 	}
 
 	for _, limitedLink := range []string{"/user33", "/user33.rss", "/limited_org"} {

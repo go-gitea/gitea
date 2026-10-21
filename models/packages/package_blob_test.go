@@ -51,7 +51,7 @@ func TestGetOrInsertBlobConcurrent(t *testing.T) {
 	assert.Equal(t, numGoroutines-1, existedCount)
 }
 
-func TestIsBlobAccessibleForLimitedOwner(t *testing.T) {
+func TestIsBlobAccessibleForRestrictedUser(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 33})

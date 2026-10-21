@@ -9,6 +9,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -154,11 +155,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	doer := ctx.Doer
-	if ctx.PublicOnly {
-		doer = nil
-	}
-	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, doer)
+	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, util.Iif(ctx.PublicOnly, nil, ctx.Doer))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
