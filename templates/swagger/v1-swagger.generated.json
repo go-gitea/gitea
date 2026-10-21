@@ -28662,6 +28662,7 @@
       "type": "object",
       "properties": {
         "due_date": {
+          "description": "Deadline is the updated due date for the issue or pull request, use empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -28766,6 +28767,7 @@
           "x-go-name": "ContentVersion"
         },
         "due_date": {
+          "description": "Deadline is the updated due date for the issue, use empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -28845,7 +28847,7 @@
           "x-go-name": "Description"
         },
         "due_on": {
-          "description": "Deadline is the updated due date for the milestone, set it to empty to remove the deadline",
+          "description": "Deadline is the due date for the milestone, use empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -29005,6 +29007,7 @@
           "x-go-name": "ContentVersion"
         },
         "due_date": {
+          "description": "Deadline is the updated due date for the pull request, use empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"

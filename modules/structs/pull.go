@@ -166,6 +166,7 @@ type EditPullRequestOption struct {
 	Labels []int64 `json:"labels"`
 	// The new state for the pull request
 	State *string `json:"state"`
+	// Deadline is the updated due date for the pull request, use empty string to remove the deadline
 	// swagger:strfmt date-time
 	Deadline optional.Option[*string] `json:"due_date,omitzero"`
 	// Whether to remove the current deadline

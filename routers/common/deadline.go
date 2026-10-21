@@ -26,12 +26,12 @@ func ParseDeadlineDateToEndOfDay(date string) (timeutil.TimeStamp, error) {
 
 func ApplyAPIDeadlineTimestamp(field *timeutil.TimeStamp, input optional.Option[*string], remove *bool) (changed bool, err error) {
 	old := *field
-	if remove != nil && *remove || input.Has() && (input.Value() == nil || *input.Value() == "") {
+	if remove != nil && *remove || input.Value() != nil && *input.Value() == "" {
 		*field = 0
 		return old != *field, nil
 	}
 
-	if !input.Has() {
+	if input.Value() == nil {
 		return false, nil
 	}
 	inputValue := *input.Value()
