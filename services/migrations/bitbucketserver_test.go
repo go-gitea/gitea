@@ -6,10 +6,14 @@ package migrations
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 
+	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
 
 	"github.com/stretchr/testify/assert"
@@ -317,4 +321,118 @@ func TestBitbucketServerCommentsAndReviews(t *testing.T) {
 	assert.Equal(t, "fffffffffffffffffffffffffffffffffffffff0", reviews[3].Comments[0].CommitID)
 	assert.Equal(t, "inline reply", reviews[2].Comments[0].Content)
 	assert.EqualValues(t, 4, reviews[0].IssueIndex)
+}
+
+// TestBitbucketServerDownloadRepo replays responses recorded from a Bitbucket Server 10.5.1 instance.
+// To record again, set BITBUCKETSERVER_LIVE_TOKEN (an HTTP access token with project read permission) and
+// optionally BITBUCKETSERVER_LIVE_URL (default http://localhost:7990/bitbucket) of an instance holding the
+// project MIG with the repository demo.
+func TestBitbucketServerDownloadRepo(t *testing.T) {
+	liveToken := os.Getenv("BITBUCKETSERVER_LIVE_TOKEN")
+	liveURL := "http://localhost:7990/bitbucket"
+	if v := os.Getenv("BITBUCKETSERVER_LIVE_URL"); v != "" {
+		liveURL = v
+	}
+
+	_, callerFile, _, _ := runtime.Caller(0)
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestBitbucketServerDownloadRepo")
+	mockServer := unittest.NewMockWebServer(t, liveURL, fixtureDir, liveToken != "")
+
+	ctx := t.Context()
+	token := liveToken
+	if token == "" {
+		token = "replayed" // the mock server ignores it, but a token makes the downloader learn the name of its owner
+	}
+	d := NewBitbucketServerDownloader(ctx, mockServer.URL, "", "", token, "MIG", "demo")
+
+	repo, err := d.GetRepoInfo(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, &base.Repository{
+		Name:          "demo",
+		Owner:         "MIG",
+		IsPrivate:     true,
+		CloneURL:      mockServer.URL + "/scm/MIG/demo.git",
+		OriginalURL:   mockServer.URL + "/projects/MIG/repos/demo",
+		DefaultBranch: "main",
+	}, repo)
+
+	prs, isEnd, err := d.GetPullRequests(ctx, 1, 50)
+	require.NoError(t, err)
+	assert.True(t, isEnd)
+	require.Len(t, prs, 4)
+
+	// open PR from a branch of the same repository
+	open := prs[0]
+	assert.Equal(t, "Open PR", open.Title)
+	assert.Equal(t, "open", open.State)
+	assert.False(t, open.IsDraft)
+	assert.Equal(t, "admin", open.PosterName)
+	assert.Equal(t, "feature", open.Head.Ref)
+	assert.Equal(t, "810d0600716f4575691c804b583c1c6a6e6708db", open.Head.SHA)
+	assert.Equal(t, "main", open.Base.Ref)
+	assert.False(t, open.IsForkPullRequest())
+
+	merged := prs[1]
+	assert.Equal(t, "closed", merged.State)
+	assert.True(t, merged.Merged)
+	assert.Equal(t, "504e78ed1c8fcbc0e55f5f0b6d3c49a0bc1ae861", merged.MergeCommitSHA)
+	assert.NotNil(t, merged.MergedTime)
+
+	declined := prs[2]
+	assert.Equal(t, "closed", declined.State)
+	assert.False(t, declined.Merged)
+	assert.NotNil(t, declined.Closed)
+
+	// draft PR from a fork is handed over with its head in the target repository
+	fork := prs[3]
+	assert.True(t, fork.IsDraft)
+	assert.Equal(t, "bob", fork.PosterName)
+	assert.Equal(t, "BOB/forkbranch", fork.Head.Ref)
+	assert.Equal(t, "aa537b277722995337c78d4d75018202091c0793", fork.Head.SHA)
+	assert.False(t, fork.IsForkPullRequest())
+
+	comments, _, err := d.GetComments(ctx, open)
+	require.NoError(t, err)
+	var got []string
+	for _, c := range comments {
+		got = append(got, c.PosterName+": "+c.Content)
+	}
+	assert.Equal(t, []string{
+		"admin: General comment from admin",
+		"bob: Reply from bob",
+		"carol: Comment on `a.txt`:\n\nFile level comment",
+	}, got)
+
+	reviews, err := d.GetReviews(ctx, open)
+	require.NoError(t, err)
+	type summary struct {
+		reviewer, state, path, content string
+		line                           int
+	}
+	var reviewed []summary
+	for _, r := range reviews {
+		s := summary{reviewer: r.ReviewerName, state: r.State}
+		if len(r.Comments) > 0 {
+			s.path, s.line, s.content = r.Comments[0].TreePath, r.Comments[0].Line, r.Comments[0].Content
+		}
+		reviewed = append(reviewed, s)
+	}
+	assert.Equal(t, []summary{
+		{"bob", base.ReviewStateCommented, "a.txt", "Inline on added line", 2},
+		{"admin", base.ReviewStateCommented, "a.txt", "Inline reply by admin", 2},
+		{"carol", base.ReviewStateCommented, "a.txt", "Inline on removed line", -2},
+		{"bob", base.ReviewStateApproved, "", "", 0},
+		{"carol", base.ReviewStateChangesRequested, "", "", 0},
+	}, reviewed)
+
+	declinedComments, _, err := d.GetComments(ctx, declined)
+	require.NoError(t, err)
+	require.Len(t, declinedComments, 2)
+	assert.Equal(t, "close", declinedComments[0].CommentType)
+	assert.Equal(t, "declining this", declinedComments[1].Content)
+
+	// a token is used to clone, with the name of its owner
+	cloneURL, err := d.FormatCloneURL(base.MigrateOptions{AuthToken: token}, repo.CloneURL)
+	require.NoError(t, err)
+	assert.Contains(t, cloneURL, "admin:")
 }
