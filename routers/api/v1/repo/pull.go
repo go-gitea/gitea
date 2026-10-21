@@ -496,15 +496,20 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	prIssue := &issues_model.Issue{
-		RepoID:       repo.ID,
-		Title:        form.Title,
-		PosterID:     ctx.Doer.ID,
-		Poster:       ctx.Doer,
-		MilestoneID:  milestoneID,
-		IsPull:       true,
-		Content:      form.Body,
-		DeadlineUnix: common.ParseAPIDeadlineToEndOfDay(form.Deadline),
+		RepoID:      repo.ID,
+		Title:       form.Title,
+		PosterID:    ctx.Doer.ID,
+		Poster:      ctx.Doer,
+		MilestoneID: milestoneID,
+		IsPull:      true,
+		Content:     form.Body,
 	}
+	_, err = common.ApplyAPIDeadlineTimestamp(&prIssue.DeadlineUnix, form.Deadline, nil)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+
 	pr := &issues_model.PullRequest{
 		HeadRepoID: compareResult.HeadRepo.ID,
 		BaseRepoID: repo.ID,

@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -610,9 +609,12 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	assigneeIDs := make([]int64, 0)
-	var err error
 	if ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
-		issue.DeadlineUnix = common.ParseAPIDeadlineToEndOfDay(form.Deadline)
+		_, err := common.ApplyAPIDeadlineTimestamp(&issue.DeadlineUnix, form.Deadline, nil)
+		if err != nil {
+			ctx.APIErrorAuto(err)
+			return
+		}
 		issue.MilestoneID = form.Milestone
 		assigneeIDs = loadAssigneeUserIDs(ctx, form.Assignee, form.Assignees)
 		if ctx.Written() {
@@ -646,6 +648,7 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	// Refetch from database to assign some automatic values
+	var err error
 	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -899,22 +902,20 @@ func DeleteIssue(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func editIssueDeadline(ctx *context.APIContext, issue *issues_model.Issue, deadline *time.Time, removeDeadline *bool) bool {
-	if deadline == nil && removeDeadline == nil {
+func editIssueDeadline(ctx *context.APIContext, issue *issues_model.Issue, deadline optional.Option[*string], removeDeadline *bool) bool {
+	newDeadlineUnix := issue.DeadlineUnix
+	changed, err := common.ApplyAPIDeadlineTimestamp(&newDeadlineUnix, deadline, removeDeadline)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return false
+	}
+	if !changed {
 		return true
 	}
-	if removeDeadline != nil && *removeDeadline {
-		deadline = nil
-	} else if deadline == nil {
-		ctx.APIError(http.StatusBadRequest, "The due_date cannot be empty")
+	if err := issues_model.UpdateIssueDeadline(ctx, issue, newDeadlineUnix, ctx.Doer); err != nil {
+		ctx.APIErrorAuto(err)
 		return false
 	}
-	deadlineUnix := common.ParseAPIDeadlineToEndOfDay(deadline)
-	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-		ctx.APIErrorInternal(err)
-		return false
-	}
-	issue.DeadlineUnix = deadlineUnix
 	return true
 }
 
@@ -971,13 +972,20 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		return
 	}
 
-	deadlineUnix := common.ParseAPIDeadlineToEndOfDay(form.Deadline)
-	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-		ctx.APIErrorInternal(err)
+	newDeadlineUnix := issue.DeadlineUnix
+	changed, err := common.ApplyAPIDeadlineTimestamp(&newDeadlineUnix, form.Deadline, nil)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
-
-	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: deadlineUnix.AsTimePtr()})
+	if changed {
+		if err := issues_model.UpdateIssueDeadline(ctx, issue, newDeadlineUnix, ctx.Doer); err != nil {
+			ctx.APIErrorAuto(err)
+			return
+		}
+	}
+	// StatusCreated is the copied & pasted garbage
+	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: issue.DeadlineUnix.AsTimePtr()})
 }
 
 func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType) {
