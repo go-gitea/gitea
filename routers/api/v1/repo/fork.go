@@ -170,6 +170,8 @@ func CreateFork(ctx *context.APIContext) {
 			ctx.APIError(http.StatusConflict, err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err.Error())
+		} else if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
