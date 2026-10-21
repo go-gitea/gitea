@@ -300,25 +300,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	if len(comment.Reactions) == 0 {
-		ctx.JSON(http.StatusOK, map[string]any{
-			"empty": true,
-			"html":  "",
-		})
-		return
-	}
-
-	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
-		"Reactions": comment.Reactions.GroupByType(),
-	})
-	if err != nil {
-		ctx.ServerError("ChangeCommentReaction.HTMLString", err)
-		return
-	}
-	ctx.JSON(http.StatusOK, map[string]any{
-		"html": html,
-	})
+	renderReactions(ctx, fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID), comment.Reactions, setting.UI.Reactions)
 }
 
 // GetCommentAttachments returns attachments for the comment

@@ -255,14 +255,6 @@
   background: var(--color-green-dark-1);
 }
 
-.ui.green.buttons .button:hover {
-  border-color: var(--color-green-dark-1);
-}
-
-.ui.green.buttons .button:hover + .button {
-  border-left-color: var(--color-green-dark-1);
-}
-
 .ui.green.button:active,
 .ui.green.buttons .button:active {
   background: var(--color-green-dark-2);
@@ -345,6 +337,14 @@ It needs some tricks to tweak the left/right borders with active state */
 
 .ui.buttons .button:hover + .button {
   border-left: 1px solid var(--color-secondary-dark-2);
+}
+
+.ui:is(.primary, .red, .green).buttons .button:hover {
+  border-color: transparent; /* let the colored hover background fill the border */
+}
+
+.ui:is(.primary, .red, .green).buttons .button:hover + .button {
+  border-left-color: transparent;
 }
 
 /* TODO: these "tw-hidden" selectors are only used by "blame.tmpl" buttons: Raw/Normal View/History/Unescape, need to be refactored to a clear solution later */
