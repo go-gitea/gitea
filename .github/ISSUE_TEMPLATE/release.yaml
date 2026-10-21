@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Follow the [release management guide](https://github.com/go-gitea/gitea/blob/main/docs/release-management.md).
-        Set the issue title and milestone to the version being released. Replace the examples below and mark inapplicable tasks as such.
+        Set the issue title to the version being released and the milestone to its release line (e.g. `28.x`), which giteabot renames to the version once tagged. Replace the examples below and mark inapplicable tasks as such.
         CI signs the tag, generates release notes, and publishes binaries and containers. Track verification here; no manual changelog PR or release upload is needed.
   - type: input
     id: version
