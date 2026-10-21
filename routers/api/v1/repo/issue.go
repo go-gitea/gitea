@@ -14,9 +14,9 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -526,6 +526,39 @@ func GetIssue(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue))
 }
 
+func loadAssigneeUserIDs(ctx *context.APIContext, oneAssignee string, multipleAssignees []string) []int64 {
+	assigneeNames := container.Set[string]{}
+	assigneeNames.Add(strings.ToLower(oneAssignee))
+	for _, assignee := range multipleAssignees {
+		assigneeNames.Add(strings.ToLower(assignee))
+	}
+	assigneeNames.Remove("")
+	assignees, err := user_model.GetDoerUsersByNames(ctx, assigneeNames.Values())
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: %s", err))
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return nil
+	}
+
+	// Check if the passed assignees is assignable
+	assigneeIDs := make([]int64, 0, len(assignees))
+	for _, assignee := range assignees {
+		valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
+		if err != nil {
+			ctx.APIErrorAuto(err)
+			return nil
+		} else if !valid {
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("User %s cannot be assigned to this issue", assignee.Name))
+			return nil
+		}
+		assigneeIDs = append(assigneeIDs, assignee.ID)
+	}
+	return assigneeIDs
+}
+
 // CreateIssue create an issue of a repository
 func CreateIssue(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues issue issueCreateIssue
@@ -583,33 +616,9 @@ func CreateIssue(ctx *context.APIContext) {
 			return
 		}
 		issue.MilestoneID = form.Milestone
-		assigneeIDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
-		if err != nil {
-			if errors.Is(err, util.ErrNotExist) {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: %s", err))
-			} else {
-				ctx.APIErrorInternal(err)
-			}
+		assigneeIDs = loadAssigneeUserIDs(ctx, form.Assignee, form.Assignees)
+		if ctx.Written() {
 			return
-		}
-
-		// Check if the passed assignees is assignable
-		for _, aID := range assigneeIDs {
-			assignee, err := user_model.GetUserByID(ctx, aID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-
-			valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			if !valid {
-				ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name}.Error())
-				return
-			}
 		}
 	} else {
 		// setting labels is not allowed if user is not a writer
