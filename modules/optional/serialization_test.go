@@ -29,7 +29,11 @@ type testSerializationStruct struct {
 	OptTwoString optional.Option[string] `json:"optional_two_string" yaml:"optional_two_string"`
 }
 
-type testSerializationNull struct {
+type testSerializationNullValue struct {
+	OptString optional.Option[string] `json:"opt_null,omitempty" yaml:"opt_null,omitempty"`
+}
+
+type testSerializationNullPointer struct {
 	OptNull optional.Option[*time.Time] `json:"opt_null,omitempty" yaml:"opt_null,omitempty"`
 }
 
@@ -69,19 +73,26 @@ func TestOptionalToJson(t *testing.T) {
 		})
 	}
 
-	t.Run("null", func(t *testing.T) {
-		var v1 testSerializationNull
+	t.Run("NullValue", func(t *testing.T) {
+		var v1 testSerializationNullValue
+		err := json.Unmarshal([]byte(`{"opt_null":null}`), &v1)
+		assert.NoError(t, err)
+		assert.False(t, v1.OptString.Has())
+	})
+
+	t.Run("NullPointer", func(t *testing.T) {
+		var v1 testSerializationNullPointer
 		err := json.Unmarshal([]byte(`{"opt_null":null}`), &v1)
 		assert.NoError(t, err)
 		assert.True(t, v1.OptNull.Has())
 		assert.Nil(t, v1.OptNull.Value())
 
-		var v2 testSerializationNull
+		var v2 testSerializationNullPointer
 		err = std_json.Unmarshal([]byte(`{}`), &v2)
 		assert.NoError(t, err)
 		assert.False(t, v2.OptNull.Has())
 
-		var v3 testSerializationNull
+		var v3 testSerializationNullPointer
 		err = std_json.Unmarshal([]byte(`{"opt_null":"2006-01-02T15:04:05Z"}`), &v3)
 		assert.NoError(t, err)
 		assert.True(t, v3.OptNull.Has())

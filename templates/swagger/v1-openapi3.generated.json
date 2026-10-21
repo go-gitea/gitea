@@ -5570,9 +5570,6 @@
             "x-go-name": "Deadline"
           }
         },
-        "required": [
-          "due_date"
-        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -5752,7 +5749,7 @@
             "x-go-name": "Description"
           },
           "due_on": {
-            "description": "Deadline is the updated due date for the milestone, set it to null to remove the deadline",
+            "description": "Deadline is the updated due date for the milestone, set it to empty to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"

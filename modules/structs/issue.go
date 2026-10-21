@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/modules/optional"
+
 	"go.yaml.in/yaml/v4"
 )
 
@@ -96,7 +98,7 @@ type CreateIssueOption struct {
 	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	// swagger:strfmt date-time
-	Deadline *time.Time `json:"due_date"`
+	Deadline optional.Option[*string] `json:"due_date"`
 	// milestone id
 	Milestone int64 `json:"milestone"`
 	// list of label ids
@@ -119,8 +121,8 @@ type EditIssueOption struct {
 	Projects *[]int64 `json:"projects"`
 	State    *string  `json:"state"`
 	// swagger:strfmt date-time
-	Deadline       *time.Time `json:"due_date"`
-	RemoveDeadline *bool      `json:"unset_due_date"`
+	Deadline       optional.Option[*string] `json:"due_date"`
+	RemoveDeadline *bool                    `json:"unset_due_date"`
 	// The current version of the issue content to detect conflicts during editing
 	ContentVersion *int `json:"content_version"`
 }
@@ -132,8 +134,8 @@ type IssueAssigneesOption struct {
 
 // EditDeadlineOption options for creating a deadline
 type EditDeadlineOption struct {
-	// required:true
-	Deadline *time.Time `json:"due_date"`
+	// swagger:strfmt date-time
+	Deadline optional.Option[*string] `json:"due_date"`
 }
 
 // IssueDeadline represents an issue deadline

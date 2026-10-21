@@ -28660,9 +28660,6 @@
     "EditDeadlineOption": {
       "description": "EditDeadlineOption options for creating a deadline",
       "type": "object",
-      "required": [
-        "due_date"
-      ],
       "properties": {
         "due_date": {
           "type": "string",
@@ -28848,7 +28845,7 @@
           "x-go-name": "Description"
         },
         "due_on": {
-          "description": "Deadline is the updated due date for the milestone, set it to null to remove the deadline",
+          "description": "Deadline is the updated due date for the milestone, set it to empty to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
