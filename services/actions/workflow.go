@@ -4,9 +4,13 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 
+	"gitea.dev/actionslib/pkg/exprparser"
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -18,14 +22,12 @@ import (
 	"gitea.dev/modules/reqctx"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	"gitea.dev/services/audit"
+	gitea_context "gitea.dev/services/context"
 	"gitea.dev/services/convert"
-
-	"gitea.com/gitea/runner/act/model"
-	"go.yaml.in/yaml/v4"
 )
 
-func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
+func EnableOrDisableWorkflow(ctx *gitea_context.APIContext, workflowID string, isEnable bool) error {
 	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID)
 	if err != nil {
 		return err
@@ -40,7 +42,21 @@ func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnabl
 		cfg.DisableWorkflow(workflow.ID)
 	}
 
-	return repo_model.UpdateRepoUnitConfig(ctx, cfgUnit)
+	if err := repo_model.UpdateRepoUnitConfig(ctx, cfgUnit); err != nil {
+		return err
+	}
+
+	RecordWorkflowToggle(ctx, ctx.Repo.Repository, workflow.ID, isEnable)
+	return nil
+}
+
+// RecordWorkflowToggle writes the enable/disable audit event for a workflow.
+func RecordWorkflowToggle(ctx context.Context, repo *repo_model.Repository, workflowID string, isEnable bool) {
+	action := audit_model.ActionsWorkflowDisable
+	if isEnable {
+		action = audit_model.ActionsWorkflowEnable
+	}
+	audit.Record(ctx, action, repo, "workflow", workflowID)
 }
 
 // DispatchActionWorkflow manually triggers a workflow_dispatch run.
@@ -85,12 +101,15 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	var runTargetCommit *git.Commit
 	var err error
 	if refName.IsTag() {
-		runTargetCommit, err = gitRepo.GetTagCommit(refName.TagName())
+		runTargetCommit, err = gitRepo.GetTagCommit(ctx, refName.TagName())
 	} else if refName.IsBranch() {
-		runTargetCommit, err = gitRepo.GetBranchCommit(refName.BranchName())
+		runTargetCommit, err = gitRepo.GetBranchCommit(ctx, refName.BranchName())
 	} else {
 		refName = git.RefNameFromBranch(ref)
-		runTargetCommit, err = gitRepo.GetBranchCommit(ref)
+		runTargetCommit, err = gitRepo.GetBranchCommit(ctx, ref)
+	}
+	if err == nil && !git.IsReferenceExist(ctx, repo, refName.String()) { // the lookups also resolve a tag named like a missing branch
+		err = util.ErrNotExist
 	}
 	if err != nil {
 		return 0, util.ErrorWrapTranslatable(
@@ -124,14 +143,17 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return 0, err
 	}
 
-	singleWorkflow := &jobparser.SingleWorkflow{}
-	if err := yaml.Unmarshal(content, singleWorkflow); err != nil {
-		return 0, fmt.Errorf("failed to unmarshal workflow content: %w", err)
+	if _, err = jobparser.ValidateWorkflowStatic(content); err == nil {
+		err = validateCalledWorkflows(ctx, run, content)
+	}
+	if err != nil {
+		return 0, util.ErrorWrapTranslatable(util.NewInvalidArgumentErrorf("invalid workflow %q: %v", workflowID, err), "actions.runs.invalid_workflow_helper", err.Error())
+	}
+	workflow, err := jobparser.ReadWorkflow(content)
+	if err != nil {
+		return 0, util.ErrorWrapTranslatable(util.NewInvalidArgumentErrorf("invalid workflow %q: %v", workflowID, err), "actions.runs.invalid_workflow_helper", err.Error())
 	}
 	// get inputs from post
-	workflow := &model.Workflow{
-		RawOn: singleWorkflow.RawOn,
-	}
 	workflowDispatch := workflow.WorkflowDispatchConfig()
 	if workflowDispatch == nil {
 		return 0, util.ErrorWrapTranslatable(
@@ -144,6 +166,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
 		return 0, err
 	}
+	coerceDispatchInputTypes(workflowDispatch, inputsWithDefaults)
 
 	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
 	// https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
@@ -152,7 +175,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		Workflow:   workflowID,
 		Ref:        ref,
 		Repository: convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
-		Inputs:     inputsWithDefaults,
+		Inputs:     dispatchEventInputs(inputsWithDefaults),
 		Sender:     convert.ToUserWithAccessMode(ctx, doer, perm.AccessModeNone),
 	}
 
@@ -166,7 +189,30 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if err := PrepareRunAndInsert(ctx, content, run, inputsWithDefaults); err != nil {
 		return 0, fmt.Errorf("PrepareRun: %w", err)
 	}
+	audit.RecordAs(ctx, doer, audit_model.ActionsWorkflowDispatch, repo,
+		"workflow", workflowID, "ref", ref, "run_id", run.ID)
 	return run.ID, nil
+}
+
+// coerceDispatchInputTypes types `inputs`, where boolean is the only non-string dispatch input type.
+func coerceDispatchInputTypes(dispatch *model.WorkflowDispatch, inputs map[string]any) {
+	for name, cfg := range dispatch.Inputs {
+		if cfg.Type != "boolean" {
+			continue
+		}
+		if s, ok := inputs[name].(string); ok {
+			inputs[name] = util.ParseYamlBool(s)
+		}
+	}
+}
+
+// dispatchEventInputs stringifies the typed inputs for `github.event.inputs`.
+func dispatchEventInputs(inputs map[string]any) map[string]any {
+	eventInputs := make(map[string]any, len(inputs))
+	for name, value := range inputs {
+		eventInputs[name] = exprparser.CoerceToString(value)
+	}
+	return eventInputs
 }
 
 // resolveDispatchWorkflowContent returns the YAML for a dispatched workflow and records its source on the run.
@@ -183,7 +229,7 @@ func resolveDispatchWorkflowContent(ctx reqctx.RequestContext, repo *repo_model.
 	}
 	for _, e := range entries {
 		if e.Name() == workflowID {
-			return actions.GetContentFromEntry(gitRepo, e)
+			return actions.GetContentFromEntry(ctx, gitRepo, e)
 		}
 	}
 	return nil, util.ErrorWrapTranslatable(

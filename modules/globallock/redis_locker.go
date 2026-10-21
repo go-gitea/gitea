@@ -52,11 +52,10 @@ func (l *redisLocker) Lock(ctx context.Context, key string) (ReleaseFunc, error)
 func (l *redisLocker) TryLock(ctx context.Context, key string) (bool, ReleaseFunc, error) {
 	f, err := l.lock(ctx, key, 1)
 
-	var (
-		errTaken     *redsync.ErrTaken
-		errNodeTaken *redsync.ErrNodeTaken
-	)
-	if errors.As(err, &errTaken) || errors.As(err, &errNodeTaken) {
+	if _, taken := errors.AsType[*redsync.ErrTaken](err); taken {
+		return false, f, nil
+	}
+	if _, nodeTaken := errors.AsType[*redsync.ErrNodeTaken](err); nodeTaken {
 		return false, f, nil
 	}
 	return err == nil, f, err
@@ -112,7 +111,7 @@ func (l *redisLocker) startExtend() {
 
 	toExtend := make([]*redsync.Mutex, 0)
 	l.mutexM.Range(func(_, value any) bool {
-		m := value.(*redsync.Mutex)
+		m := value.(*redsync.Mutex) //nolint:forcetypeassert // mutexM only ever holds *redsync.Mutex
 
 		// Extend the lock if it is not expired.
 		// Although the mutex will be removed from the map before it is released,

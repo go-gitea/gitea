@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	pingv1 "gitea.dev/actions-proto-go/ping/v1"
-	"gitea.dev/actions-proto-go/ping/v1/pingv1connect"
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
-	"gitea.dev/actions-proto-go/runner/v1/runnerv1connect"
+	pingv1 "gitea.dev/actionslib/ping/v1"
+	"gitea.dev/actionslib/ping/v1/pingv1connect"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
+	"gitea.dev/actionslib/runner/v1/runnerv1connect"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/modules/setting"
 
@@ -98,8 +98,8 @@ func (r *mockRunner) fetchTask(t *testing.T, timeout ...time.Duration) *runnerv1
 	return task
 }
 
-func (r *mockRunner) fetchNoTask(t *testing.T, timeout ...time.Duration) {
-	task := r.tryFetchTask(t, timeout...)
+func (r *mockRunner) fetchNoTask(t *testing.T) {
+	task, _ := r.fetchTaskOnce(t, 0)
 	require.Nil(t, task, "a task is fetched")
 }
 

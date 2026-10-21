@@ -226,12 +226,12 @@ func testGetIndividualUserRepoPermission(t *testing.T) {
 		assert.Equal(t, perm_model.AccessModeNone, perm.unitsMode[unit.TypeCode])
 		assert.Equal(t, perm_model.AccessModeRead, perm.unitsMode[unit.TypeIssues])
 
-		users, err := GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeRead, unit.TypeIssues)
+		users, err := GetUsersWithAnyUnitAccess(ctx, repo3, perm_model.AccessModeRead, unit.TypeIssues)
 		require.NoError(t, err)
 		require.Len(t, users, 1)
 		assert.Equal(t, user.ID, users[0].ID)
 
-		users, err = GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
+		users, err = GetUsersWithAnyUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
 		require.NoError(t, err)
 		require.Empty(t, users)
 	})
@@ -245,7 +245,7 @@ func testGetIndividualUserRepoPermission(t *testing.T) {
 		assert.Equal(t, perm_model.AccessModeWrite, perm.unitsMode[unit.TypeCode])
 		assert.Equal(t, perm_model.AccessModeWrite, perm.unitsMode[unit.TypeIssues])
 
-		users, err := GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
+		users, err := GetUsersWithAnyUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
 		require.NoError(t, err)
 		require.Len(t, users, 1)
 		assert.Equal(t, user.ID, users[0].ID)
@@ -272,4 +272,21 @@ func testGetDoerRepoPermission(t *testing.T) {
 	individualPerm, err := GetIndividualUserRepoPermission(ctx, repo1, regularUser)
 	require.NoError(t, err)
 	assert.Equal(t, individualPerm, doerPerm)
+
+	t.Run("PublicOnlyTokenReachesOnlyPublicReposOfPublicOwners", func(t *testing.T) {
+		publicOnlyUser := *regularUser
+		publicOnlyUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,write:repository")
+		publicOnlyAdmin := *unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		publicOnlyAdmin.ExtDoerData = publicOnlyUser.ExtDoerData
+		for _, repoID := range []int64{2, 38} {
+			perm, err := GetDoerRepoPermission(ctx, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}), &publicOnlyAdmin)
+			require.NoError(t, err)
+			assert.False(t, perm.HasAnyUnitAccessOrPublicAccess(), "repo %d", repoID)
+		}
+
+		perm, err := GetDoerRepoPermission(ctx, repo1, &publicOnlyUser)
+		require.NoError(t, err)
+		assert.True(t, perm.CanWrite(unit.TypeCode))
+		assert.NotEqual(t, RepoUserPermissionCacheKey(repo1.ID, regularUser), RepoUserPermissionCacheKey(repo1.ID, &publicOnlyUser))
+	})
 }

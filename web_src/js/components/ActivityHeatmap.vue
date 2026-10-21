@@ -1,18 +1,26 @@
 <script lang="ts" setup>
-import {ref, computed, watch, onBeforeUnmount, onMounted} from 'vue';
+import {computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch} from 'vue';
 import tippy, {createSingleton} from 'tippy.js';
 import type {CreateSingletonInstance, Instance} from 'tippy.js';
 import {getCurrentLocale} from '../utils.ts';
+import {html} from '../utils/html.ts';
 import {GET} from '../modules/fetch.ts';
+import {trString} from '../modules/i18n.ts';
+import SvgIcon from './SvgIcon.vue';
 
 type HeatmapValue = {date: Date; count: number};
-type HeatmapCell = {date: Date; colorIndex: number; ariaLabel: string; tooltip: string};
+type HeatmapCell = {date: Date; visible: boolean; colorIndex: number; ariaLabel: string; tooltip: string};
 type MonthLabel = {monthIdx: number; weekIdx: number};
+type DayLabel = {dayIdx: number; rowIdx: number};
+type HeatmapResponse = {
+  heatmapData: Array<[number, number]>; // [[1617235200, 2]] = [unix timestamp, count]
+  totalContributions: number;
+};
 
 const props = defineProps<{
   heatmapUrl: string;
-  userCreatedYear?: number;
-  showPrivateToggle?: boolean;
+  userCreatedYear: number;
+  showPrivateToggle: boolean;
   locale: {
     textTotalContributions: string;
     heatMapLocale: {months: string[]; days: string[]; on: string; more: string; less: string};
@@ -20,6 +28,8 @@ const props = defineProps<{
     tooltipUnit: string;
     last12Months: string;
     showPrivate: string;
+    previousMonths: string;
+    nextMonths: string;
   };
 }>();
 
@@ -37,43 +47,35 @@ const squareBorder = 2;
 const cellSize = squareSize + squareBorder;
 const daysInWeek = 7;
 const trailingDays = 365;
+const pagedWeeks = 26; // about 6 months are shown at a time when the full range does not fit
 const gridLeft = Math.ceil(squareSize * 2.5);
 const gridTop = squareSize + squareSize / 2;
 
 const now = new Date();
 const currentYear = now.getFullYear();
 
-const params = new URLSearchParams(document.location.search);
-const initialYear = parseInt(params.get('year') || '0', 10) || 0;
-const initialShowPrivate = params.get('show-private') !== 'false';
+const urlParams = new URLSearchParams(window.location.search);
+const selectedYear = ref(parseInt(urlParams.get('year') || '0') || 0); // 0 means the last 12 months
+const showPrivate = ref(urlParams.get('show-private') !== 'false');
+const years = [0];
+for (let y = currentYear; y >= Math.min(props.userCreatedYear || currentYear, currentYear); y--) years.push(y);
 
 const values = ref<HeatmapValue[]>([]);
 const totalContributions = ref(0);
-const selectedYear = ref(initialYear);
-const showPrivate = ref(initialShowPrivate);
 const isLoading = ref(true);
 
-const startYear = props.userCreatedYear ? Math.min(props.userCreatedYear, currentYear) : currentYear;
-const years = computed(() => {
-  const list = [0]; // 0 represents "Last 12 months"
-  for (let y = currentYear; y >= startYear; y--) {
-    list.push(y);
-  }
-  return list;
-});
+const elRoot = useTemplateRef('elRoot');
+const containerWidth = ref(0);
+let resizeObserver: ResizeObserver | null = null;
 
-async function fetchData() {
-  isLoading.value = true;
+async function loadData() {
   try {
     const url = new URL(props.heatmapUrl, window.location.origin);
-    if (selectedYear.value > 0) {
-      url.searchParams.set('year', String(selectedYear.value));
-    }
-    url.searchParams.set('show-private', String(showPrivate.value));
-
+    if (selectedYear.value) url.searchParams.set('year', String(selectedYear.value));
+    if (!showPrivate.value) url.searchParams.set('show-private', 'false');
     const resp = await GET(url.toString());
     if (!resp.ok) throw new Error(`Failed to load heatmap data: ${resp.status} ${resp.statusText}`);
-    const {heatmapData, totalContributions: total} = await resp.json();
+    const {heatmapData, totalContributions: total} = await resp.json() as HeatmapResponse;
 
     const heatmap: Record<string, number> = {};
     for (const [timestamp, contributions] of heatmapData) {
@@ -81,10 +83,7 @@ async function fetchData() {
       const dateStr = new Date(timestamp * 1000).toDateString();
       heatmap[dateStr] = (heatmap[dateStr] || 0) + contributions;
     }
-
-    values.value = Object.entries(heatmap).map(([dateStr, count]) => {
-      return {date: new Date(dateStr), count};
-    });
+    values.value = Object.entries(heatmap).map(([dateStr, count]) => ({date: new Date(dateStr), count}));
     totalContributions.value = total;
   } catch (err) {
     console.error('Heatmap failed to load', err);
@@ -93,33 +92,27 @@ async function fetchData() {
   }
 }
 
-onMounted(() => {
-  fetchData();
-});
-
-function selectYear(y: number) {
-  selectedYear.value = y;
-  const params = new URLSearchParams(document.location.search);
-  if (y > 0) {
-    params.set('year', String(y));
+// the year and the private toggle also filter the activity feed below, so the page is reloaded
+function reloadWithParam(key: string, value: string | null) {
+  const params = new URLSearchParams(window.location.search);
+  if (value === null) {
+    params.delete(key);
   } else {
-    params.delete('year');
+    params.set(key, value);
   }
-  params.delete('date'); // clear date filter when changing year
+  params.delete('date');
   params.delete('page');
-
   const newSearch = params.toString();
   window.location.search = newSearch.length ? `?${newSearch}` : '';
 }
 
-watch(showPrivate, (val) => {
-  const params = new URLSearchParams(document.location.search);
-  params.set('show-private', String(val));
-  params.delete('page');
+function onYearChange() {
+  reloadWithParam('year', selectedYear.value ? String(selectedYear.value) : null);
+}
 
-  const newSearch = params.toString();
-  window.location.search = newSearch.length ? `?${newSearch}` : '';
-});
+function onShowPrivateChange() {
+  reloadWithParam('show-private', showPrivate.value ? null : 'false');
+}
 
 function dateKey(d: Date): string {
   return `${d.getFullYear()}${String(d.getMonth()).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
@@ -131,29 +124,32 @@ function shiftDate(d: Date, days: number): Date {
   return out;
 }
 
-const limitDate = computed(() => {
-  if (selectedYear.value === 0) return now;
-  return new Date(selectedYear.value, 11, 31, 23, 59, 59, 999);
-});
-
-const grid = computed(() => {
-  let start: Date;
-  let end: Date;
-  let daysCount: number;
-
-  if (selectedYear.value === 0) {
-    start = shiftDate(now, -trailingDays);
-    end = now;
-    daysCount = trailingDays + 1;
-  } else {
-    start = new Date(selectedYear.value, 0, 1);
-    end = new Date(selectedYear.value, 11, 31);
-    daysCount = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+function getWeekFirstDay() {
+  const userLocale = navigator.language || 'en-US';
+  try {
+    // Intl.Locale.prototype.getWeekInfo() is still "Limited availability"
+    const localeInfo = new Intl.Locale(userLocale);
+    const weekInfo = localeInfo.getWeekInfo();
+    return weekInfo.firstDay;
+  } catch {
+    // Fallback: countries that widely use Sunday as the first day of the week
+    const region = userLocale.split('-')[1];
+    const sundayRegions = ['US', 'CA', 'MX', 'JP', 'KR', 'IL', 'SA', 'IN', 'BR'];
+    return !region || sundayRegions.includes(region) ? 7 : 1;
   }
+}
 
-  const padStart = start.getDay();
-  const padEnd = daysInWeek - 1 - end.getDay();
-  const weekCount = (daysCount + padStart + padEnd) / daysInWeek;
+const firstDayIdx = getWeekFirstDay() % daysInWeek; // 0 to 6
+
+const calendar = computed(() => {
+  const year = selectedYear.value;
+  const start = year ? new Date(year, 0, 1) : shiftDate(now, -trailingDays);
+  const end = year ? new Date(year, 11, 31) : now;
+  const days = Math.round((new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime() -
+    new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime()) / 86400000) + 1;
+  const padStart = (start.getDay() - firstDayIdx + daysInWeek) % daysInWeek;
+  const padEnd = (firstDayIdx - end.getDay() - 1 + daysInWeek) % daysInWeek;
+  const weekCount = Math.round((days + padStart + padEnd) / daysInWeek);
 
   const maxCount = values.value.length ? Math.max(...values.value.map((v) => v.count)) : 0;
   const max = maxCount > 0 ? Math.ceil(maxCount / 5 * 4) : 1;
@@ -170,7 +166,7 @@ const grid = computed(() => {
 
   const cursorStart = shiftDate(start, -padStart);
   const cursor = new Date(cursorStart.getFullYear(), cursorStart.getMonth(), cursorStart.getDate());
-  const calendar: HeatmapCell[][] = [];
+  const weeks: HeatmapCell[][] = [];
   for (let w = 0; w < weekCount; w++) {
     const week: HeatmapCell[] = [];
     for (let d = 0; d < daysInWeek; d++) {
@@ -179,33 +175,86 @@ const grid = computed(() => {
       const head = hit ? `${hit.count} ${tooltipUnit}` : noDataText;
       week.push({
         date: new Date(cursor),
+        // a year only shows its own days, the last 12 months fill the first week like before
+        visible: cursor < now && (!year || cursor.getFullYear() === year),
         colorIndex: hit ? hit.colorIndex : 0,
         ariaLabel: `${head} ${on} ${dateStr}`,
-        tooltip: `<b>${head}</b> ${on} ${dateStr}`,
+        tooltip: html`<b>${head}</b> ${on} ${dateStr}`,
       });
       cursor.setDate(cursor.getDate() + 1);
     }
-    calendar.push(week);
+    weeks.push(week);
   }
+  return weeks;
+});
+
+// cells and fonts keep their size, a viewport too narrow for the whole range shows a window of weeks instead
+const weeksPerPage = computed(() => {
+  const fitting = Math.floor((containerWidth.value - gridLeft - squareBorder) / cellSize);
+  if (!containerWidth.value || fitting >= calendar.value.length) return calendar.value.length;
+  return Math.max(1, Math.min(pagedWeeks, fitting));
+});
+const pageEnd = ref(0); // exclusive week index, the window starts with the most recent weeks
+watch([() => calendar.value.length, weeksPerPage], () => {
+  pageEnd.value = calendar.value.length;
+}, {immediate: true});
+const isPaged = computed(() => weeksPerPage.value < calendar.value.length);
+const pageStart = computed(() => Math.max(0, pageEnd.value - weeksPerPage.value));
+
+function showPreviousWeeks() {
+  pageEnd.value = Math.max(weeksPerPage.value, pageEnd.value - weeksPerPage.value);
+}
+
+function showNextWeeks() {
+  pageEnd.value = Math.min(calendar.value.length, pageEnd.value + weeksPerPage.value);
+}
+
+const grid = computed(() => {
+  const visibleWeeks = calendar.value.slice(pageStart.value, pageEnd.value);
 
   const monthLabels: MonthLabel[] = [];
-  for (let w = 1; w < calendar.length; w++) {
-    const prev = calendar[w - 1][0].date;
-    const curr = calendar[w][0].date;
+  for (let w = 1; w < visibleWeeks.length; w++) {
+    const prev = visibleWeeks[w - 1][0].date;
+    const curr = visibleWeeks[w][0].date;
     if (prev.getMonth() !== curr.getMonth()) {
       monthLabels.push({monthIdx: curr.getMonth(), weekIdx: w});
     }
   }
+  // a window starting mid-month still names its first month, if there is room before the next label
+  if (isPaged.value && visibleWeeks.length && (!monthLabels.length || monthLabels[0].weekIdx > 2)) {
+    monthLabels.unshift({monthIdx: visibleWeeks[0][daysInWeek - 1].date.getMonth(), weekIdx: 0});
+  }
 
-  const width = gridLeft + (cellSize * weekCount) + squareBorder;
+  const dayLabels: DayLabel[] = [];
+  for (let i = 0; i < daysInWeek; i++) {
+    const labelDay = firstDayIdx + i;
+    if (labelDay % 2 === 0) continue; // only show "Mon/Wed/Fri/Sun" because of limited vertical space
+    const dayIdx = labelDay % daysInWeek;
+    dayLabels.push({dayIdx, rowIdx: i});
+  }
+
+  const width = gridLeft + (cellSize * visibleWeeks.length) + squareBorder;
   const height = gridTop + (cellSize * daysInWeek);
-  return {calendar, monthLabels, width, height};
+  return {calendar: visibleWeeks, monthLabels, dayLabels, width, height};
+});
+
+const totalContributionsText = computed(() => {
+  return trString(props.locale.textTotalContributions, totalContributions.value.toLocaleString());
 });
 
 const legendViewBox = `${cellSize} 0 ${squareSize * (colorRange.length + 2)} ${squareSize}`;
 
 const cellInstances = new Map<Element, Instance>();
 let singleton: CreateSingletonInstance | null = null;
+
+function destroyTooltips() {
+  for (const instance of cellInstances.values()) instance.destroy();
+  cellInstances.clear();
+  singleton?.setInstances([]);
+}
+
+// the cells are re-rendered on paging, so their tooltips must not outlive them
+watch(pageStart, destroyTooltips);
 
 onMounted(() => {
   singleton = createSingleton([], {
@@ -216,18 +265,17 @@ onMounted(() => {
     role: 'tooltip',
     placement: 'top',
   });
+  resizeObserver = new ResizeObserver(([entry]) => {
+    containerWidth.value = entry.contentRect.width;
+  });
+  resizeObserver.observe(elRoot.value!);
+  loadData();
 });
 
 onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
+  destroyTooltips();
   singleton?.destroy();
-  for (const instance of cellInstances.values()) instance.destroy();
-  cellInstances.clear();
-});
-
-watch(values, () => {
-  for (const instance of cellInstances.values()) instance.destroy();
-  cellInstances.clear();
-  singleton?.setInstances([]);
 });
 
 function lazyInitTooltip(e: MouseEvent) {
@@ -254,108 +302,95 @@ function handleDayClick(date: Date) {
   const newSearch = params.toString();
   window.location.search = newSearch.length ? `?${newSearch}` : '';
 }
-
-const totalContributionsText = computed(() => {
-  const totalFormatted = totalContributions.value.toLocaleString();
-  const baseText = props.locale.textTotalContributions.replace('%s', totalFormatted);
-  if (selectedYear.value === 0) {
-    return baseText;
-  }
-  const last12MonthsPattern = new RegExp(props.locale.last12Months, 'gi');
-  if (last12MonthsPattern.test(baseText)) {
-    return baseText.replace(last12MonthsPattern, String(selectedYear.value));
-  }
-  return baseText.replace(/last 12 months/gi, String(selectedYear.value));
-});
 </script>
-
 <template>
-  <div class="tw-flex tw-flex-col md:tw-flex-row tw-gap-4">
-    <div class="tw-flex-1 tw-min-w-0">
-      <div v-if="isLoading" class="tw-flex tw-items-center tw-justify-center tw-h-32">
-        <div class="ui active centered inline loader"/>
-      </div>
-      <div v-else>
-        <svg class="heatmap-svg" :viewBox="`0 0 ${grid.width} ${grid.height}`">
-          <g class="heatmap-month-labels" :transform="`translate(${gridLeft}, 0)`">
-            <text
-              v-for="m in grid.monthLabels"
-              :key="m.weekIdx"
-              class="heatmap-month-label"
-              :x="cellSize * m.weekIdx"
-              :y="cellSize - squareBorder"
-            >
-              {{ locale.heatMapLocale.months[m.monthIdx] }}
-            </text>
-          </g>
-          <g class="heatmap-day-labels" :transform="`translate(0, ${gridTop})`">
-            <text class="heatmap-day-label" :x="0" :y="20">{{ locale.heatMapLocale.days[1] }}</text>
-            <text class="heatmap-day-label" :x="0" :y="44">{{ locale.heatMapLocale.days[3] }}</text>
-            <text class="heatmap-day-label" :x="0" :y="69">{{ locale.heatMapLocale.days[5] }}</text>
-          </g>
-          <g class="heatmap-grid" :transform="`translate(${gridLeft}, ${gridTop})`" @mouseover="lazyInitTooltip">
-            <g
-              v-for="(week, w) in grid.calendar"
-              :key="w"
-              class="heatmap-week"
-              :transform="`translate(${w * cellSize}, 0)`"
-            >
-              <template v-for="(day, d) in week" :key="d">
-                <rect
-                  v-if="day.date.getTime() <= limitDate.getTime()"
-                  class="heatmap-day"
-                  :transform="`translate(0, ${d * cellSize})`"
-                  :width="squareSize"
-                  :height="squareSize"
-                  :style="{fill: colorRange[day.colorIndex]}"
-                  :aria-label="day.ariaLabel"
-                  :data-tooltip="day.tooltip"
-                  @click="handleDayClick(day.date)"
-                />
-              </template>
-            </g>
-          </g>
-        </svg>
-        <div class="heatmap-footer">
-          <div>{{ totalContributionsText }}</div>
-          <div class="heatmap-legend">
-            <div>{{ locale.heatMapLocale.less }}</div>
-            <svg class="heatmap-legend-svg" :viewBox="legendViewBox" :height="squareSize">
-              <rect
-                v-for="(color, i) in colorRange"
-                :key="i"
-                :width="squareSize"
-                :height="squareSize"
-                :x="(i + 1) * cellSize"
-                :style="{fill: color}"
-              />
-            </svg>
-            <div>{{ locale.heatMapLocale.more }}</div>
-          </div>
-        </div>
-      </div>
+  <div ref="elRoot">
+    <div v-if="isPaged" class="heatmap-pager">
+      <button
+        class="heatmap-pager-button" type="button"
+        :aria-label="locale.previousMonths" :data-tooltip-content="locale.previousMonths"
+        :disabled="pageStart === 0" @click="showPreviousWeeks"
+      >
+        <SvgIcon name="octicon-chevron-left" :size="12"/>
+      </button>
+      <button
+        class="heatmap-pager-button" type="button"
+        :aria-label="locale.nextMonths" :data-tooltip-content="locale.nextMonths"
+        :disabled="pageEnd === calendar.length" @click="showNextWeeks"
+      >
+        <SvgIcon name="octicon-chevron-right" :size="12"/>
+      </button>
     </div>
-
-    <div class="heatmap-controls tw-flex tw-flex-col tw-gap-4 tw-shrink-0 tw-w-full md:tw-w-44">
-      <div class="native-select tw-w-full">
-        <select
-          v-model="selectedYear"
-          class="tw-w-full heatmap-select"
-          @change="selectYear(selectedYear)"
+    <svg class="heatmap-svg" :width="grid.width" :height="grid.height" :viewBox="`0 0 ${grid.width} ${grid.height}`">
+      <g class="heatmap-month-labels" :transform="`translate(${gridLeft}, 0)`">
+        <text
+          v-for="m in grid.monthLabels"
+          :key="m.weekIdx"
+          class="heatmap-month-label"
+          :x="cellSize * m.weekIdx"
+          :y="cellSize - squareBorder"
         >
-          <option
-            v-for="y in years"
-            :key="y"
-            :value="y"
-          >
-            {{ y === 0 ? locale.last12Months : y }}
-          </option>
+          {{ locale.heatMapLocale.months[m.monthIdx] }}
+        </text>
+      </g>
+      <g class="heatmap-day-labels" :transform="`translate(0, ${gridTop})`">
+        <text
+          v-for="day in grid.dayLabels"
+          :key="day.dayIdx"
+          class="heatmap-day-label"
+          :x="0"
+          :y="day.rowIdx * cellSize + squareSize - squareBorder"
+        >
+          {{ locale.heatMapLocale.days[day.dayIdx] }}
+        </text>
+      </g>
+      <g v-if="!isLoading" class="heatmap-grid" :transform="`translate(${gridLeft}, ${gridTop})`" @mouseover="lazyInitTooltip">
+        <g
+          v-for="(week, w) in grid.calendar"
+          :key="w"
+          class="heatmap-week"
+          :transform="`translate(${w * cellSize}, 0)`"
+        >
+          <template v-for="(day, d) in week" :key="d">
+            <rect
+              v-if="day.visible"
+              class="heatmap-day"
+              :transform="`translate(0, ${d * cellSize})`"
+              :width="squareSize"
+              :height="squareSize"
+              :style="{fill: colorRange[day.colorIndex]}"
+              :aria-label="day.ariaLabel"
+              :data-tooltip="day.tooltip"
+              @click="handleDayClick(day.date)"
+            />
+          </template>
+        </g>
+      </g>
+    </svg>
+    <div class="heatmap-footer">
+      <div>{{ isLoading ? '' : totalContributionsText }}</div>
+      <div class="heatmap-controls">
+        <label v-if="showPrivateToggle" class="heatmap-private-toggle">
+          <input v-model="showPrivate" type="checkbox" @change="onShowPrivateChange">
+          {{ locale.showPrivate }}
+        </label>
+        <select v-model="selectedYear" class="heatmap-year-select" @change="onYearChange">
+          <option v-for="y in years" :key="y" :value="y">{{ y || locale.last12Months }}</option>
         </select>
-      </div>
-
-      <div v-if="showPrivateToggle" class="ui checkbox tw-ml-2">
-        <input type="checkbox" v-model="showPrivate" id="heatmap-private-toggle">
-        <label for="heatmap-private-toggle" class="tw-cursor-pointer">{{ locale.showPrivate }}</label>
+        <div class="heatmap-legend">
+          <div>{{ locale.heatMapLocale.less }}</div>
+          <svg class="heatmap-legend-svg" :viewBox="legendViewBox" :height="squareSize">
+            <rect
+              v-for="(color, i) in colorRange"
+              :key="i"
+              :width="squareSize"
+              :height="squareSize"
+              :x="(i + 1) * cellSize"
+              :style="{fill: color}"
+            />
+          </svg>
+          <div>{{ locale.heatMapLocale.more }}</div>
+        </div>
       </div>
     </div>
   </div>

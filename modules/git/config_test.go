@@ -32,7 +32,9 @@ func TestGitConfig(t *testing.T) {
 	assert.NoError(t, configSetNonExist(ctx, "test.key-a", "val-a-changed"))
 	assert.False(t, gitConfigContains("key-a = val-a-changed"))
 
+	assert.NoError(t, configAddNonExist(ctx, "test.key-a", "val-a2"))
 	assert.NoError(t, configSet(ctx, "test.key-a", "val-a-changed"))
+	assert.NoError(t, configUnsetAll(ctx, "test.key-a", "val-a"))
 	assert.True(t, gitConfigContains("key-a = val-a-changed"))
 
 	assert.NoError(t, configAddNonExist(ctx, "test.key-b", "val-b"))
@@ -41,6 +43,8 @@ func TestGitConfig(t *testing.T) {
 	assert.NoError(t, configAddNonExist(ctx, "test.key-b", "val-2b"))
 	assert.True(t, gitConfigContains("key-b = val-b"))
 	assert.True(t, gitConfigContains("key-b = val-2b"))
+	assert.NoError(t, configAddNonExist(ctx, "test.key-b", "val"))
+	assert.True(t, gitConfigContains("key-b = val\n"))
 
 	assert.NoError(t, configUnsetAll(ctx, "test.key-b", "val-b"))
 	assert.False(t, gitConfigContains("key-b = val-b"))
@@ -60,8 +64,10 @@ func TestSyncGitConfig(t *testing.T) {
 	defer test.MockVariableValue(&setting.GitConfig)()
 
 	assert.Empty(t, setting.GitConfig.Options)
+	assert.NoError(t, configSet(t.Context(), "gc.reflogExpire", "90"))
 	assert.NoError(t, syncGitConfig(t.Context()))
 	assert.True(t, gitConfigContains("commitGraph = true")) // builtin default config
+	assert.False(t, gitConfigContains("reflogExpire"))
 
 	setting.GitConfig.Options["sync-test.cfg-key-a"] = "CfgValA"
 	setting.GitConfig.Options["core.commitgraph"] = "false"

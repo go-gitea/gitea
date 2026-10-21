@@ -6,45 +6,80 @@ package git
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"strconv"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 )
 
 // GetBranchCommitID returns last commit ID string of given branch.
-func (repo *Repository) GetBranchCommitID(name string) (string, error) {
-	return repo.GetRefCommitID(BranchPrefix + name)
+func (repo *Repository) GetBranchCommitID(ctx context.Context, name string) (string, error) {
+	return repo.GetRefCommitID(ctx, BranchPrefix+name)
 }
 
 // GetTagCommitID returns last commit ID string of given tag.
-func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	return repo.GetRefCommitID(TagPrefix + name)
+func (repo *Repository) GetTagCommitID(ctx context.Context, name string) (string, error) {
+	return repo.GetRefCommitID(ctx, TagPrefix+name)
 }
 
 // GetCommit returns a commit object of by the git ref.
-func (repo *Repository) GetCommit(ref string) (*Commit, error) {
-	id, err := repo.ConvertToGitID(ref)
+func (repo *Repository) GetCommit(ctx context.Context, ref string) (*Commit, error) {
+	id, err := repo.ConvertToGitID(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
 
-	return repo.getCommit(id)
+	return repo.getCommit(ctx, id)
 }
 
 // GetBranchCommit returns the last commit of given branch.
-func (repo *Repository) GetBranchCommit(name string) (*Commit, error) {
-	return repo.GetCommit(RefNameFromBranch(name).String())
+func (repo *Repository) GetBranchCommit(ctx context.Context, name string) (*Commit, error) {
+	return repo.GetCommit(ctx, RefNameFromBranch(name).String())
 }
 
 // GetTagCommit get the commit of the specific tag via name
-func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
-	return repo.GetCommit(RefNameFromTag(name).String())
+func (repo *Repository) GetTagCommit(ctx context.Context, name string) (*Commit, error) {
+	return repo.GetCommit(ctx, RefNameFromTag(name).String())
 }
 
-func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Commit, error) {
+const prettyLogFormat = `--pretty=format:%H`
+
+func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
+	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
+	logs, _, err := gitcmd.NewCommand("log").AddArguments(prettyLogFormat).
+		AddDynamicArguments(revisionRange).AddArguments("--").WithRepo(repo).
+		RunStdBytes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(ctx, logs)
+}
+
+func (repo *Repository) parsePrettyFormatLogToList(ctx context.Context, logs []byte) ([]*Commit, error) {
+	var commits []*Commit
+	if len(logs) == 0 {
+		return commits, nil
+	}
+
+	parts := bytes.SplitSeq(logs, []byte{'\n'})
+
+	for commitID := range parts {
+		commit, err := repo.GetCommit(ctx, string(commitID))
+		if err != nil {
+			return nil, err
+		}
+		commits = append(commits, commit)
+	}
+
+	return commits, nil
+}
+
+func (repo *Repository) getCommitByPathWithID(ctx context.Context, id ObjectID, relpath string) (*Commit, error) {
 	// File name starts with ':' must be escaped.
 	if strings.HasPrefix(relpath, ":") {
 		relpath = `\` + relpath
@@ -53,8 +88,8 @@ func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Com
 	stdout, _, runErr := gitcmd.NewCommand("log", "-1", prettyLogFormat).
 		AddDynamicArguments(id.String()).
 		AddDashesAndList(relpath).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		WithRepo(repo).
+		RunStdString(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -64,20 +99,20 @@ func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Com
 		return nil, err
 	}
 
-	return repo.getCommit(id)
+	return repo.getCommit(ctx, id)
 }
 
 // GetCommitByPath returns the last commit of relative path.
-func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
+func (repo *Repository) GetCommitByPath(ctx context.Context, relpath string) (*Commit, error) {
 	stdout, _, runErr := gitcmd.NewCommand("log", "-1", prettyLogFormat).
 		AddDashesAndList(relpath).
-		WithDir(repo.Path).
-		RunStdBytes(repo.Ctx)
+		WithRepo(repo).
+		RunStdBytes(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
 
-	commits, err := repo.parsePrettyFormatLogToList(stdout)
+	commits, err := repo.parsePrettyFormatLogToList(ctx, stdout)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +123,7 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 }
 
 // commitsByRangeWithTime returns the specific page commits before current revision, with not, since, until support
-func (repo *Repository) commitsByRangeWithTime(id ObjectID, page, pageSize int, not, since, until string) ([]*Commit, error) {
+func (repo *Repository) commitsByRangeWithTime(ctx context.Context, id ObjectID, page, pageSize int, not, since, until string) ([]*Commit, error) {
 	cmd := gitcmd.NewCommand("log").
 		AddOptionFormat("--skip=%d", (page-1)*pageSize).
 		AddOptionFormat("--max-count=%d", pageSize).
@@ -105,15 +140,15 @@ func (repo *Repository) commitsByRangeWithTime(id ObjectID, page, pageSize int, 
 		cmd.AddOptionFormat("--until=%s", until)
 	}
 
-	stdout, _, err := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
+	stdout, _, err := cmd.WithRepo(repo).RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return repo.parsePrettyFormatLogToList(stdout)
+	return repo.parsePrettyFormatLogToList(ctx, stdout)
 }
 
-func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([]*Commit, error) {
+func (repo *Repository) searchCommits(ctx context.Context, id ObjectID, opts SearchCommitsOptions) ([]*Commit, error) {
 	// add common arguments to git command
 	addCommonSearchArgs := func(c *gitcmd.Command) {
 		// ignore case
@@ -159,7 +194,7 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 
 	// search for commits matching given constraints and keywords in commit msg
 	addCommonSearchArgs(cmd)
-	stdout, _, err := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
+	stdout, _, err := cmd.WithRepo(repo).RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -170,8 +205,8 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 	// if there are any keywords (ie not committer:, author:, time:)
 	// then let's iterate over them
 	for _, v := range opts.Keywords {
-		// ignore anything not matching a valid sha pattern
-		if id.Type().IsValid(v) {
+		// ignore anything not matching a valid sha pattern (TODO: the legacy min-length is pretty small, is it right or fine?)
+		if IsStringValidObjectID(id.Type(), v, 4) {
 			// create new git log command with 1 commit limit
 			hashCmd := gitcmd.NewCommand("log", "-1", prettyLogFormat)
 			// add previous arguments except for --grep and --all
@@ -180,7 +215,7 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 			hashCmd.AddDynamicArguments(v)
 
 			// search with given constraints for commit matching sha hash of v
-			hashMatching, _, err := hashCmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
+			hashMatching, _, err := hashCmd.WithRepo(repo).RunStdBytes(ctx)
 			if err != nil || bytes.Contains(stdout, hashMatching) {
 				continue
 			}
@@ -189,17 +224,17 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 		}
 	}
 
-	return repo.parsePrettyFormatLogToList(bytes.TrimSuffix(stdout, []byte{'\n'}))
+	return repo.parsePrettyFormatLogToList(ctx, bytes.TrimSuffix(stdout, []byte{'\n'}))
 }
 
 // FileChangedBetweenCommits Returns true if the file changed between commit IDs id1 and id2
 // You must ensure that id1 and id2 are valid commit ids.
-func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bool, error) {
+func (repo *Repository) FileChangedBetweenCommits(ctx context.Context, filename, id1, id2 string) (bool, error) {
 	stdout, _, err := gitcmd.NewCommand("diff", "--name-only", "-z").
 		AddDynamicArguments(id1, id2).
 		AddDashesAndList(filename).
-		WithDir(repo.Path).
-		RunStdBytes(repo.Ctx)
+		WithRepo(repo).
+		RunStdBytes(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -219,7 +254,7 @@ type CommitsByFileAndRangeOptions struct {
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page
-func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions) (commits []*Commit, hasMore bool, _ error) {
+func (repo *Repository) CommitsByFileAndRange(ctx context.Context, opts CommitsByFileAndRangeOptions) (commits []*Commit, hasMore bool, _ error) {
 	limit := setting.Git.CommitsRangeSize
 	gitCmd := gitcmd.NewCommand("--no-pager", "log").
 		AddArguments("--pretty=tformat:%H").
@@ -242,9 +277,9 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 
 	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	err := gitCmd.WithDir(repo.Path).
+	err := gitCmd.WithRepo(repo).
 		WithPipelineFunc(func(context gitcmd.Context) error {
-			objectFormat, err := repo.GetObjectFormat()
+			objectFormat, err := repo.GetObjectFormat(ctx)
 			if err != nil {
 				return err
 			}
@@ -263,14 +298,14 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 				if err != nil {
 					return err
 				}
-				commit, err := repo.getCommit(objectID)
+				commit, err := repo.getCommit(ctx, objectID)
 				if err != nil {
 					return err
 				}
 				commits = append(commits, commit)
 			}
 		}).
-		RunWithStderr(repo.Ctx)
+		RunWithStderr(ctx)
 
 	hasMore = len(commits) > limit
 	if hasMore {
@@ -281,56 +316,47 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 
 // CommitsBetween returns a list that contains commits between [after, before). After is the first item in the slice.
 // If "before" and "after" are not related, it returns the all commits for the "after" commit.
-func (repo *Repository) CommitsBetween(afterRef, beforeRef RefName, limit int, optSkip ...int) ([]*Commit, error) {
-	gitCmd := func() *gitcmd.Command {
-		cmd := gitcmd.NewCommand("rev-list").WithDir(repo.Path)
-		if limit >= 0 {
-			cmd.AddOptionValues("--max-count", strconv.Itoa(limit))
-		}
-		if len(optSkip) > 0 {
-			cmd.AddOptionValues("--skip", strconv.Itoa(optSkip[0]))
-		}
-		return cmd
+func (repo *Repository) CommitsBetween(ctx context.Context, afterRef, beforeRef RefName, limit int, optSkip ...int) ([]*Commit, error) {
+	cmd := gitcmd.NewCommand("rev-list").WithRepo(repo)
+	if limit >= 0 {
+		cmd.AddOptionValues("--max-count", strconv.Itoa(limit))
 	}
-	var stdout []byte
-	var err error
+	if len(optSkip) > 0 {
+		cmd.AddOptionValues("--skip", strconv.Itoa(optSkip[0]))
+	}
 	if beforeRef == "" {
-		stdout, _, err = gitCmd().AddDynamicArguments(afterRef.String()).RunStdBytes(repo.Ctx)
+		cmd.AddDynamicArguments(afterRef.String())
 	} else {
-		stdout, _, err = gitCmd().AddDynamicArguments(beforeRef.String() + ".." + afterRef.String()).RunStdBytes(repo.Ctx)
-		if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
-			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
-			// if the beforeRef and afterRef are not related (no merge base), just get all commits pushed by afterRef
-			stdout, _, err = gitCmd().AddDynamicArguments(afterRef.String()).RunStdBytes(repo.Ctx)
-		}
+		cmd.AddDynamicArguments(beforeRef.String() + ".." + afterRef.String())
 	}
+	stdout, _, err := cmd.RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
+	return repo.parsePrettyFormatLogToList(ctx, bytes.TrimSpace(stdout))
 }
 
 // commitsBefore the limit is depth, not total number of returned commits.
-func (repo *Repository) commitsBefore(id ObjectID, limit int) ([]*Commit, error) {
+func (repo *Repository) commitsBefore(ctx context.Context, id ObjectID, limit int) ([]*Commit, error) {
 	cmd := gitcmd.NewCommand("log", prettyLogFormat)
 	if limit > 0 {
 		cmd.AddOptionFormat("-%d", limit)
 	}
 	cmd.AddDynamicArguments(id.String())
 
-	stdout, _, runErr := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
+	stdout, _, runErr := cmd.WithRepo(repo).RunStdBytes(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
 
-	formattedLog, err := repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
+	formattedLog, err := repo.parsePrettyFormatLogToList(ctx, bytes.TrimSpace(stdout))
 	if err != nil {
 		return nil, err
 	}
 
 	commits := make([]*Commit, 0, len(formattedLog))
 	for _, commit := range formattedLog {
-		branches, err := repo.getBranches(nil, commit.ID.String(), 2)
+		branches, err := repo.getBranches(ctx, nil, commit.ID.String(), 2)
 		if err != nil {
 			return nil, err
 		}
@@ -345,22 +371,22 @@ func (repo *Repository) commitsBefore(id ObjectID, limit int) ([]*Commit, error)
 	return commits, nil
 }
 
-func (repo *Repository) getCommitsBefore(id ObjectID) ([]*Commit, error) {
-	return repo.commitsBefore(id, 0)
+func (repo *Repository) getCommitsBefore(ctx context.Context, id ObjectID) ([]*Commit, error) {
+	return repo.commitsBefore(ctx, id, 0)
 }
 
-func (repo *Repository) getCommitsBeforeLimit(id ObjectID, num int) ([]*Commit, error) {
-	return repo.commitsBefore(id, num)
+func (repo *Repository) getCommitsBeforeLimit(ctx context.Context, id ObjectID, num int) ([]*Commit, error) {
+	return repo.commitsBefore(ctx, id, num)
 }
 
-func (repo *Repository) getBranches(env []string, commitID string, limit int) ([]string, error) {
+func (repo *Repository) getBranches(ctx context.Context, env []string, commitID string, limit int) ([]string, error) {
 	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--format=%(refname:strip=2)").
 		AddOptionFormat("--count=%d", limit).
 		AddOptionValues("--contains", commitID).
 		AddArguments(BranchPrefix).
 		WithEnv(env).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		WithRepo(repo).
+		RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -368,11 +394,11 @@ func (repo *Repository) getBranches(env []string, commitID string, limit int) ([
 }
 
 // GetCommitsFromIDs get commits from commit IDs
-func (repo *Repository) GetCommitsFromIDs(commitIDs []string) []*Commit {
+func (repo *Repository) GetCommitsFromIDs(ctx context.Context, commitIDs []string) []*Commit {
 	commits := make([]*Commit, 0, len(commitIDs))
 
 	for _, commitID := range commitIDs {
-		commit, err := repo.GetCommit(commitID)
+		commit, err := repo.GetCommit(ctx, commitID)
 		if err == nil && commit != nil {
 			commits = append(commits, commit)
 		}
@@ -381,26 +407,44 @@ func (repo *Repository) GetCommitsFromIDs(commitIDs []string) []*Commit {
 	return commits
 }
 
-// IsCommitInBranch check if the commit is on the branch
-func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err error) {
+// IsCommitInRepo checks if the commit exists in the repository.
+func IsCommitInRepo(ctx context.Context, repo gitrepo.RepositoryFacade, commitID string) (bool, error) {
+	// "--quiet" makes it exit with 1 and no output if the commit doesn't exist
+	_, _, err := gitcmd.NewCommand("rev-parse", "--verify", "--quiet").
+		AddDynamicArguments(commitID + "^{commit}").
+		WithRepo(repo).
+		RunStdString(ctx)
+	if gitcmd.IsErrorExitCode(err, 1) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// IsCommitInBranch checks if the commit is on the branch.
+// It returns false (no error) if the commit doesn't exist or isn't on the branch.
+func IsCommitInBranch(ctx context.Context, repo gitrepo.RepositoryFacade, commitID, branch string) (r bool, err error) {
+	if exist, err := IsCommitInRepo(ctx, repo, commitID); err != nil || !exist {
+		return false, err
+	}
+
 	stdout, _, err := gitcmd.NewCommand("branch", "--contains").
 		AddDynamicArguments(commitID, branch).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		WithRepo(repo).
+		RunStdString(ctx)
 	if err != nil {
 		return false, err
 	}
-	return len(stdout) > 0, err
+	return len(stdout) > 0, nil
 }
 
 // GetCommitBranchStart returns the commit where the branch diverged
-func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID string) (string, error) {
+func (repo *Repository) GetCommitBranchStart(ctx context.Context, env []string, branch, endCommitID string) (string, error) {
 	cmd := gitcmd.NewCommand("log", prettyLogFormat)
 	cmd.AddDynamicArguments(endCommitID)
 
-	stdout, _, runErr := cmd.WithDir(repo.Path).
+	stdout, _, runErr := cmd.WithRepo(repo).
 		WithEnv(env).
-		RunStdBytes(repo.Ctx)
+		RunStdBytes(ctx)
 	if runErr != nil {
 		return "", runErr
 	}
@@ -411,7 +455,7 @@ func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID s
 	// and we think this commit is the divergence point
 	for part := range parts {
 		commitID := string(part)
-		branches, err := repo.getBranches(env, commitID, 2)
+		branches, err := repo.getBranches(ctx, env, commitID, 2)
 		if err != nil {
 			return "", err
 		}
@@ -423,4 +467,125 @@ func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID s
 	}
 
 	return "", nil
+}
+
+// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
+func (repo *Repository) GetRefCommitID(ctx context.Context, name string) (string, error) {
+	batch, cancel, err := repo.CatFileBatch()
+	if err != nil {
+		return "", err
+	}
+	defer cancel()
+	info, err := batch.QueryInfo(name)
+	if IsErrNotExist(err) {
+		return "", ErrNotExist{name, ""}
+	} else if err != nil {
+		return "", err
+	}
+	return info.ID, nil
+}
+
+func (repo *Repository) getCommit(_ context.Context, id ObjectID) (*Commit, error) {
+	batch, cancel, err := repo.CatFileBatch()
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+	return repo.getCommitWithBatch(batch, id)
+}
+
+func limitDiscardReader(rd BufferedReader, full, limit int64) (io.Reader, func() error) {
+	return io.LimitReader(rd, min(full, limit)), func() error {
+		if full > limit {
+			return DiscardFull(rd, full-limit)
+		}
+		return nil
+	}
+}
+
+func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Commit, error) {
+	info, rd, err := batch.QueryContent(id.String())
+	if err != nil {
+		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
+			return nil, ErrNotExist{ID: id.String()}
+		}
+		return nil, err
+	}
+
+	switch info.Type {
+	case "missing":
+		return nil, ErrNotExist{ID: id.String()}
+	case "tag":
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
+		data, err := io.ReadAll(limitReader)
+		if err != nil {
+			return nil, err
+		}
+		if err = limitDiscard(); err != nil {
+			return nil, err
+		}
+		_, err = rd.Discard(1)
+		if err != nil {
+			return nil, err
+		}
+		tag, err := parseTagData(id.Type(), data)
+		if err != nil {
+			return nil, err
+		}
+		return repo.getCommitWithBatch(batch, tag.Object)
+	case "commit":
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
+		commit, err := CommitFromReader(id, limitReader)
+		if err != nil {
+			return nil, err
+		}
+		if err = limitDiscard(); err != nil {
+			return nil, err
+		}
+		_, err = rd.Discard(1)
+		if err != nil {
+			return nil, err
+		}
+
+		return commit, nil
+	default:
+		if info.Type != "blob" && info.Type != "tree" {
+			setting.PanicInDevOrTesting("Unknown cat-file object type %s for object %s in repo %s", info.Type, id.String(), repo.LogString())
+		}
+		if err := DiscardFull(rd, info.Size+1); err != nil {
+			return nil, err
+		}
+		return nil, ErrNotExist{
+			ID: id.String(),
+		}
+	}
+}
+
+// ConvertToGitID returns a git object ID from the git ref, it doesn't guarantee the returned ID really exists
+func (repo *Repository) ConvertToGitID(ctx context.Context, ref string) (ObjectID, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if IsStringValidObjectID(objectFormat, ref) {
+		id, err := NewIDFromString(ref)
+		if err == nil {
+			return id, nil
+		}
+	}
+
+	batch, cancel, err := repo.CatFileBatch()
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+	info, err := batch.QueryInfo(ref)
+	if err != nil {
+		if IsErrNotExist(err) {
+			return nil, ErrNotExist{ref, ""}
+		}
+		return nil, err
+	}
+
+	return MustIDFromString(info.ID), nil
 }

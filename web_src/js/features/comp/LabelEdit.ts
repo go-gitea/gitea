@@ -1,19 +1,13 @@
-import {toggleElem} from '../../utils/dom.ts';
-import {showFomanticModal} from '../../modules/fomantic/modal.ts';
-import {submitFormFetchAction} from '../common-fetch-action.ts';
+import {queryElems, toggleElem} from '../../utils/dom.ts';
+import {showModal} from '../../modules/modal.ts';
+import {submitFormFetchAction} from '../../modules/fetch-action.ts';
+import {registerGlobalInitFunc} from '../../modules/observer.ts';
 
 function nameHasScope(name: string): boolean {
   return /.*[^/]\/[^/].*/.test(name);
 }
 
-export function initCompLabelEdit(pageSelector: string) {
-  const pageContent = document.querySelector<HTMLElement>(pageSelector);
-  if (!pageContent) return;
-
-  // for guest view, the modal is not available, the "labels" are read-only
-  const elModal = pageContent.querySelector<HTMLElement>('#issue-label-edit-modal');
-  if (!elModal) return;
-
+function initLabelEditModal(elModal: HTMLDialogElement) {
   const elLabelId = elModal.querySelector<HTMLInputElement>('input[name="id"]')!;
   const elNameInput = elModal.querySelector<HTMLInputElement>('.label-name-input')!;
   const elExclusiveField = elModal.querySelector('.label-exclusive-input-field')!;
@@ -65,7 +59,7 @@ export function initCompLabelEdit(pageSelector: string) {
     form.action = isEdit ? `${curPageLink}/edit` : `${curPageLink}/new`;
     toggleElem(elIsArchivedField, isEdit);
     syncModalUi();
-    showFomanticModal(elModal, {
+    showModal(elModal, {
       onApprove() {
         if (!form.checkValidity()) {
           form.reportValidity();
@@ -79,15 +73,15 @@ export function initCompLabelEdit(pageSelector: string) {
 
   elModal.addEventListener('input', () => syncModalUi());
 
-  // theoretically, if the modal exists, the "new label" button should also exist, just in case it doesn't, use "?."
-  const elNewLabel = pageContent.querySelector<HTMLElement>('.ui.button.new-label');
-  elNewLabel?.addEventListener('click', () => showLabelEditModal(elNewLabel));
+  const elNewLabel = document.querySelector<HTMLElement>('.ui.button.new-label')!;
+  elNewLabel.addEventListener('click', () => showLabelEditModal(elNewLabel));
 
-  const elEditLabelButtons = pageContent.querySelectorAll<HTMLElement>('.edit-label-button');
-  for (const btn of elEditLabelButtons) {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      showLabelEditModal(btn);
-    });
-  }
+  queryElems(document, '.edit-label-button', (btn) => btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    showLabelEditModal(btn);
+  }));
+}
+
+export function initCompLabelEdit() {
+  registerGlobalInitFunc('initLabelEditModal', initLabelEditModal);
 }

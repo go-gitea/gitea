@@ -6,11 +6,11 @@ package doctor
 import (
 	"context"
 
+	modelmigration "gitea.dev/modelmigration"
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/migrations"
 	repo_model "gitea.dev/models/repo"
 	secret_model "gitea.dev/models/secret"
 	"gitea.dev/modules/log"
@@ -108,9 +108,8 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 		// find tracked times without existing issues/pulls
 		genericOrphanCheck("Orphaned TrackedTimes without existing issue",
 			"tracked_time", "issue", "tracked_time.issue_id=issue.id"),
-		// find attachments without existing issues or releases
 		{
-			Name:    "Orphaned Attachments without existing issues or releases",
+			Name:    "Orphaned Attachments without existing issues, comments or releases",
 			Counter: repo_model.CountOrphanedAttachments,
 			Fixer:   asFixer(repo_model.DeleteOrphanedAttachments),
 		},
@@ -120,27 +119,6 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 			Counter:      repo_model.CountNullArchivedRepository,
 			Fixer:        repo_model.FixNullArchivedRepository,
 			FixedMessage: "Fixed",
-		},
-		// find label comments with empty labels
-		{
-			Name:         "Label comments with empty labels",
-			Counter:      issues_model.CountCommentTypeLabelWithEmptyLabel,
-			Fixer:        issues_model.FixCommentTypeLabelWithEmptyLabel,
-			FixedMessage: "Fixed",
-		},
-		// find label comments with labels from outside the repository
-		{
-			Name:         "Label comments with labels from outside the repository",
-			Counter:      issues_model.CountCommentTypeLabelWithOutsideLabels,
-			Fixer:        issues_model.FixCommentTypeLabelWithOutsideLabels,
-			FixedMessage: "Removed",
-		},
-		// find issue_label with labels from outside the repository
-		{
-			Name:         "IssueLabels with Labels from outside the repository",
-			Counter:      issues_model.CountIssueLabelWithOutsideLabels,
-			Fixer:        issues_model.FixIssueLabelWithOutsideLabels,
-			FixedMessage: "Removed",
 		},
 		{
 			Name:         "Action with created_unix set as an empty string",
@@ -222,6 +200,9 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 		// find action without repository
 		genericOrphanCheck("Action entries without existing repository",
 			"action", "repository", "action.repo_id=repository.id"),
+		// find action runs without repository
+		genericOrphanCheck("Action runs without existing repository",
+			"action_run", "repository", "action_run.repo_id=repository.id"),
 		// find action without user
 		genericOrphanCheck("Action entries without existing user",
 			"action", "user", "action.act_user_id=`user`.id"),
@@ -249,7 +230,7 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 
 func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) error {
 	// make sure DB version is uptodate
-	if err := db.InitEngineWithMigration(ctx, migrations.EnsureUpToDate); err != nil {
+	if err := db.InitEngineWithMigration(ctx, modelmigration.EnsureUpToDate); err != nil {
 		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 		return err
 	}

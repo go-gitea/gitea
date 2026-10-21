@@ -181,7 +181,7 @@ func deriveScopedStatusContexts(prefix, displayName string, content []byte, even
 		if job == nil {
 			continue
 		}
-		jobName := util.EllipsisDisplayString(job.Name, 255) // run creation truncates job names the same way
+		jobName := job.DisplayName()
 		for _, ev := range eventNames {
 			ctxName := actions_module.ScopedWorkflowStatusContextName(prefix, displayName, jobName, ev)
 			if seen.Contains(ctxName) {
@@ -203,7 +203,7 @@ func listSourceScopedWorkflowFiles(ctx *context.Context, repo *repo_model.Reposi
 	if !repo.IsEmpty {
 		_, parsed, err := actions_service.LoadParsedScopedWorkflows(ctx, repo)
 		if err != nil {
-			log.Error("scoped workflows settings: parse %s: %v", repo.RelativePath(), err)
+			log.Error("scoped workflows settings: parse %s: %v", repo.FullName(), err)
 		} else {
 			for _, p := range parsed {
 				info := scopedWorkflowInfo{

@@ -52,8 +52,9 @@ type CreateTeamOption struct {
 	// The description of the team
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// Whether the team has access to all repositories in the organization
-	IncludesAllRepositories bool                `json:"includes_all_repositories"`
-	Permission              RepoWritePermission `json:"permission"`
+	IncludesAllRepositories bool `json:"includes_all_repositories"`
+	// All units have this permission (read/write/admin)
+	Permission RepoWritePermission `json:"permission"`
 	// example: ["repo.actions","repo.packages","repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
 	// Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.
 	Units []string `json:"units"`
@@ -62,7 +63,7 @@ type CreateTeamOption struct {
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
 	// Team visibility within the organization. Defaults to "private".
-	Visibility TeamVisibility `json:"visibility" binding:"OmitEmpty;In(public,limited,private)"`
+	Visibility TeamVisibility `json:"visibility" binding:"In(public,limited,private)"`
 }
 
 // EditTeamOption options for editing a team
@@ -72,8 +73,9 @@ type EditTeamOption struct {
 	// The description of the team
 	Description *string `json:"description" binding:"MaxSize(255)"`
 	// Whether the team has access to all repositories in the organization
-	IncludesAllRepositories *bool               `json:"includes_all_repositories"`
-	Permission              RepoWritePermission `json:"permission"`
+	IncludesAllRepositories *bool `json:"includes_all_repositories"`
+	// All units have this permission (read/write/admin)
+	Permission RepoWritePermission `json:"permission"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
 	// Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.
 	Units []string `json:"units"`
@@ -83,5 +85,5 @@ type EditTeamOption struct {
 	CanCreateOrgRepo *bool `json:"can_create_org_repo"`
 	// Team visibility within the organization. When omitted, visibility is
 	// left unchanged.
-	Visibility *TeamVisibility `json:"visibility" binding:"OmitEmpty;In(public,limited,private)"`
+	Visibility *TeamVisibility `json:"visibility" binding:"In(public,limited,private)"`
 }

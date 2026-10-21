@@ -36,7 +36,7 @@ func ParseScopedWorkflows(ctx context.Context, gitRepo *git.Repository, sourceCo
 
 	parsed := make([]*ParsedScopedWorkflow, 0, len(entries))
 	for _, entry := range entries {
-		content, err := GetContentFromEntry(gitRepo, entry)
+		content, err := GetContentFromEntry(ctx, gitRepo, entry)
 		if err != nil {
 			return nil, err
 		}
@@ -60,10 +60,12 @@ func ParseScopedWorkflows(ctx context.Context, gitRepo *git.Repository, sourceCo
 // MatchScopedWorkflows evaluates already-parsed scoped workflows against one consuming event.
 // It returns the workflows whose `on:` matches, and those that matched the event but were excluded by a branch/paths filter (filtered).
 func MatchScopedWorkflows(
+	ctx context.Context,
 	parsed []*ParsedScopedWorkflow,
+	sourceCommitSHA string,
 	consumerGitRepo *git.Repository,
 	consumerCommit *git.Commit,
-	triggedEvent webhook_module.HookEventType,
+	inputEvent webhook_module.HookEventType,
 	payload api.Payloader,
 ) (matched, filtered []*DetectedWorkflow) {
 	for _, p := range parsed {
@@ -73,11 +75,12 @@ func MatchScopedWorkflows(
 				continue
 			}
 			dwf := &DetectedWorkflow{
-				EntryName:    p.EntryName,
-				TriggerEvent: evt,
-				Content:      p.Content,
+				EntryName:       p.EntryName,
+				TriggerEvent:    evt,
+				Content:         p.Content,
+				SourceCommitSHA: sourceCommitSHA,
 			}
-			switch detectWorkflowMatch(consumerGitRepo, consumerCommit, triggedEvent, payload, evt) {
+			switch detectWorkflowMatch(ctx, consumerGitRepo, consumerCommit, inputEvent, payload, evt) {
 			case detectMatched:
 				matched = append(matched, dwf)
 			case detectFilteredOut:

@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -48,6 +48,14 @@ func CompareDiff(ctx *context.APIContext) {
 	//   enum:
 	//   - diff
 	//   - patch
+	// - name: verification
+	//   in: query
+	//   description: include verification for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: files
+	//   in: query
+	//   description: include a list of affected files for every commit (disable for speedup, default 'true')
+	//   type: boolean
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Compare"
@@ -58,7 +66,7 @@ func CompareDiff(ctx *context.APIContext) {
 
 	if ctx.Repo.GitRepo == nil {
 		var err error
-		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+		ctx.Repo.GitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -120,9 +128,9 @@ func downloadCompareDiffOrPatch(ctx *context.APIContext, compareInfo *git_servic
 
 	var err error
 	if patch {
-		err = compareInfo.HeadGitRepo.GetPatch(compareArg, ctx.Resp)
+		err = compareInfo.HeadGitRepo.GetPatch(ctx, compareArg, ctx.Resp)
 	} else {
-		err = compareInfo.HeadGitRepo.GetDiff(compareArg, ctx.Resp)
+		err = compareInfo.HeadGitRepo.GetDiff(ctx, compareArg, ctx.Resp)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)

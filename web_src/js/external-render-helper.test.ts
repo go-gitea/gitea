@@ -1,6 +1,6 @@
 import './external-render-helper.ts';
 
-test('isValidCssColor', async () => {
+test('isValidCssColor', () => {
   const isValidCssColor = window.giteaExternalRenderHelper!.isValidCssColor;
   expect(isValidCssColor(null)).toBe(false);
   expect(isValidCssColor('')).toBe(false);

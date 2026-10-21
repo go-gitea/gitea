@@ -19,6 +19,40 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestCommitSignSettings(t *testing.T) {
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningFormat)()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, "any-content")()
+
+	t.Run("InstanceSettings", func(t *testing.T) {
+		setting.Repository.Signing.SigningFormat = ""
+		css := getInstanceCommitSignSettings(git.SigningKeyFormatOpenPGP)
+		assert.NotNil(t, css)
+		assert.Equal(t, git.SigningKeyFormatOpenPGP, css.Format)
+		css = getInstanceCommitSignSettings(git.SigningKeyFormatSSH)
+		assert.Nil(t, css)
+
+		setting.Repository.Signing.SigningFormat = git.SigningKeyFormatOpenPGP
+		css = getInstanceCommitSignSettings(git.SigningKeyFormatOpenPGP)
+		assert.NotNil(t, css)
+		assert.Equal(t, git.SigningKeyFormatOpenPGP, css.Format)
+
+		setting.Repository.Signing.SigningFormat = git.SigningKeyFormatSSH
+		css = getInstanceCommitSignSettings(git.SigningKeyFormatSSH)
+		assert.NotNil(t, css)
+		assert.Equal(t, git.SigningKeyFormatSSH, css.Format)
+		css = getInstanceCommitSignSettings(git.SigningKeyFormatOpenPGP)
+		assert.Nil(t, css)
+	})
+
+	t.Run("GitGlobalSettings", func(t *testing.T) {
+		css := git.GlobalCommitSignSettings.Value()
+		assert.False(t, css.Sign)
+		assert.Equal(t, git.SigningKeyFormatOpenPGP, css.Format)
+		css = getGitGlobalCommitSignSettings(git.SigningKeyFormatOpenPGP)
+		assert.Nil(t, css)
+	})
+}
+
 func TestParseCommitWithSSHSignature(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

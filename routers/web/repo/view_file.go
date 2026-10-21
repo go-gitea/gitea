@@ -29,7 +29,7 @@ import (
 )
 
 func prepareLatestCommitInfo(ctx *context.Context) bool {
-	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.GitRepo, ctx.Repo.TreePath)
+	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
 		return false
@@ -127,7 +127,7 @@ func handleFileViewRenderSource(ctx *context.Context, attrs *attribute.Attribute
 	statuses := make([]*charset.EscapeStatus, len(fileContent))
 	for i, line := range fileContent {
 		statuses[i], fileContent[i] = charset.EscapeControlHTML(line, ctx.Locale)
-		status = status.Or(statuses[i])
+		status.Combine(statuses[i])
 	}
 	ctx.Data["EscapeStatus"] = status
 	ctx.Data["FileContent"] = fileContent
@@ -182,15 +182,15 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["FileError"] = strings.TrimSpace(issueConfigErr.Error())
 		}
 	} else if actions.IsWorkflow(ctx.Repo.TreePath) {
-		content, err := actions.GetContentFromEntry(ctx.Repo.GitRepo, entry)
+		content, err := actions.GetContentFromEntry(ctx, ctx.Repo.GitRepo, entry)
 		if err != nil {
 			log.Error("actions.GetContentFromEntry: %v", err)
 		}
-		if workFlowErr := actions.ValidateWorkflowContent(content); workFlowErr != nil {
+		if _, workFlowErr := actions.GetEventsFromContent(content); workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
 	} else if issue_service.IsCodeOwnerFile(ctx.Repo.TreePath) {
-		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
+		if data, err := blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
 				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")
@@ -255,7 +255,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 
 func prepareFileViewEditorButtons(ctx *context.Context) bool {
 	// archived or mirror repository, the buttons should not be shown
-	if !ctx.Repo.Repository.CanEnableEditor() {
+	if !ctx.Repo.Repository.CanContentChange() {
 		return true
 	}
 

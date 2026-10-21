@@ -50,7 +50,8 @@ var Markdown = struct {
 	MathCodeBlockDetection []string
 	MathCodeBlockOptions   MarkdownMathCodeBlockOptions `ini:"-"`
 }{
-	EnableMath: true,
+	EnableMath:       true,
+	FileNamePatterns: []string{"*.md"},
 }
 
 // MarkupRenderer defines the external parser configured in ini

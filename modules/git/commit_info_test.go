@@ -4,16 +4,17 @@
 package git
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
-
-const (
-	testReposDir = "tests/repos/"
 )
 
 func cloneRepo(tb testing.TB, url string) (string, error) {
@@ -84,7 +85,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		}, "feaf4ba6bc635fec442f46ddd4512416ec43c2c2"},
 	}
 	for _, testCase := range testCases {
-		commit, err := repo1.GetCommit(testCase.CommitID)
+		commit, err := repo1.GetCommit(t.Context(), testCase.CommitID)
 		if err != nil {
 			assert.NoError(t, err, "Unable to get commit: %s from testcase due to error: %v", testCase.CommitID, err)
 			// no point trying to do anything else for this test.
@@ -109,8 +110,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 			continue
 		}
 
-		// FIXME: Context.TODO() - if graceful has started we should use its Shutdown context otherwise use install signals in TestMain.
-		commitsInfo, treeCommit, err := entries.GetCommitsInfo(t.Context(), "/any/repo-link", repo1, commit, testCase.Path)
+		commitsInfo, treeCommit, err := entries.GetCommitsInfo(t.Context(), time.Second, "/any/repo-link", repo1, commit, testCase.Path)
 		assert.NoError(t, err, "Unable to get commit information for entries of subtree: %s in commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 		if err != nil {
 			t.FailNow()
@@ -131,9 +131,9 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 }
 
 func TestEntries_GetCommitsInfo(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
-	assert.NoError(t, err)
+	bareRepo1Path, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
+	bareRepo1, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("repo1_bare", bareRepo1Path))
+	require.NoError(t, err)
 	defer bareRepo1.Close()
 
 	testGetCommitsInfo(t, bareRepo1)
@@ -142,7 +142,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	if err != nil {
 		assert.NoError(t, err)
 	}
-	clonedRepo1, err := OpenRepository(t.Context(), clonedPath)
+	clonedRepo1, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("repo1_bare-clone", clonedPath))
 	if err != nil {
 		assert.NoError(t, err)
 	}
@@ -151,7 +151,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	testGetCommitsInfo(t, clonedRepo1)
 
 	t.Run("NonExistingSubmoduleAsNil", func(t *testing.T) {
-		commit, err := bareRepo1.GetCommit("HEAD")
+		commit, err := bareRepo1.GetCommit(t.Context(), "HEAD")
 		require.NoError(t, err)
 		treeEntry, err := commit.GetTreeEntryByPath(t.Context(), bareRepo1, "file1.txt")
 		require.NoError(t, err)
@@ -166,4 +166,41 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 		// since there is no refURL, it means that the submodule info doesn't exist, so it won't have a web link
 		assert.Nil(t, cisf.SubmoduleWebLinkTree(t.Context()))
 	})
+}
+
+func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
+	repoPath, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
+	repo, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("dummy", repoPath))
+	require.NoError(t, err)
+	defer repo.Close()
+
+	commit, err := repo.GetCommit(t.Context(), "feaf4ba6bc635fec442f46ddd4512416ec43c2c2")
+	require.NoError(t, err)
+	entries, err := commit.Tree().ListEntries(t.Context(), repo)
+	require.NoError(t, err)
+
+	countCommitInfosCommit := func(infos []CommitInfo) (nilCommits, nonNilCommits int) {
+		for _, info := range infos {
+			nilCommits += util.Iif(info.Commit == nil, 1, 0)
+			nonNilCommits += util.Iif(info.Commit != nil, 1, 0)
+		}
+		return nilCommits, nonNilCommits
+	}
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer test.MockVariableValue(&walkGitLogDebugBeforeNext)()
+
+	walkGitLogDebugBeforeNext = cancel
+	commitInfos, _, err := entries.GetCommitsInfo(ctx, time.Second, "/any/repo-link", repo, commit, "")
+	assert.NoError(t, err)
+	nilCommits, nonNilCommits := countCommitInfosCommit(commitInfos)
+	assert.Equal(t, 0, nonNilCommits) // no commit info due to canceled (or deadline-exceeded) context
+	assert.Equal(t, 3, nilCommits)
+
+	walkGitLogDebugBeforeNext = nil
+	commitInfos, _, err = entries.GetCommitsInfo(t.Context(), time.Second, "/any/repo-link", repo, commit, "")
+	assert.NoError(t, err)
+	nilCommits, nonNilCommits = countCommitInfosCommit(commitInfos)
+	assert.Equal(t, 3, nonNilCommits)
+	assert.Equal(t, 0, nilCommits)
 }

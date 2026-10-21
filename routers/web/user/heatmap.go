@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	activities_model "gitea.dev/models/activities"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
 )
@@ -51,13 +52,15 @@ func DashboardHeatmap(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-
-	year := ctx.FormInt("year")
-	showPrivate := true
-	if ctx.FormString("show-private") != "" {
-		showPrivate = ctx.FormBool("show-private")
+	if ctx.Org.Organization == nil && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+		// this end point is mounted on different routes, so we need to
+		// check if the user is visible to the viewer when there is no organization context (no visibility check)
+		ctx.NotFound(nil)
+		return
 	}
 
+	year := ctx.FormInt("year")
+	showPrivate := ctx.FormOptionalBool("show-private").ValueOrDefault(true)
 	var data []*activities_model.UserHeatmapData
 	var err error
 	if ctx.Org.Organization == nil {

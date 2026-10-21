@@ -5,10 +5,15 @@
 package git
 
 import (
+	"context"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
 )
+
+// MaxGitObjectSize is used to avoid OOM when reading a large git object.
+// GitHub has a limit (100M) for pushing, but Gitea doesn't have such a limit yet.
+var MaxGitObjectSize int64 = 100 * 1024 * 1024
 
 // ObjectType git object type
 type ObjectType string
@@ -31,12 +36,12 @@ func (o ObjectType) Bytes() []byte {
 	return []byte(o)
 }
 
-func (repo *Repository) GetObjectFormat() (ObjectFormat, error) {
-	if repo != nil && repo.objectFormat != nil {
-		return repo.objectFormat, nil
+func (repo *Repository) GetObjectFormat(ctx context.Context) (ObjectFormat, error) {
+	if repo.objectFormatCache != nil {
+		return repo.objectFormatCache, nil
 	}
 
-	str, err := repo.hashObjectBytes(nil, false)
+	str, err := repo.hashObjectBytes(ctx, nil, false)
 	if err != nil {
 		return nil, err
 	}
@@ -45,21 +50,21 @@ func (repo *Repository) GetObjectFormat() (ObjectFormat, error) {
 		return nil, err
 	}
 
-	repo.objectFormat = hash.Type()
+	repo.objectFormatCache = hash.Type()
 
-	return repo.objectFormat, nil
+	return repo.objectFormatCache, nil
 }
 
 // HashObjectBytes returns hash for the content
-func (repo *Repository) HashObjectBytes(buf []byte) (ObjectID, error) {
-	idStr, err := repo.hashObjectBytes(buf, true)
+func (repo *Repository) HashObjectBytes(ctx context.Context, buf []byte) (ObjectID, error) {
+	idStr, err := repo.hashObjectBytes(ctx, buf, true)
 	if err != nil {
 		return nil, err
 	}
 	return NewIDFromString(idStr)
 }
 
-func (repo *Repository) hashObjectBytes(buf []byte, save bool) (string, error) {
+func (repo *Repository) hashObjectBytes(ctx context.Context, buf []byte, save bool) (string, error) {
 	var cmd *gitcmd.Command
 	if save {
 		cmd = gitcmd.NewCommand("hash-object", "-w", "--stdin")
@@ -67,9 +72,9 @@ func (repo *Repository) hashObjectBytes(buf []byte, save bool) (string, error) {
 		cmd = gitcmd.NewCommand("hash-object", "--stdin")
 	}
 	stdout, _, err := cmd.
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithStdinBytes(buf).
-		RunStdString(repo.Ctx)
+		RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}

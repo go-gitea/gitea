@@ -1,23 +1,51 @@
 <script setup lang="ts">
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {computed, onBeforeUnmount, ref, toRefs, watch} from 'vue';
 import {resetActionFavicon, syncActionRunFavicon} from '../modules/favicon-status.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
-import ActionRunSummaryView from './ActionRunSummaryView.vue';
-import ActionRunJobView from './ActionRunJobView.vue';
+import ActionRunSummaryView, {type ActionRunSummaryViewLocale} from './ActionRunSummaryView.vue';
+import ActionRunJobView, {type ActionRunJobViewLocale} from './ActionRunJobView.vue';
 import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
 import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
+import {trString} from '../modules/i18n.ts';
+import {confirmModal} from '../features/comp/ConfirmModal.ts';
 
 defineOptions({
   name: 'RepoActionView',
 });
 
+type RepoActionViewLocale = ActionRunSummaryViewLocale & ActionRunJobViewLocale & {
+  approve: string,
+  cancel: string,
+  rerun: string,
+  rerun_all: string,
+  rerun_failed: string,
+  latest: string,
+  latestAttempt: string,
+  attempt: string,
+  summary: string,
+  allJobs: string,
+  jobSummaries: string,
+  expandCallerJobs: string,
+  collapseCallerJobs: string,
+  backToPullRequest: string,
+  backToWorkflow: string,
+  artifactExpired: string,
+  artifactExpiresAt: string,
+  artifactExpiredAt: string,
+  confirmDeleteArtifact: string,
+  downloadFile: string,
+  workflowFile: string,
+  workflowFileNoPermission: string,
+  runDetails: string,
+};
+
 const props = defineProps<{
   jobId: number;
   actionsViewUrl: string;
-  locale: Record<string, any>;
+  locale: RepoActionViewLocale;
 }>();
 
 const locale = props.locale;
@@ -65,7 +93,7 @@ function isJobCollapsed(jobID: number) {
 }
 
 const visibleJobListItems = computed<JobListItem[]>(() => {
-  const jobs = [...(run.value.jobs || [])].sort((a, b) => a.id - b.id);
+  const jobs = (run.value.jobs || []).filter((job) => job.status !== 'pending' || job.id === props.jobId).sort((a, b) => a.id - b.id);
   const childrenByParent = buildJobsByParentJobID(jobs);
 
   const result: JobListItem[] = [];
@@ -115,8 +143,9 @@ function approveRun() {
 }
 
 async function deleteArtifact(name: string) {
-  if (!window.confirm(locale.confirmDeleteArtifact.replace('%s', name))) return;
-  await DELETE(buildArtifactLink(name));
+  const artifactLink = buildArtifactLink(name);
+  if (!await confirmModal({content: trString(locale.confirmDeleteArtifact, name), confirmButtonColor: 'red'})) return;
+  await DELETE(artifactLink);
   await store.forceReloadCurrentRun();
 }
 
@@ -132,7 +161,7 @@ onBeforeUnmount(() => {
   <!-- make the view container full width to make users easier to read logs -->
   <div class="ui fluid container">
     <div class="action-view-header">
-      <a v-if="backLink" class="action-view-back silenced" :href="backLink.href">
+      <a v-if="backLink" class="action-view-back" :href="backLink.href">
         <SvgIcon name="octicon-arrow-left" :size="14"/>
         <span>{{ backLink.prefix }} <span class="action-view-back-name">{{ backLink.name }}</span></span>
       </a>
@@ -188,7 +217,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="flex-text-block tw-pl-[20px]">
                   <span class="flex-text-inline tw-flex-shrink-0">
-                    <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" class="flex-text-block" icon-variant="circle-fill"/>
+                    <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" icon-variant="circle-fill"/>
                     <span>{{ locale.status[attempt.status] }}</span>
                   </span>
                   <span>•</span>
@@ -261,8 +290,8 @@ onBeforeUnmount(() => {
             <div class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
                 <a
-                  class="tw-flex-1 tw-min-w-0 flex-text-block silenced" target="_blank"
-                  :href="buildArtifactLink(artifact.name)"
+                  class="tw-flex-1 tw-min-w-0 flex-text-block silenced"
+                  :href="artifact.previewLink"
                   :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
                   data-tooltip-render="html"
                   data-tooltip-placement="top-end"
@@ -270,11 +299,19 @@ onBeforeUnmount(() => {
                   <SvgIcon name="octicon-file" class="tw-text-text-light"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
+                <a download class="silenced" :href="buildArtifactLink(artifact.name)" :data-tooltip-content="locale.downloadFile">
+                  <SvgIcon name="octicon-download"/>
+                </a>
                 <a v-if="run.canDeleteArtifact" class="silenced" @click="deleteArtifact(artifact.name)">
                   <SvgIcon name="octicon-trash"/>
                 </a>
               </template>
-              <span v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2">
+              <span
+                v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2"
+                :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiredAt)"
+                data-tooltip-render="html"
+                data-tooltip-placement="top-end"
+              >
                 <SvgIcon name="octicon-file-removed"/>
                 <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 <span class="ui label tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
@@ -340,65 +377,6 @@ onBeforeUnmount(() => {
   padding-bottom: 12px;
   display: flex;
   gap: 12px;
-}
-
-/* ================ */
-/* action view header */
-
-.action-view-header {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.action-view-back {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--color-text-light-1);
-}
-
-.action-view-back:hover {
-  color: var(--color-primary);
-}
-
-.action-view-back-name {
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
-}
-
-.action-info-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.action-info-summary-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-}
-
-.action-info-summary-title-text {
-  font-size: 20px;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.action-info-summary-title-index {
-  font-size: 20px;
-  color: var(--color-text-light-2);
-  flex: 1;
-}
-
-.action-info-summary .ui.button {
-  margin: 0;
-  white-space: nowrap;
 }
 
 /* ================ */
@@ -514,7 +492,7 @@ onBeforeUnmount(() => {
 
 .action-view-right-panel {
   flex: 1; /* fill the right column so the summary graph stretches even without a job-summary section */
-  border: 1px solid var(--color-console-border);
+  border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   background: var(--color-console-bg);
   display: flex;
@@ -561,7 +539,7 @@ onBeforeUnmount(() => {
 
 .job-summary-section-header {
   padding: 12px;
-  border-bottom: 1px solid var(--color-console-border);
+  border-bottom: 1px solid var(--color-secondary);
   background: var(--color-console-bg);
   color: var(--color-console-fg);
   font-weight: var(--font-weight-semibold);
@@ -578,7 +556,7 @@ onBeforeUnmount(() => {
   padding: 12px;
   border-radius: var(--border-radius);
   background: var(--color-console-hover-bg);
-  border: 1px solid var(--color-console-border);
+  border: 1px solid var(--color-secondary);
 }
 
 .job-summary-header {

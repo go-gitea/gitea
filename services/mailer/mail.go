@@ -162,7 +162,7 @@ func fromDisplayName(u *user_model.User) string {
 		err := setting.MailService.FromDisplayNameFormatTemplate.Execute(&buf, map[string]any{
 			"DisplayName": u.DisplayName(),
 			"AppName":     setting.AppName,
-			"Domain":      setting.Domain,
+			"Domain":      setting.AppDomain,
 		})
 		if err == nil {
 			return mime.QEncoding.Encode("utf-8", buf.String())
@@ -180,7 +180,7 @@ func fromDisplayName(u *user_model.User) string {
 func generateMetadataHeaders(repo *repo_model.Repository) map[string]string {
 	return map[string]string{
 		// https://datatracker.ietf.org/doc/html/rfc2919
-		"List-ID": fmt.Sprintf("%s <%s.%s.%s>", repo.FullName(), repo.Name, repo.OwnerName, setting.Domain),
+		"List-ID": fmt.Sprintf("%s <%s.%s.%s>", repo.FullName(), repo.Name, repo.OwnerName, setting.AppDomain),
 
 		// https://datatracker.ietf.org/doc/html/rfc2369
 		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
