@@ -189,27 +189,32 @@ const calendar = computed(() => {
   return weeks;
 });
 
-// cells and fonts keep their size, a viewport too narrow for the whole range pages through equally sized windows
-// of weeks instead, e.g. two halves of about 6 months on a phone
+// cells and fonts keep their size, a viewport too narrow for the whole range shows as many weeks as fit and pages
+// through the range in evenly spaced steps, e.g. two halves of about 6 months on a phone
 const weeksPerPage = computed(() => {
-  const weekCount = calendar.value.length;
   const fitting = Math.floor((containerWidth.value - gridLeft - squareBorder) / cellSize);
-  if (!containerWidth.value || fitting >= weekCount) return weekCount;
-  return Math.ceil(weekCount / Math.ceil(weekCount / Math.max(1, fitting)));
+  if (!containerWidth.value || fitting >= calendar.value.length) return calendar.value.length;
+  return Math.max(1, fitting);
 });
-const pageEnd = ref(0); // exclusive week index, the window starts with the most recent weeks
+const pageCount = computed(() => Math.ceil(calendar.value.length / weeksPerPage.value));
+const pageIdx = ref(0); // 0 shows the most recent weeks
 watch([() => calendar.value.length, weeksPerPage], () => {
-  pageEnd.value = calendar.value.length;
-}, {immediate: true});
-const isPaged = computed(() => weeksPerPage.value < calendar.value.length);
-const pageStart = computed(() => Math.max(0, pageEnd.value - weeksPerPage.value));
+  pageIdx.value = 0;
+});
+const isPaged = computed(() => pageCount.value > 1);
+const pageEnd = computed(() => {
+  const weekCount = calendar.value.length;
+  if (!isPaged.value) return weekCount;
+  return weekCount - Math.round(pageIdx.value * (weekCount - weeksPerPage.value) / (pageCount.value - 1));
+});
+const pageStart = computed(() => pageEnd.value - weeksPerPage.value);
 
 function showPreviousWeeks() {
-  pageEnd.value = Math.max(weeksPerPage.value, pageEnd.value - weeksPerPage.value);
+  pageIdx.value = Math.min(pageCount.value - 1, pageIdx.value + 1);
 }
 
 function showNextWeeks() {
-  pageEnd.value = Math.min(calendar.value.length, pageEnd.value + weeksPerPage.value);
+  pageIdx.value = Math.max(0, pageIdx.value - 1);
 }
 
 const grid = computed(() => {
@@ -250,16 +255,7 @@ const legendViewBox = `${cellSize} 0 ${squareSize * (colorRange.length + 2)} ${s
 const cellInstances = new Map<Element, Instance>();
 let singleton: CreateSingletonInstance | null = null;
 
-function destroyTooltips() {
-  for (const instance of cellInstances.values()) instance.destroy();
-  cellInstances.clear();
-  singleton?.setInstances([]);
-}
-
-// the cells are re-rendered on paging, so their tooltips must not outlive them
-watch(pageStart, destroyTooltips);
-
-onMounted(() => {
+function createTooltipSingleton() {
   singleton = createSingleton([], {
     overrides: [],
     moveTransition: 'transform 0.1s ease-out',
@@ -268,17 +264,36 @@ onMounted(() => {
     role: 'tooltip',
     placement: 'top',
   });
+}
+
+function destroyTooltips() {
+  // the singleton is destroyed too, a shown one keeps positioning itself at a cell whose instance is gone
+  singleton?.destroy();
+  singleton = null;
+  for (const instance of cellInstances.values()) instance.destroy();
+  cellInstances.clear();
+}
+
+// paging shows other days in the same cells, so their tooltips are created again
+watch(pageStart, () => {
+  destroyTooltips();
+  createTooltipSingleton();
+});
+
+onMounted(() => {
+  createTooltipSingleton();
   resizeObserver = new ResizeObserver(([entry]) => {
     containerWidth.value = entry.contentRect.width;
   });
-  resizeObserver.observe(elRoot.value!);
+  // observe the mount point, its width does not depend on the rendered weeks, unlike the width of this component
+  const container = elRoot.value!.parentElement;
+  if (container) resizeObserver.observe(container);
   loadData();
 });
 
 onBeforeUnmount(() => {
   resizeObserver?.disconnect();
   destroyTooltips();
-  singleton?.destroy();
 });
 
 function lazyInitTooltip(e: MouseEvent) {
@@ -312,14 +327,14 @@ function handleDayClick(date: Date) {
       <button
         class="heatmap-pager-button" type="button"
         :aria-label="locale.previousMonths" :data-tooltip-content="locale.previousMonths"
-        :disabled="pageStart === 0" @click="showPreviousWeeks"
+        :disabled="pageIdx === pageCount - 1" @click="showPreviousWeeks"
       >
         <SvgIcon name="octicon-chevron-left" :size="12"/>
       </button>
       <button
         class="heatmap-pager-button" type="button"
         :aria-label="locale.nextMonths" :data-tooltip-content="locale.nextMonths"
-        :disabled="pageEnd === calendar.length" @click="showNextWeeks"
+        :disabled="pageIdx === 0" @click="showNextWeeks"
       >
         <SvgIcon name="octicon-chevron-right" :size="12"/>
       </button>
