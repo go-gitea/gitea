@@ -133,7 +133,7 @@
 </div>
 
 {{if $canWriteProject}}
-<div class="ui small modal" id="project-column-modal-edit">
+<dialog class="modal-dialog" id="project-column-modal-edit">
 	<div class="header">{{ctx.Locale.Tr "repo.projects.column.edit"}}</div>
 	<div class="content">
 		<form class="ui form ignore-dirty" method="post" data-action-base-link="{{$.Link}}">
@@ -155,5 +155,5 @@
 			</div>
 		</form>
 	</div>
-</div>
+</dialog>
 {{end}}

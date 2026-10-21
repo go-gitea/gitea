@@ -2,7 +2,7 @@ module gitea.dev
 
 go 1.27
 
-toolchain go1.27.2
+toolchain go1.27.3
 
 require (
 	connectrpc.com/connect/v2 v2.0.1

@@ -1,15 +1,15 @@
 {{template "devtest/devtest-header"}}
 <div class="page-content devtest ui container">
 	<div class="modal-buttons flex-text-block tw-flex-wrap"></div>
-	<div id="test-modal-form-1" class="ui mini modal">
+	<dialog id="test-modal-form-1" class="modal-dialog">
 		<div class="header">Form dialog (layout 1)</div>
 		<form class="content" method="post" action="?mock_response_delay=1">
 			<div class="ui input tw-w-full"><input name="user_input"></div>
 			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 		</form>
-	</div>
+	</dialog>
 
-	<div id="test-modal-form-2" class="ui mini modal">
+	<dialog id="test-modal-form-2" class="modal-dialog">
 		<div class="header">Form dialog (layout 2)</div>
 		<form method="post" action="?mock_response_delay=1">
 			<div class="content">
@@ -17,9 +17,9 @@
 				{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 			</div>
 		</form>
-	</div>
+	</dialog>
 
-	<div id="test-modal-form-3" class="ui mini modal">
+	<dialog id="test-modal-form-3" class="modal-dialog">
 		<div class="header">Form dialog (layout 3)</div>
 		<form method="post" action="?mock_response_delay=1">
 			<div class="content">
@@ -27,9 +27,9 @@
 			</div>
 			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 		</form>
-	</div>
+	</dialog>
 
-	<div id="test-modal-form-4" class="ui mini modal">
+	<dialog id="test-modal-form-4" class="modal-dialog">
 		<div class="header">Form dialog (layout 4)</div>
 		<div class="content">
 			<div class="ui input tw-w-full"><input name="user_input"></div>
@@ -37,9 +37,9 @@
 		<form method="post" action="?mock_response_delay=1">
 			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 		</form>
-	</div>
+	</dialog>
 
-	<div id="test-modal-form-5" class="ui mini modal">
+	<dialog id="test-modal-form-5" class="modal-dialog">
 		<div class="header">Form dialog (layout 5)</div>
 		<div class="content">
 			<form method="post" action="?mock_response_delay=1">
@@ -47,27 +47,27 @@
 				{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 			</form>
 		</div>
-	</div>
+	</dialog>
 
-	<div class="ui g-modal-confirm modal" id="test-modal-default">
+	<dialog class="modal-dialog" id="test-modal-default">
 		<div class="header">{{svg "octicon-file"}} Default dialog <span>title</span></div>
 		<div class="content">
 			very long aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 		</div>
 		{{template "base/modal_actions_confirm"}}
-	</div>
+	</dialog>
 
-	<div class="ui g-modal-confirm modal" id="test-modal-confirm">
+	<dialog class="modal-dialog" id="test-modal-confirm">
 		<div class="header">Confirm dialog</div>
 		<div class="content">hello, this is the modal dialog content</div>
 		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
-	</div>
+	</dialog>
 
-	<div class="ui g-modal-confirm modal" id="test-modal-danger">
+	<dialog class="modal-dialog" id="test-modal-danger">
 		<div class="header">dangerous action dialog <button type="button" class="close-modal"></button></div>
 		<div class="content">hello, this is the modal dialog content, this is a dangerous operation</div>
 		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" "I know and must do  this is dangerous operation")}}
-	</div>
+	</dialog>
 
 	<div class="divider"></div>
 
@@ -79,7 +79,7 @@
 		data-modal-a.text-content="fill with attr"
 	>test-modal-fill-values</button>
 
-	<div id="test-modal-fill-values" class="ui mini modal" data-skip-button>
+	<dialog id="test-modal-fill-values" class="modal-dialog" data-skip-button>
 		<div class="header">Modal dialog (fill values)</div>
 		<form class="content">
 			<div id="fill-by-id"></div>
@@ -89,6 +89,6 @@
 			<a href="#">link</a>
 			{{template "base/modal_actions_confirm" dict}}
 		</form>
-	</div>
+	</dialog>
 </div>
 {{template "devtest/devtest-footer"}}
