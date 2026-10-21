@@ -60,6 +60,15 @@ func TestBitbucketServerFormatCloneURL(t *testing.T) {
 	got, err = d.FormatCloneURL(base.MigrateOptions{AuthToken: "tok"}, addr)
 	require.NoError(t, err)
 	assert.Equal(t, "https://token:tok@bb.example.com/scm/PROJ/repo.git", got)
+
+	// git needs the owner of the token as user name, which is learned from the API responses
+	d.tokenUser = "alice"
+	got, err = d.FormatCloneURL(base.MigrateOptions{AuthToken: "tok"}, addr)
+	require.NoError(t, err)
+	assert.Equal(t, "https://alice:tok@bb.example.com/scm/PROJ/repo.git", got)
+	got, err = d.FormatCloneURL(base.MigrateOptions{AuthToken: "tok", AuthUsername: "bob"}, addr)
+	require.NoError(t, err)
+	assert.Equal(t, "https://bob:tok@bb.example.com/scm/PROJ/repo.git", got)
 }
 
 const bbsRepoJSON = `{"slug":"repo","name":"Repo","description":"a test repo","public":false,"project":{"key":"PROJ"}}`
@@ -70,6 +79,7 @@ func bbsMockServer(t *testing.T, handlers map[string]string, requests *[]*http.R
 		if requests != nil {
 			*requests = append(*requests, r)
 		}
+		w.Header().Set("X-AUSERNAME", "alice")
 		key := r.URL.Path
 		if r.URL.RawQuery != "" {
 			if body, ok := handlers[key+"?"+r.URL.Query().Get("start")]; ok {
@@ -106,6 +116,7 @@ func TestBitbucketServerRepoInfo(t *testing.T) {
 		OriginalURL: srv.URL + "/projects/PROJ/repos/repo",
 	}, repo)
 	assert.Equal(t, "Bearer secret", requests[0].Header.Get("Authorization"))
+	assert.Equal(t, "alice", d.tokenUser)
 
 	// releases are not provided, tags are synced from git
 	_, err = d.GetReleases(t.Context())
@@ -147,7 +158,7 @@ const bbsPullRequestsJSON = `{"isLastPage":true,"values":[
  "author":{"user":{"id":7,"name":"alice","emailAddress":"alice@example.com"}},
  "fromRef":{"displayId":"feature","latestCommit":"%[1]s","repository":{"slug":"repo","project":{"key":"PROJ"}}},
  "toRef":{"displayId":"main","latestCommit":"%[2]s","repository":{"slug":"repo","project":{"key":"PROJ"}}},
- "properties":{"mergeCommit":{"id":"%[3]s"}}},
+ "properties":{}},
 {"id":2,"title":"fork pr","state":"OPEN","draft":true,"createdDate":1700001000000,"updatedDate":1700001000000,
  "author":{"user":{"id":8,"slug":"bob"}},
  "fromRef":{"displayId":"patch","latestCommit":"%[1]s","repository":{"slug":"repo-fork","project":{"key":"~BOB"}}},
@@ -163,6 +174,10 @@ func TestBitbucketServerPullRequests(t *testing.T) {
 	const api = "/rest/api/1.0/projects/PROJ/repos/repo"
 	var query string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == api+"/pull-requests/1/activities" {
+			_, _ = w.Write([]byte(`{"isLastPage":true,"values":[{"action":"MERGED","commit":{"id":"` + mergeSHA + `"}}]}`))
+			return
+		}
 		query = r.URL.RawQuery
 		_, _ = w.Write([]byte(strings.NewReplacer("%[1]s", headSHA, "%[2]s", baseSHA, "%[3]s", mergeSHA).Replace(bbsPullRequestsJSON)))
 		assert.Equal(t, api+"/pull-requests", r.URL.Path)
@@ -197,9 +212,10 @@ func TestBitbucketServerPullRequests(t *testing.T) {
 	assert.Equal(t, "open", fork.State)
 	assert.True(t, fork.IsDraft)
 	assert.Equal(t, "bob", fork.PosterName)
-	assert.True(t, fork.IsForkPullRequest())
-	assert.Equal(t, srv.URL+"/scm/~BOB/repo-fork.git", fork.Head.CloneURL)
-	assert.Equal(t, "~BOB", fork.Head.OwnerName)
+	assert.False(t, fork.IsForkPullRequest(), "the head commit is available as refs/pull-requests/<id>/from of the target")
+	assert.Equal(t, "BOB/patch", fork.Head.Ref)
+	assert.Equal(t, "PROJ", fork.Head.OwnerName)
+	assert.Equal(t, "repo", fork.Head.RepoName)
 	assert.Nil(t, fork.Closed)
 
 	declined := prs[2]

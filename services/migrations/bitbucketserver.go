@@ -99,11 +99,13 @@ type BitbucketServerDownloader struct {
 	username   string
 	password   string
 	token      string
+	tokenUser  string // owner of the token, git over HTTP needs it as the basic-auth user name
 	projectKey string
 	repoSlug   string
 
-	activitiesPR    int64 // single entry cache: comments and reviews of a PR are both derived from its activities
-	activitiesCache []*bbsActivity
+	// comments and reviews are both derived from the activities of a PR, which are also needed
+	// to find the merge commit. They are cached for the PRs of the last downloaded page.
+	activities map[int64][]*bbsActivity
 }
 
 // NewBitbucketServerDownloader creates a Bitbucket Server downloader
@@ -116,6 +118,7 @@ func NewBitbucketServerDownloader(_ context.Context, baseURL, username, password
 		token:      token,
 		projectKey: projectKey,
 		repoSlug:   repoSlug,
+		activities: map[int64][]*bbsActivity{},
 	}
 }
 
@@ -140,8 +143,8 @@ func (d *BitbucketServerDownloader) FormatCloneURL(opts base.MigrateOptions, rem
 	}
 	switch {
 	case opts.AuthToken != "":
-		// HTTP access tokens are accepted as the basic-auth password
-		u.User = url.UserPassword(cmp.Or(opts.AuthUsername, "token"), opts.AuthToken)
+		// HTTP access tokens are accepted as the basic-auth password of their owner
+		u.User = url.UserPassword(cmp.Or(opts.AuthUsername, d.tokenUser, "token"), opts.AuthToken)
 	case opts.AuthUsername != "" || opts.AuthPassword != "":
 		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
 	}
@@ -189,11 +192,6 @@ type bbsPullRequest struct {
 	Author      struct {
 		User bbsUser `json:"user"`
 	} `json:"author"`
-	Properties struct {
-		MergeCommit *struct {
-			ID string `json:"id"`
-		} `json:"mergeCommit"`
-	} `json:"properties"`
 }
 
 type bbsAnchor struct {
@@ -222,6 +220,9 @@ type bbsActivity struct {
 	User          bbsUser     `json:"user"`
 	Comment       *bbsComment `json:"comment"`
 	CommentAnchor *bbsAnchor  `json:"commentAnchor"`
+	Commit        *struct {
+		ID string `json:"id"`
+	} `json:"commit"` // merge commit of a MERGED activity
 }
 
 type bbsPage[T any] struct {
@@ -275,6 +276,9 @@ func (d *BitbucketServerDownloader) callAPI(ctx context.Context, path string, qu
 		return err
 	}
 	defer resp.Body.Close()
+	if d.token != "" {
+		d.tokenUser = cmp.Or(resp.Header.Get("X-AUSERNAME"), d.tokenUser)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return &bbsStatusError{Status: resp.StatusCode, URL: d.baseURL + "/rest/api/1.0" + path}
 	}
@@ -338,7 +342,7 @@ func (d *BitbucketServerDownloader) GetRepoInfo(ctx context.Context) (*base.Repo
 
 	return &base.Repository{
 		Name:          repo.Slug,
-		Owner:         d.projectKey,
+		Owner:         repo.Project.Key,
 		IsPrivate:     !repo.Public,
 		Description:   repo.Description,
 		CloneURL:      d.cloneURL(d.projectKey, d.repoSlug),
@@ -359,9 +363,14 @@ func (d *BitbucketServerDownloader) GetPullRequests(ctx context.Context, page, p
 		return nil, false, err
 	}
 
+	clear(d.activities)
 	prs := make([]*base.PullRequest, 0, len(result.Values))
 	for i := range result.Values {
-		prs = append(prs, d.convertPullRequest(&result.Values[i]))
+		pr := d.convertPullRequest(&result.Values[i])
+		if pr.Merged {
+			d.setMergeCommit(ctx, pr)
+		}
+		prs = append(prs, pr)
 	}
 	return prs, result.IsLastPage || len(result.Values) == 0, nil
 }
@@ -383,6 +392,13 @@ func (d *BitbucketServerDownloader) convertPullRequest(orig *bbsPullRequest) *ba
 		Head:         d.convertRef(&orig.FromRef),
 		Base:         d.convertRef(&orig.ToRef),
 	}
+	// Bitbucket keeps the head commit of every PR as refs/pull-requests/<id>/from in the target repository, so the
+	// objects of a fork are already migrated. Fetching from the fork would need its own credentials, therefore
+	// fork PRs are handed over as if their head lived in the target repository, under a name that cannot clash.
+	if !strings.EqualFold(pr.Head.OwnerName, pr.Base.OwnerName) || !strings.EqualFold(pr.Head.RepoName, pr.Base.RepoName) {
+		pr.Head.Ref = strings.TrimPrefix(pr.Head.OwnerName, "~") + "/" + pr.Head.Ref
+		pr.Head.OwnerName, pr.Head.RepoName, pr.Head.CloneURL = pr.Base.OwnerName, pr.Base.RepoName, pr.Base.CloneURL
+	}
 	// the merge base is computed by the uploader, the target branch tip given by the API may have moved on
 	pr.Base.SHA = ""
 
@@ -392,14 +408,25 @@ func (d *BitbucketServerDownloader) convertPullRequest(orig *bbsPullRequest) *ba
 		pr.Closed = &closed
 		if pr.Merged {
 			pr.MergedTime = &closed
-			if orig.Properties.MergeCommit != nil {
-				pr.MergeCommitSHA = orig.Properties.MergeCommit.ID
-			}
 		}
 	}
 
 	_ = CheckAndEnsureSafePR(pr, d.baseURL, d)
 	return pr
+}
+
+// setMergeCommit takes the merge commit from the MERGED activity, the pull request itself does not carry it
+func (d *BitbucketServerDownloader) setMergeCommit(ctx context.Context, pr *base.PullRequest) {
+	activities, err := d.getActivities(ctx, pr.Number)
+	if err != nil {
+		log.Warn("Bitbucket Server: unable to load activities of pull request %d: %v", pr.Number, err)
+		return
+	}
+	for _, activity := range activities {
+		if activity.Action == "MERGED" && activity.Commit != nil {
+			pr.MergeCommitSHA = activity.Commit.ID
+		}
+	}
 }
 
 func (d *BitbucketServerDownloader) convertRef(ref *bbsRef) base.PullRequestBranch {
@@ -414,17 +441,14 @@ func (d *BitbucketServerDownloader) convertRef(ref *bbsRef) base.PullRequestBran
 }
 
 func (d *BitbucketServerDownloader) getActivities(ctx context.Context, prID int64) ([]*bbsActivity, error) {
-	if d.activitiesPR == prID && d.activitiesCache != nil {
-		return d.activitiesCache, nil
+	if activities, ok := d.activities[prID]; ok {
+		return activities, nil
 	}
 	activities, err := bbsGetAll[*bbsActivity](ctx, d, d.repoPath()+"/pull-requests/"+strconv.FormatInt(prID, 10)+"/activities", nil)
 	if err != nil {
 		return nil, err
 	}
-	if activities == nil {
-		activities = []*bbsActivity{}
-	}
-	d.activitiesPR, d.activitiesCache = prID, activities
+	d.activities[prID] = activities
 	return activities, nil
 }
 
