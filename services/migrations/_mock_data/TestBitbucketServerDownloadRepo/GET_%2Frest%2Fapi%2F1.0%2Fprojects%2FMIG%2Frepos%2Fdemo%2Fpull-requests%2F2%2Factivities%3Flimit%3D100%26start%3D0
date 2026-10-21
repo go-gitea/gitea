@@ -1,8 +1,8 @@
 Cache-Control: no-cache, no-transform
-Content-Security-Policy-Report-Only: script-src http://localhost:7990/bitbucket/s/ 'nonce-n4HGZghHN3EcaOurg8SdQDj6y4k='; default-src 'self'; base-uri 'self'; img-src data: *; style-src 'self' 'unsafe-inline'; frame-src 'self' https://www.youtube-nocookie.com/embed/ https://www.loom.com/embed/ https://player.vimeo.com/video/; connect-src 'self'; report-uri /bitbucket/rest/csp/latest/csp-report;
+Content-Security-Policy-Report-Only: script-src http://localhost:7990/bitbucket/s/ 'nonce-9zz5YdgJXM5eLUqPYwV42kNrj48='; default-src 'self'; base-uri 'self'; img-src data: *; style-src 'self' 'unsafe-inline'; frame-src 'self' https://www.youtube-nocookie.com/embed/ https://www.loom.com/embed/ https://player.vimeo.com/video/; connect-src 'self'; report-uri /bitbucket/rest/csp/latest/csp-report;
 Content-Type: application/json;charset=UTF-8
 Vary: x-ausername,x-auserid,cookie,accept-encoding
-X-Arequestid: @8H2NK9x1249x266x0
+X-Arequestid: @8H2NK9x1256x283x0
 X-Auserid: 2
 X-Ausername: admin
 X-Content-Type-Options: nosniff

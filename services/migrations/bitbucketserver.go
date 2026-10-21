@@ -202,6 +202,29 @@ type bbsAnchor struct {
 	SrcPath  string `json:"srcPath"`
 	FromHash string `json:"fromHash"`
 	ToHash   string `json:"toHash"`
+
+	// set when the comment spans several lines, Line is then the last one
+	MultilineMarker struct {
+		StartLine int `json:"startLine"`
+	} `json:"multilineMarker"`
+	MultilineSpan struct {
+		SrcStart int `json:"srcSpanStart"`
+		SrcEnd   int `json:"srcSpanEnd"`
+		DstStart int `json:"dstSpanStart"`
+		DstEnd   int `json:"dstSpanEnd"`
+	} `json:"multilineSpan"`
+}
+
+// lineRange returns the first and last line of a multi-line comment, in the numbering of the commented side
+func (a *bbsAnchor) lineRange() (start, end int, ok bool) {
+	start, end = a.MultilineSpan.DstStart, a.MultilineSpan.DstEnd
+	if a.FileType == "FROM" {
+		start, end = a.MultilineSpan.SrcStart, a.MultilineSpan.SrcEnd
+	}
+	if start == 0 || end == 0 {
+		start, end = a.MultilineMarker.StartLine, a.Line
+	}
+	return start, end, start > 0 && start < end
 }
 
 type bbsComment struct {
@@ -211,6 +234,8 @@ type bbsComment struct {
 	CreatedDate int64         `json:"createdDate"`
 	UpdatedDate int64         `json:"updatedDate"`
 	Comments    []*bbsComment `json:"comments"` // replies
+
+	ThreadResolved bool `json:"threadResolved"`
 }
 
 type bbsActivity struct {
@@ -557,7 +582,7 @@ func (d *BitbucketServerDownloader) GetReviews(ctx context.Context, reviewable b
 					ReviewerName: c.Author.login(),
 					CreatedAt:    time.UnixMilli(c.CreatedDate),
 					State:        base.ReviewStateCommented,
-					Comments:     []*base.ReviewComment{convertBitbucketServerInlineComment(c, anchor)},
+					Comments:     []*base.ReviewComment{convertBitbucketServerInlineComment(c, anchor, c == activity.Comment)},
 				})
 			})
 		}
@@ -584,7 +609,9 @@ func (d *BitbucketServerDownloader) GetReviews(ctx context.Context, reviewable b
 	return reviews, nil
 }
 
-func convertBitbucketServerInlineComment(c *bbsComment, anchor *bbsAnchor) *base.ReviewComment {
+// convertBitbucketServerInlineComment converts a comment of a code thread. isRoot tells whether it starts the thread,
+// which is where the resolved state and the line range of the anchor belong to.
+func convertBitbucketServerInlineComment(c *bbsComment, anchor *bbsAnchor, isRoot bool) *base.ReviewComment {
 	rc := &base.ReviewComment{
 		ID:        c.ID,
 		Content:   c.Text,
@@ -594,6 +621,15 @@ func convertBitbucketServerInlineComment(c *bbsComment, anchor *bbsAnchor) *base
 		PosterID:  c.Author.ID,
 		CreatedAt: time.UnixMilli(c.CreatedDate),
 		UpdatedAt: time.UnixMilli(cmp.Or(c.UpdatedDate, c.CreatedDate)),
+		Resolved:  isRoot && c.ThreadResolved,
+	}
+	// Gitea anchors a code comment to a single line only, so the range is kept in the text
+	if start, end, ok := anchor.lineRange(); isRoot && ok {
+		side := ""
+		if anchor.FileType == "FROM" {
+			side = " (before the change)"
+		}
+		rc.Content = fmt.Sprintf("Lines %d-%d%s:\n\n%s", start, end, side, c.Text)
 	}
 	// a negative line addresses the old side of the diff
 	if anchor.FileType == "FROM" {

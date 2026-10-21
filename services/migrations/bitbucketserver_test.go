@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/json"
 	base "gitea.dev/modules/migration"
 
 	"github.com/stretchr/testify/assert"
@@ -408,22 +409,27 @@ func TestBitbucketServerDownloadRepo(t *testing.T) {
 	type summary struct {
 		reviewer, state, path, content string
 		line                           int
+		resolved                       bool
 	}
 	var reviewed []summary
 	for _, r := range reviews {
 		s := summary{reviewer: r.ReviewerName, state: r.State}
 		if len(r.Comments) > 0 {
-			s.path, s.line, s.content = r.Comments[0].TreePath, r.Comments[0].Line, r.Comments[0].Content
+			c := r.Comments[0]
+			s.path, s.line, s.content, s.resolved = c.TreePath, c.Line, c.Content, c.Resolved
 		}
 		reviewed = append(reviewed, s)
 	}
 	assert.Equal(t, []summary{
-		{"bob", base.ReviewStateCommented, "a.txt", "Inline on added line", 2},
-		{"admin", base.ReviewStateCommented, "a.txt", "Inline reply by admin", 2},
-		{"carol", base.ReviewStateCommented, "a.txt", "Inline on removed line", -2},
-		{"bob", base.ReviewStateApproved, "", "", 0},
-		{"carol", base.ReviewStateChangesRequested, "", "", 0},
-	}, reviewed)
+		{"bob", base.ReviewStateCommented, "a.txt", "Inline on added line", 2, false},
+		{"admin", base.ReviewStateCommented, "a.txt", "Inline reply by admin", 2, false},
+		{"carol", base.ReviewStateCommented, "a.txt", "Inline on removed line", -2, false},
+		{"bob", base.ReviewStateApproved, "", "", 0, false},
+		{"carol", base.ReviewStateChangesRequested, "", "", 0, false},
+		{"bob", base.ReviewStateCommented, "a.txt", "Lines 2-4:\n\nMulti line comment", 4, false},
+		{"bob", base.ReviewStateCommented, "a.txt", "Thread to resolve", 6, true},
+		{"admin", base.ReviewStateCommented, "a.txt", "reply on resolved thread", 6, false},
+	}, reviewed, "the resolved state is only set on the first comment of a thread")
 
 	declinedComments, _, err := d.GetComments(ctx, declined)
 	require.NoError(t, err)
@@ -435,4 +441,29 @@ func TestBitbucketServerDownloadRepo(t *testing.T) {
 	cloneURL, err := d.FormatCloneURL(base.MigrateOptions{AuthToken: token}, repo.CloneURL)
 	require.NoError(t, err)
 	assert.Contains(t, cloneURL, "admin:")
+}
+
+func TestBitbucketServerInlineCommentRange(t *testing.T) {
+	var anchor bbsAnchor
+	require.NoError(t, json.Unmarshal([]byte(`{"line":9,"fileType":"FROM","path":"b","srcPath":"a",
+		"multilineMarker":{"startLine":7},"multilineSpan":{"srcSpanStart":3,"srcSpanEnd":5,"dstSpanStart":7,"dstSpanEnd":9}}`), &anchor))
+	c := &bbsComment{ID: 1, Text: "text", ThreadResolved: true}
+
+	// the span of the commented side wins, replies neither get the range nor the resolved state
+	rc := convertBitbucketServerInlineComment(c, &anchor, true)
+	assert.Equal(t, "Lines 3-5 (before the change):\n\ntext", rc.Content)
+	assert.Equal(t, -9, rc.Line)
+	assert.Equal(t, "a", rc.TreePath)
+	assert.True(t, rc.Resolved)
+	rc = convertBitbucketServerInlineComment(c, &anchor, false)
+	assert.Equal(t, "text", rc.Content)
+	assert.False(t, rc.Resolved)
+
+	// without a span the marker and the last line are used, a single line has no range
+	require.NoError(t, json.Unmarshal([]byte(`{"line":9,"fileType":"TO","path":"a","multilineMarker":{"startLine":7}}`), &anchor))
+	start, end, ok := anchor.lineRange()
+	assert.True(t, ok)
+	assert.Equal(t, [2]int{7, 9}, [2]int{start, end})
+	_, _, ok = (&bbsAnchor{Line: 9, FileType: "TO"}).lineRange()
+	assert.False(t, ok)
 }

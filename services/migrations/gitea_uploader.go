@@ -935,6 +935,10 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 				UpdatedUnix: timeutil.TimeStamp(comment.UpdatedAt.Unix()),
 			}
 
+			if comment.Resolved {
+				c.ResolveDoerID = g.doer.ID // the original resolver is unknown to the migration data
+			}
+
 			if err := g.remapUser(ctx, review, &c); err != nil {
 				return err
 			}
