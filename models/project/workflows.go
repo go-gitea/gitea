@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/timeutil"
 
 	"xorm.io/builder"
@@ -205,24 +206,35 @@ func init() {
 
 type FindWorkflowsOptions struct {
 	db.ListOptions
-	ProjectID int64
+	ProjectIDs []int64
+	Event      WorkflowEvent
+	Enabled    optional.Option[bool]
 }
 
 func (opts FindWorkflowsOptions) ToConds() builder.Cond {
-	return builder.Eq{"project_id": opts.ProjectID}
+	cond := builder.NewCond()
+	if len(opts.ProjectIDs) > 0 {
+		cond = cond.And(builder.In("project_id", opts.ProjectIDs))
+	}
+	if opts.Event != "" {
+		cond = cond.And(builder.Eq{"workflow_event": opts.Event})
+	}
+	if opts.Enabled.Has() {
+		cond = cond.And(builder.Eq{"enabled": opts.Enabled.Value()})
+	}
+	return cond
 }
 
+// ToOrders keeps the execution order stable across engines
 func (opts FindWorkflowsOptions) ToOrders() string {
-	return "id ASC"
+	return "project_id ASC, id ASC"
 }
 
 func FindEnabledWorkflows(ctx context.Context, projectIDs []int64, event WorkflowEvent) ([]*Workflow, error) {
-	workflows := make([]*Workflow, 0)
 	if len(projectIDs) == 0 {
-		return workflows, nil
+		return nil, nil
 	}
-	// ordered so execution order is stable across engines
-	return workflows, db.GetEngine(ctx).In("project_id", projectIDs).And("workflow_event=? AND enabled=?", event, true).OrderBy("project_id ASC, id ASC").Find(&workflows)
+	return db.Find[Workflow](ctx, FindWorkflowsOptions{ListOptions: db.ListOptionsAll, ProjectIDs: projectIDs, Event: event, Enabled: optional.Some(true)})
 }
 
 func GetWorkflowByProjectAndID(ctx context.Context, projectID, workflowID int64) (*Workflow, error) {

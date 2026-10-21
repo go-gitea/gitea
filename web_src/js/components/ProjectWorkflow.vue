@@ -8,7 +8,8 @@ import {createProjectWorkflowStore, type ProjectWorkflowLocale, type WorkflowRow
 const props = defineProps<{
   el: HTMLElement;
   projectLink: string;
-  workflowKey: string;
+  workflowId: number;
+  workflowEvent: string;
   canWrite: boolean;
   locale: ProjectWorkflowLocale;
 }>();
@@ -16,7 +17,7 @@ const props = defineProps<{
 const store = createProjectWorkflowStore(props);
 
 const statusClass = (row: WorkflowRow) => {
-  if (!row.workflow) return 'tw-text-text-light-2';
+  if (!row.workflow) return 'tw-invisible';
   return row.workflow.enabled ? 'tw-text-green' : 'tw-text-red';
 };
 
@@ -35,7 +36,8 @@ const onPopState = (e: PopStateEvent) => {
 onMounted(async () => {
   window.addEventListener('popstate', onPopState);
   await store.load();
-  const row = store.resolve(props.workflowKey) ?? store.rows.find((r) => r.workflow) ?? store.rows[0];
+  const linked = props.workflowId ? store.resolve(String(props.workflowId)) : store.rows.find((r) => r.event.event === props.workflowEvent);
+  const row = linked ?? store.rows.find((r) => r.workflow) ?? store.rows[0];
   if (row) store.select(row, 'replace');
 });
 

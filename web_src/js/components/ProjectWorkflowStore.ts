@@ -26,16 +26,19 @@ export type ProjectWorkflow = {
   actions: ProjectWorkflowActions;
 };
 
+export type ProjectWorkflowFilterType = 'issue_type' | 'source_column' | 'target_column' | 'labels';
+export type ProjectWorkflowActionType = 'column' | 'add_labels' | 'remove_labels' | 'issue_state';
+
 type ProjectWorkflowEvent = {
   event: string;
   display_name: string;
-  filters: string[];
-  actions: string[];
+  supported_filters: ProjectWorkflowFilterType[];
+  supported_actions: ProjectWorkflowActionType[];
 };
 
 type ProjectColumn = {id: number; title: string};
 
-export type ProjectLabel = {id: number; name: string; html: string};
+type ProjectLabel = {id: number; name: string; html: string};
 
 type ProjectWorkflowData = {
   events: ProjectWorkflowEvent[];
@@ -62,8 +65,9 @@ export type WorkflowRow = {
   displayName: string;
 } & ({workflow: ProjectWorkflow, draft?: never} | {workflow?: never, draft: WorkflowForm});
 
-// placeholders use the event name as key, clones remember the row they were cloned from
-type UnsavedWorkflow = {key: string; event: string; draft: WorkflowForm; sourceKey?: string};
+// a blank draft keyed by its event name is shown while the event has no saved workflow,
+// clones remember the row they were cloned from
+type WorkflowDraft = {key: string; event: string; draft: WorkflowForm; sourceKey?: string};
 
 export type ProjectWorkflowLocale = {
   defaultWorkflows: string;
@@ -134,14 +138,14 @@ export function toWorkflowRules(form: WorkflowForm): Pick<ProjectWorkflow, 'filt
 }
 
 // every event lists its saved workflows then its clones, or its placeholder when it has neither
-function buildWorkflowRows(events: ProjectWorkflowEvent[], workflows: ProjectWorkflow[], unsaved: UnsavedWorkflow[]): WorkflowRow[] {
+function buildWorkflowRows(events: ProjectWorkflowEvent[], workflows: ProjectWorkflow[], drafts: WorkflowDraft[]): WorkflowRow[] {
   return events.flatMap((event) => {
-    const drafts = unsaved.filter((u) => u.event === event.event);
+    const eventDrafts = drafts.filter((d) => d.event === event.event);
     const group: Array<Pick<WorkflowRow, 'key' | 'workflow' | 'draft'>> = [
       ...workflows.filter((wf) => wf.event === event.event).map((workflow) => ({key: String(workflow.id), workflow})),
-      ...drafts.filter((u) => u.sourceKey).map(({key, draft}) => ({key, draft})),
+      ...eventDrafts.filter((d) => d.sourceKey).map(({key, draft}) => ({key, draft})),
     ];
-    if (!group.length) group.push(...drafts.map(({key, draft}) => ({key, draft})));
+    if (!group.length) group.push(...eventDrafts.map(({key, draft}) => ({key, draft})));
     return group.map((row, idx) => ({
       ...row,
       event,
@@ -161,14 +165,14 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
     workflows: [] as ProjectWorkflow[],
     columns: [] as ProjectColumn[],
     labels: [] as ProjectLabel[],
-    unsaved: [] as UnsavedWorkflow[],
+    drafts: [] as WorkflowDraft[],
 
     selectedKey: '',
     editMode: false,
     saving: false,
     form: toWorkflowForm(),
 
-    rows: computed((): WorkflowRow[] => buildWorkflowRows(store.events, store.workflows, store.unsaved)),
+    rows: computed((): WorkflowRow[] => buildWorkflowRows(store.events, store.workflows, store.drafts)),
 
     get selected(): WorkflowRow | undefined {
       return store.rows.find((row) => row.key === store.selectedKey);
@@ -183,15 +187,13 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
     // saved workflow id, event name (its first row) or clone key
     resolve: (key: string): WorkflowRow | undefined => store.rows.find((row) => row.key === key) ?? store.rows.find((row) => row.event.event === key),
 
-    urlFor: (row: WorkflowRow): string => `${baseUrl}/${row.workflow ? row.workflow.id : row.event.event}`,
-
-    columnTitle: (id: number): string | undefined => store.columns.find((c) => c.id === id)?.title,
+    urlFor: (row: WorkflowRow): string => row.workflow ? `${baseUrl}/${row.workflow.id}` : `${baseUrl}?event=${encodeURIComponent(row.event.event)}`,
 
     summary(row: WorkflowRow): string {
       if (!row.workflow) return '';
       const {issue_type, source_column_id, target_column_id, label_ids} = row.workflow.filters;
-      const sourceTitle = source_column_id && store.columnTitle(source_column_id);
-      const targetTitle = target_column_id && store.columnTitle(target_column_id);
+      const sourceTitle = source_column_id && columnTitle(source_column_id);
+      const targetTitle = target_column_id && columnTitle(target_column_id);
       const labelNames = store.labels.filter((l) => label_ids?.includes(l.id)).map((l) => l.name);
       const parts = [
         issue_type === 'issue' && props.locale.issuesOnly,
@@ -214,7 +216,7 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
       store.workflows = data.workflows;
       store.columns = data.columns;
       store.labels = data.labels;
-      store.unsaved = data.events.map((e) => ({key: e.event, event: e.event, draft: toWorkflowForm()}));
+      store.drafts = data.events.map((e) => ({key: e.event, event: e.event, draft: toWorkflowForm()}));
     },
 
     select(row: WorkflowRow, history?: 'push' | 'replace') {
@@ -228,25 +230,27 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
       else if (history === 'replace') window.history.replaceState(state, '', store.urlFor(row));
     },
 
+    // discards a clone and returns to its source, or the edits of a saved workflow
     cancel() {
       const row = store.selected!;
-      const clone = store.unsaved.find((u) => u.key === row.key && u.sourceKey);
-      if (!clone) {
-        store.select(row);
+      const clone = store.drafts.find((d) => d.key === row.key && d.sourceKey);
+      if (clone) {
+        store.drafts = store.drafts.filter((d) => d !== clone);
+        store.select((store.resolve(clone.sourceKey!) ?? store.resolve(clone.event))!);
         return;
       }
-      store.unsaved = store.unsaved.filter((u) => u !== clone);
-      store.select((store.resolve(clone.sourceKey!) ?? store.resolve(clone.event))!);
+      store.editMode = false;
+      store.form = formFor(row.workflow!);
     },
 
     clone() {
       const source = store.selected!;
       const key = `clone-${++cloneSeq}`;
-      store.unsaved.push({key, event: source.event.event, sourceKey: source.key, draft: formFor(source.workflow!)});
+      store.drafts.push({key, event: source.event.event, sourceKey: source.key, draft: formFor(source.workflow!)});
       store.select(store.resolve(key)!);
     },
 
-    canClone: (row: WorkflowRow): boolean => store.unsaved.every((u) => u.sourceKey !== row.key),
+    canClone: (row: WorkflowRow): boolean => store.drafts.every((d) => d.sourceKey !== row.key),
 
     async save() {
       const row = store.selected!;
@@ -260,12 +264,12 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
         replaceWorkflow(saved);
       } else {
         store.workflows.push(saved);
-        const unsaved = store.unsaved.find((u) => u.key === row.key)!;
-        if (unsaved.sourceKey) {
-          store.unsaved = store.unsaved.filter((u) => u !== unsaved);
+        const draft = store.drafts.find((d) => d.key === row.key)!;
+        if (draft.sourceKey) {
+          store.drafts = store.drafts.filter((d) => d !== draft);
           history = 'push'; // a clone has no URL of its own, keep its source's entry
         } else {
-          unsaved.draft = toWorkflowForm();
+          draft.draft = toWorkflowForm();
           history = 'replace';
         }
       }
@@ -287,17 +291,21 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
     },
   });
 
+  function columnTitle(id: number): string | undefined {
+    return store.columns.find((c) => c.id === id)?.title;
+  }
+
   // drops columns and labels deleted since the workflow was saved, the server would reject them
   function formFor(workflow: ProjectWorkflow): WorkflowForm {
     const form = toWorkflowForm(workflow);
     const hasColumn = (id: number) => store.columns.some((c) => c.id === id);
     const hasLabel = (id: number) => store.labels.some((l) => l.id === id);
-    for (const key of ['source_column_id', 'target_column_id', 'column_id'] as const) {
-      if (!hasColumn(form[key])) form[key] = 0;
-    }
-    for (const key of ['label_ids', 'add_label_ids', 'remove_label_ids'] as const) {
-      form[key] = form[key].filter(hasLabel);
-    }
+    if (!hasColumn(form.source_column_id)) form.source_column_id = 0;
+    if (!hasColumn(form.target_column_id)) form.target_column_id = 0;
+    if (!hasColumn(form.column_id)) form.column_id = 0;
+    form.label_ids = form.label_ids.filter(hasLabel);
+    form.add_label_ids = form.add_label_ids.filter(hasLabel);
+    form.remove_label_ids = form.remove_label_ids.filter(hasLabel);
     return form;
   }
 

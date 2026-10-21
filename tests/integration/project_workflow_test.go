@@ -56,8 +56,9 @@ func TestProjectWorkflowsWeb(t *testing.T) {
 	}
 	assert.Equal(t, "true", canWrite(session))
 	assert.Equal(t, "false", canWrite(nil))
-	session.MakeRequest(t, NewRequest(t, "GET", link+"/item_closed"), http.StatusOK)
-	session.MakeRequest(t, NewRequest(t, "GET", link+"/no_such_event"), http.StatusNotFound)
+	session.MakeRequest(t, NewRequest(t, "GET", link+"?event=item_closed"), http.StatusOK)
+	session.MakeRequest(t, NewRequest(t, "GET", link+"?event=no_such_event"), http.StatusNotFound)
+	session.MakeRequest(t, NewRequest(t, "GET", link+"/item_closed"), http.StatusNotFound)
 	session.MakeRequest(t, NewRequest(t, "GET", link+"/999999"), http.StatusNotFound)
 
 	req := NewRequestWithJSON(t, "POST", link, &api.CreateProjectWorkflowOption{

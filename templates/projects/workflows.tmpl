@@ -2,7 +2,8 @@
 	<a class="flex-text-inline" href="{{.ProjectLink}}">{{svg "octicon-arrow-left"}} {{.Project.Title}}</a>
 	<div id="project-workflows" data-global-init="initProjectWorkflow"
 		data-project-link="{{.ProjectLink}}"
-		data-workflow-key="{{.WorkflowKey}}"
+		data-workflow-id="{{.WorkflowID}}"
+		data-workflow-event="{{.WorkflowEvent}}"
 		data-can-write="{{.CanWrite}}"
 		data-locale="{{JsonUtils.EncodeToString (dict
 			"defaultWorkflows" (ctx.Locale.Tr "projects.workflows.default_workflows")

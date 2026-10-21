@@ -435,7 +435,7 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 			return err
 		}
 
-		if _, err := db.GetEngine(ctx).Where("project_id=?", id).Delete(new(Workflow)); err != nil {
+		if _, err := db.Delete[Workflow](ctx, FindWorkflowsOptions{ProjectIDs: []int64{id}}); err != nil {
 			return err
 		}
 

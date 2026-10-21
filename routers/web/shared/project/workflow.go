@@ -18,19 +18,28 @@ import (
 	project_service "gitea.dev/services/projects"
 )
 
-// RenderWorkflows renders the workflows page, the optional "workflow_key" path param is a workflow ID or an event
+// RenderWorkflows renders the workflows page selecting the workflow of the optional "workflow_id" path param,
+// or else the first workflow of the "event" query param
 func RenderWorkflows(ctx *context.Context, canWrite bool, tpl templates.TplName) {
 	project := findProject(ctx)
 	if ctx.Written() {
 		return
 	}
-	key := ctx.PathParam("workflow_key")
-	if id, err := strconv.ParseInt(key, 10, 64); err == nil {
+	var workflowID int64
+	if param := ctx.PathParam("workflow_id"); param != "" {
+		id, err := strconv.ParseInt(param, 10, 64)
+		if err != nil {
+			ctx.NotFound(nil)
+			return
+		}
 		if _, err := project_model.GetWorkflowByProjectAndID(ctx, project.ID, id); err != nil {
 			ctx.ServerError("GetWorkflowByProjectAndID", err)
 			return
 		}
-	} else if key != "" && !project_model.WorkflowEvent(key).IsValid() {
+		workflowID = id
+	}
+	event := ctx.FormString("event")
+	if event != "" && !project_model.WorkflowEvent(event).IsValid() {
 		ctx.NotFound(nil)
 		return
 	}
@@ -38,7 +47,8 @@ func RenderWorkflows(ctx *context.Context, canWrite bool, tpl templates.TplName)
 	ctx.Data["Title"] = ctx.Tr("projects.workflows")
 	ctx.Data["Project"] = project
 	ctx.Data["ProjectLink"] = project.Link(ctx)
-	ctx.Data["WorkflowKey"] = key
+	ctx.Data["WorkflowID"] = workflowID
+	ctx.Data["WorkflowEvent"] = event
 	ctx.Data["CanWrite"] = canWrite
 	ctx.HTML(http.StatusOK, tpl)
 }
@@ -48,7 +58,7 @@ func WorkflowsData(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	workflows, err := db.Find[project_model.Workflow](ctx, project_model.FindWorkflowsOptions{ListOptions: db.ListOptionsAll, ProjectID: project.ID})
+	workflows, err := db.Find[project_model.Workflow](ctx, project_model.FindWorkflowsOptions{ListOptions: db.ListOptionsAll, ProjectIDs: []int64{project.ID}})
 	if err != nil {
 		ctx.ServerError("FindWorkflows", err)
 		return
@@ -67,8 +77,8 @@ func WorkflowsData(ctx *context.Context) {
 	type workflowEvent struct {
 		Event       project_model.WorkflowEvent        `json:"event"`
 		DisplayName string                             `json:"display_name"`
-		Filters     []project_model.WorkflowFilterType `json:"filters"`
-		Actions     []project_model.WorkflowActionType `json:"actions"`
+		Filters     []project_model.WorkflowFilterType `json:"supported_filters"`
+		Actions     []project_model.WorkflowActionType `json:"supported_actions"`
 	}
 	events := make([]workflowEvent, 0, len(project_model.WorkflowEvents()))
 	for _, event := range project_model.WorkflowEvents() {
@@ -144,7 +154,7 @@ func DeleteWorkflow(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	if err := project_model.DeleteWorkflow(ctx, project.ID, workflow.ID); err != nil {
+	if err := project_service.DeleteWorkflow(ctx, ctx.Doer, project, workflow); err != nil {
 		ctx.ServerError("DeleteWorkflow", err)
 		return
 	}

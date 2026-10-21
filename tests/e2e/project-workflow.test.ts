@@ -56,7 +56,7 @@ test('project workflow: configure, toggle, edit and view read-only', async ({pag
     await editorButton(page, 'Enable').click();
     await expect(editor(page).getByText('Enabled', {exact: true})).toBeVisible();
 
-    await page.goto(`${url}/item_opened`);
+    await page.goto(`${url}?event=item_opened`);
     await expect(workflowLink(page, 'Item opened')).toHaveAttribute('aria-current', 'page');
     await expect(editor(page).getByLabel('Move to column')).toHaveText('Backlog');
 
@@ -64,6 +64,7 @@ test('project workflow: configure, toggle, edit and view read-only', async ({pag
     await expect(editorField(page, 'Apply to')).toHaveText('Issues only');
     await choose(page, 'Move to column', 'Done');
     await editorButton(page, 'Save').click();
+    await expect(editorButton(page, 'Edit')).toBeVisible();
     await expect(editor(page).getByLabel('Move to column')).toHaveText('Done');
 
     await logout(page);

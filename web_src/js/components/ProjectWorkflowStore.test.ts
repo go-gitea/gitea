@@ -21,8 +21,8 @@ const workflow = (id: number, event: string, extra: Partial<ProjectWorkflow> = {
 async function setup(workflows: ProjectWorkflow[]) {
   vi.mocked(GET).mockResolvedValueOnce(Response.json({
     events: [
-      {event: 'item_opened', display_name: 'Item opened', filters: ['issue_type', 'labels'], actions: ['column']},
-      {event: 'item_closed', display_name: 'Item closed', filters: [], actions: ['column']},
+      {event: 'item_opened', display_name: 'Item opened', supported_filters: ['issue_type', 'labels'], supported_actions: ['column']},
+      {event: 'item_closed', display_name: 'Item closed', supported_filters: [], supported_actions: ['column']},
     ],
     workflows,
     columns: [{id: 1, title: 'Backlog'}, {id: 2, title: 'Done'}],
@@ -50,7 +50,7 @@ test('rows, display names and deep link resolution', async () => {
   expect(store.resolve('item_opened')!.key).toBe('3');
   expect(store.resolve('item_closed')!.workflow).toBeUndefined();
   expect(store.resolve('42')).toBeUndefined();
-  expect(store.urlFor(store.rows[2])).toBe('/o/r/projects/1/workflows/item_closed');
+  expect(store.urlFor(store.rows[2])).toBe('/o/r/projects/1/workflows?event=item_closed');
 });
 
 test('summary', async () => {
@@ -62,6 +62,11 @@ test('summary', async () => {
 test('edits to a saved workflow are dropped on switching, unsaved drafts are kept', async () => {
   const store = await setup([workflow(3, 'item_opened')]);
   store.select(store.resolve('3')!);
+  store.editMode = true;
+  store.form.column_id = 2;
+  store.cancel();
+  expect(store.editing).toBe(false);
+  expect(store.form.column_id).toBe(1);
   store.editMode = true;
   store.form.column_id = 2;
   store.select(store.resolve('item_closed')!);
@@ -120,7 +125,7 @@ test('saving a placeholder creates the workflow and blocks selection meanwhile',
   }});
   expect(store.selectedKey).toBe('9');
   expect(window.history.replaceState).toHaveBeenCalledWith({key: '9', event: 'item_closed'}, '', '/o/r/projects/1/workflows/9');
-  expect(store.unsaved.find((u) => u.key === 'item_closed')!.draft.column_id).toBe(0);
+  expect(store.drafts.find((d) => d.key === 'item_closed')!.draft.column_id).toBe(0);
 });
 
 test('a failed save keeps the draft', async () => {

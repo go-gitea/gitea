@@ -33,7 +33,7 @@ func TestWorkflowCRUD(t *testing.T) {
 	require.NoError(t, DeleteWorkflow(ctx, 2, opened.ID))
 	assert.True(t, unittest.AssertExistsAndLoadBean(t, &Workflow{ID: opened.ID}).Enabled, "other projects cannot modify it")
 
-	workflows, err := db.Find[Workflow](ctx, FindWorkflowsOptions{ProjectID: 1})
+	workflows, err := db.Find[Workflow](ctx, FindWorkflowsOptions{ProjectIDs: []int64{1}})
 	require.NoError(t, err)
 	require.Len(t, workflows, 3)
 	assert.Equal(t, []int64{closed.ID, opened.ID, closed2.ID}, []int64{workflows[0].ID, workflows[1].ID, workflows[2].ID})

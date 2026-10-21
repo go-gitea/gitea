@@ -1142,7 +1142,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Get("/{id}", org.ViewProject)
 				m.Get("/{id}/workflows", org.ProjectWorkflows)
 				m.Get("/{id}/workflows/data", project.WorkflowsData)
-				m.Get("/{id}/workflows/{workflow_key}", org.ProjectWorkflows)
+				m.Get("/{id}/workflows/{workflow_id}", org.ProjectWorkflows)
 			}, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
@@ -1548,7 +1548,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/{id}", repo.ViewProject)
 		m.Get("/{id}/workflows", repo.ProjectWorkflows)
 		m.Get("/{id}/workflows/data", project.WorkflowsData)
-		m.Get("/{id}/workflows/{workflow_key}", repo.ProjectWorkflows)
+		m.Get("/{id}/workflows/{workflow_id}", repo.ProjectWorkflows)
 		m.Group("", func() {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind[*forms.CreateProjectForm](), repo.NewProjectPost)

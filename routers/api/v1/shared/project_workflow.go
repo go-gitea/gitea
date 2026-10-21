@@ -124,7 +124,7 @@ func ListProjectWorkflows(ctx *context.APIContext) {
 		return
 	}
 	listOptions := utils.GetListOptions(ctx)
-	workflows, total, err := db.FindAndCount[project_model.Workflow](ctx, project_model.FindWorkflowsOptions{ListOptions: listOptions, ProjectID: project.ID})
+	workflows, total, err := db.FindAndCount[project_model.Workflow](ctx, project_model.FindWorkflowsOptions{ListOptions: listOptions, ProjectIDs: []int64{project.ID}})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -580,7 +580,7 @@ func DeleteProjectWorkflow(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if err := project_model.DeleteWorkflow(ctx, project.ID, workflow.ID); err != nil {
+	if err := project_service.DeleteWorkflow(ctx, ctx.Doer, project, workflow); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

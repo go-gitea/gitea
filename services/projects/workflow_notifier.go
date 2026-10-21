@@ -97,6 +97,9 @@ type workflowTrigger struct {
 }
 
 func runIssueProjectsWorkflows(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event project_model.WorkflowEvent) {
+	if issues_model.IsProjectWorkflowContext(ctx) {
+		return
+	}
 	projectIDs, err := issue.ProjectIDs(ctx)
 	if err != nil {
 		log.Error("ProjectIDs: %v", err)

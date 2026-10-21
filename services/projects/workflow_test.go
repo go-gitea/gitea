@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
@@ -15,7 +16,9 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
@@ -113,6 +116,31 @@ func TestCreateUpdateWorkflow(t *testing.T) {
 		assert.Equal(t, project_model.WorkflowActions{AddLabelIDs: []int64{1}}, stored.WorkflowActions)
 		assert.Equal(t, owner.ID, stored.UpdaterID)
 	})
+}
+
+func TestWorkflowRecordsAudit(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+	ctx := t.Context()
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
+
+	wf, err := CreateWorkflow(ctx, owner, project, &api.CreateProjectWorkflowOption{Event: "item_opened", Actions: api.ProjectWorkflowActions{ColumnID: 2}})
+	require.NoError(t, err)
+	require.NoError(t, UpdateWorkflow(ctx, owner, project, wf, &api.EditProjectWorkflowOption{Enabled: new(false)}))
+	require.NoError(t, DeleteWorkflow(ctx, owner, project, wf))
+
+	for _, action := range []audit_model.Action{audit_model.ProjectWorkflowCreate, audit_model.ProjectWorkflowUpdate, audit_model.ProjectWorkflowDelete} {
+		unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: action, ActorID: owner.ID, ScopeType: audit_model.ScopeRepository, ScopeID: project.RepoID})
+	}
+	unittest.AssertNotExistsBean(t, &project_model.Workflow{ID: wf.ID})
+
+	userProject := &project_model.Project{Title: "workflows", OwnerID: owner.ID, CreatorID: owner.ID, Type: project_model.TypeIndividual}
+	require.NoError(t, project_model.NewProject(ctx, userProject))
+	_, err = CreateWorkflow(ctx, owner, userProject, &api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{IssueState: "close"}})
+	require.NoError(t, err)
+	event := unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.ProjectWorkflowCreate, ScopeType: audit_model.ScopeUser, ScopeID: userProject.OwnerID})
+	assert.Contains(t, event.Message, "item_added_to_project")
 }
 
 type labelChangeRecorder struct {

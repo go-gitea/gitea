@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content organization repository projects">
+<div role="main" aria-label="{{.Title}}" class="page-content organization projects">
 	{{if .ContextUser.IsOrganization}}
 		{{template "org/header" .}}
 	{{else}}

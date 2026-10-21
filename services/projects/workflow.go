@@ -7,6 +7,7 @@ import (
 	"context"
 	"slices"
 
+	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
@@ -15,6 +16,7 @@ import (
 	"gitea.dev/modules/optional"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 )
 
 // CreateWorkflow validates and stores a new workflow whose label and issue state actions run as doer
@@ -34,7 +36,15 @@ func CreateWorkflow(ctx context.Context, doer *user_model.User, project *project
 	if err := checkWorkflowActionsPermission(ctx, doer, project, wf); err != nil {
 		return nil, err
 	}
-	return wf, project_model.CreateWorkflow(ctx, wf)
+	auditScope, err := workflowAuditScope(ctx, project)
+	if err != nil {
+		return nil, err
+	}
+	if err := project_model.CreateWorkflow(ctx, wf); err != nil {
+		return nil, err
+	}
+	recordWorkflowAudit(ctx, doer, audit_model.ProjectWorkflowCreate, auditScope, project, wf)
+	return wf, nil
 }
 
 // UpdateWorkflow applies the given changes, afterwards the workflow's actions run as doer
@@ -53,8 +63,46 @@ func UpdateWorkflow(ctx context.Context, doer *user_model.User, project *project
 	if err := checkWorkflowActionsPermission(ctx, doer, project, wf); err != nil {
 		return err
 	}
+	auditScope, err := workflowAuditScope(ctx, project)
+	if err != nil {
+		return err
+	}
 	wf.UpdaterID = doer.ID
-	return project_model.UpdateWorkflow(ctx, wf, cols...)
+	if err := project_model.UpdateWorkflow(ctx, wf, cols...); err != nil {
+		return err
+	}
+	recordWorkflowAudit(ctx, doer, audit_model.ProjectWorkflowUpdate, auditScope, project, wf)
+	return nil
+}
+
+func DeleteWorkflow(ctx context.Context, doer *user_model.User, project *project_model.Project, wf *project_model.Workflow) error {
+	auditScope, err := workflowAuditScope(ctx, project)
+	if err != nil {
+		return err
+	}
+	if err := project_model.DeleteWorkflow(ctx, project.ID, wf.ID); err != nil {
+		return err
+	}
+	recordWorkflowAudit(ctx, doer, audit_model.ProjectWorkflowDelete, auditScope, project, wf)
+	return nil
+}
+
+// workflowAuditScope is loaded before the change is written, so recording the audit event can't fail a saved change
+func workflowAuditScope(ctx context.Context, project *project_model.Project) (any, error) {
+	if project.Type == project_model.TypeRepository {
+		if err := project.LoadRepo(ctx); err != nil {
+			return nil, err
+		}
+		return project.Repo, nil
+	}
+	if err := project.LoadOwner(ctx); err != nil {
+		return nil, err
+	}
+	return project.Owner, nil
+}
+
+func recordWorkflowAudit(ctx context.Context, doer *user_model.User, action audit_model.Action, scope any, project *project_model.Project, wf *project_model.Workflow) {
+	audit.RecordAs(ctx, doer, action, scope, "project", project.Title, "project_id", project.ID, "workflow_id", wf.ID, "event", string(wf.WorkflowEvent))
 }
 
 // setWorkflowRules replaces the given non-nil rules, rejecting anything that cannot be resolved

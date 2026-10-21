@@ -83,7 +83,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     menuInstance.hide();
   } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     focusMenuItem(menuInstance, e.key === 'ArrowDown' ? 1 : -1);
-  } else if ((e.key === 'Enter' || e.key === ' ') && inMenu && !(focused instanceof HTMLInputElement)) {
+  } else if ((e.key === 'Enter' || e.key === ' ') && inMenu && focused.matches('.item')) { // other controls in the menu keep their own keys
     focused.click();
   } else {
     return;

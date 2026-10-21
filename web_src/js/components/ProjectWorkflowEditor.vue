@@ -2,7 +2,7 @@
 import {computed} from 'vue';
 import ProjectWorkflowDropdown from './ProjectWorkflowDropdown.vue';
 import {confirmModal} from '../features/comp/ConfirmModal.ts';
-import type {ProjectWorkflowLocale, ProjectWorkflowStore} from './ProjectWorkflowStore.ts';
+import type {ProjectWorkflowActionType, ProjectWorkflowFilterType, ProjectWorkflowLocale, ProjectWorkflowStore} from './ProjectWorkflowStore.ts';
 
 const props = defineProps<{
   store: ProjectWorkflowStore;
@@ -13,8 +13,8 @@ const store = props.store;
 const locale = props.locale;
 const row = computed(() => store.selected!);
 
-const hasFilter = (name: string) => row.value.event.filters.includes(name);
-const hasAction = (name: string) => row.value.event.actions.includes(name);
+const hasFilter = (name: ProjectWorkflowFilterType) => row.value.event.supported_filters.includes(name);
+const hasAction = (name: ProjectWorkflowActionType) => row.value.event.supported_actions.includes(name);
 
 const issueTypes = [
   {value: '', text: locale.issuesAndPullRequests},
@@ -59,7 +59,7 @@ const onDelete = async () => {
       </div>
     </h4>
     <div class="ui attached segment">
-      <template v-if="row.event.filters.length">
+      <template v-if="row.event.supported_filters.length">
         <h5 class="ui dividing header">{{ locale.filters }}</h5>
         <ProjectWorkflowDropdown
           v-if="hasFilter('issue_type')" v-model="store.form.issue_type"
