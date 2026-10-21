@@ -58,11 +58,11 @@ func SearchRecipes(ctx context.Context, opts *RecipeSearchOptions) ([]string, er
 		propsCondBlock := builder.NewCond()
 		if opts.User != "" {
 			count++
-			propsCondBlock = propsCondBlock.Or(builder.Eq{"package_property.name": conan_module.PropertyRecipeUser}.And(buildCondition("package_property.value", opts.User)))
+			propsCondBlock = propsCondBlock.Or(builder.Eq{"package_property.name": conan_module.PropertyRecipeUser}.And(buildCondition("`package_property`.`value`", opts.User)))
 		}
 		if opts.Channel != "" {
 			count++
-			propsCondBlock = propsCondBlock.Or(builder.Eq{"package_property.name": conan_module.PropertyRecipeChannel}.And(buildCondition("package_property.value", opts.Channel)))
+			propsCondBlock = propsCondBlock.Or(builder.Eq{"package_property.name": conan_module.PropertyRecipeChannel}.And(buildCondition("`package_property`.`value`", opts.Channel)))
 		}
 		propsCond = propsCond.And(propsCondBlock)
 

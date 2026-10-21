@@ -87,7 +87,7 @@ func GetStatistic(ctx context.Context) (stats Statistic) {
 	if setting.Metrics.EnabledIssueByLabel {
 		stats.Counter.IssueByLabel = []IssueByLabelCount{}
 
-		_ = e.Select("COUNT(*) AS count, l.name AS label").
+		_ = e.Select("COUNT(*) AS `count`, l.name AS label").
 			Join("LEFT", "label l", "l.id=il.label_id").
 			Table("issue_label il").
 			GroupBy("l.name").
@@ -97,7 +97,7 @@ func GetStatistic(ctx context.Context) (stats Statistic) {
 	if setting.Metrics.EnabledIssueByRepository {
 		stats.Counter.IssueByRepository = []IssueByRepositoryCount{}
 
-		_ = e.Select("COUNT(*) AS count, r.owner_name, r.name AS repository").
+		_ = e.Select("COUNT(*) AS `count`, r.owner_name, r.name AS repository").
 			Join("LEFT", "repository r", "r.id=i.repo_id").
 			Table("issue i").
 			GroupBy("r.owner_name, r.name").
@@ -106,7 +106,7 @@ func GetStatistic(ctx context.Context) (stats Statistic) {
 
 	var issueCounts []IssueCount
 
-	_ = e.Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
+	_ = e.Select("COUNT(*) AS `count`, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
 	for _, c := range issueCounts {
 		if c.IsClosed {
 			stats.Counter.IssueClosed = c.Count

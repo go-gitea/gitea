@@ -7,11 +7,18 @@ import (
 	"context"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
 )
 
 // CheckDatabaseConnection checks the database connection
 func CheckDatabaseConnection(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Exec("SELECT 1")
+	// Firebird rejects a SELECT without a FROM clause, so the probe has to read
+	// from its one-row system table there
+	probeSQL := "SELECT 1"
+	if setting.Database.Type.IsFirebird() {
+		probeSQL = "SELECT 1 FROM rdb$database"
+	}
+	_, err := db.GetEngine(ctx).Exec(probeSQL)
 	return err
 }
 

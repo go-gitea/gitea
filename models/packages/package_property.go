@@ -8,6 +8,8 @@ import (
 	"errors"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/setting"
 
 	"xorm.io/builder"
 )
@@ -154,19 +156,50 @@ func GetDistinctPropertyValues(ctx context.Context, packageType Type, ownerID in
 	}
 	if dep != nil {
 		innerCond := builder.
+			// the pp.value comparison must cast the BLOB to a string: Firebird evaluates a
+			// correlated EXISTS per row when the BLOB is compared to a parameter, but the
+			// DISTINCT outer query makes the optimizer turn it into a semi-join and the
+			// BLOB comparison in it silently drops matching rows
 			Expr("pp.ref_id = package_property.ref_id").
 			And(builder.Eq{
 				"pp.ref_type": refType,
 				"pp.name":     dep.Name,
-				"pp.value":    dep.Value,
-			})
+			}).And(builder.Expr("CAST(pp.`value` AS VARCHAR(512)) = ?", dep.Value))
 		cond = cond.And(builder.Exists(builder.Select("pp.ref_id").From("package_property pp").Where(innerCond)))
+	}
+
+	if setting.Database.Type.IsFirebird() {
+		// Firebird neither deduplicates DISTINCT over BLOB values nor evaluates the
+		// correlated dep EXISTS correctly once DISTINCT makes the optimizer convert it
+		// into a semi-join: both silently drop matching rows. Without DISTINCT both
+		// work, so the rows are fetched plain and deduplicated here; the callers
+		// enumerate short names, so the first-seen order matches the other databases'
+		// scan order
+		var rows []string
+		if err := db.GetEngine(ctx).
+			Table("package_property").
+			Select("`package_property`.`value`").
+			Join("INNER", "package_file", "package_file.id = package_property.ref_id").
+			Join("INNER", "package_version", "package_version.id = package_file.version_id").
+			Join("INNER", "package", "package.id = package_version.package_id").
+			Where(cond).
+			Find(&rows); err != nil {
+			return nil, err
+		}
+		values := make([]string, 0, len(rows))
+		seen := make(container.Set[string])
+		for _, row := range rows {
+			if seen.Add(row) {
+				values = append(values, row)
+			}
+		}
+		return values, nil
 	}
 
 	values := make([]string, 0, 5)
 	return values, db.GetEngine(ctx).
 		Table("package_property").
-		Distinct("package_property.value").
+		Distinct("`package_property`.`value`").
 		Join("INNER", "package_file", "package_file.id = package_property.ref_id").
 		Join("INNER", "package_version", "package_version.id = package_file.version_id").
 		Join("INNER", "package", "package.id = package_version.package_id").

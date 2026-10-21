@@ -217,6 +217,52 @@ jobs:
           TAGS: bindata
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
+  test-firebird:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      # Firebird is an order of magnitude slower than the other databases here, so this
+      # runs the tests covering the port's own surfaces (job summary upsert and claim,
+      # project delete, heatmap, auth source, mirrors, NuGet search paging) instead of
+      # the whole suite.
+      TEST_FIREBIRD_PATTERN: '^Test(ActionsDeleteRun|ActionsJobQueue|ActionsRoute|ActionsRerun|AuthLDAP|CreateTaskForRunnerConcurrentClaim|HeatmapEndpoints|IssueSidebarProjectColumn|MirrorPull.*|MirrorPush.*|MoveRepoProjectColumns|OrgProjectFilterByMilestone|PackageNuGet|PrivateRepoProject|Projects|RepoSettingPushMirrorUpdate|UpdateIssueProject|UserHeatmap)$'
+      TEST_FIREBIRD_HOST: localhost:3050
+      TEST_FIREBIRD_DBNAME: /var/lib/firebird/data/gitea-test.fdb
+      TEST_FIREBIRD_USERNAME: SYSDBA
+      TEST_FIREBIRD_PASSWORD: masterkey
+    services:
+      firebird:
+        image: firebirdsql/firebird@sha256:456aeb748f6f70a4adbc910a2adc56f4d43270bcdf12808c47ca6e9603c6b17e
+        env:
+          FIREBIRD_ROOT_PASSWORD: masterkey
+        ports:
+          - "3050:3050"
+        # Firebird has no network database paths, the server opens the file on its own
+        # filesystem, so the test database has to live in a directory it shares.
+        volumes:
+          - /tmp/firebird:/var/lib/firebird/data
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/go-setup
+      - run: make deps-backend
+      - run: make backend
+        env:
+          TAGS: bindata
+      - run: GITEA_TEST_DATABASE=firebird make test-migration
+        env:
+          TAGS: bindata
+      - name: run tests
+        # The pattern from TEST_FIREBIRD_PATTERN selects the subset, the binary is run
+        # directly because make test-integration has no -run selection of its own.
+        run: |
+          go test -tags 'bindata' -c gitea.dev/tests/integration -o ./test-integration-firebird.test
+          ./test-integration-firebird.test -test.run "$TEST_FIREBIRD_PATTERN"
+        env:
+          GITEA_TEST_DATABASE: firebird
+          TAGS: bindata
+
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed

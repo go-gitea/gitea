@@ -49,6 +49,20 @@ func expandHashReferencesToSha256(x base.EngineMigration) error {
 				}
 			}
 		}
+		if setting.Database.Type.IsFirebird() {
+			// drop indexes that need to be re-created afterwards, Firebird drops an index without a table
+			droppedIndexes := []string{
+				"DROP INDEX `IDX_commit_status_context_hash`",
+				"DROP INDEX `UQE_review_state_pull_commit_user`",
+				"DROP INDEX `UQE_repo_archiver_s`",
+			}
+			for _, s := range droppedIndexes {
+				_, err := db.Exec(s)
+				if err != nil {
+					return errors.New(s + " " + err.Error())
+				}
+			}
+		}
 
 		for _, alts := range alteredTables {
 			var err error
@@ -56,6 +70,14 @@ func expandHashReferencesToSha256(x base.EngineMigration) error {
 				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` MODIFY COLUMN `%s` VARCHAR(64)", alts[0], alts[1]))
 			} else if setting.Database.Type.IsMSSQL() {
 				_, err = db.Exec(fmt.Sprintf("ALTER TABLE [%s] ALTER COLUMN [%s] NVARCHAR(64)", alts[0], alts[1]))
+			} else if setting.Database.Type.IsFirebird() {
+				// Firebird refuses to shrink a VARCHAR below its declared size even when
+				// the data fits, so an alter that shrinks rebuilds the column through a
+				// temporary one
+				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` ALTER COLUMN `%s` TYPE VARCHAR(64)", alts[0], alts[1]))
+				if err != nil {
+					err = expandHashColumnOnFirebird(db, alts[0], alts[1])
+				}
 			} else {
 				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` ALTER COLUMN `%s` TYPE VARCHAR(64)", alts[0], alts[1]))
 			}
@@ -77,10 +99,53 @@ func expandHashReferencesToSha256(x base.EngineMigration) error {
 				}
 			}
 		}
+		if setting.Database.Type.IsFirebird() {
+			recreateIndexes := []string{
+				"CREATE INDEX `IDX_commit_status_context_hash` ON `commit_status` (`context_hash`)",
+				"CREATE UNIQUE INDEX `UQE_review_state_pull_commit_user` ON `review_state` (`user_id`, `pull_id`, `commit_sha`)",
+				"CREATE UNIQUE INDEX `UQE_repo_archiver_s` ON `repo_archiver` (`repo_id`, `type`, `commit_id`)",
+			}
+			for _, s := range recreateIndexes {
+				_, err := db.Exec(s)
+				if err != nil {
+					return errors.New(s + " " + err.Error())
+				}
+			}
+		}
 	}
 	log.Debug("Updated database tables to hold SHA256 git hash references")
 
 	return db.Commit()
+}
+
+// expandHashColumnOnFirebird rebuilds a hash column that Firebird refuses to shrink
+// below its declared size: the data is copied through a temporary column, the original
+// column is dropped and the copy renamed back. The index drops and re-creations around
+// the alter loop keep the columns free of index references. DDL and DML cannot share a
+// transaction on Firebird, so every phase commits before the next begins.
+func expandHashColumnOnFirebird(db *xorm.Session, tableName, colName string) error {
+	phases := [][]string{
+		{fmt.Sprintf("ALTER TABLE `%s` ADD `tmp_expand_hash_col` VARCHAR(64)", tableName)},
+		{fmt.Sprintf("UPDATE `%s` SET `tmp_expand_hash_col` = `%s`", tableName, colName)},
+		{
+			fmt.Sprintf("ALTER TABLE `%s` DROP `%s`", tableName, colName),
+			fmt.Sprintf("ALTER TABLE `%s` ALTER COLUMN `tmp_expand_hash_col` TO `%s`", tableName, colName),
+		},
+	}
+	for _, statements := range phases {
+		for _, s := range statements {
+			if _, err := db.Exec(s); err != nil {
+				return errors.New(s + " " + err.Error())
+			}
+		}
+		if err := db.Commit(); err != nil {
+			return err
+		}
+		if err := db.Begin(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func addObjectFormatNameToRepository(x base.EngineMigration) error {

@@ -156,6 +156,10 @@ TEST_MSSQL_HOST ?= mssql:1433
 TEST_MSSQL_DBNAME ?= testgitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
+TEST_FIREBIRD_HOST ?= localhost:3050
+TEST_FIREBIRD_DBNAME ?= /tmp/gitea-test.fdb
+TEST_FIREBIRD_USERNAME ?= SYSDBA
+TEST_FIREBIRD_PASSWORD ?= masterkey
 
 # Include local Makefile
 # Makefile.local is listed in .gitignore
@@ -175,7 +179,7 @@ help: Makefile ## print Makefile help information.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m[TARGETS] default target: build\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 }' Makefile #$(MAKEFILE_LIST)
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-e2e" "test end to end using playwright"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-backend[#TestSpecificName]" "run unit test (sqlite only)"
-	@printf "  \033[36m%-46s\033[0m %s\n" "test-integration[#TestSpecificName]" "run integration test for GITEA_TEST_DATABASE (sqlite, mysql, pgsql, mssql)"
+	@printf "  \033[36m%-46s\033[0m %s\n" "test-integration[#TestSpecificName]" "run integration test for GITEA_TEST_DATABASE (sqlite, mysql, pgsql, mssql, firebird)"
 
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files

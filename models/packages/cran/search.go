@@ -40,13 +40,13 @@ func (opts *SearchOptions) toConds() builder.Cond {
 	propsCond = propsCond.And(builder.Expr("package_property.ref_id = package_file.id"))
 
 	count := 1
-	propsCondBlock := builder.Eq{"package_property.name": cran_module.PropertyType}.And(builder.Eq{"package_property.value": opts.FileType})
+	propsCondBlock := builder.Eq{"package_property.name": cran_module.PropertyType}.And(builder.Eq{"`package_property`.`value`": opts.FileType})
 
 	if opts.Platform != "" {
 		count += 2
 		propsCondBlock = propsCondBlock.
-			Or(builder.Eq{"package_property.name": cran_module.PropertyPlatform}.And(builder.Eq{"package_property.value": opts.Platform})).
-			Or(builder.Eq{"package_property.name": cran_module.PropertyRVersion}.And(builder.Eq{"package_property.value": opts.RVersion}))
+			Or(builder.Eq{"package_property.name": cran_module.PropertyPlatform}.And(builder.Eq{"`package_property`.`value`": opts.Platform})).
+			Or(builder.Eq{"package_property.name": cran_module.PropertyRVersion}.And(builder.Eq{"`package_property`.`value`": opts.RVersion}))
 	}
 
 	propsCond = propsCond.And(propsCondBlock)

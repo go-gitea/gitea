@@ -4,6 +4,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 
 	"gitea.dev/modules/util"
@@ -65,4 +66,16 @@ func (err ErrNotExist) Error() string {
 // Unwrap unwraps this as a ErrNotExist err
 func (err ErrNotExist) Unwrap() error {
 	return util.ErrNotExist
+}
+
+// sqlStateCarrier is implemented by driver errors that report a SQLSTATE.
+type sqlStateCarrier interface{ SQLState() string }
+
+// IsConflictError reports whether the database rejected the statement because it conflicted with a
+// concurrent transaction (SQLSTATE 40001). Firebird raises it when an update loses a race: rather
+// than re-evaluating the condition and reporting fewer affected rows it reports the conflict as an
+// error, so a caller that guards an update by its affected count has to handle it.
+func IsConflictError(err error) bool {
+	var carrier sqlStateCarrier
+	return errors.As(err, &carrier) && carrier.SQLState() == "40001"
 }

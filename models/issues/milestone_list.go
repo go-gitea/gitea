@@ -118,7 +118,7 @@ func (milestones MilestoneList) LoadTotalTrackedTimes(ctx context.Context) error
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
 		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
 		Where("tracked_time.deleted = ?", false).
-		Select("milestone_id, sum(time) as time").
+		Select("milestone_id, sum(`time`) as `time`").
 		In("milestone_id", milestones.getMilestoneIDs()).
 		GroupBy("milestone_id").
 		Find(&totalTimesByMilestones)
@@ -144,7 +144,7 @@ func CountMilestonesMap(ctx context.Context, opts FindMilestoneOptions) (map[int
 		Count  int64
 	}, 0, 10)
 	if err := sess.GroupBy("repo_id").
-		Select("repo_id AS repo_id, COUNT(*) AS count").
+		Select("repo_id AS repo_id, COUNT(*) AS `count`").
 		Table("milestone").
 		Find(&countsSlice); err != nil {
 		return nil, err

@@ -25,6 +25,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"rdb.red-soft.ru/fbx"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 )
@@ -111,10 +112,6 @@ func ResetTestDatabase() (cleanup func(), err error) {
 	}()
 
 	connOpts := db.GlobalConnOptions()
-	driverDefault, connStrDefault, err := db.ConnStrDefaultDatabase(connOpts)
-	if err != nil {
-		return nil, err
-	}
 	driverDatabase, connStrDatabase, err := db.ConnStr(connOpts)
 	if err != nil {
 		return nil, err
@@ -138,6 +135,29 @@ func ResetTestDatabase() (cleanup func(), err error) {
 
 	if !strings.Contains(connOpts.Database, "test") {
 		return nil, fmt.Errorf(`testing database name for %s must contain "test"`, connOpts.Database)
+	}
+
+	if connOpts.Type.IsFirebird() {
+		// Firebird has no CREATE DATABASE statement: the file appears by attaching to
+		// it with the create flag, which fbx exposes as its own API. Dropping a file
+		// that is not there yet fails, and that is not an error here.
+		ctx := context.Background()
+		_ = fbx.DropDatabase(ctx, connStrDatabase)
+		conn, err := fbx.CreateDatabase(ctx, connStrDatabase)
+		if err != nil {
+			return nil, err
+		}
+		if err := conn.Close(ctx); err != nil {
+			return nil, err
+		}
+		return func() {
+			_ = fbx.DropDatabase(context.Background(), connStrDatabase)
+		}, nil
+	}
+
+	driverDefault, connStrDefault, err := db.ConnStrDefaultDatabase(connOpts)
+	if err != nil {
+		return nil, err
 	}
 
 	quotedDbName := connOpts.Database

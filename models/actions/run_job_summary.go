@@ -150,6 +150,35 @@ func upsertActionRunJobSummary(ctx context.Context, summary *ActionRunJobSummary
 		summary.Updated,
 	}
 
+	if setting.Database.Type.IsFirebird() {
+		// Firebird has neither ON CONFLICT nor ON DUPLICATE KEY UPDATE, MERGE is its upsert.
+		// The USING clause needs a real SELECT: a derived table without FROM is a parse
+		// error, so the source reads the single-row system table. CASTs give each bound
+		// value a type, as Firebird does not infer one inside the derived table. The
+		// timestamps stay int64: timeutil.TimeStamp is an int64, so the columns are
+		// INT64 and Firebird cannot bind a formatted string into them.
+		_, err := engine.Exec(`
+MERGE INTO action_run_job_summary AS target
+USING (SELECT CAST(? AS BIGINT) AS repo_id, CAST(? AS BIGINT) AS run_id, CAST(? AS BIGINT) AS run_attempt_id,
+             CAST(? AS BIGINT) AS job_id, CAST(? AS BIGINT) AS step_index, CAST(? AS BLOB SUB_TYPE TEXT) AS content,
+             CAST(? AS VARCHAR(255)) AS content_type, CAST(? AS BIGINT) AS content_size,
+             CAST(? AS BIGINT) AS created, CAST(? AS BIGINT) AS updated FROM rdb$database) AS source
+ON target.repo_id = source.repo_id
+	AND target.run_id = source.run_id
+	AND target.run_attempt_id = source.run_attempt_id
+	AND target.job_id = source.job_id
+	AND target.step_index = source.step_index
+WHEN MATCHED THEN
+	UPDATE SET content = source.content, content_type = source.content_type, content_size = source.content_size, updated = source.updated
+WHEN NOT MATCHED THEN
+	INSERT (repo_id, run_id, run_attempt_id, job_id, step_index, content, content_type, content_size, created, updated)
+	VALUES (source.repo_id, source.run_id, source.run_attempt_id, source.job_id, source.step_index, source.content, source.content_type, source.content_size, source.created, source.updated)
+`,
+			summary.RepoID, summary.RunID, summary.RunAttemptID, summary.JobID, summary.StepIndex,
+			summary.Content, summary.ContentType, summary.ContentSize, summary.Created, summary.Updated)
+		return err
+	}
+
 	if setting.Database.Type.IsPostgreSQL() || setting.Database.Type.IsSQLite3() {
 		args := append([]any{"INSERT INTO `action_run_job_summary` (" + columns + ") VALUES (?,?,?,?,?,?,?,?,?,?) " +
 			"ON CONFLICT (`repo_id`, `run_id`, `run_attempt_id`, `job_id`, `step_index`) DO UPDATE SET " +

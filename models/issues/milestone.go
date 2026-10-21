@@ -316,7 +316,7 @@ func (m *Milestone) LoadTotalTrackedTime(ctx context.Context) error {
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
 		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
 		Where("tracked_time.deleted = ?", false).
-		Select("milestone_id, sum(time) as time").
+		Select("milestone_id, sum(`time`) as `time`").
 		Where("milestone_id = ?", m.ID).
 		GroupBy("milestone_id").
 		Get(totalTime)

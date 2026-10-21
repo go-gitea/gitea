@@ -57,7 +57,8 @@ func GlobalConnOptions() ConnOptions {
 
 const (
 	sqlDriverPostgresSchema = "postgresschema"
-	sqlDriverSQLite3        = "sqlite3" // although database type also has "sqlite3", they are different, for different purposes
+	sqlDriverSQLite3        = "sqlite3"  // although database type also has "sqlite3", they are different, for different purposes
+	sqlDriverFirebird       = "firebird" // fbx's own driver name is "fbx", but xorm looks the driver up by dialect name
 )
 
 var makeSQLiteConnStr = func(opts SQLiteConnStrOptions) (string, string, error) {
@@ -103,6 +104,13 @@ func ConnStr(opts ConnOptions) (string, string, error) {
 		}
 		return "mssql", connStr, nil
 
+	case opts.Type.IsFirebird():
+		connStr, err := makeFirebirdConnStr(opts)
+		if err != nil {
+			return "", "", err
+		}
+		return sqlDriverFirebird, connStr, nil
+
 	case opts.Type.IsSQLite3():
 		if opts.SQLitePath == "" {
 			return "", "", errors.New("sqlite3 database path cannot be empty")
@@ -139,6 +147,53 @@ func parsePgSQLHostPort(info string) (host, port string) {
 	}
 	if port == "" {
 		port = "5432"
+	}
+	return host, port
+}
+
+// makeFirebirdConnStr builds a "firebird://" DSN. DB.NAME is a database file
+// path (or a server-side alias), not a logical name, so an absolute path has to
+// keep its leading slash, which means a doubled slash after the port.
+func makeFirebirdConnStr(opts ConnOptions) (string, error) {
+	if opts.Database == "" {
+		return "", errors.New("firebird database name cannot be empty")
+	}
+	host, port := parseFirebirdHostPort(opts.Host)
+
+	var b strings.Builder
+	b.WriteString("firebird://")
+	if opts.User != "" || opts.Passwd != "" {
+		b.WriteString(url.UserPassword(opts.User, opts.Passwd).String())
+		b.WriteByte('@')
+	}
+	b.WriteString(net.JoinHostPort(host, port))
+	// fbx strips exactly one leading slash from the URL path, so a relative name needs
+	// only the path separator while an absolute path keeps its own slash behind it
+	b.WriteByte('/')
+	b.WriteString(opts.Database)
+	// "exec" deallocates each statement after use: fbx's default cache_statement mode
+	// leaves a cursor open, and Firebird then refuses to drop a table it considers
+	// "in use", which breaks DropTables and migrations. The connection charset is
+	// pinned to UTF8, and a database created from this DSN takes UTF8 as its default
+	// charset, so text round-trips with the same byte semantics everywhere. The
+	// transactions run READ COMMITTED with the latest row version, like on the other
+	// databases: an update racing a concurrent commit re-evaluates the row instead of
+	// failing with a deadlock error the way Firebird's default SNAPSHOT isolation does.
+	b.WriteString("?default_query_exec_mode=exec&encoding=UTF8&default_transaction_iso_level=read_committed")
+	return b.String(), nil
+}
+
+func parseFirebirdHostPort(info string) (host, port string) {
+	if h, p, err := net.SplitHostPort(info); err == nil {
+		host, port = h, p
+	} else {
+		host = info
+	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port == "" {
+		port = "3050"
 	}
 	return host, port
 }

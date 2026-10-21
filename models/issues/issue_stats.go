@@ -51,7 +51,7 @@ func CountIssuesByRepo(ctx context.Context, opts *IssuesOptions) (map[int64]int6
 		Count  int64
 	}, 0, 10)
 	if err := sess.GroupBy("issue.repo_id").
-		Select("issue.repo_id AS repo_id, COUNT(*) AS count").
+		Select("issue.repo_id AS repo_id, COUNT(*) AS `count`").
 		Table("issue").
 		Find(&countsSlice); err != nil {
 		return nil, fmt.Errorf("unable to CountIssuesByRepo: %w", err)
@@ -67,7 +67,7 @@ func CountIssuesByRepo(ctx context.Context, opts *IssuesOptions) (map[int64]int6
 // CountIssues number return of issues by given conditions.
 func CountIssues(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Cond) (int64, error) {
 	sess := db.GetEngine(ctx).
-		Select("COUNT(issue.id) AS count").
+		Select("COUNT(issue.id) AS `count`").
 		Table("issue").
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	applyConditions(sess, opts)

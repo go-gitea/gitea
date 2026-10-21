@@ -45,6 +45,10 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		groupBy = "created_unix DIV 900 * 900"
 	case setting.Database.Type.IsMSSQL():
 		groupByName = groupBy
+	case setting.Database.Type.IsFirebird():
+		// TIMESTAMP is a reserved word in Firebird, so the alias has to be quoted
+		// everywhere it is named: in the select list, in GROUP BY and in ORDER BY.
+		groupByName = "`timestamp`"
 	}
 
 	cond, err := ActivityQueryCondition(ctx, GetFeedsOptions{
@@ -64,11 +68,11 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 
 	// HINT: USER-ACTIVITY-PUSH-COMMITS: it only uses the doer's action time, it doesn't use git commit's time
 	return hdata, db.GetEngine(ctx).
-		Select(groupBy+" AS timestamp, count(user_id) as contributions").
+		Select(groupBy+" AS "+groupByName+", count(user_id) as contributions").
 		Table("action").
 		Where(cond).
 		And("created_unix > ?", timeutil.TimeStampNow()-(366+7)*86400). // (366+7) days to include the first week for the heatmap
 		GroupBy(groupByName).
-		OrderBy("timestamp").
+		OrderBy(groupByName).
 		Find(&hdata)
 }
