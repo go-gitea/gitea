@@ -148,7 +148,7 @@ func orgHome(ctx *context.Context, viewRepositories bool) {
 		Keyword:            keyword,
 		OwnerID:            org.ID,
 		OrderBy:            orderBy,
-		Private:            ctx.IsSigned,
+		Private:            ctx.IsSigned && !context.TokenIsPublicOnly(ctx),
 		Actor:              ctx.Doer,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,

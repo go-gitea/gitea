@@ -35,4 +35,8 @@ func TestUserHeatmap(t *testing.T) {
 	dummyheatmap = append(dummyheatmap, &activities_model.UserHeatmapData{Timestamp: 1603227600, Contributions: 1})
 
 	assert.Equal(t, dummyheatmap, heatmap)
+
+	publicOnlyToken := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/heatmap", normalUsername)).AddTokenAuth(publicOnlyToken)
+	assert.Empty(t, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*activities_model.UserHeatmapData{}))
 }

@@ -107,3 +107,27 @@ func TestProfileActivityPublicOnlyToken(t *testing.T) {
 	respPublicOnly := MakeRequest(t, reqPublicOnly, http.StatusOK)
 	assert.NotContains(t, respPublicOnly.Body.String(), privateMarker)
 }
+
+func TestProfileReposAndLimitedOwnersPublicOnlyToken(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	fullToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
+	publicOnlyToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
+	for link, privateRepoLink := range map[string]string{
+		"/user2?tab=repositories&q=repo2": `"/user2/repo2"`,
+		"/user2?tab=stars":                `"/user2/repo2"`,
+		"/org3":                           `"/org3/repo3"`,
+	} {
+		reqFull := NewRequest(t, "GET", link)
+		reqFull.SetBasicAuth("user2", fullToken)
+		assert.Contains(t, MakeRequest(t, reqFull, http.StatusOK).Body.String(), privateRepoLink, link)
+		reqPublicOnly := NewRequest(t, "GET", link)
+		reqPublicOnly.SetBasicAuth("user2", publicOnlyToken)
+		assert.NotContains(t, MakeRequest(t, reqPublicOnly, http.StatusOK).Body.String(), privateRepoLink, link)
+	}
+
+	for _, limitedLink := range []string{"/user33", "/user33.rss", "/limited_org"} {
+		assertBasicAuthStatus(t, limitedLink, fullToken, http.StatusOK)
+		assertBasicAuthStatus(t, limitedLink, publicOnlyToken, http.StatusNotFound)
+	}
+}
