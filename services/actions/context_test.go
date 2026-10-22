@@ -16,6 +16,7 @@ import (
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	webhook_module "gitea.dev/modules/webhook"
@@ -408,6 +409,11 @@ func TestGenerateGiteaContextPullRequestTarget(t *testing.T) {
 
 	assert.Equal(t, "refs/heads/main", giteaCtx["ref"])
 	assert.Equal(t, "main", giteaCtx["ref_name"])
+
+	defer test.MockVariableValue(&setting.Actions.ArtifactRetentionDays, 7)()
+	assert.Equal(t, "7", GenerateGiteaContext(t.Context(), run, nil, nil)["retention_days"])
+	setting.Actions.ArtifactRetentionDays = 0
+	assert.Empty(t, GenerateGiteaContext(t.Context(), run, nil, nil)["retention_days"])
 }
 
 func TestGenerateGiteaContextRefProtected(t *testing.T) {
