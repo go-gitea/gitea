@@ -360,16 +360,17 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		}
 		labelIDs = append(labelIDs, repoLabelIDs...)
 		if ctx.Repo.Owner.IsOrganization() {
-			// A repository label and an organization label may share a name.
-			// In that case the repository label wins, so look up organization
-			// labels only for the names that did not match a repository label.
-			orgLabelNames, err := namesWithoutRepoLabel(ctx, repoLabelIDs, labelNames)
+			repoLabels, err := issues_model.GetLabelsByIDs(ctx, repoLabelIDs, "name")
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return nil, nil, err
 			}
+			orgLabelNames := container.SetOf(labelNames...)
+			for _, label := range repoLabels {
+				orgLabelNames.Remove(label.Name)
+			}
 			if len(orgLabelNames) > 0 {
-				orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, orgLabelNames)
+				orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, orgLabelNames.Values())
 				if err != nil {
 					ctx.APIErrorInternal(err)
 					return nil, nil, err
@@ -386,26 +387,4 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 	}
 
 	return issue, labels, err
-}
-
-// namesWithoutRepoLabel returns the label names that are not used by any of the given repository labels.
-func namesWithoutRepoLabel(ctx *context.APIContext, repoLabelIDs []int64, labelNames []string) ([]string, error) {
-	if len(repoLabelIDs) == 0 {
-		return labelNames, nil
-	}
-	repoLabels, err := issues_model.GetLabelsByIDs(ctx, repoLabelIDs, "id", "name")
-	if err != nil {
-		return nil, err
-	}
-	repoLabelNames := make(container.Set[string], len(repoLabels))
-	for _, label := range repoLabels {
-		repoLabelNames.Add(label.Name)
-	}
-	names := make([]string, 0, len(labelNames))
-	for _, name := range labelNames {
-		if !repoLabelNames.Contains(name) {
-			names = append(names, name)
-		}
-	}
-	return names, nil
 }

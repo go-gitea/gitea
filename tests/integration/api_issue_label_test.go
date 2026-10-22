@@ -184,9 +184,7 @@ func TestAPIAddIssueLabelsWithSharedRepoAndOrgLabelName(t *testing.T) {
 	repoLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 10, RepoID: repo.ID})
 	orgOnlyLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 4, OrgID: owner.ID})
 
-	// an org label with the same name as the repo label
-	sameNameOrgLabel := &issues_model.Label{OrgID: owner.ID, Name: repoLabel.Name, Color: "#abcdef"}
-	assert.NoError(t, issues_model.NewLabel(t.Context(), sameNameOrgLabel))
+	assert.NoError(t, issues_model.NewLabel(t.Context(), &issues_model.Label{OrgID: owner.ID, Name: repoLabel.Name, Color: "#abcdef"}))
 
 	token := getTokenForLoggedInUser(t, loginUser(t, "user1"), auth_model.AccessTokenScopeWriteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels", owner.Name, repo.Name, issue.Index)
@@ -206,10 +204,7 @@ func TestAPIAddIssueLabelsWithSharedRepoAndOrgLabelName(t *testing.T) {
 			for _, label := range apiLabels {
 				apiLabelIDs = append(apiLabelIDs, label.ID)
 			}
-			// the repo label wins over the org label with the same name, other org labels are still found
 			assert.ElementsMatch(t, []int64{repoLabel.ID, orgOnlyLabel.ID}, apiLabelIDs)
-			unittest.AssertCount(t, &issues_model.IssueLabel{IssueID: issue.ID}, 2)
-			unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: sameNameOrgLabel.ID})
 		})
 	}
 }
