@@ -7,12 +7,14 @@ import (
 	"testing"
 
 	"gitea.dev/modules/setting"
+	testModule "gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCamoHandleLink(t *testing.T) {
-	setting.AppURL = "https://gitea.com"
+	defer testModule.MockVariableValue(&setting.AppURL, "https://gitea.com")()
+	defer testModule.MockVariableValue(&setting.Camo)()
 	// Test media proxy
 	setting.Camo.Enabled = true
 	setting.Camo.Always = false
@@ -42,7 +44,4 @@ func TestCamoHandleLink(t *testing.T) {
 	assert.Equal(t,
 		"https://image.proxy/eivin43gJwGVIjR9MiYYtFIk0mw/aHR0cDovL3Rlc3RpbWFnZXMub3JnL2ltZy5qcGc",
 		camoHandleLink("http://testimages.org/img.jpg"))
-
-	// Restore previous settings
-	setting.Camo.Enabled = false
 }
