@@ -473,9 +473,9 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 	}
 
 	if requireWrite {
-		context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
+		context.CheckRepoScopedToken(ctx, auth_model.Write)
 	} else {
-		context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
+		context.CheckRepoScopedToken(ctx, auth_model.Read)
 	}
 
 	if ctx.Written() {
@@ -598,7 +598,7 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 		return nil, errors.New("invalid token claim")
 	}
 
-	u, err := user_model.GetDoerUser(ctx, claims.UserID, claims.UserExtDoerData)
+	u, err := user_model.GetDoerPermissionUser(ctx, claims.UserID, claims.UserExtDoerData)
 	if err != nil {
 		log.Error("Unable to GetDoerUser[%d]: Error: %v", claims.UserID, err)
 		return nil, err

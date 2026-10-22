@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	feed_service "gitea.dev/services/feed"
@@ -40,7 +42,6 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 		UserID:            u.ID,
 		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, u),
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -145,13 +146,6 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 
 	op := api.OrganizationPermissions{}
 
-	// A public-only token must not disclose membership/permission details of a
-	// non-public org, even for the token owner's own private orgs.
-	if ctx.PublicOnly && !o.Visibility.IsPublic() {
-		ctx.APIErrorNotFound()
-		return
-	}
-
 	if !organization.HasOrgOrUserVisible(ctx, o, ctx.Doer) {
 		ctx.APIErrorNotFound()
 		return
@@ -223,7 +217,6 @@ func GetAll(ctx *context.APIContext) {
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Visible:     vMode,
 	}
-	searchOpts.ApplyPublicOnly(ctx.PublicOnly)
 
 	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, searchOpts)
 	if err != nil {
@@ -295,6 +288,8 @@ func Create(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	audit.Record(ctx, audit_model.OrganizationCreate, org.AsUser())
 
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
@@ -505,7 +500,6 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

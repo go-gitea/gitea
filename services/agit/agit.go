@@ -24,6 +24,8 @@ import (
 	pull_service "gitea.dev/services/pull"
 )
 
+const SshInfoJson = `{"type":"agit","version":1}`
+
 func parseAgitPushOptionValue(s string) string {
 	if base64Value, ok := strings.CutPrefix(s, "{base64}"); ok {
 		decoded, err := base64.StdEncoding.DecodeString(base64Value)
@@ -250,7 +252,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		oldHeadCommitID := pr.HeadCommitID
 
 		pr.HeadCommitID = opts.NewCommitIDs[i]
-		if err = pull_service.UpdateRef(ctx, pr); err != nil {
+		if err = pull_service.UpdateRefForAgit(ctx, pr); err != nil {
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
 		}
 

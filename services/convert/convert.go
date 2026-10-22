@@ -113,31 +113,38 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 			return nil, err
 		}
 		bp.Repo = repo
-		branch.UserCanPush = bp.CanUserPush(ctx, user)
+		branch.UserCanPush = bp.CanUserPush(ctx, user, permission)
 		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(ctx, bp, user.ID, permission)
 	}
 
 	return branch, nil
 }
 
-// getWhitelistEntities returns the names of the entities that are in the whitelist
-func getWhitelistEntities[T *user_model.User | *organization.Team](entities []T, whitelistIDs []int64) []string {
-	whitelistUserIDsSet := container.SetOf(whitelistIDs...)
-	whitelistNames := make([]string, 0)
-	for _, entity := range entities {
-		switch v := any(entity).(type) {
-		case *user_model.User:
-			if whitelistUserIDsSet.Contains(v.ID) {
-				whitelistNames = append(whitelistNames, v.Name)
-			}
-		case *organization.Team:
-			if whitelistUserIDsSet.Contains(v.ID) {
-				whitelistNames = append(whitelistNames, v.Name)
-			}
+func getAllowListUserNames(users []*user_model.User, ids []int64) []string {
+	userIdMap := map[int64]string{}
+	for _, user := range users {
+		userIdMap[user.ID] = user.Name
+	}
+	names := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if name, ok := userIdMap[id]; ok {
+			names = append(names, name)
+		} else if u := user_model.GetSystemUserByID(id); u != nil {
+			names = append(names, u.Name)
 		}
 	}
+	return names
+}
 
-	return whitelistNames
+func getAllowListTeamNames(teams []*organization.Team, ids []int64) []string {
+	idSet := container.SetOf(ids...)
+	names := make([]string, 0, len(ids))
+	for _, team := range teams {
+		if idSet.Contains(team.ID) {
+			names = append(names, team.Name)
+		}
+	}
+	return names
 }
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
@@ -147,22 +154,24 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		log.Error("GetRepoReaders: %v", err)
 	}
 
-	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
-	forcePushAllowlistUsernames := getWhitelistEntities(readers, bp.ForcePushAllowlistUserIDs)
-	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
-	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
-	bypassAllowlistUsernames := getWhitelistEntities(readers, bp.BypassAllowlistUserIDs)
+	pushWhitelistUsernames := getAllowListUserNames(readers, bp.WhitelistUserIDs)
+	forcePushAllowlistUsernames := getAllowListUserNames(readers, bp.ForcePushAllowlistUserIDs)
+	deletionAllowlistUsernames := getAllowListUserNames(readers, bp.DeletionAllowlistUserIDs)
+	mergeWhitelistUsernames := getAllowListUserNames(readers, bp.MergeWhitelistUserIDs)
+	approvalsWhitelistUsernames := getAllowListUserNames(readers, bp.ApprovalsWhitelistUserIDs)
+	bypassAllowlistUsernames := getAllowListUserNames(readers, bp.BypassAllowlistUserIDs)
 
 	teamReaders, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.Owner.ID, repo.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
 	}
 
-	pushWhitelistTeams := getWhitelistEntities(teamReaders, bp.WhitelistTeamIDs)
-	forcePushAllowlistTeams := getWhitelistEntities(teamReaders, bp.ForcePushAllowlistTeamIDs)
-	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
-	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
-	bypassAllowlistTeams := getWhitelistEntities(teamReaders, bp.BypassAllowlistTeamIDs)
+	pushWhitelistTeams := getAllowListTeamNames(teamReaders, bp.WhitelistTeamIDs)
+	forcePushAllowlistTeams := getAllowListTeamNames(teamReaders, bp.ForcePushAllowlistTeamIDs)
+	deletionAllowlistTeams := getAllowListTeamNames(teamReaders, bp.DeletionAllowlistTeamIDs)
+	mergeWhitelistTeams := getAllowListTeamNames(teamReaders, bp.MergeWhitelistTeamIDs)
+	approvalsWhitelistTeams := getAllowListTeamNames(teamReaders, bp.ApprovalsWhitelistTeamIDs)
+	bypassAllowlistTeams := getAllowListTeamNames(teamReaders, bp.BypassAllowlistTeamIDs)
 
 	branchName := ""
 	if !git_model.IsRuleNameSpecial(bp.RuleName) {
@@ -177,12 +186,16 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		EnablePushWhitelist:           bp.EnableWhitelist,
 		PushWhitelistUsernames:        pushWhitelistUsernames,
 		PushWhitelistTeams:            pushWhitelistTeams,
-		PushWhitelistDeployKeys:       bp.WhitelistDeployKeys,
+		PushWhitelistDeployKeys:       bp.HasDeployKeyPush(),
 		EnableForcePush:               bp.CanForcePush,
 		EnableForcePushAllowlist:      bp.EnableForcePushAllowlist,
 		ForcePushAllowlistUsernames:   forcePushAllowlistUsernames,
 		ForcePushAllowlistTeams:       forcePushAllowlistTeams,
-		ForcePushAllowlistDeployKeys:  bp.ForcePushAllowlistDeployKeys,
+		ForcePushAllowlistDeployKeys:  bp.HasDeployKeyForcePush(),
+		EnableDeletion:                bp.CanDelete,
+		EnableDeletionAllowlist:       bp.EnableDeletionAllowlist,
+		DeletionAllowlistUsernames:    deletionAllowlistUsernames,
+		DeletionAllowlistTeams:        deletionAllowlistTeams,
 		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
 		MergeWhitelistUsernames:       mergeWhitelistUsernames,
 		MergeWhitelistTeams:           mergeWhitelistTeams,
@@ -273,7 +286,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 	}
 
 	runAttempt := int64(0)
-	status, conclusion := ToActionsStatus(run.Status)
+	status, conclusion := ToRunActionsStatus(run, run.Status)
 	startedAt := run.Started.AsLocalTime()
 	completedAt := run.Stopped.AsLocalTime()
 	actor := run.TriggerUser       // The username of the user that triggered the initial workflow run.
@@ -289,7 +302,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 			return nil, err
 		}
 		runAttempt = attempt.Attempt
-		status, conclusion = ToActionsStatus(attempt.Status)
+		status, conclusion = ToRunActionsStatus(run, attempt.Status)
 		startedAt = attempt.Started.AsLocalTime()
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
@@ -348,8 +361,8 @@ func loadPullRequestsForRun(ctx context.Context, run *actions_model.ActionRun) (
 	var prs issues_model.PullRequestList
 	switch {
 	case run.Event.IsPullRequest() || run.Event.IsPullRequestReview():
-		index, err := strconv.ParseInt(refName.PullName(), 10, 64)
-		if err != nil {
+		index, ok := refName.PullIndex()
+		if !ok {
 			return result, nil
 		}
 		pr, err := issues_model.GetPullRequestByIndex(ctx, run.RepoID, index)
@@ -435,12 +448,21 @@ func ToWorkflowRunAction(status actions_model.Status) (action string) {
 	return action
 }
 
+func ToRunActionsStatus(run *actions_model.ActionRun, status actions_model.Status) (action, conclusion string) {
+	if status.IsBlocked() && run.NeedApproval {
+		return "waiting", ""
+	}
+	return ToActionsStatus(status)
+}
+
 func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 	switch status {
 	case actions_model.StatusWaiting:
-		action = "queued" // "waiting" is a naming conflict of the webhook between Gitea and GitHub Actions
+		action = "queued"
 	case actions_model.StatusBlocked:
-		action = "waiting" // naming conflict (as above)
+		action = "pending"
+	case actions_model.StatusPending:
+		action = "requested"
 	case actions_model.StatusRunning, actions_model.StatusCancelling:
 		action = "in_progress"
 	default:
@@ -469,11 +491,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		return nil, err
 	}
 
-	status, conclusion := ToActionsStatus(job.Status)
-	var runnerID int64
-	var runnerName string
-	var steps []*api.ActionWorkflowStep
-
+	var runner *actions_model.ActionRunner
 	if effectiveTaskID := job.EffectiveTaskID(); effectiveTaskID != 0 {
 		if task == nil {
 			task, _, err = db.GetByID[actions_model.ActionTask](ctx, effectiveTaskID)
@@ -483,28 +501,68 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		}
 
 		if task != nil {
-			if task.Steps == nil {
-				task.Steps, err = actions_model.GetTaskStepsByTaskID(ctx, task.ID)
-				if err != nil {
-					return nil, err
-				}
-				task.Steps = util.SliceNilAsEmpty(task.Steps)
+			if err := (actions_model.TaskList{task}).LoadSteps(ctx); err != nil {
+				return nil, err
 			}
-			runnerID = task.RunnerID
-			if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
-				runnerName = runner.Name
-			}
-			for i, step := range task.Steps {
-				stepStatus, stepConclusion := ToActionsStatus(step.Status)
-				steps = append(steps, &api.ActionWorkflowStep{
-					Name:        step.Name,
-					Number:      int64(i),
-					Status:      stepStatus,
-					Conclusion:  stepConclusion,
-					StartedAt:   step.Started.AsTime().UTC(),
-					CompletedAt: step.Stopped.AsTime().UTC(),
-				})
-			}
+			runner, _, _ = db.GetByID[actions_model.ActionRunner](ctx, task.RunnerID)
+		}
+	}
+	return toActionWorkflowJob(ctx, repo, task, runner, job), nil
+}
+
+// ToActionWorkflowJobs requires job.Run.Repo to be loaded
+func ToActionWorkflowJobs(ctx context.Context, jobs []*actions_model.ActionRunJob) ([]*api.ActionWorkflowJob, error) {
+	tasks, err := actions_model.GetTasksMapByIDs(ctx, container.FilterSlice(jobs, func(job *actions_model.ActionRunJob) (int64, bool) {
+		taskID := job.EffectiveTaskID()
+		return taskID, taskID != 0
+	}))
+	if err != nil {
+		return nil, err
+	}
+	taskList := actions_model.TaskList(slices.Collect(maps.Values(tasks)))
+	if err := taskList.LoadSteps(ctx); err != nil {
+		return nil, err
+	}
+	runners, err := actions_model.GetRunnersMapByIDs(ctx, container.FilterSlice(taskList, func(task *actions_model.ActionTask) (int64, bool) {
+		return task.RunnerID, task.RunnerID != 0
+	}))
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*api.ActionWorkflowJob, len(jobs))
+	for i, job := range jobs {
+		task := tasks[job.EffectiveTaskID()]
+		var runner *actions_model.ActionRunner
+		if task != nil {
+			runner = runners[task.RunnerID]
+		}
+		result[i] = toActionWorkflowJob(ctx, job.Run.Repo, task, runner, job)
+	}
+	return result, nil
+}
+
+func toActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task *actions_model.ActionTask, runner *actions_model.ActionRunner, job *actions_model.ActionRunJob) *api.ActionWorkflowJob {
+	status, conclusion := ToRunActionsStatus(job.Run, job.Status)
+	var runnerID int64
+	var runnerName string
+	var steps []*api.ActionWorkflowStep
+
+	if task != nil && job.EffectiveTaskID() != 0 {
+		runnerID = task.RunnerID
+		if runner != nil {
+			runnerName = runner.Name
+		}
+		for i, step := range task.Steps {
+			stepStatus, stepConclusion := ToActionsStatus(step.Status)
+			steps = append(steps, &api.ActionWorkflowStep{
+				Name:        step.Name,
+				Number:      int64(i),
+				Status:      stepStatus,
+				Conclusion:  stepConclusion,
+				StartedAt:   step.Started.AsTime().UTC(),
+				CompletedAt: step.Stopped.AsTime().UTC(),
+			})
 		}
 	}
 
@@ -529,7 +587,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		CreatedAt:   job.Created.AsTime().UTC(),
 		StartedAt:   job.Started.AsTime().UTC(),
 		CompletedAt: job.Stopped.AsTime().UTC(),
-	}, nil
+	}
 }
 
 func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, refName git.RefName, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
@@ -711,7 +769,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 }
 
 // ToActionArtifact convert a actions_model.ActionArtifact to an api.ActionArtifact
-func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArtifact) (*api.ActionArtifact, error) {
+func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArtifact) *api.ActionArtifact {
 	url := fmt.Sprintf("%s/actions/artifacts/%d", repo.APIURL(), art.ID)
 
 	return &api.ActionArtifact{
@@ -729,10 +787,10 @@ func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArti
 			RepositoryID: art.RepoID,
 			HeadSha:      art.CommitSHA,
 		},
-	}, nil
+	}
 }
 
-func ToActionRunner(ctx context.Context, runner *actions_model.ActionRunner) *api.ActionRunner {
+func ToActionRunner(runner *actions_model.ActionRunner) *api.ActionRunner {
 	status := runner.Status()
 	apiStatus := "offline"
 	if runner.IsOnline() {
@@ -961,14 +1019,14 @@ func ToTagProtection(ctx context.Context, pt *git_model.ProtectedTag, repo *repo
 		log.Error("GetRepoReaders: %v", err)
 	}
 
-	whitelistUsernames := getWhitelistEntities(readers, pt.AllowlistUserIDs)
+	whitelistUsernames := getAllowListUserNames(readers, pt.AllowlistUserIDs)
 
 	teamReaders, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.Owner.ID, repo.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
 	}
 
-	whitelistTeams := getWhitelistEntities(teamReaders, pt.AllowlistTeamIDs)
+	whitelistTeams := getAllowListTeamNames(teamReaders, pt.AllowlistTeamIDs)
 
 	return &api.TagProtection{
 		ID:                 pt.ID,

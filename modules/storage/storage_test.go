@@ -6,6 +6,7 @@ package storage
 import (
 	"io"
 	"net/http"
+	"path"
 	"strings"
 	"testing"
 
@@ -47,7 +48,7 @@ func TestObjectStoragePath(t *testing.T) {
 	assert.Equal(t, "base/a/", buildObjectStorePathPrefix(base, "/a/"))
 }
 
-func testStorageIterator(t *testing.T, objStore ObjectStorage) {
+func testStorageAccess(t *testing.T, objStore ObjectStorage) {
 	testFiles := [][]string{
 		{"a/1.txt", "a1"},
 		{"/a/1.txt", "aa1"}, // same as above, but with leading slash that will be trim
@@ -57,39 +58,64 @@ func testStorageIterator(t *testing.T, objStore ObjectStorage) {
 		{"b/3.txt", "b3"},
 		{"b/x 4.txt", "bx4"},
 	}
-	for _, f := range testFiles {
-		_, err := objStore.Save(f[0], strings.NewReader(f[1]), -1)
-		assert.NoError(t, err)
-	}
 	defer func() {
 		for _, f := range testFiles {
 			_ = objStore.Delete(f[0])
 		}
 	}()
 
-	expectedList := map[string][]string{
-		"a":           {"a/1.txt"},
-		"a/":          {"a/1.txt"},
-		"/a/":         {"a/1.txt"},
-		"b":           {"b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
-		"":            {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
-		"/":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
-		".":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
-		"a/b/../../a": {"a/1.txt"},
-	}
-	for dir, expected := range expectedList {
-		count := 0
-		err := objStore.IterateObjects(dir, func(path string, f Object) error {
-			content, err := io.ReadAll(f)
+	t.Run("ReadWrite", func(t *testing.T) {
+		for _, it := range testFiles {
+			fp, content := it[0], it[1]
+			_, err := objStore.Save(fp, strings.NewReader(content), -1)
 			assert.NoError(t, err)
-			assert.NotEmpty(t, content)
-			assert.Contains(t, expected, path)
-			count++
-			return nil
-		})
-		assert.NoError(t, err)
-		assert.Len(t, expected, count)
-	}
+
+			stat, err := objStore.Stat(fp)
+			assert.NoError(t, err)
+			assert.Equal(t, path.Base(fp), stat.Name())
+
+			f, err := objStore.Open(fp)
+			assert.NoError(t, err)
+			stat, err = f.Stat()
+			assert.NoError(t, err)
+			assert.Equal(t, path.Base(fp), stat.Name())
+
+			contentBytes, err := io.ReadAll(f)
+			assert.NoError(t, err)
+			assert.Equal(t, content, string(contentBytes))
+			_ = f.Close()
+		}
+	})
+
+	t.Run("Iterator", func(t *testing.T) {
+		expectedList := map[string][]string{
+			"a":           {"a/1.txt"},
+			"a/":          {"a/1.txt"},
+			"/a/":         {"a/1.txt"},
+			"b":           {"b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
+			"":            {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
+			"/":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
+			".":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
+			"a/b/../../a": {"a/1.txt"},
+		}
+		for dir, expected := range expectedList {
+			count := 0
+			err := objStore.IterateObjects(dir, func(p string, f Object) error {
+				content, err := io.ReadAll(f)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, content)
+				assert.Contains(t, expected, p)
+				count++
+
+				stat, err := f.Stat()
+				assert.NoError(t, err)
+				assert.Equal(t, path.Base(p), stat.Name())
+				return nil
+			})
+			assert.NoError(t, err)
+			assert.Len(t, expected, count)
+		}
+	})
 }
 
 func testStorageURLContentTypeAndDisposition(t *testing.T, objStore ObjectStorage) {
@@ -139,7 +165,7 @@ func testStorageURLContentTypeAndDisposition(t *testing.T, objStore ObjectStorag
 }
 
 func testStorageGeneral(t *testing.T, objStore ObjectStorage) {
-	t.Run("StorageIterator", func(t *testing.T) { testStorageIterator(t, objStore) })
+	t.Run("StorageAccess", func(t *testing.T) { testStorageAccess(t, objStore) })
 
 	if _, ok := objStore.(*LocalStorage); ok {
 		t.Skipf("Skipping tests for local storage")

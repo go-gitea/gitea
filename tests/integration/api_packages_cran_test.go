@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"archive/tar"
 	"bytes"
 	"compress/gzip"
 	"fmt"
@@ -46,22 +45,6 @@ func TestPackageCran(t *testing.T) {
 	url := fmt.Sprintf("/api/packages/%s/cran", user.Name)
 
 	t.Run("Source", func(t *testing.T) {
-		createArchive := func(filename string, content []byte) *bytes.Buffer {
-			var buf bytes.Buffer
-			gw := gzip.NewWriter(&buf)
-			tw := tar.NewWriter(gw)
-			hdr := &tar.Header{
-				Name: filename,
-				Mode: 0o600,
-				Size: int64(len(content)),
-			}
-			tw.WriteHeader(hdr)
-			tw.Write(content)
-			tw.Close()
-			gw.Close()
-			return &buf
-		}
-
 		t.Run("Upload", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
@@ -70,16 +53,14 @@ func TestPackageCran(t *testing.T) {
 			req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(
-				"dummy.txt",
-				[]byte{},
-			)).AddBasicAuth(user.Name)
+			req = NewRequestWithBody(t, "PUT", uploadURL, test.WriteTarCompression(gzip.NewWriter, map[string]string{
+				"dummy.txt": "",
+			})).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(
-				"package/DESCRIPTION",
-				createDescription(packageName, packageVersion),
-			)).AddBasicAuth(user.Name)
+			req = NewRequestWithBody(t, "PUT", uploadURL, test.WriteTarCompression(gzip.NewWriter, map[string]string{
+				"package/DESCRIPTION": string(createDescription(packageName, packageVersion)),
+			})).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
 			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeCran)
@@ -99,10 +80,9 @@ func TestPackageCran(t *testing.T) {
 			assert.Equal(t, fmt.Sprintf("%s_%s.tar.gz", packageName, packageVersion), pfs[0].Name)
 			assert.True(t, pfs[0].IsLead)
 
-			req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(
-				"package/DESCRIPTION",
-				createDescription(packageName, packageVersion),
-			)).AddBasicAuth(user.Name)
+			req = NewRequestWithBody(t, "PUT", uploadURL, test.WriteTarCompression(gzip.NewWriter, map[string]string{
+				"package/DESCRIPTION": string(createDescription(packageName, packageVersion)),
+			})).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
 
@@ -225,5 +205,20 @@ func TestPackageCran(t *testing.T) {
 
 			assert.Contains(t, resp.Header().Get("Content-Type"), "application/x-gzip")
 		})
+	})
+
+	t.Run("EnumerateAfterOlderUpload", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequestWithBody(t, "PUT", url+"/src", test.WriteTarCompression(gzip.NewWriter, map[string]string{
+			"package/DESCRIPTION": string(createDescription(packageName, "1.0.2")),
+		})).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		for _, indexURL := range []string{url + "/src/contrib/PACKAGES", url + "/bin/windows/contrib/4.2/PACKAGES"} {
+			req = NewRequest(t, "GET", indexURL).AddBasicAuth(user.Name)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Contains(t, resp.Body.String(), "Version: "+packageVersion)
+		}
 	})
 }

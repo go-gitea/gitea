@@ -125,7 +125,7 @@ func Authenticate(ctx *context.Context) {
 		return
 	}
 
-	packageScope := auth_service.GetAccessScope(ctx.Data)
+	packageScope := auth_service.GetAccessScope(ctx.Doer, ctx.Data)
 	if has, err := packageScope.HasAnyScope(
 		auth_model.AccessTokenScopeReadPackage,
 		auth_model.AccessTokenScopeWritePackage,
@@ -154,7 +154,7 @@ func CheckCredentials(ctx *context.Context) {
 		return
 	}
 
-	packageScope := auth_service.GetAccessScope(ctx.Data)
+	packageScope := auth_service.GetAccessScope(ctx.Doer, ctx.Data)
 	if has, err := packageScope.HasAnyScope(
 		auth_model.AccessTokenScopeReadPackage,
 		auth_model.AccessTokenScopeWritePackage,
@@ -498,11 +498,7 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 		ctx.Req.Method,
 	)
 	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, helper.PackageErrorStatus(err), err)
 		return
 	}
 

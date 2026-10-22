@@ -103,7 +103,7 @@ func TestMetas(t *testing.T) {
 		assert.Equal(t, expectedStyle, metas["style"])
 		assert.Equal(t, "testRepo", metas["repo"])
 		assert.Equal(t, "testOwner", metas["user"])
-		assert.Equal(t, "https://someurl.com/{user}/{repo}/{issue}", metas["format"])
+		assert.Equal(t, "https://someurl.com/{user}/{repo}/{issue}", metas["externalTrackerLinkFormat"])
 	}
 
 	testSuccess(markup.IssueNameStyleNumeric)
@@ -185,6 +185,8 @@ func TestComposeSSHCloneURL(t *testing.T) {
 	assert.Equal(t, "git@domain:user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
 	setting.Repository.UseCompatSSHURI = true
 	assert.Equal(t, "ssh://git@domain/user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
+	setting.Repository.UseCompatSSHURI = false
+	assert.Equal(t, "ssh://git@domain/user/repo.git", ComposeSSHCloneURI(nil, "user", "repo"))
 	// test SSH_DOMAIN while use non-standard SSH port
 	setting.SSH.Port = 123
 	setting.Repository.UseCompatSSHURI = false

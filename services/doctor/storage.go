@@ -13,7 +13,6 @@ import (
 	"gitea.dev/models/packages"
 	"gitea.dev/models/repo"
 	"gitea.dev/models/user"
-	"gitea.dev/modules/base"
 	"gitea.dev/modules/log"
 	packages_module "gitea.dev/modules/packages"
 	"gitea.dev/modules/setting"
@@ -71,10 +70,10 @@ func commonCheckStorage(logger log.Logger, autofix bool, opts *commonStorageChec
 			}
 			logger.Info("Deleted %d/%d orphaned %s(s)", deletedNum, orphanedCount, opts.name)
 		} else {
-			logger.Warn("Found %d/%d (%s/%s) orphaned %s(s)", orphanedCount, totalCount, base.FileSize(orphanedSize), base.FileSize(totalSize), opts.name)
+			logger.Warn("Found %d/%d (%s/%s) orphaned %s(s)", orphanedCount, totalCount, util.FormatByteSize(orphanedSize), util.FormatByteSize(totalSize), opts.name)
 		}
 	} else {
-		logger.Info("Found %d (%s) %s(s)", totalCount, base.FileSize(totalSize), opts.name)
+		logger.Info("Found %d (%s) %s(s)", totalCount, util.FormatByteSize(totalSize), opts.name)
 	}
 	return nil
 }
@@ -120,6 +119,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 				&commonStorageCheckOptions{
 					storer: storage.LFS,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
+						// HINT: LFS-INTERNAL-PATH-PATTERN
 						// The oid of an LFS stored object is the name but with all the path.Separators removed
 						oid := strings.ReplaceAll(strings.ReplaceAll(path, "\\", ""), "/", "")
 						exists, err := git.ExistsLFSObject(ctx, oid)

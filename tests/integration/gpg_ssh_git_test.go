@@ -39,7 +39,7 @@ func TestGPGGit(t *testing.T) {
 	t.Setenv("GNUPGHOME", tmpDir)
 
 	// Need to create a root key
-	rootKeyPair, err := importTestingKey()
+	rootKeyPair, err := importTestingKey(t)
 	require.NoError(t, err, "importTestingKey")
 
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, rootKeyPair.PrimaryKey.KeyIdShortString())()
@@ -403,9 +403,9 @@ func crudActionCreateFile(_ *testing.T, ctx APITestContext, user *user_model.Use
 	}, callback...)
 }
 
-func importTestingKey() (*openpgp.Entity, error) {
+func importTestingKey(t *testing.T) (*openpgp.Entity, error) {
 	keyPath := filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/private-testing.key")
-	if _, _, err := process.GetManager().Exec("gpg --import "+keyPath, "gpg", "--import", keyPath); err != nil {
+	if _, _, err := process.CommandContext(t.Context(), "gpg", "--import", keyPath).OutputString(); err != nil {
 		return nil, err
 	}
 	keyringFile, err := os.Open(keyPath)

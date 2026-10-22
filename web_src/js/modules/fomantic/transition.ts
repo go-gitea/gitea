@@ -1,12 +1,6 @@
 export function initFomanticTransition() {
-  const transitionNopBehaviors = new Set([
-    'clear queue', 'stop', 'stop all', 'destroy',
-    'force repaint', 'repaint', 'reset',
-    'looping', 'remove looping', 'disable', 'enable',
-    'set duration', 'save conditions', 'restore conditions',
-  ]);
   // stand-in for removed transition module
-  $.fn.transition = function (arg0: any, arg1: any, arg2: any) {
+  $.fn.transition = function (arg0: any) {
     if (arg0 === 'is supported') return true;
     if (arg0 === 'is animating') return false;
     if (arg0 === 'is inward') return false;
@@ -14,10 +8,8 @@ export function initFomanticTransition() {
 
     let argObj: Record<string, any>;
     if (typeof arg0 === 'string') {
-      // many behaviors are no-op now. https://fomantic-ui.com/modules/transition.html#/usage
-      if (transitionNopBehaviors.has(arg0)) return this;
-      // now, the arg0 is an animation name, the syntax: (animation, duration, complete)
-      argObj = {animation: arg0, ...(arg1 && {duration: arg1}), ...(arg2 && {onComplete: arg2})};
+      if (arg0 === 'stop all') return this;
+      argObj = {animation: arg0};
     } else if (typeof arg0 === 'object') {
       argObj = arg0;
     } else {
@@ -38,12 +30,10 @@ export function initFomanticTransition() {
         el.classList.remove('hidden');
         el.classList.add('visible', 'transition');
         if (argObj.displayType) el.style.setProperty('display', argObj.displayType, 'important');
-        argObj.onShow?.call(el);
       } else {
         el.classList.add('hidden');
         el.classList.remove('visible'); // don't remove the transition class because the Fomantic animation style is `.hidden.transition`.
         el.style.removeProperty('display');
-        argObj.onHidden?.call(el);
       }
       argObj.onComplete?.call(el);
     });

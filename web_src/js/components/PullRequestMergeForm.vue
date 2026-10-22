@@ -3,27 +3,55 @@ import {computed, onMounted, onUnmounted, shallowRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {toggleElem} from '../utils/dom.ts';
 
+type MergeStyle = {
+  name: string,
+  allowed: boolean,
+  textDoMerge: string,
+  mergeTitleFieldText?: string,
+  mergeMessageFieldText?: string,
+  hideMergeMessageTexts?: boolean,
+  hideAutoMerge: boolean,
+};
+
+type MergeForm = {
+  allOverridableChecksOk: boolean,
+  baseLink: string,
+  canMergeNow: boolean,
+  defaultDeleteBranchAfterMerge: boolean,
+  defaultMergeMessage: string,
+  defaultMergeStyle: string,
+  emptyCommit: boolean,
+  hasPendingPullRequestMerge: boolean,
+  hasPendingPullRequestMergeTip: string,
+  isPullBranchDeletable: boolean,
+  mergeMessageFieldPlaceHolder: string,
+  mergeStyles: MergeStyle[],
+  pullHeadCommitID: string,
+  textAutoMergeButtonWhenSucceed: string,
+  textAutoMergeCancelSchedule: string,
+  textAutoMergeWhenSucceed: string,
+  textCancel: string,
+  textClearMergeMessage: string,
+  textClearMergeMessageHint: string,
+  textDeleteBranch: string,
+  textMergeCommitId: string,
+};
+
 const props = defineProps<{
-  mergeFormProps: any, // TODO: this is a huge object, need to be refactored in the future
+  mergeFormProps: MergeForm,
 }>();
 
 const mergeStyleManuallyMerged = 'manually-merged';
 
 const mergeForm = props.mergeFormProps;
 
-const mergeTitleFieldValue = shallowRef('');
-const mergeMessageFieldValue = shallowRef('');
+const mergeTitleFieldValue = shallowRef<string | undefined>('');
+const mergeMessageFieldValue = shallowRef<string | undefined>('');
 const deleteBranchAfterMerge = shallowRef(false);
 const autoMergeWhenSucceed = shallowRef(false);
 
 const mergeStyle = shallowRef('');
-const mergeStyleDetail = shallowRef({
-  hideMergeMessageTexts: false,
-  textDoMerge: '',
-  mergeTitleFieldText: '',
-  mergeMessageFieldText: '',
-  hideAutoMerge: false,
-});
+const mergeStyleDetail = shallowRef<MergeStyle>({name: '', allowed: false, textDoMerge: '', hideAutoMerge: false});
 
 const mergeStyleAllowedCount = shallowRef(0);
 
@@ -48,18 +76,18 @@ const forceMerge = computed(() => {
 });
 
 watch(mergeStyle, (val) => {
-  mergeStyleDetail.value = mergeForm.mergeStyles.find((e: any) => e.name === val);
+  mergeStyleDetail.value = mergeForm.mergeStyles.find((e) => e.name === val)!;
   for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
     toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
   }
 });
 
 onMounted(() => {
-  mergeStyleAllowedCount.value = mergeForm.mergeStyles.reduce((v: any, msd: any) => v + (msd.allowed ? 1 : 0), 0);
+  mergeStyleAllowedCount.value = mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
 
-  let mergeStyle = mergeForm.mergeStyles.find((e: any) => e.allowed && e.name === mergeForm.defaultMergeStyle)?.name;
-  if (!mergeStyle) mergeStyle = mergeForm.mergeStyles.find((e: any) => e.allowed)?.name;
-  switchMergeStyle(mergeStyle, !mergeForm.canMergeNow);
+  let mergeStyle = mergeForm.mergeStyles.find((e) => e.allowed && e.name === mergeForm.defaultMergeStyle)?.name;
+  if (!mergeStyle) mergeStyle = mergeForm.mergeStyles.find((e) => e.allowed)?.name;
+  if (mergeStyle) switchMergeStyle(mergeStyle, !mergeForm.canMergeNow);
 
   document.addEventListener('mouseup', hideMergeStyleMenu);
 });

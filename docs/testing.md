@@ -48,6 +48,10 @@ Run a single integration test with the `#` selector:
 make test-integration#TestName
 ```
 
+Each run gets its own work directory under `tests/integration/` and random ports, so SQLite runs
+can execute in parallel. Runs against other databases still share the database and object storage.
+The work directory is removed after a passing run and kept after a failure.
+
 If you hit errors such as a mismatched database version or SSH push failures, try a
 clean rebuild first:
 
@@ -110,6 +114,13 @@ List the available job names, then run a single one:
 gitea-runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -l
 gitea-runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -j <job_name>
 ```
+
+## Recorded API responses
+
+Repository migration unit and integration tests replay API responses recorded under
+`_mock_data/`, so they run offline. Setting the environment variables a test reads, usually
+API credentials, makes it record from the live API instead. To re-record, delete the test's
+`_mock_data` directory, run the test with those variables set, and update its assertions.
 
 ## End-to-end tests
 

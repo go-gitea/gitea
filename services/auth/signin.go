@@ -122,10 +122,14 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 		authUser, err := authenticator.Authenticate(ctx, nil, username, password)
 
 		if err == nil {
-			if !authUser.ProhibitLogin {
+			switch {
+			case !authUser.IsIndividual():
+				err = user_model.ErrUserNotExist{Name: username}
+			case authUser.ProhibitLogin:
+				err = user_model.ErrUserProhibitLogin{UID: authUser.ID, Name: authUser.Name}
+			default:
 				return authUser, source, nil
 			}
-			err = user_model.ErrUserProhibitLogin{UID: authUser.ID, Name: authUser.Name}
 		}
 
 		if user_model.IsErrUserNotExist(err) {

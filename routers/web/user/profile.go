@@ -168,10 +168,6 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
 		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-		// a public-only API token must not surface private activity, even for its own owner
-		if showPrivate && context.TokenIsPublicOnly(ctx) {
-			showPrivate = false
-		}
 		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
@@ -274,7 +270,11 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			ctx.ServerError("GetUserOrganizations", err)
 			return
 		}
-		ctx.Data["Cards"] = orgs
+		cards := make([]*user_model.User, 0, len(orgs))
+		for _, org := range orgs {
+			cards = append(cards, org.AsUser())
+		}
+		ctx.Data["Cards"] = cards // user_cards needs User-only methods
 		total = count
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
@@ -312,17 +312,23 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		return
 	}
 
-	pager := context.NewPagination(total, pagingNum, page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(pagingNum).CurPage(page).Build()
 	if tab == "activity" {
 		// FIXME: UNLIMITE-PAGING-ONE-MORE-ROW: see another comment
 		pager.WithUnlimitedPaging(curRows, curRows == pagingNum)
 	}
-	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 }
 
 // ActionUserFollow is for follow/unfollow user request
 func ActionUserFollow(ctx *context.Context) {
+	isOrg := ctx.ContextUser.IsOrganization()
+	if isOrg && !organization.HasOrgOrUserVisible(ctx, ctx.ContextUser, ctx.Doer) ||
+		!isOrg && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+		ctx.NotFound(nil)
+		return
+	}
+
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":

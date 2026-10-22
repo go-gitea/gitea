@@ -182,7 +182,7 @@ func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.Protected
 	// owner lacks write access, or isn't on the approvals whitelist). Unlike the other
 	// branch-protection checks below, this one only cares whether a listed code owner approved.
 	approvingReviews, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
-		Types:        []issues_model.ReviewType{issues_model.ReviewTypeApprove, issues_model.ReviewTypeReject},
+		Types:        []issues_model.ReviewType{issues_model.ReviewTypeApprove, issues_model.ReviewTypeReject, issues_model.ReviewTypeRequest},
 		IssueID:      pr.IssueID,
 		OfficialOnly: false,
 		Dismissed:    optional.Some(false),
