@@ -30,6 +30,16 @@ func newRunnerUpdateRequest(t *testing.T, url string, disabled bool) *RequestWra
 	})
 }
 
+func listRunnerIDs(t *testing.T, url, token string) []int64 {
+	req := NewRequest(t, "GET", url).AddTokenAuth(token)
+	runnerList := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionRunnersResponse{})
+	ids := make([]int64, 0, len(runnerList.Entries))
+	for _, e := range runnerList.Entries {
+		ids = append(ids, e.ID)
+	}
+	return ids
+}
+
 func testActionsRunnerAdmin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
@@ -103,6 +113,8 @@ func testActionsRunnerUser(t *testing.T) {
 	}{})
 	assert.NotEmpty(t, registrationToken.Token)
 
+	assert.ElementsMatch(t, []int64{34346, 34349}, listRunnerIDs(t, "/api/v1/user/actions/runners?with_available=true", token))
+
 	req = NewRequest(t, "GET", "/api/v1/user/actions/runners").AddTokenAuth(token)
 	runnerListResp := MakeRequest(t, req, http.StatusOK)
 	runnerList := DecodeJSON(t, runnerListResp, &api.ActionRunnersResponse{})
@@ -172,6 +184,12 @@ func testActionsRunnerOwner(t *testing.T) {
 		assert.Len(t, runner.Labels, 2)
 		assert.Equal(t, "runner_to_be_deleted", runner.Labels[0].Name)
 		assert.Equal(t, "linux", runner.Labels[1].Name)
+	})
+
+	t.Run("ListWithAvailable", func(t *testing.T) {
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
+		assert.ElementsMatch(t, []int64{34347, 34350}, listRunnerIDs(t, "/api/v1/orgs/org3/actions/runners", token))
+		assert.ElementsMatch(t, []int64{34347, 34350, 34349}, listRunnerIDs(t, "/api/v1/orgs/org3/actions/runners?with_available=true", token))
 	})
 
 	t.Run("Access", func(t *testing.T) {
@@ -309,6 +327,12 @@ func testActionsRunnerRepo(t *testing.T) {
 		assert.Len(t, runner.Labels, 2)
 		assert.Equal(t, "runner_to_be_deleted", runner.Labels[0].Name)
 		assert.Equal(t, "linux", runner.Labels[1].Name)
+	})
+
+	t.Run("ListWithAvailable", func(t *testing.T) {
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
+		assert.ElementsMatch(t, []int64{34348}, listRunnerIDs(t, "/api/v1/repos/user2/repo1/actions/runners", token))
+		assert.ElementsMatch(t, []int64{34348, 34349}, listRunnerIDs(t, "/api/v1/repos/user2/repo1/actions/runners?with_available=true", token))
 	})
 
 	t.Run("Access", func(t *testing.T) {

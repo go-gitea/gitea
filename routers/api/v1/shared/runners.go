@@ -37,15 +37,17 @@ func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
 // ownerID == 0 and repoID != 0 means all runners for the given repo
 // ownerID != 0 and repoID == 0 means all runners for the given user/org
 // ownerID != 0 and repoID != 0 undefined behavior
+// the with_available query param also includes runners usable by but not belonging to the given user/org/repo
 // Access rights are checked at the API route level
 func ListRunners(ctx *context.APIContext, ownerID, repoID int64) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
 	opts := &actions_model.FindRunnerOptions{
-		OwnerID:     ownerID,
-		RepoID:      repoID,
-		ListOptions: utils.GetListOptions(ctx),
+		OwnerID:       ownerID,
+		RepoID:        repoID,
+		ListOptions:   utils.GetListOptions(ctx),
+		WithAvailable: ctx.FormBool("with_available"),
 	}
 	opts.IsDisabled = ctx.FormOptionalBool("disabled")
 	runners, total, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)

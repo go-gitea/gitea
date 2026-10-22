@@ -13277,6 +13277,14 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "description": "also include global runners available to the organization",
+            "in": "query",
+            "name": "with_available",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -17442,6 +17450,14 @@
             "description": "filter by disabled status (true or false)",
             "in": "query",
             "name": "disabled",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "also include runners of the repository owner and global runners available to the repository",
+            "in": "query",
+            "name": "with_available",
             "schema": {
               "type": "boolean"
             }
@@ -34302,6 +34318,14 @@
             "description": "filter by disabled status (true or false)",
             "in": "query",
             "name": "disabled",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "also include global runners available to the user",
+            "in": "query",
+            "name": "with_available",
             "schema": {
               "type": "boolean"
             }

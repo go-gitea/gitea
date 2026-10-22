@@ -2093,6 +2093,12 @@
             "description": "filter by disabled status (true or false)",
             "name": "disabled",
             "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "also include global runners available to the organization",
+            "name": "with_available",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5950,6 +5956,12 @@
             "type": "boolean",
             "description": "filter by disabled status (true or false)",
             "name": "disabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "also include runners of the repository owner and global runners available to the repository",
+            "name": "with_available",
             "in": "query"
           }
         ],
@@ -21495,6 +21507,12 @@
             "type": "boolean",
             "description": "filter by disabled status (true or false)",
             "name": "disabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "also include global runners available to the user",
+            "name": "with_available",
             "in": "query"
           }
         ],
