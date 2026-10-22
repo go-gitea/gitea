@@ -109,16 +109,6 @@ func TestListAccessTokens(t *testing.T) {
 	assert.Empty(t, tokens)
 }
 
-func TestUpdateAccessToken(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	token, err := auth_model.GetAccessTokenBySHA(t.Context(), "4c6f36e6cf498e2a448662f915d932c09c5a146c")
-	assert.NoError(t, err)
-	token.Name = "Token Z"
-
-	assert.NoError(t, auth_model.UpdateAccessToken(t.Context(), token))
-	unittest.AssertExistsAndLoadBean(t, token)
-}
-
 func TestTouchAccessToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	token, err := auth_model.GetAccessTokenBySHA(t.Context(), "4c6f36e6cf498e2a448662f915d932c09c5a146c")

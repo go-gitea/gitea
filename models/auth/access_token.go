@@ -152,12 +152,6 @@ func (opts ListAccessTokensOptions) ToOrders() string {
 	return "created_unix DESC"
 }
 
-// UpdateAccessToken updates information of access token.
-func UpdateAccessToken(ctx context.Context, t *AccessToken) error {
-	_, err := db.GetEngine(ctx).ID(t.ID).AllCols().Update(t)
-	return err
-}
-
 // AccessTokenTouchInterval is the minimum age of updated_unix before TouchAccessToken writes it again.
 // The value is only used for the "last used" display, so minute precision is enough.
 const AccessTokenTouchInterval = time.Minute
