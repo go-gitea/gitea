@@ -176,10 +176,9 @@ func TestGetCommentPreview(t *testing.T) {
 	} {
 		t.Run(entry.name, func(t *testing.T) {
 			action := &activities_model.Action{
-				OpType:         entry.opType,
-				Content:        entry.content,
-				Comment:        entry.comment,
-				CanReadComment: true,
+				OpType:  entry.opType,
+				Content: entry.content,
+				Comment: entry.comment,
 			}
 			assert.Equal(t, entry.expected, action.GetCommentPreview(t.Context()))
 		})

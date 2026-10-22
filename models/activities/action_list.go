@@ -213,7 +213,8 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	var err error
 	var cond builder.Cond
 	// if the actor is the requested user or is an administrator, we can skip the ActivityQueryCondition
-	if opts.RequestedUser != nil && user_model.DoerCanViewPrivate(opts.Actor) && (user_model.DoerIsSiteAdminFullAccess(opts.Actor) || opts.Actor.ID == opts.RequestedUser.ID) {
+	skipAccessCond := opts.RequestedUser != nil && user_model.DoerCanViewPrivate(opts.Actor) && (user_model.DoerIsSiteAdminFullAccess(opts.Actor) || opts.Actor.ID == opts.RequestedUser.ID)
+	if skipAccessCond {
 		cond = builder.Eq{
 			"user_id": opts.RequestedUser.ID,
 		}.And(
@@ -281,20 +282,21 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 	}
 
-	repoPermissions := make(map[int64]access_model.Permission)
-	for _, action := range actions {
-		if action.Comment == nil || action.Repo == nil {
-			continue
-		}
-		permission, ok := repoPermissions[action.RepoID]
-		if !ok {
-			permission, err = access_model.GetDoerRepoPermission(ctx, action.Repo, opts.Actor)
-			if err != nil {
-				return nil, 0, fmt.Errorf("GetFeeds: %w", err)
+	if skipAccessCond && !user_model.DoerIsSiteAdminFullAccess(opts.Actor) { // the own feed keeps actions of repositories the actor can no longer read
+		repoPermissions := make(map[int64]access_model.Permission)
+		for _, action := range actions {
+			if action.Comment == nil || action.Repo == nil {
+				continue
 			}
-			repoPermissions[action.RepoID] = permission
+			permission, ok := repoPermissions[action.RepoID]
+			if !ok {
+				if permission, err = access_model.GetDoerRepoPermission(ctx, action.Repo, opts.Actor); err != nil {
+					return nil, 0, fmt.Errorf("GetFeeds: %w", err)
+				}
+				repoPermissions[action.RepoID] = permission
+			}
+			action.useSnapshotPreview = !permission.CanReadIssuesOrPulls(action.OpType != ActionCommentIssue)
 		}
-		action.CanReadComment = permission.CanReadIssuesOrPulls(action.OpType != ActionCommentIssue)
 	}
 
 	return actions, count, nil

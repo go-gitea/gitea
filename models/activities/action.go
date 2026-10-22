@@ -150,7 +150,7 @@ type Action struct {
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 
-	CanReadComment bool `xorm:"-"`
+	useSnapshotPreview bool
 }
 
 func init() {
@@ -380,7 +380,7 @@ func (a *Action) GetIssueInfos() []string {
 func (a *Action) GetCommentPreview(ctx context.Context) string {
 	var content string
 	switch {
-	case a.CanReadComment && a.Comment != nil:
+	case !a.useSnapshotPreview && a.Comment != nil:
 		content = a.Comment.Content
 	case a.OpType == ActionPullReviewDismissed:
 		content = a.GetIssueInfos()[2]
