@@ -52,8 +52,6 @@ func IsIssueInColumn(ctx context.Context, issueID int64, column *Column) (bool, 
 		Exist(new(ProjectIssue))
 }
 
-// GetColumnIssueSortings returns the sorting value of every issue placed in a column,
-// keyed by issue ID.
 func GetColumnIssueSortings(ctx context.Context, column *Column) (map[int64]int64, error) {
 	placements := make([]*ProjectIssue, 0, 10)
 	if err := db.GetEngine(ctx).Table("project_issue").

@@ -75,7 +75,7 @@ func TestAPIProjects(t *testing.T) {
 		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/projects/1/columns/%d/issues", defaultColumn.ID).AddTokenAuth(token)
 		issueIDs := make([]int64, 0)
 		for _, columnIssue := range *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.ProjectColumnIssue{}) {
-			issueIDs = append(issueIDs, columnIssue.Issue.ID)
+			issueIDs = append(issueIDs, columnIssue.ID)
 		}
 		assert.Contains(t, issueIDs, int64(2))
 
@@ -217,8 +217,7 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	req = NewRequest(t, "GET", fmt.Sprintf("%s/columns/%d/issues", projectURL, columnIDs[1])).AddTokenAuth(token)
 	issues := *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.ProjectColumnIssue{})
 	require.Len(t, issues, 1)
-	assert.Equal(t, scope.issueID, issues[0].Issue.ID)
-	// the issue fields stay inlined, so a client reading plain issues is unaffected
+	assert.Equal(t, scope.issueID, issues[0].ID)
 	plain := *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.Issue{})
 	require.Len(t, plain, 1)
 	assert.Equal(t, scope.issueID, plain[0].ID)
@@ -244,7 +243,6 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	assert.Equal(t, columnIDs[0], moved.ProjectColumnID)
 	assert.Equal(t, sortPos, moved.Sorting)
 
-	// the position written by the move must be readable back, so clients can reorder deterministically
 	req = NewRequest(t, "GET", fmt.Sprintf("%s/columns/%d/issues", projectURL, columnIDs[0])).AddTokenAuth(token)
 	listed := *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.ProjectColumnIssue{})
 	require.Len(t, listed, 1)

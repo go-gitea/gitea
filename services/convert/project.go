@@ -197,11 +197,9 @@ func ToProjectColumnList(ctx context.Context, columns []*project_model.Column, d
 	return result
 }
 
-// ToProjectColumnIssueList pairs each issue with its position in the column it is placed in.
 func ToProjectColumnIssueList(ctx context.Context, doer *user_model.User, issues issues_model.IssueList, sortings map[int64]int64) []*api.ProjectColumnIssue {
-	apiIssues := ToAPIIssueList(ctx, doer, issues)
-	result := make([]*api.ProjectColumnIssue, len(apiIssues))
-	for i, apiIssue := range apiIssues {
+	result := make([]*api.ProjectColumnIssue, len(issues))
+	for i, apiIssue := range ToAPIIssueList(ctx, doer, issues) {
 		result[i] = &api.ProjectColumnIssue{Issue: apiIssue, Sorting: sortings[apiIssue.ID]}
 	}
 	return result

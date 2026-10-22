@@ -123,7 +123,6 @@ type MoveProjectIssueOption struct {
 // ProjectColumnIssue represents an issue placed in a project column
 // swagger:model
 type ProjectColumnIssue struct {
-	// the issue fields stay inlined, so clients reading plain issues keep working
 	*Issue
 	// Position of the issue within the column, ascending, as accepted by the move endpoint
 	Sorting int64 `json:"sorting"`
