@@ -74,6 +74,10 @@ type GithubDownloaderV3 struct {
 	maxPerPage    int
 	SkipReactions bool
 	SkipReviews   bool
+
+	issuePage       int
+	issueCursor     string
+	nextIssueCursor string
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
@@ -428,12 +432,21 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 			Page:    page,
 		},
 	}
+	switch page {
+	case g.issuePage:
+		opt.After = g.issueCursor
+	case g.issuePage + 1:
+		opt.After = g.nextIssueCursor
+	}
+	if opt.After != "" {
+		opt.ListOptions.Page = 0
+	}
 
 	allIssues := make([]*base.Issue, 0, perPage)
 	g.waitAndPickClient(ctx)
 	issues, resp, err := g.getClient().Issues.ListByRepo(ctx, g.repoOwner, g.repoName, opt)
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %w", err)
+		return nil, false, fmt.Errorf("GetIssues: %w", err)
 	}
 	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
 	g.setRate(&resp.Rate)
@@ -500,7 +513,8 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 		})
 	}
 
-	return allIssues, len(issues) < perPage, nil
+	g.issuePage, g.issueCursor, g.nextIssueCursor = page, opt.After, resp.After
+	return allIssues, resp.NextPage == 0 && resp.After == "", nil
 }
 
 // SupportGetRepoComments return true if it supports get repo comments
