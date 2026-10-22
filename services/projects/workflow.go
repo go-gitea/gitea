@@ -21,7 +21,9 @@ import (
 	"gitea.dev/services/audit"
 )
 
-// CanManageWorkflows checks the workflow authority required in addition to project write, see the package doc
+// CanManageWorkflows checks the authority needed besides project write to manage a project's workflows. They act on
+// the project's items without further permission checks, so this needs write access to both issues and pull requests
+// of a repository project's repository, owning an organization project's organization, or being a user project's user.
 func CanManageWorkflows(ctx context.Context, doer *user_model.User, project *project_model.Project) (bool, error) {
 	if project.Type == project_model.TypeRepository {
 		if err := project.LoadRepo(ctx); err != nil {
