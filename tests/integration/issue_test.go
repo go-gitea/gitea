@@ -124,6 +124,27 @@ func TestViewIssuesSortByType(t *testing.T) {
 	})
 }
 
+func TestIssueIDsSortByLabelScope(t *testing.T) {
+	assert.NoError(t, unittest.LoadFixtures())
+	high := &issues_model.Label{RepoID: 1, Name: "priority/high", Exclusive: true, ExclusiveOrder: 1}
+	low := &issues_model.Label{RepoID: 1, Name: "priority/low", Exclusive: true, ExclusiveOrder: 2}
+	assert.NoError(t, db.Insert(t.Context(), high, low))
+	assert.NoError(t, db.Insert(t.Context(),
+		&issues_model.IssueLabel{IssueID: 1, LabelID: low.ID},
+		&issues_model.IssueLabel{IssueID: 2, LabelID: high.ID},
+	))
+	for page, expectedIDs := range [][]int64{{2, 1, 11}, {5, 3}} {
+		issueIDs, total, err := issues_model.IssueIDs(t.Context(), &issues_model.IssuesOptions{
+			RepoIDs:   []int64{1},
+			SortType:  issues_model.ScopeSortPrefix + "priority",
+			Paginator: &db.ListOptions{Page: page + 1, PageSize: 3},
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, expectedIDs, issueIDs)
+		assert.EqualValues(t, 5, total)
+	}
+}
+
 func TestViewIssuesKeyword(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

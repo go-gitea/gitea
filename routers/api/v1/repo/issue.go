@@ -10,14 +10,13 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -527,6 +526,39 @@ func GetIssue(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue))
 }
 
+func loadAssigneeUserIDs(ctx *context.APIContext, oneAssignee string, multipleAssignees []string) []int64 {
+	assigneeNames := container.Set[string]{}
+	assigneeNames.Add(strings.ToLower(oneAssignee))
+	for _, assignee := range multipleAssignees {
+		assigneeNames.Add(strings.ToLower(assignee))
+	}
+	assigneeNames.Remove("")
+	assignees, err := user_model.GetDoerUsersByNames(ctx, assigneeNames.Values())
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: %s", err))
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return nil
+	}
+
+	// Check if the passed assignees is assignable
+	assigneeIDs := make([]int64, 0, len(assignees))
+	for _, assignee := range assignees {
+		valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
+		if err != nil {
+			ctx.APIErrorAuto(err)
+			return nil
+		} else if !valid {
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("User %s cannot be assigned to this issue", assignee.Name))
+			return nil
+		}
+		assigneeIDs = append(assigneeIDs, assignee.ID)
+	}
+	return assigneeIDs
+}
+
 // CreateIssue create an issue of a repository
 func CreateIssue(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues issue issueCreateIssue
@@ -577,37 +609,16 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	assigneeIDs := make([]int64, 0)
-	var err error
 	if ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
-		issue.DeadlineUnix = common.ParseAPIDeadlineToEndOfDay(form.Deadline)
-		issue.MilestoneID = form.Milestone
-		assigneeIDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
+		_, err := common.ApplyAPIDeadlineTimestamp(&issue.DeadlineUnix, form.Deadline, nil)
 		if err != nil {
-			if errors.Is(err, util.ErrNotExist) {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: %s", err))
-			} else {
-				ctx.APIErrorInternal(err)
-			}
+			ctx.APIErrorAuto(err)
 			return
 		}
-
-		// Check if the passed assignees is assignable
-		for _, aID := range assigneeIDs {
-			assignee, err := user_model.GetUserByID(ctx, aID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-
-			valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			if !valid {
-				ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name}.Error())
-				return
-			}
+		issue.MilestoneID = form.Milestone
+		assigneeIDs = loadAssigneeUserIDs(ctx, form.Assignee, form.Assignees)
+		if ctx.Written() {
+			return
 		}
 	} else {
 		// setting labels is not allowed if user is not a writer
@@ -637,6 +648,7 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	// Refetch from database to assign some automatic values
+	var err error
 	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -890,22 +902,20 @@ func DeleteIssue(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func editIssueDeadline(ctx *context.APIContext, issue *issues_model.Issue, deadline *time.Time, removeDeadline *bool) bool {
-	if deadline == nil && removeDeadline == nil {
+func editIssueDeadline(ctx *context.APIContext, issue *issues_model.Issue, deadline optional.Option[*string], removeDeadline *bool) bool {
+	newDeadlineUnix := issue.DeadlineUnix
+	changed, err := common.ApplyAPIDeadlineTimestamp(&newDeadlineUnix, deadline, removeDeadline)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return false
+	}
+	if !changed {
 		return true
 	}
-	if removeDeadline != nil && *removeDeadline {
-		deadline = nil
-	} else if deadline == nil {
-		ctx.APIError(http.StatusBadRequest, "The due_date cannot be empty")
+	if err := issues_model.UpdateIssueDeadline(ctx, issue, newDeadlineUnix, ctx.Doer); err != nil {
+		ctx.APIErrorAuto(err)
 		return false
 	}
-	deadlineUnix := common.ParseAPIDeadlineToEndOfDay(deadline)
-	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-		ctx.APIErrorInternal(err)
-		return false
-	}
-	issue.DeadlineUnix = deadlineUnix
 	return true
 }
 
@@ -962,13 +972,20 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		return
 	}
 
-	deadlineUnix := common.ParseAPIDeadlineToEndOfDay(form.Deadline)
-	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-		ctx.APIErrorInternal(err)
+	newDeadlineUnix := issue.DeadlineUnix
+	changed, err := common.ApplyAPIDeadlineTimestamp(&newDeadlineUnix, form.Deadline, nil)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
-
-	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: deadlineUnix.AsTimePtr()})
+	if changed {
+		if err := issues_model.UpdateIssueDeadline(ctx, issue, newDeadlineUnix, ctx.Doer); err != nil {
+			ctx.APIErrorAuto(err)
+			return
+		}
+	}
+	// StatusCreated is the copied & pasted garbage
+	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: issue.DeadlineUnix.AsTimePtr()})
 }
 
 func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType) {

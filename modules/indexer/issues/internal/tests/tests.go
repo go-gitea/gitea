@@ -79,8 +79,9 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 			}
 
 			// test counting
-			c.SearchOptions.Paginator = &db.ListOptions{PageSize: 0}
-			countResult, err := indexer.Search(t.Context(), c.SearchOptions)
+			countOptions := c.SearchOptions.Copy()
+			countOptions.Paginator = &db.ListOptions{PageSize: 0}
+			countResult, err := indexer.Search(t.Context(), countOptions)
 			require.NoError(t, err)
 			assert.Empty(t, countResult.Hits)
 			assert.Equal(t, result.Total, countResult.Total)
