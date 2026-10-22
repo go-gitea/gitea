@@ -19,10 +19,11 @@ import (
 )
 
 type htmlChunkReader struct {
-	in       io.Reader
-	readErr  error
-	readBuf  []byte
-	curInTag bool
+	in           io.Reader
+	readErr      error
+	readBuf      []byte
+	readBufFixed []byte
+	curInTag     bool
 
 	asciiSafeBytes [256]bool
 	readResults    []readResult
@@ -45,28 +46,24 @@ type escapeStreamer struct {
 	out io.Writer
 }
 
-const (
-	readBufSmallSize    = 512
-	readBufMaxLargeSize = 32 * 1024
-)
+const readBufSmallSize = 512
 
 var (
-	readBufPoolLarge = sync.Pool{New: func() any { return make([]byte, 0, 4*1024) }}
-	readBufPoolSmall = sync.Pool{New: func() any { return make([]byte, 0, readBufSmallSize) }}
+	readBufPoolLarge = sync.Pool{New: func() any { return new(make([]byte, 4*1024)) }}
+	readBufPoolSmall = sync.Pool{New: func() any { return new(make([]byte, readBufSmallSize)) }}
 )
 
-func prepareReadBuf(buf *[]byte, in io.Reader) func() {
+func prepareReadBufFixed(buf *[]byte, in io.Reader) func() {
 	lenProvider, ok := in.(interface{ Len() int })
 	useSmallPool := ok && lenProvider.Len() <= readBufSmallSize
 	pool := &readBufPoolLarge
 	if useSmallPool {
 		pool = &readBufPoolSmall
 	}
-	*buf = pool.Get().([]byte)[:0] //nolint:forcetypeassert // valid pool item
+	pooledBuf := pool.Get().(*[]byte) //nolint:forcetypeassert // valid pool item
+	*buf = *pooledBuf
 	return func() {
-		if len(*buf) < readBufMaxLargeSize {
-			pool.Put(*buf)
-		}
+		pool.Put(pooledBuf)
 		*buf = nil
 	}
 }
@@ -83,7 +80,7 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 		out: out,
 	}
 
-	defer prepareReadBuf(&es.readBuf, in)()
+	defer prepareReadBufFixed(&es.readBufFixed, in)()
 
 	if len(opts) > 0 {
 		es.allowed = opts[0].Allowed
@@ -243,8 +240,13 @@ func (e *htmlChunkReader) readRunes() ([]readResult, error) {
 	}
 
 	// not eof, and the there is space in the buffer, try to read more data
-	if e.readErr == nil && len(e.readBuf) <= cap(e.readBuf)*3/4 {
-		n, err := e.in.Read(e.readBuf[len(e.readBuf):cap(e.readBuf)])
+	if e.readErr == nil && len(e.readBuf) <= max(cap(e.readBufFixed)/4, utf8.UTFMax-1) {
+		// move the remaining bytes to the front of the buffer
+		oldReadBuf := e.readBuf
+		e.readBuf = e.readBufFixed[:len(oldReadBuf)]
+		copy(e.readBuf, oldReadBuf)
+		// and read more data to fill the buffer
+		n, err := e.in.Read(e.readBuf[len(e.readBuf):cap(e.readBufFixed)])
 		e.readErr = err
 		e.readBuf = e.readBuf[:len(e.readBuf)+n]
 	}
@@ -257,7 +259,7 @@ func (e *htmlChunkReader) readRunes() ([]readResult, error) {
 	for pos < len(e.readBuf) {
 		var idx, curPartEnd int
 		nextInTag := e.curInTag
-		curAsciiSafe := false
+		var curAsciiSafe bool
 		if e.curInTag {
 			// if cur part is in tag, try to find the tag close char '>'
 			idx, curAsciiSafe = e.indexByte(e.readBuf[pos:], '>')
@@ -293,8 +295,7 @@ func (e *htmlChunkReader) readRunes() ([]readResult, error) {
 		}
 
 		// now, curPartLen can't be 0
-		curPart := make([]byte, curPartLen)
-		copy(curPart, e.readBuf[pos:curPartEnd])
+		curPart := e.readBuf[pos:curPartEnd]
 		// now we get the curPart bytes, but we can't directly use it, the last rune in it might have been cut
 		// by the end of the buffer, then its bytes are left to the next read. Invalid bytes are never cut, otherwise
 		// they would be split off into a separate part, or even into the next tag part.
@@ -332,8 +333,7 @@ func (e *htmlChunkReader) readRunes() ([]readResult, error) {
 		}
 	}
 
-	copy(e.readBuf, e.readBuf[pos:])
-	e.readBuf = e.readBuf[:len(e.readBuf)-pos]
+	e.readBuf = e.readBuf[pos:]
 	return e.readResults, nil
 }
 

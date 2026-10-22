@@ -205,7 +205,7 @@ func TestHTMLChunkReader(t *testing.T) {
 		isTag bool
 	}
 	testReadChunks := func(t *testing.T, chunkSize int, input string, expected []textPart) {
-		r := &htmlChunkReader{in: strings.NewReader(input), readBuf: make([]byte, 0, chunkSize)}
+		r := &htmlChunkReader{in: strings.NewReader(input), readBufFixed: make([]byte, chunkSize)}
 		var results []textPart
 		for {
 			readResults, err := r.readRunes()
