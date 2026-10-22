@@ -492,7 +492,7 @@ func buildSignOutRedirectURL(ctx *context.Context) string {
 	}
 
 	// The assumption is: if reverse proxy auth is enabled, then the users should only sign-in via reverse proxy auth.
-	if setting.Service.EnableReverseProxyAuth && setting.ReverseProxyLogoutRedirect != "" {
+	if (setting.Service.EnableReverseProxyAuth || setting.Service.EnableReverseProxyJWTAuth) && setting.ReverseProxyLogoutRedirect != "" {
 		return setting.ReverseProxyLogoutRedirect
 	}
 	return setting.AppSubURL + "/"

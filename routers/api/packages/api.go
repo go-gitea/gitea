@@ -71,6 +71,9 @@ func verifyAuth(r *web.Router, authMethods []auth.Method, opts verifyAuthOptions
 	if setting.Service.EnableReverseProxyAuth {
 		authMethods = append(authMethods, &auth.ReverseProxy{})
 	}
+	if setting.Service.EnableReverseProxyJWTAuth {
+		authMethods = append(authMethods, &auth.ReverseProxyJWT{})
+	}
 	authGroup := auth.NewGroup(authMethods...)
 
 	r.AfterRouting(func(ctx *context.Context) {

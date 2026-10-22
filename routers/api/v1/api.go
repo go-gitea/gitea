@@ -330,8 +330,12 @@ func reqUsersExploreEnabled() func(ctx *context.APIContext) {
 
 func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.IsSigned && setting.Service.EnableReverseProxyAuthAPI && ctx.Data["AuthedMethod"] == auth.ReverseProxyMethodName {
-			return
+		if ctx.IsSigned {
+			authedMethod := ctx.Data["AuthedMethod"]
+			if setting.Service.EnableReverseProxyAuthAPI && authedMethod == auth.ReverseProxyMethodName ||
+				setting.Service.EnableReverseProxyJWTAuthAPI && authedMethod == auth.ReverseProxyJWTMethodName {
+				return
+			}
 		}
 		if !ctx.IsBasicAuth {
 			ctx.APIError(http.StatusUnauthorized, "auth required")
@@ -846,6 +850,9 @@ func buildAuthGroup() *auth.Group {
 	)
 	if setting.Service.EnableReverseProxyAuthAPI {
 		group.Add(&auth.ReverseProxy{}) // TODO: does it still make sense to support reverse proxy auth in API?
+	}
+	if setting.Service.EnableReverseProxyJWTAuthAPI {
+		group.Add(&auth.ReverseProxyJWT{})
 	}
 	// others: API doesn't support SSPI auth because the caller should use token
 	return group

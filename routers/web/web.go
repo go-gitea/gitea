@@ -147,6 +147,10 @@ func newWebAuthMiddleware() *AuthMiddleware {
 			// reverse-proxy should before Session, otherwise the header will be ignored if user has login
 			group.Add(&auth_service.ReverseProxy{CreateSession: !isSessionless})
 		}
+		if setting.Service.EnableReverseProxyJWTAuth {
+			// like reverse-proxy, it must be before Session so an invalid token can't fall back to the session
+			group.Add(&auth_service.ReverseProxyJWT{CreateSession: !isSessionless})
+		}
 
 		// The Session plugin will skip authentication for users that have already signed in.
 		group.Add(&auth_service.Session{})

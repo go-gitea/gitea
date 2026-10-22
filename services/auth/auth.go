@@ -35,6 +35,7 @@ func ErrAsUserAuthMessage(err error) (string, bool) {
 // to allocate necessary resources
 func Init() {
 	webauthn.Init()
+	initReverseProxyJWTKeys()
 }
 
 // handleSignInNonInteractive clears existing session variables and stores new ones for the specified user object

@@ -73,6 +73,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["ScriptType"] = setting.ScriptType
 	ctx.Data["ReverseProxyAuthUser"] = setting.ReverseProxyAuthUser
 	ctx.Data["ReverseProxyAuthEmail"] = setting.ReverseProxyAuthEmail
+	ctx.Data["ReverseProxyJWT"] = setting.ReverseProxyJWT
 
 	ctx.Data["SSH"] = setting.SSH
 	ctx.Data["LFS"] = setting.LFS
