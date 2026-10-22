@@ -9,6 +9,7 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/models/unit"
@@ -20,20 +21,54 @@ import (
 	"gitea.dev/services/audit"
 )
 
+// CanManageWorkflows checks the workflow authority required in addition to project write, see the package doc
+func CanManageWorkflows(ctx context.Context, doer *user_model.User, project *project_model.Project) (bool, error) {
+	if project.Type == project_model.TypeRepository {
+		if err := project.LoadRepo(ctx); err != nil {
+			return false, err
+		}
+		perm, err := access_model.GetDoerRepoPermission(ctx, project.Repo, doer)
+		if err != nil {
+			return false, err
+		}
+		return perm.CanWrite(unit.TypeIssues) && perm.CanWrite(unit.TypePullRequests), nil
+	}
+	if !user_model.DoerCanViewPrivate(doer) { // owner-level projects hold items of the owner's private repositories too
+		return false, nil
+	}
+	if project.Type == project_model.TypeOrganization {
+		if user_model.DoerIsSiteAdminFullAccess(doer) {
+			return true, nil
+		}
+		return organization.IsOrganizationOwner(ctx, project.OwnerID, doer.ID)
+	}
+	return doer.ID == project.OwnerID, nil
+}
+
+func checkCanManageWorkflows(ctx context.Context, doer *user_model.User, project *project_model.Project) error {
+	allowed, err := CanManageWorkflows(ctx, doer, project)
+	if err != nil {
+		return err
+	}
+	if !allowed {
+		return util.NewPermissionDeniedErrorf("not allowed to manage the workflows of this project")
+	}
+	return nil
+}
+
 func CreateWorkflow(ctx context.Context, doer *user_model.User, project *project_model.Project, opts *api.CreateProjectWorkflowOption) (*project_model.Workflow, error) {
+	if err := checkCanManageWorkflows(ctx, doer, project); err != nil {
+		return nil, err
+	}
 	wf := &project_model.Workflow{
 		ProjectID:     project.ID,
 		WorkflowEvent: project_model.WorkflowEvent(opts.Event),
 		Enabled:       optional.FromPtr(opts.Enabled).ValueOrDefault(true),
 	}
-	setWorkflowUpdater(wf, doer)
 	if !wf.WorkflowEvent.IsValid() {
 		return nil, util.ErrorWrap(util.ErrUnprocessableContent, "invalid event: %s", opts.Event)
 	}
 	if err := setWorkflowRules(ctx, project, wf, &opts.Filters, &opts.Actions); err != nil {
-		return nil, err
-	}
-	if err := checkWorkflowActionsPermission(ctx, doer, project, wf); err != nil {
 		return nil, err
 	}
 	if err := project_model.CreateWorkflow(ctx, wf); err != nil {
@@ -44,7 +79,10 @@ func CreateWorkflow(ctx context.Context, doer *user_model.User, project *project
 }
 
 func UpdateWorkflow(ctx context.Context, doer *user_model.User, project *project_model.Project, wf *project_model.Workflow, opts *api.EditProjectWorkflowOption) error {
-	cols := []string{"updater_id", "updater_doer_data"}
+	if err := checkCanManageWorkflows(ctx, doer, project); err != nil {
+		return err
+	}
+	var cols []string
 	if opts.Filters != nil || opts.Actions != nil {
 		if err := setWorkflowRules(ctx, project, wf, opts.Filters, opts.Actions); err != nil {
 			return err
@@ -60,10 +98,9 @@ func UpdateWorkflow(ctx context.Context, doer *user_model.User, project *project
 		wf.Enabled = *opts.Enabled
 		cols = append(cols, "enabled")
 	}
-	if err := checkWorkflowActionsPermission(ctx, doer, project, wf); err != nil {
-		return err
+	if len(cols) == 0 {
+		return nil
 	}
-	setWorkflowUpdater(wf, doer)
 	if err := project_model.UpdateWorkflow(ctx, wf, cols...); err != nil {
 		return err
 	}
@@ -72,6 +109,9 @@ func UpdateWorkflow(ctx context.Context, doer *user_model.User, project *project
 }
 
 func DeleteWorkflow(ctx context.Context, doer *user_model.User, project *project_model.Project, wf *project_model.Workflow) error {
+	if err := checkCanManageWorkflows(ctx, doer, project); err != nil {
+		return err
+	}
 	if err := project_model.DeleteWorkflow(ctx, project.ID, wf.ID); err != nil {
 		return err
 	}
@@ -109,7 +149,7 @@ func setWorkflowRules(ctx context.Context, project *project_model.Project, wf *p
 	if typ := wf.UnsupportedRule(); typ != "" {
 		return util.ErrorWrap(util.ErrUnprocessableContent, "%s is not supported by this event", typ)
 	}
-	if actions.ColumnID == 0 && !actions.ChangesIssue() {
+	if len(actions.Types()) == 0 {
 		return util.ErrorWrapTranslatable(util.ErrorWrap(util.ErrUnprocessableContent, "at least one action must be configured"), "projects.workflows.at_least_one_action_required")
 	}
 	if !slices.Contains([]string{"", project_model.WorkflowIssueTypeIssue, project_model.WorkflowIssueTypePullRequest}, filters.IssueType) {
@@ -151,51 +191,4 @@ func setWorkflowRules(ctx context.Context, project *project_model.Project, wf *p
 
 func uniqueIDs(ids []int64) []int64 {
 	return slices.Compact(slices.Sorted(slices.Values(ids)))
-}
-
-func checkWorkflowActionsPermission(ctx context.Context, doer *user_model.User, project *project_model.Project, wf *project_model.Workflow) error {
-	if !wf.Enabled || !wf.WorkflowActions.ChangesIssue() {
-		return nil
-	}
-	if doer.ID <= 0 { // a system user's permissions belong to a task or key that may be gone when the workflow runs
-		return util.NewPermissionDeniedErrorf("label and issue state actions must be saved by a user")
-	}
-	if project.Type != project_model.TypeRepository {
-		return nil
-	}
-	if err := project.LoadRepo(ctx); err != nil {
-		return err
-	}
-	perm, err := access_model.GetDoerRepoPermission(ctx, project.Repo, doer)
-	if err != nil {
-		return err
-	}
-	if !perm.CanWrite(unit.TypeIssues) && !perm.CanWrite(unit.TypePullRequests) {
-		return util.NewPermissionDeniedErrorf("label and issue state actions require write access to issues or pull requests")
-	}
-	return nil
-}
-
-func setWorkflowUpdater(wf *project_model.Workflow, doer *user_model.User) {
-	wf.UpdaterID, wf.UpdaterDoerData = doer.ID, ""
-	if doer.ExtDoerData != nil {
-		wf.UpdaterDoerData = doer.ExtDoerData.EncodeToString()
-	}
-}
-
-func canWorkflowChangeIssue(ctx context.Context, wf *project_model.Workflow, issue *issues_model.Issue) (bool, error) {
-	updater, err := user_model.GetDoerPermissionUser(ctx, wf.UpdaterID, wf.UpdaterDoerData)
-	if user_model.IsErrUserNotExist(err) {
-		return false, nil
-	} else if err != nil {
-		return false, err
-	}
-	if !updater.IsActive || updater.ProhibitLogin {
-		return false, nil
-	}
-	perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, updater)
-	if err != nil {
-		return false, err
-	}
-	return perm.CanWriteIssuesOrPulls(issue.IsPull), nil
 }

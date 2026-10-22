@@ -8,9 +8,13 @@ import (
 	"testing"
 
 	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
@@ -57,6 +61,48 @@ func TestMatchWorkflowFilters(t *testing.T) {
 	}
 }
 
+func TestCanManageWorkflows(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	user := func(id int64) *user_model.User { return unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: id}) }
+	publicOnly := func(id int64) *user_model.User {
+		doer := *user(id)
+		doer.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,write:issue")
+		return &doer
+	}
+	repoProject := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 2})
+	orgProject := &project_model.Project{Title: "org", OwnerID: 3, Type: project_model.TypeOrganization}
+	userProject := &project_model.Project{Title: "user", OwnerID: 2, Type: project_model.TypeIndividual}
+	for _, tc := range []struct {
+		project *project_model.Project
+		doer    *user_model.User
+		want    bool
+	}{
+		{repoProject, user(4), true},
+		{repoProject, user(5), false},
+		{orgProject, user(2), true},
+		{orgProject, user(1), true},
+		{orgProject, user(4), false},
+		{orgProject, publicOnly(2), false},
+		{userProject, user(2), true},
+		{userProject, user(1), false},
+		{userProject, publicOnly(2), false},
+	} {
+		allowed, err := CanManageWorkflows(t.Context(), tc.doer, tc.project)
+		require.NoError(t, err)
+		assert.Equal(t, tc.want, allowed, "project %q, user %d", tc.project.Title, tc.doer.ID)
+	}
+	for _, removedUnit := range []unit.Type{unit.TypeIssues, unit.TypePullRequests} {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		_, err := db.Exec(t.Context(), "UPDATE team SET authorize = ? WHERE id = ?", perm.AccessModeNone, 2)
+		require.NoError(t, err)
+		_, err = db.DeleteByBean(t.Context(), &organization.TeamUnit{TeamID: 2, Type: removedUnit})
+		require.NoError(t, err)
+		allowed, err := CanManageWorkflows(t.Context(), user(4), repoProject)
+		require.NoError(t, err)
+		assert.False(t, allowed, removedUnit.LogString())
+	}
+}
+
 func TestCreateUpdateWorkflow(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
@@ -81,8 +127,7 @@ func TestCreateUpdateWorkflow(t *testing.T) {
 			{"unknown issue state", owner, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{IssueState: "bogus"}}, 422},
 			{"reopen pull requests", owner, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Filters: api.ProjectWorkflowFilters{IssueType: "pull_request"}, Actions: api.ProjectWorkflowActions{IssueState: "reopen"}}, 422},
 			{"unknown issue type", owner, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Filters: api.ProjectWorkflowFilters{IssueType: "bogus"}, Actions: api.ProjectWorkflowActions{ColumnID: 2}}, 422},
-			{"labels without issue write", reader, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{AddLabelIDs: []int64{1}}}, 403},
-			{"labels by a system user", user_model.NewActionsUserWithTaskID(1), api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{AddLabelIDs: []int64{1}}}, 403},
+			{"without issue and pull request write", reader, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{ColumnID: 2}}, 403},
 		}
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
@@ -94,7 +139,7 @@ func TestCreateUpdateWorkflow(t *testing.T) {
 	})
 
 	t.Run("PartialUpdate", func(t *testing.T) {
-		wf, err := CreateWorkflow(ctx, reader, project, &api.CreateProjectWorkflowOption{
+		wf, err := CreateWorkflow(ctx, owner, project, &api.CreateProjectWorkflowOption{
 			Event:   "item_added_to_project",
 			Filters: api.ProjectWorkflowFilters{IssueType: "issue", LabelIDs: []int64{2, 1, 2}},
 			Actions: api.ProjectWorkflowActions{ColumnID: 2},
@@ -104,18 +149,15 @@ func TestCreateUpdateWorkflow(t *testing.T) {
 		require.NoError(t, UpdateWorkflow(ctx, owner, project, wf, &api.EditProjectWorkflowOption{Enabled: new(false)}))
 		require.NoError(t, UpdateWorkflow(ctx, owner, project, wf, &api.EditProjectWorkflowOption{Actions: &api.ProjectWorkflowActions{AddLabelIDs: []int64{1}}}))
 
-		err = UpdateWorkflow(ctx, reader, project, wf, &api.EditProjectWorkflowOption{Enabled: new(true)})
-		_, code := util.ErrorUnwrapForUser(err)
-		assert.Equal(t, 403, code, "re-enabling label actions needs issue write")
-
-		unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.ProjectWorkflowCreate, ActorID: reader.ID, ScopeType: audit_model.ScopeRepository, ScopeID: project.RepoID})
+		unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.ProjectWorkflowCreate, ActorID: owner.ID, ScopeType: audit_model.ScopeRepository, ScopeID: project.RepoID})
 
 		stored := unittest.AssertExistsAndLoadBean(t, &project_model.Workflow{ID: wf.ID})
 		assert.False(t, stored.Enabled)
 		assert.Equal(t, project_model.WorkflowFilters{IssueType: "issue", LabelIDs: []int64{1, 2}}, stored.WorkflowFilters)
 		assert.Equal(t, project_model.WorkflowActions{AddLabelIDs: []int64{1}}, stored.WorkflowActions)
-		assert.Equal(t, owner.ID, stored.UpdaterID)
 
+		assert.ErrorIs(t, UpdateWorkflow(ctx, reader, project, stored, &api.EditProjectWorkflowOption{Enabled: new(true)}), util.ErrPermissionDenied)
+		assert.ErrorIs(t, DeleteWorkflow(ctx, reader, project, stored), util.ErrPermissionDenied)
 		require.NoError(t, DeleteWorkflow(ctx, owner, project, stored))
 		unittest.AssertNotExistsBean(t, &project_model.Workflow{ID: wf.ID})
 		for _, action := range []audit_model.Action{audit_model.ProjectWorkflowUpdate, audit_model.ProjectWorkflowDelete} {
@@ -133,12 +175,10 @@ func TestCreateUpdateWorkflow(t *testing.T) {
 
 type labelChangeRecorder struct {
 	notify_service.NullNotifier
-	doer  *user_model.User
 	added [][]int64
 }
 
-func (r *labelChangeRecorder) IssueChangeLabels(_ctx context.Context, doer *user_model.User, _issue *issues_model.Issue, added, _removed []*issues_model.Label) {
-	r.doer = doer
+func (r *labelChangeRecorder) IssueChangeLabels(_ctx context.Context, _doer *user_model.User, _issue *issues_model.Issue, added, _removed []*issues_model.Label) {
 	r.added = append(r.added, container.FilterSlice(added, func(l *issues_model.Label) (int64, bool) { return l.ID, true }))
 }
 
@@ -149,7 +189,7 @@ func TestWorkflowExecution(t *testing.T) {
 
 	addLabel := project_model.WorkflowActions{AddLabelIDs: []int64{labelID}}
 	addWorkflow := func(t *testing.T, wf project_model.Workflow) {
-		wf.ProjectID, wf.Enabled, wf.UpdaterID = 1, true, util.IfZero(wf.UpdaterID, doer.ID)
+		wf.ProjectID, wf.Enabled = 1, true
 		require.NoError(t, project_model.CreateWorkflow(t.Context(), &wf))
 	}
 	setup := func(t *testing.T, wf project_model.Workflow) {
@@ -169,11 +209,6 @@ func TestWorkflowExecution(t *testing.T) {
 		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemColumnChanged, WorkflowFilters: project_model.WorkflowFilters{SourceColumnID: 1, TargetColumnID: 2}, WorkflowActions: addLabel})
 		moveIssue(t, t.Context(), 2, 2)
 		assert.True(t, hasLabel(t, 2))
-		comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: 2, Type: issues_model.CommentTypeLabel, LabelID: labelID})
-		assert.Equal(t, &issues_model.CommentMetaData{
-			ProjectWorkflowEvent: project_model.WorkflowEventItemColumnChanged,
-			SpecialDoerName:      issues_model.SpecialDoerNameProjectWorkflow,
-		}, comment.CommentMetaData)
 	})
 
 	t.Run("NoOpMoveWithinDefaultColumn", func(t *testing.T) {
@@ -189,29 +224,27 @@ func TestWorkflowExecution(t *testing.T) {
 		assert.False(t, hasLabel(t, 1))
 	})
 
-	t.Run("UpdaterNotAllowed", func(t *testing.T) {
-		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemColumnChanged, WorkflowActions: addLabel, UpdaterID: 5})
-		moveIssue(t, t.Context(), 1, 2)
-		assert.False(t, hasLabel(t, 1))
-
-		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemColumnChanged, WorkflowActions: addLabel})
-		require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: doer.ID, ProhibitLogin: true}, "prohibit_login"))
-		moveIssue(t, t.Context(), 1, 2)
-		assert.False(t, hasLabel(t, 1))
+	t.Run("LabelsAndClosesPullRequestAsTriggeringReader", func(t *testing.T) {
+		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemColumnChanged, WorkflowActions: project_model.WorkflowActions{AddLabelIDs: []int64{labelID}, IssueState: project_model.WorkflowIssueStateClose}})
+		reader := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		require.NoError(t, MoveIssueToColumn(t.Context(), reader, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}), unittest.AssertExistsAndLoadBean(t, &project_model.Column{ID: 3}), optional.None[int64]()))
+		assert.True(t, hasLabel(t, 3))
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}).IsClosed)
+		for _, commentType := range []issues_model.CommentType{issues_model.CommentTypeLabel, issues_model.CommentTypeClose} {
+			comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: 3, Type: commentType})
+			assert.Equal(t, reader.ID, comment.PosterID)
+			assert.Equal(t, &issues_model.CommentMetaData{
+				ProjectWorkflowEvent: project_model.WorkflowEventItemColumnChanged,
+				SpecialDoerName:      issues_model.SpecialDoerNameProjectWorkflow,
+			}, comment.CommentMetaData)
+		}
 	})
 
-	t.Run("UpdaterKeepsTokenRestrictions", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-		tokenDoer := *doer
-		tokenDoer.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,write:issue")
-		project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
-		wf, err := CreateWorkflow(t.Context(), &tokenDoer, project, &api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{AddLabelIDs: []int64{labelID}}})
-		require.NoError(t, err)
-		privateIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
-		require.NoError(t, privateIssue.LoadRepo(t.Context()))
-		allowed, err := canWorkflowChangeIssue(t.Context(), unittest.AssertExistsAndLoadBean(t, &project_model.Workflow{ID: wf.ID}), privateIssue)
-		require.NoError(t, err)
-		assert.False(t, allowed)
+	t.Run("ArchivedRepository", func(t *testing.T) {
+		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemClosed, WorkflowActions: addLabel})
+		require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: 1, IsArchived: true}, "is_archived"))
+		(&workflowNotifier{}).IssueChangeStatus(t.Context(), doer, "", unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}), nil, true)
+		assert.False(t, hasLabel(t, 1))
 	})
 
 	t.Run("ReopenSkipsPullRequests", func(t *testing.T) {
@@ -253,16 +286,5 @@ func TestWorkflowExecution(t *testing.T) {
 		require.NoError(t, issue_service.NewIssue(t.Context(), repo, issue, []int64{1}, nil, nil, []int64{1}))
 		assert.Equal(t, [][]int64{{1}, {labelID}}, labelChanges.added)
 		assert.EqualValues(t, 3, unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID}).ProjectColumnID)
-	})
-
-	t.Run("ActionsUserDoerKeepsTask", func(t *testing.T) {
-		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemClosed, WorkflowActions: addLabel})
-		*labelChanges = labelChangeRecorder{}
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-		(&workflowNotifier{}).IssueChangeStatus(t.Context(), user_model.NewActionsUserWithTaskID(7), "", issue, nil, true)
-		require.True(t, hasLabel(t, 1))
-		taskID, ok := user_model.GetActionsUserTaskID(labelChanges.doer)
-		assert.True(t, ok)
-		assert.EqualValues(t, 7, taskID)
 	})
 }

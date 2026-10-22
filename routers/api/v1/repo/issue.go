@@ -621,8 +621,9 @@ func CreateIssue(ctx *context.APIContext) {
 			return
 		}
 	} else {
-		// setting labels is not allowed if user is not a writer
+		// setting labels and projects is not allowed if user is not a writer
 		form.Labels = make([]int64, 0)
+		form.Projects = nil
 	}
 
 	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, form.Projects); err != nil {

@@ -581,7 +581,7 @@ func DeleteProjectWorkflow(ctx *context.APIContext) {
 		return
 	}
 	if err := project_service.DeleteWorkflow(ctx, ctx.Doer, project, workflow); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

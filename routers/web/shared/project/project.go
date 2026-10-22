@@ -5,6 +5,7 @@ package project
 
 import (
 	"errors"
+	"net/http"
 
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
@@ -196,19 +197,21 @@ func MoveIssues(ctx *context.Context) {
 			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
 			return
 		}
-		if project.Type != project_model.TypeRepository {
-			perm, ok := repoPerms[issue.RepoID]
-			if !ok {
-				if perm, err = access_model.GetDoerRepoPermission(ctx, issue.Repo, ctx.Doer); err != nil {
-					ctx.ServerError("GetDoerRepoPermission", err)
-					return
-				}
-				repoPerms[issue.RepoID] = perm
-			}
-			if !perm.CanReadIssuesOrPulls(issue.IsPull) {
-				ctx.NotFound(nil)
+		perm, ok := repoPerms[issue.RepoID]
+		if !ok {
+			if perm, err = access_model.GetDoerRepoPermission(ctx, issue.Repo, ctx.Doer); err != nil {
+				ctx.ServerError("GetDoerRepoPermission", err)
 				return
 			}
+			repoPerms[issue.RepoID] = perm
+		}
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+			ctx.NotFound(nil)
+			return
+		}
+		if issue.Repo.IsArchived {
+			ctx.HTTPError(http.StatusLocked, "repo is archived")
+			return
 		}
 	}
 

@@ -82,21 +82,7 @@ func runIssueProjectsWorkflows(ctx context.Context, doer *user_model.User, issue
 }
 
 func runWorkflows(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, projectIDs []int64, event project_model.WorkflowEvent, trigger workflowTrigger) {
-	if issues_model.IsProjectWorkflowContext(ctx) {
-		return
-	}
-	workflows, err := project_model.FindEnabledWorkflows(ctx, projectIDs, event)
-	if err != nil {
-		log.Error("FindEnabledWorkflows: %v", err)
-		return
-	}
-	if len(workflows) == 0 {
-		return
-	}
-	// the caller and the notifiers after this one keep using their issue, don't change it under them
-	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
-	if err != nil {
-		log.Error("GetIssueByID: %v", err)
+	if len(projectIDs) == 0 || issues_model.IsProjectWorkflowContext(ctx) {
 		return
 	}
 	if err := issue.LoadRepo(ctx); err != nil {
@@ -106,14 +92,30 @@ func runWorkflows(ctx context.Context, doer *user_model.User, issue *issues_mode
 	if issue.Repo.IsArchived {
 		return
 	}
+	workflows, err := project_model.FindEnabledWorkflows(ctx, issue.Repo, projectIDs, event)
+	if err != nil {
+		log.Error("FindEnabledWorkflows: %v", err)
+		return
+	}
+	if len(workflows) == 0 {
+		return
+	}
+	repo := issue.Repo
+	// the caller and the notifiers after this one keep using their issue, don't change it under them
+	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
+	if err != nil {
+		log.Error("GetIssueByID: %v", err)
+		return
+	}
+	issue.Repo = repo
 	if err := issue.LoadLabels(ctx); err != nil {
 		log.Error("LoadLabels: %v", err)
 		return
 	}
-	for _, wf := range workflows {
-		if matchWorkflowFilters(wf, issue, trigger) {
-			executeWorkflowActions(ctx, wf, doer, issue)
-		}
+	// filters see the item as the event left it, not as earlier workflows changed it
+	matched := slices.DeleteFunc(workflows, func(wf *project_model.Workflow) bool { return !matchWorkflowFilters(wf, issue, trigger) })
+	for _, wf := range matched {
+		executeWorkflowActions(ctx, wf, doer, issue)
 	}
 }
 
@@ -142,18 +144,6 @@ func matchWorkflowFilters(wf *project_model.Workflow, issue *issues_model.Issue,
 func executeWorkflowActions(ctx context.Context, wf *project_model.Workflow, doer *user_model.User, issue *issues_model.Issue) {
 	ctx = issues_model.WithProjectWorkflow(ctx, wf.WorkflowEvent)
 	actions := wf.WorkflowActions
-
-	if actions.ChangesIssue() {
-		allowed, err := canWorkflowChangeIssue(ctx, wf, issue)
-		if err != nil {
-			log.Error("canWorkflowChangeIssue: %v", err)
-			return
-		}
-		if !allowed {
-			log.Warn("Project workflow %d may not change issue %d, skipping its actions", wf.ID, issue.ID)
-			return
-		}
-	}
 
 	if actions.ColumnID != 0 {
 		if err := moveIssueByWorkflow(ctx, wf, doer, issue); err != nil {

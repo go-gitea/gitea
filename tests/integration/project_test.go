@@ -110,6 +110,18 @@ func TestUpdateIssueProject(t *testing.T) {
 		sess.MakeRequest(t, req, http.StatusOK)
 		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
 	})
+
+	t.Run("AssignOnCreationNeedsWriter", func(t *testing.T) {
+		newIssue := func(session *TestSession, title string, status int) {
+			req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/new", map[string]string{"title": title, "project_ids": "1"})
+			session.MakeRequest(t, req, status)
+		}
+		newIssue(sess, "writer issue", http.StatusOK)
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Title: "writer issue"})
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: 1})
+		newIssue(loginUser(t, "user4"), "reader issue", http.StatusNotFound)
+		unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: 1, Title: "reader issue"})
+	})
 }
 
 func TestUpdateIssueProjectColumn(t *testing.T) {

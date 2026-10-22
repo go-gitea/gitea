@@ -70,7 +70,6 @@ func TestProjectWorkflowExecution(t *testing.T) {
 		Actions: api.ProjectWorkflowActions{ColumnID: 2, AddLabelIDs: []int64{1}},
 	}, {
 		Event:   "item_column_changed",
-		Filters: api.ProjectWorkflowFilters{TargetColumnID: 3},
 		Actions: api.ProjectWorkflowActions{IssueState: "close"},
 	}} {
 		session.MakeRequest(t, NewRequestWithJSON(t, "POST", link+"/workflows", opts), http.StatusOK)

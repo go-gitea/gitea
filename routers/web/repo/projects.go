@@ -487,6 +487,10 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 		ctx.ServerError("GetIssueByID", err)
 		return
 	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound(nil)
+		return
+	}
 	column, err := project_model.GetColumn(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetColumn", err)

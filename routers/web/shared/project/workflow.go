@@ -24,6 +24,13 @@ func RenderWorkflows(ctx *context.Context, canWrite bool, tpl templates.TplName)
 	if ctx.Written() {
 		return
 	}
+	if canWrite {
+		var err error
+		if canWrite, err = project_service.CanManageWorkflows(ctx, ctx.Doer, project); err != nil {
+			ctx.ServerError("CanManageWorkflows", err)
+			return
+		}
+	}
 	workflows, err := db.Find[project_model.Workflow](ctx, project_model.FindWorkflowsOptions{ListOptions: db.ListOptionsAll, ProjectIDs: []int64{project.ID}})
 	if err != nil {
 		ctx.ServerError("FindWorkflows", err)
@@ -142,7 +149,7 @@ func DeleteWorkflow(ctx *context.Context) {
 		return
 	}
 	if err := project_service.DeleteWorkflow(ctx, ctx.Doer, project, workflow); err != nil {
-		ctx.ServerError("DeleteWorkflow", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ctx.JSONOK()

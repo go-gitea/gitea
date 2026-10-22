@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/timeutil"
 
@@ -101,10 +102,6 @@ func (a WorkflowActions) Types() (types []WorkflowActionType) {
 	return types
 }
 
-func (a WorkflowActions) ChangesIssue() bool {
-	return len(a.AddLabelIDs) > 0 || len(a.RemoveLabelIDs) > 0 || a.IssueState != ""
-}
-
 type WorkflowEventCapabilities struct {
 	Filters []WorkflowFilterType
 	Actions []WorkflowActionType
@@ -167,8 +164,6 @@ type Workflow struct {
 	WorkflowFilters WorkflowFilters    `xorm:"TEXT JSON"`
 	WorkflowActions WorkflowActions    `xorm:"TEXT JSON"`
 	Enabled         bool               `xorm:"DEFAULT true NOT NULL"`
-	UpdaterID       int64              `xorm:"NOT NULL DEFAULT 0"` // label and issue state actions use this user's permissions
-	UpdaterDoerData string             `xorm:"TEXT"`               // the updater's token restrictions, see user_model.GetDoerPermissionUser
 	CreatedUnix     timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
 }
@@ -221,14 +216,16 @@ func (opts FindWorkflowsOptions) ToOrders() string {
 	return "project_id ASC, id ASC" // keep execution order stable across database engines
 }
 
-func FindEnabledWorkflows(ctx context.Context, projectIDs []int64, event WorkflowEvent) ([]*Workflow, error) {
+// FindEnabledWorkflows returns the workflows of open projects among projectIDs that can hold items of repo, see CanBeAccessedByOwnerRepo
+func FindEnabledWorkflows(ctx context.Context, repo *repo_model.Repository, projectIDs []int64, event WorkflowEvent) ([]*Workflow, error) {
 	if len(projectIDs) == 0 {
 		return nil, nil
 	}
 	opts := FindWorkflowsOptions{ProjectIDs: projectIDs, Event: event, Enabled: optional.Some(true)}
+	holdsRepoItems := builder.Eq{"repo_id": repo.ID}.Or(builder.Eq{"owner_id": repo.OwnerID, "repo_id": 0})
 	workflows := make([]*Workflow, 0)
 	err := db.GetEngine(ctx).Where(opts.ToConds()).
-		In("project_id", builder.Select("id").From("project").Where(builder.Eq{"is_closed": false})).
+		In("project_id", builder.Select("id").From("project").Where(builder.Eq{"is_closed": false}.And(holdsRepoItems))).
 		OrderBy(opts.ToOrders()).Find(&workflows)
 	return workflows, err
 }
