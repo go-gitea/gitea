@@ -17,7 +17,6 @@ import (
 type WorkflowEvent string
 
 const (
-	WorkflowEventItemOpened             WorkflowEvent = "item_opened"
 	WorkflowEventItemAddedToProject     WorkflowEvent = "item_added_to_project"
 	WorkflowEventItemRemovedFromProject WorkflowEvent = "item_removed_from_project"
 	WorkflowEventItemReopened           WorkflowEvent = "item_reopened"
@@ -122,7 +121,6 @@ var workflowEvents = []struct {
 	filters []WorkflowFilterType
 	actions []WorkflowActionType
 }{
-	{WorkflowEventItemOpened, itemFilters, []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels}},
 	{WorkflowEventItemAddedToProject, itemFilters, []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeIssueState}},
 	{WorkflowEventItemRemovedFromProject, itemFilters, []WorkflowActionType{WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeIssueState}},
 	{WorkflowEventItemReopened, itemFilters, pullActions},

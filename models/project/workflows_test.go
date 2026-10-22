@@ -23,19 +23,19 @@ func TestWorkflowCRUD(t *testing.T) {
 		return wf
 	}
 	closed := newWorkflow(WorkflowEventItemClosed)
-	opened := newWorkflow(WorkflowEventItemOpened)
+	added := newWorkflow(WorkflowEventItemAddedToProject)
 	closed2 := newWorkflow(WorkflowEventItemClosed)
 
 	closed.Enabled = false
 	require.NoError(t, UpdateWorkflow(ctx, closed, "enabled"))
-	require.NoError(t, UpdateWorkflow(ctx, &Workflow{ID: opened.ID, ProjectID: 2}, "enabled"))
-	require.NoError(t, DeleteWorkflow(ctx, 2, opened.ID))
-	assert.True(t, unittest.AssertExistsAndLoadBean(t, &Workflow{ID: opened.ID}).Enabled, "other projects cannot modify it")
+	require.NoError(t, UpdateWorkflow(ctx, &Workflow{ID: added.ID, ProjectID: 2}, "enabled"))
+	require.NoError(t, DeleteWorkflow(ctx, 2, added.ID))
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &Workflow{ID: added.ID}).Enabled, "other projects cannot modify it")
 
 	workflows, err := db.Find[Workflow](ctx, FindWorkflowsOptions{ProjectIDs: []int64{1}})
 	require.NoError(t, err)
 	require.Len(t, workflows, 3)
-	assert.Equal(t, []int64{closed.ID, opened.ID, closed2.ID}, []int64{workflows[0].ID, workflows[1].ID, workflows[2].ID})
+	assert.Equal(t, []int64{closed.ID, added.ID, closed2.ID}, []int64{workflows[0].ID, workflows[1].ID, workflows[2].ID})
 
 	enabled, err := FindEnabledWorkflows(ctx, []int64{1, 2}, WorkflowEventItemClosed)
 	require.NoError(t, err)

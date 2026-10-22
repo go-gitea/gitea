@@ -19,7 +19,7 @@ const workflow = (id: number, event: string, extra: Partial<ProjectWorkflow> = {
 function setup(workflows: ProjectWorkflow[]) {
   window.config.pageData.projectWorkflows = {
     events: [
-      {event: 'item_opened', display_name: 'Item opened', supported_filters: ['issue_type', 'labels'], supported_actions: ['column']},
+      {event: 'item_added_to_project', display_name: 'Item added to project', supported_filters: ['issue_type', 'labels'], supported_actions: ['column']},
       {event: 'item_closed', display_name: 'Item closed', supported_filters: [], supported_actions: ['column']},
     ],
     workflows,
@@ -37,16 +37,16 @@ beforeEach(() => {
 
 test('rows, display names, summaries and deep link resolution', () => {
   const store = setup([
-    workflow(3, 'item_opened', {filters: {issue_type: 'issue', source_column_id: 2, target_column_id: 1, label_ids: [8, 7]}}),
-    workflow(5, 'item_opened'),
+    workflow(3, 'item_added_to_project', {filters: {issue_type: 'issue', source_column_id: 2, target_column_id: 1, label_ids: [8, 7]}}),
+    workflow(5, 'item_added_to_project'),
   ]);
   expect(store.rows.map((r) => [r.key, r.displayName])).toEqual([
-    ['3', 'Item opened #1'],
-    ['5', 'Item opened #2'],
+    ['3', 'Item added to project #1'],
+    ['5', 'Item added to project #2'],
     ['item_closed', 'Item closed'],
   ]);
   expect(store.resolve('5')!.key).toBe('5');
-  expect(store.resolve('item_opened')!.key).toBe('3');
+  expect(store.resolve('item_added_to_project')!.key).toBe('3');
   expect(store.resolve('item_closed')!.workflow).toBeUndefined();
   expect(store.resolve('42')).toBeUndefined();
   expect(store.urlFor(store.rows[2])).toBe('/o/r/projects/1/workflows?event=item_closed');
@@ -56,7 +56,7 @@ test('rows, display names, summaries and deep link resolution', () => {
 });
 
 test('edits to a saved workflow are dropped on switching, unsaved drafts are kept', () => {
-  const store = setup([workflow(3, 'item_opened')]);
+  const store = setup([workflow(3, 'item_added_to_project')]);
   store.select(store.resolve('3')!);
   store.editMode = true;
   store.form.actions.column_id = 2;
@@ -76,7 +76,7 @@ test('edits to a saved workflow are dropped on switching, unsaved drafts are kep
 });
 
 test('the form drops columns and labels deleted since saving', () => {
-  const store = setup([workflow(3, 'item_opened', {filters: {label_ids: [7, 9]}, actions: {column_id: 4, add_label_ids: [9]}})]);
+  const store = setup([workflow(3, 'item_added_to_project', {filters: {label_ids: [7, 9]}, actions: {column_id: 4, add_label_ids: [9]}})]);
   store.select(store.resolve('3')!);
   expect(store.form.filters.label_ids).toEqual([7]);
   expect(store.form.actions.column_id).toBe(0);
@@ -84,23 +84,23 @@ test('the form drops columns and labels deleted since saving', () => {
 });
 
 test('clone is numbered after its source, cancel returns to the source, saving adds a history entry', async () => {
-  const store = setup([workflow(3, 'item_opened'), workflow(5, 'item_opened', {actions: {column_id: 2}})]);
+  const store = setup([workflow(3, 'item_added_to_project'), workflow(5, 'item_added_to_project', {actions: {column_id: 2}})]);
   store.select(store.resolve('5')!);
   store.clone();
-  expect(store.selected!.displayName).toBe('Item opened #3');
+  expect(store.selected!.displayName).toBe('Item added to project #3');
   expect(store.editing).toBe(true);
   expect(store.form.actions.column_id).toBe(2);
   expect(store.canClone(store.resolve('5')!)).toBe(false);
   store.cancel();
   expect(store.selectedKey).toBe('5');
   expect(store.rows).toHaveLength(3);
-  expect(window.history.replaceState).toHaveBeenCalledWith({key: '5', event: 'item_opened'}, '', '/o/r/projects/1/workflows/5');
+  expect(window.history.replaceState).toHaveBeenCalledWith({key: '5', event: 'item_added_to_project'}, '', '/o/r/projects/1/workflows/5');
 
   store.clone();
-  vi.mocked(performFetchActionRequest).mockResolvedValueOnce(Response.json(workflow(9, 'item_opened', {actions: {column_id: 2}})));
+  vi.mocked(performFetchActionRequest).mockResolvedValueOnce(Response.json(workflow(9, 'item_added_to_project', {actions: {column_id: 2}})));
   await store.save();
-  expect(store.selected!.displayName).toBe('Item opened #3');
-  expect(window.history.pushState).toHaveBeenCalledWith({key: '9', event: 'item_opened'}, '', '/o/r/projects/1/workflows/9');
+  expect(store.selected!.displayName).toBe('Item added to project #3');
+  expect(window.history.pushState).toHaveBeenCalledWith({key: '9', event: 'item_added_to_project'}, '', '/o/r/projects/1/workflows/9');
 });
 
 test('saving a placeholder retains the draft on failure and creates the workflow on success', async () => {
@@ -127,13 +127,13 @@ test('saving a placeholder retains the draft on failure and creates the workflow
 });
 
 test.each(['save', 'setEnabled'] as const)('%s preserves selection changed through history during the request', async (operation) => {
-  const store = setup([workflow(3, 'item_opened'), workflow(5, 'item_opened', {actions: {column_id: 2}})]);
+  const store = setup([workflow(3, 'item_added_to_project'), workflow(5, 'item_added_to_project', {actions: {column_id: 2}})]);
   store.select(store.resolve('3')!);
   const response = Promise.withResolvers<Response>();
   vi.mocked(performFetchActionRequest).mockReturnValueOnce(response.promise);
   const request = operation === 'save' ? store.save() : store.setEnabled(false);
   store.select(store.resolve('5')!);
-  response.resolve(Response.json(workflow(3, 'item_opened', {enabled: false})));
+  response.resolve(Response.json(workflow(3, 'item_added_to_project', {enabled: false})));
   await request;
   expect(store.workflows[0].enabled).toBe(false);
   expect(store.selectedKey).toBe('5');
@@ -143,7 +143,7 @@ test.each(['save', 'setEnabled'] as const)('%s preserves selection changed throu
 });
 
 test('delete keeps its target after selection changes and selects the next row only when still selected', async () => {
-  const store = setup([workflow(3, 'item_opened'), workflow(5, 'item_opened')]);
+  const store = setup([workflow(3, 'item_added_to_project'), workflow(5, 'item_added_to_project')]);
   store.select(store.resolve('3')!);
   vi.mocked(performFetchActionRequest).mockResolvedValueOnce(null);
   await store.remove(store.selected!.workflow!);
@@ -161,6 +161,6 @@ test('delete keeps its target after selection changes and selects the next row o
 
   vi.mocked(performFetchActionRequest).mockResolvedValueOnce(Response.json({}));
   await store.remove(store.selected!.workflow!);
-  expect(store.selectedKey).toBe('item_opened');
-  expect(window.history.replaceState).toHaveBeenCalledWith({key: 'item_opened', event: 'item_opened'}, '', '/o/r/projects/1/workflows?event=item_opened');
+  expect(store.selectedKey).toBe('item_added_to_project');
+  expect(window.history.replaceState).toHaveBeenCalledWith({key: 'item_added_to_project', event: 'item_added_to_project'}, '', '/o/r/projects/1/workflows?event=item_added_to_project');
 });

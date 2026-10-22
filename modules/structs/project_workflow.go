@@ -34,8 +34,8 @@ type ProjectWorkflowActions struct {
 // swagger:model
 type ProjectWorkflow struct {
 	ID int64 `json:"id"`
-	// one of item_opened, item_added_to_project, item_removed_from_project, item_reopened, item_closed,
-	// item_column_changed, code_changes_requested, code_review_approved, pull_request_merged
+	// one of item_added_to_project, item_removed_from_project, item_reopened, item_closed, item_column_changed,
+	// code_changes_requested, code_review_approved, pull_request_merged
 	Event   string                 `json:"event"`
 	Enabled bool                   `json:"enabled"`
 	Filters ProjectWorkflowFilters `json:"filters"`

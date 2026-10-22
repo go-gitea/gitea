@@ -3988,7 +3988,6 @@
   "projects.enter_fullscreen": "Fullscreen",
   "projects.exit_fullscreen": "Exit Fullscreen",
   "projects.workflows": "Workflows",
-  "projects.workflows.event.item_opened": "Item opened",
   "projects.workflows.event.item_added_to_project": "Item added to project",
   "projects.workflows.event.item_removed_from_project": "Item removed from project",
   "projects.workflows.event.item_reopened": "Item reopened",

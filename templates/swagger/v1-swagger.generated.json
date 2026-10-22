@@ -32669,7 +32669,7 @@
           "x-go-name": "Enabled"
         },
         "event": {
-          "description": "one of item_opened, item_added_to_project, item_removed_from_project, item_reopened, item_closed,\nitem_column_changed, code_changes_requested, code_review_approved, pull_request_merged",
+          "description": "one of item_added_to_project, item_removed_from_project, item_reopened, item_closed, item_column_changed,\ncode_changes_requested, code_review_approved, pull_request_merged",
           "type": "string",
           "x-go-name": "Event"
         },

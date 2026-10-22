@@ -54,7 +54,7 @@ func TestAPIProjectWorkflows(t *testing.T) {
 	assert.Contains(t, MakeRequest(t, req, http.StatusUnprocessableEntity).Body.String(), "invalid label")
 
 	outsider := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteIssue)
-	req = NewRequestWithJSON(t, "POST", listURL, &api.CreateProjectWorkflowOption{Event: "item_opened", Actions: api.ProjectWorkflowActions{ColumnID: 3}}).AddTokenAuth(outsider)
+	req = NewRequestWithJSON(t, "POST", listURL, &api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{ColumnID: 3}}).AddTokenAuth(outsider)
 	MakeRequest(t, req, http.StatusForbidden)
 	MakeRequest(t, NewRequest(t, "DELETE", workflowURL).AddTokenAuth(outsider), http.StatusForbidden)
 

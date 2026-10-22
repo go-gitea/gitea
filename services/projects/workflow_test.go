@@ -30,7 +30,7 @@ func TestMatchWorkflowFilters(t *testing.T) {
 	issue := &issues_model.Issue{Labels: []*issues_model.Label{{ID: 1}}}
 	pull := &issues_model.Issue{IsPull: true}
 	moved := workflowTrigger{sourceColumnID: 1, targetColumnID: 2}
-	opened, columnChanged := project_model.WorkflowEventItemOpened, project_model.WorkflowEventItemColumnChanged
+	added, columnChanged := project_model.WorkflowEventItemAddedToProject, project_model.WorkflowEventItemColumnChanged
 	tests := []struct {
 		name    string
 		event   project_model.WorkflowEvent
@@ -39,15 +39,15 @@ func TestMatchWorkflowFilters(t *testing.T) {
 		trigger workflowTrigger
 		want    bool
 	}{
-		{"no filters", opened, project_model.WorkflowFilters{}, issue, workflowTrigger{}, true},
-		{"issue type", opened, project_model.WorkflowFilters{IssueType: "issue"}, issue, workflowTrigger{}, true},
-		{"other issue type", opened, project_model.WorkflowFilters{IssueType: "issue"}, pull, workflowTrigger{}, false},
-		{"label", opened, project_model.WorkflowFilters{LabelIDs: []int64{1}}, issue, workflowTrigger{}, true},
-		{"missing label", opened, project_model.WorkflowFilters{LabelIDs: []int64{1, 2}}, issue, workflowTrigger{}, false},
+		{"no filters", added, project_model.WorkflowFilters{}, issue, workflowTrigger{}, true},
+		{"issue type", added, project_model.WorkflowFilters{IssueType: "issue"}, issue, workflowTrigger{}, true},
+		{"other issue type", added, project_model.WorkflowFilters{IssueType: "issue"}, pull, workflowTrigger{}, false},
+		{"label", added, project_model.WorkflowFilters{LabelIDs: []int64{1}}, issue, workflowTrigger{}, true},
+		{"missing label", added, project_model.WorkflowFilters{LabelIDs: []int64{1, 2}}, issue, workflowTrigger{}, false},
 		{"columns", columnChanged, project_model.WorkflowFilters{SourceColumnID: 1, TargetColumnID: 2}, issue, moved, true},
 		{"other target", columnChanged, project_model.WorkflowFilters{TargetColumnID: 3}, issue, moved, false},
 		{"no column supplied", columnChanged, project_model.WorkflowFilters{SourceColumnID: 1}, issue, workflowTrigger{}, false},
-		{"unsupported by event", opened, project_model.WorkflowFilters{TargetColumnID: 2}, issue, moved, false},
+		{"unsupported by event", added, project_model.WorkflowFilters{TargetColumnID: 2}, issue, moved, false},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -73,16 +73,16 @@ func TestCreateUpdateWorkflow(t *testing.T) {
 			code int
 		}{
 			{"unknown event", owner, api.CreateProjectWorkflowOption{Event: "bogus", Actions: api.ProjectWorkflowActions{ColumnID: 2}}, 422},
-			{"no actions", owner, api.CreateProjectWorkflowOption{Event: "item_opened"}, 422},
-			{"other project column", owner, api.CreateProjectWorkflowOption{Event: "item_opened", Actions: api.ProjectWorkflowActions{ColumnID: 4}}, 422},
-			{"other owner label", owner, api.CreateProjectWorkflowOption{Event: "item_opened", Actions: api.ProjectWorkflowActions{AddLabelIDs: []int64{3}}}, 422},
-			{"unsupported filter", owner, api.CreateProjectWorkflowOption{Event: "item_opened", Filters: api.ProjectWorkflowFilters{SourceColumnID: 1}, Actions: api.ProjectWorkflowActions{ColumnID: 2}}, 422},
-			{"unsupported action", owner, api.CreateProjectWorkflowOption{Event: "item_opened", Actions: api.ProjectWorkflowActions{IssueState: "close"}}, 422},
+			{"no actions", owner, api.CreateProjectWorkflowOption{Event: "item_added_to_project"}, 422},
+			{"other project column", owner, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{ColumnID: 4}}, 422},
+			{"other owner label", owner, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{AddLabelIDs: []int64{3}}}, 422},
+			{"unsupported filter", owner, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Filters: api.ProjectWorkflowFilters{SourceColumnID: 1}, Actions: api.ProjectWorkflowActions{ColumnID: 2}}, 422},
+			{"unsupported action", owner, api.CreateProjectWorkflowOption{Event: "item_removed_from_project", Actions: api.ProjectWorkflowActions{ColumnID: 2}}, 422},
 			{"unknown issue state", owner, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{IssueState: "bogus"}}, 422},
 			{"reopen pull requests", owner, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Filters: api.ProjectWorkflowFilters{IssueType: "pull_request"}, Actions: api.ProjectWorkflowActions{IssueState: "reopen"}}, 422},
-			{"unknown issue type", owner, api.CreateProjectWorkflowOption{Event: "item_opened", Filters: api.ProjectWorkflowFilters{IssueType: "bogus"}, Actions: api.ProjectWorkflowActions{ColumnID: 2}}, 422},
-			{"labels without issue write", reader, api.CreateProjectWorkflowOption{Event: "item_opened", Actions: api.ProjectWorkflowActions{AddLabelIDs: []int64{1}}}, 403},
-			{"labels by a system user", user_model.NewActionsUserWithTaskID(1), api.CreateProjectWorkflowOption{Event: "item_opened", Actions: api.ProjectWorkflowActions{AddLabelIDs: []int64{1}}}, 403},
+			{"unknown issue type", owner, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Filters: api.ProjectWorkflowFilters{IssueType: "bogus"}, Actions: api.ProjectWorkflowActions{ColumnID: 2}}, 422},
+			{"labels without issue write", reader, api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{AddLabelIDs: []int64{1}}}, 403},
+			{"labels by a system user", user_model.NewActionsUserWithTaskID(1), api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{AddLabelIDs: []int64{1}}}, 403},
 		}
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
@@ -95,7 +95,7 @@ func TestCreateUpdateWorkflow(t *testing.T) {
 
 	t.Run("PartialUpdate", func(t *testing.T) {
 		wf, err := CreateWorkflow(ctx, reader, project, &api.CreateProjectWorkflowOption{
-			Event:   "item_opened",
+			Event:   "item_added_to_project",
 			Filters: api.ProjectWorkflowFilters{IssueType: "issue", LabelIDs: []int64{2, 1, 2}},
 			Actions: api.ProjectWorkflowActions{ColumnID: 2},
 		})
@@ -185,7 +185,7 @@ func TestWorkflowExecution(t *testing.T) {
 
 	t.Run("NoCascadeFromWorkflows", func(t *testing.T) {
 		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemColumnChanged, WorkflowActions: addLabel})
-		moveIssue(t, issues_model.WithProjectWorkflow(t.Context(), project_model.WorkflowEventItemOpened), 1, 2)
+		moveIssue(t, issues_model.WithProjectWorkflow(t.Context(), project_model.WorkflowEventItemAddedToProject), 1, 2)
 		assert.False(t, hasLabel(t, 1))
 	})
 
@@ -205,7 +205,7 @@ func TestWorkflowExecution(t *testing.T) {
 		tokenDoer := *doer
 		tokenDoer.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,write:issue")
 		project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
-		wf, err := CreateWorkflow(t.Context(), &tokenDoer, project, &api.CreateProjectWorkflowOption{Event: "item_opened", Actions: api.ProjectWorkflowActions{AddLabelIDs: []int64{labelID}}})
+		wf, err := CreateWorkflow(t.Context(), &tokenDoer, project, &api.CreateProjectWorkflowOption{Event: "item_added_to_project", Actions: api.ProjectWorkflowActions{AddLabelIDs: []int64{labelID}}})
 		require.NoError(t, err)
 		privateIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
 		require.NoError(t, privateIssue.LoadRepo(t.Context()))
@@ -246,13 +246,12 @@ func TestWorkflowExecution(t *testing.T) {
 	})
 
 	t.Run("NewItemInProject", func(t *testing.T) {
-		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemOpened, WorkflowActions: addLabel})
-		addWorkflow(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemAddedToProject, WorkflowActions: project_model.WorkflowActions{ColumnID: 3}})
+		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemAddedToProject, WorkflowActions: project_model.WorkflowActions{ColumnID: 3, AddLabelIDs: []int64{labelID}}})
 		*labelChanges = labelChangeRecorder{}
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		issue := &issues_model.Issue{RepoID: repo.ID, PosterID: doer.ID, Title: "new item"}
 		require.NoError(t, issue_service.NewIssue(t.Context(), repo, issue, []int64{1}, nil, nil, []int64{1}))
-		assert.Equal(t, [][]int64{{labelID}, {1}}, labelChanges.added, "the workflow's label is not notified again as created")
+		assert.Equal(t, [][]int64{{1}, {labelID}}, labelChanges.added)
 		assert.EqualValues(t, 3, unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID}).ProjectColumnID)
 	})
 

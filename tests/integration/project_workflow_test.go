@@ -66,7 +66,7 @@ func TestProjectWorkflowExecution(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	for _, opts := range []*api.CreateProjectWorkflowOption{{
-		Event:   "item_opened",
+		Event:   "item_added_to_project",
 		Actions: api.ProjectWorkflowActions{ColumnID: 2, AddLabelIDs: []int64{1}},
 	}, {
 		Event:   "item_column_changed",
@@ -87,7 +87,7 @@ func TestProjectWorkflowExecution(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: created.ID, LabelID: 1})
 	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: created.ID}).IsClosed)
 	resp := session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/issues/%d", created.Index), http.StatusOK)
-	assert.Contains(t, NewHTMLParser(t, resp.Body).Find(".timeline-item.event .comment-text-line").Text(), "Project workflow Item opened")
+	assert.Contains(t, NewHTMLParser(t, resp.Body).Find(".timeline-item.event .comment-text-line").Text(), "Project workflow Item added to project")
 
 	req = NewRequestWithJSON(t, "POST", link+"/3/move", map[string]any{
 		"issues": []map[string]any{{"issueID": created.ID, "sorting": 0}},

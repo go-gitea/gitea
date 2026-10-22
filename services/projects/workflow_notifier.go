@@ -25,22 +25,6 @@ type workflowNotifier struct {
 	notify_service.NullNotifier
 }
 
-func (*workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, _ []*user_model.User) {
-	if err := issue.LoadPoster(ctx); err != nil {
-		log.Error("LoadPoster: %v", err)
-		return
-	}
-	runIssueProjectsWorkflows(ctx, issue.Poster, issue, project_model.WorkflowEventItemOpened)
-}
-
-func (m *workflowNotifier) NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
-	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
-		return
-	}
-	m.NewIssue(ctx, pr.Issue, mentions)
-}
-
 func (*workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, _ string, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
 	runIssueProjectsWorkflows(ctx, doer, issue, util.Iif(isClosed, project_model.WorkflowEventItemClosed, project_model.WorkflowEventItemReopened))
 }

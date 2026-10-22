@@ -9,7 +9,7 @@ const owner = env.GITEA_TEST_E2E_USER;
 
 const sidebar = (page: Page) => page.getByRole('navigation', {name: 'Default workflows'});
 const workflowLink = (page: Page, name: string) => sidebar(page).getByRole('link', {name});
-const editor = (page: Page) => page.getByRole('form', {name: /^Item opened/});
+const editor = (page: Page) => page.getByRole('form', {name: /^Item added to project/});
 const editorButton = (page: Page, name: string) => editor(page).getByRole('button', {name, exact: true});
 const editorField = (page: Page, name: string) => editor(page).getByRole('button', {name});
 
@@ -26,8 +26,8 @@ async function createWorkflowProject(page: Page) {
   return {repo, url: `/${owner}/${repo}/projects/${id}/workflows`};
 }
 
-async function configureItemOpened(page: Page, column: string) {
-  await workflowLink(page, 'Item opened').click();
+async function configureItemAdded(page: Page, column: string) {
+  await workflowLink(page, 'Item added to project').click();
   await choose(page, 'Move to column', column);
   await editorButton(page, 'Save').click();
 }
@@ -36,19 +36,19 @@ test('project workflow: configure, toggle, edit and view read-only', async ({pag
   const {repo, url} = await createWorkflowProject(page);
   try {
     await page.goto(url);
-    await expect(sidebar(page).getByRole('link')).toHaveCount(9);
+    await expect(sidebar(page).getByRole('link')).toHaveCount(8);
     await choose(page, 'Apply to', 'Issues only');
-    await configureItemOpened(page, 'Backlog');
+    await configureItemAdded(page, 'Backlog');
     await expect(page).toHaveURL(/\/workflows\/\d+$/);
     await expect(editor(page).getByLabel('Apply to')).toHaveText('Issues only');
-    await expect(workflowLink(page, 'Item opened')).toContainText('(Issues only)');
+    await expect(workflowLink(page, 'Item added to project')).toContainText('(Issues only)');
 
     await editorButton(page, 'Disable').click();
-    await expect(workflowLink(page, 'Item opened').getByRole('img', {name: 'Disabled'})).toBeVisible();
+    await expect(workflowLink(page, 'Item added to project').getByRole('img', {name: 'Disabled'})).toBeVisible();
     await editorButton(page, 'Enable').click();
-    await expect(workflowLink(page, 'Item opened').getByRole('img', {name: 'Enabled'})).toBeVisible();
+    await expect(workflowLink(page, 'Item added to project').getByRole('img', {name: 'Enabled'})).toBeVisible();
 
-    await page.goto(`${url}?event=item_opened`);
+    await page.goto(`${url}?event=item_added_to_project`);
     await expect(editor(page).getByLabel('Move to column')).toHaveText('Backlog');
 
     await editorButton(page, 'Edit').click();
@@ -71,19 +71,19 @@ test('project workflow: clone with labels and delete', async ({page}) => {
   try {
     await apiCreateLabel(page.request, owner, repo, 'bug', 'ee0701');
     await page.goto(url);
-    await configureItemOpened(page, 'Backlog');
+    await configureItemAdded(page, 'Backlog');
 
     await editorButton(page, 'Clone').click();
     await editorField(page, 'Add labels').click();
     await page.getByRole('menuitemcheckbox', {name: 'bug'}).click();
     await editorButton(page, 'Save').click();
     await expect(editor(page).getByRole('group', {name: 'Add labels'})).toHaveText('bug');
-    await expect(workflowLink(page, 'Item opened #2')).toHaveAttribute('aria-current', 'page');
+    await expect(workflowLink(page, 'Item added to project #2')).toHaveAttribute('aria-current', 'page');
 
     await editorButton(page, 'Edit').click();
     await editorButton(page, 'Remove').click();
     await page.getByRole('button', {name: 'Confirm', exact: true}).click();
-    await expect(workflowLink(page, 'Item opened')).toHaveCount(1);
+    await expect(workflowLink(page, 'Item added to project')).toHaveCount(1);
     await expect(editor(page).getByLabel('Move to column')).toHaveText('Backlog');
   } finally {
     await apiDeleteRepo(page.request, owner, repo);
