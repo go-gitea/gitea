@@ -131,12 +131,23 @@ func InfoOAuth(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+// RFC 6749 section 2.3.1: Basic credentials are form-urlencoded, an undecodable value is kept raw
+func basicAuthClientCredentials(basic *httpauth.BasicAuth) (clientID, clientSecret string) {
+	decode := func(s string) string {
+		if decoded, err := url.QueryUnescape(s); err == nil {
+			return decoded
+		}
+		return s
+	}
+	return decode(basic.Username), decode(basic.Password)
+}
+
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
 	var introspectingApp *auth.OAuth2Application
 	authHeader := ctx.Req.Header.Get("Authorization")
 	if parsed, ok := httpauth.ParseAuthorizationHeader(authHeader); ok && parsed.BasicAuth != nil {
-		clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
+		clientID, clientSecret := basicAuthClientCredentials(parsed.BasicAuth)
 		app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID)
 		if err != nil && !auth.IsErrOauthClientIDInvalid(err) {
 			// this is likely a database error; log it and respond without details
@@ -507,7 +518,7 @@ func AccessTokenOAuth(ctx *context.Context) {
 				})
 				return
 			}
-			clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
+			clientID, clientSecret := basicAuthClientCredentials(parsed.BasicAuth)
 			// validate that any fields present in the form match the Basic auth header
 			if form.ClientID != "" && form.ClientID != clientID {
 				handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
