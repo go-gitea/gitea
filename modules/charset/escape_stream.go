@@ -45,19 +45,12 @@ type escapeStreamer struct {
 	out io.Writer
 }
 
-var readBufPoolLarge = sync.Pool{
-	New: func() any {
-		return make([]byte, 0, 4*1024)
-	},
-}
-
 const readBufSmallSize = 512
 
-var readBufPoolSmall = sync.Pool{
-	New: func() any {
-		return make([]byte, 0, readBufSmallSize)
-	},
-}
+var (
+	readBufPoolLarge = sync.Pool{New: func() any { return make([]byte, 0, 4*1024) }}
+	readBufPoolSmall = sync.Pool{New: func() any { return make([]byte, 0, readBufSmallSize) }}
+)
 
 func prepareReadBuf(buf *[]byte, in io.Reader) func() {
 	lenProvider, ok := in.(interface{ Len() int })
@@ -66,7 +59,7 @@ func prepareReadBuf(buf *[]byte, in io.Reader) func() {
 	if useSmallPool {
 		pool = &readBufPoolSmall
 	}
-	*buf = pool.Get().([]byte)[:0]
+	*buf = pool.Get().([]byte)[:0] //nolint:forcetypeassert // valid pool item
 	return func() {
 		pool.Put(*buf)
 		*buf = nil
@@ -500,8 +493,6 @@ func (e *escapeStreamer) detectRunes(data []byte) []detectResult {
 		case r == utf8.RuneError:
 			results[i].runeType = runeTypeBroken
 			results[i].needEscape = true
-		case r >= 0x20 && r <= 0x7e:
-			results[i].runeType = runeTypeBasic
 		case r == ' ' || r == '\t' || r == '\n' || e.allowed[r]:
 			results[i].runeType = runeTypeBasic
 			if r >= 0x80 {
@@ -520,6 +511,7 @@ func (e *escapeStreamer) detectRunes(data []byte) []detectResult {
 		case r >= 0x80:
 			results[i].runeType = runeTypeNonASCII
 		default: // details to basic runes
+			results[i].runeType = runeTypeBasic
 		}
 	}
 	return results
