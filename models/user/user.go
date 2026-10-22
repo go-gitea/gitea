@@ -465,6 +465,7 @@ func (u *User) EmailTo() string {
 }
 
 // TODO: DefaultShowFullName causes messy logic, there are already too many methods to display a user's "display name", need to refactor them
+// Search this TODO to see more details
 // * user.Name / user.FullName: directly used in templates
 // * user.DisplayName(): always show FullName if it's not empty, otherwise show Name
 // * user.GetDisplayName(): show FullName if it's not empty and DefaultShowFullName is set, otherwise show Name
@@ -487,6 +488,14 @@ func (u *User) GetDisplayName() string {
 		if fullName != "" {
 			return fullName
 		}
+	}
+	return u.Name
+}
+
+// DisplayNameWithFullName returns the username, full name is included if it is not empty
+func (u *User) DisplayNameWithFullName() string {
+	if fullName := strings.TrimSpace(u.FullName); fullName != "" {
+		return fmt.Sprintf("%s (%s)", u.Name, fullName)
 	}
 	return u.Name
 }
@@ -1171,6 +1180,15 @@ func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]
 }
 
 func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer bool) ([]int64, error) {
+	users, err := getDoerUsersByNames(ctx, names, allowSystemDoer)
+	ids := make([]int64, 0, len(users))
+	for _, u := range users {
+		ids = append(ids, u.ID)
+	}
+	return ids, err
+}
+
+func getDoerUsersByNames(ctx context.Context, names []string, allowSystemDoer bool) ([]*User, error) {
 	namesLower := make([]string, 0, len(names))
 	namesMap := make(map[string]*User, len(names))
 	for _, name := range names {
@@ -1184,16 +1202,16 @@ func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer 
 		}
 	}
 
-	var users []*User
-	err := db.GetEngine(ctx).In("lower_name", namesLower).Where("`type` IN (?,?)", UserTypeIndividual, UserTypeBot).Find(&users)
+	var dbUsers []*User
+	err := db.GetEngine(ctx).In("lower_name", namesLower).Where("`type` IN (?,?)", UserTypeIndividual, UserTypeBot).Find(&dbUsers)
 	if err != nil {
 		return nil, err
 	}
-	for _, user := range users {
+	for _, user := range dbUsers {
 		namesMap[user.LowerName] = user
 	}
 
-	ids := make([]int64, 0, len(names))
+	users := make([]*User, 0, len(names))
 	var errFinal error
 	for _, nameLower := range namesLower {
 		u := namesMap[nameLower]
@@ -1201,9 +1219,13 @@ func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer 
 			errFinal = ErrUserNotExist{Name: nameLower}
 			continue
 		}
-		ids = append(ids, u.ID)
+		users = append(users, u)
 	}
-	return ids, errFinal
+	return users, errFinal
+}
+
+func GetDoerUsersByNames(ctx context.Context, names []string) ([]*User, error) {
+	return getDoerUsersByNames(ctx, names, false)
 }
 
 func GetDoerUserIDsByNamesWithSystem(ctx context.Context, names []string) ([]int64, error) {

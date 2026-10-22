@@ -11,6 +11,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestLineBlameCommitID(t *testing.T) {
+	storage := mockRepository("repo5_pulls")
+	const revision = "f32b0a9dfd09a60f616f29158f772cedd89942d2"
+	commitID, err := LineBlameCommitID(t.Context(), storage, revision, "README.md", 1)
+	assert.NoError(t, err)
+	assert.Equal(t, "72866af952e98d02a73003501836074b286a78f6", commitID)
+
+	commitID, err = LineBlameCommitID(t.Context(), storage, revision, "missing.txt", 1)
+	assert.Error(t, err)
+	assert.Empty(t, commitID)
+}
+
 func TestReadingBlameOutput(t *testing.T) {
 	setting.AppDataPath = t.TempDir()
 	ctx := t.Context()
