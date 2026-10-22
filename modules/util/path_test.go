@@ -142,6 +142,10 @@ func TestMisc_IsReadmeFileName(t *testing.T) {
 		assert.Equal(t, testCase.expected, ok)
 		assert.Equal(t, testCase.idx, idx)
 	}
+
+	idx, ok := IsReadmeFileExtension("readme", ".md")
+	assert.False(t, ok)
+	assert.Zero(t, idx)
 }
 
 func TestCleanPath(t *testing.T) {
