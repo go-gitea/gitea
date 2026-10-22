@@ -36,6 +36,7 @@ func toAttachment(ctx context.Context, repo *repo_model.Repository, a *repo_mode
 		Created:       a.CreatedUnix.AsTime(),
 		DownloadCount: a.DownloadCount,
 		Size:          a.Size,
+		SHA256:        a.HashSHA256,
 		UUID:          a.UUID,
 		DownloadURL:   getDownloadURL(ctx, repo, a), // for web/api requests, return different download URLs
 	}

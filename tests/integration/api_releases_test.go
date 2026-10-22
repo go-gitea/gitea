@@ -5,6 +5,8 @@ package integration
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -425,6 +427,8 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 			attachment := DecodeJSON(t, resp, &api.Attachment{})
 			assert.Equal(t, filename, attachment.Name)
 			assert.EqualValues(t, len(bufImageBytes), attachment.Size)
+			digest := sha256.Sum256(bufImageBytes)
+			assert.Equal(t, hex.EncodeToString(digest[:]), attachment.SHA256)
 		})
 		t.Run("UploadWithName", func(t *testing.T) {
 			resp := performUpload(t, assetURL+"?name=test-asset", bufImageBytes, http.StatusCreated)

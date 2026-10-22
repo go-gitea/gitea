@@ -2762,6 +2762,11 @@
             "type": "string",
             "x-go-name": "Name"
           },
+          "sha256": {
+            "description": "SHA256 is the hex-encoded SHA-256 digest of the content; empty when it was not recorded at upload",
+            "type": "string",
+            "x-go-name": "SHA256"
+          },
           "size": {
             "description": "Size is the file size in bytes",
             "format": "int64",

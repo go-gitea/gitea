@@ -6,6 +6,8 @@ package migrations
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -352,7 +354,11 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 				if rc == nil {
 					return nil
 				}
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
+				hasher := sha256.New()
+				_, err = storage.Attachments.Save(attach.RelativePath(), io.TeeReader(rc, hasher), int64(*asset.Size))
+				if err == nil {
+					attach.HashSHA256 = hex.EncodeToString(hasher.Sum(nil))
+				}
 				rc.Close()
 				return err
 			}()

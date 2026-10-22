@@ -34,6 +34,7 @@ type Attachment struct {
 	Name              string
 	DownloadCount     int64              `xorm:"DEFAULT 0"`
 	Size              int64              `xorm:"DEFAULT 0"`
+	HashSHA256        string             `xorm:"hash_sha256 char(64) NOT NULL DEFAULT ''"` // empty for attachments uploaded before it was recorded
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	CustomDownloadURL string             `xorm:"-"`
 }
