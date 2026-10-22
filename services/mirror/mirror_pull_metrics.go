@@ -4,6 +4,7 @@
 package mirror
 
 import (
+	"strconv"
 	"time"
 
 	"gitea.dev/modules/log"
@@ -11,21 +12,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 )
-
-type syncStep struct{ label string }
-
-var syncSteps = struct {
-	Fetch, CommitGraph, LFS, Branches, Releases, RepoSize, Wiki, Total syncStep
-}{
-	Fetch:       syncStep{"fetch"},
-	CommitGraph: syncStep{"commit_graph"},
-	LFS:         syncStep{"lfs"},
-	Branches:    syncStep{"branches"},
-	Releases:    syncStep{"releases"},
-	RepoSize:    syncStep{"repo_size"},
-	Wiki:        syncStep{"wiki"},
-	Total:       syncStep{"total"},
-}
 
 var mirrorSyncDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 	Namespace: "gitea",
@@ -43,8 +29,7 @@ var mirrorSyncStatus = prometheus.NewCounterVec(prometheus.CounterOpts{
 }, []string{"owner", "repo", "success"})
 
 func init() {
-	prometheus.MustRegister(mirrorSyncDuration)
-	prometheus.MustRegister(mirrorSyncStatus)
+	prometheus.MustRegister(mirrorSyncDuration, mirrorSyncStatus)
 }
 
 type mirrorMetricsConfig struct {
@@ -59,11 +44,11 @@ func defaultMetricsConfig() mirrorMetricsConfig {
 	}
 }
 
-func recordMirrorSyncStep(owner, repo string, step syncStep, start time.Time) {
+func recordMirrorSyncStep(owner, repo, step string, start time.Time) {
 	recordMirrorSyncStepWith(defaultMetricsConfig(), owner, repo, step, start)
 }
 
-func recordMirrorSyncStepWith(cfg mirrorMetricsConfig, owner, repo string, step syncStep, start time.Time) {
+func recordMirrorSyncStepWith(cfg mirrorMetricsConfig, owner, repo, step string, start time.Time) {
 	if !cfg.Enabled || !cfg.EnabledMirrorSyncDuration {
 		return
 	}
@@ -72,8 +57,7 @@ func recordMirrorSyncStepWith(cfg mirrorMetricsConfig, owner, repo string, step 
 			log.Error("panic in recordMirrorSyncStep: %v", r)
 		}
 	}()
-	elapsed := float64(time.Since(start).Milliseconds())
-	mirrorSyncDuration.WithLabelValues(owner, repo, step.label).Observe(elapsed)
+	mirrorSyncDuration.WithLabelValues(owner, repo, step).Observe(float64(time.Since(start).Milliseconds()))
 }
 
 func recordMirrorSyncStatus(owner, repo string, success bool) {
@@ -89,9 +73,5 @@ func recordMirrorSyncStatusWith(cfg mirrorMetricsConfig, owner, repo string, suc
 			log.Error("panic in recordMirrorSyncStatus: %v", r)
 		}
 	}()
-	s := "false"
-	if success {
-		s = "true"
-	}
-	mirrorSyncStatus.WithLabelValues(owner, repo, s).Inc()
+	mirrorSyncStatus.WithLabelValues(owner, repo, strconv.FormatBool(success)).Inc()
 }
