@@ -4,9 +4,12 @@
 package meilisearch
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -19,6 +22,55 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestIndexTaskCompletion(t *testing.T) {
+	for _, status := range []string{"succeeded", "failed", "canceled", "unavailable", "cancel-context"} {
+		t.Run(status, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			var polls atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch {
+				case r.Method == http.MethodPost:
+					w.WriteHeader(http.StatusAccepted)
+					fmt.Fprint(w, `{"taskUid":42,"status":"enqueued"}`)
+				case r.URL.Path == "/tasks/42":
+					if polls.Add(1) == 1 {
+						fmt.Fprint(w, `{"uid":42,"status":"processing"}`)
+						return
+					}
+					switch status {
+					case "unavailable":
+						w.WriteHeader(http.StatusServiceUnavailable)
+					case "cancel-context":
+						cancel()
+						fmt.Fprint(w, `{"uid":42,"status":"processing"}`)
+					default:
+						fmt.Fprintf(w, `{"uid":42,"status":%q,"error":{"message":"task rejected"}}`, status)
+					}
+				default:
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer server.Close()
+			indexer := NewIndexer(server.URL, "", "test")
+			indexer.inner.Client = meilisearch.New(server.URL, meilisearch.WithCustomRetries(nil, 0))
+			err := indexer.Index(ctx, &internal.IndexerData{ID: 1})
+			if status == "succeeded" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				if status == "cancel-context" {
+					assert.ErrorIs(t, ctx.Err(), context.Canceled)
+					assert.ErrorContains(t, err, context.Canceled.Error())
+				}
+			}
+			assert.GreaterOrEqual(t, polls.Load(), int32(2))
+		})
+	}
+}
 
 func TestMeilisearchIndexer(t *testing.T) {
 	// The meilisearch instance started by pull-db-tests.yml > test-unit > services > meilisearch

@@ -395,6 +395,18 @@ func renderMilestones(ctx *context.Context) {
 	ctx.Data["ClosedMilestones"] = closedMilestones
 }
 
+// parseWIPFilter maps the "wip" query parameter (all|only|hide) to an optional bool
+func parseWIPFilter(value string) optional.Option[bool] {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "only":
+		return optional.Some(true)
+	case "hide":
+		return optional.Some(false)
+	default:
+		return optional.None[bool]()
+	}
+}
+
 func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectIDs []int64, isPullOption optional.Option[bool]) {
 	var err error
 	viewType := ctx.FormString("type")
@@ -430,6 +442,12 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		keyword = ""
 	}
 
+	wipFilter := parseWIPFilter(ctx.FormString("wip"))
+	wipFilterName := "all"
+	if wipFilter.Has() {
+		wipFilterName = util.Iif(wipFilter.Value(), "only", "hide")
+	}
+
 	var mileIDs []int64
 	if milestoneID > 0 || milestoneID == db.NoConditionID { // -1 to get those issues which have no any milestone assigned
 		mileIDs = []int64{milestoneID}
@@ -455,6 +473,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		ReviewRequestedID: reviewRequestedID,
 		ReviewedID:        reviewedID,
 		IsPull:            isPullOption,
+		IsWIP:             wipFilter,
 		IssueIDs:          nil,
 	}
 
@@ -532,6 +551,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 			ProjectIDs:        projectIDs,
 			IsClosed:          isShowClosed,
 			IsPull:            isPullOption,
+			IsWIP:             wipFilter,
 			LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 			SortType:          sortType,
 			IssueIDs:          keywordMatchedIssueIDs,
@@ -631,6 +651,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 	ctx.Data["SelLabelIDs"] = preparedLabelFilter.SelectedLabelIDs
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
+	ctx.Data["WipFilter"] = wipFilterName
 	ctx.Data["MilestoneID"] = milestoneID
 	ctx.Data["ProjectIDs"] = projectIDs
 	ctx.Data["AssigneeID"] = assigneeID

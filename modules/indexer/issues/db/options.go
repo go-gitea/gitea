@@ -69,6 +69,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		ProjectIDs:         util.Iif(options.NoProjectOnly, []int64{db.NoConditionID}, options.ProjectIDs),
 		IsClosed:           options.IsClosed,
 		IsPull:             options.IsPull,
+		IsWIP:              options.IsWIP,
 		IncludedLabelNames: nil,
 		ExcludedLabelNames: nil,
 		IncludeMilestones:  nil,

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	db_model "gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/indexer"
@@ -63,8 +64,13 @@ func init() {
 // all issue index done.
 func InitIssueIndexer(syncReindex bool) {
 	ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: IssueIndexer", process.SystemProcessType, false)
+	wipPrefixes, err := issues_model.SyncIssueWIP(ctx)
+	if err != nil {
+		log.Fatal("Unable to synchronize issue WIP state: %v", err)
+	}
 
 	indexerInitWaitChannel := make(chan time.Duration, 1)
+	indexerOpened := make(chan struct{})
 
 	// Create the Queue
 	issueIndexerQueue = queue.CreateUniqueQueue(ctx, "issue_indexer", getIssueIndexerQueueHandler(ctx))
@@ -114,6 +120,15 @@ func InitIssueIndexer(syncReindex bool) {
 		default:
 			log.Fatal("Unknown issue indexer type: %s", setting.Indexer.IssueType)
 		}
+		// A configuration-triggered rebuild must not be limited by the index opening timeout.
+		close(indexerOpened)
+		syncCtx := graceful.GetManager().ShutdownContext()
+		if err := retryWIPIndexerSync(syncCtx, func() error {
+			return syncWIPIndexer(syncCtx, issueIndexer, wipPrefixes, existed)
+		}); err != nil {
+			issueIndexer.Close()
+			return
+		}
 		globalIndexer.Store(&issueIndexer)
 
 		graceful.GetManager().RunAtTerminate(func() {
@@ -134,7 +149,9 @@ func InitIssueIndexer(syncReindex bool) {
 			}
 		}
 
-		indexerInitWaitChannel <- time.Since(start)
+		duration := time.Since(start)
+		log.Info("Issue Indexer Initialization took %v", duration)
+		indexerInitWaitChannel <- duration
 		close(indexerInitWaitChannel)
 	}()
 
@@ -151,8 +168,7 @@ func InitIssueIndexer(syncReindex bool) {
 				timeout += setting.GracefulHammerTime
 			}
 			select {
-			case duration := <-indexerInitWaitChannel:
-				log.Info("Issue Indexer Initialization took %v", duration)
+			case <-indexerOpened:
 			case <-graceful.GetManager().IsShutdown():
 				log.Warn("Shutdown occurred before issue index initialisation was complete")
 			case <-time.After(timeout):

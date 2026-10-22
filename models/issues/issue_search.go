@@ -40,6 +40,7 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	ProjectIDs         []int64
 	IsClosed           optional.Option[bool]
 	IsPull             optional.Option[bool]
+	IsWIP              optional.Option[bool] // filter by WIP title prefix, only meaningful for pulls
 	LabelIDs           []int64
 	IncludedLabelNames []string
 	ExcludedLabelNames []string
@@ -271,6 +272,10 @@ func applyConditions(sess db.Session, opts *IssuesOptions) {
 
 	if opts.IsPull.Has() {
 		sess.And("issue.is_pull=?", opts.IsPull.Value())
+	}
+
+	if opts.IsWIP.Has() {
+		sess.And("issue.is_wip=?", opts.IsWIP.Value())
 	}
 
 	if opts.IsArchived.Has() {
