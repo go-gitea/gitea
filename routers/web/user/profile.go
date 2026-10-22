@@ -151,6 +151,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	ctx.Data["IsTemplate"] = template
 
 	private := ctx.FormOptionalBool("private")
+	showPrivateRepos := ctx.IsSigned && context.TokenAllowsPrivateData(ctx, auth_model.AccessTokenScopeReadRepository)
 	ctx.Data["IsPrivate"] = private
 
 	switch tab {
@@ -204,7 +205,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
-			Private:            ctx.IsSigned,
+			Private:            showPrivateRepos,
 			StarredByID:        ctx.ContextUser.ID,
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
@@ -231,7 +232,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
-			Private:            ctx.IsSigned,
+			Private:            showPrivateRepos,
 			WatchedByID:        ctx.ContextUser.ID,
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
@@ -291,7 +292,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Keyword:            keyword,
 			OwnerID:            ctx.ContextUser.ID,
 			OrderBy:            orderBy,
-			Private:            ctx.IsSigned,
+			Private:            showPrivateRepos,
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,

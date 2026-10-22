@@ -108,16 +108,19 @@ func TestProfileActivityPublicOnlyToken(t *testing.T) {
 	assert.NotContains(t, respPublicOnly.Body.String(), privateMarker)
 }
 
-func TestProfileActivityRequiresTokenScope(t *testing.T) {
+func TestProfilePrivateDataRequiresTokenScope(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	userToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
 	orgToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
+	repoToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
 	packageToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadPackage)
 	for _, tc := range []struct{ link, scopedToken, privateMarker string }{
 		{"/user2.rss", userToken, "user2/repo2"},
 		{"/user2?tab=activity", userToken, "user2/repo2"},
 		{"/org3.rss", orgToken, "org3/repo3"},
+		{"/user2?tab=repositories", repoToken, `"/user2/repo2"`},
+		{"/org3", repoToken, `"/org3/repo3"`},
 	} {
 		req := NewRequest(t, "GET", tc.link)
 		req.SetBasicAuth("user2", tc.scopedToken)

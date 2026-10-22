@@ -170,7 +170,7 @@ func loadHeaderCount(ctx *context.Context) error {
 	repoCount, err := repo_model.CountRepository(ctx, repo_model.SearchRepoOptions{
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
-		Private:            ctx.IsSigned,
+		Private:            ctx.IsSigned && context.TokenAllowsPrivateData(ctx, auth_model.AccessTokenScopeReadRepository),
 		Collaborate:        optional.Some(false),
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})

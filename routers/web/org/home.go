@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
@@ -88,6 +89,7 @@ func orgHome(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["IsTemplate"] = template
 
 	private := ctx.FormOptionalBool("private")
+	showPrivateRepos := ctx.IsSigned && context.TokenAllowsPrivateData(ctx, auth_model.AccessTokenScopeReadRepository)
 	ctx.Data["IsPrivate"] = private
 
 	opts := &organization.FindOrgMembersOpts{
@@ -148,7 +150,7 @@ func orgHome(ctx *context.Context, viewRepositories bool) {
 		Keyword:            keyword,
 		OwnerID:            org.ID,
 		OrderBy:            orderBy,
-		Private:            ctx.IsSigned,
+		Private:            showPrivateRepos,
 		Actor:              ctx.Doer,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
