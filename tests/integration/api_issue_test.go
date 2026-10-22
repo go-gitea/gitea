@@ -651,3 +651,32 @@ func testAPIIssueProjects(t *testing.T) {
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
 }
+
+func TestAPIIssueArchivedRepoMutations(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	token := getUserToken(t, "user30", auth_model.AccessTokenScopeWriteIssue)
+	base := "/api/v1/repos/user30/repo51/issues/1"
+	reaction := api.EditReactionOption{Reaction: "+1"}
+	for _, c := range []struct {
+		method, path string
+		body         any
+	}{
+		{"POST", "/times", api.AddTimeOption{Time: 60}},
+		{"DELETE", "/times", nil},
+		{"POST", "/deadline", api.EditDeadlineOption{}},
+		{"POST", "/stopwatch/start", nil},
+		{"POST", "/reactions", reaction},
+		{"DELETE", "/reactions", reaction},
+		{"POST", "/blocks", api.IssueMeta{Index: 2, Owner: "user30", Name: "repo51"}},
+		{"DELETE", "/blocks", api.IssueMeta{Index: 2, Owner: "user30", Name: "repo51"}},
+		{"POST", "/pin", nil},
+		{"DELETE", "/pin", nil},
+		{"PUT", "/lock", api.LockIssueOption{}},
+		{"DELETE", "/lock", nil},
+	} {
+		t.Run(c.method+c.path, func(t *testing.T) {
+			req := NewRequestWithJSON(t, c.method, base+c.path, c.body).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusLocked)
+		})
+	}
+}

@@ -1569,11 +1569,11 @@ func Routes() *web.Router {
 							m.Combo("").
 								Get(repo.GetIssueComment).
 								Patch(mustNotBeArchived, reqToken(), bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
-								Delete(reqToken(), repo.DeleteIssueComment)
+								Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueComment)
 							m.Combo("/reactions").
 								Get(repo.GetIssueCommentReactions).
-								Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
-								Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
+								Post(reqToken(), mustNotBeArchived, bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
+								Delete(reqToken(), mustNotBeArchived, bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
 							m.Group("/assets", func() {
 								m.Combo("").
 									Get(repo.ListIssueCommentAttachments).
@@ -1610,16 +1610,16 @@ func Routes() *web.Router {
 						m.Group("/times", func() {
 							m.Combo("").
 								Get(repo.ListTrackedTimes).
-								Post(bind(api.AddTimeOption{}), repo.AddTime).
-								Delete(repo.ResetIssueTime)
-							m.Delete("/{id}", repo.DeleteTime)
+								Post(mustNotBeArchived, bind(api.AddTimeOption{}), repo.AddTime).
+								Delete(mustNotBeArchived, repo.ResetIssueTime)
+							m.Delete("/{id}", mustNotBeArchived, repo.DeleteTime)
 						}, reqToken())
-						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
+						m.Combo("/deadline").Post(reqToken(), mustNotBeArchived, bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 						m.Group("/stopwatch", func() {
 							m.Post("/start", repo.StartIssueStopwatch)
 							m.Post("/stop", repo.StopIssueStopwatch)
 							m.Delete("/delete", repo.DeleteIssueStopwatch)
-						}, reqToken())
+						}, reqToken(), mustNotBeArchived)
 						m.Group("/subscriptions", func() {
 							m.Get("", repo.GetIssueSubscribers)
 							m.Get("/check", reqToken(), repo.CheckIssueSubscription)
@@ -1628,8 +1628,8 @@ func Routes() *web.Router {
 						})
 						m.Combo("/reactions").
 							Get(repo.GetIssueReactions).
-							Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueReaction).
-							Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
+							Post(reqToken(), mustNotBeArchived, bind(api.EditReactionOption{}), repo.PostIssueReaction).
+							Delete(reqToken(), mustNotBeArchived, bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
 						m.Group("/assets", func() {
 							m.Combo("").
 								Get(repo.ListIssueAttachments).
@@ -1645,19 +1645,19 @@ func Routes() *web.Router {
 							Delete(reqToken(), mustNotBeArchived, bind(api.IssueMeta{}), repo.RemoveIssueDependency)
 						m.Combo("/blocks").
 							Get(repo.GetIssueBlocks).
-							Post(reqToken(), bind(api.IssueMeta{}), repo.CreateIssueBlocking).
-							Delete(reqToken(), bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
+							Post(reqToken(), mustNotBeArchived, bind(api.IssueMeta{}), repo.CreateIssueBlocking).
+							Delete(reqToken(), mustNotBeArchived, bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
 						m.Group("/pin", func() {
 							m.Combo("").
-								Post(reqToken(), reqAdmin(), repo.PinIssue).
-								Delete(reqToken(), reqAdmin(), repo.UnpinIssue)
-							m.Patch("/{position}", reqToken(), reqAdmin(), repo.MoveIssuePin)
+								Post(reqToken(), reqAdmin(), mustNotBeArchived, repo.PinIssue).
+								Delete(reqToken(), reqAdmin(), mustNotBeArchived, repo.UnpinIssue)
+							m.Patch("/{position}", reqToken(), reqAdmin(), mustNotBeArchived, repo.MoveIssuePin)
 						})
 						m.Group("/lock", func() {
 							m.Combo("").
 								Put(bind(api.LockIssueOption{}), repo.LockIssue).
 								Delete(repo.UnlockIssue)
-						}, reqToken(), reqAdmin())
+						}, reqToken(), reqAdmin(), mustNotBeArchived)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
