@@ -1,10 +1,11 @@
-WORK_PATH = {{WORK_PATH}}
+WORK_PATH = {{TEST_WORK_PATH}}
 APP_NAME = Gitea: Git with a cup of tea
 RUN_MODE = prod
 
 [database]
 DB_TYPE = sqlite3
-PATH    = gitea.db
+PATH    = {{TEST_WORK_PATH}}/gitea-test.db
+SQLITE_JOURNAL_MODE = MEMORY
 
 [indexer]
 REPO_INDEXER_ENABLED = true
@@ -29,15 +30,14 @@ SIGNING_KEY = none
 
 [server]
 SSH_DOMAIN       = localhost
-HTTP_PORT        = 3003
-ROOT_URL         = http://localhost:3003/
-LOCAL_ROOT_URL   = http://127.0.0.1:3003/
+HTTP_PORT        = {{TEST_HTTP_PORT}}
+ROOT_URL         = http://localhost:{{TEST_HTTP_PORT}}/
+LOCAL_ROOT_URL   = http://127.0.0.1:{{TEST_HTTP_PORT}}/
 DISABLE_SSH      = false
 SSH_LISTEN_HOST  = localhost
-SSH_PORT         = 2203
+SSH_PORT         = {{TEST_SSH_PORT}}
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 ENABLE_GZIP      = true
 BUILTIN_SSH_SERVER_USER = git
@@ -47,6 +47,9 @@ SSH_TRUSTED_USER_CA_KEYS = ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCb4DC1dMFnJ6pXW
 ENABLED     = true
 PROTOCOL = dummy
 FROM        = sqlite-integration-test@gitea.io
+
+[migrations]
+ALLOWED_HOST_LIST = private, loopback
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
@@ -58,10 +61,6 @@ REQUIRE_SIGNIN_VIEW               = false
 DEFAULT_KEEP_EMAIL_PRIVATE        = false
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 NO_REPLY_ADDRESS                  = noreply.example.org
-
-[picture]
-DISABLE_GRAVATAR              = false
-ENABLE_FEDERATED_AVATAR       = false
 
 [session]
 PROVIDER = file
@@ -93,7 +92,7 @@ ENABLED = true
 [markup.html]
 ENABLED = true
 FILE_EXTENSIONS = .html
-RENDER_COMMAND = go run tools/test-echo.go
+RENDER_COMMAND = go run {{GITEA_TEST_ROOT}}/tools/test-echo.go
 ;RENDER_COMMAND = cat
 ;IS_INPUT_FILE = true
 RENDER_CONTENT_MODE = sanitized
@@ -101,7 +100,7 @@ RENDER_CONTENT_MODE = sanitized
 [markup.no-sanitizer]
 ENABLED = true
 FILE_EXTENSIONS = .no-sanitizer
-RENDER_COMMAND = go run tools/test-echo.go
+RENDER_COMMAND = go run {{GITEA_TEST_ROOT}}/tools/test-echo.go
 ; This test case is reused, at first it is used to test "no-sanitizer" (sandbox doesn't take effect here)
 ; Then it will be updated and used to test "iframe + sandbox-disabled"
 RENDER_CONTENT_MODE = no-sanitizer

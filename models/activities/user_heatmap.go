@@ -6,11 +6,11 @@ package activities
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 )
 
 // UserHeatmapData represents the data needed to create a heatmap
@@ -62,6 +62,7 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		return nil, err
 	}
 
+	// HINT: USER-ACTIVITY-PUSH-COMMITS: it only uses the doer's action time, it doesn't use git commit's time
 	return hdata, db.GetEngine(ctx).
 		Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").

@@ -1,3 +1,6 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 //go:build ignore
 
 package main
@@ -15,7 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 func main() {

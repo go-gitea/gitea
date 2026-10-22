@@ -14,17 +14,18 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/schemas"
@@ -166,7 +167,7 @@ func (a *Action) TableIndices() []*schemas.Index {
 	cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
 
 	cuIndex := schemas.NewIndex("c_u", schemas.IndexType)
-	cuIndex.AddColumn("user_id", "is_deleted")
+	cuIndex.AddColumn("user_id", "is_deleted", "created_unix")
 
 	actUserUserIndex := schemas.NewIndex("au_c_u", schemas.IndexType)
 	actUserUserIndex.AddColumn("act_user_id", "created_unix", "user_id")
@@ -186,15 +187,7 @@ func (a *Action) LoadActUser(ctx context.Context) {
 	if a.ActUser != nil {
 		return
 	}
-	var err error
-	a.ActUser, err = user_model.GetPossibleUserByID(ctx, a.ActUserID)
-	if err == nil {
-		return
-	} else if user_model.IsErrUserNotExist(err) {
-		a.ActUser = user_model.NewGhostUser()
-	} else {
-		log.Error("GetUserByID(%d): %v", a.ActUserID, err)
-	}
+	a.ActUserID, a.ActUser, _ = user_model.GetPossibleUserByID(ctx, a.ActUserID)
 }
 
 func (a *Action) LoadRepo(ctx context.Context) error {
@@ -382,19 +375,17 @@ func (a *Action) GetIssueInfos() []string {
 	return ret
 }
 
-// GetCommentPreview returns the comment body for feed rendering,
-// preferring the live Comment.Content over the snapshot in Action.Content.
-func (a *Action) GetCommentPreview() string {
-	if a.Comment != nil {
-		return a.Comment.Content
-	}
-
-	switch a.OpType {
-	case ActionPullReviewDismissed:
-		return a.GetIssueInfos()[2]
+func (a *Action) GetCommentPreview(ctx context.Context) string {
+	var content string
+	switch {
+	case a.Comment != nil:
+		content = a.Comment.Content
+	case a.OpType == ActionPullReviewDismissed:
+		content = a.GetIssueInfos()[2]
 	default:
-		return a.GetIssueInfos()[1]
+		content = a.GetIssueInfos()[1]
 	}
+	return markdown.FeedExcerpt(ctx, content)
 }
 
 func (a *Action) getIssueIndex() int64 {
@@ -495,13 +486,13 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	}
 
 	// check activity visibility for actor ( similar to activityReadable() )
-	if opts.Actor == nil {
+	if !user_model.DoerCanViewPrivate(opts.Actor) {
 		cond = cond.And(builder.In("act_user_id",
 			builder.Select("`user`.id").Where(
 				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
 			).From("`user`"),
 		))
-	} else if !opts.Actor.IsAdmin {
+	} else if !user_model.DoerIsSiteAdminFullAccess(opts.Actor) {
 		uidCond := builder.Select("`user`.id").From("`user`").Where(
 			builder.Eq{"keep_activity_private": false}.
 				And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
@@ -526,7 +517,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	}
 
 	// check readable repositories by doer/actor
-	if opts.Actor == nil || !opts.Actor.IsAdmin {
+	if !user_model.DoerIsSiteAdminFullAccess(opts.Actor) {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
@@ -556,7 +547,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 		}
 	}
 
-	if !opts.IncludePrivate {
+	if !opts.IncludePrivate || user_model.IsPublicOnlyDoer(opts.Actor) {
 		cond = cond.And(builder.Eq{"`action`.is_private": false})
 	}
 	if !opts.IncludeDeleted {

@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/packages"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/util"
 )
 
 var (
@@ -23,6 +23,8 @@ var (
 	ErrInvalidPdbMagicNumber = util.NewInvalidArgumentErrorf("invalid Portable PDB magic number")
 	ErrMissingPdbStream      = util.NewInvalidArgumentErrorf("missing PDB stream")
 )
+
+const maxPdbTotalSize = 256 * 1024 * 1024
 
 type PortablePdb struct {
 	Name    string
@@ -42,10 +44,11 @@ func (l PortablePdbList) Close() {
 func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 	archive, err := zip.NewReader(r, size)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("unable to extract portable pdb: %v", err)
 	}
 
 	var pdbs PortablePdbList
+	remaining := int64(maxPdbTotalSize)
 
 	err = func() error {
 		for _, file := range archive.File {
@@ -63,13 +66,14 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 					return err
 				}
 
-				buf, err := packages.CreateHashedBufferFromReader(f)
+				buf, err := packages.CreateHashedBufferFromReader(packages.NewLimitedReader(f, remaining))
 
 				_ = f.Close()
 
 				if err != nil {
 					return err
 				}
+				remaining -= buf.Size()
 
 				id, err := ParseDebugHeaderID(buf)
 				if err != nil {

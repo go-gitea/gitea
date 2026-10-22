@@ -1,4 +1,4 @@
-WORK_PATH = {{WORK_PATH}}
+WORK_PATH = {{TEST_WORK_PATH}}
 APP_NAME = Gitea: Git with a cup of tea
 RUN_MODE = prod
 
@@ -35,15 +35,14 @@ SIGNING_KEY = none
 
 [server]
 SSH_DOMAIN       = localhost
-HTTP_PORT        = 3001
-ROOT_URL         = http://localhost:3001/
-LOCAL_ROOT_URL   = http://127.0.0.1:3001/
+HTTP_PORT        = {{TEST_HTTP_PORT}}
+ROOT_URL         = http://localhost:{{TEST_HTTP_PORT}}/
+LOCAL_ROOT_URL   = http://127.0.0.1:{{TEST_HTTP_PORT}}/
 DISABLE_SSH      = false
 SSH_LISTEN_HOST  = localhost
-SSH_PORT         = 2201
+SSH_PORT         = {{TEST_SSH_PORT}}
 BUILTIN_SSH_SERVER_USER = git
 START_SSH_SERVER = true
-OFFLINE_MODE     = false
 
 LFS_START_SERVER = true
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
@@ -53,6 +52,9 @@ SSH_TRUSTED_USER_CA_KEYS = ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCb4DC1dMFnJ6pXW
 ENABLED = true
 PROTOCOL = dummy
 FROM = mysql-integration-test@gitea.io
+
+[migrations]
+ALLOWED_HOST_LIST = private, loopback
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
@@ -64,10 +66,6 @@ DEFAULT_KEEP_EMAIL_PRIVATE        = false
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 NO_REPLY_ADDRESS                  = noreply.example.org
 ENABLE_NOTIFY_MAIL                = true
-
-[picture]
-DISABLE_GRAVATAR              = false
-ENABLE_FEDERATED_AVATAR       = false
 
 [session]
 PROVIDER        = file

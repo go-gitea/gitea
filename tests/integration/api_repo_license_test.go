@@ -10,11 +10,13 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/queue"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testLicenseContent = `
@@ -51,8 +53,7 @@ func TestAPIRepoLicense(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.NotEmpty(t, test.RedirectURL(resp))
 
-		// let gitea update repo license
-		time.Sleep(time.Second)
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 10*time.Second))
 		checkRepoLicense(t, "user2", "repo1", []string{"BSD-2-Clause"})
 
 		// Change default branch
@@ -63,8 +64,7 @@ func TestAPIRepoLicense(t *testing.T) {
 		}).AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusOK)
 
-		// let gitea update repo license
-		time.Sleep(time.Second)
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 10*time.Second))
 		checkRepoLicense(t, "user2", "repo1", []string{"MIT"})
 	})
 }
@@ -74,8 +74,7 @@ func checkRepoLicense(t *testing.T, owner, repo string, expected []string) {
 	req := NewRequest(t, "GET", reqURL)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var licenses []string
-	DecodeJSON(t, resp, &licenses)
+	licenses := DecodeJSON(t, resp, []string{})
 
 	assert.ElementsMatch(t, expected, licenses, 0)
 }

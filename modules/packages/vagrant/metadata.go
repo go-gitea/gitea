@@ -9,8 +9,9 @@ import (
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/validation"
 )
 
 const (
@@ -58,7 +59,7 @@ func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
 // ParseInfoFile parses a info.json file to retrieve the metadata of a Vagrant package
 func ParseInfoFile(r io.Reader) (*Metadata, error) {
 	var values map[string]string
-	if err := json.NewDecoder(r).Decode(&values); err != nil {
+	if err := json.NewDecoder(packages.NewLimitedReader(r, packages.MaxMetadataSize)).Decode(&values); err != nil {
 		return nil, err
 	}
 

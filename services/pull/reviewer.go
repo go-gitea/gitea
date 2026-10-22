@@ -6,13 +6,13 @@ package pull
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 
 	"xorm.io/builder"
 )
@@ -40,15 +40,8 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 	uniqueUserIDs.AddMultiple(collaboratorIDs...)
 
 	if repo.Owner.IsOrganization() {
-		additionalUserIDs := make([]int64, 0, 10)
-		if err := e.Table("team_user").
-			Join("INNER", "team_repo", "`team_repo`.team_id = `team_user`.team_id").
-			Join("INNER", "team_unit", "`team_unit`.team_id = `team_user`.team_id").
-			Where("`team_repo`.repo_id = ? AND (`team_unit`.access_mode >= ? AND `team_unit`.`type` = ?)",
-				repo.ID, perm.AccessModeRead, unit.TypePullRequests).
-			Distinct("`team_user`.uid").
-			Select("`team_user`.uid").
-			Find(&additionalUserIDs); err != nil {
+		additionalUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
+		if err != nil {
 			return nil, err
 		}
 		uniqueUserIDs.AddMultiple(additionalUserIDs...)

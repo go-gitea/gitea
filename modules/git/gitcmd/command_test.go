@@ -7,12 +7,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/tempdir"
-	"code.gitea.io/gitea/modules/testlogger"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/tempdir"
+	"gitea.dev/modules/testlogger"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,7 @@ func testMain(m *testing.M) int {
 	// "setting.Git.HomePath" is initialized in "git" package but really used in "gitcmd" package
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
-		testlogger.Panicf("failed to create temp dir: %v", err)
+		return testlogger.MainErrorf("failed to create temp dir: %v", err)
 	}
 	defer cleanup()
 
@@ -49,9 +50,11 @@ func TestRunWithContextStd(t *testing.T) {
 		stdout, stderr, err := cmd.RunStdString(t.Context())
 		if assert.Error(t, err) {
 			assert.Equal(t, stderr, err.Stderr())
-			assert.Equal(t, "fatal: Not a valid object name no-such\n", err.Stderr())
+			stderrLower := strings.ToLower(stderr) // see: IsStdErrorNotValidObjectName
+			assert.Equal(t, "fatal: not a valid object name no-such\n", stderrLower)
 			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
-			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such", err.Error())
+			errLower := strings.ToLower(err.Error())
+			assert.Equal(t, "exit status 128 - fatal: not a valid object name no-such", errLower)
 			assert.Empty(t, stdout)
 		}
 	}
@@ -61,9 +64,11 @@ func TestRunWithContextStd(t *testing.T) {
 		stdout, stderr, err := cmd.RunStdBytes(t.Context())
 		if assert.Error(t, err) {
 			assert.Equal(t, string(stderr), err.Stderr())
-			assert.Equal(t, "fatal: Not a valid object name no-such\n", err.Stderr())
+			stderrLower := strings.ToLower(err.Stderr()) // see: IsStdErrorNotValidObjectName
+			assert.Equal(t, "fatal: not a valid object name no-such\n", stderrLower)
 			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
-			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such", err.Error())
+			errLower := strings.ToLower(err.Error())
+			assert.Equal(t, "exit status 128 - fatal: not a valid object name no-such", errLower)
 			assert.Empty(t, stdout)
 		}
 	}
@@ -72,10 +77,27 @@ func TestRunWithContextStd(t *testing.T) {
 		cmd := NewCommand()
 		cmd.AddDynamicArguments("-test")
 		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Empty(t, cmd.args)
 
 		cmd = NewCommand()
 		cmd.AddDynamicArguments("--test")
 		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Empty(t, cmd.args)
+
+		cmd = NewCommand()
+		cmd.AddOptionGrepExpr("-x")
+		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Empty(t, cmd.args)
+
+		cmd = NewCommand("any")
+		cmd.AddOptionGrepExpr("-x")
+		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Equal(t, []string{"any"}, cmd.args)
+
+		cmd = NewCommand("grep")
+		cmd.AddOptionGrepExpr("-x")
+		assert.NoError(t, cmd.Run(t.Context()))
+		assert.Equal(t, []string{"grep", "-e", "-x"}, cmd.args)
 	}
 
 	{
@@ -104,7 +126,10 @@ func TestCommandString(t *testing.T) {
 	assert.Equal(t, cmd.prog+` a "-m msg" "it's a test" "say \"hello\""`, cmd.LogString())
 
 	cmd = NewCommand("url: https://a:b@c/", "/root/dir-a/dir-b")
-	assert.Equal(t, cmd.prog+` "url: https://sanitized-credential@c/" .../dir-a/dir-b`, cmd.LogString())
+	assert.Equal(t, cmd.prog+` "url: https://(masked)@c/" .../dir-a/dir-b`, cmd.LogString())
+
+	cmd = NewCommand("url: a:b@c/", "/root/dir-a/dir-b")
+	assert.Equal(t, cmd.prog+` "url: (masked)@c/" .../dir-a/dir-b`, cmd.LogString())
 }
 
 func TestRunStdError(t *testing.T) {

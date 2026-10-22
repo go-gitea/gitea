@@ -6,12 +6,12 @@ package mailer
 import (
 	"context"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	issues_model "code.gitea.io/gitea/models/issues"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	activities_model "gitea.dev/models/activities"
+	issues_model "gitea.dev/models/issues"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 // MailParticipantsComment sends new comment emails to repository watchers and mentioned people.
@@ -54,7 +54,7 @@ func MailMentionsComment(ctx context.Context, pr *issues_model.PullRequest, c *i
 			ActionType: activities_model.ActionCommentPull,
 			Content:    c.Content,
 			Comment:    c,
-		}, mentions, visited, true); err != nil {
+		}, mentions, visited, true, nil); err != nil {
 		log.Error("mailIssueCommentBatch: %v", err)
 	}
 	return nil

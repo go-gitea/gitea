@@ -7,27 +7,31 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"slices"
 	"strconv"
 	"unicode/utf8"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/organization"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/organization"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/references"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -61,7 +65,7 @@ type CommentType int
 const CommentTypeUndefined CommentType = -1
 
 const (
-	CommentTypeComment CommentType = iota // 0 Plain comment, can be associated with a commit (CommitID > 0) and a line (LineNum > 0)
+	CommentTypeComment CommentType = iota // 0 Plain comment, can be associated with "commit_sha" and a non-zero "line"
 
 	CommentTypeReopen // 1
 	CommentTypeClose  // 2
@@ -249,46 +253,57 @@ type CommentMetaData struct {
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID               int64            `xorm:"pk autoincr"`
-	Type             CommentType      `xorm:"INDEX"`
-	PosterID         int64            `xorm:"INDEX"`
-	Poster           *user_model.User `xorm:"-"`
+	ID   int64 `xorm:"pk autoincr"`
+	Type CommentType
+
+	PosterID int64            `xorm:"INDEX"`
+	Poster   *user_model.User `xorm:"-"`
+
 	OriginalAuthor   string
 	OriginalAuthorID int64
-	IssueID          int64  `xorm:"INDEX"`
-	Issue            *Issue `xorm:"-"`
-	LabelID          int64
-	Label            *Label   `xorm:"-"`
-	AddedLabels      []*Label `xorm:"-"`
-	RemovedLabels    []*Label `xorm:"-"`
-	OldProjectID     int64
-	ProjectID        int64
-	OldProject       *project_model.Project `xorm:"-"`
-	Project          *project_model.Project `xorm:"-"`
-	OldMilestoneID   int64
-	MilestoneID      int64
-	OldMilestone     *Milestone `xorm:"-"`
-	Milestone        *Milestone `xorm:"-"`
-	TimeID           int64
-	Time             *TrackedTime `xorm:"-"`
-	AssigneeID       int64
-	RemovedAssignee  bool
-	Assignee         *user_model.User   `xorm:"-"`
-	AssigneeTeamID   int64              `xorm:"NOT NULL DEFAULT 0"`
-	AssigneeTeam     *organization.Team `xorm:"-"`
-	ResolveDoerID    int64
-	ResolveDoer      *user_model.User `xorm:"-"`
-	OldTitle         string
-	NewTitle         string
-	OldRef           string
-	NewRef           string
+
+	IssueID int64  `xorm:"INDEX"`
+	Issue   *Issue `xorm:"-"`
+
+	LabelID       int64
+	Label         *Label   `xorm:"-"`
+	AddedLabels   []*Label `xorm:"-"`
+	RemovedLabels []*Label `xorm:"-"`
+
+	OldProjectID int64
+	ProjectID    int64
+	OldProject   *project_model.Project `xorm:"-"`
+	Project      *project_model.Project `xorm:"-"`
+
+	OldMilestoneID int64
+	MilestoneID    int64
+	OldMilestone   *Milestone `xorm:"-"`
+	Milestone      *Milestone `xorm:"-"`
+
+	TimeID int64
+	Time   *TrackedTime `xorm:"-"`
+
+	AssigneeID      int64
+	RemovedAssignee bool
+	Assignee        *user_model.User   `xorm:"-"`
+	AssigneeTeamID  int64              `xorm:"NOT NULL DEFAULT 0"`
+	AssigneeTeam    *organization.Team `xorm:"-"`
+
+	ResolveDoerID int64
+	ResolveDoer   *user_model.User `xorm:"-"`
+
+	OldTitle string
+	NewTitle string
+	OldRef   string
+	NewRef   string
+
 	DependentIssueID int64  `xorm:"index"` // This is used by issue_service.deleteIssue
 	DependentIssue   *Issue `xorm:"-"`
 
-	CommitID        int64
-	Line            int64         // - previous line / + proposed line
-	TreePath        string        `xorm:"VARCHAR(4000)"` // SQLServer only supports up to 4000
-	Content         string        `xorm:"LONGTEXT"`
+	Line     int64  // - previous line / + proposed line
+	TreePath string `xorm:"VARCHAR(4000)"` // SQLServer only supports up to 4000
+	Content  string `xorm:"LONGTEXT"`
+
 	ContentVersion  int           `xorm:"NOT NULL DEFAULT 0"`
 	RenderedContent template.HTML `xorm:"-"`
 
@@ -320,27 +335,40 @@ type Comment struct {
 	RefAction    references.XRefAction `xorm:"SMALLINT"` // What happens if RefIssueID resolves
 	RefIsPull    bool
 
-	CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
-
 	RefRepo    *repo_model.Repository `xorm:"-"`
 	RefIssue   *Issue                 `xorm:"-"`
 	RefComment *Comment               `xorm:"-"`
 
-	Commits     []*git_model.SignCommitWithStatuses `xorm:"-"`
-	OldCommit   string                              `xorm:"-"`
-	NewCommit   string                              `xorm:"-"`
-	CommitsNum  int64                               `xorm:"-"`
-	IsForcePush bool                                `xorm:"-"`
+	CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
+
+	Commits    []*git_model.SignCommitWithStatuses `xorm:"-"`
+	OldCommit  string                              `xorm:"-"`
+	NewCommit  string                              `xorm:"-"`
+	CommitsNum int64                               `xorm:"-"`
+
+	// Templates still use it. It is not persisted in database, it is only set when creating or loading
+	IsForcePush bool `xorm:"-"`
 }
 
 func init() {
 	db.RegisterModel(new(Comment))
 }
 
-// PushActionContent is content of push pull comment
+// PushActionContent is content of pull request's push comment
 type PushActionContent struct {
-	IsForcePush bool     `json:"is_force_push"`
-	CommitIDs   []string `json:"commit_ids"`
+	IsForcePush bool `json:"is_force_push"`
+	// if IsForcePush=true, CommitIDs contains the commit pair [old head, new head]
+	// if IsForcePush=false, CommitIDs contains the new commits newly pushed to the head branch
+	CommitIDs []string `json:"commit_ids"`
+}
+
+func (c *Comment) GetPushActionContent() (*PushActionContent, error) {
+	if c.Type != CommentTypePullRequestPush {
+		return nil, errors.New("not a pull request push comment")
+	}
+	var data PushActionContent
+	_ = json.Unmarshal(util.UnsafeStringToBytes(c.Content), &data)
+	return &data, nil
 }
 
 // LoadIssue loads the issue reference for the comment
@@ -384,16 +412,7 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 	if c.Poster != nil {
 		return nil
 	}
-
-	c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			c.PosterID = user_model.GhostUserID
-			c.Poster = user_model.NewGhostUser()
-		} else {
-			log.Error("getUserByID[%d]: %v", c.ID, err)
-		}
-	}
+	c.PosterID, c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
 	return err
 }
 
@@ -528,8 +547,17 @@ func (c *Comment) EventTag() string {
 	return fmt.Sprintf("event-%d", c.ID)
 }
 
+func (c *Comment) GetSanitizedContentHTML() template.HTML {
+	// mainly for type=4 CommentTypeCommitRef
+	// the content is a link like <a href="{RepoLink}/commit/{CommitID}">message title</a> (from CreateRefComment)
+	return markup.Sanitize(c.Content)
+}
+
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
 func (c *Comment) LoadLabel(ctx context.Context) error {
+	if c.LabelID == 0 {
+		return nil
+	}
 	var label Label
 	has, err := db.GetEngine(ctx).ID(c.LabelID).Get(&label)
 	if err != nil {
@@ -537,8 +565,8 @@ func (c *Comment) LoadLabel(ctx context.Context) error {
 	} else if has {
 		c.Label = &label
 	} else {
-		// Ignore Label is deleted, but not clear this table
-		log.Warn("Commit %d cannot load label %d", c.ID, c.LabelID)
+		// label was deleted but comment rows referencing it were not cleaned up
+		log.Debug("Comment %d references deleted label %d", c.ID, c.LabelID)
 	}
 
 	return nil
@@ -613,11 +641,18 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 		return nil
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		issue, err := GetIssueByID(ctx, c.IssueID)
+		if err != nil {
+			return err
+		}
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
 		if err != nil {
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
 		for i := range attachments {
+			if err := validateAttachmentForIssue(ctx, issue, attachments[i]); err != nil {
+				return err
+			}
 			attachments[i].IssueID = c.IssueID
 			attachments[i].CommentID = c.ID
 			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
@@ -630,35 +665,17 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 }
 
 // LoadAssigneeUserAndTeam if comment.Type is CommentTypeAssignees, then load assignees
-func (c *Comment) LoadAssigneeUserAndTeam(ctx context.Context) error {
-	var err error
-
+func (c *Comment) LoadAssigneeUserAndTeam(ctx context.Context) (err error) {
 	if c.AssigneeID > 0 && c.Assignee == nil {
-		c.Assignee, err = user_model.GetUserByID(ctx, c.AssigneeID)
+		_, c.Assignee, err = user_model.GetPossibleUserByID(ctx, c.AssigneeID)
 		if err != nil {
-			if !user_model.IsErrUserNotExist(err) {
-				return err
-			}
-			c.Assignee = user_model.NewGhostUser()
-		}
-	} else if c.AssigneeTeamID > 0 && c.AssigneeTeam == nil {
-		if err = c.LoadIssue(ctx); err != nil {
 			return err
 		}
-
-		if err = c.Issue.LoadRepo(ctx); err != nil {
+	}
+	if c.AssigneeTeamID > 0 && c.AssigneeTeam == nil {
+		_, c.AssigneeTeam, err = organization.GetPossibleTeamByID(ctx, c.AssigneeTeamID)
+		if err != nil {
 			return err
-		}
-
-		if err = c.Issue.Repo.LoadOwner(ctx); err != nil {
-			return err
-		}
-
-		if c.Issue.Repo.Owner.IsOrganization() {
-			c.AssigneeTeam, err = organization.GetTeamByID(ctx, c.AssigneeTeamID)
-			if err != nil && !organization.IsErrTeamNotExist(err) {
-				return err
-			}
 		}
 	}
 	return nil
@@ -708,10 +725,7 @@ func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository
 	if c.Reactions != nil {
 		return nil
 	}
-	c.Reactions, _, err = FindReactions(ctx, FindReactionsOptions{
-		IssueID:   c.IssueID,
-		CommentID: c.ID,
-	})
+	c.Reactions, _, err = FindReactions(ctx, FindReactionsOptions{CommentID: c.ID})
 	if err != nil {
 		return err
 	}
@@ -782,8 +796,7 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 }
 
 func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr template.HTML) template.HTML {
-	if c.AssigneeID > 0 {
-		// it guarantees LoadAssigneeUserAndTeam has been called, and c.Assignee is Ghost user but not nil if the user doesn't exist
+	if c.Assignee != nil {
 		if c.RemovedAssignee {
 			if c.PosterID == c.AssigneeID {
 				return locale.Tr("repo.issues.review.remove_review_request_self", createdStr)
@@ -792,14 +805,20 @@ func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdSt
 		}
 		return locale.Tr("repo.issues.review.add_review_request", c.Assignee.GetDisplayName(), createdStr)
 	}
-	teamName := "Ghost Team"
 	if c.AssigneeTeam != nil {
-		teamName = c.AssigneeTeam.Name
+		if c.RemovedAssignee {
+			return locale.Tr("repo.issues.review.remove_review_request", c.AssigneeTeam.Name, createdStr)
+		}
+		return locale.Tr("repo.issues.review.add_review_request", c.AssigneeTeam.Name, createdStr)
 	}
+
+	// impossible fallback
+	assigneePrompt := fmt.Sprintf("(AssigneeID=%d, AssigneeTeamID=%d)", c.AssigneeID, c.AssigneeTeam.ID)
+	setting.PanicInDevOrTesting("unknown timeline pull request review event comment: id=%d, %s", c.ID, assigneePrompt)
 	if c.RemovedAssignee {
-		return locale.Tr("repo.issues.review.remove_review_request", teamName, createdStr)
+		return locale.Tr("repo.issues.review.remove_review_request", assigneePrompt, createdStr)
 	}
-	return locale.Tr("repo.issues.review.add_review_request", teamName, createdStr)
+	return locale.Tr("repo.issues.review.add_review_request", assigneePrompt, createdStr)
 }
 
 // CreateComment creates comment with context
@@ -838,7 +857,6 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 			RemovedAssignee:  opts.RemovedAssignee,
 			AssigneeID:       opts.AssigneeID,
 			AssigneeTeamID:   opts.AssigneeTeamID,
-			CommitID:         opts.CommitID,
 			CommitSHA:        opts.CommitSHA,
 			Line:             opts.LineNum,
 			Content:          opts.Content,
@@ -1004,7 +1022,6 @@ type CreateCommentOptions struct {
 	NewTitle           string
 	OldRef             string
 	NewRef             string
-	CommitID           int64
 	CommitSHA          string
 	Patch              string
 	LineNum            int64
@@ -1064,6 +1081,10 @@ type FindCommentsOptions struct {
 	IsPull      optional.Option[bool]
 }
 
+func (opts FindCommentsOptions) ToOrders() string {
+	return "id"
+}
+
 // ToConds implements FindOptions interface
 func (opts FindCommentsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
@@ -1111,7 +1132,7 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, 
 	}
 
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	// WARNING: If you change this order you will need to fix createCodeComment
@@ -1186,7 +1207,7 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	return DeleteReaction(ctx, &ReactionOptions{CommentID: comment.ID})
+	return DeleteCommentAllReactions(ctx, comment.ID)
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
@@ -1242,45 +1263,6 @@ func (c *Comment) GetExternalName() string { return c.OriginalAuthor }
 
 // GetExternalID ExternalUserRemappable interface
 func (c *Comment) GetExternalID() int64 { return c.OriginalAuthorID }
-
-// CountCommentTypeLabelWithEmptyLabel count label comments with empty label
-func CountCommentTypeLabelWithEmptyLabel(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Count(new(Comment))
-}
-
-// FixCommentTypeLabelWithEmptyLabel count label comments with empty label
-func FixCommentTypeLabelWithEmptyLabel(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Delete(new(Comment))
-}
-
-// CountCommentTypeLabelWithOutsideLabels count label comments with outside label
-func CountCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where("comment.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))", CommentTypeLabel).
-		Table("comment").
-		Join("inner", "label", "label.id = comment.label_id").
-		Join("inner", "issue", "issue.id = comment.issue_id ").
-		Join("inner", "repository", "issue.repo_id = repository.id").
-		Count()
-}
-
-// FixCommentTypeLabelWithOutsideLabels count label comments with outside label
-func FixCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
-	res, err := db.GetEngine(ctx).Exec(`DELETE FROM comment WHERE comment.id IN (
-		SELECT il_too.id FROM (
-			SELECT com.id
-				FROM comment AS com
-					INNER JOIN label ON com.label_id = label.id
-					INNER JOIN issue on issue.id = com.issue_id
-					INNER JOIN repository ON issue.repo_id = repository.id
-				WHERE
-					com.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))
-	) AS il_too)`, CommentTypeLabel)
-	if err != nil {
-		return 0, err
-	}
-
-	return res.RowsAffected()
-}
 
 // HasOriginalAuthor returns if a comment was migrated and has an original author.
 func (c *Comment) HasOriginalAuthor() bool {

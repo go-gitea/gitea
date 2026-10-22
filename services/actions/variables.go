@@ -6,17 +6,17 @@ package actions
 import (
 	"context"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/util"
-	secret_service "code.gitea.io/gitea/services/secrets"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/modules/util"
+	secret_service "gitea.dev/services/secrets"
 )
 
-func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data, description string) (*actions_model.ActionVariable, error) {
+func CreateVariable(ctx context.Context, scope actions_model.BelongingScope, name, data, description string) (*actions_model.ActionVariable, error) {
 	if err := secret_service.ValidateName(name); err != nil {
 		return nil, err
 	}
 
-	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, name, util.ReserveLineBreakForTextarea(data), description)
+	v, err := actions_model.InsertVariable(ctx, scope, name, util.NormalizeStringEOL(data), description)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func UpdateVariableNameData(ctx context.Context, variable *actions_model.ActionV
 		return false, err
 	}
 
-	variable.Data = util.ReserveLineBreakForTextarea(variable.Data)
+	variable.Data = util.NormalizeStringEOL(variable.Data)
 
 	return actions_model.UpdateVariableCols(ctx, variable, "name", "data", "description")
 }
@@ -38,12 +38,8 @@ func DeleteVariableByID(ctx context.Context, variableID int64) error {
 	return actions_model.DeleteVariable(ctx, variableID)
 }
 
-func DeleteVariableByName(ctx context.Context, ownerID, repoID int64, name string) error {
-	v, err := GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    name,
-	})
+func DeleteVariableByName(ctx context.Context, scope actions_model.BelongingScope, name string) error {
+	v, err := GetVariable(ctx, actions_model.FindVariablesOpts{BelongingScope: scope, Name: name})
 	if err != nil {
 		return err
 	}

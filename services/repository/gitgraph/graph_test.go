@@ -10,20 +10,20 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
+	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func BenchmarkGetCommitGraph(b *testing.B) {
-	currentRepo, err := git.OpenRepository(b.Context(), ".")
+	currentRepo, err := git.OpenRepositoryLocal(b.Context(), ".")
 	if err != nil || currentRepo == nil {
 		b.Error("Could not open repository")
 	}
 	defer currentRepo.Close()
 
 	for b.Loop() {
-		graph, err := GetCommitGraph(currentRepo, 1, 0, false, nil, nil)
+		graph, err := GetCommitGraph(b.Context(), currentRepo, 1, 0, false, nil, nil)
 		if err != nil {
 			b.Error("Could get commit graph")
 		}
@@ -35,7 +35,7 @@ func BenchmarkGetCommitGraph(b *testing.B) {
 }
 
 func BenchmarkParseCommitString(b *testing.B) {
-	testString := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|4e61bac|Add route for graph"
+	testString := "* DATA:^4e61bacab44e9b4730e44a6615d04098dd3a8eaf^2016-12-20 21:10:41 +0100^4e61bac^Add route for graph"
 
 	parser := &Parser{}
 	parser.Reset()
@@ -224,14 +224,14 @@ func TestParseGlyphs(t *testing.T) {
 }
 
 func TestCommitStringParsing(t *testing.T) {
-	dataFirstPart := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|4e61bac|"
+	dataFirstPart := "* DATA:^4e61bacab44e9b4730e44a6615d04098dd3a8eaf^2016-12-20 21:10:41 +0100^4e61bac^"
 	tests := []struct {
 		shouldPass    bool
 		testName      string
 		commitMessage string
 	}{
 		{true, "normal", "not a fancy message"},
-		{true, "extra pipe", "An extra pipe: |"},
+		{true, "extra sep", "An extra sep"},
 		{true, "extra 'Data:'", "DATA: might be trouble"},
 	}
 

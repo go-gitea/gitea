@@ -7,15 +7,15 @@ package repo
 import (
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // GetIssueDependencies list an issue's dependencies
@@ -63,11 +63,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -81,7 +77,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 
 	canWrite := ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 
-	blockerIssues := make([]*issues_model.Issue, 0, listOptions.PageSize)
+	blockerIssues := make([]*issues_model.Issue, 0, min(listOptions.PageSize, setting.API.MaxResponseItems))
 
 	// 2. Get the issues this issue depends on, i.e. the `<#b>`: `<issue> <- <#b>`
 	blockersInfo, total, err := issue.BlockedByDependencies(ctx, listOptions)
@@ -102,7 +98,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 			perm = existPerm
 		} else {
 			var err error
-			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+			perm, err = access_model.GetDoerRepoPermission(ctx, &blocker.Repository, ctx.Doer)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -140,7 +136,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		}
 		blockerIssues = append(blockerIssues, &blocker.Issue)
 	}
-	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, blockerIssues))
 }
@@ -187,7 +183,7 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	}
 
 	// and <Form> represents the dependency
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	dependency := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return
@@ -248,7 +244,7 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	}
 
 	// and <Form> represents the dependency
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	dependency := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return
@@ -351,7 +347,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 			perm = existPerm
 		} else {
 			var err error
-			perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
+			perm, err = access_model.GetDoerRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -408,7 +404,7 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	target := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return
@@ -465,7 +461,7 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	target := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return
@@ -487,11 +483,7 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 func getParamsIssue(ctx *context.APIContext) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return nil
 	}
 	issue.Repo = ctx.Repo.Repository
@@ -508,11 +500,7 @@ func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Is
 		var err error
 		repo, err = repo_model.GetRepositoryByOwnerAndName(ctx, form.Owner, form.Name)
 		if err != nil {
-			if repo_model.IsErrRepoNotExist(err) {
-				ctx.APIErrorNotFound("IsErrRepoNotExist", err)
-			} else {
-				ctx.APIErrorInternal(err)
-			}
+			ctx.APIErrorAuto(err)
 			return nil
 		}
 	} else {
@@ -521,11 +509,7 @@ func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Is
 
 	issue, err := issues_model.GetIssueByIndex(ctx, repo.ID, form.Index)
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return nil
 	}
 	issue.Repo = repo
@@ -537,7 +521,7 @@ func getPermissionForRepo(ctx *context.APIContext, repo *repo_model.Repository) 
 		return &ctx.Repo.Permission
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil

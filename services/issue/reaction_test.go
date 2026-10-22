@@ -6,11 +6,11 @@ package issue
 import (
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -90,9 +90,7 @@ func TestIssueReactionCount(t *testing.T) {
 	addReaction(t, user4, issue, nil, "heart")
 	addReaction(t, ghost, issue, nil, "-1")
 
-	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{
-		IssueID: issue.ID,
-	})
+	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{IssueIDOnly: issue.ID})
 	assert.NoError(t, err)
 	assert.Len(t, reactionsList, 7)
 	_, err = reactionsList.LoadUsers(t.Context(), repo)
@@ -101,7 +99,7 @@ func TestIssueReactionCount(t *testing.T) {
 	reactions := reactionsList.GroupByType()
 	assert.Len(t, reactions["heart"], 4)
 	assert.Equal(t, 2, reactions["heart"].GetMoreUserCount())
-	assert.Equal(t, user1.Name+", "+user2.Name, reactions["heart"].GetFirstUsers())
+	assert.Equal(t, "user1 (User One), user2 (< U<se>r Tw<o > ><)", reactions["heart"].GetFirstUsers())
 	assert.True(t, reactions["heart"].HasUser(1))
 	assert.False(t, reactions["heart"].HasUser(5))
 	assert.False(t, reactions["heart"].HasUser(0))
@@ -136,10 +134,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 	addReaction(t, org3, nil, comment, "heart")
 	addReaction(t, user4, nil, comment, "+1")
 
-	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{
-		IssueID:   comment.IssueID,
-		CommentID: comment.ID,
-	})
+	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{CommentID: comment.ID})
 	assert.NoError(t, err)
 	assert.Len(t, reactionsList, 4)
 

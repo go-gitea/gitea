@@ -9,14 +9,14 @@ import (
 	"strings"
 	"testing"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	issue_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	issue_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -166,7 +166,7 @@ func TestGetCommentPreview(t *testing.T) {
 			Content: "1|stale snapshot",
 			Comment: &issue_model.Comment{Content: "fresh content"},
 		}
-		assert.Equal(t, "fresh content", action.GetCommentPreview())
+		assert.Equal(t, "fresh content", action.GetCommentPreview(t.Context()))
 	})
 
 	t.Run("snapshot fallback when comment not loaded", func(t *testing.T) {
@@ -174,7 +174,7 @@ func TestGetCommentPreview(t *testing.T) {
 			OpType:  activities_model.ActionCommentIssue,
 			Content: "1|snapshot body",
 		}
-		assert.Equal(t, "snapshot body", action.GetCommentPreview())
+		assert.Equal(t, "snapshot body", action.GetCommentPreview(t.Context()))
 	})
 
 	t.Run("dismiss review reads field 2 as fallback", func(t *testing.T) {
@@ -182,7 +182,7 @@ func TestGetCommentPreview(t *testing.T) {
 			OpType:  activities_model.ActionPullReviewDismissed,
 			Content: "5|reviewer|dismiss reason",
 		}
-		assert.Equal(t, "dismiss reason", action.GetCommentPreview())
+		assert.Equal(t, "dismiss reason", action.GetCommentPreview(t.Context()))
 	})
 
 	t.Run("dismiss review prefers live comment", func(t *testing.T) {
@@ -191,17 +191,16 @@ func TestGetCommentPreview(t *testing.T) {
 			Content: "5|reviewer|old reason",
 			Comment: &issue_model.Comment{Content: "updated reason"},
 		}
-		assert.Equal(t, "updated reason", action.GetCommentPreview())
+		assert.Equal(t, "updated reason", action.GetCommentPreview(t.Context()))
 	})
 
-	t.Run("returns full content for rendering", func(t *testing.T) {
-		long := strings.Repeat("a", 300)
+	t.Run("live comment uses meaningful prose excerpt", func(t *testing.T) {
 		action := &activities_model.Action{
 			OpType:  activities_model.ActionCommentPull,
-			Comment: &issue_model.Comment{Content: long},
+			Content: "1|stale snapshot",
+			Comment: &issue_model.Comment{Content: "```suggestion\nreplacement\n```\n\n" + strings.Repeat("a", 300)},
 		}
-		preview := action.GetCommentPreview()
-		assert.Equal(t, long, preview)
+		assert.Equal(t, strings.Repeat("a", 197)+"…", action.GetCommentPreview(t.Context()))
 	})
 
 	t.Run("empty live comment preferred over snapshot", func(t *testing.T) {
@@ -210,6 +209,6 @@ func TestGetCommentPreview(t *testing.T) {
 			Content: "1|old content",
 			Comment: &issue_model.Comment{Content: ""},
 		}
-		assert.Empty(t, action.GetCommentPreview())
+		assert.Empty(t, action.GetCommentPreview(t.Context()))
 	})
 }

@@ -12,14 +12,15 @@ import (
 	"strconv"
 	"strings"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 
 	"github.com/gorilla/feeds"
 )
@@ -49,31 +50,18 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 }
 
 // renderCommentMarkdown renders the comment markdown to html
-func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
+func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string, feedExcerpt bool) template.HTML {
 	_ = act.LoadRepo(ctx)
 	if act.Repo == nil {
 		return ""
 	}
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, act.Repo).WithUseAbsoluteLink(true)
+	rctx.RenderOptions.FeedExcerpt = feedExcerpt
 	rendered, err := markdown.RenderString(rctx, content)
 	if err != nil {
 		return ""
 	}
 	return rendered
-}
-
-// renderCommentPreview truncates, renders and appends an ellipsis for feed previews.
-// Returns empty string when comment is empty.
-func renderCommentPreview(ctx *context.Context, act *activities_model.Action, comment string) string {
-	if len(comment) == 0 {
-		return ""
-	}
-	preview, truncated := templates.TruncateToPreviewLines(comment)
-	result := string(renderCommentMarkdown(ctx, act, preview))
-	if truncated {
-		result += "\n…"
-	}
-	return result
 }
 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
@@ -235,11 +223,12 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 
 			case activities_model.ActionCreateIssue, activities_model.ActionCreatePullRequest:
 				desc = strings.Join(act.GetIssueInfos(), "#")
-				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx))
+				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx), false)
 			case activities_model.ActionCommentIssue, activities_model.ActionApprovePullRequest, activities_model.ActionRejectPullRequest, activities_model.ActionCommentPull:
 				desc = act.GetIssueTitle(ctx)
-				if rendered := renderCommentPreview(ctx, act, act.GetCommentPreview()); len(rendered) != 0 {
-					desc += "\n\n" + rendered
+				comment := act.GetCommentPreview(ctx)
+				if len(comment) != 0 {
+					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment, true))
 				}
 			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
@@ -247,13 +236,13 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				desc = act.GetIssueTitle(ctx)
 			case activities_model.ActionPullReviewDismissed:
 				desc = ctx.Locale.TrString("action.review_dismissed_reason")
-				if rendered := renderCommentPreview(ctx, act, act.GetCommentPreview()); len(rendered) != 0 {
-					desc += "\n\n" + rendered
+				if comment := act.GetCommentPreview(ctx); len(comment) != 0 {
+					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment, true))
 				}
 			}
 		}
 		if len(content) == 0 {
-			content = templates.SanitizeHTML(desc)
+			content = markup.Sanitize(desc)
 		}
 
 		items = append(items, &feeds.Item{
@@ -316,7 +305,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 		items = append(items, &feeds.Item{
 			Title:   title,
 			Link:    link,
-			Created: rel.CreatedUnix.AsTime(),
+			Created: rel.PublishedUnix.AsTime(),
 			Author: &feeds.Author{
 				Name:  rel.Publisher.GetDisplayName(),
 				Email: rel.Publisher.GetEmail(),
