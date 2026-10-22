@@ -5,10 +5,12 @@ package convert
 
 import (
 	"testing"
+	"unicode/utf8"
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -48,4 +50,18 @@ func Test_ToPullReview(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, prList, 1)
 	})
+}
+
+func Test_ToPullReviewCommentDiffHunkUTF8(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4})
+	comment.Patch = "diff --git a/README.md b/README.md\n@@ -1 +1 @@\n-\xd6\xd0\xce\xc4\n+\xd6\xd0\xce\xc4 \xff\n"
+
+	apiComment := ToPullReviewComment(t.Context(), comment, nil)
+	assert.True(t, utf8.ValidString(apiComment.DiffHunk), "diff_hunk must be valid UTF-8: %q", apiComment.DiffHunk)
+	assert.Contains(t, apiComment.DiffHunk, "@@ -1 +1 @@")
+
+	_, err := json.Marshal(apiComment)
+	assert.NoError(t, err)
 }

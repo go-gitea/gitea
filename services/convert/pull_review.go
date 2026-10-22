@@ -9,7 +9,9 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/charset"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 // ToPullReview convert a review to api format
@@ -129,7 +131,8 @@ func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, doe
 func patch2diff(patch string) string {
 	split := strings.Split(patch, "\n@@")
 	if len(split) == 2 {
-		return "@@" + split[1]
+		hunk := charset.ToUTF8(util.UnsafeStringToBytes("@@"+split[1]), charset.ConvertOpts{ErrorReplacement: []byte{'?'}})
+		return util.UnsafeBytesToString(hunk)
 	}
 	return ""
 }
