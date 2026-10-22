@@ -1,5 +1,6 @@
 <div class="ui container">
 	<a class="flex-text-inline" href="{{.ProjectLink}}">{{svg "octicon-arrow-left"}} {{.Project.Title}}</a>
+	<p class="tw-mt-2 tw-text-text-light-2">{{ctx.Locale.Tr "projects.workflows.runs_as_hint"}}</p>
 	<div id="project-workflows" data-global-init="initProjectWorkflow"
 		data-project-link="{{.ProjectLink}}"
 		data-workflow-id="{{.WorkflowID}}"
