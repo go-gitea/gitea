@@ -4,7 +4,9 @@
 package actions
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -303,4 +305,26 @@ func insertConcurrencyHolder(t *testing.T, index int64, group string) *actions_m
 	}
 	require.NoError(t, db.Insert(ctx, holder))
 	return holder
+}
+
+func TestPrepareRunAndInsert_MaxJobNumPerRun(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	workflow := func(n int) string {
+		var sb strings.Builder
+		sb.WriteString("name: many\non: push\njobs:\n")
+		for i := range n {
+			fmt.Fprintf(&sb, "  job%d:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n", i)
+		}
+		return sb.String()
+	}
+	newRun := func() *actions_model.ActionRun {
+		return &actions_model.ActionRun{
+			Title: "many", RepoID: 4, OwnerID: 1, WorkflowID: "many.yaml", TriggerUserID: 1,
+			Ref: "refs/heads/master", CommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+			Event: "push", TriggerEvent: "push", EventPayload: "{}",
+			WorkflowRepoID: 4, WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		}
+	}
+	require.NoError(t, PrepareRunAndInsert(t.Context(), []byte(workflow(actions_model.MaxJobNumPerRun)), newRun(), nil))
+	assert.ErrorContains(t, PrepareRunAndInsert(t.Context(), []byte(workflow(actions_model.MaxJobNumPerRun+1)), newRun(), nil), "exceeds the maximum")
 }

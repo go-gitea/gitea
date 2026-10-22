@@ -122,6 +122,9 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		if err != nil {
 			return fmt.Errorf("parse workflow: %w", err)
 		}
+		if len(jobs) > actions_model.MaxJobNumPerRun {
+			return fmt.Errorf("workflow run exceeds the maximum of %d jobs", actions_model.MaxJobNumPerRun)
+		}
 		titleChanged := len(jobs) > 0 && jobs[0].RunName != ""
 		if titleChanged {
 			run.Title = util.EllipsisDisplayString(jobs[0].RunName, 255)
