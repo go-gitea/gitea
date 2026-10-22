@@ -3871,6 +3871,7 @@
   "actions.runs.pushed_by": "pushed by",
   "actions.runs.invalid_workflow_helper": "Workflow config file is invalid. Please check your config file: %s",
   "actions.runs.no_matching_online_runner_helper": "No matching online runner with label: %s",
+  "actions.runs.runs_on_group": "group: %s",
   "actions.runs.no_runner_online": "No runner is online to pick up this job.",
   "actions.runs.waiting_for_available_runner": "Waiting for a matching runner to become available.",
   "actions.runs.waiting_for_dependent_jobs": "Waiting for the following jobs to complete: %s",

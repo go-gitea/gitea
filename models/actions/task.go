@@ -279,16 +279,18 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if err := (RunnerList{runner}).LoadGroups(ctx); err != nil {
 		return nil, false, err
 	}
-	var groupCond builder.Cond = builder.Eq{"runs_on_group": ""}
+	runsOnGroups := []string{""}
 	accessCond := builder.NewCond()
 	if runner.GroupID != 0 {
-		groupCond = builder.NewCond() // matched case-insensitively in Go, SQL LOWER differs between databases
+		if runner.Group != nil {
+			runsOnGroups = append(runsOnGroups, runner.Group.runsOnSelectors()...)
+		}
 		accessCond = builder.Exists(builder.Select("1").From("action_runner_group").
 			Where(builder.Eq{"id": runner.GroupID, "includes_all_repositories": true})).
 			Or(builder.In("repo_id", builder.Select("repo_id").From("action_runner_access").
 				Where(builder.Eq{"group_id": runner.GroupID})))
 	}
-	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}.And(jobCond, accessCond, groupCond)
+	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false, "runs_on_group": runsOnGroups}.And(jobCond, accessCond)
 	claimCond := builder.And(jobCond, accessCond, builder.Exists(builder.Select("1").From("action_runner").
 		Where(builder.Eq{"id": runner.ID, "group_id": runner.GroupID, "is_disabled": false}.And(builder.IsNull{"deleted"}))))
 

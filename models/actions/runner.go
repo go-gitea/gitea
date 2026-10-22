@@ -16,7 +16,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/shared/types"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -206,24 +205,10 @@ func (r *ActionRunner) CanRunJob(runsOnGroup string, runsOnLabels []string) bool
 	if runsOnGroup == "" && len(runsOnLabels) == 0 {
 		return false
 	}
-	if runsOnGroup != "" && !r.matchesGroup(runsOnGroup) {
+	if runsOnGroup != "" && (r.Group == nil || !slices.Contains(r.Group.runsOnSelectors(), runsOnGroup)) {
 		return false
 	}
 	return !slices.ContainsFunc(runsOnLabels, func(label string) bool { return !util.SliceContainsString(r.AgentLabels, label, true) })
-}
-
-func (r *ActionRunner) matchesGroup(runsOnGroup string) bool {
-	if r.Group == nil {
-		return false
-	}
-	scope, name, found := strings.Cut(runsOnGroup, "/")
-	if !found {
-		name = scope
-	} else if ownerLevel, known := jobparser.RunsOnGroupScopes[scope]; !known || ownerLevel != (r.Group.OwnerID != 0) {
-		return false
-	}
-	lowerName := strings.ToLower(name) // folds like lower_name, EqualFold would also pair "s" with "ſ"
-	return r.Group.LowerName == lowerName
 }
 
 func runnerGroupGrantsCond(repoCond builder.Cond) builder.Cond {
@@ -249,9 +234,9 @@ func GetRunnersMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionRunn
 // FindRunnerOptions
 // ownerID == 0 and repoID == 0 means any runner including global runners
 // repoID != 0 and WithAvailable == false means any runner for the given repo
-// repoID != 0 and WithAvailable == true means any runner for the given repo, parent user/org, and global runners
+// repoID != 0 and WithAvailable == true means any runner for the given repo, parent user/org, and global runners, grouped ones only if their group grants the repo
 // ownerID != 0 and repoID == 0 and WithAvailable == false means any runner for the given user/org
-// ownerID != 0 and repoID == 0 and WithAvailable == true means any runner for the given user/org and global runners
+// ownerID != 0 and repoID == 0 and WithAvailable == true means any runner for the given user/org and global runners, grouped global ones only if their group grants one of its repos
 type FindRunnerOptions struct {
 	db.ListOptions
 	IDs           []int64

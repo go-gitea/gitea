@@ -600,7 +600,7 @@ jobs:
 	}
 }
 
-func TestRunsOnGroupSurvivesMatrixExpansion(t *testing.T) {
+func TestRunsOnGroupIsLowercasedAndSurvivesMatrixExpansion(t *testing.T) {
 	jobs, err := Parse([]byte(`
 on: push
 jobs:
@@ -613,7 +613,7 @@ jobs:
         v: [1, 2]
     runs-on:
       labels: [ubuntu-latest]
-      group: gpu-${{ matrix.v }}
+      group: GPU-${{ matrix.v }}
     steps: [{run: echo}]
   unset:
     runs-on:

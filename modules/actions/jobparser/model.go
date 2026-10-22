@@ -177,9 +177,9 @@ func (j *Job) RunsOn() []string {
 	return runsOn
 }
 
+// RunsOnGroup is lowercased to match lower_name in SQL, truncating is safe as group names are capped at 200 runes
 func (j *Job) RunsOnGroup() string {
-	// safe to truncate, group names are capped at 200 runes
-	return util.TruncateRunes(unescapeExpressions(model.RunsOnGroupFromNode(j.RawRunsOn)), 255)
+	return util.TruncateRunes(strings.ToLower(unescapeExpressions(model.RunsOnGroupFromNode(j.RawRunsOn))), 255)
 }
 
 // DisplayName is the name Gitea stores, without the escaping the payload keeps for runners.

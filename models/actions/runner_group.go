@@ -11,6 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/util"
 
@@ -34,6 +35,16 @@ type ActionRunnerAccess struct {
 func init() {
 	db.RegisterModel(new(ActionRunnerGroup))
 	db.RegisterModel(new(ActionRunnerAccess))
+}
+
+func (group *ActionRunnerGroup) runsOnSelectors() []string {
+	selectors := []string{group.LowerName}
+	for prefix, ownerLevel := range jobparser.RunsOnGroupScopes {
+		if ownerLevel == (group.OwnerID != 0) {
+			selectors = append(selectors, prefix+"/"+group.LowerName)
+		}
+	}
+	return selectors
 }
 
 func FindRunnerGroups(ctx context.Context, ownerID int64) ([]*ActionRunnerGroup, error) {

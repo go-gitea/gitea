@@ -10,7 +10,7 @@
 					<input type="hidden" name="runners" value="{{SliceUtils.JoinInt64 .RunnerGroupMemberIDs}}">
 					<div class="default text">{{ctx.Locale.Tr "actions.runners.groups.no_runners"}}</div>
 					<div class="menu">
-						{{range $runner := .RunnerGroupCandidates}}<div class="item" data-value="{{$runner.ID}}">{{$runner.Name}}</div>{{end}}
+						{{range $runner := .RunnerGroupCandidates}}<div class="item" data-value="{{$runner.ID}}" data-text="{{$runner.Name}}">{{$runner.Name}}{{if and $runner.Group (ne $runner.GroupID $.RunnerGroup.ID)}} <span class="text grey">({{$runner.Group.Name}})</span>{{end}}</div>{{end}}
 					</div>
 				</div>
 				<p class="help">{{ctx.Locale.Tr "actions.runners.groups.runners_help"}}</p>

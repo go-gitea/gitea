@@ -77,6 +77,8 @@ func (runners RunnerList) LoadAttributes(ctx context.Context) error {
 	if err := runners.LoadOwners(ctx); err != nil {
 		return err
 	}
-
-	return runners.LoadRepos(ctx)
+	if err := runners.LoadRepos(ctx); err != nil {
+		return err
+	}
+	return runners.LoadGroups(ctx)
 }

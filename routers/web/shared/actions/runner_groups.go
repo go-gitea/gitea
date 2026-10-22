@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
@@ -82,6 +84,10 @@ func RunnerGroupEdit(ctx *context.Context) {
 		ctx.ServerError("FindRunnerGroupCandidates", err)
 		return
 	}
+	if err := actions_model.RunnerList(candidates).LoadGroups(ctx); err != nil {
+		ctx.ServerError("LoadGroups", err)
+		return
+	}
 
 	ctx.Data["Title"] = ctx.Tr("actions.runners.groups")
 	ctx.Data["PageType"] = "runner-group-edit"
@@ -100,7 +106,13 @@ func RunnerGroupEditPost(ctx *context.Context) {
 	if group == nil {
 		return
 	}
-	switch err := actions_model.UpdateRunnerGroup(ctx, group, ctx.FormString("repo_access") == "all", ctx.FormStringInt64s("repos"), ctx.FormStringInt64s("runners")); {
+	repoIDs, repoErr := base.StringsToInt64s(strings.Split(ctx.FormString("repos"), ","))
+	runnerIDs, runnerErr := base.StringsToInt64s(strings.Split(ctx.FormString("runners"), ","))
+	if err := errors.Join(repoErr, runnerErr); err != nil {
+		ctx.HTTPError(http.StatusBadRequest, err.Error())
+		return
+	}
+	switch err := actions_model.UpdateRunnerGroup(ctx, group, ctx.FormString("repo_access") == "all", repoIDs, runnerIDs); {
 	case err == nil:
 	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.JSONError(ctx.Tr("actions.runners.groups.target_invalid"))

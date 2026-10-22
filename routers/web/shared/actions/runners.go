@@ -141,12 +141,6 @@ func Runners(ctx *context.Context) {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
-	if !rCtx.IsRepo {
-		if err := actions_model.RunnerList(runners).LoadGroups(ctx); err != nil {
-			ctx.ServerError("LoadGroups", err)
-			return
-		}
-	}
 
 	// ownid=0,repo_id=0,means this token is used for global
 	token, err := actions_model.GetOrCreateActiveRunnerToken(ctx, opts.OwnerID, opts.RepoID)

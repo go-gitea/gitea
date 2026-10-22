@@ -91,7 +91,7 @@ func TestCanRunJob(t *testing.T) {
 	assert.False(t, runner.CanRunJob("", nil))
 	assert.False(t, runner.CanRunJob("cpu", []string{"linux"}))
 	assert.False(t, (&ActionRunner{AgentLabels: []string{"gpu"}}).CanRunJob("gpu", nil))
-	assert.True(t, runner.CanRunJob("enterprise/GPU", nil))
+	assert.True(t, runner.CanRunJob("enterprise/gpu", nil))
 	assert.False(t, runner.CanRunJob("org/gpu", nil))
 	assert.False(t, runner.CanRunJob("other/gpu", nil))
 	ownerRunner := &ActionRunner{Group: &ActionRunnerGroup{OwnerID: 3, LowerName: "gpu"}}

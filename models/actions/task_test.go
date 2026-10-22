@@ -385,14 +385,14 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 		RunID:           run.ID,
 		RepoID:          run.RepoID,
 		Status:          StatusWaiting,
-		RunsOnGroup:     "GPU",
-		WorkflowPayload: []byte("on: push\njobs:\n  job:\n    runs-on:\n      group: gpu\n    steps:\n      - run: echo hi\n"),
+		RunsOnGroup:     "gpu",
+		WorkflowPayload: []byte("jobs: {job: {}}"),
 	}
 	require.NoError(t, db.Insert(t.Context(), job))
 
 	group, err := CreateRunnerGroup(t.Context(), 0, "gpu")
 	require.NoError(t, err)
-	runner := &ActionRunner{UUID: "grouped", AgentLabels: []string{"ubuntu-latest"}, GroupID: group.ID, TokenHash: "grouped"}
+	runner := &ActionRunner{UUID: "grouped", GroupID: group.ID, TokenHash: "grouped"}
 	require.NoError(t, db.Insert(t.Context(), runner))
 
 	_, ok, err := CreateTaskForRunner(t.Context(), runner)
@@ -446,7 +446,7 @@ func TestCreateTaskForRunnerRechecksRunnerScopeAtClaim(t *testing.T) {
 		RepoID:          run.RepoID,
 		Status:          StatusWaiting,
 		RunsOn:          []string{"ubuntu-latest"},
-		WorkflowPayload: []byte("on: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
+		WorkflowPayload: []byte("jobs: {job: {}}"),
 	}))
 	require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: run.RepoID, Type: unit.TypeActions}))
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: run.RepoID}).OwnerID

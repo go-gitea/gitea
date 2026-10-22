@@ -803,7 +803,7 @@ func describePendingJobDetail(ctx *context_module.Context, current *actions_mode
 		case !hasOnlineRunner:
 			return ctx.Locale.TrString("actions.runs.no_runner_online")
 		case !hasMatchingRunner:
-			return ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(current.RunsOnDisplay(), ", "))
+			return ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(current.RunsOnDisplay(ctx.Locale), ", "))
 		default:
 			// A matching runner exists but hasn't claimed the job, so it is busy.
 			return ctx.Locale.TrString("actions.runs.waiting_for_available_runner")
