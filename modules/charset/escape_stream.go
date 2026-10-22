@@ -45,24 +45,47 @@ type escapeStreamer struct {
 	out io.Writer
 }
 
-func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts ...EscapeOptions) (*EscapeStatus, error) {
-	bufSize := 32 * 1024
-	if sr, ok := in.(*strings.Reader); ok {
-		bufSize = min(32*1024, max(512, sr.Len()))
-	} else if br, ok := in.(*bytes.Reader); ok {
-		bufSize = min(32*1024, max(512, br.Len()))
+var readBufPoolLarge = sync.Pool{
+	New: func() any {
+		return make([]byte, 4*1024)
+	},
+}
+
+const readBufSmallSize = 512
+
+var readBufPoolSmall = sync.Pool{
+	New: func() any {
+		return make([]byte, readBufSmallSize)
+	},
+}
+
+func prepareReadBuf(buf *[]byte, in io.Reader) func() {
+	lenProvider, ok := in.(interface{ Len() int })
+	useSmallPool := ok && lenProvider.Len() <= readBufSmallSize
+	pool := &readBufPoolLarge
+	if useSmallPool {
+		pool = &readBufPoolSmall
 	}
+	*buf = pool.Get().([]byte)
+	return func() {
+		pool.Put(*buf)
+		*buf = nil
+	}
+}
+
+func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts ...EscapeOptions) (*EscapeStatus, error) {
 	es := &escapeStreamer{
 		escaped:         &EscapeStatus{},
 		locale:          locale,
 		ambiguousTables: AmbiguousTablesForLocale(locale),
 		htmlChunkReader: htmlChunkReader{
 			in:             in,
-			readBuf:        make([]byte, 0, bufSize),
 			asciiSafeBytes: asciiSafeByteMap(),
 		},
 		out: out,
 	}
+
+	defer prepareReadBuf(&es.readBuf, in)()
 
 	if len(opts) > 0 {
 		es.allowed = opts[0].Allowed
@@ -184,7 +207,7 @@ func (e *escapeStreamer) analyzeDetectResults(results []detectResult) {
 }
 
 var asciiSafeByteMap = sync.OnceValue(func() (ret [256]bool) {
-	for i := 0; i < 256; i++ {
+	for i := range 256 {
 		c := byte(i)
 		ret[i] = (c >= 0x20 && c <= 0x7e) || c == '\t' || c == '\n'
 	}

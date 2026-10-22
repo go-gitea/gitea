@@ -45,7 +45,7 @@ func EscapeControlHTML(html template.HTML, locale translation.Locale, opts ...Es
 	}
 
 	w := &htmlutil.HTMLBuilder{}
-	w.Grow(len(html) + 32)
+	w.Grow(len(html))
 	escaped, _ = EscapeControlReader(strings.NewReader(string(html)), w, locale, opts...)
 	return escaped, w.HTMLString()
 }
