@@ -18,4 +18,8 @@ test('star and watch a repository', async ({page, request}) => {
   await page.getByRole('button', {name: 'Watch', exact: true}).click();
   await page.getByRole('menuitem', {name: 'All activity', exact: true}).click();
   await expect(page.getByRole('button', {name: 'Watching'})).toBeVisible();
+
+  // the counts link to the respective lists
+  await page.locator('.ui.labeled.button > a.label[href$="/stars"]').click();
+  await expect(page).toHaveURL(/\/stars$/);
 });

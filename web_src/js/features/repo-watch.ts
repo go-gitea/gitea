@@ -3,7 +3,7 @@ import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 export function initRepoWatch() {
   registerGlobalInitFunc('initRepoWatchMenu', (btn: HTMLElement) => {
-    const menu = btn.nextElementSibling!;
+    const menu = btn.closest('#repo-header-watch')!.querySelector('.tippy-target')!;
     const watchMenuTippy = createTippy(btn, {
       content: menu,
       theme: 'menu',

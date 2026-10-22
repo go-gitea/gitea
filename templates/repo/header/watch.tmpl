@@ -7,12 +7,14 @@
 		{{$isAll := eq $mode "all"}}
 		{{$isCustom := eq $mode "custom"}}
 		{{$isParticipating := eq $mode "participate"}}
-		<button type="button" class="ui dropdown custom compact small basic button" data-global-init="initRepoWatchMenu" aria-label="{{$buttonText}}">
-			{{svg (Iif $isIgnoring "octicon-eye-closed" "octicon-eye")}}
-			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
-			<span class="ui small label">{{$count}}</span>
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		</button>
+		<div class="ui labeled button">
+			<button type="button" class="ui dropdown custom compact small basic button" data-global-init="initRepoWatchMenu" aria-label="{{$buttonText}}">
+				{{svg (Iif $isIgnoring "octicon-eye-closed" "octicon-eye")}}
+				<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</button>
+			<a class="ui basic label" href="{{$.RepoLink}}/watchers">{{$count}}</a>
+		</div>
 		<div class="tippy-target">
 			{{$testParticipating := ctx.Locale.Tr "repo.watch.mode.participating"}}
 			<a class="item{{if $isParticipating}} active{{end}}" role="menuitem" aria-label="{{$testParticipating}}"
@@ -48,10 +50,12 @@
 			</a>
 		</div>
 	{{else}}
-		<a role="button" class="ui compact small basic button" href="{{AppSubUrl}}/user/login" aria-label="{{$buttonText}}" data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}">
-			{{svg "octicon-eye"}}
-			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
-			<span class="ui small label">{{$count}}</span>
-		</a>
+		<div class="ui labeled button" data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}">
+			<a role="button" class="ui compact small basic button" href="{{AppSubUrl}}/user/login" aria-label="{{$buttonText}}">
+				{{svg "octicon-eye"}}
+				<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
+			</a>
+			<a class="ui basic label" href="{{$.RepoLink}}/watchers">{{$count}}</a>
+		</div>
 	{{end}}
 </div>
