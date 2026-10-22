@@ -160,55 +160,28 @@ func TestDeleteIssueActions(t *testing.T) {
 }
 
 func TestGetCommentPreview(t *testing.T) {
-	t.Run("live comment preferred over snapshot", func(t *testing.T) {
-		action := &activities_model.Action{
-			OpType:  activities_model.ActionCommentIssue,
-			Content: "1|stale snapshot",
-			Comment: &issue_model.Comment{Content: "fresh content"},
-		}
-		assert.Equal(t, "fresh content", action.GetCommentPreview(t.Context()))
-	})
-
-	t.Run("snapshot fallback when comment not loaded", func(t *testing.T) {
-		action := &activities_model.Action{
-			OpType:  activities_model.ActionCommentIssue,
-			Content: "1|snapshot body",
-		}
-		assert.Equal(t, "snapshot body", action.GetCommentPreview(t.Context()))
-	})
-
-	t.Run("dismiss review reads field 2 as fallback", func(t *testing.T) {
-		action := &activities_model.Action{
-			OpType:  activities_model.ActionPullReviewDismissed,
-			Content: "5|reviewer|dismiss reason",
-		}
-		assert.Equal(t, "dismiss reason", action.GetCommentPreview(t.Context()))
-	})
-
-	t.Run("dismiss review prefers live comment", func(t *testing.T) {
-		action := &activities_model.Action{
-			OpType:  activities_model.ActionPullReviewDismissed,
-			Content: "5|reviewer|old reason",
-			Comment: &issue_model.Comment{Content: "updated reason"},
-		}
-		assert.Equal(t, "updated reason", action.GetCommentPreview(t.Context()))
-	})
-
-	t.Run("live comment uses meaningful prose excerpt", func(t *testing.T) {
-		action := &activities_model.Action{
-			OpType:  activities_model.ActionCommentPull,
-			Content: "1|stale snapshot",
-			Comment: &issue_model.Comment{Content: "```suggestion\nreplacement\n```\n\n" + strings.Repeat("a", 300)},
-		}
-		assert.Equal(t, strings.Repeat("a", 197)+"…", action.GetCommentPreview(t.Context()))
-	})
-
-	t.Run("empty live comment preferred over snapshot", func(t *testing.T) {
-		action := &activities_model.Action{
-			OpType:  activities_model.ActionCommentIssue,
-			Content: "1|old content",
-			Comment: &issue_model.Comment{Content: ""},
-		}
-		assert.Empty(t, action.GetCommentPreview(t.Context()))
-	})
+	for _, entry := range []struct {
+		name     string
+		opType   activities_model.ActionType
+		content  string
+		comment  *issue_model.Comment
+		expected string
+	}{
+		{"live comment preferred over snapshot", activities_model.ActionCommentIssue, "1|stale snapshot", &issue_model.Comment{Content: "fresh content"}, "fresh content"},
+		{"snapshot fallback when comment not loaded", activities_model.ActionCommentIssue, "1|snapshot body", nil, "snapshot body"},
+		{"dismiss review reads field 2 as fallback", activities_model.ActionPullReviewDismissed, "5|reviewer|dismiss reason", nil, "dismiss reason"},
+		{"dismiss review prefers live comment", activities_model.ActionPullReviewDismissed, "5|reviewer|old reason", &issue_model.Comment{Content: "updated reason"}, "updated reason"},
+		{"live comment uses meaningful prose excerpt", activities_model.ActionCommentPull, "1|stale snapshot", &issue_model.Comment{Content: "```suggestion\nreplacement\n```\n\n" + strings.Repeat("a", 300)}, strings.Repeat("a", 197) + "…"},
+		{"empty live comment preferred over snapshot", activities_model.ActionCommentIssue, "1|old content", &issue_model.Comment{}, ""},
+	} {
+		t.Run(entry.name, func(t *testing.T) {
+			action := &activities_model.Action{
+				OpType:         entry.opType,
+				Content:        entry.content,
+				Comment:        entry.comment,
+				CanReadComment: true,
+			}
+			assert.Equal(t, entry.expected, action.GetCommentPreview(t.Context()))
+		})
+	}
 }

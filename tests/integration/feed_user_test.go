@@ -12,7 +12,12 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/timeutil"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -100,6 +105,39 @@ func TestFeedUser(t *testing.T) {
 			assert.NotContains(t, resp.Body.String(), "stale dismissal", requestPath)
 			assert.NotContains(t, resp.Body.String(), "hidden code", requestPath)
 		}
+	})
+
+	t.Run("revoked access keeps snapshot previews", func(t *testing.T) {
+		defer tests.PrepareTestEnv(t)()
+
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		viewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), repo, viewer, perm.AccessModeRead))
+		comment := &issues_model.Comment{PosterID: 2, IssueID: 4, Content: "original comment"}
+		require.NoError(t, db.Insert(t.Context(), comment))
+		require.NoError(t, db.Insert(t.Context(), &activities_model.Action{
+			UserID:      viewer.ID,
+			ActUserID:   2,
+			RepoID:      repo.ID,
+			CommentID:   comment.ID,
+			OpType:      activities_model.ActionCommentIssue,
+			IsPrivate:   true,
+			Content:     "1|original snapshot",
+			CreatedUnix: timeutil.TimeStampNow(),
+		}))
+
+		session := loginUser(t, viewer.Name)
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/"), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "original comment")
+		assert.NotContains(t, resp.Body.String(), "original snapshot")
+
+		require.NoError(t, repo_service.DeleteCollaboration(t.Context(), repo, viewer))
+		_, err := db.GetEngine(t.Context()).ID(comment.ID).Cols("content").Update(&issues_model.Comment{Content: "confidential edit"})
+		require.NoError(t, err)
+
+		resp = session.MakeRequest(t, NewRequest(t, "GET", "/"), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "original snapshot")
+		assert.NotContains(t, resp.Body.String(), "confidential edit")
 	})
 }
 

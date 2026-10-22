@@ -149,6 +149,8 @@ type Action struct {
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+
+	CanReadComment bool `xorm:"-"`
 }
 
 func init() {
@@ -378,7 +380,7 @@ func (a *Action) GetIssueInfos() []string {
 func (a *Action) GetCommentPreview(ctx context.Context) string {
 	var content string
 	switch {
-	case a.Comment != nil:
+	case a.CanReadComment && a.Comment != nil:
 		content = a.Comment.Content
 	case a.OpType == ActionPullReviewDismissed:
 		content = a.GetIssueInfos()[2]

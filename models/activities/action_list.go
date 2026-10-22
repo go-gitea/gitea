@@ -11,6 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
@@ -278,6 +279,22 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 	if err := ActionList(actions).LoadAttributes(ctx); err != nil {
 		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
+	}
+
+	repoPermissions := make(map[int64]access_model.Permission)
+	for _, action := range actions {
+		if action.Comment == nil || action.Repo == nil {
+			continue
+		}
+		permission, ok := repoPermissions[action.RepoID]
+		if !ok {
+			permission, err = access_model.GetDoerRepoPermission(ctx, action.Repo, opts.Actor)
+			if err != nil {
+				return nil, 0, fmt.Errorf("GetFeeds: %w", err)
+			}
+			repoPermissions[action.RepoID] = permission
+		}
+		action.CanReadComment = permission.CanReadIssuesOrPulls(action.OpType != ActionCommentIssue)
 	}
 
 	return actions, count, nil
