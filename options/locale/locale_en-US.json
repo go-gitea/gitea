@@ -4002,7 +4002,7 @@
   "projects.workflows.when_moved_to_column": "When moved to column",
   "projects.workflows.only_if_has_labels": "Only if it has labels",
   "projects.workflows.default_workflows": "Default workflows",
-  "projects.workflows.runs_as_hint": "Label and issue state actions run with the permissions of the user who last saved the workflow, and are skipped if that user can no longer change the issue. Deleting a column or transferring a repository does not trigger workflows.",
+  "projects.workflows.runs_as_hint": "Workflows act on their items without further permission checks, so only users who can manage them may edit them. Deleting a column or transferring a repository does not trigger workflows.",
   "projects.workflows.actions": "Actions",
   "projects.workflows.move_to_column": "Move to column",
   "projects.workflows.add_labels": "Add labels",
