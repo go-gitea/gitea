@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 
@@ -146,11 +145,11 @@ func (job *ActionRunJob) RunsOnLabelsWithGroup() []string {
 	return append(slices.Clone(job.RunsOn), job.RunsOnGroup)
 }
 
-func (job *ActionRunJob) RunsOnDisplay(locale translation.Locale) []string {
+func (job *ActionRunJob) RunsOnDisplay() []string {
 	if job.RunsOnGroup == "" {
 		return job.RunsOn
 	}
-	return append(slices.Clone(job.RunsOn), locale.TrString("actions.runs.runs_on_group", job.RunsOnGroup))
+	return append(slices.Clone(job.RunsOn), "group: "+job.RunsOnGroup)
 }
 
 // ActionRunAttemptJobIDIndex backs the run-wide AttemptJobID counter, keyed by ActionRun.ID.

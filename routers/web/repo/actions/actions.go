@@ -583,7 +583,7 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 					}
 				}
 				if !hasOnlineRunner {
-					data.RunErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOnDisplay(ctx.Locale), ","))
+					data.RunErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOnDisplay(), ","))
 					break
 				}
 			}
