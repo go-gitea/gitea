@@ -19,8 +19,6 @@ import (
 
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
 
 	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"
@@ -622,26 +620,25 @@ func TestGitHubIssuesPageBasedLinkFallback(t *testing.T) {
 
 func TestGithubFactoryUsesGraphQLOnlyWhereItWorks(t *testing.T) {
 	for _, testcase := range []struct {
-		name     string
-		opts     base.MigrateOptions
-		disabled bool
-		want     bool
+		name string
+		opts base.MigrateOptions
+		want bool
 	}{
 		{name: "token, issues", opts: base.MigrateOptions{AuthToken: "tok", Issues: true}, want: true},
 		{name: "basic auth, pull requests", opts: base.MigrateOptions{AuthUsername: "u", AuthPassword: "pat", PullRequests: true}, want: true},
 		{name: "anonymous repository", opts: base.MigrateOptions{Issues: true, PullRequests: true}},
 		{name: "comments only", opts: base.MigrateOptions{AuthToken: "tok", Comments: true}},
-		{name: "disabled by configuration", opts: base.MigrateOptions{AuthToken: "tok", Issues: true, Comments: true}, disabled: true},
+		{name: "issues with comments", opts: base.MigrateOptions{AuthToken: "tok", Issues: true, Comments: true}, want: true},
 	} {
 		t.Run(testcase.name, func(t *testing.T) {
-			defer test.MockVariableValue(&setting.Migrations.UseGraphQL, !testcase.disabled)()
 			testcase.opts.CloneAddr = "https://github.com/go-gitea/test_repo"
 			candidate, err := (&GithubDownloaderV3Factory{}).New(t.Context(), testcase.opts)
 			require.NoError(t, err)
-			downloader, ok := candidate.(*GithubDownloaderV3)
-			require.True(t, ok)
-			assert.Equal(t, testcase.want, downloader.useGraphQL)
-			assert.Equal(t, !testcase.opts.Comments, downloader.gqlSkipComments)
+			downloader, isGraphQL := candidate.(*GithubGraphQLDownloader)
+			assert.Equal(t, testcase.want, isGraphQL)
+			if isGraphQL {
+				assert.Equal(t, !testcase.opts.Comments, downloader.skipComments)
+			}
 		})
 	}
 }
@@ -649,28 +646,29 @@ func TestGithubFactoryUsesGraphQLOnlyWhereItWorks(t *testing.T) {
 func TestGithubGraphQLFallsBackToREST(t *testing.T) {
 	for _, connection := range []string{"issues", "pull requests"} {
 		t.Run(connection, func(t *testing.T) {
+			var restPage string
 			downloader := newGithubTestDownloader(t, func(writer http.ResponseWriter, request *http.Request) {
 				if request.URL.Path == "/api/graphql" {
 					http.NotFound(writer, request)
 					return
 				}
+				restPage = request.URL.Query().Get("page")
 				_, _ = writer.Write([]byte(`[{"number":1,"title":"t","state":"open"}]`))
 			})
-			downloader.useGraphQL = true
 			downloader.SkipReactions = true
 			if connection == "issues" {
-				issues, _, err := downloader.GetIssues(t.Context(), 1, 10)
+				issues, _, err := downloader.GetIssues(t.Context(), 3, 10)
 				require.NoError(t, err)
 				require.Len(t, issues, 1)
 				assert.EqualValues(t, 1, issues[0].Number)
 			} else {
-				prs, _, err := downloader.GetPullRequests(t.Context(), 1, 10)
+				prs, _, err := downloader.GetPullRequests(t.Context(), 3, 10)
 				require.NoError(t, err)
 				require.Len(t, prs, 1)
 				assert.EqualValues(t, 1, prs[0].Number)
 			}
-			assert.False(t, downloader.useGraphQL)
-			assert.True(t, downloader.SupportGetRepoComments())
+			assert.True(t, downloader.restFallback)
+			assert.Equal(t, "1", restPage)
 		})
 	}
 }

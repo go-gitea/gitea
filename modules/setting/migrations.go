@@ -13,12 +13,10 @@ var Migrations = struct {
 	AllowedHostList string
 	BlockedHostList string
 	SkipTLSVerify   bool
-	UseGraphQL      bool
 }{
 	MaxAttempts:  3,
 	RetryBackoff: 3,
 	EgressMode:   "lax",
-	UseGraphQL:   true,
 }
 
 func loadMigrationsFrom(rootCfg ConfigProvider) {
@@ -53,5 +51,4 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 	checkHostList("[migrations] BLOCKED_HOST_LIST", Migrations.BlockedHostList, true)
 
 	Migrations.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool(false)
-	Migrations.UseGraphQL = sec.Key("USE_GRAPHQL").MustBool(true)
 }

@@ -39,7 +39,7 @@ func TestGraphQLPullRequestParsing(t *testing.T) {
 		"reviewRequests":{"nodes":[{"requestedReviewer":{"__typename":"Bot","login":"pending-rev","databaseId":88}},
 			{"requestedReviewer":{"__typename":"Team"}},{"requestedReviewer":null}]}
 	}]}}}`), &response))
-	downloader := &GithubDownloaderV3{baseURL: "https://github.com", repoOwner: "go-gitea", repoName: "gitea"}
+	downloader := &GithubGraphQLDownloader{GithubDownloaderV3: &GithubDownloaderV3{baseURL: "https://github.com", repoOwner: "go-gitea", repoName: "gitea"}}
 	pr, err := downloader.convertGraphQLPullRequest(t.Context(), &response.Repository.PullRequests.Nodes[0], map[string]*gqlPrefetched{})
 	require.NoError(t, err)
 	merged := time.Date(2023, 6, 1, 0, 0, 0, 0, time.UTC)

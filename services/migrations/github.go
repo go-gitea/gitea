@@ -6,7 +6,6 @@ package migrations
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,7 +17,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 
 	"github.com/google/go-github/v92/github"
@@ -57,10 +55,10 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 	if err != nil {
 		return nil, err
 	}
-	downloader.useGraphQL = setting.Migrations.UseGraphQL &&
-		(opts.AuthToken != "" || opts.AuthPassword != "") &&
-		(opts.Issues || opts.PullRequests)
-	downloader.gqlSkipComments = !opts.Comments
+	// GitHub rejects anonymous GraphQL requests, and comments only ride along with the issue and PR sweeps
+	if (opts.AuthToken != "" || opts.AuthPassword != "") && (opts.Issues || opts.PullRequests) {
+		return newGithubGraphQLDownloader(downloader, !opts.Comments), nil
+	}
 	return downloader, nil
 }
 
@@ -80,7 +78,6 @@ type GithubDownloaderV3 struct {
 	userName        string
 	password        string
 	rates           []*github.Rate
-	gqlRates        []*github.Rate // GraphQL has a separate rate budget.
 	curClientIdx    int
 	maxPerPage      int
 	SkipReactions   bool
@@ -89,11 +86,6 @@ type GithubDownloaderV3 struct {
 	issueCursor     string
 	nextIssueCursor string
 	countPaginated  bool // GitBucket sends no Link header
-
-	useGraphQL      bool
-	gqlSkipComments bool
-	gqlIssuesCursor string
-	gqlPRCursor     string
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
@@ -159,7 +151,6 @@ func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) erro
 	}
 	g.clients = append(g.clients, githubClient)
 	g.rates = append(g.rates, nil)
-	g.gqlRates = append(g.gqlRates, nil)
 	return nil
 }
 
@@ -437,25 +428,6 @@ func (g *GithubDownloaderV3) GetReleases(ctx context.Context) ([]*base.Release, 
 
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
-	if g.useGraphQL {
-		issues, isEnd, err := g.getIssuesGraphQL(ctx, page, perPage)
-		if !g.fallBackToREST(ctx, page, err) {
-			return issues, isEnd, err
-		}
-	}
-	return g.getIssuesREST(ctx, page, perPage)
-}
-
-func (g *GithubDownloaderV3) fallBackToREST(ctx context.Context, page int, err error) bool {
-	if err == nil || page > 1 || ctx.Err() != nil || errors.Is(err, errGraphQLTransientExhausted) {
-		return false
-	}
-	log.Warn("GitHub GraphQL failed, falling back to REST: %v", err)
-	g.useGraphQL = false
-	return true
-}
-
-func (g *GithubDownloaderV3) getIssuesREST(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -482,7 +454,7 @@ func (g *GithubDownloaderV3) getIssuesREST(ctx context.Context, page, perPage in
 	g.waitAndPickClient(ctx)
 	issues, resp, err := g.getClient().Issues.ListByRepo(ctx, g.repoOwner, g.repoName, opt)
 	if err != nil {
-		return nil, false, fmt.Errorf("getIssuesREST: %w", err)
+		return nil, false, fmt.Errorf("GetIssues: %w", err)
 	}
 	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
 	g.setRate(&resp.Rate)
@@ -537,15 +509,13 @@ func (g *GithubDownloaderV3) isLastPage(resp *github.Response, n, perPage int) b
 	return resp.NextPage == 0 && resp.After == ""
 }
 
+// SupportGetRepoComments return true if it supports get repo comments
 func (g *GithubDownloaderV3) SupportGetRepoComments() bool {
-	return !g.useGraphQL // Consume prefetched comments per issue to bound memory.
+	return true
 }
 
 // GetComments returns comments according issueNumber
 func (g *GithubDownloaderV3) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
-	if prefetched, ok := commentable.GetContext().(*gqlPrefetched); ok {
-		return prefetched.comments, false, nil
-	}
 	comments, err := g.getComments(ctx, commentable)
 	return comments, false, err
 }
@@ -695,12 +665,6 @@ func (g *GithubDownloaderV3) GetAllComments(ctx context.Context, page, perPage i
 
 // GetPullRequests returns pull requests according page and perPage
 func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
-	if g.useGraphQL {
-		prs, isEnd, err := g.getPullRequestsGraphQL(ctx, page, perPage)
-		if !g.fallBackToREST(ctx, page, err) {
-			return prs, isEnd, err
-		}
-	}
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -877,9 +841,6 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(ctx context.Context, cs
 
 // GetReviews returns pull requests review
 func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
-	if prefetched, ok := reviewable.GetContext().(*gqlPrefetched); ok {
-		return prefetched.reviews, nil
-	}
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
 	if g.SkipReviews {
 		return allReviews, nil

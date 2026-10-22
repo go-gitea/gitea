@@ -55,6 +55,76 @@ var graphQLRateResetFallback = time.Minute // GitHub requires a minute between s
 // a deterministic 502 for a too-heavy page never succeeds at the same size, so callers shrink it
 var errGraphQLTransientExhausted = errors.New("github graphql: transient retries exhausted")
 
+var _ base.Downloader = &GithubGraphQLDownloader{}
+
+// GithubGraphQLDownloader sweeps issues and pull requests over GraphQL, the embedded REST downloader serves the rest and takes over on failure
+type GithubGraphQLDownloader struct {
+	*GithubDownloaderV3
+	gqlRates     []*github.Rate // GraphQL has a separate rate budget
+	skipComments bool
+	issuesCursor string
+	prCursor     string
+	restFallback bool
+	// REST restarts from its first page after a fallback, the migration skips what it already imported
+	restIssuePageOffset int
+	restPRPageOffset    int
+}
+
+func newGithubGraphQLDownloader(rest *GithubDownloaderV3, skipComments bool) *GithubGraphQLDownloader {
+	return &GithubGraphQLDownloader{GithubDownloaderV3: rest, gqlRates: make([]*github.Rate, len(rest.clients)), skipComments: skipComments}
+}
+
+func (g *GithubGraphQLDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
+	if !g.restFallback {
+		issues, isEnd, err := g.getIssuesGraphQL(ctx, page, perPage)
+		if !g.fallBackToREST(ctx, err) {
+			return issues, isEnd, err
+		}
+		g.restIssuePageOffset = page - 1
+	}
+	return g.GithubDownloaderV3.GetIssues(ctx, page-g.restIssuePageOffset, perPage)
+}
+
+func (g *GithubGraphQLDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
+	if !g.restFallback {
+		prs, isEnd, err := g.getPullRequestsGraphQL(ctx, page, perPage)
+		if !g.fallBackToREST(ctx, err) {
+			return prs, isEnd, err
+		}
+		g.restPRPageOffset = page - 1
+	}
+	return g.GithubDownloaderV3.GetPullRequests(ctx, page-g.restPRPageOffset, perPage)
+}
+
+// fallBackToREST switches to REST for good when GraphQL fails, e.g. on a server or token without GraphQL support
+func (g *GithubGraphQLDownloader) fallBackToREST(ctx context.Context, err error) bool {
+	if err == nil || ctx.Err() != nil {
+		return false
+	}
+	log.Warn("GitHub GraphQL failed, falling back to REST: %v", err)
+	g.restFallback = true
+	return true
+}
+
+// SupportGetRepoComments is false so comments are served per issue from what each sweep page prefetched
+func (g *GithubGraphQLDownloader) SupportGetRepoComments() bool {
+	return false
+}
+
+func (g *GithubGraphQLDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
+	if prefetched, ok := commentable.GetContext().(*gqlPrefetched); ok {
+		return prefetched.comments, false, nil
+	}
+	return g.GithubDownloaderV3.GetComments(ctx, commentable)
+}
+
+func (g *GithubGraphQLDownloader) GetReviews(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
+	if prefetched, ok := reviewable.GetContext().(*gqlPrefetched); ok {
+		return prefetched.reviews, nil
+	}
+	return g.GithubDownloaderV3.GetReviews(ctx, reviewable)
+}
+
 type graphQLRequest struct {
 	Query     string         `json:"query"`
 	Variables map[string]any `json:"variables"`
@@ -73,7 +143,7 @@ func (e graphQLError) Error() string {
 	return e.Message
 }
 
-func (g *GithubDownloaderV3) graphQLEndpoint() string {
+func (g *GithubGraphQLDownloader) graphQLEndpoint() string {
 	restURL := g.clients[0].BaseURL()
 	if host, ok := strings.CutSuffix(restURL, "/api/v3/"); ok {
 		return host + "/api/graphql"
@@ -81,7 +151,7 @@ func (g *GithubDownloaderV3) graphQLEndpoint() string {
 	return restURL + "graphql"
 }
 
-func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars map[string]any, out any) error {
+func (g *GithubGraphQLDownloader) doGraphQL(ctx context.Context, query string, vars map[string]any, out any) error {
 	payload, err := json.Marshal(graphQLRequest{Query: query, Variables: vars})
 	if err != nil {
 		return err
@@ -193,7 +263,7 @@ func isTransientTransportError(err error) bool {
 	return true
 }
 
-func (g *GithubDownloaderV3) waitGraphQLTransient(ctx context.Context, attempt *int, reason string) error {
+func (g *GithubGraphQLDownloader) waitGraphQLTransient(ctx context.Context, attempt *int, reason string) error {
 	if *attempt >= maxGraphQLTransientRetries {
 		return fmt.Errorf("%w: %s", errGraphQLTransientExhausted, reason)
 	}
@@ -226,7 +296,7 @@ func isGraphQLTooHeavy(err error) bool {
 	return errors.Is(err, errGraphQLTransientExhausted) || errors.As(err, &ge) && ge.Type == "RESOURCE_LIMITS_EXCEEDED"
 }
 
-func (g *GithubDownloaderV3) pickGraphQLClient(ctx context.Context) error {
+func (g *GithubGraphQLDownloader) pickGraphQLClient(ctx context.Context) error {
 	for {
 		best, soonest := -1, -1
 		for i, rate := range g.gqlRates {
@@ -258,7 +328,7 @@ func (g *GithubDownloaderV3) pickGraphQLClient(ctx context.Context) error {
 	}
 }
 
-func (g *GithubDownloaderV3) recordGraphQLRate(header http.Header) {
+func (g *GithubGraphQLDownloader) recordGraphQLRate(header http.Header) {
 	remaining, err := strconv.Atoi(header.Get(github.HeaderRateRemaining))
 	if err != nil {
 		return
@@ -270,7 +340,7 @@ func (g *GithubDownloaderV3) recordGraphQLRate(header http.Header) {
 	g.gqlRates[g.curClientIdx] = rate
 }
 
-func (g *GithubDownloaderV3) restGraphQLClient(header http.Header) {
+func (g *GithubGraphQLDownloader) restGraphQLClient(header http.Header) {
 	wait := graphQLRateResetWait(header)
 	log.Info("github graphql: token %d throttled, resting it for %s", g.curClientIdx, wait.Round(time.Second))
 	g.gqlRates[g.curClientIdx] = &github.Rate{Reset: github.Timestamp{Time: time.Now().Add(wait)}}
@@ -298,12 +368,12 @@ func graphQLRateResetWait(header http.Header) time.Duration {
 }
 
 // graphQLContentQuery orders by creation since a mutable sort key skips rows, nested comment reactions exceed GitHub's node limit
-func (g *GithubDownloaderV3) graphQLContentQuery(connection, prFields, prDiscussion string) string {
+func (g *GithubGraphQLDownloader) graphQLContentQuery(connection, prFields, prDiscussion string) string {
 	fields := prFields
 	if !g.SkipReactions {
 		fields += " reactions(first:100){" + gqlPageInfoFields + " nodes{" + gqlReactionFields + "}}"
 	}
-	if !g.gqlSkipComments {
+	if !g.skipComments {
 		fields += " comments(first:100){" + gqlPageInfoFields + " nodes{id databaseId body createdAt updatedAt author{" + gqlActorFields + "}}}" + prDiscussion
 	}
 	return fmt.Sprintf(`
@@ -324,7 +394,7 @@ query($owner:String!,$name:String!,$cursor:String,$first:Int!){
 }`, connection, gqlPageInfoFields, gqlActorFields, graphQLLabelPageSize, graphQLAssigneePageSize, fields)
 }
 
-func (g *GithubDownloaderV3) graphQLIssuesQuery() string {
+func (g *GithubGraphQLDownloader) graphQLIssuesQuery() string {
 	return g.graphQLContentQuery("issues", "", "")
 }
 
@@ -429,12 +499,12 @@ type gqlPrefetched struct {
 	reviews    []*base.Review
 }
 
-func (g *GithubDownloaderV3) getIssuesGraphQL(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
+func (g *GithubGraphQLDownloader) getIssuesGraphQL(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
 	if page <= 1 {
-		g.gqlIssuesCursor = ""
+		g.issuesCursor = ""
 	}
 	var resp gqlIssuesResponse
-	if err := g.doGraphQLPage(ctx, g.graphQLIssuesQuery(), g.gqlIssuesCursor, graphQLPageSize(perPage, githubGraphQLPageSize), &resp); err != nil {
+	if err := g.doGraphQLPage(ctx, g.graphQLIssuesQuery(), g.issuesCursor, graphQLPageSize(perPage, githubGraphQLPageSize), &resp); err != nil {
 		return nil, false, err
 	}
 	conn := resp.Repository.Issues
@@ -450,11 +520,11 @@ func (g *GithubDownloaderV3) getIssuesGraphQL(ctx context.Context, page, perPage
 	if err := g.enrichGraphQLPage(ctx, prefetched); err != nil {
 		return nil, false, err
 	}
-	g.gqlIssuesCursor = conn.PageInfo.EndCursor // only now, a failed page is retried from the same cursor
+	g.issuesCursor = conn.PageInfo.EndCursor // only now, a failed page is retried from the same cursor
 	return issues, !conn.PageInfo.HasNextPage, nil
 }
 
-func (g *GithubDownloaderV3) convertGraphQLIssue(ctx context.Context, node *gqlIssue, prefetchedByNodeID map[string]*gqlPrefetched) (*base.Issue, error) {
+func (g *GithubGraphQLDownloader) convertGraphQLIssue(ctx context.Context, node *gqlIssue, prefetchedByNodeID map[string]*gqlPrefetched) (*base.Issue, error) {
 	labels, err := allNodes(ctx, g, graphQLLabelsSweepQuery, node.ID, node.Labels)
 	if err != nil {
 		return nil, err
@@ -491,7 +561,7 @@ func (g *GithubDownloaderV3) convertGraphQLIssue(ctx context.Context, node *gqlI
 	for _, assignee := range assignees {
 		issue.Assignees = append(issue.Assignees, assignee.Login)
 	}
-	if g.gqlSkipComments {
+	if g.skipComments {
 		return issue, nil
 	}
 
@@ -517,7 +587,7 @@ func (g *GithubDownloaderV3) convertGraphQLIssue(ctx context.Context, node *gqlI
 	return issue, nil
 }
 
-func (g *GithubDownloaderV3) enrichGraphQLPage(ctx context.Context, prefetchedByNodeID map[string]*gqlPrefetched) error {
+func (g *GithubGraphQLDownloader) enrichGraphQLPage(ctx context.Context, prefetchedByNodeID map[string]*gqlPrefetched) error {
 	if !g.SkipReactions {
 		comments := map[string]*base.Comment{}
 		for _, prefetched := range prefetchedByNodeID {
@@ -545,7 +615,7 @@ func graphQLPageSize(perPage, maxSize int) int {
 	return min(perPage, maxSize) // Keep pages within the caller's database batch size.
 }
 
-func (g *GithubDownloaderV3) doGraphQLPage(ctx context.Context, query, cursor string, pageSize int, out any) error {
+func (g *GithubGraphQLDownloader) doGraphQLPage(ctx context.Context, query, cursor string, pageSize int, out any) error {
 	vars := map[string]any{"owner": g.repoOwner, "name": g.repoName}
 	if cursor != "" {
 		vars["cursor"] = cursor
@@ -561,7 +631,7 @@ func (g *GithubDownloaderV3) doGraphQLPage(ctx context.Context, query, cursor st
 	}
 }
 
-func allNodes[T any](ctx context.Context, g *GithubDownloaderV3, sweepQuery, nodeID string, conn gqlConn[T]) ([]T, error) {
+func allNodes[T any](ctx context.Context, g *GithubGraphQLDownloader, sweepQuery, nodeID string, conn gqlConn[T]) ([]T, error) {
 	nodes := conn.Nodes
 	for page := conn.PageInfo; page.HasNextPage; {
 		var resp struct {
@@ -578,7 +648,7 @@ func allNodes[T any](ctx context.Context, g *GithubDownloaderV3, sweepQuery, nod
 	return nodes, nil
 }
 
-func (g *GithubDownloaderV3) allReactions(ctx context.Context, nodeID string, conn gqlConn[gqlReaction]) ([]*base.Reaction, error) {
+func (g *GithubGraphQLDownloader) allReactions(ctx context.Context, nodeID string, conn gqlConn[gqlReaction]) ([]*base.Reaction, error) {
 	nodes, err := allNodes(ctx, g, graphQLReactionsSweepQuery, nodeID, conn)
 	if err != nil || len(nodes) == 0 {
 		return nil, err
@@ -594,7 +664,7 @@ func (g *GithubDownloaderV3) allReactions(ctx context.Context, nodeID string, co
 	return reactions, nil
 }
 
-func (g *GithubDownloaderV3) fetchNodeReactions(ctx context.Context, ids []string) (map[string][]*base.Reaction, error) {
+func (g *GithubGraphQLDownloader) fetchNodeReactions(ctx context.Context, ids []string) (map[string][]*base.Reaction, error) {
 	var resp struct {
 		Nodes []struct {
 			ID        string               `json:"id"`

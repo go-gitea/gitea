@@ -24,7 +24,7 @@ var graphQLPRDiscussion = fmt.Sprintf(`
 
 var graphQLReviewRequestsSweepQuery = nodeConnQuery("PullRequest", "reviewRequests", "requestedReviewer{"+gqlReviewerFields+"}")
 
-func (g *GithubDownloaderV3) graphQLPullRequestsQuery() string {
+func (g *GithubGraphQLDownloader) graphQLPullRequestsQuery() string {
 	return g.graphQLContentQuery("pullRequests", graphQLPRFields, graphQLPRDiscussion)
 }
 
@@ -86,12 +86,12 @@ type gqlPullRequestsResponse struct {
 	} `json:"repository"`
 }
 
-func (g *GithubDownloaderV3) getPullRequestsGraphQL(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
+func (g *GithubGraphQLDownloader) getPullRequestsGraphQL(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	if page <= 1 {
-		g.gqlPRCursor = ""
+		g.prCursor = ""
 	}
 	var resp gqlPullRequestsResponse
-	if err := g.doGraphQLPage(ctx, g.graphQLPullRequestsQuery(), g.gqlPRCursor, graphQLPageSize(perPage, githubGraphQLPRPageSize), &resp); err != nil {
+	if err := g.doGraphQLPage(ctx, g.graphQLPullRequestsQuery(), g.prCursor, graphQLPageSize(perPage, githubGraphQLPRPageSize), &resp); err != nil {
 		return nil, false, err
 	}
 	conn := resp.Repository.PullRequests
@@ -108,11 +108,11 @@ func (g *GithubDownloaderV3) getPullRequestsGraphQL(ctx context.Context, page, p
 	if err := g.enrichGraphQLPage(ctx, prefetched); err != nil {
 		return nil, false, err
 	}
-	g.gqlPRCursor = conn.PageInfo.EndCursor // only now, a failed page is retried from the same cursor
+	g.prCursor = conn.PageInfo.EndCursor // only now, a failed page is retried from the same cursor
 	return prs, !conn.PageInfo.HasNextPage, nil
 }
 
-func (g *GithubDownloaderV3) convertGraphQLPullRequest(ctx context.Context, node *gqlPullRequest, prefetchedByNodeID map[string]*gqlPrefetched) (*base.PullRequest, error) {
+func (g *GithubGraphQLDownloader) convertGraphQLPullRequest(ctx context.Context, node *gqlPullRequest, prefetchedByNodeID map[string]*gqlPrefetched) (*base.PullRequest, error) {
 	issue, err := g.convertGraphQLIssue(ctx, &node.gqlIssue, prefetchedByNodeID)
 	if err != nil {
 		return nil, err
@@ -166,7 +166,7 @@ func (g *GithubDownloaderV3) convertGraphQLPullRequest(ctx context.Context, node
 	return pr, nil
 }
 
-func (g *GithubDownloaderV3) prefetchReviews(ctx context.Context, node *gqlPullRequest) ([]*base.Review, error) {
+func (g *GithubGraphQLDownloader) prefetchReviews(ctx context.Context, node *gqlPullRequest) ([]*base.Review, error) {
 	if node.Reviews.PageInfo.HasNextPage || slices.ContainsFunc(node.Reviews.Nodes, func(r gqlReview) bool { return r.Comments.PageInfo.HasNextPage }) {
 		return g.GetReviews(ctx, &base.PullRequest{Number: node.Number, ForeignIndex: node.Number})
 	}

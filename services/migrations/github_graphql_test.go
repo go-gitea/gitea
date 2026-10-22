@@ -30,7 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newGithubTestDownloader(t *testing.T, handler http.HandlerFunc, spareTokens ...string) *GithubDownloaderV3 {
+func newGithubTestDownloader(t *testing.T, handler http.HandlerFunc, spareTokens ...string) *GithubGraphQLDownloader {
 	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "application/json")
@@ -40,7 +40,7 @@ func newGithubTestDownloader(t *testing.T, handler http.HandlerFunc, spareTokens
 	t.Cleanup(server.Close)
 	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", strings.Join(append([]string{"tok"}, spareTokens...), ","), "o", "r")
 	require.NoError(t, err)
-	return downloader
+	return newGithubGraphQLDownloader(downloader, false)
 }
 
 func TestGraphQLEndpoint(t *testing.T) {
@@ -52,7 +52,7 @@ func TestGraphQLEndpoint(t *testing.T) {
 	} {
 		downloader, err := NewGithubDownloaderV3(t.Context(), baseURL, "", "", "tok", "o", "r")
 		require.NoError(t, err)
-		assert.Equal(t, endpoint, downloader.graphQLEndpoint(), baseURL)
+		assert.Equal(t, endpoint, newGithubGraphQLDownloader(downloader, false).graphQLEndpoint(), baseURL)
 	}
 }
 
@@ -189,7 +189,7 @@ func TestDoGraphQLFatalStatusQuotesBody(t *testing.T) {
 func TestPickGraphQLClient(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		reset := github.Timestamp{Time: time.Now().Add(2 * graphQLRateResetCap)}
-		downloader := &GithubDownloaderV3{gqlRates: []*github.Rate{
+		downloader := &GithubGraphQLDownloader{GithubDownloaderV3: &GithubDownloaderV3{}, gqlRates: []*github.Rate{
 			{Remaining: 1000, Reset: reset},
 			{Remaining: 4000, Reset: reset},
 			{Remaining: 5, Reset: reset},
@@ -232,7 +232,7 @@ func TestIsTransientTransportError(t *testing.T) {
 func TestGraphQLQueryGating(t *testing.T) {
 	for _, skipComments := range []bool{false, true} {
 		for _, skipReactions := range []bool{false, true} {
-			downloader := &GithubDownloaderV3{SkipReactions: skipReactions, gqlSkipComments: skipComments}
+			downloader := &GithubGraphQLDownloader{GithubDownloaderV3: &GithubDownloaderV3{SkipReactions: skipReactions}, skipComments: skipComments}
 			for name, query := range map[string]string{"issues": downloader.graphQLIssuesQuery(), "pullRequests": downloader.graphQLPullRequestsQuery()} {
 				t.Run(fmt.Sprintf("%s/comments=%t/reactions=%t", name, !skipComments, !skipReactions), func(t *testing.T) {
 					assert.Equal(t, !skipComments, strings.Contains(query, "comments("))
@@ -368,7 +368,7 @@ func TestGraphQLIssuesResponseParsing(t *testing.T) {
 		"reactions":{"nodes":[{"content":"THUMBS_UP","user":{"login":"alice","databaseId":22}}]},
 		"comments":{"nodes":[{"id":"IC_1","databaseId":900,"body":"same here","author":null}]}
 	}]}}}`), &response))
-	downloader := &GithubDownloaderV3{useGraphQL: true}
+	downloader := &GithubGraphQLDownloader{GithubDownloaderV3: &GithubDownloaderV3{}}
 	issue, err := downloader.convertGraphQLIssue(t.Context(), &response.Repository.Issues.Nodes[0], map[string]*gqlPrefetched{})
 	require.NoError(t, err)
 	updated := time.Date(2024, 2, 3, 4, 5, 6, 0, time.UTC)
@@ -403,18 +403,17 @@ func TestGraphQLKeepsCursorOnPageError(t *testing.T) {
 						_, _ = io.WriteString(writer, `{"data":{"nodes":[]}}`)
 					}
 				})
-				downloader.useGraphQL = true
-				cursor := &downloader.gqlIssuesCursor
+				cursor := &downloader.issuesCursor
 				if connection == "pullRequests" {
-					cursor = &downloader.gqlPRCursor
+					cursor = &downloader.prCursor
 				}
 				*cursor = "PAGE1"
 				fetch := func() error {
 					if connection == "issues" {
-						_, _, err := downloader.GetIssues(t.Context(), 2, 10)
+						_, _, err := downloader.getIssuesGraphQL(t.Context(), 2, 10)
 						return err
 					} else {
-						_, _, err := downloader.GetPullRequests(t.Context(), 2, 10)
+						_, _, err := downloader.getPullRequestsGraphQL(t.Context(), 2, 10)
 						return err
 					}
 				}

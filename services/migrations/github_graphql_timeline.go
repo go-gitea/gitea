@@ -152,7 +152,7 @@ func convertTimelineItems(items []gqlTimelineItem) []*base.Comment {
 	return comments
 }
 
-func (g *GithubDownloaderV3) attachTimelineEvents(ctx context.Context, prefetchedByNodeID map[string]*gqlPrefetched) error {
+func (g *GithubGraphQLDownloader) attachTimelineEvents(ctx context.Context, prefetchedByNodeID map[string]*gqlPrefetched) error {
 	for batch := range slices.Chunk(slices.Sorted(maps.Keys(prefetchedByNodeID)), graphQLNodeBatchSize) {
 		eventsByID, err := g.fetchTimelineEvents(ctx, batch)
 		if err != nil {
@@ -169,7 +169,7 @@ func (g *GithubDownloaderV3) attachTimelineEvents(ctx context.Context, prefetche
 	return nil
 }
 
-func (g *GithubDownloaderV3) fetchTimelineEvents(ctx context.Context, ids []string) (map[string][]*base.Comment, error) {
+func (g *GithubGraphQLDownloader) fetchTimelineEvents(ctx context.Context, ids []string) (map[string][]*base.Comment, error) {
 	var resp struct {
 		Nodes []struct {
 			ID            string                   `json:"id"`
