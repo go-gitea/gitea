@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/netip"
 	"slices"
+	"strconv"
 	"strings"
 
 	"gitea.dev/modules/log"
@@ -40,8 +41,8 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 			}
 			peer, _ := netip.ParseAddrPort(req.RemoteAddr)
 			if trustAll || slices.ContainsFunc(trusted, func(p netip.Prefix) bool { return p.Contains(peer.Addr().Unmap()) }) {
-				if addr, ok := parseNode(forwardedClientIP(req.Header, limit)); ok {
-					req.RemoteAddr = netip.AddrPortFrom(addr.Unmap().WithZone(""), 0).String()
+				if client := forwardedClient(req.Header, limit); client.IsValid() {
+					req.RemoteAddr = netip.AddrPortFrom(client.Addr().Unmap().WithZone(""), client.Port()).String()
 				}
 			}
 			h.ServeHTTP(resp, req)
@@ -49,15 +50,21 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 	}
 }
 
-// forwardedClientIP reads Forwarded only without X-Forwarded-For, so proxies passing a client-sent Forwarded through stay safe
-func forwardedClientIP(header http.Header, limit int) string {
+// forwardedClient reads Forwarded only without X-Forwarded-For, so proxies passing a client-sent Forwarded through stay safe
+func forwardedClient(header http.Header, limit int) netip.AddrPort {
 	if realIPs := header["X-Real-Ip"]; len(realIPs) > 0 && realIPs[len(realIPs)-1] != "" {
-		return realIPs[len(realIPs)-1] // the closest hop wrote the last value
+		client := parseNode(realIPs[len(realIPs)-1]) // the closest hop wrote the last value
+		if realPorts := header["X-Real-Port"]; client.Port() == 0 && len(realPorts) > 0 {
+			if port, err := strconv.ParseUint(realPorts[len(realPorts)-1], 10, 16); err == nil {
+				client = netip.AddrPortFrom(client.Addr(), uint16(port))
+			}
+		}
+		return client
 	}
 	if xff := header["X-Forwarded-For"]; len(xff) > 0 {
-		return elementFromEnd(xff, limit)
+		return parseNode(elementFromEnd(xff, limit))
 	}
-	return forwardedFor(elementFromEnd(header["Forwarded"], limit))
+	return parseNode(forwardedFor(elementFromEnd(header["Forwarded"], limit)))
 }
 
 // elementFromEnd skips empty elements, which RFC 9110 doesn't count
@@ -128,19 +135,22 @@ func unquote(s string) string {
 	return b.String()
 }
 
-// parseNode drops RFC 7239 brackets and numeric or obfuscated ports
-func parseNode(node string) (netip.Addr, bool) {
-	switch {
-	case node == "":
-		return netip.Addr{}, false
-	case strings.HasPrefix(node, "["):
+// parseNode keeps numeric ports and drops RFC 7239 brackets and obfuscated ports
+func parseNode(node string) netip.AddrPort {
+	if node == "" {
+		return netip.AddrPort{}
+	}
+	if addr, err := netip.ParseAddr(node); err == nil {
+		return netip.AddrPortFrom(addr, 0)
+	}
+	if addrPort, err := netip.ParseAddrPort(node); err == nil {
+		return addrPort
+	}
+	if strings.HasPrefix(node, "[") {
 		node, _, _ = strings.Cut(node[1:], "]")
-	default:
-		if addr, err := netip.ParseAddr(node); err == nil {
-			return addr, true
-		}
+	} else {
 		node, _, _ = strings.Cut(node, ":")
 	}
-	addr, err := netip.ParseAddr(node)
-	return addr, err == nil
+	addr, _ := netip.ParseAddr(node)
+	return netip.AddrPortFrom(addr, 0)
 }
