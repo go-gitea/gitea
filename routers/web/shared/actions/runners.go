@@ -44,6 +44,7 @@ type runnersCtx struct {
 	RunnersTemplate    templates.TplName
 	RunnerEditTemplate templates.TplName
 	RedirectLink       string
+	RunnerGroupsLink   string
 }
 
 func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
@@ -69,6 +70,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 			RunnersTemplate:    tplOrgRunners,
 			RunnerEditTemplate: tplOrgRunnerEdit,
 			RedirectLink:       ctx.Org.OrgLink + "/settings/actions/runners/",
+			RunnerGroupsLink:   ctx.Org.OrgLink + "/settings/actions/runner-groups",
 		}, nil
 	}
 
@@ -80,6 +82,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 			RunnersTemplate:    tplAdminRunners,
 			RunnerEditTemplate: tplAdminRunnerEdit,
 			RedirectLink:       setting.AppSubURL + "/-/admin/actions/runners/",
+			RunnerGroupsLink:   setting.AppSubURL + "/-/admin/actions/runner-groups",
 		}, nil
 	}
 
@@ -91,6 +94,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 			RunnersTemplate:    tplUserRunners,
 			RunnerEditTemplate: tplUserRunnerEdit,
 			RedirectLink:       setting.AppSubURL + "/user/settings/actions/runners/",
+			RunnerGroupsLink:   setting.AppSubURL + "/user/settings/actions/runner-groups",
 		}, nil
 	}
 

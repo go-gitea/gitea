@@ -170,11 +170,16 @@ func (j *Job) RunsOnProblem() string {
 
 // RunsOn returns the labels Gitea matches runners against, unescaped like DisplayName.
 func (j *Job) RunsOn() []string {
-	runsOn := model.RunsOnFromNode(j.RawRunsOn)
+	runsOn := model.RunsOnLabelsFromNode(j.RawRunsOn)
 	for i, label := range runsOn {
 		runsOn[i] = unescapeExpressions(label)
 	}
 	return runsOn
+}
+
+// RunsOnGroup is lowercased to match lower_name in SQL, truncating is safe as group names are capped at 200 runes
+func (j *Job) RunsOnGroup() string {
+	return util.TruncateRunes(strings.ToLower(unescapeExpressions(model.RunsOnGroupFromNode(j.RawRunsOn))), 255)
 }
 
 // DisplayName is the name Gitea stores, without the escaping the payload keeps for runners.

@@ -542,6 +542,10 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 		ctx.ServerError("FindRunners", err)
 		return false
 	}
+	if err := actions_model.RunnerList(runners).LoadGroups(ctx); err != nil {
+		ctx.ServerError("LoadGroups", err)
+		return false
+	}
 
 	activeRuns := slices.DeleteFunc(slices.Clone(data.ActionRuns), func(run *actions_model.ActionRun) bool {
 		return !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked)
@@ -573,13 +577,13 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 			if job.Status.IsWaiting() && !job.IsReusableCaller {
 				hasOnlineRunner := false
 				for _, runner := range runners {
-					if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
+					if !runner.IsDisabled && runner.CanRunJob(job.RunsOnGroup, job.RunsOn) {
 						hasOnlineRunner = true
 						break
 					}
 				}
 				if !hasOnlineRunner {
-					data.RunErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOn, ","))
+					data.RunErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOnDisplay(), ","))
 					break
 				}
 			}
