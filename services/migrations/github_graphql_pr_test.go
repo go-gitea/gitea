@@ -13,9 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestGraphQLPullRequestParsing validates that the PR response structs match the
-// shape of graphQLPullRequestsQuery and convert into the expected entities:
-// pull request metadata + head/base, reviews, and inline review comments.
 func TestGraphQLPullRequestParsing(t *testing.T) {
 	const sample = `{
 	  "repository": {
@@ -101,8 +98,6 @@ func TestGraphQLPullRequestParsing(t *testing.T) {
 	assert.Equal(t, "pending-rev", reviews[1].ReviewerName)
 }
 
-// TestGraphQLReviewsOverflow verifies the REST-fallback trigger when a PR has
-// more reviews (or a review has more inline comments) than one page returned.
 func TestGraphQLReviewsOverflow(t *testing.T) {
 	g := &GithubDownloaderV3{}
 	// reviews truncated: totalCount > returned nodes

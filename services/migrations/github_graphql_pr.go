@@ -3,18 +3,6 @@
 
 package migrations
 
-// GraphQL fast path for pull requests — the follow-on to the issues path in
-// github_graphql.go. It fetches a pull request together with its comments,
-// reviews and review (inline) comments in a single batched request instead of
-// the REST path's per-PR ListReviews + per-review ListReviewComments N+1.
-//
-// Reviews are cached so the framework's separate review phase serves them from
-// memory; a PR's issue-comments join the shared comment cache so GetComments
-// serves issue and PR comments alike. The patch URL is constructed (a
-// raw download, not an API call), so no API budget is spent resolving it.
-// Entities that exceed one page (issue comments, reviews, or a review's inline
-// comments) fall back to REST for that pull request so nothing is dropped.
-
 import (
 	"context"
 	"fmt"
@@ -24,24 +12,25 @@ import (
 	base "gitea.dev/modules/migration"
 )
 
-// graphQLPullRequestsQuery builds the PR query. Same 500k-node ceiling and
-// per-query compute budget as the issues query: nesting reactions under comments
-// (pullRequests×comments×reactions) is a 3rd connection level that blows both,
-// so the content query carries only the PR-level reactions; PR-comment reactions
-// come from the batched node-id pass (attachCommentReactions). Review-comment
-// reactions are deliberately NOT fetched: that path is four deep
-// (pullRequests×reviews×comments×reactions) and needs a separate pass — a
-// follow-up. The dominant node path stays reviews(50)×comments(50) = 50k, far
-// under the ceiling.
-//
-// Pull requests are paged oldest-created-first, like the issue stream: cursor
-// pagination over UPDATED_AT would lose any pull request touched mid-sweep, because
-// a new comment re-sorts it behind the cursor where no later page ever returns it.
+// graphQLPullRequestsQuery keeps comment reactions out for the 500,000-node limit, like graphQLIssuesQuery;
+// review-comment reactions are not fetched yet. Paged by createdAt since a cursor over a mutable sort key loses rows.
 func (g *GithubDownloaderV3) graphQLPullRequestsQuery() string {
 	if g.gqlPullRequestsQuery == "" {
 		prReactions := ""
 		if !g.SkipReactions {
 			prReactions = "reactions(first:100){totalCount nodes{" + gqlReactionFields + "}}"
+		}
+		discussion := ""
+		if !g.gqlSkipComments {
+			discussion = fmt.Sprintf(`comments(first:100){totalCount nodes{id databaseId body createdAt updatedAt author{%[1]s}}}
+        reviews(first:50){totalCount nodes{
+          databaseId state body createdAt submittedAt
+          author{%[1]s}
+          commit{oid}
+          comments(first:50){totalCount nodes{databaseId body path diffHunk position commit{oid} author{%[1]s} createdAt updatedAt replyTo{databaseId}}}
+        }}
+        reviewRequests(first:%[2]d){totalCount nodes{requestedReviewer{... on User{login databaseId} ... on Mannequin{login databaseId}}}}`,
+				gqlActorFields, graphQLReviewRequestPageSize)
 		}
 		g.gqlPullRequestsQuery = fmt.Sprintf(`
 query($owner:String!,$name:String!,$cursor:String,$first:Int!){
@@ -59,20 +48,13 @@ query($owner:String!,$name:String!,$cursor:String,$first:Int!){
         baseRepository{name owner{login}}
         labels(first:%[2]d){totalCount nodes{name color description}}
         assignees(first:%[3]d){totalCount nodes{login}}
+        %[4]s
         %[5]s
-        comments(first:100){totalCount nodes{id databaseId body createdAt updatedAt author{%[1]s}}}
-        reviews(first:50){totalCount nodes{
-          databaseId state body createdAt submittedAt
-          author{%[1]s}
-          commit{oid}
-          comments(first:50){totalCount nodes{databaseId body path diffHunk position commit{oid} author{%[1]s} createdAt updatedAt replyTo{databaseId}}}
-        }}
-        reviewRequests(first:%[4]d){totalCount nodes{requestedReviewer{... on User{login databaseId} ... on Mannequin{login databaseId}}}}
       }
     }
   }
   rateLimit{cost remaining resetAt}
-}`, gqlActorFields, graphQLLabelPageSize, graphQLAssigneePageSize, graphQLReviewRequestPageSize, prReactions)
+}`, gqlActorFields, graphQLLabelPageSize, graphQLAssigneePageSize, prReactions, discussion)
 	}
 	return g.gqlPullRequestsQuery
 }
@@ -117,7 +99,7 @@ type gqlReview struct {
 }
 
 type gqlPullRequest struct {
-	ID        string     `json:"id"` // GraphQL node id, for the reactions sweep and timeline pass
+	ID        string     `json:"id"`
 	Number    int64      `json:"number"`
 	Title     string     `json:"title"`
 	Body      string     `json:"body"`
@@ -127,7 +109,7 @@ type gqlPullRequest struct {
 	ClosedAt  *time.Time `json:"closedAt"`
 	MergedAt  *time.Time `json:"mergedAt"`
 	IsDraft   bool       `json:"isDraft"`
-	Locked    bool       `json:"locked"` // the real locked boolean (activeLockReason is null when locked without a reason)
+	Locked    bool       `json:"locked"` // activeLockReason is null when locked without a reason
 	Author    gqlActor   `json:"author"`
 	Milestone *struct {
 		Title string `json:"title"`
@@ -155,8 +137,6 @@ type gqlPullRequest struct {
 	ReviewRequests gqlReviewRequestConn `json:"reviewRequests"`
 }
 
-// gqlReviewRequestConn carries totalCount so a pull request with more pending
-// reviewers than the query's page size is swept rather than truncated.
 type gqlReviewRequestNode struct {
 	RequestedReviewer gqlActor `json:"requestedReviewer"`
 }
@@ -176,19 +156,12 @@ type gqlPullRequestsResponse struct {
 	RateLimit graphQLRateLimit `json:"rateLimit"`
 }
 
-// getPullRequestsGraphQL fetches a page of pull requests (oldest created first)
-// together with their comments, reviews and review comments in one request.
-// Comments are cached alongside the issue comments and reviews are cached per PR
-// for the framework's later phases. page<=1 marks the first request of a sweep.
+// getPullRequestsGraphQL fetches a page of pull requests with their comments and reviews, caching both for later phases.
 func (g *GithubDownloaderV3) getPullRequestsGraphQL(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	if page <= 1 {
 		g.gqlPRCursor = ""
 		log.Info("metadata sync [%s/%s]: pull requests — full sweep", g.repoOwner, g.repoName)
 	}
-	// Like the issue sweep, the caches only have to outlive one page: the
-	// framework reads a page's comments and reviews before requesting the next
-	// page, so a sweep that never reads them (a pull-requests-only export) does
-	// not hold every PR's comments and reviews for the whole run.
 	g.gqlComments = map[int64][]*base.Comment{}
 	g.gqlReviews = map[int64][]*base.Review{}
 
@@ -204,10 +177,7 @@ func (g *GithubDownloaderV3) getPullRequestsGraphQL(ctx context.Context, page, p
 	g.recordGraphQLBudget(resp.RateLimit)
 
 	allPRs := make([]*base.PullRequest, 0, len(resp.Repository.PullRequests.Nodes))
-	// PR node id -> number, for the timeline node-id pass after this page
 	timelineTargets := map[string]int64{}
-	// PR-comment reactions are fetched by the batched node-id pass after this
-	// page is built (keyed by comment node id).
 	commentReactionTargets := map[string]*base.Comment{}
 	for i := range resp.Repository.PullRequests.Nodes {
 		node := &resp.Repository.PullRequests.Nodes[i]
@@ -217,13 +187,13 @@ func (g *GithubDownloaderV3) getPullRequestsGraphQL(ctx context.Context, page, p
 			return nil, false, err
 		}
 		allPRs = append(allPRs, pr)
-		timelineTargets[node.ID] = node.Number
 		// SECURITY: ensure the PR is safe (mirrors the REST path)
 		_ = CheckAndEnsureSafePR(pr, g.baseURL, g)
+		if g.gqlSkipComments {
+			continue
+		}
+		timelineTargets[node.ID] = node.Number
 
-		// Cache the PR's issue-comments into the shared cache (served by the
-		// GetComments). Overflow -> REST for this PR's comments (the REST path
-		// fetches comment reactions itself).
 		if node.Comments.TotalCount > len(node.Comments.Nodes) {
 			rest, err := g.getComments(ctx, pr)
 			if err != nil {
@@ -238,9 +208,6 @@ func (g *GithubDownloaderV3) getPullRequestsGraphQL(ctx context.Context, page, p
 			}
 		}
 
-		// Cache reviews (with inline comments). If any review set or a review's
-		// comment set overflows one page, fall back to REST for the whole PR's
-		// reviews so nothing is dropped.
 		if g.reviewsOverflow(node) {
 			restReviews, err := g.getReviewsREST(ctx, pr)
 			if err != nil {
@@ -256,24 +223,24 @@ func (g *GithubDownloaderV3) getPullRequestsGraphQL(ctx context.Context, page, p
 		}
 	}
 
-	// Advance only once the whole page converted: the framework retries a failed
-	// page with the SAME page number, so a cursor moved on before a mid-page error
-	// (the REST comment or review fallback failing) would make the retry return the
-	// NEXT page and drop this one's pull requests with no error surfacing.
+	// only after the page converted: a failed page is retried with the same page number
 	g.gqlPRCursor = resp.Repository.PullRequests.PageInfo.EndCursor
 
 	log.Info("metadata sync [%s/%s]: PRs page %d — %d pull requests, %d timeline targets",
 		g.repoOwner, g.repoName, page, len(allPRs), len(timelineTargets))
 
-	// Best-effort: reaction + timeline sweeps must not abort the PR/comment
-	// import (#37).
+	// best-effort enrichments that must not abort the import
 	if err := g.attachCommentReactions(ctx, commentReactionTargets); err != nil {
+		if ctx.Err() != nil {
+			return nil, false, err
+		}
 		log.Error("github graphql: PR comment reactions sync failed, importing without them: %v", err)
 	}
-	if len(timelineTargets) > 0 {
-		if err := g.attachTimelineEvents(ctx, timelineTargets); err != nil {
-			log.Error("github graphql: PR timeline events sync failed, importing without them: %v", err)
+	if err := g.attachTimelineEvents(ctx, timelineTargets); err != nil {
+		if ctx.Err() != nil {
+			return nil, false, err
 		}
+		log.Error("github graphql: PR timeline events sync failed, importing without them: %v", err)
 	}
 
 	return allPRs, !resp.Repository.PullRequests.PageInfo.HasNextPage, nil
@@ -332,18 +299,17 @@ func (g *GithubDownloaderV3) convertGraphQLPullRequest(ctx context.Context, node
 	}
 
 	return &base.PullRequest{
-		Number:     node.Number,
-		Title:      node.Title,
-		PosterID:   node.Author.DatabaseID,
-		PosterName: node.Author.Login,
-		Content:    node.Body,
-		Milestone:  milestone,
-		State:      state,
-		Created:    node.CreatedAt,
-		Updated:    node.UpdatedAt,
-		Closed:     node.ClosedAt,
-		Labels:     labels,
-		// A raw patch download, not an API call — construct rather than resolve it.
+		Number:         node.Number,
+		Title:          node.Title,
+		PosterID:       node.Author.orGhost().DatabaseID,
+		PosterName:     node.Author.orGhost().Login,
+		Content:        node.Body,
+		Milestone:      milestone,
+		State:          state,
+		Created:        node.CreatedAt,
+		Updated:        node.UpdatedAt,
+		Closed:         node.ClosedAt,
+		Labels:         labels,
 		PatchURL:       fmt.Sprintf("%s/%s/%s/pull/%d.patch", g.baseURL, g.repoOwner, g.repoName, node.Number),
 		Merged:         node.MergedAt != nil || node.State == "MERGED",
 		MergedTime:     node.MergedAt,
@@ -358,8 +324,6 @@ func (g *GithubDownloaderV3) convertGraphQLPullRequest(ctx context.Context, node
 	}, nil
 }
 
-// graphQLReviewRequestsSweepQuery pages the full pending-reviewer list of a single
-// pull request, addressed by its GraphQL node id (see sweepNodeConnection).
 const graphQLReviewRequestsSweepQuery = `
 query($id:ID!,$cursor:String){
   node(id:$id){
@@ -373,8 +337,6 @@ query($id:ID!,$cursor:String){
   rateLimit{cost remaining resetAt}
 }`
 
-// reviewsWithRequestSweep converts a PR's reviews, paging the pending review
-// requests by node id when the content query did not ask for all of them.
 func (g *GithubDownloaderV3) reviewsWithRequestSweep(ctx context.Context, node *gqlPullRequest) ([]*base.Review, error) {
 	requests := node.ReviewRequests.Nodes
 	if node.ReviewRequests.TotalCount > len(requests) && node.ID != "" {
@@ -387,8 +349,6 @@ func (g *GithubDownloaderV3) reviewsWithRequestSweep(ctx context.Context, node *
 	return convertGraphQLReviews(node, requests), nil
 }
 
-// convertGraphQLReviews maps a PR's GraphQL reviews (and their inline comments)
-// and the given pending review requests onto base.Review, matching the REST path.
 func convertGraphQLReviews(node *gqlPullRequest, requests []gqlReviewRequestNode) []*base.Review {
 	reviews := make([]*base.Review, 0, len(node.Reviews.Nodes)+len(requests))
 	for i := range node.Reviews.Nodes {
@@ -404,8 +364,8 @@ func convertGraphQLReviews(node *gqlPullRequest, requests []gqlReviewRequestNode
 		reviews = append(reviews, &base.Review{
 			ID:           r.DatabaseID,
 			IssueIndex:   node.Number,
-			ReviewerID:   r.Author.DatabaseID,
-			ReviewerName: r.Author.Login,
+			ReviewerID:   r.Author.orGhost().DatabaseID,
+			ReviewerName: r.Author.orGhost().Login,
 			CommitID:     commitID,
 			Content:      r.Body,
 			CreatedAt:    created,
@@ -413,7 +373,6 @@ func convertGraphQLReviews(node *gqlPullRequest, requests []gqlReviewRequestNode
 			Comments:     convertGraphQLReviewComments(r),
 		})
 	}
-	// Pending review requests become REQUEST_REVIEW pseudo-reviews (REST parity).
 	for _, rr := range requests {
 		if rr.RequestedReviewer.Login == "" {
 			continue // non-user reviewer (team) — TODO
@@ -448,7 +407,7 @@ func convertGraphQLReviewComments(r *gqlReview) []*base.ReviewComment {
 			DiffHunk:  c.DiffHunk,
 			Position:  c.Position,
 			CommitID:  commitID,
-			PosterID:  c.Author.DatabaseID,
+			PosterID:  c.Author.orGhost().DatabaseID,
 			CreatedAt: c.CreatedAt,
 			UpdatedAt: c.UpdatedAt,
 		})

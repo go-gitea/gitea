@@ -545,6 +545,9 @@ func (g *GiteaLocalUploader) CreateComments(ctx context.Context, comments ...*ba
 			if cm.MilestoneID == 0 && cm.OldMilestoneID == 0 {
 				continue
 			}
+		case issues_model.CommentTypeDeleteBranch:
+			cm.OldRef = comment.Content
+			cm.Content = ""
 		case issues_model.CommentTypeMergePull:
 			cm.Content = ""
 		case issues_model.CommentTypePRScheduledToAutoMerge, issues_model.CommentTypePRUnScheduledToAutoMerge:

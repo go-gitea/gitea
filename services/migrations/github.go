@@ -56,13 +56,11 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 	if err != nil {
 		return nil, err
 	}
-	// GitHub rejects anonymous GraphQL requests, and the fast path only batches the
-	// issue and pull-request sweeps (their comments ride along). Anything else, such
-	// as an anonymous public-repository migration or a comments-only dump, stays on
-	// REST, which serves both.
+	// GitHub rejects anonymous GraphQL requests, and comments only ride along with the issue and PR sweeps
 	downloader.useGraphQL = setting.Migrations.UseGraphQL &&
 		(opts.AuthToken != "" || opts.AuthPassword != "") &&
 		(opts.Issues || opts.PullRequests)
+	downloader.gqlSkipComments = !opts.Comments
 	return downloader, nil
 }
 
@@ -75,52 +73,30 @@ func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
 // from github via APIv3
 type GithubDownloaderV3 struct {
 	base.NullDownloader
-	clients       []*github.Client
-	baseURL       string
-	repoOwner     string
-	repoName      string
-	userName      string
-	password      string
-	rates         []*github.Rate
-	gqlRates      []*github.Rate // per-client GraphQL points budget, metered apart from the REST quota in rates
-	curClientIdx  int
-	maxPerPage    int
-	SkipReactions bool
-	SkipReviews   bool
-	// issuesCursor is the Link-header `after` cursor for paginating the issues
-	// list. The issues endpoint caps classic page-number pagination at ~page 100,
-	// so a large repo's issues must be walked by cursor instead. Carried on the
-	// downloader (created fresh per sync); reset at the start of each sweep.
-	// issuesNextPage is the page-number fallback for servers whose Link header
-	// carries no cursor (older GitHub Enterprise): without it a full first page
-	// would be re-requested forever. Exactly one of the two advances a sweep.
-	issuesCursor   string
-	issuesNextPage int
+	clients        []*github.Client
+	baseURL        string
+	repoOwner      string
+	repoName       string
+	userName       string
+	password       string
+	rates          []*github.Rate
+	gqlRates       []*github.Rate // per-client GraphQL points budget, metered apart from the REST quota in rates
+	curClientIdx   int
+	maxPerPage     int
+	SkipReactions  bool
+	SkipReviews    bool
+	issuesCursor   string // page-number pagination of the issues endpoint is capped at ~page 100
+	issuesNextPage int    // fallback for servers whose Link header carries no cursor
 
-	// useGraphQL opts the downloader into the batched GraphQL fast path (see
-	// github_graphql.go), which fetches an issue or pull request plus its
-	// comments, reviews and reactions in one request instead of many.
-	// gqlIssuesCursor is the issue stream's pagination cursor and gqlComments
-	// caches the comments fetched alongside the issues so GetComments serves them
-	// from memory. The cache holds only the page being imported: GetComments
-	// drops each entry as it hands it over.
 	useGraphQL      bool
 	gqlIssuesCursor string
-	gqlComments     map[int64][]*base.Comment
-	// gqlPRCursor paginates the GraphQL pull-request sweep; gqlReviews caches the
-	// reviews (with their inline comments) fetched alongside each PR so the
-	// framework's review phase serves them from memory. PR issue-comments join
-	// gqlComments so GetComments serves issue and PR comments alike.
-	gqlPRCursor string
-	gqlReviews  map[int64][]*base.Review
-	// gqlIssuesQuery and gqlPullRequestsQuery cache the built query strings: they
-	// depend only on SkipReactions, so they are assembled once per sync rather
-	// than per page.
+	gqlComments     map[int64][]*base.Comment // only the page being imported, dropped as GetComments hands entries over
+	gqlPRCursor     string
+	gqlReviews      map[int64][]*base.Review
+
 	gqlIssuesQuery       string
 	gqlPullRequestsQuery string
-	// gqlPointsSpent accumulates GitHub's GraphQL points budget spent this run
-	// (benchmark instrumentation; GraphQL is billed on points, not requests/hr).
-	gqlPointsSpent int64
+	gqlSkipComments      bool
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
@@ -465,24 +441,15 @@ func (g *GithubDownloaderV3) GetReleases(ctx context.Context) ([]*base.Release, 
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
 	if g.useGraphQL {
-		// GraphQL fast path: fetches issues + comments + reactions in one request.
 		return g.getIssuesGraphQL(ctx, page, perPage)
 	}
 	return g.getIssuesREST(ctx, page, perPage)
 }
 
-// getIssuesREST returns a page of issues (all of them, oldest created first) over
-// the REST API
 func (g *GithubDownloaderV3) getIssuesREST(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
-	// Paginate by the Link-header `after` cursor, not a page number: GitHub caps
-	// classic page-number pagination on the issues endpoint at ~page 100 (~10k
-	// items), silently truncating a large repository. The cursor has no such cap.
-	// Servers whose Link header carries no cursor (older GitHub Enterprise) fall
-	// back to the page number from the same header. page<=1 marks the first
-	// request of a sweep, so reset both there.
 	if page <= 1 {
 		g.issuesCursor = ""
 		g.issuesNextPage = 0
@@ -499,7 +466,7 @@ func (g *GithubDownloaderV3) getIssuesREST(ctx context.Context, page, perPage in
 	g.waitAndPickClient(ctx)
 	issues, resp, err := g.getClient().Issues.ListByRepo(ctx, g.repoOwner, g.repoName, opt)
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %w", err)
+		return nil, false, fmt.Errorf("getIssuesREST: %w", err)
 	}
 	log.Trace("Request get issues cursor=%q page=%d got %d, next=%q nextPage=%d", g.issuesCursor, g.issuesNextPage, len(issues), resp.After, resp.NextPage)
 	g.setRate(&resp.Rate)
@@ -543,12 +510,7 @@ func (g *GithubDownloaderV3) getIssuesREST(ctx context.Context, page, perPage in
 		})
 	}
 
-	// Advance only once the whole page converted: the framework retries a failed
-	// page with the SAME page number, so a cursor moved on before a mid-page
-	// error (a reactions request failing here) would make the retry return the
-	// NEXT page and drop this one's issues without any error surfacing.
-	// Prefer the cursor; without one (page-based Link only) advance by page
-	// number so a full page can never be re-requested forever.
+	// only after the page converted: a failed page is retried with the same page number
 	g.issuesCursor = resp.After
 	if g.issuesCursor == "" {
 		g.issuesNextPage = resp.NextPage
@@ -556,19 +518,15 @@ func (g *GithubDownloaderV3) getIssuesREST(ctx context.Context, page, perPage in
 		g.issuesNextPage = 0
 	}
 
-	// Terminate on the Link header alone: no next cursor and no next page means
-	// the sweep is done, for cursor-based and page-based servers alike. A short
-	// page mid-results must not be misread as the end of a large backfill.
 	isEnd := resp.After == "" && resp.NextPage == 0
+	if resp.Header.Get("Link") == "" { // GitBucket paginates without a Link header
+		g.issuesNextPage = page + 1
+		isEnd = len(issues) < perPage
+	}
 	return allIssues, isEnd, nil
 }
 
-// SupportGetRepoComments reports whether the whole repository's comments can be
-// fetched in one paginated phase. The GraphQL path deliberately says no: its
-// comments arrive with their issue or pull request, and the repo-wide phase runs
-// only after both sweeps have finished, so answering yes would mean holding every
-// comment of every issue in memory until then. Per-entity serving lets each page
-// be handed over — and dropped — while the sweep walks on.
+// SupportGetRepoComments is false for GraphQL: the repo-wide phase runs after both sweeps, so every comment would stay in memory until then
 func (g *GithubDownloaderV3) SupportGetRepoComments() bool {
 	return !g.useGraphQL
 }
@@ -576,9 +534,6 @@ func (g *GithubDownloaderV3) SupportGetRepoComments() bool {
 // GetComments returns comments according issueNumber
 func (g *GithubDownloaderV3) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
 	if g.gqlComments != nil {
-		// GraphQL fast path: the issue/PR sweeps already fetched the comments;
-		// serve them from the cache instead of a second round of API calls, and
-		// drop them so the cache never grows past the page being imported.
 		index := commentable.GetForeignIndex()
 		cached := g.gqlComments[index]
 		delete(g.gqlComments, index)
@@ -588,7 +543,6 @@ func (g *GithubDownloaderV3) GetComments(ctx context.Context, commentable base.C
 	return comments, false, err
 }
 
-// getComments returns an issue's or pull request's comments over the REST API
 func (g *GithubDownloaderV3) getComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, error) {
 	var (
 		allComments = make([]*base.Comment, 0, g.maxPerPage)
@@ -658,9 +612,7 @@ func (g *GithubDownloaderV3) getComments(ctx context.Context, commentable base.C
 	return allComments, nil
 }
 
-// GetAllComments returns repository comments according page and perPageSize.
-// REST only — the GraphQL path serves its comments per entity through
-// GetComments (see SupportGetRepoComments).
+// GetAllComments returns repository comments according page and perPageSize
 func (g *GithubDownloaderV3) GetAllComments(ctx context.Context, page, perPage int) ([]*base.Comment, bool, error) {
 	var (
 		allComments = make([]*base.Comment, 0, perPage)
@@ -737,8 +689,6 @@ func (g *GithubDownloaderV3) GetAllComments(ctx context.Context, page, perPage i
 // GetPullRequests returns pull requests according page and perPage
 func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	if g.useGraphQL {
-		// GraphQL fast path: fetches pull requests + comments + reviews (with
-		// their inline comments) in one request.
 		return g.getPullRequestsGraphQL(ctx, page, perPage)
 	}
 	if perPage > g.maxPerPage {
@@ -772,8 +722,9 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 		_ = CheckAndEnsureSafePR(basePR, g.baseURL, g)
 	}
 
-	// Terminate on the Link header, not len(prs) < perPage (see getIssuesREST):
-	// a short page mid-results must not be misread as the end of a large backfill.
+	if resp.Header.Get("Link") == "" { // GitBucket paginates without a Link header
+		return allPRs, len(prs) < perPage, nil
+	}
 	return allPRs, resp.NextPage == 0, nil
 }
 
@@ -923,10 +874,6 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(ctx context.Context, cs
 // GetReviews returns pull requests review
 func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
 	if g.gqlReviews != nil {
-		// GraphQL fast path: reviews (and their inline comments) already came
-		// back with their pull request; serve them from the cache instead of the
-		// REST per-PR ListReviews + per-review ListReviewComments N+1. Drop them
-		// once served so the cache never outgrows the page being imported.
 		index := reviewable.GetForeignIndex()
 		cached := g.gqlReviews[index]
 		delete(g.gqlReviews, index)
@@ -935,9 +882,7 @@ func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Rev
 	return g.getReviewsREST(ctx, reviewable)
 }
 
-// getReviewsREST is the REST implementation behind GetReviews. It is also the
-// fallback the GraphQL PR sweep uses when a pull request's review set overflows
-// one page, so it must never consult the GraphQL cache.
+// getReviewsREST must never consult the GraphQL cache: the PR sweep falls back to it on review overflow
 func (g *GithubDownloaderV3) getReviewsREST(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
 	if g.SkipReviews {

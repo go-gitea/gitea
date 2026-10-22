@@ -18,10 +18,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestShouldRetryRequestPermanentErrors: a permanent transport failure never
-// succeeds on a retry, so retrying it only spends the whole backoff budget (and,
-// with the retrying downloader on top, three times over) before surfacing. A
-// migration pointed at a blocked host must fail immediately, not 31s later.
 func TestShouldRetryRequestPermanentErrors(t *testing.T) {
 	// as they arrive at the transport: wrapped by the dialer and the http client
 	wrapped := func(err error) error {
@@ -45,9 +41,6 @@ func TestShouldRetryRequestPermanentErrors(t *testing.T) {
 	}
 }
 
-// TestShouldRetryRequestStatuses documents which responses are the transport's to
-// retry: any 5xx, and a secondary rate limit only when it says how long to wait.
-// The primary rate limit is the downloader's to handle.
 func TestShouldRetryRequestStatuses(t *testing.T) {
 	retryAfter := http.Header{"Retry-After": {"30"}}
 	for _, tc := range []struct {

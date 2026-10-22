@@ -19,6 +19,7 @@ import (
 
 	"gitea.dev/modules/json"
 	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/test"
 
 	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"
@@ -65,9 +66,6 @@ func TestGraphQLRateResetWait(t *testing.T) {
 	assert.Equal(t, graphQLRateResetCap, graphQLRateResetWait(huge))
 }
 
-// TestDoGraphQLRetriesOnRateLimited proves the fix for the abort-on-RATE_LIMITED
-// bug: a RATE_LIMITED response is waited out (per the Retry-After header) and the
-// request retried in place, instead of erroring and aborting the whole sync.
 func TestDoGraphQLRetriesOnRateLimited(t *testing.T) {
 	var calls atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -91,12 +89,7 @@ func TestDoGraphQLRetriesOnRateLimited(t *testing.T) {
 	assert.EqualValues(t, 2, calls.Load(), "RATE_LIMITED should be waited out and the request retried once")
 }
 
-// TestGraphQLQueryReactionGating guards the shape that stays under BOTH GitHub
-// limits: the 500k node cap and the per-query compute budget. When reactions are
-// skipped, none are requested. When wanted, the content query carries only the
-// entity-level reactions (one connection) — comment reactions must NOT be nested
-// (a 3rd connection level blows the limits), they come from the batched node-id
-// pass (attachCommentReactions) instead.
+// comment reactions nested under comments would exceed GitHub's 500,000-node limit
 func TestGraphQLQueryReactionGating(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
@@ -113,6 +106,49 @@ func TestGraphQLQueryReactionGating(t *testing.T) {
 	}
 }
 
+func TestGraphQLQueryCommentGating(t *testing.T) {
+	issues := (&GithubDownloaderV3{gqlSkipComments: true}).graphQLIssuesQuery()
+	assert.NotContains(t, issues, "comments(")
+	pulls := (&GithubDownloaderV3{gqlSkipComments: true}).graphQLPullRequestsQuery()
+	assert.NotContains(t, pulls, "comments(")
+	assert.NotContains(t, pulls, "reviews(")
+	assert.NotContains(t, pulls, "reviewRequests(")
+	assert.Contains(t, (&GithubDownloaderV3{}).graphQLPullRequestsQuery(), "reviews(first:50)")
+}
+
+func TestDoGraphQLPageShrinkSkipsPermanentFailures(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+	}))
+	defer srv.Close()
+
+	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
+	require.NoError(t, err)
+
+	err = d.doGraphQLPageShrink(t.Context(), `query{viewer{login}}`, map[string]any{}, &struct{}{}, 100, "issues")
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, errGraphQLTransientExhausted, "an untrusted certificate must not be retried at a smaller page size")
+	assert.Zero(t, calls.Load())
+}
+
+func TestFetchNodeReactionsSkipsDeletedNodes(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, `{"data":{"nodes":[null,{"id":"c2","reactions":{"totalCount":1,"nodes":[{"content":"HEART","user":null}]}}]},`+
+			`"errors":[{"type":"NOT_FOUND","path":["nodes",0],"message":"Could not resolve to a node"}]}`)
+	}))
+	defer srv.Close()
+
+	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
+	require.NoError(t, err)
+
+	got, err := d.fetchNodeReactions(t.Context(), []string{"c1", "c2"})
+	require.NoError(t, err)
+	require.Len(t, got["c2"], 1)
+	assert.Equal(t, "ghost", got["c2"][0].UserName)
+	assert.EqualValues(t, 10137, got["c2"][0].UserID)
+}
+
 func TestIsGraphQLResourceLimited(t *testing.T) {
 	rl := fmt.Errorf("github graphql: %w", graphQLError{Type: "RESOURCE_LIMITS_EXCEEDED", Message: "too expensive"})
 	assert.True(t, isGraphQLResourceLimited(rl))
@@ -120,10 +156,6 @@ func TestIsGraphQLResourceLimited(t *testing.T) {
 	assert.False(t, isGraphQLResourceLimited(errors.New("plain")))
 }
 
-// TestFetchNodeReactionsAdaptiveShrink: a batch that comes back
-// RESOURCE_LIMITS_EXCEEDED is halved and retried, not aborted. The stub rejects
-// any multi-id batch, so a 2-id request must split into two 1-id requests and
-// still return reactions for both.
 func TestFetchNodeReactionsAdaptiveShrink(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
@@ -153,9 +185,6 @@ func TestFetchNodeReactionsAdaptiveShrink(t *testing.T) {
 	require.Len(t, got["c2"], 1)
 }
 
-// TestReactionsWithSweepNoOverflow: when an entity's reaction count fits the
-// batched page (totalCount == nodes), reactions (incl. the reacting user) come
-// straight from the query with no sweep — so it must not touch a (nil) client.
 func TestReactionsWithSweepNoOverflow(t *testing.T) {
 	var conn gqlReactionConn
 	require.NoError(t, json.Unmarshal([]byte(`{"totalCount":2,"nodes":[
@@ -187,8 +216,6 @@ func TestGraphQLReactionContent(t *testing.T) {
 	assert.Equal(t, "star", graphQLReactionContent("STAR"))
 }
 
-// TestGraphQLIssuesResponseParsing validates that the response structs match the
-// shape of graphQLIssuesQuery and that a page parses into the expected entities.
 func TestGraphQLIssuesResponseParsing(t *testing.T) {
 	const sample = `{
 	  "repository": {
@@ -247,9 +274,7 @@ func TestGraphQLIssuesResponseParsing(t *testing.T) {
 	assert.Equal(t, "alice", reactions[0].UserName)
 	assert.Equal(t, "heart", reactions[1].Content)
 
-	// comments convert and carry the issue number as IssueIndex + remote id as
-	// Index. Comment reactions are NOT part of the content query — they come from
-	// the batched node-id pass (attachCommentReactions) — so none are set here.
+	// comment reactions come from attachCommentReactions, not the content query
 	comments := convertGraphQLComments(node.Number, node.Comments.Nodes)
 	require.Len(t, comments, 1)
 	assert.EqualValues(t, 42, comments[0].IssueIndex)
@@ -258,10 +283,6 @@ func TestGraphQLIssuesResponseParsing(t *testing.T) {
 	assert.Empty(t, comments[0].Reactions, "comment reactions come from the node-id pass, not the content query")
 }
 
-// TestGetCommentsServesAndDropsCache: the GraphQL path serves each entity's
-// comments from the sweep's cache and drops them as it goes, so the cache holds
-// only the page being imported instead of the whole repository's comments (which
-// is why SupportGetRepoComments says no for this path).
 func TestGetCommentsServesAndDropsCache(t *testing.T) {
 	g := &GithubDownloaderV3{
 		useGraphQL: true,
@@ -285,7 +306,6 @@ func TestGetCommentsServesAndDropsCache(t *testing.T) {
 	assert.Empty(t, none)
 }
 
-// TestGetReviewsServesAndDropsCache mirrors the comment cache for reviews.
 func TestGetReviewsServesAndDropsCache(t *testing.T) {
 	g := &GithubDownloaderV3{
 		useGraphQL: true,
@@ -298,9 +318,7 @@ func TestGetReviewsServesAndDropsCache(t *testing.T) {
 	assert.NotContains(t, g.gqlReviews, int64(7), "served reviews must be dropped from the cache")
 }
 
-// TestGraphQLPageSize: the connection size honours the batch size the framework
-// asked for (it is derived from the uploader's max batch insert size, so a bigger
-// page overflows the DB's bind-parameter limit), capped at what the query affords.
+// a page larger than perPage overflows the DB's bind-parameter limit on insert
 func TestGraphQLPageSize(t *testing.T) {
 	assert.Equal(t, 41, graphQLPageSize(41, githubGraphQLPageSize))
 	assert.Equal(t, githubGraphQLPageSize, graphQLPageSize(500, githubGraphQLPageSize))
@@ -308,16 +326,12 @@ func TestGraphQLPageSize(t *testing.T) {
 	assert.Equal(t, githubGraphQLPRPageSize, graphQLPageSize(41, githubGraphQLPRPageSize))
 }
 
-// TestGraphQLQueriesSelectNonUserActorIDs guards the id of every non-User author:
-// databaseId is not on the Actor interface, so selecting it only `... on User`
-// silently drops the numeric id of every bot, organization and mannequin — which
-// collapses them all onto original_author_id 0.
 func TestGraphQLQueriesSelectNonUserActorIDs(t *testing.T) {
 	g := &GithubDownloaderV3{}
 	for name, q := range map[string]string{
 		"issues":   g.graphQLIssuesQuery(),
 		"pulls":    g.graphQLPullRequestsQuery(),
-		"timeline": graphQLTimelineBatchQuery(),
+		"timeline": graphQLTimelineBatchQuery,
 	} {
 		for _, actorType := range []string{"User", "Bot", "Organization", "Mannequin"} {
 			assert.Contains(t, q, "... on "+actorType+"{databaseId}", "%s query must select the %s author id", name, actorType)
@@ -325,9 +339,6 @@ func TestGraphQLQueriesSelectNonUserActorIDs(t *testing.T) {
 	}
 }
 
-// TestGraphQLQueriesDetectSideConnectionOverflow: every connection the content
-// query caps must select totalCount, or an entity with more labels/assignees/
-// reviewers than the cap imports truncated with no warning.
 func TestGraphQLQueriesDetectSideConnectionOverflow(t *testing.T) {
 	g := &GithubDownloaderV3{}
 	issues, pulls := g.graphQLIssuesQuery(), g.graphQLPullRequestsQuery()
@@ -338,9 +349,7 @@ func TestGraphQLQueriesDetectSideConnectionOverflow(t *testing.T) {
 	assert.Regexp(t, `reviewRequests\(first:\d+\)\{totalCount`, pulls)
 }
 
-// TestGraphQLContentQueriesPageByCreation: the content queries walk an IMMUTABLE
-// sort key. Cursor pagination over UPDATED_AT loses rows — an entity touched
-// mid-sweep re-sorts behind the cursor, where no later page ever returns it.
+// a cursor over a mutable sort key such as UPDATED_AT loses rows
 func TestGraphQLContentQueriesPageByCreation(t *testing.T) {
 	g := &GithubDownloaderV3{}
 	for name, q := range map[string]string{"issues": g.graphQLIssuesQuery(), "pulls": g.graphQLPullRequestsQuery()} {
@@ -349,8 +358,6 @@ func TestGraphQLContentQueriesPageByCreation(t *testing.T) {
 	}
 }
 
-// TestLabelsWithSweepOverflow / TestAssigneesWithSweepOverflow: a truncated side
-// connection is swept by node id instead of silently importing short.
 func TestLabelsWithSweepOverflow(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, `{"data":{"node":{"conn":{"pageInfo":{"hasNextPage":false},"nodes":[
@@ -387,16 +394,10 @@ func TestAssigneesWithSweepOverflow(t *testing.T) {
 	assert.Equal(t, []string{"a", "b"}, got)
 }
 
-// TestDoGraphQLRetriesTransientFailures: a 502 and a truncated body are
-// transient — on a sweep that is hours long and hundreds of requests, one such
-// blip must not abort the whole run. Each must be retried until a good response
-// arrives. The 502 is retried by the transport (http_client.go), the truncated
-// body by doGraphQL, since the transport cannot replay a body that died after
-// the response headers.
+// the transport retries the 502, doGraphQL the body that died after the headers
 func TestDoGraphQLRetriesTransientFailures(t *testing.T) {
-	prevBase, prevTransportBase := graphQLTransientRetryBase, retryBaseDelay
-	graphQLTransientRetryBase, retryBaseDelay = time.Millisecond, time.Millisecond
-	defer func() { graphQLTransientRetryBase, retryBaseDelay = prevBase, prevTransportBase }()
+	defer test.MockVariableValue(&graphQLTransientRetryBase, time.Millisecond)()
+	defer test.MockVariableValue(&retryBaseDelay, time.Millisecond)()
 
 	for _, tc := range []struct {
 		name string
@@ -436,15 +437,8 @@ func TestDoGraphQLRetriesTransientFailures(t *testing.T) {
 	}
 }
 
-// TestDoGraphQLDoesNotReRetryTransportFailures: retryTransport owns 5xx and
-// network retries, so doGraphQL must not stack a second budget on top of it —
-// four nested retry layers turn one bad page into hours of backoff. A 5xx that
-// survives the transport is reported as transient-exhausted so the page-shrink
-// escalation starts immediately.
 func TestDoGraphQLDoesNotReRetryTransportFailures(t *testing.T) {
-	prevTransportBase := retryBaseDelay
-	retryBaseDelay = time.Millisecond
-	defer func() { retryBaseDelay = prevTransportBase }()
+	defer test.MockVariableValue(&retryBaseDelay, time.Millisecond)()
 
 	var calls atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -462,11 +456,7 @@ func TestDoGraphQLDoesNotReRetryTransportFailures(t *testing.T) {
 	assert.EqualValues(t, retryMaxRetries+1, calls.Load(), "only the transport's budget may be spent on a 5xx")
 }
 
-// TestDoGraphQLWaitsOutSecondaryRateLimit proves the fix for aborting on a
-// secondary rate limit: GitHub answers those with 403/429 and not always a
-// Retry-After, so the transport passes them straight through. Treating them as
-// fatal aborted the whole metadata import — exactly what this path exists to
-// prevent.
+// secondary rate limits come as 403/429, not always with a Retry-After the transport would honour
 func TestDoGraphQLWaitsOutSecondaryRateLimit(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -490,9 +480,7 @@ func TestDoGraphQLWaitsOutSecondaryRateLimit(t *testing.T) {
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			prev := graphQLRateResetFallback
-			graphQLRateResetFallback = 20 * time.Millisecond
-			defer func() { graphQLRateResetFallback = prev }()
+			defer test.MockVariableValue(&graphQLRateResetFallback, 20*time.Millisecond)()
 
 			var calls atomic.Int32
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -516,9 +504,6 @@ func TestDoGraphQLWaitsOutSecondaryRateLimit(t *testing.T) {
 	}
 }
 
-// TestDoGraphQLFatalStatusQuotesBody: a permission 403 is not a throttle and must
-// fail at once, carrying GitHub's explanation — without the body the log says only
-// "unexpected status" and nothing actionable.
 func TestDoGraphQLFatalStatusQuotesBody(t *testing.T) {
 	var calls atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -538,11 +523,7 @@ func TestDoGraphQLFatalStatusQuotesBody(t *testing.T) {
 	assert.EqualValues(t, 1, calls.Load(), "a permission 403 must not be waited out")
 }
 
-// TestGetIssuesGraphQLKeepsCursorOnPageError proves the fix for a whole page of
-// issues going missing: the framework retries a failed page with the SAME page
-// number, so the cursor may only advance once the page has fully converted. Here
-// the reaction sweep fails mid-page; the retry must re-request this page, not the
-// next one.
+// the framework retries a failed page with the same page number
 func TestGetIssuesGraphQLKeepsCursorOnPageError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
@@ -568,14 +549,9 @@ func TestGetIssuesGraphQLKeepsCursorOnPageError(t *testing.T) {
 	assert.Empty(t, d.gqlIssuesCursor, "a page that failed mid-conversion must be re-requested, not skipped")
 }
 
-// TestDoGraphQLPageShrink: a deterministic 502 — one specific page whose
-// response is too heavy for the backend — never succeeds at the same size, so
-// after the transient retry budget is exhausted the page is halved and the
-// same cursor re-requested. The stub 502s any request with first > 25.
 func TestDoGraphQLPageShrink(t *testing.T) {
-	prevBase, prevTransportBase := graphQLTransientRetryBase, retryBaseDelay
-	graphQLTransientRetryBase, retryBaseDelay = time.Millisecond, time.Millisecond
-	defer func() { graphQLTransientRetryBase, retryBaseDelay = prevBase, prevTransportBase }()
+	defer test.MockVariableValue(&graphQLTransientRetryBase, time.Millisecond)()
+	defer test.MockVariableValue(&retryBaseDelay, time.Millisecond)()
 
 	var (
 		mu    sync.Mutex // the handler runs on the server's goroutines
@@ -619,9 +595,6 @@ func TestDoGraphQLPageShrink(t *testing.T) {
 	assert.Len(t, sizes, 2*(retryMaxRetries+1)+1, "sizes 100 and 50 exhaust the transport budget, 25 succeeds first try")
 }
 
-// TestDoGraphQLPageShrinkOnResourceLimits: GitHub refuses a page that exceeds the
-// per-query compute budget with a RESOURCE_LIMITS_EXCEEDED error rather than a
-// 502, and that page only fits at a smaller size, so it must shrink the same way.
 func TestDoGraphQLPageShrinkOnResourceLimits(t *testing.T) {
 	var (
 		mu    sync.Mutex
@@ -658,9 +631,7 @@ func TestDoGraphQLPageShrinkOnResourceLimits(t *testing.T) {
 	assert.Equal(t, []int{100, 50, 25}, sizes, "each oversized page is refused once, then halved")
 }
 
-// TestDoGraphQLSwitchesTokenOnRateLimit: GraphQL points are metered per token, so
-// when one token is RATE_LIMITED the request moves to another token with points
-// left instead of sleeping out the first token's window (an hour here).
+// GraphQL points are metered per token
 func TestDoGraphQLSwitchesTokenOnRateLimit(t *testing.T) {
 	var spentCalls, freshCalls atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -720,10 +691,6 @@ func TestPickGraphQLClient(t *testing.T) {
 	assert.Less(t, time.Since(start), 5*time.Second)
 }
 
-// TestGraphQLSweepsDropCachesPerPage: the framework reads a page's comments and
-// reviews before it requests the next page, so the caches only have to outlive one
-// page. An issues- or pull-requests-only export never reads them, and keeping them
-// for the whole sweep would hold every comment, timeline and review in memory.
 func TestGraphQLSweepsDropCachesPerPage(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)

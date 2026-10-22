@@ -6,16 +6,15 @@ package migrations
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"gitea.dev/modules/json"
+	base "gitea.dev/modules/migration"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// TestConvertTimelineItems parses a timeline page (the shape of #13603's real
-// timeline plus milestone/rename) and checks each event maps to the right Gitea
-// comment type, meta and actor — and that unmapped types are dropped.
 func TestConvertTimelineItems(t *testing.T) {
 	const sample = `{"pageInfo":{"hasNextPage":false,"endCursor":""},"nodes":[
       {"__typename":"ClosedEvent","id":"c1","createdAt":"2020-11-17T15:54:33Z","actor":{"login":"jolheiser","databaseId":42128690}},
@@ -77,11 +76,8 @@ func TestConvertTimelineItems(t *testing.T) {
 	}
 }
 
-// TestTimelineQueryShape guards the fix for #27's class of bug: the timeline query
-// is a node-id pass (≤2 levels), never nested in the content query, and carries no
-// reactions.
 func TestTimelineQueryShape(t *testing.T) {
-	batch := graphQLTimelineBatchQuery()
+	batch := graphQLTimelineBatchQuery
 	assert.Contains(t, batch, "nodes(ids:$ids)")
 	assert.Contains(t, batch, "... on Issue{timelineItems")
 	assert.Contains(t, batch, "... on PullRequest{timelineItems")
@@ -91,23 +87,33 @@ func TestTimelineQueryShape(t *testing.T) {
 	assert.Contains(t, batch, "... on ClosedEvent")
 	assert.NotContains(t, batch, "reactions", "timeline query must not carry reactions")
 
-	sweep := graphQLTimelineSweepQuery()
+	sweep := graphQLTimelineSweepQuery
 	assert.Contains(t, sweep, "node(id:$id)")
 	assert.Contains(t, sweep, "after:$cursor")
 
-	// The timeline queries must be syntactically valid — brace-balanced. A missing
-	// close in timelineConnFields made the whole query malformed (Expected NAME at
-	// [35,1]), which aborted the entire metadata import (#37).
+	// a malformed query aborts the entire metadata import
 	for name, q := range map[string]string{"batch": batch, "sweep": sweep} {
 		assert.Equal(t, strings.Count(q, "{"), strings.Count(q, "}"), "%s timeline query must be brace-balanced", name)
 	}
 }
 
-// TestGraphQLQueriesFetchNodeID guards #28: the issue/PR node id must be selected,
-// or node.ID is empty, the timeline (and reaction) node-id passes never run, and
-// the feature silently no-ops.
+// without the node id the timeline and reaction passes silently never run
 func TestGraphQLQueriesFetchNodeID(t *testing.T) {
 	g := &GithubDownloaderV3{}
 	assert.Contains(t, g.graphQLIssuesQuery(), "\n        id number ", "issue query must select the node id")
 	assert.Contains(t, g.graphQLPullRequestsQuery(), "\n        id number ", "PR query must select the node id")
+}
+
+func TestDropCloseOnMerge(t *testing.T) {
+	merged := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	earlierClose := &base.Comment{CommentType: "close", Created: merged.Add(-time.Hour)}
+	reopen := &base.Comment{CommentType: "reopen", Created: merged.Add(-time.Minute * 30)}
+	merge := &base.Comment{CommentType: "merge_pull", Created: merged}
+	events := dropCloseOnMerge([]*base.Comment{
+		earlierClose,
+		reopen,
+		merge,
+		{CommentType: "close", Created: merged.Add(time.Second)},
+	})
+	assert.Equal(t, []*base.Comment{earlierClose, reopen, merge}, events)
 }

@@ -3,26 +3,6 @@
 
 package migrations
 
-// Optional GraphQL-backed fast path for the GitHub migration downloader.
-//
-// The REST downloader makes many small calls — worst of all a separate
-// reactions request per issue and per comment — so a large repository exhausts
-// the 5,000 req/hr limit long before it finishes. GitHub's GraphQL API returns
-// an issue together with its comments, reactions and labels in a single request
-// (100 nodes/page) and is billed by a separate points budget whose cost model is
-// far more forgiving for this batched shape. This collapses dozens of REST calls
-// into one.
-//
-// GraphQL is the default path for GitHub migrations ([migrations] USE_GRAPHQL);
-// the REST downloader is kept as fallback. Scope: the issues stream (issues +
-// comments + reactions + labels, this file), the pull-request stream (PRs +
-// comments + reviews + review threads, github_graphql_pr.go) and timeline
-// events (github_graphql_timeline.go). Comment reactions are fetched by a
-// batched node-id pass (attachCommentReactions); review-comment reactions are
-// not fetched yet (4-deep nesting, needs its own pass — a follow-up). Comment
-// pages beyond the first 100 for a single entity fall back to REST for that
-// entity so nothing is silently dropped.
-
 import (
 	"bytes"
 	"context"
@@ -44,76 +24,40 @@ import (
 )
 
 const (
-	// GraphQL returns at most 100 nodes per connection page.
-	githubGraphQLPageSize = 100
-	// The PR stream asks for fewer nodes per page: each PR carries nested
-	// reviews and review comments, so 20 is the budget-safe full size.
-	githubGraphQLPRPageSize = 20
-	// Pause when the GraphQL points budget drops to this, mirroring the REST
-	// GithubLimitRateRemaining guard.
-	githubGraphQLPointsFloor = 10
-	// maxGraphQLRateRetries bounds how many times a single request waits out a
-	// RATE_LIMITED response before giving up, so a persistently throttled sync
-	// fails loudly instead of looping forever.
-	maxGraphQLRateRetries = 5
-	// graphQLRateResetCap bounds how long a single RATE_LIMITED wait can sleep,
-	// guarding against a bogus reset header.
-	graphQLRateResetCap = time.Hour
-	// maxGraphQLTransientRetries bounds retries of a response body that died
-	// mid-stream (truncated JSON, connection cut while reading). The retrying
-	// transport cannot retry those — the failure happens after the response
-	// headers — and on a sweep that is hours long and hundreds of requests, one
-	// such blip must not abort the whole run. 5xx responses and network errors
-	// are NOT retried here: retryTransport (http_client.go) already owns those,
-	// and retrying them again would multiply the two budgets together.
+	githubGraphQLPageSize    = 100
+	githubGraphQLPRPageSize  = 20 // each PR carries nested reviews and review comments
+	githubGraphQLPointsFloor = 10 // mirrors the REST GithubLimitRateRemaining guard
+	maxGraphQLRateRetries    = 5
+	graphQLRateResetCap      = time.Hour // guards against a bogus reset header
+	// only for bodies dying mid-stream; 5xx and network errors are retryTransport's, retrying them here would multiply both budgets
 	maxGraphQLTransientRetries = 5
-	// graphQLLabelPageSize / graphQLAssigneePageSize / graphQLReviewRequestPageSize
-	// cap the cheap side connections carried by the content queries. Each selects
-	// totalCount so an entity that exceeds its cap is swept by node id instead of
-	// silently truncated.
+	// overflowing entities are swept by node id via totalCount
 	graphQLLabelPageSize         = 30
 	graphQLAssigneePageSize      = 30
 	graphQLReviewRequestPageSize = 50
 )
 
-// gqlActorFields selects an Actor's login and numeric id. The inline fragments are
-// mandatory: `databaseId` is not on the Actor interface itself, and selecting it
-// only `... on User` loses the id of every Bot (dependabot[bot], github-actions[bot]),
-// Organization and Mannequin author — the REST path returned those, and without them
-// every such author collapses onto original_author_id 0.
+// databaseId is not on the Actor interface; without every fragment bot/org/mannequin authors collapse onto id 0
 const gqlActorFields = "login ... on User{databaseId} ... on Bot{databaseId} ... on Organization{databaseId} ... on Mannequin{databaseId}"
 
-// gqlReactionFields selects a reaction and its user. Reaction.user is typed User, so
-// databaseId is selected directly.
 const gqlReactionFields = "content user{login databaseId}"
 
-// graphQLTransientRetryBase is the initial backoff before a truncated response is
-// re-requested; doubled each attempt. A variable so tests can shrink it.
 var graphQLTransientRetryBase = 2 * time.Second
 
-// graphQLRateResetFallback is how long to wait out a throttle that names no
-// reset time; GitHub asks for at least a minute before retrying a secondary rate
-// limit. A variable so tests can shorten it.
-var graphQLRateResetFallback = time.Minute
+var graphQLRateResetFallback = time.Minute // GitHub asks for at least a minute before retrying a secondary rate limit
 
-// errGraphQLTransientExhausted marks a request that kept failing transiently
-// through the whole retry budget — the transport's, for a 5xx or a network
-// failure, or this file's, for a body that keeps dying mid-stream. Page-driven
-// callers use it to shrink the page and try again: a *deterministic* 502 (one
-// specific page whose response is too heavy for the backend) never succeeds at
-// the same size no matter how often it is retried.
+// page-driven callers shrink the page on this: a deterministic 502 for a too-heavy page never succeeds at the same size
 var errGraphQLTransientExhausted = errors.New("github graphql: transient retries exhausted")
 
-// graphQLRequest is the POST body for a GraphQL call.
 type graphQLRequest struct {
 	Query     string         `json:"query"`
 	Variables map[string]any `json:"variables"`
 }
 
-// graphQLError is one entry in a GraphQL response's top-level errors array.
 type graphQLError struct {
 	Type    string `json:"type"`
 	Message string `json:"message"`
+	Path    []any  `json:"path"`
 }
 
 func (e graphQLError) Error() string {
@@ -123,16 +67,12 @@ func (e graphQLError) Error() string {
 	return e.Message
 }
 
-// graphQLRateLimit is GitHub's `rateLimit { ... }` block (the points budget,
-// distinct from the REST 5,000 req/hr limit).
 type graphQLRateLimit struct {
 	Cost      int       `json:"cost"`
 	Remaining int       `json:"remaining"`
 	ResetAt   time.Time `json:"resetAt"`
 }
 
-// graphQLEndpoint derives the GraphQL URL from the REST base URL. github.com uses
-// a dedicated host; GitHub Enterprise serves it at {base}/api/graphql.
 func (g *GithubDownloaderV3) graphQLEndpoint() string {
 	if g.baseURL == "" || g.baseURL == "https://github.com" {
 		return "https://api.github.com/graphql"
@@ -140,18 +80,13 @@ func (g *GithubDownloaderV3) graphQLEndpoint() string {
 	return strings.TrimSuffix(g.baseURL, "/") + "/api/graphql"
 }
 
-// doGraphQL executes a query and unmarshals the `data` field into out. It reuses
-// the currently selected client's authenticated HTTP client (so it inherits the
-// oauth2 token and the retrying transport), and returns the response's rateLimit
-// block for budget accounting.
+// doGraphQL executes a query and unmarshals the `data` field into out.
 func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars map[string]any, out any) error {
 	payload, err := json.Marshal(graphQLRequest{Query: query, Variables: vars})
 	if err != nil {
 		return err
 	}
 
-	// Two independent budgets: rateWaits bounds how often one request waits out a
-	// throttle, decodeRetries bounds retries of a body that died mid-stream.
 	rateWaits, decodeRetries := 0, 0
 	for {
 		if err := g.pickGraphQLClient(ctx); err != nil {
@@ -166,32 +101,23 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 		req.Header.Set("Accept", "application/json")
 
 		resp, err := g.getClient().Client().Do(req)
-		if err == nil {
-			g.recordGraphQLRate(resp.Header)
-		}
 		if err != nil {
-			// A network-level failure that reaches here already exhausted
-			// retryTransport's budget, so retrying it a second time here would
-			// only multiply the two. Report it as transient so a page-driven
-			// caller shrinks the page instead (doGraphQLPageShrink).
+			// retryTransport already spent its budget; let the caller shrink the page
+			if ctx.Err() != nil || !isTransientTransportError(err) {
+				return err
+			}
 			return fmt.Errorf("%w: request failed: %w", errGraphQLTransientExhausted, err)
 		}
+		g.recordGraphQLRate(resp.Header)
 
 		if resp.StatusCode != http.StatusOK {
 			detail := readGraphQLErrorBody(resp.Body)
 			resp.Body.Close()
 			switch {
 			case resp.StatusCode >= http.StatusInternalServerError:
-				// GitHub's GraphQL endpoint 502s sporadically under heavy
-				// queries, and retryTransport already retried this one. A page
-				// that still fails is too heavy at this size, not unlucky —
-				// report transient so the caller retries it smaller.
 				return fmt.Errorf("%w: status %s%s", errGraphQLTransientExhausted, resp.Status, detail)
 			case isGraphQLThrottled(resp, detail):
-				// Secondary/abuse rate limit. GitHub answers those with 403 or
-				// 429 and not always a Retry-After, so retryTransport may have
-				// passed it straight through; wait out the window and retry in
-				// place rather than aborting the whole metadata sync.
+				// without Retry-After retryTransport passed it through
 				if rateWaits < maxGraphQLRateRetries {
 					rateWaits++
 					g.restGraphQLClient(resp.Header)
@@ -211,9 +137,7 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 		header := resp.Header
 		resp.Body.Close()
 		if decodeErr != nil {
-			// A 200 whose body dies mid-stream (truncated JSON, connection cut
-			// while reading). The transport cannot retry this — the failure
-			// happens after the response headers — so retry here.
+			// the body died after the headers, which the transport cannot retry
 			if retryErr := g.waitGraphQLTransient(ctx, decodeRetries, fmt.Sprintf("truncated response: %v", decodeErr)); retryErr != nil {
 				return retryErr
 			}
@@ -221,11 +145,7 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 			continue
 		}
 
-		if len(envelope.Errors) > 0 {
-			// A RATE_LIMITED response means the points budget (or a secondary
-			// abuse limit) is exhausted. Wait out the window and retry in place
-			// rather than aborting the whole metadata sync; another token with points
-			// left takes over first (pickGraphQLClient).
+		if len(envelope.Errors) > 0 && !onlyUnresolvedNodes(envelope.Errors) {
 			if isGraphQLRateLimited(envelope.Errors) && rateWaits < maxGraphQLRateRetries {
 				rateWaits++
 				g.restGraphQLClient(header)
@@ -237,13 +157,10 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 	}
 }
 
-// maxGraphQLErrorBody bounds how much of a failing response body is quoted in the
-// error: GitHub explains a 403/429/502 in the body, and without it the message says
-// only "unexpected status" and nothing actionable.
+// GitHub explains a 403/429/502 only in the body
 const maxGraphQLErrorBody = 512
 
-// readGraphQLErrorBody returns a bounded, single-line excerpt of a failing response
-// body, prefixed with ": " so it appends cleanly, or "" when the body is empty.
+// readGraphQLErrorBody returns a bounded single-line excerpt prefixed with ": ", or "" when empty.
 func readGraphQLErrorBody(body io.Reader) string {
 	buf, err := io.ReadAll(io.LimitReader(body, maxGraphQLErrorBody))
 	if err != nil || len(buf) == 0 {
@@ -252,26 +169,19 @@ func readGraphQLErrorBody(body io.Reader) string {
 	return ": " + strings.Join(strings.Fields(string(buf)), " ")
 }
 
-// isGraphQLThrottled reports whether a non-200 response is GitHub throttling this
-// client. 429 always is; a 403 only when it carries a rate-limit signal, because a
-// plain 403 is a permission error that no amount of waiting fixes. A secondary
-// rate limit may come without Retry-After and with primary quota left, so its
-// body (GitHub's "You have exceeded a secondary rate limit") counts as a signal.
+// isGraphQLThrottled: a plain 403 is a permission error, and a secondary limit may carry neither Retry-After nor a spent quota, only its body text.
 func isGraphQLThrottled(resp *http.Response, body string) bool {
 	switch resp.StatusCode {
 	case http.StatusTooManyRequests:
 		return true
 	case http.StatusForbidden:
 		return resp.Header.Get("Retry-After") != "" ||
-			resp.Header.Get("X-RateLimit-Remaining") == "0" ||
+			resp.Header.Get(github.HeaderRateRemaining) == "0" ||
 			strings.Contains(strings.ToLower(body), "secondary rate limit")
 	}
 	return false
 }
 
-// waitGraphQLTransient sleeps out an exponential backoff before a truncated
-// response is retried. Returns nil when the caller should retry, or an error
-// when the retry budget is exhausted or the context was cancelled.
 func (g *GithubDownloaderV3) waitGraphQLTransient(ctx context.Context, attempt int, reason string) error {
 	if attempt >= maxGraphQLTransientRetries {
 		return fmt.Errorf("%w: %s", errGraphQLTransientExhausted, reason)
@@ -289,23 +199,20 @@ func (g *GithubDownloaderV3) waitGraphQLTransient(ctx context.Context, attempt i
 	}
 }
 
-// isGraphQLRateLimited reports whether any of the returned errors is GitHub's
-// RATE_LIMITED type (points budget or secondary abuse limit exhausted).
-func isGraphQLRateLimited(errs []graphQLError) bool {
-	for _, e := range errs {
-		if e.Type == "RATE_LIMITED" {
-			return true
-		}
-	}
-	return false
+// onlyUnresolvedNodes reports whether every error is a nodes(ids:) entry that no
+// longer resolves (deleted since the content page); its data entry is null and skipped.
+func onlyUnresolvedNodes(errs []graphQLError) bool {
+	return !slices.ContainsFunc(errs, func(e graphQLError) bool {
+		return e.Type != "NOT_FOUND" || len(e.Path) == 0 || e.Path[0] != "nodes"
+	})
 }
 
-// pickGraphQLClient selects the client with the most GraphQL points left. GraphQL
-// is metered separately from the REST core quota waitAndPickClient balances on, so
-// a GraphQL sweep spreads over the configured tokens by this budget instead. A
-// client whose budget is unknown, or whose window has reset, is tried first so
-// its budget gets learned; only when every client is spent does it sleep, until
-// the earliest reset.
+func isGraphQLRateLimited(errs []graphQLError) bool {
+	return slices.ContainsFunc(errs, func(e graphQLError) bool { return e.Type == "RATE_LIMITED" })
+}
+
+// pickGraphQLClient selects the client with the most GraphQL points left, since GraphQL is metered apart from the REST
+// quota. A client with an unknown or reset budget goes first so its budget gets learned.
 func (g *GithubDownloaderV3) pickGraphQLClient(ctx context.Context) error {
 	for {
 		best, soonest := -1, -1
@@ -337,69 +244,48 @@ func (g *GithubDownloaderV3) pickGraphQLClient(ctx context.Context) error {
 	}
 }
 
-// recordGraphQLRate notes the selected client's GraphQL budget from the rate
-// headers GitHub sends on every GraphQL response.
 func (g *GithubDownloaderV3) recordGraphQLRate(header http.Header) {
-	remaining, err := strconv.Atoi(header.Get("X-RateLimit-Remaining"))
+	remaining, err := strconv.Atoi(header.Get(github.HeaderRateRemaining))
 	if err != nil {
 		return
 	}
 	rate := &github.Rate{Remaining: remaining}
-	if epoch, err := strconv.ParseInt(header.Get("X-RateLimit-Reset"), 10, 64); err == nil {
+	if epoch, err := strconv.ParseInt(header.Get(github.HeaderRateReset), 10, 64); err == nil {
 		rate.Reset = github.Timestamp{Time: time.Unix(epoch, 0)}
 	}
 	g.gqlRates[g.curClientIdx] = rate
 }
 
-// restGraphQLClient marks the selected client as throttled until its window
-// resets, so the next pickGraphQLClient moves to another token that still has
-// points, and only sleeps when none does.
 func (g *GithubDownloaderV3) restGraphQLClient(header http.Header) {
 	wait := graphQLRateResetWait(header)
 	log.Info("github graphql: token %d throttled, resting it for %s", g.curClientIdx, wait.Round(time.Second))
 	g.gqlRates[g.curClientIdx] = &github.Rate{Reset: github.Timestamp{Time: time.Now().Add(wait)}}
 }
 
-// isPrimaryBudgetSpent reports whether the throttle is the primary points budget
-// running out (X-RateLimit-Remaining 0, or absent). With quota still left it is a
-// secondary limit, whose X-RateLimit-Reset belongs to the primary window and can
-// be an hour away; GitHub asks for at least a minute instead.
+// with quota left the throttle is a secondary limit, whose X-RateLimit-Reset belongs to the primary window
 func isPrimaryBudgetSpent(header http.Header) bool {
-	remaining := header.Get("X-RateLimit-Remaining")
+	remaining := header.Get(github.HeaderRateRemaining)
 	return remaining == "" || remaining == "0"
 }
 
-// graphQLRateResetWait derives how long to wait from GitHub's rate headers:
-// Retry-After (secondary limits, in seconds) takes precedence, then
-// X-RateLimit-Reset (primary budget, a unix epoch). It falls back to a short
-// delay when neither is present and is capped to guard against a bogus header.
 func graphQLRateResetWait(header http.Header) time.Duration {
 	wait := graphQLRateResetFallback
 	if ra := header.Get("Retry-After"); ra != "" {
-		if secs, err := strconv.Atoi(ra); err == nil && secs > 0 {
-			wait = time.Duration(secs) * time.Second
+		if d := parseRetryAfter(ra); d > 0 {
+			wait = d
 		}
-	} else if reset := header.Get("X-RateLimit-Reset"); reset != "" && isPrimaryBudgetSpent(header) {
+	} else if reset := header.Get(github.HeaderRateReset); reset != "" && isPrimaryBudgetSpent(header) {
 		if epoch, err := strconv.ParseInt(reset, 10, 64); err == nil {
 			if d := time.Until(time.Unix(epoch, 0)); d > 0 {
 				wait = d
 			}
 		}
 	}
-	if wait > graphQLRateResetCap {
-		wait = graphQLRateResetCap
-	}
-	return wait
+	return min(wait, graphQLRateResetCap)
 }
 
-// recordGraphQLBudget logs a query's cost and notes the budget its rateLimit
-// block reports for the selected client; pickGraphQLClient then moves to another
-// token, or waits, once that budget runs low.
 func (g *GithubDownloaderV3) recordGraphQLBudget(rl graphQLRateLimit) {
-	// Benchmark instrumentation: GraphQL is billed on a points budget (not the REST
-	// requests/hr limit), so record per-query cost and the running total for the run.
-	g.gqlPointsSpent += int64(rl.Cost)
-	log.Trace("github graphql: query cost=%d remaining=%d cumulative=%d", rl.Cost, rl.Remaining, g.gqlPointsSpent)
+	log.Trace("github graphql: query cost=%d remaining=%d", rl.Cost, rl.Remaining)
 
 	if rl.ResetAt.IsZero() {
 		return
@@ -407,25 +293,17 @@ func (g *GithubDownloaderV3) recordGraphQLBudget(rl graphQLRateLimit) {
 	g.gqlRates[g.curClientIdx] = &github.Rate{Remaining: rl.Remaining, Reset: github.Timestamp{Time: rl.ResetAt}}
 }
 
-// --- issues query -----------------------------------------------------------
-
-// graphQLIssuesQuery builds the issues query. GitHub costs a query by the product
-// of first: down each path and rejects anything over 500,000 possible nodes, and
-// separately budgets per-query compute. Reactions are kept SHALLOW: nesting them
-// under comments (issues×comments×reactions) is a 3rd connection level that blows
-// both limits — issues(100)×comments(100)×reactions(100) = 1,000,000 nodes is
-// refused outright (MAX_NODE_LIMIT_EXCEEDED). So the content query carries only
-// the issue-level reactions (one level, 100×100 = 10k, cheap); comment reactions
-// are fetched afterwards by a batched node-id pass (attachCommentReactions),
-// which stays two levels deep. When reactions are skipped none are requested.
-//
-// Issues are paged oldest-created-first: cursor pagination over a *mutable* sort
-// key loses rows, so the immutable createdAt is what the cursor walks.
+// graphQLIssuesQuery keeps comment reactions out: issues×comments×reactions exceeds GitHub's 500,000-node limit,
+// so attachCommentReactions fetches them separately. Paged by createdAt since a cursor over a mutable sort key loses rows.
 func (g *GithubDownloaderV3) graphQLIssuesQuery() string {
 	if g.gqlIssuesQuery == "" {
 		issueReactions := ""
 		if !g.SkipReactions {
 			issueReactions = "reactions(first:100){totalCount nodes{" + gqlReactionFields + "}}"
+		}
+		comments := ""
+		if !g.gqlSkipComments {
+			comments = "comments(first:100){totalCount nodes{id databaseId body createdAt updatedAt author{" + gqlActorFields + "}}}"
 		}
 		g.gqlIssuesQuery = fmt.Sprintf(`
 query($owner:String!,$name:String!,$cursor:String,$first:Int!){
@@ -440,32 +318,33 @@ query($owner:String!,$name:String!,$cursor:String,$first:Int!){
         labels(first:%[2]d){totalCount nodes{name color description}}
         assignees(first:%[3]d){totalCount nodes{login}}
         %[4]s
-        comments(first:100){
-          totalCount
-          nodes{
-            id databaseId body createdAt updatedAt
-            author{%[1]s}
-          }
-        }
+        %[5]s
       }
     }
   }
   rateLimit{cost remaining resetAt}
-}`, gqlActorFields, graphQLLabelPageSize, graphQLAssigneePageSize, issueReactions)
+}`, gqlActorFields, graphQLLabelPageSize, graphQLAssigneePageSize, issueReactions, comments)
 	}
 	return g.gqlIssuesQuery
 }
 
-// gqlPageInfo is a connection's cursor block, shared by every paged sweep.
 type gqlPageInfo struct {
 	HasNextPage bool   `json:"hasNextPage"`
 	EndCursor   string `json:"endCursor"`
 }
 
-// gqlActor is a GitHub Actor (a user, bot, organization or mannequin).
 type gqlActor struct {
 	Login      string `json:"login"`
 	DatabaseID int64  `json:"databaseId"`
+}
+
+// orGhost maps a deleted account, which GraphQL returns as null, to GitHub's ghost
+// user like the REST API does.
+func (a gqlActor) orGhost() gqlActor {
+	if a.Login == "" {
+		return gqlActor{Login: "ghost", DatabaseID: 10137}
+	}
+	return a
 }
 
 type gqlReactionNode struct {
@@ -474,14 +353,12 @@ type gqlReactionNode struct {
 }
 
 type gqlReactionConn struct {
-	// TotalCount lets the batched query detect when an entity's reactions
-	// overflowed the (capped) page returned, so the remainder can be swept.
 	TotalCount int               `json:"totalCount"`
 	Nodes      []gqlReactionNode `json:"nodes"`
 }
 
 type gqlComment struct {
-	ID         string    `json:"id"` // GraphQL node id, for the reactions node-id pass
+	ID         string    `json:"id"`
 	DatabaseID int64     `json:"databaseId"`
 	Body       string    `json:"body"`
 	CreatedAt  time.Time `json:"createdAt"`
@@ -489,8 +366,6 @@ type gqlComment struct {
 	Author     gqlActor  `json:"author"`
 }
 
-// gqlLabelConn and gqlAssigneeConn carry totalCount so an entity with more labels
-// or assignees than the query's page size is swept rather than truncated.
 type gqlLabelNode struct {
 	Name        string `json:"name"`
 	Color       string `json:"color"`
@@ -512,7 +387,7 @@ type gqlAssigneeConn struct {
 }
 
 type gqlIssue struct {
-	ID        string     `json:"id"` // GraphQL node id, for the reactions sweep and timeline pass
+	ID        string     `json:"id"`
 	Number    int64      `json:"number"`
 	Title     string     `json:"title"`
 	Body      string     `json:"body"`
@@ -520,7 +395,7 @@ type gqlIssue struct {
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
 	ClosedAt  *time.Time `json:"closedAt"`
-	Locked    bool       `json:"locked"` // the real locked boolean (activeLockReason is null when locked without a reason)
+	Locked    bool       `json:"locked"` // activeLockReason is null when locked without a reason
 	Author    gqlActor   `json:"author"`
 	Milestone *struct {
 		Title string `json:"title"`
@@ -544,23 +419,13 @@ type gqlIssuesResponse struct {
 	RateLimit graphQLRateLimit `json:"rateLimit"`
 }
 
-// getIssuesGraphQL fetches a page of issues (oldest created first) together with
-// their comments and reactions in a single request, caching the comments so
-// GetComments serves them from memory instead of re-fetching. Returns the issues,
-// whether this was the last page, and an error.
-//
-// page<=1 marks the first request of a sweep and resets the cursor, matching
-// getIssuesREST.
+// getIssuesGraphQL fetches a page of issues with their comments, caching the comments for GetComments.
 func (g *GithubDownloaderV3) getIssuesGraphQL(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
 	if page <= 1 {
 		g.gqlIssuesCursor = ""
 		log.Info("metadata sync [%s/%s]: issues — full sweep", g.repoOwner, g.repoName)
 	}
 
-	// The cache only has to outlive one page: the framework reads a page's
-	// comments before requesting the next page. Dropping it per page keeps a
-	// sweep that never reads it (an issues-only export) from holding every
-	// issue's comments for the whole run.
 	g.gqlComments = map[int64][]*base.Comment{}
 
 	vars := map[string]any{
@@ -578,10 +443,7 @@ func (g *GithubDownloaderV3) getIssuesGraphQL(ctx context.Context, page, perPage
 	g.recordGraphQLBudget(resp.RateLimit)
 
 	issues := make([]*base.Issue, 0, len(resp.Repository.Issues.Nodes))
-	// issue node id -> number, for the timeline node-id pass after this page
 	timelineTargets := map[string]int64{}
-	// GraphQL-fetched comments whose reactions are pulled by the batched node-id
-	// pass after this page is built (keyed by comment node id).
 	commentReactionTargets := map[string]*base.Comment{}
 	for i := range resp.Repository.Issues.Nodes {
 		node := &resp.Repository.Issues.Nodes[i]
@@ -607,8 +469,8 @@ func (g *GithubDownloaderV3) getIssuesGraphQL(ctx context.Context, page, perPage
 			Number:       node.Number,
 			Title:        node.Title,
 			Content:      node.Body,
-			PosterID:     node.Author.DatabaseID,
-			PosterName:   node.Author.Login,
+			PosterID:     node.Author.orGhost().DatabaseID,
+			PosterName:   node.Author.orGhost().Login,
 			State:        strings.ToLower(node.State),
 			Milestone:    milestone,
 			Created:      node.CreatedAt,
@@ -620,12 +482,11 @@ func (g *GithubDownloaderV3) getIssuesGraphQL(ctx context.Context, page, perPage
 			Reactions:    issueReactions,
 			ForeignIndex: node.Number,
 		})
+		if g.gqlSkipComments {
+			continue
+		}
 		timelineTargets[node.ID] = node.Number
 
-		// Cache the comments that came back with the issue so GetComments
-		// serves them for free. If the issue has more than one page of comments,
-		// fall back to REST for the complete set (correctness over the fast path;
-		// the REST path fetches comment reactions itself).
 		if node.Comments.TotalCount > len(node.Comments.Nodes) {
 			rest, err := g.getComments(ctx, &base.Issue{Number: node.Number, ForeignIndex: node.Number})
 			if err != nil {
@@ -641,34 +502,30 @@ func (g *GithubDownloaderV3) getIssuesGraphQL(ctx context.Context, page, perPage
 		}
 	}
 
-	// Advance only once the whole page converted: the framework retries a failed
-	// page with the SAME page number, so a cursor moved on before a mid-page error
-	// (a reaction sweep or the REST comment fallback failing) would make the retry
-	// return the NEXT page and drop this one's issues with no error surfacing.
+	// only after the page converted: a failed page is retried with the same page number
 	g.gqlIssuesCursor = resp.Repository.Issues.PageInfo.EndCursor
 
 	log.Info("metadata sync [%s/%s]: issues page %d — fetched %d issues, %d with timeline targets",
 		g.repoOwner, g.repoName, page, len(issues), len(timelineTargets))
 
-	// Comment reactions and timeline events are best-effort enrichments fetched
-	// in separate sweeps; a failure in either must never abort the
-	// issue/PR/comment import (see #37).
+	// best-effort enrichments that must not abort the import
 	if err := g.attachCommentReactions(ctx, commentReactionTargets); err != nil {
+		if ctx.Err() != nil {
+			return nil, false, err
+		}
 		log.Error("github graphql: comment reactions sync failed, importing without them: %v", err)
 	}
-	if len(timelineTargets) > 0 {
-		if err := g.attachTimelineEvents(ctx, timelineTargets); err != nil {
-			log.Error("github graphql: timeline events sync failed, importing without them: %v", err)
+	if err := g.attachTimelineEvents(ctx, timelineTargets); err != nil {
+		if ctx.Err() != nil {
+			return nil, false, err
 		}
+		log.Error("github graphql: timeline events sync failed, importing without them: %v", err)
 	}
 
 	return issues, !resp.Repository.Issues.PageInfo.HasNextPage, nil
 }
 
-// convertGraphQLComments maps a set of GraphQL comment nodes to base.Comment,
-// preserving order (1:1 with nodes). Reactions are NOT set here — comment
-// reactions are fetched separately by attachCommentReactions to keep the content
-// query shallow (see graphQLIssuesQuery).
+// convertGraphQLComments preserves order 1:1 with nodes; reactions come from attachCommentReactions.
 func convertGraphQLComments(issueNumber int64, nodes []gqlComment) []*base.Comment {
 	comments := make([]*base.Comment, 0, len(nodes))
 	for i := range nodes {
@@ -676,8 +533,8 @@ func convertGraphQLComments(issueNumber int64, nodes []gqlComment) []*base.Comme
 		comments = append(comments, &base.Comment{
 			IssueIndex: issueNumber,
 			Index:      c.DatabaseID,
-			PosterID:   c.Author.DatabaseID,
-			PosterName: c.Author.Login,
+			PosterID:   c.Author.orGhost().DatabaseID,
+			PosterName: c.Author.orGhost().Login,
 			Content:    c.Body,
 			Created:    c.CreatedAt,
 			Updated:    c.UpdatedAt,
@@ -686,10 +543,7 @@ func convertGraphQLComments(issueNumber int64, nodes []gqlComment) []*base.Comme
 	return comments
 }
 
-// graphQLPageSize is the connection size for one content page: the batch size the
-// framework asked for, capped at what the query shape can afford. Honouring
-// perPage matters — it is derived from the uploader's max batch insert size, and a
-// page larger than that overflows the DB's bind-parameter limit on insert.
+// perPage must be honoured: a larger page overflows the DB's bind-parameter limit on insert
 func graphQLPageSize(perPage, maxSize int) int {
 	if perPage <= 0 {
 		return maxSize
@@ -697,15 +551,7 @@ func graphQLPageSize(perPage, maxSize int) int {
 	return min(perPage, maxSize)
 }
 
-// --- single-node connection sweeps ----------------------------------------------
-//
-// The content queries cap every connection they carry, so an entity with more
-// labels, assignees, reviewers or reactions than the cap returns short. Each of
-// those is then paged in full by node id. Every such query aliases its connection
-// to `conn`, so one response shape and one loop (sweepNodeConnection) serves them
-// all.
-
-// gqlNodeConnResponse is the response shape of every single-node connection sweep.
+// gqlNodeConnResponse is shared by every single-node sweep query, which aliases its connection to `conn`.
 type gqlNodeConnResponse[T any] struct {
 	Node struct {
 		Conn struct {
@@ -716,8 +562,6 @@ type gqlNodeConnResponse[T any] struct {
 	RateLimit graphQLRateLimit `json:"rateLimit"`
 }
 
-// sweepNodeConnection pages one node's `conn` connection to its end, starting after
-// startCursor (empty for the first page), and returns every node it yields.
 func sweepNodeConnection[T any](ctx context.Context, g *GithubDownloaderV3, query, nodeID, startCursor string) ([]T, error) {
 	var all []T
 	cursor := startCursor
@@ -739,8 +583,6 @@ func sweepNodeConnection[T any](ctx context.Context, g *GithubDownloaderV3, quer
 	}
 }
 
-// graphQLLabelsSweepQuery pages the full label list of a single Labelable (issue or
-// pull request), addressed by its GraphQL node id.
 const graphQLLabelsSweepQuery = `
 query($id:ID!,$cursor:String){
   node(id:$id){
@@ -754,8 +596,6 @@ query($id:ID!,$cursor:String){
   rateLimit{cost remaining resetAt}
 }`
 
-// labelsWithSweep converts an entity's labels, paging the rest by node id when the
-// entity carries more of them than the content query asked for.
 func (g *GithubDownloaderV3) labelsWithSweep(ctx context.Context, nodeID string, conn gqlLabelConn) ([]*base.Label, error) {
 	nodes := conn.Nodes
 	if conn.TotalCount > len(nodes) && nodeID != "" {
@@ -772,7 +612,6 @@ func (g *GithubDownloaderV3) labelsWithSweep(ctx context.Context, nodeID string,
 	return labels, nil
 }
 
-// graphQLAssigneesSweepQuery pages the full assignee list of a single Assignable.
 const graphQLAssigneesSweepQuery = `
 query($id:ID!,$cursor:String){
   node(id:$id){
@@ -786,8 +625,6 @@ query($id:ID!,$cursor:String){
   rateLimit{cost remaining resetAt}
 }`
 
-// assigneesWithSweep converts an entity's assignee logins, paging the rest by node
-// id on overflow.
 func (g *GithubDownloaderV3) assigneesWithSweep(ctx context.Context, nodeID string, conn gqlAssigneeConn) ([]string, error) {
 	nodes := conn.Nodes
 	if conn.TotalCount > len(nodes) && nodeID != "" {
@@ -804,8 +641,6 @@ func (g *GithubDownloaderV3) assigneesWithSweep(ctx context.Context, nodeID stri
 	return assignees, nil
 }
 
-// graphQLReactionsSweepQuery pages the full reaction list for a single node (any
-// Reactable: issue, PR, or comment), addressed by its GraphQL node id.
 const graphQLReactionsSweepQuery = `
 query($id:ID!,$cursor:String){
   node(id:$id){
@@ -819,9 +654,6 @@ query($id:ID!,$cursor:String){
   rateLimit{cost remaining resetAt}
 }`
 
-// reactionsWithSweep converts an entity's (issue/PR) reactions. The batched query
-// caps the reaction page; when an entity has more reactions than the cap
-// returned, sweep the remainder by node id so nothing is silently dropped.
 func (g *GithubDownloaderV3) reactionsWithSweep(ctx context.Context, nodeID string, conn gqlReactionConn) ([]*base.Reaction, error) {
 	if conn.TotalCount > len(conn.Nodes) && nodeID != "" {
 		return g.sweepReactions(ctx, nodeID)
@@ -829,8 +661,6 @@ func (g *GithubDownloaderV3) reactionsWithSweep(ctx context.Context, nodeID stri
 	return convertGraphQLReactions(conn), nil
 }
 
-// sweepReactions fetches every reaction for one node over GraphQL. Used for the
-// rare entity or comment whose reactions overflowed the capped batched page.
 func (g *GithubDownloaderV3) sweepReactions(ctx context.Context, nodeID string) ([]*base.Reaction, error) {
 	nodes, err := sweepNodeConnection[gqlReactionNode](ctx, g, graphQLReactionsSweepQuery, nodeID, "")
 	if err != nil {
@@ -839,8 +669,6 @@ func (g *GithubDownloaderV3) sweepReactions(ctx context.Context, nodeID string) 
 	return convertGraphQLReactions(gqlReactionConn{TotalCount: len(nodes), Nodes: nodes}), nil
 }
 
-// convertGraphQLReactions maps GitHub's GraphQL reaction content enum
-// (THUMBS_UP, …) onto the REST/Gitea content strings (+1, …).
 func convertGraphQLReactions(conn gqlReactionConn) []*base.Reaction {
 	if len(conn.Nodes) == 0 {
 		return nil
@@ -848,23 +676,16 @@ func convertGraphQLReactions(conn gqlReactionConn) []*base.Reaction {
 	reactions := make([]*base.Reaction, 0, len(conn.Nodes))
 	for _, r := range conn.Nodes {
 		reactions = append(reactions, &base.Reaction{
-			UserID:   r.User.DatabaseID,
-			UserName: r.User.Login,
+			UserID:   r.User.orGhost().DatabaseID,
+			UserName: r.User.orGhost().Login,
 			Content:  graphQLReactionContent(r.Content),
 		})
 	}
 	return reactions
 }
 
-// nodeReactionsBatchSize is how many node ids are asked for reactions per request.
-// 100 ids × reactions(first:100) = 10k nodes, two levels deep — well under both
-// the node cap and the per-query compute budget.
 const nodeReactionsBatchSize = 100
 
-// graphQLNodeReactionsQuery fetches reactions for a batch of nodes by id in one
-// request. Two levels deep (nodes → reactions), so it avoids the compute-budget
-// blowup of nesting reactions under comments in the content query. Any Reactable
-// (issue, PR, comment) works; here it's used for comment ids.
 const graphQLNodeReactionsQuery = `
 query($ids:[ID!]!){
   nodes(ids:$ids){
@@ -874,32 +695,18 @@ query($ids:[ID!]!){
   rateLimit{cost remaining resetAt}
 }`
 
-// isGraphQLResourceLimited reports whether err is GitHub's
-// RESOURCE_LIMITS_EXCEEDED (the per-query compute budget, distinct from
-// RATE_LIMITED and the node cap).
+// isGraphQLResourceLimited reports GitHub's per-query compute budget refusing the query.
 func isGraphQLResourceLimited(err error) bool {
 	var ge graphQLError
 	return errors.As(err, &ge) && ge.Type == "RESOURCE_LIMITS_EXCEEDED"
 }
 
-// attachCommentReactions fetches reactions for the given comments (keyed by their
-// GraphQL node id) via the batched node-id pass and sets them in place, so the
-// cached comments carry reactions when they are handed over. No-op
-// when reactions are skipped.
 func (g *GithubDownloaderV3) attachCommentReactions(ctx context.Context, byNodeID map[string]*base.Comment) error {
 	if g.SkipReactions || len(byNodeID) == 0 {
 		return nil
 	}
-	ids := make([]string, 0, len(byNodeID))
-	for id := range byNodeID {
-		if id != "" {
-			ids = append(ids, id)
-		}
-	}
-	slices.Sort(ids) // deterministic batching
-	for start := 0; start < len(ids); start += nodeReactionsBatchSize {
-		end := min(start+nodeReactionsBatchSize, len(ids))
-		byID, err := g.fetchNodeReactions(ctx, ids[start:end])
+	for batch := range slices.Chunk(sortedNodeIDs(byNodeID), nodeReactionsBatchSize) {
+		byID, err := g.fetchNodeReactions(ctx, batch)
 		if err != nil {
 			return err
 		}
@@ -912,10 +719,6 @@ func (g *GithubDownloaderV3) attachCommentReactions(ctx context.Context, byNodeI
 	return nil
 }
 
-// fetchNodeReactions returns reactions for a batch of node ids. On
-// RESOURCE_LIMITS_EXCEEDED it halves the batch and retries (adaptive shrink)
-// rather than aborting; a node whose reactions overflow one page falls back to
-// the per-node sweep.
 func (g *GithubDownloaderV3) fetchNodeReactions(ctx context.Context, ids []string) (map[string][]*base.Reaction, error) {
 	if len(ids) == 0 {
 		return map[string][]*base.Reaction{}, nil
@@ -963,14 +766,7 @@ func (g *GithubDownloaderV3) fetchNodeReactions(ctx context.Context, ids []strin
 	return out, nil
 }
 
-// doGraphQLPageShrink runs a page query whose connection size is the $first
-// variable, halving the page and re-requesting the same cursor whenever the
-// transient retry budget is exhausted or the query exceeds GitHub's resource
-// limits. A deterministic 502 — one specific page
-// whose response payload is too heavy for GitHub's backend — never succeeds at
-// the same size, but does at a smaller one; the cursor still advances by
-// however many nodes the smaller page returned, and the next page starts back
-// at full size.
+// doGraphQLPageShrink halves $first and re-requests the same cursor while the page is too heavy.
 func (g *GithubDownloaderV3) doGraphQLPageShrink(ctx context.Context, query string, vars map[string]any, out any, fullSize int, what string) error {
 	for pageSize := fullSize; ; {
 		vars["first"] = pageSize
@@ -978,8 +774,6 @@ func (g *GithubDownloaderV3) doGraphQLPageShrink(ctx context.Context, query stri
 		if err == nil {
 			return nil
 		}
-		// RESOURCE_LIMITS_EXCEEDED is GitHub's per-query compute budget refusing the
-		// page outright; like a worn-out transient it only fits at a smaller size.
 		if !(errors.Is(err, errGraphQLTransientExhausted) || isGraphQLResourceLimited(err)) || pageSize <= 1 {
 			return err
 		}
@@ -994,19 +788,12 @@ func graphQLReactionContent(enum string) string {
 		return "+1"
 	case "THUMBS_DOWN":
 		return "-1"
-	case "LAUGH":
-		return "laugh"
-	case "HOORAY":
-		return "hooray"
-	case "CONFUSED":
-		return "confused"
-	case "HEART":
-		return "heart"
-	case "ROCKET":
-		return "rocket"
-	case "EYES":
-		return "eyes"
 	default:
 		return strings.ToLower(enum)
 	}
+}
+
+// sortedNodeIDs sorts for deterministic batching
+func sortedNodeIDs[V any](m map[string]V) []string {
+	return slices.DeleteFunc(slices.Sorted(maps.Keys(m)), func(id string) bool { return id == "" })
 }

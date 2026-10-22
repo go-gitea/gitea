@@ -5,9 +5,14 @@
 package migrations
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -497,12 +502,7 @@ func TestGithubMultiTokenClientSelection(t *testing.T) {
 	assert.Equal(t, 1, downloader.curClientIdx)
 }
 
-// TestGitHubIssuesPageBasedLinkFallback proves the issues sweep terminates against
-// a server whose Link header carries page numbers but no `after` cursor (older
-// GitHub Enterprise). Without the page-number fallback a full first page would be
-// re-requested forever: the request never advances (no cursor to send) and a full
-// page never looks like the end. Mock-only: api.github.com now always includes a
-// cursor in the Link header, so live mode cannot reproduce this shape.
+// older GitHub Enterprise sends page numbers without a cursor; api.github.com always sends one, so mock-only
 func TestGitHubIssuesPageBasedLinkFallback(t *testing.T) {
 	if os.Getenv("GITHUB_READ_TOKEN") != "" {
 		t.Skip("page-based-only Link headers cannot be re-recorded from api.github.com")
@@ -540,9 +540,6 @@ func TestGitHubIssuesPageBasedLinkFallback(t *testing.T) {
 	assert.Equal(t, []int64{1, 2, 3}, numbers)
 }
 
-// TestGithubFactoryUsesGraphQLOnlyWhereItWorks: GraphQL needs credentials and only
-// batches the issue and pull-request sweeps, so anonymous migrations and
-// comments-only dumps must stay on REST.
 func TestGithubFactoryUsesGraphQLOnlyWhereItWorks(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -561,6 +558,50 @@ func TestGithubFactoryUsesGraphQLOnlyWhereItWorks(t *testing.T) {
 			gd, ok := d.(*GithubDownloaderV3)
 			require.True(t, ok)
 			assert.Equal(t, tc.want, gd.useGraphQL)
+			assert.Equal(t, !tc.opts.Comments, gd.gqlSkipComments)
 		})
 	}
+}
+
+// GitBucket pages issues and pull requests by a fixed 25 and sends no Link header.
+func TestGitBucketPaginatesWithoutLinkHeader(t *testing.T) {
+	const total = 60
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+		page = max(page, 1)
+		var items []string
+		for n := (page-1)*25 + 1; n <= min(page*25, total); n++ {
+			items = append(items, fmt.Sprintf(`{"number":%d,"title":"t","state":"open"}`, n))
+		}
+		w.Header().Set("X-RateLimit-Remaining", "4000")
+		_, _ = w.Write([]byte("[" + strings.Join(items, ",") + "]"))
+	}))
+	defer srv.Close()
+
+	d, err := NewGitBucketDownloader(t.Context(), srv.URL, "", "", "", "o", "r")
+	require.NoError(t, err)
+
+	var issues int
+	for page := 1; ; page++ {
+		require.LessOrEqual(t, page, 5)
+		got, isEnd, err := d.GetIssues(t.Context(), page, 10)
+		require.NoError(t, err)
+		issues += len(got)
+		if isEnd {
+			break
+		}
+	}
+	assert.Equal(t, total, issues)
+
+	var prs int
+	for page := 1; ; page++ {
+		require.LessOrEqual(t, page, 5)
+		got, isEnd, err := d.GetPullRequests(t.Context(), page, 10)
+		require.NoError(t, err)
+		prs += len(got)
+		if isEnd {
+			break
+		}
+	}
+	assert.Equal(t, total, prs)
 }

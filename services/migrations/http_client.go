@@ -44,20 +44,10 @@ const (
 	retryMaxRetryAfter = 5 * time.Minute
 )
 
-// retryBaseDelay is the initial backoff between transport-level retries;
-// doubled each retry. A variable so tests can shrink it.
 var retryBaseDelay = time.Second
 
-// retryTransport wraps an http.RoundTripper and transparently retries migration
-// API requests that fail with transient errors: transient network failures (see
-// isTransientTransportError) and 5xx responses (e.g. a 502/503/504 from GitHub),
-// plus secondary-rate-limit responses (403/429) that carry a Retry-After. Without
-// this, a single transient hiccup — such as a 504 while fetching one issue's
-// reactions midway through a large repository's metadata sweep — aborts the entire
-// sync. Primary rate limit
-// (403 with X-RateLimit-Remaining: 0 and no Retry-After) is intentionally NOT
-// retried here; the downloader already waits for the reset window before its
-// calls, so we leave that handling to it.
+// retryTransport retries transient network failures, 5xx and rate limits with a Retry-After, so one hiccup does not
+// abort a whole sync. The primary rate limit is left to the downloader, which waits for the reset window.
 type retryTransport struct {
 	base       http.RoundTripper
 	maxRetries int
@@ -97,7 +87,7 @@ func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 				wait = min(ra, retryMaxRetryAfter)
 			}
 			// drain and close so the underlying connection can be reused
-			_, _ = io.Copy(io.Discard, resp.Body)
+			_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64*1024))
 			_ = resp.Body.Close()
 		}
 
@@ -133,12 +123,7 @@ func shouldRetryRequest(resp *http.Response, err error) bool {
 	return false
 }
 
-// isTransientTransportError reports whether a transport-level failure can plausibly
-// succeed on a retry. A permanent one — the target is refused by the allow/block
-// lists, does not resolve, or fails TLS verification — never will, so it must
-// surface immediately instead of spending the whole backoff budget first (and, with
-// the retrying downloader on top, three times over). Anything unrecognized stays
-// retryable: a reset connection or a truncated body is the common case.
+// isTransientTransportError: a blocked, unresolvable or untrusted target must fail fast instead of spending the backoff budget
 func isTransientTransportError(err error) bool {
 	if errors.Is(err, policy.ErrDenied) {
 		return false
@@ -159,9 +144,7 @@ func retryReason(resp *http.Response, err error) string {
 	return "HTTP " + strconv.Itoa(resp.StatusCode)
 }
 
-// parseRetryAfter parses a Retry-After header expressed in seconds. GitHub uses
-// the delta-seconds form; an HTTP-date form (or anything unparsable) yields 0 so
-// the caller falls back to exponential backoff.
+// parseRetryAfter only handles the delta-seconds form GitHub uses; anything else yields 0
 func parseRetryAfter(v string) time.Duration {
 	v = strings.TrimSpace(v)
 	if v == "" {

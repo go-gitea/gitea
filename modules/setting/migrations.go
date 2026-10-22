@@ -13,13 +13,7 @@ var Migrations = struct {
 	AllowedHostList string
 	BlockedHostList string
 	SkipTLSVerify   bool
-	// UseGraphQL routes GitHub migrations through the batched GraphQL fast path
-	// (see services/migrations/github_graphql.go), which fetches an issue or pull
-	// request together with its comments, reviews and reactions in one request
-	// instead of one request per entity. On by default; [migrations] USE_GRAPHQL
-	// = false falls back to the REST downloader (e.g. for a server or token that
-	// cannot use the GraphQL API). Non-GitHub migrations are unaffected.
-	UseGraphQL bool
+	UseGraphQL      bool
 }{
 	MaxAttempts:  3,
 	RetryBackoff: 3,
