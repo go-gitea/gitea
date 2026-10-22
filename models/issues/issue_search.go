@@ -289,7 +289,9 @@ func applyConditions(sess db.Session, opts *IssuesOptions) {
 	}
 
 	if opts.TimerTrackerID > 0 {
-		applyTimerTrackerCondition(sess, opts.TimerTrackerID)
+		sess.And(builder.In("issue.id",
+			builder.Select("issue_id").From("stopwatch").Where(builder.Eq{"user_id": opts.TimerTrackerID}),
+		))
 	}
 }
 
@@ -486,12 +488,6 @@ func applySubscribedCondition(sess db.Session, subscriberID int64) {
 			),
 		),
 	)
-}
-
-func applyTimerTrackerCondition(sess db.Session, timerTrackerID int64) {
-	sess.And(builder.In("issue.id",
-		builder.Select("issue_id").From("stopwatch").Where(builder.Eq{"user_id": timerTrackerID}),
-	))
 }
 
 // Issues returns a list of issues by given conditions.

@@ -84,7 +84,7 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			repoCond = builder.Eq{"repo_id": options.RepoIDs[0]}
 		}
 		subQuery := builder.Select("id").From("issue").Where(repoCond)
-		if options.TimerTrackerID.Has() { // the outer query checks repo access, so only the timed issues' comments need a scan
+		if options.TimerTrackerID.Has() {
 			subQuery = builder.Select("issue_id").From("stopwatch").Where(builder.Eq{"user_id": options.TimerTrackerID.Value()})
 		}
 		searchMode := util.IfZero(options.SearchMode, i.SupportedSearchModes()[0].ModeValue)
