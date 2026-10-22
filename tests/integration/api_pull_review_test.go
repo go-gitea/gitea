@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -231,6 +232,16 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	errMap := make(map[string]any)
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.Equal(t, "review requires a body or a comment", errMap["message"])
+
+	unknownCommitID := strings.Repeat("a", 40)
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{
+		Event:    api.ReviewStateComment,
+		CommitID: unknownCommitID,
+		Comments: []api.CreatePullReviewComment{{Path: "README.md", Body: "inline", NewLineNum: 1}},
+	}).AddTokenAuth(token)
+	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	assert.Equal(t, unknownCommitID, review.CommitID)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeCode, Content: "inline"})
 
 	// test get review requests
 	// to make it simple, use same api with get review

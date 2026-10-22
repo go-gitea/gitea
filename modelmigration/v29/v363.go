@@ -7,35 +7,27 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddRunnerGroups(_ context.Context, x base.EngineMigration) error {
-	type ActionRunner struct {
-		GroupID int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
-	}
-	type ActionRunJob struct {
-		RunsOnGroup string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-	}
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(ActionRunner), new(ActionRunJob)); err != nil {
+func AddReleaseIDToReaction(_ctx context.Context, x base.EngineMigration) error {
+	// rows older than v123 can hold NULL, which the unique index doesn't treat as a duplicate of ''
+	if _, err := x.Exec("UPDATE reaction SET original_author = '' WHERE original_author IS NULL"); err != nil {
 		return err
 	}
 
-	type ActionRunnerGroup struct {
-		ID                      int64  `xorm:"pk autoincr"`
-		OwnerID                 int64  `xorm:"UNIQUE(owner_name) NOT NULL DEFAULT 0"`
-		Name                    string `xorm:"VARCHAR(255) NOT NULL"`
-		LowerName               string `xorm:"VARCHAR(255) UNIQUE(owner_name) NOT NULL"`
-		IncludesAllRepositories bool   `xorm:"NOT NULL DEFAULT false"`
+	type Reaction struct {
+		ID int64 `xorm:"pk autoincr"`
+
+		UserID           int64  `xorm:"UNIQUE(s) NOT NULL"` // first unique column implies INDEX
+		IssueID          int64  `xorm:"UNIQUE(s) INDEX(issue_comment) NOT NULL"`
+		CommentID        int64  `xorm:"UNIQUE(s) INDEX(issue_comment) INDEX NOT NULL"`
+		ReleaseID        int64  `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT(0)"`
+		OriginalAuthorID int64  `xorm:"UNIQUE(s) NOT NULL DEFAULT(0)"`
+		OriginalAuthor   string `xorm:"UNIQUE(s) NOT NULL DEFAULT('')"`
+		Type             string `xorm:"UNIQUE(s) NOT NULL"`
+
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	}
-	type ActionRunnerAccess struct {
-		ID      int64 `xorm:"pk autoincr"`
-		GroupID int64 `xorm:"UNIQUE(group_repo) NOT NULL"`
-		RepoID  int64 `xorm:"INDEX UNIQUE(group_repo) NOT NULL"`
-	}
-	return x.Sync(new(ActionRunnerGroup), new(ActionRunnerAccess)) // plain Sync, the ignore flags above would skip the unique indexes
+	return x.Sync(new(Reaction))
 }
