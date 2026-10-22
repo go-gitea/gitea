@@ -5562,17 +5562,15 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "EditDeadlineOption": {
-        "description": "EditDeadlineOption options for creating a deadline",
+        "description": "EditDeadlineOption options for editing a deadline",
         "properties": {
           "due_date": {
+            "description": "Deadline is the updated due date for the issue or pull request, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
           }
         },
-        "required": [
-          "due_date"
-        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -5673,6 +5671,7 @@
             "x-go-name": "ContentVersion"
           },
           "due_date": {
+            "description": "Deadline is the updated due date for the issue, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -5752,7 +5751,7 @@
             "x-go-name": "Description"
           },
           "due_on": {
-            "description": "Deadline is the updated due date for the milestone",
+            "description": "Deadline is the due date for the milestone, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -5902,6 +5901,7 @@
             "x-go-name": "ContentVersion"
           },
           "due_date": {
+            "description": "Deadline is the updated due date for the pull request, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -7948,7 +7948,7 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "Milestone": {
-        "description": "Milestone milestone is a collection of issues on one repository",
+        "description": "Milestone is a collection of issues on one repository",
         "properties": {
           "closed_at": {
             "format": "date-time",
@@ -12800,6 +12800,7 @@
           },
           {
             "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned.",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -12807,10 +12808,12 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "filter notifications by subject type",
+            "explode": true,
             "in": "query",
             "name": "subject-type",
             "schema": {
@@ -12824,7 +12827,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
@@ -12893,6 +12897,7 @@
           },
           {
             "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread.",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -12900,7 +12905,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Status to mark notifications as, Defaults to read.",
@@ -19568,6 +19574,7 @@
           },
           {
             "description": "subpath of the repository to download",
+            "explode": true,
             "in": "query",
             "name": "path",
             "schema": {
@@ -19575,7 +19582,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           }
         ],
         "responses": {
@@ -27666,6 +27674,7 @@
           },
           {
             "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -27673,10 +27682,12 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "filter notifications by subject type",
+            "explode": true,
             "in": "query",
             "name": "subject-type",
             "schema": {
@@ -27690,7 +27701,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
@@ -27768,6 +27780,7 @@
           },
           {
             "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread.",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -27775,7 +27788,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Status to mark notifications as. Defaults to read.",
@@ -28903,6 +28917,7 @@
           },
           {
             "description": "Label IDs",
+            "explode": true,
             "in": "query",
             "name": "labels",
             "schema": {
@@ -28911,7 +28926,8 @@
                 "type": "integer"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Filter by pull request author",

@@ -83,7 +83,7 @@ type Tree struct {
 }
 
 // ListEntries returns all entries of current tree.
-func (t *Tree) ListEntries(ctx context.Context, gitRepo *Repository) (Entries, error) {
+func (t *Tree) ListEntries(_ctx context.Context, gitRepo *Repository) (Entries, error) {
 	if t.entriesParsed {
 		return t.entries, nil
 	}
@@ -109,36 +109,22 @@ func (t *Tree) ListEntries(ctx context.Context, gitRepo *Repository) (Entries, e
 			return nil, err
 		}
 	}
-	if info.Type == "tree" {
-		t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, info.Size)
+	if info.Type != "tree" { // resolve annotated tags to their tree, a blob yields ErrNotExist
+		if err := DiscardFull(rd, info.Size+1); err != nil {
+			return nil, err
+		}
+		info, rd, err = batch.QueryContent(t.ID.String() + "^{tree}")
 		if err != nil {
 			return nil, err
 		}
-		t.entriesParsed = true
-		return t.entries, nil
 	}
 
-	// Not a tree just use ls-tree instead
-	if err := DiscardFull(rd, info.Size+1); err != nil {
+	t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, info.Size)
+	if err != nil {
 		return nil, err
 	}
-
-	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).WithRepo(gitRepo).RunStdBytes(ctx)
-	if runErr != nil {
-		if gitcmd.IsStderr(runErr, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(runErr, gitcmd.StderrNotTreeObject) {
-			return nil, ErrNotExist{
-				ID: t.ID.String(),
-			}
-		}
-		return nil, runErr
-	}
-
-	t.entries, err = parseTreeEntries(stdout, t)
-	if err == nil {
-		t.entriesParsed = true
-	}
-
-	return t.entries, err
+	t.entriesParsed = true
+	return t.entries, nil
 }
 
 // listEntriesRecursive returns all entries of current tree recursively including all subtrees
