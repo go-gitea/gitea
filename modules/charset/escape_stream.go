@@ -36,24 +36,33 @@ type escapeStreamer struct {
 
 	inTagMath bool // MathML operators like U+2212 are intended and wrapping them breaks the math layout
 
+	results []detectResult // reused by detectRunes
+
 	out io.Writer
 }
 
-func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts ...EscapeOptions) (*EscapeStatus, error) {
+func newEscapeStreamer(locale translation.Locale, out io.Writer, opts ...EscapeOptions) *escapeStreamer {
 	es := &escapeStreamer{
 		escaped:         &EscapeStatus{},
 		locale:          locale,
 		ambiguousTables: AmbiguousTablesForLocale(locale),
-		htmlChunkReader: htmlChunkReader{
-			in:      in,
-			readBuf: make([]byte, 0, 32*1024),
-		},
-		out: out,
+		out:             out,
 	}
-
 	if len(opts) > 0 {
 		es.allowed = opts[0].Allowed
 	}
+	return es
+}
+
+func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts ...EscapeOptions) (*EscapeStatus, error) {
+	bufSize := 32 * 1024
+	if sr, ok := in.(*strings.Reader); ok {
+		bufSize = min(32*1024, max(512, sr.Len()))
+	} else if br, ok := in.(*bytes.Reader); ok {
+		bufSize = min(32*1024, max(512, br.Len()))
+	}
+	es := newEscapeStreamer(locale, out, opts...)
+	es.htmlChunkReader = htmlChunkReader{in: in, readBuf: make([]byte, 0, bufSize)}
 
 	readCount := 0
 	lastIsTag := false
@@ -66,32 +75,57 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 			return nil, err
 		}
 		for i, part := range parts {
-			if partInTag[i] {
-				lastIsTag = true
-				es.trackHtmlTag(part)
-				if _, err := out.Write(part); err != nil {
-					return nil, err
-				}
-			} else {
-				// if last part is tag, then this part is content begin
-				// if the content is the first part of the first read, then it's also content begin
-				isContentBegin := lastIsTag || (readCount == 1 && i == 0)
-				lastIsTag = false
-				if isContentBegin {
-					if part, err = es.trimAndWriteBom(part); err != nil {
-						return nil, err
-					}
-				}
-				if es.inTagMath {
-					if _, err := out.Write(part); err != nil {
-						return nil, err
-					}
-				} else if err = es.detectAndWriteRunes(part); err != nil {
-					return nil, err
-				}
+			// if last part is tag, then this part is content begin
+			// if the content is the first part of the first read, then it's also content begin
+			isContentBegin := lastIsTag || (readCount == 1 && i == 0)
+			lastIsTag = partInTag[i]
+			if err = es.writePart(part, partInTag[i], isContentBegin); err != nil {
+				return nil, err
 			}
 		}
 	}
+}
+
+// escapeString escapes a document that is completely in memory, splitting it like readRunes does at EOF,
+// but its parts are slices of s instead of copies
+func (e *escapeStreamer) escapeString(s string) *EscapeStatus {
+	data := util.UnsafeStringToBytes(s) // only read, never modified
+	inTag, lastIsTag := false, false
+	for pos, i := 0, 0; pos < len(data); i++ {
+		end, nextInTag := len(data), inTag
+		if inTag {
+			if idx := bytes.IndexByte(data[pos:], '>'); idx != -1 {
+				end, nextInTag = pos+idx+1, false
+			}
+		} else if idx := bytes.IndexByte(data[pos:], '<'); idx != -1 {
+			end, nextInTag = pos+idx, true
+		}
+		if end > pos {
+			isContentBegin := lastIsTag || i == 0
+			lastIsTag = inTag
+			_ = e.writePart(data[pos:end], inTag, isContentBegin) // writing to a strings.Builder never fails
+		}
+		pos, inTag = end, nextInTag
+	}
+	return e.escaped
+}
+
+func (e *escapeStreamer) writePart(part []byte, inTag, isContentBegin bool) (err error) {
+	if inTag {
+		e.trackHtmlTag(part)
+		_, err = e.out.Write(part)
+		return err
+	}
+	if isContentBegin {
+		if part, err = e.trimAndWriteBom(part); err != nil {
+			return err
+		}
+	}
+	if e.inTagMath {
+		_, err = e.out.Write(part)
+		return err
+	}
+	return e.detectAndWriteRunes(part)
 }
 
 // trackHtmlTag receives tag parts, a tag might be split into multiple parts
@@ -170,7 +204,21 @@ func (e *escapeStreamer) analyzeDetectResults(results []detectResult) {
 	}
 }
 
+// isSafeASCII reports whether s only has printable ASCII, tabs and newlines, which never need escaping
+func isSafeASCII[T ~string | ~[]byte](s T) bool {
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; (c < 0x20 || c > 0x7e) && c != '\t' && c != '\n' {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *escapeStreamer) detectAndWriteRunes(part []byte) error {
+	if isSafeASCII(part) { // none of its runes can need escaping, whatever runes surround them
+		_, err := e.out.Write(part)
+		return err
+	}
 	results := e.detectRunes(part)
 	e.analyzeDetectResults(results)
 	return e.writeDetectResults(part, results)
@@ -235,14 +283,16 @@ func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error
 		curPart := make([]byte, curPartLen)
 		copy(curPart, e.readBuf[pos:curPartEnd])
 		// now we get the curPart bytes, but we can't directly use it, the last rune in it might have been cut
-		// try to decode the last rune, if it's invalid, then we cut the last byte and try again until we get a valid rune or no byte left
-		for i := curPartLen - 1; i >= 0; i-- {
-			last, lastSize := utf8.DecodeRune(curPart[i:])
-			if last == utf8.RuneError && lastSize == 1 {
-				curPartLen--
-			} else {
-				curPartLen += lastSize - 1
-				break
+		// by the end of the buffer, then its bytes are left to the next read. Invalid bytes are never cut, otherwise
+		// they would be split off into a separate part, or even into the next tag part.
+		if curPartEnd == len(e.readBuf) && e.readErr == nil {
+			for i := curPartLen - 1; i >= max(curPartLen-utf8.UTFMax, 0); i-- {
+				if utf8.RuneStart(curPart[i]) {
+					if !utf8.FullRune(curPart[i:]) {
+						curPartLen = i
+					}
+					break
+				}
 			}
 		}
 		if curPartLen == 0 {
@@ -418,7 +468,11 @@ const (
 
 func (e *escapeStreamer) detectRunes(data []byte) []detectResult {
 	runeCount := utf8.RuneCount(data)
-	results := make([]detectResult, runeCount)
+	if cap(e.results) < runeCount {
+		e.results = make([]detectResult, runeCount)
+	}
+	results := e.results[:runeCount]
+	clear(results)
 	invisibleRangeTable := globalVars().invisibleRangeTable
 	var i int
 	var confusable rune
@@ -433,6 +487,8 @@ func (e *escapeStreamer) detectRunes(data []byte) []detectResult {
 		case r == utf8.RuneError:
 			results[i].runeType = runeTypeBroken
 			results[i].needEscape = true
+		case r >= 0x20 && r <= 0x7e:
+			results[i].runeType = runeTypeBasic
 		case r == ' ' || r == '\t' || r == '\n' || e.allowed[r]:
 			results[i].runeType = runeTypeBasic
 			if r >= 0x80 {

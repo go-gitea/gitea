@@ -4,8 +4,10 @@
 package charset
 
 import (
+	"html/template"
 	"strings"
 	"testing"
+	"testing/iotest"
 
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
@@ -142,6 +144,11 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 		status: EscapeStatus{Escaped: true, HasAmbiguous: true},
 	},
 	{
+		name:   "broken byte before tag",
+		text:   "00\xa9<b>",
+		result: `00<span class="broken-code-point">�</span><b>`,
+	},
+	{
 		name:   "ambiguous in math",
 		text:   "<math><mo>−</mo><mi>b</mi></math> −",
 		result: `<math><mo>−</mo><mi>b</mi></math> <span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character:− [U+2212],- [U+002D]"><span class="char">−</span></span>`,
@@ -158,6 +165,10 @@ func TestEscapeControlReader(t *testing.T) {
 			assert.Equal(t, tt.status, *status)
 			outStr := output.String()
 			assert.Equal(t, tt.result, outStr)
+
+			status, outHTML := EscapeControlHTML(template.HTML(tt.text), &translation.MockLocale{})
+			assert.Equal(t, tt.status, *status)
+			assert.EqualValues(t, tt.result, outHTML)
 		})
 	}
 }
@@ -234,4 +245,41 @@ func TestHTMLChunkReader(t *testing.T) {
 	testReadChunks(t, 5, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"Aé", false}, {"啊", false}, {"🌞", false}})
 	testReadChunks(t, 6, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
 	testReadChunks(t, 7, input, []textPart{{"<Aé啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
+}
+
+// FuzzEscapeControlHTML checks the in-memory path against the streaming one, and that the ASCII shortcut skips nothing
+func FuzzEscapeControlHTML(f *testing.F) {
+	for _, tt := range escapeControlTests {
+		f.Add(tt.text)
+	}
+	for _, s := range []string{
+		"a\u202ebc", "x\u200by", "a\u00a0b", "\ufeffpackage a", "<span>\ufeffa</span>", "a\rb", "a\x7fb", "a\xffb",
+		`<span class="s">"café"</span> <span class="n">x</span>`, "<math><mo>\u2212</mo></math>\u2212", "<a title=\"\u202e\">b</a>",
+		"&#x202E;", "\u0430dmin", "日本語のテキスト\u200bです", "<", ">", "a<b", "<b",
+	} {
+		f.Add(s)
+	}
+	defer test.MockVariableValue(&setting.UI.AmbiguousUnicodeDetection, true)()
+	locale := &translation.MockLocale{}
+	f.Fuzz(func(t *testing.T, s string) {
+		if len(s) > 16*1024 {
+			return // the streaming path reads longer input in several chunks and splits text parts at the chunk borders
+		}
+		// with EOF together with the data, the streaming path doesn't hold back a possibly incomplete last rune
+		want := &strings.Builder{}
+		wantStatus, err := escapeStream(locale, iotest.DataErrReader(strings.NewReader(s)), want)
+		require.NoError(t, err)
+		gotStatus, got := EscapeControlHTML(template.HTML(s), locale)
+		assert.Equal(t, *wantStatus, *gotStatus)
+		assert.Equal(t, want.String(), string(got))
+
+		if isSafeASCII(s) {
+			es := newEscapeStreamer(locale, &strings.Builder{})
+			results := es.detectRunes([]byte(s))
+			es.analyzeDetectResults(results)
+			for _, res := range results {
+				assert.False(t, res.needEscape, "%q at %d", res.runeChar, res.position)
+			}
+		}
+	})
 }
