@@ -97,19 +97,14 @@ func TestGithubIssuePagination(t *testing.T) {
 
 			_, _, err = downloader.GetIssues(t.Context(), 3, 2)
 			require.Error(t, err)
-			issues, isEnd, err = downloader.GetIssues(t.Context(), 3, 2)
-			require.NoError(t, err)
-			require.Len(t, issues, 2)
-			assert.EqualValues(t, 4, issues[0].Number)
-			assert.EqualValues(t, 5, issues[1].Number)
-			assert.True(t, isEnd)
-
-			issues, isEnd, err = downloader.GetIssues(t.Context(), 3, 2)
-			require.NoError(t, err)
-			require.Len(t, issues, 2)
-			assert.EqualValues(t, 4, issues[0].Number)
-			assert.EqualValues(t, 5, issues[1].Number)
-			assert.True(t, isEnd)
+			for range 2 {
+				issues, isEnd, err = downloader.GetIssues(t.Context(), 3, 2)
+				require.NoError(t, err)
+				require.Len(t, issues, 2)
+				assert.EqualValues(t, 4, issues[0].Number)
+				assert.EqualValues(t, 5, issues[1].Number)
+				assert.True(t, isEnd)
+			}
 
 			_, isEnd, err = downloader.GetIssues(t.Context(), 1, 2)
 			require.NoError(t, err)

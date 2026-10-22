@@ -432,16 +432,14 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 			Page:    page,
 		},
 	}
-	var cursor string
 	switch page {
 	case g.issuePage:
-		cursor = g.issueCursor
+		opt.After = g.issueCursor
 	case g.issuePage + 1:
-		cursor = g.nextIssueCursor
+		opt.After = g.nextIssueCursor
 	}
-	if cursor != "" {
+	if opt.After != "" {
 		opt.ListOptions.Page = 0
-		opt.ListCursorOptions.After = cursor
 	}
 
 	allIssues := make([]*base.Issue, 0, perPage)
@@ -515,7 +513,7 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 		})
 	}
 
-	g.issuePage, g.issueCursor, g.nextIssueCursor = page, cursor, resp.After
+	g.issuePage, g.issueCursor, g.nextIssueCursor = page, opt.After, resp.After
 	return allIssues, resp.NextPage == 0 && resp.After == "", nil
 }
 
