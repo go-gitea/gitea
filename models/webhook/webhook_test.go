@@ -74,9 +74,6 @@ func prepareWebhookTestData() error {
 		Events:      `{"push_only":true,"branch_filter":"{master,feature*}"}`,
 	})
 	ctx := context.Background()
-	if err := db.TruncateBeans(ctx, &Webhook{}); err != nil {
-		return err
-	}
 	if err := db.Insert(ctx, hooks); err != nil {
 		return err
 	}
@@ -86,9 +83,6 @@ func prepareWebhookTestData() error {
 	tasks = append(tasks, &HookTask{HookID: hook.ID, UUID: uuid.New().String()})
 	tasks = append(tasks, &HookTask{HookID: hook.ID, UUID: uuid.New().String()})
 	tasks = append(tasks, &HookTask{HookID: hook.ID, UUID: uuid.New().String()})
-	if err := db.TruncateBeans(ctx, &HookTask{}); err != nil {
-		return err
-	}
 	return db.Insert(ctx, tasks)
 }
 
@@ -101,6 +95,8 @@ func TestWebHookContentType(t *testing.T) {
 }
 
 func TestWebhook_History(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{RepoID: 1, IsActive: true})
 	tasks, err := hook.History(t.Context(), 0)
 	require.NoError(t, err)
@@ -113,7 +109,6 @@ func TestWebhook_History(t *testing.T) {
 }
 
 func TestWebhook_UpdateEvent(t *testing.T) {
-	webhook := unittest.AssertExistsAndLoadBean(t, &Webhook{RepoID: 1, IsActive: true})
 	hookEvent := &webhook_module.HookEvent{
 		PushOnly:       true,
 		SendEverything: false,
@@ -124,7 +119,7 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 			webhook_module.HookEventPullRequest: false,
 		},
 	}
-	webhook.HookEvent = hookEvent
+	webhook := &Webhook{HookEvent: hookEvent}
 	assert.NoError(t, webhook.UpdateEvent())
 	assert.NotEmpty(t, webhook.Events)
 	actualHookEvent := &webhook_module.HookEvent{}
@@ -154,6 +149,8 @@ func TestWebhook_EventsArray(t *testing.T) {
 }
 
 func TestCreateWebhook(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
 	hook := &Webhook{
 		RepoID:      3,
 		URL:         "https://www.example.com/unit_test",
@@ -166,6 +163,8 @@ func TestCreateWebhook(t *testing.T) {
 }
 
 func TestGetWebhookByRepoID(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{RepoID: 1, IsActive: true})
 	loaded, err := GetWebhookByRepoID(t.Context(), 1, hook.ID)
 	assert.NoError(t, err)
@@ -177,6 +176,8 @@ func TestGetWebhookByRepoID(t *testing.T) {
 }
 
 func TestGetWebhookByOwnerID(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{OwnerID: 3})
 	loaded, err := GetWebhookByOwnerID(t.Context(), 3, hook.ID)
 	require.NoError(t, err)
@@ -188,6 +189,8 @@ func TestGetWebhookByOwnerID(t *testing.T) {
 }
 
 func TestGetActiveWebhooksByRepoID(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{RepoID: 1, IsActive: true})
 	hooks, err := db.Find[Webhook](t.Context(), ListWebhookOptions{RepoID: 1, IsActive: optional.Some(true)})
 	require.NoError(t, err)
@@ -197,6 +200,8 @@ func TestGetActiveWebhooksByRepoID(t *testing.T) {
 }
 
 func TestGetWebhooksByRepoID(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hooks, err := db.Find[Webhook](t.Context(), ListWebhookOptions{RepoID: 1})
 	require.NoError(t, err)
 	require.Len(t, hooks, 2)
@@ -207,6 +212,8 @@ func TestGetWebhooksByRepoID(t *testing.T) {
 }
 
 func TestGetActiveWebhooksByOwnerID(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hooks, err := db.Find[Webhook](t.Context(), ListWebhookOptions{OwnerID: 3, IsActive: optional.Some(true)})
 	require.NoError(t, err)
 	require.Len(t, hooks, 1)
@@ -215,6 +222,8 @@ func TestGetActiveWebhooksByOwnerID(t *testing.T) {
 }
 
 func TestGetWebhooksByOwnerID(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hooks, err := db.Find[Webhook](t.Context(), ListWebhookOptions{OwnerID: 3})
 	require.NoError(t, err)
 	require.Len(t, hooks, 2)
@@ -225,6 +234,8 @@ func TestGetWebhooksByOwnerID(t *testing.T) {
 }
 
 func TestUpdateWebhook(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{RepoID: 1, Events: `{}`})
 	require.False(t, hook.IsActive)
 	hook.IsActive = true
@@ -235,6 +246,8 @@ func TestUpdateWebhook(t *testing.T) {
 }
 
 func TestDeleteWebhookByRepoID(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{RepoID: 1, Events: `{}`})
 	assert.NoError(t, DeleteWebhookByRepoID(t.Context(), 1, hook.ID))
 	unittest.AssertNotExistsBean(t, &Webhook{ID: hook.ID, RepoID: 1})
@@ -244,6 +257,8 @@ func TestDeleteWebhookByRepoID(t *testing.T) {
 }
 
 func TestDeleteWebhookByOwnerID(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{OwnerID: 3, Events: `{}`})
 	assert.NoError(t, DeleteWebhookByOwnerID(t.Context(), 3, hook.ID))
 	unittest.AssertNotExistsBean(t, &Webhook{ID: hook.ID, OwnerID: 3})
@@ -253,6 +268,8 @@ func TestDeleteWebhookByOwnerID(t *testing.T) {
 }
 
 func TestHookTasks(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{RepoID: 1, IsActive: true})
 	hookTasks, err := HookTasks(t.Context(), hook.ID, 1)
 	assert.NoError(t, err)
@@ -263,6 +280,8 @@ func TestHookTasks(t *testing.T) {
 }
 
 func TestCreateHookTask(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{OwnerID: 3, IsActive: true})
 	hookTask := &HookTask{HookID: hook.ID, PayloadVersion: 2}
 	unittest.AssertNotExistsBean(t, hookTask)
@@ -272,6 +291,8 @@ func TestCreateHookTask(t *testing.T) {
 }
 
 func TestUpdateHookTask(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{OwnerID: 3, IsActive: true})
 	hookTask := &HookTask{HookID: hook.ID, PayloadVersion: 2}
 	_, err := CreateHookTask(t.Context(), hookTask)
@@ -285,6 +306,8 @@ func TestUpdateHookTask(t *testing.T) {
 }
 
 func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
 	hook := &Webhook{RepoID: 3, URL: "https://www.example.com/cleanup1", ContentType: ContentTypeJSON, Events: `{"push_only":true}`}
 	require.NoError(t, db.Insert(t.Context(), hook))
 	hookTask := &HookTask{
@@ -303,6 +326,8 @@ func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 }
 
 func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
 	hook := &Webhook{RepoID: 3, URL: "https://www.example.com/cleanup2", ContentType: ContentTypeJSON, Events: `{"push_only":true}`}
 	require.NoError(t, db.Insert(t.Context(), hook))
 	hookTask := &HookTask{
@@ -320,6 +345,8 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 }
 
 func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
 	hook := &Webhook{RepoID: 3, URL: "https://www.example.com/cleanup3", ContentType: ContentTypeJSON, Events: `{"push_only":true}`}
 	require.NoError(t, db.Insert(t.Context(), hook))
 	hookTask := &HookTask{
@@ -338,6 +365,8 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 }
 
 func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
 	hook := &Webhook{RepoID: 3, URL: "https://www.example.com/cleanup4", ContentType: ContentTypeJSON, Events: `{"push_only":true}`}
 	require.NoError(t, db.Insert(t.Context(), hook))
 	hookTask := &HookTask{
@@ -356,6 +385,8 @@ func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 }
 
 func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
 	hook := &Webhook{RepoID: 3, URL: "https://www.example.com/cleanup5", ContentType: ContentTypeJSON, Events: `{"push_only":true}`}
 	require.NoError(t, db.Insert(t.Context(), hook))
 	hookTask := &HookTask{
@@ -373,6 +404,8 @@ func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
 }
 
 func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
 	hook := &Webhook{RepoID: 3, URL: "https://www.example.com/cleanup6", ContentType: ContentTypeJSON, Events: `{"push_only":true}`}
 	require.NoError(t, db.Insert(t.Context(), hook))
 	hookTask := &HookTask{
