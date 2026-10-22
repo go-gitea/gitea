@@ -16,12 +16,7 @@
 			<span class="ui small label">{{if .NumFiles}}{{.NumFiles}}{{else}}-{{end}}</span>
 		</a>
 		{{if or .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
-		<span class="tw-ml-auto tw-pl-3 tw-whitespace-nowrap tw-pr-0 tw-font-bold tw-flex tw-items-center tw-gap-2">
-			<span><span class="text green">{{if .DiffShortStat.TotalAddition}}+{{.DiffShortStat.TotalAddition}}{{end}}</span> <span class="text red">{{if .DiffShortStat.TotalDeletion}}-{{.DiffShortStat.TotalDeletion}}{{end}}</span></span>
-			<span class="diff-stats-bar">
-				<div class="diff-stats-add-bar" style="width: {{Eval 100 "*" .DiffShortStat.TotalAddition "/" "(" .DiffShortStat.TotalAddition "+" .DiffShortStat.TotalDeletion "+" 0.0 ")"}}%"></div>
-			</span>
-		</span>
+			{{template "repo/diff/stats" dict "Addition" .DiffShortStat.TotalAddition "Deletion" .DiffShortStat.TotalDeletion "Classes" "tw-ml-auto tw-pl-3 tw-font-semibold"}}
 		{{end}}
 	</div>
 	<div class="ui tabs divider"></div>

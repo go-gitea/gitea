@@ -4,8 +4,8 @@
 package sspi_test
 
 import (
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/services/auth/source/sspi"
+	"gitea.dev/models/auth"
+	"gitea.dev/services/auth/source/sspi"
 )
 
 // This test file exists to assert that our Source exposes the interfaces that we expect
@@ -15,4 +15,4 @@ type sourceInterface interface {
 	auth.Config
 }
 
-var _ (sourceInterface) = &sspi.Source{}
+var _ sourceInterface = &sspi.Source{}

@@ -8,16 +8,15 @@ import (
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/optional"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // ListMilestones list milestones for a repository
@@ -60,12 +59,7 @@ func ListMilestones(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	state := api.StateType(ctx.FormString("state"))
-	var isClosed optional.Option[bool]
-	switch state {
-	case api.StateClosed, api.StateOpen:
-		isClosed = optional.Some(state == api.StateClosed)
-	}
+	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
 	milestones, total, err := db.FindAndCount[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -153,20 +147,18 @@ func CreateMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Milestone"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.CreateMilestoneOption)
-
-	var deadlineUnix int64
-	if form.Deadline != nil {
-		deadlineUnix = form.Deadline.Unix()
-	}
+	form := web.GetForm[*api.CreateMilestoneOption](ctx)
 
 	milestone := &issues_model.Milestone{
-		RepoID:       ctx.Repo.Repository.ID,
-		Name:         form.Title,
-		Content:      form.Description,
-		DeadlineUnix: timeutil.TimeStamp(deadlineUnix),
+		RepoID:  ctx.Repo.Repository.ID,
+		Name:    form.Title,
+		Content: form.Description,
 	}
-
+	_, err := common.ApplyAPIDeadlineTimestamp(&milestone.DeadlineUnix, form.Deadline, nil)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
 	if form.State == "closed" {
 		milestone.IsClosed = true
 		milestone.ClosedDateUnix = timeutil.TimeStampNow()
@@ -213,9 +205,9 @@ func EditMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Milestone"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditMilestoneOption)
+	form := web.GetForm[*api.EditMilestoneOption](ctx)
 	milestone := getMilestoneByIDOrName(ctx)
-	if ctx.Written() {
+	if milestone == nil {
 		return
 	}
 
@@ -225,7 +217,10 @@ func EditMilestone(ctx *context.APIContext) {
 	if form.Description != nil {
 		milestone.Content = *form.Description
 	}
-	milestone.DeadlineUnix, _ = common.ParseAPIDeadlineToEndOfDay(form.Deadline)
+	if _, err := common.ApplyAPIDeadlineTimestamp(&milestone.DeadlineUnix, form.Deadline, nil); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
 
 	oldIsClosed := milestone.IsClosed
 	if form.State != nil {

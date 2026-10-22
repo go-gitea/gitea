@@ -7,22 +7,28 @@ import (
 	"context"
 	"strings"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
-	auth_module "code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	source_service "code.gitea.io/gitea/services/auth/source"
-	user_service "code.gitea.io/gitea/services/user"
+	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	auth_module "gitea.dev/modules/auth"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
+	source_service "gitea.dev/services/auth/source"
+	user_service "gitea.dev/services/user"
 )
 
 // Sync causes this ldap source to synchronize its users with the db
 func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers[%s]", source.AuthSource.Name)
+
+	// everything this sync changes is attributed to the authentication source,
+	// not to a signed-in user
+	ctx = audit.WithDoer(ctx, user_model.NewAuthSourceUser())
 
 	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 	var sshKeysNeedUpdate bool
@@ -131,11 +137,13 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			err = user_model.CreateUser(ctx, usr, &user_model.Meta{}, overwriteDefault)
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.AuthSource.Name, su.Username, err)
+			} else {
+				audit.Record(ctx, audit_model.UserCreate, usr)
 			}
 
 			if err == nil && isAttributeSSHPublicKeySet {
 				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.AuthSource.Name, usr.Name)
-				if asymkey_model.AddPublicKeysBySource(ctx, usr, source.AuthSource, su.SSHPublicKey) {
+				if asymkey_model.AddPublicKeysBySource(ctx, usr, source.AuthSource, su.SSHPublicKey, source.SSHKeysAreVerified) {
 					sshKeysNeedUpdate = true
 				}
 			}
@@ -145,7 +153,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
-			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, usr, source.AuthSource, su.SSHPublicKey) {
+			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, usr, source.AuthSource, su.SSHPublicKey, source.SSHKeysAreVerified) {
 				sshKeysNeedUpdate = true
 			}
 

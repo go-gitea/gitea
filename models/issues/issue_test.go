@@ -11,12 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
@@ -149,6 +151,8 @@ func TestUpdateIssueCols(t *testing.T) {
 
 func TestIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	publicOnlyUser2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	publicOnlyUser2.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:issue")
 	for _, test := range []struct {
 		Opts             issues_model.IssuesOptions
 		ExpectedIssueIDs []int64
@@ -196,6 +200,21 @@ func TestIssues(t *testing.T) {
 				MilestoneIDs: []int64{1},
 			},
 			[]int64{2},
+		},
+		{
+			issues_model.IssuesOptions{
+				SubscriberID: 11,
+			},
+			[]int64{11, 5, 9, 8, 3, 2, 1},
+		},
+		{
+			issues_model.IssuesOptions{
+				RepoCond: builder.In("repo_id", 1, 2),
+				Doer:     publicOnlyUser2,
+				IsPull:   optional.Some(false),
+				SortType: "oldest",
+			},
+			[]int64{1, 5},
 		},
 	} {
 		issues, err := issues_model.Issues(t.Context(), &test.Opts)
@@ -291,14 +310,11 @@ func TestIssue_ResolveMentions(t *testing.T) {
 
 func TestResourceIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-
 	var wg sync.WaitGroup
-	for i := range 100 {
-		wg.Add(1)
-		go func(i int) {
+	for i := range 10 {
+		wg.Go(func() {
 			testInsertIssue(t, fmt.Sprintf("issue %d", i+1), "my issue", 0)
-			wg.Done()
-		}(i)
+		})
 	}
 	wg.Wait()
 }
@@ -311,18 +327,12 @@ func TestCorrectIssueStats(t *testing.T) {
 	// maxQueryParameters + 10 issues into the testDatabase.
 	// Each new issues will have a constant description "Bugs are nasty"
 	// Which will be used later on.
-
+	defer test.MockVariableValue(&issues_model.MaxQueryParameters, 25)()
 	issueAmount := issues_model.MaxQueryParameters + 10
 
-	var wg sync.WaitGroup
 	for i := range issueAmount {
-		wg.Add(1)
-		go func(i int) {
-			testInsertIssue(t, fmt.Sprintf("Issue %d", i+1), "Bugs are nasty", 0)
-			wg.Done()
-		}(i)
+		testInsertIssue(t, fmt.Sprintf("Issue %d", i+1), "Bugs are nasty", 0)
 	}
-	wg.Wait()
 
 	// Now we will get all issueID's that match the "Bugs are nasty" query.
 	issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
@@ -418,10 +428,10 @@ func TestIssueLoadAttributes(t *testing.T) {
 		}
 		if issue.ID == int64(1) {
 			assert.Equal(t, int64(400), issue.TotalTrackedTime)
-			assert.NotNil(t, issue.Project)
-			assert.Equal(t, int64(1), issue.Project.ID)
+			assert.NotEmpty(t, issue.Projects)
+			assert.Equal(t, int64(1), issue.Projects[0].ID)
 		} else {
-			assert.Nil(t, issue.Project)
+			assert.Empty(t, issue.Projects)
 		}
 	}
 }

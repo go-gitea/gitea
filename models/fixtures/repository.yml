@@ -110,6 +110,8 @@
   num_closed_milestones: 0
   num_projects: 0
   num_closed_projects: 1
+  num_action_runs: 4
+  num_closed_action_runs: 3
   is_private: false
   is_empty: false
   is_archived: false
@@ -1786,3 +1788,5 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

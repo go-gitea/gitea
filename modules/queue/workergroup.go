@@ -10,11 +10,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 var (
-	infiniteTimerC         = make(chan time.Time)
+	noNotifyChan   chan struct{}
+	infiniteTimerC chan time.Time
+
 	batchDebounceDuration  = 100 * time.Millisecond
 	workerIdleDuration     = 1 * time.Second
 	shutdownDefaultTimeout = 2 * time.Second

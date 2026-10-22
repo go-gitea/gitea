@@ -8,16 +8,16 @@ import (
 	"strconv"
 	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/json"
-	lfs_module "code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	auth_model "gitea.dev/models/auth"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/json"
+	lfs_module "gitea.dev/modules/lfs"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 func handleLockListOut(ctx *context.Context, repo *repo_model.Repository, lock *git_model.LFSLock, err error) {
@@ -59,7 +59,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	if ctx.Written() {
 		return
 	}
@@ -90,7 +90,7 @@ func GetListLockHandler(ctx *context.Context) {
 			})
 			return
 		}
-		lock, err := git_model.GetLFSLockByID(ctx, v)
+		lock, err := git_model.GetLFSLockByIDAndRepo(ctx, v, repository.ID)
 		if err != nil && !git_model.IsErrLFSLockNotExist(err) {
 			log.Error("Unable to get lock with ID[%s]: Error: %v", v, err)
 		}
@@ -148,7 +148,7 @@ func PostLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
+	context.CheckRepoScopedToken(ctx, auth_model.Write)
 	if ctx.Written() {
 		return
 	}
@@ -187,13 +187,6 @@ func PostLockHandler(ctx *context.Context) {
 			})
 			return
 		}
-		if git_model.IsErrLFSUnauthorizedAction(err) {
-			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
-			ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
-				Message: "You must have push access to create locks : " + err.Error(),
-			})
-			return
-		}
 		log.Error("Unable to CreateLFSLock in repository %-v at %s for user %-v: Error: %v", repository, req.Path, ctx.Doer, err)
 		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
 			Message: "internal server error : Internal Server Error",
@@ -220,7 +213,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	if ctx.Written() {
 		return
 	}
@@ -288,7 +281,7 @@ func UnLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
+	context.CheckRepoScopedToken(ctx, auth_model.Write)
 	if ctx.Written() {
 		return
 	}
@@ -317,13 +310,6 @@ func UnLockHandler(ctx *context.Context) {
 
 	lock, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), repository, ctx.Doer, req.Force)
 	if err != nil {
-		if git_model.IsErrLFSUnauthorizedAction(err) {
-			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
-			ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
-				Message: "You must have push access to delete locks : " + err.Error(),
-			})
-			return
-		}
 		log.Error("Unable to DeleteLFSLockByID[%d] by user %-v with force %t: Error: %v", ctx.PathParamInt64("lid"), ctx.Doer, req.Force, err)
 		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
 			Message: "unable to delete lock : Internal Server Error",

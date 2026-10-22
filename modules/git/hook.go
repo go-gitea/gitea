@@ -11,7 +11,8 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/util"
 )
 
 // hookNames is a list of Git server hooks' name that are supported.
@@ -39,7 +40,8 @@ type Hook struct {
 }
 
 // GetHook returns a Git hook by given name and repository.
-func GetHook(repoPath, name string) (*Hook, error) {
+func GetHook(repo RepositoryFacade, name string) (*Hook, error) {
+	repoPath := gitrepo.RepoLocalPath(repo)
 	if !IsValidHookName(name) {
 		return nil, ErrNotValidHook
 	}
@@ -47,30 +49,16 @@ func GetHook(repoPath, name string) (*Hook, error) {
 		name: name,
 		path: filepath.Join(repoPath, filepath.Join("hooks", name+".d", name)),
 	}
-	isFile, err := util.IsFile(h.path)
-	if err != nil {
-		return nil, err
-	}
-	if isFile {
-		data, err := os.ReadFile(h.path)
-		if err != nil {
-			return nil, err
-		}
+	if data, err := os.ReadFile(h.path); err == nil {
 		h.IsActive = true
 		h.Content = string(data)
 		return h, nil
+	} else if !os.IsNotExist(err) {
+		return nil, err
 	}
 
 	samplePath := filepath.Join(repoPath, "hooks", name+".sample")
-	isFile, err = util.IsFile(samplePath)
-	if err != nil {
-		return nil, err
-	}
-	if isFile {
-		data, err := os.ReadFile(samplePath)
-		if err != nil {
-			return nil, err
-		}
+	if data, err := os.ReadFile(samplePath); err == nil {
 		h.Sample = string(data)
 	}
 	return h, nil
@@ -84,15 +72,10 @@ func (h *Hook) Name() string {
 // Update updates hook settings.
 func (h *Hook) Update() error {
 	if len(strings.TrimSpace(h.Content)) == 0 {
-		exist, err := util.IsExist(h.path)
-		if err != nil {
+		// empty content means to remove the file
+		err := util.RemoveWithRetry(h.path)
+		if err != nil && !os.IsNotExist(err) {
 			return err
-		}
-		if exist {
-			err := util.Remove(h.path)
-			if err != nil {
-				return err
-			}
 		}
 		h.IsActive = false
 		return nil
@@ -111,8 +94,8 @@ func (h *Hook) Update() error {
 }
 
 // ListHooks returns a list of Git hooks of given repository.
-func ListHooks(repoPath string) (_ []*Hook, err error) {
-	exist, err := util.IsDir(filepath.Join(repoPath, "hooks"))
+func ListHooks(repo RepositoryFacade) (_ []*Hook, err error) {
+	exist, err := util.IsDir(filepath.Join(gitrepo.RepoLocalPath(repo), "hooks"))
 	if err != nil {
 		return nil, err
 	} else if !exist {
@@ -121,7 +104,7 @@ func ListHooks(repoPath string) (_ []*Hook, err error) {
 
 	hooks := make([]*Hook, len(hookNames))
 	for i, name := range hookNames {
-		hooks[i], err = GetHook(repoPath, name)
+		hooks[i], err = GetHook(repo, name)
 		if err != nil {
 			return nil, err
 		}

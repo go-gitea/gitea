@@ -1,4 +1,3 @@
-import {decode, encode} from 'uint8-to-base64';
 import type {IssuePageInfo, IssuePathInfo, RepoOwnerPathInfo} from './types.ts';
 import {toggleElemClass, toggleElem} from './utils/dom.ts';
 
@@ -14,18 +13,25 @@ export function basename(path: string): string {
   return lastSlashIndex < 0 ? path : path.substring(lastSlashIndex + 1);
 }
 
-/** transform /path/to/file.ext to .ext */
+/** transform /path/to/file.ext to .ext, dotfiles like /path/to/.gitignore have no extension */
 export function extname(path: string): string {
-  const lastSlashIndex = path.lastIndexOf('/');
   const lastPointIndex = path.lastIndexOf('.');
-  if (lastSlashIndex > lastPointIndex) return '';
-  return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
+  if (lastPointIndex <= path.lastIndexOf('/') + 1) return '';
+  return path.substring(lastPointIndex);
 }
 
 /** test whether a variable is an object */
-export function isObject(obj: any): boolean {
+export function isObject(obj: unknown): obj is Record<string, unknown> {
   return Object.prototype.toString.call(obj) === '[object Object]';
 }
+
+/** Whether the current platform is macOS or iOS. */
+export const isMac = /Mac/i.test(navigator.userAgent);
+
+/** Platform-aware display symbols for keyboard modifier and special keys. */
+export const keySymbols: Record<string, string> = isMac ?
+  {Mod: '⌘', Alt: '⌥', Shift: '⇧', Ctrl: '⌃', Up: '↑', Down: '↓', Enter: '⏎'} :
+  {Mod: 'Ctrl', Shift: 'Shift', Alt: 'Alt', Up: '↑', Down: '↓', Enter: '⏎'};
 
 /** returns whether a dark theme is enabled */
 export function isDarkTheme(): boolean {
@@ -43,33 +49,32 @@ export function stripTags(text: string): string {
   return text;
 }
 
-export function parseIssueHref(href: string): IssuePathInfo {
+export function parseIssueHref(href: string): IssuePathInfo | null {
   // FIXME: it should use pathname and trim the appSubUrl ahead
   const path = (href || '').replace(/[#?].*$/, '');
-  const [_, ownerName, repoName, pathType, indexString] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
+  const match = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path);
+  if (!match) return null;
+  const [, ownerName, repoName, pathType, indexString] = match;
   return {ownerName, repoName, pathType, indexString};
 }
 
-export function parseRepoOwnerPathInfo(pathname: string): RepoOwnerPathInfo {
+export function parseRepoOwnerPathInfo(pathname: string): RepoOwnerPathInfo | null {
   const appSubUrl = window.config.appSubUrl;
   if (appSubUrl && pathname.startsWith(appSubUrl)) pathname = pathname.substring(appSubUrl.length);
-  const [_, ownerName, repoName] = /([^/]+)\/([^/]+)/.exec(pathname) || [];
+  const match = /([^/]+)\/([^/]+)/.exec(pathname);
+  if (!match) return null;
+  const [, ownerName, repoName] = match;
   return {ownerName, repoName};
 }
 
 export function parseIssuePageInfo(): IssuePageInfo {
   const el = document.querySelector('#issue-page-info');
   return {
-    issueNumber: parseInt(el?.getAttribute('data-issue-index')),
+    issueNumber: parseInt(el?.getAttribute('data-issue-index') || ''),
     issueDependencySearchType: el?.getAttribute('data-issue-dependency-search-type') || '',
-    repoId: parseInt(el?.getAttribute('data-issue-repo-id')),
+    repoId: parseInt(el?.getAttribute('data-issue-repo-id') || ''),
     repoLink: el?.getAttribute('data-issue-repo-link') || '',
   };
-}
-
-/** parse a URL, either relative '/path' or absolute 'https://localhost/path' */
-export function parseUrl(str: string): URL {
-  return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
 }
 
 /** return current locale chosen by user */
@@ -93,14 +98,18 @@ export function blobToDataURI(blob: Blob): Promise<string> {
     try {
       const reader = new FileReader();
       reader.addEventListener('load', (e) => {
-        resolve(e.target.result as string);
+        if (e.target) {
+          resolve(e.target.result as string);
+        } else {
+          reject(new Error('blobToDataURI: FileReader failed'));
+        }
       });
       reader.addEventListener('error', () => {
-        reject(new Error('FileReader failed'));
+        reject(new Error('blobToDataURI: FileReader error'));
       });
       reader.readAsDataURL(blob);
-    } catch (err) {
-      reject(err);
+    } catch (err: unknown) {
+      reject(err instanceof Error ? err : new Error(String(err)));
     }
   });
 }
@@ -116,41 +125,29 @@ export function convertImage(blob: Blob, mime: string): Promise<Blob> {
           canvas.width = img.naturalWidth;
           canvas.height = img.naturalHeight;
           const context = canvas.getContext('2d');
+          if (!context) return reject(new Error('convertImage: no context'));
           context.drawImage(img, 0, 0);
           canvas.toBlob((blob) => {
-            if (!(blob instanceof Blob)) return reject(new Error('imageBlobToPng failed'));
+            if (!(blob instanceof Blob)) return reject(new Error('convertImage: toBlob failed'));
             resolve(blob);
           }, mime);
-        } catch (err) {
-          reject(err);
+        } catch (err: unknown) {
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
       });
       img.addEventListener('error', () => {
-        reject(new Error('imageBlobToPng failed'));
+        reject(new Error('convertImage: image failed to load'));
       });
       img.src = await blobToDataURI(blob);
-    } catch (err) {
-      reject(err);
+    } catch (err: unknown) {
+      reject(err instanceof Error ? err : new Error(String(err)));
     }
   });
 }
 
-export function toAbsoluteUrl(url: string): string {
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  if (url.startsWith('//')) {
-    return `${window.location.protocol}${url}`; // it's also a somewhat absolute URL (with the current scheme)
-  }
-  if (url && !url.startsWith('/')) {
-    throw new Error('unsupported url, it should either start with / or http(s)://');
-  }
-  return `${window.location.origin}${url}`;
-}
-
 /** Encode an Uint8Array into a URLEncoded base64 string. */
 export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
-  return encode(uint8Array)
+  return btoa(Array.from(uint8Array, (byte) => String.fromCharCode(byte)).join(''))
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
@@ -158,9 +155,7 @@ export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
 
 /** Decode a URLEncoded base64 to an Uint8Array. */
 export function decodeURLEncodedBase64(base64url: string): Uint8Array {
-  return decode(base64url
-    .replace(/_/g, '/')
-    .replace(/-/g, '+'));
+  return Uint8Array.from(atob(base64url.replace(/_/g, '/').replace(/-/g, '+')), (ch) => ch.charCodeAt(0));
 }
 
 const domParser = new DOMParser();
@@ -178,28 +173,37 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function isImageFile({name, type}: {name?: string, type?: string}): boolean {
-  return /\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
+export function isImageFile({name, type}: {name: string | null, type: string | null}): boolean {
+  return Boolean(/\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/'));
 }
 
-export function isVideoFile({name, type}: {name?: string, type?: string}): boolean {
-  return /\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/');
+export function isVideoFile({name, type}: {name: string | null, type: string | null}): boolean {
+  return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
 }
 
-export function toggleFullScreen(fullscreenElementsSelector: string, isFullScreen: boolean, sourceParentSelector?: string): void {
+const byteUnits = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
+
+export function formatBytes(num: number, precision = 2): string {
+  if (!Number.isFinite(num) || num < 0) return `0 ${byteUnits[0]}`;
+  if (num < 1024) return `${num} ${byteUnits[0]}`;
+  const exp = Math.min(Math.floor(Math.log2(num) / 10), byteUnits.length - 1);
+  const value = num / (1024 ** exp);
+  const digits = Math.max(0, precision - 1 - Math.floor(Math.log10(value)));
+  return `${value.toFixed(digits)} ${byteUnits[exp]}`;
+}
+
+export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {
   // hide other elements
-  const headerEl = document.querySelector('#navbar');
-  const contentEl = document.querySelector('.page-content');
-  const footerEl = document.querySelector('.page-footer');
+  const headerEl = document.querySelector('#navbar')!;
+  const contentEl = document.querySelector('.page-content')!;
+  const footerEl = document.querySelector('.page-footer')!;
   toggleElem(headerEl, !isFullScreen);
   toggleElem(contentEl, !isFullScreen);
   toggleElem(footerEl, !isFullScreen);
 
-  const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector) : contentEl;
-
-  const fullScreenEl = document.querySelector(fullscreenElementsSelector);
-  const outerEl = document.querySelector('.full.height');
-  toggleElemClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
+  const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector)! : contentEl;
+  const outerEl = document.querySelector('.full.height')!;
+  toggleElemClass(fullScreenEl, 'fullscreen', isFullScreen);
   if (isFullScreen) {
     outerEl.append(fullScreenEl);
   } else {

@@ -5,7 +5,7 @@
 {{if eq .HookType "gitea"}}
 	{{svg "gitea-gitea" $size "img"}}
 {{else if eq .HookType "gogs"}}
-	<img alt width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/gogs.ico">
+	<img alt width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/gogs.png">
 {{else if eq .HookType "slack"}}
 	<img alt width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/slack.png">
 {{else if eq .HookType "discord"}}

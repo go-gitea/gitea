@@ -13,11 +13,13 @@ import (
 	"strings"
 	"time"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // This file contains functions for creating authorized_principals files
@@ -25,10 +27,7 @@ import (
 // There is a dependence on the database within RewriteAllPrincipalKeys & RegeneratePrincipalKeys
 // The sshOpLocker is used from ssh_key_authorized_keys.go
 
-const (
-	authorizedPrincipalsFile = "authorized_principals"
-	tplCommentPrefix         = `# gitea public key`
-)
+const authorizedPrincipalsFile = "authorized_principals"
 
 // RewriteAllPrincipalKeys removes any authorized principal and rewrite all keys from database again.
 // Note: db.GetEngine(ctx).Iterate does not get latest data after insert/delete, so we have to call this function
@@ -64,8 +63,8 @@ func rewriteAllPrincipalKeys(ctx context.Context) error {
 		return err
 	}
 	defer func() {
-		t.Close()
-		os.Remove(tmpPath)
+		_ = t.Close()
+		_ = util.RemoveWithRetry(tmpPath)
 	}()
 
 	if setting.SSH.AuthorizedPrincipalsBackup {
@@ -86,14 +85,13 @@ func rewriteAllPrincipalKeys(ctx context.Context) error {
 		return err
 	}
 
-	t.Close()
-	return util.Rename(tmpPath, fPath)
+	_ = t.Close()
+	return util.RenameWithRetry(tmpPath, fPath)
 }
 
-func regeneratePrincipalKeys(ctx context.Context, t io.StringWriter) error {
-	if err := db.GetEngine(ctx).Where("type = ?", asymkey_model.KeyTypePrincipal).Iterate(new(asymkey_model.PublicKey), func(idx int, bean any) (err error) {
-		_, err = t.WriteString((bean.(*asymkey_model.PublicKey)).AuthorizedString())
-		return err
+func regeneratePrincipalKeys(ctx context.Context, t io.Writer) error {
+	if err := db.Iterate(ctx, builder.Eq{"type": asymkey_model.KeyTypePrincipal}, func(ctx context.Context, key *asymkey_model.PublicKey) error {
+		return asymkey_model.WriteAuthorizedStringForValidKey(key, t)
 	}); err != nil {
 		return err
 	}
@@ -114,11 +112,11 @@ func regeneratePrincipalKeys(ctx context.Context, t io.StringWriter) error {
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			line := scanner.Text()
-			if strings.HasPrefix(line, tplCommentPrefix) {
+			if strings.HasPrefix(line, asymkey_model.AuthorizedStringCommentPrefix) {
 				scanner.Scan()
 				continue
 			}
-			_, err = t.WriteString(line + "\n")
+			_, err = io.WriteString(t, line+"\n")
 			if err != nil {
 				return err
 			}

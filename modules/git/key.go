@@ -5,10 +5,8 @@ package git
 
 import (
 	"context"
-	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 )
 
 // Based on https://git-scm.com/docs/git-config#Documentation/git-config.txt-gpgformat
@@ -32,46 +30,26 @@ func (s *SigningKey) String() string {
 }
 
 // GetSigningKey returns the KeyID and git Signature for the repo
-func GetSigningKey(ctx context.Context, repoPath string) (*SigningKey, *Signature) {
+func GetSigningKey(ctx context.Context) (*SigningKey, *Signature) {
 	if setting.Repository.Signing.SigningKey == "none" {
 		return nil, nil
 	}
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
-		// Can ignore the error here as it means that commit.gpgsign is not set
-		value, _, _ := gitcmd.NewCommand("config", "--get", "commit.gpgsign").WithDir(repoPath).RunStdString(ctx)
-		sign, valid := ParseBool(strings.TrimSpace(value))
-		if !sign || !valid {
+		commitSignSettings := GlobalCommitSignSettings.Value()
+		if !commitSignSettings.Sign {
 			return nil, nil
 		}
-
-		format, _, _ := gitcmd.NewCommand("config", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").WithDir(repoPath).RunStdString(ctx)
-		signingKey, _, _ := gitcmd.NewCommand("config", "--get", "user.signingkey").WithDir(repoPath).RunStdString(ctx)
-		signingName, _, _ := gitcmd.NewCommand("config", "--get", "user.name").WithDir(repoPath).RunStdString(ctx)
-		signingEmail, _, _ := gitcmd.NewCommand("config", "--get", "user.email").WithDir(repoPath).RunStdString(ctx)
-
-		if strings.TrimSpace(signingKey) == "" {
-			return nil, nil
-		}
-
-		return &SigningKey{
-				KeyID:  strings.TrimSpace(signingKey),
-				Format: strings.TrimSpace(format),
-			}, &Signature{
-				Name:  strings.TrimSpace(signingName),
-				Email: strings.TrimSpace(signingEmail),
-			}
+		sigKey := &SigningKey{KeyID: commitSignSettings.KeyID, Format: commitSignSettings.Format}
+		sig := &Signature{Name: commitSignSettings.Name, Email: commitSignSettings.Email}
+		return sigKey, sig
 	}
 
 	if setting.Repository.Signing.SigningKey == "" {
 		return nil, nil
 	}
 
-	return &SigningKey{
-			KeyID:  setting.Repository.Signing.SigningKey,
-			Format: setting.Repository.Signing.SigningFormat,
-		}, &Signature{
-			Name:  setting.Repository.Signing.SigningName,
-			Email: setting.Repository.Signing.SigningEmail,
-		}
+	sigKey := &SigningKey{KeyID: setting.Repository.Signing.SigningKey, Format: setting.Repository.Signing.SigningFormat}
+	sig := &Signature{Name: setting.Repository.Signing.SigningName, Email: setting.Repository.Signing.SigningEmail}
+	return sigKey, sig
 }

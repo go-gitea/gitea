@@ -9,16 +9,16 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/release"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitcmd"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/release"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -149,19 +149,24 @@ func TestRepushTag(t *testing.T) {
 		// delete the tag
 		_, _, err = gitcmd.NewCommand("push", "origin", "--delete", "v2.0").WithDir(dstPath).RunStdString(t.Context())
 		assert.NoError(t, err)
-		// query the release by API and it should be a draft
+
+		// query the release by API with no auth and it should be 404
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0"))
+		MakeRequest(t, req, http.StatusNotFound)
+
+		// query the release by API and it should be a draft
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0")).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var respRelease *api.Release
-		DecodeJSON(t, resp, &respRelease)
+		respRelease := DecodeJSON(t, resp, &api.Release{})
 		assert.True(t, respRelease.IsDraft)
+
 		// re-push the tag
 		_, _, err = gitcmd.NewCommand("push", "origin", "--tags", "v2.0").WithDir(dstPath).RunStdString(t.Context())
 		assert.NoError(t, err)
 		// query the release by API and it should not be a draft
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0"))
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &respRelease)
+		respRelease = DecodeJSON(t, resp, &api.Release{})
 		assert.False(t, respRelease.IsDraft)
 	})
 }

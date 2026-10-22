@@ -12,6 +12,7 @@
 				{{end}}
 				{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}<br>
 				{{ctx.Locale.Tr "auth.authorize_application_with_scopes" (HTMLFormat "<b>%s</b>" .Scope)}}
+				{{if .AddedScopes}}<br>{{ctx.Locale.Tr "auth.authorize_application_new_scopes" (HTMLFormat "<b>%s</b>" (StringUtils.Join .AddedScopes " "))}}{{end}}
 			</p>
 		</div>
 		<div class="ui attached segment">
@@ -19,7 +20,6 @@
 		</div>
 		<div class="ui attached segment tw-text-center">
 			<form method="post" action="{{AppSubUrl}}/login/oauth/grant">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
 				<input type="hidden" name="state" value="{{.State}}">
 				<input type="hidden" name="scope" value="{{.Scope}}">

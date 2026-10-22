@@ -5,10 +5,10 @@ package feed_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/routers/web/feed"
-	"code.gitea.io/gitea/services/contexttest"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/routers/web/feed"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,7 +23,6 @@ func TestCheckGetOrgFeedsAsOrgMember(t *testing.T) {
 		ctx, resp := contexttest.MockContext(t, "org3.atom")
 		ctx.ContextUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 		contexttest.LoadUser(t, ctx, 2)
-		ctx.IsSigned = true
 		feed.ShowUserFeedAtom(ctx)
 		assert.Contains(t, resp.Body.String(), "<entry>") // Should contain 1 private entry
 	})
@@ -31,7 +30,6 @@ func TestCheckGetOrgFeedsAsOrgMember(t *testing.T) {
 		ctx, resp := contexttest.MockContext(t, "org3.atom")
 		ctx.ContextUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 		contexttest.LoadUser(t, ctx, 5)
-		ctx.IsSigned = true
 		feed.ShowUserFeedAtom(ctx)
 		assert.NotContains(t, resp.Body.String(), "<entry>") // Should not contain any entries
 	})

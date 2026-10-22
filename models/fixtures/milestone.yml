@@ -52,3 +52,5 @@
   num_closed_issues: 0
   completeness: 0
   deadline_unix: 253370764800
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

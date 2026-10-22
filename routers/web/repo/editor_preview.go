@@ -6,19 +6,20 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/services/context"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/context"
+	files_service "gitea.dev/services/repository/files"
 )
 
 func DiffPreviewPost(ctx *context.Context) {
-	content := ctx.FormString("content")
+	newContent := ctx.FormString("content")
 	treePath := files_service.CleanGitTreePath(ctx.Repo.TreePath)
 	if treePath == "" {
 		ctx.HTTPError(http.StatusBadRequest, "file name to diff is invalid")
 		return
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, treePath)
 	if err != nil {
 		ctx.ServerError("GetTreeEntryByPath", err)
 		return
@@ -27,7 +28,12 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	diff, err := files_service.GetDiffPreview(ctx, ctx.Repo.Repository, ctx.Repo.BranchName, treePath, content)
+	oldContent, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
+	if err != nil {
+		ctx.ServerError("GetBlobContent", err)
+		return
+	}
+	diff, err := files_service.GetDiffPreview(ctx, ctx.Repo.Repository, ctx.Repo.BranchName, treePath, oldContent, newContent)
 	if err != nil {
 		ctx.ServerError("GetDiffPreview", err)
 		return

@@ -4,16 +4,17 @@
 package markup
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/regexplru"
-	"code.gitea.io/gitea/modules/templates/vars"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/references"
+	"gitea.dev/modules/regexplru"
+	"gitea.dev/modules/templates/vars"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -109,20 +110,27 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 	next := node.NextSibling
 	for node != nil && node != next {
-		_, hasExtTrackFormat := ctx.RenderOptions.Metas["format"]
-
+		_, hasExternalTracker := ctx.RenderOptions.Metas["externalTrackerLinkFormat"]
+		hasInternalTracker := ctx.RenderOptions.Metas["internalTrackerEnabled"] == "true"
+		if !hasExternalTracker && !hasInternalTracker {
+			hasInternalTracker = true // legacy logic: if no tracker is enabled, fallback to internal
+		}
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
 		isNumericStyle := ctx.RenderOptions.Metas["style"] == "" || ctx.RenderOptions.Metas["style"] == IssueNameStyleNumeric
-		refNumeric := references.FindRenderizableReferenceNumeric(node.Data, hasExtTrackFormat && !isNumericStyle, crossLinkOnly)
+		prOnly := hasExternalTracker && !isNumericStyle
+		refNumeric := references.FindRenderizableReferenceNumeric(node.Data, prOnly, crossLinkOnly)
 
+		useExtTrackerLink := true
 		switch ctx.RenderOptions.Metas["style"] {
 		case "", IssueNameStyleNumeric:
 			ref = refNumeric
+			// when internal tracker is enabled, Numeric (#123) style should only be use for internal tracker
+			useExtTrackerLink = !hasInternalTracker
 		case IssueNameStyleAlphanumeric:
 			ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
 		case IssueNameStyleRegexp:
-			pattern, err := regexplru.GetCompiled(ctx.RenderOptions.Metas["regexp"])
+			pattern, err := regexplru.UserCache().GetCompiled(ctx.RenderOptions.Metas["regexp"])
 			if err != nil {
 				return
 			}
@@ -131,7 +139,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
-		if hasExtTrackFormat && !isNumericStyle && refNumeric != nil {
+		if useExtTrackerLink && !isNumericStyle && refNumeric != nil {
 			// If numeric (PR) was found, and it was BEFORE the non-numeric pattern, use that
 			// Allow a free-pass when non-numeric pattern wasn't found.
 			if ref == nil || refNumeric.RefLocation.Start < ref.RefLocation.Start {
@@ -145,10 +153,10 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		var link *html.Node
 		refText := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
-		if hasExtTrackFormat && !ref.IsPull {
+		if useExtTrackerLink && !ref.IsPull {
 			ctx.RenderOptions.Metas["index"] = ref.Issue
 
-			res, err := vars.Expand(ctx.RenderOptions.Metas["format"], ctx.RenderOptions.Metas)
+			res, err := vars.ExpandCurlyBrace(ctx.RenderOptions.Metas["externalTrackerLinkFormat"], ctx.RenderOptions.Metas)
 			if err != nil {
 				// here we could just log the error and continue the rendering
 				log.Error("unable to expand template vars for ref %s, err: %v", ref.Issue, err)
@@ -162,7 +170,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 			issueOwner := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["user"], ref.Owner)
 			issueRepo := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["repo"], ref.Name)
 			issuePath := util.Iif(ref.IsPull, "pulls", "issues")
-			linkHref := "/:root/" + util.URLJoin(issueOwner, issueRepo, issuePath, ref.Issue)
+			linkHref := fmt.Sprintf("/:root/%s/%s/%s/%s", issueOwner, issueRepo, issuePath, ref.Issue)
 
 			// at the moment, only render the issue index in a full line (or simple line) as icon+title
 			// otherwise it would be too noisy for "take #1 as an example" in a sentence
@@ -182,7 +190,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// Decorate action keywords if actionable
 		var keyword *html.Node
-		if references.IsXrefActionable(ref, hasExtTrackFormat) {
+		if references.IsXrefActionable(ref, useExtTrackerLink) {
 			keyword = createKeyword(ctx, node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
 		} else {
 			keyword = &html.Node{

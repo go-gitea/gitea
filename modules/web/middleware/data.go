@@ -7,11 +7,16 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
 )
 
-const ContextDataKeySignedUser = "SignedUser"
+const (
+	ContextDataKeySignedUser = "SignedUser"
+	// ContextDataKeyImpersonator holds the admin acting as the signed-in user, if any.
+	ContextDataKeyImpersonator = "Impersonator"
+)
 
 func GetContextData(c context.Context) reqctx.ContextData {
 	if rc := reqctx.GetRequestDataStore(c); rc != nil {
@@ -22,6 +27,8 @@ func GetContextData(c context.Context) reqctx.ContextData {
 
 func CommonTemplateContextData() reqctx.ContextData {
 	return reqctx.ContextData{
+		"PageTitleCommon": setting.AppName,
+
 		"IsLandingPageOrganizations": setting.LandingPageURL == setting.LandingPageOrganizations,
 
 		"ShowRegistrationButton":        setting.Service.ShowRegistrationButton,
@@ -34,5 +41,6 @@ func CommonTemplateContextData() reqctx.ContextData {
 		"PageStartTime":      time.Now(),
 
 		"RunModeIsProd": setting.IsProd,
+		"ViteModeIsDev": public.IsViteDevMode(),
 	}
 }

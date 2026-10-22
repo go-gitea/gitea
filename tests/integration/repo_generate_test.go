@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -44,7 +44,6 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateID, templateOw
 	_, exists = htmlDoc.doc.Find(fmt.Sprintf(`#repo_owner_dropdown .item[data-value="%d"]`, generateOwner.ID)).Attr("data-value")
 	assert.True(t, exists, "Generate owner '%s' is not present in select box", generateOwnerName)
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf":         htmlDoc.GetCSRF(),
 		"uid":           strconv.FormatInt(generateOwner.ID, 10),
 		"repo_name":     generateRepoName,
 		"repo_template": templateID,

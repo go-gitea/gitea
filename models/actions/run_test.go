@@ -1,0 +1,101 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package actions
+
+import (
+	"testing"
+	"time"
+
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/timeutil"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestUpdateRepoRunsNumbers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// update the number to a wrong one, the original is 3
+	_, err := db.GetEngine(t.Context()).ID(4).Cols("num_closed_action_runs").Update(&repo_model.Repository{
+		NumClosedActionRuns: 2,
+	})
+	assert.NoError(t, err)
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	assert.Equal(t, 4, repo.NumActionRuns)
+	assert.Equal(t, 2, repo.NumClosedActionRuns)
+
+	// now update will correct them, only num_actionr_runs and num_closed_action_runs should be updated
+	UpdateRepoRunsNumbers(t.Context(), repo.ID)
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	assert.Equal(t, 4, repo.NumActionRuns)
+	assert.Equal(t, 3, repo.NumClosedActionRuns)
+}
+
+func TestActionRun_Duration_NonNegative(t *testing.T) {
+	run := &ActionRun{
+		Started:          timeutil.TimeStamp(100),
+		Stopped:          timeutil.TimeStamp(200),
+		Status:           StatusSuccess,
+		PreviousDuration: -time.Hour,
+	}
+	assert.Equal(t, time.Duration(0), run.Duration())
+}
+
+func TestActionRun_WorkflowLink(t *testing.T) {
+	repo := &repo_model.Repository{OwnerName: "org", Name: "consumer"}
+
+	// a repo-level run links by file name only
+	repoLevel := &ActionRun{Repo: repo, WorkflowID: "ci.yaml", WorkflowRepoID: repo.ID}
+	assert.Equal(t, repo.Link()+"/actions/?workflow=ci.yaml", repoLevel.WorkflowLink())
+
+	// a scoped run carries its source repo id back, so the list stays filtered to that source
+	scoped := &ActionRun{Repo: repo, WorkflowID: "ci.yaml", WorkflowRepoID: 42, IsScopedRun: true}
+	assert.Equal(t, repo.Link()+"/actions/?workflow=ci.yaml&scoped_workflow_source_repo_id=42", scoped.WorkflowLink())
+}
+
+func TestGetWorkflowLatestRun_RepoLevelOnly(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const (
+		repoID     = int64(4)
+		workflowID = "badge-source-aware.yaml"
+		ref        = "refs/heads/main"
+	)
+	require.NoError(t, db.Insert(t.Context(), &ActionRun{
+		ID:                99811,
+		Index:             99811,
+		RepoID:            repoID,
+		OwnerID:           1,
+		TriggerUserID:     1,
+		WorkflowID:        workflowID,
+		Ref:               ref,
+		Event:             "push",
+		Status:            StatusSuccess,
+		WorkflowRepoID:    repoID,
+		WorkflowCommitSHA: "repo-level-sha",
+	}))
+	require.NoError(t, db.Insert(t.Context(), &ActionRun{
+		ID:                99812,
+		Index:             99812,
+		RepoID:            repoID,
+		OwnerID:           1,
+		TriggerUserID:     1,
+		WorkflowID:        workflowID,
+		Ref:               ref,
+		Event:             "push",
+		Status:            StatusFailure,
+		WorkflowRepoID:    111,
+		WorkflowCommitSHA: "scoped-sha",
+		IsScopedRun:       true,
+	}))
+
+	run, err := GetWorkflowLatestRun(t.Context(), repoID, workflowID, ref, "push")
+	require.NoError(t, err)
+	assert.EqualValues(t, 99811, run.ID)
+	assert.False(t, run.IsScopedRun)
+}

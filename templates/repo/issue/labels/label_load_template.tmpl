@@ -2,7 +2,6 @@
 	<div class="twelve wide computer column">
 		<p>{{ctx.Locale.Tr "repo.issues.label_templates.info"}}</p>
 		<form class="ui form center" action="{{.Link}}/initialize" method="post">
-			{{.CsrfTokenHtml}}
 			<div class="field">
 				<div class="ui selection dropdown">
 					<input type="hidden" name="template_name" value="Default">

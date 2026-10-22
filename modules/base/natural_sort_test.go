@@ -11,18 +11,18 @@ import (
 
 func TestNaturalSortLess(t *testing.T) {
 	testLess := func(s1, s2 string) {
-		assert.True(t, NaturalSortLess(s1, s2), "s1<s2 should be true: s1=%q, s2=%q", s1, s2)
-		assert.False(t, NaturalSortLess(s2, s1), "s2<s1 should be false: s1=%q, s2=%q", s1, s2)
+		assert.Negative(t, NaturalSortCompare(s1, s2), "s1<s2 should be true: s1=%q, s2=%q", s1, s2)
 	}
 	testEqual := func(s1, s2 string) {
-		assert.False(t, NaturalSortLess(s1, s2), "s1<s2 should be false: s1=%q, s2=%q", s1, s2)
-		assert.False(t, NaturalSortLess(s2, s1), "s2<s1 should be false: s1=%q, s2=%q", s1, s2)
+		assert.Zero(t, NaturalSortCompare(s1, s2), "s1<s2 should be false: s1=%q, s2=%q", s1, s2)
 	}
 
 	testEqual("", "")
 	testLess("", "a")
 	testLess("", "1")
 
+	testLess("v1.02.3", "v1.2.03")
+	testLess("1.01.0", "1.1.1")
 	testLess("v1.2", "v1.2.0")
 	testLess("v1.2.0", "v1.10.0")
 	testLess("v1.20.0", "v1.29.0")
@@ -42,4 +42,9 @@ func TestNaturalSortLess(t *testing.T) {
 
 	testLess("A-2", "A-11")
 	testLess("0.txt", "1.txt")
+
+	testLess("file0001", "file2")
+	testLess("a08", "a8")
+	testLess("00", "1")
+	testLess("0", "00") // equal value, fewer leading zeros sorts first
 }

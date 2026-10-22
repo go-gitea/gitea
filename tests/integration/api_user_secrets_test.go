@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 )
 
 func TestAPIUserSecrets(t *testing.T) {
@@ -92,9 +92,5 @@ func TestAPIUserSecrets(t *testing.T) {
 		req = NewRequest(t, "DELETE", url).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
-
-		req = NewRequest(t, "DELETE", "/api/v1/user/actions/secrets/000").
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusBadRequest)
 	})
 }

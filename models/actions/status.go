@@ -6,34 +6,37 @@ package actions
 import (
 	"slices"
 
-	"code.gitea.io/gitea/modules/translation"
-
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
+	"gitea.dev/modules/translation"
 )
 
 // Status represents the status of ActionRun, ActionRunJob, ActionTask, or ActionTaskStep
 type Status int
 
 const (
-	StatusUnknown   Status = iota // 0, consistent with runnerv1.Result_RESULT_UNSPECIFIED
-	StatusSuccess                 // 1, consistent with runnerv1.Result_RESULT_SUCCESS
-	StatusFailure                 // 2, consistent with runnerv1.Result_RESULT_FAILURE
-	StatusCancelled               // 3, consistent with runnerv1.Result_RESULT_CANCELLED
-	StatusSkipped                 // 4, consistent with runnerv1.Result_RESULT_SKIPPED
-	StatusWaiting                 // 5, isn't a runnerv1.Result
-	StatusRunning                 // 6, isn't a runnerv1.Result
-	StatusBlocked                 // 7, isn't a runnerv1.Result
+	StatusUnknown    Status = iota // 0, consistent with runnerv1.Result_RESULT_UNSPECIFIED
+	StatusSuccess                  // 1, consistent with runnerv1.Result_RESULT_SUCCESS
+	StatusFailure                  // 2, consistent with runnerv1.Result_RESULT_FAILURE
+	StatusCancelled                // 3, consistent with runnerv1.Result_RESULT_CANCELLED
+	StatusSkipped                  // 4, consistent with runnerv1.Result_RESULT_SKIPPED
+	StatusWaiting                  // 5, isn't a runnerv1.Result
+	StatusRunning                  // 6, isn't a runnerv1.Result
+	StatusBlocked                  // 7, isn't a runnerv1.Result
+	StatusCancelling               // 8, isn't a runnerv1.Result
+	StatusPending                  // 9, isn't a runnerv1.Result
 )
 
 var statusNames = map[Status]string{
-	StatusUnknown:   "unknown",
-	StatusWaiting:   "waiting",
-	StatusRunning:   "running",
-	StatusSuccess:   "success",
-	StatusFailure:   "failure",
-	StatusCancelled: "cancelled",
-	StatusSkipped:   "skipped",
-	StatusBlocked:   "blocked",
+	StatusUnknown:    "unknown",
+	StatusWaiting:    "waiting",
+	StatusRunning:    "running",
+	StatusSuccess:    "success",
+	StatusFailure:    "failure",
+	StatusCancelled:  "cancelled",
+	StatusCancelling: "cancelling",
+	StatusSkipped:    "skipped",
+	StatusBlocked:    "blocked",
+	StatusPending:    "pending",
 }
 
 // String returns the string name of the Status
@@ -54,10 +57,6 @@ func (s Status) IsDone() bool {
 // HasRun returns whether the Status is a result of running
 func (s Status) HasRun() bool {
 	return s.In(StatusSuccess, StatusFailure)
-}
-
-func (s Status) IsUnknown() bool {
-	return s == StatusUnknown
 }
 
 func (s Status) IsSuccess() bool {
@@ -88,14 +87,45 @@ func (s Status) IsBlocked() bool {
 	return s == StatusBlocked
 }
 
+func (s Status) IsCancelling() bool {
+	return s == StatusCancelling
+}
+
+func (s Status) IsPending() bool {
+	return s == StatusPending
+}
+
 // In returns whether s is one of the given statuses
 func (s Status) In(statuses ...Status) bool {
 	return slices.Contains(statuses, s)
 }
 
 func (s Status) AsResult() runnerv1.Result {
-	if s.IsDone() {
-		return runnerv1.Result(s)
+	switch s {
+	case StatusSuccess:
+		return runnerv1.Result_RESULT_SUCCESS
+	case StatusFailure:
+		return runnerv1.Result_RESULT_FAILURE
+	case StatusCancelled, StatusCancelling:
+		return runnerv1.Result_RESULT_CANCELLED
+	case StatusSkipped:
+		return runnerv1.Result_RESULT_SKIPPED
+	default:
+		return runnerv1.Result_RESULT_UNSPECIFIED
 	}
-	return runnerv1.Result_RESULT_UNSPECIFIED
+}
+
+func StatusFromResult(r runnerv1.Result) Status {
+	switch r {
+	case runnerv1.Result_RESULT_SUCCESS:
+		return StatusSuccess
+	case runnerv1.Result_RESULT_FAILURE:
+		return StatusFailure
+	case runnerv1.Result_RESULT_CANCELLED:
+		return StatusCancelled
+	case runnerv1.Result_RESULT_SKIPPED:
+		return StatusSkipped
+	default:
+		return StatusUnknown
+	}
 }

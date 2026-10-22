@@ -9,5 +9,11 @@ func (repo *Repository) GetBlob(idStr string) (*Blob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return repo.getBlob(id)
+	if id.IsZero() {
+		return nil, ErrNotExist{id.String(), ""}
+	}
+	return &Blob{
+		ID:   id,
+		repo: repo,
+	}, nil
 }

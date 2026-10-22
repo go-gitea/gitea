@@ -1,23 +1,23 @@
 import {encodeURLEncodedBase64, decodeURLEncodedBase64} from '../utils.ts';
 import {hideElem, showElem} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {GET, POST} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
 
-export async function initUserAuthWebAuthn() {
+/** One of the possible values for the `data-webauthn-error-msg` attribute on the webauthn error message element */
+type ErrorType = 'general' | 'insecure' | 'browser' | 'unable-to-process' | 'duplicated' | 'unknown';
+
+export function initUserAuthWebAuthn() {
   const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
   const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
   if (!elPrompt && !elSignInPasskeyBtn) {
     return;
   }
 
-  // webauthn is only supported on secure contexts
-  if (!window.isSecureContext) {
-    hideElem(elSignInPasskeyBtn);
-    return;
-  }
-
-  if (!detectWebAuthnSupport()) {
+  const errorType = detectWebAuthnSupport();
+  if (errorType) {
+    if (elSignInPasskeyBtn) hideElem(elSignInPasskeyBtn);
     return;
   }
 
@@ -54,7 +54,7 @@ async function loginPasskey() {
     const clientDataJSON = new Uint8Array(credResp.clientDataJSON);
     const rawId = new Uint8Array(credential.rawId);
     const sig = new Uint8Array(credResp.signature);
-    const userHandle = new Uint8Array(credResp.userHandle);
+    const userHandle = new Uint8Array(credResp.userHandle ?? []);
 
     const res = await POST(`${appSubUrl}/user/webauthn/passkey/login`, {
       data: {
@@ -79,9 +79,9 @@ async function loginPasskey() {
     }
     const reply = await res.json();
 
-    window.location.href = reply?.redirect ?? `${appSubUrl}/`;
+    window.location.assign(reply?.redirect ?? `${appSubUrl}/`);
   } catch (err) {
-    webAuthnError('general', err.message);
+    webAuthnError('general', errorMessage(err));
   }
 }
 
@@ -105,7 +105,7 @@ async function login2FA() {
     await verifyAssertion(credential);
   } catch (err) {
     if (!options.publicKey.extensions?.appid) {
-      webAuthnError('general', err.message);
+      webAuthnError('general', errorMessage(err));
       return;
     }
     delete options.publicKey.extensions.appid;
@@ -115,7 +115,7 @@ async function login2FA() {
       });
       await verifyAssertion(credential);
     } catch (err) {
-      webAuthnError('general', err.message);
+      webAuthnError('general', errorMessage(err));
     }
   }
 }
@@ -151,7 +151,7 @@ async function verifyAssertion(assertedCredential: any) { // TODO: Credential ty
   }
   const reply = await res.json();
 
-  window.location.href = reply?.redirect ?? `${appSubUrl}/`;
+  window.location.assign(reply?.redirect ?? `${appSubUrl}/`);
 }
 
 async function webauthnRegistered(newCredential: any) { // TODO: Credential type does not work
@@ -182,13 +182,13 @@ async function webauthnRegistered(newCredential: any) { // TODO: Credential type
   window.location.reload();
 }
 
-function webAuthnError(errorType: string, message:string = '') {
-  const elErrorMsg = document.querySelector(`#webauthn-error-msg`);
+function webAuthnError(errorType: ErrorType, message:string = '') {
+  const elErrorMsg = document.querySelector(`#webauthn-error-msg`)!;
 
   if (errorType === 'general') {
     elErrorMsg.textContent = message || 'unknown error';
   } else {
-    const elTypedError = document.querySelector(`#webauthn-error [data-webauthn-error-msg=${errorType}]`);
+    const elTypedError = document.querySelector(`#webauthn-error [data-webauthn-error-msg=${CSS.escape(errorType)}]`);
     if (elTypedError) {
       elErrorMsg.textContent = `${elTypedError.textContent}${message ? ` ${message}` : ''}`;
     } else {
@@ -199,25 +199,26 @@ function webAuthnError(errorType: string, message:string = '') {
   showElem('#webauthn-error');
 }
 
-function detectWebAuthnSupport() {
+/** Returns the error type or `null` when there was no error. */
+function detectWebAuthnSupport(): ErrorType | null {
   if (!window.isSecureContext) {
-    webAuthnError('insecure');
-    return false;
+    return 'insecure';
   }
 
   if (typeof window.PublicKeyCredential !== 'function') {
-    webAuthnError('browser');
-    return false;
+    return 'browser';
   }
 
-  return true;
+  return null;
 }
 
 export function initUserAuthWebAuthnRegister() {
   const elRegister = document.querySelector<HTMLInputElement>('#register-webauthn');
   if (!elRegister) return;
 
-  if (!detectWebAuthnSupport()) {
+  const errorType = detectWebAuthnSupport();
+  if (errorType) {
+    webAuthnError(errorType);
     elRegister.disabled = true;
     return;
   }
@@ -228,7 +229,7 @@ export function initUserAuthWebAuthnRegister() {
 }
 
 async function webAuthnRegisterRequest() {
-  const elNickname = document.querySelector<HTMLInputElement>('#nickname');
+  const elNickname = document.querySelector<HTMLInputElement>('#nickname')!;
 
   const formData = new FormData();
   formData.append('name', elNickname.value);
@@ -246,14 +247,12 @@ async function webAuthnRegisterRequest() {
   }
 
   const options = await res.json();
-  elNickname.closest('div.field').classList.remove('error');
+  elNickname.closest('div.field')!.classList.remove('error');
 
   options.publicKey.challenge = decodeURLEncodedBase64(options.publicKey.challenge);
   options.publicKey.user.id = decodeURLEncodedBase64(options.publicKey.user.id);
-  if (options.publicKey.excludeCredentials) {
-    for (const cred of options.publicKey.excludeCredentials) {
-      cred.id = decodeURLEncodedBase64(cred.id);
-    }
+  for (const cred of options.publicKey.excludeCredentials || []) {
+    cred.id = decodeURLEncodedBase64(cred.id);
   }
 
   try {
@@ -262,6 +261,11 @@ async function webAuthnRegisterRequest() {
     });
     await webauthnRegistered(credential);
   } catch (err) {
-    webAuthnError('unknown', err);
+    // an already registered authenticator raises this
+    if (err instanceof DOMException && err.name === 'InvalidStateError') {
+      webAuthnError('duplicated');
+      return;
+    }
+    webAuthnError('unknown', errorMessage(err));
   }
 }

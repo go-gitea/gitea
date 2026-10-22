@@ -6,6 +6,7 @@ package setting
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -113,24 +114,6 @@ func TestNewConfigProviderFromFile(t *testing.T) {
 	assert.Equal(t, "[foo]\nk1 = a\n\n[bar]\nk1 = b\n", string(bs))
 }
 
-func TestNewConfigProviderForLocale(t *testing.T) {
-	// load locale from file
-	localeFile := t.TempDir() + "/locale.ini"
-	_ = os.WriteFile(localeFile, []byte(`k1=a`), 0o644)
-	cfg, err := NewConfigProviderForLocale(localeFile)
-	assert.NoError(t, err)
-	assert.Equal(t, "a", cfg.Section("").Key("k1").String())
-
-	// load locale from bytes
-	cfg, err = NewConfigProviderForLocale([]byte("k1=foo\nk2=bar"))
-	assert.NoError(t, err)
-	assert.Equal(t, "foo", cfg.Section("").Key("k1").String())
-	cfg, err = NewConfigProviderForLocale([]byte("k1=foo\nk2=bar"), []byte("k2=xxx"))
-	assert.NoError(t, err)
-	assert.Equal(t, "foo", cfg.Section("").Key("k1").String())
-	assert.Equal(t, "xxx", cfg.Section("").Key("k2").String())
-}
-
 func TestDisableSaving(t *testing.T) {
 	testFile := t.TempDir() + "/test.ini"
 	_ = os.WriteFile(testFile, []byte("k1=a\nk2=b"), 0o644)
@@ -153,4 +136,16 @@ func TestDisableSaving(t *testing.T) {
 	bs, err := os.ReadFile(testFile)
 	assert.NoError(t, err)
 	assert.Equal(t, "k1 = a\nk2 = y\nk3 = z\n", string(bs))
+}
+
+func TestConfigValueRead(t *testing.T) {
+	cfg, _ := NewConfigProviderFromData(`
+neg = -1
+zero = 0
+hour = 1h
+`)
+	assert.Equal(t, -1*time.Second, cfg.Section("").Key("neg").MustDuration(9999))
+	assert.EqualValues(t, 0, cfg.Section("").Key("zero").MustDuration(9999))
+	assert.Equal(t, time.Hour, cfg.Section("").Key("hour").MustDuration(9999))
+	assert.Equal(t, time.Duration(9999), cfg.Section("").Key("def").MustDuration(9999))
 }

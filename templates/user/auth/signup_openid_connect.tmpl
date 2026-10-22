@@ -8,7 +8,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form left-right-form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="inline field">
 					<span class="help">{{ctx.Locale.Tr "auth.openid_connect_desc"}}</span>
 				</div>
@@ -26,7 +25,7 @@
 				</div>
 				<div class="inline field">
 					<label></label>
-					<button class="ui primary button">{{ctx.Locale.Tr "auth.openid_connect_submit"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "auth.openid_connect_submit"}}</button>
 					<a href="{{AppSubUrl}}/user/forgot_password">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
 				</div>
 			</form>

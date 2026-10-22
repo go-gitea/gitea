@@ -1,22 +1,20 @@
-import {handleReply} from './repo-issue.ts';
+import {handleCommentReply} from './repo-issue.ts';
 import {getComboMarkdownEditor, initComboMarkdownEditor, ComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {hideElem, querySingleVisibleElem, showElem, type DOMEvent} from '../utils/dom.ts';
-import {attachRefIssueContextPopup} from './contextpopup.ts';
+import {hideElem, querySingleVisibleElem, showElem} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
-import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {applyAreYouSure} from '../modules/are-you-sure.ts';
+import {registerShortcutHandler} from '../modules/shortcut.ts';
+import {registerGlobalEventFunc} from '../modules/observer.ts';
 
-async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
-  const clickTarget = e.target.closest('.edit-content');
-  if (!clickTarget) return;
-
-  e.preventDefault();
-  const commentContent = clickTarget.closest('.comment-header').nextElementSibling;
-  const editContentZone = commentContent.querySelector('.edit-content-zone');
-  let renderContent = commentContent.querySelector('.render-content');
-  const rawContent = commentContent.querySelector('.raw-content');
+async function onConvContentEdit(clickTarget: HTMLElement) {
+  const commentContent = clickTarget.closest('.comment-header')!.nextElementSibling!;
+  const editContentZone = commentContent.querySelector('.edit-content-zone')!;
+  let renderContent = commentContent.querySelector('.render-content')!;
+  const rawContent = commentContent.querySelector('.raw-content')!;
 
   let comboMarkdownEditor : ComboMarkdownEditor;
 
@@ -38,21 +36,21 @@ async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
     try {
       const params = new URLSearchParams({
         content: comboMarkdownEditor.value(),
-        context: editContentZone.getAttribute('data-context'),
-        content_version: editContentZone.getAttribute('data-content-version'),
+        context: String(editContentZone.getAttribute('data-context')),
+        content_version: String(editContentZone.getAttribute('data-content-version')),
       });
       for (const file of comboMarkdownEditor.dropzoneGetFiles() ?? []) {
         params.append('files[]', file);
       }
 
-      const response = await POST(editContentZone.getAttribute('data-update-url'), {data: params});
+      const response = await POST(editContentZone.getAttribute('data-update-url')!, {data: params});
       const data = await response.json();
       if (!response.ok) {
         showErrorToast(data?.errorMessage ?? window.config.i18n.error_occurred);
         return;
       }
 
-      reinitializeAreYouSure(editContentZone.querySelector('form')); // the form is no longer dirty
+      applyAreYouSure(editContentZone.querySelector('form')!); // the form is no longer dirty
       editContentZone.setAttribute('data-content-version', data.contentVersion);
 
       // replace the render content with new one, to trigger re-initialization of all features
@@ -62,21 +60,19 @@ async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
       renderContent = newRenderContent;
 
       rawContent.textContent = comboMarkdownEditor.value();
-      const refIssues = renderContent.querySelectorAll<HTMLElement>('p .ref-issue');
-      attachRefIssueContextPopup(refIssues);
 
       if (!commentContent.querySelector('.dropzone-attachments')) {
         if (data.attachments !== '') {
           commentContent.insertAdjacentHTML('beforeend', data.attachments);
         }
       } else if (data.attachments === '') {
-        commentContent.querySelector('.dropzone-attachments').remove();
+        commentContent.querySelector('.dropzone-attachments')!.remove();
       } else {
-        commentContent.querySelector('.dropzone-attachments').outerHTML = data.attachments;
+        commentContent.querySelector('.dropzone-attachments')!.outerHTML = data.attachments;
       }
       comboMarkdownEditor.dropzoneSubmitReload();
     } catch (error) {
-      showErrorToast(`Failed to save the content: ${error}`);
+      showErrorToast(`Failed to save the content: ${errorMessage(error)}`);
       console.error(error);
     } finally {
       renderContent.classList.remove('is-loading');
@@ -87,24 +83,22 @@ async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
   showElem(editContentZone);
   hideElem(renderContent);
 
-  comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+  comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'))!;
   if (!comboMarkdownEditor) {
-    editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template').innerHTML;
-    const form = editContentZone.querySelector('form');
+    editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template')!.innerHTML;
+    const form = editContentZone.querySelector('form')!;
     applyAreYouSure(form);
-    const saveButton = querySingleVisibleElem<HTMLButtonElement>(editContentZone, '.ui.primary.button');
-    const cancelButton = querySingleVisibleElem<HTMLButtonElement>(editContentZone, '.ui.cancel.button');
-    comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+    const saveButton = querySingleVisibleElem<HTMLButtonElement>(editContentZone, '.ui.primary.button')!;
+    const cancelButton = querySingleVisibleElem<HTMLButtonElement>(editContentZone, '.ui.cancel.button')!;
+    comboMarkdownEditor = await initComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor')!);
     const syncUiState = () => saveButton.disabled = comboMarkdownEditor.isUploading();
     comboMarkdownEditor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
     cancelButton.addEventListener('click', cancelAndReset);
     form.addEventListener('submit', saveAndRefresh);
   }
-
-  // FIXME: ideally here should reload content and attachment list from backend for existing editor, to avoid losing data
-  if (!comboMarkdownEditor.value()) {
-    comboMarkdownEditor.value(rawContent.textContent);
-  }
+  // when the content has changed on server side, there is no sync, and this page doesn't have the latest content,
+  // the editor still shows the old content, server will reject end user's submit by "data-content-version" check
+  comboMarkdownEditor.value(rawContent.textContent);
   comboMarkdownEditor.switchTabToEditor();
   comboMarkdownEditor.focus();
   triggerUploadStateChanged(comboMarkdownEditor.container);
@@ -112,7 +106,7 @@ async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
 
 function extractSelectedMarkdown(container: HTMLElement) {
   const selection = window.getSelection();
-  if (!selection.rangeCount) return '';
+  if (!selection?.rangeCount) return '';
   const range = selection.getRangeAt(0);
   if (!container.contains(range.commonAncestorContainer)) return '';
 
@@ -124,25 +118,21 @@ function extractSelectedMarkdown(container: HTMLElement) {
   return convertHtmlToMarkdown(el);
 }
 
-async function tryOnQuoteReply(e: Event) {
-  const clickTarget = (e.target as HTMLElement).closest('.quote-reply');
-  if (!clickTarget) return;
-
-  e.preventDefault();
+async function onConvContentQuoteReply(clickTarget: HTMLElement) {
   const contentToQuoteId = clickTarget.getAttribute('data-target');
-  const targetRawToQuote = document.querySelector<HTMLElement>(`#${contentToQuoteId}.raw-content`);
-  const targetMarkupToQuote = targetRawToQuote.parentElement.querySelector<HTMLElement>('.render-content.markup');
+  const targetRawToQuote = document.querySelector<HTMLElement>(`#${contentToQuoteId}.raw-content`)!;
+  const targetMarkupToQuote = targetRawToQuote.parentElement!.querySelector<HTMLElement>('.render-content.markup')!;
   let contentToQuote = extractSelectedMarkdown(targetMarkupToQuote);
   if (!contentToQuote) contentToQuote = targetRawToQuote.textContent;
   const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n\n`;
 
   let editor;
-  if (clickTarget.classList.contains('quote-reply-diff')) {
-    const replyBtn = clickTarget.closest('.comment-code-cloud').querySelector<HTMLElement>('button.comment-form-reply');
-    editor = await handleReply(replyBtn);
+  const btnReply = clickTarget.closest('.comment-code-cloud')?.querySelector<HTMLElement>('button.comment-form-reply');
+  if (btnReply) {
+    editor = await handleCommentReply(btnReply);
   } else {
     // for normal issue/comment page
-    editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'));
+    editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'))!;
   }
 
   if (editor.value()) {
@@ -154,9 +144,27 @@ async function tryOnQuoteReply(e: Event) {
   editor.moveCursorToEnd();
 }
 
+export function tryQuoteSelectedReply(): boolean {
+  const selection = window.getSelection();
+  if (!selection?.rangeCount || selection.isCollapsed) return false;
+  const node = selection.getRangeAt(0).commonAncestorContainer;
+  const el = node instanceof HTMLElement ? node : node.parentElement;
+
+  const commentContainer = el?.closest<HTMLElement>('.render-content.markup')?.closest('.comment-container');
+  if (!commentContainer) return false;
+
+  const quoteReplyBtn = commentContainer.querySelector<HTMLElement>('[data-shortcut-handler="quoteSelectedReply"]')!;
+  if (!quoteReplyBtn) return false;
+
+  quoteReplyBtn.click();
+  return true;
+}
+
 export function initRepoIssueCommentEdit() {
-  document.addEventListener('click', (e) => {
-    tryOnEditContent(e); // Edit issue or comment content
-    tryOnQuoteReply(e); // Quote reply to the comment editor
-  });
+  registerGlobalEventFunc('click', 'onConvContentQuoteReply', onConvContentQuoteReply);
+  registerGlobalEventFunc('click', 'onConvContentEdit', onConvContentEdit);
+
+  // The shortcut "r" was chosen by https://github.com/go-gitea/gitea/issues/5796#issuecomment-5528657082
+  // The same to GitHub and GitLab: https://gitlab.com/gitlab-org/gitlab-foss/-/commit/ca5d0c82509cedb94f9bfa4a40e77706a58faafe
+  registerShortcutHandler('quoteSelectedReply', tryQuoteSelectedReply);
 }
