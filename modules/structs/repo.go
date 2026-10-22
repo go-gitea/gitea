@@ -417,8 +417,6 @@ type MigrateRepoOptions struct {
 	PullRequests   bool   `json:"pull_requests"`
 	Releases       bool   `json:"releases"`
 	MirrorInterval string `json:"mirror_interval"`
-	// enable prune - remove obsolete remote-tracking references when mirroring
-	EnablePrune *bool `json:"enable_prune,omitempty"`
 
 	AWSAccessKeyID     string `json:"aws_access_key_id"`
 	AWSSecretAccessKey string `json:"aws_secret_access_key"`

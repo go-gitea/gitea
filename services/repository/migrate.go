@@ -180,14 +180,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			if err != nil {
 				return repo, err
 			}
-			enablePrune := true
-			if opts.EnablePrune != nil {
-				enablePrune = *opts.EnablePrune
-			}
 			mirrorModel := repo_model.Mirror{
 				RepoID:         repo.ID,
 				Interval:       setting.Mirror.DefaultInterval,
-				EnablePrune:    enablePrune,
+				EnablePrune:    true,
 				NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
 				LFS:            opts.LFS,
 				RemoteAddress:  remoteAddress,

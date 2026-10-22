@@ -61,10 +61,9 @@ func newMirrorBackupFixture(t *testing.T, name string, backupLimit int, prune bo
 	gitForMirrorBackupTest(t, remote, "symbolic-ref", "HEAD", "refs/heads/main")
 
 	opts := migration.MigrateOptions{
-		RepoName:    name,
-		Mirror:      true,
-		CloneAddr:   remote,
-		EnablePrune: &prune,
+		RepoName:  name,
+		Mirror:    true,
+		CloneAddr: remote,
 	}
 	repo, err := repo_service.CreateRepositoryDirectly(ctx, user, user, repo_service.CreateRepoOptions{
 		Name:     name,
@@ -74,6 +73,10 @@ func newMirrorBackupFixture(t *testing.T, name string, backupLimit int, prune bo
 	require.NoError(t, err)
 	repo, err = repo_service.MigrateRepositoryGitData(ctx, user, repo, opts, nil)
 	require.NoError(t, err)
+	mirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
+	require.NoError(t, err)
+	mirror.EnablePrune = prune
+	require.NoError(t, repo_model.UpdateMirror(ctx, mirror))
 	require.True(t, mirror_service.SyncPullMirror(ctx, repo.ID))
 	return &mirrorBackupFixture{remote: remote, work: work, repo: repo}
 }

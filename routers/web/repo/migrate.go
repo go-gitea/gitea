@@ -54,7 +54,7 @@ func Migrate(ctx *context.Context) {
 
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["mirror"] = ctx.FormBool("mirror") // from "gogs#2037": "new mirror" button on org's home page
-	ctx.Data["enable_prune"] = formBoolDefault(ctx, "enable_prune", true)
+
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
 		return
@@ -62,13 +62,6 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
-}
-
-func formBoolDefault(ctx *context.Context, name string, defaultValue bool) bool {
-	if ctx.FormString(name) == "" {
-		return defaultValue
-	}
-	return ctx.FormBool(name)
 }
 
 func handleMigrateError(ctx *context.Context, owner *user_model.User, err error) {
@@ -181,7 +174,6 @@ func MigratePost(ctx *context.Context) {
 		}
 	}
 
-	enablePrune := form.EnablePrune
 	opts := migrations.MigrateOptions{
 		OriginalURL:    form.CloneAddr,
 		GitServiceType: form.Service,
@@ -202,7 +194,6 @@ func MigratePost(ctx *context.Context) {
 		Comments:       form.Issues || form.PullRequests,
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
-		EnablePrune:    &enablePrune,
 	}
 	if opts.Mirror {
 		opts.Issues = false
