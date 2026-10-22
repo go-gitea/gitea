@@ -5,6 +5,12 @@ package actions
 
 import (
 	"testing"
+	"time"
+
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,4 +30,22 @@ func TestKeepLatestAttemptArtifacts(t *testing.T) {
 		ids = append(ids, art.ID)
 	}
 	assert.Equal(t, []int64{1, 4, 5}, ids)
+}
+
+func TestArtifactExpiry(t *testing.T) {
+	defer timeutil.MockSet(time.Unix(1_000_000_000, 0))()
+	now := timeutil.TimeStampNow()
+	days := func(n int64) timeutil.TimeStamp { return now.Add(n * timeutil.Day) }
+	requested := optional.Some[timeutil.TimeStamp]
+
+	defer test.MockVariableValue(&setting.Actions.ArtifactRetentionDays, 90)()
+	assert.Equal(t, days(90), artifactExpiry(optional.None[timeutil.TimeStamp]()))
+	assert.Equal(t, days(5), artifactExpiry(requested(days(5))))
+	assert.Equal(t, days(1), artifactExpiry(requested(days(-2))), "runner clock behind must not expire the artifact at once")
+	assert.Equal(t, days(90), artifactExpiry(requested(days(1000))), "runner must not exceed the instance retention")
+
+	setting.Actions.ArtifactRetentionDays = 0
+	assert.Equal(t, artifactKeepForever, artifactExpiry(optional.None[timeutil.TimeStamp]()))
+	assert.Equal(t, days(1000), artifactExpiry(requested(days(1000))))
+	assert.Equal(t, days(1), artifactExpiry(requested(now)))
 }
