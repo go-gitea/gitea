@@ -7,6 +7,7 @@ import (
 	"context"
 
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
@@ -184,9 +185,22 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 		comment.ResolveDoer = ToUser(ctx, c.ResolveDoer, nil)
 	}
 
-	if c.DependentIssue != nil {
+	if c.DependentIssue != nil && canReadIssue(ctx, doer, c.DependentIssue) {
 		comment.DependentIssue = ToAPIIssue(ctx, doer, c.DependentIssue)
 	}
 
 	return comment
+}
+
+func canReadIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) bool {
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return false
+	}
+	perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
+	if err != nil {
+		log.Error("GetDoerRepoPermission: %v", err)
+		return false
+	}
+	return perm.CanReadIssuesOrPulls(issue.IsPull)
 }
