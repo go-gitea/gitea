@@ -6,6 +6,7 @@ package webhook
 import (
 	"fmt"
 	"html"
+	"maps"
 	"net/url"
 	"strings"
 
@@ -428,8 +429,6 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 	}, nil
 }
 
-// ToHookDelivery converts a HookTask to an api.HookDelivery
-// This function is not part of the convert package to prevent an import cycle
 func ToHookDelivery(t *webhook_model.HookTask) *api.HookDelivery {
 	delivery := &api.HookDelivery{
 		UUID:        t.UUID,
@@ -438,15 +437,22 @@ func ToHookDelivery(t *webhook_model.HookTask) *api.HookDelivery {
 		IsSucceeded: t.IsSucceed,
 	}
 	if t.IsDelivered {
-		delivered := t.Delivered.AsTime()
-		delivery.Delivered = &delivered
+		delivery.Delivered = new(t.Delivered.AsTime())
 	}
 	if t.RequestInfo != nil {
 		delivery.Request = &api.HookDeliveryRequest{
 			URL:        t.RequestInfo.URL,
 			HTTPMethod: t.RequestInfo.HTTPMethod,
-			Headers:    t.RequestInfo.Headers,
+			Headers:    maps.Clone(t.RequestInfo.Headers),
 			Body:       t.RequestInfo.Body,
+		}
+		for name := range delivery.Request.Headers {
+			if strings.EqualFold(name, "Authorization") {
+				delivery.Request.Headers[name] = "******"
+			}
+		}
+		if t.PayloadVersion == 1 && delivery.Request.Body == "" {
+			delivery.Request.Body = t.PayloadContent
 		}
 	}
 	if t.ResponseInfo != nil {

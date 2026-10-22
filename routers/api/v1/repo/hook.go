@@ -122,7 +122,6 @@ func GetHook(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiHook)
 }
 
-// ListDeliveries lists the recent deliveries of a repo's hook
 func ListDeliveries(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/hooks/{id}/deliveries repository repoListHookDeliveries
 	// ---
@@ -166,7 +165,7 @@ func ListDeliveries(ctx *context.APIContext) {
 	}
 
 	listOptions := utils.GetListOptions(ctx)
-	tasks, count, err := webhook.ListHookTasks(ctx, webhook.ListHookTaskOptions{
+	tasks, count, err := db.FindAndCount[webhook.HookTask](ctx, webhook.ListHookTaskOptions{
 		ListOptions: listOptions,
 		HookID:      hookID,
 	})
@@ -177,25 +176,23 @@ func ListDeliveries(ctx *context.APIContext) {
 
 	deliveries := make([]*api.HookDelivery, len(tasks))
 	for i, task := range tasks {
-		d := webhook_service.ToHookDelivery(task)
-		// Avoid returning potentially large request/response payloads on the list endpoint.
-		if d.Request != nil {
-			d.Request.Headers = nil
-			d.Request.Body = ""
+		delivery := webhook_service.ToHookDelivery(task)
+		if delivery.Request != nil { // the list omits payloads, they are only returned per delivery
+			delivery.Request.Headers = nil
+			delivery.Request.Body = ""
 		}
-		if d.Response != nil {
-			d.Response.Headers = nil
-			d.Response.Body = ""
+		if delivery.Response != nil {
+			delivery.Response.Headers = nil
+			delivery.Response.Body = ""
 		}
-		deliveries[i] = d
+		deliveries[i] = delivery
 	}
 
 	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, &deliveries)
+	ctx.JSON(http.StatusOK, deliveries)
 }
 
-// GetDelivery gets a delivery of a repo's hook by UUID
 func GetDelivery(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/hooks/{id}/deliveries/{uuid} repository repoGetHookDelivery
 	// ---
@@ -231,8 +228,16 @@ func GetDelivery(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	hookID := ctx.PathParamInt64("id")
-	task, err := utils.GetRepoHookTask(ctx, ctx.Repo.Repository.ID, hookID, ctx.PathParam("uuid"))
+	if _, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID); err != nil {
+		return
+	}
+	task, err := webhook.GetHookTaskByUUID(ctx, hookID, ctx.PathParam("uuid"))
 	if err != nil {
+		if webhook.IsErrHookTaskNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
 		return
 	}
 

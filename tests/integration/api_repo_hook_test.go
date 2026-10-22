@@ -18,6 +18,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPICreateHook(t *testing.T) {
@@ -107,132 +108,59 @@ func TestAPIListAndGetRepoHookDeliveries(t *testing.T) {
 
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	createReq := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/hooks", owner.Name, repo.Name), api.CreateHookOption{
+	hook := DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/hooks", owner.Name, repo.Name), api.CreateHookOption{
 		Type: "gitea",
 		Config: api.CreateHookOptionConfig{
 			"content_type": "json",
 			"url":          "http://example.com/",
 		},
-	}).AddTokenAuth(token)
-	createResp := MakeRequest(t, createReq, http.StatusCreated)
-	hook := DecodeJSON(t, createResp, &api.Hook{})
+	}).AddTokenAuth(token), http.StatusCreated), &api.Hook{})
 
-	deliveredTask, err := webhook_model.CreateHookTask(t.Context(), &webhook_model.HookTask{
-		HookID:         hook.ID,
-		PayloadContent: `{"foo":"bar"}`,
-		EventType:      webhook_module.HookEventPush,
-		PayloadVersion: 2,
-		IsDelivered:    true,
-		IsSucceed:      true,
-	})
-	assert.NoError(t, err)
-	_, err = webhook_model.CreateHookTask(t.Context(), &webhook_model.HookTask{
-		HookID:         hook.ID,
-		PayloadContent: `{"foo":"baz"}`,
-		EventType:      webhook_module.HookEventPush,
-		PayloadVersion: 2,
-	})
-	assert.NoError(t, err)
+	tasks := make([]*webhook_model.HookTask, 0, 4)
+	for i := range 4 {
+		task, err := webhook_model.CreateHookTask(t.Context(), &webhook_model.HookTask{
+			HookID:         hook.ID,
+			EventType:      webhook_module.HookEventPush,
+			PayloadVersion: 2,
+			IsDelivered:    i < 3,
+			IsSucceed:      i < 3,
+		})
+		require.NoError(t, err)
+		tasks = append(tasks, task)
+	}
 
-	listReq := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d/deliveries", owner.Name, repo.Name, hook.ID)).
-		AddTokenAuth(token)
-	listResp := MakeRequest(t, listReq, http.StatusOK)
-	deliveries := DecodeJSON(t, listResp, &api.HookDeliveryList{})
-	assert.Len(t, *deliveries, 2)
+	deliveriesURL := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d/deliveries", owner.Name, repo.Name, hook.ID)
+	deliveries := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", deliveriesURL).AddTokenAuth(token), http.StatusOK), &api.HookDeliveryList{})
+	require.Len(t, *deliveries, 4)
+	assert.Equal(t, tasks[3].UUID, (*deliveries)[0].UUID)
+	assert.False(t, (*deliveries)[0].IsDelivered)
+	assert.Nil(t, (*deliveries)[0].Response)
+	assert.Nil(t, (*deliveries)[0].Delivered)
 
-	getReq := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d/deliveries/%s", owner.Name, repo.Name, hook.ID, deliveredTask.UUID)).
-		AddTokenAuth(token)
-	getResp := MakeRequest(t, getReq, http.StatusOK)
-	delivery := DecodeJSON(t, getResp, &api.HookDelivery{})
-	assert.Equal(t, deliveredTask.UUID, delivery.UUID)
+	for page, expectedUUIDs := range [][]string{{tasks[3].UUID, tasks[2].UUID}, {tasks[1].UUID, tasks[0].UUID}} {
+		t.Run(fmt.Sprintf("page_%d", page+1), func(t *testing.T) {
+			resp := MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s?limit=2&page=%d", deliveriesURL, page+1)).AddTokenAuth(token), http.StatusOK)
+			deliveries := DecodeJSON(t, resp, &api.HookDeliveryList{})
+			require.Len(t, *deliveries, len(expectedUUIDs))
+			assert.Equal(t, "4", resp.Header().Get("X-Total-Count"))
+			for i, uuid := range expectedUUIDs {
+				assert.Equal(t, uuid, (*deliveries)[i].UUID)
+			}
+		})
+	}
+
+	delivery := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", deliveriesURL+"/"+tasks[0].UUID).AddTokenAuth(token), http.StatusOK), &api.HookDelivery{})
+	assert.Equal(t, tasks[0].UUID, delivery.UUID)
 	assert.True(t, delivery.IsDelivered)
 	assert.True(t, delivery.IsSucceeded)
 	assert.NotNil(t, delivery.Delivered)
 
-	notFoundReq := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d/deliveries/does-not-exist", owner.Name, repo.Name, hook.ID)).
-		AddTokenAuth(token)
-	MakeRequest(t, notFoundReq, http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", deliveriesURL+"/does-not-exist").AddTokenAuth(token), http.StatusNotFound)
 
-	// an undelivered task has no response recorded yet
-	undeliveredReq := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d/deliveries", owner.Name, repo.Name, hook.ID)).
-		AddTokenAuth(token)
-	undeliveredResp := MakeRequest(t, undeliveredReq, http.StatusOK)
-	listed := DecodeJSON(t, undeliveredResp, &api.HookDeliveryList{})
-	var pending *api.HookDelivery
-	for _, d := range *listed {
-		if !d.IsDelivered {
-			pending = d
-		}
-	}
-	if assert.NotNil(t, pending) {
-		assert.Nil(t, pending.Response)
-		assert.Nil(t, pending.Delivered)
-	}
-
-	// a hook ID that belongs to a different repository must not be reachable through this repo's route
 	otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	otherOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: otherRepo.OwnerID})
-	crossRepoReq := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d/deliveries", otherOwner.Name, otherRepo.Name, hook.ID)).
-		AddTokenAuth(token)
-	MakeRequest(t, crossRepoReq, http.StatusNotFound)
-
-	crossRepoGetReq := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d/deliveries/%s", otherOwner.Name, otherRepo.Name, hook.ID, deliveredTask.UUID)).
-		AddTokenAuth(token)
-	MakeRequest(t, crossRepoGetReq, http.StatusNotFound)
-}
-
-func TestAPIListRepoHookDeliveriesPagination(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 37})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	createReq := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/hooks", owner.Name, repo.Name), api.CreateHookOption{
-		Type: "gitea",
-		Config: api.CreateHookOptionConfig{
-			"content_type": "json",
-			"url":          "http://example.com/",
-		},
-	}).AddTokenAuth(token)
-	createResp := MakeRequest(t, createReq, http.StatusCreated)
-	hook := DecodeJSON(t, createResp, &api.Hook{})
-
-	const total = 5
-	uuids := make([]string, 0, total)
-	for i := range total {
-		task, err := webhook_model.CreateHookTask(t.Context(), &webhook_model.HookTask{
-			HookID:         hook.ID,
-			PayloadContent: fmt.Sprintf(`{"i":%d}`, i),
-			EventType:      webhook_module.HookEventPush,
-			PayloadVersion: 2,
-			IsDelivered:    true,
-			IsSucceed:      true,
-		})
-		assert.NoError(t, err)
-		uuids = append(uuids, task.UUID)
+	for _, suffix := range []string{"", "/" + tasks[0].UUID} {
+		MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d/deliveries%s", otherOwner.Name, otherRepo.Name, hook.ID, suffix)).
+			AddTokenAuth(token), http.StatusNotFound)
 	}
-
-	pageOneReq := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d/deliveries?limit=2&page=1", owner.Name, repo.Name, hook.ID)).
-		AddTokenAuth(token)
-	pageOneResp := MakeRequest(t, pageOneReq, http.StatusOK)
-	pageOne := DecodeJSON(t, pageOneResp, &api.HookDeliveryList{})
-	assert.Len(t, *pageOne, 2)
-	assert.Equal(t, "5", pageOneResp.Header().Get("X-Total-Count"))
-	// most recent deliveries come first
-	assert.Equal(t, uuids[total-1], (*pageOne)[0].UUID)
-	assert.Equal(t, uuids[total-2], (*pageOne)[1].UUID)
-
-	pageTwoReq := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d/deliveries?limit=2&page=2", owner.Name, repo.Name, hook.ID)).
-		AddTokenAuth(token)
-	pageTwoResp := MakeRequest(t, pageTwoReq, http.StatusOK)
-	pageTwo := DecodeJSON(t, pageTwoResp, &api.HookDeliveryList{})
-	assert.Len(t, *pageTwo, 2)
-	assert.Equal(t, uuids[total-3], (*pageTwo)[0].UUID)
-	assert.Equal(t, uuids[total-4], (*pageTwo)[1].UUID)
-
-	// no overlap between pages
-	assert.NotEqual(t, (*pageOne)[0].UUID, (*pageTwo)[0].UUID)
-	assert.NotEqual(t, (*pageOne)[1].UUID, (*pageTwo)[0].UUID)
 }

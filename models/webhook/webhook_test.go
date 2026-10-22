@@ -260,28 +260,20 @@ func TestHookTasks(t *testing.T) {
 	hookTasks, err = HookTasks(t.Context(), unittest.NonexistentID, 1)
 	assert.NoError(t, err)
 	assert.Empty(t, hookTasks)
-}
 
-func TestListHookTasks(t *testing.T) {
-	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{RepoID: 1, IsActive: true})
-	tasks, count, err := ListHookTasks(t.Context(), ListHookTaskOptions{HookID: hook.ID})
+	tasks, count, err := db.FindAndCount[HookTask](t.Context(), ListHookTaskOptions{HookID: hook.ID})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, count)
-	assert.Len(t, tasks, 3)
+	require.Len(t, tasks, 3)
 
-	tasks, count, err = ListHookTasks(t.Context(), ListHookTaskOptions{HookID: unittest.NonexistentID})
+	task, err := GetHookTaskByUUID(t.Context(), hook.ID, tasks[0].UUID)
+	require.NoError(t, err)
+	assert.Equal(t, tasks[0].ID, task.ID)
+
+	tasks, count, err = db.FindAndCount[HookTask](t.Context(), ListHookTaskOptions{HookID: unittest.NonexistentID})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 	assert.Empty(t, tasks)
-}
-
-func TestGetHookTaskByUUID(t *testing.T) {
-	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{RepoID: 1, IsActive: true})
-	existing := unittest.AssertExistsAndLoadBean(t, &HookTask{HookID: hook.ID})
-
-	task, err := GetHookTaskByUUID(t.Context(), hook.ID, existing.UUID)
-	assert.NoError(t, err)
-	assert.Equal(t, existing.ID, task.ID)
 
 	_, err = GetHookTaskByUUID(t.Context(), hook.ID, "non-existent-uuid")
 	assert.True(t, IsErrHookTaskNotExist(err))

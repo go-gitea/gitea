@@ -19,14 +19,13 @@ import (
 	"xorm.io/builder"
 )
 
-// ListHookTaskOptions are options to filter deliveries on ListHookTasks
 type ListHookTaskOptions struct {
 	db.ListOptions
 	HookID int64
 }
 
 func (opts ListHookTaskOptions) ToConds() builder.Cond {
-	return builder.NewCond().And(builder.Eq{"hook_task.hook_id": opts.HookID})
+	return builder.Eq{"hook_task.hook_id": opts.HookID}
 }
 
 func (opts ListHookTaskOptions) ToOrders() string {
@@ -130,12 +129,6 @@ func HookTasks(ctx context.Context, hookID int64, page int) ([]*HookTask, error)
 		Find(&tasks)
 }
 
-// ListHookTasks returns a paginated list of hook tasks (deliveries) for a webhook, most recent first.
-func ListHookTasks(ctx context.Context, opts ListHookTaskOptions) ([]*HookTask, int64, error) {
-	return db.FindAndCount[HookTask](ctx, opts)
-}
-
-// GetHookTaskByUUID gets a hook task (delivery) of the given hook by its UUID.
 func GetHookTaskByUUID(ctx context.Context, hookID int64, uuid string) (*HookTask, error) {
 	task, exist, err := db.Get[HookTask](ctx, builder.Eq{"hook_id": hookID, "uuid": uuid})
 	if err != nil {
