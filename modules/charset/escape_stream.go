@@ -45,7 +45,10 @@ type escapeStreamer struct {
 	out io.Writer
 }
 
-const readBufSmallSize = 512
+const (
+	readBufSmallSize    = 512
+	readBufMaxLargeSize = 32 * 1024
+)
 
 var (
 	readBufPoolLarge = sync.Pool{New: func() any { return make([]byte, 0, 4*1024) }}
@@ -61,7 +64,9 @@ func prepareReadBuf(buf *[]byte, in io.Reader) func() {
 	}
 	*buf = pool.Get().([]byte)[:0] //nolint:forcetypeassert // valid pool item
 	return func() {
-		pool.Put(*buf)
+		if len(*buf) < readBufMaxLargeSize {
+			pool.Put(*buf)
+		}
 		*buf = nil
 	}
 }
