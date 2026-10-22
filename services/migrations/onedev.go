@@ -24,6 +24,7 @@ import (
 const (
 	OneDevRequiredVersion        = "12.0.1"
 	maxOneDevVersionResponseSize = 1024
+	maxOneDevResponseSize        = 32 * 1024 * 1024
 )
 
 var (
@@ -156,7 +157,7 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 		return nil
 	}
 
-	decoder := json.NewDecoder(resp.Body)
+	decoder := json.NewDecoder(io.LimitReader(resp.Body, maxOneDevResponseSize))
 	return decoder.Decode(&result)
 }
 

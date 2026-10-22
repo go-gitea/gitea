@@ -170,3 +170,20 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		},
 	}, rvs)
 }
+
+func TestOneDevResponseSizeLimit(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("["))
+		chunk := bytes.Repeat([]byte("0,"), 1024*1024)
+		for range maxOneDevResponseSize/len(chunk) + 1 {
+			_, _ = w.Write(chunk)
+		}
+	}))
+	defer server.Close()
+
+	baseURL, err := url.Parse(server.URL)
+	assert.NoError(t, err)
+	download := &OneDevDownloader{baseURL: baseURL, client: server.Client()}
+	var result []int
+	assert.Error(t, download.callAPI(t.Context(), "/~api/projects", nil, &result))
+}
