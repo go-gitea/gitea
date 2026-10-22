@@ -46,20 +46,14 @@ type escapeStreamer struct {
 	out io.Writer
 }
 
-const readBufSmallSize = 512
+const tagHeadMaxLen = 100 // only read the first N bytes of the tag for detection purpose
 
 var (
-	readBufPoolLarge = sync.Pool{New: func() any { return new(make([]byte, 4*1024)) }}
-	readBufPoolSmall = sync.Pool{New: func() any { return new(make([]byte, readBufSmallSize)) }}
+	poolReadBuf = sync.Pool{New: func() any { return new(make([]byte, 4*1024)) }}
+	poolTagHead = sync.Pool{New: func() any { return new(make([]byte, tagHeadMaxLen)) }}
 )
 
-func prepareReadBufFixed(buf *[]byte, in io.Reader) func() {
-	lenProvider, ok := in.(interface{ Len() int })
-	useSmallPool := ok && lenProvider.Len() <= readBufSmallSize
-	pool := &readBufPoolLarge
-	if useSmallPool {
-		pool = &readBufPoolSmall
-	}
+func preparePoolBuf(pool *sync.Pool, buf *[]byte) func() {
 	pooledBuf := pool.Get().(*[]byte) //nolint:forcetypeassert // valid pool item
 	*buf = *pooledBuf
 	return func() {
@@ -80,7 +74,9 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 		out: out,
 	}
 
-	defer prepareReadBufFixed(&es.readBufFixed, in)()
+	defer preparePoolBuf(&poolReadBuf, &es.readBufFixed)()
+	defer preparePoolBuf(&poolTagHead, &es.tagPartial)()
+	es.tagPartial = es.tagPartial[:0]
 
 	if len(opts) > 0 {
 		es.allowed = opts[0].Allowed
@@ -127,15 +123,14 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 
 // trackHtmlTag receives tag parts, a tag might be split into multiple parts
 func (e *escapeStreamer) trackHtmlTag(part []byte) {
-	const maxHeadLen = 100 // only read the first N bytes of the tag for detection purpose
 	if part[0] == '<' {
 		// start a new tag
 		e.tagPartial = e.tagPartial[:0]
 	}
-	if len(e.tagPartial) >= maxHeadLen {
+	if len(e.tagPartial) >= tagHeadMaxLen {
 		return
 	}
-	e.tagPartial = append(e.tagPartial, part[:min(len(part), maxHeadLen-len(e.tagPartial))]...)
+	e.tagPartial = append(e.tagPartial, part[:min(len(part), tagHeadMaxLen-len(e.tagPartial))]...)
 
 	isTag := func(prefix string) bool {
 		if len(e.tagPartial) < len(prefix)+1 {
@@ -310,11 +305,7 @@ func (e *htmlChunkReader) readRunes() ([]readResult, error) {
 			}
 		}
 		if curPartLen == 0 {
-			// actually it's impossible that the part doesn't contain any valid rune,
-			// the only case is that the cap(readBuf) is too small, or the origin contain indeed doesn't contain any valid rune
-			// * try to leave the last 4 bytes (possible longest utf-8 encoding) to next round
-			// * at least consume 1 byte to avoid infinite loop
-			curPartLen = max(len(curPart)-utf8.UTFMax, 1)
+			break // preserve the incomplete rune for the next read
 		}
 
 		// if curPartLen is not the same as curPart, it means we have cut some bytes,

@@ -239,6 +239,12 @@ func TestHTMLChunkReader(t *testing.T) {
 	require.Len(t, rune2, 2)
 	require.Len(t, rune3, 3)
 	require.Len(t, rune4, 4)
+	for _, char := range []string{rune2, rune3, rune4, "\ufeff"} {
+		for split := 1; split < len(char); split++ {
+			testReadChunks(t, len("<b>")+split, "<b>"+char, []textPart{{"<b>", true}, {char, false}})
+		}
+	}
+
 	input := "<" + rune1 + rune2 + rune3 + rune4 + ">" + rune1 + rune2 + rune3 + rune4
 	testReadChunks(t, 4, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞", true}, {">", true}, {"Aé", false}, {"啊", false}, {"🌞", false}})
 	testReadChunks(t, 5, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"Aé", false}, {"啊", false}, {"🌞", false}})
