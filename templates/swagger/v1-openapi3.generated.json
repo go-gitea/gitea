@@ -28758,6 +28758,14 @@
             }
           },
           {
+            "description": "Filter by head branch of the pull request, as `branch`, `owner:branch` or `owner/repo:branch`",
+            "in": "query",
+            "name": "head",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "State of pull request",
             "in": "query",
             "name": "state",
@@ -29024,61 +29032,6 @@
           }
         },
         "summary": "List a repo's pinned pull requests",
-        "tags": [
-          "repository"
-        ]
-      }
-    },
-    "/repos/{owner}/{repo}/pulls/{base}/{head}": {
-      "get": {
-        "operationId": "repoGetPullRequestByBaseHead",
-        "parameters": [
-          {
-            "description": "owner of the repo",
-            "in": "path",
-            "name": "owner",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "name of the repo",
-            "in": "path",
-            "name": "repo",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "base of the pull request to get",
-            "in": "path",
-            "name": "base",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "head of the pull request to get",
-            "in": "path",
-            "name": "head",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/PullRequest"
-          },
-          "default": {
-            "$ref": "#/components/responses/error"
-          }
-        },
-        "summary": "Get a pull request by base and head",
         "tags": [
           "repository"
         ]

@@ -1487,7 +1487,6 @@ func Routes() *web.Router {
 							Post(bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
 						m.Post("/comments/{id}/replies", reqToken(), mustNotBeArchived, bind(api.CreatePullReviewCommentReplyOptions{}), repo.CreatePullReviewCommentReply)
 					})
-					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
 				m.Group("/statuses", func() { // "/statuses/{sha}" only accepts commit ID
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
