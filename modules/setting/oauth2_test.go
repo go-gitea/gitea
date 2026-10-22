@@ -60,6 +60,8 @@ func TestGetGeneralSigningSecretSave(t *testing.T) {
 }
 
 func TestOauth2DefaultApplications(t *testing.T) {
+	defer test.MockVariableValue(&OAuth2)()
+
 	cfg, _ := NewConfigProviderFromData(``)
 	loadOAuth2From(cfg)
 	assert.Equal(t, []string{"git-credential-oauth", "git-credential-manager", "tea", "gitea-app", "gitea-vscode"}, OAuth2.DefaultApplications)

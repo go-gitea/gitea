@@ -5,9 +5,13 @@
 package migrations
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"testing"
 	"time"
 
@@ -18,6 +22,101 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestGithubIssuePagination(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		pages []string
+	}{
+		{name: "offset", pages: []string{"page=1", "page=2", "page=3"}},
+		{name: "cursor", pages: []string{"page=1", "after=cursor-2", "after=cursor-3"}},
+		{name: "switch to cursor", pages: []string{"page=1", "page=2", "after=cursor-3"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var requests []string
+			failReaction := true
+			issue := func(number int) string {
+				return fmt.Sprintf(`{"number":%d,"title":"Issue","user":{},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`, number)
+			}
+			responses := []string{
+				"[" + issue(1) + `,{"pull_request":{}}]`,
+				`[{"pull_request":{}}]`,
+				"[" + issue(4) + "," + issue(5) + "]",
+			}
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("X-RateLimit-Remaining", "100")
+				if r.URL.Path == "/api/v3/repos/o/r/issues/4/reactions" && failReaction {
+					failReaction = false
+					w.WriteHeader(http.StatusInternalServerError)
+					_, _ = w.Write([]byte(`{"message":"temporary failure"}`))
+					return
+				}
+				if r.URL.Path != "/api/v3/repos/o/r/issues" {
+					_, _ = w.Write([]byte(`[]`))
+					return
+				}
+				query := r.URL.Query()
+				assert.Equal(t, "2", query.Get("per_page"))
+				assert.Equal(t, "all", query.Get("state"))
+				assert.Equal(t, "created", query.Get("sort"))
+				assert.Equal(t, "asc", query.Get("direction"))
+				query.Del("per_page")
+				query.Del("state")
+				query.Del("sort")
+				query.Del("direction")
+				pagination := query.Encode()
+				requests = append(requests, pagination)
+				page := slices.Index(tc.pages, pagination)
+				if page < 0 {
+					w.WriteHeader(http.StatusUnprocessableEntity)
+					_, _ = w.Write([]byte(`{"message":"unexpected pagination"}`))
+					return
+				}
+				if page+1 < len(tc.pages) {
+					w.Header().Set("Link", fmt.Sprintf(`<https://api.github.com/repos/o/r/issues?per_page=2&%s>; rel="next"`, tc.pages[page+1]))
+				}
+				_, _ = w.Write([]byte(responses[page]))
+			}))
+			defer server.Close()
+
+			downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+			require.NoError(t, err)
+			issues, isEnd, err := downloader.GetIssues(t.Context(), 1, 2)
+			require.NoError(t, err)
+			require.Len(t, issues, 1)
+			assert.EqualValues(t, 1, issues[0].Number)
+			assert.False(t, isEnd)
+
+			for range 2 {
+				issues, isEnd, err = downloader.GetIssues(t.Context(), 2, 2)
+				require.NoError(t, err)
+				assert.Empty(t, issues)
+				assert.False(t, isEnd)
+			}
+
+			_, _, err = downloader.GetIssues(t.Context(), 3, 2)
+			require.Error(t, err)
+			for range 2 {
+				issues, isEnd, err = downloader.GetIssues(t.Context(), 3, 2)
+				require.NoError(t, err)
+				require.Len(t, issues, 2)
+				assert.EqualValues(t, 4, issues[0].Number)
+				assert.EqualValues(t, 5, issues[1].Number)
+				assert.True(t, isEnd)
+			}
+
+			_, isEnd, err = downloader.GetIssues(t.Context(), 1, 2)
+			require.NoError(t, err)
+			assert.False(t, isEnd)
+			issues, isEnd, err = downloader.GetIssues(t.Context(), 2, 2)
+			require.NoError(t, err)
+			assert.Empty(t, issues)
+			assert.False(t, isEnd)
+			assert.Equal(t, []string{tc.pages[0], tc.pages[1], tc.pages[1], tc.pages[2], tc.pages[2], tc.pages[2], tc.pages[0], tc.pages[1]}, requests)
+		})
+	}
+}
 
 func TestGitHubDownloadRepo(t *testing.T) {
 	token := os.Getenv("GITHUB_READ_TOKEN")

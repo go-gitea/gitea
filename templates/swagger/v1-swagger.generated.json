@@ -31391,7 +31391,7 @@
       "type": "object",
       "properties": {
         "labels": {
-          "description": "Labels can be a list of integers representing label IDs\nor a list of strings representing label names",
+          "description": "Labels can be a list of integers representing label IDs\nor a list of strings representing label names.\nIf a repository label and an organization label share a name,\nthe repository label is used.",
           "type": "array",
           "items": {},
           "x-go-name": "Labels"
