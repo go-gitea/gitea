@@ -57,7 +57,7 @@ func withRunner(next connect.ServerFunc) connect.ServerFunc {
 			}
 			return status.Error(codes.Internal, err.Error())
 		}
-		if !util.CryptoConstTimeEqual(runner.TokenHash, auth_model.HashToken(token, runner.TokenSalt)) {
+		if !verifyRunnerToken(runner, uuid, token) {
 			return errUnregisteredRunner
 		}
 
@@ -86,6 +86,28 @@ func withRunner(next connect.ServerFunc) connect.ServerFunc {
 		ctx = context.WithValue(ctx, runnerCtxKey{}, runner)
 		return next(ctx, spec, stream)
 	}
+}
+
+// verifyRunnerToken checks the token against the stored hash of the runner.
+// Hashing a token with PBKDF2 is expensive and every runner RPC (polling, log streaming) needs it,
+// so successful verifications are cached like access tokens are (see auth_model.GetAccessTokenBySHA).
+// The runner is always loaded from the DB by the caller, so a regenerated token (different hash) never matches a stale entry.
+func verifyRunnerToken(runner *actions_model.ActionRunner, uuid, token string) bool {
+	if token == "" {
+		return false
+	}
+	cacheKey := "runner:" + uuid + ":" + token
+	if cached, _ := auth_model.TokenCache().Get(cacheKey); cached != nil {
+		if cached.TokenID == runner.ID && util.CryptoConstTimeEqual(cached.TokenHash, runner.TokenHash) {
+			return true
+		}
+		auth_model.TokenCache().Remove(cacheKey)
+	}
+	if !util.CryptoConstTimeEqual(runner.TokenHash, auth_model.HashToken(token, runner.TokenSalt)) {
+		return false
+	}
+	auth_model.TokenCache().Add(cacheKey, &auth_model.TokenCacheItem{TokenID: runner.ID, TokenHash: runner.TokenHash})
+	return true
 }
 
 func getMethodName(spec connect.Spec) string {
