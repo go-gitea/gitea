@@ -285,4 +285,6 @@ func TestCommitStatusesApplyDoerPermission(t *testing.T) {
 	assert.Equal(t, visibleURL, statuses[0].TargetURL)
 	assert.Empty(t, statuses[1].TargetURL)
 	assert.Equal(t, "https://mycicd.org/1", statuses[2].TargetURL)
+	assert.NotNil(t, statuses[0].Repo)
+	assert.Same(t, statuses[0].Repo, statuses[2].Repo) // loaded once per repo
 }
