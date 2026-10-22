@@ -47,7 +47,7 @@ type escapeStreamer struct {
 
 var readBufPoolLarge = sync.Pool{
 	New: func() any {
-		return make([]byte, 4*1024)
+		return make([]byte, 0, 4*1024)
 	},
 }
 
@@ -55,7 +55,7 @@ const readBufSmallSize = 512
 
 var readBufPoolSmall = sync.Pool{
 	New: func() any {
-		return make([]byte, readBufSmallSize)
+		return make([]byte, 0, readBufSmallSize)
 	},
 }
 
@@ -66,7 +66,7 @@ func prepareReadBuf(buf *[]byte, in io.Reader) func() {
 	if useSmallPool {
 		pool = &readBufPoolSmall
 	}
-	*buf = pool.Get().([]byte)
+	*buf = pool.Get().([]byte)[:0]
 	return func() {
 		pool.Put(*buf)
 		*buf = nil
