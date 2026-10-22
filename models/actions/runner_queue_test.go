@@ -76,6 +76,44 @@ func TestListRunnerRepoQueues(t *testing.T) {
 	assert.Equal(t, "user5/repo4", queues[2].Repo.FullName())
 }
 
+func TestWaitingQueuesByRunner(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	enableActionsUnit(t, 1)
+	enableActionsUnit(t, 3)
+	enableActionsUnit(t, 4)
+
+	insertQueueJob(t, 1, 2, StatusWaiting, []string{"a"}, false)
+	insertQueueJob(t, 1, 2, StatusWaiting, []string{"a", "b"}, false)
+	insertQueueJob(t, 3, 3, StatusWaiting, []string{"a"}, false)
+	insertQueueJob(t, 4, 5, StatusWaiting, []string{"a"}, false)
+
+	ownerRunner := insertQueueRunnerWithLabels(t, "33333333-3333-4333-8333-000000000001", 2, 0, []string{"a"})
+	repoRunner := insertQueueRunnerWithLabels(t, "33333333-3333-4333-8333-000000000002", 0, 4, []string{"a"})
+	globalRunner := insertQueueRunnerWithLabels(t, "33333333-3333-4333-8333-000000000003", 0, 0, []string{"a", "b"})
+	idleRunner := insertQueueRunnerWithLabels(t, "33333333-3333-4333-8333-000000000004", 2, 0, []string{"no-such-label"})
+
+	byRunner, err := WaitingQueuesByRunner(t.Context(), []*ActionRunner{ownerRunner, repoRunner, globalRunner, idleRunner})
+	require.NoError(t, err)
+
+	require.Len(t, byRunner[ownerRunner.ID], 1)
+	assert.Equal(t, int64(1), byRunner[ownerRunner.ID][0].Repo.ID)
+	assert.Equal(t, 1, byRunner[ownerRunner.ID][0].Waiting) // second job also needs "b"
+
+	require.Len(t, byRunner[repoRunner.ID], 1)
+	assert.Equal(t, int64(4), byRunner[repoRunner.ID][0].Repo.ID)
+	assert.Equal(t, 1, byRunner[repoRunner.ID][0].Waiting)
+
+	require.Len(t, byRunner[globalRunner.ID], 3)
+	assert.Equal(t, int64(1), byRunner[globalRunner.ID][0].Repo.ID)
+	assert.Equal(t, 2, byRunner[globalRunner.ID][0].Waiting)
+
+	assert.Empty(t, byRunner[idleRunner.ID])
+
+	byRunner, err = WaitingQueuesByRunner(t.Context(), nil)
+	require.NoError(t, err)
+	assert.Empty(t, byRunner)
+}
+
 func TestFindRunningTasksByRunnerIDs(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
@@ -112,12 +150,17 @@ func enableActionsUnit(t *testing.T, repoID int64) {
 
 func insertQueueRunner(t *testing.T, uuid string, ownerID, repoID int64, label string) *ActionRunner {
 	t.Helper()
+	return insertQueueRunnerWithLabels(t, uuid, ownerID, repoID, []string{label})
+}
+
+func insertQueueRunnerWithLabels(t *testing.T, uuid string, ownerID, repoID int64, labels []string) *ActionRunner {
+	t.Helper()
 	runner := &ActionRunner{
 		UUID:        uuid,
 		Name:        "queue-runner",
 		OwnerID:     ownerID,
 		RepoID:      repoID,
-		AgentLabels: []string{label},
+		AgentLabels: labels,
 	}
 	runner.GenerateAndFillToken()
 	require.NoError(t, db.Insert(t.Context(), runner))
