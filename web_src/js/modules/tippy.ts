@@ -79,12 +79,11 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   const focused = document.activeElement as HTMLElement;
   const inMenu = menuInstance.popper.contains(focused);
   if (!inMenu && focused !== menuInstance.reference && focused !== document.body) return; // body: macOS Safari and Firefox do not focus clicked buttons
-  const inControl = inMenu && !focused.matches('.item'); // e.g. a filter input keeps its own keys, only up/down navigate
   if (e.key === 'Escape') {
     menuInstance.hide();
-  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || (!inControl && (e.key === 'ArrowRight' || e.key === 'ArrowLeft'))) {
+  } else if (['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft'].includes(e.key)) {
     focusMenuItem(menuInstance, e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1);
-  } else if ((e.key === 'Enter' || e.key === ' ') && inMenu && !inControl) {
+  } else if ((e.key === 'Enter' || e.key === ' ') && inMenu) {
     focused.click();
   } else {
     return;

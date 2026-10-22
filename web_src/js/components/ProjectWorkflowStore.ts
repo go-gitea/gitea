@@ -1,11 +1,9 @@
 import {computed, reactive} from 'vue';
-import {GET} from '../modules/fetch.ts';
-import {showErrorToast} from '../modules/toast.ts';
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {trString} from '../modules/i18n.ts';
 
 type ProjectWorkflowFilters = {
-  issue_type?: 'issue' | 'pull_request';
+  issue_type?: '' | 'issue' | 'pull_request';
   source_column_id?: number;
   target_column_id?: number;
   label_ids?: number[];
@@ -15,7 +13,7 @@ type ProjectWorkflowActions = {
   column_id?: number;
   add_label_ids?: number[];
   remove_label_ids?: number[];
-  issue_state?: 'close' | 'reopen';
+  issue_state?: '' | 'close' | 'reopen';
 };
 
 export type ProjectWorkflow = {
@@ -40,23 +38,16 @@ type ProjectColumn = {id: number; title: string};
 
 type ProjectLabel = {id: number; name: string; html: string};
 
-type ProjectWorkflowData = {
+export type ProjectWorkflowData = {
   events: ProjectWorkflowEvent[];
   workflows: ProjectWorkflow[];
   columns: ProjectColumn[];
   labels: ProjectLabel[];
 };
 
-// flat, always-populated editor state: 0 means "any" / "none", '' means unset
 type WorkflowForm = {
-  issue_type: '' | 'issue' | 'pull_request';
-  source_column_id: number;
-  target_column_id: number;
-  label_ids: number[];
-  column_id: number;
-  add_label_ids: number[];
-  remove_label_ids: number[];
-  issue_state: '' | 'close' | 'reopen';
+  filters: Required<ProjectWorkflowFilters>;
+  actions: Required<ProjectWorkflowActions>;
 };
 
 export type WorkflowRow = {
@@ -65,8 +56,6 @@ export type WorkflowRow = {
   displayName: string;
 } & ({workflow: ProjectWorkflow, draft?: never} | {workflow?: never, draft: WorkflowForm});
 
-// a blank draft keyed by its event name is shown while the event has no saved workflow,
-// clones remember the row they were cloned from
 type WorkflowDraft = {key: string; event: string; draft: WorkflowForm; sourceKey?: string};
 
 export type ProjectWorkflowLocale = {
@@ -107,37 +96,23 @@ export type ProjectWorkflowLocale = {
   disabled: string;
 };
 
-export function toWorkflowForm({filters, actions}: Pick<ProjectWorkflow, 'filters' | 'actions'> = {filters: {}, actions: {}}): WorkflowForm {
-  return {
-    issue_type: filters.issue_type ?? '',
-    source_column_id: filters.source_column_id ?? 0,
-    target_column_id: filters.target_column_id ?? 0,
-    label_ids: [...filters.label_ids ?? []],
-    column_id: actions.column_id ?? 0,
-    add_label_ids: [...actions.add_label_ids ?? []],
-    remove_label_ids: [...actions.remove_label_ids ?? []],
-    issue_state: actions.issue_state ?? '',
-  };
-}
-
-export function toWorkflowRules(form: WorkflowForm): Pick<ProjectWorkflow, 'filters' | 'actions'> {
+function toWorkflowForm({filters, actions}: Pick<ProjectWorkflow, 'filters' | 'actions'> = {filters: {}, actions: {}}): WorkflowForm {
   return {
     filters: {
-      issue_type: form.issue_type || undefined,
-      source_column_id: form.source_column_id || undefined,
-      target_column_id: form.target_column_id || undefined,
-      label_ids: form.label_ids,
+      issue_type: filters.issue_type ?? '',
+      source_column_id: filters.source_column_id ?? 0,
+      target_column_id: filters.target_column_id ?? 0,
+      label_ids: [...filters.label_ids ?? []],
     },
     actions: {
-      column_id: form.column_id || undefined,
-      add_label_ids: form.add_label_ids,
-      remove_label_ids: form.remove_label_ids,
-      issue_state: form.issue_state || undefined,
+      column_id: actions.column_id ?? 0,
+      add_label_ids: [...actions.add_label_ids ?? []],
+      remove_label_ids: [...actions.remove_label_ids ?? []],
+      issue_state: actions.issue_state ?? '',
     },
   };
 }
 
-// every event lists its saved workflows then its clones, or its placeholder when it has neither
 function buildWorkflowRows(events: ProjectWorkflowEvent[], workflows: ProjectWorkflow[], drafts: WorkflowDraft[]): WorkflowRow[] {
   return events.flatMap((event) => {
     const eventDrafts = drafts.filter((d) => d.event === event.event);
@@ -158,14 +133,12 @@ let cloneSeq = 0;
 
 export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink: string, canWrite: boolean, locale: ProjectWorkflowLocale}) {
   const baseUrl = `${props.projectLink}/workflows`;
+  const data = window.config.pageData.projectWorkflows!;
 
   const store = reactive({
     canWrite: props.canWrite,
-    events: [] as ProjectWorkflowEvent[],
-    workflows: [] as ProjectWorkflow[],
-    columns: [] as ProjectColumn[],
-    labels: [] as ProjectLabel[],
-    drafts: [] as WorkflowDraft[],
+    ...data,
+    drafts: data.events.map((event): WorkflowDraft => ({key: event.event, event: event.event, draft: toWorkflowForm()})),
 
     selectedKey: '',
     editMode: false,
@@ -184,7 +157,6 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
       return store.editMode || !row.workflow;
     },
 
-    // saved workflow id, event name (its first row) or clone key
     resolve: (key: string): WorkflowRow | undefined => store.rows.find((row) => row.key === key) ?? store.rows.find((row) => row.event.event === key),
 
     urlFor: (row: WorkflowRow): string => row.workflow ? `${baseUrl}/${row.workflow.id}` : `${baseUrl}?event=${encodeURIComponent(row.event.event)}`,
@@ -205,38 +177,21 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
       return parts.filter(Boolean).map((part) => `(${part})`).join(' ');
     },
 
-    async load() {
-      const resp = await GET(`${baseUrl}/data`);
-      if (!resp.ok) {
-        showErrorToast(window.config.i18n.error_occurred);
-        return;
-      }
-      const data: ProjectWorkflowData = await resp.json();
-      store.events = data.events;
-      store.workflows = data.workflows;
-      store.columns = data.columns;
-      store.labels = data.labels;
-      store.drafts = data.events.map((e) => ({key: e.event, event: e.event, draft: toWorkflowForm()}));
-    },
-
     select(row: WorkflowRow, history?: 'push' | 'replace') {
-      if (store.saving) return;
       store.selectedKey = row.key;
       store.editMode = false;
-      // unsaved rows are edited in place so their changes survive switching rows
       store.form = row.workflow ? formFor(row.workflow) : row.draft;
       const state = {key: row.key, event: row.event.event};
       if (history === 'push') window.history.pushState(state, '', store.urlFor(row));
       else if (history === 'replace') window.history.replaceState(state, '', store.urlFor(row));
     },
 
-    // discards a clone and returns to its source, or the edits of a saved workflow
     cancel() {
       const row = store.selected!;
       const clone = store.drafts.find((d) => d.key === row.key && d.sourceKey);
       if (clone) {
         store.drafts = store.drafts.filter((d) => d !== clone);
-        store.select((store.resolve(clone.sourceKey!) ?? store.resolve(clone.event))!);
+        store.select((store.resolve(clone.sourceKey!) ?? store.resolve(clone.event))!, 'replace');
         return;
       }
       store.editMode = false;
@@ -254,10 +209,9 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
 
     async save() {
       const row = store.selected!;
-      const rules = toWorkflowRules(store.form);
       const saved = row.workflow ?
-        await post<ProjectWorkflow>(`${baseUrl}/${row.workflow.id}`, rules) :
-        await post<ProjectWorkflow>(baseUrl, {event: row.event.event, ...rules});
+        await post<ProjectWorkflow>(`${baseUrl}/${row.workflow.id}`, store.form) :
+        await post<ProjectWorkflow>(baseUrl, {event: row.event.event, ...store.form});
       if (!saved) return;
       let history: 'push' | 'replace' | undefined;
       if (row.workflow) {
@@ -273,7 +227,7 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
           history = 'replace';
         }
       }
-      store.select(store.resolve(String(saved.id))!, history);
+      if (store.selectedKey === row.key) store.select(store.resolve(String(saved.id))!, history);
     },
 
     async setEnabled(enabled: boolean) {
@@ -282,12 +236,10 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
       if (saved) replaceWorkflow(saved);
     },
 
-    async remove() {
-      const row = store.selected!;
-      const workflow = row.workflow!;
+    async remove(workflow: ProjectWorkflow) {
       if (!await post(`${baseUrl}/${workflow.id}/delete`, {})) return;
       store.workflows = store.workflows.filter((wf) => wf.id !== workflow.id);
-      store.select(store.resolve(row.event.event)!, 'replace');
+      if (store.selectedKey === String(workflow.id)) store.select(store.resolve(workflow.event)!, 'replace');
     },
   });
 
@@ -300,12 +252,12 @@ export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink:
     const form = toWorkflowForm(workflow);
     const hasColumn = (id: number) => store.columns.some((c) => c.id === id);
     const hasLabel = (id: number) => store.labels.some((l) => l.id === id);
-    if (!hasColumn(form.source_column_id)) form.source_column_id = 0;
-    if (!hasColumn(form.target_column_id)) form.target_column_id = 0;
-    if (!hasColumn(form.column_id)) form.column_id = 0;
-    form.label_ids = form.label_ids.filter(hasLabel);
-    form.add_label_ids = form.add_label_ids.filter(hasLabel);
-    form.remove_label_ids = form.remove_label_ids.filter(hasLabel);
+    if (!hasColumn(form.filters.source_column_id)) form.filters.source_column_id = 0;
+    if (!hasColumn(form.filters.target_column_id)) form.filters.target_column_id = 0;
+    if (!hasColumn(form.actions.column_id)) form.actions.column_id = 0;
+    form.filters.label_ids = form.filters.label_ids.filter(hasLabel);
+    form.actions.add_label_ids = form.actions.add_label_ids.filter(hasLabel);
+    form.actions.remove_label_ids = form.actions.remove_label_ids.filter(hasLabel);
     return form;
   }
 

@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/web"
@@ -189,10 +190,25 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
+	repoPerms := map[int64]access_model.Permission{}
 	for _, issue := range movedIssues {
 		if !project.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
 			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
 			return
+		}
+		if project.Type != project_model.TypeRepository {
+			perm, ok := repoPerms[issue.RepoID]
+			if !ok {
+				if perm, err = access_model.GetDoerRepoPermission(ctx, issue.Repo, ctx.Doer); err != nil {
+					ctx.ServerError("GetDoerRepoPermission", err)
+					return
+				}
+				repoPerms[issue.RepoID] = perm
+			}
+			if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+				ctx.NotFound(nil)
+				return
+			}
 		}
 	}
 

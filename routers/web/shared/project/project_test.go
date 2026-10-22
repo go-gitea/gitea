@@ -4,13 +4,21 @@
 package project
 
 import (
+	"fmt"
+	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"testing"
 
+	issues_model "gitea.dev/models/issues"
+	project_model "gitea.dev/models/project"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -55,6 +63,36 @@ func TestFindColumn(t *testing.T) {
 				// a foreign ID must read as not found, never as a 500
 				assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
 			}
+		})
+	}
+}
+
+func TestMoveIssuesOnOwnerBoardNeedsIssueRead(t *testing.T) {
+	for _, tc := range []struct {
+		doerID int64
+		status int
+	}{{15, http.StatusNotFound}, {2, http.StatusOK}} {
+		t.Run(strconv.FormatInt(tc.doerID, 10), func(t *testing.T) {
+			unittest.PrepareTestEnv(t)
+			ctx, _ := contexttest.MockContext(t, "POST /org3/-/projects")
+			contexttest.LoadUser(t, ctx, tc.doerID)
+			ctx.ContextUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+			project := &project_model.Project{Title: "board", OwnerID: 3, CreatorID: 2, Type: project_model.TypeOrganization}
+			require.NoError(t, project_model.NewProject(ctx, project))
+			require.NoError(t, project_model.NewColumn(ctx, &project_model.Column{Title: "Backlog", ProjectID: project.ID, Default: true}))
+			column := &project_model.Column{Title: "Done", ProjectID: project.ID}
+			require.NoError(t, project_model.NewColumn(ctx, column))
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
+			_, _, err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.ContextUser, []int64{project.ID})
+			require.NoError(t, err)
+			ctx.SetPathParam("id", strconv.FormatInt(project.ID, 10))
+			ctx.SetPathParam("columnID", strconv.FormatInt(column.ID, 10))
+			ctx.Req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf(`{"issues":[{"issueID":%d,"sorting":0}]}`, issue.ID)))
+
+			MoveIssues(ctx)
+			assert.Equal(t, tc.status, ctx.Resp.WrittenStatus())
+			card := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: project.ID})
+			assert.Equal(t, tc.status == http.StatusOK, card.ProjectColumnID == column.ID)
 		})
 	}
 }

@@ -13,20 +13,20 @@ import (
 	project_model "gitea.dev/models/project"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 )
 
-// CreateWorkflow validates and stores a new workflow whose label and issue state actions run as doer
 func CreateWorkflow(ctx context.Context, doer *user_model.User, project *project_model.Project, opts *api.CreateProjectWorkflowOption) (*project_model.Workflow, error) {
 	wf := &project_model.Workflow{
 		ProjectID:     project.ID,
 		WorkflowEvent: project_model.WorkflowEvent(opts.Event),
 		Enabled:       optional.FromPtr(opts.Enabled).ValueOrDefault(true),
-		UpdaterID:     doer.ID,
 	}
+	setWorkflowUpdater(wf, doer)
 	if !wf.WorkflowEvent.IsValid() {
 		return nil, util.ErrorWrap(util.ErrUnprocessableContent, "invalid event: %s", opts.Event)
 	}
@@ -36,25 +36,25 @@ func CreateWorkflow(ctx context.Context, doer *user_model.User, project *project
 	if err := checkWorkflowActionsPermission(ctx, doer, project, wf); err != nil {
 		return nil, err
 	}
-	auditScope, err := workflowAuditScope(ctx, project)
-	if err != nil {
-		return nil, err
-	}
 	if err := project_model.CreateWorkflow(ctx, wf); err != nil {
 		return nil, err
 	}
-	recordWorkflowAudit(ctx, doer, audit_model.ProjectWorkflowCreate, auditScope, project, wf)
+	recordWorkflowAudit(ctx, doer, audit_model.ProjectWorkflowCreate, project, wf)
 	return wf, nil
 }
 
-// UpdateWorkflow applies the given changes, afterwards the workflow's actions run as doer
 func UpdateWorkflow(ctx context.Context, doer *user_model.User, project *project_model.Project, wf *project_model.Workflow, opts *api.EditProjectWorkflowOption) error {
-	cols := []string{"updater_id"}
+	cols := []string{"updater_id", "updater_doer_data"}
 	if opts.Filters != nil || opts.Actions != nil {
 		if err := setWorkflowRules(ctx, project, wf, opts.Filters, opts.Actions); err != nil {
 			return err
 		}
-		cols = append(cols, "workflow_filters", "workflow_actions")
+	}
+	if opts.Filters != nil {
+		cols = append(cols, "workflow_filters")
+	}
+	if opts.Actions != nil {
+		cols = append(cols, "workflow_actions")
 	}
 	if opts.Enabled != nil {
 		wf.Enabled = *opts.Enabled
@@ -63,79 +63,66 @@ func UpdateWorkflow(ctx context.Context, doer *user_model.User, project *project
 	if err := checkWorkflowActionsPermission(ctx, doer, project, wf); err != nil {
 		return err
 	}
-	auditScope, err := workflowAuditScope(ctx, project)
-	if err != nil {
-		return err
-	}
-	wf.UpdaterID = doer.ID
+	setWorkflowUpdater(wf, doer)
 	if err := project_model.UpdateWorkflow(ctx, wf, cols...); err != nil {
 		return err
 	}
-	recordWorkflowAudit(ctx, doer, audit_model.ProjectWorkflowUpdate, auditScope, project, wf)
+	recordWorkflowAudit(ctx, doer, audit_model.ProjectWorkflowUpdate, project, wf)
 	return nil
 }
 
 func DeleteWorkflow(ctx context.Context, doer *user_model.User, project *project_model.Project, wf *project_model.Workflow) error {
-	auditScope, err := workflowAuditScope(ctx, project)
-	if err != nil {
-		return err
-	}
 	if err := project_model.DeleteWorkflow(ctx, project.ID, wf.ID); err != nil {
 		return err
 	}
-	recordWorkflowAudit(ctx, doer, audit_model.ProjectWorkflowDelete, auditScope, project, wf)
+	recordWorkflowAudit(ctx, doer, audit_model.ProjectWorkflowDelete, project, wf)
 	return nil
 }
 
-// workflowAuditScope is loaded before the change is written, so recording the audit event can't fail a saved change
-func workflowAuditScope(ctx context.Context, project *project_model.Project) (any, error) {
+func recordWorkflowAudit(ctx context.Context, doer *user_model.User, action audit_model.Action, project *project_model.Project, wf *project_model.Workflow) {
+	var scope audit_model.EntityRef
 	if project.Type == project_model.TypeRepository {
 		if err := project.LoadRepo(ctx); err != nil {
-			return nil, err
+			log.Error("recordWorkflowAudit: LoadRepo: %v", err)
+			scope = audit_model.EntityRef{Type: audit_model.ScopeRepository, ID: project.RepoID}
+		} else {
+			scope = audit.ScopeFromRepository(project.Repo)
 		}
-		return project.Repo, nil
+	} else {
+		scope = audit.ScopeFromUserID(ctx, project.OwnerID)
 	}
-	if err := project.LoadOwner(ctx); err != nil {
-		return nil, err
-	}
-	return project.Owner, nil
-}
-
-func recordWorkflowAudit(ctx context.Context, doer *user_model.User, action audit_model.Action, scope any, project *project_model.Project, wf *project_model.Workflow) {
 	audit.RecordAs(ctx, doer, action, scope, "project", project.Title, "project_id", project.ID, "workflow_id", wf.ID, "event", string(wf.WorkflowEvent))
 }
 
-// setWorkflowRules replaces the given non-nil rules, rejecting anything that cannot be resolved
-// because dropping it would make the workflow match or do more than configured
-func setWorkflowRules(ctx context.Context, project *project_model.Project, wf *project_model.Workflow, filters *api.ProjectWorkflowFilters, actions *api.ProjectWorkflowActions) error {
-	if filters != nil {
-		wf.WorkflowFilters = project_model.WorkflowFilters(*filters)
-		wf.WorkflowFilters.LabelIDs = uniqueIDs(filters.LabelIDs)
+func setWorkflowRules(ctx context.Context, project *project_model.Project, wf *project_model.Workflow, newFilters *api.ProjectWorkflowFilters, newActions *api.ProjectWorkflowActions) error {
+	if newFilters != nil {
+		wf.WorkflowFilters = project_model.WorkflowFilters(*newFilters)
+		wf.WorkflowFilters.LabelIDs = uniqueIDs(newFilters.LabelIDs)
 	}
-	if actions != nil {
-		wf.WorkflowActions = project_model.WorkflowActions(*actions)
-		wf.WorkflowActions.AddLabelIDs = uniqueIDs(actions.AddLabelIDs)
-		wf.WorkflowActions.RemoveLabelIDs = uniqueIDs(actions.RemoveLabelIDs)
+	if newActions != nil {
+		wf.WorkflowActions = project_model.WorkflowActions(*newActions)
+		wf.WorkflowActions.AddLabelIDs = uniqueIDs(newActions.AddLabelIDs)
+		wf.WorkflowActions.RemoveLabelIDs = uniqueIDs(newActions.RemoveLabelIDs)
 	}
-	f, a := wf.WorkflowFilters, wf.WorkflowActions
+	filters, actions := wf.WorkflowFilters, wf.WorkflowActions
 
 	if typ := wf.UnsupportedRule(); typ != "" {
 		return util.ErrorWrap(util.ErrUnprocessableContent, "%s is not supported by this event", typ)
 	}
-	if len(a.Types()) == 0 {
+	if actions.ColumnID == 0 && !actions.ChangesIssue() {
 		return util.ErrorWrapTranslatable(util.ErrorWrap(util.ErrUnprocessableContent, "at least one action must be configured"), "projects.workflows.at_least_one_action_required")
 	}
-	if f.IssueType != "" && f.IssueType != project_model.WorkflowIssueTypeIssue && f.IssueType != project_model.WorkflowIssueTypePullRequest {
-		return util.ErrorWrap(util.ErrUnprocessableContent, "invalid issue_type: %s", f.IssueType)
+	if !slices.Contains([]string{"", project_model.WorkflowIssueTypeIssue, project_model.WorkflowIssueTypePullRequest}, filters.IssueType) {
+		return util.ErrorWrap(util.ErrUnprocessableContent, "invalid issue_type: %s", filters.IssueType)
 	}
-	if a.IssueState != "" && a.IssueState != project_model.WorkflowIssueStateClose && a.IssueState != project_model.WorkflowIssueStateReopen {
-		return util.ErrorWrap(util.ErrUnprocessableContent, "invalid issue_state: %s", a.IssueState)
+	if !slices.Contains([]string{"", project_model.WorkflowIssueStateClose, project_model.WorkflowIssueStateReopen}, actions.IssueState) {
+		return util.ErrorWrap(util.ErrUnprocessableContent, "invalid issue_state: %s", actions.IssueState)
 	}
-	if a.IssueState == project_model.WorkflowIssueStateReopen && f.IssueType == project_model.WorkflowIssueTypePullRequest {
+	if actions.IssueState == project_model.WorkflowIssueStateReopen && filters.IssueType == project_model.WorkflowIssueTypePullRequest {
 		return util.ErrorWrap(util.ErrUnprocessableContent, "pull requests cannot be reopened by a workflow")
 	}
 
-	for _, columnID := range []int64{f.SourceColumnID, f.TargetColumnID, a.ColumnID} {
+	for _, columnID := range []int64{filters.SourceColumnID, filters.TargetColumnID, actions.ColumnID} {
 		if columnID == 0 {
 			continue
 		}
@@ -146,7 +133,7 @@ func setWorkflowRules(ctx context.Context, project *project_model.Project, wf *p
 		}
 	}
 
-	labelIDs := slices.Concat(f.LabelIDs, a.AddLabelIDs, a.RemoveLabelIDs)
+	labelIDs := slices.Concat(filters.LabelIDs, actions.AddLabelIDs, actions.RemoveLabelIDs)
 	if len(labelIDs) == 0 {
 		return nil
 	}
@@ -166,13 +153,11 @@ func uniqueIDs(ids []int64) []int64 {
 	return slices.Compact(slices.Sorted(slices.Values(ids)))
 }
 
-// checkWorkflowActionsPermission rejects enabled label and issue state actions from users who could not make
-// those changes themselves. Owner-level projects span repositories, they are checked when the workflow runs.
 func checkWorkflowActionsPermission(ctx context.Context, doer *user_model.User, project *project_model.Project, wf *project_model.Workflow) error {
 	if !wf.Enabled || !wf.WorkflowActions.ChangesIssue() {
 		return nil
 	}
-	if doer.ID <= 0 { // system users can't be restored with their permissions when the workflow runs
+	if doer.ID <= 0 { // a system user's permissions belong to a task or key that may be gone when the workflow runs
 		return util.NewPermissionDeniedErrorf("label and issue state actions must be saved by a user")
 	}
 	if project.Type != project_model.TypeRepository {
@@ -191,9 +176,15 @@ func checkWorkflowActionsPermission(ctx context.Context, doer *user_model.User, 
 	return nil
 }
 
-// canWorkflowChangeIssue reports whether the workflow's updater may change labels or the state of the issue
+func setWorkflowUpdater(wf *project_model.Workflow, doer *user_model.User) {
+	wf.UpdaterID, wf.UpdaterDoerData = doer.ID, ""
+	if doer.ExtDoerData != nil {
+		wf.UpdaterDoerData = doer.ExtDoerData.EncodeToString()
+	}
+}
+
 func canWorkflowChangeIssue(ctx context.Context, wf *project_model.Workflow, issue *issues_model.Issue) (bool, error) {
-	updater, err := user_model.GetUserByID(ctx, wf.UpdaterID)
+	updater, err := user_model.GetDoerPermissionUser(ctx, wf.UpdaterID, wf.UpdaterDoerData)
 	if user_model.IsErrUserNotExist(err) {
 		return false, nil
 	} else if err != nil {

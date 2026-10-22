@@ -28,8 +28,7 @@ func TestWorkflowCRUD(t *testing.T) {
 
 	closed.Enabled = false
 	require.NoError(t, UpdateWorkflow(ctx, closed, "enabled"))
-	foreign := &Workflow{ID: opened.ID, ProjectID: 2}
-	require.NoError(t, UpdateWorkflow(ctx, foreign, "enabled"))
+	require.NoError(t, UpdateWorkflow(ctx, &Workflow{ID: opened.ID, ProjectID: 2}, "enabled"))
 	require.NoError(t, DeleteWorkflow(ctx, 2, opened.ID))
 	assert.True(t, unittest.AssertExistsAndLoadBean(t, &Workflow{ID: opened.ID}).Enabled, "other projects cannot modify it")
 
@@ -40,8 +39,13 @@ func TestWorkflowCRUD(t *testing.T) {
 
 	enabled, err := FindEnabledWorkflows(ctx, []int64{1, 2}, WorkflowEventItemClosed)
 	require.NoError(t, err)
-	assert.Len(t, enabled, 1)
+	require.Len(t, enabled, 1)
 	assert.Equal(t, closed2.ID, enabled[0].ID)
+
+	require.NoError(t, ChangeProjectStatus(ctx, unittest.AssertExistsAndLoadBean(t, &Project{ID: 1}), true))
+	enabled, err = FindEnabledWorkflows(ctx, []int64{1, 2}, WorkflowEventItemClosed)
+	require.NoError(t, err)
+	assert.Empty(t, enabled)
 
 	require.NoError(t, DeleteWorkflow(ctx, 1, closed2.ID))
 	unittest.AssertNotExistsBean(t, &Workflow{ID: closed2.ID})

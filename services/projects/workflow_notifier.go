@@ -25,8 +25,6 @@ type workflowNotifier struct {
 	notify_service.NullNotifier
 }
 
-var _ notify_service.Notifier = &workflowNotifier{}
-
 func (*workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, _ []*user_model.User) {
 	if err := issue.LoadPoster(ctx); err != nil {
 		log.Error("LoadPoster: %v", err)
@@ -72,23 +70,14 @@ func (m *workflowNotifier) AutoMergePullRequest(ctx context.Context, doer *user_
 }
 
 func (*workflowNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, _ *issues_model.Comment, _ []*user_model.User) {
-	if !review.Official {
-		return
-	}
-	var event project_model.WorkflowEvent
-	switch review.Type {
-	case issues_model.ReviewTypeApprove:
-		event = project_model.WorkflowEventCodeReviewApproved
-	case issues_model.ReviewTypeReject:
-		event = project_model.WorkflowEventCodeChangesRequested
-	default:
+	if !review.Official || (review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject) {
 		return
 	}
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return
 	}
-	runIssueProjectsWorkflows(ctx, review.Reviewer, pr.Issue, event)
+	runIssueProjectsWorkflows(ctx, review.Reviewer, pr.Issue, util.Iif(review.Type == issues_model.ReviewTypeApprove, project_model.WorkflowEventCodeReviewApproved, project_model.WorkflowEventCodeChangesRequested))
 }
 
 type workflowTrigger struct {
@@ -144,22 +133,21 @@ func runWorkflows(ctx context.Context, doer *user_model.User, issue *issues_mode
 	}
 }
 
-// matchWorkflowFilters fails closed: a filter that cannot be evaluated never matches
 func matchWorkflowFilters(wf *project_model.Workflow, issue *issues_model.Issue, trigger workflowTrigger) bool {
 	if wf.UnsupportedRule() != "" {
 		return false
 	}
-	f := wf.WorkflowFilters
-	if f.IssueType != "" && f.IssueType != util.Iif(issue.IsPull, project_model.WorkflowIssueTypePullRequest, project_model.WorkflowIssueTypeIssue) {
+	filters := wf.WorkflowFilters
+	if filters.IssueType != "" && filters.IssueType != util.Iif(issue.IsPull, project_model.WorkflowIssueTypePullRequest, project_model.WorkflowIssueTypeIssue) {
 		return false
 	}
-	if f.SourceColumnID != 0 && f.SourceColumnID != trigger.sourceColumnID {
+	if filters.SourceColumnID != 0 && filters.SourceColumnID != trigger.sourceColumnID {
 		return false
 	}
-	if f.TargetColumnID != 0 && f.TargetColumnID != trigger.targetColumnID {
+	if filters.TargetColumnID != 0 && filters.TargetColumnID != trigger.targetColumnID {
 		return false
 	}
-	for _, labelID := range f.LabelIDs {
+	for _, labelID := range filters.LabelIDs {
 		if !slices.ContainsFunc(issue.Labels, func(l *issues_model.Label) bool { return l.ID == labelID }) {
 			return false
 		}
@@ -169,9 +157,9 @@ func matchWorkflowFilters(wf *project_model.Workflow, issue *issues_model.Issue,
 
 func executeWorkflowActions(ctx context.Context, wf *project_model.Workflow, doer *user_model.User, issue *issues_model.Issue) {
 	ctx = issues_model.WithProjectWorkflow(ctx, wf.WorkflowEvent)
-	a := wf.WorkflowActions
+	actions := wf.WorkflowActions
 
-	if a.ChangesIssue() {
+	if actions.ChangesIssue() {
 		allowed, err := canWorkflowChangeIssue(ctx, wf, issue)
 		if err != nil {
 			log.Error("canWorkflowChangeIssue: %v", err)
@@ -183,22 +171,22 @@ func executeWorkflowActions(ctx context.Context, wf *project_model.Workflow, doe
 		}
 	}
 
-	if a.ColumnID != 0 {
+	if actions.ColumnID != 0 {
 		if err := moveIssueByWorkflow(ctx, wf, doer, issue); err != nil {
 			log.Error("Project workflow %d: move issue %d: %v", wf.ID, issue.ID, err)
 		}
 	}
 
-	if len(a.AddLabelIDs) > 0 || len(a.RemoveLabelIDs) > 0 {
-		if err := changeLabelsByWorkflow(ctx, doer, issue, a.AddLabelIDs, a.RemoveLabelIDs); err != nil {
+	if len(actions.AddLabelIDs) > 0 || len(actions.RemoveLabelIDs) > 0 {
+		if err := changeLabelsByWorkflow(ctx, doer, issue, actions.AddLabelIDs, actions.RemoveLabelIDs); err != nil {
 			log.Error("Project workflow %d: change labels of issue %d: %v", wf.ID, issue.ID, err)
 		}
 	}
 
 	var err error
-	if a.IssueState == project_model.WorkflowIssueStateClose && !issue.IsClosed {
+	if actions.IssueState == project_model.WorkflowIssueStateClose && !issue.IsClosed {
 		err = issue_service.CloseIssue(ctx, issue, doer, "")
-	} else if a.IssueState == project_model.WorkflowIssueStateReopen && issue.IsClosed && !issue.IsPull { // pull requests need the reopen checks of the pull request handlers
+	} else if actions.IssueState == project_model.WorkflowIssueStateReopen && issue.IsClosed && !issue.IsPull { // pull requests need the reopen checks of the pull request handlers
 		err = issue_service.ReopenIssue(ctx, issue, doer, "")
 	}
 	if err != nil {

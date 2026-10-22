@@ -2,7 +2,9 @@
 import {computed} from 'vue';
 import ProjectWorkflowDropdown from './ProjectWorkflowDropdown.vue';
 import {confirmModal} from '../features/comp/ConfirmModal.ts';
-import type {ProjectWorkflowActionType, ProjectWorkflowFilterType, ProjectWorkflowLocale, ProjectWorkflowStore} from './ProjectWorkflowStore.ts';
+import type {
+  ProjectWorkflowActionType, ProjectWorkflowFilterType, ProjectWorkflowLocale, ProjectWorkflowStore,
+} from './ProjectWorkflowStore.ts';
 
 const props = defineProps<{
   store: ProjectWorkflowStore;
@@ -32,7 +34,8 @@ const noColumnOptions = columnOptions(locale.none);
 const labelOptions = computed(() => store.labels.map((l) => ({value: l.id, text: l.name, html: l.html})));
 
 const onDelete = async () => {
-  if (await confirmModal({content: locale.deleteConfirm, confirmButtonColor: 'red'})) await store.remove();
+  const workflow = row.value.workflow!;
+  if (await confirmModal({content: locale.deleteConfirm, confirmButtonColor: 'red'})) await store.remove(workflow);
 };
 </script>
 
@@ -51,30 +54,30 @@ const onDelete = async () => {
         <button v-if="row.workflow" type="button" class="ui tiny red button" :disabled="store.saving" @click="onDelete">{{ locale.remove }}</button>
       </div>
       <div v-else-if="store.canWrite && row.workflow" class="flex-text-inline">
-        <button type="button" class="ui tiny primary button" @click="store.editMode = true">{{ locale.edit }}</button>
+        <button type="button" class="ui tiny primary button" :disabled="store.saving" @click="store.editMode = true">{{ locale.edit }}</button>
         <button type="button" class="ui tiny button" :disabled="store.saving" @click="store.setEnabled(!row.workflow.enabled)">
           {{ row.workflow.enabled ? locale.disable : locale.enable }}
         </button>
-        <button type="button" class="ui tiny button" :disabled="!store.canClone(row)" @click="store.clone()">{{ locale.clone }}</button>
+        <button type="button" class="ui tiny button" :disabled="store.saving || !store.canClone(row)" @click="store.clone()">{{ locale.clone }}</button>
       </div>
     </h4>
     <div class="ui attached segment">
       <template v-if="row.event.supported_filters.length">
         <h5 class="ui dividing header">{{ locale.filters }}</h5>
         <ProjectWorkflowDropdown
-          v-if="hasFilter('issue_type')" v-model="store.form.issue_type"
+          v-if="hasFilter('issue_type')" v-model="store.form.filters.issue_type"
           :label="locale.applyTo" :options="issueTypes" :readonly="!store.editing"
         />
         <ProjectWorkflowDropdown
-          v-if="hasFilter('source_column')" v-model="store.form.source_column_id"
+          v-if="hasFilter('source_column')" v-model="store.form.filters.source_column_id"
           :label="locale.whenMovedFromColumn" :options="anyColumnOptions" :readonly="!store.editing"
         />
         <ProjectWorkflowDropdown
-          v-if="hasFilter('target_column')" v-model="store.form.target_column_id"
+          v-if="hasFilter('target_column')" v-model="store.form.filters.target_column_id"
           :label="locale.whenMovedToColumn" :options="anyColumnOptions" :readonly="!store.editing"
         />
         <ProjectWorkflowDropdown
-          v-if="hasFilter('labels')" v-model="store.form.label_ids"
+          v-if="hasFilter('labels')" v-model="store.form.filters.label_ids"
           :label="locale.onlyIfHasLabels" :options="labelOptions" :readonly="!store.editing"
           :placeholder="locale.anyLabel" :filter-text="locale.filterLabels" :clear-text="locale.clearLabels"
         />
@@ -82,21 +85,21 @@ const onDelete = async () => {
 
       <h5 class="ui dividing header">{{ locale.actions }}</h5>
       <ProjectWorkflowDropdown
-        v-if="hasAction('column')" v-model="store.form.column_id"
+        v-if="hasAction('column')" v-model="store.form.actions.column_id"
         :label="locale.moveToColumn" :options="noColumnOptions" :readonly="!store.editing"
       />
       <ProjectWorkflowDropdown
-        v-if="hasAction('add_labels')" v-model="store.form.add_label_ids"
+        v-if="hasAction('add_labels')" v-model="store.form.actions.add_label_ids"
         :label="locale.addLabels" :options="labelOptions" :readonly="!store.editing"
         :placeholder="locale.none" :filter-text="locale.filterLabels" :clear-text="locale.clearLabels"
       />
       <ProjectWorkflowDropdown
-        v-if="hasAction('remove_labels')" v-model="store.form.remove_label_ids"
+        v-if="hasAction('remove_labels')" v-model="store.form.actions.remove_label_ids"
         :label="locale.removeLabels" :options="labelOptions" :readonly="!store.editing"
         :placeholder="locale.none" :filter-text="locale.filterLabels" :clear-text="locale.clearLabels"
       />
       <ProjectWorkflowDropdown
-        v-if="hasAction('issue_state')" v-model="store.form.issue_state"
+        v-if="hasAction('issue_state')" v-model="store.form.actions.issue_state"
         :label="locale.issueState" :options="issueStates" :readonly="!store.editing"
       />
     </div>

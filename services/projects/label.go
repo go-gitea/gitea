@@ -11,7 +11,6 @@ import (
 	project_model "gitea.dev/models/project"
 )
 
-// GetProjectLabels returns the labels that can be applied to the project's items
 func GetProjectLabels(ctx context.Context, project *project_model.Project) ([]*issues_model.Label, error) {
 	if project.Type != project_model.TypeRepository {
 		labels, err := issues_model.GetLabelsByOrgID(ctx, project.OwnerID, "", db.ListOptionsAll)

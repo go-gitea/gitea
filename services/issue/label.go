@@ -87,30 +87,15 @@ func ReplaceLabels(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	return nil
 }
 
-// AddRemoveLabels adds and removes labels in one transaction, notifying only the labels that actually changed
 func AddRemoveLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, toAdd, toRemove []*issues_model.Label) error {
-	if err := issue.LoadRepo(ctx); err != nil {
+	oldLabels, err := issues_model.GetLabelsByIssueID(ctx, issue.ID)
+	if err != nil {
 		return err
-	}
-	if err := issue.LoadLabels(ctx); err != nil {
-		return err
-	}
-	hasLabel := func(label *issues_model.Label) bool {
-		return slices.ContainsFunc(issue.Labels, func(l *issues_model.Label) bool { return l.ID == label.ID })
-	}
-	toAdd = slices.DeleteFunc(slices.Clone(toAdd), func(l *issues_model.Label) bool {
-		return hasLabel(l) || (l.RepoID != issue.RepoID && l.OrgID != issue.Repo.OwnerID)
-	})
-	toRemove = slices.DeleteFunc(slices.Clone(toRemove), func(l *issues_model.Label) bool { return !hasLabel(l) })
-	if len(toAdd) == 0 && len(toRemove) == 0 {
-		return nil
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if len(toAdd) > 0 {
-			if err := issues_model.NewIssueLabels(ctx, issue, toAdd, doer); err != nil {
-				return err
-			}
+		if err := issues_model.NewIssueLabels(ctx, issue, toAdd, doer); err != nil {
+			return err
 		}
 		for _, label := range toRemove {
 			if err := issues_model.DeleteIssueLabel(ctx, issue, label, doer); err != nil {
@@ -122,6 +107,19 @@ func AddRemoveLabels(ctx context.Context, issue *issues_model.Issue, doer *user_
 		return err
 	}
 
-	notify_service.IssueChangeLabels(ctx, doer, issue, toAdd, toRemove)
+	var added, removed []*issues_model.Label
+	for _, label := range issue.Labels {
+		if !slices.ContainsFunc(oldLabels, func(old *issues_model.Label) bool { return old.ID == label.ID }) {
+			added = append(added, label)
+		}
+	}
+	for _, label := range oldLabels {
+		if !slices.ContainsFunc(issue.Labels, func(current *issues_model.Label) bool { return current.ID == label.ID }) {
+			removed = append(removed, label)
+		}
+	}
+	if len(added) > 0 || len(removed) > 0 {
+		notify_service.IssueChangeLabels(ctx, doer, issue, added, removed)
+	}
 	return nil
 }

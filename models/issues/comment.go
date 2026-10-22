@@ -258,7 +258,6 @@ type CommentMetaData struct {
 
 type projectWorkflowContextKey struct{}
 
-// WithProjectWorkflow marks changes made with the returned context as done by a project workflow
 func WithProjectWorkflow(ctx context.Context, event project_model.WorkflowEvent) context.Context {
 	return context.WithValue(ctx, projectWorkflowContextKey{}, &CommentMetaData{
 		SpecialDoerName:      SpecialDoerNameProjectWorkflow,

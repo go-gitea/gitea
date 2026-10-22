@@ -324,8 +324,6 @@ func Routes() *web.Router {
 //     Such requests are not cross-origin requests, so disable CrossOriginProtection.
 var optSignInFromAnyOrigin = verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: true})
 
-// addProjectWorkflowRoutes registers the mutations of a project's workflows, shared by the
-// repository and owner project trees
 func addProjectWorkflowRoutes(m *web.Router) {
 	m.Post("/workflows", project.CreateWorkflow)
 	m.Post("/workflows/{workflow_id}", project.UpdateWorkflow)
@@ -1141,7 +1139,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
 				m.Get("/{id}/workflows", org.ProjectWorkflows)
-				m.Get("/{id}/workflows/data", project.WorkflowsData)
 				m.Get("/{id}/workflows/{workflow_id}", org.ProjectWorkflows)
 			}, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() {
@@ -1548,7 +1545,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
 		m.Get("/{id}/workflows", repo.ProjectWorkflows)
-		m.Get("/{id}/workflows/data", project.WorkflowsData)
 		m.Get("/{id}/workflows/{workflow_id}", repo.ProjectWorkflows)
 		m.Group("", func() {
 			m.Get("/new", repo.RenderNewProject)

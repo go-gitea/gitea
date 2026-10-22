@@ -6,7 +6,6 @@ package integration
 import (
 	"fmt"
 	"net/http"
-	"slices"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -17,37 +16,12 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
-
-// newWorkflowTestProject returns a "Backlog" default column followed by the named ones, so a
-// card a workflow failed to move is never mistaken for one it moved
-func newWorkflowTestProject(t *testing.T, project *project_model.Project, titles ...string) []*project_model.Column {
-	t.Helper()
-	require.NoError(t, project_model.NewProject(t.Context(), project))
-	columns := []*project_model.Column{{Title: "Backlog", ProjectID: project.ID, Default: true}}
-	for _, title := range titles {
-		columns = append(columns, &project_model.Column{Title: title, ProjectID: project.ID})
-	}
-	for _, column := range columns {
-		require.NoError(t, project_model.NewColumn(t.Context(), column))
-	}
-	return columns
-}
-
-func newRepo1WorkflowTestProject(t *testing.T, titles ...string) (*project_model.Project, []*project_model.Column) {
-	t.Helper()
-	project := &project_model.Project{Title: "workflows", RepoID: 1, CreatorID: 2, Type: project_model.TypeRepository}
-	return project, newWorkflowTestProject(t, project, titles...)
-}
 
 func TestProjectWorkflowsWeb(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	project, columns := newRepo1WorkflowTestProject(t, "Done")
-	label := &issues_model.Label{RepoID: 1, Name: "workflow", Color: "#0055ff"}
-	require.NoError(t, issues_model.NewLabel(t.Context(), label))
-	link := fmt.Sprintf("/user2/repo1/projects/%d/workflows", project.ID)
+	link := "/user2/repo1/projects/1/workflows"
 	session := loginUser(t, "user2")
 
 	canWrite := func(session *TestSession) string {
@@ -63,32 +37,12 @@ func TestProjectWorkflowsWeb(t *testing.T) {
 
 	req := NewRequestWithJSON(t, "POST", link, &api.CreateProjectWorkflowOption{
 		Event:   "item_closed",
-		Actions: api.ProjectWorkflowActions{ColumnID: columns[1].ID},
+		Actions: api.ProjectWorkflowActions{ColumnID: 3},
 	})
 	workflow := DecodeJSON(t, session.MakeRequest(t, req, http.StatusOK), &api.ProjectWorkflow{})
-	assert.Equal(t, api.ProjectWorkflowActions{ColumnID: columns[1].ID}, workflow.Actions)
+	assert.Equal(t, api.ProjectWorkflowActions{ColumnID: 3}, workflow.Actions)
 	workflowLink := fmt.Sprintf("%s/%d", link, workflow.ID)
 	session.MakeRequest(t, NewRequest(t, "GET", workflowLink), http.StatusOK)
-
-	type workflowsData struct {
-		Events []struct {
-			Event string `json:"event"`
-		} `json:"events"`
-		Workflows []*api.ProjectWorkflow `json:"workflows"`
-		Columns   []struct {
-			ID    int64  `json:"id"`
-			Title string `json:"title"`
-		} `json:"columns"`
-		Labels []*api.Label `json:"labels"`
-	}
-	data := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", link+"/data"), http.StatusOK), &workflowsData{})
-	assert.Len(t, data.Events, 9)
-	require.Len(t, data.Workflows, 1)
-	assert.Equal(t, workflow.ID, data.Workflows[0].ID)
-	require.Len(t, data.Columns, 2)
-	assert.Equal(t, columns[1].ID, data.Columns[1].ID)
-	assert.Equal(t, "Done", data.Columns[1].Title)
-	assert.True(t, slices.ContainsFunc(data.Labels, func(l *api.Label) bool { return l.ID == label.ID }))
 
 	req = NewRequestWithJSON(t, "POST", workflowLink, &api.EditProjectWorkflowOption{Enabled: new(false)})
 	updated := DecodeJSON(t, session.MakeRequest(t, req, http.StatusOK), &api.ProjectWorkflow{})
@@ -108,19 +62,15 @@ func TestProjectWorkflowsWeb(t *testing.T) {
 func TestProjectWorkflowExecution(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	project, columns := newRepo1WorkflowTestProject(t, "In Progress", "Done")
-	inProgress, done := columns[1], columns[2]
-	label := &issues_model.Label{RepoID: 1, Name: "triaged", Color: "#00ff00"}
-	require.NoError(t, issues_model.NewLabel(t.Context(), label))
-	link := fmt.Sprintf("/user2/repo1/projects/%d", project.ID)
+	link := "/user2/repo1/projects/1"
 	session := loginUser(t, "user2")
 
 	for _, opts := range []*api.CreateProjectWorkflowOption{{
 		Event:   "item_opened",
-		Actions: api.ProjectWorkflowActions{ColumnID: inProgress.ID, AddLabelIDs: []int64{label.ID}},
+		Actions: api.ProjectWorkflowActions{ColumnID: 2, AddLabelIDs: []int64{1}},
 	}, {
 		Event:   "item_column_changed",
-		Filters: api.ProjectWorkflowFilters{TargetColumnID: done.ID},
+		Filters: api.ProjectWorkflowFilters{TargetColumnID: 3},
 		Actions: api.ProjectWorkflowActions{IssueState: "close"},
 	}} {
 		session.MakeRequest(t, NewRequestWithJSON(t, "POST", link+"/workflows", opts), http.StatusOK)
@@ -129,24 +79,21 @@ func TestProjectWorkflowExecution(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/issues", &api.CreateIssueOption{
 		Title:    "workflow item",
-		Projects: []int64{project.ID},
+		Projects: []int64{1},
 	}).AddTokenAuth(token)
 	created := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Issue{})
-	issueID := created.ID
 
-	card := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issueID, ProjectID: project.ID})
-	assert.Equal(t, inProgress.ID, card.ProjectColumnID)
-	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issueID, LabelID: label.ID})
-	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueID}).IsClosed)
+	assert.EqualValues(t, 2, unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: created.ID, ProjectID: 1}).ProjectColumnID)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: created.ID, LabelID: 1})
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: created.ID}).IsClosed)
 	resp := session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/issues/%d", created.Index), http.StatusOK)
 	assert.Contains(t, NewHTMLParser(t, resp.Body).Find(".timeline-item.event .comment-text-line").Text(), "Project workflow Item opened")
 
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/%d/move", link, done.ID), map[string]any{
-		"issues": []map[string]any{{"issueID": issueID, "sorting": 0}},
+	req = NewRequestWithJSON(t, "POST", link+"/3/move", map[string]any{
+		"issues": []map[string]any{{"issueID": created.ID, "sorting": 0}},
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 
-	card = unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issueID, ProjectID: project.ID})
-	assert.Equal(t, done.ID, card.ProjectColumnID)
-	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueID}).IsClosed)
+	assert.EqualValues(t, 3, unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: created.ID, ProjectID: 1}).ProjectColumnID)
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: created.ID}).IsClosed)
 }

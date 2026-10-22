@@ -67,7 +67,6 @@ func LoadProjectIssueColumnMap(ctx context.Context, projectID, defaultColumnID i
 // and removes projects that are currently assigned but not in newProjectIDs.
 // If newProjectIDs is empty, all projects are removed from the issue.
 // When adding an issue to a project, it is placed in the project's default column.
-// It returns the IDs of the projects the issue was added to and removed from.
 func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectIDs []int64) (added, removed []int64, err error) {
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issue.LoadRepo(ctx); err != nil {

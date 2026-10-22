@@ -110,7 +110,6 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 	return nil
 }
 
-// columnMove is an issue that changed column, notified once the transaction has committed
 type columnMove struct {
 	issue       *issues_model.Issue
 	oldColumnID int64
@@ -123,10 +122,7 @@ func notifyColumnMoves(ctx context.Context, doer *user_model.User, column *proje
 }
 
 func moveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) ([]columnMove, error) {
-	issueIDs := make([]int64, 0, len(sortedIssueIDs))
-	for _, issueID := range sortedIssueIDs {
-		issueIDs = append(issueIDs, issueID)
-	}
+	issueIDs := util.ValuesOfMap(sortedIssueIDs)
 	count, err := db.GetEngine(ctx).
 		Where("project_id=?", column.ProjectID).
 		In("issue_id", issueIDs).

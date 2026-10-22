@@ -3,7 +3,6 @@ import {computed, shallowRef, useId, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {createTippy} from '../modules/tippy.ts';
 
-// an array model makes it a multiple selection, its options are rendered from their html
 type Value = string | number;
 type Option = {value: Value; text: string; html?: string};
 
@@ -29,7 +28,7 @@ const matches = (option: Option) => option.text.toLowerCase().includes(filter.va
 const elTrigger = useTemplateRef<HTMLButtonElement>('elTrigger');
 const elMenu = useTemplateRef<HTMLDivElement>('elMenu');
 const elFilter = useTemplateRef<HTMLInputElement>('elFilter');
-watch(elTrigger, (el, _, onCleanup) => {
+watch(elTrigger, (el, _oldEl, onCleanup) => {
   if (!el) return;
   const tippy = createTippy(el, {
     content: elMenu.value!,
@@ -40,7 +39,7 @@ watch(elTrigger, (el, _, onCleanup) => {
     theme: 'menu',
     arrow: false,
     limitSizeToViewport: {vertical: true},
-    onShown: () => elFilter.value?.focus(),
+    onMount: () => elFilter.value?.focus(), // onShown only fires with animations
     onHidden: () => { filter.value = '' },
   });
   onCleanup(() => tippy.destroy());
@@ -88,7 +87,10 @@ const clear = () => { model.value = [] };
           <div v-if="multiple" class="tw-px-2 tw-pt-1 tw-pb-2">
             <div class="ui small fluid icon input">
               <i class="icon"><SvgIcon name="octicon-search"/></i>
-              <input ref="elFilter" v-model="filter" type="text" :placeholder="filterText" :aria-label="filterText">
+              <input
+                ref="elFilter" v-model="filter" type="text" :placeholder="filterText" :aria-label="filterText"
+                @keydown.space.stop @keydown.enter.stop @keydown.left.stop @keydown.right.stop
+              >
             </div>
           </div>
           <div role="menu" :aria-label="label">

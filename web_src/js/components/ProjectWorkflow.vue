@@ -3,7 +3,8 @@ import {onMounted, onUnmounted} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import ProjectWorkflowEditor from './ProjectWorkflowEditor.vue';
 import {isPlainClick} from '../utils/dom.ts';
-import {createProjectWorkflowStore, type ProjectWorkflowLocale, type WorkflowRow} from './ProjectWorkflowStore.ts';
+import {createProjectWorkflowStore} from './ProjectWorkflowStore.ts';
+import type {ProjectWorkflowLocale, WorkflowRow} from './ProjectWorkflowStore.ts';
 
 const props = defineProps<{
   el: HTMLElement;
@@ -24,18 +25,19 @@ const statusClass = (row: WorkflowRow) => {
 const onRowClick = (e: MouseEvent, row: WorkflowRow) => {
   if (!isPlainClick(e)) return;
   e.preventDefault();
+  if (store.saving) return;
   if (row.key !== store.selectedKey) store.select(row, 'push');
 };
 
 const onPopState = (e: PopStateEvent) => {
   if (!e.state?.key) return;
-  const row = store.resolve(e.state.key) ?? store.resolve(e.state.event);
-  if (row) store.select(row);
+  const exact = store.resolve(e.state.key);
+  const row = exact ?? store.resolve(e.state.event);
+  if (row) store.select(row, exact ? undefined : 'replace'); // the entry's workflow was deleted
 };
 
-onMounted(async () => {
+onMounted(() => {
   window.addEventListener('popstate', onPopState);
-  await store.load();
   const linked = props.workflowId ? store.resolve(String(props.workflowId)) : store.rows.find((r) => r.event.event === props.workflowEvent);
   const row = linked ?? store.rows.find((r) => r.workflow) ?? store.rows[0];
   if (row) store.select(row, 'replace');

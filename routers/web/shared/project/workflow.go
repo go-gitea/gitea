@@ -6,6 +6,7 @@ package project
 import (
 	"html/template"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"gitea.dev/models/db"
@@ -18,42 +19,7 @@ import (
 	project_service "gitea.dev/services/projects"
 )
 
-// RenderWorkflows renders the workflows page selecting the workflow of the optional "workflow_id" path param,
-// or else the first workflow of the "event" query param
 func RenderWorkflows(ctx *context.Context, canWrite bool, tpl templates.TplName) {
-	project := findProject(ctx)
-	if ctx.Written() {
-		return
-	}
-	var workflowID int64
-	if param := ctx.PathParam("workflow_id"); param != "" {
-		id, err := strconv.ParseInt(param, 10, 64)
-		if err != nil {
-			ctx.NotFound(nil)
-			return
-		}
-		if _, err := project_model.GetWorkflowByProjectAndID(ctx, project.ID, id); err != nil {
-			ctx.ServerError("GetWorkflowByProjectAndID", err)
-			return
-		}
-		workflowID = id
-	}
-	event := ctx.FormString("event")
-	if event != "" && !project_model.WorkflowEvent(event).IsValid() {
-		ctx.NotFound(nil)
-		return
-	}
-
-	ctx.Data["Title"] = ctx.Tr("projects.workflows")
-	ctx.Data["Project"] = project
-	ctx.Data["ProjectLink"] = project.Link(ctx)
-	ctx.Data["WorkflowID"] = workflowID
-	ctx.Data["WorkflowEvent"] = event
-	ctx.Data["CanWrite"] = canWrite
-	ctx.HTML(http.StatusOK, tpl)
-}
-
-func WorkflowsData(ctx *context.Context) {
 	project := findProject(ctx)
 	if ctx.Written() {
 		return
@@ -61,6 +27,20 @@ func WorkflowsData(ctx *context.Context) {
 	workflows, err := db.Find[project_model.Workflow](ctx, project_model.FindWorkflowsOptions{ListOptions: db.ListOptionsAll, ProjectIDs: []int64{project.ID}})
 	if err != nil {
 		ctx.ServerError("FindWorkflows", err)
+		return
+	}
+	var workflowID int64
+	if param := ctx.PathParam("workflow_id"); param != "" {
+		id, err := strconv.ParseInt(param, 10, 64)
+		if err != nil || !slices.ContainsFunc(workflows, func(workflow *project_model.Workflow) bool { return workflow.ID == id }) {
+			ctx.NotFound(nil)
+			return
+		}
+		workflowID = id
+	}
+	event := ctx.FormString("event")
+	if event != "" && !project_model.WorkflowEvent(event).IsValid() {
+		ctx.NotFound(nil)
 		return
 	}
 	columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
@@ -106,12 +86,19 @@ func WorkflowsData(ctx *context.Context) {
 		workflowLabels = append(workflowLabels, workflowLabel{label.ID, label.Name, renderUtils.RenderLabel(label)})
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
+	ctx.PageData["projectWorkflows"] = map[string]any{
 		"events":    events,
 		"workflows": convert.ToProjectWorkflowList(workflows),
 		"columns":   workflowColumns,
 		"labels":    workflowLabels,
-	})
+	}
+	ctx.Data["Title"] = ctx.Tr("projects.workflows")
+	ctx.Data["Project"] = project
+	ctx.Data["ProjectLink"] = project.Link(ctx)
+	ctx.Data["WorkflowID"] = workflowID
+	ctx.Data["WorkflowEvent"] = event
+	ctx.Data["CanWrite"] = canWrite
+	ctx.HTML(http.StatusOK, tpl)
 }
 
 func CreateWorkflow(ctx *context.Context) {

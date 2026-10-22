@@ -19,6 +19,7 @@ func AddProjectWorkflow(_ context.Context, x base.EngineMigration) error {
 		WorkflowActions string             `xorm:"TEXT JSON"`
 		Enabled         bool               `xorm:"DEFAULT true NOT NULL"`
 		UpdaterID       int64              `xorm:"NOT NULL DEFAULT 0"`
+		UpdaterDoerData string             `xorm:"TEXT"`
 		CreatedUnix     timeutil.TimeStamp `xorm:"created"`
 		UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
 	}
