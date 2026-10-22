@@ -133,11 +133,11 @@ func InfoOAuth(ctx *context.Context) {
 
 // RFC 6749 section 2.3.1: Basic credentials are form-urlencoded, an undecodable value is kept raw
 func basicAuthClientCredentials(basic *httpauth.BasicAuth) (clientID, clientSecret string) {
-	decode := func(s string) string {
-		if decoded, err := url.QueryUnescape(s); err == nil {
+	decode := func(credential string) string {
+		if decoded, err := url.QueryUnescape(credential); err == nil {
 			return decoded
 		}
-		return s
+		return credential
 	}
 	return decode(basic.Username), decode(basic.Password)
 }

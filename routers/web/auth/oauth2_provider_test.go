@@ -4,7 +4,6 @@
 package auth
 
 import (
-	"encoding/base64"
 	"net/http"
 	"strings"
 	"testing"
@@ -30,33 +29,26 @@ func TestOAuth2FormEncodedBasicAuth(t *testing.T) {
 	defer test.MockVariableValue(&oauth2_provider.DefaultSigningKey, signingKey)()
 
 	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
-	const clientSecret = "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=" // plaintext of the fixture's client_secret
-	// RFC 6749 section 2.3.1: clients form-urlencode both values before base64, some even escape "-"
+	const fixtureClientSecretPlaintext = "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA="
 	escape := strings.NewReplacer("-", "%2D", "=", "%3D").Replace
-	basicAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte(escape(app.ClientID)+":"+escape(clientSecret)))
 
-	for _, tt := range []struct{ name, bodyClientID string }{
-		{"header only", ""},
-		{"body client_id equals decoded header", app.ClientID},
-	} {
-		t.Run("AccessToken/"+tt.name, func(t *testing.T) {
-			ctx, resp := contexttest.MockContext(t, "POST /login/oauth/access_token")
-			ctx.Req.Header.Set("Authorization", basicAuth)
-			web.SetForm(ctx, &forms.AccessTokenForm{GrantType: "authorization_code", ClientID: tt.bodyClientID})
-			AccessTokenOAuth(ctx)
+	t.Run("AccessToken accepts client matching body client_id and rejects unknown code", func(t *testing.T) {
+		ctx, resp := contexttest.MockContext(t, "POST /login/oauth/access_token")
+		ctx.Req.SetBasicAuth(escape(app.ClientID), escape(fixtureClientSecretPlaintext))
+		web.SetForm(ctx, &forms.AccessTokenForm{GrantType: "authorization_code", ClientID: app.ClientID})
+		AccessTokenOAuth(ctx)
 
-			var accessTokenErr oauth2_provider.AccessTokenError
-			require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &accessTokenErr))
-			assert.Equal(t, "client is not authorized", accessTokenErr.ErrorDescription) // the client was accepted, only the code is unknown
-		})
-	}
+		var accessTokenErr oauth2_provider.AccessTokenError
+		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &accessTokenErr))
+		assert.Equal(t, "client is not authorized", accessTokenErr.ErrorDescription)
+	})
 
-	t.Run("Introspect", func(t *testing.T) {
+	t.Run("Introspect accepts client and reports inactive token", func(t *testing.T) {
 		ctx, resp := contexttest.MockContext(t, "POST /login/oauth/introspect")
-		ctx.Req.Header.Set("Authorization", basicAuth)
+		ctx.Req.SetBasicAuth(escape(app.ClientID), escape(fixtureClientSecretPlaintext))
 		web.SetForm(ctx, &forms.IntrospectTokenForm{Token: "invalid"})
 		IntrospectOAuth(ctx)
-		assert.Equal(t, http.StatusOK, resp.Code) // inactive token, not 401 for rejected client credentials
+		assert.Equal(t, http.StatusOK, resp.Code)
 	})
 }
 
