@@ -175,7 +175,7 @@ PR titles must follow the [Conventional Commits](https://www.conventionalcommits
 type(scope)!: subject
 ```
 
-The scope in parentheses is optional. A `!` immediately before the colon marks a [breaking change](https://www.conventionalcommits.org/en/v1.0.0/#summary): either `type!:` or `type(scope)!:` (not `type!(scope):`).
+The scope in parentheses is optional. A `!` immediately before the colon marks a [breaking change](https://www.conventionalcommits.org/en/v1.0.0/#summary): either `type!:` or `type(scope)!:` (not `type!(scope):`). Do not mark `build`, `chore`, `ci`, `docs`, `style`, or `test` as breaking.
 
 Use one of these types:
 

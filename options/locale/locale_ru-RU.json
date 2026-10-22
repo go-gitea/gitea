@@ -672,7 +672,6 @@
   "settings.delete_account_title": "Удалить аккаунт",
   "settings.delete_account_desc": "Вы уверены, что хотите навсегда удалить этот аккаунт?",
   "settings.email_notifications.enable": "Включить почтовые уведомления",
-  "settings.email_notifications.onmention": "Посылать письмо на эл. почту только при упоминании",
   "settings.email_notifications.disable": "Отключить почтовые уведомления",
   "settings.email_notifications.submit": "Установить настройки электронной почты",
   "settings.email_notifications.andyourown": "И ваши собственные уведомления",

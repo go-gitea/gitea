@@ -200,7 +200,6 @@ func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.C
 						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
 						return
 					}
-					middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 					ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 					return
 				}
@@ -225,13 +224,13 @@ func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.C
 		}
 
 		if options.SignInRequired && !ctx.IsSigned {
-			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
+			ctx.RedirectForLogin(middleware.RedirectLinkUserLogin(ctx.Req))
 			return
 		}
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
 		if !options.SignOutRequired && !ctx.IsSigned && ctx.GetSiteCookie(setting.CookieRememberName) != "" {
-			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
+			ctx.RedirectForLogin(middleware.RedirectLinkUserLogin(ctx.Req))
 			return
 		}
 
@@ -931,7 +930,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
-			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
+			if ctx.Package.AccessMode < accessMode {
 				ctx.NotFound(nil)
 			}
 		}
@@ -1093,7 +1092,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/create", repo.Create)
 		m.Post("/create", web.Bind[*forms.CreateRepoForm](), repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
-		m.Post("/migrate", web.Bind[*forms.MigrateRepoForm](), repo.MigratePost)
+		m.Post("/migrate", repo.MigratePost)
 		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
 	// end "/repo": create, migrate, search
@@ -1504,6 +1503,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, ctxDataSet(reqctx.ContextData{"EnableFeed": setting.Other.EnableFeed}))
 		m.Get("/releases/attachments/{uuid}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)
 		m.Get("/releases/download/{vTag}/{fileName}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.RedirectDownload)
+		m.Post("/releases/{id}/reactions/{action}", reqSignIn, context.RepoMustNotBeArchived(), repo.ChangeReleaseReaction)
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", web.Bind[*forms.NewReleaseForm](), repo.NewReleasePost)
@@ -1524,7 +1524,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Post("/topics", repo.TopicsPost)
-	}, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
+	}, optSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
 
 	m.Group("/{username}/{reponame}", func() {
 		if setting.Packages.Enabled {
@@ -1662,7 +1662,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
 					m.Post("/comments", web.Bind[*forms.CodeCommentForm](), repo.SetShowOutdatedComments, repo.CreateCodeComment)
 					m.Post("/submit", web.Bind[*forms.SubmitReviewForm](), repo.SubmitReview)
-				}, context.RepoMustNotBeArchived())
+				}, reqSignIn, context.RepoMustNotBeArchived())
 			})
 		})
 	}, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader)
