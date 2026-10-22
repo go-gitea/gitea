@@ -725,10 +725,7 @@ func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository
 	if c.Reactions != nil {
 		return nil
 	}
-	c.Reactions, _, err = FindReactions(ctx, FindReactionsOptions{
-		IssueID:   c.IssueID,
-		CommentID: c.ID,
-	})
+	c.Reactions, _, err = FindReactions(ctx, FindReactionsOptions{CommentID: c.ID})
 	if err != nil {
 		return err
 	}
@@ -1210,7 +1207,7 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	return DeleteReaction(ctx, &ReactionOptions{CommentID: comment.ID})
+	return DeleteCommentAllReactions(ctx, comment.ID)
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id

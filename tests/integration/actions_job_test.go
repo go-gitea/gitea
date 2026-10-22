@@ -27,7 +27,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	actions_service "gitea.dev/services/actions"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -370,7 +369,7 @@ func TestRunnerDisableEnable(t *testing.T) {
 			MakeRequest(t, req, http.StatusOK)
 
 			testData.runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-			testData.runner.fetchNoTask(t, 2*time.Second)
+			testData.runner.fetchNoTask(t)
 
 			req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), false).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
@@ -398,7 +397,6 @@ func TestRunnerDisableEnable(t *testing.T) {
 
 			// Trigger a second run so there is a pending job after we re-enable the runner
 			triggerRunnerDisableEnableRun(t, user2, token, testData.repo, "second-push.txt")
-			time.Sleep(500 * time.Millisecond) // allow workflow run to be created
 
 			req := newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), true).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
@@ -644,33 +642,33 @@ jobs:
 		err = actions_service.CleanupEphemeralRunners(t.Context())
 		assert.NoError(t, err)
 
-		resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+		resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), &runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
-		}))
+		})
 		assert.NoError(t, err)
-		assert.Nil(t, resp.Msg.Task)
+		assert.Nil(t, resp.Task)
 
 		// verify CleanupEphemeralRunners does not remove this runner
 		err = actions_service.CleanupEphemeralRunners(t.Context())
 		assert.NoError(t, err)
 
-		_, err = runner.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
+		_, err = runner.client.runnerServiceClient.UpdateTask(t.Context(), &runnerv1.UpdateTaskRequest{
 			State: &runnerv1.TaskState{
 				Id:     actionTask.ID,
 				Result: runnerv1.Result_RESULT_SUCCESS,
 			},
-		}))
+		})
 		assert.NoError(t, err)
 
-		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), &runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
-		}))
+		})
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 
-		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), &runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
-		}))
+		})
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 

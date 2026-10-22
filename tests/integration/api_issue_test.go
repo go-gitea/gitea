@@ -18,6 +18,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -126,7 +127,7 @@ func testAPICreateIssue(t *testing.T) {
 		Body:     body,
 		Title:    title,
 		Assignee: owner.Name,
-		Deadline: new(time.Date(2026, 5, 11, 12, 0, 0, 0, time.FixedZone("", -10*3600))),
+		Deadline: optional.Some(new("2026-05-11T12:00:00-10:00")),
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	apiIssue := DecodeJSON(t, resp, &api.Issue{})
@@ -262,6 +263,11 @@ func testAPIEditIssue(t *testing.T) {
 	assert.Equal(t, int64(0), int64(issueAfter.DeadlineUnix))
 	assert.Equal(t, body, issueAfter.Content)
 	assert.Equal(t, title, issueAfter.Title)
+
+	token = getUserToken(t, "user30", auth_model.AccessTokenScopeWriteIssue)
+	req = NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user30/repo51/issues/1", api.EditIssueOption{Title: title}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusLocked)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 14, Title: "issue in archived repo"})
 }
 
 func testAPISearchIssues(t *testing.T) {
