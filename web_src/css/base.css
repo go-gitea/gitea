@@ -464,8 +464,13 @@ a.label,
   border-radius: var(--border-radius);
 }
 
+.attention-header > p:first-child {
+  display: flex;
+  align-items: center;
+}
+
 .attention-icon {
-  margin: 2px 6px 0 0;
+  margin-inline-end: 6px;
 }
 
 blockquote.attention-note {
