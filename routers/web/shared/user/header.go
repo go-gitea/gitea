@@ -7,7 +7,6 @@ import (
 	"errors"
 	"net/url"
 
-	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
@@ -101,9 +100,6 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 		return nil, nil
 	}
 
-	if !context.TokenAllowsPrivateData(ctx, auth_model.AccessTokenScopeReadRepository) {
-		doer = nil // the token may only see what anonymous visitors see
-	}
 	perm, err := access_model.GetDoerRepoPermission(ctx, profileDbRepo, doer)
 	if err != nil {
 		log.Error("FindOwnerProfileReadme failed to GetRepositoryByName: %v", err)
@@ -170,7 +166,7 @@ func loadHeaderCount(ctx *context.Context) error {
 	repoCount, err := repo_model.CountRepository(ctx, repo_model.SearchRepoOptions{
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
-		Private:            ctx.IsSigned && context.TokenAllowsPrivateData(ctx, auth_model.AccessTokenScopeReadRepository),
+		Private:            ctx.IsSigned,
 		Collaborate:        optional.Some(false),
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})

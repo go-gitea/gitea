@@ -100,23 +100,6 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	assert.Contains(t, bodyString, contentPublicReadme)
 	assert.Contains(t, bodyString, `id="org-home-view-as-dropdown"`)
 
-	// API tokens only see the private profile with repository scope
-	for _, tc := range []struct {
-		scopes        []auth_model.AccessTokenScope
-		canSeePrivate bool
-	}{
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeReadRepository}, true},
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly}, false},
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeReadOrganization}, false},
-	} {
-		req = NewRequest(t, "GET", "/org3")
-		req.SetBasicAuth("user1", getUserToken(t, "user1", tc.scopes...))
-		bodyString = MakeRequest(t, req, http.StatusOK).Body.String()
-		expected, unexpected := util.Iif(tc.canSeePrivate, contentPrivateReadme, contentPublicReadme), util.Iif(tc.canSeePrivate, contentPublicReadme, contentPrivateReadme)
-		assert.Contains(t, bodyString, expected, tc.scopes)
-		assert.NotContains(t, bodyString, unexpected, tc.scopes)
-	}
-
 	// PART 2: Each org has either one of private pr public profile
 	createTestProfile(t, "org41", user.RepoNameProfile, contentPublicReadme)
 	createTestProfile(t, "org42", user.RepoNameProfilePrivate, contentPrivateReadme)

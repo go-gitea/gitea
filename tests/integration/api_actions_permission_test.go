@@ -24,6 +24,16 @@ func testActionUserSignIn(t *testing.T) {
 	assert.Equal(t, "gitea-actions", u.UserName)
 }
 
+func testActionUserHasNoAccount(t *testing.T) {
+	const token = "8061e833a55f6fc0157c98b883e91fcfeeb1a71a"
+	for _, link := range []string{"/api/v1/user/repos", "/api/v1/user/orgs", "/api/v1/user/actions/runs"} {
+		MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(token), http.StatusForbidden)
+	}
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/gitea-actions/orgs").AddTokenAuth(token), http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/limited_org.rss").AddBasicAuth(token, "x-oauth-basic"), http.StatusNotFound)
+	assert.NotContains(t, MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/search?uid=-2").AddTokenAuth(token), http.StatusOK).Body.String(), `"private":true`)
+}
+
 func testActionUserAccessPublicRepo(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/raw/README.md").
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
@@ -48,6 +58,7 @@ func TestActionUserAccessPermission(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	t.Run("ActionUserSignIn", testActionUserSignIn)
+	t.Run("ActionUserHasNoAccount", testActionUserHasNoAccount)
 	t.Run("ActionUserAccessPublicRepo", testActionUserAccessPublicRepo)
 	t.Run("ActionUserNoAccessOtherPrivateRepo", testActionUserNoAccessOtherPrivateRepo)
 }

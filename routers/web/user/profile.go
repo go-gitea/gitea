@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	activities_model "gitea.dev/models/activities"
-	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
@@ -151,7 +150,6 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	ctx.Data["IsTemplate"] = template
 
 	private := ctx.FormOptionalBool("private")
-	showPrivateRepos := ctx.IsSigned && context.TokenAllowsPrivateData(ctx, auth_model.AccessTokenScopeReadRepository)
 	ctx.Data["IsPrivate"] = private
 
 	switch tab {
@@ -170,10 +168,6 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
 		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-		// an API token must not surface private activity beyond its scope, even for its own owner
-		if showPrivate && !context.TokenAllowsPrivateData(ctx, auth_model.AccessTokenScopeReadUser) {
-			showPrivate = false
-		}
 		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
@@ -205,7 +199,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
-			Private:            showPrivateRepos,
+			Private:            ctx.IsSigned,
 			StarredByID:        ctx.ContextUser.ID,
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
@@ -232,7 +226,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
-			Private:            showPrivateRepos,
+			Private:            ctx.IsSigned,
 			WatchedByID:        ctx.ContextUser.ID,
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
@@ -292,7 +286,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Keyword:            keyword,
 			OwnerID:            ctx.ContextUser.ID,
 			OrderBy:            orderBy,
-			Private:            showPrivateRepos,
+			Private:            ctx.IsSigned,
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,

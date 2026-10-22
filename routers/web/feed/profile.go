@@ -33,6 +33,11 @@ func ShowUserFeedAtom(ctx *context.Context) {
 // showUserFeed show user activity as RSS / Atom feed
 func showUserFeed(ctx *context.Context, formatType string) {
 	isOrganisation := ctx.ContextUser.IsOrganization()
+	scope, isToken := user_model.GetDoerTokenScope(ctx.Doer)
+	hasReadScope, _ := scope.HasScope(util.Iif(isOrganisation, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser))
+	if isToken && (!hasReadScope || user_model.IsPublicOnlyDoer(ctx.Doer)) || ctx.Doer != nil && ctx.Doer.ID <= 0 {
+		ctx.Doer, ctx.IsSigned = nil, false // under-scoped tokens and system doers get the anonymous feed, rendering included
+	}
 	if !setting.Other.EnableFeed ||
 		isOrganisation && !organization.HasOrgOrUserVisible(ctx, ctx.ContextUser, ctx.Doer) ||
 		!isOrganisation && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
@@ -50,11 +55,6 @@ func showUserFeed(ctx *context.Context, formatType string) {
 			return
 		}
 		includePrivate = isOrgMember
-	}
-
-	// an API token must not surface private activity beyond its scope, even for its own owner
-	if includePrivate && !context.TokenAllowsPrivateData(ctx, util.Iif(isOrganisation, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)) {
-		includePrivate = false
 	}
 
 	actions, _, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{

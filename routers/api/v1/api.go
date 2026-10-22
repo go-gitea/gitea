@@ -256,13 +256,9 @@ func rejectPublicOnly() func(ctx *context.APIContext) {
 	}
 }
 
-// rejectSystemDoer rejects system doers (e.g. Actions tasks) on routes scoped to the doer's own account,
-// their negative IDs would otherwise disable owner filters
-func rejectSystemDoer() func(ctx *context.APIContext) {
-	return func(ctx *context.APIContext) {
-		if ctx.Doer != nil && ctx.Doer.ID <= 0 {
-			ctx.APIError(http.StatusForbidden, "this endpoint is not available for system users")
-		}
+func rejectSystemDoer(ctx *context.APIContext) {
+	if ctx.Doer != nil && ctx.Doer.ID <= 0 { // system doers have no account, their negative IDs disable owner filters
+		ctx.APIError(http.StatusForbidden, "this endpoint is not available for system users")
 	}
 }
 
@@ -1095,8 +1091,8 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
+		m.Get("/user", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser(), user.GetAuthenticatedUser)
 		m.Group("/user", func() {
-			m.Get("", user.GetAuthenticatedUser)
 			m.Group("/settings", func() {
 				m.Get("", user.GetUserSettings)
 				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
@@ -1137,7 +1133,7 @@ func Routes() *web.Router {
 
 				m.Get("/runs", reqToken(), user.ListWorkflowRuns)
 				m.Get("/jobs", reqToken(), user.ListWorkflowJobs)
-			}, rejectPublicOnly(), rejectSystemDoer())
+			}, rejectPublicOnly())
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
@@ -1216,7 +1212,7 @@ func Routes() *web.Router {
 					m.Delete("", user.UnblockUser)
 				}, context.UserAssignmentAPI())
 			}, rejectPublicOnly())
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser(), rejectSystemDoer)
 
 		// Repositories (requires repo scope, org scope)
 		m.Post("/org/{org}/repos",
@@ -1713,7 +1709,7 @@ func Routes() *web.Router {
 		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations
-		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), org.ListMyOrgs)
+		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), rejectSystemDoer, org.ListMyOrgs)
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", reqToken(), org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)

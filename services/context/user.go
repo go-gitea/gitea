@@ -38,7 +38,7 @@ func UserAssignmentAPI() func(ctx *APIContext) {
 func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, string)) (contextUser *user_model.User) {
 	username := ctx.PathParam("username")
 
-	if doer != nil && strings.EqualFold(doer.LowerName, username) {
+	if doer != nil && doer.ID > 0 && strings.EqualFold(doer.LowerName, username) { // system doers are shared identities, not accounts
 		contextUser = doer
 	} else {
 		var err error
