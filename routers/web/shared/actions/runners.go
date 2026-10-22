@@ -195,17 +195,13 @@ func runnerListRows(ctx *context.Context, runners []*actions_model.ActionRunner)
 			return nil, err
 		}
 	}
+	waitingByRunner, err := actions_model.WaitingQueuesByRunner(ctx, runners)
+	if err != nil {
+		return nil, err
+	}
 	for i := range rows {
 		rows[i].RunningTasks = byRunner[rows[i].ID]
-		queues, err := actions_model.ListRunnerRepoQueues(ctx, rows[i].ActionRunner)
-		if err != nil {
-			return nil, err
-		}
-		for _, q := range queues {
-			if q.Waiting > 0 {
-				rows[i].WaitingQueues = append(rows[i].WaitingQueues, q)
-			}
-		}
+		rows[i].WaitingQueues = waitingByRunner[rows[i].ID]
 	}
 	return rows, nil
 }

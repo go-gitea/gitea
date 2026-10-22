@@ -80,13 +80,143 @@ func ListRunnerRepoQueues(ctx context.Context, runner *ActionRunner) ([]RunnerRe
 		}
 		queues = append(queues, RunnerRepoQueue{Repo: repo, Waiting: waiting})
 	}
+	sortRunnerRepoQueues(queues)
+	return queues, nil
+}
+
+func sortRunnerRepoQueues(queues []RunnerRepoQueue) {
 	slices.SortFunc(queues, func(a, b RunnerRepoQueue) int {
 		if c := cmp.Compare(b.Waiting, a.Waiting); c != 0 {
 			return c
 		}
 		return cmp.Compare(a.Repo.FullName(), b.Repo.FullName())
 	})
-	return queues, nil
+}
+
+// WaitingQueuesByRunner returns, per runner, only repositories with a
+// non-zero waiting count. Unlike ListRunnerRepoQueues it loads the waiting
+// jobs and the in-scope repositories once for all runners, so a runners list
+// page does not rescan the queue per runner.
+func WaitingQueuesByRunner(ctx context.Context, runners []*ActionRunner) (map[int64][]RunnerRepoQueue, error) {
+	byRunner := make(map[int64][]RunnerRepoQueue, len(runners))
+	if len(runners) == 0 {
+		return byRunner, nil
+	}
+
+	hasGlobal := false
+	ownerIDs, repoIDs := []int64{}, []int64{}
+	seenOwner, seenRepo := map[int64]bool{}, map[int64]bool{}
+	for _, runner := range runners {
+		switch {
+		case runner.RepoID > 0:
+			if !seenRepo[runner.RepoID] {
+				seenRepo[runner.RepoID] = true
+				repoIDs = append(repoIDs, runner.RepoID)
+			}
+		case runner.OwnerID > 0:
+			if !seenOwner[runner.OwnerID] {
+				seenOwner[runner.OwnerID] = true
+				ownerIDs = append(ownerIDs, runner.OwnerID)
+			}
+		default:
+			hasGlobal = true
+		}
+	}
+
+	repoByID := map[int64]*repo_model.Repository{}
+	if !hasGlobal {
+		repos, err := listRunnerScopeReposForOwnersAndRepos(ctx, ownerIDs, repoIDs)
+		if err != nil {
+			return nil, err
+		}
+		if len(repos) == 0 {
+			return byRunner, nil
+		}
+		for _, repo := range repos {
+			repoByID[repo.ID] = repo
+		}
+	}
+
+	var cond builder.Cond = builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}
+	if !hasGlobal {
+		ids := make([]int64, 0, len(repoByID))
+		for id := range repoByID {
+			ids = append(ids, id)
+		}
+		cond = cond.And(builder.In("repo_id", ids))
+	}
+	var jobs []*ActionRunJob
+	if err := db.GetEngine(ctx).Where(cond).Cols("repo_id", "runs_on").Find(&jobs); err != nil {
+		return nil, err
+	}
+	if len(jobs) == 0 {
+		return byRunner, nil
+	}
+
+	if hasGlobal {
+		ids, seen := []int64{}, map[int64]bool{}
+		for _, job := range jobs {
+			if !seen[job.RepoID] {
+				seen[job.RepoID] = true
+				ids = append(ids, job.RepoID)
+			}
+		}
+		var repos []*repo_model.Repository
+		if err := db.GetEngine(ctx).In("id", ids).Find(&repos); err != nil {
+			return nil, err
+		}
+		for _, repo := range repos {
+			repoByID[repo.ID] = repo
+		}
+	}
+
+	for _, runner := range runners {
+		counts := map[int64]int{}
+		for _, job := range jobs {
+			repo := repoByID[job.RepoID]
+			if repo == nil || !runnerScopeIncludesRepo(runner, repo) {
+				continue
+			}
+			if runner.CanMatchLabels(job.RunsOn) {
+				counts[job.RepoID]++
+			}
+		}
+		queues := make([]RunnerRepoQueue, 0, len(counts))
+		for repoID, waiting := range counts {
+			queues = append(queues, RunnerRepoQueue{Repo: repoByID[repoID], Waiting: waiting})
+		}
+		sortRunnerRepoQueues(queues)
+		byRunner[runner.ID] = queues
+	}
+	return byRunner, nil
+}
+
+func runnerScopeIncludesRepo(runner *ActionRunner, repo *repo_model.Repository) bool {
+	if runner.RepoID > 0 {
+		return repo.ID == runner.RepoID
+	}
+	if runner.OwnerID > 0 {
+		return repo.OwnerID == runner.OwnerID
+	}
+	return true
+}
+
+func listRunnerScopeReposForOwnersAndRepos(ctx context.Context, ownerIDs, repoIDs []int64) ([]*repo_model.Repository, error) {
+	scope := builder.NewCond()
+	if len(ownerIDs) > 0 {
+		scope = scope.Or(builder.In("`repository`.owner_id", ownerIDs))
+	}
+	if len(repoIDs) > 0 {
+		scope = scope.Or(builder.In("`repository`.id", repoIDs))
+	}
+	cond := builder.NewCond().And(builder.Eq{"`repo_unit`.type": unit.TypeActions}).And(scope)
+	repoIDQuery := builder.Select("`repository`.id").From("repository").
+		Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
+		Where(cond)
+
+	var repos []*repo_model.Repository
+	err := db.GetEngine(ctx).Where(builder.In("id", repoIDQuery)).Find(&repos)
+	return repos, err
 }
 
 func listRunnerScopeRepos(ctx context.Context, runner *ActionRunner) ([]*repo_model.Repository, error) {
