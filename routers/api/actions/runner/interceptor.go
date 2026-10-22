@@ -88,10 +88,7 @@ func withRunner(next connect.ServerFunc) connect.ServerFunc {
 	}
 }
 
-// verifyRunnerToken checks the token against the stored hash of the runner.
-// Hashing a token with PBKDF2 is expensive and every runner RPC (polling, log streaming) needs it,
-// so successful verifications are cached like access tokens are (see auth_model.GetAccessTokenBySHA).
-// The runner is always loaded from the DB by the caller, so a regenerated token (different hash) never matches a stale entry.
+// verifyRunnerToken verifies the token hash, caching successes because PBKDF2 is expensive on every RPC.
 func verifyRunnerToken(runner *actions_model.ActionRunner, uuid, token string) bool {
 	if token == "" {
 		return false
