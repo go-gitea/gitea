@@ -17,6 +17,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
@@ -377,10 +378,12 @@ func TestCompareCodeExpand(t *testing.T) {
 				session.MakeRequest(t, req, http.StatusBadRequest)
 			}
 			// a heavily rewritten file has many gaps, and naming them all is fine
-			req := NewRequest(t, "GET", excerptURL+strings.Repeat("&gap="+gapNumbers, 200))
+			req := NewRequest(t, "GET", excerptURL+strings.Repeat("&gap=5,5,6,6,1,1", 200))
 			session.MakeRequest(t, req, http.StatusOK)
-			// but absurd input is still turned away
-			req = NewRequest(t, "GET", excerptURL+strings.Repeat("&gap="+gapNumbers, 1001))
+			// but absurd input is still turned away, as are more lines than a diff file renders
+			req = NewRequest(t, "GET", excerptURL+strings.Repeat("&gap=5,5,6,6,1,1", 1001))
+			session.MakeRequest(t, req, http.StatusBadRequest)
+			req = NewRequest(t, "GET", excerptURL+strings.Repeat("&gap="+gapNumbers, setting.Git.MaxGitDiffLines))
 			session.MakeRequest(t, req, http.StatusBadRequest)
 		})
 	})

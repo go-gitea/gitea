@@ -211,8 +211,7 @@ const (
 	DiffStyleUnified = "unified"
 )
 
-// What a render has to say about expanding, as "DiffExpandMode" in the template data. A render that
-// says nothing, like the conversation snippet or the editor preview, is neither.
+// "DiffExpandMode" of the template data, unset where nothing expands (conversation, editor preview)
 const (
 	DiffExpandModeExpandable = "expandable" // the diff hides lines here and offers to expand them
 	DiffExpandModeExpanded   = "expanded"   // these rows are lines that were expanded
@@ -484,16 +483,18 @@ func (diffFile *DiffFile) IsRenderedAsDiffLines() bool {
 	return len(diffFile.Sections) > 0 && !diffFile.CanShowFileViewToggle()
 }
 
-// HasHiddenLines reports whether any unchanged lines of the file are hidden behind an expander.
-func (diffFile *DiffFile) HasHiddenLines() bool {
+// CanExpandAllHiddenLines reports whether the file hides unchanged lines, few enough to expand in one request
+func (diffFile *DiffFile) CanExpandAllHiddenLines() bool {
+	hidden := 0
 	for _, section := range diffFile.Sections {
 		for _, line := range section.Lines {
 			if line.GetExpandDirection() != "" {
-				return true
+				info := line.SectionInfo
+				hidden += gapLastHiddenLine(info.RightIdx, info.LeftHunkSize, info.RightHunkSize) - info.LastRightIdx
 			}
 		}
 	}
-	return false
+	return hidden > 0 && hidden <= MaxExcerptLines()
 }
 
 type DiffRenderDetail struct {

@@ -57,9 +57,7 @@
 					</td>
 				{{else}}
 					{{$inlineDiff := $section.GetComputedInlineDiffFor $line ctx.Locale}}
-					{{/* ATTENTION: BLOB-EXCERPT-COMMENT-RIGHT: an excerpt's unchanged lines always comment on the
-					right side, because FillHiddenCommentIDsForDiffLine only counts right-side comments and a
-					left-side one would be lost once the gap is collapsed again */}}
+					{{/* ATTENTION: BLOB-EXCERPT-COMMENT-RIGHT: expanded lines always comment on the right side */}}
 					{{$leftCommentSide := "left"}}{{$leftCommentIdx := $line.LeftIdx}}
 					{{if eq $expandMode "expanded"}}{{$leftCommentSide = "right"}}{{$leftCommentIdx = $line.RightIdx}}{{end}}
 					<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$file.NameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>

@@ -7,8 +7,11 @@ import (
 	"bytes"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
@@ -102,6 +105,52 @@ func TestDeserializeGapRequests(t *testing.T) {
 
 	_, err = DeserializeGapRequests(nil, "")
 	require.Error(t, err)
-	_, err = DeserializeGapRequests(slices.Repeat([]string{"0,0,13,13,6,7"}, maxExcerptGaps+1), "")
+	_, err = DeserializeGapRequests(slices.Repeat([]string{"5,5,6,6,1,1"}, maxExcerptGaps+1), "") // gaps hiding no line
 	require.Error(t, err)
+
+	defer test.MockVariableValue(&setting.Git.MaxGitDiffLines, 100)()
+	_, err = DeserializeGapRequests([]string{"0,0,101,101,0,0"}, "") // a whole file of 101 lines
+	require.Error(t, err)
+	_, err = DeserializeGapRequests([]string{"0,0,101,101,0,0,down"}, "") // one chunk of it
+	require.NoError(t, err)
+}
+
+func TestSerializeRemainingGap(t *testing.T) {
+	gap := BlobExcerptOptions{LastLeft: 23, LastRight: 23, LeftIndex: 57, RightIndex: 57, LeftHunkSize: 7, RightHunkSize: 7}
+	gap.Direction = "down"
+	assert.Equal(t, "43,43,57,57,7,7", gap.SerializeRemainingGap())
+	gap.Direction = "up"
+	assert.Equal(t, "23,23,37,37,27,27", gap.SerializeRemainingGap())
+	gap.Direction = ""
+	assert.Equal(t, "23,23,0,0,0,0", gap.SerializeRemainingGap())
+	// a chunk that takes the rest of the gap leaves nothing
+	gap = BlobExcerptOptions{LastLeft: 43, LastRight: 43, LeftIndex: 57, RightIndex: 57, LeftHunkSize: 7, RightHunkSize: 7, Direction: "up"}
+	assert.Equal(t, "43,43,0,0,0,0", gap.SerializeRemainingGap())
+}
+
+func TestBuildBlobExcerptDiffSections_HighlightStopsAtOversizedLine(t *testing.T) {
+	data := &bytes.Buffer{}
+	data.WriteString("a = 1\n")
+	data.WriteString("b = \"" + strings.Repeat("x", MaxFullFileHighlightSizeLimit) + "\"\n")
+	data.WriteString("c = 3\n")
+	sections, err := BuildBlobExcerptDiffSections("a.py", bytes.NewReader(data.Bytes()), []BlobExcerptOptions{{RightIndex: 3, LeftIndex: 3}})
+	require.NoError(t, err)
+	highlighted := sections[0].highlightedRightLines.value
+	assert.Contains(t, string(highlighted[0]), ">a<")
+	assert.NotContains(t, highlighted, 2) // the line after the oversized one must not take another line's highlighting
+}
+
+func TestCanExpandAllHiddenLines(t *testing.T) {
+	gapLine := func(info DiffLineSectionInfo) *DiffLine {
+		return &DiffLine{Type: DiffLineSection, SectionInfo: &info}
+	}
+	file := &DiffFile{Sections: []*DiffSection{
+		{Lines: []*DiffLine{gapLine(DiffLineSectionInfo{LeftIdx: 17, RightIdx: 17, LeftHunkSize: 7, RightHunkSize: 7})}},     // lines 1-16
+		{Lines: []*DiffLine{gapLine(DiffLineSectionInfo{LastLeftIdx: 103, LastRightIdx: 103, LeftIdx: 120, RightIdx: 120})}}, // lines 104-120
+	}}
+	defer test.MockVariableValue(&setting.Git.MaxGitDiffLines, 33)()
+	assert.True(t, file.CanExpandAllHiddenLines())
+	setting.Git.MaxGitDiffLines = 32
+	assert.False(t, file.CanExpandAllHiddenLines())
+	assert.False(t, (&DiffFile{}).CanExpandAllHiddenLines())
 }

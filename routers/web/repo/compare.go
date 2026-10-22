@@ -772,14 +772,16 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 	}
 
-	// render through the same section templates as the diff itself, so an excerpt row and a diff row
-	// are built by one piece of markup
+	// rendered by the same section templates as the diff itself
 	ctx.Data["file"] = &gitdiff.DiffFile{
 		Name:     filePath,
 		NameHash: git.HashFilePathForWebUI(filePath),
 		Sections: sections,
 	}
 	ctx.Data["DiffExpandMode"] = gitdiff.DiffExpandModeExpanded
+	if len(gapOpts) == 1 {
+		ctx.Resp.Header().Set("X-Gitea-Diff-Gap-Remaining", gapOpts[0].SerializeRemainingGap())
+	}
 
 	ctx.HTML(http.StatusOK, tplDiffSection)
 }

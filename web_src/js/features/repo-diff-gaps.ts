@@ -1,18 +1,9 @@
 import {effectScope, reactive, watchEffect} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
 
-// The reactivity below is Vue's, but the rendering is not. Diff rows are built by the Go templates,
-// with syntax highlighting, unicode escaping and comment threads the frontend holds no data for, so
-// this places server-rendered rows by hand rather than declaring them in a component. Once diff rows
-// are rendered from data on the client, placeGapRows and renderGapExpander become that component's
-// template and everything here except the gap arithmetic can go.
-//
-// A "gap" is a stretch of unchanged lines the diff hides behind a section row. The backend renders
-// that row with the gap's own line numbers, and everything below works from them, so expanding lines
-// never needs the server to say what is left.
-//
-// Must match gitdiff.BlobExcerptChunkSize.
-export const blobExcerptChunkSize = 20;
+// A "gap" is a stretch of unchanged lines the diff hides behind a section row. Its rows are rendered
+// by the server, so Vue only tracks the state and they are placed by hand.
+export const blobExcerptChunkSize = 20; // must match gitdiff.BlobExcerptChunkSize
 
 export type DiffGap = {
   lastLeft: number; lastRight: number; // the last line rendered before the gap
@@ -21,9 +12,7 @@ export type DiffGap = {
   hiddenCommentIds: string[]; // comments the diff does not show while this gap is closed
 };
 
-// "original" is the gap as the diff first described it, "current" what is left of it, and "rows"
-// what it has put on screen. One effect per gap renders all three, so the arrows, the hidden comment
-// count and the expanded lines cannot disagree about how much of the gap is open.
+// "original" is the gap as the diff described it, "current" what is left of it, "rows" what it shows
 type DiffGapState = {original: DiffGap; current: DiffGap; rows: HTMLElement[]; expanded: HTMLElement[]};
 
 const diffGaps = reactive(new Map<string, DiffGapState>());
@@ -34,13 +23,20 @@ export function gapNumbers(gap: DiffGap): string {
 }
 
 function gapStoreKey(el: Element, gapKey: string): string {
-  return `${el.closest('.diff-file-box')?.id ?? ''}:${gapKey}`;
+  return `${el.closest('.diff-file-box')!.id}:${gapKey}`;
+}
+
+export function parseGapNumbers(numbers: string, hiddenCommentIds: string[]): DiffGap {
+  const [lastLeft, lastRight, left, right, leftHunk, rightHunk] = numbers.split(',').map(Number);
+  return {lastLeft, lastRight, left, right, leftHunk, rightHunk, hiddenCommentIds};
 }
 
 export function parseDiffGap(el: Element): DiffGap {
-  const [lastLeft, lastRight, left, right, leftHunk, rightHunk] = el.getAttribute('data-gap')!.split(',').map(Number);
-  const hiddenCommentIds = el.getAttribute('data-hidden-comment-ids')!.split(',').filter(Boolean);
-  return {lastLeft, lastRight, left, right, leftHunk, rightHunk, hiddenCommentIds};
+  return parseGapNumbers(el.getAttribute('data-gap')!, el.getAttribute('data-hidden-comment-ids')!.split(',').filter(Boolean));
+}
+
+export function fullyExpandedGap(gap: DiffGap): DiffGap {
+  return {...gap, left: 0, right: 0, leftHunk: 0, rightHunk: 0};
 }
 
 export function getDiffGapState(el: Element, gapKey: string): DiffGapState | undefined {
@@ -67,19 +63,6 @@ export function gapExpandDirection(gap: DiffGap): '' | 'up' | 'down' | 'updown' 
   return 'single';
 }
 
-// what a gap has left once "direction" has expanded one chunk, mirroring the chunking in
-// gitdiff.BuildBlobExcerptDiffSection
-export function gapAfterExpanding(gap: DiffGap, direction: string): DiffGap {
-  const remaining = gap.right - gap.lastRight;
-  if (direction === 'up' && remaining > blobExcerptChunkSize) {
-    return {...gap, left: gap.left - blobExcerptChunkSize, right: gap.right - blobExcerptChunkSize, leftHunk: gap.leftHunk + blobExcerptChunkSize, rightHunk: gap.rightHunk + blobExcerptChunkSize};
-  }
-  if (direction === 'down' && remaining > blobExcerptChunkSize) {
-    return {...gap, lastLeft: gap.lastLeft + blobExcerptChunkSize, lastRight: gap.lastRight + blobExcerptChunkSize};
-  }
-  return {...gap, left: 0, right: 0, leftHunk: 0, rightHunk: 0}; // fully expanded
-}
-
 // a gap, and how much of it to expand: one chunk from the end an arrow points at, or the whole gap
 export type DiffGapRequest = {gap: DiffGap; direction?: GapExpandEnd};
 
@@ -90,8 +73,7 @@ export function gapExpandEnd(direction: string): GapExpandEnd | undefined {
   return direction === 'up' || direction === 'down' ? direction : undefined;
 }
 
-// one request expands every gap it names, so an arrow and expanding a whole file ask the same way
-// and a partly expanded file does not re-fetch what it already shows
+// an arrow and expanding a whole file ask the same way, one request for every gap it names
 export function excerptGapsUrl(baseUrl: string, requests: DiffGapRequest[]): string {
   const url = new URL(baseUrl, window.location.href);
   for (const {gap, direction} of requests) {
@@ -100,16 +82,14 @@ export function excerptGapsUrl(baseUrl: string, requests: DiffGapRequest[]): str
   return url.href;
 }
 
-// An excerpt response is a fragment of rows that opens with the table's "colgroup", which makes the
-// parser tuck them into a "tbody", so take the rows themselves rather than whatever wrapped them.
+// the response opens with a "colgroup", which makes the parser wrap the rows in a "tbody"
 export function parseTableRows(respText: string): HTMLElement[] {
   const elTemplate = document.createElement('template'); // a template can hold "tr" elements without a table around them
   elTemplate.innerHTML = respText;
   return Array.from(elTemplate.content.querySelectorAll('tr'));
 }
 
-// the gaps of a file that still have something to expand, as the diff first described them, leaving
-// out any whose rows are already in hand
+// the gaps of a file that still hide lines, as the diff first described them
 export function pendingDiffGaps(elFileBody: Element, unexpandedOnly = false): DiffGap[] {
   const gaps = [];
   for (const el of elFileBody.querySelectorAll('.code-expander-buttons[data-gap]')) {
@@ -131,19 +111,30 @@ function markGapRows(rows: HTMLElement[], gap: DiffGap) {
   for (const row of rows) row.setAttribute('data-expand-gap', gapNumbers(gap));
 }
 
-// the rows a gap has expanded and what it has left, the only two things an expansion changes.
-// A gap that ends up fully expanded keeps its rows, so opening it again costs no request.
+// the file line of each row, a conversation row taking the one of the line it follows
+function gapRowLines(rows: HTMLElement[]): number[] {
+  let line = 0;
+  return rows.map((el) => {
+    const elNum = el.querySelector('.lines-num-new');
+    if (elNum) line = Number(elNum.getAttribute('data-line-num'));
+    return line;
+  });
+}
+
+// a gap that ends up fully expanded keeps its rows, so opening it again costs no request
 export function expandGapLines(el: Element, gapKey: string, rows: HTMLElement[], current: DiffGap) {
   const state = getDiffGapState(el, gapKey);
   if (!state) return;
   markGapRows(rows, state.original);
-  const allRows = [...state.rows, ...rows];
+  const unsorted = [...state.rows, ...rows]; // arrows expand from either end, in whatever order they are clicked
+  const lines = gapRowLines(unsorted);
+  const allRows = unsorted.map((row, i) => ({row, line: lines[i]})).sort((a, b) => a.line - b.line).map(({row}) => row);
   updateDiffGap(el, gapKey, {current, rows: allRows, expanded: gapExpandDirection(current) ? state.expanded : allRows});
 }
 
 export function reopenGap(el: Element, gapKey: string) {
   const state = getDiffGapState(el, gapKey);
-  if (state?.expanded.length) updateDiffGap(el, gapKey, {current: {...state.original, left: 0, right: 0, leftHunk: 0, rightHunk: 0}, rows: state.expanded});
+  if (state?.expanded.length) updateDiffGap(el, gapKey, {current: fullyExpandedGap(state.original), rows: state.expanded});
 }
 
 // the rows come off the screen but are kept, so closing and opening a gap again is free
@@ -189,22 +180,27 @@ function placeGapRows(elSectionRow: HTMLElement, state: DiffGapState) {
     conversationsOf(el)?.remove();
     el.remove();
   }
-  if (!state.rows.length) return;
-  let elAt: HTMLElement = elSectionRow;
-  for (const elRow of state.rows) {
-    elAt.after(elRow);
-    elAt = conversationsOf(elRow) ?? elRow;
+  // what is still hidden sits between the lines expanded down from above it and up from below it
+  const lines = gapRowLines(state.rows);
+  let elAt = elSectionRow;
+  for (const [i, elRow] of state.rows.entries()) {
+    const elAdded = conversationsOf(elRow); // a conversation started on an expanded line travels with it
+    const elTail = elAdded && !wanted.has(elAdded) ? elAdded : null;
+    if (lines[i] <= state.current.lastRight) {
+      elSectionRow.before(elRow);
+    } else {
+      elAt.after(elRow);
+      elAt = elTail ?? elRow;
+    }
+    if (elTail) elRow.after(elTail);
   }
-  // the still hidden part of the gap sits on whichever side the expanded lines were taken from
-  if (state.current.lastRight > state.original.lastRight) elAt.after(elSectionRow);
 }
 
-// one effect per gap: the arrows, the hidden comment count and the expanded lines all come from the
-// same state, so they cannot disagree
+// one effect per gap renders its arrows, hidden comment count and expanded lines from one state
 export function initDiffGapExpander(el: HTMLElement) {
   const gap = parseDiffGap(el);
   const key = gapStoreKey(el, el.getAttribute('data-gap')!); // what the gap started as, not what is left of it
-  if (!diffGaps.has(key)) diffGaps.set(key, {original: gap, current: gap, rows: [], expanded: []});
+  diffGaps.set(key, {original: gap, current: gap, rows: [], expanded: []}); // a re-rendered file box starts over
   const scope = effectScope();
   scope.run(() => watchEffect(() => {
     if (!el.isConnected) return scope.stop(); // the file box was replaced, nothing left to render into

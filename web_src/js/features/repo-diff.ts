@@ -16,7 +16,7 @@ import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '.
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
-import {closeGap, diffFileHasHiddenLines, excerptGapsUrl, gapAfterExpanding, gapExpandDirection, gapExpandEnd, gapNumbers, gapReachesFileEnd, getDiffGapState, initDiffGapExpander, parseTableRows, pendingDiffGaps, reopenGap, expandGapLines, type DiffGap} from './repo-diff-gaps.ts';
+import {closeGap, diffFileHasHiddenLines, excerptGapsUrl, fullyExpandedGap, gapExpandDirection, gapExpandEnd, gapNumbers, gapReachesFileEnd, getDiffGapState, initDiffGapExpander, parseGapNumbers, parseTableRows, pendingDiffGaps, reopenGap, expandGapLines, type DiffGap} from './repo-diff-gaps.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -154,8 +154,7 @@ function onDiffFileBodyChange() {
   initRepoIssueContentHistory(); // it scans the whole page via a fetch, so it doesn't fit the per-element observer pattern
 }
 
-// the response carries each gap's lines in file order, so walk the gaps that were asked for in the
-// same order and take the rows that fall inside each
+// the response carries the gaps' lines in file order, the same order they were asked for
 function diffGroupRowsByGap(respText: string, gaps: DiffGap[]): Map<string, HTMLElement[]> {
   const gapRows = new Map<string, HTMLElement[]>();
   const rows = parseTableRows(respText);
@@ -193,16 +192,17 @@ async function diffExpandHiddenLines(btn: HTMLElement) {
 
   const resp = await performFetchActionRequest(btn, {method: 'GET', url: excerptGapsUrl(baseUrl, [{gap, direction: gapExpandEnd(direction)}]), loadingIndicator: '$this'});
   if (!resp) return;
+  const rows = parseTableRows(await resp.text());
+  // another expansion of this gap finished first, and these rows may repeat what it showed
+  if (gapNumbers(getDiffGapState(elExpander, gapKey)!.current) !== gapNumbers(gap)) return;
   // the effect puts the rows on screen and re-renders whatever the gap has left
-  expandGapLines(elExpander, gapKey, parseTableRows(await resp.text()), gapAfterExpanding(gap, direction));
+  expandGapLines(elExpander, gapKey, rows, parseGapNumbers(resp.headers.get('X-Gitea-Diff-Gap-Remaining')!, gap.hiddenCommentIds));
 
-  const elFileBox = btn.closest('.diff-file-box'); // absent on the pull conversation page
-  if (elFileBox) diffSyncExpandAllButton(elFileBox);
+  diffSyncExpandAllButton(elExpander.closest('.diff-file-box')!);
   onDiffFileBodyChange();
 }
 
-// one request expands every gap the file still hides, through the same endpoint the arrows use, so
-// the server reads the blob instead of recomputing the diff
+// one request for every gap the file still hides, read from the blob rather than a new diff
 async function diffFetchAllGapRows(btn: HTMLElement, elFileBody: Element): Promise<Map<string, HTMLElement[]> | null> {
   const gaps = pendingDiffGaps(elFileBody, true); // the rest were expanded before and kept their rows
   if (!gaps.length) return new Map();
@@ -227,7 +227,7 @@ async function diffToggleAllHiddenLines(btn: HTMLElement) {
       const rows = gapRows.get(gapKey);
       if (rows?.length) {
         closeGap(el, gapKey); // drop what it expanded so far, the response carries the whole gap
-        expandGapLines(el, gapKey, rows, {...state.original, left: 0, right: 0, leftHunk: 0, rightHunk: 0});
+        expandGapLines(el, gapKey, rows, fullyExpandedGap(state.original));
       } else {
         reopenGap(el, gapKey); // it was fully expanded before, so its rows are still in hand
       }
@@ -265,6 +265,16 @@ async function diffLoadMoreFiles(btn: Element): Promise<boolean> {
   return false;
 }
 
+// the header actions that need the file body loaded: expanding its lines and (un)escaping it
+function diffAdoptLoadedFileHeader(elFileBox: Element, respFileBox: Element) {
+  const respExpandButton = respFileBox.querySelector('.diff-expand-lines-button');
+  if (respExpandButton) elFileBox.querySelector('.diff-file-name > [data-clipboard-text]')!.after(respExpandButton);
+  const elMenuButton = elFileBox.querySelector<HTMLElement>('[data-global-init="initDiffHeaderPopupMenu"]');
+  if (!elMenuButton) return; // a submodule has no menu
+  const elMenu = (getAttachedTippyInstance(elMenuButton)?.props.content ?? elMenuButton.nextElementSibling) as Element; // tippy moves the menu out of the header
+  if (!elMenu.querySelector('.unescape-button')) elMenu.prepend(...respFileBox.querySelectorAll('.diff-file-header .unescape-button, .diff-file-header .escape-button'));
+}
+
 async function diffLoadFileBody(el: Element) {
   if (el.classList.contains('disabled')) return;
   el.classList.add('disabled');
@@ -274,9 +284,11 @@ async function diffLoadFileBody(el: Element) {
     if (!resp.ok) return;
     const respText = await resp.text();
     const respDoc = parseDom(respText, 'text/html');
-    // replace the whole file box: its header actions (expand lines, unescape) depend on the file body being loaded
     const respFileBox = respDoc.querySelector('#diff-file-boxes .diff-file-box')!;
-    el.closest('.diff-file-box')!.replaceWith(respFileBox);
+    const elFileBox = el.closest('.diff-file-box')!;
+    // only the body is replaced, so the header keeps its state (folding, viewed, the open menu)
+    elFileBox.querySelector('.diff-file-body .file-body')!.replaceWith(respFileBox.querySelector('.diff-file-body .file-body')!);
+    diffAdoptLoadedFileHeader(elFileBox, respFileBox);
     onDiffFileBodyChange();
   } catch (error) {
     console.error('Error:', error);

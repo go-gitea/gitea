@@ -66,27 +66,25 @@ func DeserializeGapNumbers(gapNumbers string) (BlobExcerptOptions, error) {
 	}, nil
 }
 
-// DeserializeGapRequest reads one gap of a request: the numbers SerializeGapNumbers wrote, plus the
-// end an arrow expands from when it wants a single chunk. Asking for one chunk and asking for whole
-// gaps are then the same request.
+// DeserializeGapRequest reads a gap's numbers, plus the end an arrow takes a single chunk from
 func DeserializeGapRequest(gapRequest string) (BlobExcerptOptions, error) {
-	if i := strings.LastIndexByte(gapRequest, ','); i >= 0 {
-		if direction := gapRequest[i+1:]; direction == "up" || direction == "down" {
-			opts, err := DeserializeGapNumbers(gapRequest[:i])
-			if err != nil {
-				return BlobExcerptOptions{}, err
-			}
-			opts.Direction = direction
-			return opts, nil
+	if numbers, direction, ok := strings.CutLast(gapRequest, ","); ok && (direction == "up" || direction == "down") {
+		opts, err := DeserializeGapNumbers(numbers)
+		if err != nil {
+			return BlobExcerptOptions{}, err
 		}
+		opts.Direction = direction
+		return opts, nil
 	}
 	return DeserializeGapNumbers(gapRequest)
 }
 
-// maxExcerptGaps rejects absurd input rather than bounding the work: the gaps of a file are read in
-// one pass over it and cannot overlap, so naming more of them costs little. A file heavily rewritten
-// in many places still has far fewer hunks than this.
-const maxExcerptGaps = 1000
+const maxExcerptGaps = 1000 // rejects absurd input, the line limit is what bounds the work
+
+// MaxExcerptLines is how many lines one request may expand, the same bound a diff file renders
+func MaxExcerptLines() int {
+	return max(setting.Git.MaxGitDiffLines, BlobExcerptChunkSize)
+}
 
 // DeserializeGapRequests reads every gap a request names, in the order they appear in the file
 func DeserializeGapRequests(gapRequests []string, language string) ([]BlobExcerptOptions, error) {
@@ -97,10 +95,15 @@ func DeserializeGapRequests(gapRequests []string, language string) ([]BlobExcerp
 		return nil, errors.New("too many gaps requested")
 	}
 	gapOpts := make([]BlobExcerptOptions, 0, len(gapRequests))
+	lineCount := 0
 	for _, gapRequest := range gapRequests {
 		opts, err := DeserializeGapRequest(gapRequest)
 		if err != nil {
 			return nil, err
+		}
+		_, rightStart, rightEnd := opts.expandRange()
+		if lineCount += max(rightEnd-rightStart+1, 0); lineCount > MaxExcerptLines() {
+			return nil, errors.New("too many lines requested")
 		}
 		opts.Language = language
 		gapOpts = append(gapOpts, opts)
@@ -115,6 +118,14 @@ func gapReachesFileEnd(leftHunkSize, rightHunkSize int) bool {
 	return leftHunkSize <= 0 && rightHunkSize <= 0
 }
 
+// the last line a whole gap hides: the line at "right" is already rendered, unless nothing follows the gap
+func gapLastHiddenLine(rightIdx, leftHunkSize, rightHunkSize int) int {
+	if gapReachesFileEnd(leftHunkSize, rightHunkSize) {
+		return rightIdx
+	}
+	return rightIdx - 1
+}
+
 // expandRange returns the 1-based inclusive lines a request expands from a gap
 func (opts BlobExcerptOptions) expandRange() (leftStart, rightStart, rightEnd int) {
 	if opts.RightIndex-opts.LastRight > BlobExcerptChunkSize {
@@ -125,13 +136,24 @@ func (opts BlobExcerptOptions) expandRange() (leftStart, rightStart, rightEnd in
 			return opts.LastLeft + 1, opts.LastRight + 1, opts.LastRight + BlobExcerptChunkSize
 		}
 	}
-	// the whole gap: the line at "right" is already rendered, except where the gap runs to the end
-	// of the file and nothing follows it
-	rightEnd = opts.RightIndex
-	if !gapReachesFileEnd(opts.LeftHunkSize, opts.RightHunkSize) {
-		rightEnd--
+	return opts.LastLeft + 1, opts.LastRight + 1, gapLastHiddenLine(opts.RightIndex, opts.LeftHunkSize, opts.RightHunkSize)
+}
+
+// SerializeRemainingGap writes the numbers of what the gap still hides once this request expanded it
+func (opts BlobExcerptOptions) SerializeRemainingGap() string {
+	remaining := DiffLineSectionInfo{LastLeftIdx: opts.LastLeft, LastRightIdx: opts.LastRight}
+	if opts.RightIndex-opts.LastRight > BlobExcerptChunkSize {
+		switch opts.Direction {
+		case "up":
+			remaining.LeftIdx, remaining.RightIdx = opts.LeftIndex-BlobExcerptChunkSize, opts.RightIndex-BlobExcerptChunkSize
+			remaining.LeftHunkSize, remaining.RightHunkSize = opts.LeftHunkSize+BlobExcerptChunkSize, opts.RightHunkSize+BlobExcerptChunkSize
+		case "down":
+			remaining.LastLeftIdx, remaining.LastRightIdx = opts.LastLeft+BlobExcerptChunkSize, opts.LastRight+BlobExcerptChunkSize
+			remaining.LeftIdx, remaining.RightIdx = opts.LeftIndex, opts.RightIndex
+			remaining.LeftHunkSize, remaining.RightHunkSize = opts.LeftHunkSize, opts.RightHunkSize
+		}
 	}
-	return opts.LastLeft + 1, opts.LastRight + 1, rightEnd
+	return remaining.SerializeGapNumbers() // all zero after the last line means nothing is left
 }
 
 func newExcerptSection(filePath, language string) *DiffSection {
@@ -144,11 +166,10 @@ func newExcerptSection(filePath, language string) *DiffSection {
 	}
 }
 
-// BuildBlobExcerptDiffSections expands the requested part of each gap in a single pass over the
-// blob, so that showing a whole file takes one request rather than one per gap. The caller passes
-// the gaps in the order they appear in the file.
+// BuildBlobExcerptDiffSections expands each gap, given in file order, in one pass over the blob
 func BuildBlobExcerptDiffSections(filePath string, reader io.Reader, optsList []BlobExcerptOptions) ([]*DiffSection, error) {
 	buf := &bytes.Buffer{}
+	bufFull := false
 	scanner := git.NewGitDiffScanner(reader)
 	scanned := 0 // the last line number read from the blob
 	sections := make([]*DiffSection, 0, len(optsList))
@@ -161,7 +182,8 @@ func BuildBlobExcerptDiffSections(filePath string, reader io.Reader, optsList []
 			}
 			scanned++
 			lineText := scanner.Text()
-			if buf.Len()+len(lineText) < int(setting.UI.MaxDisplayFileSize) {
+			// the highlighted lines are matched by number, so the buffer must stop at the first line that does not fit
+			if bufFull = bufFull || buf.Len()+len(lineText)+1 >= MaxFullFileHighlightSizeLimit; !bufFull {
 				buf.WriteString(lineText)
 				buf.WriteByte('\n')
 			}

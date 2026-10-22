@@ -1,6 +1,4 @@
 {{$file := $.file}}
-{{/* "expandable" offers the arrows, "expanded" means these rows came from them, and neither is
-what the PR conversation snippet and the editor preview get */}}
 {{$expandMode := or ctx.RootData.DiffExpandMode ""}}
 {{$canAddComment := and ctx.RootData.SignedUserID ctx.RootData.PageIsPullFiles}}
 <colgroup>

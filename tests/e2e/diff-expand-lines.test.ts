@@ -1,4 +1,4 @@
-import {test, expect, type Page, type APIRequestContext} from '@playwright/test';
+import {test, expect, type Page, type APIRequestContext, type Route} from '@playwright/test';
 import {apiCreateFiles, apiCreatePR, apiCreateRepo, apiCreateUser, apiUserHeaders, loginUser, randomString} from './utils.ts';
 
 const fileLineCount = 120;
@@ -131,4 +131,61 @@ test('reopening a file it already expanded costs no request', async ({page, requ
   await toggle.click();
   await expect(rows).toHaveCount(collapsedCount + hiddenLineCount);
   expect(requests).toEqual(1);
+});
+
+test('expanding a gap from both ends at once keeps its lines in order', async ({page, request}) => {
+  const {rows, arrows} = await createDiffPull(page, request);
+  const collapsedCount = await rows.count();
+  const held: Array<{route: Route; up: boolean}> = [];
+  await page.route((url) => url.searchParams.has('gap'), async (route) => {
+    if (held.length === 2) return route.continue();
+    held.push({route, up: new URL(route.request().url()).searchParams.get('gap')!.endsWith(',up')});
+  });
+
+  // the middle gap offers both arrows, and both are clicked before either answers
+  await arrows.nth(1).click();
+  await arrows.nth(2).click();
+  await expect.poll(() => held.length).toBe(2);
+  // the "up" chunk lands first, so the "down" one asked for a gap that is no longer there
+  const [up, down] = held.toSorted((a, b) => Number(b.up) - Number(a.up));
+  await up.route.continue();
+  await expect(rows).toHaveCount(collapsedCount + 20);
+  const downResponse = page.waitForResponse((resp) => resp.request() === down.route.request());
+  await down.route.continue();
+  await downResponse;
+
+  await arrows.nth(1).click(); // the rest of the gap, above the chunk that was expanded upwards
+  await expect(rows).toHaveCount(collapsedCount + 33);
+  const lineNums = await page.locator('#diff-file-boxes .lines-num-new[data-line-num]:not([data-line-num=""])').evaluateAll(
+    (els) => els.map((el) => Number(el.getAttribute('data-line-num'))),
+  );
+  expect(lineNums).toEqual(lineNums.toSorted((a, b) => a - b));
+  expect(new Set(lineNums).size).toEqual(lineNums.length);
+});
+
+test('loading a suppressed file keeps its header and brings the actions that need its body', async ({page, request}) => {
+  const user = `de-${randomString(8)}`;
+  await apiCreateUser(request, user);
+  const headers = apiUserHeaders(user);
+  const repo = `e2e-diffload-${randomString(8)}`;
+  await apiCreateRepo(request, {name: repo, headers});
+  // more changed lines than a diff file renders, with unchanged lines around them to expand
+  const lines = Array.from({length: 1100}, (_, i) => `line ${i + 1}`);
+  await apiCreateFiles(request, user, repo, [{path: 'big.txt', content: `${lines.join('\n')}\n`}], {branch: 'main', headers});
+  for (let i = 50; i < 1060; i++) lines[i] = `changed ${i + 1}`;
+  await apiCreateFiles(request, user, repo, [{path: 'big.txt', content: `${lines.join('\n')}\n`, operation: 'update'}], {branch: 'main', newBranch: 'edit', headers});
+  const prIndex = await apiCreatePR(request, user, repo, 'edit', 'main', 'diff load test', {headers});
+  await loginUser(page, user);
+  await page.goto(`/${user}/${repo}/pulls/${prIndex}/files`);
+
+  const fileBox = page.locator('#diff-file-boxes .diff-file-box');
+  const header = fileBox.locator('.diff-file-header');
+  await header.evaluate((el) => el.setAttribute('data-marked', '1'));
+  await expect(fileBox.locator('.diff-expand-lines-button')).toHaveCount(0);
+  await fileBox.getByText('Load diff').click();
+
+  await expect(fileBox.locator('.diff-expand-lines-button')).toBeVisible();
+  await expect(header).toHaveAttribute('data-marked', '1'); // the same header, not a fresh one
+  await header.locator('[data-global-init="initDiffHeaderPopupMenu"]').click();
+  await expect(page.getByRole('button', {name: 'Unescape', exact: true})).toBeVisible();
 });

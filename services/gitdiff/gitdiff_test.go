@@ -1169,8 +1169,7 @@ func TestGetDiffShortStatWithOptions(t *testing.T) {
 }
 
 func TestDiffFile_addTailSectionSharesHighlightState(t *testing.T) {
-	// every section of a file shares the file's highlight state, so that lines added to one later
-	// can be rendered like any other
+	// the tail section shares the file's highlight state, so lines expanded into it are highlighted too
 	diffFile := &DiffFile{Name: "a.py", Sections: []*DiffSection{{Lines: []*DiffLine{{LeftIdx: 1, RightIdx: 1}}}}}
 	diffFile.addTailSection(DiffRenderDetail{leftLineCount: 10, rightLineCount: 10})
 
