@@ -341,6 +341,8 @@ func IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues
 
 // IssueChangeProjects notifies about an issue being added to or removed from projects
 func IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.IssueChangeProjects(ctx, doer, issue, addedProjectIDs, removedProjectIDs)
 	}
@@ -348,6 +350,8 @@ func IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issu
 
 // IssueChangeProjectColumn notifies about an issue being moved between columns of a project
 func IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID int64, newColumn *project_model.Column) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.IssueChangeProjectColumn(ctx, doer, issue, oldColumnID, newColumn)
 	}
