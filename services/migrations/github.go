@@ -73,20 +73,22 @@ func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
 // from github via APIv3
 type GithubDownloaderV3 struct {
 	base.NullDownloader
-	clients        []*github.Client
-	baseURL        string
-	repoOwner      string
-	repoName       string
-	userName       string
-	password       string
-	rates          []*github.Rate
-	gqlRates       []*github.Rate // per-client GraphQL points budget, metered apart from the REST quota in rates
-	curClientIdx   int
-	maxPerPage     int
-	SkipReactions  bool
-	SkipReviews    bool
-	issuesCursor   string // page-number pagination of the issues endpoint is capped at ~page 100
-	issuesNextPage int    // fallback for servers whose Link header carries no cursor
+	clients         []*github.Client
+	baseURL         string
+	repoOwner       string
+	repoName        string
+	userName        string
+	password        string
+	rates           []*github.Rate
+	gqlRates        []*github.Rate // per-client GraphQL points budget, metered apart from the REST quota in rates
+	curClientIdx    int
+	maxPerPage      int
+	SkipReactions   bool
+	SkipReviews     bool
+	issuePage       int
+	issueCursor     string
+	nextIssueCursor string
+	linkPaginated   bool
 
 	useGraphQL      bool
 	gqlIssuesCursor string
@@ -450,16 +452,23 @@ func (g *GithubDownloaderV3) getIssuesREST(ctx context.Context, page, perPage in
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
-	if page <= 1 {
-		g.issuesCursor = ""
-		g.issuesNextPage = 0
-	}
 	opt := &github.IssueListByRepoOptions{
-		Sort:              "created",
-		Direction:         "asc",
-		State:             "all",
-		ListCursorOptions: github.ListCursorOptions{After: g.issuesCursor},
-		ListOptions:       github.ListOptions{PerPage: perPage, Page: g.issuesNextPage},
+		Sort:      "created",
+		Direction: "asc",
+		State:     "all",
+		ListOptions: github.ListOptions{
+			PerPage: perPage,
+			Page:    page,
+		},
+	}
+	switch page {
+	case g.issuePage:
+		opt.After = g.issueCursor
+	case g.issuePage + 1:
+		opt.After = g.nextIssueCursor
+	}
+	if opt.After != "" {
+		opt.ListOptions.Page = 0
 	}
 
 	allIssues := make([]*base.Issue, 0, perPage)
@@ -468,7 +477,7 @@ func (g *GithubDownloaderV3) getIssuesREST(ctx context.Context, page, perPage in
 	if err != nil {
 		return nil, false, fmt.Errorf("getIssuesREST: %w", err)
 	}
-	log.Trace("Request get issues cursor=%q page=%d got %d, next=%q nextPage=%d", g.issuesCursor, g.issuesNextPage, len(issues), resp.After, resp.NextPage)
+	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
 	g.setRate(&resp.Rate)
 	for _, issue := range issues {
 		if issue.IsPullRequest() {
@@ -510,20 +519,19 @@ func (g *GithubDownloaderV3) getIssuesREST(ctx context.Context, page, perPage in
 		})
 	}
 
-	// only after the page converted: a failed page is retried with the same page number
-	g.issuesCursor = resp.After
-	if g.issuesCursor == "" {
-		g.issuesNextPage = resp.NextPage
-	} else {
-		g.issuesNextPage = 0
-	}
+	g.issuePage, g.issueCursor, g.nextIssueCursor = page, opt.After, resp.After
+	return allIssues, g.isLastPage(resp, len(issues), perPage), nil
+}
 
-	isEnd := resp.After == "" && resp.NextPage == 0
-	if resp.Header.Get("Link") == "" { // GitBucket paginates without a Link header
-		g.issuesNextPage = page + 1
-		isEnd = len(issues) < perPage
+// isLastPage trusts the Link header once the server has sent one; GitBucket never does
+func (g *GithubDownloaderV3) isLastPage(resp *github.Response, n, perPage int) bool {
+	if resp.Header.Get("Link") != "" {
+		g.linkPaginated = true
 	}
-	return allIssues, isEnd, nil
+	if !g.linkPaginated {
+		return n < perPage
+	}
+	return resp.NextPage == 0 && resp.After == ""
 }
 
 // SupportGetRepoComments is false for GraphQL: the repo-wide phase runs after both sweeps, so every comment would stay in memory until then
@@ -722,10 +730,7 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 		_ = CheckAndEnsureSafePR(basePR, g.baseURL, g)
 	}
 
-	if resp.Header.Get("Link") == "" { // GitBucket paginates without a Link header
-		return allPRs, len(prs) < perPage, nil
-	}
-	return allPRs, resp.NextPage == 0, nil
+	return allPRs, g.isLastPage(resp, len(prs), perPage), nil
 }
 
 func (g *GithubDownloaderV3) convertGithubPullRequest(ctx context.Context, pr *github.PullRequest, perPage int) (*base.PullRequest, error) {

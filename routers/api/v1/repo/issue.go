@@ -510,17 +510,12 @@ func GetIssue(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIErrorNotFound()
+	if err := issue.LoadAttributes(ctx); err != nil {
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue))
@@ -703,19 +698,13 @@ func EditIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.EditIssueOption](ctx)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
-	issue.Repo = ctx.Repo.Repository
 	canWrite := ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 
-	err = issue.LoadAttributes(ctx)
+	err := issue.LoadAttributes(ctx)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -888,13 +877,12 @@ func DeleteIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
-	if err = issue_service.DeleteIssue(ctx, ctx.Doer, issue); err != nil {
+	if err := issue_service.DeleteIssue(ctx, ctx.Doer, issue); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -957,13 +945,8 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm[*api.EditDeadlineOption](ctx)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -1009,4 +992,18 @@ func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, stat
 			return
 		}
 	}
+}
+
+func getRepoIssueByIndexForDoer(ctx *context.APIContext, index int64) *issues_model.Issue {
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, index)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil
+	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.APIErrorNotFound()
+		return nil
+	}
+	issue.Repo = ctx.Repo.Repository
+	return issue
 }
