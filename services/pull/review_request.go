@@ -199,12 +199,12 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	return comment, teamReviewRequestNotify(ctx, issue, doer, reviewer, isAdd, comment)
 }
 
-func reviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewNotifiers []*ReviewRequestNotifier) {
+func reviewRequestNotify(ctx context.Context, issue *issues_model.Issue, reviewNotifiers []*ReviewRequestNotifier) {
 	for _, reviewNotifier := range reviewNotifiers {
 		if reviewNotifier.Reviewer != nil {
-			notify_service.PullRequestReviewRequest(ctx, doer, issue, reviewNotifier.Reviewer, reviewNotifier.IsAdd, reviewNotifier.Comment)
+			notify_service.PullRequestReviewRequest(ctx, issue.Poster, issue, reviewNotifier.Reviewer, reviewNotifier.IsAdd, reviewNotifier.Comment)
 		} else if reviewNotifier.ReviewTeam != nil {
-			if err := teamReviewRequestNotify(ctx, issue, doer, reviewNotifier.ReviewTeam, reviewNotifier.IsAdd, reviewNotifier.Comment); err != nil {
+			if err := teamReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifier.ReviewTeam, reviewNotifier.IsAdd, reviewNotifier.Comment); err != nil {
 				log.Error("teamReviewRequestNotify: %v", err)
 			}
 		}
@@ -312,7 +312,7 @@ func (_n *reviewRequestNotifier) IssueChangeTitle(ctx context.Context, _doer *us
 		if err != nil {
 			log.Error("RequestCodeOwnersReview: %v", err)
 		} else {
-			reviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
+			reviewRequestNotify(ctx, issue, reviewNotifiers)
 		}
 	}
 }
