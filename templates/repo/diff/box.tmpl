@@ -1,4 +1,4 @@
-{{$showFileTree := (and (not .DiffNotAvailable) (gt .DiffShortStat.NumFiles 1))}}
+{{$showFileTree := (and .DiffShortStat (gt .DiffShortStat.NumFiles 1))}}
 <div>
 	<div class="diff-detail-box">
 		<div class="flex-text-block tw-flex-wrap tw-ml-0.5">
@@ -24,7 +24,7 @@
 			{{end}}
 		</div>
 		<div class="diff-detail-actions">
-			{{if and .PageIsPullFiles $.SignedUserID (not .DiffNotAvailable)}}
+			{{if and .DiffShortStat .PageIsPullFiles $.SignedUserID (not .DiffNotAvailable)}}
 				<div class="not-mobile tw-flex tw-items-center tw-flex-col tw-whitespace-nowrap tw-mr-1">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .NumViewedFiles .DiffShortStat.NumFiles}}
@@ -225,7 +225,7 @@
 				{{if .Diff.IsIncomplete}}
 					<div class="ui segment flex-left-right" id="diff-incomplete">
 						<span id="diff-load-progress" class="tw-text-text-light-2" data-text-too-many-files="{{ctx.Locale.Tr "repo.diff.too_many_files"}}">
-							{{ctx.Locale.Tr "repo.diff.too_many_files" (len .Diff.Files) .DiffShortStat.NumFiles}}
+							{{if .DiffShortStat}}{{ctx.Locale.Tr "repo.diff.too_many_files" (len .Diff.Files) .DiffShortStat.NumFiles}}{{end}}
 						</span>
 						<a class="ui basic tiny button" id="diff-show-more-files" data-global-click="diffLoadMoreFiles" data-href="?skip-to={{.Diff.End}}&file-only=true"
 							data-text-default="{{ctx.Locale.Tr "repo.diff.show_more"}}"

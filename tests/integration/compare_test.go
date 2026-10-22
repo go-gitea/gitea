@@ -146,6 +146,7 @@ func TestCompareBranches(t *testing.T) {
 	assert.NotContains(t, htmlDoc.doc.Text(), translation.NewLocale("en-US").TrString("repo.commits.nothing_to_compare"))
 	commitsHeader := strings.Join(strings.Fields(htmlDoc.doc.Find(".ui.top.attached.header .flex-text-block").First().Text()), " ")
 	assert.Equal(t, "0 "+translation.NewLocale("en-US").TrString("repo.commits.commits"), commitsHeader)
+	testDiffFileOnly(t, session, req.URL.Path, htmlDoc, "test.txt")
 }
 
 func TestCompareWithRefSuffix(t *testing.T) {

@@ -32,6 +32,13 @@ func TestPullDiff(t *testing.T) {
 		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files/4ca8bcaf27e28504df7bf996819665986b01c847..23576dd018294e476c06e569b6b0f170d0558705", true, []string{"test2.txt", "test3.txt", "test4.txt"})
 	})
 	t.Run("SingleHeadCommitReviewFormAction", testPullDiffSingleHeadCommitReviewFormAction)
+	t.Run("FileOnlyIncompleteDiff", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Git.MaxGitDiffFiles, 5)()
+		resp := loginUser(t, "user2").MakeRequest(t, NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/files?file-only=true"), http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, 5, doc.Find(".diff-file-box").Length())
+		assert.Equal(t, 1, doc.Find("#diff-show-more-files").Length())
+	})
 }
 
 func testPullDiffSingleHeadCommitReviewFormAction(t *testing.T) {
@@ -74,6 +81,21 @@ func testPullDiffAssertPage(t *testing.T, prDiffURL string, reviewBtnDisabled bo
 	btn := doc.Find(".review-box-button")
 	require.Equal(t, 1, btn.Length())
 	assert.Equal(t, reviewBtnDisabled, btn.Is("[disabled]"))
+
+	testDiffFileOnly(t, session, prDiffURL, doc, expectedFilenames[0])
+}
+
+func testDiffFileOnly(t *testing.T, session *TestSession, diffURL string, doc *HTMLDoc, filename string) {
+	t.Helper()
+	expectedBody, err := doc.Find(`.diff-file-box[data-new-filename="` + filename + `"] .file-body`).Html()
+	require.NoError(t, err)
+	require.NotEmpty(t, expectedBody)
+	resp := session.MakeRequest(t, NewRequest(t, "GET", diffURL+"?file-only=true&files="+filename), http.StatusOK)
+	fragment := NewHTMLParser(t, resp.Body)
+	body, err := fragment.Find(".file-body").Html()
+	require.NoError(t, err)
+	assert.Equal(t, expectedBody, body)
+	assert.Empty(t, fragment.Find(".page-content, .diff-detail-stats").Nodes)
 }
 
 func TestLongLineDiffRendering(t *testing.T) {

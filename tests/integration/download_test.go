@@ -5,14 +5,20 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type downloadScopeCase struct {
@@ -46,6 +52,24 @@ func TestDownloadRepoContent(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo1/media/blob/4b4851ad51df6a7d9f25c979345979eaeb5b349f")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "# repo1\n\nDescription for repo1", resp.Body.String())
+	})
+
+	t.Run("MediaPointerSize", func(t *testing.T) {
+		repository := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 54})
+		gitRepo, err := git.OpenRepository(t.Context(), repository)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+
+		getMedia := func(content string) string {
+			blobID, err := gitRepo.HashObjectBytes(t.Context(), []byte(content))
+			require.NoError(t, err)
+			return session.MakeRequest(t, NewRequest(t, "GET", "/user2/lfs/media/blob/"+blobID.String()), http.StatusOK).Body.String()
+		}
+
+		pointer := lfs.Pointer{Oid: "2eccdb43825d2a49d99d542daa20075cff1d97d9d2349a8977efe9c03661737c", Size: 2048}.StringContent()
+		pointerAtLimit := pointer + strings.Repeat("\n", lfs.MetaFileMaxSize-len(pointer))
+		assert.Len(t, getMedia(pointerAtLimit), 2048)
+		assert.Equal(t, pointerAtLimit+"\n", getMedia(pointerAtLimit+"\n"))
 	})
 
 	t.Run("MediaSVGUsesSecureHeaders", func(t *testing.T) {

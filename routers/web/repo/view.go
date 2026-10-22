@@ -84,7 +84,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 	fi = &fileInfo{blobOrLfsSize: blob.Size(ctx), st: typesniffer.DetectContentType(buf)}
 
 	// FIXME: what happens when README file is an image?
-	if !fi.st.IsText() || !setting.LFS.StartServer {
+	if !fi.st.IsText() || !setting.LFS.StartServer || fi.blobOrLfsSize > lfs.MetaFileMaxSize {
 		return buf, dataRc, fi, nil
 	}
 

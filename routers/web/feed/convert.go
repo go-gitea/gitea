@@ -15,6 +15,8 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
@@ -276,10 +278,18 @@ func GetFeedType(name string, req *http.Request) (showFeed bool, feedType string
 
 // feedActionsToFeedItems convert gitea's Repo's Releases to feeds Item
 func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (items []*feeds.Item, err error) {
+	publishers, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(releases, func(rel *repo_model.Release) (int64, bool) {
+		return rel.PublisherID, true
+	}))
+	if err != nil {
+		return nil, err
+	}
+
 	for _, rel := range releases {
-		err := rel.LoadAttributes(ctx)
-		if err != nil {
-			return nil, err
+		rel.Repo = ctx.Repo.Repository
+		rel.Publisher = publishers[rel.PublisherID]
+		if rel.Publisher == nil {
+			rel.Publisher = user_model.NewGhostUser()
 		}
 
 		var title string

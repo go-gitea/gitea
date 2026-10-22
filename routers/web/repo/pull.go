@@ -800,19 +800,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		}
 	}
 
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, &diffCommonOptions)
-	if err != nil {
-		ctx.ServerError("GetDiffShortStat", err)
-		return
-	}
-	ctx.Data["DiffShortStat"] = diffShortStat
-	ctx.Data["NumViewedFiles"] = numViewedFiles
-
-	ctx.PageData["prReview"] = map[string]any{
-		"numberOfFiles":       diffShortStat.NumFiles,
-		"numberOfViewedFiles": numViewedFiles,
-	}
-
 	if err = diff.LoadComments(ctx, issue, ctx.Doer, GetShowOutdatedComments(ctx)); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
@@ -842,6 +829,20 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 
 	if !fileOnly {
+		diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, &diffCommonOptions)
+		if err != nil {
+			ctx.ServerError("GetDiffShortStat", err)
+			return
+		}
+		ctx.Data["DiffShortStat"] = diffShortStat
+		ctx.Data["NumViewedFiles"] = numViewedFiles
+		ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
+		ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
+		ctx.PageData["prReview"] = map[string]any{
+			"numberOfFiles":       diffShortStat.NumFiles,
+			"numberOfViewedFiles": numViewedFiles,
+		}
+
 		// note: use mergeBase is set to false because we already have the merge base from the pull request info
 		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, beforeCommitID, afterCommitID)
 		if err != nil {
@@ -867,8 +868,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		DiffStyle:      GetDiffViewStyle(ctx),
 		AfterCommitID:  afterCommitID,
 	}
-	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
-	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
 
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
@@ -947,6 +946,10 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		}
 	}
 
+	if fileOnly {
+		ctx.HTML(http.StatusOK, tplDiffBox)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplPullFiles)
 }
 
