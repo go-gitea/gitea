@@ -16,6 +16,7 @@ import (
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_Projects(t *testing.T) {
@@ -253,4 +254,19 @@ func Test_Projects(t *testing.T) {
 			assert.Len(t, columnIssues[3], 1)
 		})
 	})
+}
+
+func TestGetBoardIssue(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// fixture: issue 4 is in the private user2/repo2, which user4 has no access to
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	issue, err := GetBoardIssue(t.Context(), user2, 2, 4)
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, issue.ID)
+
+	_, err = GetBoardIssue(t.Context(), user4, 2, 4)
+	assert.Equal(t, issues_model.ErrIssueNotExist{ID: 4, RepoID: 2}, err)
 }

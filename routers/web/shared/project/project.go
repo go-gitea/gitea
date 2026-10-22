@@ -5,10 +5,12 @@ package project
 
 import (
 	"errors"
+	"net/http"
 
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -202,4 +204,32 @@ func MoveIssues(ctx *context.Context) {
 	}
 
 	ctx.JSONOK()
+}
+
+// RemoveColumnIssues detaches the posted issues from the column's project. The board
+// sends the cards it shows, so issues hidden by its filters stay.
+func RemoveColumnIssues(ctx *context.Context) {
+	project, column := findColumn(ctx)
+	if ctx.Written() {
+		return
+	}
+	if project.IsClosed {
+		ctx.JSONErrorAuto(util.NewPermissionDeniedErrorf("project is closed"))
+		return
+	}
+
+	var form struct {
+		IssueIDs []int64 `json:"issueIDs"`
+	}
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil || len(form.IssueIDs) == 0 {
+		ctx.JSONError("invalid issue list")
+		return
+	}
+
+	removed, err := project_service.RemoveIssuesFromColumn(ctx, ctx.Doer, column, project.RepoID, form.IssueIDs)
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]any{"removedIssueIDs": removed})
 }

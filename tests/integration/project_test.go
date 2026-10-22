@@ -172,6 +172,70 @@ func TestUpdateIssueProjectColumn(t *testing.T) {
 	})
 }
 
+func TestRemoveProjectColumnIssues(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	sess := loginUser(t, "user2")
+
+	t.Run("StaleIssueIDs", func(t *testing.T) {
+		// fixture: project 1 of user2/repo1 has issue 1 in column 1 and issue 3 in column 2
+		other := project_model.Project{Title: "other project", RepoID: 1, Type: project_model.TypeRepository, TemplateType: project_model.TemplateTypeNone}
+		require.NoError(t, project_model.NewProject(t.Context(), &other))
+		otherColumn := project_model.Column{Title: "other column", ProjectID: other.ID}
+		require.NoError(t, project_model.NewColumn(t.Context(), &otherColumn))
+
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/user2/repo1/projects/%d/%d/remove-issues", other.ID, otherColumn.ID), map[string]any{"issueIDs": []int64{1}})
+		sess.MakeRequest(t, req, http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 1, ProjectID: 1})
+
+		req = NewRequestWithJSON(t, "POST", "/user2/repo1/projects/1/1/remove-issues", map[string]any{"issueIDs": []int64{}})
+		sess.MakeRequest(t, req, http.StatusBadRequest)
+
+		req = NewRequestWithJSON(t, "POST", "/user2/repo1/projects/1/1/remove-issues", map[string]any{"issueIDs": []int64{1, 3}})
+		resp := sess.MakeRequest(t, req, http.StatusOK)
+		assert.JSONEq(t, `{"removedIssueIDs":[1]}`, resp.Body.String())
+		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 1, ProjectID: 1})
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 3, ProjectID: 1})
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: 1, Type: issues_model.CommentTypeProject, OldProjectID: 1})
+	})
+
+	t.Run("ClosedProject", func(t *testing.T) {
+		project1 := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
+		require.NoError(t, project_model.ChangeProjectStatus(t.Context(), project1, true))
+		defer func() { require.NoError(t, project_model.ChangeProjectStatus(t.Context(), project1, false)) }()
+
+		req := NewRequestWithJSON(t, "POST", "/user2/repo1/projects/1/2/remove-issues", map[string]any{"issueIDs": []int64{3}})
+		sess.MakeRequest(t, req, http.StatusForbidden)
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 3, ProjectID: 1})
+	})
+
+	t.Run("OwnerBoardArchivedRepo", func(t *testing.T) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		ownerProject := project_model.Project{Title: "owner project", OwnerID: user2.ID, Type: project_model.TypeIndividual, TemplateType: project_model.TemplateTypeNone}
+		require.NoError(t, project_model.NewProject(t.Context(), &ownerProject))
+		column := project_model.Column{Title: "column", ProjectID: ownerProject.ID}
+		require.NoError(t, project_model.NewColumn(t.Context(), &column))
+		// fixture: issue 1 is in user2/repo1, issue 4 in user2/repo2
+		for _, issueID := range []int64{1, 4} {
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueID})
+			require.NoError(t, project.AddIssueToColumn(t.Context(), user2, issue, &column))
+		}
+		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		require.NoError(t, repo_model.SetArchiveRepoState(t.Context(), repo2, true))
+		defer func() { require.NoError(t, repo_model.SetArchiveRepoState(t.Context(), repo2, false)) }()
+
+		resp := sess.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user2/-/projects/%d", ownerProject.ID)), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, 1, htmlDoc.Find(".issue-card[data-issue='1'] .issue-card-remove").Length())
+		assert.Equal(t, 0, htmlDoc.Find(".issue-card[data-issue='4'] .issue-card-remove").Length())
+
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/user2/-/projects/%d/%d/remove-issues", ownerProject.ID, column.ID), map[string]any{"issueIDs": []int64{1, 4}})
+		sess.MakeRequest(t, req, http.StatusForbidden)
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 1, ProjectID: ownerProject.ID})
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 4, ProjectID: ownerProject.ID})
+	})
+}
+
 func TestIssueSidebarProjectColumn(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

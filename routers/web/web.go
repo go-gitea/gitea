@@ -335,6 +335,7 @@ func addProjectBoardRoutes(m *web.Router) {
 		m.Delete("", project.DeleteProjectColumn)
 		m.Post("/default", project.SetDefaultProjectColumn)
 		m.Post("/move", project.MoveIssues)
+		m.Post("/remove-issues", project.RemoveColumnIssues)
 	})
 }
 
