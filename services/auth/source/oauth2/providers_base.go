@@ -23,7 +23,6 @@ func (b *BaseProvider) SupportSSHPublicKey() bool {
 	return b.supportSSHPublicKey
 }
 
-// SupportsPKCE defaults to false; providers that need PKCE override this (see OpenIDProvider).
 func (b *BaseProvider) SupportsPKCE() bool {
 	return false
 }

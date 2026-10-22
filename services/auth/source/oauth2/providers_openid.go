@@ -21,7 +21,6 @@ func (o *OpenIDProvider) SupportSSHPublicKey() bool {
 	return true
 }
 
-// SupportsPKCE reports that OIDC logins send a PKCE code_challenge, which some IdPs require (gitea#21376).
 func (o *OpenIDProvider) SupportsPKCE() bool {
 	return true
 }

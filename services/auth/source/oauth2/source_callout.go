@@ -27,8 +27,7 @@ func (source *Source) Callout(request *http.Request, response http.ResponseWrite
 		return err
 	}
 
-	// Append a PKCE code_challenge until goth supports per-request PKCE for this flow.
-	if url, err = source.beginPKCE(request, url); err != nil {
+	if url, err = source.beginPKCE(request, url); err != nil { // Store the verifier after gothic regenerates the session.
 		return err
 	}
 
@@ -45,10 +44,7 @@ func (source *Source) Callback(request *http.Request, response http.ResponseWrit
 	gothRWMutex.RLock()
 	defer gothRWMutex.RUnlock()
 
-	// Inject the stashed PKCE code_verifier until goth supports per-request PKCE for this flow.
-	source.injectPKCEVerifier(request)
-
-	user, err := gothic.CompleteUserAuth(response, request)
+	user, err := gothic.CompleteUserAuth(response, source.injectPKCEVerifier(request))
 	if err != nil {
 		return user, err
 	}

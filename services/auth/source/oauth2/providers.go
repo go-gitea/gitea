@@ -30,7 +30,6 @@ type Provider interface {
 	IconHTML(size int) template.HTML
 	CustomURLSettings() *CustomURLSettings
 	SupportSSHPublicKey() bool
-	// SupportsPKCE reports whether logins to this provider should send a PKCE code_challenge/code_verifier.
 	SupportsPKCE() bool
 }
 
