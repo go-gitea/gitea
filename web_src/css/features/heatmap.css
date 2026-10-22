@@ -76,7 +76,8 @@
 #user-heatmap .heatmap-year-select select {
   appearance: none;
   field-sizing: content;
-  padding: 2px 20px 2px 6px;
+  height: 20px;
+  padding: 0 20px 0 6px;
   border: none;
   border-radius: var(--border-radius);
   color: inherit;
