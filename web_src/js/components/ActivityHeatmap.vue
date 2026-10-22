@@ -298,22 +298,6 @@ function handleDayClick(date: Date) {
 </script>
 <template>
   <div ref="elRoot" :class="{'is-loading': isLoading}">
-    <div v-if="maxWeeksBack > 0" class="heatmap-pager">
-      <button
-        class="heatmap-pager-button" type="button"
-        :aria-label="locale.previousMonths" :data-tooltip-content="locale.previousMonths"
-        :disabled="weeksBack === maxWeeksBack" @click="changePage(1)"
-      >
-        <SvgIcon name="octicon-chevron-left" :size="12"/>
-      </button>
-      <button
-        class="heatmap-pager-button" type="button"
-        :aria-label="locale.nextMonths" :data-tooltip-content="locale.nextMonths"
-        :disabled="weeksBack === 0" @click="changePage(-1)"
-      >
-        <SvgIcon name="octicon-chevron-right" :size="12"/>
-      </button>
-    </div>
     <svg class="heatmap-svg" :width="grid.width" :height="grid.height" :viewBox="`0 0 ${grid.width} ${grid.height}`">
       <g class="heatmap-month-labels" :transform="`translate(${gridLeft}, 0)`">
         <text
@@ -363,8 +347,24 @@ function handleDayClick(date: Date) {
     <div class="heatmap-footer">
       <div>{{ totalContributionsText }}</div>
       <div class="heatmap-controls">
+        <div v-if="maxWeeksBack > 0" class="heatmap-pager">
+          <button
+            class="btn interact-bg heatmap-pager-button" type="button"
+            :aria-label="locale.previousMonths" :data-tooltip-content="locale.previousMonths"
+            :disabled="weeksBack === maxWeeksBack" @click="changePage(1)"
+          >
+            <SvgIcon name="octicon-chevron-left" :size="12"/>
+          </button>
+          <button
+            class="btn interact-bg heatmap-pager-button" type="button"
+            :aria-label="locale.nextMonths" :data-tooltip-content="locale.nextMonths"
+            :disabled="weeksBack === 0" @click="changePage(-1)"
+          >
+            <SvgIcon name="octicon-chevron-right" :size="12"/>
+          </button>
+        </div>
         <span class="heatmap-year-select">
-          <select :value="year" :aria-label="locale.timeRange" @change="onYearChange">
+          <select class="interact-bg" :value="year" :aria-label="locale.timeRange" @change="onYearChange">
             <option v-for="optionYear in years" :key="optionYear" :value="optionYear">{{ optionYear || locale.last12Months }}</option>
           </select>
           <SvgIcon name="octicon-triangle-down" :size="12"/>

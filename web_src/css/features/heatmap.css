@@ -14,9 +14,15 @@
   height: calc(39px + 7 * (100cqw - 27px) / 53); /* the cells of 53 weeks fill the width */
 }
 
-@container (width < 663px) { /* narrower than 53 weeks of 12px cells, the pager row is shown */
+@container (width < 663px) { /* narrower than 53 weeks of 12px cells, the pager is shown */
   #user-heatmap.is-loading {
-    height: 143px;
+    height: 123px;
+  }
+}
+
+@container (width < 400px) { /* the footer wraps */
+  #user-heatmap.is-loading {
+    height: 147px;
   }
 }
 
@@ -36,25 +42,15 @@
 
 #user-heatmap .heatmap-pager {
   display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-  margin-bottom: 2px;
 }
 
 #user-heatmap .heatmap-pager-button {
-  display: flex;
-  align-items: center;
-  padding: 2px;
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  background: none;
-  color: inherit;
-  cursor: pointer;
+  padding: 4px;
 }
 
 #user-heatmap .heatmap-pager-button:disabled {
   opacity: var(--opacity-disabled);
-  cursor: default;
+  pointer-events: none;
 }
 
 #user-heatmap .heatmap-footer,
@@ -80,16 +76,16 @@
 #user-heatmap .heatmap-year-select select {
   appearance: none;
   field-sizing: content;
-  padding: 0 14px 0 0;
+  padding: 2px 20px 2px 6px;
   border: none;
-  background: none;
+  border-radius: var(--border-radius);
   color: inherit;
   cursor: pointer;
 }
 
 #user-heatmap .heatmap-year-select svg {
   position: absolute;
-  right: 0;
+  right: 6px;
   pointer-events: none;
 }
 
