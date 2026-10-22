@@ -34,7 +34,7 @@ func IsAuthenticationError(err error) bool {
 		return true
 	}
 	if bbsErr, ok := errors.AsType[*bbsStatusError](err); ok {
-		return bbsErr.Status == http.StatusUnauthorized || bbsErr.Status == http.StatusForbidden
+		return bbsErr.isAuthError()
 	}
 	githubErr, ok := errors.AsType[*github.ErrorResponse](err)
 	return ok && githubErr.Response != nil && githubErr.Response.StatusCode == http.StatusUnauthorized

@@ -4,6 +4,7 @@
 package migrations
 
 import (
+	"cmp"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -75,40 +76,33 @@ func TestBitbucketServerFormatCloneURL(t *testing.T) {
 	got, err = d.FormatCloneURL(base.MigrateOptions{AuthToken: "tok", AuthUsername: "bob"}, addr)
 	require.NoError(t, err)
 	assert.Equal(t, "https://bob:tok@bb.example.com/scm/PROJ/repo.git", got)
+
+	assert.Equal(t, "j.doe", bitbucketServerGitUser("j.doe"))
+	// project and repository access tokens report a technical user
+	assert.Equal(t, "x-token-auth", bitbucketServerGitUser("access-token-user%2F1%2F2"))
+	assert.Equal(t, "x-token-auth", bitbucketServerGitUser("access-token-user/2/2"))
+	assert.Empty(t, bitbucketServerGitUser(""))
 }
 
 const bbsRepoJSON = `{"slug":"repo","name":"Repo","description":"a test repo","public":false,"project":{"key":"PROJ"}}`
 
-func bbsMockServer(t *testing.T, handlers map[string]string, requests *[]*http.Request) *httptest.Server {
-	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if requests != nil {
-			*requests = append(*requests, r)
-		}
-		w.Header().Set("X-AUSERNAME", "alice")
-		key := r.URL.Path
-		if r.URL.RawQuery != "" {
-			if body, ok := handlers[key+"?"+r.URL.Query().Get("start")]; ok {
-				_, _ = w.Write([]byte(body))
-				return
-			}
-		}
-		body, ok := handlers[key]
-		if !ok {
-			http.NotFound(w, r)
-			return
-		}
-		_, _ = w.Write([]byte(body))
-	}))
-	t.Cleanup(srv.Close)
-	return srv
-}
-
 func TestBitbucketServerRepoInfo(t *testing.T) {
-	const api = "/rest/api/1.0/projects/PROJ/repos/repo"
 	var requests []*http.Request
-	// no default branch: an empty repository answers 404
-	srv := bbsMockServer(t, map[string]string{api: bbsRepoJSON}, &requests)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r)
+		w.Header().Set("X-AUSERNAME", "alice")
+		switch r.URL.Path {
+		case "/rest/api/1.0/projects/PROJ/repos/repo", "/rest/api/1.0/projects/~jdoe/repos/repo", "/rest/api/1.0/projects/DENIED/repos/repo":
+			_, _ = w.Write([]byte(bbsRepoJSON))
+		case "/rest/api/1.0/projects/~jdoe/repos/repo/default-branch":
+			_, _ = w.Write([]byte(`{"displayId":"main"}`))
+		case "/rest/api/1.0/projects/DENIED/repos/repo/default-branch":
+			w.WriteHeader(http.StatusUnauthorized)
+		default:
+			http.NotFound(w, r) // an empty repository has no default branch
+		}
+	}))
+	defer srv.Close()
 
 	d := NewBitbucketServerDownloader(t.Context(), srv.URL, "", "", "secret", "PROJ", "repo")
 	repo, err := d.GetRepoInfo(t.Context())
@@ -123,21 +117,11 @@ func TestBitbucketServerRepoInfo(t *testing.T) {
 	}, repo)
 	assert.Equal(t, "Bearer secret", requests[0].Header.Get("Authorization"))
 	assert.Equal(t, "alice", d.tokenUser)
-
-	// releases are not provided, tags are synced from git
 	_, err = d.GetReleases(t.Context())
-	assert.True(t, base.IsErrNotSupported(err))
-}
+	assert.True(t, base.IsErrNotSupported(err), "tags are synced from git")
 
-func TestBitbucketServerBasicAuth(t *testing.T) {
-	var requests []*http.Request
-	srv := bbsMockServer(t, map[string]string{
-		"/rest/api/1.0/projects/~jdoe/repos/repo":                bbsRepoJSON,
-		"/rest/api/1.0/projects/~jdoe/repos/repo/default-branch": `{"displayId":"main"}`,
-	}, &requests)
-
-	d := NewBitbucketServerDownloader(t.Context(), srv.URL, "u", "p", "", "~jdoe", "repo")
-	repo, err := d.GetRepoInfo(t.Context())
+	requests = nil
+	repo, err = NewBitbucketServerDownloader(t.Context(), srv.URL, "u", "p", "", "~jdoe", "repo").GetRepoInfo(t.Context())
 	require.NoError(t, err)
 	assert.Equal(t, "main", repo.DefaultBranch)
 	assert.Equal(t, srv.URL+"/users/jdoe/repos/repo", repo.OriginalURL)
@@ -146,59 +130,63 @@ func TestBitbucketServerBasicAuth(t *testing.T) {
 	assert.Equal(t, "u", user)
 	assert.Equal(t, "p", pass)
 
-	// a failing API call (here: the default branch is forbidden) must not be swallowed
-	srv2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/default-branch") {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		_, _ = w.Write([]byte(bbsRepoJSON))
-	}))
-	defer srv2.Close()
-	_, err = NewBitbucketServerDownloader(t.Context(), srv2.URL, "", "", "", "PROJ", "repo").GetRepoInfo(t.Context())
-	assert.ErrorContains(t, err, "status 401")
+	_, err = NewBitbucketServerDownloader(t.Context(), srv.URL, "", "", "", "DENIED", "repo").GetRepoInfo(t.Context())
+	assert.True(t, IsAuthenticationError(err))
 }
 
-const bbsPullRequestsJSON = `{"isLastPage":true,"values":[
+const bbsPullRequestsPage1JSON = `{"isLastPage":false,"nextPageStart":1,"values":[
 {"id":1,"title":"merged","description":"d1","state":"MERGED","createdDate":1700000000000,"updatedDate":1700000300000,"closedDate":1700000200000,
  "author":{"user":{"id":7,"name":"alice","emailAddress":"alice@example.com"}},
- "fromRef":{"displayId":"feature","latestCommit":"%[1]s","repository":{"slug":"repo","project":{"key":"PROJ"}}},
- "toRef":{"displayId":"main","latestCommit":"%[2]s","repository":{"slug":"repo","project":{"key":"PROJ"}}},
- "properties":{}},
+ "fromRef":{"displayId":"feature","latestCommit":"HEAD_SHA","repository":{"slug":"repo","project":{"key":"PROJ"}}},
+ "toRef":{"displayId":"main","latestCommit":"BASE_SHA","repository":{"slug":"repo","project":{"key":"PROJ"}}}}
+]}`
+
+const bbsPullRequestsPage2JSON = `{"isLastPage":true,"values":[
 {"id":2,"title":"fork pr","state":"OPEN","draft":true,"createdDate":1700001000000,"updatedDate":1700001000000,
  "author":{"user":{"id":8,"slug":"bob"}},
- "fromRef":{"displayId":"patch","latestCommit":"%[1]s","repository":{"slug":"repo-fork","project":{"key":"~BOB"}}},
- "toRef":{"displayId":"main","latestCommit":"%[2]s","repository":{"slug":"repo","project":{"key":"PROJ"}}}},
+ "fromRef":{"displayId":"patch","latestCommit":"HEAD_SHA","repository":{"slug":"repo-fork","project":{"key":"~BOB"}}},
+ "toRef":{"displayId":"main","latestCommit":"BASE_SHA","repository":{"slug":"repo","project":{"key":"PROJ"}}}},
 {"id":3,"title":"declined","state":"DECLINED","createdDate":1700002000000,"updatedDate":1700002500000,
  "author":{"user":{"id":7,"name":"alice"}},
  "fromRef":{"displayId":"x","latestCommit":"not-a-sha","repository":{"slug":"repo","project":{"key":"PROJ"}}},
- "toRef":{"displayId":"main","latestCommit":"%[2]s","repository":{"slug":"repo","project":{"key":"PROJ"}}}}
+ "toRef":{"displayId":"main","latestCommit":"BASE_SHA","repository":{"slug":"repo","project":{"key":"PROJ"}}}}
 ]}`
 
 func TestBitbucketServerPullRequests(t *testing.T) {
 	headSHA, baseSHA, mergeSHA, forkPoint := strings.Repeat("1", 40), strings.Repeat("2", 40), strings.Repeat("3", 40), strings.Repeat("4", 40)
 	const api = "/rest/api/1.0/projects/PROJ/repos/repo"
-	var query string
+	shas := strings.NewReplacer("HEAD_SHA", headSHA, "BASE_SHA", baseSHA)
+	var queries []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == api+"/pull-requests/1/commits" {
+		switch r.URL.Path {
+		case api + "/pull-requests/1/commits":
 			_, _ = w.Write([]byte(`{"isLastPage":true,"values":[{"id":"c2","parents":[{"id":"c1"}]},{"id":"c1","parents":[{"id":"` + forkPoint + `"}]}]}`))
-			return
-		}
-		if r.URL.Path == api+"/pull-requests/1/activities" {
+		case api + "/pull-requests/1/activities":
 			_, _ = w.Write([]byte(`{"isLastPage":true,"values":[{"action":"MERGED","commit":{"id":"` + mergeSHA + `"}}]}`))
-			return
+		case api + "/pull-requests":
+			queries = append(queries, r.URL.RawQuery)
+			body := bbsPullRequestsPage1JSON
+			if r.URL.Query().Get("start") != "0" {
+				body = bbsPullRequestsPage2JSON
+			}
+			_, _ = w.Write([]byte(shas.Replace(body)))
+		default:
+			assert.Failf(t, "unexpected request", "%s", r.URL.Path)
 		}
-		query = r.URL.RawQuery
-		_, _ = w.Write([]byte(strings.NewReplacer("%[1]s", headSHA, "%[2]s", baseSHA, "%[3]s", mergeSHA).Replace(bbsPullRequestsJSON)))
-		assert.Equal(t, api+"/pull-requests", r.URL.Path)
 	}))
 	defer srv.Close()
 
 	d := NewBitbucketServerDownloader(t.Context(), srv.URL, "", "", "", "PROJ", "repo")
-	prs, isEnd, err := d.GetPullRequests(t.Context(), 2, 500)
+	prs, isEnd, err := d.GetPullRequests(t.Context(), 1, 500)
+	require.NoError(t, err)
+	assert.False(t, isEnd)
+	require.Len(t, prs, 1)
+	page2, isEnd, err := d.GetPullRequests(t.Context(), 2, 500)
 	require.NoError(t, err)
 	assert.True(t, isEnd)
-	assert.Equal(t, "limit=100&order=oldest&start=100&state=ALL", query, "page size is capped and the offset follows the page")
+	prs = append(prs, page2...)
+	// the page size is capped, and the server answering with fewer values must not skip any
+	assert.Equal(t, []string{"limit=100&order=oldest&start=0&state=ALL", "limit=100&order=oldest&start=1&state=ALL"}, queries)
 	require.Len(t, prs, 3)
 
 	merged := prs[0]
@@ -235,32 +223,35 @@ func TestBitbucketServerPullRequests(t *testing.T) {
 	assert.Empty(t, declined.Head.SHA, "invalid SHA is dropped")
 }
 
-const bbsActivitiesJSON = `{"isLastPage":false,"nextPageStart":3,"values":[
-{"action":"OPENED","createdDate":1700000000000,"user":{"id":7,"name":"alice"}},
-{"action":"COMMENTED","commentAction":"ADDED","createdDate":1700000100000,"user":{"id":8,"name":"bob"},
- "comment":{"id":10,"text":"general comment","author":{"id":8,"name":"bob","emailAddress":"bob@example.com"},"createdDate":1700000100000,"updatedDate":1700000150000,
-  "comments":[{"id":11,"text":"a reply","author":{"id":7,"name":"alice"},"createdDate":1700000200000,"updatedDate":1700000200000}]}},
-{"action":"APPROVED","createdDate":1700000300000,"user":{"id":8,"name":"bob"}}
-]}`
-
-const bbsActivitiesPage2JSON = `{"isLastPage":true,"values":[
-{"action":"COMMENTED","commentAction":"ADDED","createdDate":1700000400000,"user":{"id":8,"name":"bob"},
- "commentAnchor":{"line":12,"lineType":"ADDED","fileType":"TO","path":"src/a.go","srcPath":"src/a.go","fromHash":"` + "fffffffffffffffffffffffffffffffffffffff0" + `","toHash":"` + "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0" + `"},
- "comment":{"id":12,"text":"inline new","author":{"id":8,"name":"bob"},"createdDate":1700000400000,"updatedDate":1700000400000,
-  "comments":[{"id":13,"text":"inline reply","author":{"id":7,"name":"alice"},"createdDate":1700000450000,"updatedDate":1700000450000}]}},
-{"action":"COMMENTED","commentAction":"ADDED","createdDate":1700000500000,"user":{"id":7,"name":"alice"},
- "commentAnchor":{"line":5,"lineType":"REMOVED","fileType":"FROM","path":"src/b.go","srcPath":"src/old_b.go","fromHash":"` + "fffffffffffffffffffffffffffffffffffffff0" + `","toHash":"` + "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0" + `"},
- "comment":{"id":14,"text":"inline old","author":{"id":7,"name":"alice"},"createdDate":1700000500000,"updatedDate":1700000500000}},
+// newest first, like the API
+const bbsActivitiesJSON = `{"isLastPage":false,"nextPageStart":10,"values":[
+{"action":"REOPENED","createdDate":1700000900000,"user":{"id":7,"name":"alice"}},
+{"action":"DECLINED","createdDate":1700000800000,"user":{"id":7,"name":"alice"}},
+{"action":"UNAPPROVED","createdDate":1700000720000,"user":{"id":10,"name":"dave"}},
+{"action":"APPROVED","createdDate":1700000710000,"user":{"id":10,"name":"dave"}},
+{"action":"REVIEWED","createdDate":1700000700000,"user":{"id":9,"name":"carol"}},
+{"action":"COMMENTED","commentAction":"DELETED","createdDate":1700000650000,"user":{"id":7,"name":"alice"},
+ "comment":{"id":16,"text":"deleted","author":{"id":7,"name":"alice"},"createdDate":1700000650000}},
+{"action":"COMMENTED","commentAction":"ADDED","createdDate":1700000640000,"user":{"id":7,"name":"alice"},
+ "comment":{"id":16,"text":"deleted","author":{"id":7,"name":"alice"},"createdDate":1700000640000}},
 {"action":"COMMENTED","commentAction":"ADDED","createdDate":1700000600000,"user":{"id":7,"name":"alice"},
  "commentAnchor":{"path":"README.md","fileType":"TO"},
  "comment":{"id":15,"text":"file comment","author":{"id":7,"name":"alice"},"createdDate":1700000600000,"updatedDate":1700000600000}},
-{"action":"COMMENTED","commentAction":"DELETED","createdDate":1700000650000,"user":{"id":7,"name":"alice"},
- "comment":{"id":16,"text":"deleted","author":{"id":7,"name":"alice"},"createdDate":1700000650000}},
-{"action":"REVIEWED","createdDate":1700000700000,"user":{"id":9,"name":"carol"}},
-{"action":"APPROVED","createdDate":1700000710000,"user":{"id":10,"name":"dave"}},
-{"action":"UNAPPROVED","createdDate":1700000720000,"user":{"id":10,"name":"dave"}},
-{"action":"DECLINED","createdDate":1700000800000,"user":{"id":7,"name":"alice"}},
-{"action":"REOPENED","createdDate":1700000900000,"user":{"id":7,"name":"alice"}}
+{"action":"COMMENTED","commentAction":"ADDED","createdDate":1700000500000,"user":{"id":7,"name":"alice"},
+ "commentAnchor":{"line":5,"lineType":"REMOVED","fileType":"FROM","path":"src/b.go","srcPath":"src/old_b.go","fromHash":"fffffffffffffffffffffffffffffffffffffff0","toHash":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0"},
+ "comment":{"id":14,"text":"inline old","author":{"id":7,"name":"alice"},"createdDate":1700000500000,"updatedDate":1700000500000}},
+{"action":"COMMENTED","commentAction":"ADDED","createdDate":1700000400000,"user":{"id":8,"name":"bob"},
+ "commentAnchor":{"line":12,"lineType":"ADDED","fileType":"TO","path":"src/a.go","srcPath":"src/a.go","fromHash":"fffffffffffffffffffffffffffffffffffffff0","toHash":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0"},
+ "comment":{"id":12,"text":"inline new","author":{"id":8,"name":"bob"},"createdDate":1700000400000,"updatedDate":1700000400000,
+  "comments":[{"id":13,"text":"inline reply","author":{"id":7,"name":"alice"},"createdDate":1700000450000,"updatedDate":1700000450000}]}}
+]}`
+
+const bbsActivitiesPage2JSON = `{"isLastPage":true,"values":[
+{"action":"APPROVED","createdDate":1700000300000,"user":{"id":8,"name":"bob"}},
+{"action":"COMMENTED","commentAction":"ADDED","createdDate":1700000100000,"user":{"id":8,"name":"bob"},
+ "comment":{"id":10,"text":"general comment","author":{"id":8,"name":"bob","emailAddress":"bob@example.com"},"createdDate":1700000100000,"updatedDate":1700000150000,
+  "comments":[{"id":11,"text":"a reply","author":{"id":7,"name":"alice"},"createdDate":1700000200000,"updatedDate":1700000200000}]}},
+{"action":"OPENED","createdDate":1700000000000,"user":{"id":7,"name":"alice"}}
 ]}`
 
 func TestBitbucketServerCommentsAndReviews(t *testing.T) {
@@ -268,7 +259,7 @@ func TestBitbucketServerCommentsAndReviews(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/rest/api/1.0/projects/PROJ/repos/repo/pull-requests/4/activities", r.URL.Path)
 		activityCalls++
-		if r.URL.Query().Get("start") == "3" {
+		if r.URL.Query().Get("start") == "10" {
 			_, _ = w.Write([]byte(bbsActivitiesPage2JSON))
 			return
 		}
@@ -335,20 +326,14 @@ func TestBitbucketServerCommentsAndReviews(t *testing.T) {
 // project MIG with the repository demo.
 func TestBitbucketServerDownloadRepo(t *testing.T) {
 	liveToken := os.Getenv("BITBUCKETSERVER_LIVE_TOKEN")
-	liveURL := "http://localhost:7990/bitbucket"
-	if v := os.Getenv("BITBUCKETSERVER_LIVE_URL"); v != "" {
-		liveURL = v
-	}
+	liveURL := cmp.Or(os.Getenv("BITBUCKETSERVER_LIVE_URL"), "http://localhost:7990/bitbucket")
 
 	_, callerFile, _, _ := runtime.Caller(0)
 	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestBitbucketServerDownloadRepo")
 	mockServer := unittest.NewMockWebServer(t, liveURL, fixtureDir, liveToken != "")
 
 	ctx := t.Context()
-	token := liveToken
-	if token == "" {
-		token = "replayed" // the mock server ignores it, but a token makes the downloader learn the name of its owner
-	}
+	token := cmp.Or(liveToken, "replayed") // a token makes the downloader learn the name of its owner
 	d := NewBitbucketServerDownloader(ctx, mockServer.URL, "", "", token, "MIG", "demo")
 
 	repo, err := d.GetRepoInfo(ctx)
@@ -457,12 +442,12 @@ func TestBitbucketServerInlineCommentRange(t *testing.T) {
 	c := &bbsComment{ID: 1, Text: "text", ThreadResolved: true}
 
 	// the span of the commented side wins, replies neither get the range nor the resolved state
-	rc := convertBitbucketServerInlineComment(c, &anchor, true)
+	rc := c.toReviewComment(&anchor, true)
 	assert.Equal(t, "Lines 3-5 (before the change):\n\ntext", rc.Content)
 	assert.Equal(t, -9, rc.Line)
 	assert.Equal(t, "a", rc.TreePath)
 	assert.True(t, rc.Resolved)
-	rc = convertBitbucketServerInlineComment(c, &anchor, false)
+	rc = c.toReviewComment(&anchor, false)
 	assert.Equal(t, "text", rc.Content)
 	assert.False(t, rc.Resolved)
 
@@ -503,31 +488,24 @@ func TestBitbucketServerRateLimit(t *testing.T) {
 
 	// the server is asked again after the time it names
 	var repo bbsRepository
-	require.NoError(t, newDownloader().callAPI(t.Context(), "/projects/PROJ/repos/repo", nil, &repo))
+	_, err := newDownloader().callAPI(t.Context(), "/projects/PROJ/repos/repo", nil, &repo)
+	require.NoError(t, err)
 	assert.Equal(t, "repo", repo.Slug)
 	assert.Equal(t, []time.Duration{3 * time.Second, 3 * time.Second}, waits)
 
 	// without a hint the wait grows exponentially, and is capped
 	calls, limitedUntil, retryAfter, waits = 0, 2, "", nil
-	require.NoError(t, newDownloader().callAPI(t.Context(), "/projects/PROJ/repos/repo", nil, &repo))
+	_, err = newDownloader().callAPI(t.Context(), "/projects/PROJ/repos/repo", nil, &repo)
+	require.NoError(t, err)
 	assert.Equal(t, []time.Duration{time.Second, 2 * time.Second}, waits)
 	assert.Equal(t, time.Minute, bitbucketServerRetryAfter("100000", 1))
 
 	// a server that never recovers is given up on
 	calls, limitedUntil, waits = 0, 100, nil
-	err := newDownloader().callAPI(t.Context(), "/projects/PROJ/repos/repo", nil, &repo)
+	_, err = newDownloader().callAPI(t.Context(), "/projects/PROJ/repos/repo", nil, &repo)
 	var statusErr *bbsStatusError
 	require.ErrorAs(t, err, &statusErr)
 	assert.Equal(t, http.StatusTooManyRequests, statusErr.Status)
 	assert.Len(t, waits, bitbucketServerMaxAttempts-1)
 	assert.Equal(t, bitbucketServerMaxAttempts, calls)
-}
-
-func TestBitbucketServerGitUser(t *testing.T) {
-	assert.Equal(t, "admin", bitbucketServerGitUser("admin"))
-	assert.Equal(t, "j.doe", bitbucketServerGitUser("j.doe"))
-	// project and repository access tokens report a technical user
-	assert.Equal(t, "x-token-auth", bitbucketServerGitUser("access-token-user%2F1%2F2"))
-	assert.Equal(t, "x-token-auth", bitbucketServerGitUser("access-token-user/2/2"))
-	assert.Empty(t, bitbucketServerGitUser(""))
 }

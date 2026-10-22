@@ -643,16 +643,11 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
 			}
 			// ... now add the remote
-			err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true)
-			if err != nil {
+			if err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true); err != nil {
 				log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
-			} else {
-				g.prHeadCache[pr.Head.CloneURL+":"] = remote
-				ok = true
+				return head, nil
 			}
-		}
-		if !ok && !headIsLocal {
-			return head, nil
+			g.prHeadCache[pr.Head.CloneURL+":"] = remote
 		}
 
 		// 4. Check if we already have this ref?
@@ -722,18 +717,11 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 	if pr.Head.SHA == "" {
 		// The SHA is empty
 		log.Warn("Empty reference, no pull head for PR #%d in %s/%s", pr.Number, g.repoOwner, g.repoName)
-	} else {
-		_, _, err = gitcmd.NewCommand("rev-list", "--quiet", "-1").
-			AddDynamicArguments(pr.Head.SHA).WithRepo(g.repo).RunStdString(ctx)
-		if err != nil {
-			// Git update-ref remove bad references with a relative path
-			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
-		} else {
-			// set head information
-			if err = git.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
-				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
-			}
-		}
+	} else if !g.commitExists(ctx, pr.Head.SHA) {
+		// Git update-ref remove bad references with a relative path
+		log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
+	} else if err = git.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
+		log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 	}
 
 	return head, nil
