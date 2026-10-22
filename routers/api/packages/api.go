@@ -68,7 +68,7 @@ type verifyAuthOptions struct {
 }
 
 func verifyAuth(r *web.Router, authMethods []auth.Method, opts verifyAuthOptions) {
-	if setting.Service.EnableReverseProxyAuthAPI {
+	if setting.Service.EnableReverseProxyAuth {
 		authMethods = append(authMethods, &auth.ReverseProxy{})
 	}
 	authGroup := auth.NewGroup(authMethods...)
