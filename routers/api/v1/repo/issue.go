@@ -977,7 +977,6 @@ func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, stat
 	}
 }
 
-// getRepoIssueByIndexForDoer writes a 404 when the doer can't read the issue's unit (issues or pulls)
 func getRepoIssueByIndexForDoer(ctx *context.APIContext, index int64) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, index)
 	if err != nil {

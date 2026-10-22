@@ -16,7 +16,6 @@ import (
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestIssueReadEndpointsRequireUnitPermission(t *testing.T) {
@@ -32,21 +31,14 @@ func TestIssueReadEndpointsRequireUnitPermission(t *testing.T) {
 			request := func(index string) int {
 				ctx, resp := contexttest.MockAPIContext(t, "user2/repo1")
 				contexttest.LoadRepo(t, ctx, 1)
-				require.NoError(t, ctx.Repo.Repository.LoadUnits(ctx))
-				var issuesOnly []*repo_model.RepoUnit
-				for _, u := range ctx.Repo.Repository.Units {
-					if u.Type == unit.TypeIssues {
-						issuesOnly = append(issuesOnly, u)
-					}
-				}
 				ctx.Repo.Permission = access_model.Permission{}
-				ctx.Repo.Permission.SetUnitsWithDefaultAccessMode(issuesOnly, perm_model.AccessModeRead)
+				ctx.Repo.Permission.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: unit.TypeIssues}}, perm_model.AccessModeRead)
 				ctx.SetPathParam("index", index)
 				handler(ctx)
 				return resp.Code
 			}
-			assert.Equal(t, http.StatusOK, request("1"))       // issue
-			assert.Equal(t, http.StatusNotFound, request("2")) // pull request
+			assert.Equal(t, http.StatusOK, request("1"))
+			assert.Equal(t, http.StatusNotFound, request("2"))
 		})
 	}
 }
