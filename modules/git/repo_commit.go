@@ -317,28 +317,19 @@ func (repo *Repository) CommitsByFileAndRange(ctx context.Context, opts CommitsB
 // CommitsBetween returns a list that contains commits between [after, before). After is the first item in the slice.
 // If "before" and "after" are not related, it returns the all commits for the "after" commit.
 func (repo *Repository) CommitsBetween(ctx context.Context, afterRef, beforeRef RefName, limit int, optSkip ...int) ([]*Commit, error) {
-	gitCmd := func() *gitcmd.Command {
-		cmd := gitcmd.NewCommand("rev-list").WithRepo(repo)
-		if limit >= 0 {
-			cmd.AddOptionValues("--max-count", strconv.Itoa(limit))
-		}
-		if len(optSkip) > 0 {
-			cmd.AddOptionValues("--skip", strconv.Itoa(optSkip[0]))
-		}
-		return cmd
+	cmd := gitcmd.NewCommand("rev-list").WithRepo(repo)
+	if limit >= 0 {
+		cmd.AddOptionValues("--max-count", strconv.Itoa(limit))
 	}
-	var stdout []byte
-	var err error
+	if len(optSkip) > 0 {
+		cmd.AddOptionValues("--skip", strconv.Itoa(optSkip[0]))
+	}
 	if beforeRef == "" {
-		stdout, _, err = gitCmd().AddDynamicArguments(afterRef.String()).RunStdBytes(ctx)
+		cmd.AddDynamicArguments(afterRef.String())
 	} else {
-		stdout, _, err = gitCmd().AddDynamicArguments(beforeRef.String() + ".." + afterRef.String()).RunStdBytes(ctx)
-		if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
-			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
-			// if the beforeRef and afterRef are not related (no merge base), just get all commits pushed by afterRef
-			stdout, _, err = gitCmd().AddDynamicArguments(afterRef.String()).RunStdBytes(ctx)
-		}
+		cmd.AddDynamicArguments(beforeRef.String() + ".." + afterRef.String())
 	}
+	stdout, _, err := cmd.RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
