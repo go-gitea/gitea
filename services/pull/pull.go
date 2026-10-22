@@ -150,7 +150,6 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			return err
 		}
 
-		// review request from CodeOwners
 		if !pr.IsWorkInProgress(ctx) {
 			reviewNotifiers, err = RequestCodeOwnersReview(ctx, pr)
 			if err != nil {
@@ -158,9 +157,10 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			}
 		}
 
+		// Request reviews, these should be requested before other notifications because they will add request reviews record
+		// on database
 		for _, reviewer := range opts.Reviewers {
-			err = isValidReviewRequest(ctx, reviewer, issue.Poster, true, issue, &permDoer)
-			if err != nil {
+			if err := isValidReviewRequest(ctx, reviewer, issue.Poster, true, issue, &permDoer); err != nil {
 				return err
 			}
 
@@ -178,8 +178,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		for _, teamReviewer := range opts.TeamReviewers {
-			err = isValidTeamReviewRequest(ctx, teamReviewer, issue.Poster, true, issue)
-			if err != nil {
+			if err := isValidTeamReviewRequest(ctx, teamReviewer, issue.Poster, true, issue); err != nil {
 				return err
 			}
 

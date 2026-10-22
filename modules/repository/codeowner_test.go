@@ -53,10 +53,15 @@ func testCodeOwnerAbsolutePathPatterns(t *testing.T) {
 	}
 
 	cases := []testCase{
+		// Absolute path pattern should match (leading "/" stripped)
 		{content: "/README.md @user5\n", file: "README.md", expected: true},
+		// Absolute path pattern in subdirectory
 		{content: "/docs/.* @user5\n", file: "docs/foo.md", expected: true},
+		// Absolute path should not match nested paths it shouldn't
 		{content: "/docs/.* @user5\n", file: "other/docs/foo.md", expected: false},
+		// Relative path still works
 		{content: "README.md @user5\n", file: "README.md", expected: true},
+		// Negated absolute path pattern
 		{content: "!/.* @user5\n", file: "README.md", expected: false},
 	}
 
@@ -70,6 +75,9 @@ func testCodeOwnerAbsolutePathPatterns(t *testing.T) {
 	}
 }
 
+// testCodeOwnerPatternMatchTimeout ensures user-supplied CODEOWNERS patterns
+// cannot stall pull request processing through catastrophic regex backtracking:
+// each compiled rule must enforce a bounded match time.
 func testCodeOwnerPatternMatchTimeout(t *testing.T) {
 	rules, _ := GetCodeOwnersFromContent(t.Context(), "(a+)+ @user5\n")
 	require.Len(t, rules, 1)

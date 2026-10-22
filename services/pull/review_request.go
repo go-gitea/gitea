@@ -294,14 +294,14 @@ type ReviewRequestNotifier struct {
 }
 
 func init() {
-	notify_service.RegisterNotifier(&reviewRequestNotifer{})
+	notify_service.RegisterNotifier(&reviewRequestNotifier{})
 }
 
-type reviewRequestNotifer struct {
+type reviewRequestNotifier struct {
 	notify_service.NullNotifier
 }
 
-func (n *reviewRequestNotifer) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
+func (_n *reviewRequestNotifier) IssueChangeTitle(ctx context.Context, _doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(issue.Title) {
 		if err := issue.LoadPullRequest(ctx); err != nil {
 			log.Error("IssueChangeTitle: LoadPullRequest: %v", err)
