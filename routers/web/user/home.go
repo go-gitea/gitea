@@ -48,6 +48,7 @@ import (
 
 const (
 	tplDashboard  templates.TplName = "user/dashboard/dashboard"
+	tplFeeds      templates.TplName = "user/dashboard/feeds"
 	tplIssues     templates.TplName = "user/dashboard/issues"
 	tplMilestones templates.TplName = "user/dashboard/milestones"
 	tplProfile    templates.TplName = "user/profile"
@@ -110,19 +111,16 @@ func Dashboard(ctx *context.Context) {
 
 	prepareHeatmapURL(ctx)
 
-	year := ctx.FormInt("year")
-	showPrivate := ctx.FormOptionalBool("show-private").ValueOrDefault(true)
-
 	pageSize := setting.UI.FeedPagingNum
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.Doer,
-		IncludePrivate:  showPrivate,
+		IncludePrivate:  true,
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
-		Year:            year,
+		Year:            ctx.FormInt("year"),
 		ListOptions:     db.ListOptions{Page: page, PageSize: pageSize},
 	})
 	if err != nil {
@@ -136,6 +134,10 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 	ctx.Data["Feeds"] = feeds
 
+	if ctx.FormBool("div-only") {
+		ctx.HTML(http.StatusOK, tplFeeds)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
 

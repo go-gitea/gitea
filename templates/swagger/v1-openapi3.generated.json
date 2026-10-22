@@ -37261,14 +37261,6 @@
             "schema": {
               "type": "integer"
             }
-          },
-          {
-            "description": "include contributions to private repositories the caller can access, default true",
-            "in": "query",
-            "name": "show-private",
-            "schema": {
-              "type": "boolean"
-            }
           }
         ],
         "responses": {

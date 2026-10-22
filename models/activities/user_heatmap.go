@@ -5,13 +5,14 @@ package activities
 
 import (
 	"context"
-	"time"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // UserHeatmapData represents the data needed to create a heatmap
@@ -21,16 +22,16 @@ type UserHeatmapData struct {
 }
 
 // GetUserHeatmapDataByUser returns an array of UserHeatmapData, it checks whether doer can access user's activity
-func GetUserHeatmapDataByUser(ctx context.Context, user, doer *user_model.User, year int, showPrivate bool) ([]*UserHeatmapData, error) {
-	return getUserHeatmapData(ctx, user, nil, doer, year, showPrivate)
+func GetUserHeatmapDataByUser(ctx context.Context, user, doer *user_model.User, year int) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(ctx, user, nil, doer, year)
 }
 
 // GetUserHeatmapDataByOrgTeam returns an array of UserHeatmapData, it checks whether doer can access org's activity
-func GetUserHeatmapDataByOrgTeam(ctx context.Context, org *organization.Organization, team *organization.Team, doer *user_model.User, year int, showPrivate bool) ([]*UserHeatmapData, error) {
-	return getUserHeatmapData(ctx, org.AsUser(), team, doer, year, showPrivate)
+func GetUserHeatmapDataByOrgTeam(ctx context.Context, org *organization.Organization, team *organization.Team, doer *user_model.User, year int) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(ctx, org.AsUser(), team, doer, year)
 }
 
-func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User, year int, showPrivate bool) ([]*UserHeatmapData, error) {
+func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User, year int) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
 	if !ActivityReadable(user, doer) {
@@ -52,32 +53,26 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		RequestedUser:  user,
 		RequestedTeam:  team,
 		Actor:          doer,
-		IncludePrivate: showPrivate,
+		IncludePrivate: true, // don't filter by private, as we already filter by repo access
 		IncludeDeleted: true,
 		// * Heatmaps for individual users only include actions that the user themself did.
 		// * For organizations actions by all users that were made in owned
 		//   repositories are counted.
 		OnlyPerformedBy: !user.IsOrganization(),
+		Year:            year,
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	query := db.GetEngine(ctx).
-		Select(groupBy + " AS timestamp, count(user_id) as contributions").
-		Table("action").
-		Where(cond)
-	if year > 0 {
-		// exactly the requested year, so that the total matches it
-		query = query.And("created_unix >= ? AND created_unix < ?",
-			time.Date(year, time.January, 1, 0, 0, 0, 0, setting.DefaultUILocation).Unix(),
-			time.Date(year+1, time.January, 1, 0, 0, 0, 0, setting.DefaultUILocation).Unix())
-	} else {
-		query = query.And("created_unix > ?", timeutil.TimeStampNow()-(366+7)*86400) // (366+7) days to include the first week for the heatmap
+	if !isFeedYearValid(year) {
+		cond = cond.And(builder.Gt{"created_unix": timeutil.TimeStampNow() - (366+7)*86400}) // (366+7) days to include the first week for the heatmap
 	}
 
 	// HINT: USER-ACTIVITY-PUSH-COMMITS: it only uses the doer's action time, it doesn't use git commit's time
-	return hdata, query.
+	return hdata, db.GetEngine(ctx).
+		Select(groupBy + " AS timestamp, count(user_id) as contributions").
+		Table("action").
+		Where(cond).
 		GroupBy(groupByName).
 		OrderBy("timestamp").
 		Find(&hdata)

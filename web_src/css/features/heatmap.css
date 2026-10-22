@@ -1,14 +1,23 @@
 #user-heatmap {
   width: 100%;
   min-width: 0;
-  overflow: hidden; /* the heatmap must not widen its container, its width decides how many weeks are shown */
+  overflow: hidden; /* its width decides how many weeks fit, so the weeks must not widen it */
   font-size: 10px;
   position: relative;
 }
 
-/* the heatmap has a fixed size, keep the space while the component is loading */
+.activity-heatmap-container {
+  container-type: inline-size;
+}
+
 #user-heatmap.is-loading {
-  height: 125px;
+  height: calc(39px + 7 * (100cqw - 27px) / 53); /* the cells of 53 weeks fill the width */
+}
+
+@container (width < 663px) { /* narrower than 53 weeks of 12px cells, the pager row is shown */
+  #user-heatmap.is-loading {
+    height: 143px;
+  }
 }
 
 #user-heatmap > div {
@@ -44,46 +53,44 @@
 }
 
 #user-heatmap .heatmap-pager-button:disabled {
-  opacity: 0.4;
+  opacity: var(--opacity-disabled);
   cursor: default;
 }
 
-#user-heatmap .heatmap-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px 12px;
-  margin-top: 4px;
-  font-size: 11px;
-}
-
+#user-heatmap .heatmap-footer,
 #user-heatmap .heatmap-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 12px;
+  gap: 4px 8px;
 }
 
-#user-heatmap .heatmap-private-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-}
-
-#user-heatmap .heatmap-private-toggle input {
-  margin: 0;
+#user-heatmap .heatmap-footer {
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 11px;
 }
 
 #user-heatmap .heatmap-year-select {
-  height: 20px;
-  padding: 0 4px;
-  font-size: 11px;
-  color: var(--color-input-text);
-  background: var(--color-input-background);
-  border: 1px solid var(--color-input-border);
-  border-radius: var(--border-radius);
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+#user-heatmap .heatmap-year-select select {
+  appearance: none;
+  field-sizing: content;
+  padding: 0 14px 0 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+#user-heatmap .heatmap-year-select svg {
+  position: absolute;
+  right: 0;
+  pointer-events: none;
 }
 
 /* "Less [colors] More" scale */

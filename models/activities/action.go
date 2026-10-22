@@ -443,24 +443,28 @@ func ActivityReadable(user, doer *user_model.User) bool {
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
+func isFeedYearValid(year int) bool {
+	return year >= 1970 && year <= 9999
+}
+
 func FeedDateCond(opts GetFeedsOptions) builder.Cond {
 	cond := builder.NewCond()
-	if opts.Date != "" {
-		dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
-		if err != nil {
-			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
-		} else {
-			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
-
-			cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
-			cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
+	if opts.Date == "" {
+		if isFeedYearValid(opts.Year) {
+			yearStart := time.Date(opts.Year, time.January, 1, 0, 0, 0, 0, setting.DefaultUILocation)
+			cond = cond.And(builder.Gte{"`action`.created_unix": yearStart.Unix()}, builder.Lt{"`action`.created_unix": yearStart.AddDate(1, 0, 0).Unix()})
 		}
-	} else if opts.Year > 0 {
-		loc := setting.DefaultUILocation
-		start := time.Date(opts.Year, time.January, 1, 0, 0, 0, 0, loc)
-		end := time.Date(opts.Year, time.December, 31, 23, 59, 59, 999999999, loc)
-		cond = cond.And(builder.Gte{"`action`.created_unix": start.Unix()})
-		cond = cond.And(builder.Lte{"`action`.created_unix": end.Unix()})
+		return cond
+	}
+
+	dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
+	if err != nil {
+		log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
+	} else {
+		dateHigh := dateLow.Add(86399000000000) // 23h59m59s
+
+		cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
+		cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
 	}
 	return cond
 }

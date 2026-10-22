@@ -204,7 +204,7 @@
   "heatmap.less": "Less",
   "heatmap.more": "More",
   "heatmap.last_12_months": "Last 12 months",
-  "heatmap.show_private": "Show private contributions",
+  "heatmap.time_range": "Time range",
   "heatmap.previous_months": "Previous months",
   "heatmap.next_months": "Next months",
   "editor.buttons.heading.tooltip": "Add heading",

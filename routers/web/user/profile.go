@@ -64,6 +64,13 @@ func userProfile(ctx *context.Context) {
 	profileDbRepo, profileReadmeBlob := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
 
 	prepareUserProfileTabData(ctx, profileDbRepo, profileReadmeBlob)
+	if ctx.Written() {
+		return
+	}
+	if ctx.FormBool("div-only") && ctx.Data["TabName"] == "activity" {
+		ctx.HTML(http.StatusOK, tplFeeds)
+		return
+	}
 
 	// prepare the user nav header data after "prepareUserProfileTabData" to avoid re-querying the NumFollowers & NumFollowing
 	// because ctx.Data["NumFollowers"] and "NumFollowing" logic duplicates in both of them
@@ -166,10 +173,8 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		}
 
 		date := ctx.FormString("date")
-		year := ctx.FormInt("year")
 		pagingNum = setting.UI.FeedPagingNum
 		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-		showPrivate = showPrivate && ctx.FormOptionalBool("show-private").ValueOrDefault(true)
 		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
@@ -177,7 +182,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
 			Date:            date,
-			Year:            year,
+			Year:            ctx.FormInt("year"),
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,
 				Page:     page,

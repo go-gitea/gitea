@@ -151,20 +151,13 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   in: query
 	//   description: year of the heatmap, the last 12 months if omitted
 	//   type: integer
-	// - name: show-private
-	//   in: query
-	//   description: include contributions to private repositories the caller can access, default true
-	//   type: boolean
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserHeatmapData"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	year := ctx.FormInt("year")
-	showPrivate := ctx.FormOptionalBool("show-private").ValueOrDefault(true)
-
-	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer, year, showPrivate)
+	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer, ctx.FormInt("year"))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
