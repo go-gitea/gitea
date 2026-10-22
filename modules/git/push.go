@@ -6,9 +6,11 @@ package git
 import (
 	"context"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
 )
 
@@ -17,35 +19,44 @@ func PushToExternal(ctx context.Context, repo RepositoryFacade, opts PushOptions
 	return Push(ctx, gitrepo.RepoLocalPath(repo), opts)
 }
 
-// tempRemoteName is only ever defined for a single command, so it never has a fetch refspec
-const tempRemoteName = "gitea-push-address"
+type configEntry struct {
+	key, value string
+}
 
-// PushToExternalAddress pushes a managed repository to an address instead of a configured remote name,
-// so git never writes the pushed values back into local refs through the remote's fetch refspec.
-func PushToExternalAddress(ctx context.Context, repo RepositoryFacade, addr string, pushRefSpecs []string, opts PushOptions) error {
-	configs := []ConfigEntry{{Key: "remote." + tempRemoteName + ".url", Value: addr}}
+func PushToExternalWithoutTracking(ctx context.Context, repo RepositoryFacade, pushRefSpecs []string, opts PushOptions) error {
+	const tempRemoteName = "gitea-push-address"
+	config, _, err := gitcmd.NewCommand("config", "--null", "--get-regexp").
+		AddDynamicArguments(`^remote\.` + regexp.QuoteMeta(opts.Remote) + `\.(url|pushurl)$`).
+		WithRepo(repo).WithEnv(opts.Env).RunStdString(ctx)
+	if err != nil {
+		return err
+	}
+	var configs []configEntry
+	for entry := range strings.SplitSeq(strings.TrimSuffix(config, "\x00"), "\x00") {
+		key, value, _ := strings.Cut(entry, "\n")
+		configs = append(configs, configEntry{key: "remote." + tempRemoteName + key[len("remote."+opts.Remote):], value: value})
+	}
 	for _, refSpec := range pushRefSpecs {
-		configs = append(configs, ConfigEntry{Key: "remote." + tempRemoteName + ".push", Value: refSpec})
+		configs = append(configs, configEntry{key: "remote." + tempRemoteName + ".push", value: refSpec})
 	}
 	opts.Remote = tempRemoteName
-	opts.Env = appendConfigEnv(opts.Env, configs...) // keep credentials in the address out of the process arguments
+	opts.Env = appendConfigEnv(opts.Env, configs...) // Keep URL credentials out of process arguments.
 	return PushToExternal(ctx, repo, opts)
 }
 
-// appendConfigEnv adds git config entries via GIT_CONFIG_COUNT/KEY/VALUE, keeping any existing entries.
-func appendConfigEnv(env []string, configs ...ConfigEntry) []string {
+func appendConfigEnv(env []string, configs ...configEntry) []string {
 	if env == nil {
 		env = os.Environ()
 	}
 	count := 0
-	for _, kv := range env {
-		if v, ok := strings.CutPrefix(kv, "GIT_CONFIG_COUNT="); ok {
-			count, _ = strconv.Atoi(v)
+	for _, entry := range env {
+		if value, ok := strings.CutPrefix(entry, "GIT_CONFIG_COUNT="); ok {
+			count, _ = strconv.Atoi(value)
 		}
 	}
-	for _, c := range configs {
-		n := strconv.Itoa(count)
-		env = append(env, "GIT_CONFIG_KEY_"+n+"="+c.Key, "GIT_CONFIG_VALUE_"+n+"="+c.Value)
+	for _, config := range configs {
+		index := strconv.Itoa(count)
+		env = append(env, "GIT_CONFIG_KEY_"+index+"="+config.key, "GIT_CONFIG_VALUE_"+index+"="+config.value)
 		count++
 	}
 	return append(env, "GIT_CONFIG_COUNT="+strconv.Itoa(count))

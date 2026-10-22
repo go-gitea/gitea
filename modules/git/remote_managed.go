@@ -45,23 +45,13 @@ func ManagedRemoteRemove(ctx context.Context, repo RepositoryFacade, remoteName 
 	})
 }
 
-// ParseRemoteAddress returns the configured address of a remote, together with its parsed form.
-func ParseRemoteAddress(ctx context.Context, repo RepositoryFacade, remoteName string) (string, *giturl.GitURL, error) {
+func ParseRemoteAddressURL(ctx context.Context, repo RepositoryFacade, remoteName string) (*giturl.GitURL, error) {
 	addr, err := GetRemoteAddress(ctx, repo, remoteName)
 	if (addr == "" && err == nil) || IsRemoteNotExistError(err) {
-		return "", nil, util.NewNotExistErrorf("remote '%s' does not exist", remoteName)
+		return nil, util.NewNotExistErrorf("remote '%s' does not exist", remoteName)
 	}
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
-	parsed, err := giturl.ParseGitURL(addr)
-	if err != nil {
-		return "", nil, err
-	}
-	return addr, parsed, nil
-}
-
-func ParseRemoteAddressURL(ctx context.Context, repo RepositoryFacade, remoteName string) (*giturl.GitURL, error) {
-	_, parsed, err := ParseRemoteAddress(ctx, repo, remoteName)
-	return parsed, err
+	return giturl.ParseGitURL(addr)
 }

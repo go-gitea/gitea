@@ -127,9 +127,9 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	performPush := func(storageRepo gitrepo.RepositoryFacade) error {
-		remoteAddr, remoteURL, err := git.ParseRemoteAddress(ctx, storageRepo, m.RemoteName)
+		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
-			return fmt.Errorf("ParseRemoteAddress failed: %w", err)
+			return fmt.Errorf("ParseRemoteAddressURL failed: %w", err)
 		}
 		// re-validate every sync, the allow/block lists may have changed since the mirror was added
 		switch remoteURL.URL.Scheme {
@@ -159,10 +159,8 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
-		// Push to the address, never the remote name: git writes pushed values back into the local refs
-		// a named remote's fetch refspec maps to (e.g. "+refs/*:refs/*"), rolling back concurrent pushes.
-		// Pushing to the address ignores such leftover refspecs. https://github.com/go-gitea/gitea/issues/28986
-		if err := git.PushToExternalAddress(ctx, storageRepo, remoteAddr, pushMirrorRefSpecs, git.PushOptions{
+		if err := git.PushToExternalWithoutTracking(ctx, storageRepo, pushMirrorRefSpecs, git.PushOptions{
+			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
