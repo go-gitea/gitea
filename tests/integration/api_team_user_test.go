@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/convert"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,8 +32,7 @@ func TestAPITeamUser(t *testing.T) {
 		// read self user
 		req := NewRequest(t, "GET", "/api/v1/teams/1/members/user2").AddTokenAuth(user2Token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var user2 *api.User
-		DecodeJSON(t, resp, &user2)
+		user2 := DecodeJSON(t, resp, &api.User{})
 		user2.Created = user2.Created.In(time.Local)
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 

@@ -8,12 +8,15 @@ import (
 	"compress/gzip"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
+	"sync"
 
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 var (
@@ -23,9 +26,19 @@ var (
 	ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
 	// ErrInvalidVersion indicates an invalid version in the metadata.gz file
 	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
+	// ErrInvalidMetadata indicates metadata that would corrupt the generated index
+	ErrInvalidMetadata = util.NewInvalidArgumentErrorf("package metadata is invalid")
 )
 
-var versionMatcher = regexp.MustCompile(`\A[0-9]+(?:\.[0-9a-zA-Z]+)*(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z`)
+var globalVars = sync.OnceValue(func() (ret struct {
+	nameMatcher, versionMatcher *regexp.Regexp
+},
+) {
+	// https://github.com/rubygems/rubygems/blob/master/lib/rubygems/specification.rb (VALID_NAME_PATTERN)
+	ret.nameMatcher = regexp.MustCompile(`\A[\w.-]+\z`)
+	ret.versionMatcher = regexp.MustCompile(`\A[0-9]+(?:\.[0-9a-zA-Z]+)*(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z`)
+	return ret
+})
 
 // Package represents a RubyGems package
 type Package struct {
@@ -128,7 +141,7 @@ func (r requirement) AsVersionRequirement() []VersionRequirement {
 			continue
 		}
 		version, ok := versionInt.(string)
-		if !ok || version == "0" {
+		if !ok || (version == "0" && restriction == ">=") {
 			continue
 		}
 
@@ -168,15 +181,15 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 	defer zr.Close()
 
 	var spec gemspec
-	if err := yaml.NewDecoder(zr).Decode(&spec); err != nil {
+	if err := yaml.NewDecoder(packages.NewLimitedReader(zr, packages.MaxMetadataSize)).Decode(&spec); err != nil {
 		return nil, err
 	}
 
-	if len(spec.Name) == 0 || strings.Contains(spec.Name, "/") {
+	if !globalVars().nameMatcher.MatchString(spec.Name) {
 		return nil, ErrInvalidName
 	}
 
-	if !versionMatcher.MatchString(spec.Version.Version) {
+	if !globalVars().versionMatcher.MatchString(spec.Version.Version) {
 		return nil, ErrInvalidVersion
 	}
 
@@ -210,6 +223,19 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 		} else {
 			m.DevelopmentDependencies = append(m.DevelopmentDependencies, dep)
 		}
+	}
+
+	values := []string{m.Platform}
+	reqs := slices.Concat(m.RequiredRubyVersion, m.RequiredRubygemsVersion)
+	for _, dep := range slices.Concat(m.RuntimeDependencies, m.DevelopmentDependencies) {
+		values = append(values, dep.Name)
+		reqs = append(reqs, dep.Version...)
+	}
+	for _, req := range reqs {
+		values = append(values, req.Restriction, req.Version)
+	}
+	if slices.ContainsFunc(values, func(s string) bool { return strings.ContainsAny(s, "\r\n") }) {
+		return nil, ErrInvalidMetadata // the compact index is line-based, a line break would forge entries
 	}
 
 	return &Package{

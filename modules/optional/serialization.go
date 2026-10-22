@@ -4,17 +4,28 @@
 package optional
 
 import (
-	"code.gitea.io/gitea/modules/json"
+	"reflect"
 
-	"gopkg.in/yaml.v3"
+	"gitea.dev/modules/json"
+
+	"go.yaml.in/yaml/v4"
 )
+
+func (o *Option[T]) assignUnmarshalledValue(v *T) {
+	if reflect.TypeFor[T]().Kind() == reflect.Pointer && v == nil {
+		var zero T
+		*o = Some[T](zero)
+	} else {
+		*o = FromPtr(v)
+	}
+}
 
 func (o *Option[T]) UnmarshalJSON(data []byte) error {
 	var v *T
 	if err := json.Unmarshal(data, &v); err != nil {
 		return err
 	}
-	*o = FromPtr(v)
+	o.assignUnmarshalledValue(v)
 	return nil
 }
 
@@ -31,13 +42,13 @@ func (o *Option[T]) UnmarshalYAML(value *yaml.Node) error {
 	if err := value.Decode(&v); err != nil {
 		return err
 	}
-	*o = FromPtr(v)
+	o.assignUnmarshalledValue(v)
 	return nil
 }
 
 func (o Option[T]) MarshalYAML() (any, error) {
 	if !o.Has() {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate no value to marshal
 	}
 
 	value := new(yaml.Node)

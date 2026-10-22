@@ -8,20 +8,20 @@ import (
 	"fmt"
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	pull_model "code.gitea.io/gitea/models/pull"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/forms"
-	pull_service "code.gitea.io/gitea/services/pull"
-	user_service "code.gitea.io/gitea/services/user"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	pull_model "gitea.dev/models/pull"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/forms"
+	pull_service "gitea.dev/services/pull"
+	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -48,20 +48,19 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	ctx.Data["PageIsPullFiles"] = true
 	ctx.Data["Issue"] = issue
 	ctx.Data["CurrentReview"] = currentReview
-	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(issue.PullRequest.GetGitHeadRefName())
+	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 	ctx.HTML(http.StatusOK, tplNewComment)
 }
 
 // CreateCodeComment will create a code comment including an pending review if required
 func CreateCodeComment(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CodeCommentForm)
+	form := web.GetForm[*forms.CodeCommentForm](ctx)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -71,7 +70,7 @@ func CreateCodeComment(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.Flash.Error(ctx.GetErrMsg())
 		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
@@ -168,7 +167,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
 	ctx.Data["PageIsPullFiles"] = origin == "diff"
 
-	showOutdatedComments := origin == "timeline" || ctx.Data["ShowOutdatedComments"].(bool)
+	showOutdatedComments := origin == "timeline" || GetShowOutdatedComments(ctx)
 	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
@@ -185,7 +184,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["comments"] = comments
@@ -198,7 +197,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.ServerError("comment.Issue.LoadPullRequest", err)
 		return
 	}
-	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitHeadRefName())
+	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, comment.Issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
@@ -220,7 +219,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.SubmitReviewForm)
+	form := web.GetForm[*forms.SubmitReviewForm](ctx)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -229,7 +228,7 @@ func SubmitReview(ctx *context.Context) {
 		return
 	}
 	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.Flash.Error(ctx.GetErrMsg())
 		ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
@@ -278,7 +277,7 @@ func SubmitReview(ctx *context.Context) {
 
 // DismissReview dismissing stale review by repo admin
 func DismissReview(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.DismissReviewForm)
+	form := web.GetForm[*forms.DismissReviewForm](ctx)
 	comm, err := pull_service.DismissReview(ctx, form.ReviewID, ctx.Repo.Repository.ID, form.Message, ctx.Doer, true, true)
 	if err != nil {
 		if pull_service.IsErrDismissRequestOnClosedPR(err) {

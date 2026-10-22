@@ -6,12 +6,14 @@ package repository
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"slices"
 	"strings"
+	"time"
 
-	org_model "code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
+	org_model "gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+
+	"github.com/dlclark/regexp2/v2"
 )
 
 var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
@@ -60,8 +62,13 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRul
 	return rules, warnings
 }
 
+// codeOwnerMatchTimeout bounds a single pattern match so a crafted pattern
+// cannot stall via catastrophic backtracking. See also the aggregate budget
+// enforced by the caller across the whole rules×files match loop.
+const codeOwnerMatchTimeout = 150 * time.Millisecond
+
 type CodeOwnerRule struct {
-	Rule     *regexp.Regexp
+	Rule     *regexp2.Regexp // it supports negative lookahead, does better for end users
 	Negative bool
 	Users    []*user_model.User
 	Teams    []*org_model.Team
@@ -77,11 +84,19 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 
 	warnings := make([]string, 0)
 
-	rule.Rule, err = regexp.Compile(fmt.Sprintf("^%s$", strings.TrimPrefix(tokens[0], "!")))
+	// Strip leading "!" for negative rules, then strip leading "/" since
+	// git returns relative paths (e.g. "docs/foo.md" not "/docs/foo.md")
+	// and the regex is already anchored with ^...$, so the "/" is redundant.
+	pattern := strings.TrimPrefix(tokens[0], "!")
+	pattern = strings.TrimPrefix(pattern, "/")
+	expr := fmt.Sprintf("^%s$", pattern)
+	rule.Rule, err = regexp2.Compile(expr, regexp2.None)
 	if err != nil {
 		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
 		return nil, warnings
 	}
+	// Bound matching time so user-supplied patterns cannot stall PR creation via catastrophic backtracking.
+	rule.Rule.MatchTimeout = codeOwnerMatchTimeout
 
 	for _, user := range tokens[1:] {
 		user = strings.TrimPrefix(user, "@")

@@ -7,12 +7,13 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
 )
 
 func TestMain(m *testing.M) {
-	setting.IsInTesting = true
+	setting.SetupGiteaTestEnv()
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
+	markup.RefreshFileNamePatterns()
 	os.Exit(m.Run())
 }

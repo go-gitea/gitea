@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -19,10 +18,6 @@ const (
 	dummySecret  = "0x0000000000000000000000000000000000000000"
 	dummyToken   = "10000000-aaaa-bbbb-cccc-000000000001"
 )
-
-func TestMain(m *testing.M) {
-	os.Exit(m.Run())
-}
 
 type mockTransport struct{}
 

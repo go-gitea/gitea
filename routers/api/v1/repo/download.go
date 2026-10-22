@@ -7,26 +7,36 @@ import (
 	"errors"
 	"net/http"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/services/context"
-	archiver_service "code.gitea.io/gitea/services/repository/archiver"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	archiver_service "gitea.dev/services/repository/archiver"
 )
 
-func serveRepoArchive(ctx *context.APIContext, reqFileName string) {
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, reqFileName)
+func serveRepoArchive(ctx *context.APIContext, reqFileName string, paths []string) {
+	aReq, err := archiver_service.NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, reqFileName, paths)
 	if err != nil {
-		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
-			ctx.APIError(http.StatusBadRequest, err)
-		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
-			ctx.APIError(http.StatusNotFound, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.APIError(http.StatusBadRequest, err.Error())
+		} else if errors.Is(err, util.ErrNotExist) {
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
 		return
 	}
-	archiver_service.ServeRepoArchive(ctx.Base, aReq)
+	err = archiver_service.ServeRepoArchive(ctx.Base, aReq)
+	if err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.APIError(http.StatusBadRequest, err.Error())
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+	}
 }
 
+// DownloadArchive is the GitHub-compatible endpoint to download repository archives
+// TODO: The API document is missing: Add github compatible tarball download API endpoints (#32572)
 func DownloadArchive(ctx *context.APIContext) {
 	var tp repo_model.ArchiveType
 	switch ballType := ctx.PathParam("ball_type"); ballType {
@@ -40,5 +50,5 @@ func DownloadArchive(ctx *context.APIContext) {
 		ctx.APIError(http.StatusBadRequest, "Unknown archive type: "+ballType)
 		return
 	}
-	serveRepoArchive(ctx, ctx.PathParam("*")+"."+tp.String())
+	serveRepoArchive(ctx, ctx.PathParam("*")+"."+tp.String(), ctx.FormStrings("path"))
 }

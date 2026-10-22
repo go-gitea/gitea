@@ -6,27 +6,52 @@ package issues_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestPullRequest_LoadAttributes(t *testing.T) {
+func TestPullRequest(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	t.Run("LoadAttributes", testPullRequestLoadAttributes)
+	t.Run("LoadIssue", testPullRequestLoadIssue)
+	t.Run("LoadBaseRepo", testPullRequestLoadBaseRepo)
+	t.Run("LoadHeadRepo", testPullRequestLoadHeadRepo)
+	t.Run("PullRequestsNewest", testPullRequestsNewest)
+	t.Run("PullRequestsOldest", testPullRequestsOldest)
+	t.Run("GetUnmergedPullRequest", testGetUnmergedPullRequest)
+	t.Run("HasUnmergedPullRequestsByHeadInfo", testHasUnmergedPullRequestsByHeadInfo)
+	t.Run("GetUnmergedPullRequestsByHeadInfo", testGetUnmergedPullRequestsByHeadInfo)
+	t.Run("GetUnmergedPullRequestsByBaseInfo", testGetUnmergedPullRequestsByBaseInfo)
+	t.Run("GetPullRequestByIndex", testGetPullRequestByIndex)
+	t.Run("GetPullRequestByID", testGetPullRequestByID)
+	t.Run("GetPullRequestByIssueID", testGetPullRequestByIssueID)
+	t.Run("PullRequest_UpdateCols", testPullRequestUpdateCols)
+	t.Run("PullRequest_IsWorkInProgress", testPullRequestIsWorkInProgress)
+	t.Run("PullRequest_GetWorkInProgressPrefixWorkInProgress", testPullRequestGetWorkInProgressPrefixWorkInProgress)
+	t.Run("DeleteOrphanedObjects", testDeleteOrphanedObjects)
+	t.Run("GetApprovers", testGetApprovers)
+	t.Run("GetPullRequestByMergedCommit", testGetPullRequestByMergedCommit)
+	t.Run("Migrate_InsertPullRequests", testMigrateInsertPullRequests)
+	t.Run("PullRequestsClosedRecentSortType", testPullRequestsClosedRecentSortType)
+	t.Run("LoadRequestedReviewers", testLoadRequestedReviewers)
+}
+
+func testPullRequestLoadAttributes(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadAttributes(t.Context()))
 	assert.NotNil(t, pr.Merger)
 	assert.Equal(t, pr.MergerID, pr.Merger.ID)
 }
 
-func TestPullRequest_LoadIssue(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testPullRequestLoadIssue(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadIssue(t.Context()))
 	assert.NotNil(t, pr.Issue)
@@ -36,8 +61,7 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 	assert.Equal(t, int64(2), pr.Issue.ID)
 }
 
-func TestPullRequest_LoadBaseRepo(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testPullRequestLoadBaseRepo(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 	assert.NotNil(t, pr.BaseRepo)
@@ -47,8 +71,7 @@ func TestPullRequest_LoadBaseRepo(t *testing.T) {
 	assert.Equal(t, pr.BaseRepoID, pr.BaseRepo.ID)
 }
 
-func TestPullRequest_LoadHeadRepo(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testPullRequestLoadHeadRepo(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadHeadRepo(t.Context()))
 	assert.NotNil(t, pr.HeadRepo)
@@ -59,8 +82,7 @@ func TestPullRequest_LoadHeadRepo(t *testing.T) {
 
 // TODO TestNewPullRequest
 
-func TestPullRequestsNewest(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testPullRequestsNewest(t *testing.T) {
 	prs, count, err := issues_model.PullRequests(t.Context(), 1, &issues_model.PullRequestsOptions{
 		ListOptions: db.ListOptions{
 			Page: 1,
@@ -77,7 +99,7 @@ func TestPullRequestsNewest(t *testing.T) {
 	}
 }
 
-func TestPullRequests_Closed_RecentSortType(t *testing.T) {
+func testPullRequestsClosedRecentSortType(t *testing.T) {
 	// Issue ID | Closed At.  | Updated At
 	//    2     | 1707270001  | 1707270001
 	//    3     | 1707271000  | 1707279999
@@ -90,7 +112,6 @@ func TestPullRequests_Closed_RecentSortType(t *testing.T) {
 		{"recentclose", []int64{11, 3, 2}},
 	}
 
-	assert.NoError(t, unittest.PrepareTestDatabase())
 	_, err := db.Exec(t.Context(), "UPDATE issue SET closed_unix = 1707270001, updated_unix = 1707270001, is_closed = true WHERE id = 2")
 	require.NoError(t, err)
 	_, err = db.Exec(t.Context(), "UPDATE issue SET closed_unix = 1707271000, updated_unix = 1707279999, is_closed = true WHERE id = 3")
@@ -118,9 +139,7 @@ func TestPullRequests_Closed_RecentSortType(t *testing.T) {
 	}
 }
 
-func TestLoadRequestedReviewers(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testLoadRequestedReviewers(t *testing.T) {
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.NoError(t, pull.LoadIssue(t.Context()))
 	issue := pull.Issue
@@ -130,7 +149,7 @@ func TestLoadRequestedReviewers(t *testing.T) {
 	user1, err := user_model.GetUserByID(t.Context(), 1)
 	assert.NoError(t, err)
 
-	comment, err := issues_model.AddReviewRequest(t.Context(), issue, user1, &user_model.User{})
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, user1, &user_model.User{}, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 
@@ -146,8 +165,7 @@ func TestLoadRequestedReviewers(t *testing.T) {
 	assert.Empty(t, pull.RequestedReviewers)
 }
 
-func TestPullRequestsOldest(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testPullRequestsOldest(t *testing.T) {
 	prs, count, err := issues_model.PullRequests(t.Context(), 1, &issues_model.PullRequestsOptions{
 		ListOptions: db.ListOptions{
 			Page: 1,
@@ -164,8 +182,7 @@ func TestPullRequestsOldest(t *testing.T) {
 	}
 }
 
-func TestGetUnmergedPullRequest(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testGetUnmergedPullRequest(t *testing.T) {
 	pr, err := issues_model.GetUnmergedPullRequest(t.Context(), 1, 1, "branch2", "master", issues_model.PullRequestFlowGithub)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.ID)
@@ -175,9 +192,7 @@ func TestGetUnmergedPullRequest(t *testing.T) {
 	assert.True(t, issues_model.IsErrPullRequestNotExist(err))
 }
 
-func TestHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(t.Context(), 1, "branch2")
 	assert.NoError(t, err)
 	assert.True(t, exist)
@@ -187,8 +202,7 @@ func TestHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	assert.False(t, exist)
 }
 
-func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(t.Context(), 1, "branch2")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
@@ -198,8 +212,7 @@ func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	}
 }
 
-func TestGetUnmergedPullRequestsByBaseInfo(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testGetUnmergedPullRequestsByBaseInfo(t *testing.T) {
 	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(t.Context(), 1, "master")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
@@ -209,8 +222,7 @@ func TestGetUnmergedPullRequestsByBaseInfo(t *testing.T) {
 	assert.Equal(t, "master", pr.BaseBranch)
 }
 
-func TestGetPullRequestByIndex(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testGetPullRequestByIndex(t *testing.T) {
 	pr, err := issues_model.GetPullRequestByIndex(t.Context(), 1, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), pr.BaseRepoID)
@@ -225,8 +237,7 @@ func TestGetPullRequestByIndex(t *testing.T) {
 	assert.True(t, issues_model.IsErrPullRequestNotExist(err))
 }
 
-func TestGetPullRequestByID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testGetPullRequestByID(t *testing.T) {
 	pr, err := issues_model.GetPullRequestByID(t.Context(), 1)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), pr.ID)
@@ -237,8 +248,7 @@ func TestGetPullRequestByID(t *testing.T) {
 	assert.True(t, issues_model.IsErrPullRequestNotExist(err))
 }
 
-func TestGetPullRequestByIssueID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testGetPullRequestByIssueID(t *testing.T) {
 	pr, err := issues_model.GetPullRequestByIssueID(t.Context(), 2)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.IssueID)
@@ -248,8 +258,7 @@ func TestGetPullRequestByIssueID(t *testing.T) {
 	assert.True(t, issues_model.IsErrPullRequestNotExist(err))
 }
 
-func TestPullRequest_UpdateCols(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testPullRequestUpdateCols(t *testing.T) {
 	pr := &issues_model.PullRequest{
 		ID:         1,
 		BaseBranch: "baseBranch",
@@ -265,9 +274,7 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 
 // TODO TestAddTestPullRequestTask
 
-func TestPullRequest_IsWorkInProgress(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testPullRequestIsWorkInProgress(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	pr.LoadIssue(t.Context())
 
@@ -280,9 +287,7 @@ func TestPullRequest_IsWorkInProgress(t *testing.T) {
 	assert.True(t, pr.IsWorkInProgress(t.Context()))
 }
 
-func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testPullRequestGetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	pr.LoadIssue(t.Context())
 
@@ -296,9 +301,7 @@ func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 	assert.Equal(t, "[wip]", pr.GetWorkInProgressPrefix(t.Context()))
 }
 
-func TestDeleteOrphanedObjects(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testDeleteOrphanedObjects(t *testing.T) {
 	countBefore, err := db.GetEngine(t.Context()).Count(&issues_model.PullRequest{})
 	assert.NoError(t, err)
 
@@ -317,8 +320,7 @@ func TestDeleteOrphanedObjects(t *testing.T) {
 	assert.Equal(t, countBefore, countAfter)
 }
 
-func TestGetApprovers(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testGetApprovers(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 5})
 	// Official reviews are already deduplicated. Allow unofficial reviews
 	// to assert that there are no duplicated approvers.
@@ -328,8 +330,7 @@ func TestGetApprovers(t *testing.T) {
 	assert.Equal(t, expected, approvers)
 }
 
-func TestGetPullRequestByMergedCommit(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testGetPullRequestByMergedCommit(t *testing.T) {
 	pr, err := issues_model.GetPullRequestByMergedCommit(t.Context(), 1, "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, pr.ID)
@@ -340,8 +341,7 @@ func TestGetPullRequestByMergedCommit(t *testing.T) {
 	assert.ErrorAs(t, err, &issues_model.ErrPullRequestNotExist{})
 }
 
-func TestMigrate_InsertPullRequests(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testMigrateInsertPullRequests(t *testing.T) {
 	reponame := "repo1"
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})

@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package pull
@@ -6,15 +6,15 @@ package pull
 import (
 	"context"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	org_model "code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	notify_service "code.gitea.io/gitea/services/notify"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	notify_service "gitea.dev/services/notify"
 )
 
 // ReviewRequest add or remove a review request from a user for this PR, and make comment for it.
@@ -25,7 +25,7 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	}
 
 	if isAdd {
-		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer, false)
 	} else {
 		comment, err = issues_model.RemoveReviewRequest(ctx, issue, reviewer, doer)
 	}
@@ -58,14 +58,14 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		}
 	}
 
-	permReviewer, err := access_model.GetUserRepoPermission(ctx, issue.Repo, reviewer)
+	permReviewer, err := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, reviewer)
 	if err != nil {
 		return err
 	}
 
 	if permDoer == nil {
 		permDoer = new(access_model.Permission)
-		*permDoer, err = access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		*permDoer, err = access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return err
 		}
@@ -103,6 +103,10 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 			return nil
 		}
 
+		if !issue.Repo.IsArchived && doer.ID == reviewer.ID && lastReview != nil && lastReview.Type == issues_model.ReviewTypeApprove {
+			return nil
+		}
+
 		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Doer can't choose reviewer",
 			UserID: doer.ID,
@@ -126,7 +130,7 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 }
 
 // isValidTeamReviewRequest Check permission for ReviewRequest Team
-func isValidTeamReviewRequest(ctx context.Context, reviewer *org_model.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue) error {
+func isValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue) error {
 	if doer.IsOrganization() {
 		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Organization can't be doer to add reviewer",
@@ -139,7 +143,7 @@ func isValidTeamReviewRequest(ctx context.Context, reviewer *org_model.Team, doe
 
 	if isAdd {
 		if issue.Repo.IsPrivate {
-			hasTeam := org_model.HasTeamRepo(ctx, reviewer.OrgID, reviewer.ID, issue.RepoID)
+			hasTeam := organization.HasTeamRepo(ctx, reviewer.OrgID, reviewer.ID, issue.RepoID)
 
 			if !hasTeam {
 				return issues_model.ErrNotValidReviewRequest{
@@ -173,13 +177,13 @@ func isValidTeamReviewRequest(ctx context.Context, reviewer *org_model.Team, doe
 }
 
 // TeamReviewRequest add or remove a review request from a team for this PR, and make comment for it.
-func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewer *org_model.Team, isAdd bool) (comment *issues_model.Comment, err error) {
+func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool) (comment *issues_model.Comment, err error) {
 	err = isValidTeamReviewRequest(ctx, reviewer, doer, isAdd, issue)
 	if err != nil {
 		return nil, err
 	}
 	if isAdd {
-		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer, false)
 	} else {
 		comment, err = issues_model.RemoveTeamReviewRequest(ctx, issue, reviewer, doer)
 	}
@@ -189,7 +193,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	}
 
 	if comment == nil || !isAdd {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil because no comment was created or it is a removal
 	}
 
 	return comment, teamReviewRequestNotify(ctx, issue, doer, reviewer, isAdd, comment)
@@ -208,13 +212,13 @@ func reviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *u
 }
 
 // teamReviewRequestNotify notify all user in this team
-func teamReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewer *org_model.Team, isAdd bool, comment *issues_model.Comment) error {
+func teamReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool, comment *issues_model.Comment) error {
 	// notify all user in this team
 	if err := comment.LoadIssue(ctx); err != nil {
 		return err
 	}
 
-	members, err := org_model.GetTeamMembers(ctx, &org_model.SearchMembersOptions{
+	members, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
 		TeamID: reviewer.ID,
 	})
 	if err != nil {
@@ -230,13 +234,6 @@ func teamReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doe
 	}
 
 	return err
-}
-
-type ReviewRequestNotifier struct {
-	Comment    *issues_model.Comment
-	IsAdd      bool
-	Reviewer   *user_model.User
-	ReviewTeam *org_model.Team
 }
 
 // CanDoerChangeReviewRequests returns if the doer can add/remove review requests of a PR
@@ -266,7 +263,7 @@ func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, rep
 
 	// If the repo's owner is an organization, members of teams with read permission on pull requests can change reviewers
 	if repo.Owner.IsOrganization() {
-		teams, err := org_model.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
+		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
 		if err != nil {
 			log.Error("GetTeamsWithAccessToRepo: %v", err)
 			return false
@@ -275,7 +272,7 @@ func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, rep
 			if !team.UnitEnabled(ctx, unit.TypePullRequests) {
 				continue
 			}
-			isMember, err := org_model.IsTeamMember(ctx, repo.OwnerID, team.ID, doer.ID)
+			isMember, err := organization.IsTeamMember(ctx, repo.OwnerID, team.ID, doer.ID)
 			if err != nil {
 				log.Error("IsTeamMember: %v", err)
 				continue
@@ -287,6 +284,13 @@ func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, rep
 	}
 
 	return false
+}
+
+type ReviewRequestNotifier struct {
+	Comment    *issues_model.Comment
+	IsAdd      bool
+	Reviewer   *user_model.User
+	ReviewTeam *organization.Team
 }
 
 func init() {

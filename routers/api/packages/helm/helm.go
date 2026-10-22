@@ -12,18 +12,18 @@ import (
 	"strings"
 	"time"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/optional"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	helm_module "code.gitea.io/gitea/modules/packages/helm"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/packages/helper"
-	"code.gitea.io/gitea/services/context"
-	packages_service "code.gitea.io/gitea/services/packages"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/optional"
+	packages_module "gitea.dev/modules/packages"
+	helm_module "gitea.dev/modules/packages/helm"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/packages/helper"
+	"gitea.dev/services/context"
+	packages_service "gitea.dev/services/packages"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -209,6 +209,76 @@ func UploadPackage(ctx *context.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
+// UploadProvenanceFile uploads and attaches the provenance file to existing helm chart
+func UploadProvenanceFile(ctx *context.Context) {
+	upload, needToClose, err := ctx.UploadStream()
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if needToClose {
+		defer upload.Close()
+	}
+
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer buf.Close()
+
+	metadata, err := helm_module.ParseProvenanceFile(buf)
+	if err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, io.EOF) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	if _, err := buf.Seek(0, io.SeekStart); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	_, err = packages_service.AddFileToExistingPackage(
+		ctx,
+		&packages_service.PackageInfo{
+			Owner:       ctx.Package.Owner,
+			PackageType: packages_model.TypeHelm,
+			Name:        metadata.Name,
+			Version:     metadata.Version,
+		},
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename: createProvenanceFilename(metadata),
+			},
+			Creator:           ctx.Doer,
+			Data:              buf,
+			IsLead:            false,
+			OverwriteExisting: true,
+		},
+	)
+	if err != nil {
+		switch err {
+		case packages_model.ErrPackageNotExist:
+			apiError(ctx, http.StatusNotFound, err)
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusCreated)
+}
+
 func createFilename(metadata *helm_module.Metadata) string {
 	return strings.ToLower(fmt.Sprintf("%s-%s.tgz", metadata.Name, metadata.Version))
+}
+
+func createProvenanceFilename(metadata *helm_module.Metadata) string {
+	return strings.ToLower(fmt.Sprintf("%s-%s.tgz.prov", metadata.Name, metadata.Version))
 }

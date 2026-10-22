@@ -9,9 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/queue"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepoLanguages(t *testing.T) {
@@ -28,7 +30,6 @@ func TestRepoLanguages(t *testing.T) {
 
 		// Save new file to master branch
 		req = NewRequestWithValues(t, "POST", "/user2/repo1/_new/master/", map[string]string{
-			"_csrf":         doc.GetCSRF(),
 			"last_commit":   lastCommit,
 			"tree_path":     "test.go",
 			"content":       "package main",
@@ -37,15 +38,13 @@ func TestRepoLanguages(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.NotEmpty(t, test.RedirectURL(resp))
 
-		// let gitea calculate language stats
-		time.Sleep(time.Second)
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 10*time.Second))
 
 		// Save new file to master branch
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/languages")
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		var languages map[string]int64
-		DecodeJSON(t, resp, &languages)
+		languages := DecodeJSON(t, resp, map[string]int64{})
 
 		assert.InDeltaMapValues(t, map[string]int64{"Go": 12}, languages, 0)
 	})

@@ -6,13 +6,16 @@ package markup
 import (
 	"strings"
 
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup/common"
+
 	"golang.org/x/net/html"
 )
 
 func isAnchorIDUserContent(s string) bool {
 	// blackfridayExtRegex is for blackfriday extensions create IDs like fn:user-content-footnote
 	// old logic: blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
-	return strings.HasPrefix(s, "user-content-") || strings.Contains(s, ":user-content-")
+	return strings.HasPrefix(s, "user-content-") || strings.Contains(s, ":user-content-") || isAnchorIDFootnote(s)
 }
 
 func isAnchorIDFootnote(s string) bool {
@@ -23,14 +26,78 @@ func isAnchorHrefFootnote(s string) bool {
 	return strings.HasPrefix(s, "#fnref:user-content-") || strings.HasPrefix(s, "#fn:user-content-")
 }
 
-func processNodeAttrID(node *html.Node) {
+// isHeadingTag returns true if the node is a heading tag (h1-h6)
+func isHeadingTag(node *html.Node) bool {
+	return node.Type == html.ElementNode &&
+		len(node.Data) == 2 &&
+		node.Data[0] == 'h' &&
+		node.Data[1] >= '1' && node.Data[1] <= '6'
+}
+
+// getNodeText extracts the text content from a node and its children
+func getNodeText(node *html.Node, cached **string) string {
+	if *cached != nil {
+		return **cached
+	}
+	var text strings.Builder
+	var extractText func(*html.Node)
+	extractText = func(n *html.Node) {
+		if n.Type == html.TextNode {
+			text.WriteString(n.Data)
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			extractText(c)
+		}
+	}
+	extractText(node)
+	textStr := text.String()
+	*cached = &textStr
+	return textStr
+}
+
+func processNodeHeadingAndID(ctx *RenderContext, node *html.Node) {
+	// TODO: handle duplicate IDs, need to track existing IDs in the document
 	// Add user-content- to IDs and "#" links if they don't already have them,
 	// and convert the link href to a relative link to the host root
+	attrIDVal := ""
 	for idx, attr := range node.Attr {
 		if attr.Key == "id" {
-			if !isAnchorIDUserContent(attr.Val) {
-				node.Attr[idx].Val = "user-content-" + attr.Val
+			attrIDVal = attr.Val
+			if !isAnchorIDUserContent(attrIDVal) {
+				attrIDVal = "user-content-" + attrIDVal
+				node.Attr[idx].Val = attrIDVal
 			}
+		}
+	}
+
+	if !isHeadingTag(node) || !ctx.RenderOptions.EnableHeadingIDGeneration {
+		return
+	}
+
+	// For heading tags (h1-h6) without an id attribute, generate one from the text content.
+	// This ensures HTML headings like <h1>Title</h1> get proper permalink anchors
+	// matching the behavior of Markdown headings.
+	// Only enabled for repository files and wiki pages via EnableHeadingIDGeneration option.
+	var nodeTextCached *string
+	if attrIDVal == "" {
+		nodeText := getNodeText(node, &nodeTextCached)
+		if nodeText != "" {
+			// Use the same CleanValue function used by Markdown heading ID generation
+			attrIDVal = string(common.CleanValue([]byte(nodeText)))
+			if attrIDVal != "" {
+				attrIDVal = "user-content-" + attrIDVal
+				node.Attr = append(node.Attr, html.Attribute{Key: "id", Val: attrIDVal})
+			}
+		}
+	}
+	if ctx.TocShowInSection != "" {
+		nodeText := getNodeText(node, &nodeTextCached)
+		if nodeText != "" && attrIDVal != "" {
+			ctx.TocHeadingItems = append(ctx.TocHeadingItems, &TocHeadingItem{
+				HeadingLevel: int(node.Data[1] - '0'),
+				AnchorID:     attrIDVal,
+				InnerText:    nodeText,
+			})
 		}
 	}
 }
@@ -61,6 +128,10 @@ func processNodeA(ctx *RenderContext, node *html.Node) {
 	}
 }
 
+func resolveMediaLinkWithCamo(ctx *RenderContext, link string) string {
+	return camoHandleLink(ctx.RenderHelper.ResolveLink(link, LinkTypeMedia))
+}
+
 func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 	next = img.NextSibling
 	attrSrc, hasLazy := "", false
@@ -86,19 +157,21 @@ func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 			cnt++
 		}
 		if isLinkable {
+			linkNode := img
+			if img.Parent.Data == "picture" {
+				linkNode = img.Parent
+			}
 			wrapper := &html.Node{Type: html.ElementNode, Data: "a", Attr: []html.Attribute{
 				{Key: "href", Val: ctx.RenderHelper.ResolveLink(imgSrcOrigin, LinkTypeDefault)},
 				{Key: "target", Val: "_blank"},
 			}}
-			parent := img.Parent
-			imgNext := img.NextSibling
-			parent.RemoveChild(img)
-			parent.InsertBefore(wrapper, imgNext)
-			wrapper.AppendChild(img)
+			parent := linkNode.Parent
+			linkNext := linkNode.NextSibling
+			parent.RemoveChild(linkNode)
+			parent.InsertBefore(wrapper, linkNext)
+			wrapper.AppendChild(linkNode)
 		}
-
-		imgAttr.Val = ctx.RenderHelper.ResolveLink(imgSrcOrigin, LinkTypeMedia)
-		imgAttr.Val = camoHandleLink(imgAttr.Val)
+		imgAttr.Val = resolveMediaLinkWithCamo(ctx, imgSrcOrigin)
 		img.Attr[i] = imgAttr
 	}
 	if !RenderBehaviorForTesting.DisableAdditionalAttributes && !hasLazy && !strings.HasPrefix(attrSrc, "data:") {
@@ -113,11 +186,24 @@ func visitNodeVideo(ctx *RenderContext, node *html.Node) (next *html.Node) {
 		if attr.Key != "src" {
 			continue
 		}
-		if IsNonEmptyRelativePath(attr.Val) {
-			attr.Val = ctx.RenderHelper.ResolveLink(attr.Val, LinkTypeMedia)
-		}
-		attr.Val = camoHandleLink(attr.Val)
+		attr.Val = resolveMediaLinkWithCamo(ctx, attr.Val)
 		node.Attr[i] = attr
+	}
+	return next
+}
+
+func visitNodePictureSource(ctx *RenderContext, node *html.Node) (next *html.Node) {
+	next = node.NextSibling
+	for attrIdx, attr := range node.Attr {
+		if attr.Key != "srcset" {
+			continue
+		}
+		srcsetCandidates := htmlutil.ParseSrcset(attr.Val)
+		for i, candidate := range srcsetCandidates {
+			srcsetCandidates[i].SrcLink = resolveMediaLinkWithCamo(ctx, candidate.SrcLink)
+		}
+		attr.Val = htmlutil.EncodeSrcset(srcsetCandidates)
+		node.Attr[attrIdx] = attr
 	}
 	return next
 }

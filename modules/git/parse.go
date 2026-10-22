@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/modules/optional"
 )
 
 var sepSpace = []byte{' '}
@@ -46,8 +46,8 @@ func parseLsTreeLine(line []byte) (*LsTreeEntry, error) {
 		entry.Size = optional.Some(size)
 	}
 
-	entry.EntryMode, err = ParseEntryMode(string(entryMode))
-	if err != nil || entry.EntryMode == EntryModeNoEntry {
+	entry.EntryMode = ParseEntryMode(string(entryMode))
+	if entry.EntryMode == EntryModeNoEntry {
 		return nil, fmt.Errorf("invalid ls-tree output (invalid mode): %q, err: %w", line, err)
 	}
 
@@ -56,13 +56,17 @@ func parseLsTreeLine(line []byte) (*LsTreeEntry, error) {
 		return nil, fmt.Errorf("invalid ls-tree output (invalid object id): %q, err: %w", line, err)
 	}
 
-	if len(entryName) > 0 && entryName[0] == '"' {
-		entry.Name, err = strconv.Unquote(string(entryName))
-		if err != nil {
-			return nil, fmt.Errorf("invalid ls-tree output (invalid name): %q, err: %w", line, err)
-		}
-	} else {
-		entry.Name = string(entryName)
+	entry.Name, err = UnquoteDiffFilePath(string(entryName))
+	if err != nil {
+		return nil, fmt.Errorf("invalid ls-tree output (invalid name): %q, err: %w", line, err)
 	}
 	return entry, nil
+}
+
+func UnquoteDiffFilePath(path string) (string, error) {
+	// ref: see the document of git config's "core.quotepath"
+	if !strings.HasPrefix(path, `"`) {
+		return path, nil
+	}
+	return strconv.Unquote(path)
 }

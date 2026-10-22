@@ -5,26 +5,56 @@ package external
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
-	"os/exec"
-	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/setting"
 
 	"github.com/kballard/go-shellquote"
 )
 
 // RegisterRenderers registers all supported third part renderers according settings
 func RegisterRenderers() {
+	markup.RegisterRenderer(&frontendRenderer{
+		name: "openapi-swagger",
+		patterns: []string{
+			"openapi.yaml",
+			"openapi.yml",
+			"openapi.json",
+			"swagger.yaml",
+			"swagger.yml",
+			"swagger.json",
+		},
+	})
+
+	markup.RegisterRenderer(&frontendRenderer{
+		name: "viewer-3d",
+		patterns: []string{
+			// It needs more logic to make it overall right (render a text 3D model automatically):
+			// we need to distinguish the ambiguous filename extensions.
+			// For example: "*.amf, *.obj, *.off, *.step" might be or not be a 3D model file.
+			// So when it is a text file, we can't assume that "we only render it by 3D plugin",
+			// otherwise the end users would be impossible to view its real content when the file is not a 3D model.
+			"*.3dm", "*.3ds", "*.3mf", "*.amf", "*.bim", "*.brep",
+			"*.dae", "*.fbx", "*.fcstd", "*.glb", "*.gltf",
+			"*.ifc", "*.igs", "*.iges", "*.stp", "*.step",
+			"*.stl", "*.obj", "*.off", "*.ply", "*.wrl",
+		},
+	})
+
+	markup.RegisterRenderer(&frontendRenderer{
+		name:     "asciicast",
+		patterns: []string{"*.cast"},
+	})
+
 	for _, renderer := range setting.ExternalMarkupRenderers {
-		if renderer.Enabled && renderer.Command != "" && len(renderer.FileExtensions) > 0 {
-			markup.RegisterRenderer(&Renderer{renderer})
-		}
+		markup.RegisterRenderer(&Renderer{renderer})
 	}
 }
 
@@ -38,22 +68,18 @@ var (
 	_ markup.ExternalRenderer    = (*Renderer)(nil)
 )
 
-// Name returns the external tool name
 func (p *Renderer) Name() string {
 	return p.MarkupName
 }
 
-// NeedPostProcess implements markup.Renderer
 func (p *Renderer) NeedPostProcess() bool {
 	return p.MarkupRenderer.NeedPostProcess
 }
 
-// Extensions returns the supported extensions of the tool
-func (p *Renderer) Extensions() []string {
-	return p.FileExtensions
+func (p *Renderer) FileNamePatterns() []string {
+	return p.FilePatterns
 }
 
-// SanitizerRules implements markup.Renderer
 func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return p.MarkupSanitizerRules
 }
@@ -65,67 +91,137 @@ func (p *Renderer) GetExternalRendererOptions() (ret markup.ExternalRendererOpti
 	return ret
 }
 
-func envMark(envName string) string {
-	if runtime.GOOS == "windows" {
-		return "%" + envName + "%"
+func sanitizeCliArgUrl(s string) string {
+	u, err := url.Parse(s)
+	if err != nil {
+		return ""
 	}
-	return "$" + envName
+	isSafeShellChar := func(c byte) bool {
+		return '0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' ||
+			c == '-' || c == '_' || c == '.' || c == '~' ||
+			c == '+' || c == '@' || c == '%' || c == ':' || c == '[' || c == ']' ||
+			c >= 128
+	}
+	for i := 0; i < len(u.Host); i++ {
+		if !isSafeShellChar(u.Host[i]) {
+			return ""
+		}
+	}
+	const hex = "0123456789ABCDEF"
+	pathFields := strings.Split(u.EscapedPath(), "/")
+	for idx, pathField := range pathFields {
+		pos := 0
+		for ; pos < len(pathField); pos++ {
+			if !isSafeShellChar(pathField[pos]) {
+				break
+			}
+		}
+		if pos == len(pathField) {
+			continue
+		}
+		b := make([]byte, pos, len(pathField)+10)
+		copy(b, pathField[:pos])
+		for ; pos < len(pathField); pos++ {
+			if isSafeShellChar(pathField[pos]) {
+				b = append(b, pathField[pos])
+			} else {
+				b = append(b, '%', hex[pathField[pos]>>4], hex[pathField[pos]&0xf])
+			}
+		}
+		pathFields[idx] = string(b)
+	}
+	u2 := &url.URL{Scheme: u.Scheme, Host: u.Host}
+	return u2.String() + strings.Join(pathFields, "/")
+}
+
+func (p *Renderer) prepareExternalCommand(vars map[string]string) (string, []string, error) {
+	fields, err := shellquote.Split(strings.TrimSpace(p.Command))
+	if err != nil {
+		return "", nil, err
+	}
+	if len(fields) == 0 {
+		return "", nil, errors.New("no command")
+	}
+	var replacements []string
+	for k, v := range vars {
+		replacements = append(replacements, "$"+k, v)
+		replacements = append(replacements, "%"+k+"%", v) // for legacy Windows-style support
+	}
+	r := strings.NewReplacer(replacements...)
+	for i := range fields {
+		fields[i] = r.Replace(fields[i])
+	}
+	return fields[0], fields[1:], nil
+}
+
+func (p *Renderer) prepare(baseLinkSrc, baseLinkRaw string) (ret struct {
+	envs []string
+	prog string
+	args []string
+}, err error,
+) {
+	// Although the URLs are also passed via environment variables,
+	// we still pass them via command line arguments because a 3rd party render program may not read environment variables.
+	// In case some site admins would write wrong render commands like `sh -c "echo $VAR"`, we sanitize the URLs here to make up for their mistakes
+	cmdVars := map[string]string{
+		"GITEA_PREFIX_SRC": sanitizeCliArgUrl(baseLinkSrc),
+		"GITEA_PREFIX_RAW": sanitizeCliArgUrl(baseLinkRaw),
+	}
+	ret.prog, ret.args, err = p.prepareExternalCommand(cmdVars)
+	if err != nil {
+		return ret, err
+	}
+	ret.envs = append(
+		os.Environ(),
+		"GITEA_PREFIX_SRC="+baseLinkSrc,
+		"GITEA_PREFIX_RAW="+baseLinkRaw,
+	)
+	return ret, nil
 }
 
 // Render renders the data of the document to HTML via the external tool.
 func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	baseLinkSrc := ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault)
 	baseLinkRaw := ctx.RenderHelper.ResolveLink("", markup.LinkTypeRaw)
-	command := strings.NewReplacer(
-		envMark("GITEA_PREFIX_SRC"), baseLinkSrc,
-		envMark("GITEA_PREFIX_RAW"), baseLinkRaw,
-	).Replace(p.Command)
-	commands, err := shellquote.Split(command)
-	if err != nil || len(commands) == 0 {
-		return fmt.Errorf("%s invalid command %q: %w", p.Name(), p.Command, err)
+	prepared, err := p.prepare(baseLinkSrc, baseLinkRaw)
+	if err != nil {
+		return fmt.Errorf("invalid external render (%s) command %q: %w", p.Name(), p.Command, err)
 	}
-	args := commands[1:]
-
 	if p.IsInputFile {
 		// write to temp file
-		f, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("gitea_input")
+		tmpFile, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("gitea_input")
 		if err != nil {
 			return fmt.Errorf("%s create temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
 		defer cleanup()
 
-		_, err = io.Copy(f, input)
+		_, err = io.Copy(tmpFile, input)
 		if err != nil {
-			_ = f.Close()
+			_ = tmpFile.Close()
 			return fmt.Errorf("%s write data to temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
 
-		err = f.Close()
+		err = tmpFile.Close()
 		if err != nil {
 			return fmt.Errorf("%s close temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
-		args = append(args, f.Name())
+		prepared.args = append(prepared.args, tmpFile.Name())
 	}
 
-	processCtx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Render [%s] for %s", commands[0], baseLinkSrc))
+	processCtx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Render [%s] for %s", prepared.prog, baseLinkSrc))
 	defer finished()
 
-	cmd := exec.CommandContext(processCtx, commands[0], args...)
-	cmd.Env = append(
-		os.Environ(),
-		"GITEA_PREFIX_SRC="+baseLinkSrc,
-		"GITEA_PREFIX_RAW="+baseLinkRaw,
-	)
+	cmd := process.CommandContext(processCtx, prepared.prog, prepared.args...)
+	cmd.Env = prepared.envs
 	if !p.IsInputFile {
 		cmd.Stdin = input
 	}
 	var stderr bytes.Buffer
 	cmd.Stdout = output
 	cmd.Stderr = &stderr
-	process.SetSysProcAttribute(cmd)
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%s render run command %s %v failed: %w\nStderr: %s", p.Name(), commands[0], args, err, stderr.String())
+		return fmt.Errorf("%s render run command %s %v failed: %w\nStderr: %s", p.Name(), prepared.prog, shellquote.Join(prepared.args...), err, stderr.String())
 	}
 	return nil
 }

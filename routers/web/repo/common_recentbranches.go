@@ -4,12 +4,12 @@
 package repo
 
 import (
-	git_model "code.gitea.io/gitea/models/git"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/services/context"
-	repo_service "code.gitea.io/gitea/services/repository"
+	git_model "gitea.dev/models/git"
+	access_model "gitea.dev/models/perm/access"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/modules/log"
+	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 )
 
 type RecentBranchesPromptDataStruct struct {
@@ -33,9 +33,9 @@ func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 		opts.BaseRepo = ctx.Repo.Repository.BaseRepo
 	}
 
-	baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, opts.BaseRepo, ctx.Doer)
+	baseRepoPerm, err := access_model.GetDoerRepoPermission(ctx, opts.BaseRepo, ctx.Doer)
 	if err != nil {
-		log.Error("GetUserRepoPermission: %v", err)
+		log.Error("GetDoerRepoPermission: %v", err)
 		return
 	}
 	if !opts.Repo.CanContentChange() || !opts.BaseRepo.CanContentChange() {

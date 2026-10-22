@@ -1,36 +1,63 @@
 import {html, htmlRaw} from '../utils/html.ts';
-import {createCodeEditor} from './codeeditor.ts';
-import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
+import {createCodeEditor} from '../modules/codeeditor/main.ts';
+import {trimTrailingWhitespaceFromView} from '../modules/codeeditor/utils.ts';
+import {hideElem, queryElems, showElem, createElementFromHTML, onInputDebounce} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
-import {applyAreYouSure, ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {submitFormFetchAction} from './common-fetch-action.ts';
+import {applyAreYouSure, ignoreAreYouSure} from '../modules/are-you-sure.ts';
+import {submitFormFetchAction} from '../modules/fetch-action.ts';
+import {dirname} from '../utils.ts';
+import {pathEscapeSegments} from '../utils/url.ts';
+import {showErrorToast} from '../modules/toast.ts';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {
-  const elTabMenu = elForm.querySelector('.repo-editor-menu')!;
-  fomanticQuery(elTabMenu.querySelectorAll('.item')).tab();
+  const elTabMenu = elForm.querySelector('.repo-editor-menu');
+  if (!elTabMenu) return;
 
-  const elPreviewTab = elTabMenu.querySelector('a[data-tab="preview"]');
-  const elPreviewPanel = elForm.querySelector('.tab[data-tab="preview"]');
-  if (!elPreviewTab || !elPreviewPanel) return;
+  const elTreePath = elForm.querySelector<HTMLInputElement>('input#tree_path');
+  const elTextarea = elForm.querySelector<HTMLTextAreaElement>('.tab[data-tab="write"] textarea');
+  if (!elTreePath || !elTextarea) return;
 
+  const repoLink = elTabMenu.getAttribute('data-repo-link')!;
+  const refSubUrl = elTabMenu.getAttribute('data-ref-sub-url')!;
+  const branchName = elTabMenu.getAttribute('data-branch-name')!;
+
+  const elPreviewTab = elTabMenu.querySelector('a[data-tab="preview"]')!;
+  const elPreviewPanel = elForm.querySelector('.tab[data-tab="preview"]')!;
   elPreviewTab.addEventListener('click', async () => {
-    const elTreePath = elForm.querySelector<HTMLInputElement>('input#tree_path')!;
-    const previewUrl = elPreviewTab.getAttribute('data-preview-url')!;
-    const previewContextRef = elPreviewTab.getAttribute('data-preview-context-ref');
-    let previewContext = `${previewContextRef}/${elTreePath.value}`;
-    previewContext = previewContext.substring(0, previewContext.lastIndexOf('/'));
+    // "preview context" is the request path directory of the file, the rendered links will be resolved based on this path
+    // TODO: MARKUP-RENDER-CONTEXT: due to various hacky patches, this logic is unnecessarily complicated, see the backend
+    const previewContext = dirname(`${repoLink}/src/${refSubUrl}/${pathEscapeSegments(elTreePath.value)}`);
     const formData = new FormData();
     formData.append('mode', 'file');
     formData.append('context', previewContext);
-    formData.append('text', elForm.querySelector<HTMLTextAreaElement>('.tab[data-tab="write"] textarea')!.value);
+    formData.append('text', elTextarea.value);
     formData.append('file_path', elTreePath.value);
-    const response = await POST(previewUrl, {data: formData});
-    const data = await response.text();
+    const resp = await POST(`${repoLink}/markup`, {data: formData});
+    if (!resp.ok) {
+      showErrorToast(`Failed to render preview: ${resp.status} ${resp.statusText}`);
+      return;
+    }
+    const data = await resp.text();
     renderPreviewPanelContent(elPreviewPanel, data);
   });
+
+  const elDiffTab = elTabMenu.querySelector('a[data-tab="diff"]');
+  const elDiffPanel = elForm.querySelector('.tab[data-tab="diff"]');
+  if (elDiffTab && elDiffPanel) {
+    // the "diff" tab only exists for an existing file, but not for a new file
+    elDiffTab.addEventListener('click', async () => {
+      const diffUrl = `${repoLink}/_preview/${pathEscapeSegments(branchName)}/${pathEscapeSegments(elTreePath.value)}`;
+      // don't use FormData, because FormData sends "\r\n" line endings, backend assumes "\n" line endings
+      const resp = await POST(diffUrl, {data: new URLSearchParams({content: elTextarea.value})});
+      if (!resp.ok) {
+        showErrorToast(`Failed to render diff: ${resp.status} ${resp.statusText}`);
+        return;
+      }
+      elDiffPanel.innerHTML = await resp.text();
+    });
+  }
 }
 
 export function initRepoEditor() {
@@ -50,8 +77,14 @@ export function initRepoEditor() {
     });
   }
 
+  // ATTENTION: two pages have this filename input
+  // * new/edit file page: there is a code editor
+  // * upload page: there is no code editor, but a uploader
+  // FIXME: the related logic is totally a mess, need to completely rewrite, that's also the root reason for
+  //  why the "migrate to CodeMirror" PR took very long time on the legacy code and introduced "#file-name (filenameInput)" regressions many times
   const filenameInput = document.querySelector<HTMLInputElement>('#file-name')!;
   if (!filenameInput) return;
+  filenameInput.value = filenameInput.defaultValue; // prevent browser from restoring form values on refresh
   function joinTreePath() {
     const parts = [];
     for (const el of document.querySelectorAll('.breadcrumb span.section')) {
@@ -113,8 +146,8 @@ export function initRepoEditor() {
         warningDiv = document.createElement('div');
         warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning', 'space-related');
         warningDiv.innerHTML = html`<p>File path contains leading or trailing whitespace.</p>`;
-        // Add display 'block' because display is set to 'none' in formantic\build\semantic.css
-        warningDiv.style.display = 'block';
+        // Change to `block` display because it is set to 'none' in fomantic/build/semantic.css
+        warningDiv.classList.add('tw-block');
         const inputContainer = document.querySelector('.repo-editor-header')!;
         inputContainer.insertAdjacentElement('beforebegin', warningDiv);
       }
@@ -143,43 +176,36 @@ export function initRepoEditor() {
 
   const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form')!;
 
-  // on the upload page, there is no editor(textarea)
+  // see the ATTENTION above, on the upload page, there is no editor(textarea)
+  // so only the filename input above is initialized, the code below (for the code editor) will be skipped
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
   if (!editArea) return;
 
-  // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
-  // to enable or disable the commit button
   const commitButton = document.querySelector<HTMLButtonElement>('#commit-button')!;
-  const dirtyFileClass = 'dirty-file';
-
-  const syncCommitButtonState = () => {
-    const dirty = elForm.classList.contains(dirtyFileClass);
-    commitButton.disabled = !dirty;
-  };
-  // Registering a custom listener for the file path and the file content
-  // FIXME: it is not quite right here (old bug), it causes double-init, the global areYouSure "dirty" class will also be added
-  applyAreYouSure(elForm, {
-    silent: true,
-    dirtyClass: dirtyFileClass,
-    fieldSelector: ':input:not(.commit-form-wrapper :input)',
-    change: syncCommitButtonState,
-  });
-  syncCommitButtonState(); // disable the "commit" button when no content changes
+  commitButton.disabled = true;
+  elForm.querySelector('.commit-form-wrapper')!.classList.add('ays-ignore'); // commit form fields don't count
+  applyAreYouSure(elForm, (dirty) => commitButton.disabled = !dirty);
 
   initEditPreviewTab(elForm);
 
   (async () => {
     const editor = await createCodeEditor(editArea, filenameInput);
+    filenameInput.addEventListener('input', onInputDebounce(() => editor.updateFilename(filenameInput.value)));
 
     // Update the editor from query params, if available,
-    // only after the dirtyFileClass initialization
+    // only after the areYouSure initialization
     const params = new URLSearchParams(window.location.search);
     const value = params.get('value');
     if (value) {
-      editor.setValue(value);
+      editor.view.dispatch({
+        changes: {from: 0, to: editor.view.state.doc.length, insert: value},
+      });
     }
 
     commitButton.addEventListener('click', async (e) => {
+      if (editor.trimTrailingWhitespace) {
+        trimTrailingWhitespaceFromView(editor.view);
+      }
       // A modal which asks if an empty file should be committed
       if (!editArea.value) {
         e.preventDefault();
@@ -197,5 +223,5 @@ export function initRepoEditor() {
 
 export function renderPreviewPanelContent(previewPanel: Element, htmlContent: string) {
   // the content is from the server, so it is safe to use innerHTML
-  previewPanel.innerHTML = html`<div class="render-content markup">${htmlRaw(htmlContent)}</div>`;
+  previewPanel.innerHTML = html`<div class="render-content render-preview markup">${htmlRaw(htmlContent)}</div>`;
 }

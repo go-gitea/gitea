@@ -11,14 +11,13 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,14 +41,13 @@ func TestRepoMergeUpstream(t *testing.T) {
 
 		// create a fork
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseUser.Name, baseRepo.Name), &api.CreateForkOption{
-			Name: util.ToPointer("test-repo-fork"),
+			Name: new("test-repo-fork"),
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusAccepted)
 		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: forkUser.ID, Name: "test-repo-fork"})
 
 		// create fork-branch
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/test-repo-fork/branches/_new/branch/master", forkUser.Name), map[string]string{
-			"_csrf":           GetUserCSRFToken(t, session),
 			"new_branch_name": "fork-branch",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
@@ -81,7 +79,6 @@ func TestRepoMergeUpstream(t *testing.T) {
 			t.Run("DetectSameBranch", func(t *testing.T) {
 				// if the fork-branch name also exists in the base repo, then use that branch instead
 				req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/_new/branch/master", map[string]string{
-					"_csrf":           GetUserCSRFToken(t, sessionBaseUser),
 					"new_branch_name": "fork-branch",
 				})
 				sessionBaseUser.MakeRequest(t, req, http.StatusSeeOther)
@@ -99,14 +96,12 @@ func TestRepoMergeUpstream(t *testing.T) {
 			})
 
 			// click the "sync fork" button
-			req = NewRequestWithValues(t, "POST", mergeUpstreamLink, map[string]string{"_csrf": GetUserCSRFToken(t, session)})
+			req = NewRequest(t, "POST", mergeUpstreamLink)
 			session.MakeRequest(t, req, http.StatusOK)
 			checkFileContent("fork-branch", "test-content-1")
 
 			// delete the "fork-branch" from the base repo
-			req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/delete?name=fork-branch", map[string]string{
-				"_csrf": GetUserCSRFToken(t, sessionBaseUser),
-			})
+			req = NewRequest(t, "POST", "/user2/repo1/branches/delete?name=fork-branch")
 			sessionBaseUser.MakeRequest(t, req, http.StatusOK)
 		})
 
@@ -136,8 +131,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			resp := MakeRequest(t, req, http.StatusOK)
 			checkFileContent("fork-branch", "test-content-2")
 
-			var mergeResp api.MergeUpstreamResponse
-			DecodeJSON(t, resp, &mergeResp)
+			mergeResp := DecodeJSON(t, resp, &api.MergeUpstreamResponse{})
 			assert.Equal(t, "merge", mergeResp.MergeStyle)
 
 			// after merge, there should be no "sync fork" button anymore
@@ -151,7 +145,6 @@ func TestRepoMergeUpstream(t *testing.T) {
 		t.Run("FastForwardOnly", func(t *testing.T) {
 			// Create a clean branch for fast-forward testing
 			req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/test-repo-fork/branches/_new/branch/master", forkUser.Name), map[string]string{
-				"_csrf":           GetUserCSRFToken(t, session),
 				"new_branch_name": "ff-test-branch",
 			})
 			session.MakeRequest(t, req, http.StatusSeeOther)
@@ -166,8 +159,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var mergeResp api.MergeUpstreamResponse
-			DecodeJSON(t, resp, &mergeResp)
+			mergeResp := DecodeJSON(t, resp, &api.MergeUpstreamResponse{})
 			assert.Equal(t, "fast-forward", mergeResp.MergeStyle)
 
 			// ff_only=true when fast-forward is not possible (should fail)
@@ -178,6 +170,19 @@ func TestRepoMergeUpstream(t *testing.T) {
 				FfOnly: true,
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusBadRequest)
+		})
+
+		t.Run("BasePrivateBlocksSync", func(t *testing.T) {
+			// add a new commit to the base repo, then make the base repo private
+			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "secret.txt", "master", "private-content"))
+			baseRepo.IsPrivate = true
+			_, err := db.GetEngine(t.Context()).ID(baseRepo.ID).Cols("is_private").Update(baseRepo)
+			require.NoError(t, err)
+			// the fork owner can no longer read the base repo, so syncing must be refused
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/test-repo-fork/merge-upstream", forkUser.Name), &api.MergeUpstreamRequest{
+				Branch: "fork-branch",
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusForbidden)
 		})
 	})
 }

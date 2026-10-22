@@ -56,7 +56,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 0.25em;
+  gap: 0.5em;
 }
 
 .page-footer .right-links {

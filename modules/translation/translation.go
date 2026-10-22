@@ -10,11 +10,11 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/options"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation/i18n"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/options"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation/i18n"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -25,16 +25,7 @@ type contextKey struct{}
 
 var ContextKey any = &contextKey{}
 
-// Locale represents an interface to translation
-type Locale interface {
-	Language() string
-	TrString(string, ...any) string
-
-	Tr(key string, args ...any) template.HTML
-	TrN(cnt any, key1, keyN string, args ...any) template.HTML
-
-	PrettyNumber(v any) string
-}
+type Locale = i18n.LocaleTranslation
 
 // LangType represents a lang type
 type LangType struct {
@@ -74,6 +65,9 @@ func InitLocales(ctx context.Context) {
 
 		localeData := make(map[string][]byte, len(localeNames))
 		for _, name := range localeNames {
+			if !strings.HasPrefix(name, "locale_") || !strings.HasSuffix(name, ".json") {
+				continue
+			}
 			localeData[name], err = options.Locale(name)
 			if err != nil {
 				log.Fatal("Failed to load %s locale file. %v", name, err)
@@ -90,14 +84,14 @@ func InitLocales(ctx context.Context) {
 			var localeDataBase []byte
 			if i == 0 && setting.Langs[0] != "en-US" {
 				// Only en-US has complete translations. When use other language as default, the en-US should still be used as fallback.
-				localeDataBase = localeData["locale_en-US.ini"]
+				localeDataBase = localeData["locale_en-US.json"]
 				if localeDataBase == nil {
-					log.Fatal("Failed to load locale_en-US.ini file.")
+					log.Fatal("Failed to load locale_en-US.json file.")
 				}
 			}
 
-			key := "locale_" + setting.Langs[i] + ".ini"
-			if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localeDataBase, localeData[key]); err != nil {
+			key := "locale_" + setting.Langs[i] + ".json"
+			if err = i18n.DefaultLocales.AddLocaleByJSON(setting.Langs[i], setting.Names[i], localeDataBase, localeData[key]); err != nil {
 				log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 			}
 		}

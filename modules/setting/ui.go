@@ -6,8 +6,8 @@ package setting
 import (
 	"time"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
 )
 
 // UI settings
@@ -25,12 +25,14 @@ var UI = struct {
 	ReactionMaxUserNum      int
 	MaxDisplayFileSize      int64
 	ShowUserEmail           bool
-	DefaultShowFullName     bool
 	DefaultTheme            string
 	Themes                  []string
 	FileIconTheme           string
+	FolderIconTheme         string
 	Reactions               []string
+	ReleaseReactions        []string
 	ReactionsLookup         container.Set[string] `ini:"-"`
+	ReleaseReactionsLookup  container.Set[string] `ini:"-"`
 	CustomEmojis            []string
 	CustomEmojisMap         map[string]string `ini:"-"`
 	EnabledEmojis           []string
@@ -42,11 +44,19 @@ var UI = struct {
 
 	AmbiguousUnicodeDetection bool
 
+	// TODO: DefaultShowFullName is introduced by https://github.com/go-gitea/gitea/pull/6710
+	// But there are still many edge cases:
+	// * Many places still use "username", not respecting this setting
+	// * Many places use "Full Name" if it is not empty, cause inconsistent UI for users who have set their full name but some others don't
+	// * Even if DefaultShowFullName=false, many places still need to show the full name
+	// For most cases, either "username" or "username (Full Name)" should be used and are good enough.
+	// Only in very few cases (e.g.: unimportant lists, narrow layout), "username" or "Full Name" can be used.
+	DefaultShowFullName bool
+
 	Notification struct {
-		MinTimeout            time.Duration
-		TimeoutStep           time.Duration
-		MaxTimeout            time.Duration
-		EventSourceUpdateTime time.Duration
+		MinTimeout  time.Duration
+		TimeoutStep time.Duration
+		MaxTimeout  time.Duration
 	} `ini:"ui.notification"`
 
 	SVG struct {
@@ -88,7 +98,9 @@ var UI = struct {
 	MaxDisplayFileSize:      8388608,
 	DefaultTheme:            `gitea-auto`,
 	FileIconTheme:           `material`,
+	FolderIconTheme:         `basic`,
 	Reactions:               []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
+	ReleaseReactions:        []string{`+1`, `laugh`, `hooray`, `heart`, `rocket`, `eyes`},
 	CustomEmojis:            []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
 	CustomEmojisMap:         map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
 	ExploreDefaultSort:      "recentupdate",
@@ -97,15 +109,13 @@ var UI = struct {
 	AmbiguousUnicodeDetection: true,
 
 	Notification: struct {
-		MinTimeout            time.Duration
-		TimeoutStep           time.Duration
-		MaxTimeout            time.Duration
-		EventSourceUpdateTime time.Duration
+		MinTimeout  time.Duration
+		TimeoutStep time.Duration
+		MaxTimeout  time.Duration
 	}{
-		MinTimeout:            10 * time.Second,
-		TimeoutStep:           10 * time.Second,
-		MaxTimeout:            60 * time.Second,
-		EventSourceUpdateTime: 10 * time.Second,
+		MinTimeout:  10 * time.Second,
+		TimeoutStep: 10 * time.Second,
+		MaxTimeout:  60 * time.Second,
 	},
 	SVG: struct {
 		Enabled bool `ini:"ENABLE_RENDER"`
@@ -163,10 +173,9 @@ func loadUIFrom(rootCfg ConfigProvider) {
 	// because many private repositories do not have "description/topic", users just want to search by their names.
 	UI.OnlyShowRelevantRepos = sec.Key("ONLY_SHOW_RELEVANT_REPOS").MustBool(false)
 
-	UI.ReactionsLookup = make(container.Set[string])
-	for _, reaction := range UI.Reactions {
-		UI.ReactionsLookup.Add(reaction)
-	}
+	UI.ReactionsLookup = container.SetOf(UI.Reactions...)
+	UI.ReleaseReactionsLookup = container.SetOf(UI.ReleaseReactions...)
+
 	UI.CustomEmojisMap = make(map[string]string)
 	for _, emoji := range UI.CustomEmojis {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"

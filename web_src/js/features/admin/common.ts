@@ -1,7 +1,9 @@
 import {checkAppUrl} from '../common-page.ts';
 import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
-import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {showModal} from '../../modules/modal.ts';
+import {pathEscape} from '../../utils/url.ts';
+import {registerGlobalInitFunc} from '../../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
@@ -22,35 +24,65 @@ export function initAdminCommon(): void {
   initAdminUser();
   initAdminAuthentication();
   initAdminNotice();
+  registerGlobalInitFunc('initRunnerBulkToolbar', initAdminRunnerBulk);
+}
+
+function initAdminRunnerBulk(toolbar: HTMLElement) {
+  const actionButtons = toolbar.querySelectorAll<HTMLButtonElement>('.runner-bulk-action');
+  const formRunnerIds = toolbar.querySelector<HTMLInputElement>('form input[name="ids"]')!;
+  const rowCheckboxes = document.querySelectorAll<HTMLInputElement>('.runner-bulk-select');
+  const selectAll = document.querySelector<HTMLInputElement>('.runner-bulk-select-all');
+  if (!selectAll) return;
+
+  const refresh = () => {
+    const checked = Array.from(rowCheckboxes).filter((c) => c.checked);
+    formRunnerIds.value = checked.map((c) => c.getAttribute('data-runner-id')!).join(',');
+    toggleElem(toolbar, checked.length > 0);
+    for (const btn of actionButtons) {
+      btn.querySelector<HTMLElement>('.runner-bulk-count')!.textContent = `(${checked.length})`;
+    }
+    selectAll.checked = checked.length > 0 && checked.length === rowCheckboxes.length;
+    selectAll.indeterminate = checked.length > 0 && checked.length < rowCheckboxes.length;
+  };
+
+  selectAll.addEventListener('change', () => {
+    for (const cb of rowCheckboxes) cb.checked = selectAll.checked;
+    refresh();
+  });
+  for (const cb of rowCheckboxes) cb.addEventListener('change', refresh);
+  refresh();
 }
 
 function initAdminUser() {
   const pageContent = document.querySelector('.page-content.admin.edit.user, .page-content.admin.new.user');
-  if (!pageContent) return;
+  const elLoginType = document.querySelector<HTMLInputElement>('#login_type');
+  if (!pageContent || !elLoginType) return;
+  const isNew = pageContent.classList.contains('new');
+  const elUserType = document.querySelector<HTMLInputElement>('#user_type');
+  const elUserName = document.querySelector<HTMLInputElement>('#user_name')!;
+  const elLoginName = document.querySelector<HTMLInputElement>('#login_name')!;
+  const elPassword = document.querySelector<HTMLInputElement>('#password')!;
 
-  document.querySelector<HTMLInputElement>('#login_type')?.addEventListener('change', function () {
-    if (this.value?.startsWith('0')) {
-      document.querySelector<HTMLInputElement>('#user_name')?.removeAttribute('disabled');
-      document.querySelector<HTMLInputElement>('#login_name')?.removeAttribute('required');
-      hideElem('.non-local');
-      showElem('.local');
-      document.querySelector<HTMLInputElement>('#user_name')?.focus();
-
-      if (this.getAttribute('data-password') === 'required') {
-        document.querySelector('#password')?.setAttribute('required', 'required');
-      }
-    } else {
-      if (document.querySelector<HTMLDivElement>('.admin.edit.user')) {
-        document.querySelector<HTMLInputElement>('#user_name')?.setAttribute('disabled', 'disabled');
-      }
-      document.querySelector<HTMLInputElement>('#login_name')?.setAttribute('required', 'required');
-      showElem('.non-local');
-      hideElem('.local');
-      document.querySelector<HTMLInputElement>('#login_name')?.focus();
-
-      document.querySelector<HTMLInputElement>('#password')?.removeAttribute('required');
+  const syncFields = (focusField: boolean) => {
+    const isBot = elUserType?.value === 'Bot';
+    const isLocal = !isBot && elLoginType.value.startsWith('0'); // login type 0 is a local account without auth source
+    toggleElem('.js-non-bot', !isBot);
+    if (!isBot) {
+      toggleElem('.js-local', isLocal);
+      toggleElem('.js-non-local', !isLocal);
     }
-  });
+    elLoginName.toggleAttribute('required', !isBot && !isLocal);
+    if (isNew) {
+      elPassword.toggleAttribute('required', isLocal);
+    } else {
+      elUserName.toggleAttribute('disabled', !isBot && !isLocal);
+    }
+    if (focusField) (isBot || isLocal ? elUserName : elLoginName).focus();
+  };
+
+  elUserType?.addEventListener('change', () => syncFields(true));
+  elLoginType.addEventListener('change', () => syncFields(true));
+  if (isNew) syncFields(false);
 }
 
 function initAdminAuthentication() {
@@ -77,7 +109,7 @@ function initAdminAuthentication() {
   }
 
   function onOAuth2Change(applyDefaultValues: boolean) {
-    hideElem('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url');
+    hideElem('.open_id_connect_auto_discovery_url, .open_id_connect_external_id_claim, .oauth2_use_custom_url');
     for (const input of document.querySelectorAll<HTMLInputElement>('.open_id_connect_auto_discovery_url input[required]')) {
       input.removeAttribute('required');
     }
@@ -85,8 +117,10 @@ function initAdminAuthentication() {
     const provider = document.querySelector<HTMLInputElement>('#oauth2_provider')!.value;
     switch (provider) {
       case 'openidConnect':
+      case 'aws-cognito':
         document.querySelector<HTMLInputElement>('.open_id_connect_auto_discovery_url input')!.setAttribute('required', 'required');
         showElem('.open_id_connect_auto_discovery_url');
+        showElem('.open_id_connect_external_id_claim');
         break;
       default: {
         const elProviderCustomUrlSettings = document.querySelector<HTMLInputElement>(`#${provider}_customURLSettings`);
@@ -122,7 +156,7 @@ function initAdminAuthentication() {
           document.querySelector<HTMLInputElement>(`#oauth2_${custom}`)!.value = document.querySelector<HTMLInputElement>(`#${provider}_${custom}`)!.value;
         }
         const customInput = document.querySelector(`#${provider}_${custom}`);
-        if (customInput && customInput.getAttribute('data-available') === 'true') {
+        if (customInput?.getAttribute('data-available') === 'true') {
           for (const input of document.querySelectorAll(`.oauth2_${custom} input`)) {
             input.setAttribute('required', 'required');
           }
@@ -230,7 +264,7 @@ function initAdminAuthentication() {
   const elAuthName = document.querySelector<HTMLInputElement>('#auth_name')!;
   const onAuthNameChange = function () {
     // appSubUrl is either empty or is a path that starts with `/` and doesn't have a trailing slash.
-    document.querySelector('#oauth2-callback-url')!.textContent = `${window.location.origin}${appSubUrl}/user/oauth2/${encodeURIComponent(elAuthName.value)}/callback`;
+    document.querySelector('#oauth2-callback-url')!.textContent = `${window.location.origin}${appSubUrl}/user/oauth2/${pathEscape(elAuthName.value)}/callback`;
   };
   elAuthName.addEventListener('input', onAuthNameChange);
   onAuthNameChange();
@@ -240,7 +274,7 @@ function initAdminNotice() {
   const pageContent = document.querySelector('.page-content.admin.notice');
   if (!pageContent) return;
 
-  const detailModal = document.querySelector<HTMLDivElement>('#detail-modal')!;
+  const detailModal = document.querySelector<HTMLDialogElement>('#detail-modal')!;
 
   // Attach view detail modals
   queryElems(pageContent, '.view-detail', (el) => el.addEventListener('click', (e) => {
@@ -248,14 +282,14 @@ function initAdminNotice() {
     const elNoticeDesc = el.closest('tr')!.querySelector('.notice-description')!;
     const elModalDesc = detailModal.querySelector('.content pre')!;
     elModalDesc.textContent = elNoticeDesc.textContent;
-    fomanticQuery(detailModal).modal('show');
+    showModal(detailModal);
   }));
 
   // Select actions
   const checkboxes = document.querySelectorAll<HTMLInputElement>('.select.table .ui.checkbox input');
 
   queryElems(pageContent, '.select.action', (el) => el.addEventListener('click', () => {
-    switch (el.getAttribute('data-action')) {
+    switch (el.getAttribute('data-action')!) {
       case 'select-all':
         for (const checkbox of checkboxes) {
           checkbox.checked = true;
@@ -284,6 +318,6 @@ function initAdminNotice() {
       }
     }
     await POST(this.getAttribute('data-link')!, {data});
-    window.location.href = this.getAttribute('data-redirect')!;
+    window.location.reload();
   });
 }

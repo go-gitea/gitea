@@ -4,19 +4,14 @@
 package misc
 
 import (
-	"code.gitea.io/gitea/modules/git"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/git"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/context"
 )
 
 func getSigningKey(ctx *context.APIContext, expectedFormat string) {
-	// if the handler is in the repo's route group, get the repo's signing key
-	// otherwise, get the global signing key
-	path := ""
-	if ctx.Repo != nil && ctx.Repo.Repository != nil {
-		path = ctx.Repo.Repository.RepoPath()
-	}
-	content, format, err := asymkey_service.PublicSigningKey(ctx, path)
+	// get the global signing key
+	content, format, err := asymkey_service.PublicSigningKey(ctx)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
