@@ -208,12 +208,12 @@ func TestHTMLChunkReader(t *testing.T) {
 		r := &htmlChunkReader{in: strings.NewReader(input), readBuf: make([]byte, 0, chunkSize)}
 		var results []textPart
 		for {
-			parts, partIsTag, err := r.readRunes()
+			readResults, err := r.readRunes()
 			if err != nil {
 				break
 			}
-			for i, part := range parts {
-				results = append(results, textPart{string(part), partIsTag[i]})
+			for _, res := range readResults {
+				results = append(results, textPart{string(res.content), res.inTag})
 			}
 		}
 		assert.Equal(t, expected, results, "chunk size: %d, input: %s", chunkSize, input)
@@ -268,7 +268,7 @@ func FuzzEscapeControlHTML(f *testing.F) {
 		assert.Equal(t, *wantStatus, *gotStatus)
 		assert.Equal(t, want.String(), string(got))
 
-		if isSafeASCII(s) {
+		if isStringAsciiSafe(s) {
 			es := &escapeStreamer{escaped: &EscapeStatus{}, locale: locale, ambiguousTables: AmbiguousTablesForLocale(locale)}
 			results := es.detectRunes([]byte(s))
 			es.analyzeDetectResults(results)

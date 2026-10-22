@@ -9,6 +9,7 @@ import (
 	"html"
 	"io"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -21,11 +22,10 @@ type htmlChunkReader struct {
 	in       io.Reader
 	readErr  error
 	readBuf  []byte
-	consumed int // bytes of readBuf returned as parts, only dropped on the next read because the parts slice them
 	curInTag bool
 
-	parts     [][]byte
-	partInTag []bool
+	asciiSafeBytes [256]bool
+	readResults    []readResult
 }
 
 type escapeStreamer struct {
@@ -40,7 +40,7 @@ type escapeStreamer struct {
 
 	inTagMath bool // MathML operators like U+2212 are intended and wrapping them breaks the math layout
 
-	results []detectResult // reused by detectRunes
+	detectResults []detectResult
 
 	out io.Writer
 }
@@ -48,17 +48,18 @@ type escapeStreamer struct {
 func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts ...EscapeOptions) (*EscapeStatus, error) {
 	bufSize := 32 * 1024
 	if sr, ok := in.(*strings.Reader); ok {
-		bufSize = min(32*1024, max(64, sr.Len()))
+		bufSize = min(32*1024, max(512, sr.Len()))
 	} else if br, ok := in.(*bytes.Reader); ok {
-		bufSize = min(32*1024, max(64, br.Len()))
+		bufSize = min(32*1024, max(512, br.Len()))
 	}
 	es := &escapeStreamer{
 		escaped:         &EscapeStatus{},
 		locale:          locale,
 		ambiguousTables: AmbiguousTablesForLocale(locale),
 		htmlChunkReader: htmlChunkReader{
-			in:      in,
-			readBuf: make([]byte, 0, bufSize),
+			in:             in,
+			readBuf:        make([]byte, 0, bufSize),
+			asciiSafeBytes: asciiSafeByteMap(),
 		},
 		out: out,
 	}
@@ -70,18 +71,18 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 	readCount := 0
 	lastIsTag := false
 	for {
-		parts, partInTag, err := es.readRunes()
+		readResults, err := es.readRunes()
 		readCount++
 		if err == io.EOF {
 			return es.escaped, nil
 		} else if err != nil {
 			return nil, err
 		}
-		for i, part := range parts {
-			if partInTag[i] {
+		for i, res := range readResults {
+			if res.inTag {
 				lastIsTag = true
-				es.trackHtmlTag(part)
-				if _, err := out.Write(part); err != nil {
+				es.trackHtmlTag(res.content)
+				if _, err := out.Write(res.content); err != nil {
 					return nil, err
 				}
 			} else {
@@ -90,15 +91,15 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 				isContentBegin := lastIsTag || (readCount == 1 && i == 0)
 				lastIsTag = false
 				if isContentBegin {
-					if part, err = es.trimAndWriteBom(part); err != nil {
+					if res.content, err = es.trimAndWriteBom(res.content); err != nil {
 						return nil, err
 					}
 				}
-				if es.inTagMath {
-					if _, err := out.Write(part); err != nil {
+				if es.inTagMath || res.asciiSafe {
+					if _, err := out.Write(res.content); err != nil {
 						return nil, err
 					}
-				} else if err = es.detectAndWriteRunes(part); err != nil {
+				} else if err = es.detectAndWriteRunes(res.content); err != nil {
 					return nil, err
 				}
 			}
@@ -112,9 +113,6 @@ func (e *escapeStreamer) trackHtmlTag(part []byte) {
 	if part[0] == '<' {
 		// start a new tag
 		e.tagPartial = e.tagPartial[:0]
-	}
-	if e.tagPartial == nil {
-		e.tagPartial = make([]byte, 0, maxHeadLen)
 	}
 	if len(e.tagPartial) >= maxHeadLen {
 		return
@@ -185,34 +183,42 @@ func (e *escapeStreamer) analyzeDetectResults(results []detectResult) {
 	}
 }
 
-// isSafeASCII reports whether s only has printable ASCII, tabs and newlines, which never need escaping
-func isSafeASCII[T ~string | ~[]byte](s T) bool {
-	for i := 0; i < len(s); i++ {
-		if c := s[i]; (c < 0x20 || c > 0x7e) && c != '\t' && c != '\n' {
-			return false
-		}
+var asciiSafeByteMap = sync.OnceValue(func() (ret [256]bool) {
+	for i := 0; i < 256; i++ {
+		c := byte(i)
+		ret[i] = (c >= 0x20 && c <= 0x7e) || c == '\t' || c == '\n'
 	}
-	return true
-}
+	return ret
+})
 
 func (e *escapeStreamer) detectAndWriteRunes(part []byte) error {
-	if isSafeASCII(part) { // none of its runes can need escaping, whatever runes surround them
-		_, err := e.out.Write(part)
-		return err
-	}
 	results := e.detectRunes(part)
 	e.analyzeDetectResults(results)
 	return e.writeDetectResults(part, results)
 }
 
-// readRunes returns parts that are only valid until the next call
-func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error) {
-	e.readBuf = e.readBuf[:copy(e.readBuf, e.readBuf[e.consumed:])]
-	e.consumed = 0
+func (e *htmlChunkReader) indexByte(buf []byte, b byte) (idx int, asciiSafe bool) {
+	asciiSafe = true
+	for i, c := range buf {
+		asciiSafe = asciiSafe && e.asciiSafeBytes[c]
+		if c == b {
+			return i, asciiSafe
+		}
+	}
+	return -1, asciiSafe
+}
 
+type readResult struct {
+	content   []byte
+	inTag     bool
+	asciiSafe bool
+}
+
+func (e *htmlChunkReader) readRunes() ([]readResult, error) {
+	e.readResults = e.readResults[:0]
 	// we have read everything, eof
 	if e.readErr != nil && len(e.readBuf) == 0 {
-		return nil, nil, e.readErr
+		return e.readResults, e.readErr
 	}
 
 	// not eof, and the there is space in the buffer, try to read more data
@@ -222,21 +228,18 @@ func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error
 		e.readBuf = e.readBuf[:len(e.readBuf)+n]
 	}
 	if len(e.readBuf) == 0 {
-		return nil, nil, e.readErr
+		return e.readResults, e.readErr
 	}
 
 	// try to exact tag parts and content parts
-	if n := 2*bytes.Count(e.readBuf, []byte{'<'}) + 2; cap(e.parts) < n { // each tag and the content after it
-		e.parts, e.partInTag = make([][]byte, 0, n), make([]bool, 0, n)
-	}
-	parts, partInTag = e.parts[:0], e.partInTag[:0]
 	pos := 0
 	for pos < len(e.readBuf) {
-		var curPartEnd int
+		var idx, curPartEnd int
 		nextInTag := e.curInTag
+		curAsciiSafe := false
 		if e.curInTag {
 			// if cur part is in tag, try to find the tag close char '>'
-			idx := bytes.IndexByte(e.readBuf[pos:], '>')
+			idx, curAsciiSafe = e.indexByte(e.readBuf[pos:], '>')
 			if idx == -1 {
 				// if no tag close char, then the whole buffer is in tag
 				curPartEnd = len(e.readBuf)
@@ -247,7 +250,7 @@ func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error
 			}
 		} else {
 			// if cur part is in content, try to find the tag open char '<'
-			idx := bytes.IndexByte(e.readBuf[pos:], '<')
+			idx, curAsciiSafe = e.indexByte(e.readBuf[pos:], '<')
 			if idx == -1 {
 				// if no tag open char, then the whole buffer is in content
 				curPartEnd = len(e.readBuf)
@@ -269,7 +272,8 @@ func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error
 		}
 
 		// now, curPartLen can't be 0
-		curPart := e.readBuf[pos:curPartEnd]
+		curPart := make([]byte, curPartLen)
+		copy(curPart, e.readBuf[pos:curPartEnd])
 		// now we get the curPart bytes, but we can't directly use it, the last rune in it might have been cut
 		// by the end of the buffer, then its bytes are left to the next read. Invalid bytes are never cut, otherwise
 		// they would be split off into a separate part, or even into the next tag part.
@@ -297,9 +301,7 @@ func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error
 
 		// finally, we get the real part we need
 		curPart = curPart[:curPartLen]
-		parts = append(parts, curPart)
-		partInTag = append(partInTag, e.curInTag)
-
+		e.readResults = append(e.readResults, readResult{content: curPart, inTag: e.curInTag, asciiSafe: curAsciiSafe})
 		pos += curPartLen
 		e.curInTag = nextInTag
 
@@ -309,9 +311,9 @@ func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error
 		}
 	}
 
-	e.consumed = pos
-	e.parts, e.partInTag = parts, partInTag
-	return parts, partInTag, nil
+	copy(e.readBuf, e.readBuf[pos:])
+	e.readBuf = e.readBuf[:len(e.readBuf)-pos]
+	return e.readResults, nil
 }
 
 func (e *escapeStreamer) writeDetectResults(data []byte, results []detectResult) error {
@@ -456,10 +458,10 @@ const (
 
 func (e *escapeStreamer) detectRunes(data []byte) []detectResult {
 	runeCount := utf8.RuneCount(data)
-	if cap(e.results) < runeCount {
-		e.results = make([]detectResult, runeCount)
+	if cap(e.detectResults) < runeCount {
+		e.detectResults = make([]detectResult, runeCount)
 	}
-	results := e.results[:runeCount]
+	results := e.detectResults[:runeCount]
 	clear(results)
 	invisibleRangeTable := globalVars().invisibleRangeTable
 	var i int

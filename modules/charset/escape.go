@@ -28,15 +28,26 @@ func EscapeOptionsForView() EscapeOptions {
 	}
 }
 
+func isStringAsciiSafe[T ~string | ~[]byte](s T) bool {
+	m := asciiSafeByteMap()
+	for i := 0; i < len(s); i++ {
+		if !m[s[i]] {
+			return false
+		}
+	}
+	return true
+}
+
 // EscapeControlHTML escapes the Unicode control sequences in a provided html document
 func EscapeControlHTML(html template.HTML, locale translation.Locale, opts ...EscapeOptions) (escaped *EscapeStatus, output template.HTML) {
-	if !setting.UI.AmbiguousUnicodeDetection || isSafeASCII(html) { // most code lines, nothing in them can need escaping
+	if !setting.UI.AmbiguousUnicodeDetection || isStringAsciiSafe(html) { // most code lines, nothing in them can need escaping
 		return &EscapeStatus{}, html
 	}
-	sb := &strings.Builder{}
-	sb.Grow(len(html))
-	escaped, _ = escapeStream(locale, strings.NewReader(string(html)), sb, opts...)
-	return escaped, template.HTML(sb.String())
+
+	w := &htmlutil.HTMLBuilder{}
+	w.Grow(len(html) + 32)
+	escaped, _ = EscapeControlReader(strings.NewReader(string(html)), w, locale, opts...)
+	return escaped, w.HTMLString()
 }
 
 // EscapeControlReader escapes the Unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
