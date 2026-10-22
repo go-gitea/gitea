@@ -12,6 +12,20 @@ import (
 	user_model "gitea.dev/models/user"
 )
 
+// TokenAllowsPrivateData reports whether the request may see private data guarded by any of the given
+// scopes: always for non-token requests, never for public-only tokens.
+func TokenAllowsPrivateData(ctx *Context, scopes ...auth_model.AccessTokenScope) bool {
+	scope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
+	if !hasApiTokenScope {
+		return true
+	}
+	if user_model.IsPublicOnlyDoer(ctx.Doer) {
+		return false
+	}
+	allowed, err := scope.HasAnyScope(scopes...)
+	return err == nil && allowed
+}
+
 // CheckTokenScopes checks whether the authenticated API token contains any of the given scopes.
 func CheckTokenScopes(ctx *Context, scopes ...auth_model.AccessTokenScope) {
 	scope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)

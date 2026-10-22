@@ -256,6 +256,16 @@ func rejectPublicOnly() func(ctx *context.APIContext) {
 	}
 }
 
+// rejectSystemDoer rejects system doers (e.g. Actions tasks) on routes scoped to the doer's own account,
+// their negative IDs would otherwise disable owner filters
+func rejectSystemDoer() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.Doer != nil && ctx.Doer.ID <= 0 {
+			ctx.APIError(http.StatusForbidden, "this endpoint is not available for system users")
+		}
+	}
+}
+
 func contextAuthenticatedUser() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !user_model.DoerTokenAllowsOwner(ctx.Doer, ctx.Doer) {
@@ -1127,7 +1137,7 @@ func Routes() *web.Router {
 
 				m.Get("/runs", reqToken(), user.ListWorkflowRuns)
 				m.Get("/jobs", reqToken(), user.ListWorkflowJobs)
-			}, rejectPublicOnly())
+			}, rejectPublicOnly(), rejectSystemDoer())
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {

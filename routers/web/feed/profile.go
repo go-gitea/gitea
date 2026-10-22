@@ -7,11 +7,13 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	feed_service "gitea.dev/services/feed"
 
@@ -48,6 +50,11 @@ func showUserFeed(ctx *context.Context, formatType string) {
 			return
 		}
 		includePrivate = isOrgMember
+	}
+
+	// an API token must not surface private activity beyond its scope, even for its own owner
+	if includePrivate && !context.TokenAllowsPrivateData(ctx, util.Iif(isOrganisation, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)) {
+		includePrivate = false
 	}
 
 	actions, _, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{

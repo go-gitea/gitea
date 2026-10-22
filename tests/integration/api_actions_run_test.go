@@ -627,6 +627,14 @@ func testAPIActionsListUserWorkflows(t *testing.T) {
 		}
 	})
 
+	t.Run("TaskTokenRejected", func(t *testing.T) {
+		task := createActionTask(t, 4, true)
+		for _, path := range []string{"runs", "jobs", "runners"} {
+			req := NewRequest(t, "GET", "/api/v1/user/actions/"+path).AddTokenAuth(task.Token)
+			MakeRequest(t, req, http.StatusForbidden)
+		}
+	})
+
 	t.Run("JobsDefaultOrderAsc", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs").AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
