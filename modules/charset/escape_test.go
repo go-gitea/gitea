@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"strings"
 	"testing"
-	"testing/iotest"
 
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
@@ -247,7 +246,7 @@ func TestHTMLChunkReader(t *testing.T) {
 	testReadChunks(t, 7, input, []textPart{{"<Aé啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
 }
 
-// FuzzEscapeControlHTML checks the in-memory path against the streaming one, and that the ASCII shortcut skips nothing
+// FuzzEscapeControlHTML checks that the ASCII shortcut skips nothing
 func FuzzEscapeControlHTML(f *testing.F) {
 	for _, tt := range escapeControlTests {
 		f.Add(tt.text)
@@ -262,19 +261,15 @@ func FuzzEscapeControlHTML(f *testing.F) {
 	defer test.MockVariableValue(&setting.UI.AmbiguousUnicodeDetection, true)()
 	locale := &translation.MockLocale{}
 	f.Fuzz(func(t *testing.T, s string) {
-		if len(s) > 16*1024 {
-			return // the streaming path reads longer input in several chunks and splits text parts at the chunk borders
-		}
-		// with EOF together with the data, the streaming path doesn't hold back a possibly incomplete last rune
 		want := &strings.Builder{}
-		wantStatus, err := escapeStream(locale, iotest.DataErrReader(strings.NewReader(s)), want)
+		wantStatus, err := escapeStream(locale, strings.NewReader(s), want)
 		require.NoError(t, err)
 		gotStatus, got := EscapeControlHTML(template.HTML(s), locale)
 		assert.Equal(t, *wantStatus, *gotStatus)
 		assert.Equal(t, want.String(), string(got))
 
 		if isSafeASCII(s) {
-			es := newEscapeStreamer(locale, &strings.Builder{})
+			es := &escapeStreamer{escaped: &EscapeStatus{}, locale: locale, ambiguousTables: AmbiguousTablesForLocale(locale)}
 			results := es.detectRunes([]byte(s))
 			es.analyzeDetectResults(results)
 			for _, res := range results {

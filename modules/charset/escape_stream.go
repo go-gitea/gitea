@@ -41,19 +41,6 @@ type escapeStreamer struct {
 	out io.Writer
 }
 
-func newEscapeStreamer(locale translation.Locale, out io.Writer, opts ...EscapeOptions) *escapeStreamer {
-	es := &escapeStreamer{
-		escaped:         &EscapeStatus{},
-		locale:          locale,
-		ambiguousTables: AmbiguousTablesForLocale(locale),
-		out:             out,
-	}
-	if len(opts) > 0 {
-		es.allowed = opts[0].Allowed
-	}
-	return es
-}
-
 func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts ...EscapeOptions) (*EscapeStatus, error) {
 	bufSize := 32 * 1024
 	if sr, ok := in.(*strings.Reader); ok {
@@ -61,8 +48,20 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 	} else if br, ok := in.(*bytes.Reader); ok {
 		bufSize = min(32*1024, max(512, br.Len()))
 	}
-	es := newEscapeStreamer(locale, out, opts...)
-	es.htmlChunkReader = htmlChunkReader{in: in, readBuf: make([]byte, 0, bufSize)}
+	es := &escapeStreamer{
+		escaped:         &EscapeStatus{},
+		locale:          locale,
+		ambiguousTables: AmbiguousTablesForLocale(locale),
+		htmlChunkReader: htmlChunkReader{
+			in:      in,
+			readBuf: make([]byte, 0, bufSize),
+		},
+		out: out,
+	}
+
+	if len(opts) > 0 {
+		es.allowed = opts[0].Allowed
+	}
 
 	readCount := 0
 	lastIsTag := false
@@ -75,57 +74,32 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 			return nil, err
 		}
 		for i, part := range parts {
-			// if last part is tag, then this part is content begin
-			// if the content is the first part of the first read, then it's also content begin
-			isContentBegin := lastIsTag || (readCount == 1 && i == 0)
-			lastIsTag = partInTag[i]
-			if err = es.writePart(part, partInTag[i], isContentBegin); err != nil {
-				return nil, err
+			if partInTag[i] {
+				lastIsTag = true
+				es.trackHtmlTag(part)
+				if _, err := out.Write(part); err != nil {
+					return nil, err
+				}
+			} else {
+				// if last part is tag, then this part is content begin
+				// if the content is the first part of the first read, then it's also content begin
+				isContentBegin := lastIsTag || (readCount == 1 && i == 0)
+				lastIsTag = false
+				if isContentBegin {
+					if part, err = es.trimAndWriteBom(part); err != nil {
+						return nil, err
+					}
+				}
+				if es.inTagMath {
+					if _, err := out.Write(part); err != nil {
+						return nil, err
+					}
+				} else if err = es.detectAndWriteRunes(part); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
-}
-
-// escapeString escapes a document that is completely in memory, splitting it like readRunes does at EOF,
-// but its parts are slices of s instead of copies
-func (e *escapeStreamer) escapeString(s string) *EscapeStatus {
-	data := util.UnsafeStringToBytes(s) // only read, never modified
-	inTag, lastIsTag := false, false
-	for pos, i := 0, 0; pos < len(data); i++ {
-		end, nextInTag := len(data), inTag
-		if inTag {
-			if idx := bytes.IndexByte(data[pos:], '>'); idx != -1 {
-				end, nextInTag = pos+idx+1, false
-			}
-		} else if idx := bytes.IndexByte(data[pos:], '<'); idx != -1 {
-			end, nextInTag = pos+idx, true
-		}
-		if end > pos {
-			isContentBegin := lastIsTag || i == 0
-			lastIsTag = inTag
-			_ = e.writePart(data[pos:end], inTag, isContentBegin) // writing to a strings.Builder never fails
-		}
-		pos, inTag = end, nextInTag
-	}
-	return e.escaped
-}
-
-func (e *escapeStreamer) writePart(part []byte, inTag, isContentBegin bool) (err error) {
-	if inTag {
-		e.trackHtmlTag(part)
-		_, err = e.out.Write(part)
-		return err
-	}
-	if isContentBegin {
-		if part, err = e.trimAndWriteBom(part); err != nil {
-			return err
-		}
-	}
-	if e.inTagMath {
-		_, err = e.out.Write(part)
-		return err
-	}
-	return e.detectAndWriteRunes(part)
 }
 
 // trackHtmlTag receives tag parts, a tag might be split into multiple parts
