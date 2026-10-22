@@ -5,7 +5,9 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -17,13 +19,318 @@ import (
 	"testing"
 	"time"
 
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
 	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 
 	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestGithubMissingCommentIssue(t *testing.T) {
+	defer test.MockVariableValue(&setting.Migrations.MaxAttempts, 2)()
+	defer test.MockVariableValue(&setting.Migrations.RetryBackoff, 0)()
+	for _, scenario := range []string{"recover", "forbidden", "not found", "pull request", "wrong number", "wrong repository", "issues disabled"} {
+		t.Run(scenario, func(t *testing.T) {
+			unittest.PrepareTestEnv(t)
+			requests := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("X-RateLimit-Remaining", "100")
+				if strings.HasSuffix(r.URL.Path, "/reactions") {
+					if r.URL.Query().Get("page") == "1" {
+						_, _ = w.Write([]byte(`[{"user":{"id":2,"login":"reviewer"},"content":"+1"}]`))
+					} else {
+						_, _ = w.Write([]byte(`[]`))
+					}
+					return
+				}
+				assert.Equal(t, "/api/v3/repos/o/r/issues/4877", r.URL.Path)
+				requests++
+				if scenario == "recover" && requests == 1 {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				if scenario == "forbidden" || scenario == "not found" {
+					status := http.StatusForbidden
+					if scenario == "not found" {
+						status = http.StatusNotFound
+					}
+					w.WriteHeader(status)
+					return
+				}
+				issue := map[string]any{
+					"number": 4877, "title": "Missing issue", "body": "Original body", "state": "closed",
+					"repository_url": "http://" + r.Host + "/api/v3/repos/o/r",
+					"user":           map[string]any{"id": 1, "login": "author"},
+					"created_at":     "2024-08-12T08:38:46Z", "updated_at": "2025-01-21T10:05:11Z", "closed_at": "2025-01-21T10:05:11Z",
+					"labels":    []any{map[string]any{"name": "bug"}},
+					"assignees": []any{map[string]any{"login": "assignee"}},
+					"milestone": map[string]any{"title": "v1"}, "reactions": map[string]any{"total_count": 1},
+				}
+				switch scenario {
+				case "pull request":
+					issue["pull_request"] = map[string]any{"url": "pulls/4877"}
+				case "wrong number":
+					issue["number"] = 4878
+				case "wrong repository":
+					issue["repository_url"] = "http://" + r.Host + "/api/v3/repos/other/repo"
+				}
+				assert.NoError(t, json.NewEncoder(w).Encode(issue))
+			}))
+			defer server.Close()
+			downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+			require.NoError(t, err)
+			local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
+			local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+			local.gitServiceType = structs.GithubService
+			require.NoError(t, local.CreateIssues(t.Context(), &base.Issue{Number: 4876, Title: "Existing"}))
+			uploader := githubMigrationUploader(local, base.NewRetryDownloader(downloader, 2, 0), base.MigrateOptions{Issues: scenario != "issues disabled"})
+			comments := []*base.Comment{{Index: 1, IssueIndex: 4876}, {Index: 2, IssueIndex: 4877}, {Index: 3, IssueIndex: 4877}}
+			err = uploader.CreateComments(t.Context(), comments...)
+			if scenario != "recover" {
+				require.Error(t, err)
+				assert.Zero(t, unittest.GetCount(t, &issues_model.Comment{IssueID: local.issues[4876].ID}))
+				assert.Len(t, local.issues, 1)
+				if scenario == "issues disabled" {
+					assert.Zero(t, requests)
+				}
+				return
+			}
+			require.NoError(t, err)
+			issue := local.issues[4877]
+			require.NotNil(t, issue)
+			assert.Equal(t, "Missing issue", issue.Title)
+			assert.Equal(t, "Original body", issue.Content)
+			assert.True(t, issue.IsClosed)
+			assert.Equal(t, "2024-08-12T08:38:46Z", issue.CreatedUnix.AsTime().UTC().Format(time.RFC3339))
+			assert.Equal(t, "2025-01-21T10:05:11Z", issue.ClosedUnix.AsTime().UTC().Format(time.RFC3339))
+			assert.Equal(t, 1, unittest.GetCount(t, &issues_model.Comment{IssueID: local.issues[4876].ID}))
+			assert.Equal(t, 2, unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID}))
+			assert.Equal(t, 1, unittest.GetCount(t, &issues_model.Reaction{IssueID: issue.ID}))
+			require.NoError(t, uploader.CreateComments(t.Context(), &base.Comment{Index: 4, IssueIndex: 4877}))
+			assert.Equal(t, 2, requests)
+			assert.Equal(t, 3, unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID}))
+		})
+	}
+}
+
+func TestGithubReactionRequests(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		reactions *github.Reactions
+		skip      bool
+		want      int
+	}{
+		{name: "missing", want: 1},
+		{name: "missing total", reactions: &github.Reactions{}, want: 1},
+		{name: "zero", reactions: &github.Reactions{TotalCount: new(0)}},
+		{name: "nonzero", reactions: &github.Reactions{TotalCount: new(1)}, want: 1},
+		{name: "multiple pages", reactions: &github.Reactions{TotalCount: new(2)}, want: 2},
+		{name: "skip", reactions: &github.Reactions{TotalCount: new(1)}, skip: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			payload, err := json.Marshal([]any{map[string]any{
+				"id": 1, "number": 1, "title": "Issue", "user": map[string]any{},
+				"issue_url": "https://api.github.com/repos/o/r/issues/1", "reactions": tc.reactions,
+			}})
+			require.NoError(t, err)
+			reactionRequests := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("X-RateLimit-Remaining", "100")
+				if strings.HasSuffix(r.URL.Path, "/reactions") {
+					reactionRequests++
+					if tc.want == 2 && r.URL.Query().Get("page") == "1" {
+						w.Header().Set("Link", "<http://"+r.Host+r.URL.Path+"?page=3>; rel=\"next\"")
+					}
+					if r.URL.Query().Get("page") == "1" || (tc.want == 2 && r.URL.Query().Get("page") == "3") {
+						_, _ = w.Write([]byte(`[{"user":{"id":2,"login":"user"},"content":"+1"}]`))
+					} else {
+						_, _ = w.Write([]byte(`[]`))
+					}
+					return
+				}
+				_, _ = w.Write(payload)
+			}))
+			defer server.Close()
+			downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+			require.NoError(t, err)
+			downloader.SkipReactions = tc.skip
+			archivedReactions := 0
+			downloader.archive = func(_ context.Context, kind string, _ int64, value any) error {
+				if kind == "reactions" {
+					archivedReactions++
+					reaction, ok := value.(*github.Reaction)
+					require.True(t, ok)
+					assert.Equal(t, "+1", reaction.GetContent())
+				}
+				return nil
+			}
+			issues, _, err := downloader.GetIssues(t.Context(), 1, 100)
+			require.NoError(t, err)
+			require.Len(t, issues, 1)
+			comments, _, err := downloader.GetComments(t.Context(), &base.Issue{Number: 1, ForeignIndex: 1})
+			require.NoError(t, err)
+			require.Len(t, comments, 1)
+			allComments, _, err := downloader.GetAllComments(t.Context(), 1, 100)
+			require.NoError(t, err)
+			require.Len(t, allComments, 1)
+			reviewComments, err := downloader.convertGithubReviewComments(t.Context(), []*github.PullRequestComment{{ID: new(int64(1)), Reactions: tc.reactions}})
+			require.NoError(t, err)
+			require.Len(t, reviewComments, 1)
+			for _, reactions := range [][]*base.Reaction{issues[0].Reactions, comments[0].Reactions, allComments[0].Reactions, reviewComments[0].Reactions} {
+				require.Len(t, reactions, tc.want)
+				if tc.want > 0 {
+					assert.Equal(t, &base.Reaction{UserID: 2, UserName: "user", Content: "+1"}, reactions[0])
+				}
+			}
+			assert.Equal(t, 4*tc.want, reactionRequests)
+			before := reactionRequests
+			prs, err := downloader.convertGithubPullRequests(t.Context(), []*github.PullRequest{{Number: new(1)}}, 100)
+			require.NoError(t, err)
+			wantPR := max(tc.want, 1)
+			if tc.skip {
+				wantPR = 0
+			}
+			require.Len(t, prs[0].Reactions, wantPR)
+			assert.Equal(t, wantPR, reactionRequests-before)
+			assert.Equal(t, 4*tc.want+wantPR, archivedReactions)
+		})
+	}
+}
+
+func TestGithubReviewCommentPagination(t *testing.T) {
+	for _, failComments := range []bool{false, true} {
+		t.Run(fmt.Sprintf("failComments=%t", failComments), func(t *testing.T) {
+			var requests []string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("X-RateLimit-Remaining", "100")
+				requests = append(requests, r.URL.RequestURI())
+				page := r.URL.Query().Get("page")
+				switch r.URL.Path {
+				case "/api/v3/repos/o/r/pulls/1/reviews":
+					if page == "2" {
+						_, _ = w.Write([]byte(`[{"id":30,"state":"APPROVED"}]`))
+					} else {
+						w.Header().Set("Link", `<https://api.github.com/repos/o/r/pulls/1/reviews?page=2>; rel="next"`)
+						_, _ = w.Write([]byte(`[{"id":10,"state":"COMMENTED"},{"id":20,"state":"COMMENTED"}]`))
+					}
+				case "/api/v3/repos/o/r/pulls/1/comments":
+					if page == "2" {
+						if failComments {
+							w.WriteHeader(http.StatusInternalServerError)
+							return
+						}
+						_, _ = w.Write([]byte(`[{"id":2,"pull_request_review_id":10,"in_reply_to_id":1,"reactions":{"total_count":0}}]`))
+					} else {
+						w.Header().Set("Link", `<https://api.github.com/repos/o/r/pulls/1/comments?page=2>; rel="next"`)
+						_, _ = w.Write([]byte(`[{"id":1,"pull_request_review_id":20,"reactions":{"total_count":0}}]`))
+					}
+				case "/api/v3/repos/o/r/pulls/1/requested_reviewers":
+					_, _ = w.Write([]byte(`{"users":[{"id":42,"login":"reviewer"}]}`))
+				default:
+					t.Errorf("unexpected request: %s", r.URL)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer server.Close()
+			downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+			require.NoError(t, err)
+			reviews, err := downloader.GetReviews(t.Context(), &base.PullRequest{Number: 7, ForeignIndex: 1})
+			if failComments {
+				require.Error(t, err)
+				assert.Nil(t, reviews)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, reviews, 4)
+			require.Len(t, reviews[0].Comments, 1)
+			assert.EqualValues(t, 2, reviews[0].Comments[0].ID)
+			assert.EqualValues(t, 1, reviews[0].Comments[0].InReplyTo)
+			require.Len(t, reviews[1].Comments, 1)
+			assert.EqualValues(t, 1, reviews[1].Comments[0].ID)
+			assert.Empty(t, reviews[2].Comments)
+			assert.Equal(t, base.ReviewStateRequestReview, reviews[3].State)
+			assert.EqualValues(t, 42, reviews[3].ReviewerID)
+			for _, review := range reviews {
+				assert.EqualValues(t, 7, review.IssueIndex)
+			}
+			assert.Equal(t, []string{
+				"/api/v3/repos/o/r/pulls/1/reviews?per_page=100",
+				"/api/v3/repos/o/r/pulls/1/reviews?page=2&per_page=100",
+				"/api/v3/repos/o/r/pulls/1/comments?per_page=100",
+				"/api/v3/repos/o/r/pulls/1/comments?page=2&per_page=100",
+				"/api/v3/repos/o/r/pulls/1/requested_reviewers",
+			}, requests)
+		})
+	}
+}
+
+func TestGithubRecoverMissingReview(t *testing.T) {
+	for _, missing := range []bool{false, true} {
+		t.Run(fmt.Sprintf("missing=%t", missing), func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("X-RateLimit-Remaining", "100")
+				switch r.URL.Path {
+				case "/api/v3/repos/o/r/pulls/1/reviews":
+					_, _ = io.WriteString(w, `[]`)
+				case "/api/v3/repos/o/r/pulls/1/comments":
+					_, _ = io.WriteString(w, `[{"id":1,"pull_request_review_id":10,"path":"file.go","line":4,"side":"LEFT","start_line":2,"reactions":{"total_count":0}}]`)
+				case "/api/v3/repos/o/r/pulls/1/reviews/10":
+					if missing {
+						w.WriteHeader(http.StatusNotFound)
+					} else {
+						_, _ = io.WriteString(w, `{"id":10,"state":"COMMENTED"}`)
+					}
+				case "/api/v3/repos/o/r/pulls/1/requested_reviewers":
+					_, _ = io.WriteString(w, `{"users":[]}`)
+				default:
+					t.Errorf("unexpected URL %s", r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer server.Close()
+			downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+			require.NoError(t, err)
+			archived := make(map[string]any)
+			downloader.archive = func(_ context.Context, kind string, _ int64, value any) error { archived[kind] = value; return nil }
+			reviews, err := downloader.GetReviews(t.Context(), &base.PullRequest{Number: 1, ForeignIndex: 1})
+			if missing {
+				require.ErrorContains(t, err, "recover review 10")
+				assert.Nil(t, reviews)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, reviews, 1)
+			require.Len(t, reviews[0].Comments, 1)
+			assert.Equal(t, -4, reviews[0].Comments[0].Line)
+			source, ok := archived["review-comments"].(*github.PullRequestComment)
+			require.True(t, ok)
+			assert.Equal(t, 2, source.GetStartLine())
+			assert.Equal(t, "LEFT", source.GetSide())
+		})
+	}
+}
+
+func TestGithubOutdatedCommentPosition(t *testing.T) {
+	downloader := &GithubDownloaderV3{SkipReactions: true}
+	comments, err := downloader.convertGithubReviewComments(t.Context(), []*github.PullRequestComment{{ID: new(int64(1)), OriginalLine: new(12), OriginalPosition: new(3), Side: new("LEFT"), CommitID: new("current"), OriginalCommitID: new("original")}})
+	require.NoError(t, err)
+	require.Len(t, comments, 1)
+	assert.Equal(t, -12, comments[0].Line)
+	assert.Equal(t, "original", comments[0].CommitID)
+	assert.Equal(t, 3, comments[0].Position)
+}
 
 func TestGithubIssuePagination(t *testing.T) {
 	for _, tc := range []struct {

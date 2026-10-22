@@ -97,7 +97,7 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
 
-	if err := migrateRepository(ctx, doer, downloader, uploader, opts, messenger); err != nil {
+	if err := migrateRepository(ctx, doer, downloader, githubMigrationUploader(uploader, downloader, opts), opts, messenger); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}

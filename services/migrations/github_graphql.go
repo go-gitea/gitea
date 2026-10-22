@@ -525,6 +525,9 @@ func (g *GithubGraphQLDownloader) getIssuesGraphQL(ctx context.Context, page, pe
 }
 
 func (g *GithubGraphQLDownloader) convertGraphQLIssue(ctx context.Context, node *gqlIssue, prefetchedByNodeID map[string]*gqlPrefetched) (*base.Issue, error) {
+	if err := g.archiveSource(ctx, "graphql/issues", node.Number, node); err != nil {
+		return nil, err
+	}
 	labels, err := allNodes(ctx, g, graphQLLabelsSweepQuery, node.ID, node.Labels)
 	if err != nil {
 		return nil, err
