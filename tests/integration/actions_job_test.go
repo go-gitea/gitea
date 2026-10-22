@@ -27,7 +27,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	actions_service "gitea.dev/services/actions"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -643,33 +642,33 @@ jobs:
 		err = actions_service.CleanupEphemeralRunners(t.Context())
 		assert.NoError(t, err)
 
-		resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+		resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), &runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
-		}))
+		})
 		assert.NoError(t, err)
-		assert.Nil(t, resp.Msg.Task)
+		assert.Nil(t, resp.Task)
 
 		// verify CleanupEphemeralRunners does not remove this runner
 		err = actions_service.CleanupEphemeralRunners(t.Context())
 		assert.NoError(t, err)
 
-		_, err = runner.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
+		_, err = runner.client.runnerServiceClient.UpdateTask(t.Context(), &runnerv1.UpdateTaskRequest{
 			State: &runnerv1.TaskState{
 				Id:     actionTask.ID,
 				Result: runnerv1.Result_RESULT_SUCCESS,
 			},
-		}))
+		})
 		assert.NoError(t, err)
 
-		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), &runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
-		}))
+		})
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 
-		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), &runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
-		}))
+		})
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 

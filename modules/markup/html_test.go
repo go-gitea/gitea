@@ -5,6 +5,7 @@ package markup_test
 
 import (
 	"io"
+	"maps"
 	"strings"
 	"testing"
 
@@ -326,8 +327,9 @@ func TestRender_email(t *testing.T) {
 }
 
 func TestRender_emoji(t *testing.T) {
-	setting.AppURL = markup.TestAppURL
-	setting.StaticURLPrefix = strings.TrimSuffix(markup.TestAppURL, "/")
+	defer testModule.MockVariableValue(&setting.AppURL, markup.TestAppURL)()
+	defer testModule.MockVariableValue(&setting.StaticURLPrefix, strings.TrimSuffix(markup.TestAppURL, "/"))()
+	defer testModule.MockVariableValue(&setting.UI.CustomEmojisMap, maps.Clone(setting.UI.CustomEmojisMap))()
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")

@@ -851,6 +851,7 @@ export default defineConfig([
       'unicorn/no-prevent-default-in-passive-listener': [2],
       'unicorn/no-process-exit': [0],
       'unicorn/no-redundant-comparison': [2],
+      'unicorn/no-repeated-call-wrappers': [0],
       'unicorn/no-return-array-push': [2],
       'unicorn/no-selector-as-dom-name': [2],
       'unicorn/no-shorthand-property-overrides': [0], // only applies to css language
@@ -871,6 +872,7 @@ export default defineConfig([
       'unicorn/no-unnecessary-array-splice-count': [2],
       'unicorn/no-unnecessary-await': [2],
       'unicorn/no-unnecessary-boolean-comparison': [2],
+      'unicorn/no-unnecessary-default-arguments': [0],
       'unicorn/no-unnecessary-fetch-options': [0],
       'unicorn/no-unnecessary-global-this': [0],
       'unicorn/no-unnecessary-nested-ternary': [2],
