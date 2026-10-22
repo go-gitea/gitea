@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"io"
-	"strings"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -20,55 +19,84 @@ import (
 
 func TestAdminRepoConvertToMirror(t *testing.T) {
 	ctx := t.Context()
-	owner := &user_model.User{
-		Name:        "mirror-owner",
-		LowerName:   "mirror-owner",
-		Email:       "mirror-owner@gitea.local",
-		Passwd:      "unused",
-		Avatar:      "",
-		AvatarEmail: "mirror-owner@gitea.local",
-	}
-	require.NoError(t, db.Insert(ctx, owner))
-	repo := &repo_model.Repository{
-		OwnerID:          owner.ID,
-		OwnerName:        owner.Name,
-		Name:             "test-mirror",
-		LowerName:        "test-mirror",
-		ObjectFormatName: "sha1",
-	}
-	require.NoError(t, db.Insert(ctx, repo))
-	defer func() {
-		require.NoError(t, repo_model.DeleteMirrorByRepoID(ctx, repo.ID))
-		require.NoError(t, git.DeleteRepository(ctx, repo))
-		_, err := db.GetEngine(ctx).ID(repo.ID).Delete(&repo_model.Repository{})
-		require.NoError(t, err)
-		_, err = db.GetEngine(ctx).ID(owner.ID).Delete(&user_model.User{})
-		require.NoError(t, err)
-	}()
-	require.NoError(t, git.InitRepository(ctx, repo, repo.ObjectFormatName, ""))
-
 	cmd := newRepoConvertToMirrorCommand()
 	cmd.Writer = io.Discard
-	err := cmd.Run(ctx, []string{"repo-convert-to-mirror", "invalid"})
-	require.ErrorContains(t, err, "{owner}/{repo}")
-	require.NoError(t, cmd.Run(ctx, []string{"repo-convert-to-mirror", "mirror-owner/test-mirror"}))
+	require.ErrorContains(t, cmd.Run(ctx, []string{"repo-convert-to-mirror", "invalid"}), "{owner}/{repo}")
 
-	convertedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID, IsMirror: true})
-	mirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
-	require.NoError(t, err)
-	require.Equal(t, repo.ID, mirror.RepoID)
-	require.True(t, mirror.EnablePrune)
-	require.Empty(t, mirror.RemoteAddress)
-	fetchRefspec, _, err := gitcmd.NewCommand("config", "--get", "remote.origin.fetch").WithRepo(repo).RunStdString(ctx)
-	require.NoError(t, err)
-	require.Equal(t, "+refs/*:refs/*", strings.TrimSpace(fetchRefspec))
+	owner := &user_model.User{
+		Name:      "mirror-owner",
+		LowerName: "mirror-owner",
+	}
+	require.NoError(t, db.Insert(ctx, owner))
+	defer func() {
+		_, err := db.GetEngine(ctx).ID(owner.ID).Delete(&user_model.User{})
+		require.NoError(t, err)
+	}()
 
-	cmd = newRepoConvertToMirrorCommand()
-	cmd.Writer = io.Discard
-	err = cmd.Run(ctx, []string{"repo-convert-to-mirror", "mirror-owner/test-mirror"})
-	require.ErrorContains(t, err, "is already a mirror")
+	for _, testCase := range []struct {
+		name           string
+		existingOrigin bool
+	}{
+		{name: "without-origin"},
+		{name: "with-origin", existingOrigin: true},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := t.Context()
+			repo := &repo_model.Repository{
+				OwnerID:          owner.ID,
+				OwnerName:        owner.Name,
+				Name:             testCase.name,
+				LowerName:        testCase.name,
+				ObjectFormatName: "sha1",
+				IsArchived:       true,
+			}
+			require.NoError(t, db.Insert(ctx, repo))
+			defer func() {
+				require.NoError(t, repo_model.DeleteMirrorByRepoID(ctx, repo.ID))
+				require.NoError(t, git.DeleteRepository(ctx, repo))
+				_, err := db.GetEngine(ctx).ID(repo.ID).Delete(&repo_model.Repository{})
+				require.NoError(t, err)
+			}()
+			require.NoError(t, git.InitRepository(ctx, repo, repo.ObjectFormatName, ""))
+			if testCase.existingOrigin {
+				require.NoError(t, git.ManagedRemoteAdd(ctx, repo, "origin", "https://example.com/original.git"))
+				_, _, err := gitcmd.NewCommand("config", "--add", "remote.origin.url", "https://example.com/other.git").WithRepo(repo).RunStdString(ctx)
+				require.NoError(t, err)
+				_, _, err = gitcmd.NewCommand("config", "--add", "remote.origin.fetch", "+refs/pull/*:refs/pull/*").WithRepo(repo).RunStdString(ctx)
+				require.NoError(t, err)
+			}
 
-	count, err := db.GetEngine(ctx).Count(&repo_model.Mirror{RepoID: convertedRepo.ID})
-	require.NoError(t, err)
-	require.EqualValues(t, 1, count)
+			archivedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+			configBefore, _, err := gitcmd.NewCommand("config", "--local", "--list").WithRepo(repo).RunStdString(ctx)
+			require.NoError(t, err)
+			convert := func() error {
+				cmd := newRepoConvertToMirrorCommand()
+				cmd.Writer = io.Discard
+				return cmd.Run(ctx, []string{"repo-convert-to-mirror", repo.FullName()})
+			}
+			require.ErrorAs(t, convert(), &repo_model.ErrRepoIsArchived{})
+			require.Equal(t, archivedRepo, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}))
+			unittest.AssertNotExistsBean(t, &repo_model.Mirror{RepoID: repo.ID})
+			configAfter, _, err := gitcmd.NewCommand("config", "--local", "--list").WithRepo(repo).RunStdString(ctx)
+			require.NoError(t, err)
+			require.Equal(t, configBefore, configAfter)
+
+			repo.IsArchived = false
+			require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_archived"))
+			require.NoError(t, convert())
+			require.True(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}).IsMirror)
+			mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: repo.ID})
+			require.True(t, mirror.EnablePrune)
+			require.Empty(t, mirror.RemoteAddress)
+			fetchRefspec, _, err := gitcmd.NewCommand("config", "--get-all", "remote.origin.fetch").WithRepo(repo).RunStdString(ctx)
+			require.NoError(t, err)
+			require.Equal(t, "+refs/*:refs/*\n", fetchRefspec)
+			remoteURL, _, err := gitcmd.NewCommand("config", "--get-all", "remote.origin.url").WithRepo(repo).RunStdString(ctx)
+			require.NoError(t, err)
+			require.Equal(t, "\n", remoteURL)
+
+			require.ErrorContains(t, convert(), "is already a mirror")
+			unittest.AssertCount(t, &repo_model.Mirror{RepoID: repo.ID}, 1)
+		})
+	}
 }

@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
@@ -55,6 +56,9 @@ func runRepoConvertToMirror(ctx context.Context, c *cli.Command) error {
 		if repo.IsMirror {
 			return fmt.Errorf("repository %q is already a mirror", repo.FullName())
 		}
+		if err := repo.MustNotBeArchived(); err != nil {
+			return err
+		}
 
 		if _, err := repo_model.GetMirrorByRepoID(ctx, repo.ID); err == nil {
 			return fmt.Errorf("repository %q already has a mirror configuration", repo.FullName())
@@ -70,7 +74,15 @@ func runRepoConvertToMirror(ctx context.Context, c *cli.Command) error {
 		if _, err := db.GetEngine(ctx).Cols("repo_id").Insert(mirror); err != nil {
 			return err
 		}
-		return git.ManagedRemoteAdd(ctx, repo, mirror.GetRemoteName(), "", git.RemoteOptionMirrorFetch)
+		return git.LockConfigAndDo(ctx, repo, func(ctx context.Context) error {
+			if _, _, err := gitcmd.NewCommand("config", "--replace-all").
+				AddDynamicArguments("remote."+mirror.GetRemoteName()+".url", "").WithRepo(repo).RunStdString(ctx); err != nil {
+				return err
+			}
+			_, _, err := gitcmd.NewCommand("config", "--replace-all").
+				AddDynamicArguments("remote."+mirror.GetRemoteName()+".fetch", "+refs/*:refs/*").WithRepo(repo).RunStdString(ctx)
+			return err
+		})
 	})
 	if err != nil {
 		return fmt.Errorf("runRepoConvertToMirror: %w", err)
