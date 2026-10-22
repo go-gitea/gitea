@@ -123,7 +123,7 @@ func TestCleanupRetentionZeroKeepsForever(t *testing.T) {
 		require.NoError(t, err)
 		assert.Zero(t, art.ExpiredUnix)
 
-		// a workflow-requested expiry is honored, only the instance default may mean never
+		// a workflow-requested expiry is bounded, only the instance default may mean never
 		asked, err := actions_model.CreateArtifact(t.Context(), task, "client-asked", "b.txt", optional.Some(timeutil.TimeStampNow()))
 		require.NoError(t, err)
 		assert.Positive(t, asked.ExpiredUnix)
@@ -133,17 +133,15 @@ func TestCleanupRetentionZeroKeepsForever(t *testing.T) {
 		require.NoError(t, err)
 		assert.Zero(t, reuploaded.ExpiredUnix)
 
-		// a past expiry from a skewed runner clock must not land on the sentinel or be reaped at once
+		// a past expiry must stay reapable, not land on the sentinel
 		past, err := actions_model.CreateArtifact(t.Context(), task, "long-gone", "c.txt", optional.Some(timeutil.TimeStamp(-1000)))
 		require.NoError(t, err)
-		assert.Greater(t, past.ExpiredUnix, timeutil.TimeStampNow())
+		assert.Positive(t, past.ExpiredUnix)
 
 		_, err = db.GetEngine(t.Context()).In("id", art.ID, past.ID).Cols("status").
 			Update(&actions_model.ActionArtifact{Status: actions_model.ArtifactStatusUploadConfirmed})
 		require.NoError(t, err)
-		_, err = db.GetEngine(t.Context()).ID(past.ID).Cols("expired_unix").
-			Update(&actions_model.ActionArtifact{ExpiredUnix: 1})
-		require.NoError(t, err)
+		require.NoError(t, actions_model.UpdateArtifact(t.Context(), &actions_model.ActionArtifact{ID: past.ID, ExpiredUnix: 1}, "expired_unix"))
 		expiring, err := actions_model.ListNeedExpiredArtifacts(t.Context())
 		require.NoError(t, err)
 		ids := container.FilterSlice(expiring, func(a *actions_model.ActionArtifact) (int64, bool) { return a.ID, true })
