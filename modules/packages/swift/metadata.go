@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -161,7 +162,7 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 			return nil, ErrManifestFileTooLarge
 		}
 
-		f, err := zr.Open(file.Name)
+		f, err := file.Open()
 		if err != nil {
 			return nil, err
 		}
@@ -208,7 +209,7 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 
 	if mr != nil {
 		var ssc *SoftwareSourceCode
-		if err := json.NewDecoder(mr).Decode(&ssc); err != nil {
+		if err := json.NewDecoder(packages.NewLimitedReader(mr, packages.MaxMetadataSize)).Decode(&ssc); err != nil {
 			return nil, err
 		}
 		p.Metadata.Description = ssc.Description

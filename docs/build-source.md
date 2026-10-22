@@ -25,19 +25,11 @@ Depending on requirements, the following build tags can be included.
 - `bindata`: Build a single monolithic binary, with all assets included. Required for distribution and production build.
 - `pam`: Enable support for PAM (Linux Pluggable Authentication Modules).
   Can be used to authenticate local users or extend authentication to methods available to PAM.
-- `gogit`: (EXPERIMENTAL) Use go-git variants of Git commands.
 
 To include all assets, use the `bindata` tag:
 
 ```bash
 TAGS="bindata" make build
-```
-
-Tag `gogit` is used to try to resolve some Windows-specific performance problems, POSIX systems don't need it.
-You can build a Windows binary by:
-
-```bash
-GOOS=windows TAGS="bindata gogit" make build
 ```
 
 ## Changing default paths

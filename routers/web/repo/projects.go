@@ -170,7 +170,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 	id := ctx.PathParamInt64("id")
 
 	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
-		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("ChangeProjectStatusByRepoIDAndID", err)
 		return
 	}
 	ctx.JSONRedirect(project_model.ProjectLinkForRepo(ctx.Repo.Repository, id))
@@ -475,12 +475,12 @@ func UpdateIssueProject(ctx *context.Context) {
 func UpdateIssueProjectColumn(ctx *context.Context) {
 	issue, err := issues_model.GetIssueByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("issue_id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
+		ctx.ServerError("GetIssueByID", err)
 		return
 	}
 	column, err := project_model.GetColumn(ctx, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		ctx.ServerError("GetColumn", err)
 		return
 	}
 

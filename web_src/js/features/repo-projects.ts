@@ -2,7 +2,7 @@ import {contrastColor} from '../utils/color.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {POST} from '../modules/fetch.ts';
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
-import {hideFomanticModal} from '../modules/fomantic/modal.ts';
+import {hideModal} from '../modules/modal.ts';
 import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 import type {SortableEvent} from 'sortablejs';
 import {toggleFullScreen} from '../utils.ts';
@@ -82,7 +82,7 @@ function initRepoProjectSortable(): void {
 }
 
 function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
-  const elModal = document.querySelector<HTMLElement>('.ui.modal#project-column-modal-edit')!;
+  const elModal = document.querySelector<HTMLDialogElement>('#project-column-modal-edit')!;
   const elForm = elModal.querySelector<HTMLFormElement>('form')!;
 
   const elColumnId = elForm.querySelector<HTMLInputElement>('input[name="id"]')!;
@@ -140,7 +140,7 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
         queryElemChildren(elBoardColumn, '.divider', (divider: HTMLElement) => divider.style.removeProperty('color'));
       }
 
-      hideFomanticModal(elModal);
+      hideModal(elModal);
     } finally {
       elForm.classList.remove('is-loading');
     }

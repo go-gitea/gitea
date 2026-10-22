@@ -56,28 +56,15 @@ func (comments CommentList) loadLabels(ctx context.Context) error {
 		return nil
 	}
 	commentLabels := make(map[int64]*Label, len(labelIDs))
-	left := len(labelIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).
-			In("id", labelIDs[:limit]).
-			Rows(new(Label))
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var label Label
-			err = rows.Scan(&label)
-			if err != nil {
-				_ = rows.Close()
-				return err
-			}
-			commentLabels[label.ID] = &label
-		}
-		_ = rows.Close()
-		left -= limit
-		labelIDs = labelIDs[limit:]
+	err := db.QueryAndProcessByChunk(labelIDs, func(chunk []int64) (out []*Label, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(label *Label) error {
+		commentLabels[label.ID] = label
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	for _, comment := range comments {
@@ -103,17 +90,15 @@ func (comments CommentList) loadMilestones(ctx context.Context) error {
 	}
 
 	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
-	left := len(milestoneIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		err := db.GetEngine(ctx).
-			In("id", milestoneIDs[:limit]).
-			Find(&milestoneMaps)
-		if err != nil {
-			return err
-		}
-		left -= limit
-		milestoneIDs = milestoneIDs[limit:]
+	err := db.QueryAndProcessByChunk(milestoneIDs, func(chunk []int64) (out []*Milestone, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(milestone *Milestone) error {
+		milestoneMaps[milestone.ID] = milestone
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	for _, comment := range comments {
@@ -139,17 +124,15 @@ func (comments CommentList) loadOldMilestones(ctx context.Context) error {
 	}
 
 	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
-	left := len(milestoneIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		err := db.GetEngine(ctx).
-			In("id", milestoneIDs[:limit]).
-			Find(&milestoneMaps)
-		if err != nil {
-			return err
-		}
-		left -= limit
-		milestoneIDs = milestoneIDs[limit:]
+	err := db.QueryAndProcessByChunk(milestoneIDs, func(chunk []int64) (out []*Milestone, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(milestone *Milestone) error {
+		milestoneMaps[milestone.ID] = milestone
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	for _, issue := range comments {
@@ -174,30 +157,15 @@ func (comments CommentList) loadAssignees(ctx context.Context) error {
 		return nil
 	}
 	assignees := make(map[int64]*user_model.User, len(assigneeIDs))
-	left := len(assigneeIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).
-			In("id", assigneeIDs[:limit]).
-			Rows(new(user_model.User))
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var user user_model.User
-			err = rows.Scan(&user)
-			if err != nil {
-				rows.Close()
-				return err
-			}
-
-			assignees[user.ID] = &user
-		}
-		_ = rows.Close()
-
-		left -= limit
-		assigneeIDs = assigneeIDs[limit:]
+	err := db.QueryAndProcessByChunk(assigneeIDs, func(chunk []int64) (out []*user_model.User, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(user *user_model.User) error {
+		assignees[user.ID] = user
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	for _, comment := range comments {
@@ -246,30 +214,15 @@ func (comments CommentList) LoadIssues(ctx context.Context) error {
 
 	issueIDs := comments.getIssueIDs()
 	issues := make(map[int64]*Issue, len(issueIDs))
-	left := len(issueIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).
-			In("id", issueIDs[:limit]).
-			Rows(new(Issue))
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var issue Issue
-			err = rows.Scan(&issue)
-			if err != nil {
-				rows.Close()
-				return err
-			}
-
-			issues[issue.ID] = &issue
-		}
-		_ = rows.Close()
-
-		left -= limit
-		issueIDs = issueIDs[limit:]
+	err := db.QueryAndProcessByChunk(issueIDs, func(chunk []int64) (out []*Issue, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(issue *Issue) error {
+		issues[issue.ID] = issue
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	for _, comment := range comments {
@@ -294,36 +247,20 @@ func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 		return nil
 	}
 
-	e := db.GetEngine(ctx)
 	issueIDs := comments.getDependentIssueIDs()
 	if len(issueIDs) == 0 {
 		return nil
 	}
 	issues := make(map[int64]*Issue, len(issueIDs))
-	left := len(issueIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := e.
-			In("id", issueIDs[:limit]).
-			Rows(new(Issue))
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var issue Issue
-			err = rows.Scan(&issue)
-			if err != nil {
-				_ = rows.Close()
-				return err
-			}
-
-			issues[issue.ID] = &issue
-		}
-		_ = rows.Close()
-
-		left -= limit
-		issueIDs = issueIDs[limit:]
+	err := db.QueryAndProcessByChunk(issueIDs, func(chunk []int64) (out []*Issue, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(issue *Issue) error {
+		issues[issue.ID] = issue
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	for _, comment := range comments {
@@ -376,29 +313,15 @@ func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 
 	attachments := make(map[int64][]*repo_model.Attachment, len(comments))
 	commentsIDs := comments.getAttachmentCommentIDs()
-	left := len(commentsIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).
-			In("comment_id", commentsIDs[:limit]).
-			Rows(new(repo_model.Attachment))
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var attachment repo_model.Attachment
-			err = rows.Scan(&attachment)
-			if err != nil {
-				_ = rows.Close()
-				return err
-			}
-			attachments[attachment.CommentID] = append(attachments[attachment.CommentID], &attachment)
-		}
-
-		_ = rows.Close()
-		left -= limit
-		commentsIDs = commentsIDs[limit:]
+	err = db.QueryAndProcessByChunk(commentsIDs, func(chunk []int64) (out []*repo_model.Attachment, err error) {
+		err = db.GetEngine(ctx).In("comment_id", chunk).Find(&out)
+		return out, err
+	}, func(attachment *repo_model.Attachment) error {
+		attachments[attachment.CommentID] = append(attachments[attachment.CommentID], attachment)
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	for _, comment := range comments {

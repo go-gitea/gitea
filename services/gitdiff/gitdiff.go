@@ -140,12 +140,13 @@ const (
 	MaxFullFileHighlightTimeLimit = 2 * time.Second
 )
 
-// GetType returns the type of DiffLine.
-func (d *DiffLine) GetType() int {
-	return int(d.Type)
-}
+func (d *DiffLine) IsDiffLinePlain() bool   { return d.Type == DiffLinePlain }
+func (d *DiffLine) IsDiffLineAdd() bool     { return d.Type == DiffLineAdd }
+func (d *DiffLine) IsDiffLineDel() bool     { return d.Type == DiffLineDel }
+func (d *DiffLine) IsDiffLineSection() bool { return d.Type == DiffLineSection }
 
-// GetHTMLDiffLineType returns the diff line type name for HTML
+// GetHTMLDiffLineType returns the diff line type name for HTML,
+// it will generate CSS names for styles ".del-code", ".add-code", ".same-code", ".tag-code"
 func (d *DiffLine) GetHTMLDiffLineType() string {
 	switch d.Type {
 	case DiffLineAdd:
@@ -693,8 +694,8 @@ const cmdDiffHead = "diff --git "
 var defaultDiffLineBufferSize = 8 * 1024
 
 // ParsePatch builds a Diff object by parsing git diff output
-func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipToFile string) (_ *Diff, retErr error) {
-	log.Debug("ParsePatch(%d, %d, %d, ..., %s)", maxLines, maxLineCharacters, maxFiles, skipToFile)
+func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (_ *Diff, retErr error) {
+	log.Debug("ParsePatch(%d, %d, %d, ...)", maxLines, maxLineCharacters, maxFiles)
 
 	diff := &Diff{Files: make([]*DiffFile, 0)}
 	readerSize := max(maxLineCharacters, defaultDiffLineBufferSize)
@@ -705,9 +706,8 @@ func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, 
 		return diff, util.Iif(err == io.EOF, nil, err)
 	}
 
-	skipping := skipToFile != ""
 	for {
-		nextLine, err := diff.parseOneDiffFile(ctx, maxLines, maxLineCharacters, maxFiles, &skipping, input, skipToFile, line)
+		nextLine, err := diff.parseOneDiffFile(ctx, maxLines, maxLineCharacters, maxFiles, input, line)
 		if nextLine == "" || err == io.EOF {
 			break
 		} else if err != nil {
@@ -720,7 +720,7 @@ func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, 
 	return diff, nil
 }
 
-func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, skipping *bool, input *bufio.Reader, skipToFile, startLine string) (nextLine string, err error) {
+func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, input *bufio.Reader, startLine string) (nextLine string, err error) {
 	line := startLine
 
 	extractGitDiffHead := func(s, p string) string {
@@ -742,13 +742,6 @@ func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharact
 		}
 
 		curFile := createDiffFile(line)
-		if *skipping {
-			if curFile.Name != skipToFile {
-				return skipToNextDiffHead(input)
-			}
-			*skipping = false
-		}
-
 		diff.Files = append(diff.Files, curFile)
 
 		// 2. It is followed by one or more extended header lines:
@@ -949,18 +942,6 @@ func (diff *Diff) postProcessFiles() {
 					}
 				}
 			}
-		}
-	}
-}
-
-func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
-	for {
-		lineBytes, _, err := readGitDiffLineWithDiscard(input)
-		if err != nil {
-			return "", err
-		}
-		if bytes.HasPrefix(lineBytes, []byte(cmdDiffHead)) {
-			return string(lineBytes), nil
 		}
 	}
 }
@@ -1338,13 +1319,8 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 		AddArguments(opts.WhitespaceBehavior...).
 		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold)
 
-	// In git 2.31, git diff learned --skip-to which we can use to shortcut skip to file
-	// so if we are using at least this version of git we don't have to tell ParsePatch to do
-	// the skipping for us
-	parsePatchSkipToFile := opts.SkipTo
-	if opts.SkipTo != "" && git.DefaultFeatures().CheckVersionAtLeast("2.31") {
+	if opts.SkipTo != "" {
 		cmdDiff.AddOptionFormat("--skip-to=%s", opts.SkipTo)
-		parsePatchSkipToFile = ""
 	}
 
 	cmdDiff.AddDynamicArguments(beforeCommitID.String(), opts.AfterCommitID)
@@ -1363,7 +1339,7 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 		}
 	}()
 
-	diff, err := ParsePatch(cmdCtx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
+	diff, err := ParsePatch(cmdCtx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader)
 	// Ensure the git process is killed if it didn't exit already
 	cmdCancel()
 	if err != nil {
@@ -1596,7 +1572,7 @@ func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.
 // CommentAsDiff returns c.Patch as *Diff
 func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) {
 	diff, err := ParsePatch(ctx, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch), "")
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch))
 	if err != nil {
 		log.Error("Unable to parse patch: %v", err)
 		return nil, err
@@ -1609,6 +1585,22 @@ func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) 
 		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
 	}
 	return diff, nil
+}
+
+// GetCodeCommentPatch returns the code snippet stored with a code comment
+func GetCodeCommentPatch(ctx context.Context, gitRepo *git.Repository, mergeBase, headCommitID, treePath string, line int64) (string, error) {
+	patch, err := git.GetFileDiffCutAroundLine(ctx, gitRepo, mergeBase, headCommitID, treePath,
+		int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
+	)
+	contextCommitID := util.Iif(line < 0, mergeBase, headCommitID)
+	if err != nil || patch != "" || contextCommitID == "" {
+		return patch, err
+	}
+	patch, err = GeneratePatchForUnchangedLine(ctx, gitRepo, contextCommitID, treePath, line, setting.UI.CodeCommentLines)
+	if err != nil {
+		log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, contextCommitID, err)
+	}
+	return patch, nil
 }
 
 // GeneratePatchForUnchangedLine creates a patch showing code context for an unchanged line
