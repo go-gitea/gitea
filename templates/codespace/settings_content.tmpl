@@ -54,20 +54,22 @@
 		{{template "codespace/manager_codespaces" .}}
 	{{end}}
 
-	<form id="codespace-manager-create-modal" class="ui small modal codespace-modal form form-fetch-action ignore-dirty" method="post" action="{{$.ActionBase}}/create">
-		{{$.CsrfTokenHtml}}
+	<dialog id="codespace-manager-create-modal" class="modal-dialog codespace-modal">
 		<div class="header">{{ctx.Locale.Tr "codespace.new_manager"}}</div>
-		<div class="content">
-			<p>{{ctx.Locale.Tr "codespace.manager_create_description"}}</p>
-			<div class="required field">
-				<label for="codespace-manager-name">{{ctx.Locale.Tr "codespace.manager_name"}}</label>
-				<input id="codespace-manager-name" name="name" maxlength="255" required>
+		<form class="ui form form-fetch-action ignore-dirty" method="post" action="{{$.ActionBase}}/create">
+			{{$.CsrfTokenHtml}}
+			<div class="content">
+				<p>{{ctx.Locale.Tr "codespace.manager_create_description"}}</p>
+				<div class="required field">
+					<label for="codespace-manager-name">{{ctx.Locale.Tr "codespace.manager_name"}}</label>
+					<input id="codespace-manager-name" name="name" maxlength="255" required>
+				</div>
 			</div>
-		</div>
-		<div class="actions">
-			<button class="ui cancel button" type="button">{{svg "octicon-x"}} {{ctx.Locale.Tr "cancel"}}</button>
-			<button class="ui primary button" type="submit">{{svg "octicon-check"}} {{ctx.Locale.Tr "codespace.manager_create"}}</button>
-		</div>
-	</form>
+			<div class="actions">
+				<button class="ui cancel button" type="button">{{svg "octicon-x"}} {{ctx.Locale.Tr "cancel"}}</button>
+				<button class="ui primary button" type="submit">{{svg "octicon-check"}} {{ctx.Locale.Tr "codespace.manager_create"}}</button>
+			</div>
+		</form>
+	</dialog>
 
 </div>

@@ -762,7 +762,6 @@
   "settings.delete_account_title": "Видалити обліковий запис",
   "settings.delete_account_desc": "Ви впевнені, що хочете остаточно видалити цей обліковий запис?",
   "settings.email_notifications.enable": "Увімкнути сповіщення електронною поштою",
-  "settings.email_notifications.onmention": "Повідомляти електронною поштою коли згадують",
   "settings.email_notifications.disable": "Вимкнути сповіщення електронною поштою",
   "settings.email_notifications.submit": "Налаштувати параметри електронної пошти",
   "settings.email_notifications.andyourown": "І ваші власні повідомлення",

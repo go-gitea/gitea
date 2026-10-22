@@ -50,7 +50,7 @@
 	{{end}}
 </div>
 
-<div class="ui modal codespace-modal" id="codespace-devcontainer-template-modal" data-global-init="initCodespaceTemplateEditor">
+<dialog class="modal-dialog codespace-modal" id="codespace-devcontainer-template-modal" data-global-init="initCodespaceTemplateEditor">
 	<div class="header template-modal-title">{{ctx.Locale.Tr "codespace.dev_container_templates"}}</div>
 	<form class="ui form form-fetch-action" method="post">
 		{{.CsrfTokenHtml}}
@@ -72,4 +72,4 @@
 			<button class="ui primary ok button" type="submit">{{svg "octicon-check"}} <span class="template-submit-label">{{ctx.Locale.Tr "save"}}</span></button>
 		</div>
 	</form>
-</div>
+</dialog>

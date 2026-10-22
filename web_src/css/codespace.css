@@ -336,7 +336,7 @@
   .codespace-modal > form > .content {
     padding: 1rem;
   }
-  .ui.modal.codespace-modal > .actions {
+  .modal-dialog.codespace-modal > form > .actions {
     padding: 1rem !important;
   }
 }

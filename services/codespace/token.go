@@ -328,6 +328,7 @@ func ResolveGiteaToken(ctx context.Context, token string) (*GiteaTokenAuthSnapsh
 		if err != nil {
 			return nil, err
 		}
+		user.ExtDoerData = user_model.NewTokenExtDoerData("codespace", codespace.ID, scope)
 		return &GiteaTokenAuthSnapshot{
 			User:                  user,
 			CodespaceUUID:         codespace.UUID,

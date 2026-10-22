@@ -497,15 +497,20 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	prIssue := &issues_model.Issue{
-		RepoID:       repo.ID,
-		Title:        form.Title,
-		PosterID:     ctx.Doer.ID,
-		Poster:       ctx.Doer,
-		MilestoneID:  milestoneID,
-		IsPull:       true,
-		Content:      form.Body,
-		DeadlineUnix: common.ParseAPIDeadlineToEndOfDay(form.Deadline),
+		RepoID:      repo.ID,
+		Title:       form.Title,
+		PosterID:    ctx.Doer.ID,
+		Poster:      ctx.Doer,
+		MilestoneID: milestoneID,
+		IsPull:      true,
+		Content:     form.Body,
 	}
+	_, err = common.ApplyAPIDeadlineTimestamp(&prIssue.DeadlineUnix, form.Deadline, nil)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+
 	pr := &issues_model.PullRequest{
 		HeadRepoID: compareResult.HeadRepo.ID,
 		BaseRepoID: repo.ID,
@@ -520,32 +525,9 @@ func CreatePullRequest(ctx *context.APIContext) {
 	pr.AllowMaintainerEdit = optional.FromPtr(form.AllowMaintainerEdit).ValueOrDefault(unitPullRequest.PullRequestsConfig().DefaultAllowMaintainerEdit)
 
 	// Get all assignee IDs
-	assigneeIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", err))
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	assigneeIDs := loadAssigneeUserIDs(ctx, form.Assignee, form.Assignees)
+	if ctx.Written() {
 		return
-	}
-	// Check if the passed assignees is assignable
-	for _, aID := range assigneeIDs {
-		assignee, err := user_model.GetUserByID(ctx, aID)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-
-		valid, err := access_model.CanBeAssigned(ctx, assignee, repo)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		if !valid {
-			ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name}.Error())
-			return
-		}
 	}
 
 	prOpts := &pull_service.NewPullRequestOptions{
@@ -986,14 +968,23 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	message := strings.TrimSpace(form.MergeTitleField)
-	if len(message) == 0 {
-		message, _, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
+	useDefaultSquashBody := !form.HasMergeMessageField && !ctx.Req.Form.Has("merge_message_field") && repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash
+	if len(message) == 0 || useDefaultSquashBody {
+		defaultTitle, defaultBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
+		message = util.IfZero(message, defaultTitle)
+		if useDefaultSquashBody {
+			squashCommitMessages, err := pull_service.GetSquashMergeCommitMessages(ctx, pr)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			form.MergeMessageField = git.CommitMessageMerge(squashCommitMessages, defaultBody)
+		}
 	}
-
 	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
 	if len(form.MergeMessageField) > 0 {
 		message += "\n\n" + form.MergeMessageField
@@ -1080,16 +1071,27 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
-	if !ctx.TokenCanAccessRepo(headRepo) {
+	// user should have permission to read headRepo's codes
+	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
+	permHead, ok := requireCodespacePullHeadPermission(ctx, baseRepo, headRepo, perm.AccessModeRead)
+	if !ok {
+		return nil, nil
+	}
+	if permHead == nil {
+		permission, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return nil, nil
+		}
+		permHead = &permission
+	}
+	if !permHead.CanRead(unit.TypeCode) {
+		log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v", ctx.Doer, headRepo, permHead)
 		ctx.APIErrorNotFound()
 		return nil, nil
 	}
 
 	isSameRepo := baseRepo.ID == headRepo.ID
-	codespaceHeadPermission, ok := requireCodespacePullHeadPermission(ctx, baseRepo, headRepo, perm.AccessModeRead)
-	if !ok {
-		return nil, nil
-	}
 
 	var headGitRepo *git.Repository
 	if isSameRepo {
@@ -1119,23 +1121,6 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	if !permBase.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User %-v cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
 		ctx.APIErrorNotFound("can't read baseRepo UnitTypeCode")
-		return nil, nil
-	}
-
-	// user should have permission to read headRepo's codes
-	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
-	permHead := codespaceHeadPermission
-	if permHead == nil {
-		permission, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return nil, nil
-		}
-		permHead = &permission
-	}
-	if !permHead.CanRead(unit.TypeCode) {
-		log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v", ctx.Doer, headRepo, permHead)
-		ctx.APIErrorNotFound("Can't read headRepo UnitTypeCode")
 		return nil, nil
 	}
 
@@ -1280,14 +1265,6 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		return
 	}
 	if _, ok := requireCodespacePullHeadPermission(ctx, pr.BaseRepo, pr.HeadRepo, perm.AccessModeWrite); !ok {
-		return
-	}
-
-	// A public-only token must not update a private head repo, even when the
-	// base repo named in the route is public. Codespace head permission was
-	// checked above; public-only scope remains an independent Gitea API rule.
-	if ctx.PublicOnly && !ctx.TokenCanAccessRepo(pr.HeadRepo) {
-		ctx.APIErrorNotFound()
 		return
 	}
 

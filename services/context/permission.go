@@ -13,33 +13,13 @@ import (
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/reqctx"
 )
 
-// isOwnerHidden reports whether repo's owner is not publicly visible (a limited or private owner), so
-// the owner's repositories must be hidden from callers that may only reach genuinely public resources.
-func isOwnerHidden(ctx context.Context, repo *repo_model.Repository) bool {
-	if err := repo.LoadOwner(ctx); err != nil || repo.Owner == nil {
-		return true // fail closed if the owner visibility can't be determined
-	}
-	return !repo.Owner.Visibility.IsPublic()
-}
-
-// publicOnlyTokenDeniedRepo reports whether a public-only API token must be denied access to
-// repo. A public-only token may only reach genuinely public resources, so it is denied for
-// private repos and for repos owned by a non-public (limited or private) owner.
-func publicOnlyTokenDeniedRepo(ctx context.Context, repo *repo_model.Repository) bool {
-	if repo == nil {
-		return false
-	}
-	return repo.IsPrivate || isOwnerHidden(ctx, repo)
-}
-
-func codespaceTokenCanAccessRepo(repo *repo_model.Repository, snapshot codespaceTokenRepoSnapshot) bool {
-	if repo == nil {
-		return false
-	}
-	return snapshot.CodespaceTokenAllowsAnyRepository(repo.ID)
+// isPublicRepository applies anonymous visibility to ungranted Codespace reads.
+func isPublicRepository(ctx context.Context, repo *repo_model.Repository) bool {
+	return repo != nil && !repo.IsPrivate && repo.LoadOwner(ctx) == nil && repo.Owner != nil && repo.Owner.Visibility.IsPublic()
 }
 
 type codespaceTokenRepoSnapshot interface {
@@ -56,32 +36,10 @@ func codespaceTokenSnapshotFromData(data reqctx.ContextData) (codespaceTokenRepo
 	return snapshot, true
 }
 
-// TokenIsPublicOnly reports whether the request is authenticated by a public-only API token. A
-// non-token request, or a token with no recorded scope, is not public-only.
-func TokenIsPublicOnly(ctx *Context) bool {
-	scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-	if !hasApiTokenScope {
-		return false
-	}
-	publicOnly, _ := scope.PublicOnly()
-	return publicOnly
-}
-
 // CheckTokenScopes checks whether the authenticated API token contains any of the given scopes.
-func CheckTokenScopes(ctx *Context, repo *repo_model.Repository, scopes ...auth_model.AccessTokenScope) {
-	scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+func CheckTokenScopes(ctx *Context, scopes ...auth_model.AccessTokenScope) {
+	scope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
 	if !hasApiTokenScope {
-		return
-	}
-
-	publicOnly, err := scope.PublicOnly()
-	if err != nil {
-		ctx.ServerError("PublicOnly", err)
-		return
-	}
-
-	if publicOnly && publicOnlyTokenDeniedRepo(ctx, repo) {
-		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -150,12 +108,12 @@ func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, unitType un
 		}
 		allowed := repo != nil && snapshot.CodespaceTokenAllowsRepository(repo.ID, unitType, mode)
 		if !allowed && mode == perm.AccessModeRead && repo != nil {
-			allowed = !publicOnlyTokenDeniedRepo(ctx, repo)
+			allowed = isPublicRepository(ctx, repo)
 		}
 		if !allowed {
 			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
-	CheckTokenScopes(ctx, repo, auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)...)
+	CheckTokenScopes(ctx, auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)...)
 }

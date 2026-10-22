@@ -90,7 +90,6 @@ func parseCodespaceAuthHeaderToken(req *http.Request) string {
 func storeCodespaceTokenAuth(store DataStore, codespaceToken *codespace_service.GiteaTokenAuthSnapshot) {
 	store.GetData()["LoginMethod"] = CodespaceTokenMethodName
 	store.GetData()["IsApiToken"] = true
-	store.GetData()["ApiTokenScope"] = codespaceToken.Scope
 	store.GetData()[codespace_model.GiteaTokenAuthDataKey] = codespaceToken
 }
 

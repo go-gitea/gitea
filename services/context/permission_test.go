@@ -27,7 +27,7 @@ func TestCheckRepoScopedTokenForCodespaceToken(t *testing.T) {
 	t.Run("matched repo", func(t *testing.T) {
 		ctx, _ := contexttest.MockContext(t, "GET /user2/repo1.git/info/refs")
 		ctx.Data["IsApiToken"] = true
-		ctx.Data["ApiTokenScope"] = scope
+		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
 		ctx.Data[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
 
 		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 1}, unit.TypeCode, auth_model.Read)
@@ -38,7 +38,7 @@ func TestCheckRepoScopedTokenForCodespaceToken(t *testing.T) {
 	t.Run("private other repo read requires grant", func(t *testing.T) {
 		ctx, _ := contexttest.MockContext(t, "GET /user2/repo1.git/info/refs")
 		ctx.Data["IsApiToken"] = true
-		ctx.Data["ApiTokenScope"] = scope
+		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
 		ctx.Data[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
 
 		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 2, IsPrivate: true}, unit.TypeCode, auth_model.Read)
@@ -49,7 +49,7 @@ func TestCheckRepoScopedTokenForCodespaceToken(t *testing.T) {
 	t.Run("granted other repo read", func(t *testing.T) {
 		ctx, _ := contexttest.MockContext(t, "GET /user2/repo1.git/info/refs")
 		ctx.Data["IsApiToken"] = true
-		ctx.Data["ApiTokenScope"] = scope
+		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
 		ctx.Data[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1, grants: map[int64]map[unit.Type]perm.AccessMode{2: {unit.TypeCode: perm.AccessModeRead}}}
 
 		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 2}, unit.TypeCode, auth_model.Read)
@@ -60,7 +60,7 @@ func TestCheckRepoScopedTokenForCodespaceToken(t *testing.T) {
 	t.Run("public other repo read", func(t *testing.T) {
 		ctx, _ := contexttest.MockContext(t, "GET /user2/repo1.git/info/refs")
 		ctx.Data["IsApiToken"] = true
-		ctx.Data["ApiTokenScope"] = scope
+		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
 		ctx.Data[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
 
 		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 2, Owner: &user_model.User{}}, unit.TypeCode, auth_model.Read)
@@ -71,7 +71,7 @@ func TestCheckRepoScopedTokenForCodespaceToken(t *testing.T) {
 	t.Run("public other repo write", func(t *testing.T) {
 		ctx, _ := contexttest.MockContext(t, "POST /user2/repo1.git/git-receive-pack")
 		ctx.Data["IsApiToken"] = true
-		ctx.Data["ApiTokenScope"] = scope
+		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
 		ctx.Data[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
 
 		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 2}, unit.TypeCode, auth_model.Write)
@@ -82,7 +82,7 @@ func TestCheckRepoScopedTokenForCodespaceToken(t *testing.T) {
 	t.Run("missing source repository", func(t *testing.T) {
 		ctx, _ := contexttest.MockContext(t, "GET /user2/repo1.git/info/refs")
 		ctx.Data["IsApiToken"] = true
-		ctx.Data["ApiTokenScope"] = scope
+		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
 		ctx.Data[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 0}
 
 		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 1, IsPrivate: true}, unit.TypeCode, auth_model.Read)

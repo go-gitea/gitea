@@ -7,19 +7,19 @@ import {
   hideElem,
   queryElems,
   showElem,
-  toggleElem,
+  toggleElem, toggleElemClass,
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {showFomanticModal} from '../modules/fomantic/modal.ts';
+import {showModal} from '../modules/modal.ts';
 import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import type {FomanticApiResponse} from '../types.ts';
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
+import {confirmModal} from './comp/ConfirmModal.ts';
 
 const {appSubUrl} = window.config;
 
@@ -96,40 +96,48 @@ export function initRepoIssueFilterItemLabel() {
 
 export function initRepoIssueCommentDelete() {
   registerGlobalEventFunc('click', 'onConvContentDelete', async (deleteButton) => {
-    if (!window.confirm(deleteButton.getAttribute('data-locale')!)) return;
+    if (!await confirmModal({content: deleteButton.getAttribute('data-locale')!, confirmButtonColor: 'red'})) return;
 
-    const response = await performFetchActionRequest(deleteButton, {method: 'POST', url: deleteButton.getAttribute('data-url')!});
-    if (!response) return;
+    const resp = await performFetchActionRequest(deleteButton, {method: 'POST', url: deleteButton.getAttribute('data-url')!});
+    if (!resp) return;
 
+    // query the parent elements of the delete button before the comment (with the delete button) is removed from the DOM
     const conversationHolder = deleteButton.closest('.conversation-holder');
-    const parentTimelineItem = deleteButton.closest('.timeline-item');
     const parentTimelineGroup = deleteButton.closest('.timeline-item-group');
+    const parentTimelineItem = deleteButton.closest('.timeline-item');
 
-    // Check if this was a pending comment.
-    if (conversationHolder?.querySelector('.pending-label')) {
-      const counter = document.querySelector('.review-box-button .review-comments-counter')!;
-      let num = parseInt(counter?.getAttribute('data-pending-comment-number') || '') - 1 || 0;
-      num = Math.max(num, 0);
-      counter.setAttribute('data-pending-comment-number', String(num));
-      counter.textContent = String(num);
+    // Delete the current comment from the DOM
+    const commentHashTag = deleteButton.getAttribute('data-comment-hash-tag')!;
+    const deletedComment = document.querySelector(`#${commentHashTag}`);
+    deletedComment?.remove();
+
+    // only pr review comments have the "conversation-holder" element, so if it's not found, we can return early
+    if (!conversationHolder) return;
+
+    // Check if this was a pending comment for a review, and if so, update the pending comment counter in the review box button.
+    if (deletedComment?.querySelector('.pending-label')) {
+      const reviewCounter = document.querySelector('.review-box-button .review-comments-counter');
+      if (reviewCounter) {
+        let num = parseInt(reviewCounter.getAttribute('data-pending-comment-number') || '') - 1 || 0;
+        num = Math.max(num, 0);
+        reviewCounter.setAttribute('data-pending-comment-number', String(num));
+        reviewCounter.textContent = String(num);
+      }
     }
 
-    document.querySelector(`#${deleteButton.getAttribute('data-comment-id')}`)?.remove();
-
-    if (conversationHolder && !conversationHolder.querySelector('.comment')) {
-      const path = conversationHolder.getAttribute('data-path');
-      const side = conversationHolder.getAttribute('data-side');
-      const idx = conversationHolder.getAttribute('data-idx');
-      const lineType = conversationHolder.closest('tr')?.getAttribute('data-line-type');
-
+    // If the conversation holder has no more comments, remove it.
+    if (!conversationHolder.querySelector('.comment')) {
       // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
-      // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment"
-      if (lineType) {
-        if (lineType === 'same') {
-          document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
-        } else {
-          document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-side="${CSS.escape(String(side))}"][data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
-        }
+      // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment" button
+      const parentTr = conversationHolder.closest('tr[data-line-type]');
+      if (parentTr) {
+        // allow to add a new comment on the same line after deleting the existing comments
+        // previous element is the "tr" for the code line, and it contains the "add-code-comment" button
+        const isLineSame = parentTr.getAttribute('data-line-type') === 'same';
+        const side = conversationHolder.getAttribute('data-side')!;
+        const selector = isLineSame ? '.add-code-comment' : `.add-code-comment[data-side=${CSS.escape(side)}]`;
+        const addCodeCommentButtons = parentTr.previousElementSibling!.querySelectorAll(selector);
+        toggleElemClass(addCodeCommentButtons, 'tw-invisible', false);
       }
       conversationHolder.remove();
     }
@@ -154,8 +162,8 @@ export function initRepoIssueCodeCommentCancel() {
   });
 }
 
-export function initRepoIssueComments() {
-  if (!document.querySelector('.repository.view.issue .timeline')) return;
+export function initRepoIssueCommentTargetHashReset() {
+  if (!document.querySelector('.repository.view.issue')) return;
 
   document.addEventListener('click', (e: Event) => {
     const urlTarget = document.querySelector(':target');
@@ -317,10 +325,10 @@ export function initRepoIssueReferenceIssue() {
     const poster = el.getAttribute('data-poster-username');
     const reference = el.getAttribute('data-reference')!;
     const modalSelector = el.getAttribute('data-modal')!;
-    const modal = document.querySelector(modalSelector)!;
+    const modal = document.querySelector<HTMLDialogElement>(modalSelector)!;
     const textarea = modal.querySelector<HTMLTextAreaElement>('textarea[name="content"]')!;
     textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
-    showFomanticModal(modal);
+    showModal(modal);
   });
 }
 
@@ -491,9 +499,7 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
   }
 }
 
-export function initRepoCommentFormAndSidebar() {
-  initRepoIssueSidebar();
-
+export function initRepoCommentForm() {
   const commentForm = document.querySelector<HTMLFormElement>('.comment.form');
   if (!commentForm) return;
 

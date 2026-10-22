@@ -1,9 +1,9 @@
 import {initCodespaceManagerSecretModal, initCodespaceSecretRepositoryPicker, initCodespaceTemplateEditor} from './CodespaceSettings.ts';
 import {EditorView} from '@codemirror/view';
-import * as modalModule from '../../modules/fomantic/modal.ts';
+import * as modalModule from '../../modules/modal.ts';
 import * as fetchAction from '../../modules/fetch-action.ts';
 
-vi.mock('../../modules/fomantic/modal.ts', () => ({showFomanticModal: vi.fn()}));
+vi.mock('../../modules/modal.ts', () => ({showModal: vi.fn()}));
 vi.mock('../../modules/fetch-action.ts', () => ({performFetchActionRequest: vi.fn()}));
 
 beforeEach(() => vi.clearAllMocks());
@@ -11,18 +11,18 @@ beforeEach(() => vi.clearAllMocks());
 test('template editor submits edited JSONC and opens another template with fresh content', async () => {
   document.body.innerHTML = `
     <button class="codespace-template-edit" data-modal-form.url="/templates/1" data-modal-template-modal-title="Edit" data-submit-label="Save" data-modal-codespace-devcontainer-template-name="First"></button>
-    <div id="template-modal"><div class="header"></div><form>
+    <dialog open id="template-modal"><div class="header"></div><form>
       <input name="name"><div class="field"><div class="codespace-template-editor"><textarea name="content" data-code-editor-config='{"filename":"devcontainer.json"}'></textarea></div><div class="help">JSONC</div></div>
       <button class="cancel" type="button">Cancel</button><button class="ok"><span class="template-submit-label">Save</span></button>
-    </form></div>`;
-  const modal = document.querySelector<HTMLElement>('#template-modal')!;
+    </form></dialog>`;
+  const modal = document.querySelector<HTMLDialogElement>('#template-modal')!;
   const trigger = document.querySelector<HTMLButtonElement>('.codespace-template-edit')!;
   const first = '{\n// first\n"image":"debian:12",\n}';
   trigger.setAttribute('data-modal-codespace-devcontainer-template-content', first);
   let onHide: (() => void) | undefined;
   let shown = Promise.resolve();
-  vi.mocked(modalModule.showFomanticModal).mockImplementation((_el, opts) => {
-    onHide = () => opts!.onHide!.call(modal);
+  vi.mocked(modalModule.showModal).mockImplementation((_el, opts) => {
+    onHide = () => opts!.onHidden!.call(modal);
     shown = Promise.resolve(opts!.onShow!.call(modal));
   });
   try {
@@ -53,17 +53,21 @@ test('manager credentials are generated on demand, cleared on close, and confirm
   document.body.innerHTML = `
     <button id="manager-secret-button" data-has-secret="false" data-reset-label="Reset">Generate</button>
     <p id="manager-secret-status" data-generated-label="Generated">Not generated</p>
-    <div id="secret-modal">
+    <dialog open id="secret-modal">
       <p data-secret-confirm>Confirm reset</p>
       <div data-secret-result hidden>
         <input id="manager-secret-value"><button type="button" data-clipboard-target="#manager-secret-value">Copy</button>
       </div>
       <form action="/manager/1/secret"><button class="ui cancel button" type="button">Close</button><button class="ui primary button" data-secret-submit>Reset</button></form>
-    </div>`;
-  const modal = document.querySelector<HTMLElement>('#secret-modal')!;
+    </dialog>`;
+  const modal = document.querySelector<HTMLDialogElement>('#secret-modal')!;
   let onHide: (() => void) | undefined;
-  const show = vi.mocked(modalModule.showFomanticModal).mockImplementation((_el, opts) => {
-    onHide = () => opts!.onHide!.call(modal);
+  const show = vi.mocked(modalModule.showModal).mockImplementation((_el, opts) => {
+    modal.open = true;
+    onHide = () => {
+      modal.open = false;
+      opts!.onHidden!.call(modal);
+    };
     opts!.onShow!.call(modal);
   });
   const request = vi.mocked(fetchAction.performFetchActionRequest).mockResolvedValue(Response.json({secret: 'first-secret'}));
@@ -97,6 +101,16 @@ test('manager credentials are generated on demand, cleared on close, and confirm
     expect(form.querySelector<HTMLButtonElement>('.cancel')!.disabled).toBe(false);
     onHide!();
     expect(value.value).toBe('');
+    trigger.click();
+    const response = Promise.withResolvers<Response>();
+    request.mockReturnValueOnce(response.promise);
+    form.requestSubmit();
+    expect(trigger.disabled).toBe(true);
+    onHide!();
+    response.resolve(Response.json({secret: 'closed-secret'}));
+    await vi.waitFor(() => expect(trigger.disabled).toBe(false));
+    expect(value.value).toBe('');
+    expect(modal.querySelector<HTMLElement>('[data-secret-result]')!.hidden).toBe(true);
   } finally {
     vi.restoreAllMocks();
     document.body.replaceChildren();

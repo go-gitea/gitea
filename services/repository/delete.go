@@ -152,6 +152,11 @@ func deleteRepositoryDirectlyLocked(ctx context.Context, repoID int64, ignoreOrg
 		return err
 	}
 
+	if _, err := db.GetEngine(ctx).In("release_id", builder.Select("id").From("`release`").Where(builder.Eq{"repo_id": repoID})).
+		Delete(&issues_model.Reaction{}); err != nil {
+		return err
+	}
+
 	// CleanupEphemeralRunnersByPickedTaskOfRepo deletes ephemeral global/org/user that have started any task of this repo
 	// The cannot pick a second task hardening for ephemeral runners expect that task objects remain available until runner deletion
 	// This method will delete affected ephemeral global/org/user runners
@@ -437,7 +442,6 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 			},
 			Private: true,
 			OwnerID: owner.ID,
-			Actor:   owner,
 		})
 		if err != nil {
 			return fmt.Errorf("GetUserRepositories: %w", err)

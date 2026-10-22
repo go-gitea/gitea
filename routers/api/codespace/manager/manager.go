@@ -12,18 +12,17 @@ import (
 	"gitea.dev/codespace-proto-go/codespace/v1/codespacev1connect"
 	codespace_service "gitea.dev/services/codespace"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 )
 
 // NewManagerServiceHandler returns the Codespace ManagerService Connect handler.
 func NewManagerServiceHandler() (string, http.Handler) {
-	return codespacev1connect.NewManagerServiceHandler(
-		&Service{},
-		connect.WithCompressMinBytes(1024),
-		connect.WithReadMaxBytes(codespace_service.ManagerServiceMaxMessageSize),
-		connect.WithSendMaxBytes(codespace_service.ManagerServiceMaxMessageSize),
-		withManager,
-	)
+	server := connect.NewServer(withManager)
+	codespacev1connect.RegisterManagerServiceHandler(server, &Service{})
+	mux := http.NewServeMux()
+	connecthttp.Mount(mux, server, connecthttp.WithCompressMinBytes(1024), connecthttp.WithReadMaxBytes(codespace_service.ManagerServiceMaxMessageSize), connecthttp.WithSendMaxBytes(codespace_service.ManagerServiceMaxMessageSize))
+	return "/" + codespacev1connect.ManagerServiceName + "/", mux
 }
 
 var _ codespacev1connect.ManagerServiceHandler = (*Service)(nil)
@@ -36,55 +35,55 @@ type Service struct {
 // CheckManager confirms the authenticated Manager identity without changing it.
 func (s *Service) CheckManager(
 	ctx context.Context,
-	_ *connect.Request[codespacev1.CheckManagerRequest],
-) (*connect.Response[codespacev1.CheckManagerResponse], error) {
+	_ *codespacev1.CheckManagerRequest,
+) (*codespacev1.CheckManagerResponse, error) {
 	manager := GetManager(ctx)
 	_, _, _, giteaWebURL := codespace_service.ManagerServiceTimings()
-	return connect.NewResponse(&codespacev1.CheckManagerResponse{
+	return &codespacev1.CheckManagerResponse{
 		GiteaWebUrl: giteaWebURL,
 		ManagerName: manager.Name,
-	}), nil
+	}, nil
 }
 
 // DeclareManager stores the authenticated Manager's current declaration.
 func (s *Service) DeclareManager(
 	ctx context.Context,
-	req *connect.Request[codespacev1.DeclareManagerRequest],
-) (*connect.Response[codespacev1.DeclareManagerResponse], error) {
+	req *codespacev1.DeclareManagerRequest,
+) (*codespacev1.DeclareManagerResponse, error) {
 	manager := GetManager(ctx)
 	if err := codespace_service.DeclareManager(ctx, manager, codespace_service.DeclareManagerOptions{
-		GatewayURL:                         req.Msg.GetGatewayUrl(),
-		GatewaySSHAddr:                     req.Msg.GetGatewaySshAddr(),
-		Environments:                       req.Msg.GetEnvironments(),
-		Version:                            req.Msg.GetVersion(),
-		RuntimeState:                       req.Msg.GetManagerRuntimeState(),
-		GatewaySSHHostKeyAlgorithm:         req.Msg.GetGatewaySshHostKeyAlgorithm(),
-		GatewaySSHHostKeyFingerprintSHA256: req.Msg.GetGatewaySshHostKeyFingerprintSha256(),
+		GatewayURL:                         req.GetGatewayUrl(),
+		GatewaySSHAddr:                     req.GetGatewaySshAddr(),
+		Environments:                       req.GetEnvironments(),
+		Version:                            req.GetVersion(),
+		RuntimeState:                       req.GetManagerRuntimeState(),
+		GatewaySSHHostKeyAlgorithm:         req.GetGatewaySshHostKeyAlgorithm(),
+		GatewaySSHHostKeyFingerprintSHA256: req.GetGatewaySshHostKeyFingerprintSha256(),
 	}); err != nil {
 		return nil, serviceFailureError(err, "invalid_declaration", nil)
 	}
 	heartbeatMillis, metadataRefreshMillis, maxMessageBytes, giteaWebURL := codespace_service.ManagerServiceTimings()
-	return connect.NewResponse(&codespacev1.DeclareManagerResponse{
+	return &codespacev1.DeclareManagerResponse{
 		HeartbeatIntervalMilliseconds:              heartbeatMillis,
 		RuntimeMetadataRefreshIntervalMilliseconds: metadataRefreshMillis,
 		ControlPlaneMaxMessageSizeBytes:            maxMessageBytes,
 		GiteaWebUrl:                                giteaWebURL,
-	}), nil
+	}, nil
 }
 
 // FetchOperations returns operation payloads and renewed leases for the authenticated Manager.
 func (s *Service) FetchOperations(
 	ctx context.Context,
-	req *connect.Request[codespacev1.FetchOperationsRequest],
-) (*connect.Response[codespacev1.FetchOperationsResponse], error) {
+	req *codespacev1.FetchOperationsRequest,
+) (*codespacev1.FetchOperationsResponse, error) {
 	manager := GetManager(ctx)
 	result, err := codespace_service.FetchOperations(ctx, manager, codespace_service.FetchOperationsOptions{
-		StartupCapacityAvailable: req.Msg.GetStartupCapacityAvailable(),
-		AcceptedOperationTypes:   req.Msg.GetAcceptedOperationTypes(),
-		AcceptedCreateTags:       req.Msg.GetAcceptedCreateTags(),
-		ObservedOperations:       req.Msg.GetObservedOperations(),
-		CleanupCapacityAvailable: req.Msg.GetCleanupCapacityAvailable(),
-		WaitTimeoutMilliseconds:  req.Msg.GetWaitTimeoutMilliseconds(),
+		StartupCapacityAvailable: req.GetStartupCapacityAvailable(),
+		AcceptedOperationTypes:   req.GetAcceptedOperationTypes(),
+		AcceptedCreateTags:       req.GetAcceptedCreateTags(),
+		ObservedOperations:       req.GetObservedOperations(),
+		CleanupCapacityAvailable: req.GetCleanupCapacityAvailable(),
+		WaitTimeoutMilliseconds:  req.GetWaitTimeoutMilliseconds(),
 	})
 	if err != nil {
 		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
@@ -92,19 +91,19 @@ func (s *Service) FetchOperations(
 			{target: codespace_service.ErrFetchManagerUnavailable, code: connect.CodeUnavailable, category: "manager_offline"},
 		})
 	}
-	return connect.NewResponse(result), nil
+	return result, nil
 }
 
 // BindRuntimeIdentity stores the Manager-allocated runtime UUID for an active create operation.
 func (s *Service) BindRuntimeIdentity(
 	ctx context.Context,
-	req *connect.Request[codespacev1.BindRuntimeIdentityRequest],
-) (*connect.Response[codespacev1.BindRuntimeIdentityResponse], error) {
+	req *codespacev1.BindRuntimeIdentityRequest,
+) (*codespacev1.BindRuntimeIdentityResponse, error) {
 	manager := GetManager(ctx)
 	runtimeUUID, err := codespace_service.BindRuntimeIdentity(ctx, manager, codespace_service.BindRuntimeIdentityOptions{
-		CodespaceID:       req.Msg.GetCodespaceId(),
-		OperationRVersion: req.Msg.GetOperationRversion(),
-		RuntimeUUID:       req.Msg.GetRuntimeUuid(),
+		CodespaceID:       req.GetCodespaceId(),
+		OperationRVersion: req.GetOperationRversion(),
+		RuntimeUUID:       req.GetRuntimeUuid(),
 	})
 	if err != nil {
 		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
@@ -113,18 +112,18 @@ func (s *Service) BindRuntimeIdentity(
 			{target: codespace_service.ErrBindRuntimeIdentityConflict, code: connect.CodeFailedPrecondition, category: "runtime_uuid_conflict"},
 		})
 	}
-	return connect.NewResponse(&codespacev1.BindRuntimeIdentityResponse{RuntimeUuid: runtimeUUID}), nil
+	return &codespacev1.BindRuntimeIdentityResponse{RuntimeUuid: runtimeUUID}, nil
 }
 
 // ReportInstances accepts a complete Runtime inventory snapshot.
 func (s *Service) ReportInstances(
 	ctx context.Context,
-	req *connect.Request[codespacev1.ReportInstancesRequest],
-) (*connect.Response[codespacev1.ReportInstancesResponse], error) {
+	req *codespacev1.ReportInstancesRequest,
+) (*codespacev1.ReportInstancesResponse, error) {
 	manager := GetManager(ctx)
 	result, err := codespace_service.ReportInstances(ctx, manager, codespace_service.ReportInstancesOptions{
-		InventoryGeneration: req.Msg.GetInventoryGeneration(),
-		Instances:           req.Msg.GetInstances(),
+		InventoryGeneration: req.GetInventoryGeneration(),
+		Instances:           req.GetInstances(),
 	})
 	if err != nil {
 		var staleGeneration *codespace_service.StaleGenerationError
@@ -139,20 +138,20 @@ func (s *Service) ReportInstances(
 			return nil, failureError(connect.CodeInvalidArgument, "invalid_argument", err)
 		}
 	}
-	return connect.NewResponse(result), nil
+	return result, nil
 }
 
 // FinalizeOperation reports the authenticated Manager's final operation result.
 func (s *Service) FinalizeOperation(
 	ctx context.Context,
-	req *connect.Request[codespacev1.FinalizeOperationRequest],
-) (*connect.Response[codespacev1.FinalizeOperationResponse], error) {
+	req *codespacev1.FinalizeOperationRequest,
+) (*codespacev1.FinalizeOperationResponse, error) {
 	manager := GetManager(ctx)
 	response, err := codespace_service.FinalizeOperation(ctx, manager, codespace_service.FinalizeOperationOptions{
-		CodespaceUUID:     req.Msg.GetRuntimeUuid(),
-		OperationRVersion: req.Msg.GetOperationRversion(),
-		OperationType:     req.Msg.GetOperationType(),
-		FinalStatus:       req.Msg.GetStatus(),
+		CodespaceUUID:     req.GetRuntimeUuid(),
+		OperationRVersion: req.GetOperationRversion(),
+		OperationType:     req.GetOperationType(),
+		FinalStatus:       req.GetStatus(),
 	})
 	if err != nil {
 		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
@@ -160,20 +159,20 @@ func (s *Service) FinalizeOperation(
 			{target: codespace_service.ErrFinalizeMetadataRequired, code: connect.CodeFailedPrecondition, category: "metadata_required"},
 		})
 	}
-	return connect.NewResponse(response), nil
+	return response, nil
 }
 
 // UpdateLog appends sanitized log lines for the authenticated Manager's active operation.
 func (s *Service) UpdateLog(
 	ctx context.Context,
-	req *connect.Request[codespacev1.UpdateLogRequest],
-) (*connect.Response[codespacev1.UpdateLogResponse], error) {
+	req *codespacev1.UpdateLogRequest,
+) (*codespacev1.UpdateLogResponse, error) {
 	manager := GetManager(ctx)
 	result, err := codespace_service.UpdateLog(ctx, manager, codespace_service.UpdateLogOptions{
-		CodespaceUUID:     req.Msg.GetRuntimeUuid(),
-		OperationRVersion: req.Msg.GetOperationRversion(),
-		Offset:            req.Msg.GetOffset(),
-		Lines:             req.Msg.GetLines(),
+		CodespaceUUID:     req.GetRuntimeUuid(),
+		OperationRVersion: req.GetOperationRversion(),
+		Offset:            req.GetOffset(),
+		Lines:             req.GetLines(),
 	})
 	if err != nil {
 		var offsetErr *codespace_service.LogOffsetError
@@ -192,24 +191,24 @@ func (s *Service) UpdateLog(
 			return nil, failureError(connect.CodeInvalidArgument, "invalid_argument", err)
 		}
 	}
-	return connect.NewResponse(result), nil
+	return result, nil
 }
 
 // ReportRuntimeMetadata stores the authenticated Manager's current Runtime Metadata snapshot.
 func (s *Service) ReportRuntimeMetadata(
 	ctx context.Context,
-	req *connect.Request[codespacev1.ReportRuntimeMetadataRequest],
-) (*connect.Response[codespacev1.ReportRuntimeMetadataResponse], error) {
+	req *codespacev1.ReportRuntimeMetadataRequest,
+) (*codespacev1.ReportRuntimeMetadataResponse, error) {
 	manager := GetManager(ctx)
 	err := codespace_service.ReportRuntimeMetadata(ctx, manager, codespace_service.ReportRuntimeMetadataOptions{
-		CodespaceUUID:      req.Msg.GetRuntimeUuid(),
-		Metadata:           req.Msg.GetMetadata(),
-		MetadataGeneration: req.Msg.GetMetadataGeneration(),
+		CodespaceUUID:      req.GetRuntimeUuid(),
+		Metadata:           req.GetMetadata(),
+		MetadataGeneration: req.GetMetadataGeneration(),
 	})
 	if err != nil {
 		return nil, reportRuntimeMetadataError(err)
 	}
-	return connect.NewResponse(&codespacev1.ReportRuntimeMetadataResponse{}), nil
+	return &codespacev1.ReportRuntimeMetadataResponse{}, nil
 }
 
 func reportRuntimeMetadataError(err error) error {
@@ -244,13 +243,13 @@ func serviceFailureError(err error, fallbackCategory string, cases []serviceErro
 // RequestRuntimeAccess returns the authenticated Manager's current runtime access material.
 func (s *Service) RequestRuntimeAccess(
 	ctx context.Context,
-	req *connect.Request[codespacev1.RequestRuntimeAccessRequest],
-) (*connect.Response[codespacev1.RequestRuntimeAccessResponse], error) {
+	req *codespacev1.RequestRuntimeAccessRequest,
+) (*codespacev1.RequestRuntimeAccessResponse, error) {
 	manager := GetManager(ctx)
 	result, err := codespace_service.RequestRuntimeAccess(ctx, manager, codespace_service.RequestRuntimeAccessOptions{
-		CodespaceUUID:     req.Msg.GetRuntimeUuid(),
-		OperationRVersion: req.Msg.GetOperationRversion(),
-		GitSSHPublicKey:   req.Msg.GetGitSshKey().GetPublicKey(),
+		CodespaceUUID:     req.GetRuntimeUuid(),
+		OperationRVersion: req.GetOperationRversion(),
+		GitSSHPublicKey:   req.GetGitSshKey().GetPublicKey(),
 	})
 	if err != nil {
 		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
@@ -269,25 +268,25 @@ func (s *Service) RequestRuntimeAccess(
 	for _, secret := range result.Secrets {
 		secrets = append(secrets, &codespacev1.RuntimeSecretEnvironmentVariable{Name: secret.Name, Value: secret.Value})
 	}
-	return connect.NewResponse(&codespacev1.RequestRuntimeAccessResponse{
+	return &codespacev1.RequestRuntimeAccessResponse{
 		Access: &codespacev1.RuntimeAccessBundle{
 			GiteaToken:     result.Token,
 			GiteaServerUrl: result.ServerURL,
 			Secrets:        secrets,
 			GitSshTrust:    &codespacev1.GitSSHTrust{KnownHostsLines: result.GitSSHKnownHosts},
 		},
-	}), nil
+	}, nil
 }
 
 // RequestIdleStop authorizes an idle-triggered stop against current Gitea state.
 func (s *Service) RequestIdleStop(
 	ctx context.Context,
-	req *connect.Request[codespacev1.RequestIdleStopRequest],
-) (*connect.Response[codespacev1.RequestIdleStopResponse], error) {
+	req *codespacev1.RequestIdleStopRequest,
+) (*codespacev1.RequestIdleStopResponse, error) {
 	manager := GetManager(ctx)
-	settings := req.Msg.GetObservedSettings()
+	settings := req.GetObservedSettings()
 	result, err := codespace_service.RequestIdleStop(ctx, manager, codespace_service.RequestIdleStopOptions{
-		CodespaceUUID:                 req.Msg.GetRuntimeUuid(),
+		CodespaceUUID:                 req.GetRuntimeUuid(),
 		ObservedAutoStopEnabled:       settings.GetAutoStopEnabled(),
 		ObservedIdleTimeoutSeconds:    settings.GetIdleTimeoutSeconds(),
 		ObservedInteractionGeneration: settings.GetInteractionGeneration(),
@@ -300,65 +299,65 @@ func (s *Service) RequestIdleStop(
 			{target: codespace_service.ErrRequestIdleStopVersionExhausted, code: connect.CodeFailedPrecondition, category: "version_exhausted"},
 		})
 	}
-	return connect.NewResponse(result), nil
+	return result, nil
 }
 
 // ValidatePublicEndpoint authorizes unauthenticated access to one public Endpoint.
 func (s *Service) ValidatePublicEndpoint(
 	ctx context.Context,
-	req *connect.Request[codespacev1.ValidatePublicEndpointRequest],
-) (*connect.Response[codespacev1.ValidatePublicEndpointResponse], error) {
+	req *codespacev1.ValidatePublicEndpointRequest,
+) (*codespacev1.ValidatePublicEndpointResponse, error) {
 	manager := GetManager(ctx)
 	result, err := codespace_service.ValidatePublicEndpoint(ctx, manager, codespace_service.ValidatePublicEndpointOptions{
-		CodespaceUUID: req.Msg.GetRuntimeUuid(),
-		EndpointID:    req.Msg.GetEndpointId(),
+		CodespaceUUID: req.GetRuntimeUuid(),
+		EndpointID:    req.GetEndpointId(),
 	})
 	if err != nil {
 		return nil, failureError(connect.CodeInvalidArgument, "invalid_argument", err)
 	}
-	return connect.NewResponse(result), nil
+	return result, nil
 }
 
 // ValidateOpenToken authorizes one Gateway Open Token exchange.
 func (s *Service) ValidateOpenToken(
 	ctx context.Context,
-	req *connect.Request[codespacev1.ValidateOpenTokenRequest],
-) (*connect.Response[codespacev1.ValidateOpenTokenResponse], error) {
+	req *codespacev1.ValidateOpenTokenRequest,
+) (*codespacev1.ValidateOpenTokenResponse, error) {
 	manager := GetManager(ctx)
 	result, err := codespace_service.ValidateOpenToken(ctx, manager, codespace_service.ValidateOpenTokenOptions{
-		Code: req.Msg.GetCode(),
+		Code: req.GetCode(),
 	})
 	if err != nil {
 		return nil, failureError(connect.CodeInternal, "internal_error", err)
 	}
-	return connect.NewResponse(result), nil
+	return result, nil
 }
 
 // VerifySSHPublicKey authorizes one new Gateway SSH transport.
 func (s *Service) VerifySSHPublicKey(
 	ctx context.Context,
-	req *connect.Request[codespacev1.VerifySSHPublicKeyRequest],
-) (*connect.Response[codespacev1.VerifySSHPublicKeyResponse], error) {
+	req *codespacev1.VerifySSHPublicKeyRequest,
+) (*codespacev1.VerifySSHPublicKeyResponse, error) {
 	manager := GetManager(ctx)
 	result, err := codespace_service.VerifySSHPublicKey(ctx, manager, codespace_service.VerifySSHPublicKeyOptions{
-		CodespaceUUID: req.Msg.GetRuntimeUuid(),
-		PublicKey:     req.Msg.GetPublicKey(),
+		CodespaceUUID: req.GetRuntimeUuid(),
+		PublicKey:     req.GetPublicKey(),
 	})
 	if err != nil {
 		return nil, failureError(connect.CodeInvalidArgument, "invalid_argument", err)
 	}
-	return connect.NewResponse(result), nil
+	return result, nil
 }
 
 // RevalidateGatewaySession checks whether an existing Gateway session remains authorized.
 func (s *Service) RevalidateGatewaySession(
 	ctx context.Context,
-	req *connect.Request[codespacev1.RevalidateGatewaySessionRequest],
-) (*connect.Response[codespacev1.RevalidateGatewaySessionResponse], error) {
+	req *codespacev1.RevalidateGatewaySessionRequest,
+) (*codespacev1.RevalidateGatewaySessionResponse, error) {
 	manager := GetManager(ctx)
-	result, err := codespace_service.RevalidateGatewaySession(ctx, manager, req.Msg)
+	result, err := codespace_service.RevalidateGatewaySession(ctx, manager, req)
 	if err != nil {
 		return nil, failureError(connect.CodeInvalidArgument, "invalid_argument", err)
 	}
-	return connect.NewResponse(result), nil
+	return result, nil
 }

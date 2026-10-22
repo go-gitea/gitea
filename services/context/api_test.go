@@ -56,21 +56,21 @@ func TestGenAPILinks(t *testing.T) {
 	}
 }
 
-func TestAPIContextTokenCanAccessRepoForCodespaceToken(t *testing.T) {
+func TestCodespaceTokenCanAccessRepo(t *testing.T) {
 	ctx := &APIContext{Base: &Base{RequestContext: reqctx.NewRequestContextForTest(t)}}
 	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/repos/user5/repo4", nil)
 	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 2}
 
-	assert.True(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 2}))
-	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 3, IsPrivate: false}))
-	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 4, IsPrivate: true}))
-	assert.False(t, ctx.TokenCanAccessRepo(nil))
+	assert.True(t, ctx.CodespaceTokenCanAccessRepo(&repo_model.Repository{ID: 2}))
+	assert.False(t, ctx.CodespaceTokenCanAccessRepo(&repo_model.Repository{ID: 3, IsPrivate: false}))
+	assert.False(t, ctx.CodespaceTokenCanAccessRepo(&repo_model.Repository{ID: 4, IsPrivate: true}))
+	assert.False(t, ctx.CodespaceTokenCanAccessRepo(nil))
 
 	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 0}
-	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 2, IsPrivate: false}))
+	assert.False(t, ctx.CodespaceTokenCanAccessRepo(&repo_model.Repository{ID: 2, IsPrivate: false}))
 
 	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodPost, "/api/v1/repos/user5/repo4", nil)
-	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 2, IsPrivate: false}))
+	assert.False(t, ctx.CodespaceTokenCanAccessRepo(&repo_model.Repository{ID: 2, IsPrivate: false}))
 }
 
 func TestUsePublicPermissionForCodespaceRead(t *testing.T) {
@@ -87,8 +87,8 @@ func TestUsePublicPermissionForCodespaceRead(t *testing.T) {
 	ctx.Repo = &Repository{Repository: &repo_model.Repository{ID: 2}}
 	_, hasSnapshot := ctx.CodespaceTokenRepoID()
 	assert.True(t, hasSnapshot)
-	assert.True(t, ctx.TokenCanAccessRepo(ctx.Repo.Repository))
-	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 3}))
+	assert.True(t, ctx.CodespaceTokenCanAccessRepo(ctx.Repo.Repository))
+	assert.False(t, ctx.CodespaceTokenCanAccessRepo(&repo_model.Repository{ID: 3}))
 	assert.True(t, ctx.CodespaceTokenAllowsRepository(unit.TypeCode, perm.AccessModeRead))
 	assert.False(t, ctx.CodespaceTokenAllowsRepository(unit.TypeCode, perm.AccessModeWrite))
 	assert.True(t, ctx.CodespaceTokenAllowsRepositoryID(2, unit.TypeCode, perm.AccessModeRead))

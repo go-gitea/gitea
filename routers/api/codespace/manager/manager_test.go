@@ -4,6 +4,7 @@
 package manager
 
 import (
+	"context"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -20,7 +21,9 @@ import (
 	"gitea.dev/modules/test"
 	codespace_service "gitea.dev/services/codespace"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
+	"connectrpc.com/connect/v2/connectproto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,10 +41,10 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	require.Positive(t, managerID)
 	secret, err := codespace_service.ResetManagerSecret(t.Context(), codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite}, managerID, false)
 	require.NoError(t, err)
-	checked, err := client.CheckManager(t.Context(), managerRequest(managerID, secret, &codespacev1.CheckManagerRequest{ProtocolVersion: 1}))
+	checked, err := client.CheckManager(managerContext(t.Context(), managerID, secret), &codespacev1.CheckManagerRequest{ProtocolVersion: 1})
 	require.NoError(t, err)
-	assert.Equal(t, "Gitea Manager", checked.Msg.GetManagerName())
-	assert.NotEmpty(t, checked.Msg.GetGiteaWebUrl())
+	assert.Equal(t, "Gitea Manager", checked.GetManagerName())
+	assert.NotEmpty(t, checked.GetGiteaWebUrl())
 	managerBeforeDeclare := new(codespace_model.Manager)
 	has, err := db.GetEngine(t.Context()).ID(managerID).Get(managerBeforeDeclare)
 	require.NoError(t, err)
@@ -59,29 +62,29 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 		GatewaySshHostKeyAlgorithm:         " ssh-ed25519 ",
 		GatewaySshHostKeyFingerprintSha256: " SHA256:test ",
 	}
-	_, err = client.DeclareManager(t.Context(), managerRequest(managerID, "bad-secret", declaration))
+	_, err = client.DeclareManager(managerContext(t.Context(), managerID, "bad-secret"), declaration)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	assert.Equal(t, "unauthenticated", failureCategory(t, err))
 
-	_, err = client.DeclareManager(t.Context(), managerRequest(managerID+1000, secret, declaration))
+	_, err = client.DeclareManager(managerContext(t.Context(), managerID+1000, secret), declaration)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	assert.Equal(t, "manager_unregistered", failureCategory(t, err))
 
 	declaration.ProtocolVersion = 0
-	_, err = client.DeclareManager(t.Context(), managerRequest(managerID, secret, declaration))
+	_, err = client.DeclareManager(managerContext(t.Context(), managerID, secret), declaration)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Equal(t, "protocol_mismatch", failureCategory(t, err))
 
 	declaration.ProtocolVersion = 1
-	declared, err := client.DeclareManager(t.Context(), managerRequest(managerID, secret, declaration))
+	declared, err := client.DeclareManager(managerContext(t.Context(), managerID, secret), declaration)
 	require.NoError(t, err)
-	assert.Positive(t, declared.Msg.GetHeartbeatIntervalMilliseconds())
-	assert.Positive(t, declared.Msg.GetRuntimeMetadataRefreshIntervalMilliseconds())
-	assert.Positive(t, declared.Msg.GetControlPlaneMaxMessageSizeBytes())
-	assert.NotEmpty(t, declared.Msg.GetGiteaWebUrl())
+	assert.Positive(t, declared.GetHeartbeatIntervalMilliseconds())
+	assert.Positive(t, declared.GetRuntimeMetadataRefreshIntervalMilliseconds())
+	assert.Positive(t, declared.GetControlPlaneMaxMessageSizeBytes())
+	assert.NotEmpty(t, declared.GetGiteaWebUrl())
 
 	manager := new(codespace_model.Manager)
 	has, err = db.GetEngine(t.Context()).ID(managerID).Get(manager)
@@ -105,15 +108,13 @@ func TestManagerServiceDeclareAllowsSharedGatewayAddresses(t *testing.T) {
 	secondManager, secondSecret := insertManagerTestIdentity(t, 0)
 
 	firstDeclaration := managerTestDeclaration("https://workspace.example.com", "workspace.example.com:22")
-	_, err := client.DeclareManager(t.Context(), managerRequest(firstManager.ID, firstSecret, firstDeclaration))
+	_, err := client.DeclareManager(managerContext(t.Context(), firstManager.ID, firstSecret), firstDeclaration)
 	require.NoError(t, err)
 
-	_, err = client.DeclareManager(t.Context(), managerRequest(secondManager.ID, secondSecret,
-		managerTestDeclaration("https://workspace.example.com", "other-ssh.example.com:22")))
+	_, err = client.DeclareManager(managerContext(t.Context(), secondManager.ID, secondSecret), managerTestDeclaration("https://workspace.example.com", "other-ssh.example.com:22"))
 	require.NoError(t, err)
 
-	_, err = client.DeclareManager(t.Context(), managerRequest(secondManager.ID, secondSecret,
-		managerTestDeclaration("https://other-gateway.example.com", "workspace.example.com:22")))
+	_, err = client.DeclareManager(managerContext(t.Context(), secondManager.ID, secondSecret), managerTestDeclaration("https://other-gateway.example.com", "workspace.example.com:22"))
 	require.NoError(t, err)
 
 	stored := new(codespace_model.Manager)
@@ -132,8 +133,7 @@ func TestManagerServiceDeclareAcceptsCookieScopeWarning(t *testing.T) {
 
 	manager, secret := insertManagerTestIdentity(t, 0)
 
-	_, err := client.DeclareManager(t.Context(), managerRequest(manager.ID, secret,
-		managerTestDeclaration("https://workspace.example.com", "workspace.example.com:22")))
+	_, err := client.DeclareManager(managerContext(t.Context(), manager.ID, secret), managerTestDeclaration("https://workspace.example.com", "workspace.example.com:22"))
 	require.NoError(t, err)
 
 	stored := new(codespace_model.Manager)
@@ -168,17 +168,17 @@ func TestManagerServiceFetchPayloadAndLease(t *testing.T) {
 		InteractionGeneration: 7,
 	})
 
-	fetched, err := client.FetchOperations(t.Context(), managerRequest(manager.ID, secret, &codespacev1.FetchOperationsRequest{
+	fetched, err := client.FetchOperations(managerContext(t.Context(), manager.ID, secret), &codespacev1.FetchOperationsRequest{
 		ProtocolVersion:          1,
 		StartupCapacityAvailable: 1,
 		AcceptedOperationTypes: []codespacev1.AcceptedOperationType{
 			codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE,
 		},
 		AcceptedCreateTags: []string{"default"},
-	}))
+	})
 	require.NoError(t, err)
-	require.Len(t, fetched.Msg.GetOperations(), 1)
-	operation := fetched.Msg.GetOperations()[0]
+	require.Len(t, fetched.GetOperations(), 1)
+	operation := fetched.GetOperations()[0]
 	assert.Equal(t, codespaceUUID, operation.GetRuntimeUuid())
 	assert.EqualValues(t, 41, operation.GetOperationRversion())
 	assert.Positive(t, operation.GetLeaseValidForMilliseconds())
@@ -189,17 +189,17 @@ func TestManagerServiceFetchPayloadAndLease(t *testing.T) {
 	assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_HTTP, operation.GetCreate().GetRepository().GetPreferredProtocol())
 	assert.EqualValues(t, 7, operation.GetCreate().GetRuntimeSettings().GetInteractionGeneration())
 
-	renewed, err := client.FetchOperations(t.Context(), managerRequest(manager.ID, secret, &codespacev1.FetchOperationsRequest{
+	renewed, err := client.FetchOperations(managerContext(t.Context(), manager.ID, secret), &codespacev1.FetchOperationsRequest{
 		ProtocolVersion: 1,
 		ObservedOperations: []*codespacev1.ObservedOperation{{
 			RuntimeUuid:       codespaceUUID,
 			OperationRversion: 41,
 		}},
-	}))
+	})
 	require.NoError(t, err)
-	assert.Empty(t, renewed.Msg.GetOperations())
-	require.Len(t, renewed.Msg.GetRenewedLeases(), 1)
-	assert.Equal(t, codespaceUUID, renewed.Msg.GetRenewedLeases()[0].GetRuntimeUuid())
+	assert.Empty(t, renewed.GetOperations())
+	require.Len(t, renewed.GetRenewedLeases(), 1)
+	assert.Equal(t, codespaceUUID, renewed.GetRenewedLeases()[0].GetRuntimeUuid())
 }
 
 func TestManagerServiceStructuredErrorDetails(t *testing.T) {
@@ -208,10 +208,10 @@ func TestManagerServiceStructuredErrorDetails(t *testing.T) {
 	client, cleanup := newManagerTestClient(t)
 	defer cleanup()
 
-	_, err := client.ReportInstances(t.Context(), managerRequest(manager.ID, secret, &codespacev1.ReportInstancesRequest{
+	_, err := client.ReportInstances(managerContext(t.Context(), manager.ID, secret), &codespacev1.ReportInstancesRequest{
 		ProtocolVersion:     1,
 		InventoryGeneration: 2,
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Equal(t, "stale_generation", failureCategory(t, err))
@@ -227,7 +227,7 @@ func TestManagerServiceStructuredErrorDetails(t *testing.T) {
 		OperationStartedUnix:  11,
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
-	written, err := client.UpdateLog(t.Context(), managerRequest(manager.ID, secret, &codespacev1.UpdateLogRequest{
+	written, err := client.UpdateLog(managerContext(t.Context(), manager.ID, secret), &codespacev1.UpdateLogRequest{
 		ProtocolVersion:   1,
 		RuntimeUuid:       codespaceUUID,
 		OperationRversion: 25,
@@ -235,24 +235,24 @@ func TestManagerServiceStructuredErrorDetails(t *testing.T) {
 			TimestampUnixNano: time.Now().UnixNano(),
 			Message:           "first",
 		}},
-	}))
+	})
 	require.NoError(t, err)
-	require.Positive(t, written.Msg.GetNextOffset())
+	require.Positive(t, written.GetNextOffset())
 
-	_, err = client.UpdateLog(t.Context(), managerRequest(manager.ID, secret, &codespacev1.UpdateLogRequest{
+	_, err = client.UpdateLog(managerContext(t.Context(), manager.ID, secret), &codespacev1.UpdateLogRequest{
 		ProtocolVersion:   1,
 		RuntimeUuid:       codespaceUUID,
 		OperationRversion: 25,
-		Offset:            written.Msg.GetNextOffset() + 1,
+		Offset:            written.GetNextOffset() + 1,
 		Lines: []*codespacev1.LogLine{{
 			TimestampUnixNano: time.Now().UnixNano(),
 			Message:           "gap",
 		}},
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeAborted, connect.CodeOf(err))
 	assert.Equal(t, "offset_gap", failureCategory(t, err))
-	assert.Equal(t, written.Msg.GetNextOffset(), logOffsetCurrent(t, err))
+	assert.Equal(t, written.GetNextOffset(), logOffsetCurrent(t, err))
 }
 
 func TestManagerServiceManagerAvailability(t *testing.T) {
@@ -264,20 +264,20 @@ func TestManagerServiceManagerAvailability(t *testing.T) {
 	client, cleanup := newManagerTestClient(t)
 	defer cleanup()
 
-	fetched, err := client.FetchOperations(t.Context(), managerRequest(manager.ID, secret, &codespacev1.FetchOperationsRequest{
+	fetched, err := client.FetchOperations(managerContext(t.Context(), manager.ID, secret), &codespacev1.FetchOperationsRequest{
 		ProtocolVersion: 1,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Empty(t, fetched.Msg.Operations)
+	assert.Empty(t, fetched.Operations)
 
-	_, err = client.RequestIdleStop(t.Context(), managerRequest(manager.ID, secret, &codespacev1.RequestIdleStopRequest{
+	_, err = client.RequestIdleStop(managerContext(t.Context(), manager.ID, secret), &codespacev1.RequestIdleStopRequest{
 		ProtocolVersion: 1,
 		RuntimeUuid:     "93939393-9393-4939-8939-939393939393",
 		ObservedSettings: &codespacev1.EffectiveCodespaceRuntimeSettings{
 			AutoStopEnabled:    true,
 			IdleTimeoutSeconds: 1800,
 		},
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	assert.Equal(t, "manager_offline", failureCategory(t, err))
@@ -287,29 +287,29 @@ func TestManagerServiceManagerAvailability(t *testing.T) {
 	_, err = db.GetEngine(t.Context()).ID(offlineManager.ID).Cols("runtime_state").Update(offlineManager)
 	require.NoError(t, err)
 
-	_, err = client.FetchOperations(t.Context(), managerRequest(offlineManager.ID, offlineSecret, &codespacev1.FetchOperationsRequest{
+	_, err = client.FetchOperations(managerContext(t.Context(), offlineManager.ID, offlineSecret), &codespacev1.FetchOperationsRequest{
 		ProtocolVersion: 1,
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	assert.Equal(t, "manager_offline", failureCategory(t, err))
 
-	_, err = client.ReportRuntimeMetadata(t.Context(), managerRequest(offlineManager.ID, offlineSecret, &codespacev1.ReportRuntimeMetadataRequest{
+	_, err = client.ReportRuntimeMetadata(managerContext(t.Context(), offlineManager.ID, offlineSecret), &codespacev1.ReportRuntimeMetadataRequest{
 		ProtocolVersion:    1,
 		RuntimeUuid:        "93939393-9393-4939-8939-939393939393",
 		MetadataGeneration: 1,
 		Metadata:           managerTestRuntimeMetadata(1),
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	assert.Equal(t, "manager_offline", failureCategory(t, err))
 
-	_, err = client.RequestRuntimeAccess(t.Context(), managerRequest(offlineManager.ID, offlineSecret, &codespacev1.RequestRuntimeAccessRequest{
+	_, err = client.RequestRuntimeAccess(managerContext(t.Context(), offlineManager.ID, offlineSecret), &codespacev1.RequestRuntimeAccessRequest{
 		ProtocolVersion:   1,
 		RuntimeUuid:       "93939393-9393-4939-8939-939393939393",
 		OperationRversion: 1,
 		GitSshKey:         &codespacev1.RuntimeGitSSHKey{PublicKey: []byte("not-a-key")},
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 	assert.Equal(t, "manager_offline", failureCategory(t, err))
@@ -332,20 +332,20 @@ func TestManagerServiceReportRuntimeMetadataVersionExhausted(t *testing.T) {
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
 
-	_, err := client.ReportRuntimeMetadata(t.Context(), managerRequest(manager.ID, secret, &codespacev1.ReportRuntimeMetadataRequest{
+	_, err := client.ReportRuntimeMetadata(managerContext(t.Context(), manager.ID, secret), &codespacev1.ReportRuntimeMetadataRequest{
 		ProtocolVersion:    1,
 		RuntimeUuid:        codespaceUUID,
 		MetadataGeneration: math.MaxInt64,
 		Metadata:           managerTestRuntimeMetadata(31),
-	}))
+	})
 	require.NoError(t, err)
 
-	_, err = client.ReportRuntimeMetadata(t.Context(), managerRequest(manager.ID, secret, &codespacev1.ReportRuntimeMetadataRequest{
+	_, err = client.ReportRuntimeMetadata(managerContext(t.Context(), manager.ID, secret), &codespacev1.ReportRuntimeMetadataRequest{
 		ProtocolVersion:    1,
 		RuntimeUuid:        codespaceUUID,
 		MetadataGeneration: math.MaxInt64 - 1,
 		Metadata:           managerTestRuntimeMetadata(31),
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Equal(t, "version_exhausted", failureCategory(t, err))
@@ -359,12 +359,12 @@ func TestManagerServiceReportRuntimeMetadataDisabled(t *testing.T) {
 	client, cleanup := newManagerTestClient(t)
 	defer cleanup()
 
-	_, err := client.ReportRuntimeMetadata(t.Context(), managerRequest(manager.ID, secret, &codespacev1.ReportRuntimeMetadataRequest{
+	_, err := client.ReportRuntimeMetadata(managerContext(t.Context(), manager.ID, secret), &codespacev1.ReportRuntimeMetadataRequest{
 		ProtocolVersion:    1,
 		RuntimeUuid:        "93939393-9393-4939-8939-939393939393",
 		MetadataGeneration: 1,
 		Metadata:           managerTestRuntimeMetadata(1),
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Equal(t, "state_unavailable", failureCategory(t, err))
@@ -379,14 +379,14 @@ func newManagerTestClient(t *testing.T) (codespacev1connect.ManagerServiceClient
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 	server := httptest.NewServer(mux)
-	return codespacev1connect.NewManagerServiceClient(server.Client(), server.URL), server.Close
+	return codespacev1connect.NewManagerServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL))), server.Close
 }
 
-func managerRequest[T any](managerID int64, managerSecret string, message *T) *connect.Request[T] {
-	request := connect.NewRequest(message)
-	request.Header().Set(managerIDHeader, strconv.FormatInt(managerID, 10))
-	request.Header().Set(managerSecretHeader, managerSecret)
-	return request
+func managerContext(ctx context.Context, managerID int64, secret string) context.Context {
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("x-codespace-manager-id", strconv.FormatInt(managerID, 10))
+	info.RequestHeader().Set("x-codespace-manager-secret", secret)
+	return ctx
 }
 
 func managerTestDeclaration(gatewayURL, gatewaySSHAddr string) *codespacev1.DeclareManagerRequest {
@@ -444,7 +444,7 @@ func failureCategory(t *testing.T, err error) string {
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
 	for _, detail := range connectErr.Details() {
-		value, detailErr := detail.Value()
+		value, detailErr := connectproto.UnmarshalErrorDetail(detail)
 		require.NoError(t, detailErr)
 		if failure, ok := value.(*codespacev1.FailureDetail); ok {
 			return failure.GetCategory()
@@ -459,7 +459,7 @@ func staleGenerationCurrent(t *testing.T, err error) int64 {
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
 	for _, detail := range connectErr.Details() {
-		value, detailErr := detail.Value()
+		value, detailErr := connectproto.UnmarshalErrorDetail(detail)
 		require.NoError(t, detailErr)
 		if stale, ok := value.(*codespacev1.StaleGenerationDetail); ok {
 			return stale.GetCurrentGeneration()
@@ -474,7 +474,7 @@ func logOffsetCurrent(t *testing.T, err error) int64 {
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
 	for _, detail := range connectErr.Details() {
-		value, detailErr := detail.Value()
+		value, detailErr := connectproto.UnmarshalErrorDetail(detail)
 		require.NoError(t, detailErr)
 		if offset, ok := value.(*codespacev1.LogOffsetDetail); ok {
 			return offset.GetCurrentOffset()

@@ -45,27 +45,24 @@ type APIContext struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo       *Repository
-	Org        *APIOrganization
-	Package    *Package
-	PublicOnly bool // Whether the request is for a public endpoint
+	Repo    *Repository
+	Org     *APIOrganization
+	Package *Package
 
 	CodespacePublicReadRepoID int64 // this repository uses anonymous public-read permissions while retaining the authenticated actor
 }
 
-// TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
+// CodespaceTokenCanAccessRepo reports whether the Codespace Token is allowed to access the repository.
 // Codespace Tokens use their binding for authenticated repo operations, while public read
 // requests still follow Gitea's public visibility rules.
-// For other tokens, a public-only token cannot reach a private repo or a repo owned by a
-// non-public (limited or private) owner; any other token is unrestricted by this check.
-func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
+func (ctx *APIContext) CodespaceTokenCanAccessRepo(repo *repo_model.Repository) bool {
 	if repo != nil && ctx.CodespacePublicReadRepoID == repo.ID {
 		return true
 	}
 	if snapshot, ok := codespaceTokenSnapshotFromData(ctx.GetData()); ok {
-		return codespaceTokenCanAccessRepo(repo, snapshot)
+		return repo != nil && snapshot.CodespaceTokenAllowsAnyRepository(repo.ID)
 	}
-	return !ctx.PublicOnly || !publicOnlyTokenDeniedRepo(ctx, repo)
+	return true
 }
 
 // CodespaceTokenRepoID returns the repository bound to the current Codespace Token.
@@ -104,7 +101,7 @@ func (ctx *APIContext) UsePublicPermissionForCodespaceRead(repo *repo_model.Repo
 	if ctx.Req.Method != http.MethodGet && ctx.Req.Method != http.MethodHead {
 		return false
 	}
-	if publicOnlyTokenDeniedRepo(ctx, repo) {
+	if !isPublicRepository(ctx, repo) {
 		return false
 	}
 	ctx.CodespacePublicReadRepoID = repo.ID

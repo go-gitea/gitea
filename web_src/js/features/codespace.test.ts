@@ -1,8 +1,8 @@
 import {initCodespaceCreateForm, initCodespaceLiveState} from './codespace.ts';
-import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
+import {hideModal, showModal} from '../modules/modal.ts';
 import {captureNavigations} from '../utils/testhelper.ts';
 
-vi.mock('../modules/fomantic/modal.ts', () => ({hideFomanticModal: vi.fn(), showFomanticModal: vi.fn()}));
+vi.mock('../modules/modal.ts', () => ({hideModal: vi.fn(), showModal: vi.fn()}));
 vi.mock('../modules/fomantic/base.ts', () => ({
   fomanticQuery: (select: HTMLSelectElement) => ({
     dropdown: (_action: string, value: string) => {
@@ -93,25 +93,25 @@ test('codespace create configuration preview preserves its source and environmen
 });
 
 test('initCodespaceLiveState opens the gateway recovery modal', () => {
-  document.body.innerHTML = '<form id="codespace-open-modal" data-codespace-auto-open="true"></form>';
+  document.body.innerHTML = '<dialog id="codespace-open-modal" data-codespace-auto-open="true"><form></form></dialog>';
 
   initCodespaceLiveState();
 
-  expect(showFomanticModal).toHaveBeenCalledWith(document.querySelector('#codespace-open-modal'));
+  expect(showModal).toHaveBeenCalledWith(document.querySelector('#codespace-open-modal'));
   document.body.replaceChildren();
 });
 
 test('initCodespaceLiveState closes the source modal after opening a new tab', {concurrent: false}, async () => {
   try {
     vi.useFakeTimers();
-    document.body.innerHTML = '<form id="codespace-open-modal" target="_blank" class="is-loading"></form>';
-    const form = document.querySelector<HTMLFormElement>('#codespace-open-modal')!;
+    document.body.innerHTML = '<dialog id="codespace-open-modal"><form target="_blank" class="is-loading"></form></dialog>';
+    const form = document.querySelector<HTMLFormElement>('#codespace-open-modal form')!;
 
     initCodespaceLiveState();
     form.dispatchEvent(new SubmitEvent('submit'));
     await vi.runAllTimersAsync();
 
-    expect(hideFomanticModal).toHaveBeenCalledWith(form);
+    expect(hideModal).toHaveBeenCalledWith(form.closest('dialog'));
     expect(form.classList.contains('is-loading')).toBe(false);
   } finally {
     vi.useRealTimers();
@@ -141,6 +141,32 @@ test('initCodespaceLiveState refreshes state and preserves expanded host verific
     expect(fetchMock).toHaveBeenCalledWith('/-/codespaces/uuid/state', expect.objectContaining({method: 'GET'}));
     expect(document.querySelector<HTMLDetailsElement>('#verification')!.open).toBe(true);
     expect(wakeLog).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    document.body.replaceChildren();
+  }
+});
+
+test('codespace refresh disables open settings when the runtime stops accepting changes', {concurrent: false}, async () => {
+  try {
+    vi.useFakeTimers();
+    document.body.innerHTML = `
+      <div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="10"></div>
+      <dialog id="codespace-settings-modal" open><form>
+        <div data-auto-stop-unavailable class="tw-hidden"></div>
+        <fieldset data-auto-stop-fields>
+          <input type="radio" name="mode" value="custom" checked>
+          <div data-auto-stop-custom-fields><input name="timeout_value"><select name="timeout_unit"></select></div>
+        </fieldset><button type="submit">Save</button>
+      </form></dialog>`;
+    const response = new Response();
+    vi.spyOn(response, 'text').mockResolvedValue('<div id="codespace-live-state" data-auto-stop-configurable="false"></div>');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
+    initCodespaceLiveState();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(document.querySelector<HTMLFieldSetElement>('[data-auto-stop-fields]')!.disabled).toBe(true);
+    expect(document.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
   } finally {
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -187,7 +213,7 @@ test('codespace settings button fills and opens the shared auto-stop modal', () 
       data-auto-stop-mode="custom" data-auto-stop-timeout-value="2" data-auto-stop-timeout-unit="hours"
       data-auto-stop-configurable="true" data-auto-stop-out-of-range="false"
       data-auto-stop-effective="Stop after two hours" data-auto-stop-default-description="Site default" data-auto-stop-range="One minute to one day"></button>
-    <form id="codespace-settings-modal">
+    <dialog id="codespace-settings-modal"><form>
       <input name="return_to">
       <p data-auto-stop-effective></p>
       <p data-auto-stop-default-description></p>
@@ -204,20 +230,20 @@ test('codespace settings button fills and opens the shared auto-stop modal', () 
         </div>
       </fieldset>
       <button type="submit">save</button>
-    </form>
+    </form></dialog>
   `;
 
   initCodespaceLiveState();
   document.querySelector<HTMLButtonElement>('.codespace-settings-button')!.click();
 
-  const form = document.querySelector<HTMLFormElement>('#codespace-settings-modal')!;
+  const form = document.querySelector<HTMLFormElement>('#codespace-settings-modal form')!;
   expect(form.action).toMatch(/\/-\/codespaces\/uuid\/auto-stop$/);
   expect(form.querySelector<HTMLInputElement>('input[name="return_to"]')!.value).toBe('/-/codespaces/uuid');
   expect(form.querySelector<HTMLInputElement>('input[name="mode"][value="custom"]')!.checked).toBe(true);
   expect(form.querySelector<HTMLInputElement>('input[name="timeout_value"]')!.value).toBe('2');
   expect(form.querySelector<HTMLElement>('[data-auto-stop-custom-fields]')!.classList.contains('tw-hidden')).toBe(false);
   expect(form.querySelector<HTMLElement>('[data-auto-stop-effective]')!.textContent).toBe('Stop after two hours');
-  expect(showFomanticModal).toHaveBeenCalledWith(form);
+  expect(showModal).toHaveBeenCalledWith(form.closest('dialog'));
   document.body.replaceChildren();
 });
 

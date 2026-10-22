@@ -53,9 +53,6 @@
 						</div>
 						<div class="comment-header-right">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
-							{{if not $.Repository.IsArchived}}
-								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-							{{end}}
 							{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment}}
 						</div>
 					</div>
@@ -73,10 +70,11 @@
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 						{{end}}
 					</div>
-					{{$reactions := .Reactions.GroupByType}}
-					{{if $reactions}}
-						{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
-					{{end}}
+					{{template "shared/reactions" dict
+						"AllowedReactions" $.AllowedIssueReactions
+						"ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)
+						"Reactions" .Reactions.GroupByType
+					}}
 				</div>
 			</div>
 		{{else if eq .Type 1}}
@@ -423,7 +421,6 @@
 							<div class="comment-header-right">
 								{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 								{{if not $.Repository.IsArchived}}
-									{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 									{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "pull_review" "ConvContentItem" $comment}}
 								{{end}}
 							</div>
@@ -442,10 +439,11 @@
 								{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 							{{end}}
 						</div>
-						{{$reactions := .Reactions.GroupByType}}
-						{{if $reactions}}
-							{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
-						{{end}}
+						{{template "shared/reactions" dict
+							"AllowedReactions" $.AllowedIssueReactions
+							"ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)
+							"Reactions" .Reactions.GroupByType
+						}}
 					</div>
 				</div>
 				{{end}}
@@ -454,7 +452,7 @@
 				<div class="timeline-item event code-comments-list">
 					{{range $filename, $lines := .Review.CodeComments}}
 						{{range $line, $comms := $lines}}
-							{{template "repo/issue/view_content/conversation" dict "." $ "comments" $comms}}
+							{{template "repo/issue/view_content/conversation" dict "comments" $comms}}
 						{{end}}
 					{{end}}
 				</div>
@@ -553,7 +551,7 @@
 				{{end}}
 			</div>
 			{{if not .IsForcePush}}
-				{{template "repo/commits_list_small" dict "comment" . "root" $}}
+				{{template "repo/commits_list_small" dict "comment" $comment}}
 			{{end}}
 		{{else if eq .Type 30}}
 			<div class="timeline-item event" id="{{.HashTag}}">

@@ -21,35 +21,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func InitIntegrationTest() error {
+func InitIntegrationTest() (workPath string, err error) {
 	testlogger.Init()
 
-	err := setting.PrepareIntegrationTestConfig()
+	workPath, err = setting.PrepareIntegrationTestConfig()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	setting.SetupGiteaTestEnv()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 
 	if err := git.InitFull(); err != nil {
-		return err
+		return "", err
 	}
 
 	setting.Database.SlowQueryThreshold = 0
 	setting.LoadDBSetting()
 	cleanupDb, err := unittest.ResetTestDatabase()
 	if err != nil {
-		return err
+		return "", err
 	}
 	_ = cleanupDb // no clean up yet (not really needed at the moment)
 
 	if err := storage.Init(); err != nil {
-		return err
+		return "", err
 	}
 
 	routers.InitWebInstalled(graceful.GetManager().HammerContext())
-	return nil
+	return workPath, nil
 }
 
 func PrepareAttachmentsStorage(t testing.TB) {
