@@ -56,7 +56,7 @@ func TestWorkflowRunMail(t *testing.T) {
 		translation.InitLocales(t.Context())
 		require.NoError(t, unittest.PrepareTestDatabase())
 		defer test.MockVariableValue(&setting.MailService, &setting.Mailer{FromEmail: "gitea@localhost"})()
-		defer test.MockVariableValue(&setting.Domain, "localhost")()
+		defer test.MockVariableValue(&setting.AppDomain, "localhost")()
 		defer test.MockVariableValue(&setting.AppURL, "http://localhost:3000/")()
 
 		recipient := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})

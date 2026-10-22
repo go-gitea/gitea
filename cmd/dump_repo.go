@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/convert"
+	"gitea.dev/services/gitproxy"
 	"gitea.dev/services/migrations"
 
 	"github.com/urfave/cli/v3"
@@ -92,6 +93,9 @@ func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
 
 	// migrations.GiteaLocalUploader depends on git module
 	if err := git.InitSimple(); err != nil {
+		return err
+	}
+	if err := gitproxy.Run(ctx); err != nil {
 		return err
 	}
 

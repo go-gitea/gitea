@@ -37,7 +37,7 @@ func RedirectToUser(ctx *Base, doer *user_model.User, userName string, redirectU
 	}
 
 	// Handle Visibility
-	if user.Visibility != structs.VisibleTypePublic && doer == nil {
+	if user.Visibility != structs.VisibleTypePublic && !user_model.DoerCanViewPrivate(doer) {
 		// We must be signed in to see limited or private organizations
 		ctx.HTTPError(http.StatusNotFound, "user does not exist")
 		return
@@ -155,7 +155,7 @@ func (ctx *Context) notFoundInternal(skip int, logMsg string, logErr error) {
 
 func (ctx *Context) buildUserErrorMessage(msg string, err error) (userErrorMsg string) {
 	// it's safe to show internal error to admin users, and it helps
-	if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
+	if !setting.IsProd || setting.IsInTesting || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
 		userErrorMsg = msg
 		if err != nil {
 			userErrorMsg += ", error: " + err.Error()
@@ -189,16 +189,4 @@ func (ctx *Context) serverErrorInternal(skip int, logMsg string, logErr error) {
 	ctx.Data["Title"] = "Internal Server Error"
 	ctx.Data["ErrorMsg"] = userErrorMsg
 	ctx.HTML(http.StatusInternalServerError, tplStatus500)
-}
-
-// NotFoundOrServerError use error check function to determine if the error
-// is about not found. It responds with 404 status code for not found error,
-// or error context description for logging purpose of 500 server error.
-// TODO: remove the "errCheck" and use util.ErrNotFound to check
-func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bool, logErr error) {
-	if errCheck(logErr) {
-		ctx.notFoundInternal(1, logMsg, logErr)
-		return
-	}
-	ctx.serverErrorInternal(1, logMsg, logErr)
 }

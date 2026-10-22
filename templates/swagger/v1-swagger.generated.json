@@ -34,7 +34,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -257,7 +257,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -723,8 +723,8 @@
           },
           {
             "type": "string",
-            "description": "pattern of repositories to search for",
-            "name": "pattern",
+            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
+            "name": "query",
             "in": "query"
           }
         ],
@@ -825,7 +825,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "ID of the user's login source to search for",
+            "description": "ID of the user's login source to search for, 0 means the local users",
             "name": "source_id",
             "in": "query"
           },
@@ -2040,7 +2040,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -2292,7 +2292,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -5784,7 +5784,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6185,7 +6185,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6521,7 +6521,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6690,7 +6690,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -7747,7 +7747,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -9228,6 +9228,18 @@
             "type": "string",
             "description": "return the raw comparison as `diff` or `patch` instead of JSON",
             "name": "output",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
             "in": "query"
           }
         ],
@@ -11858,6 +11870,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -11917,6 +11932,9 @@
           },
           "412": {
             "$ref": "#/responses/error"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -13077,6 +13095,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -13132,6 +13153,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -13177,6 +13201,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -13235,6 +13262,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -16840,6 +16870,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/PullRequest"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -21402,7 +21435,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -21625,7 +21658,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -25972,6 +26005,20 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "deletion_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistTeams"
+        },
+        "deletion_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistUsernames"
+        },
         "dismiss_stale_approvals": {
           "type": "boolean",
           "x-go-name": "DismissStaleApprovals"
@@ -25983,6 +26030,14 @@
         "enable_bypass_allowlist": {
           "type": "boolean",
           "x-go-name": "EnableBypassAllowlist"
+        },
+        "enable_deletion": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletion"
+        },
+        "enable_deletion_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletionAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -26855,6 +26910,20 @@
           },
           "x-go-name": "BypassAllowlistUsernames"
         },
+        "deletion_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistTeams"
+        },
+        "deletion_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistUsernames"
+        },
         "dismiss_stale_approvals": {
           "type": "boolean",
           "x-go-name": "DismissStaleApprovals"
@@ -26866,6 +26935,14 @@
         "enable_bypass_allowlist": {
           "type": "boolean",
           "x-go-name": "EnableBypassAllowlist"
+        },
+        "enable_deletion": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletion"
+        },
+        "enable_deletion_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletionAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -28436,6 +28513,20 @@
           },
           "x-go-name": "BypassAllowlistUsernames"
         },
+        "deletion_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistTeams"
+        },
+        "deletion_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistUsernames"
+        },
         "dismiss_stale_approvals": {
           "type": "boolean",
           "x-go-name": "DismissStaleApprovals"
@@ -28447,6 +28538,14 @@
         "enable_bypass_allowlist": {
           "type": "boolean",
           "x-go-name": "EnableBypassAllowlist"
+        },
+        "enable_deletion": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletion"
+        },
+        "enable_deletion_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletionAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -28559,13 +28658,11 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "EditDeadlineOption": {
-      "description": "EditDeadlineOption options for creating a deadline",
+      "description": "EditDeadlineOption options for editing a deadline",
       "type": "object",
-      "required": [
-        "due_date"
-      ],
       "properties": {
         "due_date": {
+          "description": "Deadline is the updated due date for the issue or pull request, use null or empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -28670,6 +28767,7 @@
           "x-go-name": "ContentVersion"
         },
         "due_date": {
+          "description": "Deadline is the updated due date for the issue, use null or empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -28749,7 +28847,7 @@
           "x-go-name": "Description"
         },
         "due_on": {
-          "description": "Deadline is the updated due date for the milestone",
+          "description": "Deadline is the due date for the milestone, use null or empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -28909,6 +29007,7 @@
           "x-go-name": "ContentVersion"
         },
         "due_date": {
+          "description": "Deadline is the updated due date for the pull request, use null or empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -29173,6 +29272,11 @@
           "description": "`repo` to only allow repo-level projects, `owner` to only allow owner projects, `all` to allow both.",
           "type": "string",
           "x-go-name": "ProjectsMode"
+        },
+        "squash_merge_commit_message": {
+          "description": "set the default squash merge commit message body: \"PR_BODY\", \"COMMIT_MESSAGES\", or \"BLANK\".",
+          "type": "string",
+          "x-go-name": "SquashMergeCommitMessage"
         },
         "template": {
           "description": "either `true` to make this repository a template or `false` to make it a normal repository",
@@ -30951,7 +31055,7 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "Milestone": {
-      "description": "Milestone milestone is a collection of issues on one repository",
+      "description": "Milestone is a collection of issues on one repository",
       "type": "object",
       "properties": {
         "closed_at": {
@@ -32862,6 +32966,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Size"
+        },
+        "squash_merge_commit_message": {
+          "type": "string",
+          "x-go-name": "SquashMergeCommitMessage"
         },
         "ssh_url": {
           "type": "string",

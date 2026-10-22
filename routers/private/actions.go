@@ -4,7 +4,6 @@
 package private
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
@@ -13,7 +12,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/private"
-	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
 
@@ -34,15 +32,9 @@ func GenerateActionsRunnerToken(ctx *context.PrivateContext) {
 		return
 	}
 
-	token, err := actions_model.GetLatestRunnerToken(ctx, owner, repo)
-	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
-		token, err = actions_model.NewRunnerToken(ctx, owner, repo)
-		if err != nil {
-			ctx.PrivateInternalErrorf("error while creating runner token: %v", err)
-			return
-		}
-	} else if err != nil {
-		ctx.PrivateInternalErrorf("could not get unactivated runner token: %v", err)
+	token, err := actions_model.GetOrCreateActiveRunnerToken(ctx, owner, repo)
+	if err != nil {
+		ctx.PrivateInternalErrorf("GetOrCreateActiveRunnerToken failed: %v", err)
 		return
 	}
 

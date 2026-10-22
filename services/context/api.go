@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
@@ -44,17 +43,9 @@ type APIContext struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo       *Repository
-	Org        *APIOrganization
-	Package    *Package
-	PublicOnly bool // Whether the request is for a public endpoint
-}
-
-// TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
-// A public-only token cannot reach a private repo or a repo owned by a non-public (limited or
-// private) owner; any other token is unrestricted by this check.
-func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
-	return !ctx.PublicOnly || !publicOnlyTokenDeniedRepo(ctx, repo)
+	Repo    *Repository
+	Org     *APIOrganization
+	Package *Package
 }
 
 func init() {
