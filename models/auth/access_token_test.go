@@ -117,7 +117,7 @@ func TestTouchAccessToken(t *testing.T) {
 	load := func(id int64) *auth_model.AccessToken {
 		return unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: id})
 	}
-	setUpdated := func(id int64, created, updated int64) {
+	setUpdated := func(id, created, updated int64) {
 		_, err := db.GetEngine(t.Context()).Exec("UPDATE access_token SET created_unix = ?, updated_unix = ? WHERE id = ?", created, updated, id)
 		assert.NoError(t, err)
 	}
