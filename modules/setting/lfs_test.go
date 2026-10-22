@@ -6,6 +6,8 @@ package setting
 import (
 	"testing"
 
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -103,6 +105,9 @@ STORAGE_TYPE = minio
 }
 
 func Test_LFSClientServerConfigs(t *testing.T) {
+	defer test.MockVariableValue(&LFS)()
+	defer test.MockVariableValue(&LFSClient)()
+
 	iniStr := `
 [server]
 LFS_MAX_BATCH_SIZE = 100
