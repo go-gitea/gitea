@@ -7416,7 +7416,7 @@
         "description": "IssueLabelsOption a collection of labels",
         "properties": {
           "labels": {
-            "description": "Labels can be a list of integers representing label IDs\nor a list of strings representing label names",
+            "description": "Labels can be a list of integers representing label IDs\nor a list of strings representing label names.\nIf a repository label and an organization label share a name,\nthe repository label is used.",
             "items": {},
             "type": "array",
             "x-go-name": "Labels"
