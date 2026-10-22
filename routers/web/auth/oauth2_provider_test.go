@@ -4,13 +4,13 @@
 package auth
 
 import (
+	"encoding/base64"
 	"net/http"
 	"strings"
 	"testing"
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/auth/httpauth"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
@@ -52,16 +52,20 @@ func TestOAuth2FormEncodedBasicAuth(t *testing.T) {
 	})
 }
 
-func TestBasicAuthClientCredentials(t *testing.T) {
-	for _, tt := range []struct{ name, username, password, wantID, wantSecret string }{
-		{"percent-encoded", "a%2Db", "s%3D%2B%2F", "a-b", "s=+/"},
-		{"plus is a space", "a+b", "c+d", "a b", "c d"},
-		{"invalid escape stays raw per value", "a%2Db", "c%zz", "a-b", "c%zz"},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			clientID, clientSecret := basicAuthClientCredentials(&httpauth.BasicAuth{Username: tt.username, Password: tt.password})
-			assert.Equal(t, tt.wantID, clientID)
-			assert.Equal(t, tt.wantSecret, clientSecret)
-		})
+func TestParseClientSecretBasic(t *testing.T) {
+	basicAuth := func(username, password string) string {
+		return "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password))
 	}
+
+	clientID, clientSecret, ok := parseClientSecretBasic(basicAuth("a+b", "c%2Bd"))
+	assert.True(t, ok)
+	assert.Equal(t, "a b", clientID)
+	assert.Equal(t, "c+d", clientSecret)
+
+	_, _, ok = parseClientSecretBasic(basicAuth("a%zz", "c"))
+	assert.False(t, ok)
+	_, _, ok = parseClientSecretBasic(basicAuth("a", "c%zz"))
+	assert.False(t, ok)
+	_, _, ok = parseClientSecretBasic("Bearer token")
+	assert.False(t, ok)
 }
