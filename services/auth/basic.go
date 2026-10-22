@@ -15,7 +15,6 @@ import (
 	"gitea.dev/modules/auth/httpauth"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 )
@@ -97,9 +96,8 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 			return nil, err
 		}
 
-		token.UpdatedUnix = timeutil.TimeStampNow()
-		if err = auth_model.UpdateAccessToken(req.Context(), token); err != nil {
-			log.Error("UpdateAccessToken:  %v", err)
+		if err = auth_model.TouchAccessToken(req.Context(), token); err != nil {
+			log.Error("TouchAccessToken: %v", err)
 		}
 
 		u.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, token.ID, token.Scope)

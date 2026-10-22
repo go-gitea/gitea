@@ -158,6 +158,25 @@ func UpdateAccessToken(ctx context.Context, t *AccessToken) error {
 	return err
 }
 
+// AccessTokenTouchInterval is the minimum age of updated_unix before TouchAccessToken writes it again.
+// The value is only used for the "last used" display, so minute precision is enough.
+const AccessTokenTouchInterval = time.Minute
+
+// TouchAccessToken records that the token has just been used.
+// It only writes the updated_unix column, and skips the write if the token was touched recently,
+// so that frequent authenticated requests do not turn into a DB write each.
+func TouchAccessToken(ctx context.Context, t *AccessToken) error {
+	now := timeutil.TimeStampNow()
+	if int64(now-t.UpdatedUnix) < int64(AccessTokenTouchInterval/time.Second) {
+		return nil
+	}
+	if _, err := db.GetEngine(ctx).ID(t.ID).Cols("updated_unix").NoAutoTime().Update(&AccessToken{UpdatedUnix: now}); err != nil {
+		return err
+	}
+	t.UpdatedUnix = now
+	return nil
+}
+
 // GetAccessTokenByID returns the access token with the given ID owned by userID.
 func GetAccessTokenByID(ctx context.Context, id, userID int64) (*AccessToken, error) {
 	t, has, err := db.Get[AccessToken](ctx, builder.Eq{"id": id, "uid": userID})

@@ -178,7 +178,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	}
 
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
-	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
+	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(1000)
 
 	if err := sec.MapTo(&Security); err != nil {
 		log.Fatal("Failed to map security settings: %v", err)

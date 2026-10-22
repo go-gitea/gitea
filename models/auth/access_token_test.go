@@ -5,10 +5,12 @@ package auth_test
 
 import (
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -115,6 +117,29 @@ func TestUpdateAccessToken(t *testing.T) {
 
 	assert.NoError(t, auth_model.UpdateAccessToken(t.Context(), token))
 	unittest.AssertExistsAndLoadBean(t, token)
+}
+
+func TestTouchAccessToken(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	token, err := auth_model.GetAccessTokenBySHA(t.Context(), "4c6f36e6cf498e2a448662f915d932c09c5a146c")
+	assert.NoError(t, err)
+
+	// a stale token is touched, and only updated_unix is written
+	oldName := token.Name
+	token.Name = "must not be persisted"
+	token.UpdatedUnix = timeutil.TimeStampNow().Add(-int64(auth_model.AccessTokenTouchInterval/time.Second) - 10)
+	assert.NoError(t, auth_model.TouchAccessToken(t.Context(), token))
+	assert.Greater(t, int64(token.UpdatedUnix), int64(timeutil.TimeStampNow())-5)
+
+	reloaded := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: token.ID})
+	assert.Equal(t, token.UpdatedUnix, reloaded.UpdatedUnix)
+	assert.Equal(t, oldName, reloaded.Name)
+
+	// a recently used token is not written again
+	recent := timeutil.TimeStampNow().Add(-1)
+	reloaded.UpdatedUnix = recent
+	assert.NoError(t, auth_model.TouchAccessToken(t.Context(), reloaded))
+	assert.Equal(t, recent, reloaded.UpdatedUnix)
 }
 
 func TestRegenerateAccessToken(t *testing.T) {
