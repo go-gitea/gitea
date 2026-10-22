@@ -21,7 +21,11 @@ type htmlChunkReader struct {
 	in       io.Reader
 	readErr  error
 	readBuf  []byte
+	consumed int // bytes of readBuf returned as parts, only dropped on the next read because the parts slice them
 	curInTag bool
+
+	parts     [][]byte
+	partInTag []bool
 }
 
 type escapeStreamer struct {
@@ -44,9 +48,9 @@ type escapeStreamer struct {
 func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts ...EscapeOptions) (*EscapeStatus, error) {
 	bufSize := 32 * 1024
 	if sr, ok := in.(*strings.Reader); ok {
-		bufSize = min(32*1024, max(512, sr.Len()))
+		bufSize = min(32*1024, max(64, sr.Len()))
 	} else if br, ok := in.(*bytes.Reader); ok {
-		bufSize = min(32*1024, max(512, br.Len()))
+		bufSize = min(32*1024, max(64, br.Len()))
 	}
 	es := &escapeStreamer{
 		escaped:         &EscapeStatus{},
@@ -108,6 +112,9 @@ func (e *escapeStreamer) trackHtmlTag(part []byte) {
 	if part[0] == '<' {
 		// start a new tag
 		e.tagPartial = e.tagPartial[:0]
+	}
+	if e.tagPartial == nil {
+		e.tagPartial = make([]byte, 0, maxHeadLen)
 	}
 	if len(e.tagPartial) >= maxHeadLen {
 		return
@@ -198,7 +205,11 @@ func (e *escapeStreamer) detectAndWriteRunes(part []byte) error {
 	return e.writeDetectResults(part, results)
 }
 
+// readRunes returns parts that are only valid until the next call
 func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error) {
+	e.readBuf = e.readBuf[:copy(e.readBuf, e.readBuf[e.consumed:])]
+	e.consumed = 0
+
 	// we have read everything, eof
 	if e.readErr != nil && len(e.readBuf) == 0 {
 		return nil, nil, e.readErr
@@ -215,6 +226,10 @@ func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error
 	}
 
 	// try to exact tag parts and content parts
+	if n := 2*bytes.Count(e.readBuf, []byte{'<'}) + 2; cap(e.parts) < n { // each tag and the content after it
+		e.parts, e.partInTag = make([][]byte, 0, n), make([]bool, 0, n)
+	}
+	parts, partInTag = e.parts[:0], e.partInTag[:0]
 	pos := 0
 	for pos < len(e.readBuf) {
 		var curPartEnd int
@@ -254,8 +269,7 @@ func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error
 		}
 
 		// now, curPartLen can't be 0
-		curPart := make([]byte, curPartLen)
-		copy(curPart, e.readBuf[pos:curPartEnd])
+		curPart := e.readBuf[pos:curPartEnd]
 		// now we get the curPart bytes, but we can't directly use it, the last rune in it might have been cut
 		// by the end of the buffer, then its bytes are left to the next read. Invalid bytes are never cut, otherwise
 		// they would be split off into a separate part, or even into the next tag part.
@@ -295,8 +309,8 @@ func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error
 		}
 	}
 
-	copy(e.readBuf, e.readBuf[pos:])
-	e.readBuf = e.readBuf[:len(e.readBuf)-pos]
+	e.consumed = pos
+	e.parts, e.partInTag = parts, partInTag
 	return parts, partInTag, nil
 }
 

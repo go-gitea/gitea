@@ -33,9 +33,10 @@ func EscapeControlHTML(html template.HTML, locale translation.Locale, opts ...Es
 	if !setting.UI.AmbiguousUnicodeDetection || isSafeASCII(html) { // most code lines, nothing in them can need escaping
 		return &EscapeStatus{}, html
 	}
-	w := &htmlutil.HTMLBuilder{}
-	escaped, _ = EscapeControlReader(strings.NewReader(string(html)), w, locale, opts...)
-	return escaped, w.HTMLString()
+	sb := &strings.Builder{}
+	sb.Grow(len(html))
+	escaped, _ = escapeStream(locale, strings.NewReader(string(html)), sb, opts...)
+	return escaped, template.HTML(sb.String())
 }
 
 // EscapeControlReader escapes the Unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
