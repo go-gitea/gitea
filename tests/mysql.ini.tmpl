@@ -35,12 +35,12 @@ SIGNING_KEY = none
 
 [server]
 SSH_DOMAIN       = localhost
-HTTP_PORT        = 3001
-ROOT_URL         = http://localhost:3001/
-LOCAL_ROOT_URL   = http://127.0.0.1:3001/
+HTTP_PORT        = {{TEST_HTTP_PORT}}
+ROOT_URL         = http://localhost:{{TEST_HTTP_PORT}}/
+LOCAL_ROOT_URL   = http://127.0.0.1:{{TEST_HTTP_PORT}}/
 DISABLE_SSH      = false
 SSH_LISTEN_HOST  = localhost
-SSH_PORT         = 2201
+SSH_PORT         = {{TEST_SSH_PORT}}
 BUILTIN_SSH_SERVER_USER = git
 START_SSH_SERVER = true
 

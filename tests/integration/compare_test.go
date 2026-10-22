@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/forms"
@@ -141,6 +142,15 @@ func TestCompareBranches(t *testing.T) {
 
 	req = NewRequestWithValues(t, "POST", "/user2/repo20/compare/remove-files-b..remove-files-a", map[string]string{"title": "direct comparison"})
 	session.MakeRequest(t, req, http.StatusBadRequest)
+
+	req = NewRequest(t, "GET", "/user2/repo20/compare/8babce967f21b9dfa6987f943b91093dac58a4f0..c8e31bc7688741a5287fcde4fbb8fc129ca07027")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+
+	inspectCompare(t, htmlDoc, 3, []string{"link_hi", "test.csv", "test.txt"})
+	assert.NotContains(t, htmlDoc.doc.Text(), translation.NewLocale("en-US").TrString("repo.commits.nothing_to_compare"))
+	commitsHeader := strings.Join(strings.Fields(htmlDoc.doc.Find(".ui.top.attached.header .flex-text-block").First().Text()), " ")
+	assert.Equal(t, "0 "+translation.NewLocale("en-US").TrString("repo.commits.commits"), commitsHeader)
 }
 
 func TestCompareWithRefSuffix(t *testing.T) {
