@@ -62,6 +62,7 @@ import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit} from './featu
 import {initGlobalFormDirtyLeaveConfirm} from './modules/are-you-sure.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
+import {initRepoDocTabs} from './features/repo-doc-tabs.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
 import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
@@ -141,6 +142,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoReleaseNew,
   initRepoTopicBar,
   initRepoViewFileTree,
+  initRepoDocTabs,
   initRepoWiki,
   initRepository,
   initRepositoryActions,

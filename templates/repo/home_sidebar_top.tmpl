@@ -46,7 +46,7 @@
 		{{end}}
 
 		{{if .ReadmeExist}}
-			<a class="flex-text-block muted" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}/{{PathEscapeSegments .FileTreePath}}">
+			<a class="flex-text-block muted" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}/{{PathEscapeSegments .ReadmePath}}">
 				{{svg "octicon-book"}} {{ctx.Locale.Tr "readme"}}
 			</a>
 		{{end}}
