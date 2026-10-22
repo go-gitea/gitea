@@ -50,11 +50,6 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		includePrivate = isOrgMember
 	}
 
-	// a public-only API token must not surface private activity, even for its own owner
-	if includePrivate && context.TokenIsPublicOnly(ctx) {
-		includePrivate = false
-	}
-
 	actions, _, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
 		Actor:           ctx.Doer,

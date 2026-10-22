@@ -142,12 +142,13 @@ const (
 	MaxFullFileHighlightTimeLimit = 2 * time.Second
 )
 
-// GetType returns the type of DiffLine.
-func (d *DiffLine) GetType() int {
-	return int(d.Type)
-}
+func (d *DiffLine) IsDiffLinePlain() bool   { return d.Type == DiffLinePlain }
+func (d *DiffLine) IsDiffLineAdd() bool     { return d.Type == DiffLineAdd }
+func (d *DiffLine) IsDiffLineDel() bool     { return d.Type == DiffLineDel }
+func (d *DiffLine) IsDiffLineSection() bool { return d.Type == DiffLineSection }
 
-// GetHTMLDiffLineType returns the diff line type name for HTML
+// GetHTMLDiffLineType returns the diff line type name for HTML,
+// it will generate CSS names for styles ".del-code", ".add-code", ".same-code", ".tag-code"
 func (d *DiffLine) GetHTMLDiffLineType() string {
 	switch d.Type {
 	case DiffLineAdd:
@@ -1593,6 +1594,22 @@ func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) 
 		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
 	}
 	return diff, nil
+}
+
+// GetCodeCommentPatch returns the code snippet stored with a code comment
+func GetCodeCommentPatch(ctx context.Context, gitRepo *git.Repository, mergeBase, headCommitID, treePath string, line int64) (string, error) {
+	patch, err := git.GetFileDiffCutAroundLine(ctx, gitRepo, mergeBase, headCommitID, treePath,
+		int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
+	)
+	contextCommitID := util.Iif(line < 0, mergeBase, headCommitID)
+	if err != nil || patch != "" || contextCommitID == "" {
+		return patch, err
+	}
+	patch, err = GeneratePatchForUnchangedLine(ctx, gitRepo, contextCommitID, treePath, line, setting.UI.CodeCommentLines)
+	if err != nil {
+		log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, contextCommitID, err)
+	}
+	return patch, nil
 }
 
 // GeneratePatchForUnchangedLine creates a patch showing code context for an unchanged line

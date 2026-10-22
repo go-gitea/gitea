@@ -311,6 +311,7 @@ export default defineConfig([
       'func-names': [0],
       'func-style': [0],
       'getter-return': [2],
+      'gitea/unescaped-html-literal': [2],
       'grouped-accessor-pairs': [2],
       'guard-for-in': [0],
       'id-denylist': [0],
@@ -850,6 +851,7 @@ export default defineConfig([
       'unicorn/no-prevent-default-in-passive-listener': [2],
       'unicorn/no-process-exit': [0],
       'unicorn/no-redundant-comparison': [2],
+      'unicorn/no-repeated-call-wrappers': [0],
       'unicorn/no-return-array-push': [2],
       'unicorn/no-selector-as-dom-name': [2],
       'unicorn/no-shorthand-property-overrides': [0], // only applies to css language
@@ -870,6 +872,7 @@ export default defineConfig([
       'unicorn/no-unnecessary-array-splice-count': [2],
       'unicorn/no-unnecessary-await': [2],
       'unicorn/no-unnecessary-boolean-comparison': [2],
+      'unicorn/no-unnecessary-default-arguments': [0],
       'unicorn/no-unnecessary-fetch-options': [0],
       'unicorn/no-unnecessary-global-this': [0],
       'unicorn/no-unnecessary-nested-ternary': [2],
@@ -1239,6 +1242,9 @@ export default defineConfig([
   {
     files: ['*', 'tools/**/*', 'tests/**/*'],
     languageOptions: {globals: globals.nodeBuiltin},
+    rules: {
+      'gitea/unescaped-html-literal': [0],
+    },
   },
   {
     files: ['web_src/**/*'],

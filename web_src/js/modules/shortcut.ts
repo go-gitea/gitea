@@ -1,6 +1,6 @@
 import {registerGlobalInitFunc} from './observer.ts';
 import {createElementFromHTML, hideElem, toggleElem} from '../utils/dom.ts';
-import {showFomanticModal} from './fomantic/modal.ts';
+import {showModal} from './modal.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 
 type ShortcutHandler = (el: HTMLElement) => boolean;
@@ -69,10 +69,10 @@ function getShortcutTextContent(elem: Element): string {
 }
 
 function showShortcutHelp() {
-  let modal = document.querySelector<HTMLElement>('#global-shortcut-help');
+  let modal = document.querySelector<HTMLDialogElement>('#global-shortcut-help');
   if (!modal) {
-    modal = createElementFromHTML<HTMLElement>(html`
-      <div id="global-shortcut-help" class="ui small modal" role="dialog" aria-modal="true">
+    modal = createElementFromHTML<HTMLDialogElement>(html`
+      <dialog id="global-shortcut-help" class="modal-dialog">
         <div class="header">
           Keyboard Shortcuts
           <button type="button" class="close-modal"></button>
@@ -82,9 +82,8 @@ function showShortcutHelp() {
             <tbody class="shortcut-list"></tbody>
           </table>
         </div>
-      </div>
+      </dialog>
     `);
-    document.body.append(modal);
   }
 
   const seenShortcuts = new Set<string>();
@@ -108,11 +107,11 @@ function showShortcutHelp() {
     seenShortcuts.add(shortcutIdentifier);
     let keysHtml = '';
     for (const keys of shortcutKeys.split(' ')) {
-      keysHtml += `<kbd>${keys}</kbd> `;
+      keysHtml += html`<kbd>${keys}</kbd> `;
     }
     list.append(createElementFromHTML(html`<tr><td>${htmlRaw(keysHtml)}</td><td>${label}</td></tr>`));
   }
-  showFomanticModal(modal);
+  showModal(modal);
 }
 
 export function registerShortcutHandler(name: string, handler: ShortcutHandler) {
@@ -151,7 +150,7 @@ export function initGlobalShortcut() {
     // Don't trigger shortcuts when typing in input fields or contenteditable areas
     let shouldSkip = target.matches('input, textarea, select') || target.isContentEditable;
     // Skip shortcuts when a modal or dropdown is open (active), to avoid interfering with their own keyboard handling
-    shouldSkip = shouldSkip || Boolean(document.querySelector('.ui.modal.active') || document.querySelector('.ui.dropdown.active'));
+    shouldSkip = shouldSkip || Boolean(document.querySelector('.modal-dialog[open], .ui.dropdown.active'));
     if (shouldSkip) {
       shortcutPresses.length = 0;
       return;

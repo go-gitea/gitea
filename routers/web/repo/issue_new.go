@@ -75,14 +75,14 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 			ctx.Data["TemplateFile"] = template.FileName
 		}
 
-		metaData.LabelsData.SetSelectedLabelNames(template.Labels)
-
-		selectedAssigneeIDStrings := make([]string, 0, len(template.Assignees))
-		selectedAssigneeIDs, _ := user_model.GetDoerUserIDsByNames(ctx, template.Assignees)
-		for _, userID := range selectedAssigneeIDs {
-			selectedAssigneeIDStrings = append(selectedAssigneeIDStrings, strconv.FormatInt(userID, 10))
+		// the query parameters take precedence
+		if metaData.LabelsData.SelectedLabelIDs == "" {
+			metaData.LabelsData.SetSelectedLabelNames(template.Labels)
 		}
-		metaData.AssigneesData.SelectedAssigneeIDs = strings.Join(selectedAssigneeIDStrings, ",")
+		if metaData.AssigneesData.SelectedAssigneeIDs == "" {
+			selectedAssigneeIDs, _ := user_model.GetDoerUserIDsByNames(ctx, template.Assignees)
+			metaData.AssigneesData.SelectedAssigneeIDs = base.JoinInt64s(selectedAssigneeIDs, ",")
+		}
 
 		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
 			template.Ref = git.BranchPrefix + template.Ref
@@ -111,17 +111,13 @@ func NewIssue(ctx *context.Context) {
 
 	isProjectsEnabled := ctx.Repo.Permission.CanRead(unit.TypeProjects)
 	ctx.Data["IsProjectsEnabled"] = isProjectsEnabled
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
-	pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, false)
+	pageMetaData := retrieveRepoIssueMetaDataWithPrefill(ctx, ctx.Repo.Repository, false)
 	if ctx.Written() {
 		return
 	}
 
-	pageMetaData.MilestonesData.SelectedMilestoneID = ctx.FormInt64("milestone")
-
-	pageMetaData.SetSelectedProjectIDs(parseProjectIDsFromQuery(ctx))
 	if len(pageMetaData.ProjectsData.SelectedProjectIDs) == 1 {
 		ctx.Data["redirect_after_creation"] = "project"
 	}
@@ -148,7 +144,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["IsIssuePoster"] = true // the current user will be the poster of the new issue
 
 	if !issueConfig.BlankIssuesEnabled && hasTemplates && !templateLoaded {
-		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if blank issues are disabled, just redirect to the "issues/choose" page with these parameters.
+		// The "issues/new" and "issues/new/choose" share the same prefill query parameters, if blank issues are disabled, just redirect to the "issues/choose" page with these parameters.
 		ctx.Redirect(fmt.Sprintf("%s/issues/new/choose?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
@@ -193,7 +189,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	}
 
 	if !issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo) {
-		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
+		// The "issues/new" and "issues/new/choose" share the same prefill query parameters, if no template here, just redirect to the "issues/new" page with these parameters.
 		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
@@ -202,8 +198,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["IssueConfig"] = issueConfig
 	ctx.Data["IssueConfigError"] = err // ctx.Flash.Err makes problems here
 
-	ctx.Data["milestone"] = ctx.FormInt64("milestone")
-	ctx.Data["project"] = ctx.FormInt64("project")
+	ctx.Data["PrefillQuery"] = issuePrefillQuery(ctx)
 
 	ctx.HTML(http.StatusOK, tplIssueChoose)
 }
@@ -236,8 +231,8 @@ func toSet[ItemType any, KeyType comparable](slice []ItemType, keyFunc func(Item
 	return s
 }
 
-// ValidateRepoMetasForNewIssue check and returns repository's meta information
-func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
+// ValidateRepoMetasForCreateIssue check and returns repository's meta information
+func ValidateRepoMetasForCreateIssue(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
 	LabelIDs, AssigneeIDs []int64
 	MilestoneID           int64
 	ProjectIDs            []int64
@@ -325,7 +320,7 @@ func NewIssuePost(ctx *context.Context) {
 
 	repo := ctx.Repo.Repository
 
-	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, false)
+	validateRet := ValidateRepoMetasForCreateIssue(ctx, *form, false)
 	if ctx.Written() {
 		return
 	}
