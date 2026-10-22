@@ -382,6 +382,14 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 	})
 }
 
+func TestPullView_ReviewOnLockedPR(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	require.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: 3, IsLocked: true}, "is_locked"))
+
+	testSubmitReview(t, loginUser(t, "user4"), "user2", "repo1", "3", "", "comment", http.StatusSeeOther)
+	unittest.AssertNotExistsBean(t, &issues_model.Review{IssueID: 3, ReviewerID: 4, Content: "test"})
+}
+
 func testSubmitReview(t *testing.T, session *TestSession, owner, repo, pullNumber, commitID, reviewType string, expectedSubmitStatus int) *httptest.ResponseRecorder {
 	options := map[string]string{
 		"commit_id": commitID,

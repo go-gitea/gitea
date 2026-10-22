@@ -247,6 +247,8 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 	//     "$ref": "#/responses/PullReviewComment"
 	//   "400":
 	//     "$ref": "#/responses/validationError"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -264,6 +266,9 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 	}
 	if parent.ReviewID == 0 {
 		ctx.APIError(http.StatusBadRequest, "comment is not a review comment")
+		return
+	}
+	if isPullLockedForDoer(ctx, parent.Issue) {
 		return
 	}
 
@@ -494,6 +499,8 @@ func CreatePullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -508,7 +515,7 @@ func CreatePullReview(ctx *context.APIContext) {
 
 	// determine review type
 	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
-	if isWrong {
+	if isWrong || isPullLockedForDoer(ctx, pr.Issue) {
 		return
 	}
 
@@ -617,6 +624,8 @@ func SubmitPullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -635,7 +644,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 
 	// determine review type
 	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
-	if isWrong {
+	if isWrong || isPullLockedForDoer(ctx, pr.Issue) {
 		return
 	}
 
@@ -669,6 +678,14 @@ func SubmitPullReview(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, apiReview)
+}
+
+func isPullLockedForDoer(ctx *context.APIContext, issue *issues_model.Issue) bool {
+	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
+		ctx.APIError(http.StatusForbidden, ctx.Locale.TrString("repo.issues.comment_on_locked"))
+		return true
+	}
+	return false
 }
 
 // preparePullReviewType return ReviewType and false or nil and true if an error happen
