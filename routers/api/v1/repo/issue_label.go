@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/container"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -339,12 +340,23 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		}
 		labelIDs = append(labelIDs, repoLabelIDs...)
 		if ctx.Repo.Owner.IsOrganization() {
-			orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, labelNames)
+			repoLabels, err := issues_model.GetLabelsByIDs(ctx, repoLabelIDs, "name")
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return nil, nil, err
 			}
-			labelIDs = append(labelIDs, orgLabelIDs...)
+			orgLabelNames := container.SetOf(labelNames...)
+			for _, label := range repoLabels {
+				orgLabelNames.Remove(label.Name)
+			}
+			if len(orgLabelNames) > 0 {
+				orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, orgLabelNames.Values())
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return nil, nil, err
+				}
+				labelIDs = append(labelIDs, orgLabelIDs...)
+			}
 		}
 	}
 
