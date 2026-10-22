@@ -4,6 +4,7 @@
 package git_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -22,46 +23,71 @@ func TestGetCommitStatuses(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
 	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
 
-	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
-		ListOptions: db.ListOptions{Page: 1, PageSize: 50},
-		RepoID:      repo1.ID,
-		SHA:         sha1,
+	t.Run("CommitStatusOptions", func(t *testing.T) {
+		statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
+			ListOptions: db.ListOptions{Page: 1, PageSize: 50},
+			RepoID:      repo1.ID,
+			SHA:         sha1,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 5, int(maxResults))
+		var indexes []int64
+		for _, status := range statuses {
+			indexes = append(indexes, status.Index)
+		}
+		assert.Equal(t, []int64{5, 4, 3, 2, 1}, indexes)
+		assert.Equal(t, "deploy/awesomeness", statuses[0].Context)
+		assert.Equal(t, commitstatus.CommitStatusError, statuses[0].State)
+		assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[0].APIURL(t.Context()))
+
+		statuses, maxResults, err = db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
+			ListOptions: db.ListOptions{Page: 2, PageSize: 50},
+			RepoID:      repo1.ID,
+			SHA:         sha1,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 5, int(maxResults))
+		assert.Empty(t, statuses)
 	})
-	assert.NoError(t, err)
-	assert.Equal(t, 5, int(maxResults))
-	assert.Len(t, statuses, 5)
 
-	assert.Equal(t, "ci/awesomeness", statuses[0].Context)
-	assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[0].APIURL(t.Context()))
+	t.Run("GetCountLatestCommitStatus", func(t *testing.T) {
+		commitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo1.ID, sha1, db.ListOptions{
+			Page:     1,
+			PageSize: 2,
+		})
+		assert.NoError(t, err)
+		assert.Len(t, commitStatuses, 2)
+		assert.Equal(t, commitstatus.CommitStatusFailure, commitStatuses[0].State)
+		assert.Equal(t, "ci/awesomeness", commitStatuses[0].Context)
+		assert.Equal(t, commitstatus.CommitStatusError, commitStatuses[1].State)
+		assert.Equal(t, "deploy/awesomeness", commitStatuses[1].Context)
 
-	assert.Equal(t, "cov/awesomeness", statuses[1].Context)
-	assert.Equal(t, commitstatus.CommitStatusWarning, statuses[1].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[1].APIURL(t.Context()))
-
-	assert.Equal(t, "cov/awesomeness", statuses[2].Context)
-	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[2].APIURL(t.Context()))
-
-	assert.Equal(t, "ci/awesomeness", statuses[3].Context)
-	assert.Equal(t, commitstatus.CommitStatusFailure, statuses[3].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[3].APIURL(t.Context()))
-
-	assert.Equal(t, "deploy/awesomeness", statuses[4].Context)
-	assert.Equal(t, commitstatus.CommitStatusError, statuses[4].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[4].APIURL(t.Context()))
-
-	statuses, maxResults, err = db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
-		ListOptions: db.ListOptions{Page: 2, PageSize: 50},
-		RepoID:      repo1.ID,
-		SHA:         sha1,
+		count, err := git_model.CountLatestCommitStatus(t.Context(), repo1.ID, sha1)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 3, count)
 	})
-	assert.NoError(t, err)
-	assert.Equal(t, 5, int(maxResults))
-	assert.Empty(t, statuses)
+
+	t.Run("GetLatestCommitStatusForRepoCommitIDs", func(t *testing.T) {
+		commitIDs := []string{sha1}
+		// SQLite has a limit of 1000 for WHERE expression variables per query, use a larger slice to test
+		for i := range 2000 {
+			commitIDs = append(commitIDs, fmt.Sprintf("%040x", i+1))
+		}
+		statuses, err := git_model.GetLatestCommitStatusForRepoCommitIDs(t.Context(), repo1.ID, commitIDs)
+		assert.NoError(t, err)
+		assert.Len(t, statuses[sha1], 3)
+		latestIndexes := make(map[string]int64)
+		for _, status := range statuses[sha1] {
+			latestIndexes[status.Context] = status.Index
+		}
+		assert.Equal(t, map[string]int64{
+			"ci/awesomeness":     4,
+			"cov/awesomeness":    3,
+			"deploy/awesomeness": 5,
+		}, latestIndexes)
+	})
 }
 
 func Test_CalcCommitStatus(t *testing.T) {
@@ -259,27 +285,4 @@ func TestCommitStatusesApplyDoerPermission(t *testing.T) {
 	assert.Equal(t, visibleURL, statuses[0].TargetURL)
 	assert.Empty(t, statuses[1].TargetURL)
 	assert.Equal(t, "https://mycicd.org/1", statuses[2].TargetURL)
-}
-
-func TestGetCountLatestCommitStatus(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
-
-	commitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo1.ID, sha1, db.ListOptions{
-		Page:     1,
-		PageSize: 2,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, commitStatuses, 2)
-	assert.Equal(t, commitstatus.CommitStatusFailure, commitStatuses[0].State)
-	assert.Equal(t, "ci/awesomeness", commitStatuses[0].Context)
-	assert.Equal(t, commitstatus.CommitStatusError, commitStatuses[1].State)
-	assert.Equal(t, "deploy/awesomeness", commitStatuses[1].Context)
-
-	count, err := git_model.CountLatestCommitStatus(t.Context(), repo1.ID, sha1)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 3, count)
 }

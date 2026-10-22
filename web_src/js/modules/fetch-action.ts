@@ -3,7 +3,7 @@ import {hideToastsAll, showErrorToast} from './toast.ts';
 import {activePageTimerRefresh, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {errorMessage, errorName} from './errors.ts';
 import {confirmModal, createConfirmModal} from '../features/comp/ConfirmModal.ts';
-import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {ignoreAreYouSure} from './are-you-sure.ts';
 import {registerGlobalSelectorFunc} from './observer.ts';
 import {Idiomorph} from 'idiomorph';
 import {parseDom} from '../utils.ts';
@@ -68,7 +68,7 @@ function toggleLoadingIndicator(el: HTMLElement, opt: FetchActionOpts, isLoading
   }
 }
 
-export async function handleFetchActionSuccessJson(el: HTMLElement, respJson: {redirect?: unknown} | null) {
+export function handleFetchActionSuccessJson(el: HTMLElement, respJson: {redirect?: unknown} | null) {
   ignoreAreYouSure(el); // ignore the areYouSure check before reloading
   const redirect = respJson?.redirect;
   if (typeof redirect === 'string' && redirect) {
@@ -84,7 +84,7 @@ async function handleFetchActionSuccess(el: HTMLElement, opt: FetchActionOpts, r
   const respText = await resp.text();
   const respJson = isRespJson ? JSON.parse(respText) : null;
   if (isRespJson) {
-    await handleFetchActionSuccessJson(el, respJson);
+    handleFetchActionSuccessJson(el, respJson);
   } else if (opt.successSync) {
     await handleFetchActionSuccessSync(el, opt.successSync, respText);
   } else {
@@ -123,7 +123,9 @@ async function handleFetchActionError(el: HTMLElement, resp: Response) {
   const isRespJson = resp.headers.get('content-type')?.includes('application/json');
   const respText = await resp.text();
   const respJson = isRespJson ? JSON.parse(respText) : null;
-  if (respJson?.errorMessage) {
+  if (respJson?.redirect) {
+    fetchActionDoRedirect(respJson.redirect);
+  } else if (respJson?.errorMessage) {
     // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
     // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
     showErrorToast(respJson.errorMessage, {useHtmlBody: respJson.renderFormat === 'html'});
@@ -231,10 +233,10 @@ export async function submitFormFetchAction(elForm: HTMLFormElement, opts: Submi
 }
 
 async function confirmFetchAction(el: HTMLElement) {
-  let elModal: HTMLElement | null = null;
+  let elModal: HTMLDialogElement | null = null;
   const dataModalConfirm = el.getAttribute('data-modal-confirm') || '';
   if (dataModalConfirm.startsWith('#') && dataModalConfirm.length > 1) {
-    elModal = document.querySelector<HTMLElement>(`#${CSS.escape(dataModalConfirm.substring(1))}`);
+    elModal = document.querySelector<HTMLDialogElement>(`#${CSS.escape(dataModalConfirm.substring(1))}`);
     if (elModal) {
       elModal = createElementFromHTML(elModal.outerHTML);
       elModal.removeAttribute('id');
@@ -443,4 +445,11 @@ export function initGlobalFetchAction() {
   });
 
   registerGlobalSelectorFunc('[data-fetch-url]', initFetchActionTrigger);
+
+  // when the page is reloaded after a fetch action, scroll to the flash message if any
+  const elFlashMessage = document.querySelector('.ui.message.flash-message');
+  if (elFlashMessage) {
+    window.history.scrollRestoration = 'manual';
+    elFlashMessage?.scrollIntoView({block: 'center'});
+  }
 }

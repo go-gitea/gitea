@@ -69,13 +69,7 @@ func goGet(ctx *context.Context) {
 
 	goGetImport := context.ComposeGoGetImport(ctx, ownerName, trimmedRepoName)
 
-	var cloneURL string
-	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, ownerName, repoName)
-	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, ownerName, repoName)
-	}
-	goImportContent := fmt.Sprintf("%s git %s", goGetImport, cloneURL /*CloneLink*/)
+	goImportContent := fmt.Sprintf("%s git %s", goGetImport, context.ComposeGoGetCloneURL(ctx, ownerName, trimmedRepoName))
 	goSourceContent := fmt.Sprintf("%s _ %s %s", goGetImport, prefix+"{/dir}" /*GoDocDirectory*/, prefix+"{/dir}/{file}#L{line}" /*GoDocFile*/)
 	goGetCli := fmt.Sprintf("go get %s%s", insecure, goGetImport)
 
@@ -110,10 +104,6 @@ func goGetDefaultBranch(ctx *context.Context, repo *repo_model.Repository) strin
 	if !goGetTokenCanReadRepo(ctx) {
 		return def
 	}
-	// a public-only token may only reach genuinely public resources (a public repo under a public owner)
-	if context.TokenIsPublicOnly(ctx) && (repo.IsPrivate || !repo.Owner.Visibility.IsPublic()) {
-		return def
-	}
 	// the caller must be able to read the code and see the owner: a limited/private owner hides its repos
 	// from anonymous/non-member callers even when the repo itself is public
 	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
@@ -127,7 +117,7 @@ func goGetDefaultBranch(ctx *context.Context, repo *repo_model.Repository) strin
 // always may; a token request may only when its scope grants repository read, so a PAT that was never
 // scoped for repositories cannot disclose the branch even if its owner can read the repo.
 func goGetTokenCanReadRepo(ctx *context.Context) bool {
-	scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	scope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
 	if !hasApiTokenScope {
 		return true
 	}

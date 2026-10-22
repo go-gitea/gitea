@@ -34,10 +34,6 @@ func Debug(format string, v ...any) {
 	Log(1, DEBUG, format, v...)
 }
 
-func IsDebug() bool {
-	return GetLevel() <= DEBUG
-}
-
 func Info(format string, v ...any) {
 	Log(1, INFO, format, v...)
 }

@@ -6,10 +6,13 @@ package repo_test
 import (
 	"testing"
 
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIncreaseDownloadCount(t *testing.T) {
@@ -35,6 +38,10 @@ func TestGetByCommentOrIssueID(t *testing.T) {
 	attachments, err := repo_model.GetAttachmentsByIssueID(t.Context(), 1)
 	assert.NoError(t, err)
 	assert.Len(t, attachments, 1)
+
+	attachments, err = repo_model.GetAttachmentsByIssueID(t.Context(), 0)
+	assert.NoError(t, err)
+	assert.Empty(t, attachments)
 
 	attachments, err = repo_model.GetAttachmentsByCommentID(t.Context(), 1)
 	assert.NoError(t, err)
@@ -67,6 +74,34 @@ func TestGetAttachmentByID(t *testing.T) {
 	attach, err := repo_model.GetAttachmentByID(t.Context(), 1)
 	assert.NoError(t, err)
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.UUID)
+}
+
+func TestDeleteOrphanedAttachments(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := &issues_model.Issue{}
+	release := &repo_model.Release{}
+	comment := &issues_model.Comment{}
+	require.NoError(t, db.Insert(t.Context(), issue, release, comment))
+	require.NoError(t, db.Insert(t.Context(), []*repo_model.Attachment{
+		{UUID: "valid-issue", IssueID: issue.ID},
+		{UUID: "valid-release", ReleaseID: release.ID},
+		{UUID: "valid-comment", CommentID: comment.ID},
+		{UUID: "unlinked"},
+		{UUID: "orphaned-issue", IssueID: unittest.NonexistentID},
+		{UUID: "orphaned-release", ReleaseID: unittest.NonexistentID},
+		{UUID: "orphaned-comment", IssueID: issue.ID, CommentID: unittest.NonexistentID},
+	}))
+
+	require.NoError(t, repo_model.DeleteOrphanedAttachments(t.Context()))
+
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{UUID: "valid-issue"})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{UUID: "valid-release"})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{UUID: "valid-comment"})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{UUID: "unlinked"})
+	unittest.AssertNotExistsBean(t, &repo_model.Attachment{UUID: "orphaned-issue"})
+	unittest.AssertNotExistsBean(t, &repo_model.Attachment{UUID: "orphaned-release"})
+	unittest.AssertNotExistsBean(t, &repo_model.Attachment{UUID: "orphaned-comment"})
 }
 
 func TestAttachment_DownloadURL(t *testing.T) {

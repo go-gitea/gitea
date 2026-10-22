@@ -38,10 +38,7 @@
 						</div>
 						<div class="comment-header-right">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
-							{{if not $.Repository.IsArchived}}
-								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
-							{{end}}
-							{{template "repo/issue/view_content/context_menu" dict "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
+							{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_main" "ConvContentItem" .Issue}}
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">
@@ -58,10 +55,11 @@
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Issue.Attachments "RenderedContent" .Issue.RenderedContent}}
 						{{end}}
 					</div>
-					{{$reactions := .Issue.Reactions.GroupByType}}
-					{{if $reactions}}
-						{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
-					{{end}}
+					{{template "shared/reactions" dict
+						"AllowedReactions" $.AllowedIssueReactions
+						"ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)
+						"Reactions" .Issue.Reactions.GroupByType
+					}}
 				</div>
 			</div>
 
@@ -99,12 +97,12 @@
 												{{$btnTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.close" "repo.issues.close")}}
 												{{$btnTextWithComment = ctx.Locale.Tr "repo.issues.close_comment_issue"}}{{/* general: Close with Comment */}}
 											{{end}}
-											<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="{{$btnValue}}">
+											<button type="submit" id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="{{$btnValue}}">
 												<span class="status-button-icon {{$btnIconColor}}">{{svg $btnIcon}}</span>
 												<span class="status-button-text">{{$btnTextNoComment}}</span>
 											</button>
 										{{end}}
-										<button id="comment-button" class="ui primary button">
+										<button type="submit" id="comment-button" class="ui primary button">
 											{{ctx.Locale.Tr "repo.issues.create_comment"}}
 										</button>
 									</div>
@@ -156,7 +154,7 @@
 
 		{{if .IsAttachmentEnabled}}
 			<div class="field">
-				{{template "repo/upload" .}}
+				{{template "repo/upload" dict "UploadOptions" $.UploadOptions}}
 			</div>
 		{{end}}
 

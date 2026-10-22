@@ -50,7 +50,7 @@ func CanUnblockUser(ctx context.Context, doer, blocker, blockee *user_model.User
 		return false
 	}
 
-	if !user_model.IsUserBlockedBy(ctx, blockee, blocker.ID) {
+	if !user_model.HasBlocking(ctx, blockee.ID, blocker.ID) {
 		return false
 	}
 

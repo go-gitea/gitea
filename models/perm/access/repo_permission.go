@@ -424,6 +424,9 @@ func GetDoerRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 // In most request paths, callers should use GetDoerRepoPermission instead.
 // Unlike GetDoerRepoPermission, this helper does not resolve Actions task users.
 func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
+	if !repo_model.DoerTokenAllowsRepo(ctx, user, repo) {
+		return PermissionNoAccess(), nil
+	}
 	defer func() {
 		if err == nil {
 			finalProcessRepoUnitPermission(user, &perm)
@@ -675,10 +678,14 @@ func PermissionNoAccess() Permission {
 // permission on a repository. Producers and consumers must agree on it, so it lives here.
 func RepoUserPermissionCacheKey(repoID int64, doer *user_model.User) string {
 	var doerID int64
+	var doerExtData string
 	if doer != nil {
 		doerID = doer.ID
+		if doer.ExtDoerData != nil {
+			doerExtData = doer.ExtDoerData.EncodeToString()
+		}
 	}
-	return fmt.Sprintf("%d-%d", repoID, doerID)
+	return fmt.Sprintf("%d-%d-%s", repoID, doerID, doerExtData)
 }
 
 // CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo.
@@ -686,18 +693,16 @@ func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Reposi
 	if err := run.LoadRepo(ctx); err != nil {
 		return false, err
 	}
+	if targetRepo.IsPrivate && !run.Repo.IsPrivate {
+		return false, nil
+	}
 
-	// (1) Same owner: always allowed (fork-PR scrubbing handled inside).
+	// (1) Same owner: allowed by owner policy (fork-PR scrubbing handled inside).
 	if checkSameOwnerCrossRepoAccess(ctx, run.Repo, targetRepo, run.IsForkPullRequest) {
 		return true, nil
 	}
 
-	// (2) Cross-owner: respect the target repo's collaborative-owner allowlist on its Actions unit.
-	// The caller (run.Repo) must itself be private. The collaborative-owner grant is owner-level, so without this
-	// guard a public caller owned by a grantee could pull a private reusable workflow and expose its definition and
-	// logs in a publicly visible run; requiring a private caller keeps private content flowing private -> private.
-	// This is intentionally stricter than GitHub, which gates on the target repo's access setting (introduced in #32562):
-	// https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#allowing-access-to-components-in-a-private-repository
+	// (2) Cross-owner access requires a private caller and the target's collaborative-owner grant.
 	if run.Repo.IsPrivate && !run.IsForkPullRequest {
 		if actionsUnit, err := targetRepo.GetUnit(ctx, unit.TypeActions); err == nil {
 			if actionsUnit.ActionsConfig().IsCollaborativeOwner(run.Repo.OwnerID) {
