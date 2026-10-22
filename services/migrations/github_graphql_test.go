@@ -4,19 +4,23 @@
 package migrations
 
 import (
-	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
+	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/json"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/test"
@@ -26,299 +30,226 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIsGraphQLRateLimited(t *testing.T) {
-	assert.True(t, isGraphQLRateLimited([]graphQLError{{Type: "RATE_LIMITED", Message: "exceeded"}}))
-	assert.True(t, isGraphQLRateLimited([]graphQLError{{Type: "NOT_FOUND"}, {Type: "RATE_LIMITED"}}))
-	assert.False(t, isGraphQLRateLimited([]graphQLError{{Type: "NOT_FOUND"}}))
-	assert.False(t, isGraphQLRateLimited(nil))
-}
-
-func TestGraphQLRateResetWait(t *testing.T) {
-	// Retry-After (seconds) takes precedence
-	h := http.Header{}
-	h.Set("Retry-After", "30")
-	h.Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10))
-	assert.Equal(t, 30*time.Second, graphQLRateResetWait(h))
-
-	// X-RateLimit-Reset (unix epoch, in the future) when no Retry-After
-	h = http.Header{}
-	h.Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(90*time.Second).Unix(), 10))
-	got := graphQLRateResetWait(h)
-	assert.Greater(t, got, 60*time.Second)
-	assert.LessOrEqual(t, got, 90*time.Second)
-
-	// a reset already in the past, and no headers at all, both fall back
-	past := http.Header{}
-	past.Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(-time.Hour).Unix(), 10))
-	assert.Equal(t, graphQLRateResetFallback, graphQLRateResetWait(past))
-	assert.Equal(t, graphQLRateResetFallback, graphQLRateResetWait(http.Header{}))
-
-	// with primary quota left the throttle is a secondary limit: its reset header
-	// belongs to the primary window, so the fallback applies instead
-	secondary := http.Header{}
-	secondary.Set("X-RateLimit-Remaining", "4321")
-	secondary.Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10))
-	assert.Equal(t, graphQLRateResetFallback, graphQLRateResetWait(secondary))
-
-	// a bogus far-future reset is capped
-	huge := http.Header{}
-	huge.Set("Retry-After", "999999")
-	assert.Equal(t, graphQLRateResetCap, graphQLRateResetWait(huge))
-}
-
-func TestDoGraphQLRetriesOnRateLimited(t *testing.T) {
-	var calls atomic.Int32
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if calls.Add(1) == 1 {
-			w.Header().Set("Retry-After", "1") // 1s so the test stays fast
-			io.WriteString(w, `{"errors":[{"type":"RATE_LIMITED","message":"API rate limit exceeded"}]}`)
-			return
-		}
-		io.WriteString(w, `{"data":{"ok":true}}`)
+func newGithubTestDownloader(t *testing.T, handler http.HandlerFunc, spareTokens ...string) *GithubDownloaderV3 {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		writer.Header().Set("X-RateLimit-Remaining", "4000")
+		handler(writer, request)
 	}))
-	defer srv.Close()
-
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
+	t.Cleanup(server.Close)
+	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", strings.Join(append([]string{"tok"}, spareTokens...), ","), "o", "r")
 	require.NoError(t, err)
-
-	var out struct {
-		OK bool `json:"ok"`
-	}
-	require.NoError(t, d.doGraphQL(t.Context(), "query{}", nil, &out))
-	assert.True(t, out.OK)
-	assert.EqualValues(t, 2, calls.Load(), "RATE_LIMITED should be waited out and the request retried once")
-}
-
-// comment reactions nested under comments would exceed GitHub's 500,000-node limit
-func TestGraphQLQueryReactionGating(t *testing.T) {
-	for _, tc := range []struct {
-		name  string
-		query func(*GithubDownloaderV3) string
-	}{
-		{"issues", (*GithubDownloaderV3).graphQLIssuesQuery},
-		{"pulls", (*GithubDownloaderV3).graphQLPullRequestsQuery},
-	} {
-		skip := tc.query(&GithubDownloaderV3{SkipReactions: true})
-		keep := tc.query(&GithubDownloaderV3{SkipReactions: false})
-		assert.Equal(t, 0, strings.Count(skip, "reactions"), "%s: SkipReactions must omit all reactions", tc.name)
-		assert.Equal(t, 1, strings.Count(keep, "reactions("), "%s: exactly one reactions connection (entity-level); comment reactions must not be nested", tc.name)
-		assert.Contains(t, keep, "reactions(first:100){totalCount", "%s: entity reactions carry totalCount for the overflow sweep", tc.name)
-	}
-}
-
-func TestGraphQLQueryCommentGating(t *testing.T) {
-	issues := (&GithubDownloaderV3{gqlSkipComments: true}).graphQLIssuesQuery()
-	assert.NotContains(t, issues, "comments(")
-	pulls := (&GithubDownloaderV3{gqlSkipComments: true}).graphQLPullRequestsQuery()
-	assert.NotContains(t, pulls, "comments(")
-	assert.NotContains(t, pulls, "reviews(")
-	assert.NotContains(t, pulls, "reviewRequests(")
-	assert.Contains(t, (&GithubDownloaderV3{}).graphQLPullRequestsQuery(), "reviews(first:50)")
-}
-
-func TestDoGraphQLPageShrinkSkipsPermanentFailures(t *testing.T) {
-	var calls atomic.Int32
-	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls.Add(1)
-	}))
-	defer srv.Close()
-
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-	require.NoError(t, err)
-
-	err = d.doGraphQLPageShrink(t.Context(), `query{viewer{login}}`, map[string]any{}, &struct{}{}, 100, "issues")
-	require.Error(t, err)
-	assert.NotErrorIs(t, err, errGraphQLTransientExhausted, "an untrusted certificate must not be retried at a smaller page size")
-	assert.Zero(t, calls.Load())
-}
-
-func TestFetchNodeReactionsSkipsDeletedNodes(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, `{"data":{"nodes":[null,{"id":"c2","reactions":{"totalCount":1,"nodes":[{"content":"HEART","user":null}]}}]},`+
-			`"errors":[{"type":"NOT_FOUND","path":["nodes",0],"message":"Could not resolve to a node"}]}`)
-	}))
-	defer srv.Close()
-
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-	require.NoError(t, err)
-
-	got, err := d.fetchNodeReactions(t.Context(), []string{"c1", "c2"})
-	require.NoError(t, err)
-	require.Len(t, got["c2"], 1)
-	assert.Equal(t, "ghost", got["c2"][0].UserName)
-	assert.EqualValues(t, 10137, got["c2"][0].UserID)
-}
-
-func TestIsGraphQLResourceLimited(t *testing.T) {
-	rl := fmt.Errorf("github graphql: %w", graphQLError{Type: "RESOURCE_LIMITS_EXCEEDED", Message: "too expensive"})
-	assert.True(t, isGraphQLResourceLimited(rl))
-	assert.False(t, isGraphQLResourceLimited(fmt.Errorf("github graphql: %w", graphQLError{Type: "RATE_LIMITED"})))
-	assert.False(t, isGraphQLResourceLimited(errors.New("plain")))
-}
-
-func TestFetchNodeReactionsAdaptiveShrink(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			Variables struct {
-				IDs []string `json:"ids"`
-			} `json:"variables"`
-		}
-		body, _ := io.ReadAll(r.Body)
-		_ = json.Unmarshal(body, &req)
-		if len(req.Variables.IDs) > 1 {
-			_, _ = io.WriteString(w, `{"errors":[{"type":"RESOURCE_LIMITS_EXCEEDED","message":"too expensive"}]}`)
-			return
-		}
-		id := req.Variables.IDs[0]
-		_, _ = io.WriteString(w, `{"data":{"nodes":[{"id":"`+id+`","reactions":{"totalCount":1,"nodes":[{"content":"HEART","user":{"login":"u","databaseId":1}}]}}]}}`)
-	}))
-	defer srv.Close()
-
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-	require.NoError(t, err)
-
-	got, err := d.fetchNodeReactions(t.Context(), []string{"c1", "c2"})
-	require.NoError(t, err)
-	require.Len(t, got, 2)
-	require.Len(t, got["c1"], 1)
-	assert.Equal(t, "heart", got["c1"][0].Content)
-	require.Len(t, got["c2"], 1)
-}
-
-func TestReactionsWithSweepNoOverflow(t *testing.T) {
-	var conn gqlReactionConn
-	require.NoError(t, json.Unmarshal([]byte(`{"totalCount":2,"nodes":[
-		{"content":"THUMBS_UP","user":{"login":"alice","databaseId":11}},
-		{"content":"HEART","user":{"login":"bob","databaseId":22}}]}`), &conn))
-	r, err := (&GithubDownloaderV3{}).reactionsWithSweep(t.Context(), "node-id", conn)
-	require.NoError(t, err)
-	require.Len(t, r, 2)
-	assert.Equal(t, "+1", r[0].Content)
-	assert.EqualValues(t, 11, r[0].UserID)
-	assert.Equal(t, "alice", r[0].UserName)
-	assert.Equal(t, "heart", r[1].Content)
-	assert.Equal(t, "bob", r[1].UserName)
+	return downloader
 }
 
 func TestGraphQLEndpoint(t *testing.T) {
-	assert.Equal(t, "https://api.github.com/graphql", (&GithubDownloaderV3{baseURL: "https://github.com"}).graphQLEndpoint())
-	assert.Equal(t, "https://api.github.com/graphql", (&GithubDownloaderV3{baseURL: ""}).graphQLEndpoint())
-	assert.Equal(t, "https://ghe.example.com/api/graphql", (&GithubDownloaderV3{baseURL: "https://ghe.example.com"}).graphQLEndpoint())
-	assert.Equal(t, "https://ghe.example.com/api/graphql", (&GithubDownloaderV3{baseURL: "https://ghe.example.com/"}).graphQLEndpoint())
-}
-
-func TestGraphQLReactionContent(t *testing.T) {
-	assert.Equal(t, "+1", graphQLReactionContent("THUMBS_UP"))
-	assert.Equal(t, "-1", graphQLReactionContent("THUMBS_DOWN"))
-	assert.Equal(t, "heart", graphQLReactionContent("HEART"))
-	assert.Equal(t, "rocket", graphQLReactionContent("ROCKET"))
-	// unknown enum falls back to lower-case
-	assert.Equal(t, "star", graphQLReactionContent("STAR"))
-}
-
-func TestGraphQLIssuesResponseParsing(t *testing.T) {
-	const sample = `{
-	  "repository": {
-	    "issues": {
-	      "pageInfo": {"hasNextPage": true, "endCursor": "Y3Vyc29yOjEwMA=="},
-	      "nodes": [
-	        {
-	          "number": 42,
-	          "title": "a bug",
-	          "body": "it broke",
-	          "state": "CLOSED",
-	          "createdAt": "2024-01-02T03:04:05Z",
-	          "updatedAt": "2024-02-03T04:05:06Z",
-	          "closedAt": "2024-02-03T04:05:06Z",
-	          "locked": true,
-	          "author": {"login": "octocat", "databaseId": 583231},
-	          "milestone": {"title": "v1.0"},
-	          "labels": {"nodes": [{"name": "bug", "color": "d73a4a", "description": "defect"}]},
-	          "assignees": {"nodes": [{"login": "maintainer"}]},
-	          "reactions": {"totalCount": 2, "nodes": [{"content": "THUMBS_UP", "user": {"login": "alice", "databaseId": 11}}, {"content": "HEART", "user": {"login": "bob", "databaseId": 22}}]},
-	          "comments": {
-	            "totalCount": 1,
-	            "nodes": [
-	              {"id": "IC_node1", "databaseId": 900001, "body": "same here", "createdAt": "2024-01-05T00:00:00Z", "updatedAt": "2024-01-05T00:00:00Z", "author": {"login": "reporter", "databaseId": 111}}
-	            ]
-	          }
-	        }
-	      ]
-	    }
-	  },
-	  "rateLimit": {"cost": 1, "remaining": 4999, "resetAt": "2024-01-01T00:00:00Z"}
-	}`
-
-	var resp gqlIssuesResponse
-	require.NoError(t, json.Unmarshal([]byte(sample), &resp))
-
-	assert.True(t, resp.Repository.Issues.PageInfo.HasNextPage)
-	assert.Equal(t, "Y3Vyc29yOjEwMA==", resp.Repository.Issues.PageInfo.EndCursor)
-	assert.Equal(t, 4999, resp.RateLimit.Remaining)
-	require.Len(t, resp.Repository.Issues.Nodes, 1)
-
-	node := resp.Repository.Issues.Nodes[0]
-	assert.EqualValues(t, 42, node.Number)
-	assert.Equal(t, "CLOSED", node.State)
-	assert.Equal(t, "octocat", node.Author.Login)
-	assert.EqualValues(t, 583231, node.Author.DatabaseID)
-	assert.True(t, node.Locked)
-	require.NotNil(t, node.Milestone)
-	assert.Equal(t, "v1.0", node.Milestone.Title)
-
-	// reactions convert with the enum→content mapping and the reacting user
-	reactions := convertGraphQLReactions(node.Reactions)
-	require.Len(t, reactions, 2)
-	assert.Equal(t, "+1", reactions[0].Content)
-	assert.EqualValues(t, 11, reactions[0].UserID)
-	assert.Equal(t, "alice", reactions[0].UserName)
-	assert.Equal(t, "heart", reactions[1].Content)
-
-	// comment reactions come from attachCommentReactions, not the content query
-	comments := convertGraphQLComments(node.Number, node.Comments.Nodes)
-	require.Len(t, comments, 1)
-	assert.EqualValues(t, 42, comments[0].IssueIndex)
-	assert.EqualValues(t, 900001, comments[0].Index)
-	assert.Equal(t, "reporter", comments[0].PosterName)
-	assert.Empty(t, comments[0].Reactions, "comment reactions come from the node-id pass, not the content query")
-}
-
-func TestGetCommentsServesAndDropsCache(t *testing.T) {
-	g := &GithubDownloaderV3{
-		useGraphQL: true,
-		gqlComments: map[int64][]*base.Comment{
-			1: {{IssueIndex: 1, Index: 10}},
-			2: {{IssueIndex: 2, Index: 20}, {IssueIndex: 2, Index: 21}},
-		},
+	for baseURL, endpoint := range map[string]string{
+		"https://github.com":       "https://api.github.com/graphql",
+		"https://api.github.com":   "https://api.github.com/graphql",
+		"https://ghe.example.com":  "https://ghe.example.com/api/graphql",
+		"https://ghe.example.com/": "https://ghe.example.com/api/graphql",
+	} {
+		downloader, err := NewGithubDownloaderV3(t.Context(), baseURL, "", "", "tok", "o", "r")
+		require.NoError(t, err)
+		assert.Equal(t, endpoint, downloader.graphQLEndpoint(), baseURL)
 	}
-	assert.False(t, g.SupportGetRepoComments(), "the GraphQL path must not buffer every comment for a repo-wide phase")
-
-	got, _, err := g.GetComments(t.Context(), &base.Issue{Number: 2, ForeignIndex: 2})
-	require.NoError(t, err)
-	require.Len(t, got, 2)
-	assert.EqualValues(t, 20, got[0].Index)
-	assert.NotContains(t, g.gqlComments, int64(2), "served comments must be dropped from the cache")
-	assert.Contains(t, g.gqlComments, int64(1), "other entities stay cached until served")
-
-	// an entity with no comments is served as empty, not an error
-	none, _, err := g.GetComments(t.Context(), &base.Issue{Number: 9, ForeignIndex: 9})
-	require.NoError(t, err)
-	assert.Empty(t, none)
 }
 
-func TestGetReviewsServesAndDropsCache(t *testing.T) {
-	g := &GithubDownloaderV3{
-		useGraphQL: true,
-		gqlReviews: map[int64][]*base.Review{7: {{ID: 900, IssueIndex: 7}}},
+func TestGraphQLRateResetWait(t *testing.T) {
+	for _, testcase := range []struct {
+		name    string
+		headers map[string]string
+		want    time.Duration
+	}{
+		{"retry after takes precedence", map[string]string{"Retry-After": "30", "X-RateLimit-Reset": "9999999999"}, 30 * time.Second},
+		{"no headers", nil, graphQLRateResetFallback},
+		{"past primary reset", map[string]string{"X-RateLimit-Reset": "1"}, graphQLRateResetFallback},
+		{"secondary reset is not primary reset", map[string]string{"X-RateLimit-Remaining": "4321", "X-RateLimit-Reset": "9999999999"}, graphQLRateResetFallback},
+		{"primary reset is capped", map[string]string{"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "9999999999"}, graphQLRateResetCap},
+		{"retry after is capped", map[string]string{"Retry-After": "999999"}, graphQLRateResetCap},
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			header := http.Header{}
+			for name, value := range testcase.headers {
+				header.Set(name, value)
+			}
+			assert.Equal(t, testcase.want, graphQLRateResetWait(header))
+		})
 	}
-	got, err := g.GetReviews(t.Context(), &base.PullRequest{Number: 7, ForeignIndex: 7})
-	require.NoError(t, err)
-	require.Len(t, got, 1)
-	assert.EqualValues(t, 900, got[0].ID)
-	assert.NotContains(t, g.gqlReviews, int64(7), "served reviews must be dropped from the cache")
 }
 
-// a page larger than perPage overflows the DB's bind-parameter limit on insert
+func TestDoGraphQLRetriesTransientFailures(t *testing.T) {
+	defer test.MockVariableValue(&graphQLTransientRetryBase, time.Duration(0))()
+	for _, testcase := range []struct {
+		name     string
+		failure  string
+		failures int32
+	}{
+		{"bad gateway then success", "502", 1},
+		{"truncated body then success", "body", 1},
+		{"connection closed then success", "connection", 1},
+		{"persistent bad gateway", "502", maxGraphQLTransientRetries + 1},
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			var calls atomic.Int32
+			downloader := newGithubTestDownloader(t, func(writer http.ResponseWriter, _request *http.Request) {
+				if calls.Add(1) > testcase.failures {
+					_, _ = io.WriteString(writer, `{"data":{"ok":true}}`)
+					return
+				}
+				switch testcase.failure {
+				case "502":
+					writer.WriteHeader(http.StatusBadGateway)
+				case "body":
+					_, _ = io.WriteString(writer, `{"data":{"ok":`)
+				case "connection":
+					connection, _, err := http.NewResponseController(writer).Hijack()
+					if assert.NoError(t, err) {
+						_ = connection.Close()
+					}
+				}
+			})
+			var response struct {
+				OK bool `json:"ok"`
+			}
+			err := downloader.doGraphQL(t.Context(), "query{}", nil, &response)
+			if testcase.failures > maxGraphQLTransientRetries {
+				require.ErrorIs(t, err, errGraphQLTransientExhausted)
+				assert.Equal(t, int32(maxGraphQLTransientRetries+1), calls.Load())
+			} else {
+				require.NoError(t, err)
+				assert.True(t, response.OK)
+				assert.Equal(t, testcase.failures+1, calls.Load())
+			}
+		})
+	}
+}
+
+func TestDoGraphQLWaitsOutSecondaryRateLimit(t *testing.T) {
+	defer test.MockVariableValue(&graphQLRateResetFallback, time.Millisecond)()
+	for _, testcase := range []struct {
+		name   string
+		status int
+		body   string
+	}{
+		{"GraphQL rate limit", http.StatusOK, `{"errors":[{"type":"RATE_LIMITED"}]}`},
+		{"429 without retry after", http.StatusTooManyRequests, ""},
+		{"403 spent primary quota", http.StatusForbidden, ""},
+		{"403 secondary limit with quota left", http.StatusForbidden, `{"message":"You have exceeded a secondary rate limit."}`},
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			tokens := make(chan string, 3)
+			downloader := newGithubTestDownloader(t, func(writer http.ResponseWriter, request *http.Request) {
+				tokens <- request.Header.Get("Authorization")
+				if request.Header.Get("Authorization") == "Bearer tok" {
+					writer.Header().Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10))
+					if testcase.body == "" {
+						writer.Header().Set("X-RateLimit-Remaining", "0")
+					}
+					writer.WriteHeader(testcase.status)
+					_, _ = io.WriteString(writer, testcase.body)
+					return
+				}
+				_, _ = io.WriteString(writer, `{"data":{"ok":true}}`)
+			}, "spare")
+			var response struct {
+				OK bool `json:"ok"`
+			}
+			require.NoError(t, downloader.doGraphQL(t.Context(), "query{}", nil, &response))
+			assert.True(t, response.OK)
+			assert.Equal(t, []string{"Bearer tok", "Bearer spare"}, []string{<-tokens, <-tokens})
+			assert.Zero(t, downloader.gqlRates[0].Remaining)
+		})
+	}
+}
+
+func TestDoGraphQLRateRetryBudgetPerToken(t *testing.T) {
+	defer test.MockVariableValue(&graphQLRateResetFallback, time.Duration(0))()
+	var calls atomic.Int32
+	downloader := newGithubTestDownloader(t, func(writer http.ResponseWriter, _request *http.Request) {
+		calls.Add(1)
+		_, _ = io.WriteString(writer, `{"errors":[{"type":"RATE_LIMITED"}]}`)
+	}, "spare")
+	require.Error(t, downloader.doGraphQL(t.Context(), "query{}", nil, &struct{}{}))
+	assert.Equal(t, int32(maxGraphQLRateRetries*len(downloader.clients)+1), calls.Load())
+}
+
+func TestDoGraphQLFatalStatusQuotesBody(t *testing.T) {
+	var calls atomic.Int32
+	downloader := newGithubTestDownloader(t, func(writer http.ResponseWriter, _request *http.Request) {
+		calls.Add(1)
+		writer.WriteHeader(http.StatusForbidden)
+		_, _ = io.WriteString(writer, `{"message":"Resource not accessible by integration"}`)
+	})
+	assert.ErrorContains(t, downloader.doGraphQL(t.Context(), "query{}", nil, &struct{}{}), "Resource not accessible by integration")
+	assert.EqualValues(t, 1, calls.Load())
+}
+
+func TestPickGraphQLClient(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		reset := github.Timestamp{Time: time.Now().Add(2 * graphQLRateResetCap)}
+		downloader := &GithubDownloaderV3{gqlRates: []*github.Rate{
+			{Remaining: 1000, Reset: reset},
+			{Remaining: 4000, Reset: reset},
+			{Remaining: 5, Reset: reset},
+		}}
+		require.NoError(t, downloader.pickGraphQLClient(t.Context()))
+		assert.Equal(t, 1, downloader.curClientIdx)
+		downloader.gqlRates[2] = nil
+		require.NoError(t, downloader.pickGraphQLClient(t.Context()))
+		assert.Equal(t, 2, downloader.curClientIdx)
+		downloader.gqlRates = []*github.Rate{{Reset: github.Timestamp{Time: reset.Add(time.Hour)}}, {Reset: reset}}
+		started := time.Now()
+		require.NoError(t, downloader.pickGraphQLClient(t.Context()))
+		assert.Equal(t, graphQLRateResetCap, time.Since(started))
+		assert.Equal(t, 1, downloader.curClientIdx)
+		assert.Nil(t, downloader.gqlRates[1])
+	})
+}
+
+func TestIsTransientTransportError(t *testing.T) {
+	wrapped := func(err error) error {
+		return &url.Error{Op: "Post", URL: "https://example.com", Err: &net.OpError{Op: "dial", Err: err}}
+	}
+	for _, testcase := range []struct {
+		name      string
+		err       error
+		transient bool
+	}{
+		{"blocked by policy", fmt.Errorf("blocked: %w", policy.ErrDenied), false},
+		{"host does not resolve", &net.DNSError{IsNotFound: true}, false},
+		{"TLS verification failed", &tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}}, false},
+		{"DNS server failure", &net.DNSError{IsTemporary: true}, true},
+		{"connection reset", errors.New("connection reset by peer"), true},
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			assert.Equal(t, testcase.transient, isTransientTransportError(wrapped(testcase.err)))
+		})
+	}
+}
+
+func TestGraphQLQueryGating(t *testing.T) {
+	for _, skipComments := range []bool{false, true} {
+		for _, skipReactions := range []bool{false, true} {
+			downloader := &GithubDownloaderV3{SkipReactions: skipReactions, gqlSkipComments: skipComments}
+			for name, query := range map[string]string{"issues": downloader.graphQLIssuesQuery(), "pullRequests": downloader.graphQLPullRequestsQuery()} {
+				t.Run(fmt.Sprintf("%s/comments=%t/reactions=%t", name, !skipComments, !skipReactions), func(t *testing.T) {
+					assert.Equal(t, !skipComments, strings.Contains(query, "comments("))
+					assert.Equal(t, !skipComments && name == "pullRequests", strings.Contains(query, "reviews("))
+					assert.Equal(t, !skipComments && name == "pullRequests", strings.Contains(query, "reviewRequests("))
+					assert.Equal(t, !skipReactions, strings.Contains(query, "reactions("))
+					assert.LessOrEqual(t, strings.Count(query, "reactions("), 1)
+					assert.Contains(t, query, "id number title")
+					assert.Contains(t, query, "orderBy:{field:CREATED_AT,direction:ASC}")
+					assert.Contains(t, query, "labels(first:30){"+gqlPageInfoFields)
+					assert.Contains(t, query, "... on Bot{databaseId}")
+				})
+			}
+		}
+	}
+}
+
 func TestGraphQLPageSize(t *testing.T) {
 	assert.Equal(t, 41, graphQLPageSize(41, githubGraphQLPageSize))
 	assert.Equal(t, githubGraphQLPageSize, graphQLPageSize(500, githubGraphQLPageSize))
@@ -326,395 +257,173 @@ func TestGraphQLPageSize(t *testing.T) {
 	assert.Equal(t, githubGraphQLPRPageSize, graphQLPageSize(41, githubGraphQLPRPageSize))
 }
 
-func TestGraphQLQueriesSelectNonUserActorIDs(t *testing.T) {
-	g := &GithubDownloaderV3{}
-	for name, q := range map[string]string{
-		"issues":   g.graphQLIssuesQuery(),
-		"pulls":    g.graphQLPullRequestsQuery(),
-		"timeline": graphQLTimelineBatchQuery,
-	} {
-		for _, actorType := range []string{"User", "Bot", "Organization", "Mannequin"} {
-			assert.Contains(t, q, "... on "+actorType+"{databaseId}", "%s query must select the %s author id", name, actorType)
-		}
-	}
-}
-
-func TestGraphQLQueriesDetectSideConnectionOverflow(t *testing.T) {
-	g := &GithubDownloaderV3{}
-	issues, pulls := g.graphQLIssuesQuery(), g.graphQLPullRequestsQuery()
-	for _, conn := range []string{"labels", "assignees"} {
-		assert.Regexp(t, conn+`\(first:\d+\)\{totalCount`, issues, "issue %s must carry totalCount", conn)
-		assert.Regexp(t, conn+`\(first:\d+\)\{totalCount`, pulls, "PR %s must carry totalCount", conn)
-	}
-	assert.Regexp(t, `reviewRequests\(first:\d+\)\{totalCount`, pulls)
-}
-
-// a cursor over a mutable sort key such as UPDATED_AT loses rows
-func TestGraphQLContentQueriesPageByCreation(t *testing.T) {
-	g := &GithubDownloaderV3{}
-	for name, q := range map[string]string{"issues": g.graphQLIssuesQuery(), "pulls": g.graphQLPullRequestsQuery()} {
-		assert.Contains(t, q, "orderBy:{field:CREATED_AT,direction:ASC}", "%s must page by creation order", name)
-		assert.NotContains(t, q, "UPDATED_AT", "%s must not paginate over a mutable sort key", name)
-	}
-}
-
-func TestLabelsWithSweepOverflow(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, `{"data":{"node":{"conn":{"pageInfo":{"hasNextPage":false},"nodes":[
-			{"name":"a","color":"111111"},{"name":"b","color":"222222"},{"name":"c","color":"333333"}]}}}}`)
-	}))
-	defer srv.Close()
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-	require.NoError(t, err)
-
-	var conn gqlLabelConn
-	require.NoError(t, json.Unmarshal([]byte(`{"totalCount":3,"nodes":[{"name":"a","color":"111111"}]}`), &conn))
-	labels, err := d.labelsWithSweep(t.Context(), "I_node", conn)
-	require.NoError(t, err)
-	require.Len(t, labels, 3, "an issue with more labels than the page size must be swept, not truncated")
-	assert.Equal(t, "c", labels[2].Name)
-
-	// contained: no sweep, so the (unreachable) server is never asked
-	conn.TotalCount = 1
-	labels, err = d.labelsWithSweep(t.Context(), "", conn)
-	require.NoError(t, err)
-	require.Len(t, labels, 1)
-}
-
-func TestAssigneesWithSweepOverflow(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, `{"data":{"node":{"conn":{"pageInfo":{"hasNextPage":false},"nodes":[{"login":"a"},{"login":"b"}]}}}}`)
-	}))
-	defer srv.Close()
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-	require.NoError(t, err)
-
-	got, err := d.assigneesWithSweep(t.Context(), "I_node", gqlAssigneeConn{TotalCount: 2})
-	require.NoError(t, err)
-	assert.Equal(t, []string{"a", "b"}, got)
-}
-
-// the transport retries the 502, doGraphQL the body that died after the headers
-func TestDoGraphQLRetriesTransientFailures(t *testing.T) {
-	defer test.MockVariableValue(&graphQLTransientRetryBase, time.Millisecond)()
-	defer test.MockVariableValue(&retryBaseDelay, time.Millisecond)()
-
-	for _, tc := range []struct {
-		name string
-		bad  func(w http.ResponseWriter)
-	}{
-		{"bad gateway", func(w http.ResponseWriter) {
-			w.WriteHeader(http.StatusBadGateway)
-		}},
-		{"truncated body", func(w http.ResponseWriter) {
-			w.Header().Set("Content-Length", "1024") // promise more than is sent
-			_, _ = io.WriteString(w, `{"data":{"vi`) // cut mid-stream
-		}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			var calls atomic.Int32
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if calls.Add(1) <= 2 {
-					tc.bad(w)
-					return
-				}
-				_, _ = io.WriteString(w, `{"data":{"viewer":{"login":"ok"}}}`)
-			}))
-			defer srv.Close()
-
-			d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-			require.NoError(t, err)
-
-			var out struct {
-				Viewer struct {
-					Login string `json:"login"`
-				} `json:"viewer"`
-			}
-			require.NoError(t, d.doGraphQL(t.Context(), `query{viewer{login}}`, nil, &out))
-			assert.Equal(t, "ok", out.Viewer.Login)
-			assert.EqualValues(t, 3, calls.Load(), "two transient failures should be retried, third attempt succeeds")
-		})
-	}
-}
-
-func TestDoGraphQLDoesNotReRetryTransportFailures(t *testing.T) {
-	defer test.MockVariableValue(&retryBaseDelay, time.Millisecond)()
-
-	var calls atomic.Int32
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls.Add(1)
-		w.WriteHeader(http.StatusBadGateway)
-	}))
-	defer srv.Close()
-
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-	require.NoError(t, err)
-
-	err = d.doGraphQL(t.Context(), `query{viewer{login}}`, nil, &struct{}{})
-	require.ErrorIs(t, err, errGraphQLTransientExhausted)
-	assert.ErrorContains(t, err, "502")
-	assert.EqualValues(t, retryMaxRetries+1, calls.Load(), "only the transport's budget may be spent on a 5xx")
-}
-
-// secondary rate limits come as 403/429, not always with a Retry-After the transport would honour
-func TestDoGraphQLWaitsOutSecondaryRateLimit(t *testing.T) {
-	for _, tc := range []struct {
-		name    string
-		respond func(w http.ResponseWriter)
-	}{
-		{"429 without Retry-After", func(w http.ResponseWriter) {
-			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Second).Unix(), 10))
-			w.WriteHeader(http.StatusTooManyRequests)
-		}},
-		{"403 with Retry-After", func(w http.ResponseWriter) {
-			w.Header().Set("Retry-After", "1")
-			w.WriteHeader(http.StatusForbidden)
-		}},
-		{"403 secondary limit without Retry-After, quota left", func(w http.ResponseWriter) {
-			// the primary window resets in an hour; waiting for it would stall the
-			// sweep, a secondary limit only needs the short fallback wait
-			w.Header().Set("X-RateLimit-Remaining", "4321")
-			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10))
-			w.WriteHeader(http.StatusForbidden)
-			_, _ = io.WriteString(w, `{"message":"You have exceeded a secondary rate limit. Please wait a few minutes before you try again."}`)
-		}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			defer test.MockVariableValue(&graphQLRateResetFallback, 20*time.Millisecond)()
-
-			var calls atomic.Int32
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if calls.Add(1) == 1 {
-					tc.respond(w)
-					return
-				}
-				_, _ = io.WriteString(w, `{"data":{"ok":true}}`)
-			}))
-			defer srv.Close()
-
-			d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-			require.NoError(t, err)
-
-			var out struct {
-				OK bool `json:"ok"`
-			}
-			require.NoError(t, d.doGraphQL(t.Context(), "query{}", nil, &out))
-			assert.True(t, out.OK)
-		})
-	}
-}
-
-func TestDoGraphQLFatalStatusQuotesBody(t *testing.T) {
-	var calls atomic.Int32
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls.Add(1)
-		w.WriteHeader(http.StatusForbidden)
-		_, _ = io.WriteString(w, `{"message":"Resource not accessible by integration"}`)
-	}))
-	defer srv.Close()
-
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-	require.NoError(t, err)
-
-	err = d.doGraphQL(t.Context(), "query{}", nil, &struct{}{})
-	require.Error(t, err)
-	assert.NotErrorIs(t, err, errGraphQLTransientExhausted)
-	assert.ErrorContains(t, err, "Resource not accessible by integration")
-	assert.EqualValues(t, 1, calls.Load(), "a permission 403 must not be waited out")
-}
-
-// the framework retries a failed page with the same page number
-func TestGetIssuesGraphQLKeepsCursorOnPageError(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
-		if strings.Contains(string(body), "Reactable") {
-			// the overflow sweep fails deterministically
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = io.WriteString(w, `{"message":"nope"}`)
-			return
-		}
-		_, _ = io.WriteString(w, `{"data":{"repository":{"issues":{
-			"pageInfo":{"hasNextPage":true,"endCursor":"PAGE2"},
-			"nodes":[{"id":"I_1","number":1,"title":"t","state":"OPEN",
-			  "reactions":{"totalCount":300,"nodes":[{"content":"HEART","user":{"login":"u","databaseId":1}}]}}]}}}}`)
-	}))
-	defer srv.Close()
-
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-	require.NoError(t, err)
-	d.useGraphQL = true
-
-	_, _, err = d.getIssuesGraphQL(t.Context(), 1, 10)
-	require.Error(t, err)
-	assert.Empty(t, d.gqlIssuesCursor, "a page that failed mid-conversion must be re-requested, not skipped")
-}
-
 func TestDoGraphQLPageShrink(t *testing.T) {
-	defer test.MockVariableValue(&graphQLTransientRetryBase, time.Millisecond)()
-	defer test.MockVariableValue(&retryBaseDelay, time.Millisecond)()
-
-	var (
-		mu    sync.Mutex // the handler runs on the server's goroutines
-		sizes []int
-	)
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			Variables struct {
-				First int `json:"first"`
-			} `json:"variables"`
-		}
-		body, _ := io.ReadAll(r.Body)
-		_ = json.Unmarshal(body, &req)
-		mu.Lock()
-		sizes = append(sizes, req.Variables.First)
-		mu.Unlock()
-		if req.Variables.First > 25 {
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-		_, _ = io.WriteString(w, `{"data":{"repository":{"issues":{"pageInfo":{"hasNextPage":false,"endCursor":""},"nodes":[]}}}}`)
-	}))
-	defer srv.Close()
-
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-	require.NoError(t, err)
-
-	var resp gqlIssuesResponse
-	vars := map[string]any{"owner": "o", "name": "r"}
-	require.NoError(t, d.doGraphQLPageShrink(t.Context(), d.graphQLIssuesQuery(), vars, &resp, githubGraphQLPageSize, "issues"))
-
-	// each size is attempted (1 + retryMaxRetries) times — the transport's budget,
-	// not a second one on top of it — before the shrink; the request sequence must
-	// end at a size that fits
-	mu.Lock()
-	defer mu.Unlock()
-	require.NotEmpty(t, sizes)
-	assert.Equal(t, 100, sizes[0])
-	assert.Equal(t, 25, sizes[len(sizes)-1])
-	assert.Equal(t, 25, vars["first"])
-	assert.Len(t, sizes, 2*(retryMaxRetries+1)+1, "sizes 100 and 50 exhaust the transport budget, 25 succeeds first try")
-}
-
-func TestDoGraphQLPageShrinkOnResourceLimits(t *testing.T) {
-	var (
-		mu    sync.Mutex
-		sizes []int
-	)
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			Variables struct {
-				First int `json:"first"`
-			} `json:"variables"`
-		}
-		body, _ := io.ReadAll(r.Body)
-		_ = json.Unmarshal(body, &req)
-		mu.Lock()
-		sizes = append(sizes, req.Variables.First)
-		mu.Unlock()
-		if req.Variables.First > 25 {
-			_, _ = io.WriteString(w, `{"errors":[{"type":"RESOURCE_LIMITS_EXCEEDED","message":"Resource limits for this query exceeded."}]}`)
-			return
-		}
-		_, _ = io.WriteString(w, `{"data":{"repository":{"issues":{"pageInfo":{"hasNextPage":false,"endCursor":""},"nodes":[]}}}}`)
-	}))
-	defer srv.Close()
-
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-	require.NoError(t, err)
-
-	var resp gqlIssuesResponse
-	vars := map[string]any{"owner": "o", "name": "r"}
-	require.NoError(t, d.doGraphQLPageShrink(t.Context(), d.graphQLIssuesQuery(), vars, &resp, githubGraphQLPageSize, "issues"))
-
-	mu.Lock()
-	defer mu.Unlock()
-	assert.Equal(t, []int{100, 50, 25}, sizes, "each oversized page is refused once, then halved")
-}
-
-// GraphQL points are metered per token
-func TestDoGraphQLSwitchesTokenOnRateLimit(t *testing.T) {
-	var spentCalls, freshCalls atomic.Int32
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") == "Bearer spent" {
-			spentCalls.Add(1)
-			w.Header().Set("X-RateLimit-Remaining", "0")
-			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10))
-			_, _ = io.WriteString(w, `{"errors":[{"type":"RATE_LIMITED","message":"API rate limit exceeded"}]}`)
-			return
-		}
-		freshCalls.Add(1)
-		w.Header().Set("X-RateLimit-Remaining", "4000")
-		_, _ = io.WriteString(w, `{"data":{"ok":true}}`)
-	}))
-	defer srv.Close()
-
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "spent,fresh", "o", "r")
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
-	defer cancel()
-	var out struct {
-		OK bool `json:"ok"`
+	defer test.MockVariableValue(&graphQLTransientRetryBase, time.Duration(0))()
+	for _, failure := range []string{"502", "RESOURCE_LIMITS_EXCEEDED"} {
+		t.Run(failure, func(t *testing.T) {
+			sizes := make(chan int, 16)
+			downloader := newGithubTestDownloader(t, func(writer http.ResponseWriter, request *http.Request) {
+				var payload struct {
+					Variables struct {
+						First  int    `json:"first"`
+						Cursor string `json:"cursor"`
+					} `json:"variables"`
+				}
+				assert.NoError(t, json.NewDecoder(request.Body).Decode(&payload))
+				sizes <- payload.Variables.First
+				assert.Equal(t, "CURSOR", payload.Variables.Cursor)
+				if payload.Variables.First > 25 {
+					if failure == "502" {
+						writer.WriteHeader(http.StatusBadGateway)
+					} else {
+						_, _ = io.WriteString(writer, `{"errors":[{"type":"RESOURCE_LIMITS_EXCEEDED"}]}`)
+					}
+					return
+				}
+				_, _ = io.WriteString(writer, `{"data":{}}`)
+			})
+			require.NoError(t, downloader.doGraphQLPage(t.Context(), downloader.graphQLIssuesQuery(), "CURSOR", 100, &gqlIssuesResponse{}))
+			close(sizes)
+			var got, want []int
+			for size := range sizes {
+				got = append(got, size)
+			}
+			for _, size := range []int{100, 50, 25} {
+				repeats := 1
+				if failure == "502" && size > 25 {
+					repeats += maxGraphQLTransientRetries
+				}
+				for range repeats {
+					want = append(want, size)
+				}
+			}
+			assert.Equal(t, want, got)
+		})
 	}
-	require.NoError(t, d.doGraphQL(ctx, "query{}", nil, &out), "must not wait out the spent token's hour")
-	assert.True(t, out.OK)
-	assert.EqualValues(t, 1, spentCalls.Load())
-	assert.EqualValues(t, 1, freshCalls.Load())
-
-	// the next request goes straight to the token that has points
-	require.NoError(t, d.doGraphQL(ctx, "query{}", nil, &out))
-	assert.EqualValues(t, 1, spentCalls.Load())
-	assert.EqualValues(t, 2, freshCalls.Load())
 }
 
-func TestPickGraphQLClient(t *testing.T) {
-	inAnHour := github.Timestamp{Time: time.Now().Add(time.Hour)}
-	d := &GithubDownloaderV3{gqlRates: []*github.Rate{
-		{Remaining: 1000, Reset: inAnHour},
-		{Remaining: 4000, Reset: inAnHour},
-		{Remaining: 5, Reset: inAnHour}, // under the floor
-	}}
-	require.NoError(t, d.pickGraphQLClient(t.Context()))
-	assert.Equal(t, 1, d.curClientIdx, "the token with the most points")
-
-	d.gqlRates[1] = nil
-	require.NoError(t, d.pickGraphQLClient(t.Context()))
-	assert.Equal(t, 1, d.curClientIdx, "an unknown budget is probed first")
-
-	// every token spent: wait for the earliest reset, then probe that token
-	soon := github.Timestamp{Time: time.Now().Add(50 * time.Millisecond)}
-	d.gqlRates = []*github.Rate{{Remaining: 0, Reset: inAnHour}, {Remaining: 0, Reset: soon}}
-	start := time.Now()
-	require.NoError(t, d.pickGraphQLClient(t.Context()))
-	assert.Equal(t, 1, d.curClientIdx)
-	assert.GreaterOrEqual(t, time.Since(start), 40*time.Millisecond)
-	assert.Less(t, time.Since(start), 5*time.Second)
+func TestFetchNodeReactionsBisectsAndSkipsDeletedNodes(t *testing.T) {
+	defer test.MockVariableValue(&graphQLTransientRetryBase, time.Duration(0))()
+	for _, failure := range []string{"502", "RESOURCE_LIMITS_EXCEEDED"} {
+		t.Run(failure, func(t *testing.T) {
+			var calls atomic.Int32
+			downloader := newGithubTestDownloader(t, func(writer http.ResponseWriter, request *http.Request) {
+				calls.Add(1)
+				var payload struct {
+					Variables struct {
+						IDs []string `json:"ids"`
+					} `json:"variables"`
+				}
+				assert.NoError(t, json.NewDecoder(request.Body).Decode(&payload))
+				if len(payload.Variables.IDs) > 1 {
+					if failure == "502" {
+						writer.WriteHeader(http.StatusBadGateway)
+					} else {
+						_, _ = io.WriteString(writer, `{"errors":[{"type":"RESOURCE_LIMITS_EXCEEDED"}]}`)
+					}
+					return
+				}
+				if payload.Variables.IDs[0] == "deleted" {
+					_, _ = io.WriteString(writer, `{"data":{"nodes":[null]},"errors":[{"type":"NOT_FOUND","path":["nodes",0]}]}`)
+				} else {
+					_, _ = io.WriteString(writer, `{"data":{"nodes":[{"id":"present","reactions":{"nodes":[{"content":"HEART","user":null}]}}]}}`)
+				}
+			})
+			got, err := downloader.fetchNodeReactions(t.Context(), []string{"deleted", "present"})
+			require.NoError(t, err)
+			assert.Equal(t, map[string][]*base.Reaction{"present": {{UserName: "ghost", Content: "heart"}}}, got)
+			if failure == "502" {
+				assert.EqualValues(t, maxGraphQLTransientRetries+3, calls.Load())
+			} else {
+				assert.EqualValues(t, 3, calls.Load())
+			}
+		})
+	}
 }
 
-func TestGraphQLSweepsDropCachesPerPage(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
-		if strings.Contains(string(body), "pullRequests") {
-			_, _ = io.WriteString(w, `{"data":{"repository":{"pullRequests":{"pageInfo":{"hasNextPage":true,"endCursor":"C"},"nodes":[]}}}}`)
-			return
+func TestLabelsSweepContinuesFromEndCursor(t *testing.T) {
+	downloader := newGithubTestDownloader(t, func(writer http.ResponseWriter, request *http.Request) {
+		var payload graphQLRequest
+		assert.NoError(t, json.NewDecoder(request.Body).Decode(&payload))
+		assert.Equal(t, "I_node", payload.Variables["id"])
+		assert.Equal(t, "LABEL1", payload.Variables["cursor"])
+		_, _ = io.WriteString(writer, `{"data":{"node":{"conn":{"nodes":[{"name":"second"}]}}}}`)
+	})
+	labels, err := allNodes(t.Context(), downloader, graphQLLabelsSweepQuery, "I_node", gqlConn[gqlLabel]{
+		PageInfo: gqlPageInfo{HasNextPage: true, EndCursor: "LABEL1"},
+		Nodes:    []gqlLabel{{Name: "first"}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []gqlLabel{{Name: "first"}, {Name: "second"}}, labels)
+}
+
+func TestGraphQLIssuesResponseParsing(t *testing.T) {
+	var response gqlIssuesResponse
+	require.NoError(t, json.Unmarshal([]byte(`{"repository":{"issues":{"nodes":[{
+		"id":"I_42","number":42,"title":"a bug","body":"it broke","state":"CLOSED","locked":true,
+		"createdAt":"2024-01-02T03:04:05Z","updatedAt":"2024-02-03T04:05:06Z","closedAt":"2024-02-03T04:05:06Z",
+		"author":{"__typename":"Bot","login":"reporter","databaseId":11},"milestone":{"title":"v1.0"},
+		"labels":{"nodes":[{"name":"bug","color":"d73a4a","description":"defect"}]},
+		"assignees":{"nodes":[{"login":"maintainer"}]},
+		"reactions":{"nodes":[{"content":"THUMBS_UP","user":{"login":"alice","databaseId":22}}]},
+		"comments":{"nodes":[{"id":"IC_1","databaseId":900,"body":"same here","author":null}]}
+	}]}}}`), &response))
+	downloader := &GithubDownloaderV3{useGraphQL: true}
+	issue, err := downloader.convertGraphQLIssue(t.Context(), &response.Repository.Issues.Nodes[0], map[string]*gqlPrefetched{})
+	require.NoError(t, err)
+	updated := time.Date(2024, 2, 3, 4, 5, 6, 0, time.UTC)
+	assert.Equal(t, &base.Issue{
+		Number: 42, Title: "a bug", Content: "it broke", State: "closed", IsLocked: true,
+		PosterName: "reporter[bot]", PosterID: 11, Milestone: "v1.0", ForeignIndex: 42,
+		Created: time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC), Updated: updated, Closed: &updated,
+		Labels: []*base.Label{{Name: "bug", Color: "d73a4a", Description: "defect"}}, Assignees: []string{"maintainer"},
+		Reactions: []*base.Reaction{{Content: "+1", UserName: "alice", UserID: 22}}, Context: issue.Context,
+	}, issue)
+	comments, _, err := downloader.GetComments(t.Context(), issue)
+	require.NoError(t, err)
+	assert.Equal(t, []*base.Comment{{IssueIndex: 42, Index: 900, Content: "same here", PosterName: "ghost"}}, comments)
+	assert.False(t, downloader.SupportGetRepoComments())
+}
+
+func TestGraphQLKeepsCursorOnPageError(t *testing.T) {
+	for _, connection := range []string{"issues", "pullRequests"} {
+		for _, phase := range []string{"timelineItems", "Reactable"} {
+			t.Run(connection+"/"+phase, func(t *testing.T) {
+				var failPage atomic.Bool
+				failPage.Store(true)
+				downloader := newGithubTestDownloader(t, func(writer http.ResponseWriter, request *http.Request) {
+					var payload graphQLRequest
+					assert.NoError(t, json.NewDecoder(request.Body).Decode(&payload))
+					if strings.Contains(payload.Query, "repository(owner:") {
+						assert.Equal(t, "PAGE1", payload.Variables["cursor"])
+						_, _ = fmt.Fprintf(writer, `{"data":{"repository":{"%s":{"pageInfo":{"endCursor":"PAGE2"},"nodes":[{"id":"I_1","number":1,"comments":{"nodes":[{"id":"IC_1"}]}}]}}}}`, connection)
+					} else if failPage.Load() && strings.Contains(payload.Query, phase) {
+						writer.WriteHeader(http.StatusBadRequest)
+					} else {
+						_, _ = io.WriteString(writer, `{"data":{"nodes":[]}}`)
+					}
+				})
+				downloader.useGraphQL = true
+				cursor := &downloader.gqlIssuesCursor
+				if connection == "pullRequests" {
+					cursor = &downloader.gqlPRCursor
+				}
+				*cursor = "PAGE1"
+				fetch := func() error {
+					if connection == "issues" {
+						_, _, err := downloader.GetIssues(t.Context(), 2, 10)
+						return err
+					} else {
+						_, _, err := downloader.GetPullRequests(t.Context(), 2, 10)
+						return err
+					}
+				}
+				require.Error(t, fetch())
+				assert.Equal(t, "PAGE1", *cursor)
+				failPage.Store(false)
+				require.NoError(t, fetch())
+				assert.Equal(t, "PAGE2", *cursor)
+			})
 		}
-		_, _ = io.WriteString(w, `{"data":{"repository":{"issues":{"pageInfo":{"hasNextPage":true,"endCursor":"C"},"nodes":[]}}}}`)
-	}))
-	defer srv.Close()
-
-	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
-	require.NoError(t, err)
-	d.useGraphQL = true
-
-	d.gqlComments = map[int64][]*base.Comment{1: {{Content: "from page 1"}}}
-	_, _, err = d.getIssuesGraphQL(t.Context(), 2, 10)
-	require.NoError(t, err)
-	assert.NotContains(t, d.gqlComments, int64(1), "issue page 2 must drop page 1's unread comments")
-
-	d.gqlComments = map[int64][]*base.Comment{1: {{Content: "from page 1"}}}
-	d.gqlReviews = map[int64][]*base.Review{1: {{Content: "from page 1"}}}
-	_, _, err = d.getPullRequestsGraphQL(t.Context(), 2, 10)
-	require.NoError(t, err)
-	assert.NotContains(t, d.gqlComments, int64(1), "PR page 2 must drop page 1's unread comments")
-	assert.NotContains(t, d.gqlReviews, int64(1), "PR page 2 must drop page 1's unread reviews")
+	}
 }

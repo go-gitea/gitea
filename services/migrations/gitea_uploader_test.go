@@ -224,7 +224,6 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	assert.Equal(t, linkedUser.ID, target.GetUserID())
 }
 
-// a label comment with label_id 0 renders empty and is deleted by `gitea doctor`
 func TestGiteaUploadTimelineLabelAndMilestoneComments(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
@@ -247,8 +246,6 @@ func TestGiteaUploadTimelineLabelAndMilestoneComments(t *testing.T) {
 	))
 
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeLabel, LabelID: label.ID, Content: "1"})
-	// the event naming a label this migration never created is dropped, not stored
-	// with label_id 0 — the shape `gitea doctor` deletes
 	unittest.AssertCountByCond(t, "comment", builder.Eq{
 		"issue_id": issue.ID,
 		"type":     issues_model.CommentTypeLabel,
@@ -256,5 +253,5 @@ func TestGiteaUploadTimelineLabelAndMilestoneComments(t *testing.T) {
 	}, 0)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, MilestoneID: milestone.ID})
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, OldMilestoneID: milestone.ID})
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeDeleteBranch, OldRef: "feature"})
+	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeDeleteBranch, OldRef: "feature"}).Content)
 }

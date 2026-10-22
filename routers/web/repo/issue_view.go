@@ -226,7 +226,7 @@ func combineLabelComments(issue *issues_model.Issue) {
 			prev = issue.Comments[i-1]
 		}
 		if i == 0 || cur.Type != issues_model.CommentTypeLabel ||
-			(prev != nil && prev.PosterID != cur.PosterID) ||
+			(prev != nil && (prev.PosterID != cur.PosterID || prev.OriginalAuthor != cur.OriginalAuthor)) ||
 			(prev != nil && cur.CreatedUnix-prev.CreatedUnix >= 60) {
 			if cur.Type == issues_model.CommentTypeLabel && cur.Label != nil {
 				if cur.Content != "1" {

@@ -19,6 +19,8 @@ import (
 
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"
@@ -598,106 +600,117 @@ func TestGithubMultiTokenClientSelection(t *testing.T) {
 	assert.Equal(t, 1, downloader.curClientIdx)
 }
 
-// older GitHub Enterprise sends page numbers without a cursor; api.github.com always sends one, so mock-only
 func TestGitHubIssuesPageBasedLinkFallback(t *testing.T) {
-	if os.Getenv("GITHUB_READ_TOKEN") != "" {
-		t.Skip("page-based-only Link headers cannot be re-recorded from api.github.com")
-	}
-
 	_, callerFile, _, _ := runtime.Caller(0)
-	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestGitHubDownloadRepo")
-	mockServer := unittest.NewMockWebServer(t, "https://api.github.com", fixtureDir, false, unittest.MockServerOptions{
+	mockServer := unittest.NewMockWebServer(t, "https://api.github.com", filepath.Join(filepath.Dir(callerFile), "_mock_data/TestGitHubDownloadRepo"), false, unittest.MockServerOptions{
 		StripPrefix: "/api/v3",
 	})
-
-	ctx := t.Context()
-	downloader, err := NewGithubDownloaderV3(ctx, mockServer.URL, "", "", "", "go-gitea", "test_repo")
+	downloader, err := NewGithubDownloaderV3(t.Context(), mockServer.URL, "", "", "", "go-gitea", "test_repo")
 	require.NoError(t, err)
 	downloader.SkipReactions = true
-	require.NoError(t, downloader.RefreshRate(ctx))
-
-	var all []*base.Issue
-	for page := 1; ; page++ {
-		require.LessOrEqual(t, page, 5, "issues sweep must terminate — page-based fallback regressed to an infinite loop")
-		issues, isEnd, err := downloader.GetIssues(ctx, page, 3)
+	for page, want := range [][]int64{{1, 2, 3}, {}} {
+		issues, isEnd, err := downloader.GetIssues(t.Context(), page+1, 3)
 		require.NoError(t, err)
-		all = append(all, issues...)
-		if isEnd {
-			break
+		numbers := make([]int64, 0, len(issues))
+		for _, issue := range issues {
+			numbers = append(numbers, issue.Number)
 		}
+		assert.Equal(t, want, numbers)
+		assert.Equal(t, page == 1, isEnd)
 	}
-	// page 1 is a FULL page (3 of 3) with a page-only rel="next"; page 2 is empty
-	// with no Link. The sweep must follow the page number and stop after page 2.
-	assert.Len(t, all, 3)
-	numbers := make([]int64, 0, len(all))
-	for _, issue := range all {
-		numbers = append(numbers, issue.Number)
-	}
-	assert.Equal(t, []int64{1, 2, 3}, numbers)
 }
 
 func TestGithubFactoryUsesGraphQLOnlyWhereItWorks(t *testing.T) {
-	for _, tc := range []struct {
-		name string
-		opts base.MigrateOptions
-		want bool
+	for _, testcase := range []struct {
+		name     string
+		opts     base.MigrateOptions
+		disabled bool
+		want     bool
 	}{
-		{"token, issues", base.MigrateOptions{AuthToken: "tok", Issues: true}, true},
-		{"basic auth, pull requests", base.MigrateOptions{AuthUsername: "u", AuthPassword: "pat", PullRequests: true}, true},
-		{"anonymous public repository", base.MigrateOptions{Issues: true, PullRequests: true}, false},
-		{"comments only", base.MigrateOptions{AuthToken: "tok", Comments: true}, false},
+		{name: "token, issues", opts: base.MigrateOptions{AuthToken: "tok", Issues: true}, want: true},
+		{name: "basic auth, pull requests", opts: base.MigrateOptions{AuthUsername: "u", AuthPassword: "pat", PullRequests: true}, want: true},
+		{name: "anonymous repository", opts: base.MigrateOptions{Issues: true, PullRequests: true}},
+		{name: "comments only", opts: base.MigrateOptions{AuthToken: "tok", Comments: true}},
+		{name: "disabled by configuration", opts: base.MigrateOptions{AuthToken: "tok", Issues: true, Comments: true}, disabled: true},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			tc.opts.CloneAddr = "https://github.com/go-gitea/test_repo"
-			d, err := (&GithubDownloaderV3Factory{}).New(t.Context(), tc.opts)
+		t.Run(testcase.name, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.Migrations.UseGraphQL, !testcase.disabled)()
+			testcase.opts.CloneAddr = "https://github.com/go-gitea/test_repo"
+			candidate, err := (&GithubDownloaderV3Factory{}).New(t.Context(), testcase.opts)
 			require.NoError(t, err)
-			gd, ok := d.(*GithubDownloaderV3)
+			downloader, ok := candidate.(*GithubDownloaderV3)
 			require.True(t, ok)
-			assert.Equal(t, tc.want, gd.useGraphQL)
-			assert.Equal(t, !tc.opts.Comments, gd.gqlSkipComments)
+			assert.Equal(t, testcase.want, downloader.useGraphQL)
+			assert.Equal(t, !testcase.opts.Comments, downloader.gqlSkipComments)
 		})
 	}
 }
 
-// GitBucket pages issues and pull requests by a fixed 25 and sends no Link header.
+func TestGithubGraphQLFallsBackToREST(t *testing.T) {
+	for _, connection := range []string{"issues", "pull requests"} {
+		t.Run(connection, func(t *testing.T) {
+			downloader := newGithubTestDownloader(t, func(writer http.ResponseWriter, request *http.Request) {
+				if request.URL.Path == "/api/graphql" {
+					http.NotFound(writer, request)
+					return
+				}
+				_, _ = writer.Write([]byte(`[{"number":1,"title":"t","state":"open"}]`))
+			})
+			downloader.useGraphQL = true
+			downloader.SkipReactions = true
+			if connection == "issues" {
+				issues, _, err := downloader.GetIssues(t.Context(), 1, 10)
+				require.NoError(t, err)
+				require.Len(t, issues, 1)
+				assert.EqualValues(t, 1, issues[0].Number)
+			} else {
+				prs, _, err := downloader.GetPullRequests(t.Context(), 1, 10)
+				require.NoError(t, err)
+				require.Len(t, prs, 1)
+				assert.EqualValues(t, 1, prs[0].Number)
+			}
+			assert.False(t, downloader.useGraphQL)
+			assert.True(t, downloader.SupportGetRepoComments())
+		})
+	}
+}
+
 func TestGitBucketPaginatesWithoutLinkHeader(t *testing.T) {
-	const total = 60
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-		page = max(page, 1)
+	const total = 26
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		page, _ := strconv.Atoi(request.URL.Query().Get("page"))
 		var items []string
-		for n := (page-1)*25 + 1; n <= min(page*25, total); n++ {
-			items = append(items, fmt.Sprintf(`{"number":%d,"title":"t","state":"open"}`, n))
+		for number := (page-1)*25 + 1; number <= min(page*25, total); number++ {
+			items = append(items, fmt.Sprintf(`{"number":%d,"title":"t"}`, number))
 		}
-		w.Header().Set("X-RateLimit-Remaining", "4000")
-		_, _ = w.Write([]byte("[" + strings.Join(items, ",") + "]"))
+		writer.Header().Set("X-RateLimit-Remaining", "4000")
+		_, _ = writer.Write([]byte("[" + strings.Join(items, ",") + "]"))
 	}))
-	defer srv.Close()
-
-	d, err := NewGitBucketDownloader(t.Context(), srv.URL, "", "", "", "o", "r")
+	t.Cleanup(server.Close)
+	downloader, err := NewGitBucketDownloader(t.Context(), server.URL, "", "", "", "o", "r")
 	require.NoError(t, err)
-
-	var issues int
-	for page := 1; ; page++ {
-		require.LessOrEqual(t, page, 5)
-		got, isEnd, err := d.GetIssues(t.Context(), page, 10)
-		require.NoError(t, err)
-		issues += len(got)
-		if isEnd {
-			break
-		}
+	for _, connection := range []string{"issues", "pull requests"} {
+		t.Run(connection, func(t *testing.T) {
+			var count int
+			for page := 1; ; page++ {
+				require.LessOrEqual(t, page, 3)
+				var isEnd bool
+				if connection == "issues" {
+					issues, done, err := downloader.GetIssues(t.Context(), page, 10)
+					require.NoError(t, err)
+					count += len(issues)
+					isEnd = done
+				} else {
+					prs, done, err := downloader.GetPullRequests(t.Context(), page, 10)
+					require.NoError(t, err)
+					count += len(prs)
+					isEnd = done
+				}
+				if isEnd {
+					break
+				}
+			}
+			assert.Equal(t, total, count)
+		})
 	}
-	assert.Equal(t, total, issues)
-
-	var prs int
-	for page := 1; ; page++ {
-		require.LessOrEqual(t, page, 5)
-		got, isEnd, err := d.GetPullRequests(t.Context(), page, 10)
-		require.NoError(t, err)
-		prs += len(got)
-		if isEnd {
-			break
-		}
-	}
-	assert.Equal(t, total, prs)
 }
