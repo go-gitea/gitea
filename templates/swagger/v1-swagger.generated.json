@@ -31830,7 +31830,8 @@
             "gitbucket",
             "codebase",
             "codecommit",
-            "bitbucketserver"
+            "bitbucketserver",
+            "bitbucket"
           ],
           "x-go-name": "Service"
         },

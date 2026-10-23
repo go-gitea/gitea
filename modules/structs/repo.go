@@ -358,6 +358,7 @@ const (
 	CodebaseService                              // 8 codebase service
 	CodeCommitService                            // 9 codecommit service
 	BitbucketServerService                       // 10 bitbucket server (data center) service
+	BitbucketService                             // 11 bitbucket.org service
 )
 
 // Name represents the service type's name
@@ -387,6 +388,8 @@ func (gt GitServiceType) Title() string {
 		return "CodeCommit"
 	case BitbucketServerService:
 		return "Bitbucket Server"
+	case BitbucketService:
+		return "Bitbucket"
 	case PlainGitService:
 		return "Git"
 	}
@@ -396,8 +399,8 @@ func (gt GitServiceType) Title() string {
 // Variants returns the hosting options of gt's provider, which share one entry on the migrate page
 func (gt GitServiceType) Variants() []GitServiceType {
 	switch gt {
-	case BitbucketServerService:
-		return []GitServiceType{BitbucketServerService}
+	case BitbucketService, BitbucketServerService:
+		return []GitServiceType{BitbucketService, BitbucketServerService}
 	}
 	return nil
 }
@@ -405,7 +408,7 @@ func (gt GitServiceType) Variants() []GitServiceType {
 // ProviderTitle returns the title of gt's entry on the migrate page
 func (gt GitServiceType) ProviderTitle() string {
 	switch gt {
-	case BitbucketServerService:
+	case BitbucketService, BitbucketServerService:
 		return "Bitbucket"
 	}
 	return gt.Title()
@@ -423,7 +426,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit","bitbucketserver"]
+	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit","bitbucketserver","bitbucket"]
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
@@ -449,7 +452,7 @@ type MigrateRepoOptions struct {
 // TokenAuth represents whether a service type supports token-based auth
 func (gt GitServiceType) TokenAuth() bool {
 	switch gt {
-	case GithubService, GiteaService, GitlabService:
+	case GithubService, GiteaService, GitlabService, BitbucketService:
 		return true
 	}
 	return false
@@ -461,6 +464,7 @@ var SupportedFullGitService = []GitServiceType{
 	GithubService,
 	GitlabService,
 	GiteaService,
+	BitbucketService,
 	GogsService,
 	OneDevService,
 	GitBucketService,

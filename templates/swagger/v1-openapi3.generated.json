@@ -7989,7 +7989,8 @@
               "gitbucket",
               "codebase",
               "codecommit",
-              "bitbucketserver"
+              "bitbucketserver",
+              "bitbucket"
             ],
             "type": "string",
             "x-go-name": "Service"

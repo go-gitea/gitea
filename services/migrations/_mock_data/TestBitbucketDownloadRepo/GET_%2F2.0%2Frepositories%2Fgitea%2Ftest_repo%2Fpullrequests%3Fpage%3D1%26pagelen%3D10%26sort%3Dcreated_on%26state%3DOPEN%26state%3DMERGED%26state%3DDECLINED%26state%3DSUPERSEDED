@@ -1,0 +1,40 @@
+Age: 0
+Atl-Request-Id: e6c760e1-0845-406a-a49a-d0c774f639b2
+Atl-Traceid: e6c760e10845406aa49ad0c774f639b2
+Cache-Control: max-age=900
+Content-Type: application/json; charset=utf-8
+Etag: W/"2aff2a3b0a25326819d8c044ef9cb91c"
+Server-Timing: cdn-upstream-layer;desc="EDGE",cdn-upstream-dns;dur=0,cdn-upstream-connect;dur=0,cdn-upstream-fbl;dur=317,atl-edge;dur=259,atl-edge-internal;dur=8,atl-edge-upstream;dur=251,atl-edge-pop;desc="aws-us-east-1",cdn-cache-miss,cdn-pop;desc="SFO5-P2",cdn-rid;desc="1AJc-5lHsARELc63CJfBwXgd3FbAGR0KiyrN3TFCx-lXjjirI2CT0g==",cdn-downstream-fbl;dur=320
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+Vary: Authorization, origin
+Vary: Accept-Encoding
+Via: 1.1 c07670802688417c8b871124c547eb0a.cloudfront.net (CloudFront)
+X-Accepted-Oauth-Scopes: pullrequest
+X-Amz-Cf-Id: 1AJc-5lHsARELc63CJfBwXgd3FbAGR0KiyrN3TFCx-lXjjirI2CT0g==
+X-Amz-Cf-Pop: SFO5-P2
+X-Asap-Succeeded: True
+X-B3-Spanid: 41b01fcb3ba46988
+X-B3-Traceid: e6c760e10845406aa49ad0c774f639b2
+X-Cache: Miss from cloudfront
+X-Content-Type-Options: nosniff
+X-Credential-Type: unauthenticated_identity
+X-Dc-Location: Micros-3
+X-Envoy-Attempt-Count: 1
+X-Frame-Options: SAMEORIGIN
+X-Ratelimit-Limit: 60, 60;w=3600
+X-Ratelimit-Remaining: 52
+X-Ratelimit-Reset: 879
+X-Render-Time: 0.22661352157592773
+X-Request-Count: 2435
+X-Served-By: 3e5a97f6913b
+X-Static-Version: cc480b0813c6
+X-Usage-Input-Ops: 8
+X-Usage-Output-Ops: 0
+X-Usage-System-Time: 0.005886
+X-Usage-User-Time: 0.107677
+X-Used-Mesh: False
+X-Version: cc480b0813c6
+X-View-Name: bitbucket.apps.pullrequests.api.v20.handlers.RepositoryPullRequestsHandler
+X-Xss-Protection: 1; mode=block
+
+{"values": [{"comment_count": 0, "task_count": 0, "type": "pullrequest", "id": 1, "title": "Update LICENSE", "description": "do not merge this PR", "state": "OPEN", "draft": false, "merge_commit": null, "close_source_branch": false, "closed_by": null, "author": {"display_name": "Lunny Xiao", "links": {"self": {"href": "https://api.bitbucket.org/2.0/users/%7B84d46ffe-e0fa-4d3c-973f-b3ce77db43f6%7D"}, "avatar": {"href": "https://secure.gravatar.com/avatar/cfb7b37d5a38d236e451a9f8e1a29fc6?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FLX-1.png"}, "html": {"href": "https://bitbucket.org/%7B84d46ffe-e0fa-4d3c-973f-b3ce77db43f6%7D/"}}, "type": "user", "uuid": "{84d46ffe-e0fa-4d3c-973f-b3ce77db43f6}", "account_id": "712020:07927e50-b64a-4fc3-a57d-dcf6945b70e6", "nickname": "Lunny Xiao"}, "reason": "", "created_on": "2026-10-07T18:39:55.551762+00:00", "updated_on": "2026-10-07T18:40:40.122213+00:00", "destination": {"branch": {"name": "master"}, "commit": {"hash": "c59c9b451acc", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/commit/c59c9b451acc"}, "html": {"href": "https://bitbucket.org/gitea/test_repo/commits/c59c9b451acc"}}, "type": "commit"}, "repository": {"type": "repository", "full_name": "gitea/test_repo", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo"}, "html": {"href": "https://bitbucket.org/gitea/test_repo"}, "avatar": {"href": "https://bytebucket.org/ravatar/%7B7b764bc5-c3f3-4910-a90b-4cdc229a66b7%7D?ts=default"}}, "name": "test_repo", "uuid": "{7b764bc5-c3f3-4910-a90b-4cdc229a66b7}"}}, "source": {"branch": {"name": "feat/test", "links": {}}, "commit": {"hash": "9f733b96b98a", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/commit/9f733b96b98a"}, "html": {"href": "https://bitbucket.org/gitea/test_repo/commits/9f733b96b98a"}}, "type": "commit"}, "repository": {"type": "repository", "full_name": "gitea/test_repo", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo"}, "html": {"href": "https://bitbucket.org/gitea/test_repo"}, "avatar": {"href": "https://bytebucket.org/ravatar/%7B7b764bc5-c3f3-4910-a90b-4cdc229a66b7%7D?ts=default"}}, "name": "test_repo", "uuid": "{7b764bc5-c3f3-4910-a90b-4cdc229a66b7}"}}, "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/pullrequests/1"}, "html": {"href": "https://bitbucket.org/gitea/test_repo/pull-requests/1"}, "commits": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/pullrequests/1/commits"}, "approve": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/pullrequests/1/approve"}, "request-changes": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/pullrequests/1/request-changes"}, "diff": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/diff/gitea/test_repo:9f733b96b98a%0Dc59c9b451acc?from_pullrequest_id=1&topic=true"}, "diffstat": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/diffstat/gitea/test_repo:9f733b96b98a%0Dc59c9b451acc?from_pullrequest_id=1&topic=true"}, "comments": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/pullrequests/1/comments"}, "activity": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/pullrequests/1/activity"}, "merge": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/pullrequests/1/merge"}, "decline": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/pullrequests/1/decline"}, "statuses": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/pullrequests/1/statuses"}, "mergeability_checks": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/pullrequests/1/mergeability/checks"}}, "summary": {"type": "rendered", "raw": "do not merge this PR", "markup": "markdown", "html": "<p>do not merge this PR</p>"}, "queued": false}], "pagelen": 10, "size": 1, "page": 1}

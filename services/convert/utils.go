@@ -42,6 +42,8 @@ func ToGitServiceType(value string) structs.GitServiceType {
 		return structs.CodeCommitService
 	case "bitbucketserver":
 		return structs.BitbucketServerService
+	case "bitbucket":
+		return structs.BitbucketService
 	default:
 		return structs.PlainGitService
 	}
