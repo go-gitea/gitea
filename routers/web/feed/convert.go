@@ -15,6 +15,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/markup"
@@ -285,6 +286,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 		return nil, err
 	}
 
+	canReadReleases := ctx.Repo.Permission.CanRead(unit.TypeReleases)
 	for _, rel := range releases {
 		rel.Repo = ctx.Repo.Repository
 		rel.Publisher = publishers[rel.PublisherID]
@@ -292,21 +294,22 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 			rel.Publisher = user_model.NewGhostUser()
 		}
 
-		var title string
 		var content template.HTML
-
-		if rel.IsTag {
-			title = rel.TagName
-		} else {
-			title = rel.Title
-		}
-
+		title := rel.TagName
 		link := &feeds.Link{Href: rel.HTMLURL()}
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
-		content, err = markdown.RenderString(rctx,
-			rel.Note)
-		if err != nil {
-			return nil, err
+
+		if !canReadReleases {
+			// the tags feed only requires code access, so list releases as plain tags like the tags page does
+			link.Href = rel.Repo.HTMLURL() + "/src/tag/" + util.PathEscapeSegments(rel.TagName)
+		} else {
+			if !rel.IsTag {
+				title = rel.Title
+			}
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
+			content, err = markdown.RenderString(rctx, rel.Note)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		items = append(items, &feeds.Item{

@@ -11,8 +11,10 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -58,6 +60,19 @@ func TestFeedRepo(t *testing.T) {
 			{"delete-tag", publisher},
 			{"testing-release", publisher},
 		}, feed.Entries)
+	})
+
+	t.Run("TagsWithoutReleasesAccess", func(t *testing.T) {
+		defer tests.PrepareTestEnv(t)()
+
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeReleases}))
+
+		resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/tags.rss"), http.StatusOK)
+		data := resp.Body.String()
+		assert.Contains(t, data, "/user2/repo1/src/tag/v1.0")
+		assert.NotContains(t, data, "pre-release")
+		assert.NotContains(t, data, "some text for a pre release")
 	})
 }
 

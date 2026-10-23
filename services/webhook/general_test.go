@@ -104,10 +104,12 @@ func pushTestPayloadWithCommitMessage(message string) *api.PushPayload {
 		Pusher: &api.User{
 			UserName:  "user1",
 			AvatarURL: "http://localhost:3000/user1/avatar",
+			HTMLURL:   "http://localhost:3000/user1",
 		},
 		Sender: &api.User{
 			UserName:  "user1",
 			AvatarURL: "http://localhost:3000/user1/avatar",
+			HTMLURL:   "http://localhost:3000/user1",
 		},
 	}
 }
@@ -118,6 +120,7 @@ func issueTestPayload() *api.IssuePayload {
 		Sender: &api.User{
 			UserName:  "user1",
 			AvatarURL: "http://localhost:3000/user1/avatar",
+			HTMLURL:   "http://localhost:3000/user1",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
@@ -156,6 +159,7 @@ func issueCommentTestPayload() *api.IssueCommentPayload {
 		Sender: &api.User{
 			UserName:  "user1",
 			AvatarURL: "http://localhost:3000/user1/avatar",
+			HTMLURL:   "http://localhost:3000/user1",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
@@ -260,6 +264,7 @@ func pullRequestTestPayload() *api.PullRequestPayload {
 		Sender: &api.User{
 			UserName:  "user1",
 			AvatarURL: "http://localhost:3000/user1/avatar",
+			HTMLURL:   "http://localhost:3000/user1",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
