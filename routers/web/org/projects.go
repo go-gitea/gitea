@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
@@ -18,7 +19,9 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/shared/issue"
+	project_shared "gitea.dev/routers/web/shared/project"
 	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	project_service "gitea.dev/services/projects"
@@ -27,9 +30,10 @@ import (
 )
 
 const (
-	tplProjects     templates.TplName = "org/projects/list"
-	tplProjectsNew  templates.TplName = "org/projects/new"
-	tplProjectsView templates.TplName = "org/projects/view"
+	tplProjects         templates.TplName = "org/projects/list"
+	tplProjectsNew      templates.TplName = "org/projects/new"
+	tplProjectsView     templates.TplName = "org/projects/view"
+	tplProjectWorkflows templates.TplName = "org/projects/workflows"
 )
 
 // Projects renders the home page of projects
@@ -171,6 +175,7 @@ func NewProjectPost(ctx *context.Context) {
 		ctx.ServerError("NewProject", err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectCreate, ctx.ContextUser, "project", newProject.Title, "project_id", newProject.ID)
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
 	ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects")
@@ -192,12 +197,12 @@ func ChangeProjectStatus(ctx *context.Context) {
 
 	project, err := project_model.GetProjectByIDAndOwner(ctx, id, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProjectByID", err)
 		return
 	}
 
 	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, project.ID, toClose); err != nil {
-		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("ChangeProjectStatusByRepoIDAndID", err)
 		return
 	}
 	ctx.JSONRedirect(project_model.ProjectLinkForOrg(ctx.ContextUser, project.ID))
@@ -207,13 +212,14 @@ func ChangeProjectStatus(ctx *context.Context) {
 func DeleteProject(ctx *context.Context) {
 	p, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProjectByID", err)
 		return
 	}
 
 	if err := project_model.DeleteProjectByID(ctx, p.ID); err != nil {
 		ctx.Flash.Error("DeleteProjectByID: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.ProjectDelete, ctx.ContextUser, "project", p.Title, "project_id", p.ID)
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
 	}
 
@@ -235,7 +241,7 @@ func RenderEditProject(ctx *context.Context) {
 
 	p, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProjectByID", err)
 		return
 	}
 
@@ -273,7 +279,7 @@ func EditProjectPost(ctx *context.Context) {
 
 	p, err := project_model.GetProjectByIDAndOwner(ctx, projectID, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProjectByID", err)
 		return
 	}
 
@@ -284,6 +290,7 @@ func EditProjectPost(ctx *context.Context) {
 		ctx.ServerError("UpdateProjects", err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectUpdate, ctx.ContextUser, "project", p.Title, "project_id", p.ID)
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
 	if ctx.FormString("redirect") == "project" {
@@ -297,7 +304,7 @@ func EditProjectPost(ctx *context.Context) {
 func ViewProject(ctx *context.Context) {
 	project, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProjectByID", err)
 		return
 	}
 
@@ -470,4 +477,14 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
+}
+
+// ProjectWorkflows renders the workflows page of an owner-level project
+func ProjectWorkflows(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
+	ctx.Data["PageIsViewProjects"] = true
+	project_shared.RenderWorkflows(ctx, canWriteProjects(ctx), tplProjectWorkflows)
 }

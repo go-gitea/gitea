@@ -124,7 +124,7 @@ func IsViteDevMode() bool {
 		return false
 	}
 
-	req := httplib.NewRequest(viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check", "GET")
+	req := httplib.NewClientRequest(http.MethodGet, viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check")
 	resp, _ := req.Response()
 	if resp != nil {
 		_ = resp.Body.Close()
@@ -183,7 +183,7 @@ func IsViteDevRequest(req *http.Request) bool {
 	//   - "{RepoRoot}/assets/*.json" just happens to live under the dir name "assets"; it is not related to frontend assets
 	//   - BAD DESIGN: indeed it is a "conflicted and polluted name" sample
 	switch path {
-	case "/assets/emoji.json", "/assets/codemirror-languages.json":
+	case "/assets/codemirror-languages.json":
 		return true
 	}
 	return false

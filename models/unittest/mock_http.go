@@ -30,6 +30,8 @@ type MockServerOptions struct {
 	// useful when the client prepends a prefix the real upstream does not use
 	// (e.g. go-github prepends "/api/v3").
 	StripPrefix string
+	// FixtureName overrides the fixture file name, for APIs where method and path don't identify the request.
+	FixtureName func(r *http.Request, body []byte) string
 }
 
 // NewMockWebServer returns a test HTTP server that records upstream responses on demand
@@ -66,16 +68,22 @@ func NewMockWebServer(t *testing.T, liveServerBaseURL, testDataDir string, liveM
 		}
 		log.Info("mock server: %s %s", r.Method, reqPath)
 
+		reqBody, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
 		fixturePath := fmt.Sprintf("%s/%s_%s", testDataDir, r.Method, url.QueryEscape(reqPath))
 		if strings.Contains(r.URL.Path, ".git/") {
 			fixturePath = fmt.Sprintf("%s/%s_%s", testDataDir, r.Method, url.QueryEscape(r.URL.Path))
+		}
+		if opt.FixtureName != nil {
+			fixturePath = fmt.Sprintf("%s/%s", testDataDir, opt.FixtureName(r, reqBody))
 		}
 
 		if liveMode {
 			require.NoError(t, os.MkdirAll(testDataDir, 0o755))
 
 			liveURL := liveServerBaseURL + strings.TrimPrefix(reqPath, opt.StripPrefix)
-			req, err := http.NewRequest(r.Method, liveURL, r.Body)
+			req, err := http.NewRequest(r.Method, liveURL, strings.NewReader(string(reqBody)))
 			require.NoError(t, err, "building upstream request to %s", liveURL)
 			for name, values := range r.Header {
 				if strings.EqualFold(name, "accept-encoding") {

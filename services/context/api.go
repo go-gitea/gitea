@@ -13,12 +13,12 @@ import (
 	"strconv"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/paginator"
 	"gitea.dev/modules/reqctx"
@@ -43,17 +43,9 @@ type APIContext struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo       *Repository
-	Org        *APIOrganization
-	Package    *Package
-	PublicOnly bool // Whether the request is for a public endpoint
-}
-
-// TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
-// A public-only token cannot reach a private repo or a repo owned by a non-public (limited or
-// private) owner; any other token is unrestricted by this check.
-func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
-	return !ctx.PublicOnly || !publicOnlyTokenDeniedRepo(ctx, repo)
+	Repo    *Repository
+	Org     *APIOrganization
+	Package *Package
 }
 
 func init() {
@@ -169,22 +161,11 @@ func (ctx *APIContext) APIError(status int, msg string) {
 
 // APIErrorAuto use error check function to determine the response code
 func (ctx *APIContext) APIErrorAuto(err error) {
-	switch {
-	case errors.Is(err, util.ErrInvalidArgument):
-		ctx.APIError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, util.ErrPermissionDenied):
-		ctx.APIError(http.StatusForbidden, err.Error())
-	case errors.Is(err, util.ErrNotExist):
-		ctx.APIError(http.StatusNotFound, err.Error())
-	case errors.Is(err, util.ErrAlreadyExist):
-		ctx.APIError(http.StatusConflict, err.Error())
-	case errors.Is(err, util.ErrContentTooLarge):
-		ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
-	case errors.Is(err, util.ErrUnprocessableContent):
-		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-	default:
-		ctx.apiErrorInternal(1, err)
+	if errMsg, code := util.ErrorUnwrapForUser(err); errMsg != "" {
+		ctx.APIError(code, errMsg)
+		return
 	}
+	ctx.apiErrorInternal(1, err)
 }
 
 type apiContextKeyType struct{}
@@ -257,8 +238,8 @@ func APIContexter() func(http.Handler) http.Handler {
 				Repo:  &Repository{},
 				Org:   &APIOrganization{},
 			}
-
 			ctx.SetContextValue(apiContextKey, ctx)
+			httplib.MarkRequestSupportPublicURL(ctx)
 
 			// FIXME: GLOBAL-PARSE-FORM: see more details in another FIXME comment
 			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {

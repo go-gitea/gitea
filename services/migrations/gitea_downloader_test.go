@@ -4,10 +4,16 @@
 package migrations
 
 import (
+	"fmt"
+	"math"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -308,4 +314,52 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			Content:      "looks good",
 		},
 	}, reviews)
+}
+
+func TestGiteaDownloadCommentsPaging(t *testing.T) {
+	for _, tc := range []struct {
+		maxResponseItems, pageSize, commentCount, requests int
+		paginated                                          bool
+	}{
+		{maxResponseItems: 2, pageSize: 2, commentCount: 2, requests: 2},
+		{maxResponseItems: 2, pageSize: 2, commentCount: 3, requests: 1},
+		{maxResponseItems: 2, pageSize: 2, commentCount: 4, requests: 3, paginated: true},
+		{maxResponseItems: 0, pageSize: 10, commentCount: 0, requests: 1},
+		{maxResponseItems: math.MaxInt, pageSize: 100, commentCount: 0, requests: 1},
+	} {
+		t.Run(fmt.Sprintf("maxResponseItems=%d/comments=%d", tc.maxResponseItems, tc.commentCount), func(t *testing.T) {
+			commentRequests := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/api/v1/version":
+					_, _ = w.Write([]byte(`{"version":"1.27.0"}`))
+				case "/api/v1/settings/api":
+					_, _ = fmt.Fprintf(w, `{"max_response_items":%d}`, tc.maxResponseItems)
+				case "/api/v1/repos/o/r/issues/1/comments":
+					commentRequests++
+					comments := make([]string, tc.commentCount)
+					for i := range comments {
+						comments[i] = fmt.Sprintf(`{"id":%d,"user":{}}`, i+1)
+					}
+					if tc.paginated {
+						page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+						comments = comments[(page-1)*tc.maxResponseItems : min(page*tc.maxResponseItems, len(comments))]
+					}
+					_, _ = w.Write([]byte("[" + strings.Join(comments, ",") + "]"))
+				default:
+					_, _ = w.Write([]byte(`[]`))
+				}
+			}))
+			defer server.Close()
+
+			downloader, err := NewGiteaDownloader(t.Context(), server.URL, "o/r", "", "", "")
+			require.NoError(t, err)
+			require.Equal(t, tc.pageSize, downloader.maxPerPage)
+
+			comments, _, err := downloader.GetComments(t.Context(), &base.Issue{Number: 1})
+			require.NoError(t, err)
+			assert.Len(t, comments, tc.commentCount)
+			assert.Equal(t, tc.requests, commentRequests)
+		})
+	}
 }

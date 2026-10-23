@@ -20,7 +20,7 @@ import (
 	base "gitea.dev/modules/migration"
 
 	"github.com/stretchr/testify/assert"
-	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v3"
 )
 
 func TestGitlabDownloadRepo(t *testing.T) {

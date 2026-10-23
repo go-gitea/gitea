@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -279,4 +280,30 @@ func TestEditReleaseAttachmentRejectsForbiddenRename(t *testing.T) {
 
 	attachment = unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: attachment.ID})
 	assert.NotEqual(t, "evil.exe", attachment.Name)
+}
+
+func TestReleaseReaction(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	reactReq := func(releaseID int64, action, content string) *RequestWrapper {
+		return NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/releases/%d/reactions/%s", releaseID, action), map[string]string{"content": content})
+	}
+
+	session.MakeRequest(t, reactReq(1, "react", "-1"), http.StatusForbidden)
+
+	session.MakeRequest(t, reactReq(1, "react", "heart"), http.StatusOK)
+	session.MakeRequest(t, reactReq(1, "react", "heart"), http.StatusOK)
+	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 1}, 1)
+
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/releases"), http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	AssertHTMLElement(t, htmlDoc, `.bottom-reactions a.ui.label[data-reaction-content="heart"]`, 1)
+	AssertHTMLElement(t, htmlDoc, `.reaction-picker [data-reaction-content="-1"]`, 0)
+
+	session.MakeRequest(t, reactReq(1, "unreact", "heart"), http.StatusOK)
+	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 1}, 0)
+
+	for _, releaseID := range []int64{2, 3, 4} {
+		session.MakeRequest(t, reactReq(releaseID, "react", "heart"), http.StatusNotFound)
+	}
 }

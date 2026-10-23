@@ -208,23 +208,11 @@ func AddBranches(ctx context.Context, branches []*Branch) error {
 
 func GetDeletedBranchByID(ctx context.Context, repoID, branchID int64) (*Branch, error) {
 	var branch Branch
-	has, err := db.GetEngine(ctx).ID(branchID).Get(&branch)
+	has, err := db.GetEngine(ctx).ID(branchID).Where("repo_id=? AND is_deleted=?", repoID, true).Get(&branch)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrBranchNotExist{
-			RepoID: repoID,
-		}
-	}
-	if branch.RepoID != repoID {
-		return nil, ErrBranchNotExist{
-			RepoID: repoID,
-		}
-	}
-	if !branch.IsDeleted {
-		return nil, ErrBranchNotExist{
-			RepoID: repoID,
-		}
+		return nil, ErrBranchNotExist{RepoID: repoID}
 	}
 	return &branch, nil
 }

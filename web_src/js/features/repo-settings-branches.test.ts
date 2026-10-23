@@ -21,11 +21,6 @@ const branchesHTML = `
 `;
 
 describe('Repository Branch Settings', () => {
-  beforeEach(() => {
-    vi.mocked(createSortable).mockClear();
-    vi.mocked(POST).mockClear();
-  });
-
   test('should initialize sortable for protected branches list', () => {
     document.body.innerHTML = branchesHTML;
     initRepoSettingsBranchesDrag();

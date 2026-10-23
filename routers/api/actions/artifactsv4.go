@@ -114,7 +114,6 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/actions"
-	"gitea.dev/services/context"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -132,9 +131,7 @@ type artifactV4Routes struct {
 func ArtifactV4Contexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base := context.NewBaseContext(resp, req)
-			ctx := &ArtifactContext{Base: base}
-			ctx.SetContextValue(artifactContextKey, ctx)
+			ctx := newArtifactContext(resp, req)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
@@ -293,11 +290,20 @@ func (r *artifactV4Routes) findArtifactByName(ctx *ArtifactContext, runID int64,
 	return &art, nil
 }
 
+// maxProtobufBodySize caps the Twirp request body size accepted by parseProtobufBody.
+// These requests only ever carry a handful of small scalar fields (run IDs, artifact
+// names, etc.), so this is far above any legitimate payload while still bounding memory use.
+const maxProtobufBodySize = 1024 * 1024 // 1 MiB
+
 func (r *artifactV4Routes) parseProtobufBody(ctx *ArtifactContext, req protoreflect.ProtoMessage) bool {
-	body, err := io.ReadAll(ctx.Req.Body)
+	body, err := io.ReadAll(io.LimitReader(ctx.Req.Body, maxProtobufBodySize+1))
 	if err != nil {
 		log.Error("Error decode request body: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error decode request body")
+		return false
+	}
+	if len(body) > maxProtobufBodySize {
+		ctx.HTTPError(http.StatusRequestEntityTooLarge, "request body too large")
 		return false
 	}
 	err = protojson.Unmarshal(body, req)
@@ -649,9 +655,10 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 			Size:                    artifact.FileSize,
 		}
 	}
-	for _, artifact := range table {
-		if artifact != nil {
-			list = append(list, artifact)
+	for _, artifact := range artifacts {
+		if item := table[artifact.ArtifactName]; item != nil {
+			list = append(list, item)
+			delete(table, artifact.ArtifactName)
 		}
 	}
 
