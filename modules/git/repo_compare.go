@@ -5,17 +5,12 @@
 package git
 
 import (
-	"bufio"
 	"bytes"
 	"context"
-	"errors"
-	"fmt"
 	"io"
-	"regexp"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
 )
 
 type lineCountWriter struct {
@@ -50,8 +45,6 @@ func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head s
 	}
 	return w.numLines, nil
 }
-
-var patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(ctx context.Context, compareArg string, w io.Writer) error {
@@ -104,26 +97,4 @@ func (repo *Repository) GetFilesChangedBetween(ctx context.Context, base, head s
 	}
 
 	return split, err
-}
-
-// ReadPatchCommit will check if a diff patch exists and return stats
-func (repo *Repository) ReadPatchCommit(prID int64) (commitSHA string, err error) {
-	// Migrated repositories download patches to "pulls" location
-	repoFS := gitrepo.RepoLocalFS(repo)
-	loadPatch, err := repoFS.Open(fmt.Sprintf("pulls/%d.patch", prID))
-	if err != nil {
-		return "", err
-	}
-	defer loadPatch.Close()
-	// Read only the first line of the patch - usually it contains the first commit made in patch
-	scanner := bufio.NewScanner(loadPatch)
-	scanner.Scan()
-	// Parse the Patch stats, sometimes Migration returns a 404 for the patch file
-	commitSHAGroups := patchCommits.FindStringSubmatch(scanner.Text())
-	if len(commitSHAGroups) != 0 {
-		commitSHA = commitSHAGroups[1]
-	} else {
-		return "", errors.New("patch file doesn't contain valid commit ID")
-	}
-	return commitSHA, nil
 }
