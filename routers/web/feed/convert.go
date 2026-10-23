@@ -280,7 +280,7 @@ func GetFeedType(name string, req *http.Request) (showFeed bool, feedType string
 // feedActionsToFeedItems convert gitea's Repo's Releases to feeds Item
 func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (items []*feeds.Item, err error) {
 	publishers, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(releases, func(rel *repo_model.Release) (int64, bool) {
-		return rel.PublisherID, true
+		return rel.PublisherID, rel.PublisherID > 0
 	}))
 	if err != nil {
 		return nil, err

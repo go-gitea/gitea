@@ -55,8 +55,7 @@ func TestDownloadRepoContent(t *testing.T) {
 	})
 
 	t.Run("MediaOversizedPointerServedAsStored", func(t *testing.T) {
-		repository := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 54})
-		gitRepo, err := git.OpenRepository(t.Context(), repository)
+		gitRepo, err := git.OpenRepository(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 54}))
 		require.NoError(t, err)
 		defer gitRepo.Close()
 

@@ -787,33 +787,16 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
 	var reviewState *pull_model.ReviewState
-	var numViewedFiles int
 	if ctx.IsSigned && isShowAllCommits {
 		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions)
 		if err != nil {
 			ctx.ServerError("SyncUserSpecificDiff", err)
 			return
 		}
-		if reviewState != nil {
-			numViewedFiles = reviewState.GetViewedFileCount()
-		}
 	}
 
 	if err = diff.LoadComments(ctx, issue, ctx.Doer, GetShowOutdatedComments(ctx)); err != nil {
 		ctx.ServerError("LoadComments", err)
-		return
-	}
-
-	allComments := issues_model.CommentList{}
-	for _, file := range diff.Files {
-		for _, section := range file.Sections {
-			for _, line := range section.Lines {
-				allComments = append(allComments, line.Comments...)
-			}
-		}
-	}
-	if err := allComments.LoadAttachments(ctx); err != nil {
-		ctx.ServerError("LoadAttachments", err)
 		return
 	}
 
@@ -832,6 +815,10 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		if err != nil {
 			ctx.ServerError("GetDiffShortStat", err)
 			return
+		}
+		var numViewedFiles int
+		if reviewState != nil {
+			numViewedFiles = reviewState.GetViewedFileCount()
 		}
 		ctx.Data["DiffShortStat"] = diffShortStat
 		ctx.Data["NumViewedFiles"] = numViewedFiles
