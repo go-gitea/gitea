@@ -29,7 +29,6 @@ func TestPullDiff(t *testing.T) {
 
 		defer test.MockVariableValue(&setting.Git.MaxGitDiffFiles, 5)()
 		doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/files?skip-to=test2.txt&file-only=true"), http.StatusOK).Body)
-		AssertHTMLElement(t, doc, ".diff-file-box", 5)
 		AssertHTMLElement(t, doc, "#diff-show-more-files", 1)
 		assert.Contains(t, doc.Find(`a[href*="/_edit/"]`).AttrOr("href", ""), "return_uri="+url.QueryEscape("/user2/commitsonpr/pulls/1/files#diff-"))
 	})

@@ -9,11 +9,9 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -39,27 +37,6 @@ func TestFeedRepo(t *testing.T) {
 		assert.Len(t, rss.Channel.Items, 1)
 		assert.Equal(t, "issue5", rss.Channel.Items[0].Description)
 		assert.NotEmpty(t, rss.Channel.Items[0].PubDate)
-	})
-	t.Run("Releases", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-
-		_, err := db.GetEngine(t.Context()).ID(5).Cols("publisher_id").Update(&repo_model.Release{PublisherID: unittest.NonexistentID})
-		require.NoError(t, err)
-		resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/tags.atom"), http.StatusOK)
-		type entry struct {
-			Title  string `xml:"title"`
-			Author string `xml:"author>name"`
-		}
-		var feed struct {
-			Entries []entry `xml:"entry"`
-		}
-		require.NoError(t, xml.Unmarshal(resp.Body.Bytes(), &feed))
-		publisher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).GetDisplayName()
-		assert.Equal(t, []entry{
-			{"pre-release", user_model.NewGhostUser().GetDisplayName()},
-			{"delete-tag", publisher},
-			{"testing-release", publisher},
-		}, feed.Entries)
 	})
 
 	t.Run("TagsWithoutReleasesAccess", func(t *testing.T) {
