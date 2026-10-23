@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -70,6 +71,7 @@ func TestRepositoryDumperReleaseAssetUsesMigrationClient(t *testing.T) {
 
 	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "github.com")()
 	defer test.MockVariableValue(&setting.Migrations.EgressMode, "strict")()
+	defer test.MockVariableValue(&getMigrationHTTPClient, sync.OnceValue(newMigrationHTTPClient))()
 
 	var downloadURLHits int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
