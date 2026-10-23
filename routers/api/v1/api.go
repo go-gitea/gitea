@@ -256,16 +256,14 @@ func rejectPublicOnly() func(ctx *context.APIContext) {
 	}
 }
 
-func rejectSystemDoer(ctx *context.APIContext) {
-	if ctx.Doer != nil && ctx.Doer.ID <= 0 { // system doers have no account, their negative IDs disable owner filters
-		ctx.APIError(http.StatusForbidden, "this endpoint is not available for system users")
-	}
-}
-
-func contextAuthenticatedUser() func(ctx *context.APIContext) {
+func contextAuthenticatedUser(allowSystemUser bool) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !user_model.DoerTokenAllowsOwner(ctx.Doer, ctx.Doer) {
 			ctx.APIError(http.StatusForbidden, "this endpoint is not available for public-only tokens")
+			return
+		}
+		if ctx.Doer.IsOrganization() || ctx.Doer.ID <= 0 && !allowSystemUser { // system users are shared identities, not accounts
+			ctx.APIError(http.StatusForbidden, "this endpoint is only available for user accounts")
 			return
 		}
 		ctx.ContextUser = ctx.Doer
@@ -1091,7 +1089,7 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
-		m.Get("/user", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser(), user.GetAuthenticatedUser)
+		m.Get("/user", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser(true), user.GetAuthenticatedUser)
 		m.Group("/user", func() {
 			m.Group("/settings", func() {
 				m.Get("", user.GetUserSettings)
@@ -1212,7 +1210,7 @@ func Routes() *web.Router {
 					m.Delete("", user.UnblockUser)
 				}, context.UserAssignmentAPI())
 			}, rejectPublicOnly())
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser(), rejectSystemDoer)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser(false))
 
 		// Repositories (requires repo scope, org scope)
 		m.Post("/org/{org}/repos",
@@ -1709,7 +1707,7 @@ func Routes() *web.Router {
 		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations
-		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), rejectSystemDoer, org.ListMyOrgs)
+		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), contextAuthenticatedUser(false), org.ListMyOrgs)
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", reqToken(), org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
