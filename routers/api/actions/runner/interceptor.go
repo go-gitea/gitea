@@ -5,6 +5,7 @@ package runner
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"connectrpc.com/connect"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -25,6 +27,10 @@ const (
 	uuidHeaderKey  = protocol.UUIDHeader
 	tokenHeaderKey = protocol.TokenHeader
 )
+
+type runnerTokenHash struct{ salt, hash string }
+
+var verifiedRunnerTokens, _ = lru.New[runnerTokenHash, [sha256.Size]byte](10000) // not auth_model.TokenCache, whose small default size thrashes once more runners poll in turn
 
 var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, request connect.AnyRequest) (connect.AnyResponse, error) {
@@ -42,7 +48,7 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			}
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		if !util.CryptoConstTimeEqual(runner.TokenHash, auth_model.HashToken(token, runner.TokenSalt)) {
+		if !verifyRunnerToken(runner, token) {
 			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 		}
 
@@ -72,6 +78,18 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		return unaryFunc(ctx, request)
 	}
 }))
+
+func verifyRunnerToken(runner *actions_model.ActionRunner, token string) bool {
+	key, digest := runnerTokenHash{runner.TokenSalt, runner.TokenHash}, sha256.Sum256([]byte(token))
+	if cached, ok := verifiedRunnerTokens.Get(key); ok && util.CryptoConstTimeEqual(cached[:], digest[:]) {
+		return true
+	}
+	if !util.CryptoConstTimeEqual(runner.TokenHash, auth_model.HashToken(token, runner.TokenSalt)) {
+		return false
+	}
+	verifiedRunnerTokens.Add(key, digest)
+	return true
+}
 
 func getMethodName(req connect.AnyRequest) string {
 	splits := strings.Split(req.Spec().Procedure, "/")
