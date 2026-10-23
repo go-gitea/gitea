@@ -102,6 +102,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return err
 	}
 
+	var addedProjectIDs []int64
 	var reviewNotifiers []*ReviewRequestNotifier
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr)
@@ -124,7 +125,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		if len(opts.ProjectIDs) > 0 && canAssignProject {
-			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs); err != nil {
+			if addedProjectIDs, _, err = issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs); err != nil {
 				return err
 			}
 		}
@@ -221,6 +222,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	for _, assignee := range assignees {
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assignee.ID])
 	}
+	notify_service.IssueChangeProjects(ctx, issue.Poster, issue, addedProjectIDs, nil)
 
 	return nil
 }

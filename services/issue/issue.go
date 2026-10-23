@@ -36,6 +36,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 	assignees := make(map[int64]*user_model.User)
+	var addedProjectIDs []int64
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
 			return err
@@ -54,8 +55,8 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 			assigneeCommentMap[assigneeID] = comment
 		}
 		if len(projectIDs) > 0 {
-			err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs)
-			if err != nil {
+			var err error
+			if addedProjectIDs, _, err = issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs); err != nil {
 				return err
 			}
 		}
@@ -82,6 +83,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assignee.ID])
 		}
 	}
+	notify_service.IssueChangeProjects(ctx, issue.Poster, issue, addedProjectIDs, nil)
 
 	return nil
 }
