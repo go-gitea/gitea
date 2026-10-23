@@ -4,12 +4,13 @@
 package v1_12
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddBranchProtectionProtectedFilesColumn(x base.EngineMigration) error {
+func AddBranchProtectionProtectedFilesColumn(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		ProtectedFilePatterns string `xorm:"TEXT"`
 	}

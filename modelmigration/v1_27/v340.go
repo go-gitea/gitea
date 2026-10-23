@@ -4,6 +4,8 @@
 package v1_27
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
@@ -11,7 +13,7 @@ import (
 
 // AddContinueOnErrorToActionRunJob adds the ContinueOnError column to ActionRunJob,
 // storing the job-level continue-on-error value from the workflow YAML.
-func AddContinueOnErrorToActionRunJob(x base.EngineMigration) error {
+func AddContinueOnErrorToActionRunJob(_ context.Context, x base.EngineMigration) error {
 	type ActionRunJob struct {
 		ContinueOnError bool `xorm:"NOT NULL DEFAULT FALSE"`
 	}

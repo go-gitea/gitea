@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
 	repo_service "gitea.dev/services/repository"
@@ -136,6 +137,15 @@ func TestCompareBranches(t *testing.T) {
 	diffChanges = []string{"test.txt"}
 
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+
+	req = NewRequest(t, "GET", "/user2/repo20/compare/8babce967f21b9dfa6987f943b91093dac58a4f0..c8e31bc7688741a5287fcde4fbb8fc129ca07027")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+
+	inspectCompare(t, htmlDoc, 3, []string{"link_hi", "test.csv", "test.txt"})
+	assert.NotContains(t, htmlDoc.doc.Text(), translation.NewLocale("en-US").TrString("repo.commits.nothing_to_compare"))
+	commitsHeader := strings.Join(strings.Fields(htmlDoc.doc.Find(".ui.top.attached.header .flex-text-block").First().Text()), " ")
+	assert.Equal(t, "0 "+translation.NewLocale("en-US").TrString("repo.commits.commits"), commitsHeader)
 }
 
 func TestCompareWithRefSuffix(t *testing.T) {
@@ -182,7 +192,7 @@ func TestResolveRefWithSuffixContract(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 31})
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -211,8 +221,7 @@ func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
 
-	repoPath := repo_model.RepoPath(user2.Name, repo1.Name)
-	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(strings.TrimSpace(`
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithRepo(repo1).WithStdinBytes([]byte(strings.TrimSpace(`
 commit refs/heads/unrelated-history
 committer User <user@example.com> 1714310400 +0000
 data 13

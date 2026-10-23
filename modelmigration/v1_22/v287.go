@@ -3,7 +3,11 @@
 
 package v1_22
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
+
+	"gitea.dev/modelmigration/base"
+)
 
 type BadgeUnique struct {
 	ID   int64  `xorm:"pk autoincr"`
@@ -14,7 +18,7 @@ func (BadgeUnique) TableName() string {
 	return "badge"
 }
 
-func UseSlugInsteadOfIDForBadges(x base.EngineMigration) error {
+func UseSlugInsteadOfIDForBadges(_ context.Context, x base.EngineMigration) error {
 	type Badge struct {
 		Slug string
 	}

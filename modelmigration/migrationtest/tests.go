@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
+	"gitea.dev/models/db"       //nolint:depguard // allow to access db in migration tests
+	"gitea.dev/models/unittest" //nolint:depguard // allow to access db in migration tests
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/testlogger"
@@ -105,7 +105,7 @@ func LoadTableSchemasMap(t *testing.T, x base.EngineMigration) map[string]*schem
 
 func mainTest(m *testing.M) int {
 	testlogger.Init()
-	err := setting.PrepareIntegrationTestConfig()
+	workPath, err := setting.PrepareIntegrationTestConfig()
 	if err != nil {
 		return testlogger.MainErrorf("Unable to prepare integration test config: %v", err)
 	}
@@ -117,7 +117,11 @@ func mainTest(m *testing.M) int {
 	setting.Database.SlowQueryThreshold = 0
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
-	return m.Run()
+	exitCode := m.Run()
+	if exitCode == 0 {
+		_ = os.RemoveAll(workPath)
+	}
+	return exitCode
 }
 
 func MainTest(m *testing.M) {

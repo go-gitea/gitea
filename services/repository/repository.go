@@ -10,15 +10,17 @@ import (
 	"strings"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
-	"gitea.dev/models/git"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	git2 "gitea.dev/modules/git"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/graceful"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/log"
@@ -26,15 +28,16 @@ import (
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 )
 
 // WebSearchRepository represents a repository returned by web search
 type WebSearchRepository struct {
-	Repository               *structs.Repository `json:"repository"`
-	LatestCommitStatus       *git.CommitStatus   `json:"latest_commit_status"`
-	LocaleLatestCommitStatus string              `json:"locale_latest_commit_status"`
+	Repository               *structs.Repository     `json:"repository"`
+	LatestCommitStatus       *git_model.CommitStatus `json:"latest_commit_status"`
+	LocaleLatestCommitStatus string                  `json:"locale_latest_commit_status"`
 }
 
 // WebSearchResults results of a successful web search
@@ -67,7 +70,13 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		notify_service.DeleteRepository(ctx, doer, repo)
 	}
 
-	return DeleteRepositoryDirectly(ctx, repo.ID)
+	if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.RepositoryDelete, repo)
+
+	return nil
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
@@ -126,6 +135,16 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 }
 
 func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository, private bool) (err error) {
+	if err := setRepoVisibility(ctx, repo, private); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.RepositoryVisibility, repo, "visibility", private)
+
+	return nil
+}
+
+func setRepoVisibility(ctx context.Context, repo *repo_model.Repository, private bool) (err error) {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo.IsPrivate = private
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
@@ -172,8 +191,8 @@ func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository, private b
 				return fmt.Errorf("getRepositoriesByForkID: %w", err)
 			}
 			for _, forkRepo := range forkRepos {
-				if err = MakeRepoPrivate(ctx, forkRepo, private); err != nil {
-					return fmt.Errorf("MakeRepoPrivate[%d]: %w", forkRepo.ID, err)
+				if err = setRepoVisibility(ctx, forkRepo, private); err != nil {
+					return fmt.Errorf("setRepoVisibility[%d]: %w", forkRepo.ID, err)
 				}
 			}
 		}
@@ -217,7 +236,7 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 
 	// Create/Remove git-daemon-export-ok for git-daemon...
 	daemonExportFile := `git-daemon-export-ok`
-	isExist, err := git2.IsRepoFileExist(ctx, repo, daemonExportFile)
+	isExist, err := git.IsRepoFileExist(ctx, repo, daemonExportFile)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
 		return err
@@ -225,11 +244,11 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 
 	isPublic := !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic
 	if !isPublic && isExist {
-		if err = git2.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
+		if err = git.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
 			log.Error("Failed to remove %s: %v", daemonExportFile, err)
 		}
 	} else if isPublic && !isExist {
-		if f, err := git2.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
+		if f, err := git.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
 			log.Error("Failed to create %s: %v", daemonExportFile, err)
 		} else {
 			f.Close()
@@ -308,7 +327,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 }
 
 func HasWiki(ctx context.Context, repo *repo_model.Repository) bool {
-	hasWiki, err := git2.IsRepositoryExist(ctx, repo.WikiStorageRepo())
+	hasWiki, err := git.IsRepositoryExist(ctx, repo.WikiStorageRepo())
 	if err != nil {
 		log.Error("gitrepo.IsRepositoryExist: %v", err)
 	}
@@ -331,8 +350,8 @@ func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, na
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{Uname: owner.Name, Name: name}
 	}
-	repo := repo_model.CodeRepoByName(owner.Name, name)
-	isExist, err := git2.IsRepositoryExist(ctx, repo)
+	repo := gitrepo.CodeRepoByName(owner.Name, name)
+	isExist, err := git.IsRepositoryExist(ctx, repo)
 	if err != nil {
 		log.Error("Unable to check if repo %s/%s exists, error: %v", owner.Name, name, err)
 		return err

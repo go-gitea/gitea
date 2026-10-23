@@ -4,10 +4,12 @@
 package v1_14
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 )
 
-func ConvertWebhookTaskTypeToString(x base.EngineMigration) error {
+func ConvertWebhookTaskTypeToString(_ context.Context, x base.EngineMigration) error {
 	const (
 		GOGS int = iota + 1
 		SLACK

@@ -4,11 +4,13 @@
 package v1_23
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddRepositoryLicenses(x base.EngineMigration) error {
+func AddRepositoryLicenses(_ context.Context, x base.EngineMigration) error {
 	type RepoLicense struct {
 		ID          int64 `xorm:"pk autoincr"`
 		RepoID      int64 `xorm:"UNIQUE(s) NOT NULL"`

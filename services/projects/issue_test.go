@@ -4,6 +4,7 @@
 package project
 
 import (
+	"strconv"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -110,12 +111,12 @@ func Test_Projects(t *testing.T) {
 
 		// issue 6 belongs to private repo 3 under org 3
 		issue6 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue6, user2, []int64{project1.ID})
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue6, user2, []int64{project1.ID})
 		assert.NoError(t, err)
 
 		// issue 16 belongs to public repo 16 under org 3
 		issue16 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 16})
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, []int64{project1.ID})
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, []int64{project1.ID})
 		assert.NoError(t, err)
 
 		projects, err := db.Find[project_model.Project](t.Context(), project_model.SearchOptions{
@@ -166,6 +167,45 @@ func Test_Projects(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Len(t, columnIssues, 1)
 			assert.Len(t, columnIssues[defaultColumn.ID], 2) // owner-team member visits both public and private issues
+		})
+	})
+
+	t.Run("Moving an issue in one project keeps its column in other projects", func(t *testing.T) {
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		// issue 11 is in repo1 but in no fixture project, so reconciling its memberships disturbs nothing
+		issue11 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 11})
+
+		projects := make([]*project_model.Project, 2)
+		for i := range projects {
+			projects[i] = &project_model.Project{
+				Title:        "multi-project isolation " + strconv.Itoa(i),
+				RepoID:       repo1.ID,
+				Type:         project_model.TypeRepository,
+				TemplateType: project_model.TemplateTypeBasicKanban,
+			}
+			assert.NoError(t, project_model.NewProject(t.Context(), projects[i]))
+			defer func() {
+				assert.NoError(t, project_model.DeleteProjectByID(t.Context(), projects[i].ID))
+			}()
+		}
+
+		_, _, err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue11, user2, []int64{projects[0].ID, projects[1].ID})
+		assert.NoError(t, err)
+
+		// the column the issue must stay in for the second project
+		otherColumn, err := projects[1].MustDefaultColumn(t.Context())
+		assert.NoError(t, err)
+
+		// move the issue into a non-default column of the first project only
+		targetColumn := &project_model.Column{Title: "target", ProjectID: projects[0].ID}
+		assert.NoError(t, project_model.NewColumn(t.Context(), targetColumn))
+		assert.NoError(t, MoveIssuesOnProjectColumn(t.Context(), user2, targetColumn, map[int64]int64{0: issue11.ID}))
+
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{
+			IssueID: issue11.ID, ProjectID: projects[0].ID, ProjectColumnID: targetColumn.ID,
+		})
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{
+			IssueID: issue11.ID, ProjectID: projects[1].ID, ProjectColumnID: otherColumn.ID,
 		})
 	})
 

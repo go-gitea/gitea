@@ -28,11 +28,12 @@ import (
 	"gitea.dev/modelmigration/v1_25"
 	"gitea.dev/modelmigration/v1_26"
 	"gitea.dev/modelmigration/v1_27"
-	"gitea.dev/modelmigration/v1_28"
 	"gitea.dev/modelmigration/v1_6"
 	"gitea.dev/modelmigration/v1_7"
 	"gitea.dev/modelmigration/v1_8"
 	"gitea.dev/modelmigration/v1_9"
+	"gitea.dev/modelmigration/v28"
+	"gitea.dev/modelmigration/v29"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -49,15 +50,8 @@ type migration struct {
 }
 
 // newMigration creates a new migration
-func newMigration[T func(base.EngineMigration) error | func(context.Context, base.EngineMigration) error](idNumber int64, desc string, fn T) *migration {
-	m := &migration{idNumber: idNumber, description: desc}
-	var ok bool
-	if m.migrate, ok = any(fn).(func(context.Context, base.EngineMigration) error); !ok {
-		m.migrate = func(ctx context.Context, x base.EngineMigration) error {
-			return any(fn).(func(base.EngineMigration) error)(x)
-		}
-	}
-	return m
+func newMigration(idNumber int64, desc string, fn func(context.Context, base.EngineMigration) error) *migration {
+	return &migration{idNumber: idNumber, description: desc, migrate: fn}
 }
 
 // Migrate executes the migration
@@ -72,7 +66,7 @@ type Version struct {
 }
 
 // Use noopMigration when there is a migration that has been no-oped
-var noopMigration = func(_ base.EngineMigration) error { return nil }
+var noopMigration = func(_ context.Context, _ base.EngineMigration) error { return nil }
 
 var preparedMigrations []*migration
 
@@ -423,7 +417,31 @@ func prepareMigrationTasks() []*migration {
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
 		// Gitea 1.27.0 ends at migration ID number 342 (database version 343)
 
-		newMigration(343, "Add spent_on_unix to tracked_time", v1_28.AddSpentOnUnixToTrackedTime),
+		newMigration(343, "Add max_parallel column to action_run_job", v28.AddMaxParallelToActionRunJob),
+		newMigration(344, "Add deferred-matrix columns to ActionRunJob", v28.AddDeferredMatrixColumnsToActionRunJob),
+		newMigration(345, "Add block on CODEOWNERS reviews branch protection", v28.AddBlockOnCodeownerReviews),
+		newMigration(346, "Add license_path column to repo_license and backfill", v28.AddLicensePathToRepoLicense),
+		newMigration(347, "Add watch options", v28.AddWatchOptions),
+		newMigration(348, "Recreate email_hash table for SHA256 avatar hashes", v28.RecreateEmailHashTable),
+		newMigration(349, "Expand action_schedule content column", v28.ExpandActionScheduleContent),
+		newMigration(350, "Add published_unix column to release", v28.AddPublishedUnixToRelease),
+		newMigration(351, "Track transfer recipient access grants", v28.AddRecipientAccessGrantedToRepoTransfer),
+		newMigration(352, "Add token columns to deploy_key", v28.AddTokenToDeployKey),
+		newMigration(353, "Add audit event table", v28.AddAuditEventTable),
+		newMigration(354, "Add Actions job queue indexes", v28.AddActionQueueIndexes),
+		newMigration(355, "Add AutoMerge merged_commit_id column", v28.AddAutoMergeMergedCommitID),
+		// Gitea 28.0.0 ends at migration ID number 355 (database version 356)
+
+		newMigration(356, "Add index on action_run commit_sha", v29.AddActionRunCommitSHAIndex),
+		newMigration(357, "Normalize legacy team authorize values", v29.NormalizeLegacyTeamAuthorize),
+		newMigration(358, "Track previous remember-me token hashes", v29.AddPreviousAuthTokenHash),
+		newMigration(359, "Add stage and number columns to action_task_step", v29.AddStageAndNumberToActionTaskStep),
+		newMigration(360, "Move branch protection settings to JSON", v29.MoveBranchProtectionConfigToJSON),
+		newMigration(361, "Drop legacy commit_id column from comment", v29.DropCommentCommitID),
+		newMigration(362, "Add reusable_workflow_ref column to action_run_job", v29.AddReusableWorkflowRefToActionRunJob),
+		newMigration(363, "Add release_id to reaction table", v29.AddReleaseIDToReaction),
+		newMigration(364, "Add new table project_workflow", v29.AddProjectWorkflow),
+		newMigration(365, "Add spent_on_unix to tracked_time", v29.AddSpentOnUnixToTrackedTime),
 	}
 	return preparedMigrations
 }

@@ -3,9 +3,13 @@
 
 package v1_13
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddTrustModelToRepository(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddTrustModelToRepository(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		TrustModel int
 	}

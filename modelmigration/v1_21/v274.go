@@ -4,13 +4,14 @@
 package v1_21
 
 import (
+	"context"
 	"time"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddExpiredUnixColumnInActionArtifactTable(x base.EngineMigration) error {
+func AddExpiredUnixColumnInActionArtifactTable(_ context.Context, x base.EngineMigration) error {
 	type ActionArtifact struct {
 		ExpiredUnix timeutil.TimeStamp `xorm:"index"` // time when the artifact will be expired
 	}

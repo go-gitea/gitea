@@ -26,18 +26,14 @@ import (
 )
 
 func storeObjectInRepo(t *testing.T, repositoryID int64, content string) string {
+	t.Helper()
 	pointer, err := lfs.GeneratePointer(strings.NewReader(content))
 	assert.NoError(t, err)
 
 	_, err = git_model.NewLFSMetaObject(t.Context(), repositoryID, pointer)
 	assert.NoError(t, err)
-	contentStore := lfs.NewContentStore()
-	exist, err := contentStore.Exists(pointer)
+	err = lfs.NewContentStore().Put(pointer, strings.NewReader(content))
 	assert.NoError(t, err)
-	if !exist {
-		err := contentStore.Put(pointer, strings.NewReader(content))
-		assert.NoError(t, err)
-	}
 	return pointer.Oid
 }
 

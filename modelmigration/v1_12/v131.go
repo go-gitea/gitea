@@ -4,12 +4,13 @@
 package v1_12
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddSystemWebhookColumn(x base.EngineMigration) error {
+func AddSystemWebhookColumn(_ context.Context, x base.EngineMigration) error {
 	type Webhook struct {
 		IsSystemWebhook bool `xorm:"NOT NULL DEFAULT false"`
 	}

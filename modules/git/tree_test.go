@@ -8,10 +8,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSubTree_Issue29101(t *testing.T) {
-	repo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
+	repo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	defer repo.Close()
 
@@ -26,8 +27,26 @@ func TestSubTree_Issue29101(t *testing.T) {
 	}
 }
 
+func TestTreeListEntriesResolvesTagAndRejectsBlob(t *testing.T) {
+	repo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
+	require.NoError(t, err)
+	defer repo.Close()
+
+	entries, err := newTree(MustIDFromString("3ad28a9149a2864384548f3d17ed7f38014c9e8a")).ListEntries(t.Context(), repo)
+	require.NoError(t, err)
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+	assert.Equal(t, []string{"file1.txt", "file2.txt", "foo"}, names)
+	assert.True(t, entries[2].IsDir())
+
+	_, err = newTree(MustIDFromString("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")).ListEntries(t.Context(), repo)
+	assert.True(t, IsErrNotExist(err))
+}
+
 func Test_GetTreePathLatestCommit(t *testing.T) {
-	repo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo6_blame"))
+	repo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo6_blame"))
 	assert.NoError(t, err)
 	defer repo.Close()
 

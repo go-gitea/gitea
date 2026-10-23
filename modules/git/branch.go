@@ -14,7 +14,7 @@ import (
 // GetBranchesByPath returns a branch by its path
 // if limit = 0 it will not limit
 func GetBranchesByPath(ctx context.Context, repo RepositoryFacade, skip, limit int) ([]string, int, error) {
-	gitRepo, err := OpenRepository(repo)
+	gitRepo, err := OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -24,7 +24,7 @@ func GetBranchesByPath(ctx context.Context, repo RepositoryFacade, skip, limit i
 }
 
 func GetBranchCommitID(ctx context.Context, repo RepositoryFacade, branch string) (string, error) {
-	gitRepo, err := OpenRepository(repo)
+	gitRepo, err := OpenRepository(ctx, repo)
 	if err != nil {
 		return "", err
 	}

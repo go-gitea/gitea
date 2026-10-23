@@ -3,9 +3,13 @@
 
 package v1_12
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddOwnerNameOnRepository(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddOwnerNameOnRepository(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		OwnerName string
 	}

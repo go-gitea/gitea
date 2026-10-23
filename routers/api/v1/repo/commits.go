@@ -24,7 +24,7 @@ import (
 func GetSingleCommit(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha} repository repoGetSingleCommit
 	// ---
-	// summary: Get a single commit from a repository
+	// summary: Get a single commit from a repository, it has a GitHub-compatible alias "/repos/{owner}/{repo}/commits/{ref}"
 	// produces:
 	// - application/json
 	// parameters:

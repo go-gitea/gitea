@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // catFileBatchCommand implements the CatFileBatch interface using the "cat-file --batch-command" command
@@ -26,11 +27,11 @@ func newCatFileBatchCommand(ctx context.Context, repo RepositoryFacade) *catFile
 	return &catFileBatchCommand{ctx: ctx, repo: repo}
 }
 
-func (b *catFileBatchCommand) getBatch() *catFileBatchCommunicator {
+func (b *catFileBatchCommand) getBatch(callerInfo string) *catFileBatchCommunicator {
 	if b.batch != nil {
 		return b.batch
 	}
-	b.batch = newCatFileBatch(b.ctx, b.repo, gitcmd.NewCommand("cat-file", "--batch-command"))
+	b.batch = newCatFileBatch(b.ctx, b.repo, gitcmd.NewCommand("cat-file", "--batch-command").WithParentCallerInfo(callerInfo))
 	return b.batch
 }
 
@@ -42,26 +43,28 @@ func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, Buffered
 	if strings.Contains(obj, "\n") {
 		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
 	}
-	_, err := b.getBatch().reqWriter.Write([]byte("contents " + obj + "\n"))
+	batch := b.getBatch(util.CallerFuncName(1))
+	_, err := batch.reqWriter.Write([]byte("contents " + obj + "\n"))
 	if err != nil {
 		return nil, nil, err
 	}
-	info, err := catFileBatchParseInfoLine(b.getBatch().respReader)
+	info, err := catFileBatchParseInfoLine(batch.respReader)
 	if err != nil {
 		return nil, nil, err
 	}
-	return info, b.getBatch().respReader, nil
+	return info, batch.respReader, nil
 }
 
 func (b *catFileBatchCommand) QueryInfo(obj string) (*CatFileObject, error) {
 	if strings.Contains(obj, "\n") {
 		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
 	}
-	_, err := b.getBatch().reqWriter.Write([]byte("info " + obj + "\n"))
+	batch := b.getBatch(util.CallerFuncName(1))
+	_, err := batch.reqWriter.Write([]byte("info " + obj + "\n"))
 	if err != nil {
 		return nil, err
 	}
-	return catFileBatchParseInfoLine(b.getBatch().respReader)
+	return catFileBatchParseInfoLine(batch.respReader)
 }
 
 func (b *catFileBatchCommand) Close() {

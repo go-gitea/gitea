@@ -14,6 +14,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
@@ -194,7 +195,7 @@ func CreateTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
-	form := web.GetForm(ctx).(*api.CreateTagOption)
+	form := web.GetForm[*api.CreateTagOption](ctx)
 
 	// If target is not provided use default branch
 	if len(form.Target) == 0 {
@@ -411,7 +412,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateTagProtectionOption)
+	form := web.GetForm[*api.CreateTagProtectionOption](ctx)
 	repo := ctx.Repo.Repository
 
 	namePattern := strings.TrimSpace(form.NamePattern)
@@ -435,13 +436,13 @@ func CreateTagProtection(ctx *context.APIContext) {
 	}
 
 	var whitelistUsers, whitelistTeams []int64
-	whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.WhitelistUsernames, false)
+	whitelistUsers, err = user_model.GetDoerUserIDsByNames(ctx, form.WhitelistUsernames)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-			return
+		} else {
+			ctx.APIErrorInternal(err)
 		}
-		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -522,7 +523,7 @@ func EditTagProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 
 	repo := ctx.Repo.Repository
-	form := web.GetForm(ctx).(*api.EditTagProtectionOption)
+	form := web.GetForm[*api.EditTagProtectionOption](ctx)
 
 	id := ctx.PathParamInt64("id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
@@ -557,13 +558,13 @@ func EditTagProtection(ctx *context.APIContext) {
 	}
 
 	if form.WhitelistUsernames != nil {
-		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.WhitelistUsernames, false)
+		whitelistUsers, err = user_model.GetDoerUserIDsByNames(ctx, form.WhitelistUsernames)
 		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
+			if errors.Is(err, util.ErrNotExist) {
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-				return
+			} else {
+				ctx.APIErrorInternal(err)
 			}
-			ctx.APIErrorInternal(err)
 			return
 		}
 		pt.AllowlistUserIDs = whitelistUsers

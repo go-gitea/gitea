@@ -3,9 +3,13 @@
 
 package v1_11
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddCanCreateOrgRepoColumnForTeam(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddCanCreateOrgRepoColumnForTeam(_ context.Context, x base.EngineMigration) error {
 	type Team struct {
 		CanCreateOrgRepo bool `xorm:"NOT NULL DEFAULT false"`
 	}

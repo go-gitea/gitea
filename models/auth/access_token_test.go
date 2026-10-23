@@ -117,6 +117,46 @@ func TestUpdateAccessToken(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, token)
 }
 
+func TestRegenerateAccessToken(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const oldToken = "d2c6c1ba3890b309189a8e618c72a162e4efbf36"
+
+	// prime the successful-lookup cache with the old token value, as a real request would
+	before, err := auth_model.GetAccessTokenBySHA(t.Context(), oldToken)
+	assert.NoError(t, err)
+	assert.Equal(t, "Token A", before.Name)
+
+	regenerated, err := auth_model.RegenerateAccessToken(t.Context(), before.ID, before.UID)
+	assert.NoError(t, err)
+	assert.Equal(t, before.ID, regenerated.ID)
+	assert.Equal(t, before.Name, regenerated.Name)
+	assert.Equal(t, before.Scope, regenerated.Scope)
+	assert.NotEqual(t, before.TokenHash, regenerated.TokenHash)
+	assert.NotEmpty(t, regenerated.Token)
+
+	// the old token value must stop authenticating, even though it was cached as successful above
+	_, err = auth_model.GetAccessTokenBySHA(t.Context(), oldToken)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, util.ErrNotExist)
+
+	// the new token value must authenticate
+	found, err := auth_model.GetAccessTokenBySHA(t.Context(), regenerated.Token)
+	assert.NoError(t, err)
+	assert.Equal(t, before.ID, found.ID)
+	assert.Equal(t, before.UpdatedUnix, found.UpdatedUnix)
+
+	// wrong owner
+	_, err = auth_model.RegenerateAccessToken(t.Context(), before.ID, before.UID+1)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, util.ErrNotExist)
+
+	// nonexistent token
+	_, err = auth_model.RegenerateAccessToken(t.Context(), 100, 100)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, util.ErrNotExist)
+}
+
 func TestDeleteAccessTokenByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

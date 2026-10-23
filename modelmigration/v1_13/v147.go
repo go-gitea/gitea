@@ -4,11 +4,13 @@
 package v1_13
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func CreateReviewsForCodeComments(x base.EngineMigration) error {
+func CreateReviewsForCodeComments(_ context.Context, x base.EngineMigration) error {
 	// Review
 	type Review struct {
 		ID               int64 `xorm:"pk autoincr"`

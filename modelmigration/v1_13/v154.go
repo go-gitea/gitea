@@ -4,11 +4,13 @@
 package v1_13
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddTimeStamps(x base.EngineMigration) error {
+func AddTimeStamps(_ context.Context, x base.EngineMigration) error {
 	// this will add timestamps where it is useful to have
 
 	// Star represents a starred repo by an user.

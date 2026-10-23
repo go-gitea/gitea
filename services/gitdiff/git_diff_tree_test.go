@@ -4,10 +4,13 @@
 package gitdiff
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -205,7 +208,7 @@ func TestGitDiffTree(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.Name, func(t *testing.T) {
-			gitRepo, err := git.OpenRepositoryLocal(tt.RepoPath)
+			gitRepo, err := git.OpenRepositoryLocal(t.Context(), tt.RepoPath)
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 
@@ -215,6 +218,43 @@ func TestGitDiffTree(t *testing.T) {
 			assert.Equal(t, tt.Expected, diffPaths)
 		})
 	}
+}
+
+func TestGitDiffTreeRespectsDiffOrderFile(t *testing.T) {
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	testDiffTree := func(t *testing.T) (filePaths []string) {
+		t.Helper()
+		diffTree, err := GetDiffTree(t.Context(), gitRepo, false, "72866af952e98d02a73003501836074b286a78f6", "d8e0bbb45f200e67d9a784ce55bd90821af45ebd")
+		require.NoError(t, err)
+		for _, f := range diffTree.Files {
+			filePaths = append(filePaths, f.HeadPath)
+		}
+		return filePaths
+	}
+
+	t.Run("NoDiffOrderFile", func(t *testing.T) {
+		assert.Equal(t, []string{"LICENSE", "README.md"}, testDiffTree(t))
+	})
+
+	t.Run("GlobalDiffOrderFile", func(t *testing.T) {
+		diffOrderFilePath := filepath.Join(t.TempDir(), "test-diff-order.txt")
+		err = os.WriteFile(diffOrderFilePath, []byte("README.md\nLICENSE\n"), 0o644)
+		require.NoError(t, err)
+
+		_, _, err = gitcmd.NewCommand("config", "set", "--global").AddDynamicArguments("diff.orderFile", diffOrderFilePath).RunStdString(t.Context())
+		require.NoError(t, err)
+		require.NoError(t, git.InitFull())
+		defer func() {
+			_, _, err = gitcmd.NewCommand("config", "unset", "--global").AddDynamicArguments("diff.orderFile").RunStdString(t.Context())
+			require.NoError(t, err)
+			require.NoError(t, git.InitFull())
+		}()
+
+		assert.Equal(t, []string{"README.md", "LICENSE"}, testDiffTree(t))
+	})
 }
 
 func TestParseGitDiffTree(t *testing.T) {
@@ -281,6 +321,22 @@ func TestParseGitDiffTree(t *testing.T) {
 					BaseMode:   git.EntryModeBlob,
 					HeadBlobID: "97248f79a90aaf81fe7fd74b33c1cb182dd41783",
 					BaseBlobID: "c8a055cfb45cd39747292983ad1797ceab40f5b1",
+				},
+			},
+		},
+		{
+			// make sure our code can unquote paths no matter core.quotePath is true or false: quoted chars are like "\t" or "\{oct}"
+			Name:      "file modified with a C-quoted path",
+			GitOutput: ":100644 100644 b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0 04fea06420ca60892f73becee3614f6d023a4b7f M\t" + `"\346\227\245\346\234\254\350\252\236\ttest.txt"`,
+			Expected: []*DiffTreeRecord{
+				{
+					Status:     "modified",
+					HeadPath:   "日本語\ttest.txt",
+					BasePath:   "日本語\ttest.txt",
+					HeadMode:   git.EntryModeBlob,
+					BaseMode:   git.EntryModeBlob,
+					HeadBlobID: "04fea06420ca60892f73becee3614f6d023a4b7f",
+					BaseBlobID: "b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0",
 				},
 			},
 		},
@@ -414,7 +470,7 @@ func TestGitDiffTreeErrors(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.Name, func(t *testing.T) {
-			gitRepo, err := git.OpenRepositoryLocal(tt.RepoPath)
+			gitRepo, err := git.OpenRepositoryLocal(t.Context(), tt.RepoPath)
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 

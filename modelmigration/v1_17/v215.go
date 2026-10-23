@@ -4,11 +4,13 @@
 package v1_17
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddReviewViewedFiles(x base.EngineMigration) error {
+func AddReviewViewedFiles(_ context.Context, x base.EngineMigration) error {
 	type ReviewState struct {
 		ID           int64              `xorm:"pk autoincr"`
 		UserID       int64              `xorm:"NOT NULL UNIQUE(pull_commit_user)"`

@@ -61,15 +61,13 @@ func TestMigrateLocalPath(t *testing.T) {
 func TestMigrateGiteaForm(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		// Gitea SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
-		defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 		defer test.MockVariableValue(&setting.AppVer, "1.16.0")()
-		assert.NoError(t, migrations.Init())
 
 		ownerName := "user2"
 		repoName := "repo1"
 		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: ownerName})
 		session := loginUser(t, ownerName)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeReadMisc)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeReadMisc, auth_model.AccessTokenScopeReadIssue)
 
 		// Step 0: verify the repo is available
 		req := NewRequestf(t, "GET", "/%s/%s", ownerName, repoName)
@@ -96,12 +94,12 @@ func TestMigrateGiteaForm(t *testing.T) {
 			"description": "",
 			"uid":         strconv.FormatInt(repoOwner.ID, 10),
 		})
-		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+		resp = session.MakeRequest(t, req, http.StatusOK)
 		// Step 5: a redirection displays the migrated repository
-		loc := resp.Header().Get("Location")
+		loc := *test.ParseJSONRedirect(resp.Body.Bytes()).Redirect
 		assert.Equal(t, fmt.Sprintf("/%s/%s", ownerName, migratedRepoName), loc)
 		// Step 6: check the repo was created
-		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: migratedRepoName})
+		assert.Equal(t, repo_model.RepositoryReady, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: migratedRepoName}).Status)
 	})
 }
 
@@ -222,8 +220,6 @@ done
 
 func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
-	assert.NoError(t, migrations.Init())
 
 	mockServer := setupGiteaMockServer(t)
 
@@ -336,7 +332,7 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	assert.False(t, pr13.HasMerged)
 	assert.True(t, pr13.Issue.IsLocked)
 
-	gitRepo, err := git.OpenRepository(migratedRepo)
+	gitRepo, err := git.OpenRepository(t.Context(), migratedRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

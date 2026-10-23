@@ -4,19 +4,21 @@
 package v1_14
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm/schemas"
 )
 
-func ConvertHookTaskTypeToVarcharAndTrim(x base.EngineMigration) error {
+func ConvertHookTaskTypeToVarcharAndTrim(ctx context.Context, x base.EngineMigration) error {
 	dbType := x.Dialect().URI().DBType
 	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
 		return nil
 	}
 
 	// HookTask: Typ string `xorm:"VARCHAR(16) index"`
-	if err := base.ModifyColumn(x, "hook_task", &schemas.Column{
+	if err := base.ModifyColumn(ctx, x, "hook_task", &schemas.Column{
 		Name: "typ",
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",
@@ -39,7 +41,7 @@ func ConvertHookTaskTypeToVarcharAndTrim(x base.EngineMigration) error {
 	}
 
 	// Webhook: Type string `xorm:"VARCHAR(16) index"`
-	if err := base.ModifyColumn(x, "webhook", &schemas.Column{
+	if err := base.ModifyColumn(ctx, x, "webhook", &schemas.Column{
 		Name: "type",
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",

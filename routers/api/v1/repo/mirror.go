@@ -291,7 +291,12 @@ func AddPushMirror(ctx *context.APIContext) {
 		return
 	}
 
-	pushMirror := web.GetForm(ctx).(*api.CreatePushMirrorOption)
+	if setting.Mirror.DisableNewPush {
+		ctx.APIError(http.StatusForbidden, "the site administrator has disabled the creation of new push mirrors")
+		return
+	}
+
+	pushMirror := web.GetForm[*api.CreatePushMirrorOption](ctx)
 	CreatePushMirror(ctx, pushMirror)
 }
 
@@ -356,7 +361,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 
 	address, err := git.ParseRemoteAddr(mirrorOption.RemoteAddress, mirrorOption.RemoteUsername, mirrorOption.RemotePassword)
 	if err == nil {
-		err = migrations.IsMigrateURLAllowed(address, ctx.ContextUser)
+		err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
 	}
 	if err != nil {
 		HandleRemoteAddressError(ctx, err)
@@ -403,8 +408,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 }
 
 func HandleRemoteAddressError(ctx *context.APIContext, err error) {
-	if git.IsErrInvalidCloneAddr(err) {
-		addrErr := err.(*git.ErrInvalidCloneAddr)
+	if addrErr, ok := err.(*git.ErrInvalidCloneAddr); ok {
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.APIError(http.StatusBadRequest, "Invalid mirror protocol")

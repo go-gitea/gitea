@@ -4,13 +4,14 @@
 package v1_16
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddTableIssueContentHistory(x base.EngineMigration) error {
+func AddTableIssueContentHistory(_ context.Context, x base.EngineMigration) error {
 	type IssueContentHistory struct {
 		ID             int64 `xorm:"pk autoincr"`
 		PosterID       int64

@@ -4,11 +4,13 @@
 package v1_27
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddActionRunJobSummaryTable(x base.EngineMigration) error {
+func AddActionRunJobSummaryTable(_ context.Context, x base.EngineMigration) error {
 	type ActionRunJobSummary struct {
 		ID int64 `xorm:"pk autoincr"`
 

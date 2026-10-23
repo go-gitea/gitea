@@ -3,9 +3,13 @@
 
 package v1_21
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddIndexToCommentDependentIssueID(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddIndexToCommentDependentIssueID(_ context.Context, x base.EngineMigration) error {
 	type Comment struct {
 		DependentIssueID int64 `xorm:"index"`
 	}

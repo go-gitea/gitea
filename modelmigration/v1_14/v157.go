@@ -3,9 +3,13 @@
 
 package v1_14
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func FixRepoTopics(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func FixRepoTopics(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		ID     int64    `xorm:"pk autoincr"`
 		Topics []string `xorm:"TEXT JSON"`

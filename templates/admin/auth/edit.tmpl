@@ -428,8 +428,8 @@
 				</div>
 
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "admin.auths.update"}}</button>
-					<button class="ui red button link-action" data-url="{{$.Link}}/delete?id={{.Source.ID}}"
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "admin.auths.update"}}</button>
+					<button type="button" class="ui red button link-action" data-url="{{$.Link}}/delete?id={{.Source.ID}}"
 						data-modal-confirm-header="{{ctx.Locale.Tr "admin.auths.delete_auth_title"}}"
 						data-modal-confirm-content="{{ctx.Locale.Tr "admin.auths.delete_auth_desc"}}"
 					>{{ctx.Locale.Tr "admin.auths.delete"}}</button>

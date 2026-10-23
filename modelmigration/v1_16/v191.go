@@ -4,11 +4,13 @@
 package v1_16
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/setting"
 )
 
-func AlterIssueAndCommentTextFieldsToLongText(x base.EngineMigration) error {
+func AlterIssueAndCommentTextFieldsToLongText(_ context.Context, x base.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

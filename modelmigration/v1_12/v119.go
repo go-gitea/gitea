@@ -3,9 +3,13 @@
 
 package v1_12
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func FixMigratedRepositoryServiceType(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func FixMigratedRepositoryServiceType(_ context.Context, x base.EngineMigration) error {
 	// structs.GithubService:
 	// GithubService = 2
 	_, err := x.Exec("UPDATE repository SET original_service_type = ? WHERE original_url LIKE 'https://github.com/%'", 2)

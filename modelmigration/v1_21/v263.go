@@ -4,13 +4,14 @@
 package v1_21
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
 // AddGitSizeAndLFSSizeToRepositoryTable: add GitSize and LFSSize columns to Repository
-func AddGitSizeAndLFSSizeToRepositoryTable(x base.EngineMigration) error {
+func AddGitSizeAndLFSSizeToRepositoryTable(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		GitSize int64 `xorm:"NOT NULL DEFAULT 0"`
 		LFSSize int64 `xorm:"NOT NULL DEFAULT 0"`

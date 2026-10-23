@@ -4,6 +4,7 @@
 package v1_11
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
 	"io"
@@ -16,10 +17,9 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 )
 
-func RenameExistingUserAvatarName(x base.EngineMigration) error {
+func RenameExistingUserAvatarName(_ context.Context, x base.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -110,8 +110,8 @@ func RenameExistingUserAvatarName(x base.EngineMigration) error {
 	log.Info("Deleting %d old avatars ...", deleteCount)
 	i := 0
 	for file := range deleteList {
-		if err := util.Remove(file); err != nil {
-			log.Warn("util.Remove: %v", err)
+		if err := os.Remove(file); err != nil {
+			log.Warn("Failed to remove avatar %s: %v", file, err)
 		}
 		i++
 		select {

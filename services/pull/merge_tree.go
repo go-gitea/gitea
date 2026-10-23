@@ -54,7 +54,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return err
 	}
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo)
+	headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -65,7 +65,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	if pr.IsSameRepo() {
 		baseGitRepo = headGitRepo
 	} else {
-		baseGitRepo, err = git.OpenRepository(pr.BaseRepo)
+		baseGitRepo, err = git.OpenRepository(ctx, pr.BaseRepo)
 		if err != nil {
 			return fmt.Errorf("OpenRepository: %w", err)
 		}
@@ -90,11 +90,10 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	}
 
 	// 4. fetch head commit id into the current repository
-	// it will be checked in 2 weeks by default from git if the pull request created failure.
 	if !pr.IsSameRepo() {
 		if !baseGitRepo.IsReferenceExist(ctx, pr.HeadCommitID) {
-			if err := git.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
-				return fmt.Errorf("FetchRemoteCommit: %w", err)
+			if err := git.FetchRemoteTempCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
+				return fmt.Errorf("FetchRemoteTempCommit: %w", err)
 			}
 		}
 	}

@@ -24,7 +24,7 @@ func Test_AddConfidentialClientColumnToOAuth2ApplicationTable(t *testing.T) {
 		return
 	}
 
-	if err := AddConfidentialClientColumnToOAuth2ApplicationTable(x); err != nil {
+	if err := AddConfidentialClientColumnToOAuth2ApplicationTable(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}

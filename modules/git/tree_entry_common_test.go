@@ -14,7 +14,7 @@ import (
 )
 
 func TestFollowLink(t *testing.T) {
-	r, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
+	r, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer r.Close()
 

@@ -4,17 +4,18 @@
 package v1_11
 
 import (
+	"context"
+	"os"
 	"path/filepath"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
 
-func RemoveAttachmentMissedRepo(x base.EngineMigration) error {
+func RemoveAttachmentMissedRepo(_ context.Context, x base.EngineMigration) error {
 	type Attachment struct {
 		UUID string `xorm:"uuid"`
 	}
@@ -30,7 +31,7 @@ func RemoveAttachmentMissedRepo(x base.EngineMigration) error {
 
 		for i := 0; i < len(attachments); i++ {
 			uuid := attachments[i].UUID
-			if err = util.RemoveAll(filepath.Join(setting.Attachment.Storage.Path, uuid[0:1], uuid[1:2], uuid)); err != nil {
+			if err = os.RemoveAll(filepath.Join(setting.Attachment.Storage.Path, uuid[0:1], uuid[1:2], uuid)); err != nil {
 				log.Warn("Unable to remove attachment file by UUID %s: %v", uuid, err)
 			}
 		}

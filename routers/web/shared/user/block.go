@@ -66,7 +66,7 @@ func BlockedUsersPost(ctx *context.Context, blocker *user_model.User, redirect s
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.BlockUserForm)
+	form := web.GetForm[*forms.BlockUserForm](ctx)
 	err := blockedUsersPost(ctx, form, blocker)
 	if err == nil {
 		ctx.JSONRedirect(redirect)

@@ -4,13 +4,15 @@
 package v1_23
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func AddIndexToActionTaskStoppedLogExpired(x base.EngineMigration) error {
+func AddIndexToActionTaskStoppedLogExpired(_ context.Context, x base.EngineMigration) error {
 	type ActionTask struct {
 		Stopped    timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
 		LogExpired bool               `xorm:"index(stopped_log_expired)"`

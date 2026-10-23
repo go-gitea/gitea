@@ -4,12 +4,13 @@
 package v1_14
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddChangedProtectedFilesPullRequestColumn(x base.EngineMigration) error {
+func AddChangedProtectedFilesPullRequestColumn(_ context.Context, x base.EngineMigration) error {
 	type PullRequest struct {
 		ChangedProtectedFiles []string `xorm:"TEXT JSON"`
 	}

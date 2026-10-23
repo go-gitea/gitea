@@ -3,9 +3,13 @@
 
 package v1_21
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func FixPackagePropertyTypo(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func FixPackagePropertyTypo(_ context.Context, x base.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

@@ -1,17 +1,15 @@
 <script lang="ts" setup>
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {
   Chart,
   Tooltip,
   BarElement,
-  LinearScale,
-  TimeScale,
   type ChartOptions,
   type ChartData,
   type ChartDataset,
 } from 'chart.js';
 import {GET} from '../modules/fetch.ts';
-import {Bar} from 'vue-chartjs';
+import ChartCanvas from './ChartCanvas.vue';
 import {
   startDaysBetween,
   firstStartDateAfterDate,
@@ -22,17 +20,11 @@ import {
 import {chartJsColors} from '../utils/color.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
-import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
-import {onMounted, ref, shallowRef} from 'vue';
+import {computed, onMounted, shallowRef} from 'vue';
 
 const {pageData} = window.config;
 
-Chart.defaults.color = chartJsColors.text;
-Chart.defaults.borderColor = chartJsColors.border;
-
 Chart.register(
-  TimeScale,
-  LinearScale,
   BarElement,
   Tooltip,
 );
@@ -48,7 +40,7 @@ defineProps<{
 const isLoading = shallowRef(false);
 const errorText = shallowRef('');
 const repoLink = pageData.repoLink!;
-const data = ref<DayData[]>([]);
+const data = shallowRef<DayData[]>([]);
 
 onMounted(() => {
   fetchGraphData();
@@ -80,6 +72,8 @@ async function fetchGraphData() {
     isLoading.value = false;
   }
 }
+
+const graphData = computed(() => toGraphData(data.value));
 
 function toGraphData(data: DayData[]): ChartData<'bar'> {
   return {
@@ -137,9 +131,9 @@ const options: ChartOptions<'bar'> = {
           {{ errorText }}
         </div>
       </div>
-      <Bar
-        v-memo="data" v-if="data.length !== 0"
-        :data="toGraphData(data)" :options="options"
+      <ChartCanvas
+        v-if="data.length !== 0"
+        type="bar" :data="graphData" :options="options"
       />
     </div>
   </div>

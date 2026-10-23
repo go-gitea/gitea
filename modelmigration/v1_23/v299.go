@@ -4,12 +4,14 @@
 package v1_23
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddContentVersionToIssueAndComment(x base.EngineMigration) error {
+func AddContentVersionToIssueAndComment(_ context.Context, x base.EngineMigration) error {
 	type Issue struct {
 		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
 	}

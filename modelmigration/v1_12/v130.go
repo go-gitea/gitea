@@ -4,12 +4,14 @@
 package v1_12
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 )
 
-func ExpandWebhooks(x base.EngineMigration) error {
+func ExpandWebhooks(_ context.Context, x base.EngineMigration) error {
 	type HookEvents struct {
 		Create               bool `json:"create"`
 		Delete               bool `json:"delete"`

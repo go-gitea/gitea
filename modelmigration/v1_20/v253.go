@@ -4,11 +4,13 @@
 package v1_20
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/log"
 )
 
-func FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam(x base.EngineMigration) error {
+func FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam(_ context.Context, x base.EngineMigration) error {
 	type UnitType int
 	type AccessMode int
 

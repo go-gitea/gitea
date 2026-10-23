@@ -76,7 +76,7 @@ func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, ba
 		}
 		return fmt.Errorf("temp repo clone error: %w, %s", err, stderr)
 	}
-	gitRepo, err := git.OpenRepositoryLocal(t.basePath)
+	gitRepo, err := git.OpenRepositoryLocal(ctx, t.basePath)
 	if err != nil {
 		return err
 	}
@@ -86,10 +86,10 @@ func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, ba
 
 // Init the repository
 func (t *TemporaryUploadRepository) Init(ctx context.Context, objectFormatName string) error {
-	if err := git.InitRepositoryLocal(ctx, t.basePath, false, objectFormatName); err != nil {
+	if err := git.InitRepositoryLocal(ctx, t.basePath, false, objectFormatName, ""); err != nil {
 		return err
 	}
-	gitRepo, err := git.OpenRepositoryLocal(t.basePath)
+	gitRepo, err := git.OpenRepositoryLocal(ctx, t.basePath)
 	if err != nil {
 		return err
 	}
@@ -363,7 +363,7 @@ func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context, oldContent, n
 		WithRepo(t.gitRepo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			var diffErr error
-			diff, diffErr = gitdiff.ParsePatch(ctx, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
+			diff, diffErr = gitdiff.ParsePatch(ctx, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader)
 			if diffErr != nil {
 				// if the diffErr is not nil, it will be returned as the error of "Run()"
 				return fmt.Errorf("ParsePatch: %w", diffErr)

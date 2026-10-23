@@ -26,7 +26,7 @@ func Test_ExtendCommentTreePathLength(t *testing.T) {
 	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(Comment))
 	defer deferrable()
 
-	require.NoError(t, ExtendCommentTreePathLength(x))
+	require.NoError(t, ExtendCommentTreePathLength(t.Context(), x))
 	table := migrationtest.LoadTableSchemasMap(t, x)["comment"]
 	column := table.GetColumn("tree_path")
 	assert.Contains(t, []string{"NVARCHAR", "VARCHAR"}, column.SQLType.Name)

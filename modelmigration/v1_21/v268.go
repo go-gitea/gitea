@@ -3,10 +3,14 @@
 
 package v1_21
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
+
+	"gitea.dev/modelmigration/base"
+)
 
 // UpdateActionsRefIndex updates the index of actions ref field
-func UpdateActionsRefIndex(x base.EngineMigration) error {
+func UpdateActionsRefIndex(_ context.Context, x base.EngineMigration) error {
 	type ActionRun struct {
 		Ref string `xorm:"index"` // the commit/tag/… causing the run
 	}

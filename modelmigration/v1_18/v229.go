@@ -4,19 +4,29 @@
 package v1_18
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/models/issues"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )
 
-func UpdateOpenMilestoneCounts(x base.EngineMigration) error {
+func UpdateOpenMilestoneCounts(_ context.Context, x base.EngineMigration) error {
 	var openMilestoneIDs []int64
 	err := x.Table("milestone").Select("id").Where(builder.Neq{"is_closed": 1}).Find(&openMilestoneIDs)
 	if err != nil {
 		return fmt.Errorf("error selecting open milestone IDs: %w", err)
+	}
+
+	type Milestone struct {
+		ID              int64
+		IsClosed        bool
+		NumIssues       int
+		NumClosedIssues int
+		Completeness    int
+		UpdatedUnix     timeutil.TimeStamp
 	}
 
 	for _, id := range openMilestoneIDs {
@@ -31,7 +41,7 @@ func UpdateOpenMilestoneCounts(x base.EngineMigration) error {
 					"is_closed":    true,
 				},
 			)).
-			Update(&issues.Milestone{})
+			Update(&Milestone{})
 		if err != nil {
 			return fmt.Errorf("error updating issue counts in milestone %d: %w", id, err)
 		}

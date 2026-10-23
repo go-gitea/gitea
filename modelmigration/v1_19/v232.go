@@ -4,11 +4,13 @@
 package v1_19
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/setting"
 )
 
-func AlterPackageVersionMetadataToLongText(x base.EngineMigration) error {
+func AlterPackageVersionMetadataToLongText(_ context.Context, x base.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

@@ -4,13 +4,14 @@
 package v1_14
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
 // DeleteOrphanedIssueLabels looks through the database for issue_labels where the label no longer exists and deletes them.
-func DeleteOrphanedIssueLabels(x base.EngineMigration) error {
+func DeleteOrphanedIssueLabels(_ context.Context, x base.EngineMigration) error {
 	type IssueLabel struct {
 		ID      int64 `xorm:"pk autoincr"`
 		IssueID int64 `xorm:"UNIQUE(s)"`

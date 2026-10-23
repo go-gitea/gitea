@@ -150,6 +150,9 @@ func (wc wechatworkConvertor) Repository(p *api.RepositoryPayload) (WechatworkPa
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
 		return newWechatworkMarkdownPayload(title), nil
+	case api.HookRepoRenamed:
+		title = fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
+		return newWechatworkMarkdownPayload(title), nil
 	}
 
 	return WechatworkPayload{}, nil

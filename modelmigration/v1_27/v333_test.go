@@ -38,7 +38,7 @@ func Test_AddBranchProtectionBypassAllowlist(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	require.NoError(t, AddBranchProtectionBypassAllowlist(x))
+	require.NoError(t, AddBranchProtectionBypassAllowlist(t.Context(), x))
 
 	// Verify the default values record
 	var pb ProtectedBranch

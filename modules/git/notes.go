@@ -5,10 +5,10 @@ package git
 
 import (
 	"context"
-	"io"
+	"path"
 	"strings"
 
-	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 // NotesRef is the git ref where Gitea will look for git-notes data.
@@ -17,83 +17,73 @@ const NotesRef = "refs/notes/commits"
 
 // Note stores information about a note created using git-notes.
 type Note struct {
-	Message []byte
-	Commit  *Commit
+	refCommit *Commit
+
+	BlobMessage CommitMessage // if the blob is too large, the message will be truncated
+	BlobSize    int64
+	TreePath    string
 }
 
 // GetNote retrieves the git-notes data for a given commit.
-// FIXME: Add LastCommitCache support
-func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note) error {
-	log.Trace("Searching for git note corresponding to the commit %q in the repository %q", commitID, repo.LogString())
-	notes, err := repo.GetCommit(ctx, NotesRef)
+func GetNote(ctx context.Context, repo *Repository, commitID string) (*Note, error) {
+	noteCommit, err := repo.GetCommit(ctx, NotesRef)
 	if err != nil {
-		if IsErrNotExist(err) {
-			return err
-		}
-		log.Error("Unable to get commit from ref %q. Error: %v", NotesRef, err)
-		return err
+		return nil, err
 	}
 
-	path := ""
-
-	tree := notes.Tree()
-	log.Trace("Found tree with ID %q while searching for git note corresponding to the commit %q", tree.ID, commitID)
-
+	// A note for a commit is stored in a blob in the notes commit tree, with the path being the commit ID.
+	// The path can be "FullCommitID" or a fanout path like "ab/cdef...." or "ab/cd/ef.....".
+	tree := noteCommit.Tree()
+	entryName := commitID
 	var entry *TreeEntry
-	originalCommitID := commitID
-	for len(commitID) > 2 {
-		entry, err = tree.GetTreeEntryByPath(ctx, repo, commitID)
+	var treePathBuf strings.Builder
+	for len(entryName) > 2 {
+		entry, err = tree.GetTreeEntryByPath(ctx, repo, entryName)
 		if err == nil {
-			path += commitID
+			treePathBuf.WriteString(entryName)
 			break
-		}
-		if IsErrNotExist(err) {
-			tree, err = tree.SubTree(ctx, repo, commitID[0:2])
-			path += commitID[0:2] + "/"
-			commitID = commitID[2:]
-		}
-		if err != nil {
-			// Err may have been updated by the SubTree we need to recheck if it's again an ErrNotExist
-			if !IsErrNotExist(err) {
-				log.Error("Unable to find git note corresponding to the commit %q. Error: %v", originalCommitID, err)
+		} else if IsErrNotExist(err) {
+			fanoutDir, fanoutName := entryName[0:2], entryName[2:]
+			tree, err = tree.SubTree(ctx, repo, fanoutDir)
+			if err != nil {
+				return nil, err
 			}
-			return err
+			treePathBuf.WriteString(fanoutDir)
+			treePathBuf.WriteByte('/')
+			entryName = fanoutName
+		} else {
+			return nil, err
 		}
 	}
+	if entry == nil {
+		return nil, ErrNotExist{ID: commitID}
+	}
 
+	treePath := treePathBuf.String()
 	blob := entry.Blob(repo)
-	dataRc, err := blob.DataAsync(ctx)
+	note := &Note{TreePath: treePath, refCommit: noteCommit}
+	note.BlobMessage.MessageRaw, err = blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 	if err != nil {
-		log.Error("Unable to read blob with ID %q. Error: %v", blob.ID, err)
-		return err
+		return nil, err
 	}
-	closed := false
-	defer func() {
-		if !closed {
-			_ = dataRc.Close()
-		}
-	}()
-	d, err := io.ReadAll(dataRc)
+	note.BlobSize = blob.Size(ctx) // it should be called after the get blob content, then the "size" is cached
+	return note, nil
+}
+
+func GetNoteWithLastCommit(ctx context.Context, repo *Repository, commitID string) (*Note, *Commit, error) {
+	note, err := GetNote(ctx, repo, commitID)
 	if err != nil {
-		log.Error("Unable to read blob with ID %q. Error: %v", blob.ID, err)
-		return err
+		return nil, nil, err
 	}
-	_ = dataRc.Close()
-	closed = true
-	note.Message = d
-
-	treePath := ""
-	if idx := strings.LastIndex(path, "/"); idx > -1 {
-		treePath = path[:idx]
-		path = path[idx+1:]
-	}
-
-	lastCommits, err := GetLastCommitForPaths(ctx, repo, notes, treePath, []string{path})
+	parentPath, entryName := path.Split(note.TreePath)
+	parentPath = strings.Trim(parentPath, "/")
+	lastCommits, err := GetLastCommitForPaths(ctx, repo, note.refCommit, parentPath, []string{entryName})
 	if err != nil {
-		log.Error("Unable to get the commit for the path %q. Error: %v", treePath, err)
-		return err
+		return nil, nil, err
 	}
-	note.Commit = lastCommits[path]
-
-	return nil
+	lastCommit := lastCommits[entryName]
+	if lastCommit == nil {
+		return nil, nil, ErrNotExist{ID: commitID}
+	}
+	return note, lastCommit, nil
 }

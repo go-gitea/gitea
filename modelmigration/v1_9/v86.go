@@ -3,9 +3,13 @@
 
 package v1_9
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddHTTPMethodToWebhook(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddHTTPMethodToWebhook(_ context.Context, x base.EngineMigration) error {
 	type Webhook struct {
 		HTTPMethod string `xorm:"http_method DEFAULT 'POST'"`
 	}

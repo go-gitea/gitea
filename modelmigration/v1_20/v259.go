@@ -4,6 +4,7 @@
 package v1_20
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -318,7 +319,7 @@ type AccessToken struct {
 	Scope string
 }
 
-func ConvertScopedAccessTokens(x base.EngineMigration) error {
+func ConvertScopedAccessTokens(_ context.Context, x base.EngineMigration) error {
 	var tokens []*AccessToken
 
 	if err := x.Find(&tokens); err != nil {

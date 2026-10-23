@@ -4,12 +4,13 @@
 package v1_16
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddTableAppState(x base.EngineMigration) error {
+func AddTableAppState(_ context.Context, x base.EngineMigration) error {
 	type AppState struct {
 		ID       string `xorm:"pk varchar(200)"`
 		Revision int64

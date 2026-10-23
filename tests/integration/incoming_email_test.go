@@ -23,6 +23,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIncomingEmail(t *testing.T) {
@@ -48,13 +49,15 @@ func TestIncomingEmail(t *testing.T) {
 
 			ref, err := incoming_payload.GetReferenceFromPayload(t.Context(), issuePayload)
 			assert.NoError(t, err)
-			assert.IsType(t, ref, new(issues_model.Issue))
-			assert.Equal(t, issue.ID, ref.(*issues_model.Issue).ID)
+			refIssue, ok := ref.(*issues_model.Issue)
+			require.True(t, ok)
+			assert.Equal(t, issue.ID, refIssue.ID)
 
 			ref, err = incoming_payload.GetReferenceFromPayload(t.Context(), commentPayload)
 			assert.NoError(t, err)
-			assert.IsType(t, ref, new(issues_model.Comment))
-			assert.Equal(t, comment.ID, ref.(*issues_model.Comment).ID)
+			refComment, ok := ref.(*issues_model.Comment)
+			require.True(t, ok)
+			assert.Equal(t, comment.ID, refComment.ID)
 		})
 
 		t.Run("Token", func(t *testing.T) {

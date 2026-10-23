@@ -50,14 +50,16 @@ func TestRepoWiki(t *testing.T) {
 	})
 
 	t.Run("PathInTag", func(t *testing.T) {
-		rctx := NewRenderContextRepoWiki(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoWiki(t.Context(), repo1, RepoWikiOptions{
+			currentTreePath: "my dir",
+		}).WithMarkupType(markdown.MarkupName)
 		rendered, err := testRenderString(rctx, `
 <img src="LINK">
 <video src="LINK">
 `)
 		assert.NoError(t, err)
-		assert.Equal(t, `<a href="/user2/repo1/wiki/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/LINK"/></a>
-<video src="/user2/repo1/wiki/raw/LINK">
+		assert.Equal(t, `<a href="/user2/repo1/wiki/my%20dir/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/my%20dir/LINK"/></a>
+<video src="/user2/repo1/wiki/raw/my%20dir/LINK">
 </video>`, rendered)
 	})
 }

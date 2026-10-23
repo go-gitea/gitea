@@ -4,11 +4,13 @@
 package v1_12
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/setting"
 )
 
-func PrependRefsHeadsToIssueRefs(x base.EngineMigration) error {
+func PrependRefsHeadsToIssueRefs(_ context.Context, x base.EngineMigration) error {
 	var query string
 
 	switch {

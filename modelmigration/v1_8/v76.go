@@ -4,13 +4,14 @@
 package v1_8
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddPullRequestRebaseWithMerge(x base.EngineMigration) error {
+func AddPullRequestRebaseWithMerge(_ context.Context, x base.EngineMigration) error {
 	// RepoUnit describes all units of a repository
 	type RepoUnit struct {
 		ID          int64
@@ -50,16 +51,16 @@ func AddPullRequestRebaseWithMerge(x base.EngineMigration) error {
 		// Allow the new merge style if all other merge styles are allowed
 		allowMergeRebase := true
 
-		if allowMerge, ok := unit.Config["AllowMerge"]; ok {
-			allowMergeRebase = allowMergeRebase && allowMerge.(bool)
+		if allowMerge, ok := unit.Config["AllowMerge"].(bool); ok {
+			allowMergeRebase = allowMergeRebase && allowMerge
 		}
 
-		if allowRebase, ok := unit.Config["AllowRebase"]; ok {
-			allowMergeRebase = allowMergeRebase && allowRebase.(bool)
+		if allowRebase, ok := unit.Config["AllowRebase"].(bool); ok {
+			allowMergeRebase = allowMergeRebase && allowRebase
 		}
 
-		if allowSquash, ok := unit.Config["AllowSquash"]; ok {
-			allowMergeRebase = allowMergeRebase && allowSquash.(bool)
+		if allowSquash, ok := unit.Config["AllowSquash"].(bool); ok {
+			allowMergeRebase = allowMergeRebase && allowSquash
 		}
 
 		if _, ok := unit.Config["AllowRebaseMerge"]; !ok {

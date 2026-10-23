@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 )
 
 type lineCountWriter struct {
@@ -45,11 +46,6 @@ func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head s
 		WithRepo(repo).
 		WithStdoutCopy(w).
 		RunWithStderr(ctx); err != nil {
-		if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
-			// git >= 2.28 now returns an error if base and head have become unrelated.
-			// it doesn't make sense to count the changed files in this case because UI won't display such diff
-			return 0, nil
-		}
 		return 0, err
 	}
 	return w.numLines, nil
@@ -113,7 +109,7 @@ func (repo *Repository) GetFilesChangedBetween(ctx context.Context, base, head s
 // ReadPatchCommit will check if a diff patch exists and return stats
 func (repo *Repository) ReadPatchCommit(prID int64) (commitSHA string, err error) {
 	// Migrated repositories download patches to "pulls" location
-	repoFS := GetRepoFS(repo)
+	repoFS := gitrepo.RepoLocalFS(repo)
 	loadPatch, err := repoFS.Open(fmt.Sprintf("pulls/%d.patch", prID))
 	if err != nil {
 		return "", err

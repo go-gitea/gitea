@@ -3,9 +3,13 @@
 
 package v1_7
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddMustChangePassword(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddMustChangePassword(_ context.Context, x base.EngineMigration) error {
 	// User see models/user.go
 	type User struct {
 		ID                 int64 `xorm:"pk autoincr"`
