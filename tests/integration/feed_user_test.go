@@ -144,8 +144,6 @@ func TestFeedUser(t *testing.T) {
 	})
 
 	t.Run("RepoTagsWithoutReleasesAccess", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeReleases}))
 
