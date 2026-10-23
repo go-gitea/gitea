@@ -2,7 +2,7 @@ import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
 import {login, apiCreateFiles, apiCreateRepo, randomString} from './utils.ts';
 
-test('codeeditor textarea updates with the branch editorconfig indent', async ({page, request}) => {
+test('codeeditor textarea updates correctly', async ({page, request}) => {
   const repoName = `e2e-codeeditor-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await Promise.all([
