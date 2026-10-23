@@ -12,12 +12,12 @@ import (
 	"sync"
 	"testing"
 
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/packages/maven"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/packages/maven"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -199,8 +199,9 @@ func TestPackageMaven(t *testing.T) {
 
 		pd, err = packages.GetPackageDescriptor(t.Context(), pvs[0])
 		require.NoError(t, err)
-		assert.IsType(t, &maven.Metadata{}, pd.Metadata)
-		assert.Equal(t, packageDescription, pd.Metadata.(*maven.Metadata).Description)
+		metadata, ok := pd.Metadata.(*maven.Metadata)
+		require.True(t, ok)
+		assert.Equal(t, packageDescription, metadata.Description)
 
 		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		require.NoError(t, err)

@@ -23,25 +23,25 @@
 					</div>
 					{{if $data.IsPullBranchDeletable}}
 						<div>
-							<button class="ui button link-action delete-branch-after-merge" data-url="{{.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
+							<button type="button" class="ui button link-action delete-branch-after-merge" data-url="{{.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
 						</div>
 					{{end}}
 				</div>
 			{{end}}
-				{{range $infoSection := $data.InfoSections}}
-					{{if $infoSection.InfoItems}}
-					<div class="item">
-						{{range $infoItem := $infoSection.InfoItems}}
-							{{if $infoItem.ActionHTML}}
-							<div class="flex-left-right">
-								<div class="flex-text-block {{$infoItem.ItemClass}}">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
-								{{$infoItem.ActionHTML}}
-							</div>
-							{{else}}
+			{{range $infoSection := $data.InfoSections}}
+				{{if $infoSection.InfoItems}}
+				<div class="item">
+					{{range $infoItem := $infoSection.InfoItems}}
+						{{if $infoItem.ActionHTML}}
+						<div class="flex-left-right">
 							<div class="flex-text-block {{$infoItem.ItemClass}}">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
-							{{end}}
-							{{if $infoItem.ListItems}}
-								<ul class="tw-pl-[36px]">{{/* align with the info icon and text */}}
+							{{$infoItem.ActionHTML}}
+						</div>
+						{{else}}
+							<div class="flex-text-block {{$infoItem.ItemClass}}">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
+						{{end}}
+						{{if $infoItem.ListItems}}
+							<ul class="tw-pl-[36px]">{{/* align with the info icon and text */}}
 								{{range $listItem := $infoItem.ListItems}}
 									<li>{{$listItem}}</li>
 								{{end}}
@@ -63,7 +63,7 @@
 						{{svg "octicon-x"}} {{ctx.Locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
 					</div>
 					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
-					<button class="ui compact button" data-global-init="initPullRequestWipToggle" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
+					<button type="button" class="ui compact button" data-global-init="initPullRequestWipToggle" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
 						{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}
 					</button>
 					{{end}}

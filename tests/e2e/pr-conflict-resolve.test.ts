@@ -2,17 +2,17 @@
 // SPDX-License-Identifier: MIT
 
 import {expect, test} from '@playwright/test';
-import {apiCreateBranch, apiCreateFile, apiCreatePR, apiCreateUser, apiUpdateFile, apiUserHeaders, loginUser, randomString, timeoutFactor} from './utils.ts';
+import {apiCreateBranch, apiCreateFiles, apiCreatePR, apiCreateUser, apiUpdateFile, apiUserHeaders, loginUser, randomString, timeoutFactor} from './utils.ts';
 
 /**
  * Creates a PR where `feat` and `main` both modify the same line in `conflict.txt`,
  * so Gitea's merge-check will mark it as conflicted.
  */
-async function setupConflictPR(request: Parameters<typeof apiCreateFile>[0], owner: string, repo: string) {
+async function setupConflictPR(request: Parameters<typeof apiCreateFiles>[0], owner: string, repo: string) {
   const headers = apiUserHeaders(owner);
 
   // Create conflict.txt on main with initial content.
-  await apiCreateFile(request, owner, repo, 'conflict.txt', 'ancestor line\n', {branch: 'main', message: 'add conflict.txt'});
+  await apiCreateFiles(request, owner, repo, [{path: 'conflict.txt', content: 'ancestor line\n'}], {branch: 'main'});
 
   // Branch off for the feature branch and make a diverging change.
   await apiCreateBranch(request, owner, repo, 'feat');
@@ -115,8 +115,8 @@ test('pr conflict resolve — file switching saves content', async ({page, reque
   });
 
   // Create TWO conflicting files so we can test switching.
-  await apiCreateFile(request, owner, repo, 'file-a.txt', 'ancestor a\n', {branch: 'main', message: 'add files'});
-  await apiCreateFile(request, owner, repo, 'file-b.txt', 'ancestor b\n', {branch: 'main', message: 'add file-b'});
+  await apiCreateFiles(request, owner, repo, [{path: 'file-a.txt', content: 'ancestor a\n'}], {branch: 'main'});
+  await apiCreateFiles(request, owner, repo, [{path: 'file-b.txt', content: 'ancestor b\n'}], {branch: 'main'});
   await apiCreateBranch(request, owner, repo, 'feat');
   await apiUpdateFile(request, owner, repo, 'file-a.txt', 'feat change a\n', {branch: 'feat', message: 'feat a'});
   await apiUpdateFile(request, owner, repo, 'file-b.txt', 'feat change b\n', {branch: 'feat', message: 'feat b'});

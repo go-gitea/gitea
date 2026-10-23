@@ -5,13 +5,16 @@ package pull
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +38,9 @@ func setupConflictPR(t *testing.T) (pr *issues_model.PullRequest, conflictFile s
 	headBranch = strings.ReplaceAll(headBranch, "/", "-")
 
 	// Fast-import: common ancestor commit, then diverging changes on each branch.
-	repoPath := pr.BaseRepo.RepoPath()
+	repoPath := gitrepo.RepoLocalPath(pr.BaseRepo)
+	// the unit test has no internal API server for the git hooks to call
+	require.NoError(t, os.RemoveAll(filepath.Join(repoPath, "hooks")))
 	fastImport := fmt.Sprintf(`reset refs/heads/%[1]s
 from refs/heads/master
 
@@ -161,7 +166,7 @@ func TestCommitConflictResolutionMergeCommitParents(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	// Record the tip SHAs before the resolution commit.
-	repoPath := pr.BaseRepo.RepoPath()
+	repoPath := gitrepo.RepoLocalPath(pr.BaseRepo)
 	oldHeadTip, _, err := gitcmd.NewCommand("rev-parse").
 		AddDynamicArguments(pr.HeadBranch).
 		WithDir(repoPath).RunStdString(t.Context())

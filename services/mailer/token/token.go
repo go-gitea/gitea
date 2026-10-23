@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/util"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
 )
 
 // A token is a verifiable container describing an action.
@@ -98,7 +98,7 @@ func DecodeToken(ctx context.Context, token string) (HandlerType, *user_model.Us
 		return UnknownHandlerType, nil, nil, err
 	}
 
-	user, err := user_model.GetUserByID(ctx, userID)
+	user, err := user_model.GetValidDoerUserByID(ctx, userID)
 	if err != nil {
 		return UnknownHandlerType, nil, nil, err
 	}

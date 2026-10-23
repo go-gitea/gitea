@@ -9,13 +9,15 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDbfsBasic(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
 	// test basic write/read
@@ -165,6 +167,7 @@ func TestDbfsBasic(t *testing.T) {
 }
 
 func TestDbfsReadWrite(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
 	f1, err := OpenFile(t.Context(), "test.log", os.O_RDWR|os.O_CREATE)
@@ -197,6 +200,7 @@ func TestDbfsReadWrite(t *testing.T) {
 }
 
 func TestDbfsSeekWrite(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
 	// write something

@@ -68,8 +68,8 @@ registerGlobalInitFunc('initRepoConflictEditor', async (elRoot: HTMLElement) => 
   }
 
   function updateSidebar(): void {
-    for (const [fpath, state] of fileStates.entries()) {
-      const item = elFileList.querySelector<HTMLElement>(`[data-path=${JSON.stringify(fpath)}]`);
+    for (const [fpath, state] of fileStates) {
+      const item = elFileList.querySelector<HTMLElement>(`[data-path=${CSS.escape(JSON.stringify(fpath))}]`);
       if (!item) continue;
       item.classList.toggle('active', fpath === currentFile);
       item.classList.toggle('resolved', state.status === 'resolved');
@@ -164,7 +164,7 @@ registerGlobalInitFunc('initRepoConflictEditor', async (elRoot: HTMLElement) => 
     updateHint();
 
     // Auto-advance to the next unresolved file
-    for (const [fpath, state] of fileStates.entries()) {
+    for (const [fpath, state] of fileStates) {
       if (state.status === 'unresolved') {
         switchToFile(fpath);
         return;
@@ -179,7 +179,7 @@ registerGlobalInitFunc('initRepoConflictEditor', async (elRoot: HTMLElement) => 
       fileStates.set(currentFile, {...prev, content: editorGetContent()});
     }
 
-    const files = Array.from(fileStates.entries())
+    const files = Array.from(fileStates)
       .filter(([, s]) => s.status === 'resolved' && s.content !== null)
       .map(([p, s]) => ({path: p, content: s.content!}));
 
@@ -192,7 +192,7 @@ registerGlobalInitFunc('initRepoConflictEditor', async (elRoot: HTMLElement) => 
       const resp = await POST(resolveUrl, {data: {message, files}});
       if (resp.ok) {
         const data = await resp.json() as {redirect: string};
-        window.location.href = data.redirect;
+        window.location.assign(data.redirect);
       } else {
         const data = await resp.json() as {error?: string};
         showErrorToast(data.error ?? 'Commit failed');

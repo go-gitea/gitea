@@ -10,18 +10,18 @@ import (
 	"strings"
 	"time"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	pull_service "code.gitea.io/gitea/services/pull"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	pull_service "gitea.dev/services/pull"
 )
 
 const tplConflictResolution templates.TplName = "repo/pulls/conflict_resolution"
@@ -137,7 +137,7 @@ func ResolveConflictsEditor(ctx *context.Context) {
 	// Indicate whether there may be more conflicted files beyond the stored list.
 	// ConflictedFiles is capped at MaxConflictedDetectFiles; reaching the cap
 	// means further conflicted files exist that are not shown in the sidebar.
-	ctx.Data["ConflictedFilesMaybeTruncated"] = len(pull.ConflictedFiles) >= gitrepo.MaxConflictedDetectFiles
+	ctx.Data["ConflictedFilesMaybeTruncated"] = len(pull.ConflictedFiles) >= git.MaxConflictedDetectFiles
 	ctx.HTML(http.StatusOK, tplConflictResolution)
 }
 

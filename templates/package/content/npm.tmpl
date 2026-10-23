@@ -22,25 +22,18 @@
 
 	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.Readme}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
-		<div class="ui attached segment">
-			{{if .PackageDescriptor.Metadata.Readme}}
-			<div class="markup markdown">
-				{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.Readme}}
-			</div>
-			{{else if .PackageDescriptor.Metadata.Description}}
-				{{.PackageDescriptor.Metadata.Description}}
-			{{end}}
-		</div>
+		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment">{{ctx.RenderUtils.RenderPackageMarkdown .PackageDescriptor.Metadata.Readme .PackageDescriptor.Repository .PackageDescriptor.Metadata.Repository.Directory}}</div>{{end}}
 	{{end}}
 
 	{{if or .PackageDescriptor.Metadata.Dependencies .PackageDescriptor.Metadata.DevelopmentDependencies .PackageDescriptor.Metadata.PeerDependencies .PackageDescriptor.Metadata.OptionalDependencies}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
-				{{template "package/content/npm_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.Dependencies "title" (ctx.Locale.Tr "packages.npm.dependencies")}}
-				{{template "package/content/npm_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.DevelopmentDependencies "title" (ctx.Locale.Tr "packages.npm.dependencies.development")}}
-				{{template "package/content/npm_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.PeerDependencies "title" (ctx.Locale.Tr "packages.npm.dependencies.peer")}}
-				{{template "package/content/npm_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.OptionalDependencies "title" (ctx.Locale.Tr "packages.npm.dependencies.optional")}}
+				{{template "package/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.Dependencies "title" (ctx.Locale.Tr "packages.npm.dependencies")}}
+				{{template "package/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.DevelopmentDependencies "title" (ctx.Locale.Tr "packages.npm.dependencies.development")}}
+				{{template "package/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.PeerDependencies "title" (ctx.Locale.Tr "packages.npm.dependencies.peer")}}
+				{{template "package/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.OptionalDependencies "title" (ctx.Locale.Tr "packages.npm.dependencies.optional")}}
 			</div>
 		</div>
 	{{end}}

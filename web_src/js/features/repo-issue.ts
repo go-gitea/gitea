@@ -1,5 +1,5 @@
 import {errorMessage} from '../modules/errors.ts';
-import {htmlEscape} from '../utils/html.ts';
+import {html, htmlEscape, htmlRaw} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
@@ -7,18 +7,19 @@ import {
   hideElem,
   queryElems,
   showElem,
-  toggleElem,
+  toggleElem, toggleElemClass,
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {showFomanticModal} from '../modules/fomantic/modal.ts';
-import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
-import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {showModal} from '../modules/modal.ts';
+import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
+import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
+import type {FomanticApiResponse} from '../types.ts';
+import {performFetchActionRequest} from '../modules/fetch-action.ts';
+import {confirmModal} from './comp/ConfirmModal.ts';
 
 const {appSubUrl} = window.config;
 
@@ -28,7 +29,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
   const queryLabels = url.searchParams.get('labels') || '';
   const selectedLabelIds = new Set<string>();
   for (const id of queryLabels ? queryLabels.split(',') : []) {
-    selectedLabelIds.add(`${Math.abs(parseInt(id))}`); // "labels" contains negative ids, which are excluded
+    selectedLabelIds.add(String(Math.abs(parseInt(id)))); // "labels" contains negative ids, which are excluded
   }
 
   const excludeLabel = (e: MouseEvent | KeyboardEvent, item: Element) => {
@@ -94,69 +95,65 @@ export function initRepoIssueFilterItemLabel() {
 }
 
 export function initRepoIssueCommentDelete() {
-  // Delete comment
-  document.addEventListener('click', async (e) => {
-    if (!(e.target as HTMLElement).matches('.delete-comment')) return;
-    e.preventDefault();
+  registerGlobalEventFunc('click', 'onConvContentDelete', async (deleteButton) => {
+    if (!await confirmModal({content: deleteButton.getAttribute('data-locale')!, confirmButtonColor: 'red'})) return;
 
-    const deleteButton = e.target as HTMLElement;
-    if (window.confirm(deleteButton.getAttribute('data-locale')!)) {
-      try {
-        const response = await POST(deleteButton.getAttribute('data-url')!);
-        if (!response.ok) throw new Error('Failed to delete comment');
+    const resp = await performFetchActionRequest(deleteButton, {method: 'POST', url: deleteButton.getAttribute('data-url')!});
+    if (!resp) return;
 
-        const conversationHolder = deleteButton.closest('.conversation-holder');
-        const parentTimelineItem = deleteButton.closest('.timeline-item');
-        const parentTimelineGroup = deleteButton.closest('.timeline-item-group');
+    // query the parent elements of the delete button before the comment (with the delete button) is removed from the DOM
+    const conversationHolder = deleteButton.closest('.conversation-holder');
+    const parentTimelineGroup = deleteButton.closest('.timeline-item-group');
+    const parentTimelineItem = deleteButton.closest('.timeline-item');
 
-        // Check if this was a pending comment.
-        if (conversationHolder?.querySelector('.pending-label')) {
-          const counter = document.querySelector('#review-box .review-comments-counter')!;
-          let num = parseInt(counter?.getAttribute('data-pending-comment-number') || '') - 1 || 0;
-          num = Math.max(num, 0);
-          counter.setAttribute('data-pending-comment-number', String(num));
-          counter.textContent = String(num);
-        }
+    // Delete the current comment from the DOM
+    const commentHashTag = deleteButton.getAttribute('data-comment-hash-tag')!;
+    const deletedComment = document.querySelector(`#${commentHashTag}`);
+    deletedComment?.remove();
 
-        document.querySelector(`#${deleteButton.getAttribute('data-comment-id')}`)?.remove();
+    // only pr review comments have the "conversation-holder" element, so if it's not found, we can return early
+    if (!conversationHolder) return;
 
-        if (conversationHolder && !conversationHolder.querySelector('.comment')) {
-          const path = conversationHolder.getAttribute('data-path');
-          const side = conversationHolder.getAttribute('data-side');
-          const idx = conversationHolder.getAttribute('data-idx');
-          const lineType = conversationHolder.closest('tr')?.getAttribute('data-line-type');
-
-          // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
-          // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment"
-          if (lineType) {
-            if (lineType === 'same') {
-              document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`)!.classList.remove('tw-invisible');
-            } else {
-              document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`)!.classList.remove('tw-invisible');
-            }
-          }
-          conversationHolder.remove();
-        }
-
-        // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
-        if (!parentTimelineGroup?.querySelector('.timeline-item.comment') && !parentTimelineItem?.querySelector('.conversation-holder')) {
-          const timelineAvatar = parentTimelineGroup?.querySelector('.timeline-avatar');
-          timelineAvatar?.classList.remove('timeline-avatar-offset');
-        }
-      } catch (error) {
-        console.error(error);
+    // Check if this was a pending comment for a review, and if so, update the pending comment counter in the review box button.
+    if (deletedComment?.querySelector('.pending-label')) {
+      const reviewCounter = document.querySelector('.review-box-button .review-comments-counter');
+      if (reviewCounter) {
+        let num = parseInt(reviewCounter.getAttribute('data-pending-comment-number') || '') - 1 || 0;
+        num = Math.max(num, 0);
+        reviewCounter.setAttribute('data-pending-comment-number', String(num));
+        reviewCounter.textContent = String(num);
       }
+    }
+
+    // If the conversation holder has no more comments, remove it.
+    if (!conversationHolder.querySelector('.comment')) {
+      // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
+      // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment" button
+      const parentTr = conversationHolder.closest('tr[data-line-type]');
+      if (parentTr) {
+        // allow to add a new comment on the same line after deleting the existing comments
+        // previous element is the "tr" for the code line, and it contains the "add-code-comment" button
+        const isLineSame = parentTr.getAttribute('data-line-type') === 'same';
+        const side = conversationHolder.getAttribute('data-side')!;
+        const selector = isLineSame ? '.add-code-comment' : `.add-code-comment[data-side=${CSS.escape(side)}]`;
+        const addCodeCommentButtons = parentTr.previousElementSibling!.querySelectorAll(selector);
+        toggleElemClass(addCodeCommentButtons, 'tw-invisible', false);
+      }
+      conversationHolder.remove();
+    }
+
+    // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
+    if (!parentTimelineGroup?.querySelector('.timeline-item.comment') && !parentTimelineItem?.querySelector('.conversation-holder')) {
+      const timelineAvatar = parentTimelineGroup?.querySelector('.timeline-avatar');
+      timelineAvatar?.classList.remove('timeline-avatar-offset');
     }
   });
 }
 
 export function initRepoIssueCodeCommentCancel() {
-  // Cancel inline code comment
-  document.addEventListener('click', (e) => {
-    if (!(e.target as HTMLElement).matches('.cancel-code-comment')) return;
-
-    const form = (e.target as HTMLElement).closest('form')!;
-    if (form?.classList.contains('comment-form')) {
+  registerGlobalEventFunc('click', 'onCancelCodeComment', (el) => {
+    const form = el.closest('form')!;
+    if (form.classList.contains('comment-form')) {
       hideElem(form);
       showElem(form.closest('.comment-code-cloud')!.querySelectorAll('button.comment-form-reply'));
     } else {
@@ -165,8 +162,8 @@ export function initRepoIssueCodeCommentCancel() {
   });
 }
 
-export function initRepoIssueComments() {
-  if (!document.querySelector('.repository.view.issue .timeline')) return;
+export function initRepoIssueCommentTargetHashReset() {
+  if (!document.querySelector('.repository.view.issue')) return;
 
   document.addEventListener('click', (e: Event) => {
     const urlTarget = document.querySelector(':target');
@@ -186,7 +183,7 @@ export function initRepoIssueComments() {
   });
 }
 
-export async function handleReply(el: HTMLElement) {
+export async function handleCommentReply(el: HTMLElement) {
   const form = el.closest('.comment-code-cloud')!.querySelector('.comment-form')!;
   const textarea = form.querySelector('textarea');
 
@@ -198,8 +195,9 @@ export async function handleReply(el: HTMLElement) {
 }
 
 export function initRepoPullRequestReview() {
-  if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
-    const commentDiv = document.querySelector(window.location.hash);
+  const currentHash = window.location.hash;
+  if (currentHash.startsWith('#issuecomment-') || currentHash.startsWith('#pullrequestreview-')) {
+    const commentDiv = document.querySelector(currentHash);
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');
@@ -241,15 +239,13 @@ export function initRepoPullRequestReview() {
 
   addDelegatedEventListener(document, 'click', 'button.comment-form-reply', (el, e) => {
     e.preventDefault();
-    handleReply(el);
+    handleCommentReply(el);
   });
 
-  // The following part is only for diff views
-  if (!document.querySelector('.repository.pull.diff')) return;
-
-  const elReviewBtn = document.querySelector('.js-btn-review');
-  const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
-  if (elReviewBtn && elReviewPanel) {
+  registerGlobalInitFunc('initPullReviewBox', (el) => {
+    const elReviewBtn = el.querySelector('.review-box-button')!;
+    const elReviewPanel = el.querySelector('.review-box-panel.tippy-target');
+    if (!elReviewPanel) return;
     const tippy = createTippy(elReviewBtn, {
       content: elReviewPanel,
       theme: 'default',
@@ -259,8 +255,8 @@ export function initRepoPullRequestReview() {
       interactive: true,
       hideOnClick: true,
     });
-    elReviewPanel.querySelector('.close')!.addEventListener('click', () => tippy.hide());
-  }
+    elReviewPanel.querySelector('.close-review-panel')!.addEventListener('click', () => tippy.hide());
+  });
 
   addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
     e.preventDefault();
@@ -274,15 +270,13 @@ export function initRepoPullRequestReview() {
 
     let ntr = tr.nextElementSibling;
     if (!ntr?.classList.contains('add-comment')) {
-      ntr = createElementFromHTML(`
-        <tr class="add-comment" data-line-type="${htmlEscape(lineType)}">
-          ${isSplit ? `
-            <td class="add-comment-left" colspan="4"></td>
-            <td class="add-comment-right" colspan="4"></td>
-          ` : `
-            <td class="add-comment-left add-comment-right" colspan="5"></td>
-          `}
-        </tr>`);
+      const tdSplit = html`<td class="add-comment-left" colspan="4"></td><td class="add-comment-right" colspan="4"></td>`;
+      const tdUnified = html`<td class="add-comment-left add-comment-right" colspan="5"></td>`;
+      ntr = createElementFromHTML(html`
+        <tr class="add-comment" data-line-type="${lineType}">
+          ${isSplit ? htmlRaw(tdSplit) : htmlRaw(tdUnified)}
+        </tr>
+      `);
       tr.after(ntr);
     }
     const td = ntr.querySelector(`.add-comment-${side}`)!;
@@ -306,11 +300,9 @@ export function initRepoIssueReferenceIssue() {
   fomanticQuery(elDropdown).dropdown({
     fullTextSearch: true,
     apiSettings: {
-      cache: false,
-      rawResponse: true,
       url: `${appSubUrl}/repo/search?q={query}&limit=20`,
-      onResponse(response: any) {
-        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
+      onResponse(response: {data: Array<{repository: {full_name: string}}>}) {
+        const filteredResponse: FomanticApiResponse<{name: string, value: string}> = {success: true, results: []};
         for (const repo of response.data) {
           filteredResponse.results.push({
             name: htmlEscape(repo.repository.full_name),
@@ -331,12 +323,12 @@ export function initRepoIssueReferenceIssue() {
     const target = el.getAttribute('data-target');
     const content = document.querySelector(`#${target}`)?.textContent ?? '';
     const poster = el.getAttribute('data-poster-username');
-    const reference = toAbsoluteUrl(el.getAttribute('data-reference')!);
+    const reference = el.getAttribute('data-reference')!;
     const modalSelector = el.getAttribute('data-modal')!;
-    const modal = document.querySelector(modalSelector)!;
+    const modal = document.querySelector<HTMLDialogElement>(modalSelector)!;
     const textarea = modal.querySelector<HTMLTextAreaElement>('textarea[name="content"]')!;
     textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
-    showFomanticModal(modal);
+    showModal(modal);
   });
 }
 
@@ -400,7 +392,19 @@ export function initRepoIssueTitleEdit() {
   });
 
   const pullDescEditor = document.querySelector('#pull-desc-editor'); // it may not exist for a merged PR
+  const pullTargetBranch = document.querySelector('#pull-target-branch');
   const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
+
+  pullDescEditor?.querySelector('#branch-select')?.addEventListener('click', (e: Event) => {
+    const el = (e.target as HTMLElement).closest('.item[data-branch]');
+    if (!el) return;
+    if (!pullTargetBranch) throw new Error('pullTargetBranch not found');
+    const textCompareBase = pullTargetBranch.getAttribute('data-text-compare-base')!;
+    const baseUserName = pullTargetBranch.getAttribute('data-base-user-name')!;
+    const branchNameNew = el.getAttribute('data-branch')!;
+    pullTargetBranch.textContent = `${textCompareBase}: ${baseUserName}:${branchNameNew}`;
+    pullTargetBranch.setAttribute('data-branch', branchNameNew);
+  });
 
   const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button')!;
   issueTitleEditor.addEventListener('submit', async (e) => {
@@ -414,8 +418,9 @@ export function initRepoIssueTitleEdit() {
         }
       }
       if (prTargetUpdateUrl) {
-        const newTargetBranch = document.querySelector('#pull-target-branch')!.getAttribute('data-branch');
-        const oldTargetBranch = document.querySelector('#branch_target')!.textContent;
+        if (!pullTargetBranch) throw new Error('pullTargetBranch not found');
+        const newTargetBranch = pullTargetBranch.getAttribute('data-branch');
+        const oldTargetBranch = pullTargetBranch.getAttribute('data-old-target-branch');
         if (newTargetBranch !== oldTargetBranch) {
           const resp = await POST(prTargetUpdateUrl, {data: new URLSearchParams({target_branch: String(newTargetBranch)})});
           if (!resp.ok) {
@@ -429,19 +434,6 @@ export function initRepoIssueTitleEdit() {
       console.error(error);
       showErrorToast(errorMessage(error));
     }
-  });
-}
-
-export function initRepoIssueBranchSelect() {
-  document.querySelector<HTMLElement>('#branch-select')?.addEventListener('click', (e: Event) => {
-    const el = (e.target as HTMLElement).closest('.item[data-branch]');
-    if (!el) return;
-    const pullTargetBranch = document.querySelector('#pull-target-branch')!;
-    const baseName = pullTargetBranch.getAttribute('data-basename');
-    const branchNameNew = el.getAttribute('data-branch')!;
-    const branchNameOld = pullTargetBranch.getAttribute('data-branch');
-    pullTargetBranch.textContent = pullTargetBranch.textContent.replace(`${baseName}:${branchNameOld}`, `${baseName}:${branchNameNew}`);
-    pullTargetBranch.setAttribute('data-branch', branchNameNew);
   });
 }
 
@@ -507,9 +499,7 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
   }
 }
 
-export function initRepoCommentFormAndSidebar() {
-  initRepoIssueSidebar();
-
+export function initRepoCommentForm() {
   const commentForm = document.querySelector<HTMLFormElement>('.comment.form');
   if (!commentForm) return;
 

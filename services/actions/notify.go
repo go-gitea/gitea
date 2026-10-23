@@ -6,9 +6,9 @@ package actions
 import (
 	"context"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/log"
-	notify_service "code.gitea.io/gitea/services/notify"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/modules/log"
+	notify_service "gitea.dev/services/notify"
 )
 
 // NotifyWorkflowJobsAndRunsStatusUpdate notifies status changes for a batch of jobs and the runs they affect.
@@ -28,7 +28,6 @@ func NotifyWorkflowJobsAndRunsStatusUpdate(ctx context.Context, jobs []*actions_
 			log.Error("Failed to load job attributes: %v", err)
 			continue
 		}
-		CreateCommitStatusForRunJobs(ctx, job.Run, job)
 
 		runRepoIDs[job.RunID] = job.RepoID
 		if _, ok := jobsByRunID[job.RunID]; !ok {
@@ -42,8 +41,15 @@ func NotifyWorkflowJobsAndRunsStatusUpdate(ctx context.Context, jobs []*actions_
 	}
 
 	for _, jobs := range jobsByRunID {
+		CreateCommitStatusForRunJobs(ctx, jobs[0].Run, jobs...)
 		NotifyWorkflowJobsStatusUpdate(ctx, jobs...)
 	}
+}
+
+// notifyAndEmitFinishedJobs notifies status changes of jobs that may have finished and emits their runs' next jobs
+func notifyAndEmitFinishedJobs(ctx context.Context, jobs []*actions_model.ActionRunJob) {
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, jobs)
+	EmitJobsIfReadyByJobs(jobs)
 }
 
 // NotifyWorkflowRunStatusUpdateWithReload reloads the run before notifying its status update.

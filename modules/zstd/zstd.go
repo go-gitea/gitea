@@ -39,9 +39,11 @@ type Reader zstd.Decoder
 
 var _ io.ReadCloser = (*Reader)(nil)
 
+const defaultMaxWindowSize = 128 * 1024 * 1024 // the zstd CLI's default, bounds the history buffer an untrusted frame can request
+
 // NewReader returns a new zstd reader.
 func NewReader(r io.Reader, opts ...ReaderOption) (*Reader, error) {
-	zstdR, err := zstd.NewReader(r, opts...)
+	zstdR, err := zstd.NewReader(r, append([]ReaderOption{zstd.WithDecoderMaxWindow(defaultMaxWindowSize)}, opts...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +62,7 @@ func (r *Reader) Close() error {
 type SeekableWriter struct {
 	buf []byte
 	n   int
-	w   seekable.Writer
+	w   *seekable.Writer
 }
 
 var _ io.WriteCloser = (*SeekableWriter)(nil)
@@ -114,7 +116,7 @@ func (w *SeekableWriter) Close() error {
 }
 
 type SeekableReader struct {
-	r seekable.Reader
+	r *seekable.Reader
 	c func() error
 }
 

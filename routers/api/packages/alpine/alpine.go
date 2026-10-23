@@ -13,15 +13,15 @@ import (
 	"net/http"
 	"strings"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/json"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/packages/helper"
-	"code.gitea.io/gitea/services/context"
-	packages_service "code.gitea.io/gitea/services/packages"
-	alpine_service "code.gitea.io/gitea/services/packages/alpine"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/modules/json"
+	packages_module "gitea.dev/modules/packages"
+	alpine_module "gitea.dev/modules/packages/alpine"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/packages/helper"
+	"gitea.dev/services/context"
+	packages_service "gitea.dev/services/packages"
+	alpine_service "gitea.dev/services/packages/alpine"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -67,15 +67,34 @@ func GetRepositoryFile(ctx *context.Context) {
 		return
 	}
 
+	branch := ctx.PathParam("branch")
+	repository := ctx.PathParam("repository")
+	architecture := ctx.PathParam("architecture")
+
 	s, u, pf, err := packages_service.OpenFileForDownloadByPackageVersion(
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
 			Filename:     alpine_service.IndexArchiveFilename,
-			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.PathParam("branch"), ctx.PathParam("repository"), ctx.PathParam("architecture")),
+			CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
 		},
 		ctx.Req.Method,
 	)
+	// A repository that only contains "noarch" packages has no per-architecture
+	// index. Since noarch packages are installable on every architecture, fall
+	// back to the noarch index so clients requesting their own architecture
+	// (e.g. x86_64) can still discover them.
+	if errors.Is(err, util.ErrNotExist) && architecture != alpine_module.NoArch {
+		s, u, pf, err = packages_service.OpenFileForDownloadByPackageVersion(
+			ctx,
+			pv,
+			&packages_service.PackageFileInfo{
+				Filename:     alpine_service.IndexArchiveFilename,
+				CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, alpine_module.NoArch),
+			},
+			ctx.Req.Method,
+		)
+	}
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)

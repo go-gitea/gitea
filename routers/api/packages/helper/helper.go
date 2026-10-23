@@ -4,16 +4,26 @@
 package helper
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/context"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
+
+// PackageErrorStatus returns the status to report for a package lookup error
+func PackageErrorStatus(err error) int {
+	if errors.Is(err, util.ErrNotExist) {
+		return http.StatusNotFound
+	}
+	return http.StatusInternalServerError
+}
 
 // ProcessErrorForUser logs the error and returns a user-error message for the end user.
 // If the status is http.StatusInternalServerError, the message is stripped for non-admin users in production.

@@ -20,19 +20,20 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/testlogger"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers"
-	gitea_context "code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/testlogger"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/routers"
+	"gitea.dev/routers/common"
+	gitea_context "gitea.dev/services/context"
+	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -47,7 +48,7 @@ func testMain(m *testing.M) int {
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
-	err := tests.InitIntegrationTest()
+	workPath, err := tests.InitIntegrationTest()
 	if err != nil {
 		return testlogger.MainErrorf("InitTest error: %v", err)
 	}
@@ -66,11 +67,12 @@ func testMain(m *testing.M) int {
 	// Instead, "No tests were found",  last nonsense log is "According to the configuration, subsequent logs will not be printed to the console"
 	exitCode := m.Run()
 
-	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
-		log.Error("Failed to remove indexer path: %v", err)
-	}
-	if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
-		log.Error("Failed to remove indexer path: %v", err)
+	if exitCode == 0 {
+		graceful.GetManager().DoGracefulShutdown() // let background tasks finish writing
+		<-graceful.GetManager().Done()
+		if err = os.RemoveAll(workPath); err != nil {
+			log.Error("Failed to remove work path: %v", err)
+		}
 	}
 	return exitCode
 }
@@ -189,13 +191,8 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 		urlValues.Add("scope-dummy", string(scope)) // it only needs to start with "scope-" to be accepted
 	}
 	req := NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
-	session.MakeRequest(t, req, http.StatusSeeOther)
-	flashes := session.GetCookieFlashMessage()
-	assert.NotNil(t, flashes)
-	if flashes != nil {
-		return flashes.InfoMsg
-	}
-	return ""
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	return NewHTMLParser(t, resp.Body).Find("#new-access-token-value").Text()
 }
 
 type RequestWrapper struct {
@@ -294,6 +291,9 @@ func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest
 			// don't use "require" which exits the test case and makes "wait group" wait forever
 			assert.Equal(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String())
 		}
+		if expectedStatus != http.StatusInternalServerError {
+			assert.NotContains(t, recorder.Body.String(), common.PageInternalServerErrorMark, "Request: %s %s, response should not contain internal server error", req.Method, req.URL.String())
+		}
 	}
 	return recorder
 }
@@ -323,6 +323,10 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	}
 }
 
+// DecodeJSON decodes then response as JSON into typed variable and return it
+// HINT: don't use it on existing variable (reuse existing variable):
+// if the existing var already contains some values but the new input doesn't, then it leads to wrong test result in edge cases.
+// For slice decoding, use: v := DecodeJSON(t, resp, []T{})
 func DecodeJSON[T any](t testing.TB, resp *httptest.ResponseRecorder, v T) (ret T) {
 	t.Helper()
 

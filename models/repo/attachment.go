@@ -11,12 +11,15 @@ import (
 	"os"
 	"path"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -60,12 +63,13 @@ func (a *Attachment) RelativePath() string {
 }
 
 // DownloadURL returns the download url of the attached file
-func (a *Attachment) DownloadURL() string {
+func (a *Attachment) DownloadURL(optCtx ...context.Context) string {
+	// mail template doesn't have context, so we need to use a default one
+	ctx := util.OptionalArg(optCtx, context.TODO())
 	if a.CustomDownloadURL != "" {
 		return a.CustomDownloadURL
 	}
-
-	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
+	return httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/attachments/"+url.PathEscape(a.UUID))
 }
 
 // ErrAttachmentNotExist represents a "AttachmentNotExist" kind of error.
@@ -129,6 +133,9 @@ func ExistAttachmentsByUUID(ctx context.Context, uuid string) (bool, error) {
 
 // GetAttachmentsByIssueID returns all attachments of an issue.
 func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment, error) {
+	if issueID == 0 { // unsaved issue, would match every issue-less attachment
+		return []*Attachment{}, nil
+	}
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
 }
@@ -156,8 +163,7 @@ func GetAttachmentsByCommentID(ctx context.Context, commentID int64) ([]*Attachm
 
 // GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
 func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, fileName string) (*Attachment, error) {
-	attach := &Attachment{ReleaseID: releaseID, Name: fileName}
-	has, err := db.GetEngine(ctx).Get(attach)
+	attach, has, err := db.Get[Attachment](ctx, builder.Eq{"release_id": releaseID, "`name`": fileName})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -254,15 +260,17 @@ func DeleteAttachmentsByRelease(ctx context.Context, releaseID int64) error {
 	return err
 }
 
-// CountOrphanedAttachments returns the number of bad attachments
-func CountOrphanedAttachments(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
-		Count(new(Attachment))
+func sqlOrphanedAttachmentsWhereCond() string {
+	return "(issue_id > 0 and issue_id not in (select id from `issue`))" +
+		" or (release_id > 0 and release_id not in (select id from `release`))" +
+		" or (comment_id > 0 and comment_id not in (select id from `comment`))"
 }
 
-// DeleteOrphanedAttachments delete all bad attachments
+func CountOrphanedAttachments(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where(sqlOrphanedAttachmentsWhereCond()).Count(new(Attachment))
+}
+
 func DeleteOrphanedAttachments(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
-		Delete(new(Attachment))
+	_, err := db.GetEngine(ctx).Where(sqlOrphanedAttachmentsWhereCond()).Delete(new(Attachment))
 	return err
 }

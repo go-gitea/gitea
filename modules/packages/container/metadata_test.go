@@ -7,7 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/packages/container/helm"
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/packages/container/helm"
 
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
@@ -65,4 +66,7 @@ func TestParseImageConfig(t *testing.T) {
 	metadata, err = ParseImageConfig("anything-unknown", strings.NewReader(""))
 	require.NoError(t, err)
 	assert.Equal(t, &Metadata{Platform: "unknown/unknown"}, metadata)
+
+	_, err = ParseImageConfig(oci.MediaTypeImageConfig, strings.NewReader(`{"history": [{"created_by": "`+strings.Repeat("a", maxImageConfigSize)+`"}]}`))
+	assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 }

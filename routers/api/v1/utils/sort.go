@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/db"
+	"gitea.dev/services/context"
 )
 
 // ResolveSortOrder reads "sort" and "order" query params and returns the matching
@@ -26,12 +26,12 @@ func ResolveSortOrder(ctx *context.APIContext, orderByMap map[string]map[string]
 	}
 	orderMap, ok := orderByMap[sortOrder]
 	if !ok {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort order: %q", sortOrder))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort order: %q", sortOrder))
 		return "", false
 	}
 	orderBy, ok := orderMap[sortMode]
 	if !ok {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort mode: %q", sortMode))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort mode: %q", sortMode))
 		return "", false
 	}
 	return orderBy, true

@@ -8,8 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,6 +23,8 @@ func gitConfigContains(sub string) bool {
 }
 
 func TestGitConfig(t *testing.T) {
+	defer test.MockVariableValue(&setting.Git.HomePath, t.TempDir())()
+
 	ctx := t.Context()
 	assert.False(t, gitConfigContains("key-a"))
 
@@ -31,7 +34,9 @@ func TestGitConfig(t *testing.T) {
 	assert.NoError(t, configSetNonExist(ctx, "test.key-a", "val-a-changed"))
 	assert.False(t, gitConfigContains("key-a = val-a-changed"))
 
+	assert.NoError(t, configAddNonExist(ctx, "test.key-a", "val-a2"))
 	assert.NoError(t, configSet(ctx, "test.key-a", "val-a-changed"))
+	assert.NoError(t, configUnsetAll(ctx, "test.key-a", "val-a"))
 	assert.True(t, gitConfigContains("key-a = val-a-changed"))
 
 	assert.NoError(t, configAddNonExist(ctx, "test.key-b", "val-b"))
@@ -40,6 +45,8 @@ func TestGitConfig(t *testing.T) {
 	assert.NoError(t, configAddNonExist(ctx, "test.key-b", "val-2b"))
 	assert.True(t, gitConfigContains("key-b = val-b"))
 	assert.True(t, gitConfigContains("key-b = val-2b"))
+	assert.NoError(t, configAddNonExist(ctx, "test.key-b", "val"))
+	assert.True(t, gitConfigContains("key-b = val\n"))
 
 	assert.NoError(t, configUnsetAll(ctx, "test.key-b", "val-b"))
 	assert.False(t, gitConfigContains("key-b = val-b"))
@@ -55,14 +62,22 @@ func TestGitConfig(t *testing.T) {
 	assert.False(t, gitConfigContains("key-x = *"))
 }
 
-func TestSyncConfig(t *testing.T) {
-	oldGitConfig := setting.GitConfig
-	defer func() {
-		setting.GitConfig = oldGitConfig
-	}()
+func TestSyncGitConfig(t *testing.T) {
+	defer test.MockVariableValue(&setting.Git.HomePath, t.TempDir())()
+	defer test.MockVariableValue(&setting.GitConfig.Options, map[string]string{})()
+	defer test.MockVariableValue(&GlobalConfig)()
+
+	assert.Empty(t, setting.GitConfig.Options)
+	assert.NoError(t, configSet(t.Context(), "gc.reflogExpire", "90"))
+	assert.NoError(t, syncGitConfig(t.Context()))
+	assert.True(t, gitConfigContains("commitGraph = true")) // builtin default config
+	assert.False(t, gitConfigContains("reflogExpire"))
 
 	setting.GitConfig.Options["sync-test.cfg-key-a"] = "CfgValA"
+	setting.GitConfig.Options["core.commitgraph"] = "false"
 	assert.NoError(t, syncGitConfig(t.Context()))
 	assert.True(t, gitConfigContains("[sync-test]"))
 	assert.True(t, gitConfigContains("cfg-key-a = CfgValA"))
+	assert.False(t, gitConfigContains("commitGraph"))        // builtin default config can be overridden
+	assert.True(t, gitConfigContains("commitgraph = false")) // git config key is case-insensitive
 }

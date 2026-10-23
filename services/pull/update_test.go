@@ -7,15 +7,15 @@ import (
 	"context"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -121,6 +121,32 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 	})
 
 	pr3Poster := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
+
+	t.Run("PublicOnlyTokenCannotUpdatePrivateHeadEvenWhitelisted", func(t *testing.T) {
+		pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
+		protectedBranch := &git_model.ProtectedBranch{
+			RepoID:           pr3.HeadRepoID,
+			RuleName:         pr3.HeadBranch,
+			CanPush:          true,
+			EnableWhitelist:  true,
+			WhitelistUserIDs: []int64{pr3Poster.ID},
+		}
+		_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
+		require.NoError(t, err)
+		defer db.DeleteByBean(t.Context(), protectedBranch)
+		require.NoError(t, pr3.LoadHeadRepo(t.Context()))
+		pr3.HeadRepo.IsPrivate = true
+
+		pushAllowed, _, _, err := checkUserAllowedToUpdate(t.Context(), pr3, pr3Poster)
+		assert.NoError(t, err)
+		assert.True(t, pushAllowed)
+
+		publicOnlyPoster := *pr3Poster
+		publicOnlyPoster.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,write:repository")
+		pushAllowed, _, _, err = checkUserAllowedToUpdate(t.Context(), pr3, &publicOnlyPoster)
+		assert.NoError(t, err)
+		assert.False(t, pushAllowed)
+	})
 
 	t.Run("MaintainerEditRespectsPosterPermissions", func(t *testing.T) {
 		pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})

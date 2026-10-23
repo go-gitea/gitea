@@ -10,12 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	repo_module "code.gitea.io/gitea/modules/repository"
+	issues_model "gitea.dev/models/issues"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
+	repo_module "gitea.dev/modules/repository"
 )
 
 // GetConflictedFileContent performs a 3-way merge for filePath and returns the
@@ -35,12 +35,12 @@ func GetConflictedFileContent(ctx context.Context, pr *issues_model.PullRequest,
 		return "", fmt.Errorf("load head repo: %w", loadErr)
 	}
 
-	baseRepoPath := pr.BaseRepo.RepoPath()
+	baseRepoPath := gitrepo.RepoLocalPath(pr.BaseRepo)
 
 	// For same-repo PRs the head path is identical; for forks use the fork's path.
 	headRepoPath := baseRepoPath
 	if !pr.IsSameRepo() {
-		headRepoPath = pr.HeadRepo.RepoPath()
+		headRepoPath = gitrepo.RepoLocalPath(pr.HeadRepo)
 	}
 
 	// Resolve branch tips directly from the real repositories.
@@ -65,7 +65,7 @@ func GetConflictedFileContent(ctx context.Context, pr *issues_model.PullRequest,
 	mergeBaseSHA := pr.MergeBase
 	if mergeBaseSHA == "" {
 		var mbErr error
-		mergeBaseSHA, mbErr = gitrepo.MergeBase(ctx, pr.BaseRepo, baseTipSHA, headTipSHA)
+		mergeBaseSHA, mbErr = git.MergeBase(ctx, pr.BaseRepo, baseTipSHA, headTipSHA)
 		if mbErr != nil {
 			return "", fmt.Errorf("compute merge-base: %w", mbErr)
 		}
@@ -164,8 +164,8 @@ func CommitConflictResolution(
 		return fmt.Errorf("load head repo: %w", loadErr)
 	}
 
-	baseRepoPath := pr.BaseRepo.RepoPath()
-	headRepoPath := pr.HeadRepo.RepoPath()
+	baseRepoPath := gitrepo.RepoLocalPath(pr.BaseRepo)
+	headRepoPath := gitrepo.RepoLocalPath(pr.HeadRepo)
 
 	// Resolve current branch tips from the real repositories.
 	baseTipSHA, _, gitErr := gitcmd.NewCommand("rev-parse").
@@ -261,10 +261,8 @@ func CommitConflictResolution(
 	newCommitHash = strings.TrimSpace(newCommitHash)
 
 	// 6. Push to the actual head repository.
-	// InternalPushingEnvironment bypasses server-side hooks; the re-check is
-	// triggered explicitly in step 7.
-	pushEnv := repo_module.InternalPushingEnvironment(doer, pr.HeadRepo)
-	if pushErr := gitrepo.PushFromLocal(ctx, tmpDir, pr.HeadRepo, git.PushOptions{
+	pushEnv := repo_module.PushingEnvironment(doer, pr.HeadRepo)
+	if pushErr := git.PushFromLocal(ctx, tmpDir, pr.HeadRepo, git.PushOptions{
 		Branch: newCommitHash + ":" + git.BranchPrefix + pr.HeadBranch,
 		Env:    pushEnv,
 	}); pushErr != nil {
@@ -349,8 +347,8 @@ func initMinimalBareRepo(dir string, pr *issues_model.PullRequest, baseTipSHA, h
 	// alternates: make both repos' objects readable from this bare repo.
 	// For same-repo PRs the base and head paths are identical; write the
 	// path once (deduplication is not required but keeps the file tidy).
-	baseObjPath := filepath.Join(pr.BaseRepo.RepoPath(), "objects")
-	headObjPath := filepath.Join(pr.HeadRepo.RepoPath(), "objects")
+	baseObjPath := filepath.Join(gitrepo.RepoLocalPath(pr.BaseRepo), "objects")
+	headObjPath := filepath.Join(gitrepo.RepoLocalPath(pr.HeadRepo), "objects")
 	alternates := baseObjPath + "\n"
 	if !pr.IsSameRepo() {
 		alternates += headObjPath + "\n"

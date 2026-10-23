@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -212,7 +212,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	var err error
 	var cond builder.Cond
 	// if the actor is the requested user or is an administrator, we can skip the ActivityQueryCondition
-	if opts.Actor != nil && opts.RequestedUser != nil && (opts.Actor.IsAdmin || opts.Actor.ID == opts.RequestedUser.ID) {
+	if opts.RequestedUser != nil && user_model.DoerCanViewPrivate(opts.Actor) && (user_model.DoerIsSiteAdminFullAccess(opts.Actor) || opts.Actor.ID == opts.RequestedUser.ID) {
 		cond = builder.Eq{
 			"user_id": opts.RequestedUser.ID,
 		}.And(

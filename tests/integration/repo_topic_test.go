@@ -8,11 +8,24 @@ import (
 	"net/url"
 	"testing"
 
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestRepoTopicsPostRejectsCrossOrigin(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	req := NewRequestWithValues(t, "POST", "/user2/repo1/topics", map[string]string{"topics": "cross"}).
+		SetHeader("Sec-Fetch-Site", "cross-site")
+	session.MakeRequest(t, req, http.StatusForbidden)
+
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/topics", map[string]string{"topics": "same"}).
+		SetHeader("Sec-Fetch-Site", "same-origin")
+	session.MakeRequest(t, req, http.StatusOK)
+}
 
 func TestTopicSearch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()

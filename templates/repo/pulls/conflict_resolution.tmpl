@@ -51,7 +51,7 @@
 					<input class="conflict-commit-message tw-w-full" type="text" maxlength="100"
 						placeholder="{{ctx.Locale.TrString "repo.pulls.conflict_resolution_batch_commit_message"}}"
 					>
-					<button class="conflict-commit-btn ui primary small fluid button" disabled>
+					<button type="button" class="conflict-commit-btn ui primary small fluid button" disabled>
 						{{ctx.Locale.Tr "repo.pulls.conflict_resolution_commit"}}
 						(0/{{len .PullRequest.ConflictedFiles}})
 					</button>
@@ -68,7 +68,7 @@
 						{{svg "octicon-file" 14 "tw-flex-shrink-0 tw-text-text-light"}}
 						<span class="conflict-current-file-path tw-font-mono tw-text-sm tw-truncate"></span>
 					</div>
-					<button class="conflict-mark-resolved-btn ui green small compact button tw-flex-shrink-0">
+					<button type="button" class="conflict-mark-resolved-btn ui green small compact button tw-flex-shrink-0">
 						{{svg "octicon-check" 14}} {{ctx.Locale.Tr "repo.pulls.conflict_resolution_mark_resolved"}}
 					</button>
 				</div>

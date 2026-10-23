@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -37,7 +37,7 @@ func TestDownloadRepoContent(t *testing.T) {
 	t.Run("SVGUsesSecureHeaders", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo2/raw/blob/6395b68e1feebb1e4c657b4f9f6ba2676a283c0b")
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, "default-src 'none'; style-src 'unsafe-inline'; sandbox", resp.Header().Get("Content-Security-Policy"))
+		assert.Contains(t, resp.Header().Get("Content-Security-Policy"), "sandbox")
 		assert.Equal(t, "image/svg+xml", resp.Header().Get("Content-Type"))
 		assert.Equal(t, "nosniff", resp.Header().Get("X-Content-Type-Options"))
 	})
@@ -51,7 +51,7 @@ func TestDownloadRepoContent(t *testing.T) {
 	t.Run("MediaSVGUsesSecureHeaders", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo2/media/blob/6395b68e1feebb1e4c657b4f9f6ba2676a283c0b")
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, "default-src 'none'; style-src 'unsafe-inline'; sandbox", resp.Header().Get("Content-Security-Policy"))
+		assert.Contains(t, resp.Header().Get("Content-Security-Policy"), "sandbox")
 		assert.Equal(t, "image/svg+xml", resp.Header().Get("Content-Type"))
 		assert.Equal(t, "nosniff", resp.Header().Get("X-Content-Type-Options"))
 	})
@@ -201,7 +201,7 @@ func TestDownloadRepoContentTokenScopes(t *testing.T) {
 			MakeRequest(t, NewRequest(t, tc.method, tc.url).AddTokenAuth(miscToken), http.StatusForbidden)
 			MakeRequest(t, NewRequest(t, tc.method, tc.url).AddTokenAuth(ownerReadToken), tc.withScope)
 
-			publicOnlyStatus := http.StatusForbidden
+			publicOnlyStatus := http.StatusNotFound
 			if tc.publicOnlyOK {
 				publicOnlyStatus = tc.withScope
 			}

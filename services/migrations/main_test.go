@@ -8,13 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/unittest"
-	base "code.gitea.io/gitea/modules/migration"
+	"gitea.dev/models/unittest"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
+	setting.Migrations.AllowedHostList = "private:*, loopback:*"
 	unittest.MainTest(m)
 }
 

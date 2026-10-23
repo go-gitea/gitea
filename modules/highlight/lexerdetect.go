@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/analyze"
+	"gitea.dev/modules/log"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
@@ -289,24 +289,24 @@ func detectChromaLexerWithAnalyze(fileName, lang string, code []byte) chroma.Lex
 
 	// if lang is provided, and it matches a lexer, use it directly
 	if byLang {
-		return lexer
+		return chroma.Coalesce(lexer)
 	}
 
 	// if a lexer is detected and there is no conflict for the file extension, use it directly
 	fileExt := path.Ext(fileName)
 	_, hasConflicts := chromaLexers().conflictingExtLangMap[fileExt]
 	if !hasConflicts && lexer != lexers.Fallback {
-		return lexer
+		return chroma.Coalesce(lexer)
 	}
 
 	// try to detect language by content, for best guessing for the language
 	// when using "code" to detect, analyze.GetCodeLanguage is slow, it iterates many rules to detect language from content
 	analyzedLanguage := analyze.GetCodeLanguage(fileName, code)
-	lexer = DetectChromaLexerByFileName(fileName, analyzedLanguage)
+	lexer, _ = detectChromaLexerByFileName(fileName, analyzedLanguage)
 	if lexer == lexers.Fallback {
 		if analyzedLanguage != enry.OtherLanguage {
 			log.Warn("No chroma lexer found for enry detected language: %s (file: %s), need to fix the language mapping between enry and chroma.", analyzedLanguage, fileName)
 		}
 	}
-	return lexer
+	return chroma.Coalesce(lexer)
 }

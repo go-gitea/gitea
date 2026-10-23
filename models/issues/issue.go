@@ -12,17 +12,17 @@ import (
 	"slices"
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -81,7 +81,7 @@ type Issue struct {
 	PullRequest       *PullRequest     `xorm:"-"`
 	NumComments       int
 
-	// TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
+	// TODO: ISSUE-SIDEBAR-REF-SELECTOR: see "repo/issue/branch_selector_field.tmpl"
 	Ref string
 
 	PinOrder int `xorm:"-"` // 0 means not loaded, -1 means loaded but not pinned
@@ -225,13 +225,11 @@ func (issue *Issue) loadCommentsByType(ctx context.Context, tp CommentType) (err
 	return err
 }
 
-func (issue *Issue) loadReactions(ctx context.Context) (err error) {
+func (issue *Issue) loadAllReactions(ctx context.Context) (err error) {
 	if issue.Reactions != nil {
 		return nil
 	}
-	reactions, _, err := FindReactions(ctx, FindReactionsOptions{
-		IssueID: issue.ID,
-	})
+	reactions, _, err := FindReactions(ctx, FindReactionsOptions{IssueIDWithComments: issue.ID})
 	if err != nil {
 		return err
 	}
@@ -340,7 +338,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		}
 	}
 
-	return issue.loadReactions(ctx)
+	return issue.loadAllReactions(ctx)
 }
 
 // IsPinned returns if a Issue is pinned
@@ -361,8 +359,8 @@ func (issue *Issue) ResetAttributesLoaded() {
 
 // GetIsRead load the `IsRead` field of the issue
 func (issue *Issue) GetIsRead(ctx context.Context, userID int64) error {
-	issueUser := &IssueUser{IssueID: issue.ID, UID: userID}
-	if has, err := db.GetEngine(ctx).Get(issueUser); err != nil {
+	issueUser, has, err := db.Get[IssueUser](ctx, builder.Eq{"issue_id": issue.ID, "uid": userID})
+	if err != nil {
 		return err
 	} else if !has {
 		issue.IsRead = false
@@ -499,11 +497,7 @@ func GetIssueByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
 	if index < 1 {
 		return nil, ErrIssueNotExist{}
 	}
-	issue := &Issue{
-		RepoID: repoID,
-		Index:  index,
-	}
-	has, err := db.GetEngine(ctx).Get(issue)
+	issue, has, err := db.Get[Issue](ctx, builder.Eq{"repo_id": repoID, "`index`": index})
 	if err != nil {
 		return nil, err
 	} else if !has {

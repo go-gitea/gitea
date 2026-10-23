@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -111,6 +111,39 @@ func TestAPIAddIssueLabels(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: 2})
 }
 
+// TestAPIDeleteIssueLabelCrossRepo ensures DeleteIssueLabel does not act on a label
+// belonging to another repository, and that a foreign-but-existing label ID and a
+// nonexistent label ID return the same status (no cross-repo enumeration oracle).
+func TestAPIDeleteIssueLabelCrossRepo(t *testing.T) {
+	assert.NoError(t, unittest.LoadFixtures())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	// label 5 exists but belongs to repo 10, not repo 1
+	foreignLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 5})
+	assert.NotEqual(t, repo.ID, foreignLabel.RepoID)
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+	base := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels", repo.OwnerName, repo.Name, issue.Index)
+
+	// a foreign-but-existing label ID must not be accepted (was 204 before the fix)
+	req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", base, foreignLabel.ID)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// a nonexistent label ID must return the SAME status, so no oracle exists (was 422 before the fix)
+	req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", base, 9999999)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// a label that belongs to the repo is still removable
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 2, RepoID: repo.ID})
+	addReq := NewRequestWithJSON(t, "POST", base, &api.IssueLabelsOption{Labels: []any{2}}).AddTokenAuth(token)
+	MakeRequest(t, addReq, http.StatusOK)
+	req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", base, 2)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+}
+
 func TestAPIAddIssueLabelsWithLabelNames(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
@@ -140,6 +173,40 @@ func TestAPIAddIssueLabelsWithLabelNames(t *testing.T) {
 	// delete labels
 	req = NewRequest(t, "DELETE", urlStr).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
+}
+
+func TestAPIAddIssueLabelsWithSharedRepoAndOrgLabelName(t *testing.T) {
+	assert.NoError(t, unittest.LoadFixtures())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6, RepoID: repo.ID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	repoLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 10, RepoID: repo.ID})
+	orgOnlyLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 4, OrgID: owner.ID})
+
+	assert.NoError(t, issues_model.NewLabel(t.Context(), &issues_model.Label{OrgID: owner.ID, Name: repoLabel.Name, Color: "#abcdef"}))
+
+	token := getTokenForLoggedInUser(t, loginUser(t, "user1"), auth_model.AccessTokenScopeWriteIssue)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels", owner.Name, repo.Name, issue.Index)
+
+	for _, method := range []string{"POST", "PUT"} {
+		t.Run(method, func(t *testing.T) {
+			req := NewRequest(t, "DELETE", urlStr).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNoContent)
+
+			req = NewRequestWithJSON(t, method, urlStr, &api.IssueLabelsOption{
+				Labels: []any{repoLabel.Name, orgOnlyLabel.Name},
+			}).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			apiLabels := DecodeJSON(t, resp, []*api.Label{})
+
+			var apiLabelIDs []int64
+			for _, label := range apiLabels {
+				apiLabelIDs = append(apiLabelIDs, label.ID)
+			}
+			assert.ElementsMatch(t, []int64{repoLabel.ID, orgOnlyLabel.ID}, apiLabelIDs)
+		})
+	}
 }
 
 func TestAPIReplaceIssueLabels(t *testing.T) {
