@@ -5,11 +5,15 @@ package actions
 
 import (
 	"context"
+	"maps"
+	"slices"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/translation"
 	webhook_module "gitea.dev/modules/webhook"
 
@@ -40,6 +44,21 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 	return nil
 }
 
+// GetLatestAttempts returns the latest attempts of the runs keyed by attempt ID
+func (runs RunList) GetLatestAttempts(ctx context.Context) (map[int64]*ActionRunAttempt, error) {
+	attemptIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.LatestAttemptID, run.LatestAttemptID != 0
+	})
+	attempts := make(map[int64]*ActionRunAttempt, len(attemptIDs))
+	if len(attemptIDs) == 0 {
+		return attempts, nil
+	}
+	if err := db.GetEngine(ctx).In("id", attemptIDs).Find(&attempts); err != nil {
+		return nil, err
+	}
+	return attempts, ActionRunAttemptList(slices.Collect(maps.Values(attempts))).LoadTriggerUser(ctx)
+}
+
 func (runs RunList) LoadRepos(ctx context.Context) error {
 	repoIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
 		return run.RepoID, run.Repo == nil
@@ -61,12 +80,18 @@ type FindRunOptions struct {
 	RepoID           int64
 	OwnerID          int64
 	WorkflowID       string
-	Ref              string // the commit/tag/… that caused this workflow
+	WorkflowRepoID   int64                 // source-aware filter: the repo a run's workflow content came from (0 = any)
+	IsScopedRun      optional.Option[bool] // is the run from a scoped workflow
+	Ref              string                // the commit/tag/… that caused this workflow
 	TriggerUserID    int64
 	TriggerEvent     webhook_module.HookEventType
 	Status           []Status
 	ConcurrencyGroup string
 	CommitSHA        string
+	// AccessibleRepoIDsSubQuery, when non-nil, restricts results to the repo IDs selected by the
+	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
+	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
+	AccessibleRepoIDsSubQuery *builder.Builder
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -76,6 +101,12 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	}
 	if opts.WorkflowID != "" {
 		cond = cond.And(builder.Eq{"`action_run`.workflow_id": opts.WorkflowID})
+	}
+	if opts.WorkflowRepoID > 0 {
+		cond = cond.And(builder.Eq{"`action_run`.workflow_repo_id": opts.WorkflowRepoID})
+	}
+	if opts.IsScopedRun.Has() {
+		cond = cond.And(builder.Eq{"`action_run`.is_scoped_run": opts.IsScopedRun.Value()})
 	}
 	if opts.TriggerUserID > 0 {
 		cond = cond.And(builder.Eq{"`action_run`.trigger_user_id": opts.TriggerUserID})
@@ -92,13 +123,16 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	if opts.CommitSHA != "" {
 		cond = cond.And(builder.Eq{"`action_run`.commit_sha": opts.CommitSHA})
 	}
+	if opts.AccessibleRepoIDsSubQuery != nil {
+		cond = cond.And(builder.In("`action_run`.repo_id", opts.AccessibleRepoIDsSubQuery))
+	}
 	return cond
 }
 
 func (opts FindRunOptions) ToJoins() []db.JoinFunc {
 	if opts.OwnerID > 0 {
 		return []db.JoinFunc{func(sess db.Engine) error {
-			sess.Join("INNER", "repository", "repository.id = repo_id AND repository.owner_id = ?", opts.OwnerID)
+			sess.Join("INNER", "repository", "repository.id = action_run.repo_id AND repository.owner_id = ?", opts.OwnerID)
 			return nil
 		}}
 	}
@@ -126,8 +160,8 @@ type StatusInfo struct {
 
 // GetStatusInfoList returns a slice of StatusInfo
 func GetStatusInfoList(ctx context.Context, lang translation.Locale) []StatusInfo {
-	// same as those in aggregateJobStatus
-	allStatus := []Status{StatusSuccess, StatusFailure, StatusWaiting, StatusRunning, StatusCancelling}
+	// same as those in aggregateJobStatus (StatusUnknown excluded; it's the "shouldn't happen" fallback)
+	allStatus := []Status{StatusSuccess, StatusFailure, StatusCancelled, StatusSkipped, StatusWaiting, StatusRunning, StatusBlocked, StatusCancelling}
 	statusInfoList := make([]StatusInfo, 0, len(allStatus))
 	for _, s := range allStatus {
 		statusInfoList = append(statusInfoList, StatusInfo{
@@ -156,9 +190,20 @@ func GetRunBranches(ctx context.Context, repoID int64) ([]string, error) {
 // GetRunWorkflowIDs returns all distinct WorkflowIDs that have at least
 // one ActionRun in the given repo.
 func GetRunWorkflowIDs(ctx context.Context, repoID int64) ([]string, error) {
+	return getRunWorkflowIDs(ctx, repoID, builder.NewCond())
+}
+
+// GetRepoRunWorkflowIDs returns all distinct WorkflowIDs that have at least
+// one repo-level ActionRun in the given repo.
+func GetRepoRunWorkflowIDs(ctx context.Context, repoID int64) ([]string, error) {
+	return getRunWorkflowIDs(ctx, repoID, builder.Eq{"is_scoped_run": false})
+}
+
+func getRunWorkflowIDs(ctx context.Context, repoID int64, extraCond builder.Cond) ([]string, error) {
 	ids := make([]string, 0, 10)
+	cond := builder.Eq{"repo_id": repoID}
 	return ids, db.GetEngine(ctx).Table("action_run").
-		Where(builder.Eq{"repo_id": repoID}).
+		Where(cond.And(extraCond)).
 		Distinct("workflow_id").
 		Cols("workflow_id").
 		Asc("workflow_id").
@@ -175,4 +220,15 @@ func GetActors(ctx context.Context, repoID int64) ([]*user_model.User, error) {
 		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
 		OrderBy(user_model.GetOrderByName()).
 		Find(&actors)
+}
+
+// FindOldestRuns returns up to limit runs in the given statuses created before olderThan, lowest id first.
+func FindOldestRuns(ctx context.Context, statuses []Status, olderThan timeutil.TimeStamp, limit int) ([]*ActionRun, error) {
+	runs := make([]*ActionRun, 0, limit)
+	return runs, db.GetEngine(ctx).
+		Where(builder.In("`action_run`.status", statuses)).
+		And(builder.Lt{"`action_run`.created": olderThan}).
+		OrderBy("`action_run`.`id` ASC").
+		Limit(limit).
+		Find(&runs)
 }

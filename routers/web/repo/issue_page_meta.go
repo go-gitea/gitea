@@ -4,6 +4,9 @@
 package repo
 
 import (
+	"html/template"
+	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -14,6 +17,7 @@ import (
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
 	shared_user "gitea.dev/routers/web/shared/user"
@@ -129,6 +133,92 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 	return data
 }
 
+const (
+	newIssuePrefillLabelFallback = "labels" // "labels" was introduced long time ago
+	newIssuePrefillLabel         = "label"  // to be consistent with other prefill params, we use "label" instead of "labels"
+	newIssuePrefillMilestone     = "milestone"
+	newIssuePrefillProject       = "project"
+	newIssuePrefillAssignee      = "assignee"
+)
+
+func issuePrefillQuery(ctx *context.Context) template.URL {
+	keys := []string{newIssuePrefillLabel, newIssuePrefillLabelFallback, newIssuePrefillMilestone, newIssuePrefillProject, newIssuePrefillAssignee}
+	query := url.Values{}
+	for _, key := range keys {
+		if value := ctx.FormString(key); value != "" {
+			query.Set(key, value)
+		}
+	}
+	return template.URL(query.Encode())
+}
+
+func makeItemIdNameMap[T any](items []T, getKey func(item T) (int64, string)) map[string]T {
+	m := make(map[string]T)
+	for _, item := range items {
+		id, name := getKey(item)
+		m[strconv.FormatInt(id, 10)] = item
+		lowerName := strings.ToLower(name)
+		if _, exists := m[lowerName]; !exists {
+			m[lowerName] = item
+		}
+	}
+	return m
+}
+
+func pickItemIDsFromQueryParam[T any](items []T, param string, getKey func(item T) (int64, string)) (ret []int64) {
+	if param == "" {
+		return nil
+	}
+	m := makeItemIdNameMap(items, getKey)
+	for key := range strings.SplitSeq(param, ",") {
+		if item, ok := m[strings.ToLower(key)]; ok {
+			id, _ := getKey(item)
+			ret = append(ret, id)
+		}
+	}
+	return ret
+}
+
+func retrieveRepoIssueMetaDataWithPrefill(ctx *context.Context, repo *repo_model.Repository, isPull bool) *IssuePageMetaData {
+	data := retrieveRepoIssueMetaData(ctx, repo, nil, isPull)
+	if ctx.Written() {
+		return data
+	}
+
+	// label
+	paramLabel := ctx.FormString(newIssuePrefillLabel, ctx.FormString(newIssuePrefillLabelFallback))
+	labelIDs := pickItemIDsFromQueryParam(data.LabelsData.AllLabels, paramLabel, func(label *issues_model.Label) (int64, string) {
+		return label.ID, label.Name
+	})
+	data.LabelsData.SetSelectedLabelIDs(labelIDs)
+
+	// milestone
+	paramMilestone := ctx.FormString(newIssuePrefillMilestone)
+	allMilestones := slices.Concat(data.MilestonesData.OpenMilestones, data.MilestonesData.ClosedMilestones)
+	milestoneIDs := pickItemIDsFromQueryParam(allMilestones, paramMilestone, func(milestone *issues_model.Milestone) (int64, string) {
+		return milestone.ID, milestone.Name
+	})
+	if len(milestoneIDs) > 0 {
+		data.MilestonesData.SelectedMilestoneID = milestoneIDs[0]
+	}
+
+	// project
+	paramProject := ctx.FormString(newIssuePrefillProject)
+	allProjects := slices.Concat(data.ProjectsData.OpenProjects, data.ProjectsData.ClosedProjects)
+	projectOpenIDs := pickItemIDsFromQueryParam(allProjects, paramProject, func(project *project_model.Project) (int64, string) {
+		return project.ID, project.Title
+	})
+	data.SetSelectedProjectIDs(projectOpenIDs)
+
+	// assignee
+	paramAssignee := ctx.FormString(newIssuePrefillAssignee)
+	assigneeIDs := pickItemIDsFromQueryParam(data.AssigneesData.CandidateAssignees, paramAssignee, func(user *user_model.User) (int64, string) {
+		return user.ID, user.Name
+	})
+	data.AssigneesData.SelectedAssigneeIDs = base.JoinInt64s(assigneeIDs, ",")
+	return data
+}
+
 func (d *IssuePageMetaData) retrieveMilestonesDataForIssueWriter(ctx *context.Context) {
 	var err error
 	if d.Issue != nil {
@@ -187,9 +277,9 @@ func (d *IssuePageMetaData) retrieveProjectCardsForExistingIssue(ctx *context.Co
 	// Build project cards for each project
 	d.ProjectsData.ProjectCards = make([]*issueSidebarProjectCardData, 0, len(d.Issue.Projects))
 	for _, project := range d.Issue.Projects {
-		columns, err := project.GetColumns(ctx)
+		columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
 		if err != nil {
-			ctx.ServerError("GetProjectColumns", err)
+			ctx.ServerError("GetColumns", err)
 			return
 		}
 
@@ -351,13 +441,9 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 			tmp.ItemID = -review.ReviewerTeamID
 		}
 
-		if data.CanChooseReviewer {
-			// Users who can choose reviewers can also remove review requests
-			tmp.CanChange = true
-		} else if ctx.Doer != nil && ctx.Doer.ID == review.ReviewerID && review.Type == issues_model.ReviewTypeRequest {
-			// A user can refuse review requests
-			tmp.CanChange = true
-		}
+		tmp.CanChange = data.CanChooseReviewer || (ctx.Doer != nil && ctx.Doer.ID == review.ReviewerID &&
+			(review.Type == issues_model.ReviewTypeRequest ||
+				(review.Type == issues_model.ReviewTypeApprove && !isClosed && !repo.IsArchived)))
 
 		pullReviews = append(pullReviews, tmp)
 
@@ -516,6 +602,7 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
+	issues_model.SortLabelsForDisplay(labels)
 	labelsData.RepoLabels = labels
 
 	if repo.Owner.IsOrganization() {
@@ -523,6 +610,7 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 		if err != nil {
 			return
 		}
+		issues_model.SortLabelsForDisplay(orgLabels)
 		labelsData.OrgLabels = orgLabels
 	}
 	labelsData.AllLabels = append(labelsData.AllLabels, labelsData.RepoLabels...)

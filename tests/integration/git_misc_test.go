@@ -17,7 +17,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
@@ -44,20 +43,20 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 
 		sha := resp.Commit.SHA
 
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 
-		commit, err := gitRepo.GetCommit(sha)
+		commit, err := gitRepo.GetCommit(t.Context(), sha)
 		assert.NoError(t, err)
 
-		entry, err := commit.GetTreeEntryByPath("test.txt")
+		entry, err := commit.GetTreeEntryByPath(t.Context(), gitRepo, "test.txt")
 		assert.NoError(t, err)
 
-		b := entry.Blob()
-		r1, err := b.DataAsync()
+		b := entry.Blob(gitRepo)
+		r1, err := b.DataAsync(t.Context())
 		assert.NoError(t, err)
 		defer r1.Close()
-		r2, err := b.DataAsync()
+		r2, err := b.DataAsync(t.Context())
 		assert.NoError(t, err)
 		defer r2.Close()
 
@@ -87,7 +86,7 @@ func TestAgitPullPush(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(t.Context(), dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -110,6 +109,8 @@ func TestAgitPullPush(t *testing.T) {
 		assert.NoError(t, pr.LoadIssue(t.Context()))
 		assert.Equal(t, "test-title", pr.Issue.Title)
 		assert.Equal(t, "test-description", pr.Issue.Content)
+		assert.Equal(t, 0, pr.CommitsBehind)
+		assert.Equal(t, 1, pr.CommitsAhead)
 
 		// commit 2
 		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-2-")
@@ -120,6 +121,9 @@ func TestAgitPullPush(t *testing.T) {
 			WithDir(dstPath).
 			Run(t.Context())
 		assert.NoError(t, err)
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Flow: issues_model.PullRequestFlowAGit, HeadBranch: "user2/test-agit-push"})
+		assert.Equal(t, 0, pr.CommitsBehind)
+		assert.Equal(t, 2, pr.CommitsAhead)
 
 		// reset to first commit
 		err = gitcmd.NewCommand("reset", "--hard", "HEAD~1").WithDir(dstPath).Run(t.Context())
@@ -150,7 +154,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(t.Context(), dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -219,11 +223,11 @@ func TestAgitReviewStaleness(t *testing.T) {
 
 		// For AGit PRs, HeadCommitID must be loaded from git references
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := git.OpenRepository(t.Context(), baseRepo)
 		assert.NoError(t, err)
 		defer baseGitRepo.Close()
 
-		updatedCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		updatedCommitID, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		t.Logf("Updated commit ID: %s", updatedCommitID)
 

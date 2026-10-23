@@ -6,15 +6,15 @@ package pprof
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/pprof"
 
 	"gitea.dev/modules/log"
 )
 
-// DumpMemProfileForUsername dumps a memory profile at pprofDataPath as memprofile_<username>_<temporary id>
-func DumpMemProfileForUsername(pprofDataPath, username string) error {
-	f, err := os.CreateTemp(pprofDataPath, fmt.Sprintf("memprofile_%s_", username))
+func dumpMemProfileForUsername(pprofDataPath, subName string) error {
+	f, err := os.CreateTemp(pprofDataPath, fmt.Sprintf("pprof_mem_%s_", filepath.Clean(subName)))
 	if err != nil {
 		return err
 	}
@@ -23,23 +23,30 @@ func DumpMemProfileForUsername(pprofDataPath, username string) error {
 	return pprof.WriteHeapProfile(f)
 }
 
-// DumpCPUProfileForUsername dumps a CPU profile at pprofDataPath as cpuprofile_<username>_<temporary id>
-// the stop function it returns stops, writes and closes the CPU profile file
-func DumpCPUProfileForUsername(pprofDataPath, username string) (func(), error) {
-	f, err := os.CreateTemp(pprofDataPath, fmt.Sprintf("cpuprofile_%s_", username))
+func DumpPprofForUsername(pprofDataPath, subName string) (func(), error) {
+	if err := os.MkdirAll(pprofDataPath, os.ModePerm); err != nil {
+		return nil, fmt.Errorf(`os.MkdirAll(pprofDataPath) failed: %v`, err)
+	}
+
+	f, err := os.CreateTemp(pprofDataPath, fmt.Sprintf("pprof_cpu_%s_", filepath.Clean(subName)))
 	if err != nil {
 		return nil, err
 	}
 
 	err = pprof.StartCPUProfile(f)
 	if err != nil {
-		log.Fatal("StartCPUProfile: %v", err)
+		_ = f.Close()
+		return nil, fmt.Errorf("StartCPUProfile: %w", err)
 	}
 	return func() {
 		pprof.StopCPUProfile()
 		err = f.Close()
 		if err != nil {
-			log.Fatal("StopCPUProfile Close: %v", err)
+			log.Error("StopCPUProfile Close: %v", err)
+		}
+		err = dumpMemProfileForUsername(pprofDataPath, subName)
+		if err != nil {
+			log.Error("DumpMemProfile: %v", err)
 		}
 	}, nil
 }

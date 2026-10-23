@@ -239,6 +239,15 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 	}, nil
 }
 
+// DescriptorMetadata returns the descriptor's metadata, which getPackageDescriptor has created from the package type
+func DescriptorMetadata[T interface{ *E }, E any](pd *PackageDescriptor) T {
+	metadata, ok := pd.Metadata.(T)
+	if !ok {
+		panic(fmt.Errorf("package %s of type %s has metadata type %T instead of %T", pd.Package.Name, pd.Package.Type, pd.Metadata, metadata))
+	}
+	return metadata
+}
+
 // GetPackageFileDescriptor gets a package file descriptor for a package file
 func GetPackageFileDescriptor(ctx context.Context, pf *PackageFile) (*PackageFileDescriptor, error) {
 	return getPackageFileDescriptor(ctx, pf, cache.NewEphemeralCache())

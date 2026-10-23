@@ -5,7 +5,6 @@ package org
 
 import (
 	"net/http"
-	"path"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -39,15 +38,20 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	home(ctx, false)
+	orgHome(ctx, false)
 }
 
 func Repositories(ctx *context.Context) {
-	home(ctx, true)
+	orgHome(ctx, true)
 }
 
-func home(ctx *context.Context, viewRepositories bool) {
+func orgHome(ctx *context.Context, viewRepositories bool) {
 	org := ctx.Org.Organization
+	if org == nil {
+		// some requests may reach here by "user" route patterns, e.g.: "/{owner}/-/repositories"
+		ctx.NotFound(nil)
+		return
+	}
 
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
@@ -162,8 +166,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 
-	pager := context.NewPagination(count, setting.UI.User.RepoPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(setting.UI.User.RepoPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
@@ -194,14 +197,14 @@ func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.Pr
 		return false
 	}
 
-	readmeBytes, err := readmeBlob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+	readmeBytes, err := readmeBlob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 	if err != nil {
 		log.Error("failed to GetBlobContent for profile %q (view as %q) readme: %v", profileRepo.FullName(), viewAs, err)
 		return false
 	}
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, profileRepo, renderhelper.RepoFileOptions{
-		CurrentRefSubURL: path.Join("branch", util.PathEscapeSegments(profileRepo.DefaultBranch)),
+		CurrentRefSubURL: git.RefNameFromBranch(profileRepo.DefaultBranch).RefWebLinkPath(),
 	})
 	ctx.Data["ProfileReadmeContent"], err = markdown.RenderString(rctx, readmeBytes)
 	if err != nil {

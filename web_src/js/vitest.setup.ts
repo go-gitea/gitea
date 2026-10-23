@@ -1,15 +1,14 @@
 import './globals.ts';
 
 window.config = {
-  appUrl: 'http://localhost:3000/',
+  appUrl: `${window.location.origin}/`,
   appSubUrl: '',
   assetUrlPrefix: '/assets',
   sharedWorkerUri: '',
   runModeIsProd: true,
   customEmojis: {},
   pageData: {},
-  notificationSettings: {MinTimeout: 0, TimeoutStep: 0, MaxTimeout: 0, EventSourceUpdateTime: 0},
-  enableTimeTracking: true,
+  notificationSettings: {MinTimeout: 0, TimeoutStep: 0, MaxTimeout: 0},
   mermaidMaxSourceCharacters: 5000,
   i18n: {},
   frontendInited: false,

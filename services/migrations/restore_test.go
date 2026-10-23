@@ -45,3 +45,30 @@ func TestRepositoryRestorer_GetReleases_LocalFileInclusion(t *testing.T) {
 	assert.Equal(t, "file://"+filepath.Join(baseDir, "good.txt"), optional.FromPtr(assets[0].DownloadURL).Value())
 	assert.Equal(t, "file://"+filepath.Join(baseDir, "etc/passwd"), optional.FromPtr(assets[1].DownloadURL).Value())
 }
+
+func TestRepositoryRestorer_GetPullRequestsStripsUnsafeCloneURL(t *testing.T) {
+	baseDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(baseDir, "change.patch"), []byte("patch"), 0o644))
+
+	pullRequestYML := `
+- number: 1
+  patch_url: change.patch
+  head:
+    clone_url: http://127.0.0.1/private.git
+    ref: feature
+  base:
+    ref: main
+`
+	require.NoError(t, os.WriteFile(filepath.Join(baseDir, "pull_request.yml"), []byte(pullRequestYML), 0o644))
+
+	r, err := NewRepositoryRestorer(t.Context(), baseDir, "owner", "repo", false)
+	require.NoError(t, err)
+
+	pulls, _, err := r.GetPullRequests(t.Context(), 1, 10)
+	require.NoError(t, err)
+	require.Len(t, pulls, 1)
+
+	assert.Equal(t, "file://"+filepath.Join(baseDir, "change.patch"), pulls[0].PatchURL)
+	assert.Empty(t, pulls[0].Head.CloneURL)
+	assert.True(t, pulls[0].EnsuredSafe)
+}

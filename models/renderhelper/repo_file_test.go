@@ -9,6 +9,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/test"
 
 	_ "gitea.dev/modules/markup/orgmode"
 
@@ -68,7 +69,7 @@ func TestRepoFile(t *testing.T) {
 	t.Run("WithCurrentRefSubURLByTag", func(t *testing.T) {
 		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{
 			CurrentRefSubURL: "/commit/1234",
-			CurrentTreePath:  "my-dir",
+			CurrentTreePath:  "my dir",
 		}).
 			WithMarkupType(markdown.MarkupName)
 		rendered, err := testRenderString(rctx, `
@@ -76,9 +77,26 @@ func TestRepoFile(t *testing.T) {
 <video src="LINK">
 `)
 		assert.NoError(t, err)
-		assert.Equal(t, `<a href="/user2/repo1/src/commit/1234/my-dir/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/my-dir/LINK"/></a>
-<video src="/user2/repo1/media/commit/1234/my-dir/LINK">
+		assert.Equal(t, `<a href="/user2/repo1/src/commit/1234/my%20dir/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/my%20dir/LINK"/></a>
+<video src="/user2/repo1/media/commit/1234/my%20dir/LINK">
 </video>`, rendered)
+	})
+
+	t.Run("PictureSource", func(t *testing.T) {
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{CurrentRefSubURL: "branch/main"}).
+			WithMarkupType(markdown.MarkupName)
+		rendered, err := testRenderString(rctx, `<picture><source media="(prefers-color-scheme: dark)" srcset="dark.svg"><img src="light.svg"></picture>`)
+		assert.NoError(t, err)
+		assert.Equal(t, test.NormalizeHTMLSpaces(`
+<p>
+	<a href="/user2/repo1/src/branch/main/light.svg" target="_blank" rel="nofollow noopener">
+		<picture>
+			<source media="(prefers-color-scheme: dark)" srcset="/user2/repo1/media/branch/main/dark.svg"/>
+			<img src="/user2/repo1/media/branch/main/light.svg"/>
+		</picture>
+	</a>
+</p>
+`), test.NormalizeHTMLSpaces(rendered))
 	})
 }
 
@@ -89,8 +107,8 @@ func TestRepoFileOrgMode(t *testing.T) {
 	t.Run("Links", func(t *testing.T) {
 		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{
 			CurrentRefSubURL: "/commit/1234",
-			CurrentTreePath:  "my-dir",
-		}).WithRelativePath("my-dir/a.org")
+			CurrentTreePath:  "my dir",
+		}).WithRelativePath("my dir/a.org")
 
 		rendered, err := testRenderString(rctx, `
 [[https://google.com/]]
@@ -99,7 +117,7 @@ func TestRepoFileOrgMode(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, `<p>
 <a href="https://google.com/" rel="nofollow">https://google.com/</a>
-<a href="/user2/repo1/src/commit/1234/my-dir/ImageLink.svg" rel="nofollow">The Image Desc</a></p>
+<a href="/user2/repo1/src/commit/1234/my%20dir/ImageLink.svg" rel="nofollow">The Image Desc</a></p>
 `, rendered)
 	})
 
@@ -113,7 +131,7 @@ int a = 1;
 `)
 		assert.NoError(t, err)
 		assert.Equal(t, `<div>
-<pre><code class="chroma language-c"><span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span></code></pre>
+<pre class="code-block"><code class="chroma language-c"><span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span></code></pre>
 </div>
 `, rendered)
 	})

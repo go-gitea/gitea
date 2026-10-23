@@ -60,6 +60,8 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		opts.Statuses = append(opts.Statuses, values...)
 	}
 
+	opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer)
+
 	jobs, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -75,27 +77,16 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		return
 	}
 
-	res.Entries = make([]*api.ActionWorkflowJob, len(jobs))
-
-	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
-	for i := range jobs {
-		var repository *repo_model.Repository
-		if isRepoLevel {
-			repository = ctx.Repo.Repository
-		} else {
-			if jobs[i].Run == nil || jobs[i].Run.Repo == nil {
-				ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", jobs[i].ID))
-				return
-			}
-			repository = jobs[i].Run.Repo
-		}
-
-		convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, repository, nil, jobs[i])
-		if err != nil {
-			ctx.APIErrorInternal(err)
+	for _, job := range jobs {
+		if job.Run == nil || job.Run.Repo == nil {
+			ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", job.ID))
 			return
 		}
-		res.Entries[i] = convertedWorkflowJob
+	}
+	res.Entries, err = convert.ToActionWorkflowJobs(ctx, jobs)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
@@ -105,7 +96,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 func convertToInternal(s string) ([]actions_model.Status, error) {
 	switch s {
 	case "pending", "waiting", "requested", "action_required":
-		return []actions_model.Status{actions_model.StatusBlocked}, nil
+		return []actions_model.Status{actions_model.StatusBlocked, actions_model.StatusPending}, nil
 	case "queued":
 		return []actions_model.Status{actions_model.StatusWaiting}, nil
 	case "in_progress":
@@ -148,6 +139,11 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 		WorkflowID:  workflowID,
 		ListOptions: listOptions,
 	}
+	if workflowID != "" {
+		workflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
+		opts.IsScopedRun = optional.Some(workflowSourceRepoID > 0)
+		opts.WorkflowRepoID = workflowSourceRepoID
+	}
 
 	if event := ctx.FormString("event"); event != "" {
 		opts.TriggerEvent = webhook.HookEventType(event)
@@ -166,7 +162,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	if actor := ctx.FormString("actor"); actor != "" {
 		user, err := user_model.GetUserByName(ctx, actor)
 		if err != nil {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 			return
 		}
 		opts.TriggerUserID = user.ID
@@ -176,6 +172,8 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	}
 	excludePullRequests := ctx.FormBool("exclude_pull_requests")
 
+	opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer)
+
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -183,7 +181,6 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	}
 
 	res := new(api.ActionWorkflowRunsResponse)
-	res.TotalCount = total
 
 	runList := actions_model.RunList(runs)
 	if err := runList.LoadTriggerUser(ctx); err != nil {
@@ -203,16 +200,28 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 		return
 	}
 
-	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
-	for i := range runs {
-		// TODO: load run attempts in batch
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil, excludePullRequests)
+	latestAttempts, err := runList.GetLatestAttempts(ctx)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	res.Entries = make([]*api.ActionWorkflowRun, 0, len(runs))
+	for _, run := range runs {
+		if run.Repo == nil {
+			// Orphaned row: drop it rather than failing the page, so total stays an upper bound
+			// until "doctor check --run check-db-consistency" removes it.
+			total--
+			continue
+		}
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, latestAttempts[run.LatestAttemptID], excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		res.Entries[i] = convertedRun
+		res.Entries = append(res.Entries, convertedRun)
 	}
+	res.TotalCount = total
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &res)

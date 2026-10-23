@@ -1,0 +1,5 @@
+{{$ownerUser := $.OwnerUser}}
+{{if $ownerUser}}
+	<a class="tw-break-anywhere" href="{{$ownerUser.HomeLink}}">{{$ownerUser.Name}}</a>
+	{{if $ownerUser.Visibility.IsPrivate}}<span class="tw-text-gold">{{svg "octicon-lock"}}</span>{{end}}
+{{end}}

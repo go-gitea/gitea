@@ -63,7 +63,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxIconColor() {
 
 		showAsWarningColor = showAsWarningColor ||
 			statusCheckData.pullCommitStatusState.IsWarning() || statusCheckData.pullCommitStatusState.IsPending() ||
-			(mergeBoxData.enableStatusCheck && (statusCheckData.RequiredChecksState.IsWarning() || statusCheckData.RequiredChecksState.IsPending()))
+			((mergeBoxData.enableStatusCheck || mergeBoxData.hasRequiredStatusContexts) && (statusCheckData.RequiredChecksState.IsWarning() || statusCheckData.RequiredChecksState.IsPending()))
 	}
 
 	hasBlockers := len(mergeBoxData.infoCommitBlockers.items) > 0 || len(mergeBoxData.infoProtectionBlockers.items) > 0

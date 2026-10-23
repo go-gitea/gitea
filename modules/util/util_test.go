@@ -11,22 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsEmptyString(t *testing.T) {
-	cases := []struct {
-		s        string
-		expected bool
-	}{
-		{"", true},
-		{" ", true},
-		{"   ", true},
-		{"  a", false},
-	}
-
-	for _, v := range cases {
-		assert.Equal(t, v.expected, IsEmptyString(v.s))
-	}
-}
-
 func Test_NormalizeEOL(t *testing.T) {
 	data1 := []string{
 		"",

@@ -6,6 +6,7 @@ package setting
 import (
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"gitea.dev/modules/log"
@@ -22,6 +23,7 @@ const (
 const (
 	RepoPRTitleSourceFirstCommit = "first-commit"
 	RepoPRTitleSourceAuto        = "auto"
+	RepoPRTitleSourceBranchName  = "branch-name"
 )
 
 // ItemsPerPage maximum items per page in forks, watchers and stars of a repo
@@ -56,6 +58,7 @@ var (
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
+		DefaultObjectFormat                     string
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
@@ -92,7 +95,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
-			PopulateSquashCommentWithCommitMessages  bool
+			DefaultSquashMergeMessage                string
 			AddCoCommitterTrailers                   bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
@@ -110,7 +113,7 @@ var (
 			AllowedTypes     string
 			DefaultPagingNum int
 			FileMaxSize      int64
-			MaxFiles         int64
+			MaxFiles         int
 		} `ini:"repository.release"`
 
 		Signing struct {
@@ -126,41 +129,7 @@ var (
 			TrustedSSHKeys    []string `ini:"TRUSTED_SSH_KEYS"`
 		} `ini:"repository.signing"`
 	}{
-		DetectedCharsetsOrder: []string{
-			"UTF-8",
-			"UTF-16BE",
-			"UTF-16LE",
-			"UTF-32BE",
-			"UTF-32LE",
-			"ISO-8859-1",
-			"windows-1252",
-			"ISO-8859-2",
-			"windows-1250",
-			"ISO-8859-5",
-			"ISO-8859-6",
-			"ISO-8859-7",
-			"windows-1253",
-			"ISO-8859-8-I",
-			"windows-1255",
-			"ISO-8859-8",
-			"windows-1251",
-			"windows-1256",
-			"KOI8-R",
-			"ISO-8859-9",
-			"windows-1254",
-			"Shift_JIS",
-			"GB18030",
-			"EUC-JP",
-			"EUC-KR",
-			"Big5",
-			"ISO-2022-JP",
-			"ISO-2022-KR",
-			"ISO-2022-CN",
-			"IBM424_rtl",
-			"IBM424_ltr",
-			"IBM420_rtl",
-			"IBM420_ltr",
-		},
+		DetectedCharsetsOrder:                   DefaultDetectedCharsetsOrder(),
 		DetectedCharsetScore:                    map[string]int{},
 		AnsiCharset:                             "",
 		ForcePrivate:                            false,
@@ -185,6 +154,7 @@ var (
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
+		DefaultObjectFormat:                     "sha1",
 		AllowForkWithoutMaximumLimit:            true,
 		StreamArchives:                          true,
 
@@ -219,7 +189,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
-			PopulateSquashCommentWithCommitMessages  bool
+			DefaultSquashMergeMessage                string
 			AddCoCommitterTrailers                   bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
@@ -237,7 +207,7 @@ var (
 			DefaultMergeMessageAllAuthors:            false,
 			DefaultMergeMessageMaxApprovers:          10,
 			DefaultMergeMessageOfficialApproversOnly: true,
-			PopulateSquashCommentWithCommitMessages:  false,
+			DefaultSquashMergeMessage:                "PR_BODY",
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
 			DelayCheckForInactiveDays:                7,
@@ -257,7 +227,7 @@ var (
 			AllowedTypes     string
 			DefaultPagingNum int
 			FileMaxSize      int64
-			MaxFiles         int64
+			MaxFiles         int
 		}{
 			AllowedTypes:     "",
 			DefaultPagingNum: 10,
@@ -294,18 +264,52 @@ var (
 	ScriptType   = "bash"
 )
 
+func DefaultDetectedCharsetsOrder() []string {
+	return []string{
+		"UTF-8",
+		"UTF-16BE",
+		"UTF-16LE",
+		"UTF-32BE",
+		"UTF-32LE",
+		"ISO-8859-1",
+		"windows-1252",
+		"ISO-8859-2",
+		"windows-1250",
+		"ISO-8859-5",
+		"ISO-8859-6",
+		"ISO-8859-7",
+		"windows-1253",
+		"ISO-8859-8-I",
+		"windows-1255",
+		"ISO-8859-8",
+		"windows-1251",
+		"windows-1256",
+		"KOI8-R",
+		"ISO-8859-9",
+		"windows-1254",
+		"Shift_JIS",
+		"GB18030",
+		"EUC-JP",
+		"EUC-KR",
+		"Big5",
+		"ISO-2022-JP",
+		"ISO-2022-KR",
+		"ISO-2022-CN",
+	}
+}
+
 func loadRepositoryFrom(rootCfg ConfigProvider) {
 	var err error
 	// Determine and create root git repository path.
 	sec := rootCfg.Section("repository")
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
-	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")
+	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").String()
 	// MAX_CREATION_LIMIT is a shortcut that sets the default for the two per-type limits below.
 	// USER_/ORG_MAX_CREATION_LIMIT take precedence when explicitly set.
-	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
-	Repository.UserMaxCreationLimit = sec.Key("USER_MAX_CREATION_LIMIT").MustInt(Repository.MaxCreationLimit)
-	Repository.OrgMaxCreationLimit = sec.Key("ORG_MAX_CREATION_LIMIT").MustInt(Repository.MaxCreationLimit)
+	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)                                   // FIXME: INI-MUST-SIDE-EFFECT
+	Repository.UserMaxCreationLimit = sec.Key("USER_MAX_CREATION_LIMIT").MustInt(Repository.MaxCreationLimit) // FIXME: INI-MUST-SIDE-EFFECT
+	Repository.OrgMaxCreationLimit = sec.Key("ORG_MAX_CREATION_LIMIT").MustInt(Repository.MaxCreationLimit)   // FIXME: INI-MUST-SIDE-EFFECT
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
 	RepoRootPath = sec.Key("ROOT").MustString(filepath.Join(AppDataPath, "gitea-repositories"))
 	if !filepath.IsAbs(RepoRootPath) {
@@ -334,6 +338,10 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Repository.Upload settings: %v", err)
 	} else if err = rootCfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
+	}
+
+	if !slices.Contains([]string{"BLANK", "COMMIT_MESSAGES", "PR_BODY"}, Repository.PullRequest.DefaultSquashMergeMessage) { // uppercase unlike other config values, to match GitHub's squash_merge_commit_message which the API also uses
+		log.Fatal("Invalid repository.pull-request.DEFAULT_SQUASH_MERGE_MESSAGE: %s", Repository.PullRequest.DefaultSquashMergeMessage)
 	}
 
 	if !rootCfg.Section("packages").Key("ENABLED").MustBool(Packages.Enabled) {

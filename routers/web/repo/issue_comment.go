@@ -12,13 +12,11 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	"gitea.dev/models/renderhelper"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
-	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -42,7 +40,7 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.CreateCommentForm)
+	form := web.GetForm[*forms.CreateCommentForm](ctx)
 	issueType := util.Iif(issue.IsPull, "pulls", "issues")
 
 	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {
@@ -88,6 +86,7 @@ func NewComment(ctx *context.Context) {
 	if (ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
 		(form.Status == "reopen" || form.Status == "close") &&
 		!(issue.IsPull && issue.PullRequest.HasMerged) {
+		// TODO: move the code to services package, don't make route handler logic so complex
 		// Duplication and conflict check should apply to reopen pull request.
 		var branchOtherUnmergedPR *issues_model.PullRequest
 		var err error
@@ -103,59 +102,20 @@ func NewComment(ctx *context.Context) {
 			if branchOtherUnmergedPR != nil {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.open_unmerged_pull_exists", branchOtherUnmergedPR.Index))
 			} else {
-				// Regenerate patch and test conflict.
-				issue.PullRequest.HeadCommitID = ""
-				pull_service.StartPullRequestCheckImmediately(ctx, issue.PullRequest)
-			}
-
-			// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
-			// get head commit of PR
-			if branchOtherUnmergedPR != nil && pull.Flow == issues_model.PullRequestFlowGithub {
-				prHeadRef := pull.GetGitHeadRefName()
-				if err := pull.LoadBaseRepo(ctx); err != nil {
-					ctx.ServerError("Unable to load base repo", err)
-					return
-				}
-				prHeadCommitID, err := gitrepo.GetFullCommitID(ctx, pull.BaseRepo, prHeadRef)
-				if err != nil {
-					ctx.ServerError("Get head commit Id of pr fail", err)
-					return
-				}
-
-				// get head commit of branch in the head repo
-				if err := pull.LoadHeadRepo(ctx); err != nil {
-					ctx.ServerError("Unable to load head repo", err)
-					return
-				}
-				if exist, _ := git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.BaseBranch); !exist {
-					ctx.Flash.Error("The origin branch is delete, cannot reopen.")
-					return
-				}
-				headBranchRef := git.RefNameFromBranch(pull.HeadBranch)
-				headBranchCommitID, err := gitrepo.GetFullCommitID(ctx, pull.HeadRepo, headBranchRef.String())
-				if err != nil {
-					ctx.ServerError("Get head commit Id of head branch fail", err)
-					return
-				}
-
-				err = pull.LoadIssue(ctx)
-				if err != nil {
-					ctx.ServerError("load the issue of pull request error", err)
-					return
-				}
-
-				if prHeadCommitID != headBranchCommitID {
-					// force push to base repo
-					err := gitrepo.Push(ctx, pull.HeadRepo, pull.BaseRepo, git.PushOptions{
-						Branch: pull.HeadBranch + ":" + prHeadRef,
-						Force:  true,
-						Env:    repo_module.InternalPushingEnvironment(pull.Issue.Poster, pull.BaseRepo),
-					})
-					if err != nil {
-						ctx.ServerError("force push error", err)
+				// sync ref of PR <refs/pulls/pr_index/head> in base repo for a reopened PR
+				if pull.Flow == issues_model.PullRequestFlowGithub {
+					if exist, _ := git_model.IsBranchExist(ctx, pull.HeadRepoID, pull.HeadBranch); !exist {
+						ctx.Flash.Error("The origin branch is delete, cannot reopen.")
+						return
+					}
+					if err := pull_service.PushToBaseRepo(ctx, pull); err != nil {
+						ctx.ServerError("PushToBaseRepo", err)
 						return
 					}
 				}
+				// Regenerate patch and test conflict.
+				issue.PullRequest.HeadCommitID = ""
+				pull_service.StartPullRequestCheckImmediately(ctx, issue.PullRequest)
 			}
 		}
 
@@ -187,31 +147,38 @@ func NewComment(ctx *context.Context) {
 	ctx.JSONRedirect(redirect)
 }
 
+func getRepoIssueComment(ctx *context.Context, commentID int64) *issues_model.Comment {
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, commentID)
+	if err != nil {
+		ctx.ServerError("GetCommentWithRepoID", err)
+		return nil
+	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+		ctx.NotFound(nil)
+		return nil
+	}
+	return comment
+}
+
+func getRepoIssueCommentForSelfWriteOrAccess(ctx *context.Context, commentID int64, accessMode perm.AccessMode) *issues_model.Comment {
+	comment := getRepoIssueComment(ctx, commentID)
+	if comment == nil {
+		return nil
+	}
+	if !canSelfChangeOrAccessContent(ctx, comment.Issue, comment.PosterID, accessMode) {
+		return nil
+	}
+	if !comment.Type.HasContentSupport() {
+		ctx.HTTPError(http.StatusBadRequest)
+		return nil
+	}
+	return comment
+}
+
 // UpdateCommentContent change comment of issue's content
 func UpdateCommentContent(ctx *context.Context) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
-	if err != nil {
-		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
-		return
-	}
-
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
-		return
-	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-
-	if !comment.Type.HasContentSupport() {
-		ctx.HTTPError(http.StatusNoContent)
+	comment := getRepoIssueCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeWrite)
+	if comment == nil {
 		return
 	}
 
@@ -227,7 +194,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		oldContent := comment.Content
 		comment.Content = newContent
 
-		if err = issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
+		if err := issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
 			if errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
 			} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
@@ -257,6 +224,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
 			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
 		})
+		var err error
 		renderedContent, err = markdown.RenderString(rctx, comment.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -273,31 +241,12 @@ func UpdateCommentContent(ctx *context.Context) {
 
 // DeleteComment delete comment of issue
 func DeleteComment(ctx *context.Context) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
-	if err != nil {
-		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
+	comment := getRepoIssueCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeWrite)
+	if comment == nil {
 		return
 	}
 
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
-		return
-	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	} else if !comment.Type.HasContentSupport() {
-		ctx.HTTPError(http.StatusNoContent)
-		return
-	}
-
-	if err = issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+	if err := issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
 		ctx.ServerError("DeleteComment", err)
 		return
 	}
@@ -307,51 +256,12 @@ func DeleteComment(ctx *context.Context) {
 
 // ChangeCommentReaction create a reaction for comment
 func ChangeCommentReaction(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.ReactionForm)
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
-	if err != nil {
-		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
+	comment := getRepoIssueCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeRead)
+	if comment == nil {
 		return
 	}
 
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
-		return
-	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull)) {
-		if log.IsTrace() {
-			if ctx.IsSigned {
-				issueType := "issues"
-				if comment.Issue.IsPull {
-					issueType = "pulls"
-				}
-				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
-					"User in Repo has Permissions: %-+v",
-					ctx.Doer,
-					comment.Issue.PosterID,
-					issueType,
-					ctx.Repo.Repository,
-					ctx.Repo.Permission)
-			} else {
-				log.Trace("Permission Denied: Not logged in")
-			}
-		}
-
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-
-	if !comment.Type.HasContentSupport() {
-		ctx.HTTPError(http.StatusNoContent)
-		return
-	}
-
+	form := web.GetForm[*forms.ReactionForm](ctx)
 	switch ctx.PathParam("action") {
 	case "react":
 		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Content)
@@ -379,7 +289,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		// Reload new reactions
 		comment.Reactions = nil
-		if err = comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
+		if err := comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
 			log.Info("comment.LoadReactions: %s", err)
 			break
 		}
@@ -390,47 +300,13 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	if len(comment.Reactions) == 0 {
-		ctx.JSON(http.StatusOK, map[string]any{
-			"empty": true,
-			"html":  "",
-		})
-		return
-	}
-
-	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
-		"Reactions": comment.Reactions.GroupByType(),
-	})
-	if err != nil {
-		ctx.ServerError("ChangeCommentReaction.HTMLString", err)
-		return
-	}
-	ctx.JSON(http.StatusOK, map[string]any{
-		"html": html,
-	})
+	renderReactions(ctx, fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID), comment.Reactions, setting.UI.Reactions)
 }
 
 // GetCommentAttachments returns attachments for the comment
 func GetCommentAttachments(ctx *context.Context) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
-	if err != nil {
-		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
-		return
-	}
-
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
-		return
-	}
-
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
+	comment := getRepoIssueComment(ctx, ctx.PathParamInt64("id"))
+	if comment == nil {
 		return
 	}
 
@@ -445,7 +321,7 @@ func GetCommentAttachments(ctx *context.Context) {
 		return
 	}
 	for i := 0; i < len(comment.Attachments); i++ {
-		attachments = append(attachments, convert.ToAttachment(ctx.Repo.Repository, comment.Attachments[i]))
+		attachments = append(attachments, convert.ToAttachment(ctx, ctx.Repo.Repository, comment.Attachments[i]))
 	}
 	ctx.JSON(http.StatusOK, attachments)
 }

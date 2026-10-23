@@ -5,8 +5,11 @@
 package issues
 
 import (
+	"cmp"
 	"context"
+	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -25,12 +28,6 @@ import (
 type ErrRepoLabelNotExist struct {
 	LabelID int64
 	RepoID  int64
-}
-
-// IsErrRepoLabelNotExist checks if an error is a RepoErrLabelNotExist.
-func IsErrRepoLabelNotExist(err error) bool {
-	_, ok := err.(ErrRepoLabelNotExist)
-	return ok
 }
 
 func (err ErrRepoLabelNotExist) Error() string {
@@ -189,11 +186,47 @@ func (l *Label) ExclusiveScope() string {
 	if !l.Exclusive {
 		return ""
 	}
-	lastIndex := strings.LastIndex(l.Name, "/")
-	if lastIndex == -1 || lastIndex == 0 || lastIndex == len(l.Name)-1 {
+	scope, name, found := strings.CutLast(l.Name, "/")
+	if !found || scope == "" || name == "" {
 		return ""
 	}
-	return l.Name[:lastIndex]
+	return scope
+}
+
+// CompareLabelForDisplay compares labels for displaying them in dropdowns or lists.
+// Labels are grouped by their exclusive scope, and labels within the same scope
+// are sorted by their exclusive order, where unordered labels (order 0) come last.
+// Labels without a scope are listed first and everything else falls back to name order.
+func CompareLabelForDisplay(a, b *Label) int {
+	scopeA, scopeB := a.ExclusiveScope(), b.ExclusiveScope()
+	if scopeA != scopeB {
+		if scopeA == "" {
+			return -1
+		}
+		if scopeB == "" {
+			return 1
+		}
+		return strings.Compare(scopeA, scopeB)
+	}
+	if scopeA != "" {
+		orderA, orderB := a.ExclusiveOrder, b.ExclusiveOrder
+		if orderA <= 0 {
+			orderA = math.MaxInt
+		}
+		if orderB <= 0 {
+			orderB = math.MaxInt
+		}
+		if orderA != orderB {
+			return cmp.Compare(orderA, orderB)
+		}
+	}
+	return strings.Compare(a.Name, b.Name)
+}
+
+// SortLabelsForDisplay sorts labels in place for displaying them in dropdowns or lists,
+// grouping them by their exclusive scope and respecting the exclusive order within each scope.
+func SortLabelsForDisplay(labels []*Label) {
+	slices.SortStableFunc(labels, CompareLabelForDisplay)
 }
 
 // NewLabel creates a new label
@@ -236,27 +269,23 @@ func UpdateLabel(ctx context.Context, l *Label) error {
 	return updateLabelCols(ctx, l, "name", "description", "color", "exclusive", "exclusive_order", "archived_unix")
 }
 
-// DeleteLabel delete a label
-func DeleteLabel(ctx context.Context, id, labelID int64) error {
-	l, err := GetLabelByID(ctx, labelID)
-	if err != nil {
-		if IsErrLabelNotExist(err) {
-			return nil
-		}
-		return err
-	}
+// DeleteRepoLabel deletes a repository label.
+func DeleteRepoLabel(ctx context.Context, repoID, labelID int64) error {
+	return deleteLabel(ctx, labelID, builder.Eq{"repo_id": repoID, "org_id": 0})
+}
 
+// DeleteOrgLabel deletes an organization label.
+func DeleteOrgLabel(ctx context.Context, orgID, labelID int64) error {
+	return deleteLabel(ctx, labelID, builder.Eq{"org_id": orgID, "repo_id": 0})
+}
+
+func deleteLabel(ctx context.Context, labelID int64, ownerCond builder.Cond) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if l.BelongsToOrg() && l.OrgID != id {
-			return nil
-		}
-		if l.BelongsToRepo() && l.RepoID != id {
-			return nil
-		}
-
-		if _, err = db.DeleteByID[Label](ctx, labelID); err != nil {
+		deleted, err := db.GetEngine(ctx).ID(labelID).Where(ownerCond).Delete(new(Label))
+		if err != nil || deleted == 0 {
 			return err
-		} else if _, err = db.GetEngine(ctx).
+		}
+		if _, err = db.GetEngine(ctx).
 			Where("label_id = ?", labelID).
 			Delete(new(IssueLabel)); err != nil {
 			return err
@@ -310,6 +339,18 @@ func GetLabelInRepoByName(ctx context.Context, repoID int64, labelName string) (
 		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
 	return l, nil
+}
+
+// GetLabelInRepoOrOrgByID returns the label with labelID scoped to the repo, falling back to the
+// repo's owning organization when ownerIsOrg is set. It returns ErrRepoLabelNotExist /
+// ErrOrgLabelNotExist when the label is in neither scope, so a foreign-but-existing label ID is
+// indistinguishable from a nonexistent one (no cross-repo enumeration oracle).
+func GetLabelInRepoOrOrgByID(ctx context.Context, repoID, ownerID int64, ownerIsOrg bool, labelID int64) (*Label, error) {
+	label, err := GetLabelInRepoByID(ctx, repoID, labelID)
+	if err != nil && errors.Is(err, util.ErrNotExist) && ownerIsOrg {
+		return GetLabelInOrgByID(ctx, ownerID, labelID)
+	}
+	return label, err
 }
 
 // GetLabelInRepoByID returns a label by ID in given repository.
@@ -388,12 +429,13 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 	case "reversealphabetically":
 		sess.Desc("name")
 	case "leastissues":
-		sess.Asc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues ASC")
 	case "mostissues":
-		sess.Desc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues DESC")
 	default:
 		sess.Asc("name")
 	}
+	sess.Asc("id")
 
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)
@@ -463,12 +505,13 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 	case "reversealphabetically":
 		sess.Desc("name")
 	case "leastissues":
-		sess.Asc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues ASC")
 	case "mostissues":
-		sess.Desc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues DESC")
 	default:
 		sess.Asc("name")
 	}
+	sess.Asc("id")
 
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)

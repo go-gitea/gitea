@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 
 	webhook_model "gitea.dev/models/webhook"
@@ -48,12 +47,26 @@ type SlackPayload struct {
 }
 
 // SlackAttachment contains the slack message
+//
+// This is Slack's "secondary message attachment" format, documented (as
+// legacy, but still functional and with no newer replacement for this exact
+// author-row layout) at:
+// https://docs.slack.dev/legacy/legacy-messaging/legacy-secondary-message-attachments/
+// Gitea has sent every Slack webhook notification through this same struct
+// since Slack support was first added, so this predates and is unrelated to
+// the author fields below.
 type SlackAttachment struct {
-	Fallback  string `json:"fallback"`
-	Color     string `json:"color"`
-	Title     string `json:"title"`
-	TitleLink string `json:"title_link"`
-	Text      string `json:"text"`
+	Fallback string `json:"fallback"`
+	Color    string `json:"color"`
+	// AuthorName, AuthorLink, and AuthorIcon render as a small avatar and a
+	// linked username in a row above the title (see the package doc above).
+	// Populated from the event's Sender (or Pusher, for push events).
+	AuthorName string `json:"author_name,omitempty"`
+	AuthorLink string `json:"author_link,omitempty"`
+	AuthorIcon string `json:"author_icon,omitempty"`
+	Title      string `json:"title"`
+	TitleLink  string `json:"title_link"`
+	Text       string `json:"text"`
 }
 
 // SlackTextFormatter replaces &, <, > with HTML characters
@@ -125,10 +138,13 @@ func (s slackConvertor) Issue(p *api.IssuePayload) (SlackPayload, error) {
 		extraMarkdown = SlackTextFormatter(extraMarkdown)
 		issueTitle = SlackTextFormatter(issueTitle)
 		attachments = append(attachments, SlackAttachment{
-			Color:     fmt.Sprintf("%x", color),
-			Title:     issueTitle,
-			TitleLink: p.Issue.HTMLURL,
-			Text:      extraMarkdown,
+			Color:      fmt.Sprintf("%x", color),
+			AuthorName: p.Sender.UserName,
+			AuthorLink: p.Sender.HTMLURL,
+			AuthorIcon: p.Sender.AvatarURL,
+			Title:      issueTitle,
+			TitleLink:  p.Issue.HTMLURL,
+			Text:       extraMarkdown,
 		})
 	}
 
@@ -140,10 +156,13 @@ func (s slackConvertor) IssueComment(p *api.IssueCommentPayload) (SlackPayload, 
 	text, issueTitle, color := getIssueCommentPayloadInfo(p, SlackLinkFormatter, true)
 
 	return s.createPayload(text, []SlackAttachment{{
-		Color:     fmt.Sprintf("%x", color),
-		Title:     issueTitle,
-		TitleLink: p.Comment.HTMLURL,
-		Text:      SlackTextFormatter(p.Comment.Body),
+		Color:      fmt.Sprintf("%x", color),
+		AuthorName: p.Sender.UserName,
+		AuthorLink: p.Sender.HTMLURL,
+		AuthorIcon: p.Sender.AvatarURL,
+		Title:      issueTitle,
+		TitleLink:  p.Comment.HTMLURL,
+		Text:       SlackTextFormatter(p.Comment.Body),
 	}}), nil
 }
 
@@ -219,10 +238,13 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 	}
 
 	return s.createPayload(text, []SlackAttachment{{
-		Color:     s.Color,
-		Title:     p.Repo.HTMLURL,
-		TitleLink: p.Repo.HTMLURL,
-		Text:      attachmentText.String(),
+		Color:      s.Color,
+		AuthorName: p.Pusher.UserName,
+		AuthorLink: p.Pusher.HTMLURL,
+		AuthorIcon: p.Pusher.AvatarURL,
+		Title:      p.Repo.HTMLURL,
+		TitleLink:  p.Repo.HTMLURL,
+		Text:       attachmentText.String(),
 	}}), nil
 }
 
@@ -235,10 +257,13 @@ func (s slackConvertor) PullRequest(p *api.PullRequestPayload) (SlackPayload, er
 		extraMarkdown = SlackTextFormatter(p.PullRequest.Body)
 		issueTitle = SlackTextFormatter(issueTitle)
 		attachments = append(attachments, SlackAttachment{
-			Color:     fmt.Sprintf("%x", color),
-			Title:     issueTitle,
-			TitleLink: p.PullRequest.HTMLURL,
-			Text:      extraMarkdown,
+			Color:      fmt.Sprintf("%x", color),
+			AuthorName: p.Sender.UserName,
+			AuthorLink: p.Sender.HTMLURL,
+			AuthorIcon: p.Sender.AvatarURL,
+			Title:      issueTitle,
+			TitleLink:  p.PullRequest.HTMLURL,
+			Text:       extraMarkdown,
 		})
 	}
 
@@ -277,6 +302,8 @@ func (s slackConvertor) Repository(p *api.RepositoryPayload) (SlackPayload, erro
 		text = fmt.Sprintf("[%s] Repository created by %s", repoLink, senderLink)
 	case api.HookRepoDeleted:
 		text = fmt.Sprintf("[%s] Repository deleted by %s", repoLink, senderLink)
+	case api.HookRepoRenamed:
+		text = fmt.Sprintf("[%s] Repository renamed from %s by %s", repoLink, getRepoRenamedFrom(p), senderLink)
 	}
 
 	return s.createPayload(text, nil), nil
@@ -317,12 +344,10 @@ func init() {
 	RegisterWebhookRequester(webhook_module.SLACK, newSlackRequest)
 }
 
-var slackChannel = regexp.MustCompile(`^#?[a-z0-9_-]{1,80}$`)
-
-// IsValidSlackChannel validates a channel name conforms to what slack expects:
-// https://api.slack.com/methods/conversations.rename#naming
-// Conversation names can only contain lowercase letters, numbers, hyphens, and underscores, and must be 80 characters or less.
-// Gitea accepts if it starts with a #.
 func IsValidSlackChannel(name string) bool {
-	return slackChannel.MatchString(name)
+	// Some documents: https://api.slack.com/methods/conversations.rename#naming
+	// 1. Internal channel name should "only contain lowercase letters, numbers, hyphens, and underscores, and must be 80 characters or less"
+	// 2. Slack would also "modify it to meet the above criteria"
+	// Since we know nothing about the details, don't do any validation here.
+	return name != ""
 }

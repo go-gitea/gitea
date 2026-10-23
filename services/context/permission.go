@@ -8,29 +8,14 @@ import (
 	"slices"
 
 	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 )
 
 // CheckTokenScopes checks whether the authenticated API token contains any of the given scopes.
-func CheckTokenScopes(ctx *Context, repo *repo_model.Repository, scopes ...auth_model.AccessTokenScope) {
-	if ctx.Data["IsApiToken"] != true {
-		return
-	}
-
-	scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-	if !ok {
-		return
-	}
-
-	publicOnly, err := scope.PublicOnly()
-	if err != nil {
-		ctx.ServerError("PublicOnly", err)
-		return
-	}
-
-	if publicOnly && repo != nil && repo.IsPrivate {
-		ctx.HTTPError(http.StatusForbidden)
+func CheckTokenScopes(ctx *Context, scopes ...auth_model.AccessTokenScope) {
+	scope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
+	if !hasApiTokenScope {
 		return
 	}
 
@@ -91,6 +76,6 @@ func RequireUnitReader(unitTypes ...unit.Type) func(ctx *Context) {
 }
 
 // CheckRepoScopedToken checks whether the authenticated API token has repo scope.
-func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_model.AccessTokenScopeLevel) {
-	CheckTokenScopes(ctx, repo, auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)...)
+func CheckRepoScopedToken(ctx *Context, level auth_model.AccessTokenScopeLevel) {
+	CheckTokenScopes(ctx, auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)...)
 }

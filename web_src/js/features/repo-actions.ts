@@ -1,36 +1,39 @@
 import {createApp} from 'vue';
 import RepoActionView from '../components/RepoActionView.vue';
-import {queryElems} from '../utils/dom.ts';
-
-function escapeHTMLAttribute(value: string): string {
-  return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-}
+import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {html} from '../utils/html.ts';
+import {GET} from '../modules/fetch.ts';
+import {activePageTimerRefresh, createElementFromHTML, morphElementWithProtection} from '../utils/dom.ts';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
-  const badgeURL = new URL(form.getAttribute('data-badge-url')!);
-  badgeURL.searchParams.set('branch', branch);
+  const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
+  badgeURLParsed.searchParams.set('branch', branch);
 
-  const badgeURLString = badgeURL.href;
+  const badgeURL = badgeURLParsed.href;
   const workflowURL = form.getAttribute('data-workflow-url')!;
-  const markdownAltText = form.getAttribute('data-markdown-alt-text')!;
-  const htmlAltText = form.getAttribute('data-html-alt-text')!;
+  const displayName = form.getAttribute('data-workflow-display-name')!;
+  const markdownAltText = displayName.replaceAll(/[\\[\]]/g, (c) => `\\${c}`);
 
-  form.querySelector<HTMLImageElement>('[data-workflow-badge-image]')!.src = badgeURLString;
-  form.querySelector<HTMLInputElement>('#workflow-badge-url')!.value = badgeURLString;
-  form.querySelector<HTMLTextAreaElement>('#workflow-badge-markdown')!.value = `[![${markdownAltText}](${badgeURLString})](${workflowURL})`;
-  form.querySelector<HTMLTextAreaElement>('#workflow-badge-html')!.value = `<a href="${escapeHTMLAttribute(workflowURL)}"><img src="${escapeHTMLAttribute(badgeURLString)}" alt="${escapeHTMLAttribute(htmlAltText)}"></a>`;
+  form.querySelector<HTMLImageElement>('[data-workflow-badge-image]')!.src = badgeURL;
+  form.querySelector<HTMLInputElement>('#workflow-badge-url')!.value = badgeURL;
+  form.querySelector<HTMLTextAreaElement>('#workflow-badge-markdown')!.value = `[![${markdownAltText}](${badgeURL})](${workflowURL})`;
+  form.querySelector<HTMLTextAreaElement>('#workflow-badge-html')!.value = html`<a href="${workflowURL}"><img src="${badgeURL}" alt="${displayName}"></a>`;
 }
 
-function initWorkflowBadgeBranchSelection(): void {
-  queryElems(document, '[data-workflow-badge-form]', (form) => {
-    const branchInput = form.querySelector<HTMLInputElement>('[data-workflow-badge-branch]')!;
-    branchInput.addEventListener('change', () => updateWorkflowBadgeFields(form, branchInput.value));
-  });
+function initWorkflowBadgeForm(form: HTMLElement): void {
+  const branchInput = form.querySelector<HTMLInputElement>('[data-workflow-badge-branch]')!;
+  branchInput.addEventListener('change', () => updateWorkflowBadgeFields(form, branchInput.value));
+  updateWorkflowBadgeFields(form, branchInput.value);
 }
 
-export function initRepositoryActionView() {
-  initWorkflowBadgeBranchSelection();
+export function initRepositoryActions() {
+  registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
+  initRepositoryActionsView();
+  registerGlobalInitFunc('initActionRunsList', initActionRunsList);
+  registerGlobalInitFunc('initActionJobQueueList', initActionJobQueueList);
+}
 
+function initRepositoryActionsView() {
   const el = document.querySelector('#repo-action-view');
   if (!el) return;
 
@@ -68,11 +71,13 @@ export function initRepositoryActionView() {
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),
       artifactExpiresAt: el.getAttribute('data-locale-artifact-expires-at'),
+      artifactExpiredAt: el.getAttribute('data-locale-artifact-expired-at'),
       confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
       downloadLogs: el.getAttribute('data-locale-download-logs'),
+      downloadFile: el.getAttribute('data-locale-download-file'),
       copyOutput: el.getAttribute('data-locale-copy-output'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
@@ -84,10 +89,12 @@ export function initRepositoryActionView() {
         cancelled: el.getAttribute('data-locale-status-cancelled'),
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
+        pending: el.getAttribute('data-locale-status-pending'),
       },
       logsAlwaysAutoScroll: el.getAttribute('data-locale-logs-always-auto-scroll'),
       logsAlwaysExpandRunning: el.getAttribute('data-locale-logs-always-expand-running'),
       workflowFile: el.getAttribute('data-locale-workflow-file'),
+      workflowFileNoPermission: el.getAttribute('data-locale-workflow-file-no-permission'),
       runDetails: el.getAttribute('data-locale-run-details'),
       workflowDependencies: el.getAttribute('data-locale-workflow-dependencies'),
       graphJobsCount1: el.getAttribute('data-locale-graph-jobs-count-1'),
@@ -102,4 +109,26 @@ export function initRepositoryActionView() {
     },
   });
   view.mount(el);
+}
+
+function initActionRunsList(el: HTMLElement) {
+  activePageTimerRefresh({
+    interval: () => Number(el.getAttribute('data-action-runs-refresh-interval')),
+    async callback() {
+      const resp = await GET(el.getAttribute('data-action-runs-refresh-link')!);
+      if (!resp.ok) return;
+      morphElementWithProtection(el, createElementFromHTML(await resp.text()), {morphStyle: 'outerHTML'});
+    },
+  });
+}
+
+function initActionJobQueueList(el: HTMLElement) {
+  activePageTimerRefresh({
+    interval: () => Number(el.getAttribute('data-job-queue-refresh-interval')),
+    async callback() {
+      const resp = await GET(el.getAttribute('data-job-queue-refresh-link')!);
+      if (!resp.ok) return;
+      morphElementWithProtection(el, createElementFromHTML(await resp.text()), {morphStyle: 'outerHTML'});
+    },
+  });
 }

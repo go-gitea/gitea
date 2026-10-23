@@ -19,15 +19,13 @@ import (
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
-	searchOpts := repo_model.SearchRepoOptions{
-		Actor:       u,
+	repos, count, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
+		OwnerID:     u.ID,
+		Actor:       ctx.Doer,
 		Private:     private,
 		ListOptions: opts,
 		OrderBy:     "id ASC",
-	}
-	searchOpts.ApplyPublicOnly(ctx.PublicOnly)
-
-	repos, count, err := repo_model.GetUserRepositories(ctx, searchOpts)
+	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -112,7 +110,6 @@ func ListMyRepos(ctx *context.APIContext) {
 		Private:            ctx.IsSigned,
 		IncludeDescription: true,
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {

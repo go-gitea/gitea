@@ -11,6 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -74,11 +75,11 @@ func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
 	// Since this sortType is dynamically created, it has to be treated specially.
 	if after, ok := strings.CutPrefix(sortType, ScopeSortPrefix); ok {
 		scope := after
-		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
-		// "exclusive_order=0" means "no order is set", so exclude it from the JOIN criteria and then "LEFT JOIN" result is also null
-		sess.Join("LEFT", "label", "label.id = issue_label.label_id AND label.exclusive_order <> 0 AND label.name LIKE ?", scope+"/%")
-		// Use COALESCE to make sure we sort NULL last regardless of backend DB (2147483647 == max int)
-		sess.OrderBy("COALESCE(label.exclusive_order, 2147483647) ASC").Desc("issue.id")
+		// a subquery instead of a JOIN keeps one row per issue, "exclusive_order=0" means unset and COALESCE sorts it last on every DB
+		sess.OrderBy("COALESCE((SELECT MIN(label.exclusive_order) FROM issue_label"+
+			" INNER JOIN label ON label.id = issue_label.label_id"+
+			" WHERE issue_label.issue_id = issue.id AND label.exclusive_order <> 0 AND label.name LIKE ?), 2147483647) ASC", scope+"/%").
+			Desc("issue.id")
 		return
 	}
 
@@ -220,7 +221,7 @@ func applyRepoConditions(sess db.Session, opts *IssuesOptions) {
 		if opts.RepoCond == nil {
 			opts.RepoCond = builder.NewCond()
 		}
-		opts.RepoCond = opts.RepoCond.Or(builder.In("issue.repo_id", builder.Select("id").From("repository").Where(builder.Eq{"is_private": false})))
+		opts.RepoCond = opts.RepoCond.Or(builder.In("issue.repo_id", builder.Select("id").From("repository").Where(repo_model.PublicRepoUnderPublicOwnerCond())))
 	}
 	if opts.RepoCond != nil {
 		sess.And(opts.RepoCond)
@@ -282,13 +283,14 @@ func applyConditions(sess db.Session, opts *IssuesOptions) {
 		sess.And(repo_model.UserOwnedRepoCond(opts.Owner.ID))
 	}
 
+	sess.And(repo_model.DoerTokenRepoCond(opts.Doer))
 	if opts.Doer != nil && !opts.Doer.IsAdmin {
 		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.Doer.ID, opts.Owner, opts.Team, opts.IsPull.Value()))
 	}
 }
 
-// teamUnitsRepoCond returns query condition for those repo id in the special org team with special units access
-func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
+// teamUnitsRepoReaderCond returns query condition for those repo id in the special org team with special units access
+func teamUnitsRepoReaderCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
 	return builder.In(id,
 		builder.Select("repo_id").From("team_repo").Where(
 			builder.Eq{
@@ -316,12 +318,19 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 						}),
 					),
 				)).And(
-				builder.In(
-					"team_id", builder.Select("team_id").From("team_unit").Where(
-						builder.Eq{
-							"`team_unit`.org_id": orgID,
-						}.And(
-							builder.In("`team_unit`.type", units),
+				builder.Or(
+					builder.In(
+						"team_id", builder.Select("id").From("team").Where(
+							builder.Eq{"id": teamID}.And(builder.Gt{"authorize": perm.AccessModeNone}),
+						),
+					),
+					builder.In(
+						"team_id", builder.Select("team_id").From("team_unit").Where(
+							builder.Eq{
+								"`team_unit`.org_id": orgID,
+							}.And(
+								builder.In("`team_unit`.type", units),
+							),
 						),
 					),
 				),
@@ -338,7 +347,7 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, owner *user_mod
 	}
 	if owner != nil && owner.IsOrganization() {
 		if team != nil {
-			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, owner.ID, team.ID, unitType)) // special team member repos
+			cond = cond.And(teamUnitsRepoReaderCond(repoIDstr, userID, owner.ID, team.ID, unitType)) // special team member repos
 		} else {
 			cond = cond.And(
 				builder.Or(
@@ -469,7 +478,7 @@ func applySubscribedCondition(sess db.Session, subscriberID int64) {
 				Select("repo_id").
 				From("watch").
 				Where(builder.And(builder.Eq{"user_id": subscriberID},
-					builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
+					builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto, repo_model.WatchModeCustom))),
 			),
 		),
 	)

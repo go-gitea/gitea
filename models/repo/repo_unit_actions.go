@@ -29,6 +29,7 @@ func (ActionsTokenPermissionMode) EnumValues() []ActionsTokenPermissionMode {
 // ActionsTokenPermissions defines the permissions for different repository units
 type ActionsTokenPermissions struct {
 	UnitAccessModes map[unit.Type]perm.AccessMode `json:"unit_access_modes,omitempty"`
+	IDToken         bool                          `json:"id_token,omitempty"` // default modes never grant it, like on GitHub
 }
 
 var ActionsTokenUnitTypes = []unit.Type{
@@ -50,12 +51,19 @@ func MakeActionsTokenPermissions(unitAccessMode perm.AccessMode) (ret ActionsTok
 	return ret
 }
 
+func MakeWriteAllActionsTokenPermissions() ActionsTokenPermissions {
+	ret := MakeActionsTokenPermissions(perm.AccessModeWrite)
+	ret.IDToken = true
+	return ret
+}
+
 // ClampActionsTokenPermissions ensures that the given permissions don't exceed the maximum
 func ClampActionsTokenPermissions(p1, p2 ActionsTokenPermissions) (ret ActionsTokenPermissions) {
 	ret.UnitAccessModes = make(map[unit.Type]perm.AccessMode)
 	for _, ut := range ActionsTokenUnitTypes {
 		ret.UnitAccessModes[ut] = min(p1.UnitAccessModes[ut], p2.UnitAccessModes[ut])
 	}
+	ret.IDToken = p1.IDToken && p2.IDToken
 	return ret
 }
 
@@ -70,6 +78,8 @@ func MakeRestrictedPermissions() ActionsTokenPermissions {
 
 type ActionsConfig struct {
 	DisabledWorkflows []string
+	// DisabledScopedWorkflows maps a scoped workflow's source repository ID to the entry names opted out of in this repository.
+	DisabledScopedWorkflows map[int64][]string
 	// CollaborativeOwnerIDs is a list of owner IDs used to share actions from private repos.
 	// Only workflows from the private repos whose owners are in CollaborativeOwnerIDs can access the current repo's actions.
 	CollaborativeOwnerIDs []int64
@@ -96,6 +106,29 @@ func (cfg *ActionsConfig) DisableWorkflow(file string) {
 	}
 
 	cfg.DisabledWorkflows = append(cfg.DisabledWorkflows, file)
+}
+
+func (cfg *ActionsConfig) IsScopedWorkflowDisabled(sourceRepoID int64, workflowID string) bool {
+	return slices.Contains(cfg.DisabledScopedWorkflows[sourceRepoID], workflowID)
+}
+
+func (cfg *ActionsConfig) DisableScopedWorkflow(sourceRepoID int64, workflowID string) {
+	if slices.Contains(cfg.DisabledScopedWorkflows[sourceRepoID], workflowID) {
+		return
+	}
+	if cfg.DisabledScopedWorkflows == nil {
+		cfg.DisabledScopedWorkflows = make(map[int64][]string)
+	}
+	cfg.DisabledScopedWorkflows[sourceRepoID] = append(cfg.DisabledScopedWorkflows[sourceRepoID], workflowID)
+}
+
+func (cfg *ActionsConfig) EnableScopedWorkflow(sourceRepoID int64, workflowID string) {
+	workflowIDs := util.SliceRemoveAll(cfg.DisabledScopedWorkflows[sourceRepoID], workflowID)
+	if len(workflowIDs) == 0 {
+		delete(cfg.DisabledScopedWorkflows, sourceRepoID)
+		return
+	}
+	cfg.DisabledScopedWorkflows[sourceRepoID] = workflowIDs
 }
 
 func (cfg *ActionsConfig) AddCollaborativeOwner(ownerID int64) {
@@ -131,7 +164,7 @@ func (cfg *ActionsConfig) GetMaxTokenPermissions() ActionsTokenPermissions {
 		return *cfg.MaxTokenPermissions
 	}
 	// Default max is write for everything
-	return MakeActionsTokenPermissions(perm.AccessModeWrite)
+	return MakeWriteAllActionsTokenPermissions()
 }
 
 // ClampPermissions ensures that the given permissions don't exceed the maximum

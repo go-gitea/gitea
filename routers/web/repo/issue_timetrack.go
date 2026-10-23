@@ -19,7 +19,7 @@ import (
 
 // AddTimeManually tracks time manually
 func AddTimeManually(c *context.Context) {
-	form := web.GetForm(c).(*forms.AddTimeManuallyForm)
+	form := web.GetForm[*forms.AddTimeManuallyForm](c)
 	issue := GetActionIssue(c)
 	if c.Written() {
 		return
