@@ -7988,7 +7988,8 @@
               "onedev",
               "gitbucket",
               "codebase",
-              "codecommit"
+              "codecommit",
+              "bitbucketserver"
             ],
             "type": "string",
             "x-go-name": "Service"
