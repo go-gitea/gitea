@@ -20,6 +20,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -283,6 +284,17 @@ func TestAPIMergePull(t *testing.T) {
 			performMerge(t, prDTO.Index, map[string]any{"do": "merge", "delete_branch_after_merge": true})
 			checkBranchExists(t, newBranch, http.StatusNotFound)
 		})
+
+		t.Run("SquashMergePreservesFormMessage", func(t *testing.T) {
+			req := NewRequestWithValues(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, createTestBranchPR(t, "squash-form-message").Index), map[string]string{
+				"do":                  "squash",
+				"merge_message_field": "custom squash message",
+			}).AddTokenAuth(apiCtx.Token)
+			MakeRequest(t, req, http.StatusOK)
+
+			req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/git/commits/%s", owner.Name, repo.Name, repo.DefaultBranch).AddTokenAuth(apiCtx.Token)
+			assert.Contains(t, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Commit{}).RepoCommit.Message, "\n\ncustom squash message")
+		})
 	})
 }
 
@@ -480,7 +492,7 @@ func TestAPIEditPull(t *testing.T) {
 		Head:     "develop",
 		Base:     "master",
 		Title:    title,
-		Deadline: new(time.Date(2026, 5, 11, 12, 0, 0, 0, time.FixedZone("", -10*3600))),
+		Deadline: optional.Some(new("2026-05-11T12:00:00-10:00")),
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	apiPull := DecodeJSON(t, resp, &api.PullRequest{})
@@ -510,10 +522,20 @@ func TestAPIEditPull(t *testing.T) {
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
-	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), &api.EditPullRequestOption{
-		RemoveDeadline: new(false),
-	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusBadRequest)
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), map[string]any{"due_date": "2000-01-02"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pull.IssueID})
+	assert.NotZero(t, issue.DeadlineUnix)
+
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), map[string]any{}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pull.IssueID})
+	assert.NotZero(t, issue.DeadlineUnix)
+
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), map[string]any{"due_date": nil}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pull.IssueID})
+	assert.Zero(t, issue.DeadlineUnix)
 
 	t.Run("PullContentVersion", func(t *testing.T) {
 		testAPIPullContentVersion(t, pull.ID)

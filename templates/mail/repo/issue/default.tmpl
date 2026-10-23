@@ -17,34 +17,34 @@
 				{{$newShortSha := ShortSha .Comment.NewCommit}}
 				{{$newCommitLink := HTMLFormat "<a href='%[1]s'><b>%[2]s</b></a>" $newCommitUrl $newShortSha}}
 
-				{{.locale.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink}}
+				{{.locale.Tr "mail.issue.action.force_push" .Doer.DisplayNameWithFullName .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink}}
 			{{else}}
-				{{.locale.TrN (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n" .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits)}}
+				{{.locale.TrN (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n" .Doer.DisplayNameWithFullName .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits)}}
 			{{end}}
 		</p>
 	{{end}}
 	<p>
 		{{if eq .ActionName "close"}}
-			{{.locale.Tr "mail.issue.action.close" .Doer.Name .Issue.Index}}
+			{{.locale.Tr "mail.issue.action.close" .Doer.DisplayNameWithFullName .Issue.Index}}
 		{{else if eq .ActionName "reopen"}}
-			{{.locale.Tr "mail.issue.action.reopen" .Doer.Name .Issue.Index}}
+			{{.locale.Tr "mail.issue.action.reopen" .Doer.DisplayNameWithFullName .Issue.Index}}
 		{{else if eq .ActionName "merge"}}
-			{{.locale.Tr "mail.issue.action.merge" .Doer.Name .Issue.Index .Issue.PullRequest.BaseBranch}}
+			{{.locale.Tr "mail.issue.action.merge" .Doer.DisplayNameWithFullName .Issue.Index .Issue.PullRequest.BaseBranch}}
 		{{else if eq .ActionName "approve"}}
-			{{.locale.Tr "mail.issue.action.approve" .Doer.Name}}
+			{{.locale.Tr "mail.issue.action.approve" .Doer.DisplayNameWithFullName}}
 		{{else if eq .ActionName "reject"}}
-			{{.locale.Tr "mail.issue.action.reject" .Doer.Name}}
+			{{.locale.Tr "mail.issue.action.reject" .Doer.DisplayNameWithFullName}}
 		{{else if eq .ActionName "review"}}
-			{{.locale.Tr "mail.issue.action.review" .Doer.Name}}
+			{{.locale.Tr "mail.issue.action.review" .Doer.DisplayNameWithFullName}}
 		{{else if eq .ActionName "review_dismissed"}}
-			{{.locale.Tr "mail.issue.action.review_dismissed" .Doer.Name .Comment.Review.Reviewer.Name}}
+			{{.locale.Tr "mail.issue.action.review_dismissed" .Doer.DisplayNameWithFullName .Comment.Review.Reviewer.DisplayNameWithFullName}}
 		{{else if eq .ActionName "ready_for_review"}}
-			{{.locale.Tr "mail.issue.action.ready_for_review" .Doer.Name}}
+			{{.locale.Tr "mail.issue.action.ready_for_review" .Doer.DisplayNameWithFullName}}
 		{{end}}
 
 		{{- if eq .Body ""}}
 			{{if eq .ActionName "new"}}
-				{{.locale.Tr "mail.issue.action.new" .Doer.Name .Issue.Index}}
+				{{.locale.Tr "mail.issue.action.new" .Doer.DisplayNameWithFullName .Issue.Index}}
 			{{end}}
 		{{else}}
 			{{.Body}}

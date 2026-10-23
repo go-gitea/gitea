@@ -496,15 +496,20 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	prIssue := &issues_model.Issue{
-		RepoID:       repo.ID,
-		Title:        form.Title,
-		PosterID:     ctx.Doer.ID,
-		Poster:       ctx.Doer,
-		MilestoneID:  milestoneID,
-		IsPull:       true,
-		Content:      form.Body,
-		DeadlineUnix: common.ParseAPIDeadlineToEndOfDay(form.Deadline),
+		RepoID:      repo.ID,
+		Title:       form.Title,
+		PosterID:    ctx.Doer.ID,
+		Poster:      ctx.Doer,
+		MilestoneID: milestoneID,
+		IsPull:      true,
+		Content:     form.Body,
 	}
+	_, err = common.ApplyAPIDeadlineTimestamp(&prIssue.DeadlineUnix, form.Deadline, nil)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+
 	pr := &issues_model.PullRequest{
 		HeadRepoID: compareResult.HeadRepo.ID,
 		BaseRepoID: repo.ID,
@@ -519,32 +524,9 @@ func CreatePullRequest(ctx *context.APIContext) {
 	pr.AllowMaintainerEdit = optional.FromPtr(form.AllowMaintainerEdit).ValueOrDefault(unitPullRequest.PullRequestsConfig().DefaultAllowMaintainerEdit)
 
 	// Get all assignee IDs
-	assigneeIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", err))
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	assigneeIDs := loadAssigneeUserIDs(ctx, form.Assignee, form.Assignees)
+	if ctx.Written() {
 		return
-	}
-	// Check if the passed assignees is assignable
-	for _, aID := range assigneeIDs {
-		assignee, err := user_model.GetUserByID(ctx, aID)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-
-		valid, err := access_model.CanBeAssigned(ctx, assignee, repo)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		if !valid {
-			ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name}.Error())
-			return
-		}
 	}
 
 	prOpts := &pull_service.NewPullRequestOptions{
@@ -981,14 +963,23 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	message := strings.TrimSpace(form.MergeTitleField)
-	if len(message) == 0 {
-		message, _, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
+	useDefaultSquashBody := !form.HasMergeMessageField && !ctx.Req.Form.Has("merge_message_field") && repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash
+	if len(message) == 0 || useDefaultSquashBody {
+		defaultTitle, defaultBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
+		message = util.IfZero(message, defaultTitle)
+		if useDefaultSquashBody {
+			squashCommitMessages, err := pull_service.GetSquashMergeCommitMessages(ctx, pr)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			form.MergeMessageField = git.CommitMessageMerge(squashCommitMessages, defaultBody)
+		}
 	}
-
 	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
 	if len(form.MergeMessageField) > 0 {
 		message += "\n\n" + form.MergeMessageField

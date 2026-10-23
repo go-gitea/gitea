@@ -224,13 +224,13 @@ func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.C
 		}
 
 		if options.SignInRequired && !ctx.IsSigned {
-			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
+			ctx.RedirectForLogin(middleware.RedirectLinkUserLogin(ctx.Req))
 			return
 		}
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
 		if !options.SignOutRequired && !ctx.IsSigned && ctx.GetSiteCookie(setting.CookieRememberName) != "" {
-			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
+			ctx.RedirectForLogin(middleware.RedirectLinkUserLogin(ctx.Req))
 			return
 		}
 
@@ -323,6 +323,12 @@ func Routes() *web.Router {
 //   - For non-browser client requests: git clone via http, no Sec-Fetch-Site header.
 //     Such requests are not cross-origin requests, so disable CrossOriginProtection.
 var optSignInFromAnyOrigin = verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: true})
+
+func addProjectWorkflowRoutes(m *web.Router) {
+	m.Post("/workflows", project.CreateWorkflow)
+	m.Post("/workflows/{workflow_id}", project.UpdateWorkflow)
+	m.Post("/workflows/{workflow_id}/delete", project.DeleteWorkflow)
+}
 
 // addProjectBoardRoutes registers a board's column and card routes, shared by the
 // repository and owner mount points.
@@ -1132,6 +1138,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("", func() {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
+				m.Get("/{id}/workflows", org.ProjectWorkflows)
+				m.Get("/{id}/workflows/{workflow_id}", org.ProjectWorkflows)
 			}, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
@@ -1144,6 +1152,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
 					addProjectBoardRoutes(m)
+					addProjectWorkflowRoutes(m)
 				})
 			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
@@ -1503,6 +1512,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, ctxDataSet(reqctx.ContextData{"EnableFeed": setting.Other.EnableFeed}))
 		m.Get("/releases/attachments/{uuid}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)
 		m.Get("/releases/download/{vTag}/{fileName}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.RedirectDownload)
+		m.Post("/releases/{id}/reactions/{action}", reqSignIn, context.RepoMustNotBeArchived(), repo.ChangeReleaseReaction)
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", web.Bind[*forms.NewReleaseForm](), repo.NewReleasePost)
@@ -1534,6 +1544,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/{reponame}/projects", func() {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
+		m.Get("/{id}/workflows", repo.ProjectWorkflows)
+		m.Get("/{id}/workflows/{workflow_id}", repo.ProjectWorkflows)
 		m.Group("", func() {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind[*forms.CreateProjectForm](), repo.NewProjectPost)
@@ -1545,6 +1557,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
 				addProjectBoardRoutes(m)
+				addProjectWorkflowRoutes(m)
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 	}, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)
@@ -1661,7 +1674,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
 					m.Post("/comments", web.Bind[*forms.CodeCommentForm](), repo.SetShowOutdatedComments, repo.CreateCodeComment)
 					m.Post("/submit", web.Bind[*forms.SubmitReviewForm](), repo.SubmitReview)
-				}, context.RepoMustNotBeArchived())
+				}, reqSignIn, context.RepoMustNotBeArchived())
 			})
 		})
 	}, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader)

@@ -18,6 +18,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -126,7 +127,7 @@ func testAPICreateIssue(t *testing.T) {
 		Body:     body,
 		Title:    title,
 		Assignee: owner.Name,
-		Deadline: new(time.Date(2026, 5, 11, 12, 0, 0, 0, time.FixedZone("", -10*3600))),
+		Deadline: optional.Some(new("2026-05-11T12:00:00-10:00")),
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	apiIssue := DecodeJSON(t, resp, &api.Issue{})
@@ -649,4 +650,8 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: []int64{2},
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
+
+	readerToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteIssue)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{Title: "issue by a reader", Projects: []int64{1}}).AddTokenAuth(readerToken)
+	assert.Empty(t, DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Issue{}).Projects)
 }

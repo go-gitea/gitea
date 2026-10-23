@@ -104,10 +104,12 @@ func pushTestPayloadWithCommitMessage(message string) *api.PushPayload {
 		Pusher: &api.User{
 			UserName:  "user1",
 			AvatarURL: "http://localhost:3000/user1/avatar",
+			HTMLURL:   "http://localhost:3000/user1",
 		},
 		Sender: &api.User{
 			UserName:  "user1",
 			AvatarURL: "http://localhost:3000/user1/avatar",
+			HTMLURL:   "http://localhost:3000/user1",
 		},
 	}
 }
@@ -118,6 +120,7 @@ func issueTestPayload() *api.IssuePayload {
 		Sender: &api.User{
 			UserName:  "user1",
 			AvatarURL: "http://localhost:3000/user1/avatar",
+			HTMLURL:   "http://localhost:3000/user1",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
@@ -156,6 +159,7 @@ func issueCommentTestPayload() *api.IssueCommentPayload {
 		Sender: &api.User{
 			UserName:  "user1",
 			AvatarURL: "http://localhost:3000/user1/avatar",
+			HTMLURL:   "http://localhost:3000/user1",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
@@ -260,6 +264,7 @@ func pullRequestTestPayload() *api.PullRequestPayload {
 		Sender: &api.User{
 			UserName:  "user1",
 			AvatarURL: "http://localhost:3000/user1/avatar",
+			HTMLURL:   "http://localhost:3000/user1",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
@@ -624,6 +629,7 @@ func TestGetWikiPayloadInfo(t *testing.T) {
 
 func TestGetReleasePayloadInfo(t *testing.T) {
 	p := pullReleaseTestPayload()
+	p.Release.Attachments = []*api.Attachment{{}, {}}
 
 	cases := []struct {
 		action api.HookReleaseAction
@@ -632,12 +638,12 @@ func TestGetReleasePayloadInfo(t *testing.T) {
 	}{
 		{
 			api.HookReleasePublished,
-			"[test/repo] Release created: v1.0 by user1",
+			"[test/repo] Release created: v1.0 by user1 (assets: 2)",
 			greenColor,
 		},
 		{
 			api.HookReleaseUpdated,
-			"[test/repo] Release updated: v1.0 by user1",
+			"[test/repo] Release updated: v1.0 by user1 (assets: 2)",
 			yellowColor,
 		},
 		{

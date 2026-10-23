@@ -150,12 +150,15 @@ func CreateMilestone(ctx *context.APIContext) {
 	form := web.GetForm[*api.CreateMilestoneOption](ctx)
 
 	milestone := &issues_model.Milestone{
-		RepoID:       ctx.Repo.Repository.ID,
-		Name:         form.Title,
-		Content:      form.Description,
-		DeadlineUnix: common.ParseAPIDeadlineToEndOfDay(form.Deadline),
+		RepoID:  ctx.Repo.Repository.ID,
+		Name:    form.Title,
+		Content: form.Description,
 	}
-
+	_, err := common.ApplyAPIDeadlineTimestamp(&milestone.DeadlineUnix, form.Deadline, nil)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
 	if form.State == "closed" {
 		milestone.IsClosed = true
 		milestone.ClosedDateUnix = timeutil.TimeStampNow()
@@ -204,7 +207,7 @@ func EditMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm[*api.EditMilestoneOption](ctx)
 	milestone := getMilestoneByIDOrName(ctx)
-	if ctx.Written() {
+	if milestone == nil {
 		return
 	}
 
@@ -214,7 +217,10 @@ func EditMilestone(ctx *context.APIContext) {
 	if form.Description != nil {
 		milestone.Content = *form.Description
 	}
-	milestone.DeadlineUnix = common.ParseAPIDeadlineToEndOfDay(form.Deadline)
+	if _, err := common.ApplyAPIDeadlineTimestamp(&milestone.DeadlineUnix, form.Deadline, nil); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
 
 	oldIsClosed := milestone.IsClosed
 	if form.State != nil {

@@ -1,0 +1,10 @@
+{{if gt (len .ServiceVariants) 1}}
+<div class="inline field">
+	<label>{{ctx.Locale.Tr "repo.migrate.hosting"}}</label>
+	<div class="ui compact small menu">
+		{{range .ServiceVariants}}
+		<a class="item {{Iif (eq . $.service) "active"}}" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.ContextUser.ID}}&mirror={{$.mirror}}">{{ctx.Locale.Tr (printf "repo.migrate.%s.variant" .Name)}}</a>
+		{{end}}
+	</div>
+</div>
+{{end}}
