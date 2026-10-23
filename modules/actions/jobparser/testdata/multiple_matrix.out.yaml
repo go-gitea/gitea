@@ -1,0 +1,112 @@
+name: test
+jobs:
+  job1:
+    name: job1 (ubuntu-20.04, 1.17)
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-20.04
+        version:
+          - 1.17
+      job-index: 3
+      job-total: 6
+---
+name: test
+jobs:
+  job1:
+    name: job1 (ubuntu-20.04, 1.18)
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-20.04
+        version:
+          - 1.18
+      job-index: 4
+      job-total: 6
+---
+name: test
+jobs:
+  job1:
+    name: job1 (ubuntu-20.04, 1.19)
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-20.04
+        version:
+          - 1.19
+      job-index: 5
+      job-total: 6
+---
+name: test
+jobs:
+  job1:
+    name: job1 (ubuntu-22.04, 1.17)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-22.04
+        version:
+          - 1.17
+      job-total: 6
+---
+name: test
+jobs:
+  job1:
+    name: job1 (ubuntu-22.04, 1.18)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-22.04
+        version:
+          - 1.18
+      job-index: 1
+      job-total: 6
+---
+name: test
+jobs:
+  job1:
+    name: job1 (ubuntu-22.04, 1.19)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-22.04
+        version:
+          - 1.19
+      job-index: 2
+      job-total: 6

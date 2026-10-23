@@ -5,24 +5,38 @@ package org
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	repo_service "code.gitea.io/gitea/services/repository"
+	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
+	repo_service "gitea.dev/services/repository"
 
 	"xorm.io/builder"
 )
+
+// recordTeamAudit emits a team-related audit event scoped to the owning organization.
+func recordTeamAudit(ctx context.Context, action audit_model.Action, team *organization.Team, metadata ...any) {
+	audit.Record(ctx, action, audit.ScopeFromUserID(ctx, team.OrgID), metadata...)
+}
+
+// recordTeamMemberAudit emits a team membership audit event scoped to the
+// owning organization.
+func recordTeamMemberAudit(ctx context.Context, action audit_model.Action, team *organization.Team, member *user_model.User) {
+	recordTeamAudit(ctx, action, team, "team", team.Name, "member", member.Name)
+}
 
 // NewTeam creates a record of new team.
 // It's caller's responsibility to assign organization ID.
@@ -55,7 +69,7 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 		return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		if err = db.Insert(ctx, t); err != nil {
 			return err
 		}
@@ -81,7 +95,13 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 		// Update organization number of teams.
 		_, err = db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID)
 		return err
-	})
+	}); err != nil {
+		return err
+	}
+
+	recordTeamAudit(ctx, audit_model.OrganizationTeamAdd, t, "team", t.Name)
+
+	return nil
 }
 
 // UpdateTeam updates information of team.
@@ -94,7 +114,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		t.Description = t.Description[:255]
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		t.LowerName = strings.ToLower(t.Name)
 		has, err := db.Exist[organization.Team](ctx, builder.Eq{
 			"org_id":     t.OrgID,
@@ -109,12 +129,12 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 
 		sess := db.GetEngine(ctx)
 		if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
-			"can_create_org_repo", "authorize", "includes_all_repositories").Update(t); err != nil {
+			"can_create_org_repo", "authorize", "includes_all_repositories", "visibility").Update(t); err != nil {
 			return fmt.Errorf("update: %w", err)
 		}
 
-		// update units for team
-		if len(t.Units) > 0 {
+		if authChanged {
+			// update units for team
 			for _, unit := range t.Units {
 				unit.TeamID = t.ID
 			}
@@ -124,13 +144,13 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 				Delete(new(organization.TeamUnit)); err != nil {
 				return err
 			}
-			if _, err = sess.Cols("org_id", "team_id", "type", "access_mode").Insert(&t.Units); err != nil {
-				return err
+			if len(t.Units) > 0 {
+				if _, err = sess.Cols("org_id", "team_id", "type", "access_mode").Insert(&t.Units); err != nil {
+					return err
+				}
 			}
-		}
 
-		// Update access for team members if needed.
-		if authChanged {
+			// Update access for team members if needed.
 			repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
 				TeamID: t.ID,
 			})
@@ -154,13 +174,22 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		}
 
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	recordTeamAudit(ctx, audit_model.OrganizationTeamUpdate, t, "team", t.Name)
+	if authChanged {
+		recordTeamAudit(ctx, audit_model.OrganizationTeamPermission, t, "team", t.Name, "permission", t.AccessMode.ToString())
+	}
+
+	return nil
 }
 
 // DeleteTeam deletes given team.
 // It's caller's responsibility to assign organization ID.
 func DeleteTeam(ctx context.Context, t *organization.Team) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := t.LoadMembers(ctx); err != nil {
 			return err
 		}
@@ -204,7 +233,13 @@ func DeleteTeam(ctx context.Context, t *organization.Team) error {
 		// Update organization number of teams.
 		_, err := db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID)
 		return err
-	})
+	}); err != nil {
+		return err
+	}
+
+	recordTeamAudit(ctx, audit_model.OrganizationTeamRemove, t, "team", t.Name)
+
+	return nil
 }
 
 // AddTeamMember adds new membership of given team to given organization,
@@ -249,6 +284,8 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 		return err
 	}
 
+	recordTeamMemberAudit(ctx, audit_model.OrganizationTeamMemberAdd, team, user)
+
 	// this behaviour may spend much time so run it in a goroutine
 	// FIXME: Update watch repos batchly
 	if setting.Service.AutoWatchNewRepos {
@@ -262,7 +299,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 
 		go func(repos []*repo_model.Repository) {
 			for _, repo := range repos {
-				if err = repo_model.WatchRepo(graceful.GetManager().ShutdownContext(), user, repo, true); err != nil {
+				if err = repo_model.WatchRepoAuto(graceful.GetManager().ShutdownContext(), user, repo, true); err != nil {
 					log.Error("watch repo failed: %v", err)
 				}
 			}
@@ -306,19 +343,19 @@ func removeTeamMember(ctx context.Context, team *organization.Team, user *user_m
 		return err
 	}
 
-	// Delete access to team repositories.
+	// Delete access to team repositories. If any user or repo is missing, we can continue.
 	for _, repo := range repos {
-		if err := access_model.RecalculateUserAccess(ctx, repo, user.ID); err != nil {
+		if err := access_model.RecalculateUserAccess(ctx, repo, user.ID); err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		}
 
-		// Remove watches from now unaccessible
-		if err := repo_service.ReconsiderWatches(ctx, repo, user); err != nil {
+		// Remove watches from now inaccessible
+		if err := repo_service.ReconsiderWatches(ctx, repo, user); err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		}
 
-		// Remove issue assignments from now unaccessible
-		if err := repo_service.ReconsiderRepoIssuesAssignee(ctx, repo, user); err != nil {
+		// Remove issue assignments from now inaccessible
+		if err := repo_service.ReconsiderRepoIssuesAssignee(ctx, repo, user); err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		}
 	}
@@ -346,7 +383,13 @@ func removeInvalidOrgUser(ctx context.Context, orgID int64, user *user_model.Use
 
 // RemoveTeamMember removes member from given team of given organization.
 func RemoveTeamMember(ctx context.Context, team *organization.Team, user *user_model.User) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		return removeTeamMember(ctx, team, user)
-	})
+	}); err != nil {
+		return err
+	}
+
+	recordTeamMemberAudit(ctx, audit_model.OrganizationTeamMemberRemove, team, user)
+
+	return nil
 }

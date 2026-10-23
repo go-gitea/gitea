@@ -7,22 +7,26 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/translation"
-	sender_service "code.gitea.io/gitea/services/mailer/sender"
+	access_model "gitea.dev/models/perm/access"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/translation"
+	sender_service "gitea.dev/services/mailer/sender"
 )
 
-const tplNewReleaseMail templates.TplName = "repo/release"
+const tplNewReleaseMail templates.TplName = "mail/repo/release"
 
 func generateMessageIDForRelease(release *repo_model.Release) string {
-	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.Domain)
+	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.AppDomain)
 }
 
 // MailNewRelease send new release notify to all repo watchers.
@@ -32,17 +36,36 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 
-	watcherIDList, err := repo_model.GetRepoWatchersIDs(ctx, rel.RepoID)
+	watcherIDList, err := repo_model.GetRepoWatchersIDs(ctx, rel.RepoID, repo_model.WatchReleases)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
 		return
 	}
 
-	recipients, err := user_model.GetMailableUsersByIDs(ctx, watcherIDList, false)
+	customWatcherIDs, err := repo_model.GetRepoCustomWatchersIDs(ctx, rel.RepoID, repo_model.WatchReleases)
+	if err != nil {
+		log.Error("GetRepoCustomWatchersIDs(%d): %v", rel.RepoID, err)
+		return
+	}
+	customWatchers := container.SetOf(customWatcherIDs...)
+
+	recipients, err := user_model.GetMailableUsersByIDs(ctx, watcherIDList, len(customWatchers) > 0)
 	if err != nil {
 		log.Error("user_model.GetMailableUsersByIDs: %v", err)
 		return
 	}
+
+	if err := rel.LoadRepo(ctx); err != nil {
+		log.Error("rel.LoadRepo: %v", err)
+		return
+	}
+
+	// delete publisher, on-mention users without a custom watch or any users with no permission
+	recipients = slices.DeleteFunc(recipients, func(u *user_model.User) bool {
+		return u.ID == rel.PublisherID ||
+			u.EmailNotificationsPreference == user_model.EmailNotificationsOnMention && !customWatchers.Contains(u.ID) ||
+			!access_model.CheckRepoUnitUser(ctx, rel.Repo, u, unit.TypeReleases)
+	})
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range recipients {

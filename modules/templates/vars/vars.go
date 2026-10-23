@@ -5,33 +5,17 @@ package vars
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 )
 
-// ErrWrongSyntax represents a wrong syntax with a template
-type ErrWrongSyntax struct {
-	Template string
-}
-
-func (err ErrWrongSyntax) Error() string {
-	return "wrong syntax found in " + err.Template
-}
-
-// ErrVarMissing represents an error that no matched variable
-type ErrVarMissing struct {
-	Template string
-	Var      string
-}
-
-func (err ErrVarMissing) Error() string {
-	return fmt.Sprintf("the variable %s is missing for %s", err.Var, err.Template)
-}
-
-// Expand replaces all variables like {var} by `vars` map, it always returns the expanded string regardless of errors
-// if error occurs, the error part doesn't change and is returned as it is.
-func Expand(template string, vars map[string]string) (string, error) {
+// ExpandCurlyBrace replaces all variables like {var} by `vars` map,
+// it always returns the expanded string regardless of errors.
+// if error occurs (wrong syntax, missing variable), the error part doesn't change and is returned as it is.
+func ExpandCurlyBrace(template string, vars map[string]string) (string, error) {
 	// in the future, if necessary, we can introduce some escape-char,
 	// for example: it will use `#' as a reversed char, templates will use `{#{}` to do escape and output char '{'.
 	var buf strings.Builder
@@ -66,14 +50,14 @@ func Expand(template string, vars map[string]string) (string, error) {
 		posBegin = posEnd
 		if part == "{}" || part[len(part)-1] != '}' {
 			// treat "{}" or "{..." as error
-			err = ErrWrongSyntax{Template: template}
+			err = fmt.Errorf("wrong syntax found in %s", template)
 			buf.WriteString(part)
 		} else {
 			// now we get a valid key "{...}"
 			key := part[1 : len(part)-1]
 			keyFirst, _ := utf8.DecodeRuneInString(key)
 			if unicode.IsSpace(keyFirst) || unicode.IsPunct(keyFirst) || unicode.IsControl(keyFirst) {
-				// the if key doesn't start with a letter, then we do not treat it as a var now
+				// if the key doesn't start with a letter, then we do not treat it as a var now
 				buf.WriteString(part)
 			} else {
 				// look up in the map
@@ -82,11 +66,34 @@ func Expand(template string, vars map[string]string) (string, error) {
 				} else {
 					// write the non-existing var as it is
 					buf.WriteString(part)
-					err = ErrVarMissing{Template: template, Var: key}
+					err = fmt.Errorf("the variable %s is missing for %s", key, template)
 				}
 			}
 		}
 	}
 
 	return buf.String(), err
+}
+
+var globalVars = sync.OnceValue(func() (ret struct {
+	regexpShellLike *regexp.Regexp
+},
+) {
+	ret.regexpShellLike = regexp.MustCompile(`(\$\{[a-zA-Z_]\w*\}|\$[a-zA-Z_]\w*)`)
+	return ret
+})
+
+// ExpandShellLike works like os.Expand, the difference is that this function keeps the non-existing keys
+func ExpandShellLike(template string, vars map[string]string) string {
+	re := globalVars().regexpShellLike
+	return re.ReplaceAllStringFunc(template, func(s string) string {
+		key := s[1:]
+		if strings.HasPrefix(key, "{") && strings.HasSuffix(key, "}") {
+			key = key[1 : len(key)-1]
+		}
+		if val, ok := vars[key]; ok {
+			return val
+		}
+		return s
+	})
 }

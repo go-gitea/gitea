@@ -7,10 +7,10 @@ import (
 	"html/template"
 	"testing"
 
-	pull_model "code.gitea.io/gitea/models/pull"
-	"code.gitea.io/gitea/modules/fileicon"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/services/gitdiff"
+	pull_model "gitea.dev/models/pull"
+	"gitea.dev/modules/fileicon"
+	"gitea.dev/modules/git"
+	"gitea.dev/services/gitdiff"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,6 +26,12 @@ func TestTransformDiffTreeForWeb(t *testing.T) {
 		{
 			Status:   "added",
 			HeadPath: "file1",
+			HeadMode: git.EntryModeBlob,
+		},
+		{
+			Status:   "renamed",
+			BasePath: "file2-old",
+			HeadPath: "file2",
 			HeadMode: git.EntryModeBlob,
 		},
 	}}, map[string]pull_model.ViewedState{
@@ -60,6 +66,15 @@ func TestTransformDiffTreeForWeb(t *testing.T) {
 					FullName:    "file1",
 					NameHash:    "60b27f004e454aca81b0480209cce5081ec52390",
 					DiffStatus:  "added",
+					FileIcon:    mockIconForFile(`svg-mfi-file`),
+				},
+				{
+					EntryMode:   "",
+					DisplayName: "file2",
+					FullName:    "file2",
+					OldFullName: "file2-old",
+					NameHash:    "cb99b709a1978bd205ab9dfd4c5aaa1fc91c7523",
+					DiffStatus:  "renamed",
 					FileIcon:    mockIconForFile(`svg-mfi-file`),
 				},
 			},

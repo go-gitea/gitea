@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"io"
 	"path/filepath"
 	"testing"
 
@@ -107,6 +108,7 @@ func TestCertCommandFailures(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			app := cmdCert()
+			app.Writer, app.ErrWriter = io.Discard, io.Discard
 			tempDir := t.TempDir()
 
 			certFile := filepath.Join(tempDir, "cert.pem")

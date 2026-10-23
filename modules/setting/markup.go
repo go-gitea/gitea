@@ -6,9 +6,10 @@ package setting
 import (
 	"regexp"
 	"strings"
+	"sync"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 // ExternalMarkupRenderers represents the external markup renderers
@@ -43,22 +44,21 @@ var Markdown = struct {
 	RenderOptionsRepoFile MarkdownRenderOptions `ini:"-"`
 
 	CustomURLSchemes []string `ini:"CUSTOM_URL_SCHEMES"` // Actually it is a "markup" option because it is used in "post processor"
-	FileExtensions   []string
+	FileNamePatterns []string `ini:"-"`
 
 	EnableMath             bool
 	MathCodeBlockDetection []string
 	MathCodeBlockOptions   MarkdownMathCodeBlockOptions `ini:"-"`
 }{
-	FileExtensions: strings.Split(".md,.markdown,.mdown,.mkd,.livemd", ","),
-	EnableMath:     true,
+	EnableMath:       true,
+	FileNamePatterns: []string{"*.md"},
 }
 
 // MarkupRenderer defines the external parser configured in ini
 type MarkupRenderer struct {
-	Enabled              bool
 	MarkupName           string
 	Command              string
-	FileExtensions       []string
+	FilePatterns         []string
 	IsInputFile          bool
 	NeedPostProcess      bool
 	MarkupSanitizerRules []MarkupSanitizerRule
@@ -77,6 +77,13 @@ type MarkupSanitizerRule struct {
 
 func loadMarkupFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "markdown", &Markdown)
+
+	markdownFileExtensions := rootCfg.Section("markdown").Key("FILE_EXTENSIONS").Strings(",")
+	if len(markdownFileExtensions) == 0 || len(markdownFileExtensions) == 1 && markdownFileExtensions[0] == "" {
+		markdownFileExtensions = []string{".md", ".markdown", ".mdown", ".mkd", ".livemd"}
+	}
+	Markdown.FileNamePatterns = fileExtensionsToPatterns("markdown", markdownFileExtensions)
+
 	const none = "none"
 
 	const renderOptionShortIssuePattern = "short-issue-pattern"
@@ -215,21 +222,34 @@ func createMarkupSanitizerRule(name string, sec ConfigSection) (MarkupSanitizerR
 	return rule, true
 }
 
-func newMarkupRenderer(name string, sec ConfigSection) {
-	extensionReg := regexp.MustCompile(`\.\w`)
+var extensionReg = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^(\.[-\w]+)+$`)
+})
 
-	extensions := sec.Key("FILE_EXTENSIONS").Strings(",")
-	exts := make([]string, 0, len(extensions))
+func fileExtensionsToPatterns(sectionName string, extensions []string) []string {
+	patterns := make([]string, 0, len(extensions))
 	for _, extension := range extensions {
-		if !extensionReg.MatchString(extension) {
-			log.Warn(sec.Name() + " file extension " + extension + " is invalid. Extension ignored")
+		if !extensionReg().MatchString(extension) {
+			log.Warn("Config section %s file extension %s is invalid. Extension ignored", sectionName, extension)
 		} else {
-			exts = append(exts, extension)
+			patterns = append(patterns, "*"+extension)
 		}
 	}
+	return patterns
+}
 
-	if len(exts) == 0 {
-		log.Warn(sec.Name() + " file extension is empty, markup " + name + " ignored")
+// MarkupRenderDefaultSandbox only contains a safe set of "sandbox allow" values, it is used to protect users from XSS attack,
+// DO NOT USE "allow-same-origin" by default: if there is XSS in rendered content, same-origin makes the frame page can access parent window and send requests with user's credentials.
+const MarkupRenderDefaultSandbox = "allow-scripts allow-forms allow-modals allow-popups allow-downloads"
+
+func newMarkupRenderer(name string, sec ConfigSection) {
+	if !sec.Key("ENABLED").MustBool(false) {
+		return
+	}
+
+	fileNamePatterns := fileExtensionsToPatterns(name, sec.Key("FILE_EXTENSIONS").Strings(","))
+	if len(fileNamePatterns) == 0 {
+		log.Warn("Config section %s file extension is empty, markup render is ignored", name)
 		return
 	}
 
@@ -254,19 +274,16 @@ func newMarkupRenderer(name string, sec ConfigSection) {
 		renderContentMode = RenderContentModeSanitized
 	}
 
-	// ATTENTION! at the moment, only a safe set like "allow-scripts" are allowed for sandbox mode.
-	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
-	renderContentSandbox := sec.Key("RENDER_CONTENT_SANDBOX").MustString("allow-scripts allow-popups")
+	renderContentSandbox := sec.Key("RENDER_CONTENT_SANDBOX").MustString(MarkupRenderDefaultSandbox)
 	if renderContentSandbox == "disabled" {
 		renderContentSandbox = ""
 	}
 
 	ExternalMarkupRenderers = append(ExternalMarkupRenderers, &MarkupRenderer{
-		Enabled:        sec.Key("ENABLED").MustBool(false),
-		MarkupName:     name,
-		FileExtensions: exts,
-		Command:        command,
-		IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
+		MarkupName:   name,
+		FilePatterns: fileNamePatterns,
+		Command:      command,
+		IsInputFile:  sec.Key("IS_INPUT_FILE").MustBool(false),
 
 		RenderContentMode:    renderContentMode,
 		RenderContentSandbox: renderContentSandbox,

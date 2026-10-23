@@ -4,10 +4,10 @@
 package admin
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/repo"
-	"code.gitea.io/gitea/services/context"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/repo"
+	"gitea.dev/services/context"
 )
 
 // CreateRepo api for creating a repository
@@ -43,7 +43,7 @@ func CreateRepo(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateRepoOption)
+	form := web.GetForm[*api.CreateRepoOption](ctx)
 
 	repo.CreateUserRepo(ctx, ctx.ContextUser, *form)
 }

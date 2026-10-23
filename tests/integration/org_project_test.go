@@ -6,10 +6,11 @@ package integration
 import (
 	"net/http"
 	"slices"
+	"strconv"
 	"testing"
 
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/tests"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/tests"
 )
 
 func TestOrgProjectAccess(t *testing.T) {
@@ -34,7 +35,6 @@ func TestOrgProjectAccess(t *testing.T) {
 	// change the org's visibility to private
 	session := loginUser(t, "user2")
 	req = NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
-		"_csrf":      GetUserCSRFToken(t, session),
 		"name":       "org3",
 		"visibility": "2",
 	})
@@ -48,11 +48,10 @@ func TestOrgProjectAccess(t *testing.T) {
 	// disable team1's project unit
 	session = loginUser(t, "user2")
 	req = NewRequestWithValues(t, "POST", "/org/org3/teams/team1/edit", map[string]string{
-		"_csrf":       GetUserCSRFToken(t, session),
 		"team_name":   "team1",
 		"repo_access": "specific",
 		"permission":  "read",
-		"unit_8":      "0",
+		"unit_" + strconv.Itoa(unit_model.TypeProjects.Value()): "0",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 

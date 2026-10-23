@@ -11,10 +11,10 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/private"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
@@ -127,7 +127,7 @@ func isInternalLFSURL(s string) bool {
 	return true
 }
 
-func newInternalRequestLFS(ctx context.Context, internalURL, method string, headers map[string]string, body any) *httplib.Request {
+func newInternalRequestLFS(ctx context.Context, internalURL, method string, headers map[string]string, body any) *httplib.ClientRequest {
 	if !isInternalLFSURL(internalURL) {
 		return nil
 	}

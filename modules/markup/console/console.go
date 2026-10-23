@@ -8,10 +8,10 @@ import (
 	"io"
 	"unicode/utf8"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 
 	trend "github.com/buildkite/terminal-to-html/v3"
 )
@@ -20,29 +20,24 @@ func init() {
 	markup.RegisterRenderer(Renderer{})
 }
 
-// Renderer implements markup.Renderer
 type Renderer struct{}
 
 var _ markup.RendererContentDetector = (*Renderer)(nil)
 
-// Name implements markup.Renderer
 func (Renderer) Name() string {
 	return "console"
 }
 
-// Extensions implements markup.Renderer
-func (Renderer) Extensions() []string {
-	return []string{".sh-session"}
+func (Renderer) FileNamePatterns() []string {
+	return []string{"*.sh-session"}
 }
 
-// SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{
 		{Element: "span", AllowAttr: "class", Regexp: `^term-((fg[ix]?|bg)\d+|container)$`},
 	}
 }
 
-// CanRender implements markup.RendererContentDetector
 func (Renderer) CanRender(filename string, sniffedType typesniffer.SniffedType, prefetchBuf []byte) bool {
 	if !sniffedType.IsTextPlain() {
 		return false

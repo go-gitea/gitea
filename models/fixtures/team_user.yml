@@ -159,3 +159,5 @@
   org_id: 35
   team_id: 24
   uid: 2
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

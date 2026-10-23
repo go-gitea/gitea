@@ -5,7 +5,7 @@ test('parseIssueListQuickGotoLink', () => {
   expect(parseIssueListQuickGotoLink('/link', 'abc')).toEqual('');
   expect(parseIssueListQuickGotoLink('/link', '123')).toEqual('/link/issues/123');
   expect(parseIssueListQuickGotoLink('/link', '#123')).toEqual('/link/issues/123');
-  expect(parseIssueListQuickGotoLink('/link', 'owner/repo#123')).toEqual('');
+  expect(parseIssueListQuickGotoLink('/link', 'owner/repo#123')).toEqual('/owner/repo/issues/123');
 
   expect(parseIssueListQuickGotoLink('', '')).toEqual('');
   expect(parseIssueListQuickGotoLink('', 'abc')).toEqual('');

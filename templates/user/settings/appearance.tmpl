@@ -1,4 +1,4 @@
-{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings")}}
+{{template "user/settings/layout_head" (dict "pageClass" "user settings")}}
 	<div class="user-setting-content">
 
 		<!-- Theme -->
@@ -7,7 +7,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/theme" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="field">
 					{{ctx.Locale.Tr "settings.theme_desc"}}
 					<a class="muted" target="_blank" href="https://github.com/go-gitea/gitea/blob/main/web_src/css/themes/" data-tooltip-content="{{ctx.Locale.Tr "settings.theme_colorblindness_prompt"}}">
@@ -31,7 +30,7 @@
 					</div>
 				</div>
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_theme"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.update_theme"}}</button>
 				</div>
 			</form>
 		</div>
@@ -42,7 +41,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/language" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="field">
 					<div class="ui language selection dropdown" id="language">
 						<input name="language" type="hidden" value="{{.SignedUser.Language}}">
@@ -56,7 +54,7 @@
 					</div>
 				</div>
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_language"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.update_language"}}</button>
 				</div>
 			</form>
 		</div>
@@ -70,7 +68,6 @@
 				{{ctx.Locale.Tr "settings.hidden_comment_types_description"}}
 			</p>
 			<form class="ui form" action="{{.Link}}/hidden_comments" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="inline field">
 					<div class="ui checkbox" data-tooltip-content="{{ctx.Locale.Tr "settings.hidden_comment_types.ref_tooltip"}}">
 						<input name="reference" type="checkbox" {{if(call .IsCommentTypeGroupChecked "reference")}}checked{{end}}>
@@ -157,7 +154,7 @@
 					</div>
 				</div>
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
 				</div>
 			</form>
 		</div>

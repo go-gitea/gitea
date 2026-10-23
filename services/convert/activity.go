@@ -6,18 +6,18 @@ package convert
 import (
 	"context"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	perm_model "code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
+	activities_model "gitea.dev/models/activities"
+	perm_model "gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	api "gitea.dev/modules/structs"
 )
 
 func ToActivity(ctx context.Context, ac *activities_model.Action, doer *user_model.User) *api.Activity {
-	p, err := access_model.GetUserRepoPermission(ctx, ac.Repo, doer)
+	p, err := access_model.GetDoerRepoPermission(ctx, ac.Repo, doer)
 	if err != nil {
-		log.Error("GetUserRepoPermission[%d]: %v", ac.RepoID, err)
+		log.Error("GetDoerRepoPermission[%d]: %v", ac.RepoID, err)
 		p.AccessMode = perm_model.AccessModeNone
 	}
 

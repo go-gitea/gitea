@@ -7,13 +7,16 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"bufio"
+	"cmp"
 	"compress/gzip"
 	"io"
 	"path"
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/util"
 )
 
 const (
@@ -34,7 +37,7 @@ var (
 var (
 	fieldPattern         = regexp.MustCompile(`\A\S+:`)
 	namePattern          = regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9\.]*[a-zA-Z0-9]\z`)
-	versionPattern       = regexp.MustCompile(`\A[0-9]+(?:[.\-][0-9]+){1,3}\z`)
+	versionPattern       = regexp.MustCompile(`\A[0-9]+(?:[.\-][0-9]+)+\z`)
 	authorReplacePattern = regexp.MustCompile(`[\[\(].+?[\]\)]`)
 )
 
@@ -151,7 +154,7 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		Metadata: &Metadata{},
 	}
 
-	scanner := bufio.NewScanner(r)
+	scanner := bufio.NewScanner(packages.NewLimitedReader(r, packages.MaxMetadataSize))
 
 	var b strings.Builder
 	for scanner.Scan() {
@@ -173,11 +176,11 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		b.WriteString(line)
 	}
 
-	if err := setField(p, b.String()); err != nil {
+	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err := setField(p, b.String()); err != nil {
 		return nil, err
 	}
 
@@ -231,6 +234,11 @@ func setField(p *Package, data string) error {
 	}
 
 	return nil
+}
+
+// CompareVersions returns -1, 0 or 1, R treats "." and "-" as equivalent separators
+func CompareVersions(a, b string) int {
+	return cmp.Compare(base.NaturalSortCompare(strings.ReplaceAll(a, "-", "."), strings.ReplaceAll(b, "-", ".")), 0)
 }
 
 func splitAndTrim(s string) []string {

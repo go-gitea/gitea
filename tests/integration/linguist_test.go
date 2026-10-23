@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/indexer/stats"
-	"code.gitea.io/gitea/modules/queue"
-	repo_service "code.gitea.io/gitea/services/repository"
-	files_service "code.gitea.io/gitea/services/repository/files"
-	"code.gitea.io/gitea/tests"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/indexer/stats"
+	"gitea.dev/modules/queue"
+	repo_service "gitea.dev/services/repository"
+	files_service "gitea.dev/services/repository/files"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -213,6 +213,28 @@ func TestLinguist(t *testing.T) {
 					},
 				},
 				ExpectedLanguageOrder: []string{"Markdown"},
+			},
+			// case 14: linguist-detectable on a configuration/data file (YAML) without linguist-language
+			{
+				GitAttributesContent: "*.yaml linguist-detectable",
+				FilesToAdd: []*files_service.ChangeRepoFile{
+					{
+						TreePath:      "config.yaml",
+						ContentReader: strings.NewReader("name: test\ndescription: A test yaml file\n"),
+					},
+				},
+				ExpectedLanguageOrder: []string{"YAML"},
+			},
+			// case 15: linguist-language alias should resolve to its canonical language
+			{
+				GitAttributesContent: "*.cpp linguist-language=golang",
+				FilesToAdd: []*files_service.ChangeRepoFile{
+					{
+						TreePath:      "cplusplus.cpp",
+						ContentReader: strings.NewReader(cppContent),
+					},
+				},
+				ExpectedLanguageOrder: []string{"Go"},
 			},
 		}
 
