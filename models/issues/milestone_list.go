@@ -39,12 +39,13 @@ func (milestones MilestoneList) SplitByOpenClosed() (open, closed MilestoneList)
 // FindMilestoneOptions contain options to get milestones
 type FindMilestoneOptions struct {
 	db.ListOptions
-	RepoID   int64
-	IsClosed optional.Option[bool]
-	Name     string
-	SortType string
-	RepoCond builder.Cond
-	RepoIDs  []int64
+	RepoID    int64
+	IsClosed  optional.Option[bool]
+	Name      string
+	SortType  string
+	RepoCond  builder.Cond
+	RepoIDs   []int64
+	ProjectID int64
 }
 
 func (opts FindMilestoneOptions) ToConds() builder.Cond {
@@ -63,6 +64,16 @@ func (opts FindMilestoneOptions) ToConds() builder.Cond {
 	}
 	if len(opts.Name) != 0 {
 		cond = cond.And(db.BuildCaseInsensitiveLike("name", opts.Name))
+	}
+	if opts.ProjectID != 0 {
+		// only milestones that have at least one issue linked to the project
+		cond = cond.And(builder.In("id",
+			builder.Select("issue.milestone_id").
+				From("issue").
+				InnerJoin("project_issue", "project_issue.issue_id = issue.id").
+				Where(builder.Eq{"project_issue.project_id": opts.ProjectID}.
+					And(builder.Neq{"issue.milestone_id": 0})),
+		))
 	}
 
 	return cond
