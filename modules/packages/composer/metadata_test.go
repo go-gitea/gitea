@@ -105,45 +105,28 @@ func TestParsePackage(t *testing.T) {
 		return buf.Bytes()
 	}
 
-	t.Run("MissingComposerFile", func(t *testing.T) {
-		data := createArchive(map[string]string{"dummy.txt": ""})
+	for _, test := range []struct {
+		name, filename, content string
+		expectedError           error
+	}{
+		{"MissingComposerFile", "dummy.txt", "", ErrMissingComposerFile},
+		{"MissingComposerFileInRoot", "sub/sub/composer.json", "", ErrMissingComposerFile},
+		{"InvalidComposerFile", "composer.json", "", nil},
+		{"InvalidPackageName", "composer.json", "{}", ErrInvalidName},
+		{"InvalidPackageVersion", "composer.json", `{"name": "gitea/composer-package", "version": "1.a.3"}`, ErrInvalidVersion},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			data := createArchive(map[string]string{test.filename: test.content})
 
-		cp, err := ParsePackage(bytes.NewReader(data))
-		assert.Nil(t, cp)
-		assert.ErrorIs(t, err, ErrMissingComposerFile)
-	})
-
-	t.Run("MissingComposerFileInRoot", func(t *testing.T) {
-		data := createArchive(map[string]string{"sub/sub/composer.json": ""})
-
-		cp, err := ParsePackage(bytes.NewReader(data))
-		assert.Nil(t, cp)
-		assert.ErrorIs(t, err, ErrMissingComposerFile)
-	})
-
-	t.Run("InvalidComposerFile", func(t *testing.T) {
-		data := createArchive(map[string]string{"composer.json": ""})
-
-		cp, err := ParsePackage(bytes.NewReader(data))
-		assert.Nil(t, cp)
-		assert.Error(t, err)
-	})
-
-	t.Run("InvalidPackageName", func(t *testing.T) {
-		data := createArchive(map[string]string{"composer.json": "{}"})
-
-		cp, err := ParsePackage(bytes.NewReader(data))
-		assert.Nil(t, cp)
-		assert.ErrorIs(t, err, ErrInvalidName)
-	})
-
-	t.Run("InvalidPackageVersion", func(t *testing.T) {
-		data := createArchive(map[string]string{"composer.json": `{"name": "gitea/composer-package", "version": "1.a.3"}`})
-
-		cp, err := ParsePackage(bytes.NewReader(data))
-		assert.Nil(t, cp)
-		assert.ErrorIs(t, err, ErrInvalidVersion)
-	})
+			cp, err := ParsePackage(bytes.NewReader(data))
+			assert.Nil(t, cp)
+			if test.expectedError == nil {
+				assert.Error(t, err)
+			} else {
+				assert.ErrorIs(t, err, test.expectedError)
+			}
+		})
+	}
 
 	t.Run("InvalidReadmePath", func(t *testing.T) {
 		data := createArchive(map[string]string{"composer.json": `{"name": "gitea/composer-package", "readme": "sub/README.md"}`})

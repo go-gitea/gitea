@@ -37,25 +37,23 @@ import (
 
 func TestMigrateLocalPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
+	t.Run("LocalPath", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
 
-	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
+		adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
 
-	basePath := t.TempDir()
+		basePath := t.TempDir()
 
-	lowercasePath := filepath.Join(basePath, "lowercase")
-	err := os.Mkdir(lowercasePath, 0o700)
-	assert.NoError(t, err)
-
-	err = migrations.IsMigrateURLAllowed(lowercasePath, adminUser)
-	assert.NoError(t, err, "case lowercase path")
-
-	mixedcasePath := filepath.Join(basePath, "mIxeDCaSe")
-	err = os.Mkdir(mixedcasePath, 0o700)
-	assert.NoError(t, err)
-
-	err = migrations.IsMigrateURLAllowed(mixedcasePath, adminUser)
-	assert.NoError(t, err, "case mixedcase path")
+		for _, name := range []string{"lowercase", "mIxeDCaSe"} {
+			localPath := filepath.Join(basePath, name)
+			assert.NoError(t, os.Mkdir(localPath, 0o700))
+			assert.NoError(t, migrations.IsMigrateURLAllowed(localPath, adminUser), "case "+strings.ToLower(name)+" path")
+		}
+	})
+	t.Run("UpdateCommentsMigrationsByType", func(t *testing.T) {
+		err := issues_model.UpdateCommentsMigrationsByType(t.Context(), structs.GithubService, "1", 1)
+		assert.NoError(t, err)
+	})
 }
 
 func TestMigrateGiteaForm(t *testing.T) {
@@ -101,13 +99,6 @@ func TestMigrateGiteaForm(t *testing.T) {
 		// Step 6: check the repo was created
 		assert.Equal(t, repo_model.RepositoryReady, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: migratedRepoName}).Status)
 	})
-}
-
-func Test_UpdateCommentsMigrationsByType(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	err := issues_model.UpdateCommentsMigrationsByType(t.Context(), structs.GithubService, "1", 1)
-	assert.NoError(t, err)
 }
 
 // setupGiteaMockServer creates a mock HTTP server that replays API responses from fixture files.

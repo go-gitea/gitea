@@ -132,44 +132,32 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	// call remapLocalUser
 	uploader.sameApp = true
 
-	externalID := int64(1234567)
-	externalName := "username"
-	source := base.Release{
-		PublisherID:   externalID,
-		PublisherName: externalName,
+	for _, tc := range []struct {
+		source         base.Release
+		expectedUserID int64
+	}{
+		//
+		// The externalID does not match any existing user, everything
+		// belongs to the doer
+		//
+		{base.Release{PublisherID: 1234567, PublisherName: "username"}, doer.ID},
+		//
+		// The externalID matches a known user but the name does not match,
+		// everything belongs to the doer
+		//
+		{base.Release{PublisherID: user.ID, PublisherName: "username"}, doer.ID},
+		//
+		// The externalID and externalName match an existing user, everything
+		// belongs to the existing user
+		//
+		{base.Release{PublisherID: user.ID, PublisherName: user.Name}, user.ID},
+	} {
+		target := repo_model.Release{}
+		uploader.userMap = make(map[int64]int64)
+		err := uploader.remapUser(ctx, &tc.source, &target)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.expectedUserID, target.GetUserID())
 	}
-
-	//
-	// The externalID does not match any existing user, everything
-	// belongs to the doer
-	//
-	target := repo_model.Release{}
-	uploader.userMap = make(map[int64]int64)
-	err := uploader.remapUser(ctx, &source, &target)
-	assert.NoError(t, err)
-	assert.Equal(t, doer.ID, target.GetUserID())
-
-	//
-	// The externalID matches a known user but the name does not match,
-	// everything belongs to the doer
-	//
-	source.PublisherID = user.ID
-	target = repo_model.Release{}
-	uploader.userMap = make(map[int64]int64)
-	err = uploader.remapUser(ctx, &source, &target)
-	assert.NoError(t, err)
-	assert.Equal(t, doer.ID, target.GetUserID())
-
-	//
-	// The externalID and externalName match an existing user, everything
-	// belongs to the existing user
-	//
-	source.PublisherName = user.Name
-	target = repo_model.Release{}
-	uploader.userMap = make(map[int64]int64)
-	err = uploader.remapUser(ctx, &source, &target)
-	assert.NoError(t, err)
-	assert.Equal(t, user.ID, target.GetUserID())
 }
 
 func TestGiteaUploadRemapExternalUser(t *testing.T) {

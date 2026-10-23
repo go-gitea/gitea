@@ -489,13 +489,20 @@ func TestUpdateLdapBindDn(t *testing.T) {
 	defer test.MockVariableValue(&cli.OsExiter, func(code int) {})()
 
 	// Test cases
-	cases := []struct {
+	type testCase struct {
 		args               []string
 		id                 int64
 		existingAuthSource *auth.Source
 		authSource         *auth.Source
 		errMsg             string
-	}{
+	}
+	withConfig := func(config *ldap.Source, args ...string) testCase {
+		return testCase{
+			args:       append([]string{"ldap-test", "--id", "1"}, args...),
+			authSource: &auth.Source{Type: auth.LDAP, Cfg: config},
+		}
+	}
+	cases := []testCase{
 		// case 0
 		{
 			args: []string{
@@ -574,16 +581,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			},
 		},
 		// case 1
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg:  &ldap.Source{},
-			},
-		},
+		withConfig(&ldap.Source{}),
 		// case 2
 		{
 			args: []string{
@@ -618,215 +616,44 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			},
 		},
 		// case 4
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--security-protocol", "LDAPS",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					SecurityProtocol: ldap.SecurityProtocol(1),
-				},
-			},
-		},
+		withConfig(&ldap.Source{SecurityProtocol: ldap.SecurityProtocol(1)}, "--security-protocol", "LDAPS"),
 		// case 5
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--skip-tls-verify",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					SkipVerify: true,
-				},
-			},
-		},
+		withConfig(&ldap.Source{SkipVerify: true}, "--skip-tls-verify"),
 		// case 6
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--host", "ldap-server",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					Host: "ldap-server",
-				},
-			},
-		},
+		withConfig(&ldap.Source{Host: "ldap-server"}, "--host", "ldap-server"),
 		// case 7
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--port", "389",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					Port: 389,
-				},
-			},
-		},
+		withConfig(&ldap.Source{Port: 389}, "--port", "389"),
 		// case 8
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--user-search-base", "ou=Users,dc=domain,dc=org",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					UserBase: "ou=Users,dc=domain,dc=org",
-				},
-			},
-		},
+		withConfig(
+			&ldap.Source{UserBase: "ou=Users,dc=domain,dc=org"},
+			"--user-search-base", "ou=Users,dc=domain,dc=org",
+		),
 		// case 9
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					Filter: "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
-				},
-			},
-		},
+		withConfig(
+			&ldap.Source{Filter: "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)"},
+			"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
+		),
 		// case 10
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--admin-filter", "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					AdminFilter: "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)",
-				},
-			},
-		},
+		withConfig(
+			&ldap.Source{AdminFilter: "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)"},
+			"--admin-filter", "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)",
+		),
 		// case 11
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--username-attribute", "uid",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					AttributeUsername: "uid",
-				},
-			},
-		},
+		withConfig(&ldap.Source{AttributeUsername: "uid"}, "--username-attribute", "uid"),
 		// case 12
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--firstname-attribute", "givenName",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					AttributeName: "givenName",
-				},
-			},
-		},
+		withConfig(&ldap.Source{AttributeName: "givenName"}, "--firstname-attribute", "givenName"),
 		// case 13
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--surname-attribute", "sn",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					AttributeSurname: "sn",
-				},
-			},
-		},
+		withConfig(&ldap.Source{AttributeSurname: "sn"}, "--surname-attribute", "sn"),
 		// case 14
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--email-attribute", "mail",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					AttributeMail: "mail",
-				},
-			},
-		},
+		withConfig(&ldap.Source{AttributeMail: "mail"}, "--email-attribute", "mail"),
 		// case 15
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--attributes-in-bind",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					AttributesInBind: true,
-				},
-			},
-		},
+		withConfig(&ldap.Source{AttributesInBind: true}, "--attributes-in-bind"),
 		// case 16
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--public-ssh-key-attribute", "publickey",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					AttributeSSHPublicKey: "publickey",
-				},
-			},
-		},
+		withConfig(&ldap.Source{AttributeSSHPublicKey: "publickey"}, "--public-ssh-key-attribute", "publickey"),
 		// case 17
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--bind-dn", "cn=readonly,dc=domain,dc=org",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					BindDN: "cn=readonly,dc=domain,dc=org",
-				},
-			},
-		},
+		withConfig(&ldap.Source{BindDN: "cn=readonly,dc=domain,dc=org"}, "--bind-dn", "cn=readonly,dc=domain,dc=org"),
 		// case 18
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--bind-password", "secret",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					BindPassword: "secret",
-				},
-			},
-		},
+		withConfig(&ldap.Source{BindPassword: "secret"}, "--bind-password", "secret"),
 		// case 19
 		{
 			args: []string{
@@ -841,19 +668,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			},
 		},
 		// case 20
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--page-size", "12",
-			},
-			authSource: &auth.Source{
-				Type: auth.LDAP,
-				Cfg: &ldap.Source{
-					SearchPageSize: 12,
-				},
-			},
-		},
+		withConfig(&ldap.Source{SearchPageSize: 12}, "--page-size", "12"),
 		// case 21
 		{
 			args: []string{
@@ -964,13 +779,20 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 	defer test.MockVariableValue(&cli.OsExiter, func(code int) {})()
 
 	// Test cases
-	cases := []struct {
+	type testCase struct {
 		args               []string
 		id                 int64
 		existingAuthSource *auth.Source
 		authSource         *auth.Source
 		errMsg             string
-	}{
+	}
+	withConfig := func(config *ldap.Source, args ...string) testCase {
+		return testCase{
+			args:       append([]string{"ldap-test", "--id", "1"}, args...),
+			authSource: &auth.Source{Type: auth.DLDAP, Cfg: config},
+		}
+	}
+	cases := []testCase{
 		// case 0
 		{
 			args: []string{
@@ -1020,16 +842,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 			},
 		},
 		// case 1
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg:  &ldap.Source{},
-			},
-		},
+		withConfig(&ldap.Source{}),
 		// case 2
 		{
 			args: []string{
@@ -1064,187 +877,43 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 			},
 		},
 		// case 4
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--security-protocol", "starttls",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					SecurityProtocol: ldap.SecurityProtocol(2),
-				},
-			},
-		},
+		withConfig(&ldap.Source{SecurityProtocol: ldap.SecurityProtocol(2)}, "--security-protocol", "starttls"),
 		// case 5
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--skip-tls-verify",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					SkipVerify: true,
-				},
-			},
-		},
+		withConfig(&ldap.Source{SkipVerify: true}, "--skip-tls-verify"),
 		// case 6
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--host", "ldap-server",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					Host: "ldap-server",
-				},
-			},
-		},
+		withConfig(&ldap.Source{Host: "ldap-server"}, "--host", "ldap-server"),
 		// case 7
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--port", "987",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					Port: 987,
-				},
-			},
-		},
+		withConfig(&ldap.Source{Port: 987}, "--port", "987"),
 		// case 8
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--user-search-base", "ou=Users,dc=domain,dc=org",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					UserBase: "ou=Users,dc=domain,dc=org",
-				},
-			},
-		},
+		withConfig(
+			&ldap.Source{UserBase: "ou=Users,dc=domain,dc=org"},
+			"--user-search-base", "ou=Users,dc=domain,dc=org",
+		),
 		// case 9
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--user-filter", "(&(objectClass=posixAccount)(cn=%s))",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					Filter: "(&(objectClass=posixAccount)(cn=%s))",
-				},
-			},
-		},
+		withConfig(
+			&ldap.Source{Filter: "(&(objectClass=posixAccount)(cn=%s))"},
+			"--user-filter", "(&(objectClass=posixAccount)(cn=%s))",
+		),
 		// case 10
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--admin-filter", "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					AdminFilter: "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)",
-				},
-			},
-		},
+		withConfig(
+			&ldap.Source{AdminFilter: "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)"},
+			"--admin-filter", "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)",
+		),
 		// case 11
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--username-attribute", "uid",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					AttributeUsername: "uid",
-				},
-			},
-		},
+		withConfig(&ldap.Source{AttributeUsername: "uid"}, "--username-attribute", "uid"),
 		// case 12
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--firstname-attribute", "givenName",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					AttributeName: "givenName",
-				},
-			},
-		},
+		withConfig(&ldap.Source{AttributeName: "givenName"}, "--firstname-attribute", "givenName"),
 		// case 13
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--surname-attribute", "sn",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					AttributeSurname: "sn",
-				},
-			},
-		},
+		withConfig(&ldap.Source{AttributeSurname: "sn"}, "--surname-attribute", "sn"),
 		// case 14
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--email-attribute", "mail",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					AttributeMail: "mail",
-				},
-			},
-		},
+		withConfig(&ldap.Source{AttributeMail: "mail"}, "--email-attribute", "mail"),
 		// case 15
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--public-ssh-key-attribute", "publickey",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					AttributeSSHPublicKey: "publickey",
-				},
-			},
-		},
+		withConfig(&ldap.Source{AttributeSSHPublicKey: "publickey"}, "--public-ssh-key-attribute", "publickey"),
 		// case 16
-		{
-			args: []string{
-				"ldap-test",
-				"--id", "1",
-				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
-			},
-			authSource: &auth.Source{
-				Type: auth.DLDAP,
-				Cfg: &ldap.Source{
-					UserDN: "cn=%s,ou=Users,dc=domain,dc=org",
-				},
-			},
-		},
+		withConfig(
+			&ldap.Source{UserDN: "cn=%s,ou=Users,dc=domain,dc=org"},
+			"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
+		),
 		// case 17
 		{
 			args: []string{
