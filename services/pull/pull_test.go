@@ -6,7 +6,6 @@ package pull
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -14,7 +13,6 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
@@ -116,10 +114,18 @@ func TestCheckIfPRContentChanged_ForkPR(t *testing.T) {
 		assert.NoError(t, git.UpdateRef(ctx, pr.HeadRepo, git.BranchPrefix+pr.HeadBranch, oldHeadCommitID))
 	})
 
-	newBaseCommitID := commitFileOnto(t, pr.BaseRepo, oldBaseCommitID, "fork-pr-regression.txt")
-	require.NoError(t, git.UpdateRef(t.Context(), pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, newBaseCommitID))
-	newHeadCommitID := commitFileOnto(t, pr.HeadRepo, oldHeadCommitID, "fork-pr-head-change.txt")
-	require.NoError(t, git.UpdateRef(t.Context(), pr.HeadRepo, git.BranchPrefix+pr.HeadBranch, newHeadCommitID))
+	advanceBranch := func(repo *repo_model.Repository, branch, parentID, fileName string) string {
+		require.NoError(t, git.ForceFastImport(t.Context(), repo, []git.FastImportCommit{{
+			Ref: git.BranchPrefix + branch, Parent: parentID,
+			Files: []git.FastImportFile{{Path: fileName, Content: "content of " + fileName + "\n"}},
+		}}))
+		commitID, err := git.GetFullCommitID(t.Context(), repo, branch)
+		require.NoError(t, err)
+		require.NotEqual(t, parentID, commitID)
+		return commitID
+	}
+	newBaseCommitID := advanceBranch(pr.BaseRepo, pr.BaseBranch, oldBaseCommitID, "fork-pr-regression.txt")
+	newHeadCommitID := advanceBranch(pr.HeadRepo, pr.HeadBranch, oldHeadCommitID, "fork-pr-head-change.txt")
 
 	// the new base commit only exists in the base repo, so it must be fetched into the head repo
 	assert.False(t, git.IsCommitExist(t.Context(), pr.HeadRepo, newBaseCommitID))
@@ -129,21 +135,6 @@ func TestCheckIfPRContentChanged_ForkPR(t *testing.T) {
 	assert.True(t, changed)
 	assert.Equal(t, oldBaseCommitID, mergeBase)
 	assert.True(t, git.IsCommitExist(t.Context(), pr.HeadRepo, newBaseCommitID))
-}
-
-// commitFileOnto writes a commit (parent + one new file) directly into the repo's object database and returns its ID
-func commitFileOnto(t *testing.T, repo *repo_model.Repository, parentID, fileName string) string {
-	t.Helper()
-	run := func(cmd *gitcmd.Command, stdin string) string {
-		stdout, _, err := cmd.WithRepo(repo).WithStdinBytes([]byte(stdin)).RunStdString(t.Context())
-		require.NoError(t, err)
-		return strings.TrimSpace(stdout)
-	}
-	blobID := run(gitcmd.NewCommand("hash-object", "-w", "--stdin"), "content of "+fileName+"\n")
-	treeID := run(gitcmd.NewCommand("mktree"), "100644 blob "+blobID+"\t"+fileName+"\n")
-	return run(gitcmd.NewCommand("commit-tree").
-		AddConfig("user.name", "Gitea Tests").AddConfig("user.email", "tests@gitea.io").
-		AddArguments("-p").AddDynamicArguments(parentID, treeID).AddArguments("-m", "test commit"), "")
 }
 
 func TestBuildSquashMergeCommitMessages(t *testing.T) {
