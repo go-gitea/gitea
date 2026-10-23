@@ -6,8 +6,8 @@ package user
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
+	"path"
 	"regexp"
 	"slices"
 	"sort"
@@ -43,6 +43,7 @@ import (
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/go-chi/chi/v5"
 	"xorm.io/builder"
 )
 
@@ -702,52 +703,45 @@ func ShowGPGKeys(ctx *context.Context) {
 	ctx.PlainTextBytes(http.StatusOK, buf.Bytes())
 }
 
-func UsernameSubRoute(ctx *context.Context) {
-	// WORKAROUND to support usernames with "." in it
-	// https://github.com/go-chi/chi/issues/781
-	username := ctx.PathParam("username")
-	reloadParam := func(suffix string) (success bool) {
-		ctx.SetPathParam("username", strings.TrimSuffix(username, suffix))
-		context.UserAssignmentWeb()(ctx)
-		if ctx.Written() {
-			return false
+// UsernamePreRoute rewrites the route path if the username has a suffix, so that the correct handler can be called.
+func UsernamePreRoute(next http.Handler) http.Handler {
+	suffixes := container.SetOf(".png", ".keys", ".gpg", feed.ExtNameRss, feed.ExtNameAtom)
+	rewriteRoutePath := func(rctx *chi.Context, r *http.Request) string {
+		if rctx.RouteMethod != "HEAD" && rctx.RouteMethod != "GET" {
+			return ""
+		}
+		// if there is no slash in the path, then it is possible to be a username or a username with a suffix
+		possibleUsernameWithSuffix := rctx.RoutePath != "" && strings.IndexByte(rctx.RoutePath[1:], '/') == -1
+		if !possibleUsernameWithSuffix {
+			return ""
 		}
 
-		// check view permissions
-		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-			ctx.NotFound(fmt.Errorf("%s", ctx.ContextUser.Name))
-			return false
+		// HINT: USERNAME-AVATAR-APPLE-TOUCH-ICON: skip rewriting the path if it is an apple touch icon request
+		isAppleTouchIcon := rctx.RoutePath == "/apple-touch-icon.png" || rctx.RoutePath == "/apple-touch-icon-precomposed.png"
+		if isAppleTouchIcon {
+			return ""
 		}
-		return true
+
+		// try to extract the suffix from the path, if it is a valid suffix, then rewrite the path to "/-/ownername.png/{username}"
+		ext := path.Ext(rctx.RoutePath)
+		if suffixes.Contains(ext) {
+			return "/-/ownername" + ext + rctx.RoutePath[:len(rctx.RoutePath)-len(ext)]
+		}
+		// also try to rewrite "/username" to "/-/ownername.rss/{username}" if the Accept header is for RSS or Atom
+		if strings.Contains(r.Header.Get("Accept"), feed.ContentTypeRssXml) {
+			return "/-/ownername" + feed.ExtNameRss + rctx.RoutePath
+		} else if strings.Contains(r.Header.Get("Accept"), feed.ContentTypeAtomXml) {
+			return "/-/ownername" + feed.ExtNameAtom + rctx.RoutePath
+		}
+		return ""
 	}
-	switch {
-	case strings.HasSuffix(username, ".png"):
-		if reloadParam(".png") {
-			AvatarByUsernameSize(ctx)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rctx := chi.RouteContext(r.Context())
+		if newPath := rewriteRoutePath(rctx, r); newPath != "" {
+			rctx.RoutePath = newPath
 		}
-	case strings.HasSuffix(username, ".keys"):
-		if reloadParam(".keys") {
-			ShowSSHKeys(ctx)
-		}
-	case strings.HasSuffix(username, ".gpg"):
-		if reloadParam(".gpg") {
-			ShowGPGKeys(ctx)
-		}
-	case strings.HasSuffix(username, ".rss"):
-		if reloadParam(".rss") {
-			feed.ShowUserFeedRSS(ctx)
-		}
-	case strings.HasSuffix(username, ".atom"):
-		if reloadParam(".atom") {
-			feed.ShowUserFeedAtom(ctx)
-		}
-	default:
-		context.UserAssignmentWeb()(ctx)
-		if !ctx.Written() {
-			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
-			OwnerProfile(ctx)
-		}
-	}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMode int, opts *issue_indexer.SearchOptions) (ret *issues_model.IssueStats, err error) {

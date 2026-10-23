@@ -324,7 +324,7 @@ func testGetUserRss(t *testing.T) {
 	user34 := "the_34-user.with.all.allowedChars"
 	req := NewRequestf(t, "GET", "/%s.rss", user34)
 	resp := MakeRequest(t, req, http.StatusOK)
-	if assert.Equal(t, "application/rss+xml;charset=utf-8", resp.Header().Get("Content-Type")) {
+	if assert.Equal(t, "application/rss+xml; charset=utf-8", resp.Header().Get("Content-Type")) {
 		rssDoc := NewHTMLParser(t, resp.Body).Find("channel")
 		title, _ := rssDoc.ChildrenFiltered("title").Html()
 		assert.Equal(t, "Feed of &#34;the_1-user.with.all.allowedChars&#34;", title)

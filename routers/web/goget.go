@@ -104,10 +104,9 @@ func goGetDefaultBranch(ctx *context.Context, repo *repo_model.Repository) strin
 	if !goGetTokenCanReadRepo(ctx) {
 		return def
 	}
-	// the caller must be able to read the code and see the owner: a limited/private owner hides its repos
-	// from anonymous/non-member callers even when the repo itself is public
+	// the caller must be able to read the code
 	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil || !perm.CanRead(unit.TypeCode) || !user_model.IsUserVisibleToViewer(ctx, repo.Owner, ctx.Doer) {
+	if err != nil || !perm.CanRead(unit.TypeCode) {
 		return def
 	}
 	return repo.DefaultBranch
