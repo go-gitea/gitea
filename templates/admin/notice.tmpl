@@ -19,7 +19,7 @@
 					<tr>
 						<td><div class="ui checkbox tw-flex" data-id="{{.ID}}"><input type="checkbox"></div></td>
 						<td>{{.ID}}</td>
-						<td>{{ctx.Locale.Tr .TrStr}}</td>
+						<td>{{.TrType ctx.Locale}}</td>
 						<td class="view-detail auto-ellipsis tw-w-4/5"><span class="notice-description">{{.Description}}</span></td>
 						<td nowrap>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 						<td class="view-detail"><a href="#">{{svg "octicon-note" 16}}</a></td>

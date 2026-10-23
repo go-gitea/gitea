@@ -3,7 +3,7 @@
 	<div class="ui right type dropdown">
 		<div class="text flex-text-inline">
 			{{template "shared/webhook/icon" (dict "Size" 20 "HookType" ctx.RootData.HookType)}}
-			{{ctx.Locale.Tr (print "repo.settings.web_hook_name_" ctx.RootData.HookType)}}
+			{{ctx.Locale.Tr (HookTypeLocaleNameKey ctx.RootData.HookType)}}
 		</div>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		{{template "repo/settings/webhook/link_menu" ctx.RootData}}

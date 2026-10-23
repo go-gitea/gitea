@@ -79,6 +79,10 @@ func (t *TaskTableRow) FormatLastMessage(locale translation.Locale) string {
 	return t.task.GetConfig().FormatMessage(locale, t.Name, t.Status, t.LastDoer, t.LastMessage)
 }
 
+func (t *TaskTableRow) LocaleName(locale translation.Locale) string {
+	return LocaleTaskName(locale, t.Name)
+}
+
 // TaskTable represents a table of tasks
 type TaskTable []*TaskTableRow
 

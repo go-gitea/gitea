@@ -4,21 +4,23 @@
 package system_test
 
 import (
+	"html/template"
 	"testing"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/system"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNotice_TrStr(t *testing.T) {
+func TestNotice_TrType(t *testing.T) {
 	notice := &system.Notice{
 		Type:        system.NoticeRepository,
 		Description: "test description",
 	}
-	assert.Equal(t, "admin.notices.type_1", notice.TrStr())
+	assert.Equal(t, template.HTML("admin.notices.type_1"), notice.TrType(translation.MockLocale{}))
 }
 
 func TestCreateNotice(t *testing.T) {

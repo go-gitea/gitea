@@ -127,6 +127,14 @@ func (store *localeStore) Locale(lang string) (Locale, bool) {
 	return l, found
 }
 
+func (store *localeStore) Keys() []string {
+	keys := make([]string, 0, len(store.trKeyToIdxMap))
+	for k := range store.trKeyToIdxMap {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 func (store *localeStore) Close() error {
 	return nil
 }

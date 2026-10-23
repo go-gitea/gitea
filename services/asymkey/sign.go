@@ -6,6 +6,7 @@ package asymkey
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"os"
 	"strings"
 
@@ -20,6 +21,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
 )
 
 type signingMode string
@@ -99,6 +101,36 @@ type ErrWontSign struct {
 
 func (e *ErrWontSign) Error() string {
 	return fmt.Sprintf("wont sign: %s", e.Reason)
+}
+
+// TrWontSignReason returns the verbatim locale message for a signing refusal reason.
+func TrWontSignReason(locale translation.Locale, reason string) template.HTML {
+	switch signingMode(reason) {
+	case "error":
+		return locale.Tr("repo.signing.wont_sign.error")
+	case noKey:
+		return locale.Tr("repo.signing.wont_sign.nokey")
+	case never:
+		return locale.Tr("repo.signing.wont_sign.never")
+	case always:
+		return locale.Tr("repo.signing.wont_sign.always")
+	case pubkey:
+		return locale.Tr("repo.signing.wont_sign.pubkey")
+	case twofa:
+		return locale.Tr("repo.signing.wont_sign.twofa")
+	case parentSigned:
+		return locale.Tr("repo.signing.wont_sign.parentsigned")
+	case baseSigned:
+		return locale.Tr("repo.signing.wont_sign.basesigned")
+	case headSigned:
+		return locale.Tr("repo.signing.wont_sign.headsigned")
+	case commitsSigned:
+		return locale.Tr("repo.signing.wont_sign.commitssigned")
+	case approved:
+		return locale.Tr("repo.signing.wont_sign.approved")
+	default:
+		return ""
+	}
 }
 
 // IsErrWontSign checks if an error is a ErrWontSign

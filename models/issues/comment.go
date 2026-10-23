@@ -230,12 +230,38 @@ const (
 
 // LocaleString returns the locale string name of the role
 func (r RoleInRepo) LocaleString(lang translation.Locale) string {
-	return lang.TrString("repo.issues.role." + string(r))
+	switch r {
+	case RoleRepoOwner:
+		return lang.TrString("repo.issues.role.owner")
+	case RoleRepoMember:
+		return lang.TrString("repo.issues.role.member")
+	case RoleRepoCollaborator:
+		return lang.TrString("repo.issues.role.collaborator")
+	case RoleRepoFirstTimeContributor:
+		return lang.TrString("repo.issues.role.first_time_contributor")
+	case RoleRepoContributor:
+		return lang.TrString("repo.issues.role.contributor")
+	default:
+		return string(r)
+	}
 }
 
 // LocaleHelper returns the locale tooltip of the role
 func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
-	return lang.TrString("repo.issues.role." + string(r) + "_helper")
+	switch r {
+	case RoleRepoOwner:
+		return lang.TrString("repo.issues.role.owner_helper")
+	case RoleRepoMember:
+		return lang.TrString("repo.issues.role.member_helper")
+	case RoleRepoCollaborator:
+		return lang.TrString("repo.issues.role.collaborator_helper")
+	case RoleRepoFirstTimeContributor:
+		return lang.TrString("repo.issues.role.first_time_contributor_helper")
+	case RoleRepoContributor:
+		return lang.TrString("repo.issues.role.contributor_helper")
+	default:
+		return ""
+	}
 }
 
 type SpecialDoerNameType string

@@ -130,6 +130,36 @@ const (
 	PACKAGIST  HookType = "packagist"
 )
 
+// LocaleNameKey returns the verbatim locale key for a webhook type.
+func LocaleNameKey(hookType HookType) string {
+	switch hookType {
+	case GITEA:
+		return "repo.settings.web_hook_name_gitea"
+	case GOGS:
+		return "repo.settings.web_hook_name_gogs"
+	case SLACK:
+		return "repo.settings.web_hook_name_slack"
+	case DISCORD:
+		return "repo.settings.web_hook_name_discord"
+	case DINGTALK:
+		return "repo.settings.web_hook_name_dingtalk"
+	case TELEGRAM:
+		return "repo.settings.web_hook_name_telegram"
+	case MSTEAMS:
+		return "repo.settings.web_hook_name_msteams"
+	case FEISHU:
+		return "repo.settings.web_hook_name_feishu"
+	case MATRIX:
+		return "repo.settings.web_hook_name_matrix"
+	case WECHATWORK:
+		return "repo.settings.web_hook_name_wechatwork"
+	case PACKAGIST:
+		return "repo.settings.web_hook_name_packagist"
+	default:
+		return ""
+	}
+}
+
 // HookStatus is the status of a web hook
 type HookStatus int
 

@@ -552,7 +552,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 		if wontSignReason != "" {
 			data.infoMergePrompts.AddInfoItem(
 				svg.RenderHTML("octicon-unlock"),
-				ctx.Locale.Tr("repo.signing.wont_sign."+wontSignReason),
+				asymkey_service.TrWontSignReason(ctx.Locale, wontSignReason),
 			)
 		}
 		return
@@ -563,7 +563,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 		if wontSignReason != "" {
 			data.infoProtectionBlockers.AddInfoItem(
 				svg.RenderHTML("octicon-unlock"),
-				ctx.Locale.Tr("repo.signing.wont_sign."+wontSignReason),
+				asymkey_service.TrWontSignReason(ctx.Locale, wontSignReason),
 			)
 		}
 	}

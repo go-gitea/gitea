@@ -45,6 +45,8 @@ type LocaleStore interface {
 	HasLang(langName string) bool
 	// AddLocaleByJSON adds a new language to the store
 	AddLocaleByJSON(langName, langDesc string, source, moreSource []byte) error
+	// Keys returns all translation keys in the store
+	Keys() []string
 }
 
 // ResetDefaultLocales resets the current default locales

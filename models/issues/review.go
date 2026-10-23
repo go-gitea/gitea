@@ -19,6 +19,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -228,23 +229,23 @@ func (r *Review) HTMLTypeColorClass() string {
 	return "tw-text-text-light"
 }
 
-// TooltipContent returns the locale string describing the review type
-func (r *Review) TooltipContent() string {
+// TooltipContent returns the translated tooltip describing the review type.
+func (r *Review) TooltipContent(locale translation.Locale) string {
 	switch r.Type {
 	case ReviewTypeApprove:
 		if r.Stale {
-			return "repo.issues.review.stale"
+			return locale.TrString("repo.issues.review.stale")
 		}
 		if !r.Official {
-			return "repo.issues.review.unofficial"
+			return locale.TrString("repo.issues.review.unofficial")
 		}
-		return "repo.issues.review.official"
+		return locale.TrString("repo.issues.review.official")
 	case ReviewTypeComment:
-		return "repo.issues.review.commented"
+		return locale.TrString("repo.issues.review.commented")
 	case ReviewTypeReject:
-		return "repo.issues.review.rejected"
+		return locale.TrString("repo.issues.review.rejected")
 	case ReviewTypeRequest:
-		return "repo.issues.review.requested"
+		return locale.TrString("repo.issues.review.requested")
 	}
 	return ""
 }
