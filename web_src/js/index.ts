@@ -54,6 +54,7 @@ import {initGlobalSelectorObserver} from './modules/observer.ts';
 import {initRepositorySearch} from './features/repo-search.ts';
 import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
+import {initAdminLDAPTestConnection} from './features/admin/auth-ldap-test.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './modules/fetch-action.ts';
 import {initCommmPageComponents, initGlobalComponent, initGlobalDropdown, initGlobalInput} from './features/common-page.ts';
@@ -115,6 +116,7 @@ const initPerformanceTracer = callInitFunctions([
   initAdminUserListSearchForm,
   initAdminConfigs,
   initAdminSelfCheck,
+  initAdminLDAPTestConnection,
 
   initDashboardRepoList,
 

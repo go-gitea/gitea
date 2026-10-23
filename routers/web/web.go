@@ -873,6 +873,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/auths", func() {
 			m.Get("", admin.Authentications)
+			m.Post("/test-connection", web.Bind[*forms.AuthenticationForm](), admin.TestLDAPConnection)
 			m.Combo("/new").Get(admin.NewAuthSource).Post(web.Bind[*forms.AuthenticationForm](), admin.NewAuthSourcePost)
 			m.Combo("/{authid}").Get(admin.EditAuthSource).
 				Post(web.Bind[*forms.AuthenticationForm](), admin.EditAuthSourcePost)
