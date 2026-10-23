@@ -5,26 +5,137 @@
 package migrations
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"path/filepath"
+	"runtime"
+	"slices"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	base "code.gitea.io/gitea/modules/migration"
+	"gitea.dev/models/unittest"
+	base "gitea.dev/modules/migration"
 
+	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGitHubDownloadRepo(t *testing.T) {
-	GithubLimitRateRemaining = 3 // Wait at 3 remaining since we could have 3 CI in //
-	token := os.Getenv("GITHUB_READ_TOKEN")
-	if token == "" {
-		t.Skip("Skipping GitHub migration test because GITHUB_READ_TOKEN is empty")
+func TestGithubIssuePagination(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		pages []string
+	}{
+		{name: "offset", pages: []string{"page=1", "page=2", "page=3"}},
+		{name: "cursor", pages: []string{"page=1", "after=cursor-2", "after=cursor-3"}},
+		{name: "switch to cursor", pages: []string{"page=1", "page=2", "after=cursor-3"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var requests []string
+			failReaction := true
+			issue := func(number int) string {
+				return fmt.Sprintf(`{"number":%d,"title":"Issue","user":{},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`, number)
+			}
+			responses := []string{
+				"[" + issue(1) + `,{"pull_request":{}}]`,
+				`[{"pull_request":{}}]`,
+				"[" + issue(4) + "," + issue(5) + "]",
+			}
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("X-RateLimit-Remaining", "100")
+				if r.URL.Path == "/api/v3/repos/o/r/issues/4/reactions" && failReaction {
+					failReaction = false
+					w.WriteHeader(http.StatusBadRequest)
+					_, _ = w.Write([]byte(`{"message":"temporary failure"}`))
+					return
+				}
+				if r.URL.Path != "/api/v3/repos/o/r/issues" {
+					_, _ = w.Write([]byte(`[]`))
+					return
+				}
+				query := r.URL.Query()
+				assert.Equal(t, "2", query.Get("per_page"))
+				assert.Equal(t, "all", query.Get("state"))
+				assert.Equal(t, "created", query.Get("sort"))
+				assert.Equal(t, "asc", query.Get("direction"))
+				query.Del("per_page")
+				query.Del("state")
+				query.Del("sort")
+				query.Del("direction")
+				pagination := query.Encode()
+				requests = append(requests, pagination)
+				page := slices.Index(tc.pages, pagination)
+				if page < 0 {
+					w.WriteHeader(http.StatusUnprocessableEntity)
+					_, _ = w.Write([]byte(`{"message":"unexpected pagination"}`))
+					return
+				}
+				if page+1 < len(tc.pages) {
+					w.Header().Set("Link", fmt.Sprintf(`<https://api.github.com/repos/o/r/issues?per_page=2&%s>; rel="next"`, tc.pages[page+1]))
+				}
+				_, _ = w.Write([]byte(responses[page]))
+			}))
+			defer server.Close()
+
+			downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+			require.NoError(t, err)
+			issues, isEnd, err := downloader.GetIssues(t.Context(), 1, 2)
+			require.NoError(t, err)
+			require.Len(t, issues, 1)
+			assert.EqualValues(t, 1, issues[0].Number)
+			assert.False(t, isEnd)
+
+			for range 2 {
+				issues, isEnd, err = downloader.GetIssues(t.Context(), 2, 2)
+				require.NoError(t, err)
+				assert.Empty(t, issues)
+				assert.False(t, isEnd)
+			}
+
+			_, _, err = downloader.GetIssues(t.Context(), 3, 2)
+			require.Error(t, err)
+			for range 2 {
+				issues, isEnd, err = downloader.GetIssues(t.Context(), 3, 2)
+				require.NoError(t, err)
+				require.Len(t, issues, 2)
+				assert.EqualValues(t, 4, issues[0].Number)
+				assert.EqualValues(t, 5, issues[1].Number)
+				assert.True(t, isEnd)
+			}
+
+			_, isEnd, err = downloader.GetIssues(t.Context(), 1, 2)
+			require.NoError(t, err)
+			assert.False(t, isEnd)
+			issues, isEnd, err = downloader.GetIssues(t.Context(), 2, 2)
+			require.NoError(t, err)
+			assert.Empty(t, issues)
+			assert.False(t, isEnd)
+			assert.Equal(t, []string{tc.pages[0], tc.pages[1], tc.pages[1], tc.pages[2], tc.pages[2], tc.pages[2], tc.pages[0], tc.pages[1]}, requests)
+		})
 	}
+}
+
+func TestGitHubDownloadRepo(t *testing.T) {
+	token := os.Getenv("GITHUB_READ_TOKEN")
+	liveMode := token != ""
+
+	_, callerFile, _, _ := runtime.Caller(0)
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestGitHubDownloadRepo")
+	mockServer := unittest.NewMockWebServer(t, "https://api.github.com", fixtureDir, liveMode, unittest.MockServerOptions{
+		StripPrefix: "/api/v3",
+	})
+
+	GithubLimitRateRemaining = 3 // Wait at 3 remaining since we could have 3 CI in //
 	ctx := t.Context()
-	downloader := NewGithubDownloaderV3(ctx, "https://github.com", "", "", token, "go-gitea", "test_repo")
-	err := downloader.RefreshRate(ctx)
-	assert.NoError(t, err)
+	downloader, err := NewGithubDownloaderV3(ctx, mockServer.URL, "", "", token, "go-gitea", "test_repo")
+	require.NoError(t, err)
+	err = downloader.RefreshRate(ctx)
+	require.NoError(t, err)
 
 	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
@@ -32,6 +143,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		Name:          "test_repo",
 		Owner:         "go-gitea",
 		Description:   "Test repository for testing migration from github to gitea",
+		Website:       "https://gitea.com/test-repo",
 		CloneURL:      "https://github.com/go-gitea/test_repo.git",
 		OriginalURL:   "https://github.com/go-gitea/test_repo",
 		DefaultBranch: "master",
@@ -47,7 +159,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		{
 			Title:       "1.0.0",
 			Description: "Milestone 1.0.0",
-			Deadline:    new(time.Date(2019, 11, 11, 8, 0, 0, 0, time.UTC)),
+			Deadline:    new(time.Date(2019, 11, 11, 0, 0, 0, 0, time.UTC)),
 			Created:     time.Date(2019, 11, 12, 19, 37, 8, 0, time.UTC),
 			Updated:     new(time.Date(2019, 11, 12, 21, 56, 17, 0, time.UTC)),
 			Closed:      new(time.Date(2019, 11, 12, 19, 45, 49, 0, time.UTC)),
@@ -56,7 +168,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		{
 			Title:       "1.1.0",
 			Description: "Milestone 1.1.0",
-			Deadline:    new(time.Date(2019, 11, 12, 8, 0, 0, 0, time.UTC)),
+			Deadline:    new(time.Date(2019, 11, 12, 0, 0, 0, 0, time.UTC)),
 			Created:     time.Date(2019, 11, 12, 19, 37, 25, 0, time.UTC),
 			Updated:     new(time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)),
 			Closed:      new(time.Date(2019, 11, 12, 19, 45, 46, 0, time.UTC)),
@@ -269,10 +381,10 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Description: "Improvements or additions to documentation",
 				},
 			},
-			PatchURL: "https://github.com/go-gitea/test_repo/pull/3.patch",
+			PatchURL: "",
 			Head: base.PullRequestBranch{
 				Ref:      "master",
-				CloneURL: "https://github.com/mrsdizzie/test_repo.git",
+				CloneURL: "",
 				SHA:      "076160cf0b039f13e5eff19619932d181269414b",
 				RepoName: "test_repo",
 
@@ -299,7 +411,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "mrsdizzie",
 			State:      "open",
 			Created:    time.Date(2019, 11, 12, 21, 54, 18, 0, time.UTC),
-			Updated:    time.Date(2020, 1, 4, 11, 30, 1, 0, time.UTC),
+			Updated:    time.Date(2025, 3, 16, 15, 46, 20, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "bug",
@@ -307,13 +419,13 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Description: "Something isn't working",
 				},
 			},
-			PatchURL: "https://github.com/go-gitea/test_repo/pull/4.patch",
+			PatchURL: "",
 			Head: base.PullRequestBranch{
 				Ref:       "test-branch",
 				SHA:       "2be9101c543658591222acbee3eb799edfc3853d",
 				RepoName:  "test_repo",
 				OwnerName: "mrsdizzie",
-				CloneURL:  "https://github.com/mrsdizzie/test_repo.git",
+				CloneURL:  "",
 			},
 			Base: base.PullRequestBranch{
 				Ref:       "master",
@@ -460,6 +572,143 @@ func TestGithubMultiToken(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, tC.expectedCloneURL, cloneURL)
+		})
+	}
+}
+
+func TestGithubMultiTokenClientSelection(t *testing.T) {
+	downloader := &GithubDownloaderV3{
+		clients: make([]*github.Client, 3),
+		rates:   make([]*github.Rate, 3),
+	}
+
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 0, downloader.curClientIdx)
+
+	downloader.rates[0] = &github.Rate{Remaining: 100}
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 1, downloader.curClientIdx)
+
+	downloader.rates[1] = &github.Rate{Remaining: 200}
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 2, downloader.curClientIdx)
+
+	downloader.rates[2] = &github.Rate{Remaining: 50}
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 1, downloader.curClientIdx)
+}
+
+func TestGitHubIssuesPageBasedLinkFallback(t *testing.T) {
+	_, callerFile, _, _ := runtime.Caller(0)
+	mockServer := unittest.NewMockWebServer(t, "https://api.github.com", filepath.Join(filepath.Dir(callerFile), "_mock_data/TestGitHubDownloadRepo"), false, unittest.MockServerOptions{
+		StripPrefix: "/api/v3",
+	})
+	downloader, err := NewGithubDownloaderV3(t.Context(), mockServer.URL, "", "", "", "go-gitea", "test_repo")
+	require.NoError(t, err)
+	downloader.SkipReactions = true
+	for page, want := range [][]int64{{1, 2, 3}, {}} {
+		issues, isEnd, err := downloader.GetIssues(t.Context(), page+1, 3)
+		require.NoError(t, err)
+		numbers := make([]int64, 0, len(issues))
+		for _, issue := range issues {
+			numbers = append(numbers, issue.Number)
+		}
+		assert.Equal(t, want, numbers)
+		assert.Equal(t, page == 1, isEnd)
+	}
+}
+
+func TestGithubFactoryUsesGraphQLOnlyWhereItWorks(t *testing.T) {
+	for _, testcase := range []struct {
+		name string
+		opts base.MigrateOptions
+		want bool
+	}{
+		{name: "token, issues", opts: base.MigrateOptions{AuthToken: "tok", Issues: true}, want: true},
+		{name: "basic auth, pull requests", opts: base.MigrateOptions{AuthUsername: "u", AuthPassword: "pat", PullRequests: true}, want: true},
+		{name: "anonymous repository", opts: base.MigrateOptions{Issues: true, PullRequests: true}},
+		{name: "comments only", opts: base.MigrateOptions{AuthToken: "tok", Comments: true}},
+		{name: "issues with comments", opts: base.MigrateOptions{AuthToken: "tok", Issues: true, Comments: true}, want: true},
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			testcase.opts.CloneAddr = "https://github.com/go-gitea/test_repo"
+			candidate, err := (&GithubDownloaderV3Factory{}).New(t.Context(), testcase.opts)
+			require.NoError(t, err)
+			downloader, isGraphQL := candidate.(*GithubGraphQLDownloader)
+			assert.Equal(t, testcase.want, isGraphQL)
+			if isGraphQL {
+				assert.Equal(t, !testcase.opts.Comments, downloader.skipComments)
+			}
+		})
+	}
+}
+
+func TestGithubGraphQLFallsBackToREST(t *testing.T) {
+	for _, connection := range []string{"issues", "pull requests"} {
+		t.Run(connection, func(t *testing.T) {
+			var restPage string
+			downloader := newGithubTestDownloader(t, func(writer http.ResponseWriter, request *http.Request) {
+				if request.URL.Path == "/api/graphql" {
+					http.NotFound(writer, request)
+					return
+				}
+				restPage = request.URL.Query().Get("page")
+				_, _ = writer.Write([]byte(`[{"number":1,"title":"t","state":"open"}]`))
+			})
+			downloader.SkipReactions = true
+			if connection == "issues" {
+				issues, _, err := downloader.GetIssues(t.Context(), 3, 10)
+				require.NoError(t, err)
+				require.Len(t, issues, 1)
+				assert.EqualValues(t, 1, issues[0].Number)
+			} else {
+				prs, _, err := downloader.GetPullRequests(t.Context(), 3, 10)
+				require.NoError(t, err)
+				require.Len(t, prs, 1)
+				assert.EqualValues(t, 1, prs[0].Number)
+			}
+			assert.True(t, downloader.restFallback)
+			assert.Equal(t, "1", restPage)
+		})
+	}
+}
+
+func TestGitBucketPaginatesWithoutLinkHeader(t *testing.T) {
+	const total = 26
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		page, _ := strconv.Atoi(request.URL.Query().Get("page"))
+		var items []string
+		for number := (page-1)*25 + 1; number <= min(page*25, total); number++ {
+			items = append(items, fmt.Sprintf(`{"number":%d,"title":"t"}`, number))
+		}
+		writer.Header().Set("X-RateLimit-Remaining", "4000")
+		_, _ = writer.Write([]byte("[" + strings.Join(items, ",") + "]"))
+	}))
+	t.Cleanup(server.Close)
+	downloader, err := NewGitBucketDownloader(t.Context(), server.URL, "", "", "", "o", "r")
+	require.NoError(t, err)
+	for _, connection := range []string{"issues", "pull requests"} {
+		t.Run(connection, func(t *testing.T) {
+			var count int
+			for page := 1; ; page++ {
+				require.LessOrEqual(t, page, 3)
+				var isEnd bool
+				if connection == "issues" {
+					issues, done, err := downloader.GetIssues(t.Context(), page, 10)
+					require.NoError(t, err)
+					count += len(issues)
+					isEnd = done
+				} else {
+					prs, done, err := downloader.GetPullRequests(t.Context(), page, 10)
+					require.NoError(t, err)
+					count += len(prs)
+					isEnd = done
+				}
+				if isEnd {
+					break
+				}
+			}
+			assert.Equal(t, total, count)
 		})
 	}
 }

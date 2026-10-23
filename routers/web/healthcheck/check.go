@@ -9,11 +9,11 @@ import (
 	"os"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 type status string
@@ -111,16 +111,10 @@ func checkDatabase(ctx context.Context, checks checks) status {
 	}
 
 	if setting.Database.Type.IsSQLite3() && st.Status == pass {
-		if !setting.EnableSQLite3 {
+		if _, err := os.Stat(setting.Database.Path); err != nil {
 			st.Status = fail
 			st.Time = getCheckTime()
-			log.Error("SQLite3 health check failed with error: %v", "this Gitea binary is built without SQLite3 enabled")
-		} else {
-			if _, err := os.Stat(setting.Database.Path); err != nil {
-				st.Status = fail
-				st.Time = getCheckTime()
-				log.Error("SQLite3 file exists check failed with error: %v", err)
-			}
+			log.Error("SQLite3 file exists check failed with error: %v", err)
 		}
 	}
 

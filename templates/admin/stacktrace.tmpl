@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+{{template "admin/layout_head" (dict "pageClass" "admin monitor")}}
 <div class="admin-setting-content">
 
 	{{template "admin/trace_tabs" .}}
@@ -11,8 +11,8 @@
 	{{if .ProcessStacks}}
 	<div class="ui attached segment">
 		<div class="ui relaxed divided list">
-			{{range .ProcessStacks}}
-				{{template "admin/stacktrace-row" dict "Process" . "root" $}}
+			{{range $process := .ProcessStacks}}
+				{{template "admin/stacktrace-row" dict "Process" $process}}
 			{{end}}
 		</div>
 	</div>

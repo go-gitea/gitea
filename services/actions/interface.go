@@ -3,7 +3,7 @@
 
 package actions
 
-import "code.gitea.io/gitea/services/context"
+import "gitea.dev/services/context"
 
 // API for actions of a repository or organization
 type API interface {
@@ -31,6 +31,8 @@ type API interface {
 	GetRunner(*context.APIContext)
 	// DeleteRunner delete runner
 	DeleteRunner(*context.APIContext)
+	// UpdateRunner update runner
+	UpdateRunner(*context.APIContext)
 	// ListWorkflowJobs list jobs
 	ListWorkflowJobs(*context.APIContext)
 	// ListWorkflowRuns list runs

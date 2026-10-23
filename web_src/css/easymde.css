@@ -21,11 +21,6 @@
   direction: ltr;
 }
 
-.EasyMDEContainer .CodeMirror.cm-s-default {
-  border-radius: var(--border-radius);
-  padding: 0;
-}
-
 .EasyMDEContainer .CodeMirror-lines {
   padding: 4px 0;
   cursor: text;
@@ -349,17 +344,6 @@
   display: none;
 }
 
-/* hide revert button in fullscreen, it breaks the page */
-.EasyMDEContainer .editor-toolbar.fullscreen .revert-to-textarea {
-  display: none;
-}
-
-@media only screen and (max-width: 700px) {
-  .EasyMDEContainer .editor-toolbar i.no-mobile {
-    display: none;
-  }
-}
-
 /* Statusbar */
 .EasyMDEContainer .editor-statusbar {
   padding: 8px 10px;
@@ -380,10 +364,6 @@
 
 .EasyMDEContainer .editor-statusbar .words::before {
   content: "words: ";
-}
-
-.EasyMDEContainer .editor-statusbar .characters::before {
-  content: "characters: ";
 }
 
 /* Preview */
@@ -440,3 +420,13 @@
   border: 1px solid var(--color-secondary);
   padding: 5px;
 }
+
+.EasyMDEContainer .CodeMirror .cm-attribute { color: var(--color-syntax-name); }
+.EasyMDEContainer .CodeMirror .cm-bracket { color: var(--color-syntax-operator); }
+.EasyMDEContainer .CodeMirror .cm-comment { color: var(--color-syntax-comment); }
+.EasyMDEContainer .CodeMirror .cm-error { color: var(--color-syntax-invalid); }
+.EasyMDEContainer .CodeMirror .cm-hr { color: var(--color-syntax-operator); }
+.EasyMDEContainer .CodeMirror .cm-link { color: var(--color-syntax-link); }
+.EasyMDEContainer .CodeMirror .cm-quote { color: var(--color-syntax-comment); }
+.EasyMDEContainer .CodeMirror .cm-tag { color: var(--color-syntax-type); }
+.EasyMDEContainer .CodeMirror .cm-url { color: var(--color-syntax-link); }

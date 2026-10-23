@@ -1,4 +1,4 @@
-{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings")}}
+{{template "user/settings/layout_head" (dict "pageClass" "user settings")}}
 	<div class="user-setting-content">
 
 		<!-- Theme -->
@@ -30,7 +30,7 @@
 					</div>
 				</div>
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_theme"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.update_theme"}}</button>
 				</div>
 			</form>
 		</div>
@@ -54,7 +54,7 @@
 					</div>
 				</div>
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_language"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.update_language"}}</button>
 				</div>
 			</form>
 		</div>
@@ -154,7 +154,7 @@
 					</div>
 				</div>
 				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
 				</div>
 			</form>
 		</div>

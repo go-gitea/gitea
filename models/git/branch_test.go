@@ -8,15 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,15 +28,15 @@ func TestAddDeletedBranch(t *testing.T) {
 	firstBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{ID: 1})
 
 	assert.True(t, firstBranch.IsDeleted)
-	assert.NoError(t, git_model.AddDeletedBranch(t.Context(), repo.ID, firstBranch.Name, firstBranch.DeletedByID))
-	assert.NoError(t, git_model.AddDeletedBranch(t.Context(), repo.ID, "branch2", int64(1)))
+	assert.NoError(t, git_model.MarkBranchAsDeleted(t.Context(), repo.ID, firstBranch.Name, firstBranch.DeletedByID))
+	assert.NoError(t, git_model.MarkBranchAsDeleted(t.Context(), repo.ID, "branch2", int64(1)))
 
 	secondBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: "branch2"})
 	assert.True(t, secondBranch.IsDeleted)
 
 	commit := &git.Commit{
 		ID:            git.MustIDFromString(secondBranch.CommitID),
-		CommitMessage: secondBranch.CommitMessage,
+		CommitMessage: git.CommitMessage{MessageRaw: secondBranch.CommitMessage},
 		Committer: &git.Signature{
 			When: secondBranch.CommitTime.AsLocalTime(),
 		},

@@ -1,10 +1,11 @@
 import {emojiKeys, emojiHTML, emojiString} from './emoji.ts';
 import {html, htmlRaw} from '../utils/html.ts';
-import type {TributeCollection} from 'tributejs';
-import type {MentionValue} from '../types.ts';
+import {fetchMentions} from '../utils/match.ts';
+import Tribute, {type TributeCollection} from 'tributejs';
+import type {Mention} from '../types.ts';
 
-export async function attachTribute(element: HTMLElement) {
-  const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
+export function attachTribute(element: HTMLElement) {
+  const mentionsUrl = element.closest('[data-mentions-url]')?.getAttribute('data-mentions-url');
 
   const emojiCollection: TributeCollection<string> = { // emojis
     trigger: ':',
@@ -29,8 +30,10 @@ export async function attachTribute(element: HTMLElement) {
     },
   };
 
-  const mentionCollection: TributeCollection<MentionValue> = {
-    values: window.config.mentionValues,
+  const mentionCollection: TributeCollection<Mention> = {
+    values: async (_query: string, cb: (matches: Mention[]) => void) => { // eslint-disable-line @typescript-eslint/no-misused-promises -- tributejs ignores the returned promise, results arrive via the callback
+      cb(mentionsUrl ? await fetchMentions(mentionsUrl) : []);
+    },
     requireLeadingSpace: true,
     menuItemTemplate: (item) => {
       const fullNameHtml = item.original.fullname && item.original.fullname !== '' ? html`<span class="fullname">${item.original.fullname}</span>` : '';
@@ -46,9 +49,9 @@ export async function attachTribute(element: HTMLElement) {
 
   const tribute = new Tribute({
     collection: [
-      emojiCollection as TributeCollection<any>,
-      mentionCollection as TributeCollection<any>,
-    ],
+      emojiCollection,
+      mentionCollection,
+    ] as TributeCollection<any>[],
     noMatchTemplate: () => '',
   });
   tribute.attach(element);

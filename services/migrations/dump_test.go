@@ -14,10 +14,10 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/models/unittest"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,7 +55,8 @@ func TestRepositoryDumperReleaseAssetPrefersDownloadFunc(t *testing.T) {
 	assert.Equal(t, int32(1), atomic.LoadInt32(&downloadFuncCalls))
 	assert.Equal(t, int32(0), atomic.LoadInt32(&downloadURLHits))
 
-	attachRelative := filepath.Join("release_assets", release.TagName, asset.Name)
+	require.NotNil(t, asset.DownloadURL)
+	attachRelative := *asset.DownloadURL
 	attachPath := filepath.Join(baseDir, "owner", "repo", attachRelative)
 	data, err := os.ReadFile(attachPath)
 	require.NoError(t, err)
@@ -67,9 +68,8 @@ func TestRepositoryDumperReleaseAssetPrefersDownloadFunc(t *testing.T) {
 func TestRepositoryDumperReleaseAssetUsesMigrationClient(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	test.MockVariableValue(&setting.Migrations.AllowedDomains, "github.com")()
-	test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)()
-	assert.NoError(t, Init())
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "github.com")()
+	defer test.MockVariableValue(&setting.Migrations.EgressMode, "strict")()
 
 	var downloadURLHits int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

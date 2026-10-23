@@ -6,7 +6,7 @@ package markdown
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/markup"
+	"gitea.dev/modules/markup"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -15,7 +15,7 @@ import (
 )
 
 func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*TaskCheckBoxListItem)
+	n := node.(*TaskCheckBoxListItem) //nolint:forcetypeassert // registered for KindTaskCheckBoxListItem only
 	if entering {
 		if n.Attributes() != nil {
 			_, _ = w.WriteString("<li")
@@ -60,7 +60,7 @@ func (g *ASTTransformer) transformList(_ *markup.RenderContext, v *ast.List, rc 
 		v.RemoveChildren(v)
 
 		for _, child := range children {
-			listItem := child.(*ast.ListItem)
+			listItem := child.(*ast.ListItem) //nolint:forcetypeassert // a list only holds list items
 			if !child.HasChildren() || !child.FirstChild().HasChildren() {
 				v.AppendChild(v, child)
 				continue
@@ -81,5 +81,16 @@ func (g *ASTTransformer) transformList(_ *markup.RenderContext, v *ast.List, rc 
 			v.AppendChild(v, newChild)
 		}
 	}
-	g.applyElementDir(v)
+
+	nestedList := false
+	for p := v.Parent(); p != nil; p = p.Parent() {
+		if _, ok := p.(*ast.List); ok {
+			nestedList = true
+			break
+		}
+	}
+	if !nestedList {
+		// "dir=auto" should be only added to top-level "ul". https://github.com/go-gitea/gitea/issues/35058
+		g.applyElementDir(v)
+	}
 }

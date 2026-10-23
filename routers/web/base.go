@@ -12,14 +12,14 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/modules/assetfs"
-	"code.gitea.io/gitea/modules/avatar"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/routing"
+	"gitea.dev/modules/assetfs"
+	"gitea.dev/modules/avatar"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/routing"
 )
 
 func avatarStorageHandler(storageSetting *setting.Storage, prefix string, objStore storage.ObjectStorage) http.HandlerFunc {
@@ -69,7 +69,7 @@ func avatarStorageHandler(storageSetting *setting.Storage, prefix string, objSto
 			// So in theory, it doesn't work with the non-existing avatar fallback, it just gets the URL and redirects to it.
 			// Checking "stat" requires one more request to the storage, which is inefficient.
 			// Workaround: disable "SERVE_DIRECT". Leave the problem to the future.
-			u, err := objStore.URL(avatarPath, path.Base(avatarPath), req.Method, nil)
+			u, err := objStore.ServeDirectURL(avatarPath, path.Base(avatarPath), req.Method, nil)
 			if handleError(w, req, avatarPath, err) {
 				return
 			}

@@ -1,4 +1,4 @@
-{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings lfs")}}
+{{template "repo/settings/layout_head" (dict "pageClass" "repository settings lfs")}}
 	<div class="user-main-content twelve wide column content repository file list">
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
@@ -6,7 +6,7 @@
 			</h4>
 			<table id="lfs-files-find-table" class="ui attached segment single line table">
 				<tbody>
-					{{range .Results}}
+					{{range $lfsItem := .Results}}
 						<tr>
 							<td>
 								{{svg "octicon-file"}}
@@ -14,8 +14,8 @@
 							</td>
 							<td class="message">
 								<span class="truncate">
-									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{.Summary}}">
-										{{.Summary | ctx.RenderUtils.RenderEmoji}}
+									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{$lfsItem.Summary}}">
+										{{$lfsItem.Summary | ctx.RenderUtils.RenderEmoji}}
 									</a>
 								</span>
 							</td>

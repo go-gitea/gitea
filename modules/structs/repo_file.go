@@ -72,7 +72,7 @@ type ChangeFileOperation struct {
 	// indicates what to do with the file: "create" for creating a new file, "update" for updating an existing file,
 	// "upload" for creating or updating a file, "rename" for renaming a file, and "delete" for deleting an existing file.
 	// required: true
-	// enum: create,update,upload,rename,delete
+	// enum: ["create","update","upload","rename","delete"]
 	Operation string `json:"operation" binding:"Required"`
 	// path to the existing or new file
 	// required: true
@@ -139,6 +139,8 @@ type ContentsResponse struct {
 
 	// `type` will be `file`, `dir`, `symlink`, or `submodule`
 	Type string `json:"type"`
+	// `mode` is the Git file mode as an octal string, e.g. `100644` (regular), `100755` (executable), `120000` (symlink), `160000` (submodule)
+	Mode string `json:"mode"`
 	// Size is the file size in bytes
 	Size int64 `json:"size"`
 	// `encoding` is populated when `type` is `file`, otherwise null

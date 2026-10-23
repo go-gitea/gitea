@@ -7,15 +7,15 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	webhook_service "code.gitea.io/gitea/services/webhook"
+	"gitea.dev/models/webhook"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	webhook_service "gitea.dev/services/webhook"
 )
 
 // ListHooks list system's webhooks
@@ -77,7 +77,7 @@ func ListHooks(ctx *context.APIContext) {
 		}
 		hooks[i] = h
 	}
-	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, hooks)
 }
@@ -137,7 +137,7 @@ func CreateHook(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Hook"
 
-	form := web.GetForm(ctx).(*api.CreateHookOption)
+	form := web.GetForm[*api.CreateHookOption](ctx)
 
 	utils.AddSystemHook(ctx, form)
 }
@@ -166,7 +166,7 @@ func EditHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	form := web.GetForm(ctx).(*api.EditHookOption)
+	form := web.GetForm[*api.EditHookOption](ctx)
 
 	// TODO in body params
 	hookID := ctx.PathParamInt64("id")

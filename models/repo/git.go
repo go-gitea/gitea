@@ -6,7 +6,7 @@ package repo
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 // MergeStyle represents the approach to merge commits into base branch.
@@ -28,6 +28,29 @@ const (
 	// MergeStyleRebaseUpdate not a merge style, used to update pull head by rebase
 	MergeStyleRebaseUpdate MergeStyle = "rebase-update-only"
 )
+
+// UpdateStyle is a pull request branch update style
+type UpdateStyle string
+
+const (
+	// UpdateStyleMerge merges the base branch into the pull request branch
+	UpdateStyleMerge UpdateStyle = "merge"
+	// UpdateStyleRebase rebases the pull request branch onto the base branch
+	UpdateStyleRebase UpdateStyle = "rebase"
+)
+
+// SquashMergeMessage is the source of the default squash merge commit message body, values match GitHub's squash_merge_commit_message: https://docs.github.com/en/rest/repos/repos#update-a-repository
+type SquashMergeMessage string
+
+const (
+	SquashMergeMessageBlank          SquashMergeMessage = "BLANK"
+	SquashMergeMessageCommitMessages SquashMergeMessage = "COMMIT_MESSAGES"
+	SquashMergeMessagePRBody         SquashMergeMessage = "PR_BODY"
+)
+
+func (m SquashMergeMessage) IsValid() bool {
+	return m == SquashMergeMessageBlank || m == SquashMergeMessageCommitMessages || m == SquashMergeMessagePRBody
+}
 
 // UpdateDefaultBranch updates the default branch
 func UpdateDefaultBranch(ctx context.Context, repo *Repository) error {
