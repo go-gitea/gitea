@@ -6,10 +6,14 @@ package setting
 import (
 	"testing"
 
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadSecurityFrom(t *testing.T) {
+	defer test.MockVariableValue(&Security)()
+
 	assert.Equal(t, "SAMEORIGIN", Security.XFrameOptions)
 	assert.Equal(t, "nosniff", Security.XContentTypeOptions)
 	assert.Equal(t, "lax", Security.EgressMode)

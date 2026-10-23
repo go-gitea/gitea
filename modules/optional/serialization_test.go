@@ -6,6 +6,7 @@ package optional_test
 import (
 	std_json "encoding/json" //nolint:depguard // for testing purpose
 	"testing"
+	"time"
 
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/optional"
@@ -26,6 +27,14 @@ type testSerializationStruct struct {
 
 	OptTwoBool   optional.Option[bool]   `json:"optional_two_bool" yaml:"optional_two_bool"`
 	OptTwoString optional.Option[string] `json:"optional_two_string" yaml:"optional_two_string"`
+}
+
+type testSerializationNullValue struct {
+	OptString optional.Option[string] `json:"opt_null,omitempty" yaml:"opt_null,omitempty"`
+}
+
+type testSerializationNullPointer struct {
+	OptNull optional.Option[*time.Time] `json:"opt_null,omitempty" yaml:"opt_null,omitempty"`
 }
 
 func TestOptionalToJson(t *testing.T) {
@@ -63,6 +72,32 @@ func TestOptionalToJson(t *testing.T) {
 			assert.Equal(t, tc.want, string(b), "std json module returned unexpected")
 		})
 	}
+
+	t.Run("NullValue", func(t *testing.T) {
+		var v1 testSerializationNullValue
+		err := json.Unmarshal([]byte(`{"opt_null":null}`), &v1)
+		assert.NoError(t, err)
+		assert.False(t, v1.OptString.Has())
+	})
+
+	t.Run("NullPointer", func(t *testing.T) {
+		var v1 testSerializationNullPointer
+		err := json.Unmarshal([]byte(`{"opt_null":null}`), &v1)
+		assert.NoError(t, err)
+		assert.True(t, v1.OptNull.Has())
+		assert.Nil(t, v1.OptNull.Value())
+
+		var v2 testSerializationNullPointer
+		err = std_json.Unmarshal([]byte(`{}`), &v2)
+		assert.NoError(t, err)
+		assert.False(t, v2.OptNull.Has())
+
+		var v3 testSerializationNullPointer
+		err = std_json.Unmarshal([]byte(`{"opt_null":"2006-01-02T15:04:05Z"}`), &v3)
+		assert.NoError(t, err)
+		assert.True(t, v3.OptNull.Has())
+		assert.NotNil(t, v3.OptNull.Value())
+	})
 }
 
 func TestOptionalFromJson(t *testing.T) {

@@ -128,6 +128,8 @@ func TestUserEmails(t *testing.T) {
 }
 
 func TestCanCreateOrganization(t *testing.T) {
+	defer test.MockVariableValue(&setting.Admin.DisableRegularOrgCreation)()
+
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

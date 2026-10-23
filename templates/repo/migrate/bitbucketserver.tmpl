@@ -1,0 +1,54 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository new migrate">
+	<div class="ui container medium-width">
+		<h3 class="ui top attached header">
+			{{ctx.Locale.Tr "repo.migrate.migrate" .service.Title}}
+		</h3>
+		<div class="ui attached segment">
+			{{template "base/alert" .}}
+			<form class="ui form left-right-form form-fetch-action" action="{{.Link}}" method="post">
+				{{template "repo/migrate/common-init" (dict "ServiceType" .service)}}
+				{{template "repo/migrate/variants" .}}
+
+				<div class="inline required field">
+					<label>{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
+					<input name="clone_addr" autofocus required>
+					<span class="help">
+					{{ctx.Locale.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate.clone_local_path"}}{{end}}
+					</span>
+				</div>
+
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "username"}}</label>
+					<input name="auth_username">
+				</div>
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "password"}}</label>
+					<input name="auth_password" type="password">
+				</div>
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "access_token"}}</label>
+					<input name="auth_token" type="password" autocomplete="new-password">
+					<span class="help">{{ctx.Locale.Tr "repo.migrate.bitbucketserver.token_desc"}}</span>
+				</div>
+
+				{{template "repo/migrate/common-options" .}}
+
+				<div id="migrate_items">
+					<div class="inline field">
+						<label>{{ctx.Locale.Tr "repo.migrate_items"}}</label>
+						<div class="ui checkbox">
+							<input name="pull_requests" type="checkbox">
+							<label>{{ctx.Locale.Tr "repo.migrate_items_pullrequests"}}</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="divider"></div>
+
+				{{template "repo/migrate/common-migrated-repo"}}
+			</form>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
