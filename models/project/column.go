@@ -203,6 +203,10 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 		return err
 	}
 
+	if err := deleteWorkflowsByColumnID(ctx, column.ID); err != nil {
+		return err
+	}
+
 	if _, err := db.GetEngine(ctx).ID(column.ID).NoAutoCondition().Delete(column); err != nil {
 		return err
 	}
