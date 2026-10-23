@@ -256,6 +256,14 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
 		}
 
+		// The head moved, so the distance to the base branch changed. Only the GitHub flow refreshes
+		// this in AddTestPullRequestTask, without it here an AGit pull request that was rebased onto
+		// the current base keeps the "out-of-date" hint of the last base branch push, and a branch
+		// protection with "block on outdated branch" keeps refusing to merge it.
+		if err := pull_service.SyncCommitDivergence(ctx, pr); err != nil {
+			log.Error("SyncCommitDivergence: %v", err)
+		}
+
 		// Mark existing reviews as stale when PR content changes (same as regular GitHub flow)
 		if oldHeadCommitID != opts.NewCommitIDs[i] {
 			if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
