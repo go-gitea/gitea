@@ -61,7 +61,7 @@ func serveSetHeaderContentRelated(w http.ResponseWriter, contentType string) {
 	header.Set("X-Content-Type-Options", "nosniff")
 
 	csp := serveHeaderCspDefault
-	if mediaType, _, err := mime.ParseMediaType(contentType); err == nil { // relax only for well-formed types, browsers parse malformed ones differently
+	if mediaType, _, err := mime.ParseMediaType(contentType); err == nil { // browsers may parse malformed types differently
 		if mediaType == "application/pdf" {
 			csp = serveHeaderCspPdf
 		}
