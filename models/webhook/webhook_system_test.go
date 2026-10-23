@@ -6,14 +6,16 @@ package webhook
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListSystemWebhookOptions(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hookSystem := unittest.AssertExistsAndLoadBean(t, &Webhook{URL: "https://www.example.com/system"})
 	hookDefault := unittest.AssertExistsAndLoadBean(t, &Webhook{URL: "https://www.example.com/default"})
 	opts := ListSystemWebhookOptions{IsSystem: optional.None[bool]()}

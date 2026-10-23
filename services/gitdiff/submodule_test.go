@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -203,7 +203,7 @@ index 0000000..68972a9
 
 	for _, testcase := range tests {
 		t.Run(testcase.name, func(t *testing.T) {
-			diff, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
+			diff, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff))
 			assert.NoError(t, err)
 
 			for i, expected := range testcase.infos {

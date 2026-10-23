@@ -6,9 +6,11 @@ package repo
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // Star represents a starred repo by a user.
@@ -68,7 +70,7 @@ func StarRepo(ctx context.Context, doer *user_model.User, repo *Repository, star
 
 // IsStaring checks if user has starred given repository.
 func IsStaring(ctx context.Context, userID, repoID int64) bool {
-	has, _ := db.GetEngine(ctx).Get(&Star{UID: userID, RepoID: repoID})
+	has, _ := db.Exist[Star](ctx, builder.Eq{"uid": userID, "repo_id": repoID})
 	return has
 }
 
@@ -77,7 +79,7 @@ func GetStargazers(ctx context.Context, repo *Repository, opts db.ListOptions) (
 	sess := db.GetEngine(ctx).Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 
 		users := make([]*user_model.User, 0, opts.PageSize)
 		return users, sess.Find(&users)

@@ -7,18 +7,17 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // PullRequestsOptions holds the options for PRs
@@ -32,7 +31,7 @@ type PullRequestsOptions struct {
 	BaseBranch  string
 }
 
-func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) *xorm.Session {
+func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) db.Session {
 	sess := db.GetEngine(ctx).Where("pull_request.base_repo_id=?", baseRepoID)
 
 	if opts.BaseBranch != "" {
@@ -167,6 +166,14 @@ func GetPullRequestIDsByCheckStatus(ctx context.Context, status PullRequestStatu
 		Find(&prs)
 }
 
+func GetInterruptedPullRequestIDs(ctx context.Context) ([]int64, error) {
+	prs := make([]int64, 0, 10)
+	return prs, db.GetEngine(ctx).Table("pull_request").
+		Where("merged_commit_id <> '' AND has_merged = ? AND merged_unix >= ?", false, timeutil.TimeStampNow()-24*3600).
+		Cols("pull_request.id").
+		Find(&prs)
+}
+
 // PullRequests returns all pull requests for a base Repo by the given conditions
 func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) (PullRequestList, int64, error) {
 	if opts.Page <= 0 {
@@ -182,7 +189,7 @@ func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptio
 
 	findSession := listPullRequestStatement(ctx, baseRepoID, opts)
 	applySorts(findSession, opts.SortType, 0)
-	findSession = db.SetSessionPagination(findSession, opts)
+	db.SetSessionPagination(findSession, opts)
 	prs := make([]*PullRequest, 0, opts.PageSize)
 	found := findSession.Find(&prs)
 	return prs, maxResults, found

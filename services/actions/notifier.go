@@ -7,24 +7,23 @@ import (
 	"context"
 	"errors"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	packages_model "code.gitea.io/gitea/models/packages"
-	perm_model "code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/services/convert"
-	notify_service "code.gitea.io/gitea/services/notify"
+	actions_model "gitea.dev/models/actions"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	packages_model "gitea.dev/models/packages"
+	perm_model "gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
+	"gitea.dev/services/convert"
+	notify_service "gitea.dev/services/notify"
 )
 
 type actionsNotifier struct {
@@ -57,7 +56,7 @@ func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 		Issue:      convert.ToAPIIssue(ctx, issue.Poster, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, issue.Poster, nil),
-	}).Notify(withMethod(ctx, "NewIssue"))
+	}).Notify(ctx)
 }
 
 // IssueChangeContent notifies change content of issue
@@ -89,7 +88,7 @@ func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Contex
 			WithPayload(&api.PullRequestPayload{
 				Action:      api.HookIssueEdited,
 				Index:       issue.Index,
-				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+				PullRequest: convert.ToPayloadPullRequest(ctx, issue.PullRequest, nil),
 				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 				Sender:      convert.ToUser(ctx, doer, nil),
 			}).
@@ -121,7 +120,7 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, issue.PullRequest, nil),
 			Repository:  convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, doer, nil),
 			CommitID:    commitID,
@@ -159,11 +158,13 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 func (n *actionsNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 	ctx = withMethod(ctx, "IssueChangeAssignee")
 
-	var action api.HookIssueAction
+	action := api.HookIssueAssigned
+	changes := &api.ChangesPayload{}
 	if removed {
 		action = api.HookIssueUnassigned
+		changes.RemovedAssignees = []*api.User{convert.ToUser(ctx, assignee, nil)}
 	} else {
-		action = api.HookIssueAssigned
+		changes.AddedAssignees = []*api.User{convert.ToUser(ctx, assignee, nil)}
 	}
 
 	hookEvent := webhook_module.HookEventIssueAssign
@@ -171,7 +172,7 @@ func (n *actionsNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 		hookEvent = webhook_module.HookEventPullRequestAssign
 	}
 
-	notifyIssueChange(ctx, doer, issue, hookEvent, action, nil, nil)
+	notifyIssueChange(ctx, doer, issue, hookEvent, action, changes)
 }
 
 // IssueChangeMilestone notifies assignee to notifiers
@@ -190,7 +191,7 @@ func (n *actionsNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 		hookEvent = webhook_module.HookEventPullRequestMilestone
 	}
 
-	notifyIssueChange(ctx, doer, issue, hookEvent, action, nil, nil)
+	notifyIssueChange(ctx, doer, issue, hookEvent, action, &api.ChangesPayload{})
 }
 
 func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
@@ -203,40 +204,35 @@ func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 		hookEvent = webhook_module.HookEventPullRequestLabel
 	}
 
-	notifyIssueChange(ctx, doer, issue, hookEvent, api.HookIssueLabelUpdated, addedLabels, removedLabels)
-}
-
-func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction, addedLabels, removedLabels []*issues_model.Label) {
-	var err error
-	if err = issue.LoadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
 		return
 	}
 
-	if err = issue.LoadPoster(ctx); err != nil {
+	changes := &api.ChangesPayload{}
+	if addedLabels != nil {
+		changes.AddedLabels = convert.ToLabelList(addedLabels, issue.Repo, doer)
+	}
+
+	if removedLabels != nil {
+		changes.RemovedLabels = convert.ToLabelList(removedLabels, issue.Repo, doer)
+	}
+
+	notifyIssueChange(ctx, doer, issue, hookEvent, api.HookIssueLabelUpdated, changes)
+}
+
+func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction, changes *api.ChangesPayload) {
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+	if err := issue.LoadPoster(ctx); err != nil {
 		log.Error("LoadPoster: %v", err)
 		return
 	}
 
-	var addedAPILabels []*api.Label
-	if addedLabels != nil {
-		addedAPILabels = make([]*api.Label, 0, len(addedLabels))
-		for _, label := range addedLabels {
-			addedAPILabels = append(addedAPILabels, convert.ToLabel(label, issue.Repo, doer))
-		}
-	}
-
-	// Get removed labels from context if present
-	var removedAPILabels []*api.Label
-	if removedLabels != nil {
-		removedAPILabels = make([]*api.Label, 0, len(removedLabels))
-		for _, label := range removedLabels {
-			removedAPILabels = append(removedAPILabels, convert.ToLabel(label, issue.Repo, doer))
-		}
-	}
-
 	if issue.IsPull {
-		if err = issue.LoadPullRequest(ctx); err != nil {
+		if err := issue.LoadPullRequest(ctx); err != nil {
 			log.Error("loadPullRequest: %v", err)
 			return
 		}
@@ -244,13 +240,10 @@ func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues
 		payload := &api.PullRequestPayload{
 			Action:      action,
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, issue.PullRequest, nil),
 			Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 			Sender:      convert.ToUser(ctx, doer, nil),
-			Changes: &api.ChangesPayload{
-				AddedLabels:   addedAPILabels,
-				RemovedLabels: removedAPILabels,
-			},
+			Changes:     changes,
 		}
 
 		newNotifyInputFromIssue(issue, event).
@@ -268,10 +261,7 @@ func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues
 		Issue:      convert.ToAPIIssue(ctx, doer, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
-		Changes: &api.ChangesPayload{
-			AddedLabels:   addedAPILabels,
-			RemovedLabels: removedAPILabels,
-		},
+		Changes:    changes,
 	}
 
 	newNotifyInputFromIssue(issue, event).
@@ -384,7 +374,7 @@ func (n *actionsNotifier) NewPullRequest(ctx context.Context, pull *issues_model
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueOpened,
 			Index:       pull.Issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, pull, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, pull, nil),
 			Repository:  convert.ToRepo(ctx, pull.Issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, pull.Issue.Poster, nil),
 		}).
@@ -456,16 +446,15 @@ func (n *actionsNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 
 	permission, err := access_model.GetIndividualUserRepoPermission(ctx, review.Issue.Repo, review.Issue.Poster)
 	if err != nil {
-		log.Error("models.GetIndividualUserRepoPermission: %v", err)
+		log.Error("GetIndividualUserRepoPermission: %v", err)
 		return
 	}
 
-	newNotifyInput(review.Issue.Repo, review.Reviewer, reviewHookType).
-		WithRef(review.CommitID).
+	newPullRequestReviewNotifyInput(review.Issue.Repo, review.Reviewer, reviewHookType, review.CommitID, pr).
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueReviewed,
 			Index:       review.Issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, review.Issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, review.Reviewer, nil),
 			Review: &api.ReviewPayload{
@@ -499,7 +488,7 @@ func (n *actionsNotifier) PullRequestReviewRequest(ctx context.Context, doer *us
 		WithPayload(&api.PullRequestPayload{
 			Action:            action,
 			Index:             issue.Index,
-			PullRequest:       convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			PullRequest:       convert.ToPayloadPullRequest(ctx, issue.PullRequest, nil),
 			RequestedReviewer: convert.ToUser(ctx, reviewer, nil),
 			Repository:        convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:            convert.ToUser(ctx, doer, nil),
@@ -518,7 +507,7 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
 
@@ -536,7 +525,7 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 	// Merge pull request calls issue.changeStatus so we need to handle separately.
 	apiPullRequest := &api.PullRequestPayload{
 		Index:       pr.Issue.Index,
-		PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+		PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
 		Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
 		Sender:      convert.ToUser(ctx, doer, nil),
 		Action:      api.HookIssueClosed,
@@ -687,11 +676,11 @@ func (n *actionsNotifier) AutoMergePullRequest(ctx context.Context, doer *user_m
 	n.MergePullRequest(ctx, doer, pr)
 }
 
-func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
 	ctx = withMethod(ctx, "PullRequestSynchronized")
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
 
@@ -703,8 +692,10 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 	newNotifyInput(pr.Issue.Repo, doer, webhook_module.HookEventPullRequestSync).
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueSynchronized,
+			Before:      before,
+			After:       after,
 			Index:       pr.Issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 			Sender:      convert.ToUser(ctx, doer, nil),
 		}).
@@ -716,7 +707,7 @@ func (n *actionsNotifier) PullRequestChangeTargetBranch(ctx context.Context, doe
 	ctx = withMethod(ctx, "PullRequestChangeTargetBranch")
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
 
@@ -735,7 +726,7 @@ func (n *actionsNotifier) PullRequestChangeTargetBranch(ctx context.Context, doe
 					From: oldBranch,
 				},
 			},
-			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, doer, nil),
 		}).
@@ -800,23 +791,19 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 
 	status := convert.ToWorkflowRunAction(run.Status)
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	convertedWorkflow, err := convert.ResolveActionWorkflowForRun(ctx, repo, run)
 	if err != nil {
-		log.Error("OpenRepository: %v", err)
+		if errors.Is(err, util.ErrNotExist) {
+			// The workflow definition is gone (e.g. a scoped source repo/file was deleted, or the file no longer exists at the recorded commit), skip
+			log.Debug("WorkflowRunStatusUpdate: workflow %q for run %d not found: %v", run.WorkflowID, run.ID, err)
+			return
+		}
+		log.Error("WorkflowRunStatusUpdate resolve workflow: %v", err)
 		return
 	}
-	defer gitRepo.Close()
 
-	convertedWorkflow, err := convert.GetActionWorkflowByRef(ctx, gitRepo, repo, run.WorkflowID, git.RefName(run.Ref))
-	if err != nil && errors.Is(err, util.ErrNotExist) {
-		convertedWorkflow, err = convert.GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
-	}
-	if err != nil {
-		log.Error("GetActionWorkflow: %v", err)
-		return
-	}
 	run.Repo = repo
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 	if err != nil {
 		log.Error("ToActionWorkflowRun: %v", err)
 		return

@@ -9,15 +9,20 @@ import (
 	"io"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
 
-const LockFile = "terraform.lock"
+const (
+	LockFile = "terraform.lock"
+
+	maxLockInfoSize = 64 * 1024
+)
 
 // LockInfo is the metadata for a terraform lock.
 type LockInfo struct {
@@ -36,7 +41,7 @@ func (l *LockInfo) IsLocked() bool {
 
 func ParseLockInfo(r io.Reader) (*LockInfo, error) {
 	var lock LockInfo
-	err := json.NewDecoder(r).Decode(&lock)
+	err := json.NewDecoder(packages.NewLimitedReader(r, maxLockInfoSize)).Decode(&lock)
 	if err != nil {
 		return nil, err
 	}
@@ -79,13 +84,12 @@ func RemoveLock(ctx context.Context, packageID int64) error {
 }
 
 func updateLock(ctx context.Context, refID int64, value string, cond builder.Cond) error {
-	pp := packages_model.PackageProperty{RefType: packages_model.PropertyTypePackage, RefID: refID, Name: LockFile}
-	ok, err := db.GetEngine(ctx).Get(&pp)
+	pp, ok, err := db.Get[packages_model.PackageProperty](ctx, builder.Eq{"ref_type": packages_model.PropertyTypePackage, "ref_id": refID, "`name`": LockFile})
 	if err != nil {
 		return err
 	}
 	if ok {
-		n, err := db.GetEngine(ctx).Where("ref_type=? AND ref_id=? AND name=?", packages_model.PropertyTypePackage, refID, LockFile).And(cond).Cols("value").Update(&packages_model.PackageProperty{Value: value})
+		n, err := db.GetEngine(ctx).ID(pp.ID).And(cond).Cols("value").Update(&packages_model.PackageProperty{Value: value})
 		if err != nil {
 			return err
 		}

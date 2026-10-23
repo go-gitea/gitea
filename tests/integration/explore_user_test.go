@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -123,8 +123,12 @@ func GetTotalUnreferencedBlobSize(ctx context.Context) (int64, error) {
 
 // IsBlobAccessibleForUser tests if the user has access to the blob
 func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model.User) (bool, error) {
-	if user.IsAdmin {
+	if user_model.DoerIsSiteAdminFullAccess(user) {
 		return true, nil
+	}
+	ownerVisibilities := []structs.VisibleType{structs.VisibleTypePublic}
+	if !user.IsRestricted {
+		ownerVisibilities = append(ownerVisibilities, structs.VisibleTypeLimited)
 	}
 
 	maxTeamAuthorize := builder.
@@ -144,11 +148,14 @@ func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model
 		// owner = user
 		builder.Eq{"`user`.id": user.ID}.
 			// user can see owner
-			Or(builder.Eq{"`user`.visibility": structs.VisibleTypePublic}.Or(builder.Eq{"`user`.visibility": structs.VisibleTypeLimited})).
+			Or(builder.In("`user`.visibility", ownerVisibilities)).
 			// owner is an organization and user has access to it
 			Or(builder.Eq{"`user`.type": user_model.UserTypeOrganization}.
 				And(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): maxTeamAuthorize}.Or(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): maxTeamUnitAccessMode}))),
 	)
+	if !user_model.DoerCanViewPrivate(user) {
+		cond = cond.And(builder.Eq{"`user`.visibility": structs.VisibleTypePublic})
+	}
 
 	return db.GetEngine(ctx).
 		Table("package_blob").

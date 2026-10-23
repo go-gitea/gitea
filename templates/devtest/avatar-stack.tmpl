@@ -1,0 +1,18 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<div>
+		<h1>Avatar Stack</h1>
+		<table class="ui basic table">
+			<thead><tr><th>Scenario</th><th>Rendered</th></tr></thead>
+			<tbody>
+			{{range $s := .AvatarStackScenarios}}
+				<tr>
+					<td>{{$s.Label}}</td>
+					<td>{{ctx.RenderUtils.AvatarStackWithNames $s.Data}}</td>
+				</tr>
+			{{end}}
+			</tbody>
+		</table>
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}

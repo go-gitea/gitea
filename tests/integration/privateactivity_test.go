@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"testing"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -123,7 +123,7 @@ func testPrivateActivityHelperHasHeatmapContentFromPublic(t *testing.T) bool {
 }
 
 func testPrivateActivityHelperHasHeatmapContentFromSession(t *testing.T, session *TestSession) bool {
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/heatmap", privateActivityTestUser).
 		AddTokenAuth(token)

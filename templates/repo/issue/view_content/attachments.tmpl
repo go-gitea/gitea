@@ -3,23 +3,23 @@
 		<div class="divider"></div>
 	{{end}}
 	{{$hasThumbnails := false}}
-	{{- range .Attachments -}}
+	{{- range $att := .Attachments -}}
 		<div class="tw-flex">
 			<div class="tw-flex-1 tw-p-2">
-				<a target="_blank" href="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
-					{{if FilenameIsImage .Name}}
-						{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) .UUID)}}
+				<a target="_blank" href="{{$att.DownloadURL ctx}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" $att.Name}}">
+					{{if FilenameIsImage $att.Name}}
+						{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) $att.UUID)}}
 							{{$hasThumbnails = true}}
 						{{end}}
 						{{svg "octicon-file"}}
 					{{else}}
 						{{svg "octicon-desktop-download"}}
 					{{end}}
-					<span><strong>{{.Name}}</strong></span>
+					<span><strong>{{$att.Name}}</strong></span>
 				</a>
 			</div>
 			<div class="flex-text-block tw-p-2">
-				<span class="ui tw-text-text-light">{{.Size | FileSize}}</span>
+				<span class="ui tw-text-text-light">{{$att.Size | FormatByteSize}}</span>
 			</div>
 		</div>
 	{{end -}}
@@ -30,8 +30,8 @@
 			{{- range .Attachments -}}
 				{{if FilenameIsImage .Name}}
 					{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) .UUID)}}
-					<a target="_blank" href="{{.DownloadURL}}">
-						<img loading="lazy" alt="{{.Name}}" src="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
+					<a target="_blank" href="{{.DownloadURL ctx}}">
+						<img loading="lazy" alt="{{.Name}}" src="{{.DownloadURL ctx}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
 					</a>
 					{{end}}
 				{{end}}

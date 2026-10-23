@@ -6,14 +6,14 @@ package doctor
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/migrations"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modelmigration"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
 )
 
 func checkDBVersion(ctx context.Context, logger log.Logger, autofix bool) error {
-	logger.Info("Expected database version: %d", migrations.ExpectedDBVersion())
-	if err := db.InitEngineWithValidation(ctx, migrations.EnsureUpToDate); err != nil {
+	logger.Info("Expected database version: %d", modelmigration.ExpectedDBVersion())
+	if err := db.InitEngineWithValidation(ctx, modelmigration.EnsureUpToDate); err != nil {
 		markDatabaseUntrusted(ctx)
 		logger.Critical("Error: %v during ensure up to date", err)
 		if autofix {

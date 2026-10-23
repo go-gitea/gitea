@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/log"
 
 	"github.com/stretchr/testify/assert"
 )

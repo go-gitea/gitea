@@ -9,17 +9,17 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -184,10 +184,9 @@ func testOrgRestrictedUser(t *testing.T) {
 
 	resp := adminSession.MakeRequest(t, req, http.StatusCreated)
 	apiTeam := DecodeJSON(t, resp, &api.Team{})
-	checkTeamResponse(t, "CreateTeam_codereader", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		"none", teamToCreate.Units, nil)
-	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		"none", teamToCreate.Units, nil)
+	expectedUnitsMap := map[string]string{"repo.code": "read"}
+	checkTeamResponse(t, "CreateTeam_codereader", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, "none", expectedUnitsMap)
+	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, "none", expectedUnitsMap)
 	// teamID := apiTeam.ID
 
 	// Now we need to add the restricted user to the team

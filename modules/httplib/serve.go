@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	charsetModule "code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
+	charsetModule "gitea.dev/modules/charset"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 
 	"github.com/klauspost/compress/gzhttp"
 )
@@ -39,9 +39,9 @@ type ServeHeaderOptions struct {
 
 const (
 	// Disable JS execution on the same origin, since we serve the file from the same origin as Gitea server.
-	// This rule can be relaxed in the future as long as it is properly sandboxed.
-	// "style-src" is for SVG inline styles (from Display SVG files as images instead of text #14101)
-	serveHeaderCspDefault = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+	// 'unsafe-inline' is needed by inline script and SVG inline styles (from Display SVG files as images instead of text #14101),
+	// So we don't set any "*-src" rule here, just use sandbox.
+	serveHeaderCspDefault = "sandbox allow-scripts allow-modals allow-popups allow-downloads"
 
 	// No sandbox attribute for PDF as it breaks rendering in at least Safari.
 	// This should generally be safe as scripts inside PDF can not escape the PDF document.
@@ -94,9 +94,8 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	}
 
 	httpcache.SetCacheControlInHeader(header, &httpcache.CacheControlOptions{
-		IsPublic:    opts.CacheIsPublic,
-		MaxAge:      opts.CacheDuration,
-		NoTransform: true,
+		IsPublic: opts.CacheIsPublic,
+		MaxAge:   opts.CacheDuration,
 	})
 
 	if !opts.LastModified.IsZero() {

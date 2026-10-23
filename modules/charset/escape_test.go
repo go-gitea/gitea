@@ -7,9 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -140,18 +141,42 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 		result: `O<span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character:𝐾 [U+1D43E],K [U+004B]"><span class="char">𝐾</span></span>`,
 		status: EscapeStatus{Escaped: true, HasAmbiguous: true},
 	},
+	{
+		name:   "ambiguous in math",
+		text:   "<math><mo>−</mo><mi>b</mi></math> −",
+		result: `<math><mo>−</mo><mi>b</mi></math> <span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character:− [U+2212],- [U+002D]"><span class="char">−</span></span>`,
+		status: EscapeStatus{Escaped: true, HasAmbiguous: true},
+	},
 }
 
 func TestEscapeControlReader(t *testing.T) {
 	for _, tt := range escapeControlTests {
 		t.Run(tt.name, func(t *testing.T) {
-			output := &strings.Builder{}
+			output := &htmlutil.HTMLBuilder{}
 			status, err := EscapeControlReader(strings.NewReader(tt.text), output, &translation.MockLocale{})
 			assert.NoError(t, err)
 			assert.Equal(t, tt.status, *status)
 			outStr := output.String()
 			assert.Equal(t, tt.result, outStr)
 		})
+	}
+}
+
+func TestTrackHtmlTag(t *testing.T) {
+	e := &escapeStreamer{}
+	for _, tt := range []struct {
+		parts  []string
+		inMath bool
+	}{
+		{[]string{"<ma", `TH display="block">`}, true},
+		{[]string{"<mo>"}, true},
+		{[]string{"</MA", "th>"}, false},
+		{[]string{"<mathx>"}, false},
+	} {
+		for _, part := range tt.parts {
+			e.trackHtmlTag([]byte(part))
+		}
+		assert.Equal(t, tt.inMath, e.inTagMath, "%v", tt.parts)
 	}
 }
 

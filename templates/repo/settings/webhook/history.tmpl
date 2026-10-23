@@ -1,20 +1,16 @@
-{{$isNew:=or .PageIsSettingsHooksNew .PageIsAdminDefaultHooksNew .PageIsAdminSystemHooksNew}}
 {{if .PageIsSettingsHooksEdit}}
-	<h4 class="ui top attached header">
-		{{ctx.Locale.Tr "repo.settings.recent_deliveries"}}
+	<h4 class="ui top attached header flex-left-right">
+		<span>{{ctx.Locale.Tr "repo.settings.recent_deliveries"}}</span>
 		{{if .Permission.IsAdmin}}
-			<div class="ui right">
-				<!-- the button is wrapped with a span because the tooltip doesn't show on hover if we put data-tooltip-content directly on the button -->
-				<span data-tooltip-content="{{if or $isNew .Webhook.IsActive}}{{ctx.Locale.Tr "repo.settings.webhook.test_delivery_desc"}}{{else}}{{ctx.Locale.Tr "repo.settings.webhook.test_delivery_desc_disabled"}}{{end}}">
-					<button class="ui tiny button{{if not (or $isNew .Webhook.IsActive)}} disabled{{end}}" id="test-delivery" data-link="{{.Link}}/test">
-						<span class="text">{{ctx.Locale.Tr "repo.settings.webhook.test_delivery"}}</span>
-					</button>
-			</span>
-			</div>
+			<button type="button" class="ui tiny button" data-link="{{.Link}}/test" data-global-click="onWebhookTestDeliveryClick"
+				data-tooltip-content="{{ctx.Locale.Tr "repo.settings.webhook.test_delivery_desc"}}"
+			>
+				{{ctx.Locale.Tr "repo.settings.webhook.test_delivery"}}
+			</button>
 		{{end}}
 	</h4>
 	<div class="ui attached segment">
-		<div class="ui list">
+		<div class="flex-divided-list">
 			{{range .History}}
 				<div class="item">
 					<div class="flex-left-right">
@@ -26,18 +22,18 @@
 							{{else}}
 								<span class="tw-text-red">{{svg "octicon-alert"}}</span>
 							{{end}}
-							<button class="btn interact-bg tw-p-2 toggle show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</button>
+							<button type="button" class="btn interact-bg tw-p-2 toggle show-panel" data-panel="#webhook-history-info-{{.ID}}">{{.UUID}}</button>
 						</div>
 						<span class="tw-text-text-light">
 							{{DateUtils.TimeSince .Delivered}}
 						</span>
 					</div>
-					<div class="info tw-hidden" id="info-{{.ID}}">
+					<div class="info tw-hidden tw-mt-2" id="webhook-history-info-{{.ID}}">
 						<div class="ui top attached tabular menu" data-global-init="initTabSwitcher">
-							<a class="item active" data-tab="request-{{.ID}}">
+							<a class="item active" data-tab="webhook-history-request-{{.ID}}">
 								{{template "shared/misc/tabtitle" (ctx.Locale.Tr "repo.settings.webhook.request")}}
 							</a>
-							<a class="item" data-tab="response-{{.ID}}">
+							<a class="item" data-tab="webhook-history-response-{{.ID}}">
 								{{template "shared/misc/tabtitle" (ctx.Locale.Tr "repo.settings.webhook.response")}}
 								{{if .ResponseInfo}}
 									{{if .IsSucceed}}
@@ -53,13 +49,13 @@
 							<div class="right menu">
 								<form class="tw-py-2" action="{{$.Link}}/replay/{{.UUID}}" method="post">
 									<span data-tooltip-content="{{if $.Webhook.IsActive}}{{ctx.Locale.Tr "repo.settings.webhook.replay.description"}}{{else}}{{ctx.Locale.Tr "repo.settings.webhook.replay.description_disabled"}}{{end}}">
-										<button class="ui tiny button tw-mr-0{{if not $.Webhook.IsActive}} disabled{{end}}">{{svg "octicon-sync"}}</button>
+										<button type="submit" class="ui tiny button tw-mr-0{{if not $.Webhook.IsActive}} disabled{{end}}">{{svg "octicon-sync"}}</button>
 									</span>
 								</form>
 							</div>
 							{{end}}
 						</div>
-						<div class="ui bottom attached tab segment active" data-tab="request-{{.ID}}">
+						<div class="ui bottom attached tab segment active" data-tab="webhook-history-request-{{.ID}}">
 							{{if .RequestInfo}}
 								<h5>{{ctx.Locale.Tr "repo.settings.webhook.headers"}}</h5>
 								<pre class="webhook-info"><strong>Request URL:</strong> {{.RequestInfo.URL}}
@@ -72,13 +68,13 @@
 								-
 							{{end}}
 						</div>
-						<div class="ui bottom attached tab segment" data-tab="response-{{.ID}}">
+						<div class="ui bottom attached tab segment" data-tab="webhook-history-response-{{.ID}}">
 							{{if .ResponseInfo}}
 								<h5>{{ctx.Locale.Tr "repo.settings.webhook.headers"}}</h5>
 								<pre class="webhook-info">{{range $key, $val := .ResponseInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
-{{end}}</pre>
+{{else}}(no response header){{end}}</pre>
 								<h5>{{ctx.Locale.Tr "repo.settings.webhook.body"}}</h5>
-								<pre class="webhook-info">{{.ResponseInfo.Body}}</pre>
+								<pre class="webhook-info">{{or .ResponseInfo.Body "(no response body)"}}</pre>
 							{{else}}
 								-
 							{{end}}

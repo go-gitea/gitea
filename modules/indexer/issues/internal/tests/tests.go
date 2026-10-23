@@ -8,15 +8,16 @@
 package tests
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/indexer/issues/internal"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/indexer/issues/internal"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,8 +79,9 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 			}
 
 			// test counting
-			c.SearchOptions.Paginator = &db.ListOptions{PageSize: 0}
-			countResult, err := indexer.Search(t.Context(), c.SearchOptions)
+			countOptions := c.SearchOptions.Copy()
+			countOptions.Paginator = &db.ListOptions{PageSize: 0}
+			countResult, err := indexer.Search(t.Context(), countOptions)
 			require.NoError(t, err)
 			assert.Empty(t, countResult.Hits)
 			assert.Equal(t, result.Total, countResult.Total)
@@ -377,10 +379,10 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].AssigneeID)
+				assert.True(t, slices.Contains(data[v.ID].AssigneeIDs, int64(1)))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.AssigneeID == 1
+				return slices.Contains(v.AssigneeIDs, int64(1))
 			}), result.Total)
 		},
 	},
@@ -395,10 +397,10 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].AssigneeID)
+				assert.True(t, data[v.ID].NoAssignee)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.AssigneeID == 0
+				return v.NoAssignee
 			}), result.Total)
 		},
 	},
@@ -630,10 +632,10 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 180)
 			for _, v := range result.Hits {
-				assert.GreaterOrEqual(t, data[v.ID].AssigneeID, int64(1))
+				assert.False(t, data[v.ID].NoAssignee)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.AssigneeID >= 1
+				return !v.NoAssignee
 			}), result.Total)
 		},
 	},
@@ -686,6 +688,18 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 			for i := range projectIDs {
 				projectIDs[i] = int64(i) + 1 // projectID should not be 0
 			}
+			var assigneeIDs []int64
+			if issueIndex%10 != 0 {
+				assigneeID := issueIndex % 10
+				assigneeIDs = []int64{assigneeID}
+				if issueIndex%3 == 0 {
+					nextAssigneeID := assigneeID + 1
+					if nextAssigneeID == 10 {
+						nextAssigneeID = 1
+					}
+					assigneeIDs = append(assigneeIDs, nextAssigneeID)
+				}
+			}
 
 			data = append(data, &internal.IndexerData{
 				ID:                 id,
@@ -702,7 +716,8 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				ProjectIDs:         projectIDs,
 				NoProject:          len(projectIDs) == 0,
 				PosterID:           id%10 + 1, // PosterID should not be 0
-				AssigneeID:         issueIndex % 10,
+				AssigneeIDs:        assigneeIDs,
+				NoAssignee:         len(assigneeIDs) == 0,
 				MentionIDs:         mentionIDs,
 				ReviewedIDs:        reviewedIDs,
 				ReviewRequestedIDs: reviewRequestedIDs,
@@ -731,6 +746,9 @@ func countIndexerData(data map[int64]*internal.IndexerData, f func(v *internal.I
 // waitData waits for the indexer to index all data.
 // Some engines like Elasticsearch index data asynchronously, so we need to wait for a while.
 func waitData(t *testing.T, indexer internal.Indexer, total int64) {
+	if refresher, ok := indexer.(interface{ Refresh(context.Context) error }); ok {
+		require.NoError(t, refresher.Refresh(t.Context()))
+	}
 	assert.Eventually(t, func() bool {
 		result, err := indexer.Search(t.Context(), &internal.SearchOptions{Paginator: &db.ListOptions{}})
 		require.NoError(t, err)
