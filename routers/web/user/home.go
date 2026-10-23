@@ -48,6 +48,7 @@ import (
 
 const (
 	tplDashboard  templates.TplName = "user/dashboard/dashboard"
+	tplFeeds      templates.TplName = "user/dashboard/feeds"
 	tplIssues     templates.TplName = "user/dashboard/issues"
 	tplMilestones templates.TplName = "user/dashboard/milestones"
 	tplProfile    templates.TplName = "user/profile"
@@ -119,6 +120,7 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
+		Year:            ctx.FormInt("year"),
 		ListOptions:     db.ListOptions{Page: page, PageSize: pageSize},
 	})
 	if err != nil {
@@ -132,6 +134,10 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 	ctx.Data["Feeds"] = feeds
 
+	if ctx.FormBool("div-only") {
+		ctx.HTML(http.StatusOK, tplFeeds)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
 

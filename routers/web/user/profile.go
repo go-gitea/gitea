@@ -64,6 +64,13 @@ func userProfile(ctx *context.Context) {
 	profileDbRepo, profileReadmeBlob := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
 
 	prepareUserProfileTabData(ctx, profileDbRepo, profileReadmeBlob)
+	if ctx.Written() {
+		return
+	}
+	if ctx.FormBool("div-only") && ctx.Data["TabName"] == "activity" {
+		ctx.HTML(http.StatusOK, tplFeeds)
+		return
+	}
 
 	// prepare the user nav header data after "prepareUserProfileTabData" to avoid re-querying the NumFollowers & NumFollowing
 	// because ctx.Data["NumFollowers"] and "NumFollowing" logic duplicates in both of them
@@ -175,6 +182,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
 			Date:            date,
+			Year:            ctx.FormInt("year"),
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,
 				Page:     page,

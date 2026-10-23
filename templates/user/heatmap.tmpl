@@ -3,10 +3,15 @@
 <div class="activity-heatmap-container">
 	<div id="user-heatmap" class="is-loading"
 		data-heatmap-url="{{.HeatmapURL}}"
-		data-locale-total-contributions="{{ctx.Locale.Tr "heatmap.number_of_contributions_in_the_last_12_months" "%s"}}"
+		data-locale-total-contributions="{{ctx.Locale.Tr "heatmap.number_of_contributions" "%s"}}"
 		data-locale-no-contributions="{{ctx.Locale.Tr "heatmap.no_contributions"}}"
 		data-locale-more="{{ctx.Locale.Tr "heatmap.more"}}"
 		data-locale-less="{{ctx.Locale.Tr "heatmap.less"}}"
+		data-locale-last-12-months="{{ctx.Locale.Tr "heatmap.last_12_months"}}"
+		data-locale-time-range="{{ctx.Locale.Tr "heatmap.time_range"}}"
+		data-locale-previous-months="{{ctx.Locale.Tr "heatmap.previous_months"}}"
+		data-locale-next-months="{{ctx.Locale.Tr "heatmap.next_months"}}"
+		data-user-created-year="{{.ContextUser.CreatedUnix.Year}}"
 	></div>
 </div>
 <div class="divider"></div>

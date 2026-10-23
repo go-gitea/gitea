@@ -19,7 +19,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
@@ -165,7 +164,6 @@ func Graph(ctx *context.Context) {
 
 	divOnly := ctx.FormBool("div-only")
 	paginator := context.NewPagerBuilder(ctx).TotalCount(graphCommitsCount).PerPageLimit(setting.UI.GraphMaxCommitNum).CurPage(page).Build()
-	paginator.RemoveParam(container.SetOf("div-only"))
 	ctx.Data["Page"] = paginator
 	if divOnly {
 		ctx.HTML(http.StatusOK, tplGraphDiv)

@@ -1,6 +1,8 @@
 #user-heatmap {
   width: 100%;
-  font-size: 9px;
+  min-width: 0;
+  overflow: hidden; /* its width decides how many weeks fit, so the weeks must not widen it */
+  font-size: 10px;
   position: relative;
 }
 
@@ -8,41 +10,90 @@
   container-type: inline-size;
 }
 
-@container (width > 0) {
-  #user-heatmap {
-    /* Set element to fixed height so that it does not resize after load. The calculation is complex
-       because the element does not scale with a fixed aspect ratio. */
-    height: calc((100cqw / 5) - (100cqw / 25) + 20px);
+#user-heatmap.is-loading {
+  height: calc(39px + 7 * (100cqw - 27px) / 53); /* the cells of 53 weeks fill the width */
+}
+
+@container (width < 663px) { /* narrower than 53 weeks of 12px cells, the pager is shown */
+  #user-heatmap.is-loading {
+    height: 123px;
   }
 }
 
-/* Fallback height adjustment above for browsers that don't support container queries */
-@supports not (container-type: inline-size) {
-  /* Before the Vue component is mounted, show a loading indicator with dummy size */
-  /* The ratio is guesswork for legacy browsers, new browsers use the "@container" approach above  */
+@container (width < 400px) { /* the footer wraps */
   #user-heatmap.is-loading {
-    aspect-ratio: 5.4823972051; /* the size is about 816 x 148.84 */
+    height: 147px;
   }
-  .user.profile #user-heatmap.is-loading {
-    aspect-ratio: 5.6290608387; /* the size is about 953 x 169.3 */
-  }
+}
+
+#user-heatmap > div {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+#user-heatmap .heatmap-svg {
+  display: block;
 }
 
 #user-heatmap text {
   fill: currentcolor !important;
 }
 
-#user-heatmap .heatmap-footer {
+#user-heatmap .heatmap-pager {
   display: flex;
-  font-size: 11px;
+}
+
+#user-heatmap .heatmap-pager-button {
+  padding: 4px;
+}
+
+#user-heatmap .heatmap-pager-button:disabled {
+  opacity: var(--opacity-disabled);
+  pointer-events: none;
+}
+
+#user-heatmap .heatmap-footer,
+#user-heatmap .heatmap-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+#user-heatmap .heatmap-footer {
   justify-content: space-between;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+#user-heatmap .heatmap-year-select {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+#user-heatmap .heatmap-year-select select {
+  appearance: none;
+  field-sizing: content;
+  height: 20px;
+  padding: 0 20px 0 6px;
+  border: none;
+  border-radius: var(--border-radius);
+  color: inherit;
+  cursor: pointer;
+}
+
+#user-heatmap .heatmap-year-select svg {
+  position: absolute;
+  right: 6px;
+  pointer-events: none;
 }
 
 /* "Less [colors] More" scale */
 #user-heatmap .heatmap-legend {
   display: flex;
   align-items: center;
-  justify-content: right;
 }
 
 #user-heatmap .heatmap-legend-svg {

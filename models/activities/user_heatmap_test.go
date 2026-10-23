@@ -79,7 +79,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Get the heatmap and compare
-		heatmap, err := activities_model.GetUserHeatmapDataByUser(t.Context(), user, doer)
+		heatmap, err := activities_model.GetUserHeatmapDataByUser(t.Context(), user, doer, 0)
 		var contributions int
 		for _, hm := range heatmap {
 			contributions += int(hm.Contributions)
@@ -94,4 +94,13 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		assert.NoError(t, err)
 		assert.JSONEq(t, tc.JSONResult, string(jsonData))
 	}
+
+	timeutil.MockSet(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
+	heatmap, err := activities_model.GetUserHeatmapDataByUser(t.Context(), user, user, 2020)
+	assert.NoError(t, err)
+	assert.Len(t, heatmap, 2)
+	heatmap, err = activities_model.GetUserHeatmapDataByUser(t.Context(), user, user, 2021)
+	assert.NoError(t, err)
+	assert.Empty(t, heatmap)
 }

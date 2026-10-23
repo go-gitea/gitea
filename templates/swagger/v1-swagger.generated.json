@@ -25149,6 +25149,12 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "year of the heatmap, the last 12 months if omitted",
+            "name": "year",
+            "in": "query"
           }
         ],
         "responses": {
