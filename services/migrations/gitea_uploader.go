@@ -517,6 +517,29 @@ func (g *GiteaLocalUploader) CreateComments(ctx context.Context, comments ...*ba
 				cm.NewRef = fmt.Sprint(comment.Meta["NewRef"])
 				cm.Content = ""
 			}
+		case issues_model.CommentTypeLabel:
+			if name, ok := comment.Meta["LabelName"].(string); ok {
+				if label, ok := g.labels[name]; ok {
+					cm.LabelID = label.ID
+				}
+			}
+			if cm.LabelID == 0 {
+				continue // label_id 0 renders nothing and gitea doctor deletes it
+			}
+		case issues_model.CommentTypeMilestone:
+			if title, ok := comment.Meta["MilestoneTitle"].(string); ok {
+				if removed, _ := comment.Meta["Removed"].(bool); removed {
+					cm.OldMilestoneID = g.milestones[title]
+				} else {
+					cm.MilestoneID = g.milestones[title]
+				}
+			}
+			if cm.MilestoneID == 0 && cm.OldMilestoneID == 0 {
+				continue
+			}
+		case issues_model.CommentTypeDeleteBranch:
+			cm.OldRef = comment.Content
+			cm.Content = ""
 		case issues_model.CommentTypeMergePull:
 			cm.Content = ""
 		case issues_model.CommentTypePRScheduledToAutoMerge, issues_model.CommentTypePRUnScheduledToAutoMerge:

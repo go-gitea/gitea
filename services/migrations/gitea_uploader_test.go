@@ -25,6 +25,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 func TestGiteaUploadRepo(t *testing.T) {
@@ -306,4 +307,36 @@ func TestGiteaUploadForkPullRequestHeadInRepository(t *testing.T) {
 	remotes, _, err := gitcmd.NewCommand("remote").WithRepo(repo).RunStdString(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, strings.TrimSpace(remotes), "no remote is added for a local head")
+}
+
+func TestGiteaUploadTimelineLabelAndMilestoneComments(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
+	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
+
+	ctx := t.Context()
+	uploader := NewGiteaLocalUploader(ctx, doer, doer.Name, "migrated")
+	uploader.issues[issue.Index] = issue
+	uploader.labels[label.Name] = label
+	uploader.milestones[milestone.Name] = milestone.ID
+
+	require.NoError(t, uploader.CreateComments(ctx,
+		&base.Comment{IssueIndex: issue.Index, CommentType: "label", Content: "1", Meta: map[string]any{"LabelName": label.Name}},
+		&base.Comment{IssueIndex: issue.Index, CommentType: "label", Meta: map[string]any{"LabelName": "deleted-upstream"}},
+		&base.Comment{IssueIndex: issue.Index, CommentType: "milestone", Meta: map[string]any{"MilestoneTitle": milestone.Name}},
+		&base.Comment{IssueIndex: issue.Index, CommentType: "milestone", Meta: map[string]any{"MilestoneTitle": milestone.Name, "Removed": true}},
+		&base.Comment{IssueIndex: issue.Index, CommentType: "delete_branch", Content: "feature"},
+	))
+
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeLabel, LabelID: label.ID, Content: "1"})
+	unittest.AssertCountByCond(t, "comment", builder.Eq{
+		"issue_id": issue.ID,
+		"type":     issues_model.CommentTypeLabel,
+		"label_id": 0,
+	}, 0)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, MilestoneID: milestone.ID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, OldMilestoneID: milestone.ID})
+	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeDeleteBranch, OldRef: "feature"}).Content)
 }
