@@ -5,6 +5,7 @@ package auth_test
 
 import (
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -113,17 +114,18 @@ func TestListAccessTokens(t *testing.T) {
 
 func TestTouchAccessToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	now := int64(timeutil.TimeStampNow())
-	touch := func(created, updated, loadedUpdated int64) int64 {
+	defer timeutil.MockSet(time.Unix(1000000, 0))()
+	now := timeutil.TimeStampNow()
+	touch := func(created, updated, loadedUpdated timeutil.TimeStamp) timeutil.TimeStamp {
 		_, err := db.GetEngine(t.Context()).Exec("UPDATE access_token SET created_unix = ?, updated_unix = ? WHERE id = 1", created, updated)
 		assert.NoError(t, err)
-		token := &auth_model.AccessToken{ID: 1, Name: "Token Z", CreatedUnix: timeutil.TimeStamp(created), UpdatedUnix: timeutil.TimeStamp(loadedUpdated)}
+		token := &auth_model.AccessToken{ID: 1, Name: "Token Z", CreatedUnix: created, UpdatedUnix: loadedUpdated}
 		assert.NoError(t, auth_model.TouchAccessToken(t.Context(), token))
-		return int64(unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 1, Name: "Token A"}).UpdatedUnix)
+		return unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 1, Name: "Token A"}).UpdatedUnix
 	}
-	assert.GreaterOrEqual(t, touch(now-7200, now-3600, now-3600), now)
+	assert.Equal(t, now, touch(now-7200, now-3600, now-3600))
 	assert.Equal(t, now-1, touch(now-7200, now-1, now-1))
-	assert.Greater(t, touch(now, now, now), now)
+	assert.Equal(t, now+1, touch(now, now, now))
 	assert.Equal(t, now+5, touch(now-7200, now+5, now-3600))
 }
 

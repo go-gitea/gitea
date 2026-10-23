@@ -185,11 +185,10 @@ func GetTaskRunnerNames(ctx context.Context, taskIDs []int64) (map[int64]string,
 }
 
 func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
-	errNotExist := fmt.Errorf("task with token %q: %w", token, util.ErrNotExist)
+	errNotExist := util.NewNotExistErrorf("task token not found")
 	if token == "" {
 		return nil, errNotExist
 	}
-	// A token is defined as being SHA1 sum these are 40 hexadecimal bytes long
 	if len(token) != 40 {
 		return nil, errNotExist
 	}
@@ -206,7 +205,7 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 		return nil, err
 	}
 	for _, t := range tasks {
-		if auth_model.VerifyToken(ctx, t, t.ID, token, t.TokenSalt, t.TokenHash) {
+		if auth_model.VerifyToken(ctx, t, token, t.TokenSalt, t.TokenHash) {
 			return t, nil
 		}
 	}

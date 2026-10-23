@@ -92,11 +92,11 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 	}
 
 	var tokens []AccessToken
-	if err := db.GetEngine(ctx).Table(&AccessToken{}).Where("token_last_eight = ?", token[len(token)-8:]).Find(&tokens); err != nil {
+	if err := db.GetEngine(ctx).Where("token_last_eight = ?", token[len(token)-8:]).Find(&tokens); err != nil {
 		return nil, err
 	}
 	for _, t := range tokens {
-		if VerifyToken(ctx, &t, t.ID, token, t.TokenSalt, t.TokenHash) {
+		if VerifyToken(ctx, &t, token, t.TokenSalt, t.TokenHash) {
 			return &t, nil
 		}
 	}
@@ -104,15 +104,15 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 }
 
 // VerifyToken checks a token against its row's hash and replaces a legacy pbkdf2 hash with sha256 unless the token was regenerated meanwhile.
-func VerifyToken(ctx context.Context, bean any, id int64, token, salt, hash string) bool {
+func VerifyToken(ctx context.Context, bean any, token, salt, hash string) bool {
 	tokenHash := base.EncodeSha256(token)
-	if util.CryptoConstTimeEqual(hash, tokenHash) {
-		return true
+	if len(hash) == len(tokenHash) {
+		return util.CryptoConstTimeEqual(hash, tokenHash)
 	}
 	if !util.CryptoConstTimeEqual(hash, HashToken(token, salt)) {
 		return false
 	}
-	if _, err := db.GetEngine(ctx).Table(bean).ID(id).Where("token_hash = ?", hash).NoAutoTime().
+	if _, err := db.GetEngine(ctx).Table(bean).Where("token_hash = ?", hash).NoAutoTime().
 		Update(map[string]any{"token_hash": tokenHash, "token_salt": ""}); err != nil {
 		log.Error("VerifyToken: %v", err)
 	}

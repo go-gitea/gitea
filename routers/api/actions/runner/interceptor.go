@@ -57,7 +57,7 @@ func withRunner(next connect.ServerFunc) connect.ServerFunc {
 			}
 			return status.Error(codes.Internal, err.Error())
 		}
-		if !auth_model.VerifyToken(ctx, runner, runner.ID, token, runner.TokenSalt, runner.TokenHash) {
+		if !auth_model.VerifyToken(ctx, runner, token, runner.TokenSalt, runner.TokenHash) {
 			return errUnregisteredRunner
 		}
 
