@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -38,6 +39,7 @@ func TestPullDiff(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body)
 		assert.Equal(t, 5, doc.Find(".diff-file-box").Length())
 		assert.Equal(t, 1, doc.Find("#diff-show-more-files").Length())
+		assert.Contains(t, doc.Find(`a[href*="/_edit/"]`).AttrOr("href", ""), "return_uri="+url.QueryEscape("/user2/commitsonpr/pulls/1/files#diff-"))
 	})
 }
 

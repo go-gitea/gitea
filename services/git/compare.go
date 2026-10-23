@@ -88,20 +88,18 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		compareInfo.CompareBase = compareInfo.BaseCommitID
 	}
 
-	if compareInfo.CompareBase == "" {
+	if compareInfo.CompareBase == "" || fileOnly {
 		return compareInfo, nil
 	}
 
 	// We have a common base - therefore we know that ... should work
-	if !fileOnly {
-		// In git log/rev-list, the "..." syntax represents the symmetric difference between two references,
-		// which is different from the meaning of "..." in git diff (where it implies diffing from the merge base).
-		// For listing PR commits, we must use merge-base..head to include only the commits introduced by the head branch.
-		// Otherwise, commits newly pushed to the base branch would also be included, which is incorrect.
-		compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.CompareBase+".."+compareInfo.HeadCommitID)
-		if err != nil {
-			return compareInfo, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
-		}
+	// In git log/rev-list, the "..." syntax represents the symmetric difference between two references,
+	// which is different from the meaning of "..." in git diff (where it implies diffing from the merge base).
+	// For listing PR commits, we must use merge-base..head to include only the commits introduced by the head branch.
+	// Otherwise, commits newly pushed to the base branch would also be included, which is incorrect.
+	compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.CompareBase+".."+compareInfo.HeadCommitID)
+	if err != nil {
+		return compareInfo, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
 	}
 
 	// Count number of changed files.

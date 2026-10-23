@@ -859,6 +859,41 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
 		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
 		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
+
+		assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
+		if err != nil {
+			ctx.ServerError("GetRepoAssignees", err)
+			return
+		}
+		ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
+
+		var numPendingCodeComments int64
+		var currentPendingReview *issues_model.Review
+		if ctx.Doer != nil {
+			currentPendingReview, err = issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
+			if err != nil && !issues_model.IsErrReviewNotExist(err) {
+				ctx.ServerError("GetCurrentReview", err)
+				return
+			}
+			if currentPendingReview != nil {
+				numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
+					Type:     issues_model.CommentTypeCode,
+					ReviewID: currentPendingReview.ID,
+					IssueID:  issue.ID,
+				})
+				if err != nil {
+					ctx.ServerError("CountComments", err)
+					return
+				}
+			}
+		}
+		ctx.Data["CurrentReview"] = currentPendingReview
+		ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
+
+		PrepareBranchList(ctx)
+		if ctx.Written() {
+			return
+		}
 	}
 
 	ctx.Data["Diff"] = diff
@@ -876,44 +911,8 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	setCompareContext(ctx, beforeCommit, afterCommit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
-	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
-	if err != nil {
-		ctx.ServerError("GetRepoAssignees", err)
-		return
-	}
-	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
-
-	var numPendingCodeComments int64
-	var currentPendingReview *issues_model.Review
-	if ctx.Doer != nil {
-		currentPendingReview, err = issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
-		if err != nil && !issues_model.IsErrReviewNotExist(err) {
-			ctx.ServerError("GetCurrentReview", err)
-			return
-		}
-		if currentPendingReview != nil {
-			numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
-				Type:     issues_model.CommentTypeCode,
-				ReviewID: currentPendingReview.ID,
-				IssueID:  issue.ID,
-			})
-			if err != nil {
-				ctx.ServerError("CountComments", err)
-				return
-			}
-		}
-	}
-	ctx.Data["CurrentReview"] = currentPendingReview
-	ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
-
 	ctx.Data["IsIssuePoster"] = ctx.Doer != nil && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
-
-	// For files changed page
-	PrepareBranchList(ctx)
-	if ctx.Written() {
-		return
-	}
 
 	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
@@ -940,7 +939,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 					ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
 					ctx.Data["HeadBranchName"] = pull.HeadBranch
-					ctx.Data["BackToLink"] = setting.AppSubURL + ctx.Req.URL.RequestURI()
+					ctx.Data["BackToLink"] = templates.QueryBuild(setting.AppSubURL+ctx.Req.URL.RequestURI(), "file-only", "")
 				}
 			}
 		}
