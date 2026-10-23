@@ -393,6 +393,24 @@ func (gt GitServiceType) Title() string {
 	return ""
 }
 
+// Variants returns the hosting options of gt's provider, which share one entry on the migrate page
+func (gt GitServiceType) Variants() []GitServiceType {
+	switch gt {
+	case BitbucketServerService:
+		return []GitServiceType{BitbucketServerService}
+	}
+	return nil
+}
+
+// ProviderTitle returns the title of gt's entry on the migrate page
+func (gt GitServiceType) ProviderTitle() string {
+	switch gt {
+	case BitbucketServerService:
+		return "Bitbucket"
+	}
+	return gt.Title()
+}
+
 // MigrateRepoOptions options for migrating repository's
 // this is used to interact with api v1
 type MigrateRepoOptions struct {

@@ -8,6 +8,7 @@
 			{{template "base/alert" .}}
 			<form class="ui form left-right-form form-fetch-action" action="{{.Link}}" method="post">
 				{{template "repo/migrate/common-init" (dict "ServiceType" .service)}}
+				{{template "repo/migrate/variants" .}}
 
 				<div class="inline required field">
 					<label>{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
