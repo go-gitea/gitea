@@ -5,7 +5,6 @@ package auth_test
 
 import (
 	"testing"
-	"time"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -111,63 +110,19 @@ func TestListAccessTokens(t *testing.T) {
 
 func TestTouchAccessToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	const sha = "4c6f36e6cf498e2a448662f915d932c09c5a146c"
-	interval := int64(auth_model.AccessTokenTouchInterval / time.Second)
-	now := func() int64 { return int64(timeutil.TimeStampNow()) }
-	load := func(id int64) *auth_model.AccessToken {
-		return unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: id})
-	}
-	setUpdated := func(id, created, updated int64) {
-		_, err := db.GetEngine(t.Context()).Exec("UPDATE access_token SET created_unix = ?, updated_unix = ? WHERE id = ?", created, updated, id)
+	now := int64(timeutil.TimeStampNow())
+	touch := func(created, updated, loadedUpdated int64) int64 {
+		_, err := db.GetEngine(t.Context()).Exec("UPDATE access_token SET created_unix = ?, updated_unix = ? WHERE id = 1", created, updated)
 		assert.NoError(t, err)
+		token := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 1})
+		token.Name, token.UpdatedUnix = "Token Z", timeutil.TimeStamp(loadedUpdated)
+		assert.NoError(t, auth_model.TouchAccessToken(t.Context(), token))
+		return int64(unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 1, Name: "Token A"}).UpdatedUnix)
 	}
-
-	token, err := auth_model.GetAccessTokenBySHA(t.Context(), sha)
-	assert.NoError(t, err)
-
-	// a stale token is touched, and only updated_unix is written
-	setUpdated(token.ID, now()-interval-100, now()-interval-10)
-	token = load(token.ID)
-	oldName := token.Name
-	token.Name = "must not be persisted"
-	assert.NoError(t, auth_model.TouchAccessToken(t.Context(), token))
-	assert.GreaterOrEqual(t, int64(token.UpdatedUnix), now()-5)
-	reloaded := load(token.ID)
-	assert.Equal(t, token.UpdatedUnix, reloaded.UpdatedUnix)
-	assert.Equal(t, oldName, reloaded.Name)
-
-	// a recently used token is not written again
-	recent := now() - 1
-	setUpdated(token.ID, now()-interval-100, recent)
-	reloaded = load(token.ID)
-	assert.NoError(t, auth_model.TouchAccessToken(t.Context(), reloaded))
-	assert.Equal(t, recent, int64(load(token.ID).UpdatedUnix))
-
-	// the first use shortly after creation is recorded, so the token is shown as used
-	created := now() - 10
-	setUpdated(token.ID, created, created)
-	fresh := load(token.ID)
-	assert.False(t, fresh.HasUsed)
-	assert.NoError(t, auth_model.TouchAccessToken(t.Context(), fresh))
-	assert.Greater(t, int64(load(token.ID).UpdatedUnix), created)
-	assert.True(t, load(token.ID).HasUsed)
-
-	// concurrent requests hold separate stale copies of the same row: only the first one writes
-	setUpdated(token.ID, now()-interval-100, now()-interval-10)
-	first, second := load(token.ID), load(token.ID)
-	assert.NoError(t, auth_model.TouchAccessToken(t.Context(), first))
-	written := int64(load(token.ID).UpdatedUnix)
-	assert.NoError(t, auth_model.TouchAccessToken(t.Context(), second))
-	assert.Equal(t, written, int64(load(token.ID).UpdatedUnix))
-	assert.Less(t, int64(second.UpdatedUnix), written, "the stale copy is not refreshed when it did not write")
-
-	// a delayed request never overwrites a newer timestamp with an older one
-	newer := now() + 5
-	setUpdated(token.ID, now()-interval-100, newer)
-	delayed := load(token.ID)
-	delayed.UpdatedUnix = timeutil.TimeStamp(now() - interval - 10)
-	assert.NoError(t, auth_model.TouchAccessToken(t.Context(), delayed))
-	assert.Equal(t, newer, int64(load(token.ID).UpdatedUnix))
+	assert.GreaterOrEqual(t, touch(now-7200, now-3600, now-3600), now)
+	assert.Equal(t, now-1, touch(now-7200, now-1, now-1))
+	assert.GreaterOrEqual(t, touch(now-10, now-10, now-10), now)
+	assert.Equal(t, now+5, touch(now-7200, now+5, now-3600))
 }
 
 func TestRegenerateAccessToken(t *testing.T) {

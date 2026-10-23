@@ -152,32 +152,16 @@ func (opts ListAccessTokensOptions) ToOrders() string {
 	return "created_unix DESC"
 }
 
-// AccessTokenTouchInterval is the minimum age of updated_unix before TouchAccessToken writes it again.
-// The value is only used for the "last used" display, so minute precision is enough.
-const AccessTokenTouchInterval = time.Minute
-
-// TouchAccessToken records that the token has just been used.
-// It only writes the updated_unix column, and skips the write if the token was touched recently,
-// so that frequent authenticated requests do not turn into a DB write each.
-// The first use (updated_unix has not advanced past created_unix yet) is always recorded.
+// TouchAccessToken records a token use in updated_unix, at most once a minute after the first use.
 func TouchAccessToken(ctx context.Context, t *AccessToken) error {
+	const intervalSeconds = 60
 	now := timeutil.TimeStampNow()
-	interval := int64(AccessTokenTouchInterval / time.Second)
-	neverUsed := t.UpdatedUnix <= t.CreatedUnix
-	if !neverUsed && int64(now-t.UpdatedUnix) < interval {
-		return nil // fast path, no DB access
+	if t.UpdatedUnix > t.CreatedUnix && now-t.UpdatedUnix < intervalSeconds {
+		return nil
 	}
-	// The token object may be stale (concurrent requests load their own copy), so enforce the condition in the DB too:
-	// only one of the concurrent requests writes, and an older timestamp never overwrites a newer one.
-	n, err := db.GetEngine(ctx).Where("id = ? AND (updated_unix <= created_unix OR updated_unix <= ?)", t.ID, int64(now)-interval).
-		Cols("updated_unix").NoAutoTime().Update(&AccessToken{UpdatedUnix: now})
-	if err != nil {
-		return err
-	}
-	if n > 0 {
-		t.UpdatedUnix = now
-	}
-	return nil
+	_, err := db.GetEngine(ctx).Where("id = ? AND (updated_unix <= created_unix OR updated_unix <= ?)", t.ID, now-intervalSeconds).
+		Cols("updated_unix").NoAutoTime().Update(&AccessToken{UpdatedUnix: now}) // re-checked in SQL so concurrent stale copies write once
+	return err
 }
 
 // GetAccessTokenByID returns the access token with the given ID owned by userID.
