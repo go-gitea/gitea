@@ -713,7 +713,6 @@ func (c *bbsComment) toReviewComment(anchor *bbsAnchor, isRoot bool) *base.Revie
 		side = " (before the change)"
 		rc.Line = -anchor.Line // a negative line addresses the old side of the diff
 		rc.CommitID = anchor.FromHash
-		rc.TreePath = cmp.Or(anchor.SrcPath, anchor.Path)
 	}
 	// Gitea anchors a code comment to a single line only, so the range is kept in the text
 	if start, end, ok := anchor.lineRange(); isRoot && ok {

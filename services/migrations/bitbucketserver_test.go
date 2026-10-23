@@ -311,7 +311,7 @@ func TestBitbucketServerCommentsAndReviews(t *testing.T) {
 		{"bob", base.ReviewStateApproved, "", 0},
 		{"bob", base.ReviewStateCommented, "src/a.go", 12},
 		{"alice", base.ReviewStateCommented, "src/a.go", 12},
-		{"alice", base.ReviewStateCommented, "src/old_b.go", -5},
+		{"alice", base.ReviewStateCommented, "src/b.go", -5},
 		{"carol", base.ReviewStateChangesRequested, "", 0},
 	}, got, "dave's approval was withdrawn")
 	assert.Equal(t, "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0", reviews[1].Comments[0].CommitID)
@@ -445,7 +445,7 @@ func TestBitbucketServerInlineCommentRange(t *testing.T) {
 	rc := c.toReviewComment(&anchor, true)
 	assert.Equal(t, "Lines 3-5 (before the change):\n\ntext", rc.Content)
 	assert.Equal(t, -9, rc.Line)
-	assert.Equal(t, "a", rc.TreePath)
+	assert.Equal(t, "b", rc.TreePath, "Gitea files old-side comments under the current path as well")
 	assert.True(t, rc.Resolved)
 	rc = c.toReviewComment(&anchor, false)
 	assert.Equal(t, "text", rc.Content)
