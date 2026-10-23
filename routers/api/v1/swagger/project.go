@@ -41,3 +41,17 @@ type swaggerResponseProjectColumnIssueList struct {
 	// in:body
 	Body []api.ProjectColumnIssue `json:"body"`
 }
+
+// ProjectWorkflow
+// swagger:response ProjectWorkflow
+type swaggerResponseProjectWorkflow struct {
+	// in:body
+	Body api.ProjectWorkflow `json:"body"`
+}
+
+// ProjectWorkflowList
+// swagger:response ProjectWorkflowList
+type swaggerResponseProjectWorkflowList struct {
+	// in:body
+	Body []api.ProjectWorkflow `json:"body"`
+}
