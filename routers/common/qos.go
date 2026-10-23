@@ -9,11 +9,12 @@ import (
 	"net/http"
 	"strings"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web/middleware"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/modules/web/routing"
 
 	"github.com/bohde/codel"
 	"github.com/go-chi/chi/v5"
@@ -68,7 +69,7 @@ func QoS() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			ctx := req.Context()
-
+			reqRecordInfo := routing.GetRequestRecordInfo(ctx)
 			priority := requestPriority(ctx)
 
 			// Check if the request can begin processing.
@@ -79,9 +80,8 @@ func QoS() func(next http.Handler) http.Handler {
 				return
 			}
 
-			// Release long-polling immediately, so they don't always
-			// take up an in-flight request
-			if strings.Contains(req.URL.Path, "/user/events") {
+			// Release long-polling immediately, so they don't always take up an in-flight request
+			if reqRecordInfo.IsLongPolling {
 				c.Release()
 			} else {
 				defer c.Release()

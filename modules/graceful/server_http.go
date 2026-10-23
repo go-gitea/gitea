@@ -8,13 +8,20 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"time"
 )
 
 func newHTTPServer(network, address, name string, handler http.Handler) (*Server, ServeFunction) {
 	server := NewServer(network, address, name)
+	protocols := http.Protocols{}
+	protocols.SetHTTP1(true)
+	protocols.SetHTTP2(true)            // HTTP/2 can only be used when Gitea is configured to use TLS
+	protocols.SetUnencryptedHTTP2(true) // Allow HTTP/2 without TLS, in case Gitea is behind a reverse proxy
 	httpServer := http.Server{
-		Handler:     handler,
-		BaseContext: func(net.Listener) context.Context { return GetManager().HammerContext() },
+		Protocols:         &protocols,
+		Handler:           handler,
+		BaseContext:       func(net.Listener) context.Context { return GetManager().HammerContext() },
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 	server.OnShutdown = func() {
 		httpServer.SetKeepAlivesEnabled(false)

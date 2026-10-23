@@ -7,9 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 
 	"xorm.io/builder"
 )
@@ -64,14 +63,18 @@ func GetAssigneeIDsByIssue(ctx context.Context, issueID int64) ([]int64, error) 
 }
 
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
-func IsUserAssignedToIssue(ctx context.Context, issue *Issue, user *user_model.User) (isAssigned bool, err error) {
-	return db.Exist[IssueAssignees](ctx, builder.Eq{"assignee_id": user.ID, "issue_id": issue.ID})
+func IsUserAssignedToIssue(ctx context.Context, issue *Issue, userID int64) (isAssigned bool, err error) {
+	return db.Exist[IssueAssignees](ctx, builder.Eq{"assignee_id": userID, "issue_id": issue.ID})
 }
 
 type AssignedIssuesOptions struct {
 	db.ListOptions
 	AssigneeID  int64
 	RepoOwnerID int64
+}
+
+func (opts *AssignedIssuesOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts *AssignedIssuesOptions) ToConds() builder.Cond {
@@ -167,24 +170,4 @@ func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (re
 	}
 
 	return found, nil
-}
-
-// MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs
-func MakeIDsFromAPIAssigneesToAdd(ctx context.Context, oneAssignee string, multipleAssignees []string) (assigneeIDs []int64, err error) {
-	var requestAssignees []string
-
-	// Keeping the old assigning method for compatibility reasons
-	if oneAssignee != "" && !util.SliceContainsString(multipleAssignees, oneAssignee) {
-		requestAssignees = append(requestAssignees, oneAssignee)
-	}
-
-	// Prevent empty assignees
-	if len(multipleAssignees) > 0 && multipleAssignees[0] != "" {
-		requestAssignees = append(requestAssignees, multipleAssignees...)
-	}
-
-	// Get the IDs of all assignees
-	assigneeIDs, err = user_model.GetUserIDsByNames(ctx, requestAssignees, false)
-
-	return assigneeIDs, err
 }

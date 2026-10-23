@@ -1,0 +1,10 @@
+.markup .ui.button.code-copy {
+  top: 8px;
+  right: 6px;
+  margin: 0;
+}
+
+.markup .mermaid-block .view-controller {
+  right: 6px;
+  bottom: 5px;
+}

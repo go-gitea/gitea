@@ -6,7 +6,11 @@ package gitdiff
 import (
 	"bytes"
 	"html/template"
+	"slices"
 	"strings"
+	"unicode/utf8"
+
+	"gitea.dev/modules/util"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -84,6 +88,10 @@ type highlightCodeDiff struct {
 	tokenPlaceholderMap map[string]rune
 
 	placeholderOverflowCount int
+
+	diffCodeAddedOpen   rune
+	diffCodeRemovedOpen rune
+	diffCodeClose       rune
 }
 
 func newHighlightCodeDiff() *highlightCodeDiff {
@@ -142,7 +150,7 @@ func (hcd *highlightCodeDiff) diffEqualPartIsSpaceOnly(s string) bool {
 	return true
 }
 
-func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA, codeB template.HTML) template.HTML {
+func (hcd *highlightCodeDiff) diffLineWithHighlight(codeA, codeB template.HTML) (del, add template.HTML) {
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
@@ -153,13 +161,12 @@ func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA
 	diffs := dmp.DiffMain(convertedCodeA, convertedCodeB, true)
 	diffs = dmp.DiffCleanupSemantic(diffs)
 
-	buf := bytes.NewBuffer(nil)
-
-	addedCodePrefix := hcd.registerTokenAsPlaceholder(`<span class="added-code">`)
-	addedCodeSuffix := hcd.registerTokenAsPlaceholder(`</span><!-- added-code -->`)
-
-	removedCodePrefix := hcd.registerTokenAsPlaceholder(`<span class="removed-code">`)
-	removedCodeSuffix := hcd.registerTokenAsPlaceholder(`</span><!-- removed-code -->`)
+	if hcd.diffCodeClose == 0 {
+		// tests can pre-set the placeholders
+		hcd.diffCodeAddedOpen = hcd.registerTokenAsPlaceholder(`<span class="added-code">`)
+		hcd.diffCodeRemovedOpen = hcd.registerTokenAsPlaceholder(`<span class="removed-code">`)
+		hcd.diffCodeClose = hcd.registerTokenAsPlaceholder(`</span><!-- diff-code-close -->`)
+	}
 
 	equalPartSpaceOnly := true
 	for _, diff := range diffs {
@@ -173,42 +180,52 @@ func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA
 
 	// only add "added"/"removed" tags when needed:
 	// * non-space contents appear in the DiffEqual parts (not a full-line add/del)
-	// * placeholder map still works (not exhausted, can get removedCodeSuffix)
-	addDiffTags := !equalPartSpaceOnly && removedCodeSuffix != 0
+	// * placeholder map still works (not exhausted, can get the closing tag placeholder)
+	bufDel := bytes.NewBuffer(nil)
+	bufAdd := bytes.NewBuffer(nil)
+	addDiffTags := !equalPartSpaceOnly && hcd.diffCodeClose != 0
 	if addDiffTags {
 		for _, diff := range diffs {
-			switch {
-			case diff.Type == diffmatchpatch.DiffEqual:
-				buf.WriteString(diff.Text)
-			case diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
-				buf.WriteRune(addedCodePrefix)
-				buf.WriteString(diff.Text)
-				buf.WriteRune(addedCodeSuffix)
-			case diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
-				buf.WriteRune(removedCodePrefix)
-				buf.WriteString(diff.Text)
-				buf.WriteRune(removedCodeSuffix)
+			switch diff.Type {
+			case diffmatchpatch.DiffEqual:
+				bufDel.WriteString(diff.Text)
+				bufAdd.WriteString(diff.Text)
+			case diffmatchpatch.DiffInsert:
+				bufAdd.WriteRune(hcd.diffCodeAddedOpen)
+				bufAdd.WriteString(diff.Text)
+				bufAdd.WriteRune(hcd.diffCodeClose)
+			case diffmatchpatch.DiffDelete:
+				bufDel.WriteRune(hcd.diffCodeRemovedOpen)
+				bufDel.WriteString(diff.Text)
+				bufDel.WriteRune(hcd.diffCodeClose)
 			}
 		}
 	} else {
 		// the caller will still add added/removed backgrounds for the whole line
 		for _, diff := range diffs {
-			take := diff.Type == diffmatchpatch.DiffEqual || (diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd) || (diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel)
-			if take {
-				buf.WriteString(diff.Text)
+			if diff.Type == diffmatchpatch.DiffEqual || diff.Type == diffmatchpatch.DiffDelete {
+				bufDel.WriteString(diff.Text)
+			}
+			if diff.Type == diffmatchpatch.DiffEqual || diff.Type == diffmatchpatch.DiffInsert {
+				bufAdd.WriteString(diff.Text)
 			}
 		}
 	}
-	return hcd.recoverOneDiff(buf.String())
+	return hcd.recoverOneDiff(util.UnsafeBytesToString(bufDel.Bytes())), hcd.recoverOneDiff(util.UnsafeBytesToString(bufAdd.Bytes()))
 }
 
 func (hcd *highlightCodeDiff) registerTokenAsPlaceholder(token string) rune {
+	recovered := token
+	if token[0] == '<' && token[1] != '<' {
+		// when recovering a single tag, only use the tag itself, ignore the trailing comment (for how the comment is generated, see the code in `convert` function)
+		recovered = token[:strings.IndexByte(token, '>')+1]
+	}
 	placeholder, ok := hcd.tokenPlaceholderMap[token]
 	if !ok {
 		placeholder = hcd.nextPlaceholder()
 		if placeholder != 0 {
 			hcd.tokenPlaceholderMap[token] = placeholder
-			hcd.placeholderTokenMap[placeholder] = token
+			hcd.placeholderTokenMap[placeholder] = recovered
 		}
 	}
 	return placeholder
@@ -285,49 +302,98 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlContent template.HTML) s
 	return res.String()
 }
 
+// recoverOneRune tries to recover one rune
+// * if the rune is a placeholder, it will be recovered to the corresponding content
+// * otherwise it will be returned as is
+func (hcd *highlightCodeDiff) recoverOneRune(buf []byte) (r rune, runeLen int, isSingleTag bool, recovered string) {
+	r, runeLen = utf8.DecodeRune(buf)
+	token := hcd.placeholderTokenMap[r]
+	if token == "" {
+		return r, runeLen, false, "" // rune itself, not a placeholder
+	} else if token[0] == '<' {
+		if token[1] == '<' {
+			return 0, runeLen, false, token[1 : len(token)-1] // full tag `<<span>content</span>>`, recover to `<span>content</span>`
+		}
+		return r, runeLen, true, token // single tag
+	}
+	return 0, runeLen, false, token // HTML entity
+}
+
 func (hcd *highlightCodeDiff) recoverOneDiff(str string) template.HTML {
 	sb := strings.Builder{}
 	var tagStack []string
+	var diffCodeOpenTag string
+	diffCodeCloseTag := hcd.placeholderTokenMap[hcd.diffCodeClose]
+	strBytes := util.UnsafeStringToBytes(str)
 
-	for _, r := range str {
-		token, ok := hcd.placeholderTokenMap[r]
-		if !ok || token == "" {
-			sb.WriteRune(r) // if the rune is not a placeholder, write it as it is
-			continue
-		}
-		var tokenToRecover string
-		if strings.HasPrefix(token, "</") { // for closing tag
-			// only get the tag itself, ignore the trailing comment (for how the comment is generated, see the code in `convert` function)
-			tokenToRecover = token[:strings.IndexByte(token, '>')+1]
-			if len(tagStack) == 0 {
-				continue // if no opening tag in stack yet, skip the closing tag
+	// this loop is slightly longer than expected, for performance consideration
+	for idx := 0; idx < len(strBytes); {
+		// take a look at the next rune
+		r, runeLen, isSingleTag, recovered := hcd.recoverOneRune(strBytes[idx:])
+		idx += runeLen
+
+		// loop section 1: if it isn't a single tag, then try to find the following runes until the next single tag, and recover them together
+		if !isSingleTag {
+			if diffCodeOpenTag != "" {
+				// start the "added/removed diff tag" if the current token is in the diff part
+				sb.WriteString(diffCodeOpenTag)
 			}
-			tagStack = tagStack[:len(tagStack)-1]
-		} else if token[0] == '<' { // for HTML tag
-			if token[1] == '<' {
-				// full tag `<<span>content</span>>`, recover to `<span>content</span>`
-				tokenToRecover = token[1 : len(token)-1]
+			if recovered != "" {
+				sb.WriteString(recovered)
 			} else {
-				// opening tag
-				tokenToRecover = token
-				tagStack = append(tagStack, token)
+				sb.WriteRune(r)
 			}
-		} else if token[0] == '&' { // for HTML entity
-			tokenToRecover = token
-		} // else: impossible
-		sb.WriteString(tokenToRecover)
+			// inner loop to recover following runes until the next single tag
+			for idx < len(strBytes) {
+				r, runeLen, isSingleTag, recovered = hcd.recoverOneRune(strBytes[idx:])
+				idx += runeLen
+				if isSingleTag {
+					break
+				}
+				if recovered != "" {
+					sb.WriteString(recovered)
+				} else {
+					sb.WriteRune(r)
+				}
+			}
+			if diffCodeOpenTag != "" {
+				// end the "added/removed diff tag" if the current token is in the diff part
+				sb.WriteString(diffCodeCloseTag)
+			}
+		}
+
+		if !isSingleTag {
+			break // the inner loop has already consumed all remaining runes, no more single tag found
+		}
+
+		// loop section 2: for opening/closing HTML tags
+		placeholder := r
+		if recovered[1] != '/' { // opening tag
+			if placeholder == hcd.diffCodeAddedOpen || placeholder == hcd.diffCodeRemovedOpen {
+				diffCodeOpenTag = recovered
+				recovered = ""
+			} else {
+				tagStack = append(tagStack, recovered)
+			}
+		} else { // closing tag
+			if placeholder == hcd.diffCodeClose {
+				diffCodeOpenTag = "" // the highlighted diff is closed, no more diff
+				recovered = ""
+			} else if len(tagStack) != 0 {
+				tagStack = tagStack[:len(tagStack)-1]
+			} else {
+				recovered = ""
+			}
+		}
+		sb.WriteString(recovered)
 	}
 
-	if len(tagStack) > 0 {
-		// close all opening tags
-		for i := len(tagStack) - 1; i >= 0; i-- {
-			tagToClose := tagStack[i]
-			// get the closing tag "</span>" from "<span class=...>" or "<span>"
-			pos := strings.IndexAny(tagToClose, " >")
-			if pos != -1 {
-				sb.WriteString("</" + tagToClose[1:pos] + ">")
-			} // else: impossible. every tag was pushed into the stack by the code above and is valid HTML opening tag
-		}
+	// close all opening tags
+	for _, tagToClose := range slices.Backward(tagStack) {
+		// get the closing tag "</span>" from "<span class=...>" or "<span>"
+		pos := strings.IndexAny(tagToClose, " >")
+		// pos must be positive, because the tags were pushed by us
+		sb.WriteString("</" + tagToClose[1:pos] + ">")
 	}
 	return template.HTML(sb.String())
 }

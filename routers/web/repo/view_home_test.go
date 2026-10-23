@@ -7,15 +7,15 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	git_module "code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/services/contexttest"
+	"gitea.dev/models/unittest"
+	git_module "gitea.dev/modules/git"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestViewHomeSubmoduleRedirect(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	ctx, _ := contexttest.MockContext(t, "/user2/repo1/src/branch/master/test-submodule")
 	submodule := git_module.NewCommitSubmoduleFile("/user2/repo1", "test-submodule", "../repo-other", "any-ref-id")

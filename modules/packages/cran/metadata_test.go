@@ -128,10 +128,19 @@ func TestParseDescription(t *testing.T) {
 	})
 
 	t.Run("InvalidVersion", func(t *testing.T) {
-		for _, version := range []string{"1", "1 0", "1.2.3.4.5", "1-2-3-4-5", "1.", "1.0.", "1-", "1-0-"} {
+		for _, version := range []string{"1", "1 0", "1.", "1.0.", "1-", "1-0-"} {
 			p, err := ParseDescription(createDescription(packageName, version))
 			assert.Nil(t, p)
 			assert.ErrorIs(t, err, ErrInvalidVersion)
+		}
+	})
+
+	t.Run("ValidVersionManyComponents", func(t *testing.T) {
+		for _, version := range []string{"0.3.4.0.2", "1.2.3.4.5", "1-2-3-4-5"} {
+			p, err := ParseDescription(createDescription(packageName, version))
+			assert.NoError(t, err)
+			assert.NotNil(t, p)
+			assert.Equal(t, version, p.Version)
 		}
 	})
 
@@ -149,4 +158,21 @@ func TestParseDescription(t *testing.T) {
 		assert.ElementsMatch(t, []string{"abc", "123"}, p.Metadata.Imports)
 		assert.True(t, p.Metadata.NeedsCompilation)
 	})
+}
+
+func TestCompareVersions(t *testing.T) {
+	cases := []struct {
+		a, b     string
+		expected int
+	}{
+		{"1.0.3", "1.0.2", 1},
+		{"0.9.10", "0.9.9", 1},
+		{"2.5.2", "3.0.2", -1},
+		{"1.0-1", "1.0.0", 1},
+		{"1.0-2", "1.0.2", 0},
+		{"1.0", "1.0.0", -1},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.expected, CompareVersions(c.a, c.b), "%s vs %s", c.a, c.b)
+	}
 }

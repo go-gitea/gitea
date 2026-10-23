@@ -4,9 +4,9 @@
 package smtp_test
 
 import (
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/auth/source/smtp"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/services/auth"
+	"gitea.dev/services/auth/source/smtp"
 )
 
 // This test file exists to assert that our Source exposes the interfaces that we expect
@@ -20,4 +20,4 @@ type sourceInterface interface {
 	auth_model.UseTLSer
 }
 
-var _ (sourceInterface) = &smtp.Source{}
+var _ sourceInterface = &smtp.Source{}

@@ -1,0 +1,30 @@
+Accept-Ranges: bytes
+Cache-Control: max-age=0, private, must-revalidate
+Cf-Cache-Status: MISS
+Content-Length: 2
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json
+Etag: W/"4f53cda18c2baa0c0354bb5f9a3ecbe5"
+Gitlab-Lb: haproxy-main-60-lb-gprd
+Gitlab-Sv: api-gke-us-east1-d
+Link: <https://gitlab.com/api/v4/projects/15578026/issues/2/resource_state_events?eventable_id=2&id=15578026&page=1&per_page=100>; rel="first", <https://gitlab.com/api/v4/projects/15578026/issues/2/resource_state_events?eventable_id=2&id=15578026&page=1&per_page=100>; rel="last"
+Ratelimit-Limit: 2000
+Ratelimit-Name: throttle_authenticated_api
+Ratelimit-Observed: 16
+Ratelimit-Remaining: 1984
+Ratelimit-Reset: 1776937500
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000
+Vary: Origin, Accept-Encoding
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Gitlab-Meta: {"correlation_id":"9f0bee8ead54c27f-VIE","version":"1"}
+X-Next-Page: 
+X-Page: 1
+X-Per-Page: 100
+X-Prev-Page: 
+X-Runtime: 0.095668
+X-Total: 0
+X-Total-Pages: 1
+
+[]

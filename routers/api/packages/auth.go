@@ -6,10 +6,10 @@ package packages
 import (
 	"net/http"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/packages"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/services/auth"
+	"gitea.dev/services/packages"
 )
 
 var _ auth.Method = &Auth{}
@@ -24,7 +24,7 @@ func (a *Auth) Name() string {
 }
 
 // Verify extracts the user from the Bearer token
-func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) (*user_model.User, error) {
+func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, _ auth.DataStore, sess auth.SessionStore) (*user_model.User, error) {
 	packageMeta, err := packages.ParseAuthorizationRequest(req)
 	if err != nil {
 		log.Trace("ParseAuthorizationToken: %v", err)
@@ -32,14 +32,14 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 	}
 
 	if packageMeta == nil || packageMeta.UserID == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	var u *user_model.User
 	switch packageMeta.UserID {
 	case user_model.GhostUserID:
 		if !a.AllowGhostUser {
-			return nil, nil
+			return nil, nil //nolint:nilnil // the auth method is not applicable
 		}
 		u = user_model.NewGhostUser()
 	case user_model.ActionsUserID:
@@ -49,12 +49,9 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		if err != nil {
 			return nil, err
 		}
+		if packageMeta.Scope != "" {
+			u.ExtDoerData = user_model.NewTokenExtDoerData("", 0, packageMeta.Scope)
+		}
 	}
-
-	if packageMeta.Scope != "" {
-		store.GetData()["IsApiToken"] = true
-		store.GetData()["ApiTokenScope"] = packageMeta.Scope
-	}
-
 	return u, nil
 }

@@ -1,8 +1,9 @@
 import {POST} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {hideElem, showElem} from '../utils/dom.ts';
+import {hideElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {hideModal, showModal} from '../modules/modal.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import {htmlEscape} from '../utils/html.ts';
 import {compareVersions} from 'compare-versions';
@@ -11,7 +12,7 @@ export function initRepoReleaseNew() {
   registerGlobalEventFunc('click', 'onReleaseEditAttachmentDelete', (el) => {
     const uuid = el.getAttribute('data-uuid')!;
     const id = el.getAttribute('data-id')!;
-    document.querySelector<HTMLInputElement>(`input[name='attachment-del-${uuid}']`)!.value = 'true';
+    document.querySelector<HTMLInputElement>(`input[name='attachment-del-${CSS.escape(uuid)}']`)!.value = 'true';
     hideElem(`#attachment-${id}`);
   });
   registerGlobalInitFunc('initReleaseEditForm', (elForm: HTMLFormElement) => {
@@ -36,12 +37,12 @@ function initTagNameEditor(elForm: HTMLFormElement) {
   const hideTargetInput = function(tagNameInput: HTMLInputElement) {
     const value = tagNameInput.value;
     const tagHelper = elForm.querySelector('.tag-name-helper')!;
+    // Old behavior: if the tag already exists, hide the target branch selector and show a helper text to indicate the tag already exists.
+    // However, it is not right: when creating from an existing tag (not a draft or release yet), it still needs the "target branch"
+    // So the new logic here: don't hide the target branch selector.
     if (existingTags.includes(value)) {
-      // If the tag already exists, hide the target branch selector.
-      hideElem(elForm.querySelectorAll('.tag-target-selector'));
       tagHelper.textContent = existingTagHelperText;
     } else {
-      showElem(elForm.querySelectorAll('.tag-target-selector'));
       tagHelper.textContent = value ? newTagHelperText : defaultTagHelperText;
     }
   };
@@ -83,7 +84,7 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
   const textMissingTag = buttonShowModal.getAttribute('data-text-missing-tag')!;
   const generateUrl = buttonShowModal.getAttribute('data-generate-url')!;
 
-  const elModal = document.querySelector('#generate-release-notes-modal')!;
+  const elModal = document.querySelector<HTMLDialogElement>('#generate-release-notes-modal')!;
 
   const doSubmit = async (tagName: string) => {
     const elPreviousTag = elModal.querySelector<HTMLSelectElement>('[name=previous_tag]')!;
@@ -110,18 +111,18 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
       } else {
         comboEditor.value(data.content);
       }
+      hideModal(elModal);
+      comboEditor.focus();
     } finally {
       elModal.classList.remove('loading', 'disabled');
-      fomanticQuery(elModal).modal('hide');
-      comboEditor.focus();
     }
   };
 
   let inited = false;
   const doShowModal = () => {
-    hideToastsAll();
     const tagName = tagNameInput.value.trim();
     if (!tagName) {
+      hideToastsAll();
       showErrorToast(textMissingTag, {duration: 3000});
       tagNameInput.focus();
       return;
@@ -131,20 +132,17 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
     const $dropdown = fomanticQuery(elModal.querySelector('[name=previous_tag]')!);
     if (!inited) {
       inited = true;
-      const values = [];
-      for (const tagName of existingTags) {
-        values.push({name: htmlEscape(tagName), value: tagName}); // ATTENTION: dropdown takes the "name" input as raw HTML
-      }
+      const values = existingTags.map((tagName) => ({name: htmlEscape(tagName), value: tagName})); // ATTENTION: dropdown takes the "name" input as raw HTML
       $dropdown.dropdown('change values', values);
     }
     $dropdown.dropdown('set selected', guessPreviousReleaseTag(tagName, existingTags));
 
-    fomanticQuery(elModal).modal({
+    showModal(elModal, {
       onApprove: () => {
         doSubmit(tagName); // don't await, need to return false to keep the modal
         return false;
       },
-    }).modal('show');
+    });
   };
 
   buttonShowModal.addEventListener('click', doShowModal);

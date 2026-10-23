@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	commitstatus_service "gitea.dev/services/repository/commitstatus"
 )
 
 // NewCommitStatus creates a new CommitStatus
@@ -52,10 +52,10 @@ func NewCommitStatus(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.CreateStatusOption)
+	form := web.GetForm[*api.CreateStatusOption](ctx)
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
-		ctx.APIError(http.StatusBadRequest, nil)
+		ctx.APIError(http.StatusBadRequest, "sha not provided")
 		return
 	}
 	status := &git_model.CommitStatus{
@@ -206,7 +206,7 @@ func getCommitStatuses(ctx *context.APIContext, commitID string) {
 		apiStatuses = append(apiStatuses, convert.ToCommitStatus(ctx, status))
 	}
 
-	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.SetLinkHeader(maxResults, listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 
 	ctx.JSON(http.StatusOK, apiStatuses)
@@ -269,7 +269,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 		ctx.APIErrorInternal(fmt.Errorf("CountLatestCommitStatus[%s, %s]: %w", repo.FullName(), refCommit.CommitID, err))
 		return
 	}
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 
 	combiStatus := convert.ToCombinedStatus(ctx, refCommit.Commit.ID.String(), statuses,

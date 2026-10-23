@@ -7,12 +7,15 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/references"
+	"gitea.dev/models/db"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/references"
+
+	"xorm.io/builder"
 )
 
 type crossReference struct {
@@ -189,25 +192,30 @@ func (issue *Issue) updateCrossReferenceList(list []*crossReference, xref *cross
 func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossReferencesContext, repo *repo_model.Repository,
 	ref references.IssueReference,
 ) (*Issue, references.XRefAction, error) {
-	refIssue := &Issue{RepoID: repo.ID, Index: ref.Index}
 	refAction := ref.Action
-	e := db.GetEngine(stdCtx)
-
-	if has, _ := e.Get(refIssue); !has {
+	refIssue, has, err := db.Get[Issue](stdCtx, builder.Eq{"repo_id": repo.ID, "`index`": ref.Index})
+	if err != nil {
+		return nil, references.XRefActionNone, err
+	} else if !has {
 		return nil, references.XRefActionNone, nil
 	}
 	if err := refIssue.LoadRepo(stdCtx); err != nil {
 		return nil, references.XRefActionNone, err
 	}
 
-	// Close/reopen actions can only be set from pull requests to issues
-	if refIssue.IsPull || !issue.IsPull {
+	// Close/reopen actions can only be set from pull requests, reopen only to issues
+	if !issue.IsPull || (refIssue.IsPull && refAction == references.XRefActionReopens) {
+		refAction = references.XRefActionNone
+	}
+
+	// With an external tracker, pull requests are referenced as "!N"
+	if refAction != references.XRefActionNone && !ref.IsPull && refIssue.IsPull && refIssue.Repo.UnitEnabled(stdCtx, unit.TypeExternalTracker) {
 		refAction = references.XRefActionNone
 	}
 
 	// Check doer permissions; set action to None if the doer can't change the destination
 	if refIssue.RepoID != ctx.OrigIssue.RepoID || ref.Action != references.XRefActionNone {
-		perm, err := access_model.GetUserRepoPermission(stdCtx, refIssue.Repo, ctx.Doer)
+		perm, err := access_model.GetDoerRepoPermission(stdCtx, refIssue.Repo, ctx.Doer)
 		if err != nil {
 			return nil, references.XRefActionNone, err
 		}

@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,8 +25,7 @@ func TestAPIGetWikiPage(t *testing.T) {
 
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var page *api.WikiPage
-	DecodeJSON(t, resp, &page)
+	page := DecodeJSON(t, resp, &api.WikiPage{})
 
 	assert.Equal(t, &api.WikiPage{
 		WikiPageMetaData: &api.WikiPageMetaData{
@@ -71,8 +70,7 @@ func TestAPIListWikiPages(t *testing.T) {
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var meta []*api.WikiPageMetaData
-	DecodeJSON(t, resp, &meta)
+	meta := DecodeJSON(t, resp, []*api.WikiPageMetaData{})
 
 	dummymeta := []*api.WikiPageMetaData{
 		{
@@ -222,8 +220,7 @@ func TestAPIListPageRevisions(t *testing.T) {
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var revisions *api.WikiCommitList
-	DecodeJSON(t, resp, &revisions)
+	revisions := DecodeJSON(t, resp, &api.WikiCommitList{})
 
 	dummyrevisions := &api.WikiCommitList{
 		WikiCommits: []*api.WikiCommit{
