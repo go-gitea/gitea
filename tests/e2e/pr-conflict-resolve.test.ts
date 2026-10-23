@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import {expect, test} from '@playwright/test';
-import {apiCreateBranch, apiCreateFiles, apiCreatePR, apiCreateUser, apiUpdateFile, apiUserHeaders, loginUser, randomString, timeoutFactor} from './utils.ts';
+import {apiCreateBranch, apiCreateFiles, apiCreatePR, apiCreateUser, apiUpdateFile, apiUserHeaders, loginUser, randomString} from './utils.ts';
 
 /**
  * Creates a PR where `feat` and `main` both modify the same line in `conflict.txt`,
@@ -45,12 +45,12 @@ test('pr conflict resolve — file list and editor', async ({page, request}) => 
 
   // Reload the merge-box every second until it leaves the "checking" state.
   const mergeBox = page.locator('.pull-merge-box');
-  await mergeBox.waitFor({state: 'visible', timeout: 15_000 * timeoutFactor});
+  await mergeBox.waitFor({state: 'visible', timeout: 15_000});
 
   // Wait until the "Resolve conflicts" link appears (means the check finished
   // and found at least one conflicting file).
   const resolveLink = page.getByRole('link', {name: 'Resolve conflicts'});
-  await expect(resolveLink).toBeVisible({timeout: 20_000 * timeoutFactor});
+  await expect(resolveLink).toBeVisible({timeout: 20_000});
 
   // ── Conflict resolver page ─────────────────────────────────────────────
   await resolveLink.click();
@@ -71,7 +71,7 @@ test('pr conflict resolve — file list and editor', async ({page, request}) => 
 
   // CodeMirror editor is visible and contains conflict markers.
   const cmEditor = page.locator('#conflict-editor-root .cm-content');
-  await expect(cmEditor).toBeVisible({timeout: 10_000 * timeoutFactor});
+  await expect(cmEditor).toBeVisible({timeout: 10_000});
   const editorText = await cmEditor.textContent();
   expect(editorText).toContain('<<<<<<<');
   expect(editorText).toContain('>>>>>>>');
@@ -92,7 +92,7 @@ test('pr conflict resolve — file list and editor', async ({page, request}) => 
 
   // "Commit merge" button should now be enabled.
   const commitBtn = sidebar.locator('.conflict-commit-btn');
-  await expect(commitBtn).toBeEnabled({timeout: 5_000 * timeoutFactor});
+  await expect(commitBtn).toBeEnabled({timeout: 5_000});
 
   // ── Commit the resolution ──────────────────────────────────────────────
   await commitBtn.click();
@@ -101,7 +101,7 @@ test('pr conflict resolve — file list and editor', async ({page, request}) => 
   await page.waitForURL(new RegExp(`/${owner}/${repoName}/pulls/${prIndex}$`));
 
   // "Resolve conflicts" link must be gone after successful commit.
-  await expect(page.getByRole('link', {name: 'Resolve conflicts'})).toHaveCount(0, {timeout: 20_000 * timeoutFactor});
+  await expect(page.getByRole('link', {name: 'Resolve conflicts'})).toHaveCount(0, {timeout: 20_000});
 });
 
 test('pr conflict resolve — file switching saves content', async ({page, request}) => {
@@ -127,17 +127,17 @@ test('pr conflict resolve — file switching saves content', async ({page, reque
   await loginUser(page, owner);
   await page.goto(`/${owner}/${repo}/pulls/${prIndex}`);
   const resolveLink = page.getByRole('link', {name: 'Resolve conflicts'});
-  await expect(resolveLink).toBeVisible({timeout: 20_000 * timeoutFactor});
+  await expect(resolveLink).toBeVisible({timeout: 20_000});
   await resolveLink.click();
 
   // Both files should appear in the sidebar.
   const sidebar = page.locator('.conflict-sidebar');
   const fileItems = sidebar.locator('.conflict-file-item');
-  await expect(fileItems).toHaveCount(2, {timeout: 10_000 * timeoutFactor});
+  await expect(fileItems).toHaveCount(2, {timeout: 10_000});
 
   // Type something in the first file, then switch to the second file.
   const cmEditor = page.locator('#conflict-editor-root .cm-content');
-  await expect(cmEditor).toBeVisible({timeout: 10_000 * timeoutFactor});
+  await expect(cmEditor).toBeVisible({timeout: 10_000});
   await cmEditor.click();
   await page.keyboard.press('Control+a');
   await page.keyboard.type('resolution for first file\n');

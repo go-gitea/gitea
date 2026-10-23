@@ -159,7 +159,7 @@ registerGlobalInitFunc('initRepoConflictEditor', async (elRoot: HTMLElement) => 
     // Mark resolved and save resolved content
     fileStates.set(currentFile, {status: 'resolved', content});
     const shortName = currentFile.split('/').pop() || currentFile;
-    showInfoToast(msgMarkResolved.replace('%s', shortName));
+    showInfoToast(msgMarkResolved.replace('%s', () => shortName));
     updateSidebar();
     updateHint();
 
