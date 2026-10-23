@@ -8,6 +8,7 @@ import "time"
 // Reviewable can be reviewed
 type Reviewable interface {
 	GetLocalIndex() int64
+	GetContext() DownloaderContext
 
 	// GetForeignIndex presents the foreign index, which could be misused:
 	// For example, if there are 2 Gitea sites: site-A exports a dataset, then site-B imports it:
