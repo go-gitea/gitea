@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,11 +28,16 @@ func TestHeatmapEndpoints(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/-/heatmap")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
-		var result map[string]any
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, map[string]any{})
 		assert.Contains(t, result, "heatmapData")
 		assert.Contains(t, result, "totalContributions")
 		assert.Positive(t, result["totalContributions"])
+	})
+
+	t.Run("PrivateUserProfileAnonymous", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequest(t, "GET", "/user31/-/heatmap")
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("OrgDashboard", func(t *testing.T) {
@@ -40,8 +45,7 @@ func TestHeatmapEndpoints(t *testing.T) {
 		req := NewRequest(t, "GET", "/org/org3/dashboard/-/heatmap")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
-		var result map[string]any
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, map[string]any{})
 		assert.Contains(t, result, "heatmapData")
 		assert.Contains(t, result, "totalContributions")
 	})
@@ -51,8 +55,7 @@ func TestHeatmapEndpoints(t *testing.T) {
 		req := NewRequest(t, "GET", "/org/org3/dashboard/-/heatmap/team1")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
-		var result map[string]any
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, map[string]any{})
 		assert.Contains(t, result, "heatmapData")
 		assert.Contains(t, result, "totalContributions")
 	})

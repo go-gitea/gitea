@@ -7,13 +7,13 @@ import (
 	"path"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/context"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/services/context"
 )
 
 // ServeBlob download a git.Blob
@@ -26,7 +26,7 @@ func ServeBlob(ctx *context.Base, repo *repo_model.Repository, filePath string, 
 		return err
 	}
 
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx)
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func ServeBlob(ctx *context.Base, repo *repo_model.Repository, filePath string, 
 	if lastModified == nil {
 		lastModified = new(time.Time)
 	}
-	httplib.ServeUserContentByReader(ctx.Req, ctx.Resp, blob.Size(), dataRc, httplib.ServeHeaderOptions{
+	httplib.ServeUserContentByReader(ctx.Req, ctx.Resp, blob.Size(ctx), dataRc, httplib.ServeHeaderOptions{
 		Filename:      path.Base(filePath),
 		CacheIsPublic: !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic,
 		CacheDuration: setting.StaticCacheTime,

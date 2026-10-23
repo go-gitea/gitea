@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"html/template"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -236,7 +236,7 @@ func (opts SearchOptions) ToConds() builder.Cond {
 }
 
 func (opts SearchOptions) ToOrders() string {
-	return opts.OrderBy.String()
+	return util.IfZero(opts.OrderBy.String(), "id")
 }
 
 func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
@@ -300,6 +300,15 @@ func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 	}
 
 	return p, nil
+}
+
+// GetProjectsMapByIDs returns projects by a list of IDs.
+func GetProjectsMapByIDs(ctx context.Context, ids []int64) (map[int64]*Project, error) {
+	projects := make(map[int64]*Project, len(ids))
+	if len(ids) == 0 {
+		return projects, nil
+	}
+	return projects, db.GetEngine(ctx).In("id", ids).Find(&projects)
 }
 
 func GetProjectByIDAndOwner(ctx context.Context, id, ownerID int64) (*Project, error) {
@@ -426,6 +435,10 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 			return err
 		}
 
+		if _, err := db.Delete[Workflow](ctx, FindWorkflowsOptions{ProjectIDs: []int64{id}}); err != nil {
+			return err
+		}
+
 		if _, err = db.GetEngine(ctx).ID(p.ID).Delete(new(Project)); err != nil {
 			return err
 		}
@@ -435,6 +448,9 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 }
 
 func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
+	if _, err := db.GetEngine(ctx).In("project_id", builder.Select("id").From("project").Where(builder.Eq{"repo_id": repoID})).Delete(new(Workflow)); err != nil {
+		return err
+	}
 	switch {
 	case setting.Database.Type.IsSQLite3():
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue WHERE project_issue.id IN (SELECT project_issue.id FROM project_issue INNER JOIN project WHERE project.id = project_issue.project_id AND project.repo_id = ?)", repoID); err != nil {

@@ -1,4 +1,4 @@
-{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings")}}
+{{template "repo/settings/layout_head" (dict "pageClass" "repository settings")}}
 <div class="repo-setting-content">
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "repo.settings.public_access"}}
@@ -46,7 +46,7 @@
 				<li>{{ctx.Locale.Tr "repo.settings.public_access.docs.everyone_read"}}</li>
 				<li>{{ctx.Locale.Tr "repo.settings.public_access.docs.everyone_write"}}</li>
 			</ul>
-			<button class="ui primary button {{if .GlobalForcePrivate}}disabled{{end}}">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+			<button type="submit" class="ui primary button {{if .GlobalForcePrivate}}disabled{{end}}">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 		</form>
 	</div>
 </div>

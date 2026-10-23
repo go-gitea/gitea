@@ -6,10 +6,10 @@ package webhook
 import (
 	"testing"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/json"
-	api "code.gitea.io/gitea/modules/structs"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/json"
+	api "gitea.dev/modules/structs"
+	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,6 +52,10 @@ func TestSlackPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>:<http://localhost:3000/test/repo/src/branch/test|test>] 2 new commits pushed by user1", pl.Text)
+		require.Len(t, pl.Attachments, 1)
+		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
+		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
+		assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
 	})
 
 	t.Run("Issue", func(t *testing.T) {
@@ -62,6 +66,10 @@ func TestSlackPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue opened: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
+		require.Len(t, pl.Attachments, 1)
+		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
+		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
+		assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
 
 		p.Action = api.HookIssueClosed
 		pl, err = sc.Issue(p)
@@ -77,6 +85,10 @@ func TestSlackPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on issue <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
+		require.Len(t, pl.Attachments, 1)
+		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
+		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
+		assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -86,6 +98,10 @@ func TestSlackPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", pl.Text)
+		require.Len(t, pl.Attachments, 1)
+		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
+		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
+		assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
@@ -114,6 +130,12 @@ func TestSlackPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Repository created by <https://try.gitea.io/user1|user1>", pl.Text)
+
+		p.Action = api.HookRepoRenamed
+		p.Changes = &api.ChangesPayload{Name: &api.ChangesFromPayload{From: "old-repo"}}
+		pl, err = sc.Repository(p)
+		require.NoError(t, err)
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Repository renamed from old-repo by <https://try.gitea.io/user1|user1>", pl.Text)
 	})
 
 	t.Run("Package", func(t *testing.T) {
@@ -190,23 +212,4 @@ func TestSlackJSONPayload(t *testing.T) {
 	err = json.NewDecoder(req.Body).Decode(&body)
 	assert.NoError(t, err)
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>:<http://localhost:3000/test/repo/src/branch/test|test>] 2 new commits pushed by user1", body.Text)
-}
-
-func TestIsValidSlackChannel(t *testing.T) {
-	tt := []struct {
-		channelName string
-		expected    bool
-	}{
-		{"gitea", true},
-		{"#gitea", true},
-		{"  ", false},
-		{"#", false},
-		{" #", false},
-		{"gitea   ", false},
-		{"  gitea", false},
-	}
-
-	for _, v := range tt {
-		assert.Equal(t, v.expected, IsValidSlackChannel(v.channelName))
-	}
 }

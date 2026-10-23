@@ -6,7 +6,7 @@ package setting
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -38,8 +38,8 @@ diff.algorithm = other
 }
 
 func TestGitReflog(t *testing.T) {
-	defer test.MockVariableValue(&Git)
-	defer test.MockVariableValue(&GitConfig)
+	defer test.MockVariableValue(&Git)()
+	defer test.MockVariableValue(&GitConfig)()
 
 	// default reflog config without legacy options
 	cfg, err := NewConfigProviderFromData(``)
@@ -47,7 +47,7 @@ func TestGitReflog(t *testing.T) {
 	loadGitFrom(cfg)
 
 	assert.Equal(t, "true", GitConfig.GetOption("core.logAllRefUpdates"))
-	assert.Equal(t, "90", GitConfig.GetOption("gc.reflogExpire"))
+	assert.Empty(t, GitConfig.GetOption("gc.reflogExpire"))
 
 	// custom reflog config by legacy options
 	cfg, err = NewConfigProviderFromData(`
@@ -56,8 +56,9 @@ ENABLED = false
 EXPIRATION = 123
 `)
 	assert.NoError(t, err)
+	applyDeprecatedKeys(cfg)
 	loadGitFrom(cfg)
 
 	assert.Equal(t, "false", GitConfig.GetOption("core.logAllRefUpdates"))
-	assert.Equal(t, "123", GitConfig.GetOption("gc.reflogExpire"))
+	assert.Equal(t, "123.days", GitConfig.GetOption("gc.reflogExpire"))
 }

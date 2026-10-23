@@ -9,31 +9,32 @@ import (
 	"fmt"
 	"net/url"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/packages/alpine"
-	"code.gitea.io/gitea/modules/packages/arch"
-	"code.gitea.io/gitea/modules/packages/cargo"
-	"code.gitea.io/gitea/modules/packages/chef"
-	"code.gitea.io/gitea/modules/packages/composer"
-	"code.gitea.io/gitea/modules/packages/conan"
-	"code.gitea.io/gitea/modules/packages/conda"
-	"code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/packages/cran"
-	"code.gitea.io/gitea/modules/packages/debian"
-	"code.gitea.io/gitea/modules/packages/helm"
-	"code.gitea.io/gitea/modules/packages/maven"
-	"code.gitea.io/gitea/modules/packages/npm"
-	"code.gitea.io/gitea/modules/packages/nuget"
-	"code.gitea.io/gitea/modules/packages/pub"
-	"code.gitea.io/gitea/modules/packages/pypi"
-	"code.gitea.io/gitea/modules/packages/rpm"
-	"code.gitea.io/gitea/modules/packages/rubygems"
-	"code.gitea.io/gitea/modules/packages/swift"
-	"code.gitea.io/gitea/modules/packages/vagrant"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages/alpine"
+	"gitea.dev/modules/packages/arch"
+	"gitea.dev/modules/packages/cargo"
+	"gitea.dev/modules/packages/chef"
+	"gitea.dev/modules/packages/composer"
+	"gitea.dev/modules/packages/conan"
+	"gitea.dev/modules/packages/conda"
+	"gitea.dev/modules/packages/container"
+	"gitea.dev/modules/packages/cran"
+	"gitea.dev/modules/packages/debian"
+	"gitea.dev/modules/packages/helm"
+	"gitea.dev/modules/packages/maven"
+	"gitea.dev/modules/packages/npm"
+	"gitea.dev/modules/packages/nuget"
+	"gitea.dev/modules/packages/pub"
+	"gitea.dev/modules/packages/pypi"
+	"gitea.dev/modules/packages/rpm"
+	"gitea.dev/modules/packages/rubygems"
+	"gitea.dev/modules/packages/swift"
+	"gitea.dev/modules/packages/vagrant"
+	"gitea.dev/modules/util"
 
 	"github.com/hashicorp/go-version"
 )
@@ -53,8 +54,11 @@ func (l PackagePropertyList) GetByName(name string) string {
 
 // PackageDescriptor describes a package
 type PackageDescriptor struct {
-	Package           *Package
-	Owner             *user_model.User
+	// basic package info
+	Package *Package
+	Owner   *user_model.User
+
+	// package version info
 	Repository        *repo_model.Repository
 	Version           *PackageVersion
 	SemVer            *version.Version
@@ -75,6 +79,11 @@ type PackageFileDescriptor struct {
 // PackageWebLink returns the relative package web link
 func (pd *PackageDescriptor) PackageWebLink() string {
 	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+}
+
+// PackageSettingsLink returns the relative package settings link
+func (pd *PackageDescriptor) PackageSettingsLink() string {
+	return fmt.Sprintf("%s/-/packages/settings/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
 // VersionWebLink returns the relative package version web link
@@ -203,6 +212,8 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 		metadata = &rubygems.Metadata{}
 	case TypeSwift:
 		metadata = &swift.Metadata{}
+	case TypeTerraformState:
+		// terraform packages have no metadata
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:
@@ -226,6 +237,15 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 		Metadata:          metadata,
 		Files:             pfds,
 	}, nil
+}
+
+// DescriptorMetadata returns the descriptor's metadata, which getPackageDescriptor has created from the package type
+func DescriptorMetadata[T interface{ *E }, E any](pd *PackageDescriptor) T {
+	metadata, ok := pd.Metadata.(T)
+	if !ok {
+		panic(fmt.Errorf("package %s of type %s has metadata type %T instead of %T", pd.Package.Name, pd.Package.Type, pd.Metadata, metadata))
+	}
+	return metadata
 }
 
 // GetPackageFileDescriptor gets a package file descriptor for a package file
@@ -264,6 +284,15 @@ func GetPackageFileDescriptors(ctx context.Context, pfs []*PackageFile) ([]*Pack
 
 // GetPackageDescriptors gets the package descriptions for the versions
 func GetPackageDescriptors(ctx context.Context, pvs []*PackageVersion) ([]*PackageDescriptor, error) {
+	return getPackageDescriptors(ctx, pvs, cache.NewEphemeralCache())
+}
+
+// GetAllPackageDescriptors gets all package descriptors for a package
+func GetAllPackageDescriptors(ctx context.Context, p *Package) ([]*PackageDescriptor, error) {
+	pvs := make([]*PackageVersion, 0, 10)
+	if err := db.GetEngine(ctx).Where("package_id = ?", p.ID).Find(&pvs); err != nil {
+		return nil, err
+	}
 	return getPackageDescriptors(ctx, pvs, cache.NewEphemeralCache())
 }
 

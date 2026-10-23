@@ -8,9 +8,15 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFeedRepo(t *testing.T) {
@@ -32,4 +38,55 @@ func TestFeedRepo(t *testing.T) {
 		assert.Equal(t, "issue5", rss.Channel.Items[0].Description)
 		assert.NotEmpty(t, rss.Channel.Items[0].PubDate)
 	})
+
+	t.Run("TagsWithoutReleasesAccess", func(t *testing.T) {
+		defer tests.PrepareTestEnv(t)()
+
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeReleases}))
+
+		resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/tags.rss"), http.StatusOK)
+		data := resp.Body.String()
+		assert.Contains(t, data, "/user2/repo1/src/tag/v1.0")
+		assert.NotContains(t, data, "pre-release")
+		assert.NotContains(t, data, "some text for a pre release")
+	})
+}
+
+// TestFeedRepoContentTokenScopes ensures repository feed endpoints enforce the
+// repository token scope, so a PAT without repository scope cannot read private
+// repository commit/activity data through RSS/Atom feeds.
+func TestFeedRepoContentTokenScopes(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user2/repo2 is a private repository owned by user2
+	ownerReadToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
+	miscToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadMisc)
+
+	urls := []string{
+		"/user2/repo2.rss",
+		"/user2/repo2.atom",
+		"/user2/repo2/rss/branch/master",
+		"/user2/repo2/atom/branch/master",
+		"/user2/repo2/rss/branch/master/README.md",
+		"/user2/repo2/tags.rss",
+		"/user2/repo2/tags.atom",
+		"/user2/repo2/releases.rss",
+		"/user2/repo2/releases.atom",
+	}
+
+	for _, url := range urls {
+		t.Run(url, func(t *testing.T) {
+			// feed routes only accept basic auth, so authenticate as the advisory PoC does (user:token)
+			reqDenied := NewRequest(t, "GET", url)
+			reqDenied.SetBasicAuth("user2", miscToken)
+			// a token without repository scope must be denied
+			MakeRequest(t, reqDenied, http.StatusForbidden)
+
+			reqAllowed := NewRequest(t, "GET", url)
+			reqAllowed.SetBasicAuth("user2", ownerReadToken)
+			// a token with repository read scope is allowed
+			MakeRequest(t, reqAllowed, http.StatusOK)
+		})
+	}
 }

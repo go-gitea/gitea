@@ -4,11 +4,12 @@
 package setting
 
 import (
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/context"
-	repo_service "code.gitea.io/gitea/services/repository"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 )
 
 // AdoptOrDeleteRepository adopts or deletes a repository
@@ -32,7 +33,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		return
 	}
 
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, dir)))
+	exist, err := git.IsRepositoryExist(ctx, gitrepo.CodeRepoByName(ctxUser.Name, dir))
 	if err != nil {
 		ctx.ServerError("IsDir", err)
 		return

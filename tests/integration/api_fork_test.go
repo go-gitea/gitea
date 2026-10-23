@@ -7,27 +7,47 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	org_model "code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	org_service "code.gitea.io/gitea/services/org"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	org_model "gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	org_service "gitea.dev/services/org"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreateForkNoLogin(t *testing.T) {
+func TestAPIFork(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("CreateForkNoLogin", testCreateForkNoLogin)
+	t.Run("CreateForkOrgNoCreatePermission", testCreateForkOrgNoCreatePermission)
+	t.Run("APIForkListLimitedAndPrivateRepos", testAPIForkListLimitedAndPrivateRepos)
+	t.Run("GetPrivateReposForks", testGetPrivateReposForks)
+}
+
+func testCreateForkNoLogin(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{})
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
-func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testCreateForkOrgNoCreatePermission(t *testing.T) {
+	user4Sess := loginUser(t, "user4")
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
+	canCreate, err := org_model.OrgFromUser(org).CanCreateOrgRepo(t.Context(), 4)
+	assert.NoError(t, err)
+	assert.False(t, canCreate)
+
+	user4Token := getTokenForLoggedInUser(t, user4Sess, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{
+		Organization: &org.Name,
+	}).AddTokenAuth(user4Token)
+	MakeRequest(t, req, http.StatusForbidden)
+}
+
+func testAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 	user1Sess := loginUser(t, "user1")
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
 
@@ -64,23 +84,18 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks")
 		resp := MakeRequest(t, req, http.StatusOK)
-
-		var forks []*api.Repository
-		DecodeJSON(t, resp, &forks)
-
+		forks := DecodeJSON(t, resp, []*api.Repository{})
 		assert.Empty(t, forks)
 		assert.Equal(t, "0", resp.Header().Get("X-Total-Count"))
 	})
 
-	t.Run("Logged in", func(t *testing.T) {
+	t.Run("LoggedIn", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks").AddTokenAuth(user1Token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var forks []*api.Repository
-		DecodeJSON(t, resp, &forks)
-
+		forks := DecodeJSON(t, resp, []*api.Repository{})
 		assert.Len(t, forks, 2)
 		assert.Equal(t, "2", resp.Header().Get("X-Total-Count"))
 
@@ -88,28 +103,52 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks").AddTokenAuth(user1Token)
 		resp = MakeRequest(t, req, http.StatusOK)
-
-		forks = []*api.Repository{}
-		DecodeJSON(t, resp, &forks)
-
+		forks = DecodeJSON(t, resp, []*api.Repository{})
 		assert.Len(t, forks, 2)
 		assert.Equal(t, "2", resp.Header().Get("X-Total-Count"))
 	})
+
+	t.Run("RespHeaderLinks", func(t *testing.T) {
+		t.Run("Page1", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks?page=1&limit=1").AddTokenAuth(user1Token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "2", resp.Header().Get("X-Total-Count"))
+
+			linkHeader := resp.Header().Get("Link")
+			assert.NotEmpty(t, linkHeader, "Link header should not be empty")
+			assert.Contains(t, linkHeader, `rel="next"`)
+			assert.Contains(t, linkHeader, `rel="last"`)
+			assert.Contains(t, linkHeader, `/api/v1/repos/user2/repo1/forks?limit=1&page=2>`)
+
+			forks := DecodeJSON(t, resp, []*api.Repository{})
+			assert.Len(t, forks, 1)
+		})
+
+		t.Run("Page2", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks?page=2&limit=1").AddTokenAuth(user1Token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "2", resp.Header().Get("X-Total-Count"))
+
+			forks := DecodeJSON(t, resp, []*api.Repository{})
+			assert.Len(t, forks, 1)
+		})
+	})
 }
 
-func TestGetPrivateReposForks(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testGetPrivateReposForks(t *testing.T) {
 	user1Sess := loginUser(t, "user1")
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}) // private repository
 	privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
 	user1Token := getTokenForLoggedInUser(t, user1Sess, auth_model.AccessTokenScopeWriteRepository)
 
-	forkedRepoName := "forked-repo"
 	// create fork from a private repository
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+repo2.FullName()+"/forks", &api.CreateForkOption{
 		Organization: &privateOrg.Name,
-		Name:         &forkedRepoName,
+		Name:         new("forked-repo"),
 	}).AddTokenAuth(user1Token)
 	MakeRequest(t, req, http.StatusAccepted)
 
@@ -117,8 +156,7 @@ func TestGetPrivateReposForks(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/repos/"+repo2.FullName()+"/forks").AddTokenAuth(user1Token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	forks := []*api.Repository{}
-	DecodeJSON(t, resp, &forks)
+	forks := DecodeJSON(t, resp, []*api.Repository{})
 	assert.Len(t, forks, 1)
 	assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
 	assert.Equal(t, "forked-repo", forks[0].Name)

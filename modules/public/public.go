@@ -12,12 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/assetfs"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/assetfs"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+
+	"github.com/go-chi/cors"
 )
 
 func CustomAssets() *assetfs.Layer {
@@ -28,11 +30,20 @@ func AssetFS() *assetfs.LayeredFS {
 	return assetfs.Layered(CustomAssets(), BuiltinAssets())
 }
 
+func AssetsCors() func(next http.Handler) http.Handler {
+	// static assets need to be served for external renders (sandboxed)
+	return cors.Handler(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"HEAD", "GET"},
+		MaxAge:         3600 * 24,
+	})
+}
+
 // FileHandlerFunc implements the static handler for serving files in "public" assets
 func FileHandlerFunc() http.HandlerFunc {
 	assetFS := AssetFS()
 	return func(resp http.ResponseWriter, req *http.Request) {
-		if req.Method != "GET" && req.Method != "HEAD" {
+		if req.Method != http.MethodGet && req.Method != http.MethodHead {
 			resp.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
