@@ -688,7 +688,14 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 
 	for _, comment = range issue.Comments {
 		comment.Issue = issue
+	}
+	// load the commits (users, signatures, statuses) of all push comments in one batch
+	if err := issue_service.LoadCommentsPushCommits(ctx, issue.Comments); err != nil {
+		ctx.ServerError("LoadCommentsPushCommits", err)
+		return
+	}
 
+	for _, comment = range issue.Comments {
 		if comment.Type == issues_model.CommentTypeComment || comment.Type == issues_model.CommentTypeReview {
 			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
 				FootnoteContextID: strconv.FormatInt(comment.ID, 10),
@@ -821,10 +828,6 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			}
 		} else if comment.Type == issues_model.CommentTypePullRequestPush {
 			participants = addParticipant(comment.Poster, participants)
-			if err = issue_service.LoadCommentPushCommits(ctx, comment); err != nil {
-				ctx.ServerError("LoadCommentPushCommits", err)
-				return
-			}
 			git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, comment.Commits)
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||

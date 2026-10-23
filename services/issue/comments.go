@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -155,44 +156,114 @@ func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_m
 
 // LoadCommentPushCommits Load push commits
 func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) error {
-	if c.Content == "" || c.Commits != nil || c.Type != issues_model.CommentTypePullRequestPush {
-		return nil
-	}
+	return LoadCommentsPushCommits(ctx, []*issues_model.Comment{c})
+}
 
-	var data issues_model.PushActionContent
-	if err := json.Unmarshal([]byte(c.Content), &data); err != nil {
-		log.Debug("Unmarshal: %v", err) // no need to show 500 error to end user when the JSON is broken
-		return nil
-	}
+// LoadCommentsPushCommits loads the push commits of many comments at once.
+// Commit users, signatures and commit statuses are resolved in one batch per repository
+// instead of once per push comment, which matters for pull requests with many pushes.
+func LoadCommentsPushCommits(ctx context.Context, comments []*issues_model.Comment) error {
+	groups := map[int64]*pushCommitsRepoGroup{}
+	var groupOrder []int64
 
-	c.IsForcePush = data.IsForcePush
-
-	if c.IsForcePush {
-		if len(data.CommitIDs) != 2 {
-			return nil
+	for _, c := range comments {
+		if c.Content == "" || c.Commits != nil || c.Type != issues_model.CommentTypePullRequestPush {
+			continue
 		}
-		c.OldCommit, c.NewCommit = data.CommitIDs[0], data.CommitIDs[1]
-	} else {
+
+		var data issues_model.PushActionContent
+		if err := json.Unmarshal([]byte(c.Content), &data); err != nil {
+			log.Debug("Unmarshal: %v", err) // no need to show 500 error to end user when the JSON is broken
+			continue
+		}
+
+		c.IsForcePush = data.IsForcePush
+
+		if c.IsForcePush {
+			if len(data.CommitIDs) == 2 {
+				c.OldCommit, c.NewCommit = data.CommitIDs[0], data.CommitIDs[1]
+			}
+			continue
+		}
+
 		if err := c.LoadIssue(ctx); err != nil {
 			return err
 		}
 		if err := c.Issue.LoadRepo(ctx); err != nil {
 			return err
 		}
+		g := groups[c.Issue.Repo.ID]
+		if g == nil {
+			g = &pushCommitsRepoGroup{repo: c.Issue.Repo}
+			groups[c.Issue.Repo.ID] = g
+			groupOrder = append(groupOrder, c.Issue.Repo.ID)
+		}
+		g.items = append(g.items, pendingPushComment{comment: c, ids: data.CommitIDs})
+	}
 
-		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, c.Issue.Repo)
-		if err != nil {
+	for _, repoID := range groupOrder {
+		g := groups[repoID]
+		if err := loadPushCommitsForRepo(ctx, g.repo, g.items); err != nil {
 			return err
 		}
-		defer closer.Close()
+	}
+	return nil
+}
 
-		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(ctx, data.CommitIDs), c.Issue.Repo, "") // no current ref sub path for PR commit list
-		if err != nil {
-			log.Debug("ConvertFromGitCommit: %v", err) // no need to show 500 error to end user when the commit does not exist
-		} else {
-			c.CommitsNum = int64(len(c.Commits))
+const pushCommitsConvertChunkSize = 100
+
+type pendingPushComment struct {
+	comment *issues_model.Comment
+	ids     []string
+}
+
+type pushCommitsRepoGroup struct {
+	repo  *repo_model.Repository
+	items []pendingPushComment
+}
+
+func loadPushCommitsForRepo(ctx context.Context, repo *repo_model.Repository, items []pendingPushComment) error {
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
+	if err != nil {
+		return err
+	}
+	defer closer.Close()
+
+	// collect the unique commit IDs of all comments, keeping the first-seen order
+	var allIDs []string
+	seen := map[string]struct{}{}
+	for _, it := range items {
+		for _, id := range it.ids {
+			if _, ok := seen[id]; !ok {
+				seen[id] = struct{}{}
+				allIDs = append(allIDs, id)
+			}
 		}
 	}
 
+	// chunked to keep the commit status query under DB bind-parameter limits
+	byID := make(map[string]*git_model.SignCommitWithStatuses, len(allIDs))
+	for start := 0; start < len(allIDs); start += pushCommitsConvertChunkSize {
+		chunk := allIDs[start:min(start+pushCommitsConvertChunkSize, len(allIDs))]
+		converted, err := git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(ctx, chunk), repo, "") // no current ref sub path for PR commit list
+		if err != nil {
+			log.Debug("ConvertFromGitCommit: %v", err) // no need to show 500 error to end user when the commit does not exist
+			continue
+		}
+		for _, c := range converted {
+			byID[c.GitCommit.ID.String()] = c
+		}
+	}
+
+	for _, it := range items {
+		var commits []*git_model.SignCommitWithStatuses
+		for _, id := range it.ids {
+			if sc, ok := byID[id]; ok {
+				commits = append(commits, sc)
+			}
+		}
+		it.comment.Commits = commits
+		it.comment.CommitsNum = int64(len(commits))
+	}
 	return nil
 }
