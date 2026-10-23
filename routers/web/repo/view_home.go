@@ -349,6 +349,8 @@ func handleRepoHomeFeed(ctx *context.Context) bool {
 	}
 	if ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType) {
 		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+	} else if !ctx.Repo.Permission.CanRead(unit_model.TypeCode) { // the branch and file feeds list commits, like "/rss/branch/*" which requires the code unit
+		ctx.NotFound(nil)
 	} else if ctx.Repo.TreePath == "" {
 		feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
 	} else {
