@@ -1,5 +1,3 @@
-declare module 'jquery'; // untyped, only exposed as window.$ for custom user scripts
-
 interface Element {
   _tippy: import('tippy.js').Instance;
 }

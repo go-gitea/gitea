@@ -454,9 +454,7 @@ export default defineConfig([
       'no-regex-spaces': [2],
       'no-restricted-exports': [0],
       'no-restricted-globals': [2, 'self'],
-      'no-restricted-imports': [2, {paths: [
-        {name: 'jquery', message: 'jQuery is only exposed as window.$ for custom user scripts, Gitea code must not use it'},
-      ]}],
+      'no-restricted-imports': [0],
       'no-restricted-syntax': [2, 'WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'],
       'no-return-assign': [0],
       'no-script-url': [2],
