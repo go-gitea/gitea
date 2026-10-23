@@ -264,7 +264,7 @@ func authenticatedUserAsContextUser(allowSystemUser bool) func(ctx *context.APIC
 		}
 		isIndividualOrBot := ctx.Doer.IsIndividual() || ctx.Doer.IsTypeBot()
 		isSystem := ctx.Doer.ID < 0
-		if isIndividualOrBot || isSystem && !allowSystemUser {
+		if !isIndividualOrBot || isSystem && !allowSystemUser {
 			ctx.APIError(http.StatusForbidden, "this endpoint is only available for individual user or bot accounts")
 			return
 		}
@@ -1098,9 +1098,9 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
-		contextAuthenticatedDoerUser := authenticatedUserAsContextUser(false)
-		contextAuthenticatedDoerWithSystem := authenticatedUserAsContextUser(true)
-		m.Get("/user", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedDoerWithSystem, user.GetAuthenticatedUser)
+		contextRealDoerUser := authenticatedUserAsContextUser(false)
+		contextRealOrSystemUser := authenticatedUserAsContextUser(true)
+		m.Get("/user", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextRealOrSystemUser, user.GetAuthenticatedUser)
 		m.Group("/user", func() {
 			m.Get("/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), org.ListMyOrgs)
 			m.Group("/settings", func() {
@@ -1222,7 +1222,7 @@ func Routes() *web.Router {
 					m.Delete("", user.UnblockUser)
 				}, context.UserAssignmentAPI())
 			}, rejectPublicOnly())
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedDoerUser)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextRealDoerUser)
 
 		// Repositories (requires repo scope, org scope)
 		m.Post("/org/{org}/repos",
