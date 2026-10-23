@@ -307,20 +307,14 @@ func (r *Repository) RefTypeNameSubURL() string {
 	return r.RefFullName.RefWebLinkPath()
 }
 
-// GetEditorconfig returns the .editorconfig definition at the current commit,
-// falling back to the default branch when no commit is selected.
-func (r *Repository) GetEditorconfig(ctx context.Context, optCommit ...*git.Commit) (cfg *editorconfig.Editorconfig, warning, err error) {
+// GetEditorconfig returns the .editorconfig of the current commit, falling back to the default branch
+func (r *Repository) GetEditorconfig(ctx context.Context) (cfg *editorconfig.Editorconfig, warning, err error) {
 	if r.GitRepo == nil {
 		return nil, nil, nil
 	}
 
-	var commit *git.Commit
-
-	if len(optCommit) != 0 {
-		commit = optCommit[0]
-	} else if r.Commit != nil {
-		commit = r.Commit
-	} else {
+	commit := r.Commit
+	if commit == nil {
 		commit, err = r.GitRepo.GetBranchCommit(ctx, r.Repository.DefaultBranch)
 		if err != nil {
 			return nil, nil, err
