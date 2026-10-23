@@ -8,13 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type escapeControlTest struct {
@@ -143,6 +141,12 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 		status: EscapeStatus{Escaped: true, HasAmbiguous: true},
 	},
 	{
+		name:   "long text analyzed in overlapping windows",
+		text:   strings.Repeat("a", 4095) + "\u202e\u0436" + strings.Repeat("a", 5000) + "\u202e",
+		result: strings.Repeat("a", 4095) + "\u202e\u0436" + strings.Repeat("a", 5000) + `<span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">` + "\u202e" + `</span></span>`,
+		status: EscapeStatus{Escaped: true, HasInvisible: true},
+	},
+	{
 		name:   "broken byte before tag",
 		text:   "00\xa9<b>",
 		result: `00<span class="broken-code-point">�</span><b>`,
@@ -155,38 +159,29 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 	},
 }
 
-func TestEscapeControlReader(t *testing.T) {
+func TestEscapeControlHTML(t *testing.T) {
 	for _, tt := range escapeControlTests {
 		t.Run(tt.name, func(t *testing.T) {
-			output := &htmlutil.HTMLBuilder{}
-			status, err := EscapeControlReader(strings.NewReader(tt.text), output, &translation.MockLocale{})
-			assert.NoError(t, err)
+			status, output := EscapeControlHTML(template.HTML(tt.text), &translation.MockLocale{})
 			assert.Equal(t, tt.status, *status)
-			outStr := output.String()
-			assert.Equal(t, tt.result, outStr)
-
-			status, outHTML := EscapeControlHTML(template.HTML(tt.text), &translation.MockLocale{})
-			assert.Equal(t, tt.status, *status)
-			assert.EqualValues(t, tt.result, outHTML)
+			assert.EqualValues(t, tt.result, output)
 		})
 	}
 }
 
 func TestTrackHtmlTag(t *testing.T) {
-	e := &escapeStreamer{}
+	e := &htmlEscaper{}
 	for _, tt := range []struct {
-		parts  []string
+		tag    string
 		inMath bool
 	}{
-		{[]string{"<ma", `TH display="block">`}, true},
-		{[]string{"<mo>"}, true},
-		{[]string{"</MA", "th>"}, false},
-		{[]string{"<mathx>"}, false},
+		{`<maTH display="block">`, true},
+		{"<mo>", true},
+		{"</MAth>", false},
+		{"<mathx>", false},
 	} {
-		for _, part := range tt.parts {
-			e.trackHtmlTag([]byte(part))
-		}
-		assert.Equal(t, tt.inMath, e.inTagMath, "%v", tt.parts)
+		e.trackHtmlTag(tt.tag)
+		assert.Equal(t, tt.inMath, e.inTagMath, tt.tag)
 	}
 }
 
@@ -197,90 +192,4 @@ func TestSettingAmbiguousUnicodeDetection(t *testing.T) {
 	setting.UI.AmbiguousUnicodeDetection = false
 	_, out = EscapeControlHTML("a test", &translation.MockLocale{})
 	assert.EqualValues(t, `a test`, out)
-}
-
-func TestHTMLChunkReader(t *testing.T) {
-	type textPart struct {
-		text  string
-		isTag bool
-	}
-	testReadChunks := func(t *testing.T, chunkSize int, input string, expected []textPart) {
-		r := &htmlChunkReader{in: strings.NewReader(input), readBufFixed: make([]byte, chunkSize)}
-		var results []textPart
-		for {
-			readResults, err := r.readRunes()
-			if err != nil {
-				break
-			}
-			for _, res := range readResults {
-				results = append(results, textPart{string(res.content), res.inTag})
-			}
-		}
-		assert.Equal(t, expected, results, "chunk size: %d, input: %s", chunkSize, input)
-	}
-
-	testReadChunks(t, 10, "abc<def>ghi", []textPart{
-		{text: "abc", isTag: false},
-		{text: "<def>", isTag: true},
-		{text: "gh", isTag: false},
-		// -- chunk
-		{text: "i", isTag: false},
-	})
-
-	testReadChunks(t, 10, "<abc><def>ghi", []textPart{
-		{text: "<abc>", isTag: true},
-		{text: "<def>", isTag: true},
-		// -- chunk
-		{text: "ghi", isTag: false},
-	})
-
-	rune1, rune2, rune3, rune4 := "A", "é", "啊", "🌞"
-	require.Len(t, rune1, 1)
-	require.Len(t, rune2, 2)
-	require.Len(t, rune3, 3)
-	require.Len(t, rune4, 4)
-	for _, char := range []string{rune2, rune3, rune4, "\ufeff"} {
-		for split := 1; split < len(char); split++ {
-			testReadChunks(t, len("<b>")+split, "<b>"+char, []textPart{{"<b>", true}, {char, false}})
-		}
-	}
-
-	input := "<" + rune1 + rune2 + rune3 + rune4 + ">" + rune1 + rune2 + rune3 + rune4
-	testReadChunks(t, 4, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞", true}, {">", true}, {"Aé", false}, {"啊", false}, {"🌞", false}})
-	testReadChunks(t, 5, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"Aé", false}, {"啊", false}, {"🌞", false}})
-	testReadChunks(t, 6, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
-	testReadChunks(t, 7, input, []textPart{{"<Aé啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
-}
-
-// FuzzEscapeControlHTML checks that the ASCII shortcut skips nothing
-func FuzzEscapeControlHTML(f *testing.F) {
-	for _, tt := range escapeControlTests {
-		f.Add(tt.text)
-	}
-	for _, s := range []string{
-		"a\u202ebc", "x\u200by", "a\u00a0b", "\ufeffpackage a", "<span>\ufeffa</span>", "a\rb", "a\x7fb", "a\xffb",
-		`<span class="s">"café"</span> <span class="n">x</span>`, "<math><mo>\u2212</mo></math>\u2212", "<a title=\"\u202e\">b</a>",
-		"&#x202E;", "\u0430dmin", "日本語のテキスト\u200bです", "<", ">", "a<b", "<b",
-	} {
-		f.Add(s)
-	}
-	defer test.MockVariableValue(&setting.UI.AmbiguousUnicodeDetection, true)()
-	locale := &translation.MockLocale{}
-	f.Fuzz(func(t *testing.T, s string) {
-		want := &strings.Builder{}
-		wantStatus, err := escapeStream(locale, strings.NewReader(s), want)
-		require.NoError(t, err)
-		gotStatus, got := EscapeControlHTML(template.HTML(s), locale)
-		assert.Equal(t, *wantStatus, *gotStatus)
-		assert.Equal(t, want.String(), string(got))
-
-		if isStringAsciiSafe(s) {
-			es := &escapeStreamer{escaped: &EscapeStatus{}, locale: locale, ambiguousTables: AmbiguousTablesForLocale(locale)}
-			results := es.detectRunes([]byte(s))
-			es.analyzeDetectResults(results)
-			for _, res := range results {
-				assert.False(t, res.needEscape, "%q at %d", res.runeChar, res.position)
-			}
-		}
-	})
 }
