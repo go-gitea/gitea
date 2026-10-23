@@ -6,8 +6,8 @@ and testing see [development.md](development.md) and [testing.md](testing.md).
 
 ## Background
 
-The frontend uses [Vue 3](https://vuejs.org/), CSS derived from Fomantic-UI
-and [Tailwind CSS](https://tailwindcss.com/). Pages are rendered with Go HTML templates.
+The frontend uses [Vue 3](https://vuejs.org/) and [Tailwind CSS](https://tailwindcss.com/).
+Pages are rendered with Go HTML templates.
 Source files live in:
 
 - `web_src/css/`: CSS styles
@@ -30,7 +30,7 @@ Mixing frameworks arbitrarily makes code hard to maintain. Recommended combinati
 - Vue3
 - Vanilla JavaScript
 
-Vue components may reuse the Fomantic-UI derived CSS classes for visual consistency.
+Vue components may reuse the global CSS classes like `.ui.button` for visual consistency.
 Use Go templates for simple or SEO-relevant pages and Vue for complex, interactive pages.
 Gitea uses Vue 3 **without** JSX to keep HTML and JavaScript separate.
 
