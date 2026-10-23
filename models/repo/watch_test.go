@@ -34,7 +34,7 @@ func TestGetWatchers(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	watches, err := repo_model.GetWatchers(t.Context(), repo.ID)
 	assert.NoError(t, err)
-	// One watchers are inactive, thus minus 1
+	// One watcher is inactive, thus minus 1
 	assert.Len(t, watches, repo.NumWatches-1)
 	for _, watch := range watches {
 		assert.Equal(t, repo.ID, watch.RepoID)
@@ -90,20 +90,26 @@ func TestWatchIfAuto(t *testing.T) {
 
 	setting.Service.AutoWatchOnChanges = true
 
-	// Must not add watch
+	// Must not add watch (user 8 has "don't watch" set)
 	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 8, 1, true))
 	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 
-	// Should not add watch
+	// Should not add watch (read operation)
 	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 12, 1, false))
 	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 
-	// Should add watch
+	// Should add watch (write operation)
 	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 12, 1, true))
+	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
+	assert.NoError(t, err)
+	assert.Len(t, watchers, prevCount+1)
+
+	// Should not add watch (system user should not be able to watch)
+	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), user_model.ActionsUserID, 1, true))
 	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount+1)
@@ -145,7 +151,7 @@ func TestWatchOptions(t *testing.T) {
 	// repo 1 is watched by users 1, 4, 9 and 11, all with every event enabled
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeNormal, WatchPullRequests: true}))
+	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeNormal, WatchPullRequests: true})) // custom watches were stored like this before WatchModeCustom
 
 	for watchType, expected := range map[repo_model.WatchType][]int64{
 		repo_model.WatchPullRequests: {1, 4, 9, 11},
@@ -153,6 +159,20 @@ func TestWatchOptions(t *testing.T) {
 		repo_model.WatchReleases:     {4, 9, 11},
 	} {
 		ids, err := repo_model.GetRepoWatchersIDs(t.Context(), repo.ID, watchType)
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, expected, ids, watchType)
+	}
+
+	// a custom watch picking every event differs from all activity, which can be set up automatically
+	customUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), customUser, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeCustom, WatchPullRequests: true, WatchIssues: true, WatchReleases: true}))
+	assert.NoError(t, repo_model.WatchRepoAuto(t.Context(), customUser, repo, true)) // must keep the custom watch
+	for watchType, expected := range map[repo_model.WatchType][]int64{
+		repo_model.WatchPullRequests: {1, 4},
+		repo_model.WatchIssues:       {4},
+		repo_model.WatchReleases:     {4},
+	} {
+		ids, err := repo_model.GetRepoCustomWatchersIDs(t.Context(), repo.ID, watchType)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, expected, ids, watchType)
 	}
@@ -176,5 +196,6 @@ func TestWatchSelectedMode(t *testing.T) {
 	assert.Equal(t, "participate", (&repo_model.Watch{Mode: repo_model.WatchModeNormal}).SelectedMode())
 	assert.Equal(t, "ignore", (&repo_model.Watch{Mode: repo_model.WatchModeDont}).SelectedMode())
 	assert.Equal(t, "custom", (&repo_model.Watch{Mode: repo_model.WatchModeNormal, IncludeIssues: true}).SelectedMode())
+	assert.Equal(t, "custom", (&repo_model.Watch{Mode: repo_model.WatchModeCustom, IncludePullRequests: true, IncludeIssues: true, IncludeReleases: true}).SelectedMode())
 	assert.Equal(t, "all", (&repo_model.Watch{Mode: repo_model.WatchModeAuto, IncludePullRequests: true, IncludeIssues: true, IncludeReleases: true}).SelectedMode())
 }

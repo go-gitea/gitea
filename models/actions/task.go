@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -236,13 +237,13 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 
 func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 	if step.Name != "" {
-		name = string(step.Name) // the step has an explicit name
+		name = step.Name // the step has an explicit name
 	} else {
 		// for unnamed step, its "String()" method tries to get a display name by its "name", "uses",
 		// "run" or "id" (last fallback), we add the "Run " prefix for unnamed steps for better display
 		// for multi-line "run" scripts, only use the first line to match GitHub's behavior
 		// https://github.com/actions/runner/blob/66800900843747f37591b077091dd2c8cf2c1796/src/Runner.Worker/Handlers/ScriptHandler.cs#L45-L58
-		runStr, _, _ := strings.Cut(strings.TrimSpace(string(step.Run)), "\n")
+		runStr, _, _ := strings.Cut(strings.TrimSpace(step.Run), "\n")
 		name = "Run " + util.IfZero(strings.TrimSpace(runStr), step.String())
 	}
 	return util.EllipsisDisplayString(name, limit) // database column has a length limit
@@ -482,6 +483,11 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v
 	}
+	reportedSteps := state.ReportedSteps
+	if err := validateReportedSteps(reportedSteps); err != nil {
+		log.Warn("Ignore the steps reported for task %d: %v", state.Id, err)
+		reportedSteps = nil
+	}
 
 	// Only one request can update the task because the final state needs to be calculated with all job states.
 	// Otherwise, concurrent requests with transaction will make the SQL read stale job state and result in wrong final state.
@@ -538,22 +544,14 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			return err
 		}
 
+		if len(reportedSteps) > 0 {
+			return updateReportedSteps(ctx, task, reportedSteps, now)
+		}
+		if slices.ContainsFunc(task.Steps, (*ActionTaskStep).IsReported) {
+			return nil // the indexes of the steps of the workflow file no longer match the stored steps
+		}
 		for _, step := range task.Steps {
-			var result runnerv1.Result
-			if v, ok := stepStates[step.Index]; ok {
-				result = v.Result
-				step.LogIndex = v.LogIndex
-				step.LogLength = v.LogLength
-				if step.Started == 0 && v.StartedAt != nil {
-					step.Started = now
-				}
-			}
-			if result != runnerv1.Result_RESULT_UNSPECIFIED {
-				step.Status = StatusFromResult(result)
-				step.Stopped = util.IfZero(step.Stopped, now)
-			} else if step.Started != 0 {
-				step.Status = StatusRunning
-			}
+			step.applyState(stepStates[step.Index], now)
 			if _, err := db.GetEngine(ctx).ID(step.ID).Update(step); err != nil {
 				return err
 			}
@@ -637,13 +635,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	}
 
 	for _, step := range task.Steps {
-		if !step.Status.IsDone() {
-			step.Status = status
-			if step.Started == 0 {
-				step.Started = now
-			}
-			step.Stopped = now
-		}
+		step.stop(status, now)
 		if _, err := e.ID(step.ID).Update(step); err != nil {
 			return err
 		}

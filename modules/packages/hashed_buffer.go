@@ -65,6 +65,7 @@ func CreateHashedBufferFromReaderWithSize(r io.Reader, maxMemorySize int) (*Hash
 
 	_, err = io.Copy(b, r)
 	if err != nil {
+		_ = b.Close()
 		return nil, err
 	}
 

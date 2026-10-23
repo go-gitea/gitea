@@ -39,6 +39,7 @@ import (
 	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
 	pull_service "gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
 	user_service "gitea.dev/services/user"
 )
 
@@ -216,6 +217,11 @@ func combineXRefComments(issue *issues_model.Issue) {
 	}
 }
 
+// project workflows post as the user who triggered them, the metadata keeps their changes apart
+func sameCommentMetaData(a, b *issues_model.CommentMetaData) bool {
+	return a == b || (a != nil && b != nil && *a == *b)
+}
+
 // combineLabelComments combine the nearby label comments as one.
 func combineLabelComments(issue *issues_model.Issue) {
 	var prev, cur *issues_model.Comment
@@ -225,8 +231,9 @@ func combineLabelComments(issue *issues_model.Issue) {
 			prev = issue.Comments[i-1]
 		}
 		if i == 0 || cur.Type != issues_model.CommentTypeLabel ||
-			(prev != nil && prev.PosterID != cur.PosterID) ||
-			(prev != nil && cur.CreatedUnix-prev.CreatedUnix >= 60) {
+			(prev != nil && (prev.PosterID != cur.PosterID || prev.OriginalAuthor != cur.OriginalAuthor)) ||
+			(prev != nil && cur.CreatedUnix-prev.CreatedUnix >= 60) ||
+			(prev != nil && !sameCommentMetaData(prev.CommentMetaData, cur.CommentMetaData)) {
 			if cur.Type == issues_model.CommentTypeLabel && cur.Label != nil {
 				if cur.Content != "1" {
 					cur.RemovedLabels = append(cur.RemovedLabels, cur.Label)
@@ -286,7 +293,7 @@ func combineLabelComments(issue *issues_model.Issue) {
 func prepareIssueViewLoad(ctx *context.Context) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
+		ctx.ServerError("GetIssueByIndex", err)
 		return nil
 	}
 	issue.Repo = ctx.Repo.Repository
@@ -361,7 +368,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanRead(unit.TypeProjects)
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
 	if err := issue.LoadAttributes(ctx); err != nil {
@@ -900,14 +907,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 				return
 			}
 			if perm.CanWrite(unit.TypeCode) {
-				// Check if branch is not protected
-				if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
-					if protected, err := git_model.IsBranchProtected(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
-						log.Error("IsProtectedBranch: %v", err)
-					} else if !protected {
-						canDelete = true
-						ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
+				if err := repo_service.CanDeleteBranchWithPermission(ctx, pull.HeadRepo, pull.HeadBranch, ctx.Doer, perm); err != nil {
+					if errors.Is(err, util.ErrPermissionDenied) {
+						log.Trace("CanDeleteBranch: %v", err)
+					} else {
+						log.Error("CanDeleteBranch: %v", err)
 					}
+				} else {
+					canDelete = true
+					ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
 				}
 				canWriteToHeadRepo = true
 			}

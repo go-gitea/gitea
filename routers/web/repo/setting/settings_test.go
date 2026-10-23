@@ -30,7 +30,7 @@ import (
 )
 
 func TestAddDeployKey(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	t.Run("ReadOnly", func(t *testing.T) {
 		const testKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf\n"
 		ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/keys")
@@ -52,7 +52,7 @@ func TestAddDeployKey(t *testing.T) {
 }
 
 func TestCollaborationPost(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadUser(t, ctx, 4)
@@ -87,7 +87,7 @@ func TestCollaborationPost(t *testing.T) {
 }
 
 func TestCollaborationPost_InactiveUser(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadUser(t, ctx, 9)
@@ -110,7 +110,7 @@ func TestCollaborationPost_InactiveUser(t *testing.T) {
 }
 
 func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadUser(t, ctx, 4)
@@ -151,7 +151,7 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 }
 
 func TestCollaborationPost_NonExistentUser(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadRepo(t, ctx, 1)
@@ -173,7 +173,7 @@ func TestCollaborationPost_NonExistentUser(t *testing.T) {
 }
 
 func TestAddTeamPost(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 43})
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 11})
@@ -219,7 +219,7 @@ func TestAddTeamPost(t *testing.T) {
 }
 
 func TestDeleteTeam(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx, _ := contexttest.MockContext(t, "org3/team1/repo3")
 
 	ctx.Req.Form.Set("id", "2")

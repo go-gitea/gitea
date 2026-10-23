@@ -3,6 +3,7 @@ import {computed, onBeforeUnmount, onMounted} from 'vue';
 import tippy, {createSingleton} from 'tippy.js';
 import type {CreateSingletonInstance, Instance} from 'tippy.js';
 import {getCurrentLocale} from '../utils.ts';
+import {html} from '../utils/html.ts';
 
 type HeatmapValue = {date: Date; count: number};
 type HeatmapCell = {date: Date; colorIndex: number; ariaLabel: string; tooltip: string};
@@ -96,7 +97,7 @@ const grid = computed(() => {
         date: new Date(cursor),
         colorIndex: hit ? hit.colorIndex : 0,
         ariaLabel: `${head} ${on} ${dateStr}`,
-        tooltip: `<b>${head}</b> ${on} ${dateStr}`,
+        tooltip: html`<b>${head}</b> ${on} ${dateStr}`,
       });
       cursor.setDate(cursor.getDate() + 1);
     }

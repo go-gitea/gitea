@@ -366,7 +366,7 @@ func ViewUser(ctx *context.Context) {
 func getTargetBot(ctx *context.Context) *user_model.User {
 	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetUserByID", user_model.IsErrUserNotExist, err)
+		ctx.ServerError("GetUserByID", err)
 		return nil
 	}
 	if !u.IsTypeBot() {
