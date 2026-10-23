@@ -7,6 +7,7 @@ package user
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
@@ -20,6 +21,7 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/routers/web/feed"
 	"gitea.dev/routers/web/org"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
@@ -33,6 +35,14 @@ const (
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
 func OwnerProfile(ctx *context.Context) {
+	if strings.Contains(ctx.Req.Header.Get("Accept"), feed.ContentTypeRssXml) {
+		feed.ShowUserFeedRSS(ctx)
+		return
+	}
+	if strings.Contains(ctx.Req.Header.Get("Accept"), feed.ContentTypeAtomXml) {
+		feed.ShowUserFeedAtom(ctx)
+		return
+	}
 	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 	if ctx.ContextUser.IsOrganization() {
 		org.Home(ctx)

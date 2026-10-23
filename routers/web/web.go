@@ -912,7 +912,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), webAuth.AllowBasic, webAuth.AllowOAuth2, optSignIn, repo.GetAttachment)
 
 	m.Group("", func() {
-		// "UsernamePreRoute" is used to redirect username with a suffix like "/username.png" to "/-/ownername.png/username"
+		// "UsernamePreRoute" is used to rewrite username with a suffix like "/username.png" to "/-/ownername.png/username"
 		m.Get("/-/ownername.png/{username}", user.AvatarByUsernameSize)
 		m.Get("/-/ownername.keys/{username}", user.ShowSSHKeys)
 		m.Get("/-/ownername.gpg/{username}", user.ShowGPGKeys)

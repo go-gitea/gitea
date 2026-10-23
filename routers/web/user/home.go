@@ -706,7 +706,7 @@ func ShowGPGKeys(ctx *context.Context) {
 // UsernamePreRoute rewrites the route path if the username has a suffix, so that the correct handler can be called.
 func UsernamePreRoute(next http.Handler) http.Handler {
 	suffixes := container.SetOf(".png", ".keys", ".gpg", feed.ExtNameRss, feed.ExtNameAtom)
-	rewriteRoutePath := func(rctx *chi.Context, r *http.Request) string {
+	rewriteRoutePath := func(rctx *chi.Context) string {
 		if rctx.RouteMethod != "HEAD" && rctx.RouteMethod != "GET" {
 			return ""
 		}
@@ -727,17 +727,11 @@ func UsernamePreRoute(next http.Handler) http.Handler {
 		if suffixes.Contains(ext) {
 			return "/-/ownername" + ext + rctx.RoutePath[:len(rctx.RoutePath)-len(ext)]
 		}
-		// also try to rewrite "/username" to "/-/ownername.rss/{username}" if the Accept header is for RSS or Atom
-		if strings.Contains(r.Header.Get("Accept"), feed.ContentTypeRssXml) {
-			return "/-/ownername" + feed.ExtNameRss + rctx.RoutePath
-		} else if strings.Contains(r.Header.Get("Accept"), feed.ContentTypeAtomXml) {
-			return "/-/ownername" + feed.ExtNameAtom + rctx.RoutePath
-		}
 		return ""
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
-		if newPath := rewriteRoutePath(rctx, r); newPath != "" {
+		if newPath := rewriteRoutePath(rctx); newPath != "" {
 			rctx.RoutePath = newPath
 		}
 		next.ServeHTTP(w, r)

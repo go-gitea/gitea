@@ -134,6 +134,7 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	req = NewRequest(t, "GET", "/"+user31.Name)
 	MakeRequest(t, req, http.StatusNotFound)
 	MakeRequest(t, NewRequest(t, "GET", "/"+user31.Name).SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/"+user31.Name+".keys"), http.StatusNotFound)
 	strangerSession.MakeRequest(t, NewRequest(t, "POST", "/"+user31.Name+"?action=follow"), http.StatusNotFound)
 
 	oldName = user31.Name
@@ -338,6 +339,7 @@ func testGetUserRss(t *testing.T) {
 	session := loginUser(t, "user2")
 	req = NewRequestf(t, "GET", "/non-existent-user.rss")
 	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/").SetHeader("Accept", "application/rss+xml"), http.StatusOK)
 
 	defer test.MockVariableValue(&setting.Other.EnableFeed, false)()
 	MakeRequest(t, NewRequestf(t, "GET", "/%s.rss", user34), http.StatusNotFound)
