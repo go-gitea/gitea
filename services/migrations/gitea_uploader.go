@@ -597,6 +597,11 @@ func (g *GiteaLocalUploader) CreatePullRequests(ctx context.Context, prs ...*bas
 	return nil
 }
 
+func (g *GiteaLocalUploader) commitExists(ctx context.Context, sha string) bool {
+	_, _, err := gitcmd.NewCommand("rev-list", "--quiet", "-1").AddDynamicArguments(sha).WithRepo(g.repo).RunStdString(ctx)
+	return err == nil
+}
+
 func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *base.PullRequest) (head string, err error) {
 	// SECURITY: this pr must have been must have been ensured safe
 	if !pr.EnsuredSafe {
@@ -646,10 +651,14 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 			return head, nil
 		}
 
+		// ... the head commit may already be in the repository (e.g. fetched by the mirror clone as a hidden
+		// pull request ref), then no remote is needed and a private fork does not need credentials either
+		headIsLocal := pr.Head.SHA != "" && g.commitExists(ctx, pr.Head.SHA)
+
 		// 3. We need to create a remote for this clone url
 		// ... maybe we already have a name for this remote
 		remote, ok := g.prHeadCache[pr.Head.CloneURL+":"]
-		if !ok {
+		if !ok && !headIsLocal {
 			// ... let's try ownername as a reasonable name
 			remote = pr.Head.OwnerName
 			if !git.IsValidRefPattern(remote) {
@@ -657,16 +666,11 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
 			}
 			// ... now add the remote
-			err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true)
-			if err != nil {
+			if err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true); err != nil {
 				log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
-			} else {
-				g.prHeadCache[pr.Head.CloneURL+":"] = remote
-				ok = true
+				return head, nil
 			}
-		}
-		if !ok {
-			return head, nil
+			g.prHeadCache[pr.Head.CloneURL+":"] = remote
 		}
 
 		// 4. Check if we already have this ref?
@@ -690,15 +694,22 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				}
 			}
 
-			fetchArg := pr.Head.Ref + ":" + git.BranchPrefix + localRef
-			if strings.HasPrefix(fetchArg, "-") {
-				fetchArg = git.BranchPrefix + fetchArg
-			}
+			if headIsLocal {
+				if err = git.UpdateRef(ctx, g.repo, git.BranchPrefix+localRef, pr.Head.SHA); err != nil {
+					log.Error("Creating branch %s for PR #%d in %s/%s failed: %v", localRef, pr.Number, g.repoOwner, g.repoName, err)
+					return head, nil
+				}
+			} else {
+				fetchArg := pr.Head.Ref + ":" + git.BranchPrefix + localRef
+				if strings.HasPrefix(fetchArg, "-") {
+					fetchArg = git.BranchPrefix + fetchArg
+				}
 
-			_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithRepo(g.repo).RunStdString(ctx)
-			if err != nil {
-				log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
-				return head, nil
+				_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithRepo(g.repo).RunStdString(ctx)
+				if err != nil {
+					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+					return head, nil
+				}
 			}
 			g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref] = localRef
 			head = localRef
@@ -729,18 +740,11 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 	if pr.Head.SHA == "" {
 		// The SHA is empty
 		log.Warn("Empty reference, no pull head for PR #%d in %s/%s", pr.Number, g.repoOwner, g.repoName)
-	} else {
-		_, _, err = gitcmd.NewCommand("rev-list", "--quiet", "-1").
-			AddDynamicArguments(pr.Head.SHA).WithRepo(g.repo).RunStdString(ctx)
-		if err != nil {
-			// Git update-ref remove bad references with a relative path
-			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
-		} else {
-			// set head information
-			if err = git.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
-				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
-			}
-		}
+	} else if !g.commitExists(ctx, pr.Head.SHA) {
+		// Git update-ref remove bad references with a relative path
+		log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
+	} else if err = git.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
+		log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 	}
 
 	return head, nil
@@ -954,6 +958,10 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 				Patch:       patch,
 				CreatedUnix: timeutil.TimeStamp(comment.CreatedAt.Unix()),
 				UpdatedUnix: timeutil.TimeStamp(comment.UpdatedAt.Unix()),
+			}
+
+			if comment.Resolved {
+				c.ResolveDoerID = g.doer.ID // the original resolver is unknown to the migration data
 			}
 
 			if err := g.remapUser(ctx, review, &c); err != nil {
