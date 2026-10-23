@@ -29,7 +29,7 @@ type HTTPClient struct {
 	transfers map[string]TransferAdapter
 }
 
-// BatchSize returns the preferred size of batchs to process
+// BatchSize returns the preferred size of batches to process
 func (c *HTTPClient) BatchSize() int {
 	return setting.LFSClient.BatchSize
 }
