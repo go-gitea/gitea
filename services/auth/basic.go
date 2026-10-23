@@ -97,7 +97,7 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 		}
 
 		if err = auth_model.TouchAccessToken(req.Context(), token); err != nil {
-			log.Error("TouchAccessToken: %v", err)
+			log.Error("VerifyAuthToken: %v", err)
 		}
 
 		u.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, token.ID, token.Scope)

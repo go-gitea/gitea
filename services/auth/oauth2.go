@@ -138,7 +138,7 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string) (*user_mode
 	}
 
 	if err = auth_model.TouchAccessToken(ctx, t); err != nil {
-		log.Error("TouchAccessToken: %v", err)
+		log.Error("userFromToken: %v", err)
 	}
 	user, err := user_model.GetUserByID(ctx, t.UID)
 	if err != nil {

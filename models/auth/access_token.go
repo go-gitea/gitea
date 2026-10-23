@@ -152,7 +152,7 @@ func (opts ListAccessTokensOptions) ToOrders() string {
 	return "created_unix DESC"
 }
 
-// TouchAccessToken records a token use in updated_unix, at most once a minute after the first use.
+// TouchAccessToken records a token use at most once a minute, re-checked in SQL so concurrent stale copies write once.
 func TouchAccessToken(ctx context.Context, t *AccessToken) error {
 	const intervalSeconds = 60
 	now := timeutil.TimeStampNow()
@@ -160,7 +160,7 @@ func TouchAccessToken(ctx context.Context, t *AccessToken) error {
 		return nil
 	}
 	_, err := db.GetEngine(ctx).Where("id = ? AND (updated_unix <= created_unix OR updated_unix <= ?)", t.ID, now-intervalSeconds).
-		Cols("updated_unix").NoAutoTime().Update(&AccessToken{UpdatedUnix: now}) // re-checked in SQL so concurrent stale copies write once
+		Cols("updated_unix").NoAutoTime().Update(&AccessToken{UpdatedUnix: max(now, t.CreatedUnix+1)})
 	return err
 }
 

@@ -206,7 +206,7 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 			TokenLastEight: lastEight,
 		}
 		// Re-get the task from the db in case it has been deleted in the intervening period
-		has, err := db.GetEngine(ctx).ID(cached.TokenID).Get(task)
+		has, err := db.GetEngine(ctx).ID(cached.TokenID).In("status", StatusRunning, StatusCancelling).Get(task)
 		if err != nil {
 			return nil, err
 		}

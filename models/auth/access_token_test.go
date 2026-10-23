@@ -114,14 +114,13 @@ func TestTouchAccessToken(t *testing.T) {
 	touch := func(created, updated, loadedUpdated int64) int64 {
 		_, err := db.GetEngine(t.Context()).Exec("UPDATE access_token SET created_unix = ?, updated_unix = ? WHERE id = 1", created, updated)
 		assert.NoError(t, err)
-		token := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 1})
-		token.Name, token.UpdatedUnix = "Token Z", timeutil.TimeStamp(loadedUpdated)
+		token := &auth_model.AccessToken{ID: 1, Name: "Token Z", CreatedUnix: timeutil.TimeStamp(created), UpdatedUnix: timeutil.TimeStamp(loadedUpdated)}
 		assert.NoError(t, auth_model.TouchAccessToken(t.Context(), token))
 		return int64(unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 1, Name: "Token A"}).UpdatedUnix)
 	}
 	assert.GreaterOrEqual(t, touch(now-7200, now-3600, now-3600), now)
 	assert.Equal(t, now-1, touch(now-7200, now-1, now-1))
-	assert.GreaterOrEqual(t, touch(now-10, now-10, now-10), now)
+	assert.Greater(t, touch(now, now, now), now)
 	assert.Equal(t, now+5, touch(now-7200, now+5, now-3600))
 }
 

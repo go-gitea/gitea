@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,6 +49,20 @@ func TestGetTaskRunnerNames(t *testing.T) {
 	names, err := GetTaskRunnerNames(ctx, []int64{task.ID, 987654321})
 	require.NoError(t, err)
 	assert.Equal(t, map[int64]string{task.ID: runner.Name}, names)
+}
+
+func TestGetRunningTaskByToken(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	task := &ActionTask{Status: StatusRunning}
+	task.GenerateAndFillToken()
+	require.NoError(t, db.Insert(ctx, task))
+	_, err := GetRunningTaskByToken(ctx, task.Token)
+	require.NoError(t, err)
+	_, err = db.GetEngine(ctx).ID(task.ID).Cols("status").Update(&ActionTask{Status: StatusSuccess})
+	require.NoError(t, err)
+	_, err = GetRunningTaskByToken(ctx, task.Token)
+	assert.ErrorIs(t, err, util.ErrNotExist)
 }
 
 func TestMakeTaskStepDisplayName(t *testing.T) {
