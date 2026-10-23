@@ -650,4 +650,8 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: []int64{2},
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
+
+	readerToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteIssue)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{Title: "issue by a reader", Projects: []int64{1}}).AddTokenAuth(readerToken)
+	assert.Empty(t, DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Issue{}).Projects)
 }

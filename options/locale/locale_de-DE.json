@@ -3554,7 +3554,6 @@
   "units.error.no_unit_allowed_repo": "Du hast keine Berechtigung, auf etwas in diesem Repository zuzugreifen.",
   "units.error.unit_not_allowed": "Du hast keine Berechtigung, um auf diesen Repository-Bereich zuzugreifen.",
   "packages.title": "Pakete",
-  "packages.desc": "Repository-Pakete verwalten.",
   "packages.empty": "Noch keine Pakete vorhanden.",
   "packages.no_metadata": "Keine Metadaten.",
   "packages.empty.documentation": "Weitere Informationen zur Paket-Registry findest Du in der <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%s\">Dokumentation</a>.",

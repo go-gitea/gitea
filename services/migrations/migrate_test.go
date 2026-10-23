@@ -32,6 +32,9 @@ func TestIsAuthenticationError(t *testing.T) {
 		{"github unauthorized", true, util.SanitizeErrorCredentialURLs(&github.ErrorResponse{Response: &http.Response{StatusCode: http.StatusUnauthorized}})},
 		{"github other", false, &github.ErrorResponse{Response: &http.Response{StatusCode: http.StatusNotFound}}},
 		{"github nil response", false, &github.ErrorResponse{}},
+		{"bitbucket server unauthorized", true, fmt.Errorf("wrapped: %w", &bbsStatusError{Status: http.StatusUnauthorized})},
+		{"bitbucket server forbidden", true, &bbsStatusError{Status: http.StatusForbidden}},
+		{"bitbucket server not found", false, &bbsStatusError{Status: http.StatusNotFound}},
 		{"unrelated error", false, errDummy},
 	}
 	for _, c := range cases {
