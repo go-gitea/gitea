@@ -4,13 +4,26 @@
 package project
 
 import (
+	"fmt"
+	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"testing"
 
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -55,6 +68,61 @@ func TestFindColumn(t *testing.T) {
 				// a foreign ID must read as not found, never as a 500
 				assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
 			}
+		})
+	}
+}
+
+func TestMoveIssuesNeedsIssueRead(t *testing.T) {
+	stripTeamIssues := func(t *testing.T) {
+		_, err := db.Exec(t.Context(), "UPDATE team SET authorize = ? WHERE id = ?", perm.AccessModeNone, 2)
+		require.NoError(t, err)
+		_, err = db.DeleteByBean(t.Context(), &organization.TeamUnit{TeamID: 2, Type: unit.TypeIssues})
+		require.NoError(t, err)
+	}
+	archiveRepo3 := func(t *testing.T) {
+		require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: 3, IsArchived: true}, "is_archived"))
+	}
+	for _, tc := range []struct {
+		name      string
+		doerID    int64
+		repoBoard bool
+		prepare   func(*testing.T)
+		status    int
+	}{
+		{"OwnerBoardReader", 2, false, nil, http.StatusOK},
+		{"OwnerBoardWithoutIssueAccess", 15, false, nil, http.StatusNotFound},
+		{"OwnerBoardArchivedRepo", 2, false, archiveRepo3, http.StatusLocked},
+		{"RepoBoardProjectsWriterWithoutIssueRead", 4, true, stripTeamIssues, http.StatusNotFound},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			unittest.PrepareTestEnv(t)
+			if tc.prepare != nil {
+				tc.prepare(t)
+			}
+			ctx, _ := contexttest.MockContext(t, "POST /org3/-/projects")
+			contexttest.LoadUser(t, ctx, tc.doerID)
+			project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 2})
+			if tc.repoBoard {
+				contexttest.LoadRepo(t, ctx, 3)
+			} else {
+				ctx.ContextUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+				project = &project_model.Project{Title: "board", OwnerID: 3, CreatorID: 2, Type: project_model.TypeOrganization}
+				require.NoError(t, project_model.NewProject(ctx, project))
+				require.NoError(t, project_model.NewColumn(ctx, &project_model.Column{Title: "Backlog", ProjectID: project.ID, Default: true}))
+			}
+			column := &project_model.Column{Title: "Done", ProjectID: project.ID}
+			require.NoError(t, project_model.NewColumn(ctx, column))
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
+			_, _, err := issues_model.IssueAssignOrRemoveProject(ctx, issue, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}), []int64{project.ID})
+			require.NoError(t, err)
+			ctx.SetPathParam("id", strconv.FormatInt(project.ID, 10))
+			ctx.SetPathParam("columnID", strconv.FormatInt(column.ID, 10))
+			ctx.Req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf(`{"issues":[{"issueID":%d,"sorting":0}]}`, issue.ID)))
+
+			MoveIssues(ctx)
+			assert.Equal(t, tc.status, ctx.Resp.WrittenStatus())
+			card := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: project.ID})
+			assert.Equal(t, tc.status == http.StatusOK, card.ProjectColumnID == column.ID)
 		})
 	}
 }

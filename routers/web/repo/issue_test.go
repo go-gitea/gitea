@@ -219,6 +219,19 @@ func TestCombineLabelComments(t *testing.T) {
 			},
 		},
 		{
+			name: "migrated events of different original authors",
+			beforeCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeComment, PosterID: 1},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "alice", Content: "1", Label: &issues_model.Label{Name: "kind/bug"}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "bob", Content: "1", Label: &issues_model.Label{Name: "kind/ui"}},
+			},
+			afterCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeComment, PosterID: 1},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "alice", Content: "1", Label: &issues_model.Label{Name: "kind/bug"}, AddedLabels: []*issues_model.Label{{Name: "kind/bug"}}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "bob", Content: "1", Label: &issues_model.Label{Name: "kind/ui"}, AddedLabels: []*issues_model.Label{{Name: "kind/ui"}}},
+			},
+		},
+		{
 			name: "kase 4",
 			beforeCombined: []*issues_model.Comment{
 				{
@@ -383,6 +396,17 @@ func TestCombineLabelComments(t *testing.T) {
 					},
 					CreatedUnix: 0,
 				},
+			},
+		},
+		{
+			name: "project workflow",
+			beforeCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "kind/bug"}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "status/done"}, CommentMetaData: &issues_model.CommentMetaData{SpecialDoerName: issues_model.SpecialDoerNameProjectWorkflow}},
+			},
+			afterCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "kind/bug"}, AddedLabels: []*issues_model.Label{{Name: "kind/bug"}}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "status/done"}, AddedLabels: []*issues_model.Label{{Name: "status/done"}}, CommentMetaData: &issues_model.CommentMetaData{SpecialDoerName: issues_model.SpecialDoerNameProjectWorkflow}},
 			},
 		},
 	}
