@@ -305,19 +305,18 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 				// we cannot use asset.Name because it might contains special characters.
 				attachLocalPath := filepath.Join(attachDir, uuid.New().String())
 
-				// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
-				// ... we must assume that they are safe and simply download the attachment
+				// SECURITY: Prefer DownloadFunc and fall back to the migration-filtered HTTP client.
 				// download attachment
 				err := func(attachPath string) error {
 					var rc io.ReadCloser
 					var err error
-					if asset.DownloadURL == nil {
+					if asset.DownloadFunc != nil {
 						rc, err = asset.DownloadFunc()
 						if err != nil {
 							return err
 						}
 						defer rc.Close()
-					} else {
+					} else if asset.DownloadURL != nil {
 						// use the migration client so the fetch (including any redirect) is
 						// validated against the migration host allow/block list
 						resp, err := getMigrationHTTPClient().Get(*asset.DownloadURL)
@@ -326,6 +325,8 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 						}
 						defer resp.Body.Close()
 						rc = resp.Body
+					} else {
+						return errors.New("missing download URL and download function")
 					}
 
 					fw, err := os.Create(attachPath)
