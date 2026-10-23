@@ -6,13 +6,13 @@ package repo
 import (
 	"testing"
 
-	"gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

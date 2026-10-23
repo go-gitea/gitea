@@ -8,11 +8,11 @@ import (
 	"net/url"
 	"time"
 
-	packages_model "gitea.dev/models/packages"
-	access_model "gitea.dev/models/perm/access"
-	"gitea.dev/modules/log"
-	composer_module "gitea.dev/modules/packages/composer"
-	"gitea.dev/services/context"
+	packages_model "codenest.dev/models/packages"
+	access_model "codenest.dev/models/perm/access"
+	"codenest.dev/modules/log"
+	composer_module "codenest.dev/modules/packages/composer"
+	"codenest.dev/services/context"
 )
 
 // ServiceIndexResponse contains registry endpoints

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modelmigration/migrationtest"
+	"codenest.dev/modelmigration/migrationtest"
 
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +24,7 @@ func TestRecreateEmailHashTable(t *testing.T) {
 		return
 	}
 
-	_, err := x.Insert(&EmailHash{Hash: strings.Repeat("a", 32), Email: "gitea@example.com"})
+	_, err := x.Insert(&EmailHash{Hash: strings.Repeat("a", 32), Email: "codenest@example.com"})
 	require.NoError(t, err)
 
 	require.NoError(t, RecreateEmailHashTable(t.Context(), x))
@@ -33,6 +33,6 @@ func TestRecreateEmailHashTable(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 0, count, "the unreachable MD5 rows must be gone")
 
-	_, err = x.Exec("INSERT INTO email_hash (hash, email, hash_type) VALUES (?, ?, ?)", strings.Repeat("b", 64), "gitea@example.com", "sha256")
+	_, err = x.Exec("INSERT INTO email_hash (hash, email, hash_type) VALUES (?, ?, ?)", strings.Repeat("b", 64), "codenest@example.com", "sha256")
 	require.NoError(t, err, "the new schema must hold a SHA256 hash")
 }

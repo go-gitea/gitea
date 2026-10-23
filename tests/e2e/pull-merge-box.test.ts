@@ -2,7 +2,7 @@ import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import {apiCreateFiles, apiCreatePR, apiCreateRepo, assertNoJsError, login, randomString} from './utils.ts';
 
-const owner = env.GITEA_TEST_E2E_USER;
+const owner = env.CODENEST_TEST_E2E_USER;
 
 test('merge box merges a pull request', async ({page, request}) => {
   const repo = `e2e-merge-box-${randomString(8)}`;

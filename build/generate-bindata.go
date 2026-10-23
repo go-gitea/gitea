@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"gitea.dev/modules/assetfs"
+	"codenest.dev/modules/assetfs"
 )
 
 func main() {

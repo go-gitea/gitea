@@ -10,12 +10,12 @@ import (
 	"net/textproto"
 	"strings"
 
-	audit_model "gitea.dev/models/audit"
-	auth_model "gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/audit"
+	audit_model "codenest.dev/models/audit"
+	auth_model "codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/audit"
 )
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server

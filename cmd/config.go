@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -19,7 +19,7 @@ func cmdConfig() *cli.Command {
 		Name:  "edit-ini",
 		Usage: "Load an existing INI file, apply environment variables, keep specified keys, and output to a new INI file.",
 		Description: `
-Help users to edit the Gitea configuration INI file.
+Help users to edit the CodeNest configuration INI file.
 
 # Keep Specified Keys
 
@@ -31,15 +31,15 @@ it can use a template file (only keys take effect, values are ignored):
   [security]
   SECRET_KEY=
 
-$ ./gitea config edit-ini --config app-old.ini --config-keep-keys app-keys.ini --out app-new.ini
+$ ./codenest config edit-ini --config app-old.ini --config-keep-keys app-keys.ini --out app-new.ini
 
 # Map Environment Variables to INI Configuration
 
-Environment variables of the form "GITEA__section_name__KEY_NAME"
+Environment variables of the form "CODENEST__section_name__KEY_NAME"
 will be mapped to the ini section "[section_name]" and the key
 "KEY_NAME" with the value as provided.
 
-Environment variables of the form "GITEA__section_name__KEY_NAME__FILE"
+Environment variables of the form "CODENEST__section_name__KEY_NAME__FILE"
 will be mapped to the ini section "[section_name]" and the key
 "KEY_NAME" with the value loaded from the specified file.
 
@@ -50,11 +50,11 @@ For example, to apply this config:
 	[git.config]
 	foo.bar=val
 
-$ export GITEA__git_0x2E_config__foo_0x2E_bar=val
+$ export CODENEST__git_0x2E_config__foo_0x2E_bar=val
 
 # Put All Together
 
-$ ./gitea config edit-ini --config app.ini --config-keep-keys app-keys.ini --apply-env {--in-place|--out app-new.ini}
+$ ./codenest config edit-ini --config app.ini --config-keep-keys app-keys.ini --apply-env {--in-place|--out app-new.ini}
 `,
 		Flags: []cli.Flag{
 			// "--config" flag is provided by global flags, and this flag is also used by "environment-to-ini" script wrapper
@@ -69,7 +69,7 @@ $ ./gitea config edit-ini --config app.ini --config-keep-keys app-keys.ini --app
 			},
 			&cli.BoolFlag{
 				Name:  "apply-env",
-				Usage: "Apply all GITEA__* variables from the environment to the config.",
+				Usage: "Apply all CODENEST__* variables from the environment to the config.",
 			},
 			&cli.StringFlag{
 				Name:  "out",
@@ -81,7 +81,7 @@ $ ./gitea config edit-ini --config app.ini --config-keep-keys app-keys.ini --app
 
 	return &cli.Command{
 		Name:  "config",
-		Usage: "Manage Gitea configuration",
+		Usage: "Manage CodeNest configuration",
 		Commands: []*cli.Command{
 			subcmdConfigEditIni,
 		},

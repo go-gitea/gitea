@@ -6,7 +6,7 @@ package structs
 import (
 	"time"
 
-	"gitea.dev/modules/commitstatus"
+	"codenest.dev/modules/commitstatus"
 )
 
 // CommitStatus holds a single status of a single Commit

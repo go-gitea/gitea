@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/git"
+	"codenest.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestFindLFSFile(t *testing.T) {
-	repoPath := "../../../tests/gitea-repositories-meta/user2/lfs.git"
+	repoPath := "../../../tests/codenest-repositories-meta/user2/lfs.git"
 	gitRepo, err := git.OpenRepositoryLocal(t.Context(), repoPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()

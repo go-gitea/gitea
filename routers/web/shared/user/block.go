@@ -6,13 +6,13 @@ package user
 import (
 	"errors"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
-	user_service "gitea.dev/services/user"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
+	user_service "codenest.dev/services/user"
 )
 
 func BlockedUsers(ctx *context.Context, blocker *user_model.User) {

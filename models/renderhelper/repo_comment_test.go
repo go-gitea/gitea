@@ -6,9 +6,9 @@ package renderhelper
 import (
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/markup/markdown"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/markup/markdown"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +36,7 @@ func TestRepoComment(t *testing.T) {
 	t.Run("AbsoluteAndRelative", func(t *testing.T) {
 		rctx := NewRenderContextRepoComment(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 
-		// It is Gitea's old behavior, the relative path is resolved to the repo path
+		// It is CodeNest's old behavior, the relative path is resolved to the repo path
 		// It is different from GitHub, GitHub resolves relative links to current page's path
 		rendered, err := testRenderString(rctx, `
 [/test](/test)

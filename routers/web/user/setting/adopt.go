@@ -4,12 +4,12 @@
 package setting
 
 import (
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/context"
-	repo_service "gitea.dev/services/repository"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/context"
+	repo_service "codenest.dev/services/repository"
 )
 
 // AdoptOrDeleteRepository adopts or deletes a repository

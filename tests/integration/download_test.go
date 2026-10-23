@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

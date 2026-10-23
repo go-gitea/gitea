@@ -4,10 +4,10 @@
 package setting
 
 import (
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/context"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/context"
 )
 
 const (

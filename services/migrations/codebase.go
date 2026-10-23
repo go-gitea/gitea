@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/log"
-	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/structs"
+	"codenest.dev/modules/log"
+	base "codenest.dev/modules/migration"
+	"codenest.dev/modules/structs"
 )
 
 var (

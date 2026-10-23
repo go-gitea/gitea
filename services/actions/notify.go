@@ -6,9 +6,9 @@ package actions
 import (
 	"context"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/modules/log"
-	notify_service "gitea.dev/services/notify"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/modules/log"
+	notify_service "codenest.dev/services/notify"
 )
 
 // NotifyWorkflowJobsAndRunsStatusUpdate notifies status changes for a batch of jobs and the runs they affect.

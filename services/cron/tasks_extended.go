@@ -7,19 +7,19 @@ import (
 	"context"
 	"time"
 
-	activities_model "gitea.dev/models/activities"
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/system"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git/gitcmd"
-	issue_indexer "gitea.dev/modules/indexer/issues"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/updatechecker"
-	asymkey_service "gitea.dev/services/asymkey"
-	"gitea.dev/services/audit"
-	repo_service "gitea.dev/services/repository"
-	archiver_service "gitea.dev/services/repository/archiver"
-	user_service "gitea.dev/services/user"
+	activities_model "codenest.dev/models/activities"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/system"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git/gitcmd"
+	issue_indexer "codenest.dev/modules/indexer/issues"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/updatechecker"
+	asymkey_service "codenest.dev/services/asymkey"
+	"codenest.dev/services/audit"
+	repo_service "codenest.dev/services/repository"
+	archiver_service "codenest.dev/services/repository/archiver"
+	user_service "codenest.dev/services/user"
 )
 
 func registerDeleteInactiveUsers() {
@@ -155,7 +155,7 @@ func registerDeleteOldAuditEvents() {
 	})
 }
 
-func registerUpdateGiteaChecker() {
+func registerUpdateCodeNestChecker() {
 	type UpdateCheckerConfig struct {
 		BaseConfig
 		HTTPEndpoint string
@@ -168,7 +168,7 @@ func registerUpdateGiteaChecker() {
 		},
 		HTTPEndpoint: "https://dl.gitea.com/gitea/version.json",
 	}, func(ctx context.Context, _ *user_model.User, config *UpdateCheckerConfig) error {
-		return updatechecker.GiteaUpdateChecker(config.HTTPEndpoint)
+		return updatechecker.CodeNestUpdateChecker(config.HTTPEndpoint)
 	})
 }
 
@@ -249,7 +249,7 @@ func initExtendedTasks() {
 	registerRemoveRandomAvatars()
 	registerDeleteOldActions()
 	registerDeleteOldAuditEvents()
-	registerUpdateGiteaChecker()
+	registerUpdateCodeNestChecker()
 	registerDeleteOldSystemNotices()
 	registerGCLFS()
 	registerRebuildIssueIndexer()

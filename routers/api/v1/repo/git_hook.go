@@ -7,11 +7,11 @@ import (
 	"errors"
 	"net/http"
 
-	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	"codenest.dev/modules/git"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // ListGitHooks list all Git hooks of a repository

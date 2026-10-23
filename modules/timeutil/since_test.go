@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/translation"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +26,7 @@ const (
 )
 
 func TestMain(m *testing.M) {
-	setting.SetupGiteaTestEnv()
+	setting.SetupCodeNestTestEnv()
 	setting.Names = []string{"english"}
 	setting.Langs = []string{"en-US"}
 	// setup

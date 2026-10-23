@@ -76,7 +76,7 @@ func SetupStderrLogger(loggerName, writerName string, level Level) {
 		// For most CLI commands, it's better to use Stderr as log output:
 		// this logger is installed early (app.Before), before subcommands like "dump" redirect logging to stderr.
 		// If Stdout, early log output (e.g.: warning during config loading) goes to stdout
-		// and corrupts any command that writes data to stdout (e.g. "gitea dump --file -").
+		// and corrupts any command that writes data to stdout (e.g. "codenest dump --file -").
 		//
 		// It is inconsistent with the web server's default console logger from config
 		// (which will be initialized later and use Stdout by default), but there is no other way at the moment:

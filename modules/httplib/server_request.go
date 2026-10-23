@@ -12,9 +12,9 @@ import (
 	"net/url"
 	"strings"
 
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 type contextKeyType string
@@ -122,13 +122,13 @@ func GuessCurrentHostURL(ctx context.Context) string {
 		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}
 	// Try the best guess to get the current host URL (will be used for public URL) by http headers.
-	// At the moment, if site admin doesn't configure the proxy headers correctly, then Gitea would guess wrong.
+	// At the moment, if site admin doesn't configure the proxy headers correctly, then CodeNest would guess wrong.
 	// There are some cases:
-	// 1. The reverse proxy is configured correctly, it passes "X-Forwarded-Proto/Host" headers. Perfect, Gitea can handle it correctly.
-	// 2. The reverse proxy is not configured correctly, doesn't pass "X-Forwarded-Proto/Host" headers, eg: only one "proxy_pass http://gitea:3000" in Nginx.
+	// 1. The reverse proxy is configured correctly, it passes "X-Forwarded-Proto/Host" headers. Perfect, CodeNest can handle it correctly.
+	// 2. The reverse proxy is not configured correctly, doesn't pass "X-Forwarded-Proto/Host" headers, eg: only one "proxy_pass http://codenest:3000" in Nginx.
 	// 3. There is no reverse proxy.
-	// Without more information, Gitea is impossible to distinguish between case 2 and case 3, then case 2 would result in
-	// wrong guess like guessed public URL becomes "http://gitea:3000/" behind a "https" reverse proxy, which is not accessible by end users.
+	// Without more information, CodeNest is impossible to distinguish between case 2 and case 3, then case 2 would result in
+	// wrong guess like guessed public URL becomes "http://codenest:3000/" behind a "https" reverse proxy, which is not accessible by end users.
 	// So we introduced "PUBLIC_URL_DETECTION" option, to control the guessing behavior to satisfy different use cases.
 	req, ok := ctx.Value(contextKeyRequest).(*http.Request)
 	if !ok {
@@ -171,10 +171,10 @@ func MakeAbsoluteURL(ctx context.Context, link string) string {
 type urlType int
 
 const (
-	urlTypeGiteaAbsolute     urlType = iota + 1 // "http://gitea/subpath"
-	urlTypeGiteaPageRelative                    // "/subpath"
-	urlTypeGiteaSiteRelative                    // "?key=val"
-	urlTypeUnknown                              // "http://other"
+	urlTypeCodeNestAbsolute     urlType = iota + 1 // "http://codenest/subpath"
+	urlTypeCodeNestPageRelative                    // "/subpath"
+	urlTypeCodeNestSiteRelative                    // "?key=val"
+	urlTypeUnknown                                 // "http://other"
 )
 
 func detectURLRoutePath(ctx context.Context, s string) (routePath string, ut urlType) {
@@ -189,43 +189,43 @@ func detectURLRoutePath(ctx context.Context, s string) (routePath string, ut url
 	}
 	if urlIsRelative(s, u) {
 		if u.Path == "" {
-			return "", urlTypeGiteaPageRelative
+			return "", urlTypeCodeNestPageRelative
 		}
 		if strings.HasPrefix(strings.ToLower(cleanedPath+"/"), strings.ToLower(setting.AppSubURL+"/")) {
-			return cleanedPath[len(setting.AppSubURL):], urlTypeGiteaSiteRelative
+			return cleanedPath[len(setting.AppSubURL):], urlTypeCodeNestSiteRelative
 		}
 		return "", urlTypeUnknown
 	}
 	u.Path = cleanedPath + "/"
 	urlLower := strings.ToLower(u.String())
 	if strings.HasPrefix(urlLower, strings.ToLower(setting.AppURL)) {
-		return cleanedPath[len(setting.AppSubURL):], urlTypeGiteaAbsolute
+		return cleanedPath[len(setting.AppSubURL):], urlTypeCodeNestAbsolute
 	}
 	guessedCurURL := GuessCurrentAppURL(ctx)
 	if strings.HasPrefix(urlLower, strings.ToLower(guessedCurURL)) {
-		return cleanedPath[len(setting.AppSubURL):], urlTypeGiteaAbsolute
+		return cleanedPath[len(setting.AppSubURL):], urlTypeCodeNestAbsolute
 	}
 	return "", urlTypeUnknown
 }
 
-func IsCurrentGiteaSiteURL(ctx context.Context, s string) bool {
+func IsCurrentCodeNestSiteURL(ctx context.Context, s string) bool {
 	_, ut := detectURLRoutePath(ctx, s)
 	return ut != urlTypeUnknown
 }
 
-type GiteaSiteURL struct {
+type CodeNestSiteURL struct {
 	RoutePath   string
 	OwnerName   string
 	RepoName    string
 	RepoSubPath string
 }
 
-func ParseGiteaSiteURL(ctx context.Context, s string) *GiteaSiteURL {
+func ParseCodeNestSiteURL(ctx context.Context, s string) *CodeNestSiteURL {
 	routePath, ut := detectURLRoutePath(ctx, s)
-	if ut == urlTypeUnknown || ut == urlTypeGiteaPageRelative {
+	if ut == urlTypeUnknown || ut == urlTypeCodeNestPageRelative {
 		return nil
 	}
-	ret := &GiteaSiteURL{RoutePath: routePath}
+	ret := &CodeNestSiteURL{RoutePath: routePath}
 	fields := strings.SplitN(strings.TrimPrefix(ret.RoutePath, "/"), "/", 3)
 
 	// TODO: now it only does a quick check for some known reserved paths, should do more strict checks in the future
@@ -243,7 +243,7 @@ func ParseGiteaSiteURL(ctx context.Context, s string) *GiteaSiteURL {
 	return ret
 }
 
-func IsGiteaFetchActionRequest(req *http.Request) bool {
+func IsCodeNestFetchActionRequest(req *http.Request) bool {
 	return req.Header.Get("X-Gitea-Fetch-Action") != ""
 }
 

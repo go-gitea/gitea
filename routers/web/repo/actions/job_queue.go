@@ -6,9 +6,9 @@ package actions
 import (
 	"errors"
 
-	"gitea.dev/modules/util"
-	shared_actions "gitea.dev/routers/web/shared/actions"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/util"
+	shared_actions "codenest.dev/routers/web/shared/actions"
+	"codenest.dev/services/context"
 )
 
 // JobQueue renders this repository's Actions job queue.

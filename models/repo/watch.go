@@ -6,10 +6,10 @@ package repo
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )

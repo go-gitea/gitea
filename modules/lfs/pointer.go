@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // spec: https://github.com/git-lfs/git-lfs/blob/master/docs/spec.md
@@ -117,9 +117,9 @@ func (p Pointer) RelativePath() string {
 		setting.PanicInDevOrTesting("invalid LFS OID: %s", p.Oid)
 		return "invalid-lfs-oid-" + util.PathJoinRelX(p.Oid)
 	}
-	// HINT: LFS-INTERNAL-PATH-PATTERN: this path pattern is only used by Gitea internally,
+	// HINT: LFS-INTERNAL-PATH-PATTERN: this path pattern is only used by CodeNest internally,
 	// It isn't the same as the path pattern used by Git LFS, which is: <oid[0:2]>/<oid[2:4]>/<oid>
-	// However, there are other parts of Gitea that rely on such path pattern.
+	// However, there are other parts of CodeNest that rely on such path pattern.
 	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
 }
 

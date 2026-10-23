@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitcmd"
 
 	"github.com/stretchr/testify/require"
 )

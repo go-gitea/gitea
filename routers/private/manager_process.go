@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"time"
 
-	process_module "gitea.dev/modules/process"
-	"gitea.dev/services/context"
+	process_module "codenest.dev/modules/process"
+	"codenest.dev/services/context"
 )
 
 // Processes prints out the processes

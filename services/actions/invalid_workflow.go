@@ -7,14 +7,14 @@ import (
 	"context"
 	"fmt"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unit"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unit"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 )
 
 func handleInvalidWorkflows(ctx context.Context, input *notifyInput, ref git.RefName, commit *git.Commit, invalid map[string]error) {

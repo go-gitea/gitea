@@ -6,8 +6,8 @@ package actions
 import (
 	"testing"
 
+	actions_model "codenest.dev/models/actions"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	actions_model "gitea.dev/models/actions"
 
 	"github.com/stretchr/testify/assert"
 )

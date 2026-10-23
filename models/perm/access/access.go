@@ -8,13 +8,13 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/organization"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
+	"codenest.dev/models/db"
+	"codenest.dev/models/organization"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
 
 	"xorm.io/builder"
 )

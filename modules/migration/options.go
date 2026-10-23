@@ -4,7 +4,7 @@
 
 package migration
 
-import "gitea.dev/modules/structs"
+import "codenest.dev/modules/structs"
 
 // MigrateOptions defines the way a repository gets migrated
 // this is for internal usage by migrations module and func who interact with it

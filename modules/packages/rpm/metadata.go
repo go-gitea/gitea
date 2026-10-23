@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/validation"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/validation"
 )
 
 const (

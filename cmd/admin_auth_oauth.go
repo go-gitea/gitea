@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"net/url"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/auth/source/oauth2"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/auth/source/oauth2"
 
 	"github.com/urfave/cli/v3"
 )

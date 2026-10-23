@@ -7,13 +7,13 @@ import (
 	"errors"
 	"net/http"
 
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	user_service "gitea.dev/services/user"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	user_service "codenest.dev/services/user"
 )
 
 func ListBlocks(ctx *context.APIContext, blocker *user_model.User) {

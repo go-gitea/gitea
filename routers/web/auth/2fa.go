@@ -7,16 +7,16 @@ import (
 	"errors"
 	"net/http"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
 )
 
 var (

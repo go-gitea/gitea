@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // RawDiffType output format: diff or patch

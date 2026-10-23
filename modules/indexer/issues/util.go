@@ -8,12 +8,12 @@ import (
 	"errors"
 	"fmt"
 
-	"gitea.dev/models/db"
-	issue_model "gitea.dev/models/issues"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/indexer/issues/internal"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/queue"
+	"codenest.dev/models/db"
+	issue_model "codenest.dev/models/issues"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/indexer/issues/internal"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/queue"
 )
 
 // getIssueIndexerData returns the indexer data of an issue and a bool value indicating whether the issue exists.

@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/git"
+	api "codenest.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

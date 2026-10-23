@@ -24,7 +24,7 @@ func TestCommandContextCancelKillProcessGroup(t *testing.T) {
 	defer cancel()
 
 	// When executing external commands, there can be multiple subprocesses involved.
-	// e.g.: Gitea ->  "git upload-pack" -> "git pack-objects".
+	// e.g.: CodeNest ->  "git upload-pack" -> "git pack-objects".
 	// If the context is canceled (HTTP client disconnects), all subprocesses must terminate.
 
 	// Spawn a shell that itself spawns a long-lived background process and

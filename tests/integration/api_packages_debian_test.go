@@ -14,13 +14,13 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/base"
-	debian_module "gitea.dev/modules/packages/debian"
-	packages_cleanup_service "gitea.dev/services/packages/cleanup"
-	"gitea.dev/tests"
+	"codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/base"
+	debian_module "codenest.dev/modules/packages/debian"
+	packages_cleanup_service "codenest.dev/services/packages/cleanup"
+	"codenest.dev/tests"
 
 	"github.com/blakesmith/ar"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +30,7 @@ func TestPackageDebian(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	packageName := "gitea"
+	packageName := "codenest"
 	packageVersion := "1.0.3"
 	packageVersion2 := "1.0.4"
 	packageDescription := "Package Description"
@@ -60,12 +60,12 @@ func TestPackageDebian(t *testing.T) {
 		aw.Write(cbuf.Bytes())
 
 		// if you'd like to do some tests manually, uncomment the WriteFile line, then you will get some "deb" package files:
-		// OWNER= PASS= DIST= COMP= ; curl -X PUT "http://$OWNER:$PASS@localhost:3000/api/packages/$OWNER/debian/pool/$DIST/$COMP/upload" -T /tmp/gitea_test_debian_gitea_1.0.3_amd64.deb
-		// _ = os.WriteFile("/tmp/gitea_test_debian_"+name+"_"+version+"_"+architecture+".deb", buf.Bytes(), 0o644)
+		// OWNER= PASS= DIST= COMP= ; curl -X PUT "http://$OWNER:$PASS@localhost:3000/api/packages/$OWNER/debian/pool/$DIST/$COMP/upload" -T /tmp/codenest_test_debian_codenest_1.0.3_amd64.deb
+		// _ = os.WriteFile("/tmp/codenest_test_debian_"+name+"_"+version+"_"+architecture+".deb", buf.Bytes(), 0o644)
 		return &buf
 	}
 
-	distributions := []string{"test", "gitea"}
+	distributions := []string{"test", "codenest"}
 	components := []string{"main", "stable"}
 	architectures := []string{"all", "amd64"}
 

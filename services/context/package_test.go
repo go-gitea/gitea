@@ -6,9 +6,9 @@ package context
 import (
 	"testing"
 
-	"gitea.dev/models/perm"
-	"gitea.dev/models/user"
-	"gitea.dev/modules/structs"
+	"codenest.dev/models/perm"
+	"codenest.dev/models/user"
+	"codenest.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )

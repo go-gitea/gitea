@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/timeutil"
 )
 
 // NoticeType describes the notice type

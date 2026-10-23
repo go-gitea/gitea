@@ -9,11 +9,11 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -35,7 +35,7 @@ index 0000000000..aaaaaaaaaa
 }
 
 func TestAPIApplyDiffPatchFileOptions(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
 		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos

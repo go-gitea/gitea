@@ -11,14 +11,14 @@ import (
 	"io"
 	"strconv"
 
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/pipeline"
-	"gitea.dev/modules/lfs"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/pipeline"
+	"codenest.dev/modules/lfs"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )

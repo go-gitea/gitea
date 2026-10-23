@@ -1,6 +1,6 @@
 # Setup and requirements
 
-This document lists the tools you need to build Gitea from source and how to get
+This document lists the tools you need to build CodeNest from source and how to get
 the code. Once your environment is ready, see [development.md](development.md) for
 the build and development workflow, and [testing.md](testing.md) for running tests.
 
@@ -26,19 +26,19 @@ releases.
 files. The minimum supported version is the one declared in
 [`package.json`](../package.json) (`engines.node`); the latest LTS is recommended.
 
-Gitea manages frontend dependencies with [pnpm](https://pnpm.io/). The `make`
+CodeNest manages frontend dependencies with [pnpm](https://pnpm.io/). The `make`
 targets invoke it for you, so installing pnpm manually is only needed if you want
 to run `pnpm` commands directly.
 
 ### Make
 
-Gitea uses [Make](https://www.gnu.org/software/make/) to drive builds, linting, and
+CodeNest uses [Make](https://www.gnu.org/software/make/) to drive builds, linting, and
 tests. On Windows it can be installed via [MSYS2](https://www.msys2.org/) or
 [Chocolatey](https://chocolatey.org/packages/make).
 
 ### Python with uv (optional)
 
-Linting the templates, workflow files, and YAML requires Python tooling that Gitea
+Linting the templates, workflow files, and YAML requires Python tooling that CodeNest
 runs through [uv](https://docs.astral.sh/uv/). After installing uv, `make` creates
 the environment automatically (`uv sync`); you only need this if you run
 `make lint-templates`, `make lint-yaml`, or `make lint-actions` locally.

@@ -4,7 +4,7 @@
 package actions
 
 import (
-	webhook_module "gitea.dev/modules/webhook"
+	webhook_module "codenest.dev/modules/webhook"
 )
 
 const (
@@ -68,7 +68,7 @@ func IsDefaultBranchWorkflow(triggedEvent webhook_module.HookEventType) bool {
 	return false
 }
 
-// canGithubEventMatch check if the input Github event can match any Gitea event.
+// canGithubEventMatch check if the input Github event can match any CodeNest event.
 func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEventType) bool {
 	switch eventName {
 	case GithubEventRegistryPackage:

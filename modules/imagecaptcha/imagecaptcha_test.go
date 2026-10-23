@@ -11,7 +11,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"gitea.dev/modules/cache"
+	"codenest.dev/modules/cache"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

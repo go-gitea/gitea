@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )

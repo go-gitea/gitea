@@ -6,7 +6,7 @@ package v1_15
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func AddIssueResourceIndexTable(_ context.Context, x base.EngineMigration) error {

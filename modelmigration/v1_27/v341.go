@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 
 	"xorm.io/xorm/schemas"
 )
 
-// legacyDateTimeColumns are the persisted real datetime columns that old Gitea
+// legacyDateTimeColumns are the persisted real datetime columns that old CodeNest
 // versions created as MSSQL DATETIME. Every other time value is stored as a
 // unix timestamp integer, so these are the only columns affected.
 var legacyDateTimeColumns = []struct {
@@ -42,7 +42,7 @@ func (lfsLockWithCreated) TableName() string {
 }
 
 // FixLegacyMSSQLDateTimeColumns converts legacy locale-dependent DATETIME columns
-// to DATETIME2. Databases created by old Gitea versions stored these columns as
+// to DATETIME2. Databases created by old CodeNest versions stored these columns as
 // DATETIME, which fails to parse ISO datetime strings ('YYYY-MM-DD HH:MM:SS')
 // when the MSSQL session language is not English, breaking external account
 // linking and LFS lock creation. New installs already use DATETIME2, so only

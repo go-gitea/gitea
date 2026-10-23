@@ -10,14 +10,14 @@ import (
 	"strconv"
 	"time"
 
-	issues_model "gitea.dev/models/issues"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	issues_model "codenest.dev/models/issues"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // GetSingleCommit get a commit via sha

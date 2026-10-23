@@ -6,7 +6,7 @@ package auth
 import (
 	"sync"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )

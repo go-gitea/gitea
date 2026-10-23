@@ -6,7 +6,7 @@ package v1_22
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func AddRepoUnitEveryoneAccessMode(_ context.Context, x base.EngineMigration) error {

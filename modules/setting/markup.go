@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 // ExternalMarkupRenderers represents the external markup renderers

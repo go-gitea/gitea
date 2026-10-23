@@ -10,18 +10,18 @@ import (
 	"fmt"
 	"strings"
 
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	notify_service "gitea.dev/services/notify"
-	pull_service "gitea.dev/services/pull"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	notify_service "codenest.dev/services/notify"
+	pull_service "codenest.dev/services/pull"
 )
 
 const SshInfoJson = `{"type":"agit","version":1}`
@@ -185,7 +185,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				HeadRepo:     repo,
 				BaseRepo:     repo,
 				MergeBase:    "",
-				Type:         issues_model.PullRequestGitea,
+				Type:         issues_model.PullRequestCodeNest,
 				Flow:         issues_model.PullRequestFlowAGit,
 			}
 			prOpts := &pull_service.NewPullRequestOptions{

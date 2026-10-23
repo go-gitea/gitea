@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
 )
 
 func FixPublisherIDforTagReleases(ctx context.Context, x base.EngineMigration) error {

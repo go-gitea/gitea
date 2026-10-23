@@ -6,10 +6,10 @@ package packages
 import (
 	"net/http"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/services/auth"
-	"gitea.dev/services/packages"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/services/auth"
+	"codenest.dev/services/packages"
 )
 
 var _ auth.Method = &Auth{}

@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	activities_model "gitea.dev/models/activities"
-	git_model "gitea.dev/models/git"
-	"gitea.dev/models/unit"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/context"
+	activities_model "codenest.dev/models/activities"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/models/unit"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/context"
 )
 
 const (

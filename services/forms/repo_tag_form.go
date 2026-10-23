@@ -3,7 +3,7 @@
 
 package forms
 
-import "gitea.dev/modules/web/middleware"
+import "codenest.dev/modules/web/middleware"
 
 // ProtectTagForm form for changing protected tag settings
 type ProtectTagForm struct {

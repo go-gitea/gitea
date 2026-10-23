@@ -6,14 +6,14 @@ package repo
 import (
 	"errors"
 
-	git_model "gitea.dev/models/git"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/utils"
-	context_service "gitea.dev/services/context"
-	files_service "gitea.dev/services/repository/files"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/utils"
+	context_service "codenest.dev/services/context"
+	files_service "codenest.dev/services/repository/files"
 )
 
 func errorAs[T error](v error) (e T, ok bool) {

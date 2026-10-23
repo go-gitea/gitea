@@ -6,10 +6,10 @@ package repo
 import (
 	"html/template"
 
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/svg"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/svg"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 type pullMergeBoxInfoItem struct {
@@ -129,7 +129,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 
 	if pull.IsChecking() {
 		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
-			svg.RenderHTML("gitea-running", 16, "rotate-clockwise"),
+			svg.RenderHTML("codenest-running", 16, "rotate-clockwise"),
 			ctx.Locale.Tr("repo.pulls.is_checking"),
 		)
 	}

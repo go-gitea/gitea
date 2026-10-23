@@ -9,11 +9,11 @@ import (
 	"path"
 	"strconv"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/markup/markdown"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 )

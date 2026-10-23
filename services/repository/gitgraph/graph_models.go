@@ -10,16 +10,16 @@ import (
 	"strings"
 	"time"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	"gitea.dev/models/gituser"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	asymkey_service "gitea.dev/services/asymkey"
+	asymkey_model "codenest.dev/models/asymkey"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/models/gituser"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	asymkey_service "codenest.dev/services/asymkey"
 )
 
 // NewGraph creates a basic graph

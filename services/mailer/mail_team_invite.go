@@ -10,13 +10,13 @@ import (
 	"fmt"
 	"net/url"
 
-	org_model "gitea.dev/models/organization"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/translation"
-	sender_service "gitea.dev/services/mailer/sender"
+	org_model "codenest.dev/models/organization"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/translation"
+	sender_service "codenest.dev/services/mailer/sender"
 )
 
 const tplTeamInviteMail templates.TplName = "mail/org/team_invite"

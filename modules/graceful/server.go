@@ -15,9 +15,9 @@ import (
 	"syscall"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/proxyprotocol"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/proxyprotocol"
+	"codenest.dev/modules/setting"
 )
 
 // GetListener returns a net listener

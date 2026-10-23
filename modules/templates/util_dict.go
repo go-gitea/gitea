@@ -10,9 +10,9 @@ import (
 	"html/template"
 	"reflect"
 
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
 )
 
 // dict is a helper function for creating a map[string]any from a list of key-value pairs.

@@ -10,16 +10,16 @@ import (
 	"fmt"
 	"slices"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/log"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/log"
 )
 
 // MergeRequiredContextsCommitStatus returns a commit status state for given required contexts

@@ -6,8 +6,8 @@ package rpm
 import (
 	"strings"
 
-	packages_module "gitea.dev/modules/packages"
-	rpm_module "gitea.dev/modules/packages/rpm"
+	packages_module "codenest.dev/modules/packages"
+	rpm_module "codenest.dev/modules/packages/rpm"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 )

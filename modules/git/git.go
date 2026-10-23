@@ -12,13 +12,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/globallock"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/tempdir"
-	"gitea.dev/modules/testlogger"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/globallock"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/tempdir"
+	"codenest.dev/modules/testlogger"
 
 	"github.com/hashicorp/go-version"
 )
@@ -129,16 +129,16 @@ func checkGitVersionCompatibility(gitVer *version.Version) error {
 func ensureGitVersion() error {
 	if !DefaultFeatures().CheckVersionAtLeast(RequiredVersion) {
 		moreHint := "get git: https://git-scm.com/downloads"
-		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", DefaultFeatures().gitVersion.Original(), RequiredVersion, moreHint)
+		return fmt.Errorf("installed git version %q is not supported, CodeNest requires git version >= %q, %s", DefaultFeatures().gitVersion.Original(), RequiredVersion, moreHint)
 	}
 	if err := checkGitVersionCompatibility(DefaultFeatures().gitVersion); err != nil {
-		return fmt.Errorf("installed git version %s has a known compatibility issue with Gitea: %w, please upgrade (or downgrade) git", DefaultFeatures().gitVersion.String(), err)
+		return fmt.Errorf("installed git version %s has a known compatibility issue with CodeNest: %w, please upgrade (or downgrade) git", DefaultFeatures().gitVersion.String(), err)
 	}
 	return nil
 }
 
 // InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
-// This method doesn't change anything to filesystem. At the moment, it is only used by some Gitea sub-commands.
+// This method doesn't change anything to filesystem. At the moment, it is only used by some CodeNest sub-commands.
 func InitSimple() error {
 	if setting.Git.HomePath == "" {
 		return errors.New("unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
@@ -185,7 +185,7 @@ func RunGitTests(m interface{ Run() int }) {
 
 func runGitTests(m interface{ Run() int }) int {
 	_ = cache.Init()
-	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
+	gitHomePath, cleanup, err := tempdir.OsTempDir("codenest-test").MkdirTempRandom("git-home")
 	if err != nil {
 		return testlogger.MainErrorf("unable to create temp dir: %v", err)
 	}

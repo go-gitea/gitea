@@ -6,7 +6,7 @@ package external
 import (
 	"testing"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,13 +28,13 @@ func TestPrepareExternalCommand(t *testing.T) {
 
 func TestPrepare(t *testing.T) {
 	t.Run("Valid", func(t *testing.T) {
-		r := &Renderer{MarkupRenderer: &setting.MarkupRenderer{Command: "foo $GITEA_PREFIX_SRC $GITEA_PREFIX_RAW"}}
+		r := &Renderer{MarkupRenderer: &setting.MarkupRenderer{Command: "foo $CODENEST_PREFIX_SRC $CODENEST_PREFIX_RAW"}}
 		ret, err := r.prepare("https://example.com/src", "https://example.com/raw")
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"https://example.com/src", "https://example.com/raw"}, ret.args)
 	})
 	t.Run("Sanitized", func(t *testing.T) {
-		r := &Renderer{MarkupRenderer: &setting.MarkupRenderer{Command: "foo $GITEA_PREFIX_SRC $GITEA_PREFIX_RAW"}}
+		r := &Renderer{MarkupRenderer: &setting.MarkupRenderer{Command: "foo $CODENEST_PREFIX_SRC $CODENEST_PREFIX_RAW"}}
 		ret, err := r.prepare("https://[::1%25foo]:3000/a%2fb/x$y", "https://$foo.com")
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"https://[::1%25foo]:3000/a%2fb/x%24y", ""}, ret.args)

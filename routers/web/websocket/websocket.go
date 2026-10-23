@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"time"
 
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/services/context"
-	"gitea.dev/services/pubsub"
-	websocket_service "gitea.dev/services/websocket"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/services/context"
+	"codenest.dev/services/pubsub"
+	websocket_service "codenest.dev/services/websocket"
 
-	gitea_ws "github.com/coder/websocket"
+	codenest_ws "github.com/coder/websocket"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 	// Sentinel for an unauthenticated session so the SharedWorker can tell
 	// "your cookie is gone" apart from a transient network failure and stop
 	// reconnecting in a tight loop.
-	closeCodeUnauthenticated gitea_ws.StatusCode = 3000
+	closeCodeUnauthenticated codenest_ws.StatusCode = 3000
 )
 
 // filterLogout forwards a session-free logout only to the targeted connection
@@ -57,7 +57,7 @@ func Serve(ctx *context.Context) {
 		return
 	}
 
-	conn, err := gitea_ws.Accept(ctx.Resp, ctx.Req, nil)
+	conn, err := codenest_ws.Accept(ctx.Resp, ctx.Req, nil)
 	if err != nil {
 		log.Error("websocket: accept failed: %v", err)
 		return
@@ -106,7 +106,7 @@ func Serve(ctx *context.Context) {
 			// Bound the write so a stalled/slow peer can't block this goroutine
 			// indefinitely and starve the ping ticker.
 			writeCtx, cancelWrite := gocontext.WithTimeout(wsCtx, writeTimeout)
-			err := conn.Write(writeCtx, gitea_ws.MessageText, eventDataBytes)
+			err := conn.Write(writeCtx, codenest_ws.MessageText, eventDataBytes)
 			cancelWrite()
 			if err != nil {
 				log.Trace("websocket: write failed: %v", err)

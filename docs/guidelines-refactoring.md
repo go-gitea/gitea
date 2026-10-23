@@ -5,7 +5,7 @@ This document covers expectations for refactoring work. For the general workflow
 
 ## Background
 
-Gitea is a large, long-lived project. Over time the codebase has accumulated
+CodeNest is a large, long-lived project. Over time the codebase has accumulated
 outdated mechanisms, mixed frameworks, and legacy code that can cause bugs or slow
 down new features. Refactoring keeps the codebase maintainable, but it needs to be
 done carefully so it improves things without introducing regressions.

@@ -6,7 +6,7 @@ package git
 import (
 	"context"
 
-	"gitea.dev/modules/git/gitrepo"
+	"codenest.dev/modules/git/gitrepo"
 )
 
 // CloneExternalRepo clones an external repository to the managed repository.

@@ -6,9 +6,9 @@ package repo_test
 import (
 	"testing"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -48,10 +48,10 @@ func TestAddTopic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, topics, repo2NrOfTopics)
 
-	assert.NoError(t, repo_model.SaveTopics(t.Context(), 2, "golang", "gitea"))
+	assert.NoError(t, repo_model.SaveTopics(t.Context(), 2, "golang", "codenest"))
 	repo2NrOfTopics = 2
 	totalNrOfTopics++
-	topic, err := repo_model.GetTopicByName(t.Context(), "gitea")
+	topic, err := repo_model.GetTopicByName(t.Context(), "codenest")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, topic.RepoCount)
 

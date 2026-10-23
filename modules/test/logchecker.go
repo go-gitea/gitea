@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 type LogChecker struct {

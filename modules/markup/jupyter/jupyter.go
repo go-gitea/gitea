@@ -11,14 +11,14 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/highlight"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/highlight"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/markup/markdown"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 func init() {

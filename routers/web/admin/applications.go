@@ -6,12 +6,12 @@ package admin
 import (
 	"net/http"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	user_setting "gitea.dev/routers/web/user/setting"
-	"gitea.dev/services/context"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	user_setting "codenest.dev/routers/web/user/setting"
+	"codenest.dev/services/context"
 )
 
 var (

@@ -12,13 +12,13 @@ import (
 	"net/http"
 	"testing"
 
-	"gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	arch_module "gitea.dev/modules/packages/arch"
-	"gitea.dev/modules/test"
-	arch_service "gitea.dev/services/packages/arch"
-	"gitea.dev/tests"
+	"codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	arch_module "codenest.dev/modules/packages/arch"
+	"codenest.dev/modules/test"
+	arch_service "codenest.dev/services/packages/arch"
+	"codenest.dev/tests"
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +30,7 @@ func TestPackageArch(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	packageName := "gitea-test"
+	packageName := "codenest-test"
 	packageVersion := "1.4.1-r3"
 
 	createPackage := func(compression, name, version, architecture string) []byte {
@@ -272,8 +272,8 @@ license = MIT`)
 	}
 	t.Run("KeepLastVersion", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		pkgVer1 := createPackage("gz", "gitea-test", "1.0.0", "aarch64")
-		pkgVer2 := createPackage("gz", "gitea-test", "1.0.1", "aarch64")
+		pkgVer1 := createPackage("gz", "codenest-test", "1.0.0", "aarch64")
+		pkgVer2 := createPackage("gz", "codenest-test", "1.0.1", "aarch64")
 		req := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgVer1)).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
@@ -288,12 +288,12 @@ license = MIT`)
 		assert.NoError(t, err)
 		assert.Len(t, content, 2)
 
-		_, has := content["gitea-test-1.0.0/desc"]
+		_, has := content["codenest-test-1.0.0/desc"]
 		assert.False(t, has)
-		_, has = content["gitea-test-1.0.1/desc"]
+		_, has = content["codenest-test-1.0.1/desc"]
 		assert.True(t, has)
 
-		req = NewRequest(t, "DELETE", rootURL+"/gitea-test/1.0.1/aarch64").
+		req = NewRequest(t, "DELETE", rootURL+"/codenest-test/1.0.1/aarch64").
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
@@ -302,7 +302,7 @@ license = MIT`)
 		content, err = test.ReadAllTarGzContent(resp.Body)
 		assert.NoError(t, err)
 		assert.Len(t, content, 2)
-		_, has = content["gitea-test-1.0.0/desc"]
+		_, has = content["codenest-test-1.0.0/desc"]
 		assert.True(t, has)
 	})
 }

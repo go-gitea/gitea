@@ -14,13 +14,13 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/git/gitcmd"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/git/gitcmd"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -135,7 +135,7 @@ func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, ba
 }
 
 func TestPullCreate(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -194,7 +194,7 @@ func testDeleteRepository(t *testing.T, session *TestSession, ownerName, repoNam
 }
 
 func TestPullBranchDelete(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		defer tests.PrepareTestEnv(t)()
 
 		session := loginUser(t, "user1")
@@ -232,7 +232,7 @@ Test checks:
 Check if pull request can be created from base to the fork repository.
 */
 func TestPullCreatePrFromBaseToFork(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		sessionFork := loginUser(t, "user1")
 		testRepoFork(t, sessionFork, "user2", "repo1", "user1", "repo1", "")
 
@@ -257,7 +257,7 @@ func TestPullCreatePrFromBaseToFork(t *testing.T) {
 }
 
 func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user1")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
 
@@ -343,7 +343,7 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 }
 
 func TestPullCreateParallel(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		sessionFork := loginUser(t, "user1")
 		testRepoFork(t, sessionFork, "user2", "repo1", "user1", "repo1", "")
 
@@ -381,7 +381,7 @@ func TestPullCreateParallel(t *testing.T) {
 }
 
 func TestCreateAgitPullWithReadPermission(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		dstPath := t.TempDir()
 
 		u.Path = "user2/repo1.git"
@@ -423,7 +423,7 @@ Setup: user2 has repository, user1 forks it
 func TestCreatePullWhenBlocked(t *testing.T) {
 	RepoOwner := "user2"
 	ForkOwner := "user16"
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		// Setup
 		// User1 forks repo1 from User2
 		sessionFork := loginUser(t, ForkOwner)

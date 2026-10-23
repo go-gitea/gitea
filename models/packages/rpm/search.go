@@ -6,8 +6,8 @@ package rpm
 import (
 	"context"
 
-	packages_model "gitea.dev/models/packages"
-	rpm_module "gitea.dev/modules/packages/rpm"
+	packages_model "codenest.dev/models/packages"
+	rpm_module "codenest.dev/modules/packages/rpm"
 )
 
 // GetGroups gets all available groups

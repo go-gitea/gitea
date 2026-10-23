@@ -7,14 +7,14 @@ import (
 	"net/url"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 )
 
 func TestRepoWatch(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		// Test round-trip auto-watch
 		defer test.MockVariableValue(&setting.Service.AutoWatchOnChanges, true)()
 		session := loginUser(t, "user2")

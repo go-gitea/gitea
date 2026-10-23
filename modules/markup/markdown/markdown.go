@@ -13,14 +13,14 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/modules/highlight"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/markup/common"
-	"gitea.dev/modules/markup/markdown/math"
-	"gitea.dev/modules/setting"
-	giteautil "gitea.dev/modules/util"
+	"codenest.dev/modules/highlight"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/markup/common"
+	"codenest.dev/modules/markup/markdown/math"
+	"codenest.dev/modules/setting"
+	codenestutil "codenest.dev/modules/util"
 
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/yuin/goldmark"
@@ -129,7 +129,7 @@ func goldmarkDefaultParser() parser.Parser {
 	)
 }
 
-// SpecializedMarkdown sets up the Gitea specific markdown extensions
+// SpecializedMarkdown sets up the CodeNest specific markdown extensions
 func SpecializedMarkdown(ctx *markup.RenderContext) *GoldmarkRender {
 	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
 	// at the moment it is fast enough (see the benchmarks)
@@ -187,7 +187,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		log.Error("Unable to ReadAll: %v", err)
 		return err
 	}
-	buf = giteautil.NormalizeEOL(buf)
+	buf = codenestutil.NormalizeEOL(buf)
 
 	// FIXME: should we include a timeout to abort the renderer if it takes too long?
 	defer func() {
@@ -197,8 +197,8 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		}
 
 		log.Error("Panic in markdown: %v\n%s", err, log.Stack(2))
-		escapedHTML := template.HTMLEscapeString(giteautil.UnsafeBytesToString(buf))
-		_, _ = output.Write(giteautil.UnsafeStringToBytes(escapedHTML))
+		escapedHTML := template.HTMLEscapeString(codenestutil.UnsafeBytesToString(buf))
+		_, _ = output.Write(codenestutil.UnsafeStringToBytes(escapedHTML))
 	}()
 
 	pc := newParserContext(ctx)
@@ -261,7 +261,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 func RenderString(ctx *markup.RenderContext, content string) (template.HTML, error) {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
-		log.Warn("Unable to RenderString: %v, content: %s", err, giteautil.TruncateRunes(content, 200))
+		log.Warn("Unable to RenderString: %v, content: %s", err, codenestutil.TruncateRunes(content, 200))
 		err = nil
 		return htmlutil.EscapeString(content), err
 	}
@@ -284,7 +284,7 @@ func FeedExcerpt(ctx context.Context, content string) string {
 		return ast.WalkContinue, nil
 	})
 
-	excerpt := giteautil.EllipsisDisplayString(content[start:], 200)
+	excerpt := codenestutil.EllipsisDisplayString(content[start:], 200)
 	kept, ok := strings.CutSuffix(excerpt, "…")
 	if excerpt == content[start:] || !ok {
 		return excerpt

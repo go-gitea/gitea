@@ -6,11 +6,11 @@ package markup
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/contexttest"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )

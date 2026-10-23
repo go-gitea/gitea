@@ -6,8 +6,8 @@ package oauth2
 import (
 	"html/template"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/svg"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/svg"
 )
 
 // BaseProvider represents a common base for Provider
@@ -35,17 +35,17 @@ func (b *BaseProvider) DisplayName() string {
 
 // IconHTML returns icon HTML for this provider
 func (b *BaseProvider) IconHTML(size int) template.HTML {
-	svgName := "gitea-" + b.name
+	svgName := "codenest-" + b.name
 	switch b.name {
 	case "gplus":
-		svgName = "gitea-google"
+		svgName = "codenest-google"
 	case "github":
 		svgName = "octicon-mark-github"
 	}
 	svgHTML := svg.RenderHTML(svgName, size)
 	if svgHTML == "" {
 		log.Error("No SVG icon for oauth2 provider %q", b.name)
-		svgHTML = svg.RenderHTML("gitea-openid", size)
+		svgHTML = svg.RenderHTML("codenest-openid", size)
 	}
 	return svgHTML
 }

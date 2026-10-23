@@ -17,7 +17,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 	"golang.org/x/text/runes"

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/modules/markup"
+	"codenest.dev/modules/markup"
 
 	"github.com/yuin/goldmark/ast"
 	"go.yaml.in/yaml/v4"
@@ -59,14 +59,14 @@ func (rc *RenderConfig) UnmarshalYAML(value *yaml.Node) error {
 	rc.TOC = basic.TOC
 
 	type controlStringRenderConfig struct {
-		Gitea string `yaml:"gitea"`
+		CodeNest string `yaml:"gitea"`
 	}
 
 	var stringBasic controlStringRenderConfig
 
 	if err := value.Decode(&stringBasic); err == nil {
-		if stringBasic.Gitea != "" {
-			rc.Meta = renderMetaModeFromString(stringBasic.Gitea)
+		if stringBasic.CodeNest != "" {
+			rc.Meta = renderMetaModeFromString(stringBasic.CodeNest)
 		}
 		return nil
 	}
@@ -79,7 +79,7 @@ func (rc *RenderConfig) UnmarshalYAML(value *yaml.Node) error {
 	}
 
 	type yamlRenderConfigWrapper struct {
-		Gitea *yamlRenderConfig `yaml:"gitea"`
+		CodeNest *yamlRenderConfig `yaml:"gitea"`
 	}
 
 	var cfg yamlRenderConfigWrapper
@@ -87,20 +87,20 @@ func (rc *RenderConfig) UnmarshalYAML(value *yaml.Node) error {
 		return fmt.Errorf("unable to decode into yamlRenderConfigWrapper %w", err)
 	}
 
-	if cfg.Gitea == nil {
+	if cfg.CodeNest == nil {
 		return nil
 	}
 
-	if cfg.Gitea.Meta != nil {
-		rc.Meta = renderMetaModeFromString(*cfg.Gitea.Meta)
+	if cfg.CodeNest.Meta != nil {
+		rc.Meta = renderMetaModeFromString(*cfg.CodeNest.Meta)
 	}
 
-	if cfg.Gitea.Lang != nil && *cfg.Gitea.Lang != "" {
-		rc.Lang = *cfg.Gitea.Lang
+	if cfg.CodeNest.Lang != nil && *cfg.CodeNest.Lang != "" {
+		rc.Lang = *cfg.CodeNest.Lang
 	}
 
-	if cfg.Gitea.TOC != nil {
-		rc.TOC = *cfg.Gitea.TOC
+	if cfg.CodeNest.TOC != nil {
+		rc.TOC = *cfg.CodeNest.TOC
 	}
 
 	return nil

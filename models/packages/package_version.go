@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )

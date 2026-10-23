@@ -11,19 +11,19 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/models/organization"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/auth"
-	"gitea.dev/services/auth/source/ldap"
-	org_service "gitea.dev/services/org"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/models/organization"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/auth"
+	"codenest.dev/services/auth/source/ldap"
+	org_service "codenest.dev/services/org"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,7 +49,7 @@ type ldapTestEnv struct {
 
 func TestAuthLDAP(t *testing.T) {
 	// To test it locally:
-	// $ docker run --rm gitea/test-openldap:latest -p 389:389
+	// $ docker run --rm codenest/test-openldap:latest -p 389:389
 	// $ TEST_LDAP=1 TEST_LDAP_HOST=localhost make "test-sqlite#TestAuthLDAP"
 	defer tests.PrepareTestEnv(t)()
 	t.Run("PreventInvalidGroupTeamMap", testLDAPPreventInvalidGroupTeamMap)
@@ -141,7 +141,7 @@ func (te *ldapTestEnv) buildAuthSourcePayload(m map[string]string) map[string]st
 		"name":                     "ldap",
 		"host":                     te.serverHost,
 		"port":                     te.serverPort,
-		"bind_dn":                  "uid=gitea,ou=service,dc=planetexpress,dc=com",
+		"bind_dn":                  "uid=codenest,ou=service,dc=planetexpress,dc=com",
 		"bind_password":            "password",
 		"user_base":                "ou=people,dc=planetexpress,dc=com",
 		"filter":                   "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))",
@@ -226,7 +226,7 @@ func testLDAPAuthChange(t *testing.T) {
 	host, _ := doc.Find(`input[name="host"]`).Attr("value")
 	assert.Equal(t, te.serverHost, host)
 	bindDN, _ := doc.Find(`input[name="bind_dn"]`).Attr("value")
-	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", bindDN)
+	assert.Equal(t, "uid=codenest,ou=service,dc=planetexpress,dc=com", bindDN)
 
 	req = NewRequestWithValues(t, "POST", hrefAuthSource, te.buildAuthSourcePayload(map[string]string{"group_team_map_removal": ""}))
 	session.MakeRequest(t, req, http.StatusSeeOther)
@@ -237,7 +237,7 @@ func testLDAPAuthChange(t *testing.T) {
 	host, _ = doc.Find(`input[name="host"]`).Attr("value")
 	assert.Equal(t, te.serverHost, host)
 	bindDN, _ = doc.Find(`input[name="bind_dn"]`).Attr("value")
-	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", bindDN)
+	assert.Equal(t, "uid=codenest,ou=service,dc=planetexpress,dc=com", bindDN)
 }
 
 func testLDAPUserSyncWithAttributeUsername(t *testing.T) {

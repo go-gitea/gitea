@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -54,16 +54,16 @@ func TestRedirectToCurrentSite(t *testing.T) {
 }
 
 func TestAppFullLink(t *testing.T) {
-	defer test.MockVariableValue(&setting.AppURL, "https://gitea.example.com/sub/")()
+	defer test.MockVariableValue(&setting.AppURL, "https://codenest.example.com/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 	defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLNever)()
 
-	req := httptest.NewRequest(http.MethodGet, "https://gitea.example.com/sub/", nil)
+	req := httptest.NewRequest(http.MethodGet, "https://codenest.example.com/sub/", nil)
 	tmplCtx := NewTemplateContext(reqctx.NewRequestContextForTest(t), req)
 
-	assert.Equal(t, "https://gitea.example.com/sub", string(tmplCtx.AppFullLink()))
-	assert.Equal(t, "https://gitea.example.com/sub/user/repo", string(tmplCtx.AppFullLink("user/repo")))
-	assert.Equal(t, "https://gitea.example.com/sub/user/repo", string(tmplCtx.AppFullLink("/user/repo")))
+	assert.Equal(t, "https://codenest.example.com/sub", string(tmplCtx.AppFullLink()))
+	assert.Equal(t, "https://codenest.example.com/sub/user/repo", string(tmplCtx.AppFullLink("user/repo")))
+	assert.Equal(t, "https://codenest.example.com/sub/user/repo", string(tmplCtx.AppFullLink("/user/repo")))
 }
 
 func TestHeadMetaContentSecurityPolicy(t *testing.T) {

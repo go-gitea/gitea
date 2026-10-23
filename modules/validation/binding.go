@@ -10,10 +10,10 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/auth"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/web/binding"
+	"codenest.dev/modules/auth"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/web/binding"
 )
 
 const (

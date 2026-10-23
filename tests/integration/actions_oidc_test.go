@@ -13,12 +13,12 @@ import (
 	"net/url"
 	"testing"
 
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	actions_service "codenest.dev/services/actions"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	actions_service "gitea.dev/services/actions"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +26,7 @@ import (
 )
 
 func TestActionsOIDC(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		token := getTokenForLoggedInUser(t, loginUser(t, user2.Name), auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 		repo := createActionsTestRepo(t, token, "actions-oidc", false)
@@ -90,7 +90,7 @@ jobs:
 		assert.Equal(t, workflowRef, claims["job_workflow_ref"])
 		assert.Equal(t, "public", claims["repository_visibility"])
 
-		requestIDToken(taskContext["gitea_runtime_token"].GetStringValue(), http.StatusUnauthorized)
+		requestIDToken(taskContext["codenest_runtime_token"].GetStringValue(), http.StatusUnauthorized)
 		_, job, _ := getTaskAndJobAndRunByTaskID(t, tasks["oidc"].Id)
 		job.TokenPermissions.IDToken = false
 		_, err = actions_model.UpdateRunJob(t.Context(), job, nil, "token_permissions")

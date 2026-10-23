@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/unittest"
-	base "gitea.dev/modules/migration"
+	"codenest.dev/models/unittest"
+	base "codenest.dev/modules/migration"
 
 	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"

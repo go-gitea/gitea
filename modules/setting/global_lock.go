@@ -4,8 +4,8 @@
 package setting
 
 import (
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/nosql"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/nosql"
 )
 
 // GlobalLock represents configuration of global lock

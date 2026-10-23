@@ -9,16 +9,16 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestActionsCollaborativeOwner(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		// user2 is the owner of the private "reusable_workflow" repo
 		user2Session := loginUser(t, "user2")
 		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -51,13 +51,13 @@ jobs:
 
 		// fetch the task and get its token
 		task := runner.fetchTask(t)
-		taskToken := task.Secrets["GITEA_TOKEN"]
+		taskToken := task.Secrets["CODENEST_TOKEN"]
 		assert.NotEmpty(t, taskToken)
 
 		// prepare for clone
 		dstPath := t.TempDir()
 		u.Path = fmt.Sprintf("%s/%s.git", "user2", "reusable_workflow")
-		u.User = url.UserPassword("gitea-actions", taskToken)
+		u.User = url.UserPassword("codenest-actions", taskToken)
 
 		// the git clone will fail
 		doGitCloneFail(u)(t)

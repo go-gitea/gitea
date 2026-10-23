@@ -6,9 +6,9 @@ package project
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
+	"codenest.dev/models/unittest"
 
-	_ "gitea.dev/models/repo"
+	_ "codenest.dev/models/repo"
 )
 
 func TestMain(m *testing.M) {

@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/util/rotatingfilewriter"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/util/rotatingfilewriter"
 )
 
 var projectPackagePrefix string

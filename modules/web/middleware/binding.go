@@ -9,12 +9,12 @@ import (
 	"reflect"
 	"strings"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
-	"gitea.dev/modules/web/binding"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
+	"codenest.dev/modules/web/binding"
 )
 
 type (

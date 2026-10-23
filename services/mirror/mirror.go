@@ -7,10 +7,10 @@ import (
 	"context"
 	"errors"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
 )
 
 // doMirrorSync causes this request to mirror itself

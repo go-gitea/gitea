@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/log"
 )
 
 func getCacheKey(repo RepositoryFacade, commitID, entryPath string) string {

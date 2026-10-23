@@ -18,14 +18,14 @@ import (
 	"time"
 	"uuid"
 
-	actions_model "gitea.dev/models/actions"
-	repo_model "gitea.dev/models/repo"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/oauth2_provider"
+	actions_model "codenest.dev/models/actions"
+	repo_model "codenest.dev/models/repo"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -153,7 +153,7 @@ func CreateOIDCToken(ctx context.Context, requestToken, audience string) (string
 
 func createOIDCClaims(ctx context.Context, job *actions_model.ActionRunJob, audience string, now time.Time) (*oidcClaims, error) {
 	run := job.Run
-	gitCtx := GenerateGiteaContext(ctx, run, nil, job)
+	gitCtx := GenerateCodeNestContext(ctx, run, nil, job)
 	contextString := func(key string) string {
 		value, _ := gitCtx[key].(string)
 		return value

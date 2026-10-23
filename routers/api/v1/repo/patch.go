@@ -6,10 +6,10 @@ package repo
 import (
 	"net/http"
 
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
-	"gitea.dev/services/repository/files"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
+	"codenest.dev/services/repository/files"
 )
 
 // ApplyDiffPatch handles API call for applying a patch

@@ -6,12 +6,12 @@ package admin
 import (
 	"net/http"
 
-	"gitea.dev/models/webhook"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
+	"codenest.dev/models/webhook"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/context"
 )
 
 const (

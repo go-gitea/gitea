@@ -7,15 +7,15 @@ import (
 	"net/http"
 	"time"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/graceful/releasereopen"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/graceful/releasereopen"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
 )
 
 // ReloadTemplates reloads all the templates

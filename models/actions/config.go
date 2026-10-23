@@ -6,11 +6,11 @@ package actions
 import (
 	"context"
 
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/util"
 
 	"xorm.io/xorm/convert"
 )

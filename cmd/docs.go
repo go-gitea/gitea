@@ -17,7 +17,7 @@ func newDocsCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "docs",
 		Usage:       "Output CLI documentation",
-		Description: "A command to output Gitea's CLI documentation, optionally to a file.",
+		Description: "A command to output CodeNest's CLI documentation, optionally to a file.",
 		Action:      runDocs,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{

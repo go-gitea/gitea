@@ -3,8 +3,8 @@
   type: matrix
   meta: '{"homeserver_url":"https://matrix.example.com","room_id":"roomID","access_token":"s3cr3t","message_type":1}'
   header_authorization_encrypted: ''
-# gitea webhook
+# codenest webhook
 - id: 2
-  type: gitea
+  type: codenest
   meta: ''
   header_authorization_encrypted: ''

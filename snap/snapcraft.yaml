@@ -1,15 +1,15 @@
-name: gitea
-summary: Gitea - A painless self-hosted Git service
+name: codenest
+summary: CodeNest - A painless self-hosted Git service
 description: |
   The goal of this project is to make the easiest, fastest, and most painless
   way of setting up a self-hosted Git service with GitHub-like experiences,
   including issue tracking, code review, project management, wikis, package registry,
-  Gitea Actions and more.
+  CodeNest Actions and more.
 
 icon: public/assets/img/logo.png
 confinement: strict
 base: core24
-adopt-info: gitea
+adopt-info: codenest
 
 platforms:
   amd64:
@@ -20,29 +20,29 @@ platforms:
     build-for: [arm64]
 
 environment:
-  GITEA_CUSTOM: "$SNAP_COMMON"
-  GITEA_WORK_DIR: "$SNAP_COMMON"
+  CODENEST_CUSTOM: "$SNAP_COMMON"
+  CODENEST_WORK_DIR: "$SNAP_COMMON"
   GIT_TEMPLATE_DIR: "$SNAP/usr/share/git-core/templates"
   GIT_EXEC_PATH: "$SNAP/usr/lib/git-core"
 
 apps:
-  gitea:
-    command: gitea
+  codenest:
+    command: codenest
     plugs: [network, network-bind, removable-media]
   web:
-    command: gitea web
+    command: codenest web
     daemon: simple
     plugs: [network, network-bind, removable-media]
   dump:
-    command: gitea dump
+    command: codenest dump
     plugs: [home, removable-media]
   version:
-    command: gitea --version
+    command: codenest --version
   sqlite:
     command: usr/bin/sqlite3
 
 parts:
-  gitea:
+  codenest:
     plugin: make
     source: .
     stage-packages: [ git, sqlite3, openssh-client ]
@@ -50,8 +50,8 @@ parts:
     build-snaps: [ go/1.26/stable, node/24/stable ]
     build-environment:
       - LDFLAGS: ""
-    override-pull: craftctl default && ./snap/part-gitea-pull.sh
-    override-build: ./snap/part-gitea-build.sh
+    override-pull: craftctl default && ./snap/part-codenest-pull.sh
+    override-build: ./snap/part-codenest-build.sh
     prime:
       - -etc
       - -usr/lib/systemd

@@ -6,7 +6,7 @@ package private
 import (
 	"context"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 )
 
 // Email structure holds a data for sending general emails

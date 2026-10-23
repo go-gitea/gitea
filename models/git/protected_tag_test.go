@@ -6,8 +6,8 @@ package git_test
 import (
 	"testing"
 
-	git_model "gitea.dev/models/git"
-	"gitea.dev/models/unittest"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -72,32 +72,32 @@ func TestIsUserAllowedToControlTag(t *testing.T) {
 			allowed: true,
 		},
 		{
-			name:    "gitea",
+			name:    "codenest",
 			userid:  1,
 			allowed: true,
 		},
 		{
-			name:    "gitea",
+			name:    "codenest",
 			userid:  3,
 			allowed: false,
 		},
 		{
-			name:    "test-gitea",
+			name:    "test-codenest",
 			userid:  1,
 			allowed: true,
 		},
 		{
-			name:    "test-gitea",
+			name:    "test-codenest",
 			userid:  3,
 			allowed: false,
 		},
 		{
-			name:    "gitea-test",
+			name:    "codenest-test",
 			userid:  1,
 			allowed: true,
 		},
 		{
-			name:    "gitea-test",
+			name:    "codenest-test",
 			userid:  3,
 			allowed: true,
 		},
@@ -121,7 +121,7 @@ func TestIsUserAllowedToControlTag(t *testing.T) {
 	t.Run("Glob", func(t *testing.T) {
 		protectedTags := []*git_model.ProtectedTag{
 			{
-				NamePattern:      `*gitea`,
+				NamePattern:      `*codenest`,
 				AllowlistUserIDs: []int64{1},
 			},
 			{
@@ -143,7 +143,7 @@ func TestIsUserAllowedToControlTag(t *testing.T) {
 	t.Run("Regex", func(t *testing.T) {
 		protectedTags := []*git_model.ProtectedTag{
 			{
-				NamePattern:      `/gitea\z/`,
+				NamePattern:      `/codenest\z/`,
 				AllowlistUserIDs: []int64{1},
 			},
 			{

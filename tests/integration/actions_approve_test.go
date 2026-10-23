@@ -11,18 +11,18 @@ import (
 	"testing"
 	"time"
 
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestApproveAllRunsOnPullRequestPage(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		// user2 is the owner of the base repo
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
@@ -160,7 +160,7 @@ jobs:
 // fork PR from the same user must still be gated (Blocked / NeedApproval=true)
 // until that user has had a pull request merged in the repo.
 func TestForkPullRequestApprovalNotBypassedByPriorApproval(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
 		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)

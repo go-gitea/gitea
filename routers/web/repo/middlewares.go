@@ -6,14 +6,14 @@ package repo
 import (
 	"strconv"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
-	"gitea.dev/services/gitdiff"
-	user_service "gitea.dev/services/user"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
+	"codenest.dev/services/gitdiff"
+	user_service "codenest.dev/services/user"
 )
 
 // SetEditorconfigIfExists set editor config as render variable

@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 func dumpMemProfileForUsername(pprofDataPath, subName string) error {

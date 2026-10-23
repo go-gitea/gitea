@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )

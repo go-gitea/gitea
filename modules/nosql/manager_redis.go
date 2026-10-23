@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -224,7 +224,7 @@ func getRedisOptions(uri *url.URL) *redis.UniversalOptions {
 		if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
 			opts.DB = db
 		} else {
-			log.Error("Provided database identifier '%s' is not a valid integer. Gitea will ignore this option.", uri.Path)
+			log.Error("Provided database identifier '%s' is not a valid integer. CodeNest will ignore this option.", uri.Path)
 		}
 	}
 

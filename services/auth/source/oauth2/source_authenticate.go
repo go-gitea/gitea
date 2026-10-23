@@ -6,8 +6,8 @@ package oauth2
 import (
 	"context"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/services/auth/source/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/services/auth/source/db"
 )
 
 // Authenticate falls back to the db authenticator

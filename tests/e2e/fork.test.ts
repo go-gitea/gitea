@@ -13,6 +13,6 @@ test('fork a repository', async ({page, request}) => {
   await page.goto(`/${upstream}/${repoName}/fork`);
 
   await page.getByRole('button', {name: 'Fork Repository'}).click();
-  await page.waitForURL(new RegExp(`/${env.GITEA_TEST_E2E_USER}/${repoName}$`));
+  await page.waitForURL(new RegExp(`/${env.CODENEST_TEST_E2E_USER}/${repoName}$`));
   await expect(page.getByRole('link', {name: `${upstream}/${repoName}`})).toBeVisible();
 });

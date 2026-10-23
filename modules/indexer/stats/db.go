@@ -6,13 +6,13 @@ package stats
 import (
 	"fmt"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/languagestats"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/setting"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/languagestats"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/setting"
 )
 
 // DBIndexer implements Indexer interface to use database's like search

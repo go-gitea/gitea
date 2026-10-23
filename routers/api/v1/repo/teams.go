@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitea.dev/models/organization"
-	access_model "gitea.dev/models/perm/access"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	repo_service "gitea.dev/services/repository"
+	"codenest.dev/models/organization"
+	access_model "codenest.dev/models/perm/access"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	repo_service "codenest.dev/services/repository"
 )
 
 // ListTeams list a repository's teams

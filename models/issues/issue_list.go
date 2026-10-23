@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/models/db"
-	project_model "gitea.dev/models/project"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
+	"codenest.dev/models/db"
+	project_model "codenest.dev/models/project"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/container"
 
 	"xorm.io/builder"
 )

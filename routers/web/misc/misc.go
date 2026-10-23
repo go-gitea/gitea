@@ -9,15 +9,15 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/httpcache"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/agit"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/httpcache"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web/middleware"
+	"codenest.dev/services/agit"
+	"codenest.dev/services/context"
 )
 
 func SiteManifest(w http.ResponseWriter, req *http.Request) {

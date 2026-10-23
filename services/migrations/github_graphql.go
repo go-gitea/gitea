@@ -18,10 +18,10 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/egress/policy"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	base "gitea.dev/modules/migration"
+	"codenest.dev/modules/egress/policy"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	base "codenest.dev/modules/migration"
 
 	"github.com/google/go-github/v92/github"
 )

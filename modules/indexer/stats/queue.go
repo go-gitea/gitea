@@ -6,11 +6,11 @@ package stats
 import (
 	"errors"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
 )
 
 // statsQueue represents a queue to handle repository stats updates

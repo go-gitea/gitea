@@ -4,7 +4,7 @@ set -euo pipefail
 GO="${GO:-go}"
 RELEASE_LDFLAGS="-s -w $LDFLAGS"
 RELEASE_TAGS="bindata $TAGS"
-RELEASE_PATH_PREFIX="${DIST}/binaries/gitea-${VERSION##*/}"
+RELEASE_PATH_PREFIX="${DIST}/binaries/codenest-${VERSION##*/}"
 
 RELEASE_PLATFORMS_DEFAULT=(
   linux/amd64 linux/arm-5 linux/arm-6 linux/arm64 linux/riscv64 \

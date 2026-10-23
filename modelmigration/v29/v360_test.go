@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"testing"
 
-	"gitea.dev/modelmigration/migrationtest"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/modelmigration/migrationtest"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

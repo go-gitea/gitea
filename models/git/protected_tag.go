@@ -9,10 +9,10 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/organization"
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	"codenest.dev/models/organization"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )

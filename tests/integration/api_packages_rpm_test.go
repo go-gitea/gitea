@@ -17,13 +17,13 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
-	rpm_module "gitea.dev/modules/packages/rpm"
-	"gitea.dev/modules/setting"
-	"gitea.dev/tests"
+	"codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/json"
+	rpm_module "codenest.dev/modules/packages/rpm"
+	"codenest.dev/modules/setting"
+	"codenest.dev/tests"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +34,7 @@ func TestPackageRpm(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	packageName := "gitea-test"
+	packageName := "codenest-test"
 	packageVersion := "1.0.2-1"
 	packageArchitecture := "x86_64"
 
@@ -105,7 +105,7 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 				req := NewRequest(t, "GET", groupURL+".repo")
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				expected := fmt.Sprintf(`[gitea-%s]
+				expected := fmt.Sprintf(`[codenest-%s]
 name=%s
 baseurl=%s
 enabled=1
@@ -458,7 +458,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 									Arch:     packageArchitecture,
 									Name:     packageName,
 									Release:  "1",
-									Src:      "gitea-test-1.0.2-1.src.rpm",
+									Src:      "codenest-test-1.0.2-1.src.rpm",
 									Version:  "1.0.2",
 									Filename: fmt.Sprintf("%s-%s.%s.rpm", packageName, packageVersion, packageArchitecture),
 								},
@@ -542,11 +542,11 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 										null,
 										{
 											"arch": "x86_64",
-											"name": "gitea",
+											"name": "codenest",
 											"release": "1",
-											"src": "gitea-1.0.0-1.src.rpm",
+											"src": "codenest-1.0.0-1.src.rpm",
 											"version": "1.0.0",
-											"filename": "gitea-1.0.0-1.x86_64.rpm"
+											"filename": "codenest-1.0.0-1.x86_64.rpm"
 										}
 									]
 								}
@@ -578,7 +578,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					assert.Len(t, newAdvisory.PkgList, 1)
 					assert.Equal(t, "el9", newAdvisory.PkgList[0].Short)
 					assert.Len(t, newAdvisory.PkgList[0].Packages, 1)
-					assert.Equal(t, "gitea", newAdvisory.PkgList[0].Packages[0].Name)
+					assert.Equal(t, "codenest", newAdvisory.PkgList[0].Packages[0].Name)
 				})
 
 				t.Run("PackageNotFound", func(t *testing.T) {
@@ -658,7 +658,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 									Arch:     packageArchitecture,
 									Name:     packageName,
 									Release:  "1",
-									Src:      "gitea-test-1.0.2-1.src.rpm",
+									Src:      "codenest-test-1.0.2-1.src.rpm",
 									Version:  "1.0.2",
 									Filename: fmt.Sprintf("%s-%s.%s.rpm", packageName, packageVersion, packageArchitecture),
 								},
@@ -748,7 +748,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 			t.Run("NoArch", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				noarchPackageName := "gitea-noarch-test"
+				noarchPackageName := "codenest-noarch-test"
 				noarchPackageVersion := "1.0.0-1"
 				noarchPackageGzipBase64 := `H4sICKC05mkAA2dpdGVhLW5vYXJjaC10ZXN0LTEuMC4wLTEubm9hcmNoLnJwbQDtmLtrFEEcx+dy` +
 					`p0ZROYliFMUTLJJiz53HPgbBBwZR0Jgiglo5sztzLt6Lu0uIYmEhFhFUsBUJahd8gHZWKvgnpLES` +

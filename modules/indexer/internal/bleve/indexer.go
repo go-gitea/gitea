@@ -7,8 +7,8 @@ import (
 	"context"
 	"errors"
 
-	"gitea.dev/modules/indexer/internal"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/indexer/internal"
+	"codenest.dev/modules/log"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
@@ -55,7 +55,7 @@ func (i *Indexer) Init(_ context.Context) (bool, error) {
 	}
 
 	if version != 0 {
-		log.Warn("Found older bleve index with version %d, Gitea will remove it and rebuild", version)
+		log.Warn("Found older bleve index with version %d, CodeNest will remove it and rebuild", version)
 	}
 
 	indexMapping, err := i.mappingGetter()

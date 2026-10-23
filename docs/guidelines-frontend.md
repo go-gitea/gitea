@@ -34,14 +34,14 @@ Mixing frameworks arbitrarily makes code hard to maintain. Recommended combinati
 Avoid combinations such as Vue with Fomantic-UI.
 Vue components may reuse Fomantic-UI CSS classes for visual consistency.
 Use Go templates for simple or SEO-relevant pages and Vue for complex, interactive pages.
-Gitea uses Vue 3 **without** JSX to keep HTML and JavaScript separate.
+CodeNest uses Vue 3 **without** JSX to keep HTML and JavaScript separate.
 
 > [!NOTE]
-> Fomantic-UI is not an accessibility-friendly framework. Gitea patches some ARIA
+> Fomantic-UI is not an accessibility-friendly framework. CodeNest patches some ARIA
 > behavior, but accessibility work is ongoing — prefer semantic HTML and test
 > keyboard/screen-reader behavior where you can.
 
-## Gitea-specific conventions
+## CodeNest-specific conventions
 
 - Keep features in their own files or directories.
 - Use kebab-case for HTML `id`s and classes with 2-3 feature keywords.
@@ -57,7 +57,7 @@ Gitea uses Vue 3 **without** JSX to keep HTML and JavaScript separate.
 ## CSS
 
 Prefer Tailwind utility classes with the `tw-` prefix, and the `flex-*` layout
-helpers over per-child margins. Gitea also ships a small set of custom helpers:
+helpers over per-child margins. CodeNest also ships a small set of custom helpers:
 `gt-` for general helpers and `g-` for framework-level helpers (see
 `web_src/css/helpers.css`); use these only when a Tailwind utility does not exist.
 
@@ -96,6 +96,6 @@ in new code. Never bind user-provided data directly onto DOM nodes.
 
 ## UI component gallery
 
-When running Gitea in development mode, standardized UI components are available at
+When running CodeNest in development mode, standardized UI components are available at
 `/devtest` (for example `http://localhost:3000/devtest`). These pages are also used
 by the e2e tests.

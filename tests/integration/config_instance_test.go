@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	system_model "gitea.dev/models/system"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/setting/config"
-	"gitea.dev/tests"
+	system_model "codenest.dev/models/system"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/setting/config"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

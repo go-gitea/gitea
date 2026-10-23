@@ -9,8 +9,8 @@ import (
 	"html/template"
 	"io"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
 
 	"github.com/alecthomas/chroma/v2"
 )

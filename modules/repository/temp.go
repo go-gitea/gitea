@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/setting"
 )
 
 // CreateTemporaryGitRepo creates a temporary Git repository empty directory (not initialized)

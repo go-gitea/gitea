@@ -8,16 +8,16 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIReposGitNotes(t *testing.T) {
-	onGiteaRun(t, func(*testing.T, *url.URL) {
+	onCodeNestRun(t, func(*testing.T, *url.URL) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		// Login as User2.
 		session := loginUser(t, user.Name)

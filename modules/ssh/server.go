@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	gossh "golang.org/x/crypto/ssh"
 )
@@ -131,7 +131,7 @@ func handleSessionChannel(ctx context.Context, conn *gossh.ServerConn, newChan g
 			session.env = append(session.env, env.Key+"="+env.Value)
 			_ = req.Reply(true, nil)
 		case "exec", "shell":
-			var payload struct{ Value string } // a "shell" carries no payload, it runs "gitea serv" without a command
+			var payload struct{ Value string } // a "shell" carries no payload, it runs "codenest serv" without a command
 			if req.Type == "exec" && gossh.Unmarshal(req.Payload, &payload) != nil {
 				_ = req.Reply(false, nil)
 				continue

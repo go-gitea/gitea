@@ -6,16 +6,16 @@ package issues
 import (
 	"testing"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/issues"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/indexer/issues/internal"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/db"
+	"codenest.dev/models/issues"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/indexer/issues/internal"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
 
-	_ "gitea.dev/models"
-	_ "gitea.dev/models/actions"
-	_ "gitea.dev/models/activities"
+	_ "codenest.dev/models"
+	_ "codenest.dev/models/actions"
+	_ "codenest.dev/models/activities"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

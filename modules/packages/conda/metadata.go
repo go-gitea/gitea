@@ -10,11 +10,11 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/packages"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
-	"gitea.dev/modules/zstd"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/packages"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
+	"codenest.dev/modules/zstd"
 )
 
 var (

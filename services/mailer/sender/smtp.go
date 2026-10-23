@@ -14,8 +14,8 @@ import (
 	"os"
 	"strings"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 // SMTPSender Sender SMTP mail sender

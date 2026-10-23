@@ -6,10 +6,10 @@ package issue
 import (
 	"context"
 
-	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
-	user_model "gitea.dev/models/user"
-	notify_service "gitea.dev/services/notify"
+	issues_model "codenest.dev/models/issues"
+	access_model "codenest.dev/models/perm/access"
+	user_model "codenest.dev/models/user"
+	notify_service "codenest.dev/services/notify"
 )
 
 // ChangeContent changes issue content, as the given user.

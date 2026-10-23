@@ -10,14 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	audit_model "gitea.dev/models/audit"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/tests"
+	audit_model "codenest.dev/models/audit"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -148,7 +148,7 @@ func TestAdminAuditLogExport(t *testing.T) {
 		disposition, params, err := mime.ParseMediaType(resp.Header().Get("Content-Disposition"))
 		require.NoError(t, err)
 		assert.Equal(t, "attachment", disposition)
-		assert.True(t, strings.HasPrefix(params["filename"], "gitea-audit-log-"))
+		assert.True(t, strings.HasPrefix(params["filename"], "codenest-audit-log-"))
 		assert.True(t, strings.HasSuffix(params["filename"], ".jsonl"))
 
 		found := false

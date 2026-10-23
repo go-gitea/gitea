@@ -6,10 +6,10 @@ package cmd
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/versioned_migration"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/versioned_migration"
 
 	"github.com/urfave/cli/v3"
 )
@@ -18,7 +18,7 @@ func newMigrateCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "migrate",
 		Usage:       "Migrate the database",
-		Description: `This is a command for migrating the database, so that you can run "gitea admin create user" before starting the server.`,
+		Description: `This is a command for migrating the database, so that you can run "codenest admin create user" before starting the server.`,
 		Action:      runMigrate,
 	}
 }

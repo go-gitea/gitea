@@ -13,18 +13,18 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/db"
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/modules/json"
-	packages_module "gitea.dev/modules/packages"
-	rpm_module "gitea.dev/modules/packages/rpm"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/packages/helper"
-	"gitea.dev/services/context"
-	notify_service "gitea.dev/services/notify"
-	packages_service "gitea.dev/services/packages"
-	rpm_service "gitea.dev/services/packages/rpm"
+	"codenest.dev/models/db"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/modules/json"
+	packages_module "codenest.dev/modules/packages"
+	rpm_module "codenest.dev/modules/packages/rpm"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/packages/helper"
+	"codenest.dev/services/context"
+	notify_service "codenest.dev/services/notify"
+	packages_service "codenest.dev/services/packages"
+	rpm_service "codenest.dev/services/packages/rpm"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -43,7 +43,7 @@ func GetRepositoryConfig(ctx *context.Context) {
 
 	url := fmt.Sprintf("%sapi/packages/%s/rpm", setting.AppURL, ctx.Package.Owner.Name)
 
-	ctx.PlainText(http.StatusOK, `[gitea-`+strings.Join(append([]string{ctx.Package.Owner.LowerName}, groupParts...), "-")+`]
+	ctx.PlainText(http.StatusOK, `[codenest-`+strings.Join(append([]string{ctx.Package.Owner.LowerName}, groupParts...), "-")+`]
 name=`+strings.Join(append([]string{ctx.Package.Owner.Name, setting.AppName}, groupParts...), " - ")+`
 baseurl=`+strings.Join(append([]string{url}, groupParts...), "/")+`
 enabled=1

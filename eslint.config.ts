@@ -62,7 +62,7 @@ export default defineConfig([
       '@eslint-community/eslint-comments': comments,
       '@stylistic': stylistic,
       '@typescript-eslint': typescriptPlugin.plugin,
-      'gitea': {rules: {'unescaped-html-literal': unescapedHtmlLiteral}},
+      'codenest': {rules: {'unescaped-html-literal': unescapedHtmlLiteral}},
       'import-x': importPlugin,
       regexp,
       unicorn,
@@ -311,7 +311,7 @@ export default defineConfig([
       'func-names': [0],
       'func-style': [0],
       'getter-return': [2],
-      'gitea/unescaped-html-literal': [2],
+      'codenest/unescaped-html-literal': [2],
       'grouped-accessor-pairs': [2],
       'guard-for-in': [0],
       'id-denylist': [0],
@@ -860,7 +860,7 @@ export default defineConfig([
       'unicorn/no-subtraction-comparison': [2],
       'unicorn/no-thenable': [2],
       'unicorn/no-this-assignment': [2],
-      'unicorn/no-this-outside-of-class': [0], // gitea uses `this` in non-class functions
+      'unicorn/no-this-outside-of-class': [0], // codenest uses `this` in non-class functions
       'unicorn/no-top-level-assignment-in-function': [0],
       'unicorn/no-top-level-side-effects': [0],
       'unicorn/no-transition-all': [2],
@@ -1147,7 +1147,7 @@ export default defineConfig([
     plugins: {vitest},
     languageOptions: {globals: globals.vitest},
     rules: {
-      'gitea/unescaped-html-literal': [0],
+      'codenest/unescaped-html-literal': [0],
       'unicorn/no-error-property-assignment': [0],
       'vitest/consistent-each-for': [0],
       'vitest/consistent-test-filename': [0],
@@ -1243,7 +1243,7 @@ export default defineConfig([
     files: ['*', 'tools/**/*', 'tests/**/*'],
     languageOptions: {globals: globals.nodeBuiltin},
     rules: {
-      'gitea/unescaped-html-literal': [0],
+      'codenest/unescaped-html-literal': [0],
     },
   },
   {

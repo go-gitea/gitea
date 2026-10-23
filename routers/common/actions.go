@@ -11,14 +11,14 @@ import (
 	"io"
 	"io/fs"
 
-	actions_model "gitea.dev/models/actions"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/actions"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
-	context_module "gitea.dev/services/context"
+	actions_model "codenest.dev/models/actions"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/actions"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
+	context_module "codenest.dev/services/context"
 )
 
 func openTaskLogs(ctx context.Context, task *actions_model.ActionTask) (io.ReadSeekCloser, error) {

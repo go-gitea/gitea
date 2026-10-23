@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/consts"
+	"codenest.dev/modules/consts"
 )
 
 var PathNameValidator = sync.OnceValue(func() (ret struct {
@@ -292,8 +292,8 @@ func FileURLToPath(u *url.URL) (string, error) {
 // HomeDir returns path of '~'(in Linux) on Windows,
 // it returns error when the variable does not exist.
 func HomeDir() (home string, err error) {
-	// TODO: some users run Gitea with mismatched uid  and "HOME=xxx" (they set HOME=xxx by environment manually)
-	// TODO: when running gitea as a sub command inside git, the HOME directory is not the user's home directory
+	// TODO: some users run CodeNest with mismatched uid  and "HOME=xxx" (they set HOME=xxx by environment manually)
+	// TODO: when running codenest as a sub command inside git, the HOME directory is not the user's home directory
 	// so at the moment we can not use `user.Current().HomeDir`
 	if consts.IsWindows {
 		home = os.Getenv("USERPROFILE")

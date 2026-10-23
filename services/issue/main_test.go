@@ -6,11 +6,11 @@ package issue
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
-	notify_service "gitea.dev/services/notify"
+	"codenest.dev/models/unittest"
+	notify_service "codenest.dev/services/notify"
 
-	_ "gitea.dev/models"
-	_ "gitea.dev/models/actions"
+	_ "codenest.dev/models"
+	_ "codenest.dev/models/actions"
 )
 
 var labelChanges = &labelChangeRecorder{}

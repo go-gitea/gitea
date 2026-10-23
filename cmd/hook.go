@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/private"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/private"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -172,10 +172,10 @@ func runHookPreReceive(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
-			return fail(ctx, `Rejecting changes as Gitea environment not set.
+		if setting.OnlyAllowPushIfCodeNestEnvironmentSet {
+			return fail(ctx, `Rejecting changes as CodeNest environment not set.
 If you are pushing over SSH you must push with a key managed by
-Gitea or set your environment appropriately.`, "")
+CodeNest or set your environment appropriately.`, "")
 		}
 		return nil
 	}
@@ -297,10 +297,10 @@ func runHookPostReceive(ctx context.Context, c *cli.Command) error {
 	}
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
-			return fail(ctx, `Rejecting changes as Gitea environment not set.
+		if setting.OnlyAllowPushIfCodeNestEnvironmentSet {
+			return fail(ctx, `Rejecting changes as CodeNest environment not set.
 If you are pushing over SSH you must push with a key managed by
-Gitea or set your environment appropriately.`, "")
+CodeNest or set your environment appropriately.`, "")
 		}
 		return nil
 	}
@@ -435,10 +435,10 @@ func runHookProcReceive(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
-			return fail(ctx, `Rejecting changes as Gitea environment not set.
+		if setting.OnlyAllowPushIfCodeNestEnvironmentSet {
+			return fail(ctx, `Rejecting changes as CodeNest environment not set.
 If you are pushing over SSH you must push with a key managed by
-Gitea or set your environment appropriately.`, "")
+CodeNest or set your environment appropriately.`, "")
 		}
 		return nil
 	}

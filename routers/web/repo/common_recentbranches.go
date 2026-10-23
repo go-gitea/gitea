@@ -4,12 +4,12 @@
 package repo
 
 import (
-	git_model "gitea.dev/models/git"
-	access_model "gitea.dev/models/perm/access"
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/modules/log"
-	"gitea.dev/services/context"
-	repo_service "gitea.dev/services/repository"
+	git_model "codenest.dev/models/git"
+	access_model "codenest.dev/models/perm/access"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/modules/log"
+	"codenest.dev/services/context"
+	repo_service "codenest.dev/services/repository"
 )
 
 type RecentBranchesPromptDataStruct struct {

@@ -9,14 +9,14 @@ import (
 	"net/http"
 	"time"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/web"
-	web_types "gitea.dev/modules/web/types"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/web"
+	web_types "codenest.dev/modules/web/types"
 )
 
 // PrivateContext represents a context for private routes

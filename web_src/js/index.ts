@@ -43,7 +43,7 @@ import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts'
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActions} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
-import {initGiteaFomantic} from './modules/fomantic.ts';
+import {initCodeNestFomantic} from './modules/fomantic.ts';
 import {initRepoIssueList} from './features/repo-issue-list.ts';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.ts';
 import {initRepoContributors} from './features/contributors.ts';
@@ -74,7 +74,7 @@ import {initGlobalModal} from './modules/modal.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
-  initGiteaFomantic,
+  initCodeNestFomantic,
 
   initGlobalModal,
   initGlobalComponent,

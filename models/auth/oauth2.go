@@ -16,11 +16,11 @@ import (
 	"time"
 	"uuid"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
@@ -84,8 +84,8 @@ func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 	}
 	m["b757811a-05c8-4c76-8d74-a5ee3d2073f2"] = &BuiltinOAuth2Application{
 		ConfigName:   "gitea-app",
-		DisplayName:  "Gitea App",
-		RedirectURIs: []string{"com.gitea.app://oauth/callback"},
+		DisplayName:  "CodeNest App",
+		RedirectURIs: []string{"com.codenest.app://oauth/callback"},
 	}
 	m["75a9ec3e-42b5-40cb-9144-9ea96ecd56a6"] = &BuiltinOAuth2Application{
 		ConfigName:  "gitea-vscode",
@@ -93,8 +93,8 @@ func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 		RedirectURIs: []string{
 			"http://127.0.0.1",
 			"https://127.0.0.1",
-			"vscode://gitea.gitea-for-vscode/auth/callback",
-			"vscode-insiders://gitea.gitea-for-vscode/auth/callback",
+			"vscode://codenest.codenest-for-vscode/auth/callback",
+			"vscode-insiders://codenest.codenest-for-vscode/auth/callback",
 		},
 	}
 	return m

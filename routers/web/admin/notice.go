@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"gitea.dev/models/db"
-	system_model "gitea.dev/models/system"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/context"
+	"codenest.dev/models/db"
+	system_model "codenest.dev/models/system"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/context"
 )
 
 const (

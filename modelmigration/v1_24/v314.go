@@ -6,7 +6,7 @@ package v1_24
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func UpdateOwnerIDOfRepoLevelActionsTables(_ context.Context, x base.EngineMigration) error {

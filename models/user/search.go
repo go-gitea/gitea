@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/structs"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/structs"
 
 	"xorm.io/builder"
 )

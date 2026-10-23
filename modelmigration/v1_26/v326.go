@@ -11,11 +11,11 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	webhook_module "gitea.dev/modules/webhook"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	webhook_module "codenest.dev/modules/webhook"
 )
 
 const (

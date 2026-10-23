@@ -13,9 +13,9 @@ import (
 	"strings"
 	"syscall"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -132,7 +132,7 @@ func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(context.Context, *cl
 
 func isValidDefaultSubCommand(cmd *cli.Command) (string, bool) {
 	// Dirty patch for urfave/cli's strange design.
-	// "./gitea bad-cmd" should not start the web server.
+	// "./codenest bad-cmd" should not start the web server.
 	args := cmd.Args().Slice()
 	if len(args) != 0 {
 		return args[0], false

@@ -11,27 +11,27 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	mirror_service "gitea.dev/services/mirror"
-	repo_service "gitea.dev/services/repository"
-	wiki_service "gitea.dev/services/wiki"
-	"gitea.dev/tests"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	mirror_service "codenest.dev/services/mirror"
+	repo_service "codenest.dev/services/repository"
+	wiki_service "codenest.dev/services/wiki"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMirrorPush(t *testing.T) {
-	onGiteaRun(t, testMirrorPush)
+	onCodeNestRun(t, testMirrorPush)
 }
 
 func TestMirrorPushWikiDefaultBranchMismatch(t *testing.T) {
-	onGiteaRun(t, testMirrorPushWikiDefaultBranchMismatch)
+	onCodeNestRun(t, testMirrorPushWikiDefaultBranchMismatch)
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {

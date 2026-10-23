@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -288,7 +288,7 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, packageVersion, p.Version)
 		assert.Equal(t, []string{packageTag}, p.DistTags)
 		assert.Equal(t, strings.ToLower(fmt.Sprintf("%s-%s.tgz", packageName, packageVersion)), p.Filename)
-		assert.Equal(t, fmt.Sprintf("%s/-/%s-%s.tgz", packageFullName, packageName, packageVersion), p.Metadata.GiteaTarballPath)
+		assert.Equal(t, fmt.Sprintf("%s/-/%s-%s.tgz", packageFullName, packageName, packageVersion), p.Metadata.CodeNestTarballPath)
 		b, _ = base64.StdEncoding.DecodeString(data)
 		assert.Equal(t, b, p.Data)
 		assert.Equal(t, packageName, p.Metadata.Name)

@@ -6,12 +6,12 @@ package user
 import (
 	"net/http"
 
-	"gitea.dev/modules/optional"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	user_service "gitea.dev/services/user"
+	"codenest.dev/modules/optional"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	user_service "codenest.dev/services/user"
 )
 
 // GetUserSettings returns user settings

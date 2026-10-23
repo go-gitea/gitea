@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/services/contexttest"
-	files_service "gitea.dev/services/repository/files"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/services/contexttest"
+	files_service "codenest.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -346,7 +346,7 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 
 func TestChangeRepoFilesForCreate(t *testing.T) {
 	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1")
 		ctx.SetPathParam("id", "1")
 		contexttest.LoadRepo(t, ctx, 1)
@@ -383,7 +383,7 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 
 func TestChangeRepoFilesForUpdate(t *testing.T) {
 	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1")
 		ctx.SetPathParam("id", "1")
 		contexttest.LoadRepo(t, ctx, 1)
@@ -417,7 +417,7 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 
 func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1")
 		ctx.SetPathParam("id", "1")
 		contexttest.LoadRepo(t, ctx, 1)
@@ -466,7 +466,7 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 }
 
 func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/lfs")
 		ctx.SetPathParam("id", "54")
 		contexttest.LoadRepo(t, ctx, 54)
@@ -500,7 +500,7 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 // Test opts with branch names removed, should get same results as above test
 func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1")
 		ctx.SetPathParam("id", "1")
 		contexttest.LoadRepo(t, ctx, 1)
@@ -531,7 +531,7 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 }
 
 func TestChangeRepoFilesForDelete(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1")
 		ctx.SetPathParam("id", "1")
 		contexttest.LoadRepo(t, ctx, 1)
@@ -618,7 +618,7 @@ func TestChangeRepoFilesForDelete(t *testing.T) {
 
 func TestChangeRepoFilesErrors(t *testing.T) {
 	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1")
 		ctx.SetPathParam("id", "1")
 		contexttest.LoadRepo(t, ctx, 1)

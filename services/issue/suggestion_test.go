@@ -6,9 +6,9 @@ package issue
 import (
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/optional"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
 )

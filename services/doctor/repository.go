@@ -6,10 +6,10 @@ package doctor
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/storage"
-	repo_service "gitea.dev/services/repository"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/storage"
+	repo_service "codenest.dev/services/repository"
 
 	"xorm.io/builder"
 )

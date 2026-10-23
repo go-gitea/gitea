@@ -12,16 +12,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
-	system_model "gitea.dev/models/system"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/egress"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	repo_model "codenest.dev/models/repo"
+	system_model "codenest.dev/models/system"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/egress"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	base "codenest.dev/modules/migration"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // MigrateOptions is equal to base.MigrateOptions
@@ -93,7 +93,7 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 		return nil, err
 	}
 
-	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
+	uploader := NewCodeNestLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
 
 	if err := migrateRepository(ctx, doer, downloader, uploader, opts, messenger); err != nil {

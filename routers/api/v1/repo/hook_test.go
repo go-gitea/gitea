@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"testing"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	"gitea.dev/models/webhook"
-	"gitea.dev/services/contexttest"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	"codenest.dev/models/webhook"
+	"codenest.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )

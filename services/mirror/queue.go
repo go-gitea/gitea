@@ -4,10 +4,10 @@
 package mirror
 
 import (
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
 )
 
 var mirrorQueue *queue.WorkerPoolQueue[*SyncRequest]

@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/indexer/issues/internal"
-	"gitea.dev/modules/indexer/issues/internal/tests"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/indexer/issues/internal"
+	"codenest.dev/modules/indexer/issues/internal/tests"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/test"
 
 	"github.com/meilisearch/meilisearch-go"
 	"github.com/stretchr/testify/assert"

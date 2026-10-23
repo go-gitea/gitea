@@ -7,8 +7,8 @@ import (
 	"context"
 	"strings"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/util"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/util"
 
 	"github.com/urfave/cli/v3"
 )

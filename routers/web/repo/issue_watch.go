@@ -6,9 +6,9 @@ package repo
 import (
 	"net/http"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/context"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/context"
 )
 
 const (

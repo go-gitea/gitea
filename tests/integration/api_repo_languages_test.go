@@ -9,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRepoLanguages(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user2")
 
 		// Request editor page

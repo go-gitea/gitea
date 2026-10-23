@@ -9,16 +9,16 @@ import (
 	"net/url"
 	"strings"
 
-	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/label"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
+	issues_model "codenest.dev/models/issues"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/label"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
 )
 
 func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {

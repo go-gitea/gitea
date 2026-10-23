@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/indexer/code/internal"
-	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/indexer/code/internal"
+	inner_bleve "codenest.dev/modules/indexer/internal/bleve"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

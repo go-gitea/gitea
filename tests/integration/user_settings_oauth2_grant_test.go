@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

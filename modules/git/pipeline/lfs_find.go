@@ -10,8 +10,8 @@ import (
 	"io"
 	"sort"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
 )
 
 // FindLFSFile finds commits that contain a provided pointer file hash

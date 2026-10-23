@@ -8,14 +8,14 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/models/organization"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/translation"
-	sender_service "gitea.dev/services/mailer/sender"
+	"codenest.dev/models/organization"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/translation"
+	sender_service "codenest.dev/services/mailer/sender"
 )
 
 const (

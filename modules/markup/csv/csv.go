@@ -9,11 +9,11 @@ import (
 	"io"
 	"strconv"
 
-	"gitea.dev/modules/csv"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/csv"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/util"
 )
 
 func init() {

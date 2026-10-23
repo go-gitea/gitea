@@ -6,7 +6,7 @@ package setting
 import (
 	"strconv"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 type deprecatedKey struct {

@@ -10,15 +10,15 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/lfs"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/lfs"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 )
 
 /*

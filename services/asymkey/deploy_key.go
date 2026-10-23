@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
-	deploykey_model "gitea.dev/models/deploykey"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/services/audit"
+	asymkey_model "codenest.dev/models/asymkey"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/db"
+	deploykey_model "codenest.dev/models/deploykey"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/services/audit"
 )
 
 // DeleteRepoDeployKeys deletes all deploy keys of a repository. permissions check should be done outside

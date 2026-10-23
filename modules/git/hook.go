@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/util"
 )
 
 // hookNames is a list of Git server hooks' name that are supported.

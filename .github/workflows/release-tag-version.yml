@@ -14,7 +14,7 @@ permissions: {}
 
 jobs:
   binary:
-    runs-on: namespace-profile-gitea-release-binary
+    runs-on: namespace-profile-codenest-release-binary
     permissions:
       contents: read
       packages: write # to publish to ghcr.io
@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
-      # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
+      # fetch all tags to ensure that "git describe" reports expected CodeNest version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
@@ -67,7 +67,7 @@ jobs:
           CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
           BRANCH: ${{ steps.clean_name.outputs.branch }}
         run: |
-          aws s3 sync dist/release "s3://$CLOUDFLARE_R2_BUCKET/gitea/$BRANCH" --endpoint-url "https://$CLOUDFLARE_R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
+          aws s3 sync dist/release "s3://$CLOUDFLARE_R2_BUCKET/codenest/$BRANCH" --endpoint-url "https://$CLOUDFLARE_R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
       - name: Install GH CLI
         uses: dev-hanz-ops/install-gh-cli-action@6089bdde54118ad7ca3d22053eb2d69387fd2779 # v0.3.0
         with:
@@ -91,14 +91,14 @@ jobs:
           gh release create "$TAG" --title "$TAG" --notes-file git-cliff/CHANGELOG.md dist/release/*
 
   container:
-    runs-on: namespace-profile-gitea-release-docker
+    runs-on: namespace-profile-codenest-release-docker
     permissions:
       contents: read
       packages: write # to publish to ghcr.io
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
-      # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
+      # fetch all tags to ensure that "git describe" reports expected CodeNest version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
@@ -108,7 +108,7 @@ jobs:
         id: meta
         with:
           images: |-
-            gitea/gitea
+            codenest/codenest
             ghcr.io/go-gitea/gitea
           # this will generate tags in the following format:
           # latest
@@ -125,7 +125,7 @@ jobs:
         id: meta_rootless
         with:
           images: |-
-            gitea/gitea
+            codenest/codenest
             ghcr.io/go-gitea/gitea
           # each tag below will have the suffix of -rootless
           flavor: |

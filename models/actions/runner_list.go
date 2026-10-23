@@ -6,10 +6,10 @@ package actions
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/container"
 )
 
 type RunnerList []*ActionRunner

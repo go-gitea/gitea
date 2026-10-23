@@ -67,7 +67,7 @@
 									{{if ne $issue.RepoID $issue.PullRequest.BaseRepoID}}<span class="truncated-name">{{$issue.PullRequest.BaseRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{$issue.PullRequest.BaseBranch}}</span>
 								</a>
 							</div>
-							{{svg "gitea-double-chevron-left" 12}}
+							{{svg "codenest-double-chevron-left" 12}}
 							{{if $issue.PullRequest.HeadRepo}}
 							<div class="branch">
 								<a href="{{$issue.PullRequest.HeadRepo.Link}}/src/branch/{{PathEscapeSegments $issue.PullRequest.HeadBranch}}">

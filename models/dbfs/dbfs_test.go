@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/test"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

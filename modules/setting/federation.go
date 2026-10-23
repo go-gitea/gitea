@@ -4,7 +4,7 @@
 package setting
 
 import (
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 
 	"github.com/42wim/httpsig"
 )

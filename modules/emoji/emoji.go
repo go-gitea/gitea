@@ -10,11 +10,11 @@ import (
 	"sync/atomic"
 	"unicode/utf8"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // Emoji represents a single emoji and associated data.

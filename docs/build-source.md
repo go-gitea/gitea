@@ -1,6 +1,6 @@
 # Prepare build environment
 
-Complete the steps in [build-setup.md](build-setup.md) to prepare your environment for building Gitea from source.
+Complete the steps in [build-setup.md](build-setup.md) to prepare your environment for building CodeNest from source.
 
 ## Choose a branch
 
@@ -34,30 +34,30 @@ TAGS="bindata" make build
 
 ## Changing default paths
 
-Gitea will search for a number of things from the _`CustomPath`_.
-By default, this is the `custom/` directory in the current working directory when running Gitea.
+CodeNest will search for a number of things from the _`CustomPath`_.
+By default, this is the `custom/` directory in the current working directory when running CodeNest.
 It will also look for its configuration file _`CustomConf`_ in `$(CustomPath)/conf/app.ini`,
 and will use the current working directory as the relative base path _`AppWorkPath`_.
 
 These values, although useful when developing, may conflict with downstream users preferences.
 
-For packagers who need to use paths like `/etc/gitea/app.ini`,
+For packagers who need to use paths like `/etc/codenest/app.ini`,
 they should define these values at build time for `make build` by environment variable like
 `LDFLAGS='-X "module.Var1=Value1" -X "module.Var2=Value2"' TAGS="bindata" make build`.
 
-- _`CustomConf`_: `-X "gitea.dev/modules/setting.CustomConf=/etc/gitea/app.ini"`
-- _`AppWorkPath`_: `-X "gitea.dev/modules/setting.AppWorkPath=/var/lib/gitea"`
-- _`CustomPath`_: `-X "gitea.dev/modules/setting.CustomPath=/var/lib/gitea/custom"`
-- Default PID file location: `-X "gitea.dev/cmd.PIDFile=/run/gitea.pid"`
+- _`CustomConf`_: `-X "codenest.dev/modules/setting.CustomConf=/etc/codenest/app.ini"`
+- _`AppWorkPath`_: `-X "codenest.dev/modules/setting.AppWorkPath=/var/lib/codenest"`
+- _`CustomPath`_: `-X "codenest.dev/modules/setting.CustomPath=/var/lib/codenest/custom"`
+- Default PID file location: `-X "codenest.dev/cmd.PIDFile=/run/codenest.pid"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.
 
-Running `gitea help` will allow you to review what the computed settings will be for your `gitea`.
+Running `codenest help` will allow you to review what the computed settings will be for your `codenest`.
 
 ## Cross Build
 
-Gitea use's Golang's toolchain variables for cross-building.
+CodeNest use's Golang's toolchain variables for cross-building.
 
 For example, to cross build for Linux ARM64:
 
@@ -69,7 +69,7 @@ GOOS=linux GOARCH=arm64 TAGS="bindata" make build
 
 Shell completion can be generated directly from binary with:
 ```sh
-gitea completion <shell>
+codenest completion <shell>
 ```
 
 Supported values for `<shell>` are `bash`, `fish`, `pwsh` and `zsh`.
@@ -77,7 +77,7 @@ Details on how to load the completion for your shell can be found in the complet
 
 ## Source Maps
 
-By default, gitea generates reduced source maps for frontend files to conserve space. This can be controlled with the `ENABLE_SOURCEMAP` environment variable:
+By default, codenest generates reduced source maps for frontend files to conserve space. This can be controlled with the `ENABLE_SOURCEMAP` environment variable:
 
 - `ENABLE_SOURCEMAP=true` generates all source maps, the default for development builds
 - `ENABLE_SOURCEMAP=reduced` generates limited source maps, the default for production builds

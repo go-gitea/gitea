@@ -13,14 +13,14 @@ import (
 	"strings"
 	"time"
 
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
-	asymkey_service "gitea.dev/services/asymkey"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
+	asymkey_service "codenest.dev/services/asymkey"
 )
 
 type mergeContext struct {

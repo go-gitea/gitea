@@ -6,7 +6,7 @@ package attribute
 import (
 	"strings"
 
-	"gitea.dev/modules/optional"
+	"codenest.dev/modules/optional"
 )
 
 type Attribute string

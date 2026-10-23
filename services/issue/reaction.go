@@ -6,9 +6,9 @@ package issue
 import (
 	"context"
 
-	issues_model "gitea.dev/models/issues"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
+	issues_model "codenest.dev/models/issues"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
 )
 
 // CreateIssueReaction creates a reaction on an issue.

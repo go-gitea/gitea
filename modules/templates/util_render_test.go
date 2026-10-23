@@ -11,17 +11,17 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/models/gituser"
-	"gitea.dev/models/issues"
-	"gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/setting/config"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/translation"
+	"codenest.dev/models/gituser"
+	"codenest.dev/models/issues"
+	"codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/setting/config"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -52,7 +52,7 @@ mail@domain.com
 }
 
 func TestMain(m *testing.M) {
-	setting.SetupGiteaTestEnv()
+	setting.SetupCodeNestTestEnv()
 	setting.Markdown.RenderOptionsComment.ShortIssuePattern = true
 	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {

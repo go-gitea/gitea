@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 // Indexer settings

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 // Package registry settings

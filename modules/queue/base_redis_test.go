@@ -6,8 +6,8 @@ package queue
 import (
 	"testing"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 )
 
 func TestBaseRedis(t *testing.T) {

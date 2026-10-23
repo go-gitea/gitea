@@ -11,13 +11,13 @@ import (
 	"os"
 	"path"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )

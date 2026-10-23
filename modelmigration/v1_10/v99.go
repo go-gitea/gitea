@@ -6,8 +6,8 @@ package v1_10
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/timeutil"
 )
 
 func AddTaskTable(_ context.Context, x base.EngineMigration) error {

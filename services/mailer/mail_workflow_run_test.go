@@ -9,14 +9,14 @@ import (
 	"strings"
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/translation"
-	sender_service "gitea.dev/services/mailer/sender"
+	actions_model "codenest.dev/models/actions"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/translation"
+	sender_service "codenest.dev/services/mailer/sender"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,7 +55,7 @@ func TestWorkflowRunMail(t *testing.T) {
 		defer test.MockVariableValue(&setting.Names, []string{"English"})()
 		translation.InitLocales(t.Context())
 		require.NoError(t, unittest.PrepareTestDatabase())
-		defer test.MockVariableValue(&setting.MailService, &setting.Mailer{FromEmail: "gitea@localhost"})()
+		defer test.MockVariableValue(&setting.MailService, &setting.Mailer{FromEmail: "codenest@localhost"})()
 		defer test.MockVariableValue(&setting.AppDomain, "localhost")()
 		defer test.MockVariableValue(&setting.AppURL, "http://localhost:3000/")()
 

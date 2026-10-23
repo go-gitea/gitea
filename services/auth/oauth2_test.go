@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/services/actions"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/services/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

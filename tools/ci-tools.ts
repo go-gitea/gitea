@@ -50,7 +50,7 @@ const extraLabels: Partial<Record<CommitType, string>> = {
 
 // Scopes whose label differs from "topic/<scope>".
 const scopeAliases: Record<string, string> = {
-  actions: 'topic/gitea-actions',
+  actions: 'topic/codenest-actions',
   auth: 'topic/authentication',
   issue: 'topic/issues',
   markup: 'topic/content-rendering',

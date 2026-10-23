@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"strings"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 type BasicAuth struct {

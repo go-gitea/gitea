@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 // SessionConfig defines Session settings
@@ -33,7 +33,7 @@ var SessionConfig = struct {
 	SameSite http.SameSite
 }{
 	Provider:    "memory", // the "Install" page doesn't load the [session] config
-	CookieName:  "gitea_session",
+	CookieName:  "codenest_session",
 	Gclifetime:  86400,
 	Maxlifetime: 86400,
 	SameSite:    http.SameSiteLaxMode,
@@ -49,7 +49,7 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 	case "file":
 		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").MustString(filepath.Join(AppDataPath, "sessions"))
 		if !filepath.IsAbs(SessionConfig.ProviderConfig) {
-			// Although the "data path" should be used as Gitea's "data" base directory (work path sometimes is not writable),
+			// Although the "data path" should be used as CodeNest's "data" base directory (work path sometimes is not writable),
 			// document says the relative session path is based on the "work path", so keep the behavior
 			SessionConfig.ProviderConfig = filepath.Join(AppWorkPath, SessionConfig.ProviderConfig)
 		}
@@ -58,7 +58,7 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").String()
 	}
 
-	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("gitea_session")
+	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("codenest_session")
 	// HINT: INSTALL-PAGE-COOKIE-INIT: the cookie system is not properly initialized on the "Install" page, so there is no CookiePath
 	SessionConfig.CookiePath = util.IfZero(AppSubURL, "/")
 	SessionConfig.Secure = sec.Key("COOKIE_SECURE").MustBool(strings.HasPrefix(strings.ToLower(AppURL), "https://"))

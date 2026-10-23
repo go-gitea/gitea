@@ -10,15 +10,15 @@ import (
 	"slices"
 	"strconv"
 
-	actions_model "gitea.dev/models/actions"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	actions_model "codenest.dev/models/actions"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 // JobQueue renders the instance-wide Actions job queue on the admin settings page.

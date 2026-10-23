@@ -1,9 +1,9 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// generate-openapi converts Gitea's Swagger 2.0 spec into an OpenAPI 3.0 spec.
+// generate-openapi converts CodeNest's Swagger 2.0 spec into an OpenAPI 3.0 spec.
 //
-// Gitea generates a Swagger 2.0 spec from code annotations (make generate-swagger).
+// CodeNest generates a Swagger 2.0 spec from code annotations (make generate-swagger).
 // This tool converts it to OAS3 so that SDK generators and tools that require
 // OAS3 (e.g. progenitor for Rust) can consume it directly. The conversion also
 // deduplicates inline enum definitions into named schema components, producing
@@ -24,7 +24,7 @@ import (
 	"sort"
 	"strings"
 
-	"gitea.dev/build/openapi3gen"
+	"codenest.dev/build/openapi3gen"
 )
 
 const (

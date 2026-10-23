@@ -4,7 +4,7 @@
 package auth
 
 import (
-	"gitea.dev/models/db"
+	"codenest.dev/models/db"
 
 	"xorm.io/builder"
 )

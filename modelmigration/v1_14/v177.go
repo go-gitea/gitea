@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 // DeleteOrphanedIssueLabels looks through the database for issue_labels where the label no longer exists and deletes them.

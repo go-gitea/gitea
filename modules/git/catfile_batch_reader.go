@@ -15,9 +15,9 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 type catFileBatchCommunicator struct {

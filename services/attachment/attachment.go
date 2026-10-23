@@ -12,12 +12,12 @@ import (
 	"net/http"
 	"uuid"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context/upload"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context/upload"
 )
 
 // NewAttachment creates a new attachment object, but do not verify.

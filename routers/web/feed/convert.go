@@ -12,16 +12,16 @@ import (
 	"strconv"
 	"strings"
 
-	activities_model "gitea.dev/models/activities"
-	"gitea.dev/models/renderhelper"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	activities_model "codenest.dev/models/activities"
+	"codenest.dev/models/renderhelper"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/markup/markdown"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 
 	"github.com/gorilla/feeds"
 )
@@ -65,7 +65,7 @@ func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, c
 	return rendered
 }
 
-// feedActionsToFeedItems convert gitea's Action feed to feeds Item
+// feedActionsToFeedItems convert codenest's Action feed to feeds Item
 func feedActionsToFeedItems(ctx *context.Context, actions activities_model.ActionList) (items []*feeds.Item, err error) {
 	renderUtils := templates.NewRenderUtils(ctx)
 	for _, act := range actions {
@@ -275,7 +275,7 @@ func GetFeedType(name string, req *http.Request) (showFeed bool, feedType string
 	return false, ""
 }
 
-// feedActionsToFeedItems convert gitea's Repo's Releases to feeds Item
+// feedActionsToFeedItems convert codenest's Repo's Releases to feeds Item
 func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (items []*feeds.Item, err error) {
 	canReadReleases := ctx.Repo.Permission.CanRead(unit.TypeReleases)
 	for _, rel := range releases {

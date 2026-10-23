@@ -6,7 +6,7 @@ package v1_9
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func AddGPGKeyImport(_ context.Context, x base.EngineMigration) error {

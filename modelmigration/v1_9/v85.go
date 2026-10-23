@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 )
 
 func HashAppToken(_ context.Context, x base.EngineMigration) error {

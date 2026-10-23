@@ -9,9 +9,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/tests"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

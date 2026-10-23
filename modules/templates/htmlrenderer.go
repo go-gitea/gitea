@@ -17,11 +17,11 @@ import (
 	"sync/atomic"
 	texttemplate "text/template"
 
-	"gitea.dev/modules/assetfs"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates/scopedtmpl"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/assetfs"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates/scopedtmpl"
+	"codenest.dev/modules/util"
 )
 
 type TemplateExecutor scopedtmpl.TemplateExecutor
@@ -70,11 +70,11 @@ func processStartupTemplateError(err error) {
 		return
 	}
 	if setting.IsProd || setting.IsInTesting {
-		// in prod mode, Gitea must have correct templates to run
-		log.Fatal("Gitea can't run with template errors: %v", err)
+		// in prod mode, CodeNest must have correct templates to run
+		log.Fatal("CodeNest can't run with template errors: %v", err)
 	}
 	// in dev mode, do not need to really exit, because the template errors could be fixed by developer soon and the templates get reloaded
-	log.Error("There are template errors but Gitea continues to run in dev mode: %v", err)
+	log.Error("There are template errors but CodeNest continues to run in dev mode: %v", err)
 }
 
 type templateErrorPrettier struct {

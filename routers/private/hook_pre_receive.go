@@ -8,21 +8,21 @@ import (
 	"net/http"
 	"os"
 
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/unit"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/agit"
-	gitea_context "gitea.dev/services/context"
-	pull_service "gitea.dev/services/pull"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/unit"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/agit"
+	codenest_context "codenest.dev/services/context"
+	pull_service "codenest.dev/services/pull"
 )
 
 type preReceiveContext struct {
-	*gitea_context.PrivateContext
+	*codenest_context.PrivateContext
 	env  []string
 	opts *private.HookOptions
 
@@ -84,7 +84,7 @@ func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 }
 
 // HookPreReceive checks whether a individual commit is acceptable
-func HookPreReceive(ctx *gitea_context.PrivateContext) {
+func HookPreReceive(ctx *codenest_context.PrivateContext) {
 	opts := web.GetForm[*private.HookOptions](ctx)
 	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
 		return

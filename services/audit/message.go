@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/modules/log"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/modules/log"
 )
 
 // Reserved placeholders, filled from the event itself rather than from metadata.

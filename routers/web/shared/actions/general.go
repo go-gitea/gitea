@@ -8,13 +8,13 @@ import (
 	"slices"
 	"strconv"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 const (

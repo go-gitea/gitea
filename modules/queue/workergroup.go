@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 var (
@@ -262,7 +262,7 @@ loop:
 			return
 		case <-time.After(20 * time.Millisecond):
 			// There is no reliable way to make sure all queue items are consumed by the Flush, there always might be some items stored in some buffers/temp variables.
-			// If we run Gitea in a cluster, we can even not guarantee all items are consumed in a deterministic instance.
+			// If we run CodeNest in a cluster, we can even not guarantee all items are consumed in a deterministic instance.
 			// Luckily, the "Flush" trick is only used in tests, so far so good.
 			if cnt, _ := q.baseQueue.Len(q.ctxRun); cnt == 0 && len(wg.popItemChan) == 0 {
 				emptyCounter++

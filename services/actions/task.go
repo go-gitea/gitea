@@ -10,14 +10,14 @@ import (
 	"sync"
 	"time"
 
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	secret_model "codenest.dev/models/secret"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	secret_model "gitea.dev/models/secret"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 
 	"go.yaml.in/yaml/v4"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -173,7 +173,7 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 	}, job, nil
 }
 
-// runnerWorkflowPayload sets the job `if:` to `always()`, as Gitea has decided it and a runner must not re-evaluate it.
+// runnerWorkflowPayload sets the job `if:` to `always()`, as CodeNest has decided it and a runner must not re-evaluate it.
 func runnerWorkflowPayload(job *actions_model.ActionRunJob) ([]byte, error) {
 	swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
 	if err != nil {
@@ -187,19 +187,19 @@ func runnerWorkflowPayload(job *actions_model.ActionRunJob) ([]byte, error) {
 }
 
 func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*structpb.Struct, error) {
-	giteaRuntimeToken, err := CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
+	codenestRuntimeToken, err := CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
 	if err != nil {
 		return nil, err
 	}
 
-	gitCtx := GenerateGiteaContext(ctx, t.Job.Run, nil, t.Job)
+	gitCtx := GenerateCodeNestContext(ctx, t.Job.Run, nil, t.Job)
 	if t.Job.ParentJobID > 0 {
 		if err := setCalledWorkflowContext(ctx, t.Job, gitCtx); err != nil {
 			return nil, err
 		}
 	}
 	gitCtx["token"] = t.Token
-	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
+	gitCtx["codenest_runtime_token"] = codenestRuntimeToken
 	if allowed, err := taskAllowsOIDCToken(ctx, t); err != nil {
 		return nil, err
 	} else if allowed {
@@ -229,8 +229,8 @@ func findTaskNeeds(ctx context.Context, taskJob *actions_model.ActionRunJob) (ma
 	return ret, nil
 }
 
-// setCalledWorkflowContext rewrites the context for older runners, newer runners undo it via `gitea_workflow_call`.
-func setCalledWorkflowContext(ctx context.Context, job *actions_model.ActionRunJob, gitCtx GiteaContext) error {
+// setCalledWorkflowContext rewrites the context for older runners, newer runners undo it via `codenest_workflow_call`.
+func setCalledWorkflowContext(ctx context.Context, job *actions_model.ActionRunJob, gitCtx CodeNestContext) error {
 	inputs, err := getInputsForJob(ctx, job.Run, job)
 	if err != nil {
 		return err
@@ -240,7 +240,7 @@ func setCalledWorkflowContext(ctx context.Context, job *actions_model.ActionRunJ
 	if eventInputs, ok := event["inputs"]; ok {
 		workflowCall["original_event_inputs"] = eventInputs
 	}
-	gitCtx["gitea_workflow_call"] = workflowCall
+	gitCtx["codenest_workflow_call"] = workflowCall
 	gitCtx["event_name"] = "workflow_call"
 	if event != nil {
 		event["inputs"] = inputs

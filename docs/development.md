@@ -1,6 +1,6 @@
 # Development
 
-This document describes how to build Gitea from source and the day-to-day
+This document describes how to build CodeNest from source and the day-to-day
 development workflow. For prerequisites and how to obtain the code, see
 [build-setup.md](build-setup.md). For running tests, see [testing.md](testing.md). For the
 contribution workflow and review process, see [CONTRIBUTING.md](../CONTRIBUTING.md).
@@ -13,7 +13,7 @@ Area-specific guidelines:
 
 ## Building
 
-To build Gitea for development, run:
+To build CodeNest for development, run:
 
 ```bash
 make build
@@ -27,7 +27,7 @@ development.
 
 See `make help` for all available targets, and the workflows in
 [`.github/workflows`](https://github.com/go-gitea/gitea/tree/main/.github/workflows)
-to see how continuous integration builds and checks Gitea.
+to see how continuous integration builds and checks CodeNest.
 
 ## Building continuously
 
@@ -127,15 +127,15 @@ A `launch.json` and `tasks.json` are provided in
 ### GoLand
 
 Clicking the `Run Application` arrow on `func main()` in `/main.go` starts a
-debuggable Gitea instance.
+debuggable CodeNest instance.
 
-The `Output Directory` in `Run/Debug Configuration` **must** be set to the Gitea
+The `Output Directory` in `Run/Debug Configuration` **must** be set to the CodeNest
 project directory (the one containing `main.go` and `go.mod`). Otherwise the working
-directory is a GoLand temporary directory, which prevents Gitea from loading dynamic
+directory is a GoLand temporary directory, which prevents CodeNest from loading dynamic
 resources (such as templates) in development.
 
 ## Submitting your changes
 
 Push your branch and open a pull request. See [CONTRIBUTING.md](../CONTRIBUTING.md)
 for the review process and PR requirements. For help, join the `#Develop` channel on
-[Discord](https://discord.gg/gitea).
+[Discord](https://discord.gg/codenest).

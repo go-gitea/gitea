@@ -6,12 +6,12 @@ package convert
 import (
 	"context"
 
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
 )
 
 // ToAPIComment converts a issues_model.Comment to the api.Comment format for API usage

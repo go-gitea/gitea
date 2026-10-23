@@ -6,9 +6,9 @@ package private
 import (
 	"net/http"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	deploykey_model "gitea.dev/models/deploykey"
-	"gitea.dev/services/context"
+	asymkey_model "codenest.dev/models/asymkey"
+	deploykey_model "codenest.dev/models/deploykey"
+	"codenest.dev/services/context"
 )
 
 // UpdatePublicKeyInRepo update public key and deploy key updates

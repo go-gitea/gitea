@@ -11,24 +11,24 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	git_model "gitea.dev/models/git"
-	"gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/services/pull"
+	auth_model "codenest.dev/models/auth"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPullCreate_CommitStatus(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "status1", "README.md", "status1")
@@ -67,9 +67,9 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 		statesIcons := map[commitstatus.CommitStatusState]string{
 			commitstatus.CommitStatusPending: "octicon-dot-fill",
 			commitstatus.CommitStatusSuccess: "octicon-check",
-			commitstatus.CommitStatusError:   "gitea-exclamation",
+			commitstatus.CommitStatusError:   "codenest-exclamation",
 			commitstatus.CommitStatusFailure: "octicon-x",
-			commitstatus.CommitStatusWarning: "gitea-exclamation",
+			commitstatus.CommitStatusWarning: "codenest-exclamation",
 		}
 
 		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeWriteRepository)
@@ -116,7 +116,7 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 	// Reason: gitflow and merging master back into develop, where is high possibility, there are no changes
 	// but just commit saying "Merge branch". And this meta commit can be also tagged,
 	// so we need to have this meta commit also in develop branch.
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "status1", "README.md", "status1")
@@ -157,7 +157,7 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 }
 
 func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 
 		testCreateBranch(t, session, "user2", "repo1", "branch/master", "empty-pr-branch", http.StatusSeeOther)
@@ -186,7 +186,7 @@ func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
 }
 
 func TestPullStatusDelayCheck(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		defer test.MockVariableValue(&setting.Repository.PullRequest.DelayCheckForInactiveDays, 1)()
 		defer test.MockVariableValue(&pull.AddPullRequestToCheckQueue)()
 

@@ -6,9 +6,9 @@ package org
 import (
 	"net/http"
 
-	"gitea.dev/modules/templates"
-	shared_user "gitea.dev/routers/web/shared/user"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/templates"
+	shared_user "codenest.dev/routers/web/shared/user"
+	"codenest.dev/services/context"
 )
 
 const (

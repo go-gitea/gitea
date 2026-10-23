@@ -10,8 +10,8 @@ import (
 	"io"
 	"os"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -23,13 +23,13 @@ func init() {
 }
 
 // cliHelpPrinterNew helps to print "DEFAULT CONFIGURATION" for the following cases ( "-c" can apper in any position):
-// * ./gitea -c /dev/null -h
-// * ./gitea -c help /dev/null help
-// * ./gitea help -c /dev/null
-// * ./gitea help -c /dev/null web
-// * ./gitea help web -c /dev/null
-// * ./gitea web help -c /dev/null
-// * ./gitea web -h -c /dev/null
+// * ./codenest -c /dev/null -h
+// * ./codenest -c help /dev/null help
+// * ./codenest help -c /dev/null
+// * ./codenest help -c /dev/null web
+// * ./codenest help web -c /dev/null
+// * ./codenest web help -c /dev/null
+// * ./codenest web -h -c /dev/null
 func cliHelpPrinterNew(out io.Writer, templ string, data any) {
 	cmd, _ := data.(*cli.Command)
 	if cmd != nil {
@@ -86,9 +86,9 @@ type AppVersion struct {
 
 func NewMainApp(appVer AppVersion) *cli.Command {
 	app := &cli.Command{}
-	app.Name = "gitea" // must be lower-cased because it appears in the "USAGE" section like "gitea doctor [command [command options]]"
+	app.Name = "codenest" // must be lower-cased because it appears in the "USAGE" section like "codenest doctor [command [command options]]"
 	app.Usage = "A painless self-hosted Git service"
-	app.Description = `Gitea program contains "web" and other subcommands. If no subcommand is given, it starts the web server by default. Use "web" subcommand for more web server arguments, use other subcommands for other purposes.`
+	app.Description = `CodeNest program contains "web" and other subcommands. If no subcommand is given, it starts the web server by default. Use "web" subcommand for more web server arguments, use other subcommands for other purposes.`
 	app.Version = appVer.Version + appVer.Extra
 	app.EnableShellCompletion = true
 	app.Flags = []cli.Flag{
@@ -96,7 +96,7 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 			Name:      "work-path",
 			Aliases:   []string{"w"},
 			TakesFile: true,
-			Usage:     "Set Gitea's working path (defaults to the Gitea's binary directory)",
+			Usage:     "Set CodeNest's working path (defaults to the CodeNest's binary directory)",
 		},
 		&cli.StringFlag{
 			Name:      "config",

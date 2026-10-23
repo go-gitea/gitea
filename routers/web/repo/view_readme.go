@@ -13,14 +13,14 @@ import (
 	"path"
 	"strings"
 
-	"gitea.dev/models/renderhelper"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/charset"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	"codenest.dev/models/renderhelper"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/charset"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 // locate a README for a tree in one of the supported paths.
@@ -35,7 +35,7 @@ func findReadmeFileInRepoTree(ctx *context.Context, treePath string, tree *git.T
 	if treePath == "" {
 		// only try the special sub-folders when visiting the repo root
 		wellKnownSubDirs := findReadmeWellKnownSubDirs(rootSubEntries)
-		dirEntries = []*git.TreeEntry{wellKnownSubDirs.entryGitea, wellKnownSubDirs.entryGitHub, tree, wellKnownSubDirs.entryDocs}
+		dirEntries = []*git.TreeEntry{wellKnownSubDirs.entryCodeNest, wellKnownSubDirs.entryGitHub, tree, wellKnownSubDirs.entryDocs}
 	} else {
 		dirEntries = []*git.TreeEntry{tree}
 	}
@@ -63,7 +63,7 @@ func findReadmeFileInRepoTree(ctx *context.Context, treePath string, tree *git.T
 	return "", nil, nil
 }
 
-func findReadmeWellKnownSubDirs(entries []*git.TreeEntry) (ret struct{ entryGitea, entryGitHub, entryDocs *git.TreeEntry }) {
+func findReadmeWellKnownSubDirs(entries []*git.TreeEntry) (ret struct{ entryCodeNest, entryGitHub, entryDocs *git.TreeEntry }) {
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -71,8 +71,8 @@ func findReadmeWellKnownSubDirs(entries []*git.TreeEntry) (ret struct{ entryGite
 		lowerName := strings.ToLower(entry.Name())
 		switch lowerName {
 		case ".gitea":
-			if entry.Name() == ".gitea" || ret.entryGitea == nil {
-				ret.entryGitea = entry
+			if entry.Name() == ".gitea" || ret.entryCodeNest == nil {
+				ret.entryCodeNest = entry
 			}
 		case ".github":
 			if entry.Name() == ".github" || ret.entryGitHub == nil {

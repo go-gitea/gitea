@@ -4,7 +4,7 @@
 
 package paginator
 
-import "gitea.dev/modules/util"
+import "codenest.dev/modules/util"
 
 /*
 In template:

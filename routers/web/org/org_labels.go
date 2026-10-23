@@ -6,15 +6,15 @@ package org
 import (
 	"errors"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/label"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	shared_label "gitea.dev/routers/web/shared/label"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/label"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	shared_label "codenest.dev/routers/web/shared/label"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
 )
 
 // RetrieveLabels find all the labels of an organization

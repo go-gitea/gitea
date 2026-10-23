@@ -11,7 +11,7 @@ RUN make frontend
 # Build backend for each target platform
 FROM docker.io/library/golang:1.27-alpine3.24 AS build-env
 
-ARG GITEA_VERSION
+ARG CODENEST_VERSION
 ARG TAGS=""
 ENV TAGS="bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
@@ -21,7 +21,7 @@ RUN apk --no-cache add \
     build-base \
     git
 
-WORKDIR ${GOPATH}/src/gitea.dev
+WORKDIR ${GOPATH}/src/codenest.dev
 COPY go.mod go.sum ./
 RUN go mod download
 # Use COPY instead of bind mount as read-only one breaks makefile state tracking and read-write one needs binary to be moved as it's discarded.
@@ -29,7 +29,7 @@ RUN go mod download
 COPY --exclude=.git/ . .
 COPY --from=frontend-build /src/public/assets public/assets
 
-# Build gitea, .git mount is required for version data
+# Build codenest, .git mount is required for version data
 RUN --mount=type=cache,target="/root/.cache/go-build" \
     --mount=type=bind,source=".git/",target=".git/" \
     make backend
@@ -39,12 +39,12 @@ COPY docker/root /tmp/local
 # Set permissions for builds that made under windows which strips the executable bit from file
 RUN chmod 755 /tmp/local/usr/bin/entrypoint \
               /tmp/local/usr/local/bin/* \
-              /tmp/local/etc/s6/gitea/* \
+              /tmp/local/etc/s6/codenest/* \
               /tmp/local/etc/s6/openssh/* \
               /tmp/local/etc/s6/.s6-svscan/* \
-              /go/src/gitea.dev/gitea
+              /go/src/codenest.dev/codenest
 
-FROM docker.io/library/alpine:3.24 AS gitea
+FROM docker.io/library/alpine:3.24 AS codenest
 
 EXPOSE 22 3000
 
@@ -74,10 +74,10 @@ RUN addgroup \
   echo "git:*" | chpasswd -e
 
 COPY --from=build-env /tmp/local /
-COPY --from=build-env /go/src/gitea.dev/gitea /app/gitea/gitea
+COPY --from=build-env /go/src/codenest.dev/codenest /app/codenest/codenest
 
 ENV USER=git
-ENV GITEA_CUSTOM=/data/gitea
+ENV CODENEST_CUSTOM=/data/codenest
 
 VOLUME ["/data"]
 

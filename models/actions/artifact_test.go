@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -6,9 +6,9 @@ package fileicon_test
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/fileicon"
-	"gitea.dev/modules/git"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/fileicon"
+	"codenest.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )

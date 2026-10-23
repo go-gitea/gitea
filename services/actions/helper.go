@@ -10,13 +10,13 @@ import (
 	"maps"
 	"strings"
 
-	actions_model "gitea.dev/models/actions"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
+	actions_model "codenest.dev/models/actions"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
 )
 
 // dispatchInputsForJob types a top-level job's `inputs.*` from EventPayload, empty for other events.
@@ -161,7 +161,7 @@ func resolveJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *ac
 	if err != nil {
 		return false, err
 	}
-	// GenerateGiteaContext dereferences the run's repo and trigger user, so load them here instead of
+	// GenerateCodeNestContext dereferences the run's repo and trigger user, so load them here instead of
 	// relying on whatever the caller happened to load before.
 	if err := run.LoadRepo(ctx); err != nil {
 		return false, err
@@ -169,7 +169,7 @@ func resolveJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *ac
 	if err := run.LoadTriggerUser(ctx); err != nil {
 		return false, err
 	}
-	gitCtx := GenerateGiteaContext(ctx, run, attempt, job)
+	gitCtx := GenerateCodeNestContext(ctx, run, attempt, job)
 	gitCtx["job"] = "" // github.com decides a job's `if:` before the job exists
 	shouldStart, err := jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs)
 	if err != nil {

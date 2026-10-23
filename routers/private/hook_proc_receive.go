@@ -7,16 +7,16 @@ import (
 	"errors"
 	"net/http"
 
-	issues_model "gitea.dev/models/issues"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/agit"
-	gitea_context "gitea.dev/services/context"
+	issues_model "codenest.dev/models/issues"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/agit"
+	codenest_context "codenest.dev/services/context"
 )
 
 // HookProcReceive proc-receive hook - only handles agit Proc-Receive requests at present
-func HookProcReceive(ctx *gitea_context.PrivateContext) {
+func HookProcReceive(ctx *codenest_context.PrivateContext) {
 	opts := web.GetForm[*private.HookOptions](ctx)
 	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
 		return

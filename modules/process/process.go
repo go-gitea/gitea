@@ -14,7 +14,7 @@ var (
 	NoneProcessType    = "none"
 )
 
-// process represents a working process inheriting from Gitea.
+// process represents a working process inheriting from CodeNest.
 type process struct {
 	PID         IDType // Process ID, not system one.
 	ParentPID   IDType

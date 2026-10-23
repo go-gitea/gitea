@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"strings"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
 )
 
 // Response is the structure of JSON returned from API

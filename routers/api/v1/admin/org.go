@@ -7,16 +7,16 @@ package admin
 import (
 	"net/http"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
-	"gitea.dev/models/organization"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/db"
+	"codenest.dev/models/organization"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // CreateOrg api for create organization

@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/contexttest"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )

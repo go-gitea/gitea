@@ -6,10 +6,10 @@ package repo
 import (
 	"net/http"
 
-	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	"codenest.dev/modules/git"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // GetNote Get a note corresponding to a single commit from a repository

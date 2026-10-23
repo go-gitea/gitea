@@ -7,10 +7,10 @@ import (
 	"context"
 	"net/url"
 
-	activities_model "gitea.dev/models/activities"
-	access_model "gitea.dev/models/perm/access"
-	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
+	activities_model "codenest.dev/models/activities"
+	access_model "codenest.dev/models/perm/access"
+	"codenest.dev/modules/log"
+	api "codenest.dev/modules/structs"
 )
 
 // ToNotificationThread convert a Notification to api.NotificationThread

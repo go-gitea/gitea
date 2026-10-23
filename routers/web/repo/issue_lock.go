@@ -4,10 +4,10 @@
 package repo
 
 import (
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
 )
 
 // LockIssue locks an issue. This would limit commenting abilities to

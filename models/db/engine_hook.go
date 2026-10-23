@@ -7,9 +7,9 @@ import (
 	"context"
 	"time"
 
-	"gitea.dev/modules/gtprof"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/gtprof"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	"xorm.io/xorm/contexts"
 )

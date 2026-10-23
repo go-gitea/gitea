@@ -11,13 +11,13 @@ import (
 	"os"
 	"path/filepath"
 
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
-	repo_module "gitea.dev/modules/repository"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitrepo"
+	repo_module "codenest.dev/modules/repository"
 )
 
 // Temporary repos created here use standard branch names to help simplify

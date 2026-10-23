@@ -8,9 +8,9 @@ import (
 	"net/url"
 	"sync"
 
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 var (

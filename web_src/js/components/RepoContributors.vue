@@ -203,7 +203,7 @@ function filterContributorWeeksByDateRange() {
       }
       return false;
     });
-    // this line is required. See https://github.com/sahinakkaya/gitea/pull/3#discussion_r1396495722
+    // this line is required. See https://github.com/sahinakkaya/codenest/pull/3#discussion_r1396495722
     // for details.
     maxContributionType += 1;
 
@@ -400,7 +400,7 @@ const contributorCharts = computed(() => sortedContributors.value.map((contribut
     <div class="tw-flex ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="gitea-running" class="tw-mr-2 rotate-clockwise"/>
+          <SvgIcon name="codenest-running" class="tw-mr-2 rotate-clockwise"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="tw-text-red">

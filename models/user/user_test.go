@@ -10,18 +10,18 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/password/hash"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/auth/password/hash"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,7 +52,7 @@ func TestOAuth2Application_LoadUser(t *testing.T) {
 
 func TestUserEmails(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
+	defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.codenest.internal")()
 	t.Run("GetUserEmailsByNames", func(t *testing.T) {
 		// ignore not active user email
 		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "user9"}))
@@ -74,7 +74,7 @@ func TestUserEmails(t *testing.T) {
 		{"no-such", 0},
 	}
 	t.Run("GetUsersByEmails", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
+		defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.codenest.internal")()
 		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
 			m, err := user_model.GetUsersByEmails(t.Context(), []string{email})
 			require.NoError(t, err)
@@ -378,7 +378,7 @@ func TestGetDoerUserIDsByNames(t *testing.T) {
 	assert.ErrorIs(t, err, util.ErrNotExist)
 	assert.Equal(t, []int64{1, 2}, ids)
 
-	ids, err = user_model.GetDoerUserIDsByNamesWithSystem(t.Context(), []string{"gitea-actions", "gitea:deploy-key"})
+	ids, err = user_model.GetDoerUserIDsByNamesWithSystem(t.Context(), []string{"codenest-actions", "codenest:deploy-key"})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{-2, -3}, ids)
 }

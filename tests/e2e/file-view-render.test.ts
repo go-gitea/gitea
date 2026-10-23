@@ -5,7 +5,7 @@ import {apiCreateRepo, apiCreateFiles, assertFlushWithParent, assertNoJsError, l
 test('3d model file', async ({page, request, browserName}) => {
   test.skip(browserName === 'firefox', 'unclear firefox-only CI-only failure'); // eslint-disable-line playwright/no-skipped-test -- conditional skip, the reason is in the message
   const repoName = `e2e-3d-render-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
   const stl = 'solid test\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nvertex 1 0 0\nvertex 0 1 0\nendloop\nendfacet\nendsolid test\n';
   await apiCreateFiles(request, owner, repoName, [{path: 'test.stl', content: stl}]);
@@ -17,7 +17,7 @@ test('3d model file', async ({page, request, browserName}) => {
   await expect(viewer.locator('canvas')).toBeVisible(); // unclear firefox-only CI-only failure
   expect((await viewer.boundingBox())!.height).toBeGreaterThan(300);
   await assertFlushWithParent(iframe, page.locator('.file-view'));
-  // bgcolor passed via gitea-iframe-bgcolor; 3D viewer reads it from body bgcolor — must match parent
+  // bgcolor passed via codenest-iframe-bgcolor; 3D viewer reads it from body bgcolor — must match parent
   const [parentBg, iframeBg] = await Promise.all([
     page.evaluate(() => getComputedStyle(document.body).backgroundColor),
     frame.locator('body').evaluate((el) => getComputedStyle(el).backgroundColor),
@@ -29,7 +29,7 @@ test('3d model file', async ({page, request, browserName}) => {
 test('pdf file', async ({page, request}) => {
   // headless playwright cannot render PDFs (PDFObject.embed returns false), so this is a limited test
   const repoName = `e2e-pdf-render-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
   await apiCreateFiles(request, owner, repoName, [{path: 'test.pdf', content: '%PDF-1.0\n%%EOF\n'}]);
   await page.goto(`/${owner}/${repoName}/src/branch/main/test.pdf`);
@@ -41,7 +41,7 @@ test('pdf file', async ({page, request}) => {
 
 test('code line anchors', async ({page, request}) => {
   const repoName = `e2e-line-anchor-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
   await apiCreateFiles(request, owner, repoName, [{path: 'test.txt', content: 'a\n'}]);
   const url = `/${owner}/${repoName}/src/branch/main/test.txt`;
@@ -53,7 +53,7 @@ test('code line anchors', async ({page, request}) => {
 
 test('asciicast file', async ({page, request}) => {
   const repoName = `e2e-asciicast-render-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   const branch = '日本語-branch';
   const branchEnc = encodeURIComponent(branch);
   await Promise.all([apiCreateRepo(request, {name: repoName, autoInit: false}), login(page)]);

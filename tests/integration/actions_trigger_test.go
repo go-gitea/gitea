@@ -12,38 +12,38 @@ import (
 	"testing"
 	"time"
 
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/timeutil"
-	webhook_module "gitea.dev/modules/webhook"
-	issue_service "gitea.dev/services/issue"
-	pull_service "gitea.dev/services/pull"
-	release_service "gitea.dev/services/release"
-	repo_service "gitea.dev/services/repository"
-	commitstatus_service "gitea.dev/services/repository/commitstatus"
-	files_service "gitea.dev/services/repository/files"
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/timeutil"
+	webhook_module "codenest.dev/modules/webhook"
+	issue_service "codenest.dev/services/issue"
+	pull_service "codenest.dev/services/pull"
+	release_service "codenest.dev/services/release"
+	repo_service "codenest.dev/services/repository"
+	commitstatus_service "codenest.dev/services/repository/commitstatus"
+	files_service "codenest.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPullRequestTargetEvent(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the base repo
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}) // owner of the forked repo
 
@@ -155,7 +155,7 @@ jobs:
 			BaseBranch: "main",
 			HeadRepo:   forkedRepo,
 			BaseRepo:   baseRepo,
-			Type:       issues_model.PullRequestGitea,
+			Type:       issues_model.PullRequestCodeNest,
 		}
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
 		err = pull_service.NewPullRequest(t.Context(), prOpts)
@@ -218,7 +218,7 @@ jobs:
 			BaseBranch: "main",
 			HeadRepo:   forkedRepo,
 			BaseRepo:   baseRepo,
-			Type:       issues_model.PullRequestGitea,
+			Type:       issues_model.PullRequestCodeNest,
 		}
 		prOpts = &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
 		err = pull_service.NewPullRequest(t.Context(), prOpts)
@@ -277,7 +277,7 @@ jobs:
 			BaseBranch: "main",
 			HeadRepo:   forkedRepo,
 			BaseRepo:   baseRepo,
-			Type:       issues_model.PullRequestGitea,
+			Type:       issues_model.PullRequestCodeNest,
 		}
 		prOpts = &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
 		err = pull_service.NewPullRequest(t.Context(), prOpts)
@@ -290,7 +290,7 @@ jobs:
 }
 
 func TestSkipCI(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user2")
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
@@ -424,7 +424,7 @@ jobs:
 }
 
 func TestCreateDeleteRefEvent(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// create the repo
@@ -541,7 +541,7 @@ jobs:
 }
 
 func TestPullRequestCommitStatusEvent(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the repo
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}) // contributor of the repo
 
@@ -620,7 +620,7 @@ jobs:
 			BaseBranch: "main",
 			HeadRepo:   repo,
 			BaseRepo:   repo,
-			Type:       issues_model.PullRequestGitea,
+			Type:       issues_model.PullRequestCodeNest,
 		}
 		prOpts := &pull_service.NewPullRequestOptions{Repo: repo, Issue: pullIssue, PullRequest: pullRequest}
 		err = pull_service.NewPullRequest(t.Context(), prOpts)
@@ -770,7 +770,7 @@ func insertFakeStatus(t *testing.T, repo *repo_model.Repository, sha string, pre
 }
 
 func TestPullRequestReviewCommitStatusEvent(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the repo
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}) // reviewer
 
@@ -876,7 +876,7 @@ jobs:
 			BaseBranch: "main",
 			HeadRepo:   repo,
 			BaseRepo:   repo,
-			Type:       issues_model.PullRequestGitea,
+			Type:       issues_model.PullRequestCodeNest,
 		}
 		prOpts := &pull_service.NewPullRequestOptions{Repo: repo, Issue: pullIssue, PullRequest: pullRequest}
 		err = pull_service.NewPullRequest(t.Context(), prOpts)
@@ -896,7 +896,7 @@ jobs:
 }
 
 func TestWorkflowDispatchPublicApi(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -1004,7 +1004,7 @@ jobs:
 }
 
 func TestWorkflowDispatchPublicApiRequiresWorkflowDispatchTrigger(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -1074,7 +1074,7 @@ jobs:
 }
 
 func TestWorkflowDispatchPublicApiWithInputs(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -1165,7 +1165,7 @@ jobs:
 }
 
 func TestWorkflowDispatchPublicApiJSON(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -1251,7 +1251,7 @@ jobs:
 }
 
 func TestWorkflowDispatchPublicApiWithInputsJSON(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -1345,7 +1345,7 @@ jobs:
 }
 
 func TestWorkflowDispatchPublicApiWithInputsNonDefaultBranchJSON(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -1476,7 +1476,7 @@ jobs:
 }
 
 func TestWorkflowApi(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -1673,7 +1673,7 @@ jobs:
 }
 
 func TestClosePullRequestWithPath(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		// user2 is the owner of the base repo
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Token := getTokenForLoggedInUser(t, loginUser(t, user2.Name), auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -1750,7 +1750,7 @@ jobs:
 }
 
 func TestActionRunNameWithContextVariables(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// create the repo
@@ -1776,7 +1776,7 @@ func TestActionRunNameWithContextVariables(t *testing.T) {
 					ContentReader: strings.NewReader(`name: test
 on:
   [create,delete]
-run-name: ${{ gitea.actor }} is running this workflow
+run-name: ${{ codenest.actor }} is running this workflow
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -1828,7 +1828,7 @@ jobs:
 }
 
 func TestActionRunName(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// create the repo
@@ -1906,7 +1906,7 @@ jobs:
 }
 
 func TestPullRequestWithPathsRebase(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)

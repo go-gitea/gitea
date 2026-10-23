@@ -7,17 +7,17 @@ package admin
 import (
 	"net/http"
 
-	system_model "gitea.dev/models/system"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/setting/config"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
-	"gitea.dev/services/mailer"
+	system_model "codenest.dev/models/system"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/setting/config"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
+	"codenest.dev/services/mailer"
 )
 
 const (

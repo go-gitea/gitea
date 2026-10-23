@@ -6,8 +6,8 @@ package audit
 import (
 	"net/url"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // EntityRef is a denormalized reference persisted at record time.

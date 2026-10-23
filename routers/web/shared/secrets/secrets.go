@@ -4,18 +4,18 @@
 package secrets
 
 import (
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	secret_model "gitea.dev/models/secret"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
-	secret_service "gitea.dev/services/secrets"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	secret_model "codenest.dev/models/secret"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
+	secret_service "codenest.dev/services/secrets"
 )
 
 func SetSecretsContext(ctx *context.Context, scope actions_model.BelongingScope) {

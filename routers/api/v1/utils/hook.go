@@ -8,17 +8,17 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/models/webhook"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
-	webhook_module "gitea.dev/modules/webhook"
-	"gitea.dev/services/context"
-	webhook_service "gitea.dev/services/webhook"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/models/webhook"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
+	webhook_module "codenest.dev/modules/webhook"
+	"codenest.dev/services/context"
+	webhook_service "codenest.dev/services/webhook"
 )
 
 // ListOwnerHooks lists the webhooks of the provided owner

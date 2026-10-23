@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"strconv"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/routers/common"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/routers/common"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // ListMilestones list milestones for a repository

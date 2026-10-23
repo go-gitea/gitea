@@ -9,9 +9,9 @@ import (
 	"html/template"
 	"strings"
 
-	"gitea.dev/modules/highlight"
-	"gitea.dev/modules/indexer/code/internal"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/modules/highlight"
+	"codenest.dev/modules/indexer/code/internal"
+	"codenest.dev/modules/timeutil"
 )
 
 // Result a search result to display

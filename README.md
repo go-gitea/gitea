@@ -1,33 +1,33 @@
-# Gitea
+# CodeNest
 
 [![](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main)](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain "Release Nightly")
 [![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
-[![](https://pkg.go.dev/badge/gitea.dev?status.svg)](https://pkg.go.dev/gitea.dev "GoDoc")
+[![](https://pkg.go.dev/badge/codenest.dev?status.svg)](https://pkg.go.dev/codenest.dev "GoDoc")
 [![](https://img.shields.io/github/release/go-gitea/gitea.svg)](https://github.com/go-gitea/gitea/releases/latest "GitHub release")
 [![](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea "Help Contribute to Open Source")
-[![](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea "Become a backer/sponsor of gitea")
+[![](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea "Become a backer/sponsor of codenest")
 [![](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT "License: MIT")
-[![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
+[![](https://badges.crowdin.net/codenest/localized.svg)](https://translate.gitea.com "Crowdin")
 
 [繁體中文](./README.zh-tw.md) | [简体中文](./README.zh-cn.md)
 
 ## Purpose
 
-The goal of Gitea is to make the easiest, fastest, and most painless way of
+The goal of CodeNest is to make the easiest, fastest, and most painless way of
 setting up a self-hosted all-in-one software development service,
 including Git hosting, code management, code review, issue tracking, project kanban, wiki,
 team collaboration, package registry and CI/CD which can reuse GitHub Actions.
 
-As Gitea is written in Go, it works across **all** the platforms and
+As CodeNest is written in Go, it works across **all** the platforms and
 architectures that are supported by Go, including Linux, macOS, FreeBSD/OpenBSD and Windows
 on x86, amd64, ARM, RISC-V 64 and PowerPC architectures.
 
 For online demonstrations, you can visit [demo.gitea.com](https://demo.gitea.com).
 
-For accessing free Gitea service (with a limited number of repositories), you can visit [gitea.com](https://gitea.com/user/login).
+For accessing free CodeNest service (with a limited number of repositories), you can visit [gitea.com](https://gitea.com/user/login).
 
-To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com),
-or use container (docker/podman/etc) to deploy on your own server with the [official image](https://hub.docker.com/r/gitea/gitea).
+To quickly deploy your own dedicated CodeNest instance on CodeNest Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com),
+or use container (docker/podman/etc) to deploy on your own server with the [official image](https://hub.docker.com/r/codenest/codenest).
 
 ## Documentation
 
@@ -44,7 +44,7 @@ and [docs/development.md](docs/development.md) for setting up a local developmen
 
 If you'd like to build from source or make a distribution package, see [docs/build-source.md](docs/build-source.md) for more information.
 
-After building, you can run `./gitea web` to start the server, or `./gitea help` to see all available commands.
+After building, you can run `./codenest web` to start the server, or `./codenest help` to see all available commands.
 
 ## Contributing
 
@@ -58,7 +58,7 @@ Expected workflow is: Fork -> Patch -> Push -> Pull Request
 
 ## Translating
 
-[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com)
+[![Crowdin](https://badges.crowdin.net/codenest/localized.svg)](https://translate.gitea.com)
 
 Translations are done through [Crowdin](https://translate.gitea.com). If you want to translate to a new language, ask one of the managers in the Crowdin project to add a new language there.
 
@@ -68,9 +68,9 @@ Get more information from [the translation section of our contributing guide](CO
 
 ## Official and Third-Party Projects
 
-We provide an official [go-sdk](https://gitea.com/gitea/go-sdk), a CLI tool called [tea](https://gitea.com/gitea/tea) and an [action runner](https://gitea.com/gitea/runner) for Gitea Action.
+We provide an official [go-sdk](https://gitea.com/gitea/go-sdk), a CLI tool called [tea](https://gitea.com/gitea/tea) and an [action runner](https://gitea.com/gitea/runner) for CodeNest Action.
 
-We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea), where you can discover more third-party projects, including SDKs, plugins, themes, and more.
+We maintain a list of CodeNest-related projects at [codenest/awesome-codenest](https://gitea.com/gitea/awesome-gitea), where you can discover more third-party projects, including SDKs, plugins, themes, and more.
 
 ## Communication
 
@@ -107,11 +107,11 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 
 ## FAQ
 
-**How do you pronounce Gitea?**
+**How do you pronounce CodeNest?**
 
-Gitea is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "gi-tea" with a hard g.
+CodeNest is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "gi-tea" with a hard g.
 
-**How do I configure Gitea?**
+**How do I configure CodeNest?**
 
 For dynamic config options, you can change it on your admin panel's configuration section.
 

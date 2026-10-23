@@ -12,15 +12,15 @@ import (
 	neturl "net/url"
 	"testing"
 
-	"gitea.dev/models/packages"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	composer_module "gitea.dev/modules/packages/composer"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/routers/api/packages/composer"
-	"gitea.dev/tests"
+	"codenest.dev/models/packages"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	composer_module "codenest.dev/modules/packages/composer"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/routers/api/packages/composer"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +32,7 @@ func TestPackageComposer(t *testing.T) {
 	otherUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31})
 
-	vendorName := "gitea"
+	vendorName := "codenest"
 	projectName := "composer-package"
 	packageName := vendorName + "/" + projectName
 	packageVersion := "1.0.3"
@@ -159,11 +159,11 @@ func TestPackageComposer(t *testing.T) {
 			{"", "", 0, 0, 1, 1},
 			{"", "", 1, 1, 1, 1},
 			{"test", "", 1, 0, 0, 0},
-			{"gitea", "", 1, 1, 1, 1},
-			{"gitea", "", 2, 1, 1, 0},
+			{"codenest", "", 1, 1, 1, 1},
+			{"codenest", "", 2, 1, 1, 0},
 			{"", packageType, 1, 1, 1, 1},
-			{"gitea", packageType, 1, 1, 1, 1},
-			{"gitea", "dummy", 1, 1, 0, 0},
+			{"codenest", packageType, 1, 1, 1, 1},
+			{"codenest", "dummy", 1, 1, 0, 0},
 		}
 
 		for i, c := range cases {

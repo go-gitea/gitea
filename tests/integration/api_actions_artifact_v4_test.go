@@ -18,20 +18,20 @@ import (
 	"testing"
 	"time"
 
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/actions"
+	actions_service "codenest.dev/services/actions"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/actions"
-	actions_service "gitea.dev/services/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -894,7 +894,7 @@ func testActionRunAttemptArtifactV4(t *testing.T, repo *repo_model.Repository, s
 	task1 := runner.fetchTask(t)
 	_, job1, run := getTaskAndJobAndRunByTaskID(t, task1.Id)
 	require.NotZero(t, job1.RunAttemptID)
-	taskToken1 := task1.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	taskToken1 := task1.Context.GetFields()["codenest_runtime_token"].GetStringValue()
 	require.NotEmpty(t, taskToken1)
 	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "artifact-attempt-1", strings.Repeat("A", 32))
 	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "artifact-shared", strings.Repeat("C", 32))
@@ -910,7 +910,7 @@ func testActionRunAttemptArtifactV4(t *testing.T, repo *repo_model.Repository, s
 	_, job2, _ := getTaskAndJobAndRunByTaskID(t, task2.Id)
 	require.NotZero(t, job2.RunAttemptID)
 	assert.NotEqual(t, job1.RunAttemptID, job2.RunAttemptID)
-	taskToken2 := task2.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	taskToken2 := task2.Context.GetFields()["codenest_runtime_token"].GetStringValue()
 	require.NotEmpty(t, taskToken2)
 	uploadTestArtifactFileV4(t, run.ID, job2.ID, taskToken2, "artifact-attempt-2", strings.Repeat("B", 32))
 	uploadTestArtifactFileV4(t, run.ID, job2.ID, taskToken2, "artifact-shared", strings.Repeat("D", 32))

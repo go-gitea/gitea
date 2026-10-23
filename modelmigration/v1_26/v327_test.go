@@ -6,7 +6,7 @@ package v1_26
 import (
 	"testing"
 
-	"gitea.dev/modelmigration/migrationtest"
+	"codenest.dev/modelmigration/migrationtest"
 
 	"github.com/stretchr/testify/require"
 )

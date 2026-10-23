@@ -17,34 +17,34 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
-	pull_model "gitea.dev/models/pull"
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/models/webhook"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	issue_indexer "gitea.dev/modules/indexer/issues"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/automerge"
-	"gitea.dev/services/automergequeue"
-	"gitea.dev/services/forms"
-	pull_service "gitea.dev/services/pull"
-	repo_service "gitea.dev/services/repository"
-	commitstatus_service "gitea.dev/services/repository/commitstatus"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/perm"
+	pull_model "codenest.dev/models/pull"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/models/webhook"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	issue_indexer "codenest.dev/modules/indexer/issues"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/automerge"
+	"codenest.dev/services/automergequeue"
+	"codenest.dev/services/forms"
+	pull_service "codenest.dev/services/pull"
+	repo_service "codenest.dev/services/repository"
+	commitstatus_service "codenest.dev/services/repository/commitstatus"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -98,7 +98,7 @@ func preparePullMergeWebhook(t *testing.T, repoID int64) {
 	require.NoError(t, db.TruncateBeans(t.Context(), &webhook.Webhook{}, &webhook.HookTask{}))
 	require.NoError(t, db.Insert(t.Context(), &webhook.Webhook{
 		RepoID:      repoID,
-		URL:         "http://localhost/gitea-test-webhook-pull-merge",
+		URL:         "http://localhost/codenest-test-webhook-pull-merge",
 		ContentType: webhook.ContentTypeJSON,
 		Events:      `{"push_only":true,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":false}}`,
 		IsActive:    true,
@@ -111,7 +111,7 @@ func assertPullMergeWebhookTask(t *testing.T, repoID int64) {
 }
 
 func TestPullMerge(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
@@ -143,7 +143,7 @@ func TestPullMerge(t *testing.T) {
 }
 
 func TestPullRebase(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
@@ -175,7 +175,7 @@ func TestPullRebase(t *testing.T) {
 }
 
 func TestPullRebaseMerge(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
@@ -207,7 +207,7 @@ func TestPullRebaseMerge(t *testing.T) {
 }
 
 func TestPullSquash(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
@@ -228,7 +228,7 @@ func TestPullSquash(t *testing.T) {
 }
 
 func TestPullSquashWithHeadCommitID(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
@@ -267,7 +267,7 @@ func TestPullSquashWithHeadCommitID(t *testing.T) {
 }
 
 func TestPullCleanUpAfterClose(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited - TestPullCleanUpAfterMerge)\n")
@@ -334,7 +334,7 @@ func TestPullCleanUpAfterClose(t *testing.T) {
 }
 
 func TestCantMergeWorkInProgress(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -350,7 +350,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 }
 
 func TestCantMergeConflict(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
@@ -392,7 +392,7 @@ func TestCantMergeConflict(t *testing.T) {
 }
 
 func TestCantMergeUnrelated(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base", "README.md", "Hello, World (Edited Twice)\n")
@@ -483,7 +483,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 }
 
 func TestFastForwardOnlyMerge(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "update", "README.md", "Hello, World 2\n")
@@ -518,7 +518,7 @@ func TestFastForwardOnlyMerge(t *testing.T) {
 }
 
 func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "update", "README.md", "Hello, signed\n")
@@ -604,7 +604,7 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 }
 
 func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "diverging", "README.md", "Hello, World diverged\n")
@@ -641,7 +641,7 @@ func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 }
 
 func TestPullRetargetChildOnBranchDelete(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "base-pr", "README.md", "Hello, World\n(Edited - TestPullRetargetOnCleanup - base PR)\n")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
@@ -678,7 +678,7 @@ func TestPullRetargetChildOnBranchDelete(t *testing.T) {
 }
 
 func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base-pr", "README.md", "Hello, World\n(Edited - TestPullDontRetargetChildOnWrongRepo - base PR)\n")
@@ -718,7 +718,7 @@ func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
 }
 
 func TestPullRequestMergedWithNoPermissionDeleteBranch(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		session := loginUser(t, "user4")
 		testRepoFork(t, session, "user2", "repo1", "user4", "repo1", "")
 		testEditFileToNewBranch(t, session, "user4", "repo1", "master", "base-pr", "README.md", "Hello, World\n(Edited - TestPullDontRetargetChildOnWrongRepo - base PR)\n")
@@ -742,7 +742,7 @@ func TestPullRequestMergedWithNoPermissionDeleteBranch(t *testing.T) {
 }
 
 func TestPullMergeIndexerNotifier(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		// create a pull request
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
@@ -804,7 +804,7 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 }
 
 func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		// create a pull request
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
@@ -827,7 +827,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
-			"status_check_contexts": "gitea/actions",
+			"status_check_contexts": "codenest/actions",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
@@ -869,7 +869,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
 			State:     commitstatus.CommitStatusSuccess,
 			TargetURL: "https://gitea.com",
-			Context:   "gitea/actions",
+			Context:   "codenest/actions",
 		})
 		assert.NoError(t, err)
 
@@ -883,7 +883,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 }
 
 func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		// create a pull request
 		baseUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		baseSession := loginUser(t, "user2")
@@ -908,7 +908,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
-			"status_check_contexts": "gitea/actions",
+			"status_check_contexts": "codenest/actions",
 			"required_approvals":    "1",
 		})
 		baseSession.MakeRequest(t, req, http.StatusSeeOther)
@@ -938,7 +938,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, baseUser, sha, &git_model.CommitStatus{
 			State:     commitstatus.CommitStatusSuccess,
 			TargetURL: "https://gitea.com",
-			Context:   "gitea/actions",
+			Context:   "codenest/actions",
 		})
 		assert.NoError(t, err)
 
@@ -962,7 +962,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 }
 
 func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		// create a pull request
 		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
@@ -1020,7 +1020,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
-			"status_check_contexts": "gitea/actions",
+			"status_check_contexts": "codenest/actions",
 			"required_approvals":    "1",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
@@ -1050,7 +1050,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
 			State:     commitstatus.CommitStatusSuccess,
 			TargetURL: "https://gitea.com",
-			Context:   "gitea/actions",
+			Context:   "codenest/actions",
 		})
 		assert.NoError(t, err)
 
@@ -1073,7 +1073,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 }
 
 func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		// create a pull request
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		forkedName := "repo1-1"
@@ -1095,7 +1095,7 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 			"rule_name":                  "master",
 			"enable_push":                "true",
 			"enable_status_check":        "true",
-			"status_check_contexts":      "gitea/actions",
+			"status_check_contexts":      "codenest/actions",
 			"block_admin_merge_override": "true",
 		})
 		session.MakeRequest(t, pbCreateReq, http.StatusSeeOther)
@@ -1114,7 +1114,7 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 }
 
 func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		ownerSession := loginUser(t, "user2")
 		ownerCtx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 
@@ -1139,7 +1139,7 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 			"rule_name":                  "master",
 			"enable_push":                "all",
 			"enable_status_check":        "true",
-			"status_check_contexts":      "gitea/actions",
+			"status_check_contexts":      "codenest/actions",
 			"block_admin_merge_override": "true",
 			"enable_bypass_allowlist":    "on",
 			"bypass_allowlist_users":     strconv.FormatInt(bypassUser.ID, 10),
@@ -1179,7 +1179,7 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 }
 
 func TestPullSquashMergeEmpty(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "pr-squash-empty", "README.md", "Hello, World (Edited)\n")
 		resp := testPullCreate(t, session, "user2", "repo1", false, "master", "pr-squash-empty", "This is a pull title")
@@ -1211,7 +1211,7 @@ func TestPullSquashMergeEmpty(t *testing.T) {
 }
 
 func TestPullSquashMessage(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
 

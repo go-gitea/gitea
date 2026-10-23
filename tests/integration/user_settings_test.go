@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

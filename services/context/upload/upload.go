@@ -11,12 +11,12 @@ import (
 	"regexp"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 // ErrFileTypeForbidden not allowed file type error

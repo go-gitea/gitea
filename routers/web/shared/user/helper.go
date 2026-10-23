@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strconv"
 
-	"gitea.dev/models/user"
+	"codenest.dev/models/user"
 )
 
 type SearchUserInfo struct {

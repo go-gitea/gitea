@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	charsetModule "gitea.dev/modules/charset"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/httpcache"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/typesniffer"
-	"gitea.dev/modules/util"
+	charsetModule "codenest.dev/modules/charset"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/httpcache"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/typesniffer"
+	"codenest.dev/modules/util"
 
 	"github.com/klauspost/compress/gzhttp"
 )
@@ -38,7 +38,7 @@ type ServeHeaderOptions struct {
 }
 
 const (
-	// Disable JS execution on the same origin, since we serve the file from the same origin as Gitea server.
+	// Disable JS execution on the same origin, since we serve the file from the same origin as CodeNest server.
 	// 'unsafe-inline' is needed by inline script and SVG inline styles (from Display SVG files as images instead of text #14101),
 	// So we don't set any "*-src" rule here, just use sandbox.
 	serveHeaderCspDefault = "sandbox allow-scripts allow-modals allow-popups allow-downloads"
@@ -49,7 +49,7 @@ const (
 	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
 	serveHeaderCspPdf = "default-src 'none'; style-src 'unsafe-inline'"
 
-	// For audios and videos, actually it doesn't really need CSP (just like Gitea <= 1.25)
+	// For audios and videos, actually it doesn't really need CSP (just like CodeNest <= 1.25)
 	serveHeaderCspAudioVideo = ""
 )
 

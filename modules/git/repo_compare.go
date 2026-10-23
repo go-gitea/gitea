@@ -14,8 +14,8 @@ import (
 	"regexp"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitrepo"
 )
 
 type lineCountWriter struct {

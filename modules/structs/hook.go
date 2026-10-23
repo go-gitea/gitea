@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/json"
+	"codenest.dev/modules/json"
 )
 
 // ErrInvalidReceiveHook FIXME
@@ -21,7 +21,7 @@ type Hook struct {
 	ID int64 `json:"id"`
 	// Optional human-readable name for the webhook
 	Name string `json:"name"`
-	// The type of the webhook (e.g., gitea, slack, discord)
+	// The type of the webhook (e.g., codenest, slack, discord)
 	Type string `json:"type"`
 	// Branch filter pattern to determine which branches trigger the webhook
 	BranchFilter string `json:"branch_filter"`

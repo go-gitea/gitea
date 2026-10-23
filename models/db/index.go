@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 )
 
 // ResourceIndex represents a resource index which could be used as issue/release and others

@@ -6,9 +6,9 @@ package context
 import (
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -15,14 +15,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/tests"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -43,8 +43,8 @@ func TestGPGGit(t *testing.T) {
 	require.NoError(t, err, "importTestingKey")
 
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, rootKeyPair.PrimaryKey.KeyIdShortString())()
-	defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "gitea")()
-	defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "gitea@fake.local")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "codenest")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "codenest@fake.local")()
 	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
 	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
 
@@ -69,8 +69,8 @@ func TestSSHGit(t *testing.T) {
 	require.NoError(t, err, "os.WriteFile id_ed25519")
 
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, tmpDir+"/id_ed25519.pub")()
-	defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "gitea")()
-	defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "gitea@fake.local")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "codenest")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "codenest@fake.local")()
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningFormat, "ssh")()
 	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
 	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
@@ -83,7 +83,7 @@ func testGitSigning(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: username})
 	baseAPITestContext := NewAPITestContext(t, username, "repo1")
 
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("Unsigned-Initial", func(t *testing.T) {
@@ -138,13 +138,13 @@ func testGitSigning(t *testing.T) {
 				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
 					require.NotNil(t, response.Verification, "no verification provided with response! %v", response)
 					require.True(t, response.Verification.Verified)
-					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
+					assert.Equal(t, "codenest@fake.local", response.Verification.Signer.Email)
 				}))
 			t.Run("CreateCRUDFile-ParentSigned-always", crudActionCreateFile(
 				t, testCtx, user, "parentsigned", "parentsigned-always", "signed-parent2.txt", func(t *testing.T, response api.FileResponse) {
 					require.NotNil(t, response.Verification, "no verification provided with response! %v", response)
 					require.True(t, response.Verification.Verified)
-					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
+					assert.Equal(t, "codenest@fake.local", response.Verification.Signer.Email)
 				}))
 		})
 
@@ -156,7 +156,7 @@ func testGitSigning(t *testing.T) {
 				t, testCtx, user, "always", "always-parentsigned", "signed-always-parentsigned.txt", func(t *testing.T, response api.FileResponse) {
 					require.NotNil(t, response.Verification, "no verification provided with response! %v", response)
 					require.True(t, response.Verification.Verified)
-					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
+					assert.Equal(t, "codenest@fake.local", response.Verification.Signer.Email)
 				}))
 		})
 
@@ -169,7 +169,7 @@ func testGitSigning(t *testing.T) {
 				require.NotNil(t, branch.Commit, "no commit provided with branch! %v", branch)
 				require.NotNil(t, branch.Commit.Verification, "no verification provided with branch commit! %v", branch.Commit)
 				require.True(t, branch.Commit.Verification.Verified)
-				assert.Equal(t, "gitea@fake.local", branch.Commit.Verification.Signer.Email)
+				assert.Equal(t, "codenest@fake.local", branch.Commit.Verification.Signer.Email)
 			}))
 		})
 
@@ -192,7 +192,7 @@ func testGitSigning(t *testing.T) {
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
 					require.True(t, response.Verification.Verified)
-					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
+					assert.Equal(t, "codenest@fake.local", response.Verification.Signer.Email)
 				}))
 		})
 
@@ -204,7 +204,7 @@ func testGitSigning(t *testing.T) {
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
 				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
 					require.True(t, response.Verification.Verified)
-					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
+					assert.Equal(t, "codenest@fake.local", response.Verification.Signer.Email)
 				}))
 		})
 
@@ -404,7 +404,7 @@ func crudActionCreateFile(_ *testing.T, ctx APITestContext, user *user_model.Use
 }
 
 func importTestingKey(t *testing.T) (*openpgp.Entity, error) {
-	keyPath := filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/private-testing.key")
+	keyPath := filepath.Join(setting.GetCodeNestTestSourceRoot(), "tests/integration/private-testing.key")
 	if _, _, err := process.CommandContext(t.Context(), "gpg", "--import", keyPath).OutputString(); err != nil {
 		return nil, err
 	}

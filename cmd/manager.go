@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"gitea.dev/modules/private"
+	"codenest.dev/modules/private"
 
 	"github.com/urfave/cli/v3"
 )
@@ -16,8 +16,8 @@ import (
 func newManagerCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "manager",
-		Usage:       "Manage the running gitea process",
-		Description: "This is a command for managing the running gitea process",
+		Usage:       "Manage the running codenest process",
+		Description: "This is a command for managing the running codenest process",
 		Commands: []*cli.Command{
 			newShutdownCommand(),
 			newRestartCommand(),

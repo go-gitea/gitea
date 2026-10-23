@@ -13,18 +13,18 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	repo_service "gitea.dev/services/repository"
-	"gitea.dev/tests"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	repo_service "codenest.dev/services/repository"
+	"codenest.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -308,7 +308,7 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 
 	const symlink = git.EntryModeSymlink
 
-	allGitea := []git.FastImportFile{
+	allCodeNest := []git.FastImportFile{
 		{Path: ".gitea/README.en.md", Content: "This is .gitea/README.en.md"},
 		{Path: ".gitea/README.md", Content: "This is .gitea/README.md"},
 		{Path: ".gitea/README", Content: "This is .gitea/README"},
@@ -364,9 +364,9 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 			{Mode: symlink, Path: "trampoline", Content: "README.md"},
 		}},
 		{Ref: "refs/heads/sp-ace", Message: "init sp-ace", Files: []git.FastImportFile{{Path: "read me", Content: "The cake is a lie."}}},
-		{Ref: "refs/heads/fallbacks", Message: "init fallbacks", Files: combineFiles(allGitea, allGithub, allRoot, allDocs)},
-		{Ref: "refs/heads/fallbacks2", Message: "init fallbacks2", Files: combineFiles(allGitea[1:], allGithub, allRoot, allDocs)},
-		{Ref: "refs/heads/fallbacks3", Message: "init fallbacks3", Files: combineFiles(allGitea[2:], allGithub, allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks", Message: "init fallbacks", Files: combineFiles(allCodeNest, allGithub, allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks2", Message: "init fallbacks2", Files: combineFiles(allCodeNest[1:], allGithub, allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks3", Message: "init fallbacks3", Files: combineFiles(allCodeNest[2:], allGithub, allRoot, allDocs)},
 		{Ref: "refs/heads/fallbacks4", Message: "init fallbacks4", Files: combineFiles(allGithub, allRoot, allDocs)},
 		{Ref: "refs/heads/fallbacks5", Message: "init fallbacks5", Files: combineFiles(allGithub[1:], allRoot, allDocs)},
 		{Ref: "refs/heads/fallbacks6", Message: "init fallbacks6", Files: combineFiles(allGithub[2:], allRoot, allDocs)},

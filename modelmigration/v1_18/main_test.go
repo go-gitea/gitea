@@ -6,7 +6,7 @@ package v1_18
 import (
 	"testing"
 
-	"gitea.dev/modelmigration/migrationtest"
+	"codenest.dev/modelmigration/migrationtest"
 )
 
 func TestMain(m *testing.M) {

@@ -10,11 +10,11 @@ import (
 	"sync"
 	"uuid"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
 
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth/gothic"
@@ -23,7 +23,7 @@ import (
 var gothRWMutex = sync.RWMutex{}
 
 // ProviderHeaderKey is the HTTP header key
-const ProviderHeaderKey = "gitea-oauth2-provider"
+const ProviderHeaderKey = "codenest-oauth2-provider"
 
 // Init initializes the oauth source
 func Init(ctx context.Context) error {

@@ -6,9 +6,9 @@ package setting
 import (
 	"testing"
 
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -6,7 +6,7 @@ package user
 import (
 	"fmt"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 // ErrUserAlreadyExist represents a "user already exists" error.

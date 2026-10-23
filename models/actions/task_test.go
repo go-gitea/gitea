@@ -10,12 +10,12 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/timeutil"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -185,7 +185,7 @@ func TestStopTaskCancellingFallsBackToCancelled(t *testing.T) {
 		assertCancelled(t, task, job)
 	})
 
-	// The runner went silent, e.g. it gave up while Gitea was restarting, so it never picks up the request.
+	// The runner went silent, e.g. it gave up while CodeNest was restarting, so it never picks up the request.
 	t.Run("silent runner", func(t *testing.T) {
 		require.NoError(t, unittest.PrepareTestDatabase())
 		task, job := newRunningTaskForCancelling(t, "silent-runner-cancelling-job", true)

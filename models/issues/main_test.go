@@ -6,14 +6,14 @@ package issues_test
 import (
 	"testing"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/unittest"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/unittest"
 
-	_ "gitea.dev/models"
-	_ "gitea.dev/models/actions"
-	_ "gitea.dev/models/activities"
-	_ "gitea.dev/models/repo"
-	_ "gitea.dev/models/user"
+	_ "codenest.dev/models"
+	_ "codenest.dev/models/actions"
+	_ "codenest.dev/models/activities"
+	_ "codenest.dev/models/repo"
+	_ "codenest.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )

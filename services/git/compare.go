@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/util"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/util"
 )
 
 // CompareInfo represents needed information for comparing references.

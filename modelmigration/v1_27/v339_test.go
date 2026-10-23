@@ -6,8 +6,8 @@ package v1_27
 import (
 	"testing"
 
-	"gitea.dev/modelmigration/migrationtest"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/modelmigration/migrationtest"
+	"codenest.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

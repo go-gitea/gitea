@@ -5,5 +5,5 @@ test('licenses.txt', async ({page}) => {
   expect(resp?.status()).toBe(200);
   const content = await resp!.text();
   expect(content).toContain('@vue/');
-  expect(content).toContain('gitea.dev/');
+  expect(content).toContain('codenest.dev/');
 });

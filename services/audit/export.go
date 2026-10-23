@@ -6,8 +6,8 @@ package audit
 import (
 	"io"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/modules/json"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/modules/json"
 )
 
 // WriteEventsAsJSON writes one JSON object per line.

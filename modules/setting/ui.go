@@ -6,8 +6,8 @@ package setting
 import (
 	"time"
 
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
 )
 
 // UI settings
@@ -101,8 +101,8 @@ var UI = struct {
 	FolderIconTheme:         `basic`,
 	Reactions:               []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 	ReleaseReactions:        []string{`+1`, `laugh`, `hooray`, `heart`, `rocket`, `eyes`},
-	CustomEmojis:            []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
-	CustomEmojisMap:         map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
+	CustomEmojis:            []string{`git`, `codenest`, `codeberg`, `gitlab`, `github`, `gogs`},
+	CustomEmojisMap:         map[string]string{"git": ":git:", "codenest": ":codenest:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
 	ExploreDefaultSort:      "recentupdate",
 	PreferredTimestampTense: "mixed",
 
@@ -152,9 +152,9 @@ var UI = struct {
 		Description string
 		Keywords    string
 	}{
-		Author:      "Gitea - Git with a cup of tea",
-		Description: "Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go",
-		Keywords:    "go,git,self-hosted,gitea",
+		Author:      "CodeNest - Git with a cup of tea",
+		Description: "CodeNest (Git with a cup of tea) is a painless self-hosted Git service written in Go",
+		Keywords:    "go,git,self-hosted,codenest",
 	},
 }
 

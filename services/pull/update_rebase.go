@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"strings"
 
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
 )
 
 // updateHeadByRebaseOnToBase handles updating a PR's head branch by rebasing it on the PR current base branch

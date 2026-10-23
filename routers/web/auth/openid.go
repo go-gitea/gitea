@@ -8,17 +8,17 @@ import (
 	"net/http"
 	"net/url"
 
-	auth_model "gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/openid"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/auth"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
+	auth_model "codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/auth/openid"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/auth"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
 )
 
 const (

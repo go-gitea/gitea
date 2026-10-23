@@ -11,12 +11,12 @@ import (
 	"net/url"
 	"strconv"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/avatar"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/avatar"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
 )
 
 // CustomAvatarRelativePath returns repository custom avatar file path.

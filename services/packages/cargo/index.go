@@ -12,17 +12,17 @@ import (
 	"path"
 	"strconv"
 
-	packages_model "gitea.dev/models/packages"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	cargo_module "gitea.dev/modules/packages/cargo"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	repo_service "gitea.dev/services/repository"
-	files_service "gitea.dev/services/repository/files"
+	packages_model "codenest.dev/models/packages"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	cargo_module "codenest.dev/modules/packages/cargo"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	repo_service "codenest.dev/services/repository"
+	files_service "codenest.dev/services/repository/files"
 )
 
 const (

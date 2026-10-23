@@ -6,10 +6,10 @@ package deploykey
 import (
 	"context"
 
-	"gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/asymkey"
+	"codenest.dev/models/db"
+	"codenest.dev/models/perm"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )

@@ -13,25 +13,25 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/convert"
-	"gitea.dev/services/forms"
-	"gitea.dev/services/gitdiff"
-	issue_service "gitea.dev/services/issue"
-	pull_service "gitea.dev/services/pull"
-	repo_service "gitea.dev/services/repository"
-	files_service "gitea.dev/services/repository/files"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/convert"
+	"codenest.dev/services/forms"
+	"codenest.dev/services/gitdiff"
+	issue_service "codenest.dev/services/issue"
+	pull_service "codenest.dev/services/pull"
+	repo_service "codenest.dev/services/repository"
+	files_service "codenest.dev/services/repository/files"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -218,7 +218,7 @@ func TestAPIMergePullWIP(t *testing.T) {
 }
 
 func TestAPIMergePull(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 		apiCtx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
@@ -628,7 +628,7 @@ func TestAPICommitPullRequest(t *testing.T) {
 }
 
 func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
@@ -681,7 +681,7 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 			BaseBranch: "master",
 			HeadRepo:   forkedRepo,
 			BaseRepo:   baseRepo,
-			Type:       issues_model.PullRequestGitea,
+			Type:       issues_model.PullRequestCodeNest,
 		}
 
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}

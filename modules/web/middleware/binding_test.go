@@ -6,8 +6,8 @@ package middleware
 import (
 	"testing"
 
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/validation"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/validation"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -8,13 +8,13 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/models/db"
-	issue_model "gitea.dev/models/issues"
-	"gitea.dev/modules/indexer"
-	indexer_internal "gitea.dev/modules/indexer/internal"
-	inner_db "gitea.dev/modules/indexer/internal/db"
-	"gitea.dev/modules/indexer/issues/internal"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	issue_model "codenest.dev/models/issues"
+	"codenest.dev/modules/indexer"
+	indexer_internal "codenest.dev/modules/indexer/internal"
+	inner_db "codenest.dev/modules/indexer/internal/db"
+	"codenest.dev/modules/indexer/issues/internal"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )

@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 type fileBackend struct {

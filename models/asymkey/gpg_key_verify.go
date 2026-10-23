@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/log"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/log"
 )
 
 // This file provides functions relating verifying gpg keys

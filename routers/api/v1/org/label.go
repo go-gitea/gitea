@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"strings"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/label"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/label"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // ListLabels list all the labels of an organization

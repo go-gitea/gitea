@@ -6,12 +6,12 @@ package admin
 import (
 	"net/http"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/cron"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/cron"
 )
 
 // ListCronTasks api for getting cron tasks

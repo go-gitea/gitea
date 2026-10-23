@@ -1,4 +1,4 @@
-// Copyright 2019 Gitea. All rights reserved.
+// Copyright 2019 CodeNest. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package admin
@@ -7,17 +7,17 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/migration"
-	"gitea.dev/modules/secret"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/migration"
+	"codenest.dev/modules/secret"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )

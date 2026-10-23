@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 type AuditRecordOutput string

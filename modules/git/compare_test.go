@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

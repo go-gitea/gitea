@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/models/db"       //nolint:depguard // allow to access db in migration tests
-	"gitea.dev/models/unittest" //nolint:depguard // allow to access db in migration tests
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/testlogger"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/models/db"       //nolint:depguard // allow to access db in migration tests
+	"codenest.dev/models/unittest" //nolint:depguard // allow to access db in migration tests
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/testlogger"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,8 +29,8 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (base.EngineMigra
 	ourSkip := 2
 	ourSkip += skip
 	deferFn := testlogger.PrintCurrentTest(t, ourSkip)
-	giteaRoot := setting.GetGiteaTestSourceRoot()
-	require.NoError(t, unittest.SyncDirs(filepath.Join(giteaRoot, "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	codenestRoot := setting.GetCodeNestTestSourceRoot()
+	require.NoError(t, unittest.SyncDirs(filepath.Join(codenestRoot, "tests/codenest-repositories-meta"), setting.RepoRootPath))
 
 	cleanup, err := unittest.ResetTestDatabase()
 	if err != nil {
@@ -69,7 +69,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (base.EngineMigra
 		}
 	}
 
-	fixturesDir := filepath.Join(giteaRoot, "modelmigration/fixtures", t.Name())
+	fixturesDir := filepath.Join(codenestRoot, "modelmigration/fixtures", t.Name())
 
 	if _, err := os.Stat(fixturesDir); err == nil {
 		t.Logf("initializing fixtures from: %s", fixturesDir)
@@ -109,7 +109,7 @@ func mainTest(m *testing.M) int {
 	if err != nil {
 		return testlogger.MainErrorf("Unable to prepare integration test config: %v", err)
 	}
-	setting.SetupGiteaTestEnv()
+	setting.SetupCodeNestTestEnv()
 
 	if err = git.InitFull(); err != nil {
 		return testlogger.MainErrorf("Unable to InitFull: %v", err)

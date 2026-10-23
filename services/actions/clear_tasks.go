@@ -9,17 +9,17 @@ import (
 	"slices"
 	"time"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/modules/actions"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	webhook_module "gitea.dev/modules/webhook"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/modules/actions"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	webhook_module "codenest.dev/modules/webhook"
 )
 
 // StopZombieTasks stops tasks in running/cancelling status that haven't been updated for a long time

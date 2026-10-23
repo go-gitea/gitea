@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"strings"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	asymkey_model "codenest.dev/models/asymkey"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	"github.com/42wim/httpsig"
 	"golang.org/x/crypto/ssh"
@@ -187,7 +187,7 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 		return publicKey, nil
 	}
 
-	// No public key matching a principal in the certificate is registered in gitea
+	// No public key matching a principal in the certificate is registered in codenest
 	return nil, errors.New("no valid principal found")
 }
 

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"gitea.dev/modelmigration/migrationtest"
+	"codenest.dev/modelmigration/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 )

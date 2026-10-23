@@ -23,8 +23,8 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/util"
 )
 
 const (

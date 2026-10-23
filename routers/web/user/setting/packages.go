@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"strings"
 
-	user_model "gitea.dev/models/user"
-	chef_module "gitea.dev/modules/packages/chef"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	shared "gitea.dev/routers/web/shared/packages"
-	"gitea.dev/services/context"
+	user_model "codenest.dev/models/user"
+	chef_module "codenest.dev/modules/packages/chef"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	shared "codenest.dev/routers/web/shared/packages"
+	"codenest.dev/services/context"
 )
 
 const (

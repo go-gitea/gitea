@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 var defaultCache StringCache

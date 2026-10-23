@@ -8,17 +8,17 @@ import (
 	"net/url"
 	"strings"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/routers/web/explore"
-	"gitea.dev/services/context"
-	repo_service "gitea.dev/services/repository"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/routers/web/explore"
+	"codenest.dev/services/context"
+	repo_service "codenest.dev/services/repository"
 )
 
 const (

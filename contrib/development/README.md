@@ -9,6 +9,6 @@
 
 Download Microsoft Visual Studio Code at https://code.visualstudio.com/ and follow instructions at https://code.visualstudio.com/docs/languages/go to setup Go extension for it.
 
-Create new directory `.vscode` in Gitea root folder and copy contents of folder [contrib/development/vscode](vscode/) to it. You can now use `Ctrl`+`Shift`+`B` to build gitea executable and `F5` to run it in debug mode.
+Create new directory `.vscode` in CodeNest root folder and copy contents of folder [contrib/development/vscode](vscode/) to it. You can now use `Ctrl`+`Shift`+`B` to build codenest executable and `F5` to run it in debug mode.
 
 Supported on Debian, Ubuntu, Red Hat, Fedora, SUSE Linux, MacOS and Microsoft Windows.

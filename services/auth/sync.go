@@ -6,9 +6,9 @@ package auth
 import (
 	"context"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
 )
 
 // SyncExternalUsers is used to synchronize users with external authorization source

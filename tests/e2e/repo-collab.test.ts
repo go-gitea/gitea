@@ -12,7 +12,7 @@ test('add collaborator search', async ({page, request}) => {
     login(page),
   ]);
 
-  await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/settings/collaboration`);
+  await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/settings/collaboration`);
   const input = page.locator('#search-user-box input.prompt');
   await input.fill(userName.slice(-6));
   const result = page.locator('#search-user-box .results .result').first();

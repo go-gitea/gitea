@@ -10,12 +10,12 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/avatar"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/avatar"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	"xorm.io/builder"
 )

@@ -6,7 +6,7 @@ package templates
 import (
 	"bytes"
 
-	"gitea.dev/modules/json"
+	"codenest.dev/modules/json"
 )
 
 type JsonUtils struct{}

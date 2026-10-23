@@ -7,19 +7,19 @@ import (
 	"strconv"
 	"testing"
 
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	webhook_module "codenest.dev/modules/webhook"
 	act_model "gitea.dev/actionslib/pkg/model"
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -386,7 +386,7 @@ func TestFindTaskNeeds(t *testing.T) {
 	assert.Equal(t, "bbb", ret["job1"].Outputs["output_b"])
 }
 
-func TestGenerateGiteaContext(t *testing.T) {
+func TestGenerateCodeNestContext(t *testing.T) {
 	payload := api.PullRequestPayload{
 		PullRequest: &api.PullRequest{
 			Base: &api.PRBranchInfo{
@@ -412,21 +412,21 @@ func TestGenerateGiteaContext(t *testing.T) {
 		Repo:         &repo_model.Repository{Name: "test-repo", OwnerName: "test-owner"},
 	}
 
-	giteaCtx := GenerateGiteaContext(t.Context(), run, nil, nil)
+	codenestCtx := GenerateCodeNestContext(t.Context(), run, nil, nil)
 
-	assert.Equal(t, "refs/heads/main", giteaCtx["ref"])
-	assert.Equal(t, "main", giteaCtx["ref_name"])
+	assert.Equal(t, "refs/heads/main", codenestCtx["ref"])
+	assert.Equal(t, "main", codenestCtx["ref_name"])
 
 	run.TriggerEvent, run.Ref = string(actions_module.GithubEventPullRequest), "refs/pull/1/head"
-	assert.Equal(t, "branch", GenerateGiteaContext(t.Context(), run, nil, nil)["ref_type"])
+	assert.Equal(t, "branch", GenerateCodeNestContext(t.Context(), run, nil, nil)["ref_type"])
 
 	defer test.MockVariableValue(&setting.Actions.ArtifactRetentionDays, 7)()
-	assert.Equal(t, "7", GenerateGiteaContext(t.Context(), run, nil, nil)["retention_days"])
+	assert.Equal(t, "7", GenerateCodeNestContext(t.Context(), run, nil, nil)["retention_days"])
 	setting.Actions.ArtifactRetentionDays = 0
-	assert.Empty(t, GenerateGiteaContext(t.Context(), run, nil, nil)["retention_days"])
+	assert.Empty(t, GenerateCodeNestContext(t.Context(), run, nil, nil)["retention_days"])
 }
 
-func TestGenerateGiteaContextRefProtected(t *testing.T) {
+func TestGenerateCodeNestContextRefProtected(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
@@ -439,7 +439,7 @@ func TestGenerateGiteaContextRefProtected(t *testing.T) {
 		NamePattern: "v*",
 	}))
 
-	gitCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+	gitCtx := GenerateCodeNestContext(t.Context(), &actions_model.ActionRun{
 		RepoID:      repo.ID,
 		Repo:        repo,
 		TriggerUser: &user_model.User{Name: "test-user"},
@@ -448,7 +448,7 @@ func TestGenerateGiteaContextRefProtected(t *testing.T) {
 
 	assert.Equal(t, true, gitCtx["ref_protected"])
 
-	tagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+	tagCtx := GenerateCodeNestContext(t.Context(), &actions_model.ActionRun{
 		RepoID:      repo.ID,
 		Repo:        repo,
 		TriggerUser: &user_model.User{Name: "test-user"},
@@ -457,7 +457,7 @@ func TestGenerateGiteaContextRefProtected(t *testing.T) {
 
 	assert.Equal(t, true, tagCtx["ref_protected"])
 
-	unprotectedTagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+	unprotectedTagCtx := GenerateCodeNestContext(t.Context(), &actions_model.ActionRun{
 		RepoID:      repo.ID,
 		Repo:        repo,
 		TriggerUser: &user_model.User{Name: "test-user"},
@@ -467,9 +467,9 @@ func TestGenerateGiteaContextRefProtected(t *testing.T) {
 	assert.Equal(t, false, unprotectedTagCtx["ref_protected"])
 }
 
-// TestGenerateGiteaContext_NilAttempt verifies that, with no explicit attempt,
+// TestGenerateCodeNestContext_NilAttempt verifies that, with no explicit attempt,
 // use GetLatestAttempt to load the latest attempt and resolve attempt-related context variables.
-func TestGenerateGiteaContext_NilAttempt(t *testing.T) {
+func TestGenerateCodeNestContext_NilAttempt(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
@@ -497,7 +497,7 @@ func TestGenerateGiteaContext_NilAttempt(t *testing.T) {
 	require.NoError(t, db.Insert(t.Context(), job))
 
 	// attempt == nil forces the fallback lookup via run.GetLatestAttempt.
-	gitCtx := GenerateGiteaContext(t.Context(), run, nil, job)
+	gitCtx := GenerateCodeNestContext(t.Context(), run, nil, job)
 	assert.Equal(t, actor.Name, gitCtx["actor"])
 	assert.Equal(t, triggerer.Name, gitCtx["triggering_actor"])
 	assert.Equal(t, "3", gitCtx["run_attempt"])

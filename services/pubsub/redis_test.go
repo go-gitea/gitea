@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,7 +52,7 @@ func TestRedisBroker(t *testing.T) {
 		assert.False(t, present, "topic state must be removed after last subscriber cancels")
 	})
 
-	// Two RedisBroker instances sharing one Redis simulate two Gitea processes -
+	// Two RedisBroker instances sharing one Redis simulate two CodeNest processes -
 	// a publish on one must reach a subscriber on the other.
 	t.Run("CrossBroker", func(t *testing.T) {
 		publisher, subscriber := newBroker(t), newBroker(t)

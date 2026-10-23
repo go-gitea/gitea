@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
-	"gitea.dev/tests"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

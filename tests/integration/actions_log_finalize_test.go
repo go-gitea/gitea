@@ -9,15 +9,15 @@ import (
 	"os"
 	"testing"
 
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/dbfs"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/storage"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/dbfs"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/storage"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +28,7 @@ import (
 // The previous short-circuit on len(Rows)==0 skipped TransferLogs, leaving
 // an orphan dbfs_data row. Verify the row is now archived and removed.
 func TestActionsLogFinalizeWithoutRows(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)

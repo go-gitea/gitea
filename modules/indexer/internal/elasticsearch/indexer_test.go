@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +15,7 @@ import (
 func newRealIndexer(t *testing.T) *Indexer {
 	t.Helper()
 	esURL := test.ExternalServiceHTTP(t, "TEST_ELASTICSEARCH_URL", "http://elasticsearch:9200")
-	indexName := "gitea_test_" + strings.ReplaceAll(strings.ToLower(t.Name()), "/", "_")
+	indexName := "codenest_test_" + strings.ReplaceAll(strings.ToLower(t.Name()), "/", "_")
 	ix := NewIndexer(esURL, indexName, 1, `{"mappings":{"properties":{"x":{"type":"keyword"}}}}`)
 	_, err := ix.Init(t.Context())
 	require.NoError(t, err)

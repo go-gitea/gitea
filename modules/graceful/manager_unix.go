@@ -15,10 +15,10 @@ import (
 	"syscall"
 	"time"
 
-	"gitea.dev/modules/graceful/releasereopen"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/graceful/releasereopen"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/setting"
 )
 
 func pidMsg() systemdNotifyMsg {
@@ -50,7 +50,7 @@ func (g *Manager) start() {
 
 	g.isChild = len(os.Getenv(listenFDsEnv)) > 0 && os.Getppid() > 1
 
-	g.notify(statusMsg("Starting Gitea"))
+	g.notify(statusMsg("Starting CodeNest"))
 	g.notify(pidMsg())
 	go g.handleSignals(g.managerCtx)
 
@@ -189,7 +189,7 @@ func (g *Manager) DoGracefulRestart() {
 				log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
 			}
 		}
-		// doFork calls RestartProcess which starts a new Gitea process, so this parent process needs to exit
+		// doFork calls RestartProcess which starts a new CodeNest process, so this parent process needs to exit
 		// Otherwise some resources (eg: leveldb lock) will be held by this parent process and the new process will fail to start
 		log.Info("PID: %d. Shutting down after forking ...", os.Getpid())
 		g.doShutdown()

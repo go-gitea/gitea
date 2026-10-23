@@ -18,12 +18,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 func main() {
 	var (
-		prefix         = "gitea-gitignore"
+		prefix         = "codenest-gitignore"
 		url            = "https://api.github.com/repos/github/gitignore/tarball"
 		githubApiToken = ""
 		githubUsername = ""

@@ -3,7 +3,7 @@
 
 package actions
 
-import "gitea.dev/services/context"
+import "codenest.dev/services/context"
 
 // API for actions of a repository or organization
 type API interface {

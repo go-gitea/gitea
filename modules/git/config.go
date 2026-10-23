@@ -10,9 +10,9 @@ import (
 	"regexp"
 	"strings"
 
-	"gitea.dev/modules/consts"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/consts"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/setting"
 )
 
 // syncGitConfig only modifies gitconfig, won't change global variables (otherwise there will be data-race problem)
@@ -25,15 +25,15 @@ func syncGitConfig(ctx context.Context) (err error) {
 	// TODO: need to confirm whether users really need to change these values manually. It seems that these values are dummy only and not really used.
 	// If these values are not really used, then they can be set (overwritten) directly without considering about existence.
 	for configKey, defaultValue := range map[string]string{
-		"user.name":  "Gitea",
-		"user.email": "gitea@fake.local",
+		"user.name":  "CodeNest",
+		"user.email": "codenest@fake.local",
 	} {
 		if err := configSetNonExist(ctx, configKey, defaultValue); err != nil {
 			return err
 		}
 	}
 
-	// Set git some configurations - these must be set to these values for gitea to work correctly
+	// Set git some configurations - these must be set to these values for codenest to work correctly
 	if err := configSet(ctx, "core.quotePath", "false"); err != nil {
 		return err
 	}
@@ -80,10 +80,10 @@ func syncGitConfig(ctx context.Context) (err error) {
 
 	// Due to CVE-2022-24765, git now denies access to git directories which are not owned by current user.
 	// However, some docker users and samba users find it difficult to configure their systems correctly,
-	// so that Gitea's git repositories are owned by the Gitea user.
+	// so that CodeNest's git repositories are owned by the CodeNest user.
 	// (Possibly Windows Service users - but ownership in this case should really be set correctly on the filesystem.)
 	// See issue: https://github.com/go-gitea/gitea/issues/19455
-	// As Gitea now always use its internal git config file, and access to the git repositories is managed through Gitea,
+	// As CodeNest now always use its internal git config file, and access to the git repositories is managed through CodeNest,
 	// it is now safe to set "safe.directory=*" for internal usage only.
 	// Although this setting is only supported by some new git versions, it is also tolerated by earlier versions
 	if err := configAddNonExist(ctx, "safe.directory", "*"); err != nil {
@@ -119,7 +119,7 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
-	// Gitea used to write "90", which git reads as a date in 1990
+	// CodeNest used to write "90", which git reads as a date in 1990
 	if err := configUnsetAll(ctx, "gc.reflogExpire", "90"); err != nil {
 		return err
 	}

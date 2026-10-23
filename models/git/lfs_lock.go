@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // LFSLock represents a git lfs lock of repository.

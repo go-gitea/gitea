@@ -12,15 +12,15 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/services/auth/source/oauth2"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/services/auth/source/oauth2"
+	"codenest.dev/tests"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/pquerna/otp/totp"
@@ -44,7 +44,7 @@ import (
 func TestMigrateAzureADV2ToOIDC(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
-	// Use UserID (gothUser.UserID) as the Gitea username so that different ExternalID values produce different, non-conflicting usernames.
+	// Use UserID (gothUser.UserID) as the CodeNest username so that different ExternalID values produce different, non-conflicting usernames.
 	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
 
 	const (
@@ -348,7 +348,7 @@ func doOIDCSignIn(t *testing.T, sourceName string) {
 	// Step 1: initiate login
 	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
 
-	// Step 2: extract the UUID state that Gitea embedded in the redirect URL.
+	// Step 2: extract the UUID state that CodeNest embedded in the redirect URL.
 	location := resp.Header().Get("Location")
 	u, err := url.Parse(location)
 	require.NoError(t, err)
@@ -534,7 +534,7 @@ func TestOAuth2AutoLinkWithTwoFactor(t *testing.T) {
 
 	otpKey, err := totp.Generate(totp.GenerateOpts{
 		SecretSize:  40,
-		Issuer:      "gitea-test",
+		Issuer:      "codenest-test",
 		AccountName: localUser.Name,
 	})
 	require.NoError(t, err)

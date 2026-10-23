@@ -8,21 +8,21 @@ import (
 	"fmt"
 	"net/http"
 
-	audit_model "gitea.dev/models/audit"
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/private"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/audit"
-	gitea_context "gitea.dev/services/context"
-	pull_service "gitea.dev/services/pull"
-	repo_service "gitea.dev/services/repository"
+	audit_model "codenest.dev/models/audit"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/private"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/audit"
+	codenest_context "codenest.dev/services/context"
+	pull_service "codenest.dev/services/pull"
+	repo_service "codenest.dev/services/repository"
 )
 
 func hookPostReceiveCollectPushUpdates(opts *private.HookOptions, repo *repo_model.Repository) []*repo_module.PushUpdateOptions {
@@ -50,7 +50,7 @@ func hookPostReceiveCollectPushUpdates(opts *private.HookOptions, repo *repo_mod
 	return updates
 }
 
-func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, updates []*repo_module.PushUpdateOptions) {
+func hookPostReceiveSyncDatabaseBranches(ctx *codenest_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, updates []*repo_module.PushUpdateOptions) {
 	branchesToSync := make([]*repo_module.PushUpdateOptions, 0, len(updates))
 	for _, update := range updates {
 		if !update.RefFullName.IsBranch() {
@@ -90,7 +90,7 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 }
 
 // HookPostReceive updates services and users
-func HookPostReceive(ctx *gitea_context.PrivateContext) {
+func HookPostReceive(ctx *codenest_context.PrivateContext) {
 	opts := web.GetForm[*private.HookOptions](ctx)
 	if opts.IsWiki {
 		setting.PanicInDevOrTesting("wiki hook-post-receive is not supported")
@@ -113,7 +113,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	hookPostReceiveRespondWithTrailer(ctx, opts, repo)
 }
 
-func hookPostReceiveUpdateRepoByOptions(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository) {
+func hookPostReceiveUpdateRepoByOptions(ctx *codenest_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository) {
 	isPrivate := opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate)
 	isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
 	// Handle Push Options
@@ -156,7 +156,7 @@ func hookPostReceiveUpdateRepoByOptions(ctx *gitea_context.PrivateContext, opts 
 	}
 }
 
-func hookPostReceiveRespondWithTrailer(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository) {
+func hookPostReceiveRespondWithTrailer(ctx *codenest_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository) {
 	results := make([]private.HookPostReceiveBranchResult, 0, len(opts.OldCommitIDs))
 	baseRepo := repo
 	if repo.IsFork {
@@ -215,7 +215,7 @@ func hookPostReceiveRespondWithTrailer(ctx *gitea_context.PrivateContext, opts *
 	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{Results: results})
 }
 
-func hookPostReceiveSyncRepoDefaultBranch(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository) {
+func hookPostReceiveSyncRepoDefaultBranch(ctx *codenest_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository) {
 	hasBranch := false
 	for _, refFullName := range opts.RefFullNames {
 		if hasBranch = refFullName.IsBranch(); hasBranch {

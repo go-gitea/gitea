@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting/config"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting/config"
 )
 
 type PictureStruct struct {

@@ -10,19 +10,19 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	indexer_module "gitea.dev/modules/indexer"
-	"gitea.dev/modules/indexer/code/bleve"
-	"gitea.dev/modules/indexer/code/elasticsearch"
-	"gitea.dev/modules/indexer/code/internal"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	indexer_module "codenest.dev/modules/indexer"
+	"codenest.dev/modules/indexer/code/bleve"
+	"codenest.dev/modules/indexer/code/elasticsearch"
+	"codenest.dev/modules/indexer/code/internal"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/util"
 
-	_ "gitea.dev/models"
-	_ "gitea.dev/models/actions"
-	_ "gitea.dev/models/activities"
+	_ "codenest.dev/models"
+	_ "codenest.dev/models/actions"
+	_ "codenest.dev/models/activities"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -328,7 +328,7 @@ func TestESIndexAndSearch(t *testing.T) {
 		return
 	}
 
-	indexer := elasticsearch.NewIndexer(u, "gitea_codes")
+	indexer := elasticsearch.NewIndexer(u, "codenest_codes")
 	if _, err := indexer.Init(t.Context()); err != nil {
 		if indexer != nil {
 			indexer.Close()

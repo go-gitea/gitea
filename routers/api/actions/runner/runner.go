@@ -10,15 +10,15 @@ import (
 	"slices"
 	"uuid"
 
+	actions_model "codenest.dev/models/actions"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/actions"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
+	actions_service "codenest.dev/services/actions"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/actionslib/runner/v1/runnerv1connect"
-	actions_model "gitea.dev/models/actions"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/actions"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
-	actions_service "gitea.dev/services/actions"
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
@@ -182,7 +182,7 @@ func (s *Service) FetchTask(
 		}
 		// if we don't increase the value of `latestVersion` here,
 		// the response of FetchTask will return tasksVersion as zero.
-		// and the runner will treat it as an old version of Gitea.
+		// and the runner will treat it as an old version of CodeNest.
 		latestVersion++
 	}
 

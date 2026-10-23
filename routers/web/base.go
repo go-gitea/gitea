@@ -12,14 +12,14 @@ import (
 	"path"
 	"strings"
 
-	"gitea.dev/modules/assetfs"
-	"gitea.dev/modules/avatar"
-	"gitea.dev/modules/httpcache"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web/routing"
+	"codenest.dev/modules/assetfs"
+	"codenest.dev/modules/avatar"
+	"codenest.dev/modules/httpcache"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web/routing"
 )
 
 func avatarStorageHandler(storageSetting *setting.Storage, prefix string, objStore storage.ObjectStorage) http.HandlerFunc {

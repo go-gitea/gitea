@@ -9,13 +9,13 @@ import (
 	"net/http"
 	"reflect"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/container"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	issue_service "gitea.dev/services/issue"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/container"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	issue_service "codenest.dev/services/issue"
 )
 
 // ListIssueLabels list all the labels of an issue

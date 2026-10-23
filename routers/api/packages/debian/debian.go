@@ -11,16 +11,16 @@ import (
 	"net/http"
 	"strings"
 
-	"gitea.dev/models/db"
-	packages_model "gitea.dev/models/packages"
-	packages_module "gitea.dev/modules/packages"
-	debian_module "gitea.dev/modules/packages/debian"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/packages/helper"
-	"gitea.dev/services/context"
-	notify_service "gitea.dev/services/notify"
-	packages_service "gitea.dev/services/packages"
-	debian_service "gitea.dev/services/packages/debian"
+	"codenest.dev/models/db"
+	packages_model "codenest.dev/models/packages"
+	packages_module "codenest.dev/modules/packages"
+	debian_module "codenest.dev/modules/packages/debian"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/packages/helper"
+	"codenest.dev/services/context"
+	notify_service "codenest.dev/services/notify"
+	packages_service "codenest.dev/services/packages"
+	debian_service "codenest.dev/services/packages/debian"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {

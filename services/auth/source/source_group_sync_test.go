@@ -6,11 +6,11 @@ package source
 import (
 	"testing"
 
-	"gitea.dev/models/organization"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
-	org_service "gitea.dev/services/org"
+	"codenest.dev/models/organization"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/container"
+	org_service "codenest.dev/services/org"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -12,24 +12,24 @@ import (
 	"strings"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/citation"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/svg"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/web/feed"
-	"gitea.dev/services/context"
-	repo_service "gitea.dev/services/repository"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/citation"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/svg"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/web/feed"
+	"codenest.dev/services/context"
+	repo_service "codenest.dev/services/repository"
 )
 
 func checkOutdatedBranch(ctx *context.Context) {
@@ -72,12 +72,12 @@ func prepareClonePanel(ctx *context.Context) {
 		case "vscode":
 			iconName = "octicon-vscode"
 		case "vscodium":
-			iconName = "gitea-vscodium"
+			iconName = "codenest-vscodium"
 		case "jetbrains":
-			iconName = "gitea-jetbrains"
+			iconName = "codenest-jetbrains"
 		default:
 			// TODO: it could support user's customized icon in the future
-			iconName = "gitea-git"
+			iconName = "codenest-git"
 		}
 
 		tmplApps = append(tmplApps, map[string]any{
@@ -313,7 +313,7 @@ func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.Comm
 	if isViewHomeOnlyContent(ctx) {
 		ctx.Resp.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = htmlutil.HTMLPrintf(ctx.Resp, `<a href="%s">%s</a>`, redirectLink, redirectLink)
-	} else if !httplib.IsCurrentGiteaSiteURL(ctx, redirectLink) {
+	} else if !httplib.IsCurrentCodeNestSiteURL(ctx, redirectLink) {
 		// don't auto-redirect to external URL, to avoid open redirect or phishing
 		ctx.Data["NotFoundPrompt"] = redirectLink
 		ctx.NotFound(nil)
@@ -511,10 +511,10 @@ func Home(ctx *context.Context) {
 func RedirectRepoTreeToSrc(ctx *context.Context) {
 	// Redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*",
 	// then use the deprecated "/src/*" handler to guess the ref type and render a file list page.
-	// This is done intentionally so that Gitea's repo URL structure matches other forges (GitHub/GitLab) provide,
+	// This is done intentionally so that CodeNest's repo URL structure matches other forges (GitHub/GitLab) provide,
 	// allowing us to construct submodule URLs across forges easily.
 	// For example, when viewing a submodule, we can simply construct the link as:
-	// * "https://gitea/owner/repo/tree/{CommitID}"
+	// * "https://codenest/owner/repo/tree/{CommitID}"
 	// * "https://github/owner/repo/tree/{CommitID}"
 	// * "https://gitlab/owner/repo/tree/{CommitID}"
 	// Then no matter which forge the submodule is using, the link works.

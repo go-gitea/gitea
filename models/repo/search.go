@@ -3,7 +3,7 @@
 
 package repo
 
-import "gitea.dev/models/db"
+import "codenest.dev/models/db"
 
 // OrderByMap represents all possible search order
 var OrderByMap = map[string]map[string]db.SearchOrderBy{

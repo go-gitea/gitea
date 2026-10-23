@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/setting"
-	testModule "gitea.dev/modules/test"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/setting"
+	testModule "codenest.dev/modules/test"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -89,8 +89,8 @@ func TestRender_IssueIndexPattern(t *testing.T) {
 	test("test!1234")
 	test("!1234test")
 	test(" test !1234test")
-	test("/home/gitea/#1234")
-	test("/home/gitea/!1234")
+	test("/home/codenest/#1234")
+	test("/home/codenest/!1234")
 
 	// should not render issue mention without leading space
 	test("test#54321 issue")

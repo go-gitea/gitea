@@ -9,13 +9,13 @@ import (
 	"strings"
 	"uuid"
 
-	audit_model "gitea.dev/models/audit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/audit"
+	audit_model "codenest.dev/models/audit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/audit"
 )
 
 // Ensure the struct implements the interface.

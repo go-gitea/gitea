@@ -10,19 +10,19 @@
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.maven.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>&lt;repositories&gt;
 	&lt;repository&gt;
-		&lt;id&gt;gitea&lt;/id&gt;
+		&lt;id&gt;codenest&lt;/id&gt;
 		&lt;url&gt;{{ctx.AppFullLink}}/api/packages/{{.PackageDescriptor.Owner.Name}}/maven&lt;/url&gt;
 	&lt;/repository&gt;
 &lt;/repositories&gt;
 
 &lt;distributionManagement&gt;
 	&lt;repository&gt;
-		&lt;id&gt;gitea&lt;/id&gt;
+		&lt;id&gt;codenest&lt;/id&gt;
 		&lt;url&gt;{{ctx.AppFullLink}}/api/packages/{{.PackageDescriptor.Owner.Name}}/maven&lt;/url&gt;
 	&lt;/repository&gt;
 
 	&lt;snapshotRepository&gt;
-		&lt;id&gt;gitea&lt;/id&gt;
+		&lt;id&gt;codenest&lt;/id&gt;
 		&lt;url&gt;{{ctx.AppFullLink}}/api/packages/{{.PackageDescriptor.Owner.Name}}/maven&lt;/url&gt;
 	&lt;/snapshotRepository&gt;
 &lt;/distributionManagement&gt;</code></pre></div>

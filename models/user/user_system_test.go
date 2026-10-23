@@ -6,7 +6,7 @@ package user
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
+	"codenest.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,12 +27,12 @@ func TestSystemUser(t *testing.T) {
 	uid, u, err = GetPossibleUserByID(t.Context(), -2)
 	require.NoError(t, err)
 	assert.Equal(t, int64(-2), uid)
-	assert.Equal(t, "gitea-actions", u.Name)
-	assert.Equal(t, "gitea-actions", u.LowerName)
+	assert.Equal(t, "codenest-actions", u.Name)
+	assert.Equal(t, "codenest-actions", u.LowerName)
 
-	u = GetSystemUserByName("Gitea-actionS")
+	u = GetSystemUserByName("CodeNest-actionS")
 	require.NotNil(t, u)
-	assert.Equal(t, "Gitea Actions", u.FullName)
+	assert.Equal(t, "CodeNest Actions", u.FullName)
 
 	uid, u, err = GetPossibleUserByID(t.Context(), 999999)
 	require.NoError(t, err)

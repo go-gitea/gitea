@@ -6,13 +6,13 @@ package explore
 import (
 	"net/http"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/sitemap"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/context"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/sitemap"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/context"
 )
 
 const (

@@ -12,20 +12,20 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/httpcache"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/util"
-	gitea_context "gitea.dev/services/context"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/httpcache"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/util"
+	codenest_context "codenest.dev/services/context"
 )
 
 // ArchiveRequest defines the parameters of an archive request, which notably
@@ -352,7 +352,7 @@ func DeleteRepositoryArchives(ctx context.Context) error {
 	return storage.Clean(storage.RepoArchives)
 }
 
-func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error {
+func ServeRepoArchive(ctx *codenest_context.Base, archiveReq *ArchiveRequest) error {
 	// Add nix format link header so tarballs lock correctly:
 	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
 	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
@@ -402,7 +402,7 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error
 	}
 	defer fr.Close()
 
-	ctx.ServeContent(fr, gitea_context.ServeHeaderOptions{
+	ctx.ServeContent(fr, codenest_context.ServeHeaderOptions{
 		Filename:     downloadName,
 		LastModified: archiver.CreatedUnix.AsLocalTime(),
 	})

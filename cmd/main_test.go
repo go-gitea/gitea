@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	"gitea.dev/models/unittest"
+	"codenest.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v3"

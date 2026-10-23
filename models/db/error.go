@@ -6,7 +6,7 @@ package db
 import (
 	"fmt"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 // ErrCancelled represents an error due to context cancellation

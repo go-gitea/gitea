@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/modules/packages"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/packages"
+	"codenest.dev/modules/util"
 )
 
 var (

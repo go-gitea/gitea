@@ -7,14 +7,14 @@ package forms
 import (
 	"strings"
 
-	issues_model "gitea.dev/models/issues"
-	project_model "gitea.dev/models/project"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/webhook"
+	issues_model "codenest.dev/models/issues"
+	project_model "codenest.dev/models/project"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
+	"codenest.dev/modules/web/middleware"
+	"codenest.dev/services/webhook"
 )
 
 // CreateRepoForm form for creating repository

@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	asymkey_model "codenest.dev/models/asymkey"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -98,8 +98,8 @@ init project
 	})
 
 	t.Run("TrustedSSHKey", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "gitea")()
-		defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "gitea@fake.local")()
+		defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "codenest")()
+		defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "codenest@fake.local")()
 		defer test.MockVariableValue(&setting.Repository.Signing.TrustedSSHKeys, []string{"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH6Y4idVaW3E+bLw1uqoAfJD7o5Siu+HqS51E9oQLPE9"})()
 
 		commit, err := git.CommitFromReader(git.Sha1ObjectFormat.EmptyObjectID(), strings.NewReader(`tree 9a93ffa76e8b72bdb6431910b3a506fa2b39f42e
@@ -126,8 +126,8 @@ Initial commit with signed file
 		assert.False(t, ret.Warning)
 		assert.Equal(t, committingUser, ret.CommittingUser)
 		if assert.NotNil(t, ret.SigningUser) {
-			assert.Equal(t, "gitea", ret.SigningUser.Name)
-			assert.Equal(t, "gitea@fake.local", ret.SigningUser.Email)
+			assert.Equal(t, "codenest", ret.SigningUser.Name)
+			assert.Equal(t, "codenest@fake.local", ret.SigningUser.Email)
 		}
 	})
 }

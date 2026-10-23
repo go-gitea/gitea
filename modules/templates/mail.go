@@ -14,11 +14,11 @@ import (
 	"sync"
 	texttmpl "text/template"
 
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 type MailRender struct {

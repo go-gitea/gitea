@@ -10,7 +10,7 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitcmd"
 )
 
 func newTree(id ObjectID) *Tree {

@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
 )
 
 // Event indicates when the printer is triggered

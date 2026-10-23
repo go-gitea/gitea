@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/assetfs"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/httpcache"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/assetfs"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/httpcache"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 
 	"github.com/go-chi/cors"
 )
@@ -110,7 +110,7 @@ func servePublicAsset(w http.ResponseWriter, req *http.Request, fi os.FileInfo, 
 		// try to provide gzip content directly from bindata
 		if gzipBytes, ok := fiEmbedded.GetGzipContent(); ok {
 			rdGzip := bytes.NewReader(gzipBytes)
-			// all gzipped static files (from bindata) are managed by Gitea, so we can make sure every file has the correct ext name
+			// all gzipped static files (from bindata) are managed by CodeNest, so we can make sure every file has the correct ext name
 			// then we can get the correct Content-Type, we do not need to do http.DetectContentType on the decompressed data
 			if w.Header().Get("Content-Type") == "" {
 				w.Header().Set("Content-Type", "application/octet-stream")

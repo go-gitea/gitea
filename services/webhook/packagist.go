@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"net/http"
 
-	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
-	webhook_module "gitea.dev/modules/webhook"
+	webhook_model "codenest.dev/models/webhook"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	api "codenest.dev/modules/structs"
+	webhook_module "codenest.dev/modules/webhook"
 )
 
 type (

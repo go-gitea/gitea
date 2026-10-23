@@ -11,17 +11,17 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -63,7 +63,7 @@ func TestRepoCommits(t *testing.T) {
 	})
 
 	t.Run("CommitListNonExistingCommiter", func(t *testing.T) {
-		// check the commit list for a repository with no gitea user
+		// check the commit list for a repository with no codenest user
 		// * commit 985f0301dba5e7b34be866819cd15ad3d8f508ee (branch2)
 		// * Author: 6543 <6543@obermui.de>
 		req := NewRequest(t, "GET", "/user2/repo1/commits/branch/branch2")
@@ -192,9 +192,9 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 
 	t.Run("pending", func(t *testing.T) { testRefMaster(t, "pending", "octicon-dot-fill", "tw-text-yellow") })
 	t.Run("success", func(t *testing.T) { testRefMaster(t, "success", "octicon-check", "tw-text-green") })
-	t.Run("error", func(t *testing.T) { testRefMaster(t, "error", "gitea-exclamation", "tw-text-red") })
+	t.Run("error", func(t *testing.T) { testRefMaster(t, "error", "codenest-exclamation", "tw-text-red") })
 	t.Run("failure", func(t *testing.T) { testRefMaster(t, "failure", "octicon-x", "tw-text-red") })
-	t.Run("warning", func(t *testing.T) { testRefMaster(t, "warning", "gitea-exclamation", "tw-text-yellow") })
+	t.Run("warning", func(t *testing.T) { testRefMaster(t, "warning", "codenest-exclamation", "tw-text-yellow") })
 	t.Run("BranchWithSlash", func(t *testing.T) {
 		_ = db.TruncateBeans(t.Context(), &git_model.CommitStatus{})
 

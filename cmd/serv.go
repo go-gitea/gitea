@@ -14,22 +14,22 @@ import (
 	"strings"
 	"unicode"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	git_model "gitea.dev/models/git"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/lfstransfer"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/pprof"
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/process"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/agit"
-	"gitea.dev/services/lfs"
+	asymkey_model "codenest.dev/models/asymkey"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/lfstransfer"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/pprof"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/process"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/agit"
+	"codenest.dev/services/lfs"
 
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli/v3"
@@ -88,7 +88,7 @@ func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error
 	if logMsgFmt != "" {
 		logMsg := fmt.Sprintf(logMsgFmt, args...)
 		if !setting.IsProd {
-			_, _ = fmt.Fprintln(os.Stderr, "Gitea:", logMsg)
+			_, _ = fmt.Fprintln(os.Stderr, "CodeNest:", logMsg)
 		}
 		if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
 			logMsg = userMessage + " " + logMsg
@@ -139,7 +139,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	if setting.SSH.Disabled {
-		cprintln(c, "Gitea: SSH has been disabled")
+		cprintln(c, "CodeNest: SSH has been disabled")
 		return nil
 	}
 
@@ -182,7 +182,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		}
 		_, _ = fmt.Fprintf(c.ErrWriter, "%s\n%s",
 			authSuccessMsg,
-			"Gitea does not provide shell access. If this is unexpected, please setup Gitea under another SSH user or use container to deploy.",
+			"CodeNest does not provide shell access. If this is unexpected, please setup CodeNest under another SSH user or use container to deploy.",
 		)
 		return nil
 	} else if c.Bool("debug") {
@@ -331,7 +331,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 
 		repo_module.EnvAppURL+"="+setting.AppURL,
 	)
-	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.
+	// to avoid breaking, here only use the minimal environment variables for the "codenest serv" command.
 	// it could be re-considered whether to use the same git.CommonGitCmdEnvs() as "git" command later.
 	command.Env = append(command.Env, gitcmd.CommonCmdServEnvs()...)
 

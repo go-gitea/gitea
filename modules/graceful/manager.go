@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/gtprof"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/gtprof"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 type state uint8
@@ -185,7 +185,7 @@ func (g *Manager) doTerminate() {
 	g.lock.Unlock()
 }
 
-// IsChild returns if the current process is a child of previous Gitea process
+// IsChild returns if the current process is a child of previous CodeNest process
 func (g *Manager) IsChild() bool {
 	return g.isChild
 }

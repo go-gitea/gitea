@@ -10,17 +10,17 @@ import (
 	"html/template"
 	"strings"
 
-	"gitea.dev/models/perm/access"
-	"gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	"gitea.dev/modules/charset"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/languagestats"
-	"gitea.dev/modules/indexer/code"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	gitea_context "gitea.dev/services/context"
+	"codenest.dev/models/perm/access"
+	"codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	"codenest.dev/modules/charset"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/languagestats"
+	"codenest.dev/modules/indexer/code"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	codenest_context "codenest.dev/services/context"
 )
 
 func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePreviewOptions) (template.HTML, error) {
@@ -36,7 +36,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", err
 	}
 
-	webCtx := gitea_context.GetWebContext(ctx)
+	webCtx := codenest_context.GetWebContext(ctx)
 	if webCtx == nil {
 		return "", errors.New("context is not a web context")
 	}

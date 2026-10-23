@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"gitea.dev/models/organization"
-	"gitea.dev/modules/templates"
-	shared_user "gitea.dev/routers/web/shared/user"
-	"gitea.dev/services/context"
+	"codenest.dev/models/organization"
+	"codenest.dev/modules/templates"
+	shared_user "codenest.dev/routers/web/shared/user"
+	"codenest.dev/services/context"
 )
 
 const tplByRepos templates.TplName = "org/worktime"

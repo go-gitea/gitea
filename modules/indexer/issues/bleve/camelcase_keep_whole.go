@@ -4,7 +4,7 @@
 package bleve
 
 import (
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 
 	"github.com/blevesearch/bleve/v2/analysis"
 	"github.com/blevesearch/bleve/v2/analysis/token/camelcase"

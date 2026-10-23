@@ -6,13 +6,13 @@ package integration
 import (
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/util"
-	repo_service "gitea.dev/services/repository"
-	user_service "gitea.dev/services/user"
-	"gitea.dev/tests"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/util"
+	repo_service "codenest.dev/services/repository"
+	user_service "codenest.dev/services/user"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

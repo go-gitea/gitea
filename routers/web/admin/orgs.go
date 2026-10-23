@@ -5,13 +5,13 @@
 package admin
 
 import (
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/templates"
-	"gitea.dev/routers/web/explore"
-	"gitea.dev/services/context"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/templates"
+	"codenest.dev/routers/web/explore"
+	"codenest.dev/services/context"
 )
 
 const (

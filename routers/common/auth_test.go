@@ -6,10 +6,10 @@ package common
 import (
 	"testing"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -11,12 +11,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/dump"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/dump"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/util"
 
 	"github.com/urfave/cli/v3"
 )
@@ -24,14 +24,14 @@ import (
 func newDumpCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "dump",
-		Usage:       "Dump Gitea files and database",
-		Description: `Dump compresses all related files and database into zip file. It can be used for backup and capture Gitea server image to send to maintainer`,
+		Usage:       "Dump CodeNest files and database",
+		Description: `Dump compresses all related files and database into zip file. It can be used for backup and capture CodeNest server image to send to maintainer`,
 		Action:      runDump,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "file",
 				Aliases: []string{"f"},
-				Usage:   `Name of the dump file which will be created, default to "gitea-dump-{time}.zip". Supply '-' for stdout. See type for available types.`,
+				Usage:   `Name of the dump file which will be created, default to "codenest-dump-{time}.zip". Supply '-' for stdout. See type for available types.`,
 			},
 			&cli.BoolFlag{
 				Name:    "verbose",
@@ -190,7 +190,7 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 			fatal("Path does not exist: %s", tmpDir)
 		}
 
-		dbDump, err := os.CreateTemp(tmpDir, "gitea-db.sql")
+		dbDump, err := os.CreateTemp(tmpDir, "codenest-db.sql")
 		if err != nil {
 			fatal("Failed to create tmp file: %v", err)
 		}
@@ -212,8 +212,8 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 			fatal("Failed to dump database: %v", err)
 		}
 
-		if err = dumper.AddFileByPath("gitea-db.sql", dbDump.Name()); err != nil {
-			fatal("Failed to include gitea-db.sql: %v", err)
+		if err = dumper.AddFileByPath("codenest-db.sql", dbDump.Name()); err != nil {
+			fatal("Failed to include codenest-db.sql: %v", err)
 		}
 	}
 

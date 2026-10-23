@@ -12,17 +12,17 @@ import (
 	"slices"
 	"time"
 
-	actions_model "gitea.dev/models/actions"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
-	sender_service "gitea.dev/services/mailer/sender"
+	actions_model "codenest.dev/models/actions"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/util"
+	sender_service "codenest.dev/services/mailer/sender"
 )
 
 const tplWorkflowRun templates.TplName = "mail/repo/actions/workflow_run"
@@ -161,16 +161,16 @@ func MailActionsTrigger(ctx context.Context, recipient *user_model.User, repo *r
 	}
 
 	notifyPref, err := user_model.GetUserSetting(ctx, recipient.ID,
-		user_model.SettingsKeyEmailNotificationGiteaActions, user_model.SettingEmailNotificationGiteaActionsFailureOnly)
+		user_model.SettingsKeyEmailNotificationCodeNestActions, user_model.SettingEmailNotificationCodeNestActionsFailureOnly)
 	if err != nil {
 		return err
 	}
 	// "disabled" never sends
-	if notifyPref == user_model.SettingEmailNotificationGiteaActionsDisabled {
+	if notifyPref == user_model.SettingEmailNotificationCodeNestActionsDisabled {
 		return nil
 	}
 	// "failure-only" skips non-failure runs
-	if notifyPref != user_model.SettingEmailNotificationGiteaActionsAll && !run.Status.IsFailure() {
+	if notifyPref != user_model.SettingEmailNotificationCodeNestActionsAll && !run.Status.IsFailure() {
 		return nil
 	}
 

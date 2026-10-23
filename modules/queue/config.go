@@ -4,7 +4,7 @@
 package queue
 
 import (
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 )
 
 type BaseConfig struct {

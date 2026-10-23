@@ -11,26 +11,26 @@ import (
 	"testing"
 	"time"
 
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/timeutil"
+	webhook_module "codenest.dev/modules/webhook"
+	actions_web "codenest.dev/routers/web/repo/actions"
+	actions_service "codenest.dev/services/actions"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
-	webhook_module "gitea.dev/modules/webhook"
-	actions_web "gitea.dev/routers/web/repo/actions"
-	actions_service "gitea.dev/services/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWorkflowConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -72,7 +72,7 @@ on:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
 concurrency:
-  group: workflow-${{ gitea.ref_name }}-${{ vars.myvar }}-${{ gitea.event.pusher.username }}
+  group: workflow-${{ codenest.ref_name }}-${{ vars.myvar }}-${{ codenest.event.pusher.username }}
 jobs:
   wf2-job:
     runs-on: ubuntu-latest
@@ -86,7 +86,7 @@ on:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
 concurrency:
-  group: workflow-main-abc${{ 123 }}-${{ gitea.event.pusher.username }}
+  group: workflow-main-abc${{ 123 }}-${{ codenest.event.pusher.username }}
 jobs:
   wf3-job:
     runs-on: ubuntu-latest
@@ -138,7 +138,7 @@ jobs:
 }
 
 func TestWorkflowConcurrencyShort(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -178,7 +178,7 @@ on:
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
-concurrency: workflow-${{ gitea.ref_name }}-${{ vars.myvar }}-${{ gitea.event.pusher.username }}
+concurrency: workflow-${{ codenest.ref_name }}-${{ vars.myvar }}-${{ codenest.event.pusher.username }}
 jobs:
   wf2-job:
     runs-on: ubuntu-latest
@@ -191,7 +191,7 @@ on:
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
-concurrency: workflow-main-abc${{ 123 }}-${{ gitea.event.pusher.username }}
+concurrency: workflow-main-abc${{ 123 }}-${{ codenest.event.pusher.username }}
 jobs:
   wf3-job:
     runs-on: ubuntu-latest
@@ -243,7 +243,7 @@ jobs:
 }
 
 func TestWorkflowConcurrencyShortJson(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -360,7 +360,7 @@ jobs:
 }
 
 func TestPullRequestWorkflowConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		// user2 is the owner of the base repo
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
@@ -383,7 +383,7 @@ func TestPullRequestWorkflowConcurrency(t *testing.T) {
 on: pull_request
 concurrency:
   group: pull-request-test
-  cancel-in-progress: ${{ !startsWith(gitea.head_ref, 'do-not-cancel/') }}
+  cancel-in-progress: ${{ !startsWith(codenest.head_ref, 'do-not-cancel/') }}
 jobs:
   wf1-job:
     runs-on: ubuntu-latest
@@ -508,7 +508,7 @@ jobs:
 }
 
 func TestJobConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -668,7 +668,7 @@ jobs:
 }
 
 func TestMatrixConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -761,7 +761,7 @@ jobs:
 }
 
 func TestWorkflowDispatchConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -851,7 +851,7 @@ jobs:
 }
 
 func TestWorkflowDispatchRerunAllJobsConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -988,7 +988,7 @@ jobs:
 }
 
 func TestWorkflowDispatchRerunSingleJobConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -1126,7 +1126,7 @@ jobs:
 }
 
 func TestScheduleConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -1147,7 +1147,7 @@ on:
     - cron:  '@every 1m'
 concurrency:
   group: schedule-concurrency
-  cancel-in-progress: ${{ gitea.event_name == 'push' }}
+  cancel-in-progress: ${{ codenest.event_name == 'push' }}
 jobs:
   job:
     runs-on: ubuntu-latest
@@ -1227,7 +1227,7 @@ jobs:
 }
 
 func TestWorkflowAndJobConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -1418,7 +1418,7 @@ jobs:
 }
 
 func TestCancelConcurrentRun(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
 		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -1495,7 +1495,7 @@ jobs:
 }
 
 func TestAbandonConcurrentRun(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
 		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -1599,7 +1599,7 @@ jobs:
 }
 
 func TestRunAndJobWithSameConcurrencyGroup(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -1706,7 +1706,7 @@ jobs:
 //  2. cancel it from the UI, which transitions the run and all its jobs to Cancelled
 //  3. rerun the (now cancelled) legacy run successfully
 func TestCancelLegacyRunBlockedByConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)

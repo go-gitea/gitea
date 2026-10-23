@@ -6,14 +6,14 @@ package repo
 import (
 	"net/http"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/git"
-	code_indexer "gitea.dev/modules/indexer/code"
-	"gitea.dev/modules/indexer/code/gitgrep"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/routers/common"
-	"gitea.dev/services/context"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/git"
+	code_indexer "codenest.dev/modules/indexer/code"
+	"codenest.dev/modules/indexer/code/gitgrep"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/routers/common"
+	"codenest.dev/services/context"
 )
 
 const tplSearch templates.TplName = "repo/search"

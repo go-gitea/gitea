@@ -6,7 +6,7 @@ package v1_11
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func ExtendTrackedTimes(_ context.Context, x base.EngineMigration) error {

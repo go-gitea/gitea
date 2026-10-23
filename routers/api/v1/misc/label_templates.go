@@ -6,10 +6,10 @@ package misc
 import (
 	"net/http"
 
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // Shows a list of all Label templates

@@ -1,4 +1,4 @@
-// Copyright 2022 Gitea. All rights reserved.
+// Copyright 2022 CodeNest. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package pull
@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/timeutil"
 )
 
 // AutoMerge represents a pull request scheduled for merging when checks succeed

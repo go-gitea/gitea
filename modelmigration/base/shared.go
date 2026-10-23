@@ -4,8 +4,8 @@
 package base
 
 import (
-	"gitea.dev/models/db" //nolint:depguard // allow to access db in migration
-	"gitea.dev/modules/git/gitrepo"
+	"codenest.dev/models/db" //nolint:depguard // allow to access db in migration
+	"codenest.dev/modules/git/gitrepo"
 )
 
 // HINT: MIGRATION-STRUCT-FROZEN: the structs used in migrations should not be affected by the changes happen in the future,

@@ -8,10 +8,10 @@ import (
 	"errors"
 	"strconv"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/queue"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/queue"
 )
 
 // AutoMergeItem is for the unique queue, so the item type can't be JSON which doesn't have deterministic key order.

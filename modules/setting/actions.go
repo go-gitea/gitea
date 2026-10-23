@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 const (
@@ -40,7 +40,7 @@ var (
 		ScopedWorkflowDirs    []string          `ini:"SCOPED_WORKFLOW_DIRS"`
 		MaxRerunAttempts      int64             `ini:"MAX_RERUN_ATTEMPTS"`
 		// MaxConcurrentTaskPicks bounds how many runners may run the task-assignment
-		// transaction at once per Gitea instance, to avoid a thundering herd when many
+		// transaction at once per CodeNest instance, to avoid a thundering herd when many
 		// runners poll together. It is a per-process limit, not a cluster-wide one.
 		MaxConcurrentTaskPicks int `ini:"MAX_CONCURRENT_TASK_PICKS"`
 
@@ -76,9 +76,9 @@ func (url defaultActionsURL) URL() string {
 
 const (
 	defaultActionsURLGitHub = "github" // https://github.com
-	defaultActionsURLSelf   = "self"   // the root URL of the self-hosted Gitea instance
-	// DefaultActionsURL only supports GitHub and the self-hosted Gitea.
-	// It's intentionally not supported more, so please be cautious before adding more like "gitea" or "gitlab".
+	defaultActionsURLSelf   = "self"   // the root URL of the self-hosted CodeNest instance
+	// DefaultActionsURL only supports GitHub and the self-hosted CodeNest.
+	// It's intentionally not supported more, so please be cautious before adding more like "codenest" or "gitlab".
 	// If you get some trouble with `uses: username/action_name@version` in your workflow,
 	// please consider to use `uses: https://the_url_you_want_to_use/username/action_name@version` instead.
 )

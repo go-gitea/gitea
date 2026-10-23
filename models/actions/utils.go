@@ -12,10 +12,10 @@ import (
 	"io"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 )
 
 func generateSaltedToken() (string, string, string, string) {

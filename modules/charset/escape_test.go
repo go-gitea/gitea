@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/translation"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -129,7 +129,7 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 	},
 	{
 		// UTF-8/16/32 all use the same codepoint for BOM
-		// Gitea could read UTF-16/32 content and convert into UTF-8 internally then render it, so we only process UTF-8 internally
+		// CodeNest could read UTF-16/32 content and convert into UTF-8 internally then render it, so we only process UTF-8 internally
 		name:   "UTF BOM",
 		text:   "\xef\xbb\xbftest",
 		result: "\xef\xbb\xbftest",

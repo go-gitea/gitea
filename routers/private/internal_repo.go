@@ -4,17 +4,17 @@
 package private
 
 import (
-	"gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	gitea_context "gitea.dev/services/context"
+	"codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	codenest_context "codenest.dev/services/context"
 )
 
 // This file contains common functions relating to setting the Repository for the internal routes
 
 // RepoAssignment assigns the repository and git repository to the private context
-func RepoAssignment(ctx *gitea_context.PrivateContext) {
+func RepoAssignment(ctx *codenest_context.PrivateContext) {
 	ownerName := ctx.PathParam("owner")
 	repoName := ctx.PathParam("repo")
 
@@ -29,10 +29,10 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) {
 		ctx.PrivateInternalErrorf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
 		return
 	}
-	ctx.Repo = &gitea_context.Repository{Repository: repo, GitRepo: gitRepo}
+	ctx.Repo = &codenest_context.Repository{Repository: repo, GitRepo: gitRepo}
 }
 
-func loadRepository(ctx *gitea_context.PrivateContext, ownerName, repoName string) *repo_model.Repository {
+func loadRepository(ctx *codenest_context.PrivateContext, ownerName, repoName string) *repo_model.Repository {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
 	if err != nil {
 		ctx.PrivateInternalErrorf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
@@ -44,7 +44,7 @@ func loadRepository(ctx *gitea_context.PrivateContext, ownerName, repoName strin
 	return repo
 }
 
-func loadContextDoerPermission(ctx *gitea_context.PrivateContext, userID int64, extDoerData string) bool {
+func loadContextDoerPermission(ctx *codenest_context.PrivateContext, userID int64, extDoerData string) bool {
 	if ctx.Doer != nil {
 		return true
 	}

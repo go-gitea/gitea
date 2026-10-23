@@ -6,7 +6,7 @@ package markdown
 import (
 	"fmt"
 
-	"gitea.dev/modules/markup"
+	"codenest.dev/modules/markup"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"

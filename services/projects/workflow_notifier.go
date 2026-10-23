@@ -7,14 +7,14 @@ import (
 	"context"
 	"slices"
 
-	issues_model "gitea.dev/models/issues"
-	project_model "gitea.dev/models/project"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/util"
-	issue_service "gitea.dev/services/issue"
-	notify_service "gitea.dev/services/notify"
+	issues_model "codenest.dev/models/issues"
+	project_model "codenest.dev/models/project"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/util"
+	issue_service "codenest.dev/services/issue"
+	notify_service "codenest.dev/services/notify"
 )
 
 func init() {

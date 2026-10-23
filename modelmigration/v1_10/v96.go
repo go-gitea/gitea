@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/setting"
 )
 
 func DeleteOrphanedAttachments(_ context.Context, x base.EngineMigration) error {

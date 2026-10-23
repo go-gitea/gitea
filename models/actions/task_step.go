@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"time"
 
+	"codenest.dev/models/db"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
 )
 
 // ActionTaskStep represents a step of ActionTask
@@ -37,12 +37,12 @@ func (step *ActionTaskStep) Duration() time.Duration {
 	return calculateDuration(step.Started, step.Stopped, step.Status, step.Updated)
 }
 
-// StepStage returns the stored stage, which can be one added to the enum after this Gitea version
+// StepStage returns the stored stage, which can be one added to the enum after this CodeNest version
 func (step *ActionTaskStep) StepStage() runnerv1.StepStage {
 	return runnerv1.StepStage(step.Stage)
 }
 
-// IsReported reports whether the runner reported the step instead of Gitea parsing it from the workflow file.
+// IsReported reports whether the runner reported the step instead of CodeNest parsing it from the workflow file.
 func (step *ActionTaskStep) IsReported() bool {
 	return step.StepStage() != runnerv1.StepStage_STEP_STAGE_UNSPECIFIED
 }
@@ -96,7 +96,7 @@ func (step *ActionTaskStep) stop(status Status, now timeutil.TimeStamp) {
 	step.Stopped = now
 }
 
-// maxReportedSteps bounds the steps a runner can make Gitea store for one task.
+// maxReportedSteps bounds the steps a runner can make CodeNest store for one task.
 const maxReportedSteps = 1000
 
 type reportedStepKey struct {

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 // ErrNotExist commit not exist error
@@ -99,9 +99,9 @@ func (err *ErrPushRejected) GenerateMessage() {
 	// The stderr is like this:
 	//
 	// > remote: error: push is rejected .....
-	// > To /work/gitea/tests/integration/gitea-integration-sqlite/gitea-repositories/user2/repo1.git
+	// > To /work/codenest/tests/integration/codenest-integration-sqlite/codenest-repositories/user2/repo1.git
 	// >  ! [remote rejected] 44e67c77559211d21b630b902cdcc6ab9d4a4f51 -> develop (pre-receive hook declined)
-	// > error: failed to push some refs to '/work/gitea/tests/integration/gitea-integration-sqlite/gitea-repositories/user2/repo1.git'
+	// > error: failed to push some refs to '/work/codenest/tests/integration/codenest-integration-sqlite/codenest-repositories/user2/repo1.git'
 	//
 	// The local message contains sensitive information, so we only need the remote message
 	const prefixRemote = "remote: "

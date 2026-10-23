@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"testing"
 
-	perm_model "gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	"gitea.dev/services/context"
-	"gitea.dev/services/contexttest"
+	perm_model "codenest.dev/models/perm"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	"codenest.dev/services/context"
+	"codenest.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )

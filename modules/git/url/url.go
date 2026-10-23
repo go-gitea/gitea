@@ -10,9 +10,9 @@ import (
 	stdurl "net/url"
 	"strings"
 
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // ErrWrongURLFormat represents an error with wrong url format
@@ -100,13 +100,13 @@ func ParseGitURL(remote string) (*GitURL, error) {
 type RepositoryURL struct {
 	GitURL *GitURL
 
-	// if the URL belongs to current Gitea instance, then the below fields have values
+	// if the URL belongs to current CodeNest instance, then the below fields have values
 	OwnerName     string
 	RepoName      string
 	RemainingPath string
 }
 
-// ParseRepositoryURL tries to parse a Git URL and extract the owner/repository name if it belongs to current Gitea instance.
+// ParseRepositoryURL tries to parse a Git URL and extract the owner/repository name if it belongs to current CodeNest instance.
 func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, error) {
 	// possible urls for git:
 	//  https://my.domain/sub-path/<owner>/<repo>[.git]
@@ -135,7 +135,7 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 
 	switch parsed.URL.Scheme {
 	case "http", "https":
-		if !httplib.IsCurrentGiteaSiteURL(ctx, repoURL) {
+		if !httplib.IsCurrentCodeNestSiteURL(ctx, repoURL) {
 			return ret, nil
 		}
 		fillPathParts(strings.TrimPrefix(parsed.URL.Path, setting.AppSubURL))

@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/tempdir"
-	"gitea.dev/modules/testlogger"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/tempdir"
+	"codenest.dev/modules/testlogger"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

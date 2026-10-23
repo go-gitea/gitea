@@ -3,7 +3,7 @@
 import {computed} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {getActionStatusIcon, type ActionStatusIconVariant} from '../modules/action-status-icon.ts';
-import type {ActionsStatus} from '../modules/gitea-actions.ts';
+import type {ActionsStatus} from '../modules/codenest-actions.ts';
 
 const props = withDefaults(defineProps<{
   status: ActionsStatus,

@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	asymkey_model "codenest.dev/models/asymkey"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -74,7 +74,7 @@ func rewriteAllPrincipalKeys(ctx context.Context) error {
 			return err
 		}
 		if isExist {
-			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+			bakPath := fmt.Sprintf("%s_%d.codenest_bak", fPath, time.Now().Unix())
 			if err = util.CopyFile(fPath, bakPath); err != nil {
 				return err
 			}

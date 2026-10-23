@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/util"
 )
 
 var (

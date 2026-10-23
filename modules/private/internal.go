@@ -14,11 +14,11 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/proxyprotocol"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/proxyprotocol"
+	"codenest.dev/modules/setting"
 )
 
 // Response is used for internal request response (for user message and error message)

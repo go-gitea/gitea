@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/git"
+	"codenest.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )

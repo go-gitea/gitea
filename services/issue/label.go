@@ -7,11 +7,11 @@ import (
 	"context"
 	"slices"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
-	user_model "gitea.dev/models/user"
-	notify_service "gitea.dev/services/notify"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	access_model "codenest.dev/models/perm/access"
+	user_model "codenest.dev/models/user"
+	notify_service "codenest.dev/services/notify"
 )
 
 // ClearLabels clears all of an issue's labels

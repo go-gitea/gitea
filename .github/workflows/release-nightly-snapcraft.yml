@@ -37,7 +37,7 @@ jobs:
       # retry snapcraft uploads which can be flaky
       - name: Publish snap
         run: |
-          # part-gitea-pull.sh decides what is built, see the comments there:
+          # part-codenest-pull.sh decides what is built, see the comments there:
           # * grade devel (main or a prerelease tag) goes to latest/edge
           # * grade stable (a new release tag) goes to latest/stable, and to latest/candidate which marks it as released
           channel=latest/edge

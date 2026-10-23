@@ -6,11 +6,11 @@ package files
 import (
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/json"
-	"gitea.dev/services/contexttest"
-	"gitea.dev/services/gitdiff"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/json"
+	"codenest.dev/services/contexttest"
+	"codenest.dev/services/gitdiff"
 
 	"github.com/stretchr/testify/assert"
 )

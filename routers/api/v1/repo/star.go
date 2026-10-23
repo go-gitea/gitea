@@ -6,11 +6,11 @@ package repo
 import (
 	"net/http"
 
-	repo_model "gitea.dev/models/repo"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	repo_model "codenest.dev/models/repo"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // ListStargazers list a repository's stargazers

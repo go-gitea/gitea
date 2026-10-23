@@ -16,21 +16,21 @@ import (
 	"strings"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
-	"gitea.dev/tests"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/util"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestEditor(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		sessionUser2 := loginUser(t, "user2")
 		t.Run("EditFileNotAllowed", testEditFileNotAllowed)
 		t.Run("DiffPreview", testEditorDiffPreview)

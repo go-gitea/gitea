@@ -14,7 +14,7 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 // https://rpm-software-management.github.io/rpm/manual/format_v4.html

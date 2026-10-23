@@ -9,11 +9,11 @@ import (
 	"io"
 	"time"
 
-	"gitea.dev/models/db"
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/packages"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/packages"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )

@@ -1,4 +1,4 @@
-// Copyright 2019 Gitea. All rights reserved.
+// Copyright 2019 CodeNest. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package task
@@ -8,20 +8,20 @@ import (
 	"errors"
 	"fmt"
 
-	admin_model "gitea.dev/models/admin"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/secret"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	repo_service "gitea.dev/services/repository"
+	admin_model "codenest.dev/models/admin"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	base "codenest.dev/modules/migration"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/secret"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	repo_service "codenest.dev/services/repository"
 )
 
 // taskQueue is a global queue of tasks

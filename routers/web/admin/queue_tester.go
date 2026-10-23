@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
 )
 
 var testQueueOnce sync.Once

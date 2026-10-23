@@ -30,7 +30,7 @@ jobs:
         ports:
           - "5432:5432"
       ldap:
-        image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
+        image: codenest/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
         ports:
           - "389:389"
           - "636:636"
@@ -68,7 +68,7 @@ jobs:
         ports:
           - "5432:5432"
       ldap:
-        image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
+        image: codenest/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
         ports:
           - "389:389"
           - "636:636"
@@ -100,11 +100,11 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - run: GITEA_TEST_DATABASE=sqlite make test-migration
+      - run: CODENEST_TEST_DATABASE=sqlite make test-migration
         env:
           TAGS: bindata
       - name: run tests
-        run: GITEA_TEST_DATABASE=sqlite make test-integration
+        run: CODENEST_TEST_DATABASE=sqlite make test-integration
         timeout-minutes: 50
         env:
           # sqlite driver can contain large amount of Golang code, so don't use race detector for it, otherwise, extremely slow
@@ -179,7 +179,7 @@ jobs:
         image: bitnamilegacy/mysql:8.4@sha256:7089d796fc9b4629a628bd445e4afabe607351ee665444c3197bdeaed812ea65
         env:
           ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: testgitea
+          MYSQL_DATABASE: testcodenest
         ports:
           - "3306:3306"
         options: >-
@@ -210,9 +210,9 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - run: GITEA_TEST_DATABASE=mysql make test-migration
+      - run: CODENEST_TEST_DATABASE=mysql make test-migration
       - name: run tests
-        run: GITEA_TEST_DATABASE=mysql make test-integration
+        run: CODENEST_TEST_DATABASE=mysql make test-integration
         env:
           TAGS: bindata
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
@@ -243,9 +243,9 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - run: GITEA_TEST_DATABASE=mssql make test-migration
+      - run: CODENEST_TEST_DATABASE=mssql make test-migration
       - name: run tests
-        run: GITEA_TEST_DATABASE=mssql make test-integration
+        run: CODENEST_TEST_DATABASE=mssql make test-integration
         timeout-minutes: 50
         env:
           TAGS: bindata

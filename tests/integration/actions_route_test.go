@@ -9,21 +9,21 @@ import (
 	"net/url"
 	"testing"
 
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	actions_web "codenest.dev/routers/web/repo/actions"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	actions_web "gitea.dev/routers/web/repo/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestActionsRoute(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		t.Run("testActionsRouteForIDBasedURL", testActionsRouteForIDBasedURL)
 		t.Run("testActionsRouteForLegacyIndexBasedURL", testActionsRouteForLegacyIndexBasedURL)
 	})

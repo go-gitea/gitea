@@ -6,8 +6,8 @@ package user_test
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +16,7 @@ func TestSettings(t *testing.T) {
 	keyName := "test_user_setting"
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	newSetting := &user_model.Setting{UserID: 99, SettingKey: keyName, SettingValue: "Gitea User Setting Test"}
+	newSetting := &user_model.Setting{UserID: 99, SettingKey: keyName, SettingValue: "CodeNest User Setting Test"}
 
 	// create setting
 	err := user_model.SetUserSetting(t.Context(), newSetting.UserID, newSetting.SettingKey, newSetting.SettingValue)

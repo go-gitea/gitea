@@ -6,7 +6,7 @@ package structs
 import (
 	"time"
 
-	"gitea.dev/modules/optional"
+	"codenest.dev/modules/optional"
 )
 
 // PullRequest represents a pull request

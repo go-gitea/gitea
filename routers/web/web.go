@@ -7,48 +7,48 @@ import (
 	"net/http"
 	"strings"
 
-	audit_model "gitea.dev/models/audit"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/perm"
-	"gitea.dev/models/unit"
-	"gitea.dev/modules/consts"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/imagecaptcha"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/metrics"
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/modules/web/routing"
-	"gitea.dev/modules/web/types"
-	"gitea.dev/routers/common"
-	"gitea.dev/routers/web/admin"
-	"gitea.dev/routers/web/auth"
-	"gitea.dev/routers/web/devtest"
-	"gitea.dev/routers/web/explore"
-	"gitea.dev/routers/web/feed"
-	"gitea.dev/routers/web/healthcheck"
-	"gitea.dev/routers/web/misc"
-	"gitea.dev/routers/web/org"
-	org_setting "gitea.dev/routers/web/org/setting"
-	"gitea.dev/routers/web/repo"
-	"gitea.dev/routers/web/repo/actions"
-	repo_setting "gitea.dev/routers/web/repo/setting"
-	shared_actions "gitea.dev/routers/web/shared/actions"
-	"gitea.dev/routers/web/shared/project"
-	"gitea.dev/routers/web/user"
-	user_setting "gitea.dev/routers/web/user/setting"
-	"gitea.dev/routers/web/user/setting/security"
-	gitea_websocket "gitea.dev/routers/web/websocket"
-	auth_service "gitea.dev/services/auth"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
+	audit_model "codenest.dev/models/audit"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/perm"
+	"codenest.dev/models/unit"
+	"codenest.dev/modules/consts"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/imagecaptcha"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/metrics"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/modules/web/middleware"
+	"codenest.dev/modules/web/routing"
+	"codenest.dev/modules/web/types"
+	"codenest.dev/routers/common"
+	"codenest.dev/routers/web/admin"
+	"codenest.dev/routers/web/auth"
+	"codenest.dev/routers/web/devtest"
+	"codenest.dev/routers/web/explore"
+	"codenest.dev/routers/web/feed"
+	"codenest.dev/routers/web/healthcheck"
+	"codenest.dev/routers/web/misc"
+	"codenest.dev/routers/web/org"
+	org_setting "codenest.dev/routers/web/org/setting"
+	"codenest.dev/routers/web/repo"
+	"codenest.dev/routers/web/repo/actions"
+	repo_setting "codenest.dev/routers/web/repo/setting"
+	shared_actions "codenest.dev/routers/web/shared/actions"
+	"codenest.dev/routers/web/shared/project"
+	"codenest.dev/routers/web/user"
+	user_setting "codenest.dev/routers/web/user/setting"
+	"codenest.dev/routers/web/user/setting/security"
+	codenest_websocket "codenest.dev/routers/web/websocket"
+	auth_service "codenest.dev/services/auth"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
 
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -459,7 +459,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	addWebhookAddRoutes := func() {
 		m.Get("/{type}/new", repo_setting.WebhooksNew)
-		m.Post("/gitea/new", web.Bind[*forms.NewWebhookForm](), repo_setting.GiteaHooksNewPost)
+		m.Post("/codenest/new", web.Bind[*forms.NewWebhookForm](), repo_setting.CodeNestHooksNewPost)
 		m.Post("/gogs/new", web.Bind[*forms.NewGogshookForm](), repo_setting.GogsHooksNewPost)
 		m.Post("/slack/new", web.Bind[*forms.NewSlackHookForm](), repo_setting.SlackHooksNewPost)
 		m.Post("/discord/new", web.Bind[*forms.NewDiscordHookForm](), repo_setting.DiscordHooksNewPost)
@@ -473,7 +473,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	}
 
 	addWebhookEditRoutes := func() {
-		m.Post("/gitea/{id}", web.Bind[*forms.NewWebhookForm](), repo_setting.GiteaHooksEditPost)
+		m.Post("/codenest/{id}", web.Bind[*forms.NewWebhookForm](), repo_setting.CodeNestHooksEditPost)
 		m.Post("/gogs/{id}", web.Bind[*forms.NewGogshookForm](), repo_setting.GogsHooksEditPost)
 		m.Post("/slack/{id}", web.Bind[*forms.NewSlackHookForm](), repo_setting.SlackHooksEditPost)
 		m.Post("/discord/{id}", web.Bind[*forms.NewDiscordHookForm](), repo_setting.DiscordHooksEditPost)
@@ -612,7 +612,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}, reqSignOut)
 
-	m.Get("/-/ws", routing.MarkLongPolling(), gitea_websocket.Serve)
+	m.Get("/-/ws", routing.MarkLongPolling(), codenest_websocket.Serve)
 
 	m.Group("/login/oauth", func() {
 		m.Group("", func() {
@@ -1776,7 +1776,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// pattern: "/{username}/{reponame}/{lfs-paths}": git-lfs support, see also addOwnerRepoGitHTTPRouters
 	common.AddOwnerRepoGitLFSRoutes(m, lfsServerEnabled, webAuth.AllowBasic, webAuth.AllowDeployToken, repo.CorsHandler(), optSignInFromAnyOrigin)
 
-	// Some users want to use "web-based git client" to access Gitea's repositories,
+	// Some users want to use "web-based git client" to access CodeNest's repositories,
 	// so the CORS handler and OPTIONS method are used.
 	// pattern: "/{username}/{reponame}/{git-paths}": git http support
 	addOwnerRepoGitHTTPRouters(m, repo.HTTPGitEnabledHandler, webAuth.AllowBasic, webAuth.AllowOAuth2, webAuth.AllowDeployToken, repo.CorsHandler(), optSignInFromAnyOrigin, context.UserAssignmentWeb())

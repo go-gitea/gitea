@@ -7,12 +7,12 @@ package user
 import (
 	"net/http"
 
-	activities_model "gitea.dev/models/activities"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	feed_service "gitea.dev/services/feed"
+	activities_model "codenest.dev/models/activities"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	feed_service "codenest.dev/services/feed"
 )
 
 // Search search users

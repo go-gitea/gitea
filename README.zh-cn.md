@@ -1,13 +1,13 @@
-# Gitea
+# CodeNest
 
 [![](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main)](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain "Release Nightly")
 [![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
-[![](https://pkg.go.dev/badge/gitea.dev?status.svg)](https://pkg.go.dev/gitea.dev "GoDoc")
+[![](https://pkg.go.dev/badge/codenest.dev?status.svg)](https://pkg.go.dev/codenest.dev "GoDoc")
 [![](https://img.shields.io/github/release/go-gitea/gitea.svg)](https://github.com/go-gitea/gitea/releases/latest "GitHub release")
 [![](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea "Help Contribute to Open Source")
-[![](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea "Become a backer/sponsor of gitea")
+[![](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea "Become a backer/sponsor of codenest")
 [![](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT "License: MIT")
-[![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
+[![](https://badges.crowdin.net/codenest/localized.svg)](https://translate.gitea.com "Crowdin")
 
 [English](./README.md) | [繁體中文](./README.zh-tw.md)
 
@@ -15,13 +15,13 @@
 
 这个项目的目标是提供最简单、最快速、最无痛的方式来设置自托管的 Git 服务。
 
-由于 Gitea 是用 Go 语言编写的，它可以在 Go 支持的所有平台和架构上运行，包括 Linux、macOS 和 Windows 的 x86、amd64、ARM 和 PowerPC 架构。这个项目自 2016 年 11 月从 [Gogs](https://gogs.io) [分叉](https://blog.gitea.com/welcome-to-gitea/) 而来，但已经有了很多变化。
+由于 CodeNest 是用 Go 语言编写的，它可以在 Go 支持的所有平台和架构上运行，包括 Linux、macOS 和 Windows 的 x86、amd64、ARM 和 PowerPC 架构。这个项目自 2016 年 11 月从 [Gogs](https://gogs.io) [分叉](https://blog.gitea.com/welcome-to-gitea/) 而来，但已经有了很多变化。
 
 在线演示可以访问 [demo.gitea.com](https://demo.gitea.com)。
 
-要访问免费的 Gitea 服务（有一定数量的仓库限制），可以访问 [gitea.com](https://gitea.com/user/login)。
+要访问免费的 CodeNest 服务（有一定数量的仓库限制），可以访问 [gitea.com](https://gitea.com/user/login)。
 
-要快速部署您自己的专用 Gitea 实例，可以在 [cloud.gitea.com](https://cloud.gitea.com) 开始免费试用。
+要快速部署您自己的专用 CodeNest 实例，可以在 [cloud.gitea.com](https://cloud.gitea.com) 开始免费试用。
 
 ## 文件
 
@@ -48,9 +48,9 @@
 
 ## 使用
 
-构建后，默认情况下会在源代码树的根目录生成一个名为 `gitea` 的二进制文件。要运行它，请使用：
+构建后，默认情况下会在源代码树的根目录生成一个名为 `codenest` 的二进制文件。要运行它，请使用：
 
-    ./gitea web
+    ./codenest web
 
 > [!注意]
 > 如果您对使用我们的 API 感兴趣，我们提供了实验性支持，并附有 [文件](https://docs.gitea.com/api)。
@@ -66,7 +66,7 @@
 
 ## 翻译
 
-[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com)
+[![Crowdin](https://badges.crowdin.net/codenest/localized.svg)](https://translate.gitea.com)
 
 翻译通过 [Crowdin](https://translate.gitea.com) 进行。如果您想翻译成新的语言，请在 Crowdin 项目中请求管理员添加新语言。
 
@@ -76,9 +76,9 @@
 
 ## 官方和第三方项目
 
-我们提供了一个官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，一个名为 [tea](https://gitea.com/gitea/tea) 的 CLI 工具和一个 Gitea Action 的 [action runner](https://gitea.com/gitea/runner)。
+我们提供了一个官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，一个名为 [tea](https://gitea.com/gitea/tea) 的 CLI 工具和一个 CodeNest Action 的 [action runner](https://gitea.com/gitea/runner)。
 
-我们在 [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 维护了一个 Gitea 相关项目的列表，您可以在那里发现更多的第三方项目，包括 SDK、插件、主题等。
+我们在 [codenest/awesome-codenest](https://gitea.com/gitea/awesome-gitea) 维护了一个 CodeNest 相关项目的列表，您可以在那里发现更多的第三方项目，包括 SDK、插件、主题等。
 
 ## 通讯
 
@@ -115,11 +115,11 @@
 
 ## 常见问题
 
-**Gitea 怎么发音？**
+**CodeNest 怎么发音？**
 
-Gitea 的发音是 [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY)，就像 "gi-tea" 一样，g 是硬音。
+CodeNest 的发音是 [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY)，就像 "gi-tea" 一样，g 是硬音。
 
-**为什么这个项目没有托管在 Gitea 实例上？**
+**为什么这个项目没有托管在 CodeNest 实例上？**
 
 我们正在 [努力](https://github.com/go-gitea/gitea/issues/1029)。
 

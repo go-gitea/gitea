@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/egress"
+	"codenest.dev/modules/egress"
 
 	"github.com/yohcop/openid-go"
 )

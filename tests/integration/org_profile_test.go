@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/web/shared/user"
+	auth_model "codenest.dev/models/auth"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/web/shared/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -53,7 +53,7 @@ func createTestProfile(t *testing.T, orgName, profileRepoName, readmeContent str
 }
 
 func TestOrgProfile(t *testing.T) {
-	onGiteaRun(t, testOrgProfile)
+	onCodeNestRun(t, testOrgProfile)
 }
 
 func testOrgProfile(t *testing.T, u *url.URL) {

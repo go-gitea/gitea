@@ -6,10 +6,10 @@ package fileicon_test
 import (
 	"testing"
 
-	"gitea.dev/modules/fileicon"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/fileicon"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )

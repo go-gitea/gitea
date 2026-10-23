@@ -10,15 +10,15 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
-	mirror_service "gitea.dev/services/mirror"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	api "codenest.dev/modules/structs"
+	mirror_service "codenest.dev/services/mirror"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -191,7 +191,7 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 }
 
 func TestAPIRepoEdit(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		bFalse, bTrue := false, true
 
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16

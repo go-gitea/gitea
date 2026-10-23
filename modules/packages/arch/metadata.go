@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/packages"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
-	"gitea.dev/modules/zstd"
+	"codenest.dev/modules/packages"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
+	"codenest.dev/modules/zstd"
 
 	"github.com/ulikunitz/xz"
 )

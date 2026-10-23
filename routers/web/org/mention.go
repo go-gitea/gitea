@@ -6,10 +6,10 @@ package org
 import (
 	"net/http"
 
-	"gitea.dev/models/organization"
-	"gitea.dev/modules/util"
-	shared_mention "gitea.dev/routers/web/shared/mention"
-	"gitea.dev/services/context"
+	"codenest.dev/models/organization"
+	"codenest.dev/modules/util"
+	shared_mention "codenest.dev/routers/web/shared/mention"
+	"codenest.dev/services/context"
 )
 
 // GetMentionsInOwner returns JSON data for mention autocomplete on owner-level pages.

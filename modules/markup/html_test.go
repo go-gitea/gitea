@@ -9,15 +9,15 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/emoji"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/markup/common"
-	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/setting"
-	testModule "gitea.dev/modules/test"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/emoji"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/markup/common"
+	"codenest.dev/modules/markup/markdown"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/setting"
+	testModule "codenest.dev/modules/test"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -70,7 +70,7 @@ func TestRender_Commits(t *testing.T) {
 	test(commitCompareWithHash, `<p><a href="`+commitCompareWithHash+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc (L2)</code></a></p>`)
 
 	test("commit "+sha, `<p>commit <a href="`+commitPath+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
-	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
+	test("/home/codenest/"+sha, "<p>/home/codenest/"+sha+"</p>")
 	test("deadbeef", `<p>deadbeef</p>`)
 	test("d27ace93", `<p>d27ace93</p>`)
 	test(sha[:14]+".x", `<p>`+sha[:14]+`.x</p>`)
@@ -101,14 +101,14 @@ func TestRender_CrossReferences(t *testing.T) {
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
 	test(
-		markup.TestAppURL+"gogitea/gitea/issues/12345",
-		`<p><a href="`+markup.TestAppURL+`gogitea/gitea/issues/12345" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
+		markup.TestAppURL+"gocodenest/codenest/issues/12345",
+		`<p><a href="`+markup.TestAppURL+`gocodenest/codenest/issues/12345" class="ref-issue" rel="nofollow">gocodenest/codenest#12345</a></p>`)
 	test(
 		markup.TestAppURL+"go-gitea/gitea/issues/12345",
 		`<p><a href="`+markup.TestAppURL+`go-gitea/gitea/issues/12345" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 	test(
-		markup.TestAppURL+"gogitea/some-repo-name/issues/12345",
-		`<p><a href="`+markup.TestAppURL+`gogitea/some-repo-name/issues/12345" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
+		markup.TestAppURL+"gocodenest/some-repo-name/issues/12345",
+		`<p><a href="`+markup.TestAppURL+`gocodenest/some-repo-name/issues/12345" class="ref-issue" rel="nofollow">gocodenest/some-repo-name#12345</a></p>`)
 
 	inputURL := setting.AppURL + "a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
 	test(
@@ -267,8 +267,8 @@ func TestRender_email(t *testing.T) {
 		"firstname+lastname@gitea.com",
 		`<p><a href="mailto:firstname+lastname@gitea.com" rel="nofollow">firstname+lastname@gitea.com</a></p>`)
 	test(
-		"send email to info@gitea.co.uk.",
-		`<p>send email to <a href="mailto:info@gitea.co.uk" rel="nofollow">info@gitea.co.uk</a>.</p>`)
+		"send email to info@codenest.co.uk.",
+		`<p>send email to <a href="mailto:info@codenest.co.uk" rel="nofollow">info@codenest.co.uk</a>.</p>`)
 
 	test(
 		`j.doe@example.com,
@@ -290,8 +290,8 @@ func TestRender_email(t *testing.T) {
 
 	// Test that should *not* be turned into email links
 	test(
-		"/home/gitea/mailstore/info@gitea/com",
-		`<p>/home/gitea/mailstore/info@gitea/com</p>`)
+		"/home/codenest/mailstore/info@codenest/com",
+		`<p>/home/codenest/mailstore/info@codenest/com</p>`)
 	test(
 		"git@try.gitea.io:go-gitea/gitea.git",
 		`<p>git@try.gitea.io:go-gitea/gitea.git</p>`)
@@ -299,11 +299,11 @@ func TestRender_email(t *testing.T) {
 		"https://foo:bar@gitea.io",
 		`<p><a href="https://foo:bar@gitea.io" rel="nofollow">https://foo:bar@gitea.io</a></p>`)
 	test(
-		"gitea@3",
-		`<p>gitea@3</p>`)
+		"codenest@3",
+		`<p>codenest@3</p>`)
 	test(
-		"gitea@gmail.c",
-		`<p>gitea@gmail.c</p>`)
+		"codenest@gmail.c",
+		`<p>codenest@gmail.c</p>`)
 	test(
 		"email@domain..com",
 		`<p>email@domain..com</p>`)
@@ -351,8 +351,8 @@ func TestRender_emoji(t *testing.T) {
 
 	// Text that should be turned into or recognized as emoji
 	test(
-		":gitea:",
-		`<p><span class="emoji"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
+		":codenest:",
+		`<p><span class="emoji"><img alt=":codenest:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/codenest.png"/></span></p>`)
 	test(
 		":custom-emoji:",
 		`<p>:custom-emoji:</p>`)
@@ -361,10 +361,10 @@ func TestRender_emoji(t *testing.T) {
 		":custom-emoji:",
 		`<p><span class="emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span></p>`)
 	test(
-		"这是字符:1::+1: some🐊 \U0001f44d:custom-emoji: :gitea:",
+		"这是字符:1::+1: some🐊 \U0001f44d:custom-emoji: :codenest:",
 		`<p>这是字符:1:<span class="emoji" data-alias="+1">👍</span> some<span class="emoji" data-alias="crocodile">🐊</span> `+
 			`<span class="emoji" data-alias="+1">👍</span><span class="emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span> `+
-			`<span class="emoji"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
+			`<span class="emoji"><img alt=":codenest:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/codenest.png"/></span></p>`)
 	test(
 		"Some text with 😄 in the middle",
 		`<p>Some text with <span class="emoji" data-alias="smile">😄</span> in the middle</p>`)
@@ -497,7 +497,7 @@ func TestRender_ShortLinks(t *testing.T) {
 func Test_ParseClusterFuzz(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 
-	localMetas := map[string]string{"user": "go-gitea", "repo": "gitea"}
+	localMetas := map[string]string{"user": "go-gitea", "repo": "codenest"}
 
 	data := "<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
@@ -521,7 +521,7 @@ func TestPostProcess(t *testing.T) {
 
 	test := func(input, expected string) {
 		var res strings.Builder
-		err := markup.PostProcessDefault(markup.NewTestRenderContext(markup.TestAppURL, map[string]string{"user": "go-gitea", "repo": "gitea"}), strings.NewReader(input), &res)
+		err := markup.PostProcessDefault(markup.NewTestRenderContext(markup.TestAppURL, map[string]string{"user": "go-gitea", "repo": "codenest"}), strings.NewReader(input), &res)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
 	}
@@ -538,16 +538,16 @@ func TestPostProcess(t *testing.T) {
 
 	// Test that other post-processing still works.
 	test(
-		":gitea:",
-		`<span class="emoji"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span>`)
+		":codenest:",
+		`<span class="emoji"><img alt=":codenest:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/codenest.png"/></span>`)
 	test(
 		"Some text with 😄 in the middle",
 		`Some text with <span class="emoji" data-alias="smile">😄</span> in the middle`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
 		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
 	test(
-		"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>",
-		"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>")
+		"<math><mtext>:codenest: go-gitea/gitea#12345</mtext></math>",
+		"<math><mtext>:codenest: go-gitea/gitea#12345</mtext></math>")
 
 	// special tags, GitHub's behavior, and for unclosed tags, output as text content as much as possible
 	test("<script>a", `&lt;script&gt;a`)
@@ -565,7 +565,7 @@ func TestIssue16020(t *testing.T) {
 
 	localMetas := map[string]string{
 		"user": "go-gitea",
-		"repo": "gitea",
+		"repo": "codenest",
 	}
 
 	data := `<img src="data:image/png;base64,i//V"/>`

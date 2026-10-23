@@ -7,7 +7,7 @@ package migration
 import (
 	"context"
 
-	"gitea.dev/modules/structs"
+	"codenest.dev/modules/structs"
 )
 
 // Downloader downloads the site repo information

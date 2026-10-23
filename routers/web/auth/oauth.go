@@ -15,22 +15,22 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
-	auth_module "gitea.dev/modules/auth"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/egress"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/audit"
-	source_service "gitea.dev/services/auth/source"
-	"gitea.dev/services/auth/source/oauth2"
-	"gitea.dev/services/context"
-	"gitea.dev/services/externalaccount"
-	user_service "gitea.dev/services/user"
+	"codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
+	auth_module "codenest.dev/modules/auth"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/egress"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/audit"
+	source_service "codenest.dev/services/auth/source"
+	"codenest.dev/services/auth/source/oauth2"
+	"codenest.dev/services/context"
+	"codenest.dev/services/externalaccount"
+	user_service "codenest.dev/services/user"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -173,7 +173,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 				if gothUser.RawData == nil {
 					gothUser.RawData = make(map[string]any)
 				}
-				gothUser.RawData["__giteaAutoRegMissingFields"] = missingFields
+				gothUser.RawData["__codenestAutoRegMissingFields"] = missingFields
 				showLinkingLogin(ctx, authSource.ID, gothUser)
 				return
 			}
@@ -316,7 +316,7 @@ func oauth2UpdateAvatarIfNeed(ctx *context.Context, avatarURL string, u *user_mo
 		return
 	}
 	// Some hosts (e.g. Wikimedia) reject Go's default User-Agent.
-	req.Header.Set("User-Agent", "Gitea "+setting.AppVer)
+	req.Header.Set("User-Agent", "CodeNest "+setting.AppVer)
 
 	resp, err := oauth2AvatarHTTPClient().Do(req)
 	if err != nil {

@@ -6,8 +6,8 @@ package v1_19
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/timeutil"
 )
 
 func AddActionsTables(_ context.Context, x base.EngineMigration) error {

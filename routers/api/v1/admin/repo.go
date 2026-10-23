@@ -4,10 +4,10 @@
 package admin
 
 import (
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/api/v1/repo"
-	"gitea.dev/services/context"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/api/v1/repo"
+	"codenest.dev/services/context"
 )
 
 // CreateRepo api for creating a repository

@@ -4,9 +4,9 @@
 package pull
 
 import (
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
 )
 
 // doMergeStyleMerge merges the tracking branch into the current HEAD - which is assumed to be the staging branch (equal to the pr.BaseBranch)

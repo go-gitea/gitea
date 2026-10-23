@@ -6,7 +6,7 @@ package v1_26
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func FixMissedRepoIDWhenMigrateAttachments(_ context.Context, x base.EngineMigration) error {

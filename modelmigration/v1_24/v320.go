@@ -6,8 +6,8 @@ package v1_24
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/json"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/json"
 
 	"xorm.io/xorm"
 )

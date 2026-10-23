@@ -1,4 +1,4 @@
-// Copyright 2017 Gitea. All rights reserved.
+// Copyright 2017 CodeNest. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package git_test
@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/git"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )

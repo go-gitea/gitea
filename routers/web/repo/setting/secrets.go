@@ -7,14 +7,14 @@ import (
 	"errors"
 	"net/http"
 
-	actions_model "gitea.dev/models/actions"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	shared "gitea.dev/routers/web/shared/secrets"
-	shared_user "gitea.dev/routers/web/shared/user"
-	"gitea.dev/services/context"
+	actions_model "codenest.dev/models/actions"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	shared "codenest.dev/routers/web/shared/secrets"
+	shared_user "codenest.dev/routers/web/shared/user"
+	"codenest.dev/services/context"
 )
 
 const (

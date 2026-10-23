@@ -8,16 +8,16 @@ import (
 	"net/http"
 	"net/url"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
-	"gitea.dev/services/user"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/context"
+	"codenest.dev/services/user"
 )
 
 const (

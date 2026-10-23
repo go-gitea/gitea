@@ -6,8 +6,8 @@ package webhook
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/optional"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

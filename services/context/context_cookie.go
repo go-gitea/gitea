@@ -4,10 +4,10 @@
 package context
 
 import (
-	"gitea.dev/modules/web/middleware"
+	"codenest.dev/modules/web/middleware"
 )
 
-const CookieNameFlash = "gitea_flash"
+const CookieNameFlash = "codenest_flash"
 
 // SetSiteCookie convenience function to set most cookies consistently
 func (ctx *Context) SetSiteCookie(name, value string, maxAge int) {

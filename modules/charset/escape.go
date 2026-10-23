@@ -8,9 +8,9 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/translation"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/translation"
 )
 
 type EscapeOptions struct {

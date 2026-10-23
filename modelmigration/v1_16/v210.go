@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/timeutil"
 
 	"xorm.io/xorm/schemas"
 )

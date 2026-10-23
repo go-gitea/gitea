@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 // Helper to get a signature from the commit line, which looks like:
@@ -38,7 +38,7 @@ func parseSignatureFromCommitLine(line string) *Signature {
 			sig.When = time.Unix(seconds, 0).In(tzTime.Location())
 		}
 	} else {
-		// the old gitea code tried to parse the date in a few different formats, but it's not clear why.
+		// the old codenest code tried to parse the date in a few different formats, but it's not clear why.
 		// according to public document, only the standard format "timestamp timezone" could be found, so drop other formats.
 		log.Error("suspicious commit line format: %q", line)
 		for _, fmt := range []string{ /*"Mon Jan _2 15:04:05 2006 -0700"*/ } {

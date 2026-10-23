@@ -12,15 +12,15 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/svg"
-	"gitea.dev/modules/templates/eval"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/gitdiff"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/svg"
+	"codenest.dev/modules/templates/eval"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/gitdiff"
 )
 
 func newFuncMapWebPage() template.FuncMap {

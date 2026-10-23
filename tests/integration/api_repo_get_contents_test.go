@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	repo_service "gitea.dev/services/repository"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	repo_service "codenest.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,7 +54,7 @@ func getExpectedContentsResponseForContents(inputRef string, expectedRef git.Ref
 }
 
 func TestAPIGetContents(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		testAPIGetContentsRefFormats(t)
 		testAPIGetContents(t, u)
 		testAPIGetContentsExt(t)

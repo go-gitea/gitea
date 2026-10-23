@@ -9,13 +9,13 @@ import (
 	"fmt"
 	"slices"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -103,8 +103,8 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 	// The placeholder is reused as the first combination, so the attempt only grows by len-1.
 	maxCombinations := int(actions_model.MaxJobNumPerRun - existingJobs + 1)
 
-	giteaCtx := GenerateGiteaContext(ctx, job.Run, nil, job)
-	expandedJobs, err := jobparser.ExpandMatrixWithNeeds(job.JobID, parsedJob, giteaCtx.ToGitHubContext(), results, vars, inputs, maxCombinations)
+	codenestCtx := GenerateCodeNestContext(ctx, job.Run, nil, job)
+	expandedJobs, err := jobparser.ExpandMatrixWithNeeds(job.JobID, parsedJob, codenestCtx.ToGitHubContext(), results, vars, inputs, maxCombinations)
 	if err != nil {
 		return nil, failTerminal(fmt.Errorf("expand matrix: %w", err))
 	}

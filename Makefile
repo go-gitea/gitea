@@ -30,7 +30,7 @@ MAKE_EVIDENCE_DIR := .make_evidence
 # CI should explicitly set the database to avoid unexpected results.
 ifneq ($(findstring test-,$(MAKECMDGOALS)),)
 	ifeq ($(CI),)
-		GITEA_TEST_DATABASE ?= sqlite
+		CODENEST_TEST_DATABASE ?= sqlite
 	endif
 endif
 
@@ -52,9 +52,9 @@ else ifeq ($(patsubst Windows%,Windows,$(OS)),Windows)
 endif
 
 ifeq ($(IS_WINDOWS),yes)
-	EXECUTABLE ?= gitea.exe
+	EXECUTABLE ?= codenest.exe
 else
-	EXECUTABLE ?= gitea
+	EXECUTABLE ?= codenest
 endif
 
 # EXTRA_GOFLAGS is for the 'go build' command only
@@ -75,11 +75,11 @@ GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
 # VERSION: the name for the build and filenames, e.g.: "1.2.3" for tag "v1.2.3", "main-nightly" for branch "main"
-# GITEA_VERSION: the Gitea's internal version for display, e.g. "1.28.0+dev-356-ge47d0b66ea"
+# CODENEST_VERSION: the CodeNest's internal version for display, e.g. "1.28.0+dev-356-ge47d0b66ea"
 ifeq ($(GITHUB_REF_TYPE),tag)
 	# convert tag "v1.2.3" to "1.2.3"
 	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
-	GITEA_VERSION ?= $(VERSION)
+	CODENEST_VERSION ?= $(VERSION)
 else ifeq ($(GITHUB_REF_TYPE),branch)
 	ifneq ($(GITHUB_REF_NAME),)
 		# convert branch "release/v1.2" to "1.2-nightly"
@@ -91,19 +91,19 @@ else ifeq ($(GITHUB_REF_TYPE),branch)
 
 	STORED_VERSION=$(shell cat $(STORED_VERSION_FILE) 2>/dev/null)
 	ifneq ($(STORED_VERSION),)
-		GITEA_VERSION ?= $(STORED_VERSION)
+		CODENEST_VERSION ?= $(STORED_VERSION)
 	else
-		GITEA_VERSION ?= $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+		CODENEST_VERSION ?= $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
 	endif
 else
 	$(error unsupported ref type $(GITHUB_REF_TYPE))
 endif
 
-LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
+LDFLAGS := $(LDFLAGS) -X "main.Version=$(CODENEST_VERSION)" -X "main.Tags=$(TAGS)"
 RELEASE_ENV = GO="$(GO)" TAGS="$(TAGS)" LDFLAGS="$(LDFLAGS)" DIST="$(DIST)" VERSION="$(VERSION)"
 
-GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list gitea.dev/modelmigration/...) gitea.dev/tests/integration/migration-test gitea.dev/tests gitea.dev/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
-MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list gitea.dev/modelmigration/...)
+GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list codenest.dev/modelmigration/...) codenest.dev/tests/integration/migration-test codenest.dev/tests codenest.dev/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
+MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list codenest.dev/modelmigration/...)
 
 FRONTEND_SOURCES := $(shell find web_src/js web_src/css -type f)
 FRONTEND_CONFIGS := vite.config.ts tailwind.config.ts
@@ -143,17 +143,17 @@ SWAGGER_SPEC := templates/swagger/v1-swagger.generated.json
 OPENAPI3_SPEC := templates/swagger/v1-openapi3.generated.json
 
 TEST_MYSQL_HOST ?= mysql:3306
-TEST_MYSQL_DBNAME ?= testgitea
+TEST_MYSQL_DBNAME ?= testcodenest
 TEST_MYSQL_USERNAME ?= root
 TEST_MYSQL_PASSWORD ?=
 TEST_PGSQL_HOST ?= pgsql:5432
-TEST_PGSQL_DBNAME ?= testgitea
+TEST_PGSQL_DBNAME ?= testcodenest
 TEST_PGSQL_USERNAME ?= postgres
 TEST_PGSQL_PASSWORD ?= postgres
 TEST_PGSQL_SCHEMA ?= gtestschema
 TEST_MINIO_ENDPOINT ?= minio:9000
 TEST_MSSQL_HOST ?= mssql:1433
-TEST_MSSQL_DBNAME ?= testgitea
+TEST_MSSQL_DBNAME ?= testcodenest
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
@@ -164,7 +164,7 @@ ifneq ("$(wildcard Makefile.local)","")
 endif
 
 $(foreach v, $(filter TEST_%, $(.VARIABLES)), $(eval MAKEFILE_VARS+=$v=$($v)))
-$(foreach v, $(filter GITEA_TEST_%, $(.VARIABLES)), $(eval MAKEFILE_VARS+=$v=$($v)))
+$(foreach v, $(filter CODENEST_TEST_%, $(.VARIABLES)), $(eval MAKEFILE_VARS+=$v=$($v)))
 export MAKEFILE_VARS
 
 .PHONY: all
@@ -175,7 +175,7 @@ help: Makefile ## print Makefile help information.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m[TARGETS] default target: build\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 }' Makefile #$(MAKEFILE_LIST)
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-e2e" "test end to end using playwright"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-backend[#TestSpecificName]" "run unit test (sqlite only)"
-	@printf "  \033[36m%-46s\033[0m %s\n" "test-integration[#TestSpecificName]" "run integration test for GITEA_TEST_DATABASE (sqlite, mysql, pgsql, mssql)"
+	@printf "  \033[36m%-46s\033[0m %s\n" "test-integration[#TestSpecificName]" "run integration test for CODENEST_TEST_DATABASE (sqlite, mysql, pgsql, mssql)"
 
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files
@@ -184,7 +184,7 @@ clean-all: clean ## delete backend, frontend and integration files
 .PHONY: clean
 clean: ## delete backend and integration files
 	rm -f $(EXECUTABLE) test-*.test tests/*.ini
-	rm -rf  $(DIST) $(BINDATA_DEST_WILDCARD) man tests/integration/gitea-integration-*
+	rm -rf  $(DIST) $(BINDATA_DEST_WILDCARD) man tests/integration/codenest-integration-*
 
 .PHONY: fmt
 fmt: ## format the Go and template code
@@ -360,7 +360,7 @@ watch-frontend: node_modules ## start vite dev server for frontend
 
 .PHONY: watch-backend
 watch-backend: ## watch backend files and continuously rebuild
-	GITEA_RUN_MODE=dev $(GO) run $(AIR_PACKAGE) -c .air.toml
+	CODENEST_RUN_MODE=dev $(GO) run $(AIR_PACKAGE) -c .air.toml
 
 .PHONY: test-backend
 test-backend: ## test backend files
@@ -431,26 +431,26 @@ $(GO_LICENSE_FILE): go.mod go.sum
 
 .PHONY: test-integration
 test-integration: $(EXECUTABLE)
-	@# Use a compiled binary: testlogger forwards gitea logs to t.Log, so `go test -v`
+	@# Use a compiled binary: testlogger forwards codenest logs to t.Log, so `go test -v`
 	@# would flood output per passing test. testcache can't help these tests anyway —
 	@# they mutate the work directory, so cache inputs change between runs.
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c gitea.dev/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
-	./tools/test-integration.sh ./test-integration-$(GITEA_TEST_DATABASE).test
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c codenest.dev/tests/integration -o ./test-integration-$(CODENEST_TEST_DATABASE).test
+	./tools/test-integration.sh ./test-integration-$(CODENEST_TEST_DATABASE).test
 
 .PHONY: test-integration-compile
 test-integration-compile:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null gitea.dev/tests/integration
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null codenest.dev/tests/integration
 
 .PHONY: test-integration\#%
 test-integration\#%: $(EXECUTABLE)
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run '$(subst .,/,$*)' gitea.dev/tests/integration
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run '$(subst .,/,$*)' codenest.dev/tests/integration
 
 .PHONY: test-migration
 test-migration: migrations.integration.test migrations.individual.test
 
 .PHONY: migrations.integration.test
 migrations.integration.test:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' gitea.dev/tests/integration/migration-test
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' codenest.dev/tests/integration/migration-test
 
 .PHONY: migrations.individual.test
 migrations.individual.test:
@@ -459,7 +459,7 @@ migrations.individual.test:
 
 .PHONY: migrations.individual.test\#%
 migrations.individual.test\#%:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' gitea.dev/modelmigration/$*
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' codenest.dev/modelmigration/$*
 
 .PHONY: playwright
 playwright: deps-frontend
@@ -467,7 +467,7 @@ playwright: deps-frontend
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend
-	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(CODENEST_TEST_E2E_FLAGS)
 
 .PHONY: build
 build: frontend backend ## build everything
@@ -539,12 +539,12 @@ release-compress: | $(DIST_DIRS)
 
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS)
-	echo $(GITEA_VERSION) > $(STORED_VERSION_FILE)
+	echo $(CODENEST_VERSION) > $(STORED_VERSION_FILE)
 # bsdtar needs a ^ to prevent matching subdirectories
 	$(eval EXCL := --exclude=$(shell tar --help | grep -q bsdtar && echo "^")./)
 # use transform to a add a release-folder prefix; in bsdtar the transform parameter equivalent is -s
-	$(eval TRANSFORM := $(shell tar --help | grep -q bsdtar && echo "-s '|^./|gitea-src-$(VERSION)/|'" || echo "--transform 's|^./|gitea-src-$(VERSION)/|'"))
-	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) $(TRANSFORM) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
+	$(eval TRANSFORM := $(shell tar --help | grep -q bsdtar && echo "-s '|^./|codenest-src-$(VERSION)/|'" || echo "--transform 's|^./|codenest-src-$(VERSION)/|'"))
+	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) $(TRANSFORM) -czf $(DIST)/release/codenest-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
 .PHONY: deps
@@ -633,10 +633,10 @@ generate-codemirror-languages: | node_modules ## generate codemirror languages
 
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage
-	@[ -f gitea ] || make backend
+	@[ -f codenest ] || make backend
 	@mkdir -p man/man1/ man/man5
-	@./gitea docs --man > man/man1/gitea.1
-	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
+	@./codenest docs --man > man/man1/codenest.1
+	@gzip -9 man/man1/codenest.1 && echo man/man1/codenest.1.gz created
 	@#TODO A small script that formats config-cheat-sheet.en-us.md nicely for use as a config man page
 
 # Disable parallel execution because it would break some targets that don't

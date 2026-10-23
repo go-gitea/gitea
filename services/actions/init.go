@@ -10,26 +10,26 @@ import (
 	"os"
 	"strings"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	notify_service "gitea.dev/services/notify"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	notify_service "codenest.dev/services/notify"
 )
 
 func initGlobalRunnerToken(ctx context.Context) error {
 	// use the same env name as the runner, for consistency
-	token := os.Getenv("GITEA_RUNNER_REGISTRATION_TOKEN")
-	tokenFile := os.Getenv("GITEA_RUNNER_REGISTRATION_TOKEN_FILE")
+	token := os.Getenv("CODENEST_RUNNER_REGISTRATION_TOKEN")
+	tokenFile := os.Getenv("CODENEST_RUNNER_REGISTRATION_TOKEN_FILE")
 	if token != "" && tokenFile != "" {
-		return errors.New("both GITEA_RUNNER_REGISTRATION_TOKEN and GITEA_RUNNER_REGISTRATION_TOKEN_FILE are set, only one can be used")
+		return errors.New("both CODENEST_RUNNER_REGISTRATION_TOKEN and CODENEST_RUNNER_REGISTRATION_TOKEN_FILE are set, only one can be used")
 	}
 	if tokenFile != "" {
 		file, err := os.ReadFile(tokenFile)
 		if err != nil {
-			return fmt.Errorf("unable to read GITEA_RUNNER_REGISTRATION_TOKEN_FILE: %w", err)
+			return fmt.Errorf("unable to read CODENEST_RUNNER_REGISTRATION_TOKEN_FILE: %w", err)
 		}
 		token = strings.TrimSpace(string(file))
 	}
@@ -38,7 +38,7 @@ func initGlobalRunnerToken(ctx context.Context) error {
 	}
 
 	if len(token) < 32 {
-		return errors.New("GITEA_RUNNER_REGISTRATION_TOKEN must be at least 32 random characters")
+		return errors.New("CODENEST_RUNNER_REGISTRATION_TOKEN must be at least 32 random characters")
 	}
 
 	existing, err := actions_model.GetRunnerToken(ctx, token)
@@ -47,7 +47,7 @@ func initGlobalRunnerToken(ctx context.Context) error {
 	}
 	if existing != nil {
 		if !existing.IsActive {
-			log.Warn("The token defined by GITEA_RUNNER_REGISTRATION_TOKEN is already invalidated, please use the latest one from web UI")
+			log.Warn("The token defined by CODENEST_RUNNER_REGISTRATION_TOKEN is already invalidated, please use the latest one from web UI")
 		}
 		return nil
 	}

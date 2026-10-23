@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	git_model "gitea.dev/models/git"
-	"gitea.dev/models/gituser"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	git_service "gitea.dev/services/git"
-	"gitea.dev/services/gitdiff"
+	asymkey_model "codenest.dev/models/asymkey"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/models/gituser"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	git_service "codenest.dev/services/git"
+	"codenest.dev/services/gitdiff"
 
 	"github.com/stretchr/testify/assert"
 )

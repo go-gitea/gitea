@@ -13,11 +13,11 @@ import (
 	"slices"
 	"sort"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/openidConnect"
@@ -72,7 +72,7 @@ func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 	return p.GothProvider.IconHTML(size)
 }
 
-// Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
+// Providers contains the map of registered OAuth2 providers in CodeNest (based on goth)
 // key is used to map the OAuth2Provider with the goth provider type (also in AuthSource.OAuth2Config.Provider)
 // value is used to store display data
 var gothProviders = map[string]GothProvider{}

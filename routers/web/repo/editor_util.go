@@ -10,16 +10,16 @@ import (
 	"strconv"
 	"strings"
 
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	context_service "gitea.dev/services/context"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	context_service "codenest.dev/services/context"
 )
 
 // getUniquePatchBranchName Gets a unique branch name for a new patch branch

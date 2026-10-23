@@ -6,7 +6,7 @@ package oauth2
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
+	"codenest.dev/models/unittest"
 )
 
 func TestMain(m *testing.M) {

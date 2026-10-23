@@ -9,16 +9,16 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git/gitcmd"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/services/release"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git/gitcmd"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/services/release"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,7 +45,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 	})
 
 	t.Run("Git", func(t *testing.T) {
-		onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 			httpContext := NewAPITestContext(t, owner.Name, repo.Name)
 
 			dstPath := t.TempDir()
@@ -65,7 +65,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 	})
 
 	t.Run("GitTagForce", func(t *testing.T) {
-		onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 			httpContext := NewAPITestContext(t, owner.Name, repo.Name)
 
 			dstPath := t.TempDir()
@@ -123,7 +123,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 }
 
 func TestRepushTag(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 		session := loginUser(t, owner.LowerName)

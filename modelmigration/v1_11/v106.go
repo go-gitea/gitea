@@ -6,7 +6,7 @@ package v1_11
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 // RepoWatchMode specifies what kind of watch the user has on a repository

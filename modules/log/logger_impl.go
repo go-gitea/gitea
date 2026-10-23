@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/util"
 )
 
 type LoggerImpl struct {

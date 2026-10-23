@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security Concern
-    url: https://tinyurl.com/security-gitea
+    url: https://tinyurl.com/security-codenest
     about: For security concerns, please send a mail to security@gitea.io instead of opening a public issue.
   - name: Discord Server
     url: https://discord.gg/Gitea

@@ -6,14 +6,14 @@ package organization_test
 import (
 	"testing"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/organization"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/structs"
+	"codenest.dev/models/db"
+	"codenest.dev/models/organization"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )

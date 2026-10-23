@@ -1,7 +1,7 @@
 import {env} from 'node:process';
 import {defineConfig, devices} from '@playwright/test';
 
-const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
+const timeoutFactor = Number(env.CODENEST_TEST_E2E_TIMEOUT_FACTOR) || 1;
 const timeout = 5000 * timeoutFactor;
 
 export default defineConfig({
@@ -17,7 +17,7 @@ export default defineConfig({
     timeout,
   },
   use: {
-    baseURL: env.GITEA_TEST_E2E_URL?.replace?.(/\/$/, ''),
+    baseURL: env.CODENEST_TEST_E2E_URL?.replace?.(/\/$/, ''),
     locale: 'en-US',
     actionTimeout: timeout,
     navigationTimeout: 2 * timeout,

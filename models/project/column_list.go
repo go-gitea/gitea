@@ -6,7 +6,7 @@ package project
 import (
 	"context"
 
-	"gitea.dev/models/db"
+	"codenest.dev/models/db"
 )
 
 // CountColumns returns the total number of columns for a project

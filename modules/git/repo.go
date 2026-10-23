@@ -15,11 +15,11 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 type RepositoryFacade = gitrepo.RepositoryFacade
@@ -81,7 +81,7 @@ func OpenRepository(catFileBatchCtx context.Context, repo RepositoryFacade) (*Re
 	return gitRepo, nil
 }
 
-// OpenRepositoryLocal opens a local repository that is not managed by Gitea
+// OpenRepositoryLocal opens a local repository that is not managed by CodeNest
 // If the path is relative, it will be converted to an absolute path using filepath.Abs (base on current working path)
 func OpenRepositoryLocal(catFileBatchCtx context.Context, localPath string) (_ *Repository, err error) {
 	if !filepath.IsAbs(localPath) {

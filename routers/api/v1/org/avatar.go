@@ -7,10 +7,10 @@ import (
 	"encoding/base64"
 	"net/http"
 
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
-	user_service "gitea.dev/services/user"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
+	user_service "codenest.dev/services/user"
 )
 
 // UpdateAvatarupdates the Avatar of an Organisation

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	repo_module "gitea.dev/modules/repository"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	repo_module "codenest.dev/modules/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

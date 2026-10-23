@@ -1,5 +1,5 @@
 import {cutString} from '../utils/string.ts';
-import type {ActionsJob, ActionsStatus} from '../modules/gitea-actions.ts';
+import type {ActionsJob, ActionsStatus} from '../modules/codenest-actions.ts';
 
 export type GraphNodeType = 'job' | 'matrix' | 'group';
 

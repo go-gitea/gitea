@@ -6,12 +6,12 @@ package mailer
 import (
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	sender_service "gitea.dev/services/mailer/sender"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	sender_service "codenest.dev/services/mailer/sender"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,10 +26,10 @@ func TestMailNewReleaseFiltersUnauthorizedWatchers(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL)()
 
 	setting.MailService = &setting.Mailer{
-		From:      "Gitea",
+		From:      "CodeNest",
 		FromEmail: "noreply@example.com",
 	}
-	setting.AppName = "Gitea"
+	setting.AppName = "CodeNest"
 	setting.AppURL = "https://example.com/"
 	defer mockMailTemplates(string(tplNewReleaseMail), "{{.Subject}}", "<p>{{.Release.TagName}}</p>")()
 

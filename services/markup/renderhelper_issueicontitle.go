@@ -9,17 +9,17 @@ import (
 	"fmt"
 	"html/template"
 
-	"gitea.dev/models/issues"
-	"gitea.dev/models/perm/access"
-	"gitea.dev/models/repo"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/util"
-	gitea_context "gitea.dev/services/context"
+	"codenest.dev/models/issues"
+	"codenest.dev/models/perm/access"
+	"codenest.dev/models/repo"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/util"
+	codenest_context "codenest.dev/services/context"
 )
 
 func renderRepoIssueIconTitle(ctx context.Context, opts markup.RenderIssueIconTitleOptions) (_ template.HTML, err error) {
-	webCtx := gitea_context.GetWebContext(ctx)
+	webCtx := codenest_context.GetWebContext(ctx)
 	if webCtx == nil {
 		return "", errors.New("context is not a web context")
 	}

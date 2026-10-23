@@ -1,4 +1,4 @@
-# Gitea LDAP Authentication Module
+# CodeNest LDAP Authentication Module
 
 ## About
 
@@ -111,7 +111,7 @@ share the following fields:
 
 * Group Name Filter (optional)
   * An LDAP filter declaring how to find valid groups in the above DN.
-  * Example: (|(cn=gitea_users)(cn=admins))
+  * Example: (|(cn=codenest_users)(cn=admins))
 
 * User Attribute in Group (optional)
   * The user attribute that is used to reference a user in the group object.
@@ -125,7 +125,7 @@ share the following fields:
 * Team group map (optional)
   * Automatically add users to Organization teams, depending on LDAP group memberships.
   * Note: this function only adds users to teams, it never removes users.
-  * Example: {"cn=MyGroup,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2", ...], ...}, ...}
+  * Example: {"cn=MyGroup,cn=groups,dc=example,dc=org": {"MyCodeNestOrganization": ["MyCodeNestTeam1", "MyCodeNestTeam2", ...], ...}, ...}
 
 * Team group map removal (optional)
   * If set to true, users will be removed from teams if they are not members of the corresponding group.

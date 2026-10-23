@@ -20,22 +20,22 @@ import (
 	"time"
 	"unicode"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/auth/openid"
-	"gitea.dev/modules/auth/password/hash"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/auth/openid"
+	"codenest.dev/modules/auth/password/hash"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
 
 	_ "image/jpeg" // Needed for jpeg support
 
@@ -131,10 +131,10 @@ type User struct {
 	// IsActive true: primary email is activated, user can access Web UI and Git SSH.
 	// false: an inactive user can only log in Web UI for account operations (ex: activate the account by email), no other access.
 	IsActive bool `xorm:"INDEX"`
-	// the user is a Gitea admin, who can access all repositories and the admin pages.
+	// the user is a CodeNest admin, who can access all repositories and the admin pages.
 	IsAdmin bool
 	// true: the user is only allowed to see organizations/repositories that they has explicit rights to.
-	// (ex: in private Gitea instances user won't be allowed to see even organizations/repositories that are set as public)
+	// (ex: in private CodeNest instances user won't be allowed to see even organizations/repositories that are set as public)
 	IsRestricted bool `xorm:"NOT NULL DEFAULT false"`
 
 	AllowGitHook            bool
@@ -624,7 +624,7 @@ var (
 		"..",
 		".well-known",
 
-		"api",     // gitea api
+		"api",     // codenest api
 		"metrics", // prometheus metrics api
 		"v2",      // container registry api
 
@@ -655,8 +655,8 @@ var (
 		"swagger.v1.json",
 		"openapi3.v1.json",
 
-		"ghost",         // reserved name for deleted users (id: -1)
-		"gitea-actions", // gitea builtin user (id: -2)
+		"ghost",            // reserved name for deleted users (id: -1)
+		"codenest-actions", // codenest builtin user (id: -2)
 	}
 
 	// These names are reserved for user accounts: user's keys, user's rss feed, user's avatar, etc.

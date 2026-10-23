@@ -8,11 +8,11 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	repo_module "codenest.dev/modules/repository"
 
 	"github.com/urfave/cli/v3"
 )

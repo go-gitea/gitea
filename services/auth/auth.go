@@ -9,13 +9,13 @@ import (
 	"fmt"
 	"net/http"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/webauthn"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/web/middleware"
-	user_service "gitea.dev/services/user"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/auth/webauthn"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/web/middleware"
+	user_service "codenest.dev/services/user"
 )
 
 type ErrUserAuthMessage string

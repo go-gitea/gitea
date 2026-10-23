@@ -10,8 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/util"
 )
 
 // IsRepositoryExist returns true if the repository directory exists in the disk

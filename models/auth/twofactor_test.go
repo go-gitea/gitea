@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/pquerna/otp/totp"
@@ -19,7 +19,7 @@ import (
 func TestTwoFactorValidateAndConsumeTOTP(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	key, err := totp.Generate(totp.GenerateOpts{SecretSize: 40, Issuer: "gitea-test", AccountName: "consume"})
+	key, err := totp.Generate(totp.GenerateOpts{SecretSize: 40, Issuer: "codenest-test", AccountName: "consume"})
 	require.NoError(t, err)
 
 	tfa := &auth_model.TwoFactor{UID: 1}

@@ -13,15 +13,15 @@ import (
 	"strconv"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/debug"
 )
 
 // WindowsServiceName is the name of the Windows service
-var WindowsServiceName = "gitea"
+var WindowsServiceName = "codenest"
 
 const (
 	hammerCode       = 128

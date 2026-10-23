@@ -6,14 +6,14 @@ package feed
 import (
 	"time"
 
-	activities_model "gitea.dev/models/activities"
-	"gitea.dev/models/organization"
-	"gitea.dev/models/renderhelper"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/context"
-	feed_service "gitea.dev/services/feed"
+	activities_model "codenest.dev/models/activities"
+	"codenest.dev/models/organization"
+	"codenest.dev/models/renderhelper"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/markup/markdown"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/context"
+	feed_service "codenest.dev/services/feed"
 
 	"github.com/gorilla/feeds"
 )

@@ -10,11 +10,11 @@ import (
 	"strings"
 	"unicode"
 
-	packages_model "gitea.dev/models/packages"
-	packages_module "gitea.dev/modules/packages"
-	"gitea.dev/routers/api/packages/helper"
-	"gitea.dev/services/context"
-	packages_service "gitea.dev/services/packages"
+	packages_model "codenest.dev/models/packages"
+	packages_module "codenest.dev/modules/packages"
+	"codenest.dev/routers/api/packages/helper"
+	"codenest.dev/services/context"
+	packages_service "codenest.dev/services/packages"
 )
 
 var (

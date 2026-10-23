@@ -8,14 +8,14 @@ import (
 	"context"
 	"fmt"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/services/audit"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/perm"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/services/audit"
 
 	"xorm.io/builder"
 )

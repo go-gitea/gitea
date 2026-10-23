@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/translation"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )

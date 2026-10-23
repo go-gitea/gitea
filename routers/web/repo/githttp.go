@@ -17,23 +17,23 @@ import (
 	"sync"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
-	repo_service "gitea.dev/services/repository"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/perm"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
+	repo_service "codenest.dev/services/repository"
 
 	"github.com/go-chi/cors"
 )
@@ -150,11 +150,11 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		if !ctx.IsSigned {
 			// TODO: support digit auth - which would be Authorization header with digit
 			if setting.OAuth2.Enabled {
-				// `Basic realm="Gitea"` tells the GCM to use builtin OAuth2 application: https://github.com/git-ecosystem/git-credential-manager/pull/1442
-				ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea"`)
+				// `Basic realm="CodeNest"` tells the GCM to use builtin OAuth2 application: https://github.com/git-ecosystem/git-credential-manager/pull/1442
+				ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="CodeNest"`)
 			} else {
 				// If OAuth2 is disabled, then use another realm to avoid GCM OAuth2 attempt
-				ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea (Basic Auth)"`)
+				ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="CodeNest (Basic Auth)"`)
 			}
 			ctx.HTTPError(http.StatusUnauthorized)
 			return nil
@@ -267,7 +267,7 @@ var (
 
 func dummyInfoRefs(ctx *context.Context) {
 	infoRefsOnce.Do(func() {
-		tmpEmptyRepoDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-info-refs-cache")
+		tmpEmptyRepoDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("codenest-info-refs-cache")
 		if err != nil {
 			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
 			return

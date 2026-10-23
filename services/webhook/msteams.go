@@ -11,11 +11,11 @@ import (
 	"strconv"
 	"strings"
 
-	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	webhook_module "gitea.dev/modules/webhook"
+	webhook_model "codenest.dev/models/webhook"
+	"codenest.dev/modules/git"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	webhook_module "codenest.dev/modules/webhook"
 )
 
 type (
@@ -393,7 +393,7 @@ func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTar
 		PotentialAction: []MSTeamsAction{
 			{
 				Type: "OpenUri",
-				Name: "View in Gitea",
+				Name: "View in CodeNest",
 				Targets: []MSTeamsActionTarget{
 					{
 						Os:  "default",

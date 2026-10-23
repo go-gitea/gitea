@@ -10,12 +10,12 @@ import (
 	"path"
 	"strings"
 
-	"gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/issue/template"
-	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/issue/template"
+	"codenest.dev/modules/log"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 )

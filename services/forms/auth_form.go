@@ -3,7 +3,7 @@
 
 package forms
 
-import "gitea.dev/modules/web/middleware"
+import "codenest.dev/modules/web/middleware"
 
 // AuthenticationForm form for authentication
 type AuthenticationForm struct {

@@ -6,11 +6,11 @@ package repo
 import (
 	"net/http"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	notify_service "gitea.dev/services/notify"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	notify_service "codenest.dev/services/notify"
 )
 
 // StartIssueStopwatch creates a stopwatch for the given issue.

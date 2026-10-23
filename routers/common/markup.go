@@ -10,14 +10,14 @@ import (
 	"path"
 	"strings"
 
-	"gitea.dev/models/renderhelper"
-	"gitea.dev/models/repo"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	"codenest.dev/models/renderhelper"
+	"codenest.dev/models/repo"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/markup/markdown"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 // RenderMarkup renders markup text for the /markup and /markdown endpoints
@@ -28,8 +28,8 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 
 	// TODO: MARKUP-RENDER-CONTEXT: this logic is unnecessarily complicated.
 	//  Ideally: the "file path" should not appear in the "url path context", but it needs a lot of refactoring to achieve that
-	// for example, when previewing file "/gitea/owner/repo/src/branch/features/feat-123/doc/CHANGE.md", then filePath is "doc/CHANGE.md"
-	// and the urlPathContext is "/gitea/owner/repo/src/branch/features/feat-123/doc"
+	// for example, when previewing file "/codenest/owner/repo/src/branch/features/feat-123/doc/CHANGE.md", then filePath is "doc/CHANGE.md"
+	// and the urlPathContext is "/codenest/owner/repo/src/branch/features/feat-123/doc"
 
 	ctx.SetHeaderContentSecurityPolicyGeneral()
 

@@ -19,22 +19,22 @@ import (
 	"strings"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	git_model "gitea.dev/models/git"
-	perm_model "gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/httpauth"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/json"
-	lfs_module "gitea.dev/modules/lfs"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	auth_model "codenest.dev/models/auth"
+	git_model "codenest.dev/models/git"
+	perm_model "codenest.dev/models/perm"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/auth/httpauth"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/json"
+	lfs_module "codenest.dev/modules/lfs"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -630,6 +630,6 @@ func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Rep
 }
 
 func requireAuth(ctx *context.Context) {
-	ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
+	ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="codenest-lfs"`)
 	writeStatus(ctx, http.StatusUnauthorized)
 }

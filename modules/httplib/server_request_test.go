@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"testing"
 
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -149,7 +149,7 @@ func TestMakeAbsoluteURL(t *testing.T) {
 	assert.Equal(t, "https://user-host/foo", MakeAbsoluteURL(ctx, "/foo"))
 }
 
-func TestIsCurrentGiteaSiteURL(t *testing.T) {
+func TestIsCurrentCodeNestSiteURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "http://localhost:3000/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 	ctx := t.Context()
@@ -163,7 +163,7 @@ func TestIsCurrentGiteaSiteURL(t *testing.T) {
 		"http://localhost:3000/sub/",
 	}
 	for _, s := range good {
-		assert.True(t, IsCurrentGiteaSiteURL(ctx, s), "good = %q", s)
+		assert.True(t, IsCurrentCodeNestSiteURL(ctx, s), "good = %q", s)
 	}
 	bad := []string{
 		".",
@@ -177,15 +177,15 @@ func TestIsCurrentGiteaSiteURL(t *testing.T) {
 		"http://other/",
 	}
 	for _, s := range bad {
-		assert.False(t, IsCurrentGiteaSiteURL(ctx, s), "bad = %q", s)
+		assert.False(t, IsCurrentCodeNestSiteURL(ctx, s), "bad = %q", s)
 	}
 
 	setting.AppURL = "http://localhost:3000/"
 	setting.AppSubURL = ""
-	assert.False(t, IsCurrentGiteaSiteURL(ctx, "//"))
-	assert.False(t, IsCurrentGiteaSiteURL(ctx, "\\\\"))
-	assert.False(t, IsCurrentGiteaSiteURL(ctx, "http://localhost"))
-	assert.True(t, IsCurrentGiteaSiteURL(ctx, "http://localhost:3000?key=val"))
+	assert.False(t, IsCurrentCodeNestSiteURL(ctx, "//"))
+	assert.False(t, IsCurrentCodeNestSiteURL(ctx, "\\\\"))
+	assert.False(t, IsCurrentCodeNestSiteURL(ctx, "http://localhost"))
+	assert.True(t, IsCurrentCodeNestSiteURL(ctx, "http://localhost:3000?key=val"))
 
 	ctx = testCtxWithPublicURL(t, &http.Request{
 		Host: "user-host",
@@ -194,30 +194,30 @@ func TestIsCurrentGiteaSiteURL(t *testing.T) {
 			"X-Forwarded-Proto": {"https"},
 		},
 	})
-	assert.True(t, IsCurrentGiteaSiteURL(ctx, "http://localhost:3000"))
-	assert.True(t, IsCurrentGiteaSiteURL(ctx, "https://user-host"))
-	assert.False(t, IsCurrentGiteaSiteURL(ctx, "https://forwarded-host"))
+	assert.True(t, IsCurrentCodeNestSiteURL(ctx, "http://localhost:3000"))
+	assert.True(t, IsCurrentCodeNestSiteURL(ctx, "https://user-host"))
+	assert.False(t, IsCurrentCodeNestSiteURL(ctx, "https://forwarded-host"))
 }
 
-func TestParseGiteaSiteURL(t *testing.T) {
+func TestParseCodeNestSiteURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "http://localhost:3000/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 	ctx := t.Context()
 	tests := []struct {
 		url string
-		exp *GiteaSiteURL
+		exp *CodeNestSiteURL
 	}{
-		{"http://localhost:3000/sub?k=v", &GiteaSiteURL{RoutePath: ""}},
-		{"http://localhost:3000/sub/", &GiteaSiteURL{RoutePath: ""}},
-		{"http://localhost:3000/sub/foo", &GiteaSiteURL{RoutePath: "/foo"}},
-		{"http://localhost:3000/sub/foo/bar", &GiteaSiteURL{RoutePath: "/foo/bar", OwnerName: "foo", RepoName: "bar"}},
-		{"http://localhost:3000/sub/foo/bar/", &GiteaSiteURL{RoutePath: "/foo/bar", OwnerName: "foo", RepoName: "bar"}},
-		{"http://localhost:3000/sub/attachments/bar", &GiteaSiteURL{RoutePath: "/attachments/bar"}},
+		{"http://localhost:3000/sub?k=v", &CodeNestSiteURL{RoutePath: ""}},
+		{"http://localhost:3000/sub/", &CodeNestSiteURL{RoutePath: ""}},
+		{"http://localhost:3000/sub/foo", &CodeNestSiteURL{RoutePath: "/foo"}},
+		{"http://localhost:3000/sub/foo/bar", &CodeNestSiteURL{RoutePath: "/foo/bar", OwnerName: "foo", RepoName: "bar"}},
+		{"http://localhost:3000/sub/foo/bar/", &CodeNestSiteURL{RoutePath: "/foo/bar", OwnerName: "foo", RepoName: "bar"}},
+		{"http://localhost:3000/sub/attachments/bar", &CodeNestSiteURL{RoutePath: "/attachments/bar"}},
 		{"http://localhost:3000/other", nil},
 		{"http://other/", nil},
 	}
 	for _, test := range tests {
-		su := ParseGiteaSiteURL(ctx, test.url)
+		su := ParseCodeNestSiteURL(ctx, test.url)
 		assert.Equal(t, test.exp, su, "URL = %s", test.url)
 	}
 }

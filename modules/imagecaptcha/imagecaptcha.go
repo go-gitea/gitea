@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"sync"
 
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 const (

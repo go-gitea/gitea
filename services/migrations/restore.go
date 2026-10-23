@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/util"
+	base "codenest.dev/modules/migration"
+	"codenest.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 )

@@ -4,12 +4,12 @@
 package repo
 
 import (
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
-	files_service "gitea.dev/services/repository/files"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
+	files_service "codenest.dev/services/repository/files"
 )
 
 func WebGitOperationCommonData(ctx *context.Context) {

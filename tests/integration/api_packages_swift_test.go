@@ -12,14 +12,14 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	swift_module "gitea.dev/modules/packages/swift"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	swift_router "gitea.dev/routers/api/packages/swift"
-	"gitea.dev/tests"
+	"codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	swift_module "codenest.dev/modules/packages/swift"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	swift_router "codenest.dev/routers/api/packages/swift"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,7 +38,7 @@ func TestPackageSwift(t *testing.T) {
 	packageVersion2Beta := "1.0.4-beta.1" // full version should be kept
 	packageVersion3 := "1.0.5"
 	packageAuthor := "KN4CK3R"
-	packageDescription := "Gitea Test Package"
+	packageDescription := "CodeNest Test Package"
 	packageCodeRepositoryURL := "https://gitea.io/gitea/gitea" // this one is not used as a property, it is meta
 	packageLicenseURL := "https://opensource.org/license/mit"
 	packageRepositoryURL1 := "https://gitea.io/gitea/repo"

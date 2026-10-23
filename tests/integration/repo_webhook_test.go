@@ -15,24 +15,24 @@ import (
 	"testing"
 	"time"
 
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	db_model "codenest.dev/models/db"
+	"codenest.dev/models/perm"
+	"codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/models/webhook"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	webhook_module "codenest.dev/modules/webhook"
+	"codenest.dev/services/actions"
+	"codenest.dev/tests"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	db_model "gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	"gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/models/webhook"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	webhook_module "gitea.dev/modules/webhook"
-	"gitea.dev/services/actions"
-	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -43,7 +43,7 @@ func TestNewWebHookLink(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	require.NoError(t, db_model.Insert(t.Context(), &webhook.Webhook{
 		RepoID:      1,
-		URL:         "http://localhost/gitea-test-webhook-link",
+		URL:         "http://localhost/codenest-test-webhook-link",
 		ContentType: webhook.ContentTypeJSON,
 		Events:      `{}`,
 		IsActive:    true,
@@ -53,7 +53,7 @@ func TestNewWebHookLink(t *testing.T) {
 	webhooksBaseHref := "/user2/repo1/settings/hooks"
 	cases := []string{
 		webhooksBaseHref,
-		webhooksBaseHref + "/gitea/new",
+		webhooksBaseHref + "/codenest/new",
 		webhooksBaseHref + "/" + strconv.FormatInt(hook.ID, 10), // edit webhook
 	}
 	for _, reqHref := range cases {
@@ -74,7 +74,7 @@ func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, r
 		branchFilterString = branchFilter[0]
 	}
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+userName+"/"+repoName+"/hooks", api.CreateHookOption{
-		Type: "gitea",
+		Type: "codenest",
 		Config: api.CreateHookOptionConfig{
 			"content_type": "json",
 			"url":          url,
@@ -100,7 +100,7 @@ func testCreateWebhookForRepo(t *testing.T, session *TestSession, webhookType, u
 func testAPICreateWebhookForOrg(t *testing.T, session *TestSession, userName, url, event string) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs/"+userName+"/hooks", api.CreateHookOption{
-		Type: "gitea",
+		Type: "codenest",
 		Config: api.CreateHookOptionConfig{
 			"content_type": "json",
 			"url":          url,
@@ -140,7 +140,7 @@ func (m *mockWebhookProvider) Close() {
 }
 
 func Test_WebhookCreate(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.CreatePayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -172,7 +172,7 @@ func Test_WebhookCreate(t *testing.T) {
 }
 
 func Test_WebhookDelete(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.DeletePayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -205,7 +205,7 @@ func Test_WebhookDelete(t *testing.T) {
 }
 
 func Test_WebhookFork(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.ForkPayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -237,7 +237,7 @@ func Test_WebhookFork(t *testing.T) {
 }
 
 func Test_WebhookIssueComment(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.IssueCommentPayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -319,7 +319,7 @@ func Test_WebhookIssueComment(t *testing.T) {
 }
 
 func Test_WebhookRelease(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.ReleasePayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -352,7 +352,7 @@ func Test_WebhookRelease(t *testing.T) {
 }
 
 func Test_WebhookPush(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.PushPayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -396,7 +396,7 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 	}, http.StatusOK)
 	defer provider.Close()
 
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
@@ -452,7 +452,7 @@ func Test_WebhookPushToNewBranch(t *testing.T) {
 	}, http.StatusOK)
 	defer provider.Close()
 
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
@@ -492,7 +492,7 @@ func Test_WebhookPushToNewBranch(t *testing.T) {
 }
 
 func Test_WebhookIssue(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.IssuePayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -527,7 +527,7 @@ func Test_WebhookIssue(t *testing.T) {
 }
 
 func Test_WebhookIssueDelete(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.IssuePayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -560,7 +560,7 @@ func Test_WebhookIssueDelete(t *testing.T) {
 }
 
 func Test_WebhookIssueAssign(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.PullRequestPayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -609,7 +609,7 @@ func Test_WebhookIssueMilestone(t *testing.T) {
 	}, http.StatusOK)
 	defer provider.Close()
 
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		// create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
@@ -669,7 +669,7 @@ func Test_WebhookIssueMilestone(t *testing.T) {
 }
 
 func Test_WebhookPullRequest(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.PullRequestPayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -723,7 +723,7 @@ func Test_WebhookPullRequest(t *testing.T) {
 }
 
 func Test_WebhookPullRequestDelete(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.PullRequestPayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -761,7 +761,7 @@ func Test_WebhookPullRequestDelete(t *testing.T) {
 }
 
 func Test_WebhookPullRequestComment(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.IssueCommentPayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -799,7 +799,7 @@ func Test_WebhookPullRequestComment(t *testing.T) {
 }
 
 func Test_WebhookWiki(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.WikiPayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -831,7 +831,7 @@ func Test_WebhookWiki(t *testing.T) {
 }
 
 func Test_WebhookRepository(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.RepositoryPayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -877,7 +877,7 @@ func Test_WebhookRepository(t *testing.T) {
 }
 
 func Test_WebhookPackage(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.PackagePayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -897,8 +897,8 @@ func Test_WebhookPackage(t *testing.T) {
 
 		// 2. trigger the webhook
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
-		url := fmt.Sprintf("/api/packages/%s/generic/%s/%s", "org3", "gitea", "v1.24.0")
-		req := NewRequestWithBody(t, "PUT", url+"/gitea", strings.NewReader("This is a dummy file")).
+		url := fmt.Sprintf("/api/packages/%s/generic/%s/%s", "org3", "codenest", "v1.24.0")
+		req := NewRequestWithBody(t, "PUT", url+"/codenest", strings.NewReader("This is a dummy file")).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
@@ -906,7 +906,7 @@ func Test_WebhookPackage(t *testing.T) {
 		assert.Equal(t, "package", triggeredEvent)
 		assert.Len(t, payloads, 1)
 		assert.EqualValues(t, "created", payloads[0].Action)
-		assert.Equal(t, "gitea", payloads[0].Package.Name)
+		assert.Equal(t, "codenest", payloads[0].Package.Name)
 		assert.Equal(t, "generic", payloads[0].Package.Type)
 		assert.Equal(t, "org3", payloads[0].Organization.UserName)
 		assert.Equal(t, "v1.24.0", payloads[0].Package.Version)
@@ -914,7 +914,7 @@ func Test_WebhookPackage(t *testing.T) {
 }
 
 func Test_WebhookStatus(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.CommitStatusPayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -962,7 +962,7 @@ func Test_WebhookStatus(t *testing.T) {
 }
 
 func Test_WebhookStatus_NoWrongTrigger(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var trigger string
 		provider := newMockWebhookProvider(func(r *http.Request) {
 			assert.NotContains(t, r.Header["X-Github-Event-Type"], "status", "X-GitHub-Event-Type should not contain status")
@@ -976,7 +976,7 @@ func Test_WebhookStatus_NoWrongTrigger(t *testing.T) {
 		session := loginUser(t, "user2")
 
 		// create a push_only webhook from web UI
-		testCreateWebhookForRepo(t, session, "gitea", "user2", "repo1", provider.URL(), "push_only")
+		testCreateWebhookForRepo(t, session, "codenest", "user2", "repo1", provider.URL(), "push_only")
 
 		// 2. trigger the webhook with a push action
 		testCreateFile(t, session, "user2", "repo1", "master", "", "test_webhook_push.md", "# a test file for webhook push")
@@ -987,7 +987,7 @@ func Test_WebhookStatus_NoWrongTrigger(t *testing.T) {
 }
 
 func Test_WebhookWorkflowJob(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		var payloads []api.WorkflowJobPayload
 		var triggeredEvent string
 		provider := newMockWebhookProvider(func(r *http.Request) {
@@ -1171,7 +1171,7 @@ func Test_WebhookWorkflowRun(t *testing.T) {
 	}
 	for _, obj := range testCases {
 		t.Run(obj.name, func(t *testing.T) {
-			onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+			onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 				webhookData := &workflowRunWebhook{}
 				provider := newMockWebhookProvider(func(r *http.Request) {
 					assert.Contains(t, r.Header["X-Github-Event-Type"], "workflow_run", "X-GitHub-Event-Type should contain workflow_run")

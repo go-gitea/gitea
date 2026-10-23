@@ -9,16 +9,16 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/test"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRepoActivity(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		session := loginUser(t, "user1")
 
 		// Create PRs (1 merged & 2 proposed)

@@ -4,7 +4,7 @@ import {login, apiCreateRepo, randomString} from './utils.ts';
 
 test('create a release', async ({page, request}) => {
   const repoName = `e2e-release-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   await Promise.all([apiCreateRepo(request, {name: repoName}), login(page)]);
   await page.goto(`/${owner}/${repoName}/releases/new`);
 

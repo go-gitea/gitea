@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
 
 	"golang.org/x/net/html"
 )
@@ -38,7 +38,7 @@ func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosSt
 		CommitID:  node.Data[m[6]:m[7]],
 		FilePath:  node.Data[m[8]:m[9]],
 	}
-	if !httplib.IsCurrentGiteaSiteURL(ctx, opts.FullURL) {
+	if !httplib.IsCurrentCodeNestSiteURL(ctx, opts.FullURL) {
 		return 0, 0, "", nil
 	}
 	u, err := url.Parse(opts.FilePath)

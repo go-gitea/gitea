@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitea.dev/models/organization"
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/models/perm"
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
+	"codenest.dev/models/organization"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/models/perm"
+	"codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
 )
 
 // Package contains owner, access mode and optional the package descriptor

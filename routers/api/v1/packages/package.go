@@ -7,15 +7,15 @@ import (
 	"errors"
 	"net/http"
 
-	"gitea.dev/models/packages"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/optional"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	packages_service "gitea.dev/services/packages"
+	"codenest.dev/models/packages"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/optional"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	packages_service "codenest.dev/services/packages"
 )
 
 // ListPackages gets all packages of an owner

@@ -6,10 +6,10 @@ package gituser
 import (
 	"context"
 
-	"gitea.dev/models/user"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
+	"codenest.dev/models/user"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
 )
 
 // AvatarStackData is the view-model for the AvatarStack render helpers. Participants[0] is
@@ -36,17 +36,17 @@ func BuildAvatarStackData(ctx context.Context, allParticipants []*git.CommitIden
 	}
 	uniqueUserIDs := make(container.Set[int64])
 	for _, p := range allParticipants {
-		var giteaUser *user.User
+		var codenestUser *user.User
 		if emailUserMap != nil {
-			giteaUser = emailUserMap.GetByEmail(p.Email)
+			codenestUser = emailUserMap.GetByEmail(p.Email)
 		}
-		if giteaUser != nil {
-			// identities without a Gitea account can only be compared by their git identity
-			if !uniqueUserIDs.Add(giteaUser.ID) {
+		if codenestUser != nil {
+			// identities without a CodeNest account can only be compared by their git identity
+			if !uniqueUserIDs.Add(codenestUser.ID) {
 				continue
 			}
 		}
-		ret.Participants = append(ret.Participants, &CommitParticipant{GiteaUser: giteaUser, GitIdentity: p})
+		ret.Participants = append(ret.Participants, &CommitParticipant{CodeNestUser: codenestUser, GitIdentity: p})
 	}
 	return ret
 }

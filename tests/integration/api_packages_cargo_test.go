@@ -12,23 +12,23 @@ import (
 	neturl "net/url"
 	"testing"
 
-	"gitea.dev/models/packages"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	cargo_module "gitea.dev/modules/packages/cargo"
-	"gitea.dev/modules/setting"
-	cargo_router "gitea.dev/routers/api/packages/cargo"
-	cargo_service "gitea.dev/services/packages/cargo"
-	"gitea.dev/tests"
+	"codenest.dev/models/packages"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	cargo_module "codenest.dev/modules/packages/cargo"
+	"codenest.dev/modules/setting"
+	cargo_router "codenest.dev/routers/api/packages/cargo"
+	cargo_service "codenest.dev/services/packages/cargo"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageCargo(t *testing.T) {
-	onGiteaRun(t, testPackageCargo)
+	onCodeNestRun(t, testPackageCargo)
 }
 
 func testPackageCargo(t *testing.T, _ *neturl.URL) {

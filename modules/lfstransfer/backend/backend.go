@@ -12,9 +12,9 @@ import (
 	"net/url"
 	"strconv"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/lfs"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/lfs"
+	"codenest.dev/modules/setting"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
@@ -28,10 +28,10 @@ var Capabilities = []string{
 	"locking",
 }
 
-var _ transfer.Backend = (*GiteaBackend)(nil)
+var _ transfer.Backend = (*CodeNestBackend)(nil)
 
-// GiteaBackend is an adapter between git-lfs-transfer library and Gitea's internal LFS API
-type GiteaBackend struct {
+// CodeNestBackend is an adapter between git-lfs-transfer library and CodeNest's internal LFS API
+type CodeNestBackend struct {
 	ctx          context.Context
 	server       *url.URL
 	op           string
@@ -46,11 +46,11 @@ func New(ctx context.Context, reqPath, op, token string, logger transfer.Logger)
 		return nil, err
 	}
 	server = server.JoinPath(reqPath)
-	return &GiteaBackend{ctx: ctx, server: server, op: op, authToken: token, internalAuth: "Bearer " + setting.InternalToken, logger: logger}, nil
+	return &CodeNestBackend{ctx: ctx, server: server, op: op, authToken: token, internalAuth: "Bearer " + setting.InternalToken, logger: logger}, nil
 }
 
 // Batch implements transfer.Backend
-func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args transfer.Args) ([]transfer.BatchItem, error) {
+func (g *CodeNestBackend) Batch(_ string, pointers []transfer.BatchItem, args transfer.Args) ([]transfer.BatchItem, error) {
 	reqBody := lfs.BatchRequest{Operation: g.op}
 	if transfer, ok := args[argTransfer]; ok {
 		reqBody.Transfers = []string{transfer}
@@ -70,10 +70,10 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 		return nil, err
 	}
 	headers := map[string]string{
-		headerAuthorization:     g.authToken,
-		headerGiteaInternalAuth: g.internalAuth,
-		headerAccept:            mimeGitLFS,
-		headerContentType:       mimeGitLFS,
+		headerAuthorization:        g.authToken,
+		headerCodeNestInternalAuth: g.internalAuth,
+		headerAccept:               mimeGitLFS,
+		headerContentType:          mimeGitLFS,
 	}
 	req := newInternalRequestLFS(g.ctx, g.server.JoinPath("objects/batch").String(), http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
@@ -156,7 +156,7 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 }
 
 // Download implements transfer.Backend. The returned reader must be closed by the caller.
-func (g *GiteaBackend) Download(oid string, args transfer.Args) (_ io.ReadCloser, _ int64, retErr error) {
+func (g *CodeNestBackend) Download(oid string, args transfer.Args) (_ io.ReadCloser, _ int64, retErr error) {
 	idMapStr, exists := args[argID]
 	if !exists {
 		return nil, 0, ErrMissingID
@@ -178,9 +178,9 @@ func (g *GiteaBackend) Download(oid string, args transfer.Args) (_ io.ReadCloser
 		return nil, 0, transfer.ErrCorruptData
 	}
 	headers := map[string]string{
-		headerAuthorization:     g.authToken,
-		headerGiteaInternalAuth: g.internalAuth,
-		headerAccept:            mimeOctetStream,
+		headerAuthorization:        g.authToken,
+		headerCodeNestInternalAuth: g.internalAuth,
+		headerAccept:               mimeOctetStream,
 	}
 	req := newInternalRequestLFS(g.ctx, toInternalLFSURL(action.Href), http.MethodGet, headers, nil)
 	resp, err := req.Response()
@@ -208,7 +208,7 @@ func (g *GiteaBackend) Download(oid string, args transfer.Args) (_ io.ReadCloser
 }
 
 // Upload implements transfer.Backend.
-func (g *GiteaBackend) Upload(oid string, size int64, r io.Reader, args transfer.Args) error {
+func (g *CodeNestBackend) Upload(oid string, size int64, r io.Reader, args transfer.Args) error {
 	idMapStr, exists := args[argID]
 	if !exists {
 		return ErrMissingID
@@ -230,10 +230,10 @@ func (g *GiteaBackend) Upload(oid string, size int64, r io.Reader, args transfer
 		return transfer.ErrCorruptData
 	}
 	headers := map[string]string{
-		headerAuthorization:     g.authToken,
-		headerGiteaInternalAuth: g.internalAuth,
-		headerContentType:       mimeOctetStream,
-		headerContentLength:     strconv.FormatInt(size, 10),
+		headerAuthorization:        g.authToken,
+		headerCodeNestInternalAuth: g.internalAuth,
+		headerContentType:          mimeOctetStream,
+		headerContentLength:        strconv.FormatInt(size, 10),
 	}
 
 	req := newInternalRequestLFS(g.ctx, toInternalLFSURL(action.Href), http.MethodPut, headers, nil)
@@ -250,7 +250,7 @@ func (g *GiteaBackend) Upload(oid string, size int64, r io.Reader, args transfer
 }
 
 // Verify implements transfer.Backend.
-func (g *GiteaBackend) Verify(oid string, size int64, args transfer.Args) (transfer.Status, error) {
+func (g *CodeNestBackend) Verify(oid string, size int64, args transfer.Args) (transfer.Status, error) {
 	reqBody := lfs.Pointer{Oid: oid, Size: size}
 
 	bodyBytes, err := json.Marshal(reqBody)
@@ -278,10 +278,10 @@ func (g *GiteaBackend) Verify(oid string, size int64, args transfer.Args) (trans
 		return transfer.SuccessStatus(), nil
 	}
 	headers := map[string]string{
-		headerAuthorization:     g.authToken,
-		headerGiteaInternalAuth: g.internalAuth,
-		headerAccept:            mimeGitLFS,
-		headerContentType:       mimeGitLFS,
+		headerAuthorization:        g.authToken,
+		headerCodeNestInternalAuth: g.internalAuth,
+		headerAccept:               mimeGitLFS,
+		headerContentType:          mimeGitLFS,
 	}
 	req := newInternalRequestLFS(g.ctx, toInternalLFSURL(action.Href), http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
@@ -296,6 +296,6 @@ func (g *GiteaBackend) Verify(oid string, size int64, args transfer.Args) (trans
 }
 
 // LockBackend implements transfer.Backend.
-func (g *GiteaBackend) LockBackend(_ transfer.Args) transfer.LockBackend {
-	return newGiteaLockBackend(g)
+func (g *CodeNestBackend) LockBackend(_ transfer.Args) transfer.LockBackend {
+	return newCodeNestLockBackend(g)
 }

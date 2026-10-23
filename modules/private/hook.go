@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/setting"
 )
 
 // Git environment variables

@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"strings"
 
-	activities_model "gitea.dev/models/activities"
-	"gitea.dev/models/db"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
+	activities_model "codenest.dev/models/activities"
+	"codenest.dev/models/db"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
 )
 
 // NewAvailable check if unread notifications exist

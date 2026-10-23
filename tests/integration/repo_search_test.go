@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	code_indexer "gitea.dev/modules/indexer/code"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/tests"
+	repo_model "codenest.dev/models/repo"
+	code_indexer "codenest.dev/modules/indexer/code"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"

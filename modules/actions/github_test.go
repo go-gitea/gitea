@@ -6,7 +6,7 @@ package actions
 import (
 	"testing"
 
-	webhook_module "gitea.dev/modules/webhook"
+	webhook_module "codenest.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )

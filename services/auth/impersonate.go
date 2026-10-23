@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/session"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/session"
 )
 
 func ImpersonateUser(sess SessionStore, u *user_model.User) error {

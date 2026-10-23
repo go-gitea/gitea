@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/nosql"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/nosql"
+	"codenest.dev/modules/util"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -51,7 +51,7 @@ func (s *redisSub) close() { s.once.Do(func() { close(s.ch) }) }
 var _ Broker = (*RedisBroker)(nil)
 
 func redisChannelForTopic(s string) string {
-	return "gitea-ws-topic:" + s
+	return "codenest-ws-topic:" + s
 }
 
 func NewRedisBroker(connStr string) (*RedisBroker, error) {
@@ -92,7 +92,7 @@ func (b *RedisBroker) Subscribe(topic string) (<-chan []byte, func()) {
 
 	// Slow path: create the Redis subscription outside the broker mutex so
 	// other Subscribe/cancel calls aren't blocked on the network round-trip.
-	// graceful.ShutdownContext so the reader loop dies cleanly on Gitea
+	// graceful.ShutdownContext so the reader loop dies cleanly on CodeNest
 	// shutdown even if every local subscriber has already cancelled.
 	// readLoop consumes the SUBSCRIBE ack; don't wait for it here, that would put
 	// a Redis round-trip in the WebSocket handshake to close a sub-millisecond

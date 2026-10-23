@@ -13,23 +13,23 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/services/migrations"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	base "codenest.dev/modules/migration"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/services/migrations"
 
 	"github.com/stretchr/testify/assert"
 	"go.yaml.in/yaml/v4"
 )
 
 func TestDumpRestore(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		// Gitea SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
+		// CodeNest SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
 		defer test.MockVariableValue(&setting.AppVer, "1.16.0")()
 
 		reponame := "repo1"
@@ -41,12 +41,12 @@ func TestDumpRestore(t *testing.T) {
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeReadMisc)
 
 		//
-		// Phase 1: dump repo1 from the Gitea instance to the filesystem
+		// Phase 1: dump repo1 from the CodeNest instance to the filesystem
 		//
 
 		ctx := t.Context()
 		opts := migrations.MigrateOptions{
-			GitServiceType: structs.GiteaService,
+			GitServiceType: structs.CodeNestService,
 			Issues:         true,
 			PullRequests:   true,
 			Labels:         true,
@@ -68,7 +68,7 @@ func TestDumpRestore(t *testing.T) {
 		}
 
 		//
-		// Phase 2: restore from the filesystem to the Gitea instance in restoredrepo
+		// Phase 2: restore from the filesystem to the CodeNest instance in restoredrepo
 		//
 
 		newreponame := "restored"
@@ -80,7 +80,7 @@ func TestDumpRestore(t *testing.T) {
 		newrepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: newreponame})
 
 		//
-		// Phase 3: dump restored from the Gitea instance to the filesystem
+		// Phase 3: dump restored from the CodeNest instance to the filesystem
 		//
 		opts.RepoName = newreponame
 		opts.CloneAddr = newrepo.CloneLinkGeneral(t.Context()).HTTPS

@@ -7,14 +7,14 @@ import (
 	"context"
 	"html/template"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 )
 
 const (
 	LinkTypeDefault = ""
 	LinkTypeRoot    = "/:root"  // the link is relative to the AppSubURL(ROOT_URL)
 	LinkTypeMedia   = "/:media" // the link should be used to access media files (images, videos)
-	LinkTypeRaw     = "/:raw"   // not really useful, mainly for environment GITEA_PREFIX_RAW for external renders
+	LinkTypeRaw     = "/:raw"   // not really useful, mainly for environment CODENEST_PREFIX_RAW for external renders
 )
 
 type RenderHelper interface {

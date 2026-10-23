@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitea.dev/modules/generate"
+	"codenest.dev/modules/generate"
 )
 
 // LFS represents the server-side configuration for Git LFS.
@@ -26,7 +26,7 @@ var LFS = struct {
 	Storage *Storage
 }{}
 
-// LFSClient represents configuration for Gitea's LFS clients, for example: mirroring upstream Git LFS
+// LFSClient represents configuration for CodeNest's LFS clients, for example: mirroring upstream Git LFS
 var LFSClient = struct {
 	BatchSize                 int `ini:"BATCH_SIZE"`
 	BatchOperationConcurrency int `ini:"BATCH_OPERATION_CONCURRENCY"`

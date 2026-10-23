@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/pipeline"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/pipeline"
+	"codenest.dev/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )

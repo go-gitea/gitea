@@ -6,8 +6,8 @@ package web
 import (
 	"net/http"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/context"
 )
 
 type passkeyEndpointsType struct {

@@ -11,14 +11,14 @@ import (
 	"net/url"
 	"strings"
 
-	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	webhook_module "gitea.dev/modules/webhook"
+	webhook_model "codenest.dev/models/webhook"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	webhook_module "codenest.dev/modules/webhook"
 )
 
 type (

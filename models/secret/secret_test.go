@@ -6,9 +6,9 @@ package secret
 import (
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,10 +19,10 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 	ctx := t.Context()
 
 	base := map[string]string{
-		"GITHUB_TOKEN": "tok",
-		"GITEA_TOKEN":  "tok",
-		"PROD_API_KEY": "prod-secret",
-		"DEV_API_KEY":  "dev-secret",
+		"GITHUB_TOKEN":   "tok",
+		"CODENEST_TOKEN": "tok",
+		"PROD_API_KEY":   "prod-secret",
+		"DEV_API_KEY":    "dev-secret",
 	}
 
 	// insertCaller create an ActionRunJob caller row with the given CallSecrets policy
@@ -67,8 +67,8 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{
-			"GITHUB_TOKEN": "tok",
-			"GITEA_TOKEN":  "tok",
+			"GITHUB_TOKEN":   "tok",
+			"CODENEST_TOKEN": "tok",
 		}, got)
 	})
 
@@ -81,9 +81,9 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{
-			"GITHUB_TOKEN": "tok",
-			"GITEA_TOKEN":  "tok",
-			"MY_KEY":       "prod-secret",
+			"GITHUB_TOKEN":   "tok",
+			"CODENEST_TOKEN": "tok",
+			"MY_KEY":         "prod-secret",
 			// no "dev-secret"
 		}, got)
 	})
@@ -131,9 +131,9 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{
-			"GITHUB_TOKEN": "tok",
-			"GITEA_TOKEN":  "tok",
-			"ALIAS_OUT":    "prod-secret",
+			"GITHUB_TOKEN":   "tok",
+			"CODENEST_TOKEN": "tok",
+			"ALIAS_OUT":      "prod-secret",
 			// no "dev-secret"
 		}, got)
 	})
@@ -148,9 +148,9 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{
-			"GITHUB_TOKEN": "tok",
-			"GITEA_TOKEN":  "tok",
-			"OUTER_ALIAS":  "prod-secret",
+			"GITHUB_TOKEN":   "tok",
+			"CODENEST_TOKEN": "tok",
+			"OUTER_ALIAS":    "prod-secret",
 			// no "dev-secret"
 		}, got)
 	})
@@ -165,9 +165,9 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{
-			"GITHUB_TOKEN": "tok",
-			"GITEA_TOKEN":  "tok",
-			"ALIAS_C":      "prod-secret",
+			"GITHUB_TOKEN":   "tok",
+			"CODENEST_TOKEN": "tok",
+			"ALIAS_C":        "prod-secret",
 			// no "dev-secret"
 		}, got)
 	})

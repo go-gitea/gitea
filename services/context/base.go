@@ -12,14 +12,14 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web/middleware"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web/middleware"
 )
 
 type BaseContextKeyType struct{}
@@ -150,7 +150,7 @@ func (b *Base) PlainText(status int, text string) {
 func (b *Base) Redirect(location string, status ...int) {
 	// In case the request is made by "fetch-action" module, make JS redirect to the new location
 	// Otherwise, the JS fetch will follow the redirection and read a "login" page, embed it to the current page, which is not expected.
-	if httplib.IsGiteaFetchActionRequest(b.Req) {
+	if httplib.IsCodeNestFetchActionRequest(b.Req) {
 		b.JSON(http.StatusOK, map[string]any{"redirect": location})
 		return
 	}
@@ -159,7 +159,7 @@ func (b *Base) Redirect(location string, status ...int) {
 }
 
 func (b *Base) RedirectForLogin(location string) {
-	if httplib.IsGiteaFetchActionRequest(b.Req) {
+	if httplib.IsCodeNestFetchActionRequest(b.Req) {
 		// let fetch-action handles the redirect automatically
 		b.JSON(http.StatusUnauthorized, map[string]any{"redirect": location})
 	} else {

@@ -8,16 +8,16 @@ import (
 	"net/http"
 	"strings"
 
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/gtprof"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/web/routing"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/gtprof"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/web/routing"
+	"codenest.dev/services/context"
 
 	"github.com/chi-middleware/proxy"
 	"github.com/go-chi/chi/v5"
@@ -47,7 +47,7 @@ func ProtocolMiddlewares() (handlers []any) {
 	return handlers
 }
 
-// SecurityHeadersHandler sets headers globally for every response that leaves Gitea.
+// SecurityHeadersHandler sets headers globally for every response that leaves CodeNest.
 func SecurityHeadersHandler() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {

@@ -11,21 +11,21 @@ import (
 	"net/url"
 	"strings"
 
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
 
 // HTTP headers
 const (
-	headerAccept            = "Accept"
-	headerAuthorization     = "Authorization"
-	headerGiteaInternalAuth = "X-Gitea-Internal-Auth"
-	headerContentType       = "Content-Type"
-	headerContentLength     = "Content-Length"
+	headerAccept               = "Accept"
+	headerAuthorization        = "Authorization"
+	headerCodeNestInternalAuth = "X-Gitea-Internal-Auth"
+	headerContentType          = "Content-Type"
+	headerContentLength        = "Content-Length"
 )
 
 // MIME types

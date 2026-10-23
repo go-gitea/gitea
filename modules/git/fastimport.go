@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"os"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/util"
 )
 
 type FastImportInit struct {
@@ -68,7 +68,7 @@ func ForceFastImport(ctx context.Context, repo RepositoryFacade, commits []FastI
 			buf.WriteByte('\n')
 		} else {
 			// "committer" is required, so we use a default one if not provided
-			buf.WriteString("committer Gitea <gitea@example.com> 1500000000 +0000\n")
+			buf.WriteString("committer CodeNest <codenest@example.com> 1500000000 +0000\n")
 		}
 
 		msg := util.IfZero(c.Message, fmt.Sprintf("test commit %d", i+1))

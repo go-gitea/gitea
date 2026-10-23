@@ -9,12 +9,12 @@ import (
 	"net/url"
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	api "gitea.dev/modules/structs"
-	webhook_module "gitea.dev/modules/webhook"
-	"gitea.dev/tests"
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	api "codenest.dev/modules/structs"
+	webhook_module "codenest.dev/modules/webhook"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

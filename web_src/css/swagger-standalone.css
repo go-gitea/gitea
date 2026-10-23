@@ -31,7 +31,7 @@ body {
   }
 }
 
-/* mimic the regular gitea button, the main site CSS is not loaded on this page */
+/* mimic the regular codenest button, the main site CSS is not loaded on this page */
 .swagger-page-links a {
   pointer-events: auto;
   display: inline-flex;

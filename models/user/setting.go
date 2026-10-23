@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/json"
-	setting_module "gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/json"
+	setting_module "codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/convert"

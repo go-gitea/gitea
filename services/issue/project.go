@@ -6,9 +6,9 @@ package issue
 import (
 	"context"
 
-	issues_model "gitea.dev/models/issues"
-	user_model "gitea.dev/models/user"
-	notify_service "gitea.dev/services/notify"
+	issues_model "codenest.dev/models/issues"
+	user_model "codenest.dev/models/user"
+	notify_service "codenest.dev/services/notify"
 )
 
 func AssignOrRemoveProjects(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, newProjectIDs []int64) error {

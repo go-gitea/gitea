@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/models/db"
+	"codenest.dev/models/db"
 
 	"go.yaml.in/yaml/v4"
 	"xorm.io/xorm"

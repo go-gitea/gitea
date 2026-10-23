@@ -4,9 +4,9 @@
 package utils
 
 import (
-	"gitea.dev/models/db"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	"codenest.dev/models/db"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // GetListOptions returns list options using the page and limit parameters

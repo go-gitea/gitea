@@ -6,9 +6,9 @@ package pull_test
 import (
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/services/pull"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
 )

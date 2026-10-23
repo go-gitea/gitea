@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	project_model "gitea.dev/models/project"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	project_model "codenest.dev/models/project"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

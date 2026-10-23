@@ -6,9 +6,9 @@ package session
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
+	"codenest.dev/models/unittest"
 
-	_ "gitea.dev/models"
+	_ "codenest.dev/models"
 )
 
 func TestMain(m *testing.M) {

@@ -6,10 +6,10 @@ package user
 import (
 	"net/http"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // GetStopwatches get all stopwatches

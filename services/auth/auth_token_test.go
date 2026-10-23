@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

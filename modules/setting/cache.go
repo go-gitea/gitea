@@ -7,7 +7,7 @@ import (
 	"math"
 	"time"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 // Cache represents cache settings

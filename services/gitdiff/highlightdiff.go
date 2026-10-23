@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )

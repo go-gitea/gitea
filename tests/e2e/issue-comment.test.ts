@@ -4,7 +4,7 @@ import {login, apiCreateRepo, apiCreateIssue, apiEditIssue, randomString} from '
 
 test('comment on and close an issue', async ({page, request}) => {
   const repoName = `e2e-issue-comment-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName, autoInit: false});
   await Promise.all([
     apiCreateIssue(request, {owner, repo: repoName, title: 'Comment test'}),
@@ -28,7 +28,7 @@ test('comment on and close an issue', async ({page, request}) => {
 test('emoji autocompletion in issue description', async ({page, request}) => {
   const repoName = `e2e-emoji-${randomString(8)}`;
   await Promise.all([apiCreateRepo(request, {name: repoName, autoInit: false}), login(page)]);
-  await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/new`);
+  await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/issues/new`);
   const textarea = page.getByPlaceholder('Leave a comment');
   await textarea.focus();
   await textarea.pressSequentially(':tada');
@@ -40,7 +40,7 @@ test('emoji autocompletion in issue description', async ({page, request}) => {
 test('unsaved issue description prompts before leaving', async ({page, request}) => {
   const repoName = `e2e-are-you-sure-${randomString(8)}`;
   await Promise.all([apiCreateRepo(request, {name: repoName, autoInit: false}), login(page)]);
-  await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/new`);
+  await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/issues/new`);
   await page.getByPlaceholder('Leave a comment').press('a');
   const dialogPromise = page.waitForEvent('dialog');
   page.once('dialog', (dialog) => dialog.dismiss());
@@ -51,7 +51,7 @@ test('unsaved issue description prompts before leaving', async ({page, request})
 
 test('delete an edit history entry via a confirm over the history modal', async ({page, request}) => {
   const repoName = `e2e-issue-history-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   await Promise.all([
     (async () => {
       await apiCreateRepo(request, {name: repoName, autoInit: false});

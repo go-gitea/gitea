@@ -6,10 +6,10 @@ package token
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
 
-	_ "gitea.dev/models"
+	_ "codenest.dev/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

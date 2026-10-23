@@ -1,52 +1,52 @@
 {
   _config+:: {
     local c = self,
-    dashboardNamePrefix: 'Gitea',
-    dashboardTags: ['gitea'],
+    dashboardNamePrefix: 'CodeNest',
+    dashboardTags: ['codenest'],
     dashboardPeriod: 'now-1h',
     dashboardTimezone: 'default',
     dashboardRefresh: '1m',
 
     // please see https://docs.gitea.com/administration/config-cheat-sheet#metrics-metrics
-    // Show issue by repository metrics with format gitea_issues_by_repository{repository="org/repo"} 5.
-    // Requires Gitea 1.16.0 with ENABLED_ISSUE_BY_REPOSITORY set to true.
+    // Show issue by repository metrics with format codenest_issues_by_repository{repository="org/repo"} 5.
+    // Requires CodeNest 1.16.0 with ENABLED_ISSUE_BY_REPOSITORY set to true.
     showIssuesByRepository: true,
-    // Show graphs for issue by label metrics with format gitea_issues_by_label{label="bug"} 2.
-    // Requires Gitea 1.16.0 with ENABLED_ISSUE_BY_LABEL set to true.
+    // Show graphs for issue by label metrics with format codenest_issues_by_label{label="bug"} 2.
+    // Requires CodeNest 1.16.0 with ENABLED_ISSUE_BY_LABEL set to true.
     showIssuesByLabel: true,
 
-    // Requires Gitea 1.16.0.
+    // Requires CodeNest 1.16.0.
     showIssuesOpenClose: true,
 
     // add or remove metrics from dashboard
-    giteaStatMetrics:
+    codenestStatMetrics:
       [
         {
-          name: 'gitea_organizations',
+          name: 'codenest_organizations',
           description: 'Organizations',
         },
         {
-          name: 'gitea_teams',
+          name: 'codenest_teams',
           description: 'Teams',
         },
         {
-          name: 'gitea_users',
+          name: 'codenest_users',
           description: 'Users',
         },
         {
-          name: 'gitea_repositories',
+          name: 'codenest_repositories',
           description: 'Repositories',
         },
         {
-          name: 'gitea_milestones',
+          name: 'codenest_milestones',
           description: 'Milestones',
         },
         {
-          name: 'gitea_stars',
+          name: 'codenest_stars',
           description: 'Stars',
         },
         {
-          name: 'gitea_releases',
+          name: 'codenest_releases',
           description: 'Releases',
         },
       ]
@@ -54,17 +54,17 @@
       if c.showIssuesOpenClose then
         [
           {
-            name: 'gitea_issues_open',
+            name: 'codenest_issues_open',
             description: 'Issues opened',
           },
           {
-            name: 'gitea_issues_closed',
+            name: 'codenest_issues_closed',
             description: 'Issues closed',
           },
         ] else
         [
           {
-            name: 'gitea_issues',
+            name: 'codenest_issues',
             description: 'Issues',
           },
         ],

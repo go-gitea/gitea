@@ -1,6 +1,6 @@
 {{if eq .HookType "gitea"}}
-	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://docs.gitea.com/usage/webhooks" (ctx.Locale.Tr "repo.settings.web_hook_name_gitea")}}</p>
-	<form class="ui form" action="{{.BaseLink}}/gitea/{{or .Webhook.ID "new"}}" method="post">
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://docs.gitea.com/usage/webhooks" (ctx.Locale.Tr "repo.settings.web_hook_name_codenest")}}</p>
+	<form class="ui form" action="{{.BaseLink}}/codenest/{{or .Webhook.ID "new"}}" method="post">
 		{{template "base/disable_form_autofill"}}
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
 			<label for="payload_url">{{ctx.Locale.Tr "repo.settings.payload_url"}}</label>

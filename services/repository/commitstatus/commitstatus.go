@@ -9,17 +9,17 @@ import (
 	"fmt"
 	"slices"
 
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/services/notify"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/services/notify"
 )
 
 func getCacheKey(repoID int64, brancheName string) string {

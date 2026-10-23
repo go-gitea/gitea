@@ -16,7 +16,7 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-// jobConditionContexts are what github.com gives `jobs.<job_id>.if`, which it decides before the matrix, plus the `gitea` alias.
+// jobConditionContexts are what github.com gives `jobs.<job_id>.if`, which it decides before the matrix, plus the `codenest` alias.
 var jobConditionContexts = []string{"github", "gitea", "needs", "vars", "inputs"}
 
 func ValidateWorkflowStatic(content []byte) ([]*Event, error) {
@@ -24,7 +24,7 @@ func ValidateWorkflowStatic(content []byte) ([]*Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Keep unknown and case-distinct keys outside of jobs accepted for existing Gitea workflows.
+	// Keep unknown and case-distinct keys outside of jobs accepted for existing CodeNest workflows.
 	workflow, err := readWorkflowDoc(doc)
 	if err != nil {
 		return nil, err

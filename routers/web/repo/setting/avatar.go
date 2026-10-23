@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"io"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/typesniffer"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
-	repo_service "gitea.dev/services/repository"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/typesniffer"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
+	repo_service "codenest.dev/services/repository"
 )
 
 // UpdateAvatarSetting update repo's avatar

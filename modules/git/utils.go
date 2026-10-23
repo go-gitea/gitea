@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 // ObjectCache provides thread-safe cache operations.

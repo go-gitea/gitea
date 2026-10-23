@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,8 +31,8 @@ func TestPrepareFileNameAndType(t *testing.T) {
 		)
 	}
 
-	test("", "", "gitea-dump-1234.zip", "zip")
-	test("", "tar.gz", "gitea-dump-1234.tar.gz", "tar.gz")
+	test("", "", "codenest-dump-1234.zip", "zip")
+	test("", "tar.gz", "codenest-dump-1234.tar.gz", "tar.gz")
 	test("", "no-such", "", "")
 
 	test("-", "", "-", "zip")

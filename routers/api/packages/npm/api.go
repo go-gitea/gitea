@@ -13,8 +13,8 @@ import (
 	"sort"
 	"time"
 
-	packages_model "gitea.dev/models/packages"
-	npm_module "gitea.dev/modules/packages/npm"
+	packages_model "codenest.dev/models/packages"
+	npm_module "codenest.dev/modules/packages/npm"
 )
 
 func createPackageMetadataResponse(registryURL string, pds []*packages_model.PackageDescriptor) *npm_module.PackageMetadata {
@@ -83,7 +83,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 
 	metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](pd)
 
-	tarballPath := metadata.GiteaTarballPath
+	tarballPath := metadata.CodeNestTarballPath
 	if tarballPath == "" {
 		tarballPath = fmt.Sprintf("%s/-/%s/%s", url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName)) // 1.27 URL, pinned by older lockfiles
 	}

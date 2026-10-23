@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"testing"
 
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/tests"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/tests"
 )
 
 func TestOrgProjectAccess(t *testing.T) {

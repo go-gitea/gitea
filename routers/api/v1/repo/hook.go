@@ -7,19 +7,19 @@ package repo
 import (
 	"net/http"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
-	"gitea.dev/models/webhook"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	webhook_module "gitea.dev/modules/webhook"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	webhook_service "gitea.dev/services/webhook"
+	"codenest.dev/models/db"
+	"codenest.dev/models/perm"
+	access_model "codenest.dev/models/perm/access"
+	"codenest.dev/models/webhook"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	webhook_module "codenest.dev/modules/webhook"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	webhook_service "codenest.dev/services/webhook"
 )
 
 // ListHooks list all hooks of a repository

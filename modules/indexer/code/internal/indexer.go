@@ -7,10 +7,10 @@ import (
 	"context"
 	"errors"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/indexer"
-	"gitea.dev/modules/indexer/internal"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/indexer"
+	"codenest.dev/modules/indexer/internal"
 )
 
 // Indexer defines an interface to index and search code contents

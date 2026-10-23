@@ -9,10 +9,10 @@ import (
 	"io"
 	"os"
 
-	packages_model "gitea.dev/models/packages"
-	packages_module "gitea.dev/modules/packages"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/tempdir"
+	packages_model "codenest.dev/models/packages"
+	packages_module "codenest.dev/modules/packages"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/tempdir"
 )
 
 var (

@@ -10,15 +10,15 @@ import (
 	"strings"
 	"testing"
 
-	issues_model "gitea.dev/models/issues"
-	pull_model "gitea.dev/models/pull"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/translation"
+	issues_model "codenest.dev/models/issues"
+	pull_model "codenest.dev/models/pull"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,7 +63,7 @@ func TestParsePatch_singlefile(t *testing.T) {
 --- "\\a/README.md"
 +++ "\\b/README.md"
 @@ -1,3 +1,6 @@
- # gitea-github-migrator
+ # codenest-github-migrator
 +
 + Build Status
 - Latest Release
@@ -82,7 +82,7 @@ func TestParsePatch_singlefile(t *testing.T) {
 --- "a/A \\ B"
 +++ "b/A \\ B"
 @@ -1,3 +1,6 @@
- # gitea-github-migrator
+ # codenest-github-migrator
 +
 + Build Status
 - Latest Release
@@ -333,7 +333,7 @@ index 0000000..6bb8f39
 --- a/README.md
 +++ b/README.md
 @@ -1,3 +1,6 @@
- # gitea-github-migrator
+ # codenest-github-migrator
 +
 + Build Status
 - Latest Release
@@ -349,7 +349,7 @@ index 0000000..6bb8f39
 --- "a/A \\ B"
 +++ "b/A \\ B"
 @@ -1,3 +1,6 @@
- # gitea-github-migrator
+ # codenest-github-migrator
 +
 + Build Status
 - Latest Release
@@ -365,7 +365,7 @@ index 0000000..6bb8f39
 --- "a/A \\ B"
 +++ b/A/B
 @@ -1,3 +1,6 @@
- # gitea-github-migrator
+ # codenest-github-migrator
 +
 + Build Status
 - Latest Release
@@ -381,7 +381,7 @@ index 0000000..6bb8f39
 --- a/README.md
 +++ b/README.md
 @@ -1,3 +1,6 @@
- # gitea-github-migrator
+ # codenest-github-migrator
 +
 + Build Status
 - Latest Release

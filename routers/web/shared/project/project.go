@@ -7,14 +7,14 @@ import (
 	"errors"
 	"net/http"
 
-	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
-	project_model "gitea.dev/models/project"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
-	project_service "gitea.dev/services/projects"
+	issues_model "codenest.dev/models/issues"
+	access_model "codenest.dev/models/perm/access"
+	project_model "codenest.dev/models/project"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
+	project_service "codenest.dev/services/projects"
 )
 
 // findProject loads the "id" path param, scoped to whichever owner the route assigned:

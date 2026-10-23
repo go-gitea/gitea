@@ -10,11 +10,11 @@ import (
 	"regexp"
 	"strings"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
-	"gitea.dev/services/mailer"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
+	"codenest.dev/services/mailer"
 
 	"go.yaml.in/yaml/v4"
 )

@@ -6,7 +6,7 @@ package models
 import (
 	"context"
 
-	"gitea.dev/models/unit"
+	"codenest.dev/models/unit"
 )
 
 // Init initialize model

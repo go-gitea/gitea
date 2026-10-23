@@ -6,8 +6,8 @@ package v1_16
 import (
 	"testing"
 
-	"gitea.dev/modelmigration/migrationtest"
-	"gitea.dev/modules/json"
+	"codenest.dev/modelmigration/migrationtest"
+	"codenest.dev/modules/json"
 
 	"github.com/stretchr/testify/assert"
 )

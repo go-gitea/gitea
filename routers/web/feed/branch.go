@@ -6,9 +6,9 @@ package feed
 import (
 	"time"
 
-	"gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/services/context"
+	"codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/services/context"
 
 	"github.com/gorilla/feeds"
 )

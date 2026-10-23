@@ -21,72 +21,72 @@ func TestShellEscape(t *testing.T) {
 			"a/b/c/d",
 		}, {
 			"Prefixed tilde - with normal stuff - should not escape",
-			"~/src/go/gitea/gitea",
-			"~/src/go/gitea/gitea",
+			"~/src/go/codenest/codenest",
+			"~/src/go/codenest/codenest",
 		}, {
 			"Typical windows path with spaces - should get doublequote escaped",
-			`C:\Program Files\Gitea v1.13 - I like lots of spaces\gitea`,
-			`"C:\\Program Files\\Gitea v1.13 - I like lots of spaces\\gitea"`,
+			`C:\Program Files\CodeNest v1.13 - I like lots of spaces\codenest`,
+			`"C:\\Program Files\\CodeNest v1.13 - I like lots of spaces\\codenest"`,
 		}, {
 			"Forward-slashed windows path with spaces - should get doublequote escaped",
-			"C:/Program Files/Gitea v1.13 - I like lots of spaces/gitea",
-			`"C:/Program Files/Gitea v1.13 - I like lots of spaces/gitea"`,
+			"C:/Program Files/CodeNest v1.13 - I like lots of spaces/codenest",
+			`"C:/Program Files/CodeNest v1.13 - I like lots of spaces/codenest"`,
 		}, {
 			"Prefixed tilde - but then a space filled path",
-			"~git/Gitea v1.13/gitea",
-			`~git/"Gitea v1.13/gitea"`,
+			"~git/CodeNest v1.13/codenest",
+			`~git/"CodeNest v1.13/codenest"`,
 		}, {
 			"Bangs are unfortunately not predictable so need to be singlequoted",
-			"C:/Program Files/Gitea!/gitea",
-			`'C:/Program Files/Gitea!/gitea'`,
+			"C:/Program Files/CodeNest!/codenest",
+			`'C:/Program Files/CodeNest!/codenest'`,
 		}, {
 			"Newlines are just irritating",
-			"/home/git/Gitea\n\nWHY-WOULD-YOU-DO-THIS\n\nGitea/gitea",
-			"'/home/git/Gitea\n\nWHY-WOULD-YOU-DO-THIS\n\nGitea/gitea'",
+			"/home/git/CodeNest\n\nWHY-WOULD-YOU-DO-THIS\n\nCodeNest/codenest",
+			"'/home/git/CodeNest\n\nWHY-WOULD-YOU-DO-THIS\n\nCodeNest/codenest'",
 		}, {
 			"Similarly we should nicely handle multiple single quotes if we have to single-quote",
 			"'!''!'''!''!'!'",
 			`\''!'\'\''!'\'\'\''!'\'\''!'\''!'\'`,
 		}, {
 			"Double quote < ...",
-			"~/<gitea",
-			"~/\"<gitea\"",
+			"~/<codenest",
+			"~/\"<codenest\"",
 		}, {
 			"Double quote > ...",
-			"~/gitea>",
-			"~/\"gitea>\"",
+			"~/codenest>",
+			"~/\"codenest>\"",
 		}, {
 			"Double quote and escape $ ...",
-			"~/$gitea",
-			"~/\"\\$gitea\"",
+			"~/$codenest",
+			"~/\"\\$codenest\"",
 		}, {
 			"Double quote {...",
-			"~/{gitea",
-			"~/\"{gitea\"",
+			"~/{codenest",
+			"~/\"{codenest\"",
 		}, {
 			"Double quote }...",
-			"~/gitea}",
-			"~/\"gitea}\"",
+			"~/codenest}",
+			"~/\"codenest}\"",
 		}, {
 			"Double quote ()...",
-			"~/(gitea)",
-			"~/\"(gitea)\"",
+			"~/(codenest)",
+			"~/\"(codenest)\"",
 		}, {
 			"Double quote and escape `...",
-			"~/gitea`",
-			"~/\"gitea\\`\"",
+			"~/codenest`",
+			"~/\"codenest\\`\"",
 		}, {
 			"Double quote leading #",
 			"#123",
 			`"#123"`,
 		}, {
 			"Double quotes can handle a number of things without having to escape them but not everything ...",
-			"~/<gitea> ${gitea} `gitea` [gitea] (gitea) \"gitea\" \\gitea\\ 'gitea'",
-			"~/\"<gitea> \\${gitea} \\`gitea\\` [gitea] (gitea) \\\"gitea\\\" \\\\gitea\\\\ 'gitea'\"",
+			"~/<codenest> ${codenest} `codenest` [codenest] (codenest) \"codenest\" \\codenest\\ 'codenest'",
+			"~/\"<codenest> \\${codenest} \\`codenest\\` [codenest] (codenest) \\\"codenest\\\" \\\\codenest\\\\ 'codenest'\"",
 		}, {
 			"Single quotes don't need to escape except for '...",
-			"~/<gitea> ${gitea} `gitea` (gitea) !gitea! \"gitea\" \\gitea\\ 'gitea'",
-			"~/'<gitea> ${gitea} `gitea` (gitea) !gitea! \"gitea\" \\gitea\\ '\\''gitea'\\'",
+			"~/<codenest> ${codenest} `codenest` (codenest) !codenest! \"codenest\" \\codenest\\ 'codenest'",
+			"~/'<codenest> ${codenest} `codenest` (codenest) !codenest! \"codenest\" \\codenest\\ '\\''codenest'\\'",
 		},
 	}
 	for _, tt := range tests {

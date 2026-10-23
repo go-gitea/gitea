@@ -62,7 +62,7 @@ func (c *memcacheCache) IsExist(key string) bool {
 }
 
 func (c *memcacheCache) Ping() error {
-	const key = "__gitea_cache_ping"
+	const key = "__codenest_cache_ping"
 	if err := c.Put(key, "ping", 10); err != nil {
 		return err
 	}

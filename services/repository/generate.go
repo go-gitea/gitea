@@ -17,15 +17,15 @@ import (
 	"sync"
 	"time"
 
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates/vars"
-	"gitea.dev/modules/util"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/log"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates/vars"
+	"codenest.dev/modules/util"
 
 	"github.com/huandu/xstrings"
 )
@@ -90,19 +90,19 @@ func generateExpansion(ctx context.Context, src string, templateRepo, generateRe
 	return vars.ExpandShellLike(src, expansionMap)
 }
 
-type giteaTemplateFileMatcher struct {
+type codenestTemplateFileMatcher struct {
 	relPath      string
 	globsExpand  []glob.Glob
 	globsExclude []glob.Glob
 }
 
-func newGiteaTemplateFileMatcher(relPath string, content []byte) *giteaTemplateFileMatcher {
-	gt := &giteaTemplateFileMatcher{relPath: relPath}
+func newCodeNestTemplateFileMatcher(relPath string, content []byte) *codenestTemplateFileMatcher {
+	gt := &codenestTemplateFileMatcher{relPath: relPath}
 	scanner := bufio.NewScanner(bytes.NewReader(content))
 	addGlob := func(globs *[]glob.Glob, pattern string) {
 		g, err := glob.Compile(pattern, '/')
 		if err != nil {
-			log.Debug("Invalid gitea template glob expression %q (skipped): %v", pattern, err)
+			log.Debug("Invalid codenest template glob expression %q (skipped): %v", pattern, err)
 			return
 		}
 		*globs = append(*globs, g)
@@ -120,7 +120,7 @@ func newGiteaTemplateFileMatcher(relPath string, content []byte) *giteaTemplateF
 			case "[exclude]":
 				curGlobs = &gt.globsExclude
 			default:
-				log.Debug("Invalid gitea template glob section %q", line)
+				log.Debug("Invalid codenest template glob section %q", line)
 			}
 			continue
 		}
@@ -129,11 +129,11 @@ func newGiteaTemplateFileMatcher(relPath string, content []byte) *giteaTemplateF
 	return gt
 }
 
-func (gt *giteaTemplateFileMatcher) hasAnyRules() bool {
+func (gt *codenestTemplateFileMatcher) hasAnyRules() bool {
 	return len(gt.globsExpand) != 0 || len(gt.globsExclude) != 0
 }
 
-func (gt *giteaTemplateFileMatcher) matchRules(globs []glob.Glob, s string) bool {
+func (gt *codenestTemplateFileMatcher) matchRules(globs []glob.Glob, s string) bool {
 	for _, g := range globs {
 		if g.Match(s) {
 			return true
@@ -142,16 +142,16 @@ func (gt *giteaTemplateFileMatcher) matchRules(globs []glob.Glob, s string) bool
 	return false
 }
 
-func readGiteaTemplateFile(tmpDir string) (*giteaTemplateFileMatcher, error) {
+func readCodeNestTemplateFile(tmpDir string) (*codenestTemplateFileMatcher, error) {
 	templateRelPath := filepath.Join(".gitea", "template")
 	content, err := util.ReadRegularPathFile(tmpDir, templateRelPath, 1024*1024)
 	if err != nil {
 		return nil, util.Iif(errors.Is(err, util.ErrNotRegularPathFile), os.ErrNotExist, err)
 	}
-	return newGiteaTemplateFileMatcher(templateRelPath, content), nil
+	return newCodeNestTemplateFileMatcher(templateRelPath, content), nil
 }
 
-func substGiteaTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, templateRepo, generateRepo *repo_model.Repository) error {
+func substCodeNestTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, templateRepo, generateRepo *repo_model.Repository) error {
 	content, err := util.ReadRegularPathFile(tmpDir, tmpDirSubPath, 1024*1024)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -168,10 +168,10 @@ func substGiteaTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, t
 	return util.WriteRegularPathFile(tmpDir, substSubPath, []byte(generatedContent), 0o755, 0o644)
 }
 
-// processGiteaTemplateFile processes and removes the .gitea/template file,
+// processCodeNestTemplateFile processes and removes the .gitea/template file,
 // does file exclusion and variable expansion for template files, and save the processed files to the filesystem.
 // It returns a list of skipped files that are not regular paths.
-func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, generateRepo *repo_model.Repository, fileMatcher *giteaTemplateFileMatcher) (skippedFiles []string, _ error) {
+func processCodeNestTemplateFile(ctx context.Context, tmpDir string, templateRepo, generateRepo *repo_model.Repository, fileMatcher *codenestTemplateFileMatcher) (skippedFiles []string, _ error) {
 	// Why not use "os.Root" here: symlink is unsafe even in the same root but "os.Root" can't help, it's more difficult to use "os.Root" to do the WalkDir.
 	if err := os.Remove(util.FilePathJoinAbs(tmpDir, fileMatcher.relPath)); err != nil {
 		return nil, fmt.Errorf("unable to remove .gitea/template: %w", err)
@@ -210,7 +210,7 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 		}
 		// try to expand variables for regular files
 		if fileMatcher.matchRules(fileMatcher.globsExpand, treePath) {
-			err := substGiteaTemplateFile(ctx, tmpDir, relPath, templateRepo, generateRepo)
+			err := substCodeNestTemplateFile(ctx, tmpDir, relPath, templateRepo, generateRepo)
 			if errors.Is(err, util.ErrNotRegularPathFile) {
 				skippedFiles = append(skippedFiles, relPath)
 			} else if err != nil {
@@ -251,16 +251,16 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	// Variable expansion
-	fileMatcher, err := readGiteaTemplateFile(tmpDir)
+	fileMatcher, err := readCodeNestTemplateFile(tmpDir)
 	if err == nil {
-		_, err = processGiteaTemplateFile(ctx, tmpDir, templateRepo, generateRepo, fileMatcher)
+		_, err = processCodeNestTemplateFile(ctx, tmpDir, templateRepo, generateRepo, fileMatcher)
 		if err != nil {
-			return fmt.Errorf("processGiteaTemplateFile: %w", err)
+			return fmt.Errorf("processCodeNestTemplateFile: %w", err)
 		}
 	} else if errors.Is(err, fs.ErrNotExist) {
 		log.Debug("skip processing repo template files: no available .gitea/template")
 	} else {
-		return fmt.Errorf("readGiteaTemplateFile: %w", err)
+		return fmt.Errorf("readCodeNestTemplateFile: %w", err)
 	}
 
 	if err = git.InitRepositoryLocal(ctx, tmpDir, false, templateRepo.ObjectFormatName, ""); err != nil {
@@ -276,7 +276,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 
 // GenerateGitContent generates git content from a template repository
 func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) (err error) {
-	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-" + generateRepo.Name)
+	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("codenest-" + generateRepo.Name)
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir for repository %s: %w", generateRepo.FullName(), err)
 	}

@@ -1,4 +1,4 @@
-// Copyright 2024 Gitea. All rights reserved.
+// Copyright 2024 CodeNest. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package git
@@ -6,9 +6,9 @@ package git
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/setting"
 
 	"xorm.io/builder"
 )

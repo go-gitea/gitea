@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGiteaDBJSONUnmarshal(t *testing.T) {
+func TestCodeNestDBJSONUnmarshal(t *testing.T) {
 	var m map[any]any
 	err := UnmarshalHandleDoubleEncode(nil, &m)
 	assert.NoError(t, err)

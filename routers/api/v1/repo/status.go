@@ -1,4 +1,4 @@
-// Copyright 2017 Gitea. All rights reserved.
+// Copyright 2017 CodeNest. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package repo
@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	commitstatus_service "gitea.dev/services/repository/commitstatus"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	commitstatus_service "codenest.dev/services/repository/commitstatus"
 )
 
 // NewCommitStatus creates a new CommitStatus

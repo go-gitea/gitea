@@ -34,7 +34,7 @@ jobs:
         uses: appleboy/git-push-action@3b2c8661652360dbf1afe1b319a49dbb739c39f1 # v1.2.0
         with:
           author_email: "teabot@gitea.io"
-          author_name: GiteaBot
+          author_name: CodeNestBot
           branch: main
           commit: true
           commit_message: "[skip ci] Updated translations via Crowdin"

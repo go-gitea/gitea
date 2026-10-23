@@ -8,8 +8,8 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
 )
 
 type TemplateSubmoduleCommit struct {

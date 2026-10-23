@@ -6,7 +6,7 @@ package v1_12
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func PurgeUnusedDependencies(_ context.Context, x base.EngineMigration) error {

@@ -13,16 +13,16 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/system"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/setting/config"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/tempdir"
-	"gitea.dev/modules/testlogger"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/models/system"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/setting/config"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/tempdir"
+	"codenest.dev/modules/testlogger"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
@@ -45,17 +45,17 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 	testOpts := util.OptionalArg(testOptsArg, &TestOptions{})
 
-	tempWorkPath, tempCleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("unit-test-dir-")
+	tempWorkPath, tempCleanup, err := tempdir.OsTempDir("codenest-test").MkdirTempRandom("unit-test-dir-")
 	if err != nil {
 		return testlogger.MainErrorf("Failed to create temp dir for unit test: %v", err)
 	}
 	defer tempCleanup()
 
 	defer setting.MockBuiltinPaths(tempWorkPath, "", "")()
-	setting.SetupGiteaTestEnv()
+	setting.SetupCodeNestTestEnv()
 
-	giteaRoot := setting.GetGiteaTestSourceRoot()
-	fixturesOpts := FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
+	codenestRoot := setting.GetCodeNestTestSourceRoot()
+	fixturesOpts := FixturesOptions{Dir: filepath.Join(codenestRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
 	if err := CreateTestEngine(filepath.Join(tempWorkPath, "sqlite-test.db"), fixturesOpts); err != nil {
 		return testlogger.MainErrorf("Error creating test database engine: %v", err)
 	}
@@ -79,7 +79,7 @@ func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 	if err = storage.Init(); err != nil {
 		return testlogger.MainErrorf("storage.Init: %v", err)
 	}
-	if err = SyncDirs(filepath.Join(giteaRoot, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+	if err = SyncDirs(filepath.Join(codenestRoot, "tests", "codenest-repositories-meta"), setting.RepoRootPath); err != nil {
 		return testlogger.MainErrorf("util.SyncDirs: %v", err)
 	}
 
@@ -220,7 +220,7 @@ func CreateTestEngine(testSQLiteFile string, opts FixturesOptions) error {
 	if err = db.SyncAllTables(); err != nil {
 		return err
 	}
-	switch os.Getenv("GITEA_TEST_LOG_SQL") {
+	switch os.Getenv("CODENEST_TEST_LOG_SQL") {
 	case "true", "1":
 		x.ShowSQL(true)
 	}
@@ -237,6 +237,6 @@ func PrepareTestDatabase() error {
 // by tests that use the above MainTest(..) function.
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
-	metaPath := filepath.Join(setting.GetGiteaTestSourceRoot(), "tests", "gitea-repositories-meta")
+	metaPath := filepath.Join(setting.GetCodeNestTestSourceRoot(), "tests", "codenest-repositories-meta")
 	assert.NoError(t, SyncDirs(metaPath, setting.RepoRootPath))
 }

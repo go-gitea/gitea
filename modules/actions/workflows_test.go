@@ -6,11 +6,11 @@ package actions
 import (
 	"testing"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	webhook_module "gitea.dev/modules/webhook"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	webhook_module "codenest.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,13 +74,13 @@ func TestIsWorkflow(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "only gitea configured, github path rejected",
+			name:     "only codenest configured, github path rejected",
 			dirs:     []string{".gitea/workflows"},
 			path:     ".github/workflows/test.yml",
 			expected: false,
 		},
 		{
-			name:     "only github configured, gitea path rejected",
+			name:     "only github configured, codenest path rejected",
 			dirs:     []string{".github/workflows"},
 			path:     ".gitea/workflows/test.yml",
 			expected: false,

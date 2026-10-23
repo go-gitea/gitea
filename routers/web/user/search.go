@@ -6,12 +6,12 @@ package user
 import (
 	"net/http"
 
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // SearchCandidates searches candidate users for dropdown list

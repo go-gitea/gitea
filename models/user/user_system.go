@@ -7,7 +7,7 @@ import (
 	"context"
 	"strings"
 
-	"gitea.dev/modules/structs"
+	"codenest.dev/modules/structs"
 )
 
 const (
@@ -55,25 +55,25 @@ const (
 
 // NewActionsUser creates and returns a fake user for running the actions.
 func NewActionsUser() *User {
-	return newSystemUser(ActionsUserID, "gitea-actions", "Gitea Actions")
+	return newSystemUser(ActionsUserID, "codenest-actions", "CodeNest Actions")
 }
 
 func GetActionsUserTaskID(u *User) (int64, bool) {
 	if u == nil || u.ExtDoerData == nil || u.ID != ActionsUserID {
 		return 0, false
 	}
-	extData := u.ExtDoerData.(*extDoerGiteaActions) //nolint:forcetypeassert // must be valid
+	extData := u.ExtDoerData.(*extDoerCodeNestActions) //nolint:forcetypeassert // must be valid
 	return extData.TaskID, true
 }
 
 func NewActionsUserWithTaskID(id int64) *User {
 	u := NewActionsUser()
-	u.ExtDoerData = &extDoerGiteaActions{TaskID: id}
+	u.ExtDoerData = &extDoerCodeNestActions{TaskID: id}
 	return u
 }
 
 func NewDeployKeyUser() *User {
-	return newSystemUser(DeployKeyUserID, "gitea:deploy-key", "Deploy Key")
+	return newSystemUser(DeployKeyUserID, "codenest:deploy-key", "Deploy Key")
 }
 
 func GetDeployKeyUserDeployKeyID(u *User) (int64, bool) {
@@ -94,12 +94,12 @@ func NewDeployKeyUserWithKeyID(id int64) *User {
 
 func NewCliUser() *User {
 	// for audit log only
-	return newSystemUser(CliUserID, "gitea:cli", "Gitea CLI")
+	return newSystemUser(CliUserID, "codenest:cli", "CodeNest CLI")
 }
 
 func NewAuthSourceUser() *User {
 	// for audit log only
-	return newSystemUser(AuthSourceUserID, "gitea:auth-source", "Gitea Auth Source")
+	return newSystemUser(AuthSourceUserID, "codenest:auth-source", "CodeNest Auth Source")
 }
 
 func GetSystemUserByName(name string) *User {
@@ -124,7 +124,7 @@ func GetDoerPermissionUser(ctx context.Context, id int64, extDoerData string) (u
 		u.ExtDoerData = &extDoerToken{}
 	case id == ActionsUserID:
 		u = NewActionsUser()
-		u.ExtDoerData = &extDoerGiteaActions{}
+		u.ExtDoerData = &extDoerCodeNestActions{}
 	case id == DeployKeyUserID:
 		u = NewDeployKeyUser()
 		u.ExtDoerData = &extDoerDeployKey{}

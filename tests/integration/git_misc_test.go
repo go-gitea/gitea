@@ -10,20 +10,20 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	files_service "gitea.dev/services/repository/files"
+	auth_model "codenest.dev/models/auth"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	files_service "codenest.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
@@ -77,7 +77,7 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 }
 
 func TestAgitPullPush(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 		u.Path = baseAPITestContext.GitPath()
@@ -145,7 +145,7 @@ func TestAgitPullPush(t *testing.T) {
 }
 
 func TestAgitReviewStaleness(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 		u.Path = baseAPITestContext.GitPath()

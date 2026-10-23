@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/translation"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/translation"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -32,10 +32,10 @@ func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubU
 }
 
 func TestCreateBranch(t *testing.T) {
-	onGiteaRun(t, testCreateBranches)
+	onCodeNestRun(t, testCreateBranches)
 }
 
-func testCreateBranches(t *testing.T, giteaURL *url.URL) {
+func testCreateBranches(t *testing.T, codenestURL *url.URL) {
 	tests := []struct {
 		OldRefSubURL   string
 		NewBranch      string
@@ -231,7 +231,7 @@ func checkRecentlyPushedNewBranches(t *testing.T, session *TestSession, repoPath
 }
 
 func TestRecentlyPushedNewBranches(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user12Session := loginUser(t, "user12")
 
 		// Same reposioty check

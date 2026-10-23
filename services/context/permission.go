@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"slices"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
 )
 
 // CheckTokenScopes checks whether the authenticated API token contains any of the given scopes.

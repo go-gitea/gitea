@@ -7,7 +7,7 @@ import (
 	"context"
 	"net/url"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func SanitizeOriginalURL(_ context.Context, x base.EngineMigration) error {

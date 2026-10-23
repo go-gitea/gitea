@@ -9,12 +9,12 @@ import (
 	"path"
 	"testing"
 
-	"gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/tests"
+	"codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -111,7 +111,7 @@ func testLinksRedirectsNoLogin(t *testing.T) {
 		{"/user2/repo1/tree/a%2fb?a=1", "/user2/repo1/src/a%2fb?a=1"},
 		{"/user2/repo1/blob/123456/%20?a=1", "/user2/repo1/src/commit/123456/%20?a=1"},
 		{"/user/avatar/GhosT/-1", "/assets/img/avatar_default.png"},
-		{"/user/avatar/Gitea-ActionS/0", "/assets/img/avatar_default.png"},
+		{"/user/avatar/CodeNest-ActionS/0", "/assets/img/avatar_default.png"},
 		{"/api/v1/swagger", "/api/swagger"},
 	}
 	for _, c := range redirects {

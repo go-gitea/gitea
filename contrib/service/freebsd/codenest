@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+# $FreeBSD$
+#
+# PROVIDE: codenest
+# REQUIRE: NETWORKING SYSLOG
+# KEYWORD: shutdown
+#
+# Add the following lines to /etc/rc.conf to enable codenest:
+#
+#codenest_enable="YES"
+
+. /etc/rc.subr
+
+name="codenest"
+rcvar="codenest_enable"
+
+load_rc_config $name
+
+: ${codenest_user:="git"}
+: ${codenest_enable:="NO"}
+: ${codenest_directory:="/var/lib/codenest"}
+
+command="/usr/local/bin/codenest web -c /etc/codenest/app.ini"
+procname="$(echo $command |cut -d' ' -f1)"
+
+pidfile="${codenest_directory}/${name}.pid"
+
+start_cmd="${name}_start"
+stop_cmd="${name}_stop"
+
+codenest_start() {
+	cd ${codenest_directory}
+	export USER=${codenest_user}
+	export HOME=/usr/home/${codenest_user}
+	export CODENEST_WORK_DIR=${codenest_directory}
+	/usr/sbin/daemon -f -u ${codenest_user} -p ${pidfile} $command
+}
+
+codenest_stop() {
+	if [ ! -f $pidfile ]; then
+		echo "CODENEST PID File not found. Maybe CODENEST is not running?"
+	else
+		kill $(cat $pidfile)
+	fi
+}
+
+run_rc_command "$1"

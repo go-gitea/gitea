@@ -11,14 +11,14 @@ import (
 	"sort"
 	"time"
 
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/modules/optional"
-	packages_module "gitea.dev/modules/packages"
-	goproxy_module "gitea.dev/modules/packages/goproxy"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/packages/helper"
-	"gitea.dev/services/context"
-	packages_service "gitea.dev/services/packages"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/modules/optional"
+	packages_module "codenest.dev/modules/packages"
+	goproxy_module "codenest.dev/modules/packages/goproxy"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/packages/helper"
+	"codenest.dev/services/context"
+	packages_service "codenest.dev/services/packages"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {

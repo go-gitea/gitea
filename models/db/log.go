@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 
 	xormlog "xorm.io/xorm/log"
 )

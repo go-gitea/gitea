@@ -6,11 +6,11 @@ package actions
 import (
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	repo_model "gitea.dev/models/repo"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/translation"
+	actions_model "codenest.dev/models/actions"
+	repo_model "codenest.dev/models/repo"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

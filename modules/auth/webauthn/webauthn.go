@@ -8,10 +8,10 @@ import (
 	"encoding/binary"
 	"encoding/gob"
 
-	"gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -31,7 +31,7 @@ func Init() {
 			RPDisplayName:         setting.AppName,
 			RPID:                  setting.AppDomain,
 			RPOrigins:             []string{appURL},
-			AttestationPreference: protocol.PreferNoAttestation, // Gitea never verifies attestation
+			AttestationPreference: protocol.PreferNoAttestation, // CodeNest never verifies attestation
 			// WebKit (Safari on iOS and macOS) returns an unsolicited "appid" client
 			// extension output even when the relying party did not request it. Since the
 			// webauthn library upgrade to v0.18, the default policy fails such ceremonies

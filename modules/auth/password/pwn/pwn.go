@@ -14,8 +14,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/setting"
 )
 
 const (
@@ -48,7 +48,7 @@ func (c *Client) CheckPassword(ctx context.Context, pw string, padding bool) (in
 
 	req := httplib.NewClientRequest(http.MethodGet, fmt.Sprintf("%s%s", passwordURL, prefix))
 	req.SetContext(ctx).SetTransport(c.mockTransport)
-	req.Header("User-Agent", "Gitea "+setting.AppVer)
+	req.Header("User-Agent", "CodeNest "+setting.AppVer)
 	if padding {
 		req.Header("Add-Padding", "true")
 	}

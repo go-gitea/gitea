@@ -6,8 +6,8 @@ package internal
 import (
 	"strings"
 
-	"gitea.dev/modules/indexer/internal"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/indexer/internal"
+	"codenest.dev/modules/log"
 )
 
 const filenameMatchNumberOfLines = 7 // Copied from GitHub search

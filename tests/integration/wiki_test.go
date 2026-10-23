@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -98,7 +98,7 @@ func testRepoWikiCloneSSH(t *testing.T, u *url.URL) {
 }
 
 func TestRepoWikiClonePush(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		t.Run("SSH", func(t *testing.T) { testRepoWikiCloneSSH(t, u) })
 		t.Run("HTTP", func(t *testing.T) { testRepoWikiCloneHTTP(t, u) })
 	})

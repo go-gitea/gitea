@@ -8,11 +8,11 @@ import (
 	"errors"
 	"fmt"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/password"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	user_service "gitea.dev/services/user"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/auth/password"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	user_service "codenest.dev/services/user"
 
 	"github.com/urfave/cli/v3"
 )

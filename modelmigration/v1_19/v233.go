@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/secret"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/secret"
+	"codenest.dev/modules/setting"
 
 	"xorm.io/builder"
 )

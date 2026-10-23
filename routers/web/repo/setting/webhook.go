@@ -12,25 +12,25 @@ import (
 	"path"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/models/webhook"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	webhook_module "gitea.dev/modules/webhook"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	"gitea.dev/services/forms"
-	webhook_service "gitea.dev/services/webhook"
+	"codenest.dev/models/db"
+	"codenest.dev/models/perm"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/models/webhook"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	webhook_module "codenest.dev/modules/webhook"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	"codenest.dev/services/forms"
+	webhook_service "codenest.dev/services/webhook"
 )
 
 const (
@@ -162,7 +162,7 @@ func WebhooksNew(ctx *context.Context) {
 	}
 	if hookType == "discord" {
 		ctx.Data["DiscordHook"] = map[string]any{
-			"Username": "Gitea",
+			"Username": "CodeNest",
 		}
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
@@ -334,17 +334,17 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
-// GiteaHooksNewPost response for creating Gitea webhook
-func GiteaHooksNewPost(ctx *context.Context) {
-	createWebhook(ctx, giteaHookParams(ctx))
+// CodeNestHooksNewPost response for creating CodeNest webhook
+func CodeNestHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, codenestHookParams(ctx))
 }
 
-// GiteaHooksEditPost response for editing Gitea webhook
-func GiteaHooksEditPost(ctx *context.Context) {
-	editWebhook(ctx, giteaHookParams(ctx))
+// CodeNestHooksEditPost response for editing CodeNest webhook
+func CodeNestHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, codenestHookParams(ctx))
 }
 
-func giteaHookParams(ctx *context.Context) webhookParams {
+func codenestHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm[*forms.NewWebhookForm](ctx)
 
 	contentType := webhook.ContentTypeJSON
@@ -353,7 +353,7 @@ func giteaHookParams(ctx *context.Context) webhookParams {
 	}
 
 	return webhookParams{
-		Type:        webhook_module.GITEA,
+		Type:        webhook_module.CODENEST,
 		URL:         form.PayloadURL,
 		ContentType: contentType,
 		HTTPMethod:  form.HTTPMethod,

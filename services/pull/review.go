@@ -9,17 +9,17 @@ import (
 	"errors"
 	"fmt"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/gitdiff"
-	notify_service "gitea.dev/services/notify"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/gitdiff"
+	notify_service "codenest.dev/services/notify"
 )
 
 func isErrBlameInvalidated(err error) bool {

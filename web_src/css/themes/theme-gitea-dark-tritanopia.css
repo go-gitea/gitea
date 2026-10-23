@@ -1,6 +1,6 @@
 @import "./theme-gitea-dark.css";
 
-gitea-theme-meta-info {
+codenest-theme-meta-info {
   --theme-display-name: "Dark";
   --theme-colorblind-type: "blue-yellow";
   --theme-color-scheme: "dark";

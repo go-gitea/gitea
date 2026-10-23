@@ -6,13 +6,13 @@ package admin
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/contexttest"
-	"gitea.dev/services/forms"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/contexttest"
+	"codenest.dev/services/forms"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,8 +28,8 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 
 	ctx.Doer = u
 
-	username := "gitea"
-	email := "gitea@gitea.io"
+	username := "codenest"
+	email := "codenest@gitea.io"
 
 	form := forms.AdminCreateUserForm{
 		LoginType:          "local",
@@ -65,8 +65,8 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 
 	ctx.Doer = u
 
-	username := "gitea"
-	email := "gitea@gitea.io"
+	username := "codenest"
+	email := "codenest@gitea.io"
 
 	form := forms.AdminCreateUserForm{
 		LoginType:          "local",
@@ -102,8 +102,8 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 
 	ctx.Doer = u
 
-	username := "gitea"
-	email := "gitea@gitea.io\r\n"
+	username := "codenest"
+	email := "codenest@gitea.io\r\n"
 
 	form := forms.AdminCreateUserForm{
 		LoginType:          "local",
@@ -132,8 +132,8 @@ func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
 
 	ctx.Doer = u
 
-	username := "gitea"
-	email := "gitea@gitea.io"
+	username := "codenest"
+	email := "codenest@gitea.io"
 
 	form := forms.AdminCreateUserForm{
 		LoginType:          "local",
@@ -170,8 +170,8 @@ func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 
 	ctx.Doer = u
 
-	username := "gitea"
-	email := "gitea@gitea.io"
+	username := "codenest"
+	email := "codenest@gitea.io"
 
 	form := forms.AdminCreateUserForm{
 		LoginType:          "local",

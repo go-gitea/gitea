@@ -6,7 +6,7 @@ package validation
 import (
 	"testing"
 
-	"gitea.dev/modules/glob"
+	"codenest.dev/modules/glob"
 )
 
 func getGlobPatternErrorString(pattern string) string {

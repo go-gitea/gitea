@@ -2,9 +2,9 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package v1 Gitea API
+// Package v1 CodeNest API
 //
-// This documentation describes the Gitea API.
+// This documentation describes the CodeNest API.
 //
 //	Schemes: https, http
 //	License: MIT http://opensource.org/licenses/MIT
@@ -31,12 +31,12 @@
 //	     type: apiKey
 //	     name: token
 //	     in: query
-//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
+//	     description: This authentication option is deprecated for removal in CodeNest 1.23. Please use AuthorizationHeaderToken instead.
 //	AccessToken:
 //	     type: apiKey
 //	     name: access_token
 //	     in: query
-//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
+//	     description: This authentication option is deprecated for removal in CodeNest 1.23. Please use AuthorizationHeaderToken instead.
 //	AuthorizationHeaderToken:
 //	     type: apiKey
 //	     name: Authorization
@@ -68,41 +68,41 @@ import (
 	"net/http"
 	"strings"
 
-	audit_model "gitea.dev/models/audit"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/organization"
-	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
-	"gitea.dev/modules/web"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/routers/api/v1/activitypub"
-	"gitea.dev/routers/api/v1/admin"
-	"gitea.dev/routers/api/v1/misc"
-	"gitea.dev/routers/api/v1/notify"
-	"gitea.dev/routers/api/v1/org"
-	"gitea.dev/routers/api/v1/packages"
-	"gitea.dev/routers/api/v1/repo"
-	"gitea.dev/routers/api/v1/settings"
-	"gitea.dev/routers/api/v1/shared"
-	"gitea.dev/routers/api/v1/token"
-	"gitea.dev/routers/api/v1/user"
-	"gitea.dev/routers/common"
-	"gitea.dev/services/actions"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/auth"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
+	audit_model "codenest.dev/models/audit"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/organization"
+	"codenest.dev/models/perm"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
+	"codenest.dev/modules/web"
+	"codenest.dev/modules/web/middleware"
+	"codenest.dev/routers/api/v1/activitypub"
+	"codenest.dev/routers/api/v1/admin"
+	"codenest.dev/routers/api/v1/misc"
+	"codenest.dev/routers/api/v1/notify"
+	"codenest.dev/routers/api/v1/org"
+	"codenest.dev/routers/api/v1/packages"
+	"codenest.dev/routers/api/v1/repo"
+	"codenest.dev/routers/api/v1/settings"
+	"codenest.dev/routers/api/v1/shared"
+	"codenest.dev/routers/api/v1/token"
+	"codenest.dev/routers/api/v1/user"
+	"codenest.dev/routers/common"
+	"codenest.dev/services/actions"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/auth"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
 
-	_ "gitea.dev/routers/api/v1/swagger" // for swagger generation
+	_ "codenest.dev/routers/api/v1/swagger" // for swagger generation
 
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -928,7 +928,7 @@ func individualPermsChecker(ctx *context.APIContext) {
 // check for and warn against deprecated authentication options
 func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 	if ctx.FormString("token") != "" || ctx.FormString("access_token") != "" {
-		ctx.Resp.Header().Set("X-Gitea-Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
+		ctx.Resp.Header().Set("X-Gitea-Warning", "token and access_token API authentication is deprecated and will be removed in codenest 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
 	}
 }
 
@@ -1687,7 +1687,7 @@ func Routes() *web.Router {
 			}, repoAssignment())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
-		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
+		// NOTE: these are CodeNest package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}", func() {
 				m.Get("/", packages.ListPackageVersions)

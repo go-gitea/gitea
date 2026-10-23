@@ -6,8 +6,8 @@ package convert
 import (
 	"time"
 
-	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
+	"codenest.dev/modules/git"
+	api "codenest.dev/modules/structs"
 )
 
 // ToWikiCommit convert a git commit into a WikiCommit

@@ -14,12 +14,12 @@ import (
 	"net/http"
 	"testing"
 
-	"gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	alpine_module "gitea.dev/modules/packages/alpine"
-	alpine_service "gitea.dev/services/packages/alpine"
-	"gitea.dev/tests"
+	"codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	alpine_module "codenest.dev/modules/packages/alpine"
+	alpine_service "codenest.dev/services/packages/alpine"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +29,7 @@ func TestPackageAlpine(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	packageName := "gitea-test"
+	packageName := "codenest-test"
 	packageVersion := "1.4.1-r3"
 
 	base64AlpinePackageContent := `H4sIAAAAAAACA9ML9nT30wsKdtTLzjNJzjYuckjPLElN1DUzMUxMNTa11CsqTtQrKE1ioAAYAIGZ
@@ -223,12 +223,12 @@ AACAX/AKARNTyAAoAAA=`
 					assert.Contains(t, content, "V:"+packageVersion+"\n")
 					assert.Contains(t, content, "A:x86_64\n")
 					assert.NotContains(t, content, "A:noarch\n")
-					assert.Contains(t, content, "T:Gitea Test Package\n")
+					assert.Contains(t, content, "T:CodeNest Test Package\n")
 					assert.Contains(t, content, "U:https://gitea.io/\n")
 					assert.Contains(t, content, "L:MIT\n")
 					assert.Contains(t, content, "S:1353\n")
 					assert.Contains(t, content, "I:4096\n")
-					assert.Contains(t, content, "o:gitea-test\n")
+					assert.Contains(t, content, "o:codenest-test\n")
 					assert.Contains(t, content, "m:KN4CK3R <kn4ck3r@gitea.io>\n")
 					assert.Contains(t, content, "t:1679498030\n")
 				})
@@ -260,11 +260,11 @@ AACAX/AKARNTyAAoAAA=`
 
 					// noarch package should be available with every architecture requested
 					for _, arch := range []string{alpine_module.NoArch, "x86_64", "my_arch"} {
-						req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s/%s/gitea-noarch-1.4-r0.apk", rootURL, branch, repository, arch))
+						req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s/%s/codenest-noarch-1.4-r0.apk", rootURL, branch, repository, arch))
 						MakeRequest(t, req, http.StatusOK)
 					}
 
-					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/noarch/gitea-noarch-1.4-r0.apk", rootURL, branch, repository)).
+					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/noarch/codenest-noarch-1.4-r0.apk", rootURL, branch, repository)).
 						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusNoContent)
 				})
@@ -294,7 +294,7 @@ AACAX/AKARNTyAAoAAA=`
 					req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s/noarch/APKINDEX.tar.gz", rootURL, branch, noarchRepository))
 					MakeRequest(t, req, http.StatusOK)
 
-					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/noarch/gitea-noarch-1.4-r0.apk", rootURL, branch, noarchRepository)).
+					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/noarch/codenest-noarch-1.4-r0.apk", rootURL, branch, noarchRepository)).
 						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusNoContent)
 				})

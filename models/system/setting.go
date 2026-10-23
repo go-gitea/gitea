@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting/config"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting/config"
+	"codenest.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )

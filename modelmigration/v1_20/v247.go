@@ -6,8 +6,8 @@ package v1_20
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/log"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/log"
 )
 
 // FixIncorrectProjectType: set individual project's type from 3(TypeOrganization) to 1(TypeIndividual)

@@ -8,12 +8,12 @@ import (
 	"io"
 	"strings"
 
-	packages_model "gitea.dev/models/packages"
-	container_service "gitea.dev/models/packages/container"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/packages"
-	container_module "gitea.dev/modules/packages/container"
+	packages_model "codenest.dev/models/packages"
+	container_service "codenest.dev/models/packages/container"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/packages"
+	container_module "codenest.dev/modules/packages/container"
 
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )

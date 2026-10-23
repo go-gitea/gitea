@@ -11,22 +11,22 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
+	auth_model "codenest.dev/models/auth"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestManualMergeAutodetect(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		// user2 is the repo owner
 		// user1 is the pusher/merger
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
@@ -69,14 +69,14 @@ func TestManualMergeAutodetect(t *testing.T) {
 		// The first merge fast-forwards; the rest produce real merge commits,
 		// which generates multiple commits for "git rev-list --ancestry-path --merges ...".
 		dstPath := t.TempDir()
-		u, _ := url.Parse(giteaURL.String())
+		u, _ := url.Parse(codenestURL.String())
 		u.Path = fmt.Sprintf("%s/%s.git", user2.Name, repoName)
 		u.User = url.UserPassword(user1.Name, userPassword)
 
 		doGitClone(dstPath, u)(t)
 
 		// Capture each branch's expected merge commit hash from the local clone,
-		// so we can assert that Gitea recorded the correct merge commit per PR
+		// so we can assert that CodeNest recorded the correct merge commit per PR
 		// (and not just "some merge commit" — see the regression where every PR
 		// was attributed to the last merge in the push).
 		expectedMergeCommits := make([]string, len(branchNames))

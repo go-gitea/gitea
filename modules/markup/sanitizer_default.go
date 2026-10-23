@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"regexp"
 
-	"gitea.dev/modules/markup/common"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/markup/common"
+	"codenest.dev/modules/setting"
 
 	"github.com/microcosm-cc/bluemonday"
 )

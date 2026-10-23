@@ -9,14 +9,14 @@ import (
 	"slices"
 	"time"
 
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	org_model "gitea.dev/models/organization"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	org_model "codenest.dev/models/organization"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
 )
 
 type ReviewRequestNotifier struct {

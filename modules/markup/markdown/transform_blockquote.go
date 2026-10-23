@@ -6,7 +6,7 @@ package markdown
 import (
 	"strings"
 
-	"gitea.dev/modules/svg"
+	"codenest.dev/modules/svg"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"

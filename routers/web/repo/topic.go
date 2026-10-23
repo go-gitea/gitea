@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/log"
-	"gitea.dev/services/context"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/log"
+	"codenest.dev/services/context"
 )
 
 // TopicsPost response for creating repository

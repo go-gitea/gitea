@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	audit_model "gitea.dev/models/audit"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/structs"
-	"gitea.dev/services/audit"
+	audit_model "codenest.dev/models/audit"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/structs"
+	"codenest.dev/services/audit"
 
 	"github.com/markbates/goth"
 )

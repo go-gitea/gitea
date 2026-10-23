@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/graceful/releasereopen"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/graceful/releasereopen"
+	"codenest.dev/modules/util"
 )
 
 type Options struct {

@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 	"time"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	asymkey_model "codenest.dev/models/asymkey"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // RewriteAllPublicKeys removes any authorized key and rewrite all keys from database again.
@@ -63,7 +63,7 @@ func rewriteAllPublicKeys(ctx context.Context) error {
 			return err
 		}
 		if isExist {
-			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+			bakPath := fmt.Sprintf("%s_%d.codenest_bak", fPath, time.Now().Unix())
 			if err = util.CopyFile(fPath, bakPath); err != nil {
 				return err
 			}

@@ -6,9 +6,9 @@ package session
 import (
 	"context"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/auth"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/timeutil"
 )
 
 type dbBackend struct {

@@ -8,9 +8,9 @@ import (
 	"errors"
 	"strings"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/auth/source/smtp"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/auth/source/smtp"
 
 	"github.com/urfave/cli/v3"
 )

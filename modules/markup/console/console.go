@@ -8,10 +8,10 @@ import (
 	"io"
 	"unicode/utf8"
 
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/typesniffer"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/typesniffer"
+	"codenest.dev/modules/util"
 
 	trend "github.com/buildkite/terminal-to-html/v3"
 )

@@ -10,15 +10,15 @@ import (
 	"net/http"
 	"strings"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/httpcache"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/modules/web/routing"
-	"gitea.dev/services/context"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/httpcache"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/web/middleware"
+	"codenest.dev/modules/web/routing"
+	"codenest.dev/services/context"
 )
 
 const (
@@ -45,7 +45,7 @@ func renderServerErrorPage(w http.ResponseWriter, req *http.Request, respCode in
 		err := templates.PageRenderer().HTML(outBuf, respCode, tmpl, ctxData, tmplCtx)
 		if err != nil {
 			log.Error("Failed to render error page template %s: %v", tmpl, err)
-			_, _ = w.Write([]byte("Internal server error but failed to render error page template, please collect error logs and report to Gitea issue tracker"))
+			_, _ = w.Write([]byte("Internal server error but failed to render error page template, please collect error logs and report to CodeNest issue tracker"))
 			return
 		}
 	} else {
@@ -69,7 +69,7 @@ func renderPanicErrorPage(w http.ResponseWriter, req *http.Request, recovered an
 
 	plainMsg := "Internal Server Error"
 	ctxData := middleware.GetContextData(req.Context())
-	// This recovery handler could be called without Gitea's web context, so we shouldn't touch that context too much.
+	// This recovery handler could be called without CodeNest's web context, so we shouldn't touch that context too much.
 	// Otherwise, the 500-page may cause new panics, eg: cache.GetContextWithData, it makes the developer&users couldn't find the original panic.
 	user, _ := ctxData[middleware.ContextDataKeySignedUser].(*user_model.User)
 	if !setting.IsProd || setting.IsInTesting || (user != nil && user.IsAdmin) {

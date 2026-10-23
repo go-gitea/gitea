@@ -6,7 +6,7 @@ package pubsub
 import (
 	"fmt"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 )
 
 // Init replaces DefaultBroker according to setting.Websocket. Called from

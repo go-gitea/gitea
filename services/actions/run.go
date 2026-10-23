@@ -8,13 +8,13 @@ import (
 	"errors"
 	"fmt"
 
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 	act_model "gitea.dev/actionslib/pkg/model"
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -117,8 +117,8 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		}
 		run.LatestAttemptID = runAttempt.ID
 
-		giteaCtx := GenerateGiteaContext(ctx, run, runAttempt, nil)
-		jobs, err := jobparser.Parse(content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputs))
+		codenestCtx := GenerateCodeNestContext(ctx, run, runAttempt, nil)
+		jobs, err := jobparser.Parse(content, jobparser.WithVars(vars), jobparser.WithGitContext(codenestCtx.ToGitHubContext()), jobparser.WithInputs(inputs))
 		if err != nil {
 			return fmt.Errorf("parse workflow: %w", err)
 		}

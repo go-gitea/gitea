@@ -8,13 +8,13 @@ import (
 	"errors"
 	"time"
 
-	"gitea.dev/modelmigration"
-	"gitea.dev/models/db"
-	system_model "gitea.dev/models/system"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/setting/config"
-	"gitea.dev/services/versioned_migration"
+	"codenest.dev/modelmigration"
+	"codenest.dev/models/db"
+	system_model "codenest.dev/models/system"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/setting/config"
+	"codenest.dev/services/versioned_migration"
 )
 
 // InitDBEngine In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
@@ -52,7 +52,7 @@ func migrateWithSetting(ctx context.Context, x db.EngineMigration) error {
 		return versioned_migration.Migrate(ctx, x)
 	} else if expected := modelmigration.ExpectedDBVersion(); current != expected {
 		log.Fatal(`"database.AUTO_MIGRATION" is disabled, but current database version %d is not equal to the expected version %d.`+
-			`You can set "database.AUTO_MIGRATION" to true or migrate manually by running "gitea [--config /path/to/app.ini] migrate"`, current, expected)
+			`You can set "database.AUTO_MIGRATION" to true or migrate manually by running "codenest [--config /path/to/app.ini] migrate"`, current, expected)
 	}
 	return nil
 }

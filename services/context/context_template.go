@@ -12,14 +12,14 @@ import (
 	"strings"
 	"time"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/webtheme"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/web/middleware"
+	"codenest.dev/services/webtheme"
 )
 
 type TemplateContext map[string]any
@@ -118,7 +118,7 @@ func WebContentSecurityPolicy(scriptNonce string) string {
 		return "" // if site admin disables the general CSP, then we don't use it
 	}
 	// The CSP problem is more complicated than it looks.
-	// Gitea was designed to support various "customizations", including:
+	// CodeNest was designed to support various "customizations", including:
 	// * custom themes (custom CSS and JS)
 	// * custom assets URL (CDN)
 	// * custom plugins and external renders (e.g.: PlantUML render, and the renders might also load some JS/CSS assets)
@@ -126,7 +126,7 @@ func WebContentSecurityPolicy(scriptNonce string) string {
 	//
 	// There can be 2 approaches in the future:
 	// A. Let end users to configure their reverse proxy to add CSP header
-	//    * Browsers will merge and use the stricter rules between Gitea and reverse proxy
+	//    * Browsers will merge and use the stricter rules between CodeNest and reverse proxy
 	// B. Introduce some config options in "app.ini"
 	//    * Maybe this approach should be avoided, don't make the config system too complex, just let users use A
 

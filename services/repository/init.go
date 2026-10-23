@@ -9,13 +9,13 @@ import (
 	"os"
 	"time"
 
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/log"
-	asymkey_service "gitea.dev/services/asymkey"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/log"
+	asymkey_service "codenest.dev/services/asymkey"
 )
 
 // initRepoCommit temporarily changes with work directory.

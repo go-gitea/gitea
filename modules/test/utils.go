@@ -20,8 +20,8 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/util"
 
 	"golang.org/x/net/html"
 )
@@ -147,7 +147,7 @@ func CompressGzip(content string) *bytes.Buffer {
 
 var AllowSkipExternalService = sync.OnceValue(func() bool {
 	isLocalTesting := os.Getenv("CI") == ""
-	ciSkipExternal, _ := strconv.ParseBool(os.Getenv("GITEA_TEST_CI_SKIP_EXTERNAL"))
+	ciSkipExternal, _ := strconv.ParseBool(os.Getenv("CODENEST_TEST_CI_SKIP_EXTERNAL"))
 	return isLocalTesting || ciSkipExternal
 })
 

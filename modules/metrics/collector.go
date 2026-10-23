@@ -6,9 +6,9 @@ package metrics
 import (
 	"runtime"
 
-	activities_model "gitea.dev/models/activities"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/setting"
+	activities_model "codenest.dev/models/activities"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/setting"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -16,7 +16,7 @@ import (
 const namespace = "gitea_"
 
 // Collector implements the prometheus.Collector interface and
-// exposes gitea metrics for prometheus
+// exposes codenest metrics for prometheus
 type Collector struct {
 	Accesses           *prometheus.Desc
 	Attachments        *prometheus.Desc

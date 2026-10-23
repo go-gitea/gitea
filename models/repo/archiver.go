@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )

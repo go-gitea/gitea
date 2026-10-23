@@ -6,15 +6,15 @@ package automerge
 import (
 	"context"
 
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/repository"
-	"gitea.dev/services/automergequeue"
-	notify_service "gitea.dev/services/notify"
-	pull_service "gitea.dev/services/pull"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/repository"
+	"codenest.dev/services/automergequeue"
+	notify_service "codenest.dev/services/notify"
+	pull_service "codenest.dev/services/pull"
 )
 
 type automergeNotifier struct {

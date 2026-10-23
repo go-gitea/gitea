@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )

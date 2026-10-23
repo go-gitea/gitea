@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/unittest"
-	issues_service "gitea.dev/services/issue"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/unittest"
+	issues_service "codenest.dev/services/issue"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -96,7 +96,7 @@ func testPullCommentRetarget(t *testing.T, _ *url.URL, session *TestSession) {
 }
 
 func TestPullComment(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testCreateBranch(t, session, "user2", "repo1", "branch/master", "test-branch/rebase", http.StatusSeeOther)
 		testCreateBranch(t, session, "user2", "repo1", "branch/master", "test-branch/retarget", http.StatusSeeOther)

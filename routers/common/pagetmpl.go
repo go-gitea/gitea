@@ -8,11 +8,11 @@ import (
 	"errors"
 	"sync"
 
-	activities_model "gitea.dev/models/activities"
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/log"
-	"gitea.dev/services/context"
+	activities_model "codenest.dev/models/activities"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/log"
+	"codenest.dev/services/context"
 )
 
 // StopwatchTmplInfo is a view on a stopwatch specifically for template rendering

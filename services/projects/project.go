@@ -6,9 +6,9 @@ package project
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	project_model "gitea.dev/models/project"
-	"gitea.dev/modules/optional"
+	"codenest.dev/models/db"
+	project_model "codenest.dev/models/project"
+	"codenest.dev/modules/optional"
 )
 
 // UpdateProjectOptions represents updatable project fields. Fields with no value are left unchanged.

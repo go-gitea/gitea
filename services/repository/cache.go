@@ -6,7 +6,7 @@ package repository
 import (
 	"context"
 
-	"gitea.dev/modules/git"
+	"codenest.dev/modules/git"
 )
 
 // CacheRef caches last commit information of the branch or the tag

@@ -9,8 +9,8 @@ import (
 	"path"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 // CommitInfo describes the first commit with the provided entry

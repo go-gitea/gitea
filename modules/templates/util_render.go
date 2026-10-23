@@ -13,24 +13,24 @@ import (
 	"slices"
 	"strings"
 
-	user_model "gitea.dev/models/gituser"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/renderhelper"
-	"gitea.dev/models/repo"
-	"gitea.dev/modules/charset"
-	"gitea.dev/modules/emoji"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/repository"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/svg"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/webtheme"
+	user_model "codenest.dev/models/gituser"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/renderhelper"
+	"codenest.dev/models/repo"
+	"codenest.dev/modules/charset"
+	"codenest.dev/modules/emoji"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/markup/markdown"
+	"codenest.dev/modules/repository"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/svg"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/webtheme"
 )
 
 type RenderUtils struct {
@@ -253,7 +253,7 @@ func (ut *RenderUtils) RenderThemeItem(info *webtheme.ThemeMetaInfo, iconSize in
 	case "light":
 		svgName = "octicon-sun"
 	case "auto":
-		svgName = "gitea-eclipse"
+		svgName = "codenest-eclipse"
 	}
 	icon := svg.RenderHTML(svgName, iconSize)
 	extraIcon := svg.RenderHTML(info.GetExtraIconName(), iconSize)
@@ -321,8 +321,8 @@ func (ut *RenderUtils) participantHref(data *user_model.AvatarStackData, partici
 	if href := renderAvatarStackViewEmailLink(data, participant.GitIdentity.Email); href != "" {
 		return href
 	}
-	if participant.GiteaUser != nil {
-		return template.URL(participant.GiteaUser.HomeLink())
+	if participant.CodeNestUser != nil {
+		return template.URL(participant.CodeNestUser.HomeLink())
 	} else if participant.GitIdentity.Email != "" {
 		return template.URL("mailto:" + participant.GitIdentity.Email)
 	}
@@ -330,15 +330,15 @@ func (ut *RenderUtils) participantHref(data *user_model.AvatarStackData, partici
 }
 
 func (ut *RenderUtils) participantAvatar(participant *user_model.CommitParticipant) template.HTML {
-	if participant.GiteaUser != nil {
-		return ut.avatarUtils.Avatar(participant.GiteaUser, 20)
+	if participant.CodeNestUser != nil {
+		return ut.avatarUtils.Avatar(participant.CodeNestUser, 20)
 	}
 	return ut.avatarUtils.AvatarByEmail(participant.GitIdentity.Email, participant.GitIdentity.Name, 20)
 }
 
 func participantName(participant *user_model.CommitParticipant) string {
-	if participant.GiteaUser != nil {
-		return participant.GiteaUser.GetDisplayName()
+	if participant.CodeNestUser != nil {
+		return participant.CodeNestUser.GetDisplayName()
 	}
 	return participant.GitIdentity.Name
 }
@@ -421,10 +421,10 @@ func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) te
 // participantNameLink prefers (in order): commits-by-author search, `GetShortDisplayNameLinkHTML` (keeps alt-name tooltip), `mailto:`, bare name.
 func (ut *RenderUtils) participantNameLink(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.HTML {
 	if href := renderAvatarStackViewEmailLink(data, participant.GitIdentity.Email); href != "" {
-		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>%s`, href, participantName(participant), ut.UserTypeLabel(participant.GiteaUser))
+		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>%s`, href, participantName(participant), ut.UserTypeLabel(participant.CodeNestUser))
 	}
-	if participant.GiteaUser != nil {
-		return participant.GiteaUser.GetShortDisplayNameLinkHTML() + ut.UserTypeLabel(participant.GiteaUser)
+	if participant.CodeNestUser != nil {
+		return participant.CodeNestUser.GetShortDisplayNameLinkHTML() + ut.UserTypeLabel(participant.CodeNestUser)
 	}
 	if participant.GitIdentity.Email != "" {
 		return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, participant.GitIdentity.Email, participant.GitIdentity.Name)
@@ -433,7 +433,7 @@ func (ut *RenderUtils) participantNameLink(data *user_model.AvatarStackData, par
 }
 
 func (ut *RenderUtils) participantPopupRow(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.HTML {
-	avatar, name, label := ut.participantAvatar(participant), participantName(participant), ut.UserTypeLabel(participant.GiteaUser)
+	avatar, name, label := ut.participantAvatar(participant), participantName(participant), ut.UserTypeLabel(participant.CodeNestUser)
 	if href := ut.participantHref(data, participant); href != "" {
 		return htmlutil.HTMLFormat(`<a class="silenced flex-text-block" href="%s">%s<span>%s</span></a>%s`, href, avatar, name, label)
 	}

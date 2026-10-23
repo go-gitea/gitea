@@ -4,8 +4,8 @@
 package repo
 
 import (
-	"gitea.dev/services/context"
-	repo_service "gitea.dev/services/repository"
+	"codenest.dev/services/context"
+	repo_service "codenest.dev/services/repository"
 )
 
 func acceptTransfer(ctx *context.Context) {

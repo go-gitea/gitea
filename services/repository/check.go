@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	system_model "gitea.dev/models/system"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	system_model "codenest.dev/models/system"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	repo_module "codenest.dev/modules/repository"
 
 	"xorm.io/builder"
 )

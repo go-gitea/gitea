@@ -6,7 +6,7 @@ package oauth2_provider
 import (
 	"context"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 )
 
 // Init initializes the oauth source

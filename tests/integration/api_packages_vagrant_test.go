@@ -14,13 +14,13 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
-	vagrant_module "gitea.dev/modules/packages/vagrant"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/json"
+	vagrant_module "codenest.dev/modules/packages/vagrant"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

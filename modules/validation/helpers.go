@@ -12,8 +12,8 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/setting"
 )
 
 type globalVarsStruct struct {

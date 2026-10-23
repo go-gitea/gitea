@@ -9,11 +9,11 @@ import (
 	"io"
 	"unicode/utf8"
 
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 type frontendRenderer struct {

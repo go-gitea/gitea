@@ -9,19 +9,19 @@ import (
 	"testing"
 	"time"
 
-	activities_model "gitea.dev/models/activities"
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/organization"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/timeutil"
-	org_service "gitea.dev/services/org"
+	activities_model "codenest.dev/models/activities"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/organization"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/timeutil"
+	org_service "codenest.dev/services/org"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -133,8 +133,8 @@ func TestPurgeUser(t *testing.T) {
 
 func TestCreateUser(t *testing.T) {
 	user := &user_model.User{
-		Name:               "GiteaBot",
-		Email:              "GiteaBot@gitea.io",
+		Name:               "CodeNestBot",
+		Email:              "CodeNestBot@gitea.io",
 		Passwd:             ";p['////..-++']",
 		IsAdmin:            false,
 		Theme:              setting.UI.DefaultTheme,
@@ -171,7 +171,7 @@ func TestRenameUser(t *testing.T) {
 	})
 
 	t.Run("Non usable username", func(t *testing.T) {
-		usernames := []string{"--diff", ".well-known", "gitea-actions", "aaa.atom", "aa.png"}
+		usernames := []string{"--diff", ".well-known", "codenest-actions", "aaa.atom", "aa.png"}
 		for _, username := range usernames {
 			assert.Error(t, user_model.IsUsableUsername(username), "non-usable username: %s", username)
 			assert.Error(t, RenameUser(t.Context(), user, username, user), "non-usable username: %s", username)
@@ -230,8 +230,8 @@ func TestCreateUser_Issue5882(t *testing.T) {
 		user               *user_model.User
 		disableOrgCreation bool
 	}{
-		{&user_model.User{Name: "GiteaBot", Email: "GiteaBot@gitea.io", Passwd: passwd, MustChangePassword: false}, false},
-		{&user_model.User{Name: "GiteaBot2", Email: "GiteaBot2@gitea.io", Passwd: passwd, MustChangePassword: false}, true},
+		{&user_model.User{Name: "CodeNestBot", Email: "CodeNestBot@gitea.io", Passwd: passwd, MustChangePassword: false}, false},
+		{&user_model.User{Name: "CodeNestBot2", Email: "CodeNestBot2@gitea.io", Passwd: passwd, MustChangePassword: false}, true},
 	}
 
 	setting.Service.DefaultAllowCreateOrganization = true

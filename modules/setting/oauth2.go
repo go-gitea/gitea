@@ -8,15 +8,15 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"gitea.dev/modules/generate"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/generate"
+	"codenest.dev/modules/log"
 )
 
-// OAuth2UsernameType is enum describing the way gitea generates its 'username' from oauth2 data
+// OAuth2UsernameType is enum describing the way codenest generates its 'username' from oauth2 data
 type OAuth2UsernameType string
 
 const (
-	OAuth2UsernameUserid            OAuth2UsernameType = "userid"             // use user id (sub) field as gitea's username
+	OAuth2UsernameUserid            OAuth2UsernameType = "userid"             // use user id (sub) field as codenest's username
 	OAuth2UsernameNickname          OAuth2UsernameType = "nickname"           // use nickname field
 	OAuth2UsernameEmail             OAuth2UsernameType = "email"              // use email field
 	OAuth2UsernamePreferredUsername OAuth2UsernameType = "preferred_username" // use preferred_username field

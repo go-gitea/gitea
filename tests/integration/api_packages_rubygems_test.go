@@ -18,11 +18,11 @@ import (
 	"net/http"
 	"testing"
 
-	"gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/packages/rubygems"
-	"gitea.dev/tests"
+	"codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/packages/rubygems"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -63,7 +63,7 @@ version: !ruby/object:Gem::Version
   version: %s
 platform: ruby
 authors:
-- Gitea
+- CodeNest
 autorequire:
 bindir: bin
 cert_chain: []
@@ -109,7 +109,7 @@ executables: []
 extensions: []
 extra_rdoc_files: []
 files:
-- lib/gitea.rb
+- lib/codenest.rb
 homepage: https://gitea.io/
 licenses:
 - MIT
@@ -133,15 +133,15 @@ rubyforge_project:
 rubygems_version: 2.7.6.2
 signing_key:
 specification_version: 4
-summary: Gitea package
+summary: CodeNest package
 test_files: []
 `, name, version)
 
 	metadataGz := makeArchiveFileGz([]byte(metadataContent))
 	dataTarGz := makeArchiveFileGz(makeArchiveFileTar([]*tarFile{
 		{
-			Name: "lib/gitea.rb",
-			Data: []byte("class Gitea\nend"),
+			Name: "lib/codenest.rb",
+			Data: []byte("class CodeNest\nend"),
 		},
 	}))
 
@@ -176,12 +176,12 @@ func TestPackageRubyGems(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	testGemName := "gitea"
+	testGemName := "codenest"
 	testGemVersion := "1.0.5"
 	testGemContent := makeRubyGem(testGemName, testGemVersion)
 	testGemContentChecksum := fmt.Sprintf("%x", sha256.Sum256(testGemContent))
 
-	testAnotherGemName := "gitea-another"
+	testAnotherGemName := "codenest-another"
 	testAnotherGemVersion := "0.99"
 	contentTestAnother := makeRubyGem(testAnotherGemName, testAnotherGemVersion)
 
@@ -251,7 +251,7 @@ func TestPackageRubyGems(t *testing.T) {
 		assert.NoError(t, err)
 		b, err := io.ReadAll(r)
 		assert.NoError(t, err)
-		expected := "\x04\bu:\x17Gem::Specification\x01\xc3\x04\b[\x18I\"\n3.2.3\x06:\x06ETi\tI\"\ngitea\x06;\x00TU:\x11Gem::Version[\x06I\"\n1.0.5\x06;\x00T0I\"\x12Gitea package\x06;\x00T00I\"\truby\x06;\x00T[\x000I\"\x00\x06;\x00T[\x06I\"\nGitea\x06;\x00TI\"\x1aRubyGems package test\x06;\x00TI\"\x16https://gitea.io/\x06;\x00TTI\"\truby\x06;\x00T0[\x06I\"\bMIT\x06;\x00T"
+		expected := "\x04\bu:\x17Gem::Specification\x01\xc3\x04\b[\x18I\"\n3.2.3\x06:\x06ETi\tI\"\ncodenest\x06;\x00TU:\x11Gem::Version[\x06I\"\n1.0.5\x06;\x00T0I\"\x12CodeNest package\x06;\x00T00I\"\truby\x06;\x00T[\x000I\"\x00\x06;\x00T[\x06I\"\nCodeNest\x06;\x00TI\"\x1aRubyGems package test\x06;\x00TI\"\x16https://gitea.io/\x06;\x00TTI\"\truby\x06;\x00T0[\x06I\"\bMIT\x06;\x00T"
 		assert.Contains(t, expected, string(b)) // the content is from rubygems_module.NewMarshalEncoder
 
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeRubyGems)
@@ -311,8 +311,8 @@ func TestPackageRubyGems(t *testing.T) {
 			req := NewRequest(t, "GET", root+"/versions").AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, `---
-gitea 1.0.5 `+testGemInfoMd5+`
-gitea-another 0.99 `+testAnotherGemInfoMd5+`
+codenest 1.0.5 `+testGemInfoMd5+`
+codenest-another 0.99 `+testAnotherGemInfoMd5+`
 `, resp.Body.String())
 		})
 	})

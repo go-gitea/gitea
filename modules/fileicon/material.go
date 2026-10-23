@@ -8,12 +8,12 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/options"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/svg"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/options"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/svg"
+	"codenest.dev/modules/util"
 )
 
 type materialIconRulesData struct {

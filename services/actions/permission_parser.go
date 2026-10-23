@@ -4,11 +4,11 @@
 package actions
 
 import (
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/setting"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -115,7 +115,7 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 				result.UnitAccessModes[unit.TypeProjects] = mode
 			case "id-token":
 				result.IDToken = mode == perm.AccessModeWrite
-			// Scopes github supports but gitea does not, see url for details
+			// Scopes github supports but codenest does not, see url for details
 			// https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 			case "artifact-metadata", "attestations", "checks", "deployments",
 				"models", "discussions", "pages", "security-events", "statuses":

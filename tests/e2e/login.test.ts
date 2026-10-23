@@ -9,8 +9,8 @@ test('homepage', async ({page}) => {
 
 test('login form and logout', async ({page}) => {
   await page.goto('/user/login');
-  await page.getByLabel('Username or Email Address').fill(env.GITEA_TEST_E2E_USER);
-  await page.getByLabel('Password').fill(env.GITEA_TEST_E2E_PASSWORD);
+  await page.getByLabel('Username or Email Address').fill(env.CODENEST_TEST_E2E_USER);
+  await page.getByLabel('Password').fill(env.CODENEST_TEST_E2E_PASSWORD);
   await page.getByRole('button', {name: 'Sign In'}).click();
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeHidden();
   await logout(page);

@@ -1,10 +1,10 @@
 WORK_PATH = {{TEST_WORK_PATH}}
-APP_NAME = Gitea: Git with a cup of tea
+APP_NAME = CodeNest: Git with a cup of tea
 RUN_MODE = prod
 
 [database]
 DB_TYPE = sqlite3
-PATH    = {{TEST_WORK_PATH}}/gitea-test.db
+PATH    = {{TEST_WORK_PATH}}/codenest-test.db
 SQLITE_JOURNAL_MODE = MEMORY
 
 [indexer]
@@ -92,7 +92,7 @@ ENABLED = true
 [markup.html]
 ENABLED = true
 FILE_EXTENSIONS = .html
-RENDER_COMMAND = go run {{GITEA_TEST_ROOT}}/tools/test-echo.go
+RENDER_COMMAND = go run {{CODENEST_TEST_ROOT}}/tools/test-echo.go
 ;RENDER_COMMAND = cat
 ;IS_INPUT_FILE = true
 RENDER_CONTENT_MODE = sanitized
@@ -100,7 +100,7 @@ RENDER_CONTENT_MODE = sanitized
 [markup.no-sanitizer]
 ENABLED = true
 FILE_EXTENSIONS = .no-sanitizer
-RENDER_COMMAND = go run {{GITEA_TEST_ROOT}}/tools/test-echo.go
+RENDER_COMMAND = go run {{CODENEST_TEST_ROOT}}/tools/test-echo.go
 ; This test case is reused, at first it is used to test "no-sanitizer" (sandbox doesn't take effect here)
 ; Then it will be updated and used to test "iframe + sandbox-disabled"
 RENDER_CONTENT_MODE = no-sanitizer

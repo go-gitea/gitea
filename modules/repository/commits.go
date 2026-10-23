@@ -9,10 +9,10 @@ import (
 	"net/url"
 	"time"
 
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	api "codenest.dev/modules/structs"
 )
 
 // PushCommit represents a commit in a push operation.

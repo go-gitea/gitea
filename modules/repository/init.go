@@ -10,11 +10,11 @@ import (
 	"sort"
 	"strings"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/label"
-	"gitea.dev/modules/options"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/label"
+	"codenest.dev/modules/options"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 type OptionFile struct {

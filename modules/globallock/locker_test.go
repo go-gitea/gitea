@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/test"
 
 	"github.com/go-redsync/redsync/v4"
 	"github.com/stretchr/testify/assert"

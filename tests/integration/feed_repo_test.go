@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	repo_service "gitea.dev/services/repository"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	repo_service "codenest.dev/services/repository"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

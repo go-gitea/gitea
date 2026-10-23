@@ -8,9 +8,9 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/references"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/references"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -123,7 +123,7 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 			text += " (" + ret.QueryHash + ")"
 		}
 		// only turn commit links to the current instance into hash link
-		if !httplib.IsCurrentGiteaSiteURL(ctx, ret.FullURL) {
+		if !httplib.IsCurrentCodeNestSiteURL(ctx, ret.FullURL) {
 			node = node.NextSibling
 			continue
 		}
@@ -174,7 +174,7 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		// only turn compare links to the current instance into hash link
-		if !httplib.IsCurrentGiteaSiteURL(ctx, urlFull) {
+		if !httplib.IsCurrentCodeNestSiteURL(ctx, urlFull) {
 			node = node.NextSibling
 			continue
 		}

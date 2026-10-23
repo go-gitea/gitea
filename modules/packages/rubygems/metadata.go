@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/packages"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
+	"codenest.dev/modules/packages"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
 
 	"go.yaml.in/yaml/v4"
 )

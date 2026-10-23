@@ -7,7 +7,7 @@ import (
 	"context"
 	"strings"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func AddPrimaryEmail2EmailAddress(_ context.Context, x base.EngineMigration) error {

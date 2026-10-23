@@ -7,15 +7,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	shared_user "gitea.dev/routers/web/shared/user"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
+	"codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	shared_user "codenest.dev/routers/web/shared/user"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
 )
 
 type OAuth2CommonHandlers struct {

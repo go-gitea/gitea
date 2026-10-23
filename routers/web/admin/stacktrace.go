@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"runtime"
 
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/context"
 )
 
 func monitorTraceCommon(ctx *context.Context) {

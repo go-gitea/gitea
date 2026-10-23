@@ -11,8 +11,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/util"
 )
 
 // Commit represents a git commit.

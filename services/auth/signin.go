@@ -7,18 +7,18 @@ import (
 	"context"
 	"strings"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/services/auth/source/oauth2"
-	"gitea.dev/services/auth/source/smtp"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/services/auth/source/oauth2"
+	"codenest.dev/services/auth/source/smtp"
 
-	_ "gitea.dev/services/auth/source/db"   // register the sources (and below)
-	_ "gitea.dev/services/auth/source/ldap" // register the ldap source
-	_ "gitea.dev/services/auth/source/pam"  // register the pam source
-	_ "gitea.dev/services/auth/source/sspi" // register the sspi source
+	_ "codenest.dev/services/auth/source/db"   // register the sources (and below)
+	_ "codenest.dev/services/auth/source/ldap" // register the ldap source
+	_ "codenest.dev/services/auth/source/pam"  // register the pam source
+	_ "codenest.dev/services/auth/source/sspi" // register the sspi source
 
 	"xorm.io/builder"
 )

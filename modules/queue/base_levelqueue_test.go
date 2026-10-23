@@ -6,8 +6,8 @@ package queue
 import (
 	"testing"
 
-	"gitea.dev/modules/queue/lqinternal"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/queue/lqinternal"
+	"codenest.dev/modules/setting"
 
 	"gitea.com/lunny/levelqueue"
 	"github.com/stretchr/testify/assert"

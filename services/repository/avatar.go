@@ -9,11 +9,11 @@ import (
 	"io"
 	"strconv"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/avatar"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/storage"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/avatar"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/storage"
 )
 
 // UploadAvatar saves custom avatar for repository.

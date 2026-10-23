@@ -4,7 +4,7 @@
 package oauth2
 
 import (
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/azuread"

@@ -6,12 +6,12 @@ package renderhelper
 import (
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/test"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/markup/markdown"
+	"codenest.dev/modules/test"
 
-	_ "gitea.dev/modules/markup/orgmode"
+	_ "codenest.dev/modules/markup/orgmode"
 
 	"github.com/stretchr/testify/assert"
 )

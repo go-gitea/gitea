@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/util"
 )
 
 type GrepResult struct {
@@ -49,7 +49,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	 The output is like this ( "^@" means \x00):
 
 	 HEAD:.air.toml
-	 6^@bin = "gitea"
+	 6^@bin = "codenest"
 
 	 HEAD:.changelog.yml
 	 2^@repo: go-gitea/gitea

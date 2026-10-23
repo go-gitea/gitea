@@ -6,16 +6,16 @@ package user
 import (
 	"testing"
 
-	audit_model "gitea.dev/models/audit"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	password_module "gitea.dev/modules/auth/password"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
+	audit_model "codenest.dev/models/audit"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	password_module "codenest.dev/modules/auth/password"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )

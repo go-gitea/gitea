@@ -6,9 +6,9 @@ package convert
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
+	"codenest.dev/models/unittest"
 
-	_ "gitea.dev/models/actions"
+	_ "codenest.dev/models/actions"
 )
 
 func TestMain(m *testing.M) {

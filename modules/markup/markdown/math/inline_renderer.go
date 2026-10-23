@@ -6,7 +6,7 @@ package math
 import (
 	"bytes"
 
-	"gitea.dev/modules/markup/internal"
+	"codenest.dev/modules/markup/internal"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"

@@ -7,9 +7,9 @@ import (
 	"context"
 	"time"
 
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
 )
 
 const (

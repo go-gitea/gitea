@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	helm_module "gitea.dev/modules/packages/helm"
-	"gitea.dev/modules/setting"
-	"gitea.dev/tests"
+	"codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	helm_module "codenest.dev/modules/packages/helm"
+	"codenest.dev/modules/setting"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"go.yaml.in/yaml/v4"
@@ -31,7 +31,7 @@ func TestPackageHelm(t *testing.T) {
 	packageName := "test-chart"
 	packageVersion := "1.0.3"
 	packageAuthor := "KN4CK3R"
-	packageDescription := "Gitea Test Package"
+	packageDescription := "CodeNest Test Package"
 
 	filename := fmt.Sprintf("%s-%s.tgz", packageName, packageVersion)
 

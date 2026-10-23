@@ -8,10 +8,10 @@ import (
 	"context"
 	"io"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	asymkey_service "gitea.dev/services/asymkey"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	asymkey_service "codenest.dev/services/asymkey"
 )
 
 // This file contains commit verification functions for refs passed across in hooks

@@ -10,17 +10,17 @@ import (
 	"net/url"
 	"strconv"
 
-	"gitea.dev/models/db"
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/modules/optional"
-	packages_module "gitea.dev/modules/packages"
-	composer_module "gitea.dev/modules/packages/composer"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/packages/helper"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	packages_service "gitea.dev/services/packages"
+	"codenest.dev/models/db"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/modules/optional"
+	packages_module "codenest.dev/modules/packages"
+	composer_module "codenest.dev/modules/packages/composer"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/packages/helper"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	packages_service "codenest.dev/services/packages"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {

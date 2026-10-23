@@ -6,11 +6,11 @@ package issues
 import (
 	"strings"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/indexer/issues/internal"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/indexer/issues/internal"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
 )
 
 func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOptions {

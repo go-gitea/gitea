@@ -12,16 +12,16 @@ import (
 	"strings"
 	"time"
 
-	activities_model "gitea.dev/models/activities"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/svg"
+	activities_model "codenest.dev/models/activities"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/svg"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -130,7 +130,7 @@ func migrationIcon(hostname string) string {
 	case "github.com":
 		return "octicon-mark-github"
 	default:
-		return "gitea-git"
+		return "codenest-git"
 	}
 }
 

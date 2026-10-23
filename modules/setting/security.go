@@ -8,10 +8,10 @@ import (
 	"os"
 	"strings"
 
-	"gitea.dev/modules/auth/password/hash"
-	"gitea.dev/modules/egress/policy"
-	"gitea.dev/modules/generate"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/auth/password/hash"
+	"codenest.dev/modules/egress/policy"
+	"codenest.dev/modules/generate"
+	"codenest.dev/modules/log"
 )
 
 // Security settings
@@ -55,29 +55,29 @@ func checkHostList(key, hostList string, isBlockList bool) {
 }
 
 var (
-	InstallLock                        bool
-	SecretKey                          string
-	InternalToken                      string // internal access token
-	LogInRememberDays                  int
-	CookieRememberName                 string
-	ReverseProxyAuthUser               string
-	ReverseProxyAuthEmail              string
-	ReverseProxyAuthFullName           string
-	ReverseProxyLimit                  int
-	ReverseProxyLogoutRedirect         string
-	ReverseProxyTrustedProxies         []string
-	MinPasswordLength                  int
-	ImportLocalPaths                   bool
-	DisableGitHooks                    = true
-	DisableWebhooks                    bool
-	OnlyAllowPushIfGiteaEnvironmentSet bool
-	PasswordComplexity                 []string
-	PasswordHashAlgo                   string
-	PasswordCheckPwn                   bool
-	SuccessfulTokensCacheSize          int
-	DisableQueryAuthToken              bool
-	RecordUserSignupMetadata           = false
-	TwoFactorAuthEnforced              = false
+	InstallLock                           bool
+	SecretKey                             string
+	InternalToken                         string // internal access token
+	LogInRememberDays                     int
+	CookieRememberName                    string
+	ReverseProxyAuthUser                  string
+	ReverseProxyAuthEmail                 string
+	ReverseProxyAuthFullName              string
+	ReverseProxyLimit                     int
+	ReverseProxyLogoutRedirect            string
+	ReverseProxyTrustedProxies            []string
+	MinPasswordLength                     int
+	ImportLocalPaths                      bool
+	DisableGitHooks                       = true
+	DisableWebhooks                       bool
+	OnlyAllowPushIfCodeNestEnvironmentSet bool
+	PasswordComplexity                    []string
+	PasswordHashAlgo                      string
+	PasswordCheckPwn                      bool
+	SuccessfulTokensCacheSize             int
+	DisableQueryAuthToken                 bool
+	RecordUserSignupMetadata              = false
+	TwoFactorAuthEnforced                 = false
 )
 
 // loadSecret load the secret from ini by uriKey or verbatimKey, only one of them could be set
@@ -151,7 +151,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		SecretKey = "!#@FDEWREWR&*("
 	}
 
-	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_remember")
+	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("codenest_remember")
 
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
@@ -168,7 +168,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)
 	DisableWebhooks = sec.Key("DISABLE_WEBHOOKS").MustBool(false)
-	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
+	OnlyAllowPushIfCodeNestEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_CODENEST_ENVIRONMENT_SET").MustBool(true)
 
 	// Ensure that the provided default hash algorithm is a valid hash algorithm
 	var algorithm *hash.PasswordHashAlgorithm
@@ -201,7 +201,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 
 	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN")
 	if InstallLock && InternalToken == "" {
-		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
+		// if CodeNest has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
 		// some users do cluster deployment, they still depend on this auto-generating behavior.
 		generateSaveInternalToken(rootCfg)
 	}
@@ -227,6 +227,6 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 
 	// warn if the setting is set to false explicitly
 	if sectionHasDisableQueryAuthToken && !DisableQueryAuthToken {
-		log.Warn("Enabling Query API Auth tokens is not recommended. DISABLE_QUERY_AUTH_TOKEN will default to true in gitea 1.23 and will be removed in gitea 1.24.")
+		log.Warn("Enabling Query API Auth tokens is not recommended. DISABLE_QUERY_AUTH_TOKEN will default to true in codenest 1.23 and will be removed in codenest 1.24.")
 	}
 }

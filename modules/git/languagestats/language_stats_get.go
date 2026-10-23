@@ -8,11 +8,11 @@ import (
 	"context"
 	"io"
 
-	"gitea.dev/modules/analyze"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/attribute"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
+	"codenest.dev/modules/analyze"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/attribute"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
 
 	"github.com/go-enry/go-enry/v2"
 )

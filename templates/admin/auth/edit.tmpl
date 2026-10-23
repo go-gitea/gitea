@@ -140,11 +140,11 @@
 						</div>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "admin.auths.verify_group_membership"}}</label>
-							<input name="group_filter" value="{{$cfg.GroupFilter}}" placeholder="(|(cn=gitea_users)(cn=admins))">
+							<input name="group_filter" value="{{$cfg.GroupFilter}}" placeholder="(|(cn=codenest_users)(cn=admins))">
 						</div>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "admin.auths.map_group_to_team"}}</label>
-							<textarea name="group_team_map" rows="5" placeholder='{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>{{$cfg.GroupTeamMap}}</textarea>
+							<textarea name="group_team_map" rows="5" placeholder='{"cn=my-group,cn=groups,dc=example,dc=org": {"MyCodeNestOrganization": ["MyCodeNestTeam1", "MyCodeNestTeam2"]}}'>{{$cfg.GroupTeamMap}}</textarea>
 						</div>
 						<div class="ui checkbox">
 							<label>{{ctx.Locale.Tr "admin.auths.map_group_to_team_removal"}}</label>
@@ -359,7 +359,7 @@
 					</div>
 					<div class="field">
 						<label>{{ctx.Locale.Tr "admin.auths.oauth2_map_group_to_team"}}</label>
-						<textarea name="oauth2_group_team_map" rows="5" placeholder='{"Developer": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>{{$cfg.GroupTeamMap}}</textarea>
+						<textarea name="oauth2_group_team_map" rows="5" placeholder='{"Developer": {"MyCodeNestOrganization": ["MyCodeNestTeam1", "MyCodeNestTeam2"]}}'>{{$cfg.GroupTeamMap}}</textarea>
 					</div>
 					<div class="ui checkbox">
 						<label>{{ctx.Locale.Tr "admin.auths.oauth2_map_group_to_team_removal"}}</label>

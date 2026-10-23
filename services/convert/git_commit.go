@@ -8,13 +8,13 @@ import (
 	"net/url"
 	"time"
 
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
-	ctx "gitea.dev/services/context"
-	"gitea.dev/services/gitdiff"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	api "codenest.dev/modules/structs"
+	ctx "codenest.dev/services/context"
+	"codenest.dev/services/gitdiff"
 )
 
 // ToCommitUser convert a git.Signature to an api.CommitUser

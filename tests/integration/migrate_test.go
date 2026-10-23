@@ -17,19 +17,19 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/services/migrations"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/services/migrations"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,9 +58,9 @@ func TestMigrateLocalPath(t *testing.T) {
 	assert.NoError(t, err, "case mixedcase path")
 }
 
-func TestMigrateGiteaForm(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		// Gitea SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
+func TestMigrateCodeNestForm(t *testing.T) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
+		// CodeNest SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
 		defer test.MockVariableValue(&setting.AppVer, "1.16.0")()
 
 		ownerName := "user2"
@@ -72,8 +72,8 @@ func TestMigrateGiteaForm(t *testing.T) {
 		// Step 0: verify the repo is available
 		req := NewRequestf(t, "GET", "/%s/%s", ownerName, repoName)
 		_ = session.MakeRequest(t, req, http.StatusOK)
-		// Step 1: get the Gitea migration form
-		req = NewRequestf(t, "GET", "/repo/migrate/?service_type=%d", structs.GiteaService)
+		// Step 1: get the CodeNest migration form
+		req = NewRequestf(t, "GET", "/repo/migrate/?service_type=%d", structs.CodeNestService)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		// Step 2: load the form
 		htmlDoc := NewHTMLParser(t, resp.Body)
@@ -82,11 +82,11 @@ func TestMigrateGiteaForm(t *testing.T) {
 		assert.True(t, exists, "The template has changed")
 		serviceInput, exists := form.Find(`input[name="service"]`).Attr("value")
 		assert.True(t, exists)
-		assert.Equal(t, fmt.Sprintf("%d", structs.GiteaService), serviceInput)
+		assert.Equal(t, fmt.Sprintf("%d", structs.CodeNestService), serviceInput)
 		// Step 4: submit the migration to only migrate issues
 		migratedRepoName := "otherrepo"
 		req = NewRequestWithValues(t, "POST", link, map[string]string{
-			"service":     fmt.Sprintf("%d", structs.GiteaService),
+			"service":     fmt.Sprintf("%d", structs.CodeNestService),
 			"clone_addr":  fmt.Sprintf("%s%s/%s", u, ownerName, repoName),
 			"auth_token":  token,
 			"issues":      "on",
@@ -110,15 +110,15 @@ func Test_UpdateCommentsMigrationsByType(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// setupGiteaMockServer creates a mock HTTP server that replays API responses from fixture files.
-// If a GITEA_TOKEN environment variable is set, the mock server proxies requests to the live
+// setupCodeNestMockServer creates a mock HTTP server that replays API responses from fixture files.
+// If a CODENEST_TOKEN environment variable is set, the mock server proxies requests to the live
 // gitea.com instance and saves the responses as fixture files for future test runs.
-// Example: GITEA_TOKEN=your_token go test -run Test_MigrateFromGiteaToGitea
-func setupGiteaMockServer(t *testing.T) *httptest.Server {
+// Example: CODENEST_TOKEN=your_token go test -run Test_MigrateFromCodeNestToCodeNest
+func setupCodeNestMockServer(t *testing.T) *httptest.Server {
 	t.Helper()
 
-	giteaToken := os.Getenv("GITEA_TOKEN")
-	liveMode := giteaToken != ""
+	codenestToken := os.Getenv("CODENEST_TOKEN")
+	liveMode := codenestToken != ""
 
 	// fast-import data creates deterministic commits (fixed author/committer/timestamps),
 	// so the resulting SHAs are always the same across runs.
@@ -189,12 +189,12 @@ done
 	httpBackend := filepath.Join(strings.TrimSpace(string(execPathBytes)), "git-http-backend")
 
 	_, callerFile, _, _ := runtime.Caller(0)
-	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/Test_MigrateFromGiteaToGitea")
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/Test_MigrateFromCodeNestToCodeNest")
 	return unittest.NewMockWebServer(t, "https://gitea.com",
 		fixtureDir, liveMode,
 		unittest.MockServerOptions{
 			Routes: func(mux *http.ServeMux) {
-				mux.HandleFunc("/gitea/test_repo.wiki.git/", func(w http.ResponseWriter, _ *http.Request) {
+				mux.HandleFunc("/codenest/test_repo.wiki.git/", func(w http.ResponseWriter, _ *http.Request) {
 					http.Error(w, "wiki not found", http.StatusNotFound)
 				})
 				gitHandler := func(dir, prefix string) http.HandlerFunc {
@@ -211,30 +211,30 @@ done
 						handler.ServeHTTP(w, r)
 					}
 				}
-				mux.HandleFunc("/gitea/test_repo.git/", gitHandler(repoDir, "/gitea/test_repo.git"))
+				mux.HandleFunc("/codenest/test_repo.git/", gitHandler(repoDir, "/codenest/test_repo.git"))
 				mux.HandleFunc("/6543-forks/test_repo.git/", gitHandler(forkDir, "/6543-forks/test_repo.git"))
 			},
 		},
 	)
 }
 
-func Test_MigrateFromGiteaToGitea(t *testing.T) {
+func Test_MigrateFromCodeNestToCodeNest(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	mockServer := setupGiteaMockServer(t)
+	mockServer := setupCodeNestMockServer(t)
 
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 
-	repoName := "migrated-from-mock-gitea"
-	cloneAddr := mockServer.URL + "/gitea/test_repo.git"
+	repoName := "migrated-from-mock-codenest"
+	cloneAddr := mockServer.URL + "/codenest/test_repo.git"
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &structs.MigrateRepoOptions{
 		CloneAddr:    cloneAddr,
 		RepoOwnerID:  owner.ID,
 		RepoName:     repoName,
-		Service:      structs.GiteaService.Name(),
+		Service:      structs.CodeNestService.Name(),
 		Wiki:         true,
 		Milestones:   true,
 		Labels:       true,
@@ -246,7 +246,7 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 
 	migratedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: repoName})
 	assert.Equal(t, owner.ID, migratedRepo.OwnerID)
-	assert.Equal(t, structs.GiteaService, migratedRepo.OriginalServiceType)
+	assert.Equal(t, structs.CodeNestService, migratedRepo.OriginalServiceType)
 	assert.Equal(t, cloneAddr, migratedRepo.OriginalURL)
 
 	issueCount := unittest.GetCount(t,
@@ -280,7 +280,7 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	for _, reaction := range issue4.Reactions {
 		reactionTypes = append(reactionTypes, reaction.Type)
 	}
-	assert.ElementsMatch(t, []string{"laugh"}, reactionTypes) // gitea's author is ghost which will be ignored when migrating reactions
+	assert.ElementsMatch(t, []string{"laugh"}, reactionTypes) // codenest's author is ghost which will be ignored when migrating reactions
 
 	comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
 		IssueID: issue4.ID,
@@ -291,7 +291,7 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	assert.Equal(t, owner.ID, comments[0].PosterID)
 	assert.Equal(t, int64(689), comments[0].OriginalAuthorID)
 	assert.Equal(t, "6543", comments[0].OriginalAuthor)
-	assert.Contains(t, comments[0].Content, "TESTSET for gitea2gitea")
+	assert.Contains(t, comments[0].Content, "TESTSET for codenest2codenest")
 	assert.Equal(t, owner.ID, comments[1].PosterID)
 	assert.Equal(t, "Ghost", comments[1].OriginalAuthor)
 	assert.Equal(t, int64(-1), comments[1].OriginalAuthorID)

@@ -8,13 +8,13 @@ import (
 	"html/template"
 	"strings"
 
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/httplib"
-	debian_module "gitea.dev/modules/packages/debian"
-	"gitea.dev/modules/util"
-	packages_service "gitea.dev/services/packages"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/httplib"
+	debian_module "codenest.dev/modules/packages/debian"
+	"codenest.dev/modules/util"
+	packages_service "codenest.dev/services/packages"
 )
 
 type Specialization struct {
@@ -77,8 +77,8 @@ func (s Specialization) RenderSetupManual(ctx context.Context, pkg *packages_mod
 	}
 	{
 		w.WriteHTML(`<div class="markup"><pre class="code-block"><code>`)
-		w.WriteFormatf(`sudo curl %s/api/packages/%s/debian/repository.key -o /etc/apt/keyrings/gitea-%s.asc`+nl+nl, appFullLink, pkg.Owner.Name, pkg.Owner.Name)
-		w.WriteFormatf(`echo "deb [signed-by=/etc/apt/keyrings/gitea-%s.asc] %s/api/packages/%s/debian <span>$distribution</span> <span>$component</span>" | sudo tee -a /etc/apt/sources.list.d/gitea.list`+nl+nl, pkg.Owner.Name, appFullLink, pkg.Owner.Name)
+		w.WriteFormatf(`sudo curl %s/api/packages/%s/debian/repository.key -o /etc/apt/keyrings/codenest-%s.asc`+nl+nl, appFullLink, pkg.Owner.Name, pkg.Owner.Name)
+		w.WriteFormatf(`echo "deb [signed-by=/etc/apt/keyrings/codenest-%s.asc] %s/api/packages/%s/debian <span>$distribution</span> <span>$component</span>" | sudo tee -a /etc/apt/sources.list.d/codenest.list`+nl+nl, pkg.Owner.Name, appFullLink, pkg.Owner.Name)
 		w.WriteHTML(`sudo apt update` + nl)
 		w.WriteHTML(`</code></pre></div>`)
 	}

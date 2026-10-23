@@ -6,9 +6,9 @@ package actions
 import (
 	"context"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/modules/util"
-	secret_service "gitea.dev/services/secrets"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/modules/util"
+	secret_service "codenest.dev/services/secrets"
 )
 
 func CreateVariable(ctx context.Context, scope actions_model.BelongingScope, name, data, description string) (*actions_model.ActionVariable, error) {

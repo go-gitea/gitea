@@ -6,10 +6,10 @@ package actions
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 )
 
 const (

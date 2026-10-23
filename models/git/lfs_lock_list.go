@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/container"
 )
 
 // LFSLockList is a list of LFSLock

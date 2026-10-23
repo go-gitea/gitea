@@ -9,14 +9,14 @@ import (
 	"html/template"
 	"strconv"
 
-	activities_model "gitea.dev/models/activities"
-	"gitea.dev/models/avatars"
-	"gitea.dev/models/organization"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	gitea_html "gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	activities_model "codenest.dev/models/activities"
+	"codenest.dev/models/avatars"
+	"codenest.dev/models/organization"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	codenest_html "codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 type AvatarUtils struct {
@@ -37,7 +37,7 @@ func AvatarHTML(src string, size int, class, name string) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func (au *AvatarUtils) Avatar(item any, others ...any) template.HTML {
-	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
+	size, class := codenest_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
@@ -68,7 +68,7 @@ func (au *AvatarUtils) AvatarByAction(action *activities_model.Action, others ..
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func (au *AvatarUtils) AvatarByEmail(email, name string, others ...any) template.HTML {
-	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
+	size, class := codenest_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 	src := avatars.GenerateEmailAvatarFastLink(au.ctx, email, size*setting.Avatar.RenderedSizeFactor)
 
 	if src != "" {

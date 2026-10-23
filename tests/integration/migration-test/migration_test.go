@@ -17,14 +17,14 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modelmigration"
-	migrate_base "gitea.dev/modelmigration/base"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/testlogger"
+	"codenest.dev/modelmigration"
+	migrate_base "codenest.dev/modelmigration/base"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/testlogger"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,10 +41,10 @@ func initMigrationTest(t *testing.T) func() {
 			_ = os.RemoveAll(workPath)
 		}
 	})
-	setting.SetupGiteaTestEnv()
+	setting.SetupCodeNestTestEnv()
 
 	assert.NotEmpty(t, setting.RepoRootPath)
-	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.GetCodeNestTestSourceRoot(), "tests/codenest-repositories-meta"), setting.RepoRootPath))
 	assert.NoError(t, git.InitFull())
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
@@ -53,12 +53,12 @@ func initMigrationTest(t *testing.T) func() {
 }
 
 func availableVersions() ([]string, error) {
-	migrationsDir, err := os.Open(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/migration-test"))
+	migrationsDir, err := os.Open(filepath.Join(setting.GetCodeNestTestSourceRoot(), "tests/integration/migration-test"))
 	if err != nil {
 		return nil, err
 	}
 	defer migrationsDir.Close()
-	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)" + regexp.QuoteMeta("."+string(setting.Database.Type)+".sql.gz"))
+	versionRE, err := regexp.Compile("codenest-v(?P<version>.+)" + regexp.QuoteMeta("."+string(setting.Database.Type)+".sql.gz"))
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +79,8 @@ func availableVersions() ([]string, error) {
 }
 
 func readSQLFromFile(version string) (string, error) {
-	filename := fmt.Sprintf("tests/integration/migration-test/gitea-v%s.%s.sql.gz", version, setting.Database.Type)
-	filename = filepath.Join(setting.GetGiteaTestSourceRoot(), filename)
+	filename := fmt.Sprintf("tests/integration/migration-test/codenest-v%s.%s.sql.gz", version, setting.Database.Type)
+	filename = filepath.Join(setting.GetCodeNestTestSourceRoot(), filename)
 
 	file, err := os.Open(filename)
 	if err != nil {
@@ -128,14 +128,14 @@ func restoreOldDB(t *testing.T, version string) {
 		return
 	}
 
-	// MSSQL is special. the test fixture will create the [testgitea] database again, so drop it ahead if it exists
+	// MSSQL is special. the test fixture will create the [testcodenest] database again, so drop it ahead if it exists
 	driver, connStr, err := db.ConnStrDefaultDatabase(connOpts)
 	require.NoError(t, err)
 	sqlDB, err := sql.Open(driver, connStr)
 	require.NoError(t, err)
 
-	_, err = sqlDB.Exec("DROP DATABASE IF EXISTS [testgitea]")
-	require.NoError(t, err, "drop existing database testgitea")
+	_, err = sqlDB.Exec("DROP DATABASE IF EXISTS [testcodenest]")
+	require.NoError(t, err, "drop existing database testcodenest")
 
 	for statement := range strings.SplitSeq(data, "\nGO\n") {
 		if useStmtAfter, ok := strings.CutPrefix(statement, "USE ["); ok {

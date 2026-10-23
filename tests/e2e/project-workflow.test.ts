@@ -5,7 +5,7 @@ import {
 } from './utils.ts';
 import type {Page} from '@playwright/test';
 
-const owner = env.GITEA_TEST_E2E_USER;
+const owner = env.CODENEST_TEST_E2E_USER;
 
 const sidebar = (page: Page) => page.getByRole('navigation', {name: 'Default workflows'});
 const workflowLink = (page: Page, name: string) => sidebar(page).getByRole('link', {name});

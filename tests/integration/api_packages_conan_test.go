@@ -11,16 +11,16 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/packages"
-	conan_model "gitea.dev/models/packages/conan"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	conan_module "gitea.dev/modules/packages/conan"
-	"gitea.dev/modules/setting"
-	conan_router "gitea.dev/routers/api/packages/conan"
-	package_service "gitea.dev/services/packages"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/packages"
+	conan_model "codenest.dev/models/packages/conan"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	conan_module "codenest.dev/modules/packages/conan"
+	"codenest.dev/modules/setting"
+	conan_router "codenest.dev/routers/api/packages/conan"
+	package_service "codenest.dev/services/packages"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,11 +31,11 @@ const (
 	conaninfoName = "conaninfo.txt"
 
 	conanLicense     = "MIT"
-	conanAuthor      = "Gitea <info@gitea.io>"
+	conanAuthor      = "CodeNest <info@gitea.io>"
 	conanHomepage    = "https://gitea.io/"
 	conanURL         = "https://gitea.com/"
 	conanDescription = "Description of ConanPackage"
-	conanTopic       = "gitea"
+	conanTopic       = "codenest"
 
 	conanPackageReference = "dummyreference"
 
@@ -205,7 +205,7 @@ func TestPackageConan(t *testing.T) {
 	version1 := "1.2"
 	version2 := "1.3"
 	user1 := "dummy"
-	user2 := "gitea"
+	user2 := "codenest"
 	channel1 := "test"
 	channel2 := "final"
 	revision1 := "rev1"
@@ -430,23 +430,23 @@ func TestPackageConan(t *testing.T) {
 					Query    string
 					Expected []string
 				}{
-					{"ConanPackage", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/1.2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
+					{"ConanPackage", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/1.2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
 					{"ConanPackage/1.1", []string{}},
-					{"Conan*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/1*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/*2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/1*2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/1.2@", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
+					{"Conan*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/1*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/*2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/1*2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/1.2@", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@dummy/final", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
 					{"ConanPackage/1.2@du*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@dummy/final"}},
 					{"ConanPackage/1.2@du*/", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@dummy/final"}},
 					{"ConanPackage/1.2@du*/*test", []string{"ConanPackage/1.2@dummy/test"}},
 					{"ConanPackage/1.2@du*/*st", []string{"ConanPackage/1.2@dummy/test"}},
-					{"ConanPackage/1.2@gitea/*", []string{"ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
+					{"ConanPackage/1.2@codenest/*", []string{"ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
 					{"*/*@dummy", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@dummy/final"}},
-					{"*/*@*/final", []string{"ConanPackage/1.2@dummy/final", "ConanPackage/1.2@gitea/final"}},
+					{"*/*@*/final", []string{"ConanPackage/1.2@dummy/final", "ConanPackage/1.2@codenest/final"}},
 				}
 
 				for i, c := range cases {
@@ -721,23 +721,23 @@ func TestPackageConan(t *testing.T) {
 					Query    string
 					Expected []string
 				}{
-					{"ConanPackage", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/1.2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
+					{"ConanPackage", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/1.2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
 					{"ConanPackage/1.1", []string{}},
-					{"Conan*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/1*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/*2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/1*2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
-					{"ConanPackage/1.2@", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
+					{"Conan*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/1*", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/*2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/1*2", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
+					{"ConanPackage/1.2@", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
 					{"ConanPackage/1.2@du*", []string{"ConanPackage/1.2@dummy/test"}},
 					{"ConanPackage/1.2@du*/", []string{"ConanPackage/1.2@dummy/test"}},
 					{"ConanPackage/1.2@du*/*test", []string{"ConanPackage/1.2@dummy/test"}},
 					{"ConanPackage/1.2@du*/*st", []string{"ConanPackage/1.2@dummy/test"}},
-					{"ConanPackage/1.2@gitea/*", []string{"ConanPackage/1.2@gitea/test", "ConanPackage/1.2@gitea/final"}},
+					{"ConanPackage/1.2@codenest/*", []string{"ConanPackage/1.2@codenest/test", "ConanPackage/1.2@codenest/final"}},
 					{"*/*@dummy", []string{"ConanPackage/1.2@dummy/test", "ConanPackage/1.3@dummy/test"}},
-					{"*/*@*/final", []string{"ConanPackage/1.2@gitea/final"}},
+					{"*/*@*/final", []string{"ConanPackage/1.2@codenest/final"}},
 				}
 
 				for i, c := range cases {

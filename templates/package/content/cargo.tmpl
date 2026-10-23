@@ -5,9 +5,9 @@
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.cargo.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>[registry]
-default = "gitea"
+default = "codenest"
 
-[registries.gitea]
+[registries.codenest]
 index = "sparse+{{ctx.AppFullLink}}/api/packages/{{.PackageDescriptor.Owner.Name}}/cargo/" # Sparse index
 # index = "{{ctx.AppFullLink}}/{{.PackageDescriptor.Owner.Name}}/_cargo-index.git" # Git
 

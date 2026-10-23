@@ -14,11 +14,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 type themeCollectionStruct struct {
@@ -60,23 +60,23 @@ func (info *ThemeMetaInfo) GetDescription() string {
 
 func (info *ThemeMetaInfo) GetExtraIconName() string {
 	if info.ColorblindType == "red-green" {
-		return "gitea-colorblind-redgreen"
+		return "codenest-colorblind-redgreen"
 	}
 	if info.ColorblindType == "blue-yellow" {
-		return "gitea-colorblind-blueyellow"
+		return "codenest-colorblind-blueyellow"
 	}
 	return ""
 }
 
 func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 	/*
-		The theme meta info is stored in the CSS file's variables of `gitea-theme-meta-info` element,
+		The theme meta info is stored in the CSS file's variables of `codenest-theme-meta-info` element,
 		which is a privately defined and is only used by backend to extract the meta info.
 		Not using ":root" because it is difficult to parse various ":root" blocks when importing other files,
 		it is difficult to control the overriding, and it's difficult to avoid user's customized overridden styles.
 	*/
 	metaInfoContent := cssContent
-	if pos := strings.LastIndex(metaInfoContent, "gitea-theme-meta-info"); pos >= 0 {
+	if pos := strings.LastIndex(metaInfoContent, "codenest-theme-meta-info"); pos >= 0 {
 		metaInfoContent = metaInfoContent[pos:]
 	}
 
@@ -94,7 +94,7 @@ func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 )
 `
 	reMetaInfoItem = strings.ReplaceAll(reMetaInfoItem, "\n", "")
-	reMetaInfoBlock := `\bgitea-theme-meta-info\s*\{(` + reMetaInfoItem + `+)\}`
+	reMetaInfoBlock := `\bcodenest-theme-meta-info\s*\{(` + reMetaInfoItem + `+)\}`
 	re := regexp.MustCompile(reMetaInfoBlock)
 	matchedMetaInfoBlock := re.FindAllStringSubmatch(metaInfoContent, -1)
 	if len(matchedMetaInfoBlock) == 0 {
@@ -239,7 +239,7 @@ func getAvailableThemes() *themeCollectionStruct {
 
 	if setting.IsProd {
 		if !hasAvailableThemes {
-			setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
+			setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but CodeNest requires there should be at least one usable theme")
 		}
 		if themeMap[setting.UI.DefaultTheme] == nil {
 			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)

@@ -6,12 +6,12 @@ package convert
 import (
 	"testing"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/structs"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/perm"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )

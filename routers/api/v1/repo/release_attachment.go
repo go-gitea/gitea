@@ -8,16 +8,16 @@ import (
 	"net/http"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	attachment_service "gitea.dev/services/attachment"
-	"gitea.dev/services/context"
-	"gitea.dev/services/context/upload"
-	"gitea.dev/services/convert"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	attachment_service "codenest.dev/services/attachment"
+	"codenest.dev/services/context"
+	"codenest.dev/services/context/upload"
+	"codenest.dev/services/convert"
 )
 
 func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {

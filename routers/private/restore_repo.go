@@ -7,9 +7,9 @@ import (
 	"io"
 	"net/http"
 
-	"gitea.dev/modules/json"
-	myCtx "gitea.dev/services/context"
-	"gitea.dev/services/migrations"
+	"codenest.dev/modules/json"
+	myCtx "codenest.dev/services/context"
+	"codenest.dev/services/migrations"
 )
 
 // RestoreRepo restore a repository from data

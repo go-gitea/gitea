@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	gitea_html "gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/public"
+	codenest_html "codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/public"
 )
 
 type svgIconItem struct {
@@ -88,7 +88,7 @@ func renderHTML(icon string, others ...any) (_ template.HTML, usingCache bool) {
 	if icon == "" {
 		return "", false
 	}
-	size, class := gitea_html.ParseSizeAndClass(defaultSize, "", others...)
+	size, class := codenest_html.ParseSizeAndClass(defaultSize, "", others...)
 	if svgItem, ok := svgIcons[icon]; ok {
 		svgStr := svgItem.html
 		// fast path for default size and no classes

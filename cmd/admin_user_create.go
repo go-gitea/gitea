@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"strings"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	pwd "gitea.dev/modules/auth/password"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	pwd "codenest.dev/modules/auth/password"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -81,7 +81,7 @@ func microcmdUserCreate() *cli.Command {
 			&cli.StringFlag{
 				Name:  "access-token-name",
 				Usage: `Name of the generated access token`,
-				Value: "gitea-admin",
+				Value: "codenest-admin",
 			},
 			&cli.StringFlag{
 				Name:  "access-token-scopes",

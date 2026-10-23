@@ -8,16 +8,16 @@ import (
 	"net/url"
 	"testing"
 
-	deploykey_model "gitea.dev/models/deploykey"
-	"gitea.dev/models/perm"
-	"gitea.dev/models/user"
-	"gitea.dev/modules/private"
+	deploykey_model "codenest.dev/models/deploykey"
+	"codenest.dev/models/perm"
+	"codenest.dev/models/user"
+	"codenest.dev/modules/private"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIPrivateNoServ(t *testing.T) {
-	onGiteaRun(t, func(*testing.T, *url.URL) {
+	onCodeNestRun(t, func(*testing.T, *url.URL) {
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		key, user, err := private.ServNoCommand(ctx, 1)
@@ -40,7 +40,7 @@ func TestAPIPrivateNoServ(t *testing.T) {
 }
 
 func TestAPIPrivateServ(t *testing.T) {
-	onGiteaRun(t, func(*testing.T, *url.URL) {
+	onCodeNestRun(t, func(*testing.T, *url.URL) {
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 

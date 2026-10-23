@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 
-	auth_model "gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
+	auth_model "codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
 
 	"github.com/urfave/cli/v3"
 )
@@ -28,7 +28,7 @@ func newUserGenerateAccessTokenCommand() *cli.Command {
 				Name:    "token-name",
 				Aliases: []string{"t"},
 				Usage:   "Token name",
-				Value:   "gitea-admin",
+				Value:   "codenest-admin",
 			},
 			&cli.BoolFlag{
 				Name:  "raw",

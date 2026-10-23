@@ -16,15 +16,15 @@ import (
 	"time"
 	"uuid"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/log"
-	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/log"
+	base "codenest.dev/modules/migration"
+	"codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -49,7 +49,7 @@ type RepositoryDumper struct {
 	prHeadCache map[string]string
 }
 
-// NewRepositoryDumper creates a gitea Uploader
+// NewRepositoryDumper creates a codenest Uploader
 func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName string, opts base.MigrateOptions) (*RepositoryDumper, error) {
 	baseDir = filepath.Join(baseDir, repoOwner, repoName)
 	if err := os.MkdirAll(baseDir, os.ModePerm); err != nil {
@@ -728,7 +728,7 @@ func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string,
 	if err != nil {
 		return err
 	}
-	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
+	uploader := NewCodeNestLocalUploader(ctx, doer, ownerName, repoName)
 	downloader, err := NewRepositoryRestorer(ctx, baseDir, ownerName, repoName, validation)
 	if err != nil {
 		return err

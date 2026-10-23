@@ -3,7 +3,7 @@
 
 package elasticsearch
 
-import "gitea.dev/modules/json"
+import "codenest.dev/modules/json"
 
 const (
 	bulkActionIndex  = "index"
@@ -41,7 +41,7 @@ func (s SortField) source() map[string]any {
 	return map[string]any{s.Field: map[string]any{"order": order}}
 }
 
-// SearchRequest captures everything Gitea sends to the _search endpoint.
+// SearchRequest captures everything CodeNest sends to the _search endpoint.
 // Aggregations and Highlight are raw ES JSON bodies — callers write them as
 // map[string]any since each has exactly one call site with a fixed shape.
 type SearchRequest struct {
@@ -68,7 +68,7 @@ type AggBucket struct {
 	DocCount int64
 }
 
-// SearchResponse is Gitea's decoded view of the search reply.
+// SearchResponse is CodeNest's decoded view of the search reply.
 type SearchResponse struct {
 	Total        int64
 	Hits         []SearchHit

@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/contexttest"
-	"gitea.dev/services/forms"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/contexttest"
+	"codenest.dev/services/forms"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,7 +26,7 @@ import (
 
 func TestOpenIDAssociation(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	defer test.MockVariableValue(&setting.AppURL, "https://gitea.example/")()
+	defer test.MockVariableValue(&setting.AppURL, "https://codenest.example/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "")()
 	defer test.MockVariableValue(&setting.Security.AllowedHostList, "127.0.0.1:*")()
 

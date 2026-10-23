@@ -6,10 +6,10 @@ package actions
 import (
 	"testing"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/translation"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

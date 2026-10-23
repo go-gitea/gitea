@@ -9,7 +9,7 @@ import (
 	"slices"
 	"time"
 
-	base "gitea.dev/modules/migration"
+	base "codenest.dev/modules/migration"
 )
 
 const graphQLPRFields = "mergedAt isDraft mergeCommit{oid} headRefName headRefOid baseRefName baseRefOid headRepository{name url} headRepositoryOwner{login} baseRepository{name owner{login}}"

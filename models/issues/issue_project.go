@@ -6,10 +6,10 @@ package issues
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	project_model "gitea.dev/models/project"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	project_model "codenest.dev/models/project"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/util"
 )
 
 // LoadProjects loads all projects the issue is assigned to

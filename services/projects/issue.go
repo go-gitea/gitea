@@ -8,13 +8,13 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	project_model "gitea.dev/models/project"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/util"
-	notify_service "gitea.dev/services/notify"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	project_model "codenest.dev/models/project"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/util"
+	notify_service "codenest.dev/services/notify"
 
 	"xorm.io/builder"
 )

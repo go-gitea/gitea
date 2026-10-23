@@ -17,8 +17,8 @@ import (
 	"io"
 	"time"
 
-	"gitea.dev/modules/consts"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/consts"
+	"codenest.dev/modules/util"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/ssh"

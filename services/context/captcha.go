@@ -6,14 +6,14 @@ package context
 import (
 	"fmt"
 
-	"gitea.dev/modules/hcaptcha"
-	"gitea.dev/modules/imagecaptcha"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/mcaptcha"
-	"gitea.dev/modules/recaptcha"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/turnstile"
+	"codenest.dev/modules/hcaptcha"
+	"codenest.dev/modules/imagecaptcha"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/mcaptcha"
+	"codenest.dev/modules/recaptcha"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/turnstile"
 )
 
 const (

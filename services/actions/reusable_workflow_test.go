@@ -7,18 +7,18 @@ import (
 	"fmt"
 	"testing"
 
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	webhook_module "codenest.dev/modules/webhook"
 	"gitea.dev/actionslib/pkg/model"
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -186,7 +186,7 @@ func buildCallerChain(t *testing.T, callerUses ...string) []*actions_model.Actio
 }
 
 func TestResolveUses(t *testing.T) {
-	defer test.MockVariableValue(&setting.AppURL, "https://gitea.example.com/sub/")()
+	defer test.MockVariableValue(&setting.AppURL, "https://codenest.example.com/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 	defer test.MockVariableValue(&setting.Actions.WorkflowDirs, []string{".gitea/workflows", ".github/workflows"})()
 	defer test.MockVariableValue(&setting.Actions.ScopedWorkflowDirs, []string{".gitea/scoped_workflows"})()
@@ -239,16 +239,16 @@ func TestResolveUses(t *testing.T) {
 
 	t.Run("LocalInstanceURL", func(t *testing.T) {
 		// An absolute URL on this instance (incl. AppSubURL) resolves to the equivalent cross-repo ref.
-		ref, err := ResolveUses(ctx, "https://gitea.example.com/sub/owner/repo/.gitea/workflows/ci.yml@refs/heads/main")
+		ref, err := ResolveUses(ctx, "https://codenest.example.com/sub/owner/repo/.gitea/workflows/ci.yml@refs/heads/main")
 		require.NoError(t, err)
 		assert.Equal(t, model.ReusableWorkflowUses{Owner: "owner", Repo: "repo", Path: ".gitea/workflows/ci.yml", Ref: "refs/heads/main"}, *ref)
 	})
 
 	t.Run("InvalidSyntax", func(t *testing.T) {
 		for _, in := range []string{
-			"owner/.gitea/workflows/foo.yml",                                             // missing repo segment
-			"owner/repo/.gitea/workflows/foo.yml",                                        // missing @ref
-			"https://gitea.example.com/sub/repo/.gitea/workflows/ci.yml@refs/heads/main", // local absolute URL but missing owner
+			"owner/.gitea/workflows/foo.yml",                                                // missing repo segment
+			"owner/repo/.gitea/workflows/foo.yml",                                           // missing @ref
+			"https://codenest.example.com/sub/repo/.gitea/workflows/ci.yml@refs/heads/main", // local absolute URL but missing owner
 			"not a valid uses at all",
 		} {
 			_, err := ResolveUses(ctx, in)
@@ -257,8 +257,8 @@ func TestResolveUses(t *testing.T) {
 	})
 
 	t.Run("ForeignURL", func(t *testing.T) {
-		_, err := ResolveUses(ctx, "https://other.gitea-example.com/owner/repo/.gitea/workflows/ci.yaml@v1")
-		assert.ErrorContains(t, err, "must point to this Gitea instance")
+		_, err := ResolveUses(ctx, "https://other.codenest-example.com/owner/repo/.gitea/workflows/ci.yaml@v1")
+		assert.ErrorContains(t, err, "must point to this CodeNest instance")
 	})
 }
 

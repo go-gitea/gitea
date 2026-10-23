@@ -9,8 +9,8 @@ import (
 	"io"
 	"net/http"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
 )
 
 // TransferAdapter represents an adapter for downloading/uploading LFS objects.

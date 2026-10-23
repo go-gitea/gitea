@@ -16,26 +16,26 @@ import (
 	"strings"
 	"time"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
-	db_install "gitea.dev/models/db/install"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/generate"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/web"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/routers/common"
-	"gitea.dev/services/audit"
-	auth_service "gitea.dev/services/auth"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
-	"gitea.dev/services/versioned_migration"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/db"
+	db_install "codenest.dev/models/db/install"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/generate"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/web"
+	"codenest.dev/modules/web/middleware"
+	"codenest.dev/routers/common"
+	"codenest.dev/services/audit"
+	auth_service "codenest.dev/services/auth"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
+	"codenest.dev/services/versioned_migration"
 )
 
 const (
@@ -152,7 +152,7 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	}
 
 	if hasPostInstallationUser && dbMigrationVersion > 0 {
-		log.Error("The database is likely to have been used by Gitea before, database migration version=%d", dbMigrationVersion)
+		log.Error("The database is likely to have been used by CodeNest before, database migration version=%d", dbMigrationVersion)
 		confirmed := form.ReinstallConfirmFirst && form.ReinstallConfirmSecond && form.ReinstallConfirmThird
 		if !confirmed {
 			ctx.Data["Err_DbInstalledBefore"] = true
@@ -160,7 +160,7 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 			return false
 		}
 
-		log.Info("User confirmed re-installation of Gitea into a pre-existing database")
+		log.Info("User confirmed re-installation of CodeNest into a pre-existing database")
 	}
 
 	if hasPostInstallationUser {
@@ -180,7 +180,7 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	}
 
 	if hasPostInstallationUser || dbMigrationVersion > 0 {
-		log.Info("Gitea will be installed in a database with: hasPostInstallationUser=%v, dbMigrationVersion=%v", hasPostInstallationUser, dbMigrationVersion)
+		log.Info("CodeNest will be installed in a database with: hasPostInstallationUser=%v, dbMigrationVersion=%v", hasPostInstallationUser, dbMigrationVersion)
 	}
 
 	return true
@@ -227,7 +227,7 @@ func SubmitInstall(ctx *context.Context) {
 	setting.Database.Path = form.DbPath
 	setting.Database.LogSQL = !setting.IsProd
 
-	// Prepare AppDataPath, it is very important for Gitea
+	// Prepare AppDataPath, it is very important for CodeNest
 	// old code replaced "\\" to "/", it's questionable whether it's worth to do so
 	form.AppDataPath = strings.ReplaceAll(form.AppDataPath, "\\", "/")
 	setting.AppDataPath = form.AppDataPath
@@ -444,7 +444,7 @@ func saveConfigReinitDB(ctx *context.Context, cfg setting.ConfigProvider, form *
 	}
 
 	setting.ClearEnvConfigKeys()
-	log.Info("Installation completed! You can also use 'gitea admin user ...' sub-commands to create or edit admin users.")
+	log.Info("Installation completed! You can also use 'codenest admin user ...' sub-commands to create or edit admin users.")
 	log.Info("----------------------------------------")
 	return true
 }
@@ -498,7 +498,7 @@ func restartServer(ctx *context.Context) {
 
 	go func() {
 		// Sleep for a while to make sure the user's browser has loaded the post-install page and its assets (images, css, js)
-		// What if this duration is not long enough? That's impossible -- if the user can't load the simple page in time, how could they install or use Gitea in the future ....
+		// What if this duration is not long enough? That's impossible -- if the user can't load the simple page in time, how could they install or use CodeNest in the future ....
 		time.Sleep(3 * time.Second)
 
 		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {

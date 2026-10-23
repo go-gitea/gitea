@@ -6,7 +6,7 @@ package db
 import (
 	"fmt"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"

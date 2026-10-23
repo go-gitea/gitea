@@ -4,8 +4,8 @@
 package forms
 
 import (
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/web/middleware"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/web/middleware"
 )
 
 // AdminCreateUserForm form for admin to create user

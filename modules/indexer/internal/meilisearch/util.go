@@ -6,7 +6,7 @@ package meilisearch
 import (
 	"fmt"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 // VersionedIndexName returns the full index name with version
@@ -32,7 +32,7 @@ func (i *Indexer) checkOldIndexes() {
 		indexName := versionedIndexName(i.indexName, v)
 		_, err := i.Client.GetIndex(indexName)
 		if err == nil {
-			log.Warn("Found older meilisearch index named %q, Gitea will keep the old NOT DELETED. You can delete the old version after the upgrade succeed.", indexName)
+			log.Warn("Found older meilisearch index named %q, CodeNest will keep the old NOT DELETED. You can delete the old version after the upgrade succeed.", indexName)
 		}
 	}
 }

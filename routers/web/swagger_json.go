@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strings"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 func swaggerJsonServe(ctx *context.Context, file string) {
@@ -22,7 +22,7 @@ func swaggerJsonServe(ctx *context.Context, file string) {
 	}
 	r := strings.NewReplacer(
 		"0.0.0+GITEA-API-APP-VERSION", template.JSEscapeString(setting.AppVer),
-		"/GITEA-API-APP-SUBURL/", template.JSEscapeString(setting.AppSubURL)+"/",
+		"/CODENEST-API-APP-SUBURL/", template.JSEscapeString(setting.AppSubURL)+"/",
 	)
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	_, _ = r.WriteString(ctx.Resp, util.UnsafeBytesToString(buf))

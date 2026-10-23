@@ -13,10 +13,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 func RenameExistingUserAvatarName(_ context.Context, x base.EngineMigration) error {

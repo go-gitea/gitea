@@ -7,8 +7,8 @@ import (
 	"context"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/services/gitdiff"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/services/gitdiff"
 )
 
 // GetDiffPreview produces and returns diff result of a file which is not yet committed.

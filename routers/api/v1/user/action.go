@@ -7,17 +7,17 @@ import (
 	"errors"
 	"net/http"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/api/v1/shared"
-	"gitea.dev/routers/api/v1/utils"
-	actions_service "gitea.dev/services/actions"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
-	secret_service "gitea.dev/services/secrets"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/api/v1/shared"
+	"codenest.dev/routers/api/v1/utils"
+	actions_service "codenest.dev/services/actions"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/context"
+	secret_service "codenest.dev/services/secrets"
 )
 
 // create or update one secret of the user scope

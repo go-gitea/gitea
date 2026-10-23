@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

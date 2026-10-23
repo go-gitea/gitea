@@ -6,10 +6,10 @@ package repo
 import (
 	"net/http"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/routers/common"
-	actions_service "gitea.dev/services/actions"
-	"gitea.dev/services/context"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/routers/common"
+	actions_service "codenest.dev/services/actions"
+	"codenest.dev/services/context"
 )
 
 func DownloadActionsRunJobLogs(ctx *context.APIContext) {

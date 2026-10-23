@@ -7,15 +7,15 @@ import (
 	"net/http"
 	"net/url"
 
-	"gitea.dev/models/organization"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/routers/api/v1/user"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	org_service "gitea.dev/services/org"
+	"codenest.dev/models/organization"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/routers/api/v1/user"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	org_service "codenest.dev/services/org"
 )
 
 // listMembers list an organization's members

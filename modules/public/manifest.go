@@ -13,9 +13,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 // https://vite.dev/guide/backend-integration

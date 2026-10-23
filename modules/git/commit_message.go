@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/charset"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/charset"
+	"codenest.dev/modules/util"
 )
 
 // CoAuthoredByTrailer is the canonical token for the `Co-authored-by:` git trailer.

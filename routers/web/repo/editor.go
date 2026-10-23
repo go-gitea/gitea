@@ -11,21 +11,21 @@ import (
 	"path"
 	"strings"
 
-	git_model "gitea.dev/models/git"
-	"gitea.dev/models/issues"
-	"gitea.dev/models/unit"
-	"gitea.dev/modules/charset"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
-	"gitea.dev/services/context/upload"
-	"gitea.dev/services/forms"
-	files_service "gitea.dev/services/repository/files"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/models/issues"
+	"codenest.dev/models/unit"
+	"codenest.dev/modules/charset"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
+	"codenest.dev/services/context/upload"
+	"codenest.dev/services/forms"
+	files_service "codenest.dev/services/repository/files"
 )
 
 const (
@@ -194,7 +194,7 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 // redirectForCommitChoice redirects after committing the edit to a branch
 func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditorCommitForm[T], treePath string) {
 	// when editing a file in a PR, it should return to the origin location
-	if returnURI := ctx.FormString("return_uri"); returnURI != "" && httplib.IsCurrentGiteaSiteURL(ctx, returnURI) {
+	if returnURI := ctx.FormString("return_uri"); returnURI != "" && httplib.IsCurrentCodeNestSiteURL(ctx, returnURI) {
 		ctx.JSONRedirect(returnURI)
 		return
 	}

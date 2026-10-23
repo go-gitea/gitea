@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	"gitea.dev/models/unittest"
-	git_module "gitea.dev/modules/git"
-	"gitea.dev/services/contexttest"
+	"codenest.dev/models/unittest"
+	git_module "codenest.dev/modules/git"
+	"codenest.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )

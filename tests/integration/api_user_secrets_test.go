@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/tests"
 )
 
 func TestAPIUserSecrets(t *testing.T) {
@@ -44,7 +44,7 @@ func TestAPIUserSecrets(t *testing.T) {
 				ExpectedStatus: http.StatusBadRequest,
 			},
 			{
-				Name:           "GITEA_secret",
+				Name:           "CODENEST_secret",
 				ExpectedStatus: http.StatusBadRequest,
 			},
 			{

@@ -35,5 +35,5 @@ type Metadata struct {
 	AcceptDependencies      map[string]string `json:"accept_dependencies,omitempty"`
 	Deprecated              string            `json:"deprecated,omitempty"`
 
-	GiteaTarballPath string `json:"gitea_tarball_path,omitempty"` // Gitea-internal, fixed at upload because lockfiles pin it
+	CodeNestTarballPath string `json:"gitea_tarball_path,omitempty"` // CodeNest-internal, fixed at upload because lockfiles pin it
 }

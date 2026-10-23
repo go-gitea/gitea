@@ -8,10 +8,10 @@ import (
 	"io"
 	"net/http"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/proxy"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/system"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/proxy"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/system"
 
 	"github.com/hashicorp/go-version"
 )
@@ -26,8 +26,8 @@ func (r *CheckerState) Name() string {
 	return "update-checker"
 }
 
-// GiteaUpdateChecker returns error when new version of Gitea is available
-func GiteaUpdateChecker(httpEndpoint string) error {
+// CodeNestUpdateChecker returns error when new version of CodeNest is available
+func CodeNestUpdateChecker(httpEndpoint string) error {
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			Proxy: proxy.Proxy(),
@@ -62,7 +62,7 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 	return UpdateRemoteVersion(req.Context(), respData.Latest.Version)
 }
 
-// UpdateRemoteVersion updates the latest available version of Gitea
+// UpdateRemoteVersion updates the latest available version of CodeNest
 func UpdateRemoteVersion(ctx context.Context, version string) (err error) {
 	return system.AppState.Set(ctx, &CheckerState{LatestVersion: version})
 }
@@ -76,7 +76,7 @@ func GetRemoteVersion(ctx context.Context) string {
 	return item.LatestVersion
 }
 
-// GetNeedUpdate returns true whether a newer version of Gitea is available
+// GetNeedUpdate returns true whether a newer version of CodeNest is available
 func GetNeedUpdate(ctx context.Context) bool {
 	curVer, err := version.NewVersion(setting.AppVer)
 	if err != nil {

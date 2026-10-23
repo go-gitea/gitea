@@ -1,6 +1,6 @@
 -
   id: 1
-  type: 0 # gitea pull request
+  type: 0 # codenest pull request
   status: 2 # mergeable
   issue_id: 2
   index: 2
@@ -15,7 +15,7 @@
 
 -
   id: 2
-  type: 0 # gitea pull request
+  type: 0 # codenest pull request
   status: 2 # mergeable
   issue_id: 3
   index: 3
@@ -28,7 +28,7 @@
 
 -
   id: 3
-  type: 0 # gitea pull request
+  type: 0 # codenest pull request
   status: 2 # mergeable
   issue_id: 8
   index: 1
@@ -41,7 +41,7 @@
 
 -
   id: 4
-  type: 0 # gitea pull request
+  type: 0 # codenest pull request
   status: 2 # mergeable
   issue_id: 9
   index: 1
@@ -54,7 +54,7 @@
 
 -
   id: 5 # this PR is outdated (one commit behind branch1 )
-  type: 0 # gitea pull request
+  type: 0 # codenest pull request
   status: 2 # mergeable
   issue_id: 11
   index: 5
@@ -67,7 +67,7 @@
 
 -
   id: 6
-  type: 0 # gitea pull request
+  type: 0 # codenest pull request
   status: 2 # mergeable
   issue_id: 12
   index: 2
@@ -80,7 +80,7 @@
 
 -
   id: 7
-  type: 0 # gitea pull request
+  type: 0 # codenest pull request
   status: 2 # mergeable
   issue_id: 19
   index: 1
@@ -93,7 +93,7 @@
 
 -
   id: 8
-  type: 0 # gitea pull request
+  type: 0 # codenest pull request
   status: 2 # mergeable
   issue_id: 20
   index: 1
@@ -102,7 +102,7 @@
 
 -
   id: 9
-  type: 0 # gitea pull request
+  type: 0 # codenest pull request
   status: 2 # mergeable
   issue_id: 21
   index: 1
@@ -111,7 +111,7 @@
 
 -
   id: 10
-  type: 0 # gitea pull request
+  type: 0 # codenest pull request
   status: 2 # mergeable
   issue_id: 22
   index: 1

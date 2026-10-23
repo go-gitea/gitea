@@ -4,8 +4,8 @@
 package swagger
 
 import (
-	api "gitea.dev/modules/structs"
-	"gitea.dev/services/forms"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/services/forms"
 )
 
 // not actually a set of parameters, just a hack to get go-swagger to include

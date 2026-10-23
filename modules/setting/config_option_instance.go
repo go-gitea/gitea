@@ -6,7 +6,7 @@ package setting
 import (
 	"time"
 
-	"gitea.dev/modules/setting/config"
+	"codenest.dev/modules/setting/config"
 )
 
 // WebBannerType fields are directly used in templates,

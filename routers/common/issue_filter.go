@@ -6,11 +6,11 @@ package common
 import (
 	"context"
 
-	"gitea.dev/models/organization"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/organization"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/util"
 )
 
 func ParseIssueFilterStateIsClosed(state string) optional.Option[bool] {

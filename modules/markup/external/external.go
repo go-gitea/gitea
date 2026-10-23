@@ -12,9 +12,9 @@ import (
 	"os"
 	"strings"
 
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/setting"
 
 	"github.com/kballard/go-shellquote"
 )
@@ -164,8 +164,8 @@ func (p *Renderer) prepare(baseLinkSrc, baseLinkRaw string) (ret struct {
 	// we still pass them via command line arguments because a 3rd party render program may not read environment variables.
 	// In case some site admins would write wrong render commands like `sh -c "echo $VAR"`, we sanitize the URLs here to make up for their mistakes
 	cmdVars := map[string]string{
-		"GITEA_PREFIX_SRC": sanitizeCliArgUrl(baseLinkSrc),
-		"GITEA_PREFIX_RAW": sanitizeCliArgUrl(baseLinkRaw),
+		"CODENEST_PREFIX_SRC": sanitizeCliArgUrl(baseLinkSrc),
+		"CODENEST_PREFIX_RAW": sanitizeCliArgUrl(baseLinkRaw),
 	}
 	ret.prog, ret.args, err = p.prepareExternalCommand(cmdVars)
 	if err != nil {
@@ -173,8 +173,8 @@ func (p *Renderer) prepare(baseLinkSrc, baseLinkRaw string) (ret struct {
 	}
 	ret.envs = append(
 		os.Environ(),
-		"GITEA_PREFIX_SRC="+baseLinkSrc,
-		"GITEA_PREFIX_RAW="+baseLinkRaw,
+		"CODENEST_PREFIX_SRC="+baseLinkSrc,
+		"CODENEST_PREFIX_RAW="+baseLinkRaw,
 	)
 	return ret, nil
 }
@@ -189,7 +189,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 	}
 	if p.IsInputFile {
 		// write to temp file
-		tmpFile, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("gitea_input")
+		tmpFile, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("codenest_input")
 		if err != nil {
 			return fmt.Errorf("%s create temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}

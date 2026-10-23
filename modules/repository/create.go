@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
 )
 
 // UpdateRepoSize updates the repository size, calculating it using getDirectorySize

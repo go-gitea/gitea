@@ -9,19 +9,19 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAPICompareBranches(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		session2 := loginUser(t, "user2")
 		token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteRepository)
 
@@ -99,7 +99,7 @@ func TestAPICompareBranches(t *testing.T) {
 }
 
 func TestAPIComparePublicOnlyToken(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
 		pr := createOutdatedPR(t, user, org26)
@@ -119,7 +119,7 @@ func TestAPIComparePublicOnlyToken(t *testing.T) {
 }
 
 func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 

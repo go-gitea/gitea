@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"time"
 
-	project_model "gitea.dev/models/project"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
+	project_model "codenest.dev/models/project"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/timeutil"
 )
 
 func projectTemplateTypeToString(t project_model.TemplateType) string {

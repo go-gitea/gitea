@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+"$CODENEST_ROOT/codenest" hook --config="$CODENEST_ROOT/$CODENEST_CONF" proc-receive

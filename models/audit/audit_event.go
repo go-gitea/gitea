@@ -7,10 +7,10 @@ import (
 	"context"
 	"time"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )
@@ -24,7 +24,7 @@ type Event struct {
 	Action           Action `xorm:"INDEX NOT NULL"`
 	ActorID          int64  `xorm:"INDEX NOT NULL"`
 	ActorName        string
-	ActorCredential  string // Credential the actor acted with, e.g. "access-token:<id>", "oauth2-grant:<id>", "gitea-actions:<task id>" or "deploy-key:<key id>".
+	ActorCredential  string // Credential the actor acted with, e.g. "access-token:<id>", "oauth2-grant:<id>", "codenest-actions:<task id>" or "deploy-key:<key id>".
 	ImpersonatorID   int64  `xorm:"INDEX"` // Admin acting as the actor; zero when the actor acted themselves.
 	ImpersonatorName string
 	ScopeID          int64     `xorm:"INDEX(scope) NOT NULL"` // Entity ID within ScopeType; zero for system.

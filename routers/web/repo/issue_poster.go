@@ -8,10 +8,10 @@ import (
 	"slices"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	shared_user "gitea.dev/routers/web/shared/user"
-	"gitea.dev/services/context"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	shared_user "codenest.dev/routers/web/shared/user"
+	"codenest.dev/services/context"
 )
 
 func IssuePullPosters(ctx *context.Context) {

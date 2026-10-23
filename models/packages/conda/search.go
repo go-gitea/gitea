@@ -7,9 +7,9 @@ import (
 	"context"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/packages"
-	conda_module "gitea.dev/modules/packages/conda"
+	"codenest.dev/models/db"
+	"codenest.dev/models/packages"
+	conda_module "codenest.dev/modules/packages/conda"
 
 	"xorm.io/builder"
 )

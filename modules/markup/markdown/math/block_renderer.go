@@ -6,8 +6,8 @@ package math
 import (
 	"html/template"
 
-	"gitea.dev/modules/markup/internal"
-	giteaUtil "gitea.dev/modules/util"
+	"codenest.dev/modules/markup/internal"
+	codenestUtil "codenest.dev/modules/util"
 
 	gast "github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
@@ -51,11 +51,11 @@ func (r *BlockRenderer) writeLines(w util.BufWriter, source []byte, n gast.Node)
 func (r *BlockRenderer) renderBlock(w util.BufWriter, source []byte, node gast.Node, entering bool) (gast.WalkStatus, error) {
 	n := node.(*Block) //nolint:forcetypeassert // registered for KindBlock only
 	if entering {
-		codeHTML := giteaUtil.Iif[template.HTML](n.Inline, "", `<pre class="code-block is-loading">`) + `<code class="language-math">`
+		codeHTML := codenestUtil.Iif[template.HTML](n.Inline, "", `<pre class="code-block is-loading">`) + `<code class="language-math">`
 		_, _ = w.WriteString(string(r.renderInternal.ProtectSafeAttrs(codeHTML)))
 		r.writeLines(w, source, n)
 	} else {
-		_, _ = w.WriteString(`</code>` + giteaUtil.Iif(n.Inline, "", `</pre>`) + "\n")
+		_, _ = w.WriteString(`</code>` + codenestUtil.Iif(n.Inline, "", `</pre>`) + "\n")
 	}
 	return gast.WalkContinue, nil
 }

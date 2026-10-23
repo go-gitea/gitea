@@ -11,11 +11,11 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -107,13 +107,13 @@ func TestAPIGetBranch(t *testing.T) {
 }
 
 func TestAPICreateBranch(t *testing.T) {
-	onGiteaRun(t, testAPICreateBranches)
+	onCodeNestRun(t, testAPICreateBranches)
 }
 
-func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
+func testAPICreateBranches(t *testing.T, codenestURL *url.URL) {
 	username := "user2"
 	ctx := NewAPITestContext(t, username, "my-noo-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-	giteaURL.Path = ctx.GitPath()
+	codenestURL.Path = ctx.GitPath()
 
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 	testCases := []struct {
@@ -141,7 +141,7 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 		},
 		// Trying to create from other branch (not default branch)
 		// ps: it can't test the case-sensitive behavior here: the "BRANCH_2" can't be created by git on a case-insensitive filesystem, it makes the test fail quickly before the database code.
-		// Suppose some users are running Gitea on a case-insensitive filesystem, it seems that it's unable to support case-sensitive branch names.
+		// Suppose some users are running CodeNest on a case-insensitive filesystem, it seems that it's unable to support case-sensitive branch names.
 		{
 			OldBranch:          "new_branch_from_master_1",
 			NewBranch:          "branch_2",
@@ -186,7 +186,7 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 }
 
 func TestAPIRenameBranch(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		t.Run("RenameBranchWithEmptyRepo", func(t *testing.T) {
 			testAPIRenameBranch(t, "user10", "user10", "repo6", "master", "test", http.StatusNotFound)
 		})
@@ -277,9 +277,9 @@ func TestAPIRenameBranch(t *testing.T) {
 func TestAPIUpdateBranchReference(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		ctx := NewAPITestContext(t, "user2", "update-branch", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-		giteaURL.Path = ctx.GitPath()
+		codenestURL.Path = ctx.GitPath()
 
 		var defaultBranch string
 		t.Run("CreateRepo", doAPICreateRepository(ctx, false, func(t *testing.T, repo api.Repository) {
@@ -462,9 +462,9 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 	_, err = db.DeleteByBean(t.Context(), git_model.Branch{RepoID: 1})
 	assert.NoError(t, err)
 
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-		giteaURL.Path = ctx.GitPath()
+		codenestURL.Path = ctx.GitPath()
 
 		testAPICreateBranch(t, ctx.Session, "user2", "repo1", "", "new_branch", http.StatusCreated)
 	})
@@ -511,7 +511,7 @@ func TestAPIBranchProtectionDeployKeyAllowlists(t *testing.T) {
 		bp := DecodeJSON(t, resp, &api.BranchProtection{})
 		assert.True(t, bp.PushWhitelistDeployKeys)
 		assert.True(t, bp.ForcePushAllowlistDeployKeys)
-		assert.Equal(t, []string{"user2", "gitea:deploy-key"}, bp.PushWhitelistUsernames)
+		assert.Equal(t, []string{"user2", "codenest:deploy-key"}, bp.PushWhitelistUsernames)
 	})
 
 	t.Run("LegacyFlagsDisableDeployKeys", func(t *testing.T) {
@@ -519,7 +519,7 @@ func TestAPIBranchProtectionDeployKeyAllowlists(t *testing.T) {
 		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/disable-deploy-keys", map[string]any{
 			"enable_push": true, "enable_push_whitelist": true, "push_whitelist_deploy_keys": false,
 			"enable_force_push": true, "enable_force_push_allowlist": true, "force_push_allowlist_deploy_keys": false,
-			"push_whitelist_usernames": []string{"user2", "gitea:deploy-key"}, "force_push_allowlist_usernames": []string{"gitea:deploy-key"},
+			"push_whitelist_usernames": []string{"user2", "codenest:deploy-key"}, "force_push_allowlist_usernames": []string{"codenest:deploy-key"},
 		}).AddTokenAuth(token), http.StatusOK)
 		bp := DecodeJSON(t, resp, &api.BranchProtection{})
 		assert.False(t, bp.PushWhitelistDeployKeys)
@@ -535,25 +535,25 @@ func TestAPIBranchProtectionDeployKeyAllowlists(t *testing.T) {
 	t.Run("AddDeployKeysByUsername", func(t *testing.T) {
 		createProtection(t, "add-deploy-keys", false)
 		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/add-deploy-keys", map[string]any{
-			"push_whitelist_usernames": []string{"user2", "gitea:deploy-key"}, "force_push_allowlist_usernames": []string{"gitea:deploy-key"},
+			"push_whitelist_usernames": []string{"user2", "codenest:deploy-key"}, "force_push_allowlist_usernames": []string{"codenest:deploy-key"},
 		}).AddTokenAuth(token), http.StatusOK)
 		bp := DecodeJSON(t, resp, &api.BranchProtection{})
 		assert.True(t, bp.PushWhitelistDeployKeys)
 		assert.True(t, bp.ForcePushAllowlistDeployKeys)
-		assert.Equal(t, []string{"user2", "gitea:deploy-key"}, bp.PushWhitelistUsernames)
-		assert.Equal(t, []string{"gitea:deploy-key"}, bp.ForcePushAllowlistUsernames)
+		assert.Equal(t, []string{"user2", "codenest:deploy-key"}, bp.PushWhitelistUsernames)
+		assert.Equal(t, []string{"codenest:deploy-key"}, bp.ForcePushAllowlistUsernames)
 	})
 
 	t.Run("CreateWithDeployKeyUsernames", func(t *testing.T) {
 		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, &api.CreateBranchProtectionOption{
 			RuleName: "deploy-key-usernames", EnablePush: true, EnablePushWhitelist: true,
-			PushWhitelistUsernames: []string{"gitea:deploy-key"}, EnableForcePush: true, EnableForcePushAllowlist: true,
-			ForcePushAllowlistUsernames: []string{"gitea:deploy-key"},
+			PushWhitelistUsernames: []string{"codenest:deploy-key"}, EnableForcePush: true, EnableForcePushAllowlist: true,
+			ForcePushAllowlistUsernames: []string{"codenest:deploy-key"},
 		}).AddTokenAuth(token), http.StatusCreated)
 		bp := DecodeJSON(t, resp, &api.BranchProtection{})
 		assert.True(t, bp.PushWhitelistDeployKeys)
 		assert.True(t, bp.ForcePushAllowlistDeployKeys)
-		assert.Equal(t, []string{"gitea:deploy-key"}, bp.PushWhitelistUsernames)
-		assert.Equal(t, []string{"gitea:deploy-key"}, bp.ForcePushAllowlistUsernames)
+		assert.Equal(t, []string{"codenest:deploy-key"}, bp.PushWhitelistUsernames)
+		assert.Equal(t, []string{"codenest:deploy-key"}, bp.ForcePushAllowlistUsernames)
 	})
 }

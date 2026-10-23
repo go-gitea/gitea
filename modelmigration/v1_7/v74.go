@@ -6,7 +6,7 @@ package v1_7
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func AddApprovalWhitelistsToProtectedBranches(_ context.Context, x base.EngineMigration) error {

@@ -12,16 +12,16 @@ import (
 	"path"
 	"strconv"
 
-	"gitea.dev/models/gituser"
-	"gitea.dev/modules/charset"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/languagestats"
-	"gitea.dev/modules/highlight"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	"codenest.dev/models/gituser"
+	"codenest.dev/modules/charset"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/languagestats"
+	"codenest.dev/modules/highlight"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 type blameRow struct {

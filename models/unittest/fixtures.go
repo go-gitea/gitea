@@ -9,10 +9,10 @@ import (
 	"strings"
 	"unicode"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/auth/password/hash"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/auth/password/hash"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/contexts"

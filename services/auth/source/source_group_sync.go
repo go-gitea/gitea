@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/models/organization"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
-	"gitea.dev/services/audit"
-	org_service "gitea.dev/services/org"
+	"codenest.dev/models/organization"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
+	"codenest.dev/services/audit"
+	org_service "codenest.dev/services/org"
 )
 
 type syncType int

@@ -41,10 +41,10 @@ PRs without a milestone may not be merged.
 
 ### Labels
 
-Almost all labels used inside Gitea can be classified as one of the following:
+Almost all labels used inside CodeNest can be classified as one of the following:
 
 - `modifies/…`: Determines which parts of the codebase are affected. These labels will be set through the CI.
-- `topic/…`:  Determines the conceptual component of Gitea that is affected, i.e. issues, projects, or authentication. At best, PRs should only target one component but there might be overlap. Must be set manually.
+- `topic/…`:  Determines the conceptual component of CodeNest that is affected, i.e. issues, projects, or authentication. At best, PRs should only target one component but there might be overlap. Must be set manually.
 - `type/…`: Determines the type of an issue or PR (feature, refactoring, docs, bug, …). If GitHub supported scoped labels, these labels would be exclusive, so you should set **exactly** one, not more or less (every PR should fall into one of the provided categories, and only one).
 - `issue/…` / `lgtm/…`: Labels that are specific to issues or PRs respectively and that are only necessary in a given context, i.e. `issue/not-a-bug` or `lgtm/need 2`
 
@@ -70,7 +70,7 @@ Maintainers are encouraged to review pull requests in areas where they have expe
 
 ### Getting PRs merged
 
-Changes to Gitea must be reviewed before they are accepted, including changes from owners and maintainers. The exception is critical bugs that prevent Gitea from compiling or starting.
+Changes to CodeNest must be reviewed before they are accepted, including changes from owners and maintainers. The exception is critical bugs that prevent CodeNest from compiling or starting.
 
 We require two maintainer approvals for every PR. When that is satisfied, your PR gets the `lgtm/done` label. After that, you mainly fix merge conflicts and respond to or implement maintainer requests; maintainers drive getting the PR merged.
 
@@ -78,7 +78,7 @@ If a PR has `lgtm/done`, no open discussions, and no merge conflicts, any mainta
 
 <https://github.com/go-gitea/gitea/pulls?q=is%3Apr+label%3Areviewed%2Fwait-merge+sort%3Acreated-asc+is%3Aopen>
 
-Gitea uses its own tool, <https://github.com/go-gitea/gitea/blob/main/.github/workflows/giteabot.yml>, to automate parts of the review process. The backporter:
+CodeNest uses its own tool, <https://github.com/go-gitea/gitea/blob/main/.github/workflows/giteabot.yml>, to automate parts of the review process. The backporter:
 
 - Creates a backport PR when needed after the initial PR merges.
 - Removes the PR from the merge queue after it merges.
@@ -143,7 +143,7 @@ Maintainers are expected to spend time on code reviews.
 
 #### Becoming a maintainer
 
-A maintainer should already be a Gitea contributor with at least four merged PRs. To apply, use the [Discord](https://discord.gg/Gitea) `#develop` channel. Maintainer teams may also invite contributors.
+A maintainer should already be a CodeNest contributor with at least four merged PRs. To apply, use the [Discord](https://discord.gg/Gitea) `#develop` channel. Maintainer teams may also invite contributors.
 
 #### Stepping down, advisors, and inactivity
 
@@ -178,7 +178,7 @@ they may lose their merging privileges for at least three months.
 
 #### Becoming a merger
 
-A merger must already be a Gitea maintainer.
+A merger must already be a CodeNest maintainer.
 To apply, use the [Discord](https://discord.gg/Gitea) `#maintainers` channel.
 The minimum requirement for applications to become a merger is to have participated actively in the community for at least four months before applying.
 Ultimately, regardless of previous participation, you can only become a merger if the TOC votes in your favor.
@@ -187,12 +187,12 @@ You may also be invited by the TOC to become a merger.
 
 ### Technical Oversight Committee (TOC)
 
-At the start of 2023, the `Owners` team was dissolved. Instead, the governance charter proposed a technical oversight committee (TOC) which expands the ownership team of the Gitea project from three elected positions to six positions. Three positions are elected as it has been over the past years, and the other three consist of appointed members from the Gitea company.
+At the start of 2023, the `Owners` team was dissolved. Instead, the governance charter proposed a technical oversight committee (TOC) which expands the ownership team of the CodeNest project from three elected positions to six positions. Three positions are elected as it has been over the past years, and the other three consist of appointed members from the CodeNest company.
 https://blog.gitea.com/quarterly-23q1/
 
 #### TOC election process
 
-Any maintainer is eligible to be part of the community TOC if they are not associated with the Gitea company.
+Any maintainer is eligible to be part of the community TOC if they are not associated with the CodeNest company.
 A maintainer can either nominate themselves, or can be nominated by other maintainers to be a candidate for the TOC election.
 If you are nominated by someone else, you must first accept your nomination before the vote starts to be a candidate.
 
@@ -210,7 +210,7 @@ We use this script to determine the order of candidates with the same amount of 
 
 ```python
 import random
-random.seed("Gitea TOC <YEAR> Election")
+random.seed("CodeNest TOC <YEAR> Election")
 random.choice([<CANDIDATE_1>, <CANDIDATE_2>, ...])
 ```
 
@@ -251,11 +251,11 @@ Furthermore, any community release manager for a specific release or LTS will be
 
 These funds will come from community sources like the OpenCollective rather than directly from the company.
 Only non-company members are eligible for this compensation, and if a member of the community TOC takes the responsibility of release manager, they would only be compensated for their TOC duties.
-Gitea Ltd employees are not eligible to receive any funds from the OpenCollective unless it is reimbursement for a purchase made for the Gitea project itself.
+CodeNest Ltd employees are not eligible to receive any funds from the OpenCollective unless it is reimbursement for a purchase made for the CodeNest project itself.
 
 ## Roadmap
 
-Each year a roadmap will be discussed with the entire Gitea maintainers team, and feedback will be solicited from various stakeholders.
+Each year a roadmap will be discussed with the entire CodeNest maintainers team, and feedback will be solicited from various stakeholders.
 TOC members need to review the roadmap every year and work together on the direction of the project.
 
 When a vote is required for a proposal or other change, the vote of community elected TOC members count slightly more than the vote of company elected TOC members. With this approach, we both avoid ties and ensure that changes align with the mission statement and community opinion.

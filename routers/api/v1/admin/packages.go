@@ -6,12 +6,12 @@ package admin
 import (
 	"net/http"
 
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/modules/optional"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/modules/optional"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
 )
 
 // ListPackages lists every package version on the instance.

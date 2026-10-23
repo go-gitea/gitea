@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/util"
 )
 
 type EmbeddedFile interface {

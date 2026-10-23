@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	"xorm.io/xorm/schemas"
 )
@@ -181,7 +181,7 @@ func preprocessDatabaseCollation(x EngineMigration) {
 
 	// check column collation, and show warning/error to end users -- no need to fatal, do not block the startup
 	if !r.IsCollationCaseSensitive(r.DatabaseCollation) {
-		log.Warn("Current database is using a case-insensitive collation %q, although Gitea could work with it, there might be some rare cases which don't work as expected.", r.DatabaseCollation)
+		log.Warn("Current database is using a case-insensitive collation %q, although CodeNest could work with it, there might be some rare cases which don't work as expected.", r.DatabaseCollation)
 	}
 
 	if len(r.InconsistentCollationColumns) > 0 {

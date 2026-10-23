@@ -13,8 +13,8 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/container"
-	api "gitea.dev/modules/structs"
+	"codenest.dev/modules/container"
+	api "codenest.dev/modules/structs"
 )
 
 var globalVars = sync.OnceValue(func() (ret struct {

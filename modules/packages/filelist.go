@@ -3,7 +3,7 @@
 
 package packages
 
-import "gitea.dev/modules/util"
+import "codenest.dev/modules/util"
 
 // BoundedFileList accumulates file names from a package archive while enforcing caps on the number of
 // entries and their total name length, returning an error once either cap would be exceeded.

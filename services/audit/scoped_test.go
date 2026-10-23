@@ -6,9 +6,9 @@ package audit
 import (
 	"testing"
 
-	audit_model "gitea.dev/models/audit"
-	repository_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
+	audit_model "codenest.dev/models/audit"
+	repository_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )

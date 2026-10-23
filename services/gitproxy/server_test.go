@@ -23,10 +23,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/modules/egress/policy"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/egress/policy"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -429,7 +429,7 @@ func TestRun(t *testing.T) {
 
 	stdout, _, runErr := gitcmd.NewCommand("config", "--get", "http.proxy").RunStdString(t.Context())
 	require.NoError(t, runErr)
-	assert.Contains(t, stdout, "http://gitea:")
+	assert.Contains(t, stdout, "http://codenest:")
 
 	_, port, err := net.SplitHostPort(serveConns(t, func(conn net.Conn) {
 		daemon := exec.Command("git", "daemon", "--inetd", "--export-all", "--base-path="+repos)

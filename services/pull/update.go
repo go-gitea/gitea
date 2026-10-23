@@ -8,16 +8,16 @@ import (
 	"errors"
 	"fmt"
 
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/globallock"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/globallock"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
 )
 
 // Update updates pull request with base branch.

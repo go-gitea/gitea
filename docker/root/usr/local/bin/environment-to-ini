@@ -1,2 +1,2 @@
 #!/bin/bash
-exec /app/gitea/gitea config edit-ini --in-place --apply-env "$@"
+exec /app/codenest/codenest config edit-ini --in-place --apply-env "$@"

@@ -7,16 +7,16 @@ import (
 	"context"
 	"net/url"
 
-	"gitea.dev/models/user"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
+	"codenest.dev/models/user"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/git"
 )
 
 // CommitParticipant is one participant of a commit (its author or a co-author):
-// a git identity, optionally matched to a Gitea user.
+// a git identity, optionally matched to a CodeNest user.
 type CommitParticipant struct {
-	GitIdentity *git.CommitIdentity // git identity (name/email), never nil
-	GiteaUser   *user.User          // matched Gitea user, nil if unmatched
+	GitIdentity  *git.CommitIdentity // git identity (name/email), never nil
+	CodeNestUser *user.User          // matched CodeNest user, nil if unmatched
 }
 
 // UserCommit represents a commit with matched of database "author" user.

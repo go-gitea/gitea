@@ -6,8 +6,8 @@ package issues
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
 )
 
 // IssueLockOptions defines options for locking and/or unlocking an issue/PR
@@ -17,7 +17,7 @@ type IssueLockOptions struct {
 
 	// Reason is the doer-provided comment message for the locked issue
 	// GitHub doesn't support changing the "reasons" by config file, so GitHub has pre-defined "reason" enum values.
-	// Gitea is not like GitHub, it allows site admin to define customized "reasons" in the config file.
+	// CodeNest is not like GitHub, it allows site admin to define customized "reasons" in the config file.
 	// So the API caller might not know what kind of "reasons" are valid, and the customized reasons are not translatable.
 	// To make things clear and simple: doer have the chance to use any reason they like, we do not do validation.
 	Reason string

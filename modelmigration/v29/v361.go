@@ -6,7 +6,7 @@ package v29
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func DropCommentCommitID(ctx context.Context, x base.EngineMigration) error {

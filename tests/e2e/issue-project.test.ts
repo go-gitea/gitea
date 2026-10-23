@@ -4,7 +4,7 @@ import {login, apiCreateRepo, apiCreateIssue, apiDeleteRepo, createProject, crea
 
 test('assign issue to project and change column', async ({page}) => {
   const repoName = `e2e-issue-project-${randomString(8)}`;
-  const user = env.GITEA_TEST_E2E_USER;
+  const user = env.CODENEST_TEST_E2E_USER;
   await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName, autoInit: false})]);
   await page.goto(`/${user}/${repoName}/projects/new`);
   await page.locator('input[name="title"]').fill('Kanban Board');
@@ -37,7 +37,7 @@ test('create a project', async ({page}) => {
 
   try {
     // Navigate to new project page
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/projects/new`);
+    await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/projects/new`);
 
     // Fill in project details
     await page.getByLabel('Title').fill(projectTitle);
@@ -46,12 +46,12 @@ test('create a project', async ({page}) => {
     await page.getByRole('button', {name: 'Create Project'}).click();
 
     // Verify project was created by checking we're redirected to the projects list
-    await expect(page).toHaveURL(new RegExp(`/${env.GITEA_TEST_E2E_USER}/${repoName}/projects$`));
+    await expect(page).toHaveURL(new RegExp(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/projects$`));
 
     // Verify the project appears in the list
     await expect(page.locator('.milestone-list')).toContainText(projectTitle);
   } finally {
-    await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
+    await apiDeleteRepo(page.request, env.CODENEST_TEST_E2E_USER, repoName);
   }
 });
 
@@ -67,25 +67,25 @@ test('assign issue to multiple projects via sidebar', async ({page}) => {
   try {
     // Create two projects via UI
     const project1 = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: project1Title,
     });
     const project2 = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: project2Title,
     });
 
     // Create an issue without any project
     const issue = await apiCreateIssue(page.request, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: issueTitle,
     });
 
     // Navigate to the issue page
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/${issue.index}`);
+    await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/issues/${issue.index}`);
 
     // Open the projects dropdown in the sidebar
     await page.locator('.sidebar-project-combo > .ui.dropdown').click();
@@ -101,7 +101,7 @@ test('assign issue to multiple projects via sidebar', async ({page}) => {
     await expect(page.locator(`.item.sidebar-project-card:has-text("${project1Title}")`)).toBeVisible();
     await expect(page.locator(`.item.sidebar-project-card:has-text("${project2Title}")`)).toBeVisible();
   } finally {
-    await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
+    await apiDeleteRepo(page.request, env.CODENEST_TEST_E2E_USER, repoName);
   }
 });
 
@@ -117,18 +117,18 @@ test('create issue with multiple projects pre-selected', async ({page}) => {
   try {
     // Create two projects via UI
     const project1 = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: project1Title,
     });
     const project2 = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: project2Title,
     });
 
     // Navigate to new issue page
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/new`);
+    await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/issues/new`);
 
     // Fill in the issue title
     await page.locator('input[name="title"]').fill(issueTitle);
@@ -147,13 +147,13 @@ test('create issue with multiple projects pre-selected', async ({page}) => {
     await page.getByRole('button', {name: 'Create Issue'}).click();
 
     // Wait for issue to be created and page to redirect
-    await page.waitForURL(new RegExp(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/\\d+`));
+    await page.waitForURL(new RegExp(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/issues/\\d+`));
 
     // Verify both projects are shown in the sidebar
     await expect(page.locator(`.item.sidebar-project-card:has-text("${project1Title}")`)).toBeVisible();
     await expect(page.locator(`.item.sidebar-project-card:has-text("${project2Title}")`)).toBeVisible();
   } finally {
-    await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
+    await apiDeleteRepo(page.request, env.CODENEST_TEST_E2E_USER, repoName);
   }
 });
 
@@ -168,57 +168,57 @@ test('filter issues by multiple projects in issue list', async ({page}) => {
   try {
     // Create two projects via UI
     const project1 = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: project1Title,
     });
     const project2 = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: project2Title,
     });
 
     // Create issues: one in project1, one in project2, one in both
     await apiCreateIssue(page.request, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: 'Issue in Project A only',
       projects: [project1.id],
     });
     await apiCreateIssue(page.request, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: 'Issue in Project B only',
       projects: [project2.id],
     });
     await apiCreateIssue(page.request, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: 'Issue in both projects',
       projects: [project1.id, project2.id],
     });
     // Create an issue with no project
     await apiCreateIssue(page.request, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: 'Issue with no project',
     });
 
     // Verify only project1 issues are visible
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues?project=${project1.id}`);
+    await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/issues?project=${project1.id}`);
     await expect(page.locator('#issue-list')).toContainText('Issue in Project A only');
     await expect(page.locator('#issue-list')).toContainText('Issue in both projects');
     await expect(page.locator('#issue-list')).not.toContainText('Issue in Project B only');
     await expect(page.locator('#issue-list')).not.toContainText('Issue with no project');
 
     // Verify only project2 issues are visible
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues?project=${project2.id}`);
+    await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/issues?project=${project2.id}`);
     await expect(page.locator('#issue-list')).toContainText('Issue in Project B only');
     await expect(page.locator('#issue-list')).toContainText('Issue in both projects');
     await expect(page.locator('#issue-list')).not.toContainText('Issue in Project A only');
     await expect(page.locator('#issue-list')).not.toContainText('Issue with no project');
   } finally {
-    await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
+    await apiDeleteRepo(page.request, env.CODENEST_TEST_E2E_USER, repoName);
   }
 });
 
@@ -234,26 +234,26 @@ test('remove issue from one project keeping others', async ({page}) => {
   try {
     // Create two projects via UI
     const project1 = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: project1Title,
     });
     const project2 = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: project2Title,
     });
 
     // Create an issue in both projects
     const issue = await apiCreateIssue(page.request, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: issueTitle,
       projects: [project1.id, project2.id],
     });
 
     // Navigate to the issue page
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/${issue.index}`);
+    await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/issues/${issue.index}`);
 
     // Verify both projects are initially shown
     await expect(page.locator(`.item.sidebar-project-card:has-text("${project1Title}")`)).toBeVisible();
@@ -279,7 +279,7 @@ test('remove issue from one project keeping others', async ({page}) => {
     const timelineComments = page.locator('.timeline-item.event');
     await expect(timelineComments.filter({hasText: 'removed this from the'})).toBeVisible();
   } finally {
-    await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
+    await apiDeleteRepo(page.request, env.CODENEST_TEST_E2E_USER, repoName);
   }
 });
 
@@ -293,14 +293,14 @@ test('filter issues with no project using project=-1', async ({page}) => {
   try {
     // Create a project via UI
     const project = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: projectTitle,
     });
 
     // Create an issue with a project
     await apiCreateIssue(page.request, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: 'Issue with project assigned',
       projects: [project.id],
@@ -308,24 +308,24 @@ test('filter issues with no project using project=-1', async ({page}) => {
 
     // Create issues with no project
     await apiCreateIssue(page.request, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: 'Issue without any project',
     });
     await apiCreateIssue(page.request, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: 'Another unassigned issue',
     });
 
     // First verify we can see all issues without the filter
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues?type=all&state=open`);
+    await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/issues?type=all&state=open`);
     await expect(page.locator('#issue-list')).toContainText('Issue with project assigned');
     await expect(page.locator('#issue-list')).toContainText('Issue without any project');
     await expect(page.locator('#issue-list')).toContainText('Another unassigned issue');
 
     // Navigate to issue list filtering for issues with no project (project=-1)
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues?type=all&state=open&project=-1`);
+    await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/issues?type=all&state=open&project=-1`);
 
     // Verify only issues with no project are visible
     await expect(page.locator('#issue-list')).toContainText('Issue without any project');
@@ -339,7 +339,7 @@ test('filter issues with no project using project=-1', async ({page}) => {
     const lastIssueItem = issueItems.last();
     await expect(lastIssueItem).not.toContainText('Issue with project assigned');
   } finally {
-    await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
+    await apiDeleteRepo(page.request, env.CODENEST_TEST_E2E_USER, repoName);
   }
 });
 
@@ -354,18 +354,18 @@ test('close project and view in closed projects list', async ({page}) => {
   try {
     // Create two projects via UI
     await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: openProjectTitle,
     });
     const projectToClose = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: closedProjectTitle,
     });
 
     // Navigate to projects list
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/projects`);
+    await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/projects`);
 
     // Verify both projects are visible in open state
     await expect(page.locator('.milestone-list')).toContainText(openProjectTitle);
@@ -376,10 +376,10 @@ test('close project and view in closed projects list', async ({page}) => {
     await projectCard.locator('a.link-action[data-url$="/close"]').click();
 
     // Wait for redirect back to project view page
-    await page.waitForURL(new RegExp(`/${env.GITEA_TEST_E2E_USER}/${repoName}/projects/${projectToClose.id}`));
+    await page.waitForURL(new RegExp(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/projects/${projectToClose.id}`));
 
     // Navigate to projects list
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/projects`);
+    await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/projects`);
 
     // Click on "Closed" tab to view closed projects
     await page.locator('.list-header-toggle a.item').filter({hasText: 'Closed'}).click();
@@ -394,7 +394,7 @@ test('close project and view in closed projects list', async ({page}) => {
     // Verify the "Closed" tab is active
     await expect(page.locator('.list-header-toggle a.item.active')).toContainText('Closed');
   } finally {
-    await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
+    await apiDeleteRepo(page.request, env.CODENEST_TEST_E2E_USER, repoName);
   }
 });
 
@@ -409,18 +409,18 @@ test('select projects on new issue page shows in sidebar', async ({page}) => {
   try {
     // Create two projects
     const project1 = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: project1Title,
     });
     const project2 = await createProject(page, {
-      owner: env.GITEA_TEST_E2E_USER,
+      owner: env.CODENEST_TEST_E2E_USER,
       repo: repoName,
       title: project2Title,
     });
 
     // Navigate to new issue page
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/new`);
+    await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/issues/new`);
 
     // Open the projects dropdown in the sidebar
     await page.locator('.sidebar-project-combo > .ui.dropdown').click();
@@ -438,6 +438,6 @@ test('select projects on new issue page shows in sidebar', async ({page}) => {
     await expect(projectList.locator(`.item:has-text("${project1Title}")`).first()).toBeVisible();
     await expect(projectList.locator(`.item:has-text("${project2Title}")`).first()).toBeVisible();
   } finally {
-    await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
+    await apiDeleteRepo(page.request, env.CODENEST_TEST_E2E_USER, repoName);
   }
 });

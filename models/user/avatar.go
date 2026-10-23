@@ -9,14 +9,14 @@ import (
 	"image/png"
 	"io"
 
-	"gitea.dev/models/avatars"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/avatar"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/avatars"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/avatar"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/util"
 )
 
 // CustomAvatarRelativePath returns user custom avatar relative path.

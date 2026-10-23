@@ -6,38 +6,38 @@ package packages
 import (
 	"net/http"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/perm"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	npm_module "gitea.dev/modules/packages/npm"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/api/packages/alpine"
-	"gitea.dev/routers/api/packages/arch"
-	"gitea.dev/routers/api/packages/cargo"
-	"gitea.dev/routers/api/packages/chef"
-	"gitea.dev/routers/api/packages/composer"
-	"gitea.dev/routers/api/packages/conan"
-	"gitea.dev/routers/api/packages/conda"
-	"gitea.dev/routers/api/packages/container"
-	"gitea.dev/routers/api/packages/cran"
-	"gitea.dev/routers/api/packages/debian"
-	"gitea.dev/routers/api/packages/generic"
-	"gitea.dev/routers/api/packages/goproxy"
-	"gitea.dev/routers/api/packages/helm"
-	"gitea.dev/routers/api/packages/maven"
-	"gitea.dev/routers/api/packages/npm"
-	"gitea.dev/routers/api/packages/nuget"
-	"gitea.dev/routers/api/packages/pub"
-	"gitea.dev/routers/api/packages/pypi"
-	"gitea.dev/routers/api/packages/rpm"
-	"gitea.dev/routers/api/packages/rubygems"
-	"gitea.dev/routers/api/packages/swift"
-	"gitea.dev/routers/api/packages/terraform"
-	"gitea.dev/routers/api/packages/vagrant"
-	"gitea.dev/services/auth"
-	"gitea.dev/services/context"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/perm"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	npm_module "codenest.dev/modules/packages/npm"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/api/packages/alpine"
+	"codenest.dev/routers/api/packages/arch"
+	"codenest.dev/routers/api/packages/cargo"
+	"codenest.dev/routers/api/packages/chef"
+	"codenest.dev/routers/api/packages/composer"
+	"codenest.dev/routers/api/packages/conan"
+	"codenest.dev/routers/api/packages/conda"
+	"codenest.dev/routers/api/packages/container"
+	"codenest.dev/routers/api/packages/cran"
+	"codenest.dev/routers/api/packages/debian"
+	"codenest.dev/routers/api/packages/generic"
+	"codenest.dev/routers/api/packages/goproxy"
+	"codenest.dev/routers/api/packages/helm"
+	"codenest.dev/routers/api/packages/maven"
+	"codenest.dev/routers/api/packages/npm"
+	"codenest.dev/routers/api/packages/nuget"
+	"codenest.dev/routers/api/packages/pub"
+	"codenest.dev/routers/api/packages/pypi"
+	"codenest.dev/routers/api/packages/rpm"
+	"codenest.dev/routers/api/packages/rubygems"
+	"codenest.dev/routers/api/packages/swift"
+	"codenest.dev/routers/api/packages/terraform"
+	"codenest.dev/routers/api/packages/vagrant"
+	"codenest.dev/services/auth"
+	"codenest.dev/services/context"
 )
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
@@ -49,14 +49,14 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				return
 			}
 			if !scopeMatched {
-				ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
+				ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="CodeNest Package API"`)
 				ctx.HTTPError(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
 				return
 			}
 		}
 
 		if ctx.Package.AccessMode < accessMode {
-			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
+			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="CodeNest Package API"`)
 			ctx.HTTPError(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
 			return
 		}

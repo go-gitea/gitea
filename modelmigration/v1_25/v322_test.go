@@ -6,8 +6,8 @@ package v1_25
 import (
 	"testing"
 
-	"gitea.dev/modelmigration/migrationtest"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modelmigration/migrationtest"
+	"codenest.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

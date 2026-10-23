@@ -9,17 +9,17 @@ import (
 	"net/http"
 	"strings"
 
-	git_model "gitea.dev/models/git"
-	"gitea.dev/models/organization"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	release_service "gitea.dev/services/release"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/models/organization"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	release_service "codenest.dev/services/release"
 )
 
 // ListTags list all the tags of a repository

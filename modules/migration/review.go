@@ -11,7 +11,7 @@ type Reviewable interface {
 	GetContext() DownloaderContext
 
 	// GetForeignIndex presents the foreign index, which could be misused:
-	// For example, if there are 2 Gitea sites: site-A exports a dataset, then site-B imports it:
+	// For example, if there are 2 CodeNest sites: site-A exports a dataset, then site-B imports it:
 	// * if site-A exports files by using its LocalIndex
 	// * from site-A's view, LocalIndex is site-A's IssueIndex while ForeignIndex is site-B's IssueIndex
 	// * but from site-B's view, LocalIndex is site-B's IssueIndex while ForeignIndex is site-A's IssueIndex

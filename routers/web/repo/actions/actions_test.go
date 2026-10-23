@@ -8,14 +8,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	unittest "gitea.dev/models/unittest"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	web_context "gitea.dev/services/context"
-	"gitea.dev/services/contexttest"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	unittest "codenest.dev/models/unittest"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	web_context "codenest.dev/services/context"
+	"codenest.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +39,7 @@ func Test_loadIsRefDeleted(t *testing.T) {
 }
 
 func TestPrepareWorkflowBadgeTemplate(t *testing.T) {
-	defer test.MockVariableValue(&setting.AppURL, "https://gitea.example.com/")()
+	defer test.MockVariableValue(&setting.AppURL, "https://codenest.example.com/")()
 
 	t.Run("no workflow selected", func(t *testing.T) {
 		ctx := newWorkflowBadgeTestContext(t)
@@ -55,8 +55,8 @@ func TestPrepareWorkflowBadgeTemplate(t *testing.T) {
 		prepareWorkflowBadgeTemplate(ctx, "build/test workflow.yml", `CI [prod]\build "fast" <ok>`)
 
 		assert.Equal(t, workflowBadge{
-			BadgeURL:    "https://gitea.example.com/user1/repo1/actions/workflows/build/test%20workflow.yml/badge.svg?branch=release%2F1.0+%26+hotfix",
-			WorkflowURL: "https://gitea.example.com/user1/repo1/actions?workflow=build%2Ftest+workflow.yml",
+			BadgeURL:    "https://codenest.example.com/user1/repo1/actions/workflows/build/test%20workflow.yml/badge.svg?branch=release%2F1.0+%26+hotfix",
+			WorkflowURL: "https://codenest.example.com/user1/repo1/actions?workflow=build%2Ftest+workflow.yml",
 			DisplayName: `CI [prod]\build "fast" <ok>`,
 		}, ctx.Data["WorkflowBadge"])
 	})
@@ -65,7 +65,7 @@ func TestPrepareWorkflowBadgeTemplate(t *testing.T) {
 func newWorkflowBadgeTestContext(t *testing.T) *web_context.Context {
 	t.Helper()
 
-	req := httptest.NewRequest(http.MethodGet, "https://gitea.example.com/user1/repo1/actions", nil)
+	req := httptest.NewRequest(http.MethodGet, "https://codenest.example.com/user1/repo1/actions", nil)
 	resp := httptest.NewRecorder()
 	ctx := web_context.NewWebContext(web_context.NewBaseContextForTest(t, resp, req), nil, nil)
 	ctx.Repo.Repository = &repo_model.Repository{

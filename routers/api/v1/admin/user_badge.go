@@ -6,10 +6,10 @@ package admin
 import (
 	"net/http"
 
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
 )
 
 // ListUserBadges lists all badges belonging to a user

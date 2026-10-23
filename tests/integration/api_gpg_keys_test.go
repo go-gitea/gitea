@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

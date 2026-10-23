@@ -6,9 +6,9 @@ package project
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	project_model "gitea.dev/models/project"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	project_model "codenest.dev/models/project"
 )
 
 func GetProjectLabels(ctx context.Context, project *project_model.Project) ([]*issues_model.Label, error) {

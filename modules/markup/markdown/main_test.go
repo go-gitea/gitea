@@ -6,12 +6,12 @@ package markdown
 import (
 	"testing"
 
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/setting"
 )
 
 func TestMain(m *testing.M) {
-	setting.SetupGiteaTestEnv()
+	setting.SetupCodeNestTestEnv()
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 	m.Run()
 }

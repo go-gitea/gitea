@@ -7,9 +7,9 @@ import (
 	"context"
 	"errors"
 
-	"gitea.dev/modules/git/gitcmd"
-	giturl "gitea.dev/modules/git/url"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitcmd"
+	giturl "codenest.dev/modules/git/url"
+	"codenest.dev/modules/util"
 )
 
 type RemoteOption string

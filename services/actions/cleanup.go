@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"time"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/timeutil"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )

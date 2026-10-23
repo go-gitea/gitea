@@ -4,8 +4,8 @@
 package swagger
 
 import (
-	activities_model "gitea.dev/models/activities"
-	api "gitea.dev/modules/structs"
+	activities_model "codenest.dev/models/activities"
+	api "codenest.dev/modules/structs"
 )
 
 // User

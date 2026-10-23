@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/mailer/token"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/mailer/token"
 
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"

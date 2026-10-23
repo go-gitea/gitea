@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 type TempDir struct {
 	// base is the base directory for temporary files, it must exist before accessing and won't be created automatically.
-	// for example: base="/system-tmpdir", sub="gitea-tmp"
+	// for example: base="/system-tmpdir", sub="codenest-tmp"
 	base, sub string
 }
 

@@ -6,10 +6,10 @@ package actions
 import (
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/actions/jobparser"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/actions/jobparser"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

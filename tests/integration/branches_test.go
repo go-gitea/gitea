@@ -8,12 +8,12 @@ import (
 	"net/url"
 	"testing"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/translation"
-	"gitea.dev/tests"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/translation"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +58,7 @@ func TestUndoDeleteBranch(t *testing.T) {
 		return NewHTMLParser(t, resp.Body), linkURL.Query().Get("name")
 	}
 
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		htmlDoc, name := branchAction(t, ".delete-branch-button", "data-modal-form.url")
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.positive.message").Text(),
@@ -73,7 +73,7 @@ func TestUndoDeleteBranch(t *testing.T) {
 }
 
 func TestDeleteProtectedBranchWeb(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user2")
 		const branchURL = "/user2/repo1/branches/delete?name=branch2"
 		const deleteButton = `.delete-branch-button[data-modal-name="branch2"]`

@@ -7,14 +7,14 @@ import (
 	"net/http"
 	"time"
 
-	"gitea.dev/models/db"
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/context"
-	packages_service "gitea.dev/services/packages"
-	packages_cleanup_service "gitea.dev/services/packages/cleanup"
+	"codenest.dev/models/db"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/context"
+	packages_service "codenest.dev/services/packages"
+	packages_cleanup_service "codenest.dev/services/packages/cleanup"
 )
 
 const (

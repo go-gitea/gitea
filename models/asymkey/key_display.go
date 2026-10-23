@@ -6,9 +6,9 @@ package asymkey
 import (
 	"os"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 func GetDisplaySigningKey(key *git.SigningKey) string {

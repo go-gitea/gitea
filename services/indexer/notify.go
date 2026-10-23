@@ -6,16 +6,16 @@ package indexer
 import (
 	"context"
 
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	code_indexer "gitea.dev/modules/indexer/code"
-	issue_indexer "gitea.dev/modules/indexer/issues"
-	stats_indexer "gitea.dev/modules/indexer/stats"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
-	notify_service "gitea.dev/services/notify"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	code_indexer "codenest.dev/modules/indexer/code"
+	issue_indexer "codenest.dev/modules/indexer/issues"
+	stats_indexer "codenest.dev/modules/indexer/stats"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
+	notify_service "codenest.dev/services/notify"
 )
 
 type indexerNotifier struct {

@@ -7,13 +7,13 @@ package mailer
 import (
 	"context"
 
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	sender_service "gitea.dev/services/mailer/sender"
-	notify_service "gitea.dev/services/notify"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	sender_service "codenest.dev/services/mailer/sender"
+	notify_service "codenest.dev/services/notify"
 )
 
 var mailQueue *queue.WorkerPoolQueue[*sender_service.Message]

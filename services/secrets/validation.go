@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 // https://docs.github.com/en/actions/learn-github-actions/variables#naming-conventions-for-configuration-variables
@@ -18,7 +18,7 @@ var globalVars = sync.OnceValue(func() (ret struct {
 },
 ) {
 	ret.namePattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
-	ret.forbiddenPrefixPattern = regexp.MustCompile("(?i)^(GITEA_|GITHUB_)")
+	ret.forbiddenPrefixPattern = regexp.MustCompile("(?i)^(CODENEST_|GITEA_|GITHUB_)")
 	return ret
 })
 
@@ -28,7 +28,7 @@ func ValidateName(name string) error {
 		return util.NewInvalidArgumentErrorf("name must start with a letter or underscore and contain only letters, numbers, and underscores")
 	}
 	if vars.forbiddenPrefixPattern.MatchString(name) {
-		return util.NewInvalidArgumentErrorf("name cannot start with 'GITEA_' or 'GITHUB_'")
+		return util.NewInvalidArgumentErrorf("name cannot start with 'CODENEST_' or 'GITHUB_'")
 	}
 	if strings.EqualFold(name, "CI") {
 		return util.NewInvalidArgumentErrorf("'CI' is a reserved name")

@@ -6,8 +6,8 @@ package v1_20
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/setting"
 )
 
 func RenameWebhookOrgToOwner(ctx context.Context, x base.EngineMigration) error {

@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"testing"
 
-	"gitea.dev/modules/options"
-	repo_module "gitea.dev/modules/repository"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/tests"
+	"codenest.dev/modules/options"
+	repo_module "codenest.dev/modules/repository"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +29,7 @@ func TestAPIListGitignoresTemplates(t *testing.T) {
 func TestAPIGetGitignoreTemplateInfo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// If Gitea has for some reason no Gitignore templates, we need to skip this test
+	// If CodeNest has for some reason no Gitignore templates, we need to skip this test
 	if len(repo_module.Gitignores) == 0 {
 		return
 	}

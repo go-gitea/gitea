@@ -9,16 +9,16 @@ import (
 	"path"
 	"strings"
 
-	activities_model "gitea.dev/models/activities"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/repository"
-	notify_service "gitea.dev/services/notify"
+	activities_model "codenest.dev/models/activities"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup/markdown"
+	"codenest.dev/modules/repository"
+	notify_service "codenest.dev/services/notify"
 )
 
 type actionNotifier struct {

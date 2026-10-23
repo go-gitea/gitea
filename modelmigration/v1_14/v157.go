@@ -6,7 +6,7 @@ package v1_14
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func FixRepoTopics(_ context.Context, x base.EngineMigration) error {

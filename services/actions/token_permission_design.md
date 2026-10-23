@@ -1,10 +1,10 @@
 # Actions Token Permission System Design
 
-This document details the design of the Actions Token Permission system within Gitea, originally proposed in [#24635](https://github.com/go-gitea/gitea/issues/24635).
+This document details the design of the Actions Token Permission system within CodeNest, originally proposed in [#24635](https://github.com/go-gitea/gitea/issues/24635).
 
 ## Design Philosophy & GitHub Differences
 
-Gitea Actions uses a **strict clamping mechanism** for token permissions.
+CodeNest Actions uses a **strict clamping mechanism** for token permissions.
 While workflows can request explicit permissions that exceed the repository's default baseline
 (e.g., requesting `write` when the default mode is `Restricted`),
 these requests are always bounded by a hard ceiling.
@@ -15,7 +15,7 @@ This ensures that workflows cannot bypass organizational or repository-level sec
 
 ## Terminology
 
-### 1. `GITEA_TOKEN`
+### 1. `CODENEST_TOKEN`
 - The automatic token generated for each Actions job.
 - Its permissions (read/write/none) are scoped to the repository and specific features (Code, Issues, etc.).
 
@@ -45,13 +45,13 @@ This ensures that workflows cannot bypass organizational or repository-level sec
 
 ## Token Lifecycle & Permission Evaluation
 
-When a job starts, Gitea evaluates the requested permissions for the `GITEA_TOKEN` through a multistep clamping process:
+When a job starts, CodeNest evaluates the requested permissions for the `CODENEST_TOKEN` through a multistep clamping process:
 
 ### Step 1: Determine Base Permissions From Workflow
-- If the job explicitly specifies a valid `permissions:` block, Gitea parses it.
-- If the job inherits a top-level `permissions:` block, Gitea parses that.
+- If the job explicitly specifies a valid `permissions:` block, CodeNest parses it.
+- If the job inherits a top-level `permissions:` block, CodeNest parses that.
 - If an invalid or unparseable `permissions:` block is specified, or no explicit permissions are defined at all,
-  Gitea falls back to using the repository's default `TokenPermissionMode` (Permissive or Restricted)
+  CodeNest falls back to using the repository's default `TokenPermissionMode` (Permissive or Restricted)
   to generate base permissions.
 
 ### Step 2: Apply Repository Clamping
@@ -69,7 +69,7 @@ When a job starts, Gitea evaluates the requested permissions for the `GITEA_TOKE
 
 ## Parsing Priority for "contents" Scope
 
-In GitHub Actions compatibility, the `contents` scope maps to multiple granular scopes in Gitea.
+In GitHub Actions compatibility, the `contents` scope maps to multiple granular scopes in CodeNest.
 - `contents: write` maps to `Code: write` and `Releases: write`.
 - When a workflow specifies both `contents` and a more granular scope (e.g., `code`),
   the granular scope takes absolute priority.

@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,7 +50,7 @@ func doAddChangesToCheckout(dstPath, filename string) func(*testing.T) {
 
 // TestSSHShellWelcome covers the "shell" request, which carries no command payload unlike "exec"
 func TestSSHShellWelcome(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteUser)
 		withKeyFile(t, "welcome-key", func(keyFile string) {
 			t.Run("CreateUserKey", doAPICreateUserKey(ctx, "welcome-key", keyFile))
@@ -81,7 +81,7 @@ func TestSSHShellWelcome(t *testing.T) {
 }
 
 func TestPushDeployKeyOnEmptyRepo(t *testing.T) {
-	onGiteaRun(t, testPushDeployKeyOnEmptyRepo)
+	onCodeNestRun(t, testPushDeployKeyOnEmptyRepo)
 }
 
 func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
@@ -118,7 +118,7 @@ func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
 }
 
 func TestKeyOnlyOneType(t *testing.T) {
-	onGiteaRun(t, testKeyOnlyOneType)
+	onCodeNestRun(t, testKeyOnlyOneType)
 }
 
 func testKeyOnlyOneType(t *testing.T, u *url.URL) {

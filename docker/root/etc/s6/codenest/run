@@ -1,0 +1,6 @@
+#!/bin/bash
+[[ -f ./setup ]] && source ./setup
+
+pushd /app/codenest >/dev/null
+exec su-exec $USER /usr/local/bin/codenest web
+popd

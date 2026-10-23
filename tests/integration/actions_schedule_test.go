@@ -10,21 +10,21 @@ import (
 	"strings"
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/migration"
-	api "gitea.dev/modules/structs"
-	actions_service "gitea.dev/services/actions"
-	mirror_service "gitea.dev/services/mirror"
-	repo_service "gitea.dev/services/repository"
-	files_service "gitea.dev/services/repository/files"
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/migration"
+	api "codenest.dev/modules/structs"
+	actions_service "codenest.dev/services/actions"
+	mirror_service "codenest.dev/services/mirror"
+	repo_service "codenest.dev/services/repository"
+	files_service "codenest.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -272,7 +272,7 @@ func testScheduleUpdateRenameDefaultBranch(t *testing.T) {
 type scheduleUpdateTrigger func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string)
 
 func doTestScheduleUpdate(t *testing.T, updateTrigger scheduleUpdateTrigger) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)

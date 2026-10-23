@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"strings"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	user_service "gitea.dev/services/user"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	user_service "codenest.dev/services/user"
 
 	"github.com/urfave/cli/v3"
 )

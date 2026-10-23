@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"path"
 
-	"gitea.dev/models/renderhelper"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup"
-	"gitea.dev/services/context"
+	"codenest.dev/models/renderhelper"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup"
+	"codenest.dev/services/context"
 )
 
 // RenderFile renders a file by repos path
@@ -65,7 +65,7 @@ func RenderFile(ctx *context.Context) {
 	if extRendererOpts.ContentSandbox != "" {
 		ctx.Resp.Header().Add("Content-Security-Policy", "sandbox "+extRendererOpts.ContentSandbox)
 	} else {
-		// if no sandbox, just apply the same CSP as a general Gitea web page
+		// if no sandbox, just apply the same CSP as a general CodeNest web page
 		ctx.SetHeaderContentSecurityPolicyGeneral()
 	}
 

@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 // VersionedIndexName returns the full index name with version suffix.
@@ -28,7 +28,7 @@ func (i *Indexer) checkOldIndexes(ctx context.Context) {
 		indexName := versionedIndexName(i.indexName, v)
 		exists, err := i.indexExists(ctx, indexName)
 		if err == nil && exists {
-			log.Warn("Found older elasticsearch index named %q, Gitea will keep the old NOT DELETED. You can delete the old version after the upgrade succeed.", indexName)
+			log.Warn("Found older elasticsearch index named %q, CodeNest will keep the old NOT DELETED. You can delete the old version after the upgrade succeed.", indexName)
 		}
 	}
 }

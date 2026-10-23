@@ -4,10 +4,10 @@
 package repo
 
 import (
-	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/context"
+	issues_model "codenest.dev/models/issues"
+	access_model "codenest.dev/models/perm/access"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/context"
 )
 
 // AddDependency adds new dependencies

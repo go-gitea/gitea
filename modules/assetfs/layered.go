@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/util"
 
 	"github.com/fsnotify/fsnotify"
 )

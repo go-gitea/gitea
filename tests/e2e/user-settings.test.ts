@@ -17,7 +17,7 @@ test('update profile biography', async ({page, request}) => {
 
 test('select and deselect all webhook events', async ({page}) => {
   await login(page);
-  await page.goto('/user/settings/hooks/gitea/new');
+  await page.goto('/user/settings/hooks/codenest/new');
   await page.getByRole('radio', {name: 'Custom Events'}).check();
   await page.getByRole('button', {name: 'Select All', exact: true}).click();
   await expect(page.getByRole('checkbox', {checked: false})).toHaveCount(0);

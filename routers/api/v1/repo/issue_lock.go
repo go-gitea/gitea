@@ -6,10 +6,10 @@ package repo
 import (
 	"net/http"
 
-	issues_model "gitea.dev/models/issues"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
+	issues_model "codenest.dev/models/issues"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
 )
 
 // LockIssue lock an issue

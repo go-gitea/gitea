@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/lfs"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/lfs"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +33,7 @@ func TestIterateLFSMetaObjectsForRepoUpdatesDoNotSkip(t *testing.T) {
 
 	created := make([]*git_model.LFSMetaObject, 0, 3)
 	for i := range 3 {
-		content := []byte("gitea-lfs-" + strconv.Itoa(i))
+		content := []byte("codenest-lfs-" + strconv.Itoa(i))
 		pointer, err := lfs.GeneratePointer(bytes.NewReader(content))
 		assert.NoError(t, err)
 

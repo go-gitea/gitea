@@ -6,8 +6,8 @@ package repostats
 import (
 	"testing"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/unittest"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )

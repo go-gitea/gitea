@@ -14,25 +14,25 @@ import (
 	"strings"
 	"sync"
 
-	auth_model "gitea.dev/models/auth"
-	packages_model "gitea.dev/models/packages"
-	container_model "gitea.dev/models/packages/container"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	packages_module "gitea.dev/modules/packages"
-	container_module "gitea.dev/modules/packages/container"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/packages/helper"
-	auth_service "gitea.dev/services/auth"
-	"gitea.dev/services/context"
-	packages_service "gitea.dev/services/packages"
-	container_service "gitea.dev/services/packages/container"
+	auth_model "codenest.dev/models/auth"
+	packages_model "codenest.dev/models/packages"
+	container_model "codenest.dev/models/packages/container"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	packages_module "codenest.dev/modules/packages"
+	container_module "codenest.dev/modules/packages/container"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/packages/helper"
+	auth_service "codenest.dev/services/auth"
+	"codenest.dev/services/context"
+	packages_service "codenest.dev/services/packages"
+	container_service "codenest.dev/services/packages/container"
 
 	"github.com/opencontainers/go-digest"
 )
@@ -123,8 +123,8 @@ func APIUnauthorizedError(ctx *context.Context) {
 	requireSignIn := owner != nil && owner.Visibility != structs.VisibleTypePublic
 	requireSignIn = requireSignIn || setting.Service.RequireSignInViewStrict
 	if requireSignIn {
-		// support apple container like: container registry login <gitea-host> -u
-		ctx.Resp.Header().Add("WWW-Authenticate", `Basic realm="Gitea Container Registry"`)
+		// support apple container like: container registry login <codenest-host> -u
+		ctx.Resp.Header().Add("WWW-Authenticate", `Basic realm="CodeNest Container Registry"`)
 	}
 	apiErrorDefined(ctx, errUnauthorized)
 }

@@ -6,9 +6,9 @@ package v1_15
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/util"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )

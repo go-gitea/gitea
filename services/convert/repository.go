@@ -7,15 +7,15 @@ import (
 	"context"
 	"time"
 
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/models/perm"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/modules/log"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
 )
 
 // ToRepo converts a Repository to api.Repository

@@ -20,10 +20,10 @@ import (
 	"testing/synctest"
 	"time"
 
-	"gitea.dev/modules/egress/policy"
-	"gitea.dev/modules/json"
-	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/egress/policy"
+	"codenest.dev/modules/json"
+	base "codenest.dev/modules/migration"
+	"codenest.dev/modules/test"
 
 	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"

@@ -117,7 +117,7 @@ type HookType = string
 
 // Types of webhooks
 const (
-	GITEA      HookType = "gitea"
+	CODENEST   HookType = "gitea"
 	GOGS       HookType = "gogs"
 	SLACK      HookType = "slack"
 	DISCORD    HookType = "discord"

@@ -6,8 +6,8 @@ package repo
 import (
 	"net/http"
 
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/context"
 )
 
 const (

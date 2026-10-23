@@ -11,13 +11,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/modules/assetfs"
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/options"
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
+	"codenest.dev/modules/assetfs"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/options"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
 
 	"github.com/urfave/cli/v3"
 )

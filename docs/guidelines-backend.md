@@ -52,7 +52,7 @@ When packages from different layers share a name, use a snake_case import alias 
 disambiguate:
 
 ```go
-import user_service "gitea.dev/services/user"
+import user_service "codenest.dev/services/user"
 ```
 
 ### Database transactions
@@ -89,7 +89,7 @@ verified by reviewers and the merger to reference an existing upstream commit.
 
 ## Golang HTML template
 
-Gitea uses Go's built-in HTML template engine which is dynamically & weakly typed.
+CodeNest uses Go's built-in HTML template engine which is dynamically & weakly typed.
 To make template code maintainable:
 
 - Go code should take over complex logic and prepare template data as much as possible, templates only render the data.
@@ -112,11 +112,11 @@ on [the GitHub API](https://docs.github.com/en/rest).
 
 ### GitHub API compatibility
 
-Gitea's API should use the same endpoints and fields as the GitHub API where
+CodeNest's API should use the same endpoints and fields as the GitHub API where
 possible, unless there is a good reason to deviate.
 
-- If Gitea offers functionality GitHub does not, a new endpoint may be added.
-- If Gitea exposes information the GitHub API does not, a new field may be added as
+- If CodeNest offers functionality GitHub does not, a new endpoint may be added.
+- If CodeNest exposes information the GitHub API does not, a new field may be added as
   long as it does not collide with a GitHub field.
 - Existing fields should not be removed unless there is a strong reason; the same
   applies to status responses.

@@ -4,8 +4,8 @@
 package forms
 
 import (
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/web/middleware"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/web/middleware"
 )
 
 type CommitCommonForm struct {

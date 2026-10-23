@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"testing"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -235,7 +235,7 @@ func TestFindAllIssueReferences(t *testing.T) {
 	testFixtures(t, fixtures, "default")
 
 	// Test closing/reopening keywords with URLs (issue #27549)
-	// Uses the same AppURL as testFixtures (https://gitea.com:3000/)
+	// Uses the same AppURL as testFixtures (https://codenest.com:3000/)
 	urlFixtures := []testFixture{
 		{
 			"Closes [this issue](https://gitea.com:3000/user/repo/issues/123)",

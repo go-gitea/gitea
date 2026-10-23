@@ -7,11 +7,11 @@ import (
 	"errors"
 	"net/http"
 
-	"gitea.dev/modules/auth/httpauth"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
-	actions_service "gitea.dev/services/actions"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/auth/httpauth"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
+	actions_service "codenest.dev/services/actions"
+	"codenest.dev/services/context"
 )
 
 func oidcConfiguration(resp http.ResponseWriter, req *http.Request) {

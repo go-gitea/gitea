@@ -6,11 +6,11 @@ package private
 import (
 	"net/http"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/context"
 )
 
 // SSHLog hook to response ssh log

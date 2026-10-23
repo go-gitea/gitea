@@ -6,7 +6,7 @@ package setting
 import (
 	"time"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 // Mirror settings

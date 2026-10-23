@@ -6,9 +6,9 @@ package repo
 import (
 	"net/http"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/context"
-	files_service "gitea.dev/services/repository/files"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/context"
+	files_service "codenest.dev/services/repository/files"
 )
 
 func DiffPreviewPost(ctx *context.Context) {

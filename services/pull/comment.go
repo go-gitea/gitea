@@ -7,13 +7,13 @@ import (
 	"context"
 	"slices"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
 )
 
 const maxPushCommitsInCommentCount = 1000

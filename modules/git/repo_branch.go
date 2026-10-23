@@ -10,8 +10,8 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
 )
 
 // BranchPrefix base dir of the branch information file store on git

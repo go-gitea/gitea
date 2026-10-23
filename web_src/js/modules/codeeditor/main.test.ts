@@ -23,7 +23,7 @@ test('matchFilename — language detection covers extended rules', async () => {
   expect(match('foo.conf')).toBe('Properties files');
   expect(match('Snakefile')).toBe('Python');
 
-  // Custom Gitea entries override language-data
+  // Custom CodeNest entries override language-data
   expect(match('Containerfile.test')).toBe('Dockerfile');
   expect(match('Dockerfile.dev')).toBe('Dockerfile');
   expect(match('Makefile.am')).toBe('Makefile');

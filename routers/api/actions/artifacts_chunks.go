@@ -17,11 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
+	"codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
 )
 
 type saveUploadChunkOptions struct {

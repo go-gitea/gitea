@@ -7,8 +7,8 @@ import (
 	"context"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/optional"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/optional"
 
 	"xorm.io/builder"
 )

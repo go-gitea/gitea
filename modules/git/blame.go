@@ -11,8 +11,8 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/setting"
 )
 
 func LineBlameCommitID(ctx context.Context, repo RepositoryFacade, revision, file string, line uint) (string, error) {
@@ -176,7 +176,7 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repo Repo
 			rd.ignoreRevsFile = ignoreRevsFileName
 			rd.cleanupFuncs = append(rd.cleanupFuncs, ignoreRevsFileCleanup)
 			// Possible improvement: use --ignore-revs-file /dev/stdin on unix
-			// There is no equivalent on Windows. May be implemented if Gitea uses an external git backend.
+			// There is no equivalent on Windows. May be implemented if CodeNest uses an external git backend.
 			cmd.AddOptionValues("--ignore-revs-file", ignoreRevsFileName)
 		}
 	}

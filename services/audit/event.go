@@ -7,12 +7,12 @@ import (
 	"context"
 	"time"
 
-	audit_model "gitea.dev/models/audit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
+	audit_model "codenest.dev/models/audit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
 )
 
 // RecordParams describes an audit event. Callers (or domain-specific helpers)

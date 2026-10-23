@@ -6,9 +6,9 @@ package auth
 import (
 	"net/http"
 
-	deploykey_model "gitea.dev/models/deploykey"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
+	deploykey_model "codenest.dev/models/deploykey"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
 )
 
 var _ Method = &DeployToken{}

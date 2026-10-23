@@ -8,16 +8,16 @@ import (
 	"errors"
 	"net/http"
 
-	actions_model "gitea.dev/models/actions"
-	audit_model "gitea.dev/models/audit"
-	auth_model "gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/httpauth"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/audit"
+	actions_model "codenest.dev/models/actions"
+	audit_model "codenest.dev/models/audit"
+	auth_model "codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/auth/httpauth"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/audit"
 )
 
 // Ensure the struct implements the interface.

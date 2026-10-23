@@ -1,6 +1,6 @@
-# Gitea Mixin
+# CodeNest Mixin
 
-Gitea Mixin is a set of configurable Grafana dashboards based on the metrics exported by the Gitea built-in metrics endpoint.
+CodeNest Mixin is a set of configurable Grafana dashboards based on the metrics exported by the CodeNest built-in metrics endpoint.
 
 ## Generate config files
 

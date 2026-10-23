@@ -4,7 +4,7 @@
 package oauth2
 
 import (
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/azureadv2"
@@ -77,7 +77,7 @@ func init() {
 		}))
 
 	RegisterGothProvider(NewCustomProvider(
-		"gitea", "Gitea", &CustomURLSettings{
+		"gitea", "CodeNest", &CustomURLSettings{
 			TokenURL:   requiredAttribute(gitea.TokenURL),
 			AuthURL:    requiredAttribute(gitea.AuthURL),
 			ProfileURL: requiredAttribute(gitea.ProfileURL),

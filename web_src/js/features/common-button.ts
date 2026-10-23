@@ -128,7 +128,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
 
 export function initGlobalButtons(): void {
   // There are many "cancel button" elements in modal dialogs, they are expected to be button-like elements but never submit a form.
-  // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
+  // However, CodeNest misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
   // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
   addDelegatedEventListener(document, 'click', 'form button.ui.cancel.button', (_ /* el */, e) => e.preventDefault());
 

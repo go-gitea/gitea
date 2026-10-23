@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modelmigration/migrationtest"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modelmigration/migrationtest"
+	"codenest.dev/modules/setting"
 
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +44,7 @@ func Test_FixLegacyMSSQLDateTimeColumns(t *testing.T) {
 	)
 	defer deferrable()
 
-	// Force the legacy DATETIME column type that old Gitea versions created.
+	// Force the legacy DATETIME column type that old CodeNest versions created.
 	_, err := x.Exec("ALTER TABLE [external_login_user] ALTER COLUMN [expires_at] DATETIME")
 	require.NoError(t, err)
 	_, err = x.Exec("ALTER TABLE [lfs_lock] ALTER COLUMN [created] DATETIME")

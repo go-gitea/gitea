@@ -8,8 +8,8 @@ package private
 import (
 	"net/http"
 
-	"gitea.dev/modules/graceful"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/services/context"
 )
 
 // Restart is not implemented for Windows based servers as they can't fork

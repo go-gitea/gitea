@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/util"
 
 	"golang.org/x/net/html"
 )

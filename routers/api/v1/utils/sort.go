@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitea.dev/models/db"
-	"gitea.dev/services/context"
+	"codenest.dev/models/db"
+	"codenest.dev/services/context"
 )
 
 // ResolveSortOrder reads "sort" and "order" query params and returns the matching

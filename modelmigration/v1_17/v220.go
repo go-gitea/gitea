@@ -6,9 +6,9 @@ package v1_17
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	packages_model "gitea.dev/models/packages" //nolint:depguard // only consts are used
-	container_module "gitea.dev/modules/packages/container"
+	"codenest.dev/modelmigration/base"
+	packages_model "codenest.dev/models/packages" //nolint:depguard // only consts are used
+	container_module "codenest.dev/modules/packages/container"
 
 	"xorm.io/xorm/schemas"
 )

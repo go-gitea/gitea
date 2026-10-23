@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

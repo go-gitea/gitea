@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

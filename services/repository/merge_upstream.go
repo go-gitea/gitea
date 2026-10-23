@@ -7,16 +7,16 @@ import (
 	"errors"
 	"fmt"
 
-	issue_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/pull"
+	issue_model "codenest.dev/models/issues"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/pull"
 )
 
 // MergeUpstream merges the base repository's default branch into the fork repository's current branch.

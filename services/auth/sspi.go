@@ -11,17 +11,17 @@ import (
 	"sync"
 	"uuid"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/auth/source/sspi"
-	gitea_context "gitea.dev/services/context"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/auth/source/sspi"
+	codenest_context "codenest.dev/services/context"
 )
 
 const (
@@ -89,9 +89,9 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		}
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
-		// in this case, the Verify function is called in Gitea's web context
+		// in this case, the Verify function is called in CodeNest's web context
 		// FIXME: it doesn't look good to render the page here, why not redirect?
-		gitea_context.GetWebContext(req.Context()).HTML(http.StatusUnauthorized, tplSignIn)
+		codenest_context.GetWebContext(req.Context()).HTML(http.StatusUnauthorized, tplSignIn)
 		return nil, err
 	}
 	if outToken != "" {

@@ -10,8 +10,8 @@ import (
 	"io"
 	"testing"
 
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/util"
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"

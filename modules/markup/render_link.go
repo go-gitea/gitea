@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/setting"
 )
 
 // resolveLinkRelative tries to resolve the link relative to the "{base}/{cur}", and returns the final link.
@@ -26,7 +26,7 @@ func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute b
 
 	if strings.HasPrefix(link, "/") {
 		if strings.HasPrefix(link, base) && strings.Count(base, "/") >= 4 {
-			// a trick to tolerate that some users were using absolute paths (the old Gitea's behavior)
+			// a trick to tolerate that some users were using absolute paths (the old CodeNest's behavior)
 			// if the link is likely "{base}/src/main" while "{base}" is something like "/owner/repo"
 			finalLink = link
 		} else {

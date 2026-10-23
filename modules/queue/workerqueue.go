@@ -11,10 +11,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/setting"
 )
 
 // WorkerPoolQueue is a queue that uses a pool of workers to process items

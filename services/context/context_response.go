@@ -14,14 +14,14 @@ import (
 	"strings"
 	"time"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web/middleware"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web/middleware"
 )
 
 // RedirectToUser redirect to a differently-named user
@@ -62,7 +62,7 @@ func (ctx *Context) RedirectToCurrentSite(location ...string) {
 			continue
 		}
 
-		if !httplib.IsCurrentGiteaSiteURL(ctx, loc) {
+		if !httplib.IsCurrentCodeNestSiteURL(ctx, loc) {
 			continue
 		}
 
@@ -97,7 +97,7 @@ func (ctx *Context) HTML(status int, name templates.TplName) {
 		err = fmt.Errorf("failed to render template: %s, error: %s", name, templates.HandleTemplateRenderingError(err))
 		ctx.ServerError("Render failed", err) // show the 500 error page
 	} else {
-		ctx.PlainText(http.StatusInternalServerError, "Unable to render status/500 page, the template system is broken, or Gitea can't find your template files.")
+		ctx.PlainText(http.StatusInternalServerError, "Unable to render status/500 page, the template system is broken, or CodeNest can't find your template files.")
 		return
 	}
 }
@@ -181,7 +181,7 @@ func (ctx *Context) serverErrorInternal(skip int, logMsg string, logErr error) {
 	}
 
 	userErrorMsg := ctx.buildUserErrorMessage(logMsg, logErr)
-	if httplib.IsGiteaFetchActionRequest(ctx.Req) {
+	if httplib.IsCodeNestFetchActionRequest(ctx.Req) {
 		ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(userErrorMsg))
 		return
 	}

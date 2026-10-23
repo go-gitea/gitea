@@ -6,7 +6,7 @@ package actions
 import (
 	"context"
 
-	"gitea.dev/models/db"
+	"codenest.dev/models/db"
 )
 
 // ActionTaskOutput represents an output of ActionTask.

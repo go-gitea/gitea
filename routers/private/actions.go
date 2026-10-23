@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"strings"
 
-	actions_model "gitea.dev/models/actions"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/private"
-	"gitea.dev/services/context"
+	actions_model "codenest.dev/models/actions"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/private"
+	"codenest.dev/services/context"
 )
 
 // GenerateActionsRunnerToken generates a new runner token for a given scope

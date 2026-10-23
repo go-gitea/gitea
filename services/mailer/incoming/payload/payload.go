@@ -6,8 +6,8 @@ package payload
 import (
 	"context"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/util"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/util"
 )
 
 const replyPayloadVersion1 byte = 1

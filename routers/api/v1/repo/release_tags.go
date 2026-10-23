@@ -6,11 +6,11 @@ package repo
 import (
 	"net/http"
 
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	release_service "gitea.dev/services/release"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	release_service "codenest.dev/services/release"
 )
 
 // GetReleaseByTag get a single release of a repository by tag name

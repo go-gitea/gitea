@@ -6,10 +6,10 @@ package convert
 import (
 	"context"
 
-	"gitea.dev/models/perm"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/perm"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
 )
 
 func UserTypeToString(t user_model.UserType) api.UserTypeString {

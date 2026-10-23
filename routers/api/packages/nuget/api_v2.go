@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	packages_model "gitea.dev/models/packages"
-	nuget_module "gitea.dev/modules/packages/nuget"
+	packages_model "codenest.dev/models/packages"
+	nuget_module "codenest.dev/modules/packages/nuget"
 )
 
 type AtomTitle struct {

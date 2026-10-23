@@ -13,16 +13,16 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/db"
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/modules/optional"
-	packages_module "gitea.dev/modules/packages"
-	chef_module "gitea.dev/modules/packages/chef"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/packages/helper"
-	"gitea.dev/services/context"
-	packages_service "gitea.dev/services/packages"
+	"codenest.dev/models/db"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/modules/optional"
+	packages_module "codenest.dev/modules/packages"
+	chef_module "codenest.dev/modules/packages/chef"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/packages/helper"
+	"codenest.dev/services/context"
+	packages_service "codenest.dev/services/packages"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {

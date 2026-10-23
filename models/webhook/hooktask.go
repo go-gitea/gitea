@@ -9,12 +9,12 @@ import (
 	"time"
 	"uuid"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	webhook_module "gitea.dev/modules/webhook"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	webhook_module "codenest.dev/modules/webhook"
 
 	"xorm.io/builder"
 )

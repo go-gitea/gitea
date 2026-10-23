@@ -7,16 +7,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/models/db"
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/testlogger"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers"
+	"codenest.dev/models/db"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/testlogger"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +29,7 @@ func InitIntegrationTest() (workPath string, err error) {
 		return "", err
 	}
 
-	setting.SetupGiteaTestEnv()
+	setting.SetupCodeNestTestEnv()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 
 	if err := git.InitFull(); err != nil {
@@ -70,7 +70,7 @@ func PrepareGitRepoDirectory(t testing.TB) {
 	if !assert.NotEmpty(t, setting.RepoRootPath) {
 		return
 	}
-	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.GetCodeNestTestSourceRoot(), "tests/codenest-repositories-meta"), setting.RepoRootPath))
 }
 
 func PrepareArtifactsStorage(t testing.TB) {
@@ -91,7 +91,7 @@ func PrepareLFSStorage(t testing.TB) {
 	// load LFS object fixtures
 	// (LFS storage can be on any of several backends, including remote servers, so init it with the storage API)
 	lfsFixtures, err := storage.NewStorage(setting.LocalStorageType, &setting.Storage{
-		Path: filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta"),
+		Path: filepath.Join(filepath.Dir(setting.AppPath), "tests/codenest-lfs-meta"),
 	})
 	assert.NoError(t, err)
 	assert.NoError(t, storage.Clean(storage.LFS))

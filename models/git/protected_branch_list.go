@@ -7,10 +7,10 @@ import (
 	"context"
 	"sort"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
 )
 
 type ProtectedBranchRules []*ProtectedBranch

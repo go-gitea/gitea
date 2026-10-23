@@ -6,10 +6,10 @@ package auth_test
 import (
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/util"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +32,7 @@ func TestNewAccessToken(t *testing.T) {
 }
 
 func TestAccessTokenByNameExists(t *testing.T) {
-	name := "Token Gitea"
+	name := "Token CodeNest"
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	token := &auth_model.AccessToken{

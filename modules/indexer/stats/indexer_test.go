@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
 
-	_ "gitea.dev/models"
-	_ "gitea.dev/models/actions"
-	_ "gitea.dev/models/activities"
+	_ "codenest.dev/models"
+	_ "codenest.dev/models/actions"
+	_ "codenest.dev/models/activities"
 
 	"github.com/stretchr/testify/assert"
 )

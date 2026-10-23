@@ -9,9 +9,9 @@ body:
         - **Need help** with setup or configuration? Ask on [Discord](https://discord.gg/Gitea) or the [forum](https://forum.gitea.com).
         - Search [existing issues](https://github.com/go-gitea/gitea/issues?q=is%3Aissue) first.
   - type: input
-    id: gitea-ver
+    id: codenest-ver
     attributes:
-      label: Gitea Version
+      label: CodeNest Version
     validations:
       required: true
   - type: textarea
@@ -24,5 +24,5 @@ body:
   - type: textarea
     id: environment
     attributes:
-      label: How are you running Gitea?
+      label: How are you running CodeNest?
       description: Install method (binary, Docker, package), operating system, and database.

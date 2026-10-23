@@ -9,21 +9,21 @@ import (
 	"fmt"
 	"slices"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
-	webhook_module "gitea.dev/modules/webhook"
-	pull_service "gitea.dev/services/pull"
-	commitstatus_service "gitea.dev/services/repository/commitstatus"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/log"
+	api "codenest.dev/modules/structs"
+	webhook_module "codenest.dev/modules/webhook"
+	pull_service "codenest.dev/services/pull"
+	commitstatus_service "codenest.dev/services/repository/commitstatus"
 )
 
 // CreateCommitStatusForRunJobs creates a commit status for the given job if it has a supported event and related commit.
@@ -74,7 +74,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 func GetRunsFromCommitStatuses(ctx context.Context, repoID int64, statuses []*git_model.CommitStatus) (runs []*actions_model.ActionRun, _ error) {
 	runIDs := container.Set[int64]{}
 	for _, status := range statuses {
-		runID, _, ok := status.ParseGiteaActionsTargetURL(ctx)
+		runID, _, ok := status.ParseCodeNestActionsTargetURL(ctx)
 		if ok {
 			runIDs.Add(runID)
 		}

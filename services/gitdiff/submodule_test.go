@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,14 +29,14 @@ index 0000000..4ac13c1
 --- /dev/null
 +++ b/.gitmodules
 @@ -0,0 +1,3 @@
-+[submodule "gitea-mirror"]
-+	path = gitea-mirror
++[submodule "codenest-mirror"]
++	path = codenest-mirror
 +	url = https://gitea.com/gitea/gitea-mirror
-diff --git a/gitea-mirror b/gitea-mirror
+diff --git a/codenest-mirror b/codenest-mirror
 new file mode 160000
 index 0000000..68972a9
 --- /dev/null
-+++ b/gitea-mirror
++++ b/codenest-mirror
 @@ -0,0 +1 @@
 +Subproject commit 68972a994719ae5c74e28d8fa82fa27c23399bc8
 `,
@@ -46,10 +46,10 @@ index 0000000..68972a9
 		},
 		{
 			name: "updated",
-			gitdiff: `diff --git a/gitea-mirror b/gitea-mirror
+			gitdiff: `diff --git a/codenest-mirror b/codenest-mirror
 index 68972a9..c8ffe77 160000
---- a/gitea-mirror
-+++ b/gitea-mirror
+--- a/codenest-mirror
++++ b/codenest-mirror
 @@ -1 +1 @@
 -Subproject commit 68972a994719ae5c74e28d8fa82fa27c23399bc8
 +Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
@@ -68,14 +68,14 @@ index 4ac13c1..0510edd 100644
 --- a/.gitmodules
 +++ b/.gitmodules
 @@ -1,3 +1,3 @@
- [submodule "gitea-mirror"]
--	path = gitea-mirror
-+	path = gitea
+ [submodule "codenest-mirror"]
+-	path = codenest-mirror
++	path = codenest
  	url = https://gitea.com/gitea/gitea-mirror
-diff --git a/gitea-mirror b/gitea
+diff --git a/codenest-mirror b/codenest
 similarity index 100%
-rename from gitea-mirror
-rename to gitea
+rename from codenest-mirror
+rename to codenest
 `,
 		},
 		{
@@ -85,13 +85,13 @@ index 0510edd..e69de29 100644
 --- a/.gitmodules
 +++ b/.gitmodules
 @@ -1,3 +0,0 @@
--[submodule "gitea-mirror"]
--	path = gitea
+-[submodule "codenest-mirror"]
+-	path = codenest
 -	url = https://gitea.com/gitea/gitea-mirror
-diff --git a/gitea b/gitea
+diff --git a/codenest b/codenest
 deleted file mode 160000
 index c8ffe77..0000000
---- a/gitea
+--- a/codenest
 +++ /dev/null
 @@ -1 +0,0 @@
 -Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
@@ -109,22 +109,22 @@ index 0510edd..bced3d8 100644
 --- a/.gitmodules
 +++ b/.gitmodules
 @@ -1,3 +1,3 @@
- [submodule "gitea-mirror"]
--	path = gitea
-+	path = gitea-1.22
+ [submodule "codenest-mirror"]
+-	path = codenest
++	path = codenest-1.22
  	url = https://gitea.com/gitea/gitea-mirror
-diff --git a/gitea b/gitea
+diff --git a/codenest b/codenest
 deleted file mode 160000
 index c8ffe77..0000000
---- a/gitea
+--- a/codenest
 +++ /dev/null
 @@ -1 +0,0 @@
 -Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
-diff --git a/gitea-1.22 b/gitea-1.22
+diff --git a/codenest-1.22 b/codenest-1.22
 new file mode 160000
 index 0000000..8eefa1f
 --- /dev/null
-+++ b/gitea-1.22
++++ b/codenest-1.22
 @@ -0,0 +1 @@
 +Subproject commit 8eefa1f6dedf2488db2c9e12c916e8e51f673160
 `,
@@ -144,21 +144,21 @@ index 0510edd..e69de29 100644
 --- a/.gitmodules
 +++ b/.gitmodules
 @@ -1,3 +0,0 @@
--[submodule "gitea-mirror"]
--	path = gitea
+-[submodule "codenest-mirror"]
+-	path = codenest
 -	url = https://gitea.com/gitea/gitea-mirror
-diff --git a/gitea b/gitea
+diff --git a/codenest b/codenest
 deleted file mode 160000
 index c8ffe77..0000000
---- a/gitea
+--- a/codenest
 +++ /dev/null
 @@ -1 +0,0 @@
 -Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
-diff --git a/gitea b/gitea
+diff --git a/codenest b/codenest
 new file mode 100644
 index 0000000..33a9488
 --- /dev/null
-+++ b/gitea
++++ b/codenest
 @@ -0,0 +1 @@
 +example
 `,
@@ -175,21 +175,21 @@ index e69de29..14ee267 100644
 --- a/.gitmodules
 +++ b/.gitmodules
 @@ -0,0 +1,3 @@
-+[submodule "gitea"]
-+	path = gitea
++[submodule "codenest"]
++	path = codenest
 +	url = https://gitea.com/gitea/gitea-mirror
-diff --git a/gitea b/gitea
+diff --git a/codenest b/codenest
 deleted file mode 100644
 index 33a9488..0000000
---- a/gitea
+--- a/codenest
 +++ /dev/null
 @@ -1 +0,0 @@
 -example
-diff --git a/gitea b/gitea
+diff --git a/codenest b/codenest
 new file mode 160000
 index 0000000..68972a9
 --- /dev/null
-+++ b/gitea
++++ b/codenest
 @@ -0,0 +1 @@
 +Subproject commit 68972a994719ae5c74e28d8fa82fa27c23399bc8
 `,

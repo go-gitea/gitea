@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"maps"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )

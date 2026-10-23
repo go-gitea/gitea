@@ -13,15 +13,15 @@ import (
 	"net/http"
 	"strings"
 
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/modules/json"
-	packages_module "gitea.dev/modules/packages"
-	alpine_module "gitea.dev/modules/packages/alpine"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/packages/helper"
-	"gitea.dev/services/context"
-	packages_service "gitea.dev/services/packages"
-	alpine_service "gitea.dev/services/packages/alpine"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/modules/json"
+	packages_module "codenest.dev/modules/packages"
+	alpine_module "codenest.dev/modules/packages/alpine"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/packages/helper"
+	"codenest.dev/services/context"
+	packages_service "codenest.dev/services/packages"
+	alpine_service "codenest.dev/services/packages/alpine"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {

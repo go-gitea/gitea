@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/modules/util"
-	auth_service "gitea.dev/services/auth"
-	"gitea.dev/services/auth/source/ldap"
+	"codenest.dev/models/auth"
+	"codenest.dev/modules/util"
+	auth_service "codenest.dev/services/auth"
+	"codenest.dev/services/auth/source/ldap"
 
 	"github.com/urfave/cli/v3"
 )

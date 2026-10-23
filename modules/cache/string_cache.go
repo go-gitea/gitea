@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 type GetJSONError struct {

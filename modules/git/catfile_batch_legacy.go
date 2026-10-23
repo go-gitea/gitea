@@ -8,8 +8,8 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/setting"
 )
 
 // catFileBatchLegacy implements the CatFileBatch interface using the "cat-file --batch" command and "cat-file --batch-check" command

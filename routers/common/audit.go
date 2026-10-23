@@ -6,10 +6,10 @@ package common
 import (
 	"net/http"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/reqctx"
-	audit_service "gitea.dev/services/audit"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/reqctx"
+	audit_service "codenest.dev/services/audit"
 )
 
 // AuditOrigin publishes the origin and the client address of the request, so

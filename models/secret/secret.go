@@ -8,16 +8,16 @@ import (
 	"fmt"
 	"strings"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	secret_module "gitea.dev/modules/secret"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	secret_module "codenest.dev/modules/secret"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -156,10 +156,10 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 	baseSecrets := map[string]string{}
 
 	baseSecrets["GITHUB_TOKEN"] = task.Token
-	baseSecrets["GITEA_TOKEN"] = task.Token
+	baseSecrets["CODENEST_TOKEN"] = task.Token
 
 	if task.Job.Run.IsForkPullRequest && task.Job.Run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
-		// ignore secrets for fork pull request, except GITHUB_TOKEN and GITEA_TOKEN which are automatically generated.
+		// ignore secrets for fork pull request, except GITHUB_TOKEN and CODENEST_TOKEN which are automatically generated.
 		// for the tasks triggered by pull_request_target event, they could access the secrets because they will run in the context of the base branch
 		// see the documentation: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target
 		return baseSecrets, nil
@@ -215,8 +215,8 @@ func getScopedSecretsForJob(ctx context.Context, job *actions_model.ActionRunJob
 
 	// Empty or explicit-mapping path: only auto-tokens + (any) mapped aliases are exposed.
 	scoped := map[string]string{
-		"GITHUB_TOKEN": baseSecrets["GITHUB_TOKEN"],
-		"GITEA_TOKEN":  baseSecrets["GITEA_TOKEN"],
+		"GITHUB_TOKEN":   baseSecrets["GITHUB_TOKEN"],
+		"CODENEST_TOKEN": baseSecrets["CODENEST_TOKEN"],
 	}
 	if caller.CallSecrets == "" {
 		return scoped, nil

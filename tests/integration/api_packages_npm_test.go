@@ -15,15 +15,15 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/packages"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/packages/npm"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/packages"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/packages/npm"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,8 +44,8 @@ func TestPackageNpm(t *testing.T) {
 	packageDescription := "Test Description"
 	packageBinName := "cli"
 	packageBinPath := "./cli.sh"
-	repoType := "gitea"
-	repoURL := "http://localhost:3000/gitea/test.git"
+	repoType := "codenest"
+	repoURL := "http://localhost:3000/codenest/test.git"
 	repoDirectory := "package-subdir"
 
 	attachmentBytes := test.WriteTarCompression(gzip.NewWriter, map[string]string{
@@ -340,7 +340,7 @@ func TestPackageNpm(t *testing.T) {
 		}{
 			{"", 0, 0, 1, 1},
 			{"", 0, 10, 1, 1},
-			{"gitea", 0, 10, 0, 0},
+			{"codenest", 0, 10, 0, 0},
 			{"test", 0, 10, 1, 1},
 			{"test", 1, 10, 1, 0},
 		}

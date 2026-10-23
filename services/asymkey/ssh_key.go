@@ -6,11 +6,11 @@ package asymkey
 import (
 	"context"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/services/audit"
+	asymkey_model "codenest.dev/models/asymkey"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/services/audit"
 )
 
 // DeletePublicKey deletes SSH key information both in database and authorized_keys file.

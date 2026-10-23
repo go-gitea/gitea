@@ -6,8 +6,8 @@ package paginator
 import (
 	"testing"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )

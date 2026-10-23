@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
 
 	"xorm.io/builder"
 )

@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/require"
 )
@@ -95,7 +95,7 @@ func TestAPIPublicOnlySelfUserRoutes(t *testing.T) {
 
 		MakeRequest(t, NewRequest(t, "GET", "/api/v1/user/hooks").AddTokenAuth(privateReadUserToken), http.StatusForbidden)
 		hookReq := NewRequestWithJSON(t, "POST", "/api/v1/user/hooks", api.CreateHookOption{
-			Type: "gitea",
+			Type: "codenest",
 			Config: api.CreateHookOptionConfig{
 				"content_type": "json",
 				"url":          "http://example.com/",

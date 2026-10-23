@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"unicode"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	"github.com/blevesearch/bleve/v2"
 	unicode_tokenizer "github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"

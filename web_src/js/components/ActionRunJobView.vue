@@ -11,7 +11,7 @@ import type {Instance} from 'tippy.js';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
-import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
+import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/codenest-actions.ts';
 import {AnsiLineRenderer} from '../render/ansi.ts';
 import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
 import type {ActionRunViewStore, LogLine, LogLineCommand} from './ActionRunView.ts';
@@ -476,24 +476,24 @@ async function hashChangeListener() {
       </button>
       <div ref="menuPanelEl" class="tippy-target" @click="menuTippy.hide()">
         <a class="item" role="menuitemcheckbox" :aria-checked="timeVisible['log-time-seconds']" @click="toggleTimeDisplay('seconds')">
-          <SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'gitea-empty-checkbox'"/>
+          <SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'codenest-empty-checkbox'"/>
           {{ locale.showLogSeconds }}
         </a>
         <a class="item" role="menuitemcheckbox" :aria-checked="timeVisible['log-time-stamp']" @click="toggleTimeDisplay('stamp')">
-          <SvgIcon :name="timeVisible['log-time-stamp'] ? 'octicon-check' : 'gitea-empty-checkbox'"/>
+          <SvgIcon :name="timeVisible['log-time-stamp'] ? 'octicon-check' : 'codenest-empty-checkbox'"/>
           {{ locale.showTimeStamps }}
         </a>
         <a class="item" role="menuitemcheckbox" :aria-checked="isFullScreen" @click="toggleFullScreenMode()">
-          <SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/>
+          <SvgIcon :name="isFullScreen ? 'octicon-check' : 'codenest-empty-checkbox'"/>
           {{ locale.showFullScreen }}
         </a>
         <div class="divider"/>
         <a class="item" role="menuitemcheckbox" :aria-checked="optionAlwaysAutoScroll" @click="optionAlwaysAutoScroll = !optionAlwaysAutoScroll">
-          <SvgIcon :name="optionAlwaysAutoScroll ? 'octicon-check' : 'gitea-empty-checkbox'"/>
+          <SvgIcon :name="optionAlwaysAutoScroll ? 'octicon-check' : 'codenest-empty-checkbox'"/>
           {{ locale.logsAlwaysAutoScroll }}
         </a>
         <a class="item" role="menuitemcheckbox" :aria-checked="optionAlwaysExpandRunning" @click="optionAlwaysExpandRunning = !optionAlwaysExpandRunning">
-          <SvgIcon :name="optionAlwaysExpandRunning ? 'octicon-check' : 'gitea-empty-checkbox'"/>
+          <SvgIcon :name="optionAlwaysExpandRunning ? 'octicon-check' : 'codenest-empty-checkbox'"/>
           {{ locale.logsAlwaysExpandRunning }}
         </a>
         <div class="divider"/>
@@ -525,7 +525,7 @@ async function hashChangeListener() {
           -->
         <SvgIcon
           v-if="isDone(run.status) && currentJobStepsStates[stepIdx].expanded && currentJobStepsStates[stepIdx].cursor === null"
-          name="gitea-running"
+          name="codenest-running"
           class="rotate-clockwise"
         />
         <SvgIcon

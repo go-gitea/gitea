@@ -7,10 +7,10 @@ import (
 	"slices"
 	"testing"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/optional"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
 )

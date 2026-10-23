@@ -7,9 +7,9 @@ package emoji
 import (
 	"testing"
 
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -62,7 +62,7 @@ func TestReplacers(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	setting.SetupGiteaTestEnv()
+	setting.SetupCodeNestTestEnv()
 	m.Run()
 }
 

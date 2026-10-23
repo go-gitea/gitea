@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/models/db"
-	org_model "gitea.dev/models/organization"
-	user_model "gitea.dev/models/user"
+	"codenest.dev/models/db"
+	org_model "codenest.dev/models/organization"
+	user_model "codenest.dev/models/user"
 
 	"xorm.io/builder"
 )

@@ -8,21 +8,21 @@ import (
 	"net/url"
 	"testing"
 
-	deploykey_model "gitea.dev/models/deploykey"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/git/gitcmd"
-	lfs_module "gitea.dev/modules/lfs"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	deploykey_model "codenest.dev/models/deploykey"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/git/gitcmd"
+	lfs_module "codenest.dev/modules/lfs"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDeployTokenGitHTTP(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 		readKey, err := deploykey_model.AddDeployKeyToken(t.Context(), repo.ID, "read", perm.AccessModeRead)

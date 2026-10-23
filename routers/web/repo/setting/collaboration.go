@@ -8,17 +8,17 @@ import (
 	"net/http"
 	"strings"
 
-	"gitea.dev/models/organization"
-	"gitea.dev/models/perm"
-	"gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/context"
-	"gitea.dev/services/mailer"
-	repo_service "gitea.dev/services/repository"
+	"codenest.dev/models/organization"
+	"codenest.dev/models/perm"
+	"codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/context"
+	"codenest.dev/services/mailer"
+	repo_service "codenest.dev/services/repository"
 )
 
 // Collaboration render a repository's collaboration page

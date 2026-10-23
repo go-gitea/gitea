@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -7,12 +7,12 @@ package pull
 import (
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/commitstatus"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/commitstatus"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -9,9 +9,9 @@ import (
 	"text/template"
 	"time"
 
-	"gitea.dev/modules/consts"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/consts"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 
 	gossh "golang.org/x/crypto/ssh"
 )
@@ -54,7 +54,7 @@ var SSH = struct {
 	Port:                          22,
 	MinimumKeySizeCheck:           true,
 	MinimumKeySizes:               map[string]int{"ed25519": consts.AsymKeyMinBitsEC, "ed25519-sk": consts.AsymKeyMinBitsEC, "ecdsa": consts.AsymKeyMinBitsEC, "ecdsa-sk": consts.AsymKeyMinBitsEC, "rsa": consts.AsymKeyMinBitsRsa},
-	ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gitea.ed25519", "ssh/gitea.ecdsa", "ssh/gogs.rsa"},
+	ServerHostKeys:                []string{"ssh/codenest.rsa", "ssh/codenest.ed25519", "ssh/codenest.ecdsa", "ssh/gogs.rsa"},
 	AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
 	PerWriteTimeout:               PerWriteTimeout,
 	PerWritePerKbTimeout:          PerWritePerKbTimeout,

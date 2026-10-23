@@ -36,7 +36,7 @@ func TestIsVendor(t *testing.T) {
 		{"a/dasdocs/_build-vsdoc.js", true},
 		{"a/dasdocs/_build-vsdoc.j", false},
 
-		// Override: Git/GitHub/Gitea-related paths should NOT be detected as vendored
+		// Override: Git/GitHub/CodeNest-related paths should NOT be detected as vendored
 		{".gitignore", false},
 		{".gitattributes", false},
 		{".gitmodules", false},

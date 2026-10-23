@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"os"
 
-	"gitea.dev/modules/lfstransfer/backend"
+	"codenest.dev/modules/lfstransfer/backend"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
@@ -17,7 +17,7 @@ import (
 func Main(ctx context.Context, ownerName, repoName, verb, token string) error {
 	logger := newLogger()
 	backendReqPath := fmt.Sprintf("api/internal/repo/%s/%s.git/info/lfs", url.PathEscape(ownerName), url.PathEscape(repoName))
-	giteaBackend, err := backend.New(ctx, backendReqPath, verb, token, logger)
+	codenestBackend, err := backend.New(ctx, backendReqPath, verb, token, logger)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func Main(ctx context.Context, ownerName, repoName, verb, token string) error {
 	if err := pktLine.WriteFlush(); err != nil {
 		logger.Log("error flushing capabilities:", err)
 	}
-	p := transfer.NewProcessor(pktLine, giteaBackend, logger)
+	p := transfer.NewProcessor(pktLine, codenestBackend, logger)
 	defer logger.Log("done processing commands")
 	switch verb {
 	case "upload":

@@ -8,18 +8,18 @@ import (
 	"io"
 	"testing"
 
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/markup/markdown"
+	"codenest.dev/modules/setting"
 )
 
 func TestMain(m *testing.M) {
-	setting.SetupGiteaTestEnv()
+	setting.SetupCodeNestTestEnv()
 	m.Run()
 }
 
 func newFuzzRenderContext() *markup.RenderContext {
-	return markup.NewTestRenderContext("https://example.com/go-gitea/gitea", map[string]string{"user": "go-gitea", "repo": "gitea"})
+	return markup.NewTestRenderContext("https://example.com/go-gitea/gitea", map[string]string{"user": "go-gitea", "repo": "codenest"})
 }
 
 func FuzzMarkdownRenderRaw(f *testing.F) {

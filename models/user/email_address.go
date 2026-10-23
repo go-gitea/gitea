@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
 
 	"xorm.io/builder"
 )

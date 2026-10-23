@@ -1,4 +1,4 @@
-// Copyright 2017 Gitea. All rights reserved.
+// Copyright 2017 CodeNest. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package git
@@ -14,21 +14,21 @@ import (
 	"strings"
 	"time"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/cachegroup"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
+	asymkey_model "codenest.dev/models/asymkey"
+	"codenest.dev/models/db"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/cachegroup"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -43,7 +43,7 @@ type CommitStatus struct {
 	State  commitstatus.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
 
 	// TargetURL points to the commit status page reported by a CI system
-	// If Gitea Actions is used, it is a relative link like "{RepoLink}/actions/runs/{RunID}/jobs{JobID}"
+	// If CodeNest Actions is used, it is a relative link like "{RepoLink}/actions/runs/{RunID}/jobs{JobID}"
 	TargetURL string `xorm:"TEXT"`
 
 	Description string           `xorm:"TEXT"`
@@ -218,14 +218,14 @@ func (status *CommitStatus) LocaleString(lang translation.Locale) string {
 	return lang.TrString("repo.commitstatus." + status.State.String())
 }
 
-// hideActionsURL set `TargetURL` to an empty string if the status comes from Gitea Actions
+// hideActionsURL set `TargetURL` to an empty string if the status comes from CodeNest Actions
 func (status *CommitStatus) hideActionsURL(ctx context.Context) {
-	if _, ok := status.cutTargetURLGiteaActionsPrefix(ctx); ok {
+	if _, ok := status.cutTargetURLCodeNestActionsPrefix(ctx); ok {
 		status.TargetURL = ""
 	}
 }
 
-func (status *CommitStatus) cutTargetURLGiteaActionsPrefix(ctx context.Context) (string, bool) {
+func (status *CommitStatus) cutTargetURLCodeNestActionsPrefix(ctx context.Context) (string, bool) {
 	if status.RepoID == 0 {
 		return "", false
 	}
@@ -241,9 +241,9 @@ func (status *CommitStatus) cutTargetURLGiteaActionsPrefix(ctx context.Context) 
 	return strings.CutPrefix(status.TargetURL, prefix)
 }
 
-// ParseGiteaActionsTargetURL parses the commit status target URL as Gitea Actions link
-func (status *CommitStatus) ParseGiteaActionsTargetURL(ctx context.Context) (runID, jobID int64, ok bool) {
-	s, ok := status.cutTargetURLGiteaActionsPrefix(ctx)
+// ParseCodeNestActionsTargetURL parses the commit status target URL as CodeNest Actions link
+func (status *CommitStatus) ParseCodeNestActionsTargetURL(ctx context.Context) (runID, jobID int64, ok bool) {
+	s, ok := status.cutTargetURLCodeNestActionsPrefix(ctx)
 	if !ok {
 		return 0, 0, false
 	}
@@ -551,7 +551,7 @@ func HashCommitStatusContext(context string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
 }
 
-// CommitStatusesApplyDoerPermission hides the Gitea Actions url of every status whose repository
+// CommitStatusesApplyDoerPermission hides the CodeNest Actions url of every status whose repository
 // the doer cannot read the Actions unit of, so the "Details" link does not lead to a 404.
 func CommitStatusesApplyDoerPermission(ctx context.Context, doer *user_model.User, statuses []*CommitStatus) {
 	for _, status := range statuses {

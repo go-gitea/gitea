@@ -7,10 +7,10 @@ import (
 	"context"
 	"slices"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )

@@ -6,12 +6,12 @@ package misc
 import (
 	"io"
 
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/common"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/common"
+	"codenest.dev/services/context"
 )
 
 // Markup render markup document to HTML

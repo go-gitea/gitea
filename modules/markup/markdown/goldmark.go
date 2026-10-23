@@ -6,12 +6,12 @@ package markdown
 import (
 	"fmt"
 
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/highlight"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/markup/internal"
-	"gitea.dev/modules/markup/markdown/math"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/highlight"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/markup/internal"
+	"codenest.dev/modules/markup/markdown/math"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -119,7 +119,7 @@ func filterFeedExcerpt(parent ast.Node) {
 	}
 }
 
-// NewHTMLRenderer creates a HTMLRenderer to render in the gitea form.
+// NewHTMLRenderer creates a HTMLRenderer to render in the codenest form.
 func NewHTMLRenderer(renderInternal *internal.RenderInternal, opts ...html.Option) renderer.NodeRenderer {
 	r := &HTMLRenderer{
 		renderInternal: renderInternal,
@@ -132,7 +132,7 @@ func NewHTMLRenderer(renderInternal *internal.RenderInternal, opts ...html.Optio
 }
 
 // HTMLRenderer is a renderer.NodeRenderer implementation that
-// renders gitea specific features.
+// renders codenest specific features.
 type HTMLRenderer struct {
 	html.Config
 	renderInternal *internal.RenderInternal

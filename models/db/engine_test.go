@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/setting"
 
-	_ "gitea.dev/cmd" // for TestPrimaryKeys
+	_ "codenest.dev/cmd" // for TestPrimaryKeys
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,10 +57,10 @@ func TestDeleteOrphanedObjects(t *testing.T) {
 
 func TestPrimaryKeys(t *testing.T) {
 	// Some dbs require that all tables have primary keys, see
-	//   https://github.com/go-gitea/gitea/issues/21086
-	//   https://github.com/go-gitea/gitea/issues/16802
+	//   https://github.com/go-codenest/codenest/issues/21086
+	//   https://github.com/go-codenest/codenest/issues/16802
 	// To avoid creating tables without primary key again, this test will check them.
-	// Import "gitea.dev/cmd" to make sure each db.RegisterModel in init functions has been called.
+	// Import "codenest.dev/cmd" to make sure each db.RegisterModel in init functions has been called.
 
 	beans, err := db.NamesToBean()
 	require.NoError(t, err)

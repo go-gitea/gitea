@@ -16,15 +16,15 @@ import (
 	"strings"
 	"testing"
 
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/util"
+	"codenest.dev/tests"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/util"
-	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -544,7 +544,7 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 func TestActionRunAttemptArtifact(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -595,7 +595,7 @@ func testActionRunAttemptArtifactV3(t *testing.T, repo *repo_model.Repository, s
 	task1 := runner.fetchTask(t)
 	_, job1, run := getTaskAndJobAndRunByTaskID(t, task1.Id)
 	require.NotZero(t, job1.RunAttemptID)
-	taskToken1 := task1.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	taskToken1 := task1.Context.GetFields()["codenest_runtime_token"].GetStringValue()
 	require.NotEmpty(t, taskToken1)
 	uploadTestArtifactFile(t, run.ID, taskToken1, "artifact-attempt-1", "attempt-1.txt", strings.Repeat("A", 32))
 	uploadTestArtifactFile(t, run.ID, taskToken1, "artifact-shared", "shared.txt", strings.Repeat("C", 32))
@@ -611,7 +611,7 @@ func testActionRunAttemptArtifactV3(t *testing.T, repo *repo_model.Repository, s
 	_, job2, _ := getTaskAndJobAndRunByTaskID(t, task2.Id)
 	require.NotZero(t, job2.RunAttemptID)
 	assert.NotEqual(t, job1.RunAttemptID, job2.RunAttemptID)
-	taskToken2 := task2.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	taskToken2 := task2.Context.GetFields()["codenest_runtime_token"].GetStringValue()
 	require.NotEmpty(t, taskToken2)
 	uploadTestArtifactFile(t, run.ID, taskToken2, "artifact-attempt-2", "attempt-2.txt", strings.Repeat("B", 32))
 	uploadTestArtifactFile(t, run.ID, taskToken2, "artifact-shared", "shared.txt", strings.Repeat("D", 32))
@@ -658,7 +658,7 @@ jobs:
 	// job1 uploads the artifacts and succeeds
 	task1 := runner.fetchTask(t)
 	_, job1, run := getTaskAndJobAndRunByTaskID(t, task1.Id)
-	taskToken1 := task1.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	taskToken1 := task1.Context.GetFields()["codenest_runtime_token"].GetStringValue()
 	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "job1-only", strings.Repeat("A", 32))
 	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "job1-shared", strings.Repeat("B", 32))
 	// a v3 artifact is one row per file, so this one spans two rows
@@ -679,7 +679,7 @@ jobs:
 	_, job3, _ := getTaskAndJobAndRunByTaskID(t, task3.Id)
 	require.Equal(t, job2.JobID, job3.JobID)
 	require.NotEqual(t, job2.RunAttemptID, job3.RunAttemptID)
-	taskToken3 := task3.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	taskToken3 := task3.Context.GetFields()["codenest_runtime_token"].GetStringValue()
 
 	// the new attempt inherits what the previous attempt uploaded
 	assert.Equal(t, []string{"job1-only", "job1-shared"}, listArtifactNamesForRunV4(t, run.ID, job3.ID, taskToken3))

@@ -70,21 +70,21 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	web_types "gitea.dev/modules/web/types"
-	actions_service "gitea.dev/services/actions"
-	"gitea.dev/services/context"
+	"codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	web_types "codenest.dev/modules/web/types"
+	actions_service "codenest.dev/services/actions"
+	"codenest.dev/services/context"
 )
 
 const artifactRouteBase = "/_apis/pipelines/workflows/{run_id}/artifacts"
@@ -168,7 +168,7 @@ func ArtifactContexter() func(next http.Handler) http.Handler {
 					return
 				}
 			} else {
-				// Old runner uses GITEA_TOKEN to authenticate
+				// Old runner uses CODENEST_TOKEN to authenticate
 				authToken := strings.TrimPrefix(authHeader, "Bearer ")
 
 				task, err = actions.GetRunningTaskByToken(req.Context(), authToken)

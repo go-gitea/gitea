@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +27,7 @@ func TestAPIGetRawFileOrLFS(t *testing.T) {
 	assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
 
 	// Test with LFS
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		createLFSTestRepository(t, "repo-lfs-test")
 		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", auth_model.AccessTokenScopeWriteRepository)
 		t.Run("repo-lfs-test", func(t *testing.T) {

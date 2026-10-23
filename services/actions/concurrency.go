@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 	act_model "gitea.dev/actionslib/pkg/model"
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -26,7 +26,7 @@ func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 		return fmt.Errorf("run LoadAttributes: %w", err)
 	}
 
-	actionsRunCtx := GenerateGiteaContext(ctx, run, attempt, nil)
+	actionsRunCtx := GenerateCodeNestContext(ctx, run, attempt, nil)
 	jobResults := map[string]*jobparser.JobResult{"": {}}
 	if inputs == nil {
 		if run.Event == "workflow_dispatch" {
@@ -58,7 +58,7 @@ func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 		return fmt.Errorf("unmarshal raw concurrency: %w", err)
 	}
 
-	actionsJobCtx := GenerateGiteaContext(ctx, run, attempt, actionRunJob)
+	actionsJobCtx := GenerateCodeNestContext(ctx, run, attempt, actionRunJob)
 
 	jobResults, err := findJobNeedsAndFillJobResults(ctx, actionRunJob)
 	if err != nil {

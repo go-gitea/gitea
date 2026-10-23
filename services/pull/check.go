@@ -11,27 +11,27 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
-	"gitea.dev/models/pull"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/globallock"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	asymkey_service "gitea.dev/services/asymkey"
-	"gitea.dev/services/automergequeue"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	access_model "codenest.dev/models/perm/access"
+	"codenest.dev/models/pull"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/globallock"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	asymkey_service "codenest.dev/services/asymkey"
+	"codenest.dev/services/automergequeue"
 )
 
 // prPatchCheckerQueue represents a queue to handle update pull request tests
@@ -134,10 +134,10 @@ const (
 
 // CheckPullMergeable check if the pull mergeable based on all conditions (branch protection, merge options, ...)
 // mergeStyle tailors the "require signed commits" prechecks:
-//   - fast-forward-only: no Gitea commit is produced, so Gitea's merge-signing check is skipped;
+//   - fast-forward-only: no CodeNest commit is produced, so CodeNest's merge-signing check is skipped;
 //     only the user's head commits are verified.
-//   - merge: both the head commits must be verified and Gitea must sign the merge commit.
-//   - rebase, rebase-merge, squash: Gitea rewrites the commits and signs each, so only Gitea's
+//   - merge: both the head commits must be verified and CodeNest must sign the merge commit.
+//   - rebase, rebase-merge, squash: CodeNest rewrites the commits and signs each, so only CodeNest's
 //     signing ability is checked.
 func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, mergeCheckType MergeCheckType, mergeStyle repo_model.MergeStyle, forceMerge bool) error {
 	return db.WithTx(stdCtx, func(ctx context.Context) error {
@@ -231,9 +231,9 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 //   - fast-forward-only and merge keep the user's commits on the base branch, so
 //     those commits must all be verified, or the pre-receive hook will reject the
 //     push with a generic error.
-//   - fast-forward-only creates no Gitea commit, so Gitea's signing key is not used.
-//   - merge, rebase, rebase-merge and squash produce a Gitea-signed commit, so
-//     Gitea must be configured to sign it.
+//   - fast-forward-only creates no CodeNest commit, so CodeNest's signing key is not used.
+//   - merge, rebase, rebase-merge and squash produce a CodeNest-signed commit, so
+//     CodeNest must be configured to sign it.
 func checkSigningRequirements(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle) error {
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {

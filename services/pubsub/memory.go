@@ -6,8 +6,8 @@ package pubsub
 import (
 	"sync"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 // MemoryBroker fans out within a single process. Suitable for single-instance

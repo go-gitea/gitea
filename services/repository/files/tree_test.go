@@ -7,11 +7,11 @@ import (
 	"html/template"
 	"testing"
 
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/fileicon"
-	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/services/contexttest"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/fileicon"
+	"codenest.dev/modules/git"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )

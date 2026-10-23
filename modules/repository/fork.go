@@ -6,10 +6,10 @@ package repository
 import (
 	"context"
 
-	"gitea.dev/models/organization"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/organization"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
 )
 
 // CanUserForkBetweenOwners returns true if user can fork between owners.

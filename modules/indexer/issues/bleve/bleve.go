@@ -7,11 +7,11 @@ import (
 	"context"
 	"strconv"
 
-	"gitea.dev/modules/indexer"
-	indexer_internal "gitea.dev/modules/indexer/internal"
-	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
-	"gitea.dev/modules/indexer/issues/internal"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/indexer"
+	indexer_internal "codenest.dev/modules/indexer/internal"
+	inner_bleve "codenest.dev/modules/indexer/internal/bleve"
+	"codenest.dev/modules/indexer/issues/internal"
+	"codenest.dev/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"

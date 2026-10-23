@@ -18,18 +18,18 @@ import (
 	"sync"
 	"syscall"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/modules/generate"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	asymkey_model "codenest.dev/models/asymkey"
+	"codenest.dev/modules/generate"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 
 	gossh "golang.org/x/crypto/ssh"
 )
 
-const giteaPermissionExtensionKeyID = "gitea-perm-ext-key-id"
+const codenestPermissionExtensionKeyID = "codenest-perm-ext-key-id"
 
 func getExitStatusFromError(err error) int {
 	if err == nil {
@@ -57,7 +57,7 @@ func getExitStatusFromError(err error) int {
 
 func sessionHandler(session *sshSession) int {
 	// the conn permissions are the ones of the key which really authenticated, see publicKeyHandler
-	keyID := session.conn.Permissions.Extensions[giteaPermissionExtensionKeyID]
+	keyID := session.conn.Permissions.Extensions[codenestPermissionExtensionKeyID]
 
 	log.Trace("SSH: Payload: %v", session.rawCmd)
 
@@ -151,7 +151,7 @@ func sessionHandler(session *sshSession) int {
 
 func keyPermissions(keyID int64) *gossh.Permissions {
 	return &gossh.Permissions{Extensions: map[string]string{
-		giteaPermissionExtensionKeyID: strconv.FormatInt(keyID, 10),
+		codenestPermissionExtensionKeyID: strconv.FormatInt(keyID, 10),
 	}}
 }
 
@@ -333,7 +333,7 @@ func GenKeyPair(keyPath string, keyType generate.SSHKeyType, bits int) error {
 
 // InitDefaultHostKeys mirrors how ssh-keygen -A operates
 // it runs checks if public and private keys are already defined and creates new ones if not present
-// key naming does not follow the OpenSSH convention due to existing settings being gitea.{KeyType} so generation follows gitea convention
+// key naming does not follow the OpenSSH convention due to existing settings being codenest.{KeyType} so generation follows codenest convention
 func InitDefaultHostKeys(path string) (keyFiles []string, _ error) {
 	var errs []error
 	keyTypes := []generate.SSHKeyType{generate.SSHKeyRSA, generate.SSHKeyECDSA, generate.SSHKeyED25519}

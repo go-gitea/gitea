@@ -6,11 +6,11 @@ package issue
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	notify_service "gitea.dev/services/notify"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	notify_service "codenest.dev/services/notify"
 )
 
 // CloseIssue close an issue.

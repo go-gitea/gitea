@@ -18,10 +18,10 @@ const (
 
 	SettingsKeyCodeViewShowFileTree = "code_view.show_file_tree"
 
-	SettingsKeyEmailNotificationGiteaActions        = "email_notification.gitea_actions"
-	SettingEmailNotificationGiteaActionsAll         = "all"
-	SettingEmailNotificationGiteaActionsFailureOnly = "failure-only" // Default for actions email preference
-	SettingEmailNotificationGiteaActionsDisabled    = "disabled"
+	SettingsKeyEmailNotificationCodeNestActions        = "email_notification.codenest_actions"
+	SettingEmailNotificationCodeNestActionsAll         = "all"
+	SettingEmailNotificationCodeNestActionsFailureOnly = "failure-only" // Default for actions email preference
+	SettingEmailNotificationCodeNestActionsDisabled    = "disabled"
 
 	SettingsKeyActionsConfig = "actions.config"
 )

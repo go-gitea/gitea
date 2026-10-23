@@ -10,10 +10,10 @@ import (
 	"io"
 	"time"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 // BatchChecker provides a reader for check-attribute content that can be long running

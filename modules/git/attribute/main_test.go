@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/setting"
 )
 
 func testRun(m *testing.M) error {

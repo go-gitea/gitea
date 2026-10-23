@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/gtprof"
+	"codenest.dev/modules/gtprof"
 )
 
 // FIXME: it seems that there is a bug when using systemd Type=notify: the "Install Page" (INSTALL_LOCK=false) doesn't notify properly.

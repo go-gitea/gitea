@@ -6,12 +6,12 @@ package repo
 import (
 	"net/http"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
-	"gitea.dev/services/context/upload"
-	files_service "gitea.dev/services/repository/files"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
+	"codenest.dev/services/context/upload"
+	files_service "codenest.dev/services/repository/files"
 )
 
 // UploadFileToServer upload file to server file dir not git

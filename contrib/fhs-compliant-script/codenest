@@ -1,0 +1,40 @@
+#!/bin/bash
+
+#############################################################################
+# This script sets some defaults for codenest to run in a FHS compliant manner #
+#############################################################################
+
+# It assumes that you place this script as codenest in /usr/bin
+#
+# And place the original in /usr/lib/codenest with working files in /var/lib/codenest
+# and main configuration in /etc/codenest/app.ini
+CODENEST="/usr/lib/codenest/codenest"
+WORK_DIR="/var/lib/codenest"
+APP_INI="/etc/codenest/app.ini"
+
+APP_INI_SET=""
+for i in "$@"; do
+	case "$i" in
+	"-c")
+		APP_INI_SET=1
+		;;
+	"-c="*)
+		APP_INI_SET=1
+		;;
+	"--config")
+		APP_INI_SET=1
+		;;
+	"--config="*)
+		APP_INI_SET=1
+		;;
+	*)
+	;;
+	esac
+done
+
+if [ -z "$APP_INI_SET" ]; then
+	CONF_ARG=("-c" "${CODENEST_APP_INI:-$APP_INI}")
+fi
+
+# Provide FHS compliant defaults
+CODENEST_WORK_DIR="${CODENEST_WORK_DIR:-$WORK_DIR}" exec -a "$0" "$CODENEST" "${CONF_ARG[@]}"  "$@"

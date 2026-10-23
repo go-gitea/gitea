@@ -8,7 +8,7 @@ import (
 	"html/template"
 	"strings"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 type StringUtils struct{}

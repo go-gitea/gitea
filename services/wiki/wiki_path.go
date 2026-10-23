@@ -8,11 +8,11 @@ import (
 	"path"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/convert"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/convert"
 )
 
 // To define the wiki related concepts:

@@ -4,13 +4,13 @@
 package common
 
 import (
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/web/middleware"
-	auth_service "gitea.dev/services/auth"
-	"gitea.dev/services/context"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/web/middleware"
+	auth_service "codenest.dev/services/auth"
+	"codenest.dev/services/context"
 )
 
 type AuthResult struct {

@@ -6,14 +6,14 @@ package v1_14
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func ConvertTaskTypeToString(ctx context.Context, x base.EngineMigration) error {
 	const (
 		GOGS int = iota + 1
 		SLACK
-		GITEA
+		CODENEST
 		DISCORD
 		DINGTALK
 		TELEGRAM
@@ -24,7 +24,7 @@ func ConvertTaskTypeToString(ctx context.Context, x base.EngineMigration) error 
 	)
 
 	hookTaskTypes := map[int]string{
-		GITEA:      "gitea",
+		CODENEST:   "gitea",
 		GOGS:       "gogs",
 		SLACK:      "slack",
 		DISCORD:    "discord",

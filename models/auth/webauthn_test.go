@@ -6,8 +6,8 @@ package auth_test
 import (
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/stretchr/testify/assert"

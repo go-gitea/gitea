@@ -13,9 +13,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 var _ ObjectStorage = &LocalStorage{}

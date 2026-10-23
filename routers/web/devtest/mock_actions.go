@@ -13,15 +13,15 @@ import (
 	"strings"
 	"time"
 
-	actions_model "gitea.dev/models/actions"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/web/repo/actions"
-	"gitea.dev/services/context"
+	actions_model "codenest.dev/models/actions"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/web/repo/actions"
+	"codenest.dev/services/context"
 )
 
 const (

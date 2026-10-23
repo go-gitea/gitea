@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"net/url"
 
-	"gitea.dev/modules/options"
-	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/options"
+	repo_module "codenest.dev/modules/repository"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 // Returns a list of all License templates

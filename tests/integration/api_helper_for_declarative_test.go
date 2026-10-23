@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/queue"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/services/forms"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/queue"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/services/forms"
 
 	"github.com/stretchr/testify/assert"
 )

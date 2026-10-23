@@ -1,4 +1,4 @@
-// Copyright 2024 Gitea. All rights reserved.
+// Copyright 2024 CodeNest. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package util

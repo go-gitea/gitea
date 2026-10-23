@@ -7,8 +7,8 @@ import (
 	"context"
 	"strings"
 
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )

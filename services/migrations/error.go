@@ -8,7 +8,7 @@ import (
 	"errors"
 	"net/http"
 
-	"gitea.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitcmd"
 
 	"github.com/google/go-github/v92/github"
 )

@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest an idea for Gitea.
+description: Suggest an idea for CodeNest.
 labels: ["type/proposal"]
 body:
   - type: markdown

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 type contextKey struct {
@@ -144,8 +144,8 @@ type mutableContext interface {
 	GetContextValue(key any) any
 }
 
-// StartInContext starts a trace span in Gitea's mutable context (usually the web request context).
-// Due to the design limitation of Gitea's web framework, it can't use `context.WithValue` to bind a new span into a new context.
+// StartInContext starts a trace span in CodeNest's mutable context (usually the web request context).
+// Due to the design limitation of CodeNest's web framework, it can't use `context.WithValue` to bind a new span into a new context.
 // So here we use our "reqctx" framework to achieve the same result: web request context could always see the latest "span".
 func (t *Tracer) StartInContext(ctx mutableContext, spanName string) (*TraceSpan, func()) {
 	curTraceSpan := GetContextSpan(ctx)

@@ -4,8 +4,8 @@
 package pam
 
 import (
-	"gitea.dev/models/auth"
-	"gitea.dev/modules/json"
+	"codenest.dev/models/auth"
+	"codenest.dev/modules/json"
 )
 
 // __________  _____      _____

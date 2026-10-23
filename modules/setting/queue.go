@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 // QueueSettings represent the settings for a queue from the ini

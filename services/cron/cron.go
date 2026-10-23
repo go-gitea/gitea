@@ -9,10 +9,10 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/translation"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/translation"
 
 	"github.com/go-co-op/gocron/v2"
 )

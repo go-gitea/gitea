@@ -6,7 +6,7 @@ package v1_20
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func AddActionTaskOutputTable(_ context.Context, x base.EngineMigration) error {

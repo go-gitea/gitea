@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
 
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"
@@ -60,14 +60,14 @@ func NewFixturesLoaderVendorGoTestfixtures(e *xorm.Engine, opts unittest.Fixture
 */
 
 func TestMain(m *testing.M) {
-	setting.SetupGiteaTestEnv()
+	setting.SetupCodeNestTestEnv()
 	os.Exit(m.Run())
 }
 
 func prepareTestFixturesLoaders(t testing.TB) unittest.FixturesOptions {
 	_ = user_model.User{}
-	giteaRoot := setting.GetGiteaTestSourceRoot()
-	opts := unittest.FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: []string{
+	codenestRoot := setting.GetCodeNestTestSourceRoot()
+	opts := unittest.FixturesOptions{Dir: filepath.Join(codenestRoot, "models", "fixtures"), Files: []string{
 		"user.yml",
 	}}
 	require.NoError(t, unittest.CreateTestEngine(filepath.Join(t.TempDir(), "sqlite-test.db"), opts))

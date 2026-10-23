@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"strings"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/services/context"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/services/context"
 )
 
 // IsArtifactV4 detects whether the artifact is likely from v4.

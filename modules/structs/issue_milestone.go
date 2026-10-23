@@ -6,7 +6,7 @@ package structs
 import (
 	"time"
 
-	"gitea.dev/modules/optional"
+	"codenest.dev/modules/optional"
 )
 
 // Milestone is a collection of issues on one repository

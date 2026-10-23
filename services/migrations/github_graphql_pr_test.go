@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/json"
-	base "gitea.dev/modules/migration"
+	"codenest.dev/modules/json"
+	base "codenest.dev/modules/migration"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

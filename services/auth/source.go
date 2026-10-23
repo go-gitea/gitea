@@ -6,11 +6,11 @@ package auth
 import (
 	"context"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/services/audit"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/services/audit"
 )
 
 // CreateSource creates a AuthSource record in DB.

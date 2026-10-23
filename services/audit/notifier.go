@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 
-	audit_model "gitea.dev/models/audit"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	notify_service "gitea.dev/services/notify"
+	audit_model "codenest.dev/models/audit"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	notify_service "codenest.dev/services/notify"
 )
 
 func init() {

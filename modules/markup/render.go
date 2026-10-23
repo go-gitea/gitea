@@ -15,13 +15,13 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/markup/common"
-	"gitea.dev/modules/markup/internal"
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/typesniffer"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/markup/common"
+	"codenest.dev/modules/markup/internal"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/typesniffer"
+	"codenest.dev/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -35,7 +35,7 @@ const (
 )
 
 var RenderBehaviorForTesting struct {
-	// Gitea will emit some additional attributes for various purposes, these attributes don't affect rendering.
+	// CodeNest will emit some additional attributes for various purposes, these attributes don't affect rendering.
 	// But there are too many hard-coded test cases, to avoid changing all of them again and again, we can disable emitting these internal attributes.
 	DisableAdditionalAttributes bool
 }
@@ -250,7 +250,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
 		// DO NOT use "type=module", the script must run as early as possible, to set up the environment in the iframe
 		extraHeadHTML = htmlutil.HTMLFormat(
-			`<script nonce crossorigin src="%s" id="gitea-external-render-helper" data-render-query-string="%s"></script>`+
+			`<script nonce crossorigin src="%s" id="codenest-external-render-helper" data-render-query-string="%s"></script>`+
 				`<link rel="stylesheet" href="%s">`,
 			extraScriptSrc, ctx.RenderOptions.StandalonePageOptions.RenderQueryString,
 			extraLinkHref,

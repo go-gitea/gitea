@@ -4,7 +4,7 @@ import {login, apiCreateRepo, apiCreateFiles, apiCreatePR, randomString} from '.
 
 test('create a pull request from the compare page and edit its title', async ({page, request}) => {
   const repoName = `e2e-pr-create-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
   await Promise.all([
     apiCreateFiles(request, owner, repoName, [{path: 'feat.txt', content: 'feature content\n'}], {branch: 'main', newBranch: 'feat'}),
@@ -29,7 +29,7 @@ test('create a pull request from the compare page and edit its title', async ({p
 
 test('change the target branch of a pull request', async ({page, request}) => {
   const repoName = `e2e-pr-target-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   const createPR = (async () => {
     await apiCreateRepo(request, {name: repoName});
     await Promise.all([

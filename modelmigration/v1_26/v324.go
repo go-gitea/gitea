@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func FixClosedMilestoneCompleteness(_ context.Context, x base.EngineMigration) error {

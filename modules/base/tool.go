@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // EncodeSha256 string to sha256 hex value.

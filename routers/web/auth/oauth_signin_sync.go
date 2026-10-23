@@ -6,16 +6,16 @@ package auth
 import (
 	"fmt"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
-	asymkey_service "gitea.dev/services/asymkey"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/auth/source/oauth2"
-	"gitea.dev/services/context"
-	user_service "gitea.dev/services/user"
+	asymkey_model "codenest.dev/models/asymkey"
+	"codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
+	asymkey_service "codenest.dev/services/asymkey"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/auth/source/oauth2"
+	"codenest.dev/services/context"
+	user_service "codenest.dev/services/user"
 
 	"github.com/markbates/goth"
 )

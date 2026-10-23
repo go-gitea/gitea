@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"testing"
 
-	"gitea.dev/modules/json"
-	api "gitea.dev/modules/structs"
+	"codenest.dev/modules/json"
+	api "codenest.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -8,9 +8,9 @@ import (
 	"errors"
 	"strconv"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 func UpdateCodeCommentReplies(_ context.Context, x base.EngineMigration) error {

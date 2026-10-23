@@ -7,7 +7,7 @@ import (
 	"mime"
 	"strings"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 )
 
 type ContentDispositionType string

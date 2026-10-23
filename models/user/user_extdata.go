@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/models/auth"
+	"codenest.dev/models/auth"
 )
 
 type ExtDoerData interface {
@@ -16,18 +16,18 @@ type ExtDoerData interface {
 	DecodeFromString(string) error
 }
 
-type extDoerGiteaActions struct {
+type extDoerCodeNestActions struct {
 	TaskID int64
 }
 
-var _ ExtDoerData = (*extDoerGiteaActions)(nil)
+var _ ExtDoerData = (*extDoerCodeNestActions)(nil)
 
-func (e *extDoerGiteaActions) EncodeToString() string {
-	return "gitea-actions:" + strconv.FormatInt(e.TaskID, 10)
+func (e *extDoerCodeNestActions) EncodeToString() string {
+	return "codenest-actions:" + strconv.FormatInt(e.TaskID, 10)
 }
 
-func (e *extDoerGiteaActions) DecodeFromString(s string) (err error) {
-	idStr, _ := strings.CutPrefix(s, "gitea-actions:")
+func (e *extDoerCodeNestActions) DecodeFromString(s string) (err error) {
+	idStr, _ := strings.CutPrefix(s, "codenest-actions:")
 	e.TaskID, err = strconv.ParseInt(idStr, 10, 64)
 	return err
 }

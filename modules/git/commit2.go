@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitcmd"
 )
 
 // CommitsCountOptions the options when counting commits

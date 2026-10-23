@@ -7,10 +7,10 @@ import (
 	"context"
 	"time"
 
-	"gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/asymkey"
+	"codenest.dev/models/db"
+	"codenest.dev/models/perm"
+	"codenest.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )

@@ -6,7 +6,7 @@ package graceful
 import (
 	"os"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 // awaitShutdown waits for the shutdown signal from the Manager

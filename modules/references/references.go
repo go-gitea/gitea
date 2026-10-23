@@ -13,10 +13,10 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup/mdstripper"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup/mdstripper"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 var (
@@ -50,9 +50,9 @@ var (
 	issueKeywordWindow                            int
 	issueKeywordsOnce                             sync.Once
 
-	giteaHostInit         sync.Once
-	giteaHost             string
-	giteaIssuePullPattern *regexp.Regexp
+	codenestHostInit         sync.Once
+	codenestHost             string
+	codenestIssuePullPattern *regexp.Regexp
 
 	actionStrings = []string{
 		"none",
@@ -178,28 +178,28 @@ func doNewKeywords(closeKeywords, reopenKeywords []string) {
 	}
 }
 
-// getGiteaHostName returns a normalized string with the local host name, with no scheme or port information
-func getGiteaHostName() string {
-	giteaHostInit.Do(func() {
+// getCodeNestHostName returns a normalized string with the local host name, with no scheme or port information
+func getCodeNestHostName() string {
+	codenestHostInit.Do(func() {
 		if uapp, err := url.Parse(setting.AppURL); err == nil {
-			giteaHost = strings.ToLower(uapp.Host)
-			giteaIssuePullPattern = regexp.MustCompile(
+			codenestHost = strings.ToLower(uapp.Host)
+			codenestIssuePullPattern = regexp.MustCompile(
 				`(\s|^|\(|\[)` +
 					regexp.QuoteMeta(strings.TrimSpace(setting.AppURL)) +
 					`([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+)/` +
 					`((?:issues)|(?:pulls))/([0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 		} else {
-			giteaHost = ""
-			giteaIssuePullPattern = nil
+			codenestHost = ""
+			codenestIssuePullPattern = nil
 		}
 	})
-	return giteaHost
+	return codenestHost
 }
 
-// getGiteaIssuePullPattern
-func getGiteaIssuePullPattern() *regexp.Regexp {
-	getGiteaHostName()
-	return giteaIssuePullPattern
+// getCodeNestIssuePullPattern
+func getCodeNestIssuePullPattern() *regexp.Regexp {
+	getCodeNestHostName()
+	return codenestIssuePullPattern
 }
 
 // FindAllMentionsMarkdown matches mention patterns in given content and
@@ -330,10 +330,10 @@ func convertFullHTMLReferencesToShortRefs(re *regexp.Regexp, contentBytes *[]byt
 func FindAllIssueReferences(content string) []IssueReference {
 	// Need to convert fully qualified html references to local system to #/! short codes
 	contentBytes := []byte(content)
-	if re := getGiteaIssuePullPattern(); re != nil {
+	if re := getCodeNestIssuePullPattern(); re != nil {
 		convertFullHTMLReferencesToShortRefs(re, &contentBytes)
 	} else {
-		log.Debug("No GiteaIssuePullPattern pattern")
+		log.Debug("No CodeNestIssuePullPattern pattern")
 	}
 	return rawToIssueReferenceList(findAllIssueReferencesBytes(contentBytes, []string{}, nil))
 }
@@ -472,7 +472,7 @@ func findAllIssueReferencesBytes(content []byte, links []string, originalContent
 		}
 	}
 
-	localhost := getGiteaHostName()
+	localhost := getCodeNestHostName()
 	for _, link := range links {
 		if u, err := url.Parse(link); err == nil {
 			// Note: we're not attempting to match the URL scheme (http/https)

@@ -16,7 +16,7 @@ _test
 
 # Goland's output filename can not be set manually
 /go_build_*
-/gitea_*
+/codenest_*
 
 # MS VSCode
 .vscode
@@ -54,7 +54,7 @@ cpu.out
 *.log
 *.log.*.gz
 
-/gitea
+/codenest
 /debug
 
 /bin
@@ -66,7 +66,7 @@ cpu.out
 /log
 /public/assets/img/avatar
 /tests/e2e-output
-/tests/integration/gitea-integration-*
+/tests/integration/codenest-integration-*
 /tests/integration/indexers-*
 /tests/*.ini
 /tests/**/*.git/**/*.sample
@@ -87,7 +87,7 @@ cpu.out
 
 
 # Snapcraft
-/gitea_a*.txt
+/codenest_a*.txt
 snap/.snapcraft/
 parts/
 stage/

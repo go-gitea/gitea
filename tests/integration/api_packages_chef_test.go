@@ -25,13 +25,13 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	chef_module "gitea.dev/modules/packages/chef"
-	"gitea.dev/modules/setting"
-	chef_router "gitea.dev/routers/api/packages/chef"
-	"gitea.dev/tests"
+	"codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	chef_module "codenest.dev/modules/packages/chef"
+	"codenest.dev/modules/setting"
+	chef_router "codenest.dev/routers/api/packages/chef"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -374,7 +374,7 @@ nwIDAQAB
 		}{
 			{"", 0, 0, 1, 1},
 			{"", 0, 10, 1, 1},
-			{"gitea", 0, 10, 0, 0},
+			{"codenest", 0, 10, 0, 0},
 			{"test", 0, 10, 1, 1},
 			{"test", 1, 10, 1, 0},
 		}

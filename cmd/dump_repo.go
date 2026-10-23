@@ -10,15 +10,15 @@ import (
 	"os"
 	"strings"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/convert"
-	"gitea.dev/services/gitproxy"
-	"gitea.dev/services/migrations"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	base "codenest.dev/modules/migration"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/convert"
+	"codenest.dev/services/gitproxy"
+	"codenest.dev/services/migrations"
 
 	"github.com/urfave/cli/v3"
 )
@@ -26,14 +26,14 @@ import (
 func newDumpRepositoryCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "dump-repo",
-		Usage:       "Dump the repository from git/github/gitea/gitlab",
+		Usage:       "Dump the repository from git/github/codenest/gitlab",
 		Description: "This is a command for dumping the repository data.",
 		Action:      runDumpRepository,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "git_service",
 				Value: "",
-				Usage: "Git service, git, github, gitea, gitlab. If clone_addr could be recognized, this could be ignored.",
+				Usage: "Git service, git, github, codenest, gitlab. If clone_addr could be recognized, this could be ignored.",
 			},
 			&cli.StringFlag{
 				Name:    "repo_dir",
@@ -44,7 +44,7 @@ func newDumpRepositoryCommand() *cli.Command {
 			&cli.StringFlag{
 				Name:  "clone_addr",
 				Value: "",
-				Usage: "The URL will be clone, currently could be a git/github/gitea/gitlab http/https URL",
+				Usage: "The URL will be clone, currently could be a git/github/codenest/gitlab http/https URL",
 			},
 			&cli.StringFlag{
 				Name:  "auth_username",
@@ -91,7 +91,7 @@ func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	// migrations.GiteaLocalUploader depends on git module
+	// migrations.CodeNestLocalUploader depends on git module
 	if err := git.InitSimple(); err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
 	} else if strings.HasPrefix(strings.ToLower(cloneAddr), "https://gitlab.com/") {
 		serviceStr = "gitlab"
 	} else if strings.HasPrefix(strings.ToLower(cloneAddr), "https://gitea.com/") {
-		serviceStr = "gitea"
+		serviceStr = "codenest"
 	}
 	if serviceStr == "" {
 		return errors.New("git_service missed or clone_addr cannot be recognized")

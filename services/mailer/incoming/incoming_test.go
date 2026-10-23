@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 
 	"github.com/jhillyerd/enmime/v2"
 	"github.com/stretchr/testify/assert"

@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 
 	"golang.org/x/crypto/scrypt"
 )

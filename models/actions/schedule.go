@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"time"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	webhook_module "gitea.dev/modules/webhook"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	webhook_module "codenest.dev/modules/webhook"
 )
 
 // ActionSchedule represents a schedule of a workflow file

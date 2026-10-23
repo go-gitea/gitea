@@ -51,10 +51,10 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
   parentContainer.prepend(msgContainer);
 }
 
-// Detect whether an error originated from Gitea's own scripts, not from
+// Detect whether an error originated from CodeNest's own scripts, not from
 // browser extensions or other external scripts.
 const extensionRe = /(chrome|moz|safari(-web)?)-extension:\/\//;
-export function isGiteaError(filename: string, stack: string): boolean {
+export function isCodeNestError(filename: string, stack: string): boolean {
   if (extensionRe.test(filename) || extensionRe.test(stack)) return false;
   const assetBaseUrl = new URL(`${windowConfig()?.assetUrlPrefix}/`, window.location.origin).href;
   if (filename && !filename.startsWith(assetBaseUrl) && !filename.startsWith(window.location.origin)) return false;
@@ -78,8 +78,8 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
   // issue link while the fetch request is still running.
   if (isNetworkError(err)) return;
 
-  // Filter out errors from browser extensions or other non-Gitea scripts.
-  if (!isGiteaError(filename ?? '', err?.stack ?? '')) return;
+  // Filter out errors from browser extensions or other non-CodeNest scripts.
+  if (!isCodeNestError(filename ?? '', err?.stack ?? '')) return;
 
   const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;
   let msg = err?.message ?? message;

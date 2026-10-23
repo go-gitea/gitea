@@ -6,7 +6,7 @@ package git
 import (
 	"context"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 )
 
 // Based on https://git-scm.com/docs/git-config#Documentation/git-config.txt-gpgformat

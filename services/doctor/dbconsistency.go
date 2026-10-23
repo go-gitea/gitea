@@ -6,16 +6,16 @@ package doctor
 import (
 	"context"
 
-	modelmigration "gitea.dev/modelmigration"
-	actions_model "gitea.dev/models/actions"
-	activities_model "gitea.dev/models/activities"
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	secret_model "gitea.dev/models/secret"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	issue_service "gitea.dev/services/issue"
+	modelmigration "codenest.dev/modelmigration"
+	actions_model "codenest.dev/models/actions"
+	activities_model "codenest.dev/models/activities"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	secret_model "codenest.dev/models/secret"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	issue_service "codenest.dev/services/issue"
 )
 
 type consistencyCheck struct {
@@ -231,7 +231,7 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) error {
 	// make sure DB version is uptodate
 	if err := db.InitEngineWithMigration(ctx, modelmigration.EnsureUpToDate); err != nil {
-		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
+		logger.Critical("Model version on the database does not match the current CodeNest version. Model consistency will not be checked until the database is upgraded")
 		return err
 	}
 	consistencyChecks := prepareDBConsistencyChecks()

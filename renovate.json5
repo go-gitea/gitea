@@ -39,7 +39,7 @@
   "customManagers": [
     {
       "customType": "regex",
-      "managerFilePatterns": ["/(^|/)\\.(gitea|github)/(workflows|actions)/.+\\.ya?ml$/"],
+      "managerFilePatterns": ["/(^|/)\\.(codenest|github)/(workflows|actions)/.+\\.ya?ml$/"],
       "matchStrings": [
         "[A-Za-z0-9_]+_VERSION[ \\t]*:[ \\t]*[\"']?(?<currentValue>[^\\s\"']+)[\"']?[ \\t]*# renovate: datasource=(?<datasource>[a-zA-Z0-9-._]+) depName=(?<depName>\\S+)(?: (?:lookupName|packageName)=(?<packageName>\\S+))?(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?(?: registryUrl=(?<registryUrl>\\S+))?",
       ],
@@ -64,7 +64,7 @@
     {
       "matchPackageNames": ["*"],
       "groupName": "dependencies", // single weekly PR for all dependency updates
-      "semanticCommitType": "chore", // dep updates are rarely fixes for gitea
+      "semanticCommitType": "chore", // dep updates are rarely fixes for codenest
     },
     {
       "matchPackageNames": ["@mcaptcha/vanilla-glue"],

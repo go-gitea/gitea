@@ -19,15 +19,15 @@ import (
 	"strconv"
 	"strings"
 
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/modules/globallock"
-	"gitea.dev/modules/json"
-	packages_module "gitea.dev/modules/packages"
-	maven_module "gitea.dev/modules/packages/maven"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/packages/helper"
-	"gitea.dev/services/context"
-	packages_service "gitea.dev/services/packages"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/modules/globallock"
+	"codenest.dev/modules/json"
+	packages_module "codenest.dev/modules/packages"
+	maven_module "codenest.dev/modules/packages/maven"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/packages/helper"
+	"codenest.dev/services/context"
+	packages_service "codenest.dev/services/packages"
 )
 
 const maxChecksumSize = sha512.Size*2 + 1

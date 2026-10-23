@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
 )
 
 type DateUtils struct{}

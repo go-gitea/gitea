@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"gitea.dev/modules/generate"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/generate"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )

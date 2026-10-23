@@ -6,8 +6,8 @@ package v29
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/timeutil"
 )
 
 func AddProjectWorkflow(_ context.Context, x base.EngineMigration) error {

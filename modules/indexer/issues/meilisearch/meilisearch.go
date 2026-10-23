@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/indexer"
-	indexer_internal "gitea.dev/modules/indexer/internal"
-	inner_meilisearch "gitea.dev/modules/indexer/internal/meilisearch"
-	"gitea.dev/modules/indexer/issues/internal"
-	"gitea.dev/modules/json"
+	"codenest.dev/modules/indexer"
+	indexer_internal "codenest.dev/modules/indexer/internal"
+	inner_meilisearch "codenest.dev/modules/indexer/internal/meilisearch"
+	"codenest.dev/modules/indexer/issues/internal"
+	"codenest.dev/modules/json"
 
 	"github.com/meilisearch/meilisearch-go"
 )

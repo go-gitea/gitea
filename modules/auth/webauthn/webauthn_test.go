@@ -6,7 +6,7 @@ package webauthn
 import (
 	"testing"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/stretchr/testify/assert"

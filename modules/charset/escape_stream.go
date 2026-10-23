@@ -12,9 +12,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/util"
 )
 
 type htmlChunkReader struct {

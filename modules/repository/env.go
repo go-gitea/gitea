@@ -8,29 +8,29 @@ import (
 	"strconv"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // env keys for git hooks need
 const (
-	EnvRepoName     = "GITEA_REPO_NAME"
-	EnvRepoUsername = "GITEA_REPO_USER_NAME" // owner name
-	EnvRepoID       = "GITEA_REPO_ID"
-	EnvRepoIsWiki   = "GITEA_REPO_IS_WIKI"
+	EnvRepoName     = "CODENEST_REPO_NAME"
+	EnvRepoUsername = "CODENEST_REPO_USER_NAME" // owner name
+	EnvRepoID       = "CODENEST_REPO_ID"
+	EnvRepoIsWiki   = "CODENEST_REPO_IS_WIKI"
 
-	EnvKeyID = "GITEA_KEY_ID" // public key ID
+	EnvKeyID = "CODENEST_KEY_ID" // public key ID
 
-	EnvPusherName        = "GITEA_PUSHER_NAME"
-	EnvPusherEmail       = "GITEA_PUSHER_EMAIL"
-	EnvPusherID          = "GITEA_PUSHER_ID"
-	EnvPusherExtDoerData = "GITEA_PUSHER_EXT_DOER_DATA"
+	EnvPusherName        = "CODENEST_PUSHER_NAME"
+	EnvPusherEmail       = "CODENEST_PUSHER_EMAIL"
+	EnvPusherID          = "CODENEST_PUSHER_ID"
+	EnvPusherExtDoerData = "CODENEST_PUSHER_EXT_DOER_DATA"
 
-	EnvPRID    = "GITEA_PR_ID"
-	EnvPRIndex = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
-	EnvAppURL  = "GITEA_ROOT_URL"
+	EnvPRID    = "CODENEST_PR_ID"
+	EnvPRIndex = "CODENEST_PR_INDEX" // not used by CodeNest at the moment, it is for custom git hooks
+	EnvAppURL  = "CODENEST_ROOT_URL"
 )
 
 // PushingEnvironment returns an os environment to allow hooks to work on push
@@ -69,7 +69,7 @@ func FullPushingEnvironment(author, committer *user_model.User, repo *repo_model
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		EnvPRID+"="+strconv.FormatInt(prID, 10),
 		EnvPRIndex+"="+strconv.FormatInt(prIndex, 10),
-		"SSH_ORIGINAL_COMMAND=gitea-internal",
+		"SSH_ORIGINAL_COMMAND=codenest-internal",
 	)
 	environ = append(environ, DoerPushingEnvironment(committer, repo, isWiki)...)
 	return environ

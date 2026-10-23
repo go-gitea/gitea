@@ -4,8 +4,8 @@
 package math
 
 import (
-	"gitea.dev/modules/markup/internal"
-	giteaUtil "gitea.dev/modules/util"
+	"codenest.dev/modules/markup/internal"
+	codenestUtil "codenest.dev/modules/util"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/parser"
@@ -29,7 +29,7 @@ type Extension struct {
 
 // NewExtension creates a new math extension with the provided options
 func NewExtension(renderInternal *internal.RenderInternal, opts ...Options) *Extension {
-	opt := giteaUtil.OptionalArg(opts)
+	opt := codenestUtil.OptionalArg(opts)
 	r := &Extension{
 		renderInternal: renderInternal,
 		options:        opt,

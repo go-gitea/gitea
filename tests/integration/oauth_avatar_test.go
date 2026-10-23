@@ -7,16 +7,16 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/web/auth"
-	"gitea.dev/services/auth/source/oauth2"
-	"gitea.dev/services/context"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/web/auth"
+	"codenest.dev/services/auth/source/oauth2"
+	"codenest.dev/services/context"
+	"codenest.dev/tests"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -60,7 +60,7 @@ func TestOAuth2AvatarFromPicture(t *testing.T) {
 		emptyTestSession(t).MakeRequest(t, req, http.StatusSeeOther)
 
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "oidc-user-ua-pic"})
-		assert.True(t, user.UseCustomAvatar, "avatar must sync (requires Gitea UA)")
+		assert.True(t, user.UseCustomAvatar, "avatar must sync (requires CodeNest UA)")
 		assert.NotEmpty(t, user.Avatar)
 	})
 

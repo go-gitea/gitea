@@ -13,15 +13,15 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/models/avatars"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
+	"codenest.dev/models/avatars"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	api "codenest.dev/modules/structs"
 )
 
 const (

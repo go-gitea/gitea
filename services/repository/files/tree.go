@@ -12,14 +12,14 @@ import (
 	"sort"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/fileicon"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/fileicon"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
 )
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash (id of a commit or a tree)

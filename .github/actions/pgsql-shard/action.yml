@@ -27,10 +27,10 @@ runs:
     - name: run migration tests
       if: ${{ inputs.run-migration == 'true' }}
       shell: bash
-      run: GITEA_TEST_DATABASE=pgsql make test-migration
+      run: CODENEST_TEST_DATABASE=pgsql make test-migration
     - name: run tests
       shell: bash
-      run: GITEA_TEST_DATABASE=pgsql make test-integration
+      run: CODENEST_TEST_DATABASE=pgsql make test-integration
       env:
         # pgsql is chosen to be the unlucky one to run with the slow "race detector", it is about 60% slower.
         GOTEST_FLAGS: -race -timeout=40m

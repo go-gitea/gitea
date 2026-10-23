@@ -13,31 +13,31 @@ import (
 	"net/url"
 	"strings"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/password"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/imagecaptcha"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/audit"
-	auth_service "gitea.dev/services/auth"
-	"gitea.dev/services/auth/source/oauth2"
-	"gitea.dev/services/context"
-	"gitea.dev/services/externalaccount"
-	"gitea.dev/services/forms"
-	"gitea.dev/services/mailer"
-	user_service "gitea.dev/services/user"
-	websocket_service "gitea.dev/services/websocket"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/auth/password"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/imagecaptcha"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/modules/web/middleware"
+	"codenest.dev/services/audit"
+	auth_service "codenest.dev/services/auth"
+	"codenest.dev/services/auth/source/oauth2"
+	"codenest.dev/services/context"
+	"codenest.dev/services/externalaccount"
+	"codenest.dev/services/forms"
+	"codenest.dev/services/mailer"
+	user_service "codenest.dev/services/user"
+	websocket_service "codenest.dev/services/websocket"
 
 	"github.com/markbates/goth"
 )
@@ -165,7 +165,7 @@ func resetLocale(ctx *context.Context, u *user_model.User) error {
 func rememberAuthRedirectLink(ctx *context.Context) {
 	redirectTo := ctx.FormString("redirect_to")
 	if redirectTo == "" {
-		if ref, err := url.Parse(ctx.Req.Referer()); err == nil && httplib.IsCurrentGiteaSiteURL(ctx, ctx.Req.Referer()) {
+		if ref, err := url.Parse(ctx.Req.Referer()); err == nil && httplib.IsCurrentCodeNestSiteURL(ctx, ctx.Req.Referer()) {
 			// the request paths starting with "/user/" are either:
 			// * auth related pages: don't redirect back to them
 			// * user settings pages: they have "require sign-in" protection already, no "referer redirect" would happen
@@ -189,7 +189,7 @@ func consumeAuthRedirectLink(ctx *context.Context) string {
 		redirects = append(redirects, setting.AppSubURL+string(setting.LandingPageURL))
 	}
 	for _, link := range redirects {
-		if link != "" && httplib.IsCurrentGiteaSiteURL(ctx, link) {
+		if link != "" && httplib.IsCurrentCodeNestSiteURL(ctx, link) {
 			return link
 		}
 	}

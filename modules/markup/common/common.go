@@ -9,9 +9,9 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 
 	"mvdan.cc/xurls/v2"
 )

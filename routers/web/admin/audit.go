@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"time"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	shared_audit "gitea.dev/routers/web/shared/audit"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	shared_audit "codenest.dev/routers/web/shared/audit"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/context"
 )
 
 const auditExportPageSize = 1000
@@ -46,7 +46,7 @@ func ExportAuditLogs(ctx *context.Context) {
 
 	httplib.ServeSetHeaders(ctx.Resp, httplib.ServeHeaderOptions{
 		ContentType:        "application/x-ndjson; charset=utf-8",
-		Filename:           fmt.Sprintf("gitea-audit-log-%s.jsonl", time.Now().UTC().Format("20060102-150405Z")),
+		Filename:           fmt.Sprintf("codenest-audit-log-%s.jsonl", time.Now().UTC().Format("20060102-150405Z")),
 		ContentDisposition: httplib.ContentDispositionAttachment,
 	})
 	ctx.SetTotalCountHeader(total) // lets a client detect an export truncated by a mid-stream failure

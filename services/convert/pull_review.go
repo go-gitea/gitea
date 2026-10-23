@@ -7,9 +7,9 @@ import (
 	"context"
 	"strings"
 
-	issues_model "gitea.dev/models/issues"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
+	issues_model "codenest.dev/models/issues"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
 )
 
 // ToPullReview convert a review to api format

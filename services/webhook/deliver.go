@@ -18,17 +18,17 @@ import (
 	"strings"
 	"time"
 
-	user_model "gitea.dev/models/user"
-	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/egress"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	webhook_module "gitea.dev/modules/webhook"
+	user_model "codenest.dev/models/user"
+	webhook_model "codenest.dev/models/webhook"
+	"codenest.dev/modules/egress"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	webhook_module "codenest.dev/modules/webhook"
 )
 
 func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (req *http.Request, body []byte, err error) {

@@ -6,7 +6,7 @@ package v1_8
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func AddUserDefaultTheme(_ context.Context, x base.EngineMigration) error {

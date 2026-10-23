@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/session"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/session"
 )
 
 // UserAssignmentWeb returns a middleware to handle context-user assignment for web routes

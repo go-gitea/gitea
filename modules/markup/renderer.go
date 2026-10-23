@@ -8,8 +8,8 @@ import (
 	"path"
 	"strings"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/typesniffer"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/typesniffer"
 )
 
 // Renderer defines an interface for rendering markup file to HTML

@@ -1,4 +1,4 @@
-// Copyright 2019 Gitea. All rights reserved.
+// Copyright 2019 CodeNest. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package task
@@ -9,21 +9,21 @@ import (
 	"fmt"
 	"time"
 
-	admin_model "gitea.dev/models/admin"
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/migration"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/migrations"
-	notify_service "gitea.dev/services/notify"
+	admin_model "codenest.dev/models/admin"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/migration"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/migrations"
+	notify_service "codenest.dev/services/notify"
 )
 
 func handleCreateError(owner *user_model.User, err error) error {

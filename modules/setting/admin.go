@@ -4,8 +4,8 @@
 package setting
 
 import (
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
 )
 
 // Admin settings

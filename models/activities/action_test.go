@@ -8,14 +8,14 @@ import (
 	"path"
 	"testing"
 
-	activities_model "gitea.dev/models/activities"
-	"gitea.dev/models/db"
-	issue_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	activities_model "codenest.dev/models/activities"
+	"codenest.dev/models/db"
+	issue_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )

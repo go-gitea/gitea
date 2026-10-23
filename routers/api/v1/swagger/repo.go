@@ -4,7 +4,7 @@
 package swagger
 
 import (
-	api "gitea.dev/modules/structs"
+	api "codenest.dev/modules/structs"
 )
 
 // Repository

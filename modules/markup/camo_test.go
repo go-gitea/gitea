@@ -6,8 +6,8 @@ package markup
 import (
 	"testing"
 
-	"gitea.dev/modules/setting"
-	testModule "gitea.dev/modules/test"
+	"codenest.dev/modules/setting"
+	testModule "codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )

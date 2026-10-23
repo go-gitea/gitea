@@ -17,17 +17,17 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	nuget_module "gitea.dev/modules/packages/nuget"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/routers/api/packages/nuget"
-	packageService "gitea.dev/services/packages"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	nuget_module "codenest.dev/modules/packages/nuget"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/routers/api/packages/nuget"
+	packageService "codenest.dev/services/packages"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -99,7 +99,7 @@ func TestPackageNuGet(t *testing.T) {
 	packageID := packageName
 	packageVersion := "1.0.3"
 	packageAuthors := "KN4CK3R"
-	packageDescription := "Gitea Test Package"
+	packageDescription := "CodeNest Test Package"
 	isPrerelease := strings.Contains(packageVersion, "-")
 
 	symbolFilename := "test.pdb"
@@ -496,7 +496,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		t.Run("Symbol", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/gitea.pdb", url, symbolFilename, symbolID))
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/codenest.pdb", url, symbolFilename, symbolID))
 			MakeRequest(t, req, http.StatusBadRequest)
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/%s", url, symbolFilename, "00000000000000000000000000000000", symbolFilename)).
@@ -541,7 +541,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		}{
 			{"", 0, 0, 4, 4, false},
 			{"", 0, 10, 4, 4, false},
-			{"gitea", 0, 10, 0, 0, false},
+			{"codenest", 0, 10, 0, 0, false},
 			{"test", 0, 10, 1, 1, false},
 			{"test", 1, 10, 1, 0, false},
 			{"almost.similar", 0, 0, 3, 3, true},

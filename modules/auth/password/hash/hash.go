@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 // This package takes care of hashing passwords, verifying passwords, defining
@@ -105,7 +105,7 @@ func Register[T PasswordSaltHasher](name string, newFn func(config string) T) er
 	return nil
 }
 
-// In early versions of gitea the password hash algorithm field of a user could be
+// In early versions of codenest the password hash algorithm field of a user could be
 // empty. At that point the default was `pbkdf2` without configuration values
 //
 // Please note this is not the same as the DefaultAlgorithm which is used

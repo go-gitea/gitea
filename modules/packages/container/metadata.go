@@ -9,10 +9,10 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/packages"
-	"gitea.dev/modules/packages/container/helm"
-	"gitea.dev/modules/validation"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/packages"
+	"codenest.dev/modules/packages/container/helm"
+	"codenest.dev/modules/validation"
 
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 )

@@ -18,9 +18,9 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
 
 	"github.com/hashicorp/go-version"
 )
@@ -346,7 +346,7 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 
 		filename := fmt.Sprintf("%s-%s.tgz", name, p.Version)
 		p.Filename = strings.ToLower(filename)
-		p.Metadata.GiteaTarballPath = util.PathEscapeSegments(p.Name) + "/-/" + url.PathEscape(filename) // canonical URL clients derive from name and version, file lookups ignore case
+		p.Metadata.CodeNestTarballPath = util.PathEscapeSegments(p.Name) + "/-/" + url.PathEscape(filename) // canonical URL clients derive from name and version, file lookups ignore case
 
 		attachment := upload.Attachments[meta.Name+"-"+meta.Version+".tgz"] // not the sigstore bundle of `npm publish --provenance`
 		if attachment == nil && len(upload.Attachments) == 1 {

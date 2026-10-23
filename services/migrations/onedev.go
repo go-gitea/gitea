@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/structs"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	base "codenest.dev/modules/migration"
+	"codenest.dev/modules/structs"
 
 	"github.com/hashicorp/go-version"
 )

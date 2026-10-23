@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/timeutil"
 )
 
 // BenchmarkInsertEvent measures the synchronous database cost added when audit

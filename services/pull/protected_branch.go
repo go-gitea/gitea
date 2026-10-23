@@ -6,8 +6,8 @@ package pull
 import (
 	"context"
 
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
 )
 
 func CreateOrUpdateProtectedBranch(ctx context.Context, repo *repo_model.Repository,

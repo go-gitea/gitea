@@ -6,9 +6,9 @@ package v1_12
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
 )
 
 func ExpandWebhooks(_ context.Context, x base.EngineMigration) error {

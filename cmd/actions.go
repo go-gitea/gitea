@@ -6,8 +6,8 @@ package cmd
 import (
 	"context"
 
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -15,7 +15,7 @@ import (
 func newActionsCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "actions",
-		Usage: "Manage Gitea Actions",
+		Usage: "Manage CodeNest Actions",
 		Commands: []*cli.Command{
 			newActionsGenerateRunnerTokenCommand(),
 		},

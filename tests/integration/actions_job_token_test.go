@@ -12,19 +12,19 @@ import (
 	"strconv"
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	org_model "gitea.dev/models/organization"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/lfs"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/tests"
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	org_model "codenest.dev/models/organization"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/lfs"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -104,7 +104,7 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 		},
 	}
 
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
 
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: task.RepoID})
@@ -149,7 +149,7 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 				require.NoError(t, actions_model.UpdateRun(t.Context(), task.Job.Run, "is_fork_pull_request"))
 
 				testURL := *u
-				testURL.User = url.UserPassword("gitea-actions", task.Token)
+				testURL.User = url.UserPassword("codenest-actions", task.Token)
 
 				t.Run("ReadGitContent", func(t *testing.T) {
 					testURL.Path = "/user5/repo4.git/HEAD"
@@ -187,7 +187,7 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 }
 
 func TestActionsCrossRepoAccess(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
 
@@ -364,7 +364,7 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 }
 
 func TestActionsTokenPermissionsPersistenceWithWorkflow(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -420,7 +420,7 @@ jobs:
 		createWorkflowFile(t, token, user2.Name, repo1.Name, wfTreePath, opts)
 
 		task1 := runner1.fetchTask(t)
-		task1Token := task1.Secrets["GITEA_TOKEN"]
+		task1Token := task1.Secrets["CODENEST_TOKEN"]
 		require.NotEmpty(t, task1Token)
 
 		// should fail: target repo does not allow code access
@@ -443,7 +443,7 @@ jobs:
 		// but it should not have write access
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo2.Name), lfs.BatchRequest{Operation: "upload"}).
 			SetHeader("Accept", lfs.MediaType).
-			AddBasicAuth("gitea-actions", task1Token)
+			AddBasicAuth("codenest-actions", task1Token)
 		MakeRequest(t, req, http.StatusUnauthorized)
 
 		// set repo1&repo2 max permission to "write" so that the actions token can access code
@@ -465,11 +465,11 @@ jobs:
 		// now task1 has write access to repo1, but still only read access to repo2 (different repo)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo1.Name), lfs.BatchRequest{Operation: "upload"}).
 			SetHeader("Accept", lfs.MediaType).
-			AddBasicAuth("gitea-actions", task1Token)
+			AddBasicAuth("codenest-actions", task1Token)
 		MakeRequest(t, req, http.StatusOK)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo2.Name), lfs.BatchRequest{Operation: "upload"}).
 			SetHeader("Accept", lfs.MediaType).
-			AddBasicAuth("gitea-actions", task1Token)
+			AddBasicAuth("codenest-actions", task1Token)
 		MakeRequest(t, req, http.StatusUnauthorized)
 	})
 }

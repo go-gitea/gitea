@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/structs"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/structs"
 )
 
 // enumerates all the types of captchas

@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"time"
 
-	activities_model "gitea.dev/models/activities"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/structs"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	"gitea.dev/services/notifications"
+	activities_model "codenest.dev/models/activities"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/structs"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	"codenest.dev/services/notifications"
 )
 
 // ListNotifications list users's notification threads

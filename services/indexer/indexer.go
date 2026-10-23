@@ -4,10 +4,10 @@
 package indexer
 
 import (
-	code_indexer "gitea.dev/modules/indexer/code"
-	issue_indexer "gitea.dev/modules/indexer/issues"
-	stats_indexer "gitea.dev/modules/indexer/stats"
-	notify_service "gitea.dev/services/notify"
+	code_indexer "codenest.dev/modules/indexer/code"
+	issue_indexer "codenest.dev/modules/indexer/issues"
+	stats_indexer "codenest.dev/modules/indexer/stats"
+	notify_service "codenest.dev/services/notify"
 )
 
 // Init initialize the repo indexer

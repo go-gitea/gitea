@@ -8,12 +8,12 @@ test('create a repository', async ({page}) => {
   await page.goto('/repo/create');
   await page.locator('input[name="repo_name"]').fill(repoName);
   await page.getByRole('button', {name: 'Create Repository'}).click();
-  await page.waitForURL(new RegExp(`/${env.GITEA_TEST_E2E_USER}/${repoName}$`));
+  await page.waitForURL(new RegExp(`/${env.CODENEST_TEST_E2E_USER}/${repoName}$`));
 });
 
 test('delete a branch via its modal', async ({page, request}) => {
   const repoName = `e2e-branch-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   await Promise.all([
     (async () => {
       await apiCreateRepo(request, {name: repoName});

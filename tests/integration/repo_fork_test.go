@@ -10,13 +10,13 @@ import (
 	"strconv"
 	"testing"
 
-	org_model "gitea.dev/models/organization"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	org_service "gitea.dev/services/org"
-	"gitea.dev/tests"
+	org_model "codenest.dev/models/organization"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	org_service "codenest.dev/services/org"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

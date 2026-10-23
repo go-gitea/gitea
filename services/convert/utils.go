@@ -7,8 +7,8 @@ package convert
 import (
 	"strings"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/structs"
 )
 
 // ToCorrectPageSize makes sure page size is in allowed range.
@@ -27,7 +27,7 @@ func ToGitServiceType(value string) structs.GitServiceType {
 	case "github":
 		return structs.GithubService
 	case "gitea":
-		return structs.GiteaService
+		return structs.CodeNestService
 	case "gitlab":
 		return structs.GitlabService
 	case "gogs":

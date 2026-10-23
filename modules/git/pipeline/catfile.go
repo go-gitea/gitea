@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
 )
 
 // CatFileBatchCheck runs cat-file with --batch-check

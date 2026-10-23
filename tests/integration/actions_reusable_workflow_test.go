@@ -11,26 +11,26 @@ import (
 	"testing"
 	"time"
 
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	perm_model "codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/queue"
+	api "codenest.dev/modules/structs"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	perm_model "gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/queue"
-	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestActionsReusableWorkflow(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
 		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -145,7 +145,7 @@ jobs:
     with:
       str_input: 'from_caller_job2'
       num_input: ${{ 2.3e2 }}
-      bool_input: ${{ gitea.event_name == 'push' }}
+      bool_input: ${{ codenest.event_name == 'push' }}
       parent_var: ${{ vars.myvar }}
       needs_out: ${{ needs.caller_job1.outputs.prepared }}
     secrets:
@@ -221,7 +221,7 @@ jobs:
 					assert.Equal(t, "prepared_data", payload.Inputs["needs_out"])
 				}
 				if assert.Len(t, r1Job1Task.Secrets, 3) {
-					assert.Contains(t, r1Job1Task.Secrets, "GITEA_TOKEN")
+					assert.Contains(t, r1Job1Task.Secrets, "CODENEST_TOKEN")
 					assert.Contains(t, r1Job1Task.Secrets, "GITHUB_TOKEN")
 					assert.Equal(t, "secRET-t0Ken", r1Job1Task.Secrets["PARENT_TOKEN"])
 				}
@@ -697,7 +697,7 @@ jobs:
 			assert.Equal(t, forkRun.ID, taskRun.ID)
 
 			// Only the auto-issued tokens should be present. The user-defined `leaked_secret` must not appear.
-			assert.Contains(t, task.Secrets, "GITEA_TOKEN")
+			assert.Contains(t, task.Secrets, "CODENEST_TOKEN")
 			assert.Contains(t, task.Secrets, "GITHUB_TOKEN")
 			assert.NotContains(t, task.Secrets, "leaked_secret")
 			for name, value := range task.Secrets {

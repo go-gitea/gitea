@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/json"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

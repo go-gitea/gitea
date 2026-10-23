@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 func RefixMergeBase(ctx context.Context, x base.EngineMigration) error {

@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -103,7 +103,7 @@ func newCredentialFlagsFromAuthenticatorFlags(flags protocol.AuthenticatorFlags)
 
 // ToCredentials will convert all WebAuthnCredentials to webauthn.Credentials
 func (list WebAuthnCredentialList) ToCredentials(defaultAuthFlags ...protocol.AuthenticatorFlags) []webauthn.Credential {
-	// TODO: at the moment, Gitea doesn't store or check the flags
+	// TODO: at the moment, CodeNest doesn't store or check the flags
 	// so we need to use the default flags from the authenticator to make the login validation pass
 	// In the future, we should:
 	// 1. store the flags when registering the credential

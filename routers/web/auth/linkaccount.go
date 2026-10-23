@@ -8,19 +8,19 @@ import (
 	"net/http"
 	"strings"
 
-	"gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	auth_service "gitea.dev/services/auth"
-	"gitea.dev/services/auth/source/oauth2"
-	"gitea.dev/services/context"
-	"gitea.dev/services/externalaccount"
-	"gitea.dev/services/forms"
+	"codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	auth_service "codenest.dev/services/auth"
+	"codenest.dev/services/auth/source/oauth2"
+	"codenest.dev/services/context"
+	"codenest.dev/services/externalaccount"
+	"codenest.dev/services/forms"
 )
 
 var tplLinkAccount templates.TplName = "user/auth/link_account"
@@ -60,7 +60,7 @@ func LinkAccount(ctx *context.Context) {
 		return
 	}
 
-	if missingFields, ok := linkAccountData.GothUser.RawData["__giteaAutoRegMissingFields"].([]string); ok {
+	if missingFields, ok := linkAccountData.GothUser.RawData["__codenestAutoRegMissingFields"].([]string); ok {
 		ctx.Data["AutoRegistrationFailedPrompt"] = ctx.Tr("auth.oauth_callback_unable_auto_reg", linkAccountData.GothUser.Provider, strings.Join(missingFields, ","))
 	}
 

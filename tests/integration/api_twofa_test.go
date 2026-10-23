@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/tests"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +28,7 @@ func TestAPITwoFactor(t *testing.T) {
 
 	otpKey, err := totp.Generate(totp.GenerateOpts{
 		SecretSize:  40,
-		Issuer:      "gitea-test",
+		Issuer:      "codenest-test",
 		AccountName: user.Name,
 	})
 	assert.NoError(t, err)

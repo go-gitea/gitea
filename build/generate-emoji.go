@@ -17,7 +17,7 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/modules/json"
+	"codenest.dev/modules/json"
 )
 
 const (

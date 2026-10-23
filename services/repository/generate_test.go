@@ -9,16 +9,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGiteaTemplate(t *testing.T) {
-	giteaTemplate := []byte(`
+func TestCodeNestTemplate(t *testing.T) {
+	codenestTemplate := []byte(`
 # Header
 
 # All .go files
@@ -35,7 +35,7 @@ text/*.txt
 **/modules/*.tmp
 `)
 
-	gt := newGiteaTemplateFileMatcher("", giteaTemplate)
+	gt := newCodeNestTemplateFileMatcher("", codenestTemplate)
 	assert.Len(t, gt.globsExpand, 3)
 
 	tt := []struct {
@@ -83,7 +83,7 @@ func TestFilePathSanitize(t *testing.T) {
 	assert.Equal(t, ".", filePathSanitize("/"))
 }
 
-func TestProcessGiteaTemplateFileGenerate(t *testing.T) {
+func TestProcessCodeNestTemplateFileGenerate(t *testing.T) {
 	tmpDir := filepath.Join(t.TempDir(), "gitea-template-test")
 	fh := test.NewFileHelper(tmpDir)
 
@@ -147,8 +147,8 @@ func TestProcessGiteaTemplateFileGenerate(t *testing.T) {
 		templateRepo := &repo_model.Repository{Name: "TemplateRepoName"}
 		generatedRepo := &repo_model.Repository{Name: "/../.gIt/name"}
 		fh.AssertFileContent(t, ".git/config", "git-config-dummy")
-		fileMatcher, _ := readGiteaTemplateFile(tmpDir)
-		skippedFiles, err := processGiteaTemplateFile(t.Context(), tmpDir, templateRepo, generatedRepo, fileMatcher)
+		fileMatcher, _ := readCodeNestTemplateFile(tmpDir)
+		skippedFiles, err := processCodeNestTemplateFile(t.Context(), tmpDir, templateRepo, generatedRepo, fileMatcher)
 		require.NoError(t, err)
 		assert.Equal(t, []string{
 			"include/subst-${TEMPLATE_NAME}-link-dir/real-file",
@@ -202,33 +202,33 @@ func TestProcessGiteaTemplateFileGenerate(t *testing.T) {
 	}
 }
 
-func TestProcessGiteaTemplateFileRead(t *testing.T) {
+func TestProcessCodeNestTemplateFileRead(t *testing.T) {
 	tmpDir := t.TempDir()
 	_ = os.Mkdir(tmpDir+"/.gitea", 0o755)
 	templateFilePath := tmpDir + "/.gitea/template"
 	_ = os.Remove(templateFilePath)
 	_, err := os.Lstat(templateFilePath)
 	require.ErrorIs(t, err, fs.ErrNotExist)
-	_, err = readGiteaTemplateFile(tmpDir) // no template file
+	_, err = readCodeNestTemplateFile(tmpDir) // no template file
 	require.ErrorIs(t, err, fs.ErrNotExist)
 
 	_ = os.WriteFile(templateFilePath+".target", []byte("test-data-target"), 0o644)
 	_ = os.Symlink(templateFilePath+".target", templateFilePath)
 	content, _ := os.ReadFile(templateFilePath)
 	require.Equal(t, "test-data-target", string(content))
-	_, err = readGiteaTemplateFile(tmpDir) // symlinked template file
+	_, err = readCodeNestTemplateFile(tmpDir) // symlinked template file
 	require.ErrorIs(t, err, fs.ErrNotExist)
 
 	_ = os.Remove(templateFilePath)
 	_ = os.WriteFile(templateFilePath, []byte("test-data-regular"), 0o644)
 	content, _ = os.ReadFile(templateFilePath)
 	require.Equal(t, "test-data-regular", string(content))
-	fm, err := readGiteaTemplateFile(tmpDir) // regular template file
+	fm, err := readCodeNestTemplateFile(tmpDir) // regular template file
 	require.NoError(t, err)
 	assert.Len(t, fm.globsExpand, 1)
 }
 
-func TestProcessGiteaTemplateFileExclusion(t *testing.T) {
+func TestProcessCodeNestTemplateFileExclusion(t *testing.T) {
 	tmpDir := t.TempDir()
 	fh := test.NewFileHelper(tmpDir)
 
@@ -253,12 +253,12 @@ func TestProcessGiteaTemplateFileExclusion(t *testing.T) {
 	templateRepo := &repo_model.Repository{Name: "MyTemplate"}
 	generatedRepo := &repo_model.Repository{Name: "MyRepo"}
 
-	fm, err := readGiteaTemplateFile(tmpDir)
+	fm, err := readCodeNestTemplateFile(tmpDir)
 	require.NoError(t, err)
 	require.Len(t, fm.globsExpand, 2)
 	require.Len(t, fm.globsExclude, 1)
 
-	_, err = processGiteaTemplateFile(t.Context(), tmpDir, templateRepo, generatedRepo, fm)
+	_, err = processCodeNestTemplateFile(t.Context(), tmpDir, templateRepo, generatedRepo, fm)
 	require.NoError(t, err)
 
 	fh.AssertFileContent(t, "test.md", "from MyTemplate")

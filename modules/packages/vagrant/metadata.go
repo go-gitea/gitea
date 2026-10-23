@@ -9,9 +9,9 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/packages"
-	"gitea.dev/modules/validation"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/packages"
+	"codenest.dev/modules/validation"
 )
 
 const (

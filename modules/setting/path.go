@@ -10,24 +10,25 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/modules/consts"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/tempdir"
+	"codenest.dev/modules/consts"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/tempdir"
+	"codenest.dev/modules/util"
 )
 
 var (
-	// AppPath represents the path to the gitea binary
+	// AppPath represents the path to the codenest binary
 	AppPath string
 
-	// AppWorkPath is the "working directory" of Gitea. It maps to the: WORK_PATH in app.ini, "--work-path" flag, environment variable GITEA_WORK_DIR.
+	// AppWorkPath is the "working directory" of CodeNest. It maps to the: WORK_PATH in app.ini, "--work-path" flag, environment variable CODENEST_WORK_DIR.
 	// If that is not set it is the default set here by the linker or failing that the directory of AppPath.
 	// It is used as the base path for several other paths.
 	// Do remember:
-	// * Work path might not be the POSIX current working directory or the Gitea's binary directory, Gitea binary is not FHS-compliant
+	// * Work path might not be the POSIX current working directory or the CodeNest's binary directory, CodeNest binary is not FHS-compliant
 	// * Work path sometimes is not writable (e.g.: /usr/local/bin) or not persistent (https://github.com/go-gitea/gitea/pull/35851)
 	// * Work path, custom path and data path, some of them are the same sometimes (e.g.: docker image, some downstream packages, some manual installations)
 	AppWorkPath string
-	CustomPath  string // Custom directory path. Env: GITEA_CUSTOM
+	CustomPath  string // Custom directory path. Env: CODENEST_CUSTOM
 	CustomConf  string
 
 	appWorkPathBuiltin string
@@ -94,6 +95,11 @@ func (s *stringWithDefault) Set(v string) {
 }
 
 // InitWorkPathAndCommonConfig will set AppWorkPath, CustomPath and CustomConf, init default config provider by CustomConf and load common settings,
+// getEnvFnLegacy falls back to the pre-rename GITEA_* variable
+func getEnvFnLegacy(getEnvFn func(name string) string, name string) string {
+	return util.IfZero(getEnvFn(name), getEnvFn("GITEA_"+strings.TrimPrefix(name, "CODENEST_")))
+}
+
 func InitWorkPathAndCommonConfig(getEnvFn func(name string) string, args ArgWorkPathAndCustomConf) {
 	InitWorkPathAndCfgProvider(getEnvFn, args)
 	LoadCommonSettings()
@@ -127,19 +133,19 @@ func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkP
 	}
 
 	readFromEnv := func() {
-		envWorkPath := getEnvFn("GITEA_WORK_DIR")
+		envWorkPath := getEnvFnLegacy(getEnvFn, "CODENEST_WORK_DIR")
 		if envWorkPath != "" {
 			tmpWorkPath.Set(envWorkPath)
 			if !filepath.IsAbs(tmpWorkPath.Value) {
-				log.Fatal("GITEA_WORK_DIR (work path) must be absolute path")
+				log.Fatal("CODENEST_WORK_DIR (work path) must be absolute path")
 			}
 		}
 
-		envCustomPath := getEnvFn("GITEA_CUSTOM")
+		envCustomPath := getEnvFnLegacy(getEnvFn, "CODENEST_CUSTOM")
 		if envCustomPath != "" {
 			tmpCustomPath.Set(envCustomPath)
 			if !filepath.IsAbs(tmpCustomPath.Value) {
-				log.Fatal("GITEA_CUSTOM (custom path) must be absolute path")
+				log.Fatal("CODENEST_CUSTOM (custom path) must be absolute path")
 			}
 		}
 	}
@@ -186,7 +192,7 @@ func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkP
 			log.Fatal("WORK_PATH in %q must be absolute path", configWorkPath)
 		}
 		configWorkPath = filepath.Clean(configWorkPath)
-		if tmpWorkPath.Value != "" && (getEnvFn("GITEA_WORK_DIR") != "" || args.WorkPath != "") {
+		if tmpWorkPath.Value != "" && (getEnvFnLegacy(getEnvFn, "CODENEST_WORK_DIR") != "" || args.WorkPath != "") {
 			fi1, err1 := os.Stat(tmpWorkPath.Value)
 			fi2, err2 := os.Stat(configWorkPath)
 			if err1 != nil || err2 != nil || !os.SameFile(fi1, fi2) {
@@ -211,12 +217,12 @@ func MockBuiltinPaths(workPath, customPath, customConf string) func() {
 
 // AppDataTempDir returns a managed temporary directory for the application data.
 // Using empty sub will get the managed base temp directory, and it's safe to delete it.
-// Gitea only creates subdirectories under it, but not the APP_TEMP_PATH directory itself.
-// * When APP_TEMP_PATH="/tmp": the managed temp directory is "/tmp/gitea-tmp"
+// CodeNest only creates subdirectories under it, but not the APP_TEMP_PATH directory itself.
+// * When APP_TEMP_PATH="/tmp": the managed temp directory is "/tmp/codenest-tmp"
 // * When APP_TEMP_PATH is not set: the managed temp directory is "/{APP_DATA_PATH}/tmp"
 func AppDataTempDir(sub string) *tempdir.TempDir {
 	if appTempPathInternal != "" {
-		return tempdir.New(appTempPathInternal, "gitea-tmp/"+sub)
+		return tempdir.New(appTempPathInternal, "codenest-tmp/"+sub)
 	}
 	if AppDataPath == "" {
 		panic("setting.AppDataPath is not set")

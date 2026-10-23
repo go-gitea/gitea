@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"net/url"
 
-	activities_model "gitea.dev/models/activities"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/context"
+	activities_model "codenest.dev/models/activities"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/context"
 )
 
 func prepareHeatmapURL(ctx *context.Context) {

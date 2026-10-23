@@ -10,9 +10,9 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/packages"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
+	"codenest.dev/modules/packages"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
 
 	"github.com/ProtonMail/go-crypto/openpgp/clearsign"
 	"github.com/hashicorp/go-version"

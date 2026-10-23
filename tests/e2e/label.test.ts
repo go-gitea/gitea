@@ -5,7 +5,7 @@ import {login, apiCreateRepo, randomString} from './utils.ts';
 test('create a label in the modal with a color from the picker popup', async ({page}) => {
   const repoName = `e2e-label-${randomString(8)}`;
   await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName, autoInit: false})]);
-  await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/labels`);
+  await page.goto(`/${env.CODENEST_TEST_E2E_USER}/${repoName}/labels`);
   await page.getByRole('button', {name: 'New Label'}).click();
   const modal = page.getByRole('dialog');
   await modal.getByRole('button', {name: 'Save'}).click();

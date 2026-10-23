@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/user"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
-	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/structs"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/user"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
+	base "codenest.dev/modules/migration"
+	"codenest.dev/modules/structs"
 
 	gitlab "gitlab.com/gitlab-org/api/client-go/v3"
 )
@@ -682,7 +682,7 @@ func (g *GitlabDownloader) GetPullRequests(ctx context.Context, page, perPage in
 			awardPage++
 		}
 
-		// Generate new PR Numbers by the known Issue Numbers, because they share the same number space in Gitea, but they are independent in Gitlab
+		// Generate new PR Numbers by the known Issue Numbers, because they share the same number space in CodeNest, but they are independent in Gitlab
 		newPRNumber := g.iidResolver.generatePullRequestNumber(pr.IID)
 
 		allPRs = append(allPRs, &base.PullRequest{

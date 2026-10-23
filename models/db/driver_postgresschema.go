@@ -10,7 +10,7 @@ import (
 	"errors"
 	"sync"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 
 	"github.com/lib/pq"
 	"xorm.io/xorm/dialects"

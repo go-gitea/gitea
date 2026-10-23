@@ -38,19 +38,19 @@ linters:
         main:
           deny:
             - pkg: encoding/json
-              desc: use gitea's modules/json instead of encoding/json
+              desc: use codenest's modules/json instead of encoding/json
             - pkg: github.com/unknwon/com
-              desc: use gitea's util and replacements
+              desc: use codenest's util and replacements
             - pkg: io/ioutil
               desc: use os or io instead
             - pkg: golang.org/x/exp
               desc: it's experimental and unreliable
-            - pkg: gitea.dev/modules/git/internal
+            - pkg: codenest.dev/modules/git/internal
               desc: do not use the internal package, use AddXxx function instead
             - pkg: gopkg.in/ini.v1
-              desc: do not use the ini package, use gitea's config system instead
+              desc: do not use the ini package, use codenest's config system instead
             - pkg: gitea.com/go-chi/cache
-              desc: do not use the go-chi cache package, use gitea's cache system
+              desc: do not use the go-chi cache package, use codenest's cache system
             - pkg: github.com/pkg/errors
               desc: use builtin errors package instead
             - pkg: gitea.com/go-chi/binding
@@ -59,9 +59,9 @@ linters:
           files:
             - '**/modelmigration/**/*.go'
           deny:
-            - pkg: gitea.dev/models
+            - pkg: codenest.dev/models
               desc: "migrations must not depend on the models package. HINT: MIGRATION-STRUCT-FROZEN"
-            - pkg: gitea.dev/modules/structs
+            - pkg: codenest.dev/modules/structs
               desc: "migrations must not depend on modules/structs. HINT: MIGRATION-STRUCT-FROZEN"
     forbidigo:
       forbid:
@@ -186,7 +186,7 @@ formatters:
       custom-order: true
       sections:
         - standard
-        - prefix(gitea.dev)
+        - prefix(codenest.dev)
         - blank
         - default
     gofumpt:

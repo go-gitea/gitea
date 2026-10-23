@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
-	webhook_module "gitea.dev/modules/webhook"
+	webhook_model "codenest.dev/models/webhook"
+	"codenest.dev/modules/git"
+	api "codenest.dev/modules/structs"
+	webhook_module "codenest.dev/modules/webhook"
 )
 
 type (

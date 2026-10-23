@@ -108,11 +108,11 @@
 		</div>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "admin.auths.verify_group_membership"}}</label>
-			<input name="group_filter" value="{{.group_filter}}" placeholder="(|(cn=gitea_users)(cn=admins))">
+			<input name="group_filter" value="{{.group_filter}}" placeholder="(|(cn=codenest_users)(cn=admins))">
 		</div>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "admin.auths.map_group_to_team"}}</label>
-			<textarea name="group_team_map" rows="5" placeholder='{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>{{.group_team_map}}</textarea>
+			<textarea name="group_team_map" rows="5" placeholder='{"cn=my-group,cn=groups,dc=example,dc=org": {"MyCodeNestOrganization": ["MyCodeNestTeam1", "MyCodeNestTeam2"]}}'>{{.group_team_map}}</textarea>
 		</div>
 		<div class="ui checkbox">
 			<label>{{ctx.Locale.Tr "admin.auths.map_group_to_team_removal"}}</label>

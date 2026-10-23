@@ -4,10 +4,10 @@
 package pkgspec
 
 import (
-	packages_model "gitea.dev/models/packages"
-	packages_service "gitea.dev/services/packages"
-	"gitea.dev/services/packages/debian"
-	"gitea.dev/services/packages/terraform"
+	packages_model "codenest.dev/models/packages"
+	packages_service "codenest.dev/services/packages"
+	"codenest.dev/services/packages/debian"
+	"codenest.dev/services/packages/terraform"
 )
 
 func InitManager() error {

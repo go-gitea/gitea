@@ -7,10 +7,10 @@ import (
 	"context"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/models/perm"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )

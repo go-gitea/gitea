@@ -8,8 +8,8 @@ import (
 	"os/exec"
 	"sync/atomic"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 var GitExecutable = "git" // the command name of git, will be updated to an absolute path during initialization
@@ -35,12 +35,12 @@ func SetExecutablePath(path string) error {
 	return nil
 }
 
-// HomeDir is the home dir for git to store the global config file used by Gitea internally
+// HomeDir is the home dir for git to store the global config file used by CodeNest internally
 func HomeDir() string {
 	if setting.Git.HomePath == "" {
 		// strict check, make sure the git module is initialized correctly.
-		// attention: when the git module is called in gitea sub-command (serv/hook), the log module might not obviously show messages to users/developers.
-		// for example: if there is gitea git hook code calling NewCommand before git.InitXxx, the integration test won't show the real failure reasons.
+		// attention: when the git module is called in codenest sub-command (serv/hook), the log module might not obviously show messages to users/developers.
+		// for example: if there is codenest git hook code calling NewCommand before git.InitXxx, the integration test won't show the real failure reasons.
 		log.Fatal("Unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 		return ""
 	}

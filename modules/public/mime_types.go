@@ -38,8 +38,8 @@ var wellKnownMimeTypesLower = sync.OnceValue(func() map[string]string {
 // DetectWellKnownMimeType will return the mime-type for a well-known file ext name
 // The purpose of this function is to bypass the unstable behavior of Golang's mime.TypeByExtension
 // mime.TypeByExtension would use OS's mime-type config to overwrite the well-known types (see its document).
-// If the user's OS has incorrect mime-type config, it would make Gitea can not respond a correct Content-Type to browsers.
-// For example, if Gitea returns `text/plain` for a `.js` file, the browser couldn't run the JS due to security reasons.
+// If the user's OS has incorrect mime-type config, it would make CodeNest can not respond a correct Content-Type to browsers.
+// For example, if CodeNest returns `text/plain` for a `.js` file, the browser couldn't run the JS due to security reasons.
 // DetectWellKnownMimeType makes the Content-Type for well-known files stable.
 func DetectWellKnownMimeType(ext string) string {
 	ext = strings.ToLower(ext)

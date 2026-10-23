@@ -7,10 +7,10 @@ import (
 	"context"
 	"net/url"
 
-	git_model "gitea.dev/models/git"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/commitstatus"
-	api "gitea.dev/modules/structs"
+	git_model "codenest.dev/models/git"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/commitstatus"
+	api "codenest.dev/modules/structs"
 )
 
 // ToCommitStatus converts git_model.CommitStatus to api.CommitStatus

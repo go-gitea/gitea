@@ -11,16 +11,16 @@ import (
 	"strings"
 	"time"
 
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/httpauth"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/actions"
-	"gitea.dev/services/oauth2_provider"
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/auth/httpauth"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/actions"
+	"codenest.dev/services/oauth2_provider"
 )
 
 var _ Method = &OAuth2{}

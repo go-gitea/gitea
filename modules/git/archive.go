@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/setting"
 )
 
 // CreateArchive create archive content to the target path
@@ -44,7 +44,7 @@ func CreateBundle(ctx context.Context, repo RepositoryFacade, commit string, out
 	// git update-ref refs/heads/bundle-temp-{timestamp} {commit}
 	// git bundle create - refs/heads/bundle-temp-{timestamp}
 	// git update-ref -d refs/heads/bundle-temp-{timestamp}
-	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-bundle")
+	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("codenest-bundle")
 	if err != nil {
 		return err
 	}

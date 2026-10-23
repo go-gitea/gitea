@@ -11,21 +11,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	db_model "gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/indexer"
-	"gitea.dev/modules/indexer/issues/bleve"
-	"gitea.dev/modules/indexer/issues/db"
-	"gitea.dev/modules/indexer/issues/elasticsearch"
-	"gitea.dev/modules/indexer/issues/internal"
-	"gitea.dev/modules/indexer/issues/meilisearch"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	db_model "codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/indexer"
+	"codenest.dev/modules/indexer/issues/bleve"
+	"codenest.dev/modules/indexer/issues/db"
+	"codenest.dev/modules/indexer/issues/elasticsearch"
+	"codenest.dev/modules/indexer/issues/internal"
+	"codenest.dev/modules/indexer/issues/meilisearch"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // IndexerMetadata is used to send data to the queue, so it contains only the ids.
@@ -87,7 +87,7 @@ func InitIssueIndexer(syncReindex bool) {
 				if err := recover(); err != nil {
 					log.Error("PANIC whilst initializing issue indexer: %v\nStacktrace: %s", err, log.Stack(2))
 					log.Error("The indexer files are likely corrupted and may need to be deleted")
-					log.Error("You can completely remove the %q directory to make Gitea recreate the indexes", setting.Indexer.IssuePath)
+					log.Error("You can completely remove the %q directory to make CodeNest recreate the indexes", setting.Indexer.IssuePath)
 					globalIndexer.Store(dummyIndexer)
 					log.Fatal("PID: %d Unable to initialize the Bleve Issue Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.IssuePath, err)
 				}

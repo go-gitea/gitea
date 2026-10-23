@@ -10,8 +10,8 @@ import (
 	"html/template"
 	"slices"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
 )
 
 // This file implements the static LocaleStore that will not watch for changes

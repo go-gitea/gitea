@@ -8,7 +8,7 @@ import (
 	"errors"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
+	"codenest.dev/modules/git/gitcmd"
 )
 
 // GetBranchesByPath returns a branch by its path

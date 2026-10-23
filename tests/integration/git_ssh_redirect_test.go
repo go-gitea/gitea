@@ -9,14 +9,14 @@ import (
 	"os"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/structs"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGitSSHRedirect(t *testing.T) {
-	onGiteaRun(t, testGitSSHRedirect)
+	onCodeNestRun(t, testGitSSHRedirect)
 }
 
 func testGitSSHRedirect(t *testing.T, u *url.URL) {

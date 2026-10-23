@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -138,51 +138,51 @@ func (pt Type) Name() string {
 func (pt Type) SVGName() string {
 	switch pt {
 	case TypeAlpine:
-		return "gitea-alpine"
+		return "codenest-alpine"
 	case TypeArch:
-		return "gitea-arch"
+		return "codenest-arch"
 	case TypeCargo:
-		return "gitea-cargo"
+		return "codenest-cargo"
 	case TypeChef:
-		return "gitea-chef"
+		return "codenest-chef"
 	case TypeComposer:
-		return "gitea-composer"
+		return "codenest-composer"
 	case TypeConan:
-		return "gitea-conan"
+		return "codenest-conan"
 	case TypeConda:
-		return "gitea-conda"
+		return "codenest-conda"
 	case TypeContainer:
 		return "octicon-container"
 	case TypeCran:
-		return "gitea-cran"
+		return "codenest-cran"
 	case TypeDebian:
-		return "gitea-debian"
+		return "codenest-debian"
 	case TypeGeneric:
 		return "octicon-package"
 	case TypeGo:
-		return "gitea-go"
+		return "codenest-go"
 	case TypeHelm:
-		return "gitea-helm"
+		return "codenest-helm"
 	case TypeMaven:
-		return "gitea-maven"
+		return "codenest-maven"
 	case TypeNpm:
-		return "gitea-npm"
+		return "codenest-npm"
 	case TypeNuGet:
-		return "gitea-nuget"
+		return "codenest-nuget"
 	case TypePub:
-		return "gitea-pub"
+		return "codenest-pub"
 	case TypePyPI:
-		return "gitea-python"
+		return "codenest-python"
 	case TypeRpm:
-		return "gitea-rpm"
+		return "codenest-rpm"
 	case TypeRubyGems:
-		return "gitea-rubygems"
+		return "codenest-rubygems"
 	case TypeSwift:
-		return "gitea-swift"
+		return "codenest-swift"
 	case TypeTerraformState:
-		return "gitea-terraform"
+		return "codenest-terraform"
 	case TypeVagrant:
-		return "gitea-vagrant"
+		return "codenest-vagrant"
 	}
 	panic("unknown package type: " + string(pt))
 }

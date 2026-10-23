@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/log"
-	base "gitea.dev/modules/migration"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/log"
+	base "codenest.dev/modules/migration"
 )
 
 // PR-only types in the Issue fragment fail validation of the whole query, assignee events would need local user ids

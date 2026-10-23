@@ -4,8 +4,8 @@
 package user
 
 import (
-	user_model "gitea.dev/models/user"
-	"gitea.dev/services/context"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/services/context"
 )
 
 // GetUserByPathParam get user by the path param name

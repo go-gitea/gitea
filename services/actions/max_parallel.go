@@ -6,9 +6,9 @@ package actions
 import (
 	"strings"
 
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/modules/log"
 	"gitea.dev/actionslib/pkg/model"
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/modules/log"
 )
 
 // parseMaxParallel returns strategy.max-parallel for a job, 0 meaning unlimited.

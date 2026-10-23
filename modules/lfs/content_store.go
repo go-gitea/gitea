@@ -11,8 +11,8 @@ import (
 	"io"
 	"os"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/storage"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/storage"
 )
 
 var (

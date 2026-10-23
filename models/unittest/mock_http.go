@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,7 +47,7 @@ type MockServerOptions struct {
 // The typical switch is an env var holding an API token; fixtures ship committed so the
 // default run (no token) works offline.
 //
-//	token := os.Getenv("GITEA_TOKEN")
+//	token := os.Getenv("CODENEST_TOKEN")
 //	mock := NewMockWebServer(t, "https://gitea.com", fixtureDir, token != "")
 func NewMockWebServer(t *testing.T, liveServerBaseURL, testDataDir string, liveMode bool, opts ...MockServerOptions) *httptest.Server {
 	t.Helper()

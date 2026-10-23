@@ -12,22 +12,22 @@ import (
 	"testing"
 	"time"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/mailer/incoming"
-	incoming_payload "gitea.dev/services/mailer/incoming/payload"
-	sender_service "gitea.dev/services/mailer/sender"
-	token_service "gitea.dev/services/mailer/token"
-	"gitea.dev/tests"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/mailer/incoming"
+	incoming_payload "codenest.dev/services/mailer/incoming/payload"
+	sender_service "codenest.dev/services/mailer/sender"
+	token_service "codenest.dev/services/mailer/token"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestIncomingEmail(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 

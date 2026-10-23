@@ -11,9 +11,9 @@ import (
 	"regexp"
 	"strings"
 
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/translation"
+	"codenest.dev/modules/util"
 )
 
 const (

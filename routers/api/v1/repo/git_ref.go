@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"net/url"
 
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
 )
 
 // GetGitAllRefs get ref or a list of all the refs of a repository

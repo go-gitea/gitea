@@ -8,9 +8,9 @@ import (
 	"math"
 	"testing"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )

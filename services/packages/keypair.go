@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/globallock"
-	"gitea.dev/modules/util"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/globallock"
+	"codenest.dev/modules/util"
 )
 
 // GetOrCreateKeyPair gets the owner's key pair used to sign repository files,

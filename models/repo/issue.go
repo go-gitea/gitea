@@ -6,9 +6,9 @@ package repo
 import (
 	"context"
 
-	"gitea.dev/models/unit"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/unit"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 // ___________.__             ___________                     __

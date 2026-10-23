@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"net/url"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/models/perm"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
+	asymkey_model "codenest.dev/models/asymkey"
+	"codenest.dev/models/perm"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
 )
 
 // KeyAndOwner is the response from ServNoCommand

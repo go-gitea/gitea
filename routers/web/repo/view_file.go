@@ -11,21 +11,21 @@ import (
 	"path"
 	"strings"
 
-	git_model "gitea.dev/models/git"
-	issue_model "gitea.dev/models/issues"
-	"gitea.dev/models/renderhelper"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/actions"
-	"gitea.dev/modules/charset"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/attribute"
-	"gitea.dev/modules/highlight"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
-	issue_service "gitea.dev/services/issue"
+	git_model "codenest.dev/models/git"
+	issue_model "codenest.dev/models/issues"
+	"codenest.dev/models/renderhelper"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/actions"
+	"codenest.dev/modules/charset"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/attribute"
+	"codenest.dev/modules/highlight"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
+	issue_service "codenest.dev/services/issue"
 )
 
 func prepareLatestCommitInfo(ctx *context.Context) bool {
@@ -109,7 +109,7 @@ func handleFileViewRenderSource(ctx *context.Context, attrs *attribute.Attribute
 	buf, _ := io.ReadAll(utf8Reader)
 	// The Open Group Base Specification: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html
 	//   empty: 0 lines; "a": 1 incomplete-line; "a\n": 1 line; "a\nb": 1 line, 1 incomplete-line;
-	// Gitea uses the definition (like most modern editors):
+	// CodeNest uses the definition (like most modern editors):
 	//   empty: 0 lines; "a": 1 line; "a\n": 2 lines; "a\nb": 2 lines;
 	//   When rendering, the last empty line is not rendered in UI, while the line-number is still counted, to tell users that the file contains a trailing EOL.
 	//   To make the UI more consistent, it could use an icon mark to indicate that there is no trailing EOL, and show line-number as the rendered lines.

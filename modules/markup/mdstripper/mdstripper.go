@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup/common"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup/common"
+	"codenest.dev/modules/setting"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	giteaHostInit sync.Once
-	giteaHost     *url.URL
+	codenestHostInit sync.Once
+	codenestHost     *url.URL
 )
 
 type stripRenderer struct {
@@ -173,7 +173,7 @@ func StripMarkdownBytes(rawBytes []byte) ([]byte, []string) {
 		stripParser = gdMarkdown.Parser()
 	})
 	stripper := &stripRenderer{
-		localhost: getGiteaHost(),
+		localhost: getCodeNestHost(),
 		links:     make([]string, 0, 10),
 		empty:     true,
 	}
@@ -186,13 +186,13 @@ func StripMarkdownBytes(rawBytes []byte) ([]byte, []string) {
 	return buf.Bytes(), stripper.GetLinks()
 }
 
-// getGiteaHostName returns a normalized string with the local host name, with no scheme or port information
-func getGiteaHost() *url.URL {
-	giteaHostInit.Do(func() {
+// getCodeNestHostName returns a normalized string with the local host name, with no scheme or port information
+func getCodeNestHost() *url.URL {
+	codenestHostInit.Do(func() {
 		var err error
-		if giteaHost, err = url.Parse(setting.AppURL); err != nil {
-			giteaHost = &url.URL{}
+		if codenestHost, err = url.Parse(setting.AppURL); err != nil {
+			codenestHost = &url.URL{}
 		}
 	})
-	return giteaHost
+	return codenestHost
 }

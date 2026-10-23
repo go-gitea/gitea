@@ -1,6 +1,6 @@
 name: Release
-description: Track a Gitea release (for release managers).
-title: "Release Gitea "
+description: Track a CodeNest release (for release managers).
+title: "Release CodeNest "
 body:
   - type: markdown
     attributes:

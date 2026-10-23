@@ -8,16 +8,16 @@ import (
 	"fmt"
 	"strings"
 
-	git_model "gitea.dev/models/git"
-	"gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	asymkey_service "gitea.dev/services/asymkey"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	asymkey_service "codenest.dev/services/asymkey"
 )
 
 // ErrUserCannotCommit represents "UserCannotCommit" kind of error.

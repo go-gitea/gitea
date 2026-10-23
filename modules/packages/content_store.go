@@ -11,10 +11,10 @@ import (
 	"path"
 	"strings"
 
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/util"
 )
 
 // BlobHash256Key is the key to address a blob content

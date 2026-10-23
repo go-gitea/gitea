@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# $OpenBSD$
+
+daemon="/usr/local/bin/codenest"
+daemon_user="git"
+daemon_flags="web -c /etc/codenest/app.ini"
+
+codenest_directory="/var/lib/codenest"
+
+rc_bg=YES
+
+. /etc/rc.d/rc.subr
+
+rc_start() {
+	${rcexec} "cd ${codenest_directory}; ${daemon} ${daemon_flags} ${_bg}"
+}
+
+rc_cmd $1

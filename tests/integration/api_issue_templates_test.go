@@ -8,18 +8,18 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIIssueTemplateList(t *testing.T) {
-	onGiteaRun(t, func(*testing.T, *url.URL) {
+	onCodeNestRun(t, func(*testing.T, *url.URL) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 

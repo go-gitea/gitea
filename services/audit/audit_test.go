@@ -7,13 +7,13 @@ import (
 	"context"
 	"testing"
 
-	audit_model "gitea.dev/models/audit"
-	repository_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/web/middleware"
+	audit_model "codenest.dev/models/audit"
+	repository_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/reqctx"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/web/middleware"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -110,7 +110,7 @@ func TestBuildEvent(t *testing.T) {
 			Scope:           ScopeFromUser(u),
 		})
 		assert.Equal(t, user_model.ActionsUserID, e.ActorID)
-		assert.Equal(t, "gitea-actions:42", e.ActorCredential)
+		assert.Equal(t, "codenest-actions:42", e.ActorCredential)
 
 		key := user_model.NewDeployKeyUserWithKeyID(7)
 		assert.Equal(t, "deploy-key:7", user_model.GetDoerCredential(key))

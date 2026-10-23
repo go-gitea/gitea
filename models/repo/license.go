@@ -6,8 +6,8 @@ package repo
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/timeutil"
 )
 
 func init() {

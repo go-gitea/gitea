@@ -20,21 +20,21 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/lfs"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	"gitea.dev/services/automergequeue"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/commitstatus"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/lfs"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	"codenest.dev/services/automergequeue"
+	"codenest.dev/tests"
 
 	"github.com/kballard/go-shellquote"
 	"github.com/stretchr/testify/assert"
@@ -47,7 +47,7 @@ const (
 )
 
 func TestGitGeneral(t *testing.T) {
-	onGiteaRun(t, testGitGeneral)
+	onCodeNestRun(t, testGitGeneral)
 }
 
 func testGitGeneral(t *testing.T, u *url.URL) {

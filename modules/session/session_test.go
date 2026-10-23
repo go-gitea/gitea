@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/timeutil"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -69,7 +69,7 @@ func TestSession(t *testing.T) {
 		{
 			name: "redis",
 			newBackend: func(t *testing.T) backend {
-				backend, err := newRedisBackend(test.PrepareTestRedis(t)+"?prefix=gitea-test-session-", 3600)
+				backend, err := newRedisBackend(test.PrepareTestRedis(t)+"?prefix=codenest-test-session-", 3600)
 				require.NoError(t, err)
 				return backend
 			},
@@ -128,10 +128,10 @@ func TestSession(t *testing.T) {
 					require.NoError(t, err)
 					assert.GreaterOrEqual(t, sess.LastAccessTime, now)
 				case *redisBackend:
-					require.NoError(t, sessionBackend.client.Expire(t.Context(), "gitea-test-session-"+sid, time.Minute).Err())
+					require.NoError(t, sessionBackend.client.Expire(t.Context(), "codenest-test-session-"+sid, time.Minute).Err())
 					_, err := sessionBackend.load(sid)
 					require.NoError(t, err)
-					ttl, err := sessionBackend.client.TTL(t.Context(), "gitea-test-session-"+sid).Result()
+					ttl, err := sessionBackend.client.TTL(t.Context(), "codenest-test-session-"+sid).Result()
 					require.NoError(t, err)
 					assert.Greater(t, ttl, time.Minute)
 				}

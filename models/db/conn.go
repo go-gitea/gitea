@@ -13,8 +13,8 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 type ConnOptions struct {
@@ -61,7 +61,7 @@ const (
 )
 
 var makeSQLiteConnStr = func(opts SQLiteConnStrOptions) (string, string, error) {
-	return "", "", errors.New(`this Gitea binary was not built with SQLite3 support, get an official release or rebuild with correct "-tags"`)
+	return "", "", errors.New(`this CodeNest binary was not built with SQLite3 support, get an official release or rebuild with correct "-tags"`)
 }
 
 func registerSQLiteConnStrMaker(fn func(opts SQLiteConnStrOptions) (string, string, error)) {

@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	"gitea.dev/modules/references"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/references"
+	"codenest.dev/modules/util"
 
 	"golang.org/x/net/html"
 )

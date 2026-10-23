@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/nosql"
+	"codenest.dev/modules/nosql"
 
 	"gitea.com/lunny/levelqueue"
 	"github.com/syndtr/goleveldb/leveldb"

@@ -9,14 +9,14 @@ import (
 	"slices"
 	"strconv"
 
-	"gitea.dev/models/db"
-	project_model "gitea.dev/models/project"
-	"gitea.dev/modules/json"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	project_service "gitea.dev/services/projects"
+	"codenest.dev/models/db"
+	project_model "codenest.dev/models/project"
+	"codenest.dev/modules/json"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	project_service "codenest.dev/services/projects"
 )
 
 func RenderWorkflows(ctx *context.Context, canWrite bool, tpl templates.TplName) {

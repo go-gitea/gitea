@@ -6,7 +6,7 @@ package v1_10
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func AddEmailNotificationEnabledToUser(_ context.Context, x base.EngineMigration) error {

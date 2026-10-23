@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 )
 
 // Shutdown calls the internal shutdown function
@@ -80,7 +80,7 @@ func SetLogSQL(ctx context.Context, on bool) ResponseExtra {
 	return requestJSONClientMsg(req, "Log SQL setting set")
 }
 
-// Processes return the current processes from this gitea instance
+// Processes return the current processes from this codenest instance
 func Processes(ctx context.Context, out io.Writer, flat, noSystem, stacktraces, json bool, cancel string) ResponseExtra {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/processes?flat=%t&no-system=%t&stacktraces=%t&json=%t&cancel-pid=%s", flat, noSystem, stacktraces, json, url.QueryEscape(cancel))
 

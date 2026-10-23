@@ -6,13 +6,13 @@ package setting
 import (
 	"net/http"
 
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/context"
-	"gitea.dev/services/user"
+	"codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/context"
+	"codenest.dev/services/user"
 )
 
 const tplSettingsNotifications templates.TplName = "user/settings/notifications"
@@ -28,7 +28,7 @@ func Notifications(ctx *context.Context) {
 	ctx.Data["PageIsSettingsNotifications"] = true
 	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotificationsPreference
 
-	actionsEmailPref, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyEmailNotificationGiteaActions, user_model.SettingEmailNotificationGiteaActionsFailureOnly)
+	actionsEmailPref, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyEmailNotificationCodeNestActions, user_model.SettingEmailNotificationCodeNestActionsFailureOnly)
 	if err != nil {
 		ctx.ServerError("GetUserSetting", err)
 		return
@@ -65,7 +65,7 @@ func NotificationsEmailPost(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/notifications")
 }
 
-// NotificationsActionsEmailPost set user's email notification preference on Gitea Actions
+// NotificationsActionsEmailPost set user's email notification preference on CodeNest Actions
 func NotificationsActionsEmailPost(ctx *context.Context) {
 	if !setting.Actions.Enabled || unit.TypeActions.UnitGlobalDisabled() {
 		ctx.NotFound(nil)
@@ -73,14 +73,14 @@ func NotificationsActionsEmailPost(ctx *context.Context) {
 	}
 
 	preference := ctx.FormString("preference")
-	if !(preference == user_model.SettingEmailNotificationGiteaActionsAll ||
-		preference == user_model.SettingEmailNotificationGiteaActionsDisabled ||
-		preference == user_model.SettingEmailNotificationGiteaActionsFailureOnly) {
+	if !(preference == user_model.SettingEmailNotificationCodeNestActionsAll ||
+		preference == user_model.SettingEmailNotificationCodeNestActionsDisabled ||
+		preference == user_model.SettingEmailNotificationCodeNestActionsFailureOnly) {
 		ctx.Flash.Error(ctx.Tr("invalid_data", preference))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/notifications")
 		return
 	}
-	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyEmailNotificationGiteaActions, preference); err != nil {
+	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyEmailNotificationCodeNestActions, preference); err != nil {
 		ctx.ServerError("SetUserSetting", err)
 		return
 	}

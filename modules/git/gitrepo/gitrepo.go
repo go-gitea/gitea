@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 )
 
 type RepositoryFacade interface {
@@ -70,14 +70,14 @@ func (r *repositoryUnmanaged) LogString() string {
 }
 
 func (r *repositoryUnmanaged) GitRepoManagedID() string {
-	panic("this repo is not managed by Gitea, can't be used in this managed context")
+	panic("this repo is not managed by CodeNest, can't be used in this managed context")
 }
 
 func (r *repositoryUnmanaged) GitRepoLocation() string {
 	return r.loc
 }
 
-// RepositoryUnmanaged returns a RepositoryFacade for a repository that might not be managed by Gitea.
+// RepositoryUnmanaged returns a RepositoryFacade for a repository that might not be managed by CodeNest.
 // If the path is not absolute, then it is relative to setting.RepoRootPath
 // This function is mainly for maintaining the owner's repo when the repo is not managed yet.
 // e.g.: init, clone, transfer, rename, adopt, etc., and temp repo creation and modification.

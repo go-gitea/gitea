@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/unittest"
-	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/util"
-	webhook_module "gitea.dev/modules/webhook"
+	"codenest.dev/models/unittest"
+	webhook_model "codenest.dev/models/webhook"
+	"codenest.dev/modules/util"
+	webhook_module "codenest.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +36,7 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 		URL:         s.URL + "/webhook",
 		ContentType: webhook_model.ContentTypeJSON,
 		IsActive:    true,
-		Type:        webhook_module.GITEA,
+		Type:        webhook_module.CODENEST,
 	}
 	err := hook.SetHeaderAuthorization("Bearer s3cr3t-t0ken")
 	assert.NoError(t, err)

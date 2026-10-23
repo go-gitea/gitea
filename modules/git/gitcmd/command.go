@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
-	"gitea.dev/modules/gtprof"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitrepo"
+	"codenest.dev/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
+	"codenest.dev/modules/gtprof"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/util"
 )
 
 // TrustedCmdArgs returns the trusted arguments for git command.
@@ -39,7 +39,7 @@ type Command struct {
 	// Dir is the working dir for the git command, however:
 	// FIXME: GIT-DIR-ARGUMENT: this could be incorrect in many cases, for example:
 	// * /some/path/.git
-	// * /some/path/.git/gitea-data/data/repositories/user/repo.git
+	// * /some/path/.git/codenest-data/data/repositories/user/repo.git
 	// If "user/repo.git" is invalid/broken, then running git command in it will use "/some/path/.git", and produce unexpected results
 	// The correct approach is to use `--git-dir" global argument or "GIT_DIR=..." environment variable.
 	// Actually, when working with a bare repo, the current directory should not be the git dir,
@@ -230,12 +230,12 @@ func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 
 func commonBaseEnvs() []string {
 	envs := []string{
-		// Make Gitea use internal git config only, to prevent conflicts with user's git config
+		// Make CodeNest use internal git config only, to prevent conflicts with user's git config
 		// It's better to use GIT_CONFIG_GLOBAL, but it requires git >= 2.32, so we still use HOME at the moment.
 		"HOME=" + HomeDir(),
 		// Avoid using system git config, it would cause problems (eg: use macOS osxkeychain to show a modal dialog, auto installing lfs hooks)
 		// This might be a breaking change in 1.24, because some users said that they have put some configs like "receive.certNonceSeed" in "/etc/gitconfig"
-		// For these users, they need to migrate the necessary configs to Gitea's git config file manually.
+		// For these users, they need to migrate the necessary configs to CodeNest's git config file manually.
 		"GIT_CONFIG_NOSYSTEM=1",
 		// Ignore replace references (https://git-scm.com/docs/git-replace)
 		"GIT_NO_REPLACE_OBJECTS=1",
@@ -265,7 +265,7 @@ func CommonGitCmdEnvs() []string {
 	return envs
 }
 
-// CommonCmdServEnvs is like CommonGitCmdEnvs, but it only returns minimal required environment variables for the "gitea serv" command
+// CommonCmdServEnvs is like CommonGitCmdEnvs, but it only returns minimal required environment variables for the "codenest serv" command
 func CommonCmdServEnvs() []string {
 	return commonBaseEnvs()
 }

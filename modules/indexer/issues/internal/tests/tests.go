@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/indexer/issues/internal"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/indexer/issues/internal"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

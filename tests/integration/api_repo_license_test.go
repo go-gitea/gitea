@@ -10,17 +10,17 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/queue"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/queue"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var testLicenseContent = `
-Copyright (c) 2024 Gitea
+Copyright (c) 2024 CodeNest
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -32,7 +32,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 `
 
 func TestAPIRepoLicense(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user2")
 
 		// Request editor page

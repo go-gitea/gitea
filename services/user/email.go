@@ -8,12 +8,12 @@ import (
 	"errors"
 	"strings"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/audit"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/audit"
 )
 
 // ReplacePrimaryEmailAddress replaces the user's primary email address with the given email address.

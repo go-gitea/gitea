@@ -20,8 +20,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 
 	"github.com/golang-jwt/jwt/v5"
 )

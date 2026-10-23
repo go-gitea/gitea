@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"strings"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/modules/web/routing"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/web/middleware"
+	"codenest.dev/modules/web/routing"
 
 	"github.com/bohde/codel"
 	"github.com/go-chi/chi/v5"

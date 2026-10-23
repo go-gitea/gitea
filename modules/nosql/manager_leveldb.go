@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"

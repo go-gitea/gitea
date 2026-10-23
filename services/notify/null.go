@@ -6,15 +6,15 @@ package notify
 import (
 	"context"
 
-	actions_model "gitea.dev/models/actions"
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	packages_model "gitea.dev/models/packages"
-	project_model "gitea.dev/models/project"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/repository"
+	actions_model "codenest.dev/models/actions"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	packages_model "codenest.dev/models/packages"
+	project_model "codenest.dev/models/project"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/repository"
 )
 
 // NullNotifier implements a blank notifier

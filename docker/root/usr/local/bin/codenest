@@ -1,0 +1,15 @@
+#!/bin/bash
+
+###############################################################
+# This script sets defaults for codenest to run in the container #
+###############################################################
+
+# It assumes that you place this script as codenest in /usr/local/bin
+#
+# And place the original in /usr/lib/codenest with working files in /data/codenest
+CODENEST="/app/codenest/codenest"
+WORK_DIR="/data/codenest"
+CUSTOM_PATH="/data/codenest"
+
+# Provide docker defaults
+CODENEST_WORK_DIR="${CODENEST_WORK_DIR:-$WORK_DIR}" CODENEST_CUSTOM="${CODENEST_CUSTOM:-$CUSTOM_PATH}" exec -a "$0" "$CODENEST" $CONF_ARG "$@"

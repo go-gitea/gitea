@@ -6,8 +6,8 @@ package v1_20
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/log"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/log"
 )
 
 func FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam(_ context.Context, x base.EngineMigration) error {

@@ -13,17 +13,17 @@ import (
 	"time"
 	"unicode"
 
-	"gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
-	"gitea.dev/models/gituser"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/badge"
-	"gitea.dev/modules/charset"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/indexer/code"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	"codenest.dev/models/asymkey"
+	"codenest.dev/models/db"
+	"codenest.dev/models/gituser"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/badge"
+	"codenest.dev/modules/charset"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/indexer/code"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 // List all devtest templates, they will be used for e2e tests for the UI components
@@ -54,7 +54,7 @@ func FetchActionTest(ctx *context.Context) {
 	ctx.JSONRedirect("")
 }
 
-func prepareMockDataGiteaUI(_ *context.Context) {}
+func prepareMockDataCodeNestUI(_ *context.Context) {}
 
 func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 	var commits []*asymkey.SignCommit
@@ -179,7 +179,7 @@ func prepareMockDataAvatarStack(ctx *context.Context) {
 			return &git.Signature{Name: u.Name, Email: u.Email}
 		}
 		coLinked := func(u *user_model.User) *gituser.CommitParticipant {
-			return &gituser.CommitParticipant{GiteaUser: u, GitIdentity: authorSig(u)}
+			return &gituser.CommitParticipant{CodeNestUser: u, GitIdentity: authorSig(u)}
 		}
 		coUnlinked := func(name, email string) *gituser.CommitParticipant {
 			return &gituser.CommitParticipant{GitIdentity: &git.Signature{Name: name, Email: email}}
@@ -238,8 +238,8 @@ func prepareMockDataRelativeTime(ctx *context.Context) {
 
 func prepareMockData(ctx *context.Context) {
 	switch ctx.Req.URL.Path {
-	case "/devtest/gitea-ui":
-		prepareMockDataGiteaUI(ctx)
+	case "/devtest/codenest-ui":
+		prepareMockDataCodeNestUI(ctx)
 	case "/devtest/badge-commit-sign":
 		prepareMockDataBadgeCommitSign(ctx)
 	case "/devtest/badge-actions-svg":

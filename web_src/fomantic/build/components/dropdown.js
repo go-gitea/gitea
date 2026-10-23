@@ -31,7 +31,7 @@ $.fn.dropdown = function(parameters) {
     moduleSelector = $allModules.selector || '',
 
     hasTouch       = ('ontouchstart' in document.documentElement),
-    // GITEA-PATCH: always "click" as clickEvent, old code used "touchstart" as clickEvent, it is wrong,
+    // CODENEST-PATCH: always "click" as clickEvent, old code used "touchstart" as clickEvent, it is wrong,
     // because "touchstart" caused problems when users try to scroll and the touch point is in the dropdown.
     clickEvent      = 'click',
 
@@ -66,7 +66,7 @@ $.fn.dropdown = function(parameters) {
         moduleNamespace = 'module-' + namespace,
 
         $module         = $(this),
-        $context        = (typeof settings.context === 'string') ? $(document).find(settings.context) : $(settings.context), // GITEA-PATCH: use "jQuery.find(selector)" instead of "jQuery(selector)"
+        $context        = (typeof settings.context === 'string') ? $(document).find(settings.context) : $(settings.context), // CODENEST-PATCH: use "jQuery.find(selector)" instead of "jQuery(selector)"
         $text           = $module.find(selector.text),
         $search         = $module.find(selector.search),
         $sizer          = $module.find(selector.sizer),
@@ -311,7 +311,7 @@ $.fn.dropdown = function(parameters) {
             const $selectable = $item
               .not(selector.unselectable)
               .not(selector.addition + selector.hidden);
-            let $selectedItem = $selectable.filter(`[data-value="${CSS.escape($input.val())}"]`); // GITEA-PATCH: try to re-select the last selected item for single selection
+            let $selectedItem = $selectable.filter(`[data-value="${CSS.escape($input.val())}"]`); // CODENEST-PATCH: try to re-select the last selected item for single selection
             if (!$selectedItem.length) $selectedItem = $item.eq(0);
             $selectedItem.addClass(className.selected);
           },
@@ -408,7 +408,7 @@ $.fn.dropdown = function(parameters) {
                 .insertBefore($input)
               ;
 
-              $module.attr('data-tooltip-content', $input.attr('data-tooltip-content') ?? null); // GITEA-PATCH: convert "select" to "dropdown" with attrs
+              $module.attr('data-tooltip-content', $input.attr('data-tooltip-content') ?? null); // CODENEST-PATCH: convert "select" to "dropdown" with attrs
 
               if($input.hasClass(className.multiple) && $input.prop('multiple') === false) {
                 module.error(error.missingMultiple);
@@ -539,7 +539,7 @@ $.fn.dropdown = function(parameters) {
               return true;
             }
             if(settings.onShow.call(element) !== false) {
-              $module.fomanticExt.onDropdownAfterFiltered.call(element); // GITEA-PATCH: callback to correctly handle the filtered items
+              $module.fomanticExt.onDropdownAfterFiltered.call(element); // CODENEST-PATCH: callback to correctly handle the filtered items
               module.animate.show(function() {
                 if( module.can.click() ) {
                   module.bind.intent();
@@ -767,7 +767,7 @@ $.fn.dropdown = function(parameters) {
               if(module.is.searchSelection() && module.can.show() && module.is.focusedOnSearch() ) {
                 module.show();
               }
-              $module.fomanticExt.onDropdownAfterFiltered.call(element); // GITEA-PATCH: callback to correctly handle the filtered items
+              $module.fomanticExt.onDropdownAfterFiltered.call(element); // CODENEST-PATCH: callback to correctly handle the filtered items
             }
           ;
           if(settings.useLabels && module.has.maxSelections()) {
@@ -783,9 +783,9 @@ $.fn.dropdown = function(parameters) {
                 if(!Array.isArray(preSelected)) {
                     preSelected = preSelected && preSelected!=="" ? preSelected.split(settings.delimiter) : [];
                 }
-                if (module.is.multiple()) { // GITEA-PATCH: only hide selected items when the dropdown is "multiple selection"
+                if (module.is.multiple()) { // CODENEST-PATCH: only hide selected items when the dropdown is "multiple selection"
                   $.each(preSelected, function (index, value) {
-                    $item.filter('[data-value="' + CSS.escape(value) + '"]') // GITEA-PATCH: use "CSS.escape" for query selector
+                    $item.filter('[data-value="' + CSS.escape(value) + '"]') // CODENEST-PATCH: use "CSS.escape" for query selector
                       .addClass(className.filtered)
                     ;
                   });
@@ -1053,7 +1053,7 @@ $.fn.dropdown = function(parameters) {
               $input.append('<option disabled selected value></option>');
               $.each(values, function(index, item) {
                 var
-                  value = settings.templates.escape(item[fields.value]), // GITEA-PATCH: use "escape" for attribute value
+                  value = settings.templates.escape(item[fields.value]), // CODENEST-PATCH: use "escape" for attribute value
                   name = settings.templates.escape(
                     item[fields.name] || '',
                     settings.preserveHTML
@@ -1156,7 +1156,7 @@ $.fn.dropdown = function(parameters) {
           icon: {
             click: function(event) {
               iconClicked=true;
-              // GITEA-PATCH: official dropdown doesn't support the search input in menu
+              // CODENEST-PATCH: official dropdown doesn't support the search input in menu
               // so we need to make the menu could be shown when the search input is in menu and user clicks the icon
               const searchInputInMenu = Boolean($menu.find('.search > input').length);
               if(module.has.search() && !searchInputInMenu) {
@@ -1972,7 +1972,7 @@ $.fn.dropdown = function(parameters) {
                 $choice.find(selector.menu).remove();
                 $choice.find(selector.menuIcon).remove();
               }
-              return ($choice.attr('data-' + metadata.text) !== undefined) // GITEA-PATCH: use "attr" but not "data", don't decode JSON like "false"
+              return ($choice.attr('data-' + metadata.text) !== undefined) // CODENEST-PATCH: use "attr" but not "data", don't decode JSON like "false"
                 ? $choice.attr('data-' + metadata.text)
                 : (preserveHTML)
                   ? $choice.html().trim()
@@ -2026,7 +2026,7 @@ $.fn.dropdown = function(parameters) {
                     value    = ( $option.attr('value') !== undefined )
                       ? $option.attr('value')
                       : name,
-                    text     = ( $option.attr('data-' + metadata.text) !== undefined ) // GITEA-PATCH: use "attr" but not "data", don't decode JSON like "false"
+                    text     = ( $option.attr('data-' + metadata.text) !== undefined ) // CODENEST-PATCH: use "attr" but not "data", don't decode JSON like "false"
                       ? $option.attr('data-' + metadata.text)
                       : name,
                     group = $option.parent('optgroup')
@@ -4105,7 +4105,7 @@ $.fn.dropdown.settings = {
     search       : 'input.search, .menu > .search > input, .menu input.search',
     sizer        : '> span.sizer',
     text         : '> .text:not(.icon)',
-    unselectable : '.disabled, .filtered, .tw-hidden', // GITEA-PATCH: tw-hidden hides the item so it is also unselectable
+    unselectable : '.disabled, .filtered, .tw-hidden', // CODENEST-PATCH: tw-hidden hides the item so it is also unselectable
     clearIcon    : '> .remove.icon'
   },
 
@@ -4212,13 +4212,13 @@ $.fn.dropdown.settings.templates = {
       if( itemType === 'item' ) {
         var
           maybeText = (option[fields.text])
-            ? ' data-text="' + escape(option[fields.text]) + '"' // GITEA-PATCH: use "escape" for attribute value
+            ? ' data-text="' + escape(option[fields.text]) + '"' // CODENEST-PATCH: use "escape" for attribute value
             : '',
           maybeDisabled = (option[fields.disabled])
             ? className.disabled+' '
             : ''
         ;
-        // GITEA-PATCH: use "escape" for attribute value
+        // CODENEST-PATCH: use "escape" for attribute value
         html += '<div class="'+ maybeDisabled + (option[fields.class] ? deQuote(option[fields.class]) : className.item)+'" data-value="' + escape(option[fields.value]) + '"' + maybeText + '>';
         if(option[fields.image]) {
           html += '<img class="'+(option[fields.imageClass] ? deQuote(option[fields.imageClass]) : className.image)+'" src="' + deQuote(option[fields.image]) + '">';

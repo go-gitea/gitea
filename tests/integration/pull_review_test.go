@@ -12,19 +12,19 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/test"
-	issue_service "gitea.dev/services/issue"
-	pull_service "gitea.dev/services/pull"
-	repo_service "gitea.dev/services/repository"
-	files_service "gitea.dev/services/repository/files"
-	"gitea.dev/tests"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/test"
+	issue_service "codenest.dev/services/issue"
+	pull_service "codenest.dev/services/pull"
+	repo_service "codenest.dev/services/repository"
+	files_service "codenest.dev/services/repository/files"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,7 +51,7 @@ func TestPullView_ReviewerMissed(t *testing.T) {
 }
 
 func TestPullView_CodeOwner(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 		user8 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
@@ -340,7 +340,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 }
 
 func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		user1Session := loginUser(t, "user1")
 		user2Session := loginUser(t, "user2")
 

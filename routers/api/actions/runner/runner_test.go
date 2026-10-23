@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	actions_model "codenest.dev/models/actions"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/actionslib/runner/v1/runnerv1connect"
-	actions_model "gitea.dev/models/actions"
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"

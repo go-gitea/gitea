@@ -6,8 +6,8 @@ package v28
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/setting"
 
 	"xorm.io/xorm/schemas"
 )

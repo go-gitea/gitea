@@ -9,10 +9,10 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/tailmsg"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/tailmsg"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 func MonitorDiagnosis(ctx *context.Context) {
@@ -20,7 +20,7 @@ func MonitorDiagnosis(ctx *context.Context) {
 
 	httplib.ServeSetHeaders(ctx.Resp, httplib.ServeHeaderOptions{
 		ContentType:        "application/zip",
-		Filename:           fmt.Sprintf("gitea-diagnosis-%s.zip", time.Now().Format("20060102-150405")),
+		Filename:           fmt.Sprintf("codenest-diagnosis-%s.zip", time.Now().Format("20060102-150405")),
 		ContentDisposition: httplib.ContentDispositionAttachment,
 	})
 

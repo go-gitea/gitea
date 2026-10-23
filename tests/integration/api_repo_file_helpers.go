@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	files_service "gitea.dev/services/repository/files"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	files_service "codenest.dev/services/repository/files"
 
 	"github.com/stretchr/testify/require"
 )

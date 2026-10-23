@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/models/actions"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/actions"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 const (

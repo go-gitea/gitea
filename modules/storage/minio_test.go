@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +21,7 @@ func prepareMinioStorageConfig(t *testing.T, basePath string) *setting.Storage {
 			Endpoint:        test.ExternalServiceHTTP(t, "TEST_MINIO_ENDPOINT", "minio:9000"),
 			AccessKeyID:     "123456",
 			SecretAccessKey: "12345678",
-			Bucket:          "gitea",
+			Bucket:          "codenest",
 			Location:        "us-east-1",
 			BasePath:        basePath,
 		},

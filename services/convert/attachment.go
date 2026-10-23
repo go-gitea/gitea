@@ -6,8 +6,8 @@ package convert
 import (
 	"context"
 
-	repo_model "gitea.dev/models/repo"
-	api "gitea.dev/modules/structs"
+	repo_model "codenest.dev/models/repo"
+	api "codenest.dev/modules/structs"
 )
 
 func WebAssetDownloadURL(ctx context.Context, repo *repo_model.Repository, attach *repo_model.Attachment) string {

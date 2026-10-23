@@ -10,14 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFetchRedirectDelegate(t *testing.T) {
-	defer test.MockVariableValue(&setting.AppURL, "https://gitea/")()
+	defer test.MockVariableValue(&setting.AppURL, "https://codenest/")()
 
 	cases := []struct {
 		method string
@@ -28,7 +28,7 @@ func TestFetchRedirectDelegate(t *testing.T) {
 		{method: "GET", input: "/foo?k=v", status: http.StatusBadRequest},
 		{method: "POST", input: `\/foo?k=v`, status: http.StatusBadRequest},
 		{method: "POST", input: `\\/foo?k=v`, status: http.StatusBadRequest},
-		{method: "POST", input: "https://gitea/xxx", status: http.StatusSeeOther},
+		{method: "POST", input: "https://codenest/xxx", status: http.StatusSeeOther},
 		{method: "POST", input: "https://other/xxx", status: http.StatusBadRequest},
 	}
 	for _, c := range cases {

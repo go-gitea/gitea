@@ -8,16 +8,16 @@ import (
 	"net/url"
 	"testing"
 
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/tests"
+	git_model "codenest.dev/models/git"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRenameBranch(t *testing.T) {
-	onGiteaRun(t, testRenameBranch)
+	onCodeNestRun(t, testRenameBranch)
 }
 
 func testRenameBranch(t *testing.T, u *url.URL) {

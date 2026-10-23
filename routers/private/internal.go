@@ -10,16 +10,16 @@ import (
 	"net/http"
 	"strings"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/validation"
-	"gitea.dev/modules/web"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/routers/common"
-	"gitea.dev/routers/web/misc"
-	"gitea.dev/services/context"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/validation"
+	"codenest.dev/modules/web"
+	"codenest.dev/modules/web/middleware"
+	"codenest.dev/routers/common"
+	"codenest.dev/routers/web/misc"
+	"codenest.dev/services/context"
 )
 
 func authInternal(next http.Handler) http.Handler {
@@ -67,13 +67,13 @@ func setRealIP(next http.Handler) http.Handler {
 }
 
 // Routes registers all internal APIs routes to web application.
-// These APIs will be invoked by internal commands for example `gitea serv` and etc.
+// These APIs will be invoked by internal commands for example `codenest serv` and etc.
 func Routes() *web.Router {
 	r := web.NewRouter()
 	r.AfterRouting(context.PrivateContexter())
 	r.AfterRouting(authInternal)
 	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.
-	// Since internal API will be sent only from Gitea sub commands and it's under control (checked by InternalToken), we can trust the headers.
+	// Since internal API will be sent only from CodeNest sub commands and it's under control (checked by InternalToken), we can trust the headers.
 	r.AfterRouting(setRealIP)
 	r.AfterRouting(common.AuditOrigin(audit_model.OriginSystem))
 

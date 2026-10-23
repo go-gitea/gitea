@@ -6,9 +6,9 @@ package actions
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/timeutil"
 )
 
 // ActionTasksVersion

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 type memoryBackend struct {

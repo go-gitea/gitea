@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/models/perm"
-	"gitea.dev/models/unit"
+	"codenest.dev/models/perm"
+	"codenest.dev/models/unit"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/util"
 )
 
 // MergeBase checks and returns merge base of two commits.

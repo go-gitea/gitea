@@ -1,4 +1,4 @@
-// Copyright 2021 Gitea. All rights reserved.
+// Copyright 2021 CodeNest. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package automerge
@@ -11,23 +11,23 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
-	pull_model "gitea.dev/models/pull"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/services/automergequeue"
-	notify_service "gitea.dev/services/notify"
-	pull_service "gitea.dev/services/pull"
-	repo_service "gitea.dev/services/repository"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	access_model "codenest.dev/models/perm/access"
+	pull_model "codenest.dev/models/pull"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/services/automergequeue"
+	notify_service "codenest.dev/services/notify"
+	pull_service "codenest.dev/services/pull"
+	repo_service "codenest.dev/services/repository"
 )
 
 // Init runs the task queue to that handles auto merges
@@ -51,7 +51,7 @@ func Init(ctx context.Context) error {
 }
 
 func populateRecentAutoMergeItems(ctx context.Context) {
-	// in case Gitea's restart aborted some scheduled auto-merge pull requests, try to re-start the recent ones
+	// in case CodeNest's restart aborted some scheduled auto-merge pull requests, try to re-start the recent ones
 	pullIDs, err := pull_model.GetScheduledMergePullIDsSince(ctx, timeutil.TimeStampNow().AddDuration(-24*time.Hour))
 	if err != nil {
 		log.Error("Failed to get recent scheduled auto-merge pull requests: %v", err)

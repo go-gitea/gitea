@@ -11,24 +11,24 @@ import (
 	"slices"
 	"strings"
 
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	perm_model "codenest.dev/models/perm"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/convert"
 	"gitea.dev/actionslib/pkg/model"
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	perm_model "gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/convert"
 
 	"go.yaml.in/yaml/v4"
 	"xorm.io/builder"
@@ -335,7 +335,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		if err != nil {
 			return err
 		}
-		callerGitCtx := GenerateGiteaContext(ctx, run, attempt, caller)
+		callerGitCtx := GenerateCodeNestContext(ctx, run, attempt, caller)
 		workflowCallInputs, err = jobparser.ResolveCallerInputs(caller.JobID, parsedJob, wcSpec, callerGitCtx, jobResults, vars, parentInputs)
 		if err != nil {
 			return fmt.Errorf("caller %q inputs: %w", caller.JobID, err)
@@ -408,7 +408,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		}
 	}
 
-	gitCtx := GenerateGiteaContext(ctx, run, attempt, nil)
+	gitCtx := GenerateCodeNestContext(ctx, run, attempt, nil)
 	childWorkflows, err := jobparser.Parse(content,
 		jobparser.WithVars(vars),
 		jobparser.WithGitContext(gitCtx.ToGitHubContext()),
@@ -512,10 +512,10 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 func ResolveUses(ctx context.Context, uses string) (*model.ReusableWorkflowUses, error) {
 	// Rewrite a local-instance URL to the equivalent cross-repo form "owner/repo/.gitea/workflows/file.yml@ref".
 	if strings.HasPrefix(uses, "http://") || strings.HasPrefix(uses, "https://") {
-		// ParseGiteaSiteURL returns nil for URLs that do not belong to this instance.
-		gsu := httplib.ParseGiteaSiteURL(ctx, uses)
+		// ParseCodeNestSiteURL returns nil for URLs that do not belong to this instance.
+		gsu := httplib.ParseCodeNestSiteURL(ctx, uses)
 		if gsu == nil {
-			return nil, fmt.Errorf("unsupported reusable workflow URL %q: an absolute URL must point to this Gitea instance (%s)", uses, setting.AppURL)
+			return nil, fmt.Errorf("unsupported reusable workflow URL %q: an absolute URL must point to this CodeNest instance (%s)", uses, setting.AppURL)
 		}
 		// RoutePath is the instance-relative path (AppSubURL already stripped), e.g. "/owner/repo/.gitea/workflows/file.yml@ref".
 		uses = strings.TrimPrefix(gsu.RoutePath, "/")

@@ -1,4 +1,4 @@
-module gitea.dev
+module codenest.dev
 
 go 1.27
 

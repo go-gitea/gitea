@@ -9,9 +9,9 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 // GetRefs returns all references of the repository.

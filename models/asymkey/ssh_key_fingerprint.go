@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/models/db"
+	"codenest.dev/models/db"
 
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"

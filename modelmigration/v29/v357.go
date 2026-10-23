@@ -6,7 +6,7 @@ package v29
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 // NormalizeLegacyTeamAuthorize sets leftover read/write authorize values to none.

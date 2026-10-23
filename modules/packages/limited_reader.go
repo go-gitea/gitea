@@ -6,7 +6,7 @@ package packages
 import (
 	"io"
 
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/util"
 )
 
 var ErrContentTooLarge = util.NewInvalidArgumentErrorf("content exceeds the size limit")

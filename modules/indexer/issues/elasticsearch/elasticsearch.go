@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/indexer"
-	indexer_internal "gitea.dev/modules/indexer/internal"
-	es "gitea.dev/modules/indexer/internal/elasticsearch"
-	"gitea.dev/modules/indexer/issues/internal"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/indexer"
+	indexer_internal "codenest.dev/modules/indexer/internal"
+	es "codenest.dev/modules/indexer/internal/elasticsearch"
+	"codenest.dev/modules/indexer/issues/internal"
+	"codenest.dev/modules/util"
 )
 
 const issueIndexerLatestVersion = 4

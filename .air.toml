@@ -2,9 +2,9 @@ root = "."
 tmp_dir = ".air"
 
 [build]
-pre_cmd = ["killall -9 gitea 2>/dev/null || true"] # kill off potential zombie processes from previous runs
+pre_cmd = ["killall -9 codenest 2>/dev/null || true"] # kill off potential zombie processes from previous runs
 cmd = "make --no-print-directory backend"
-entrypoint = ["./gitea"]
+entrypoint = ["./codenest"]
 delay = 2000
 include_ext = ["go", "tmpl"]
 include_file = ["main.go"]

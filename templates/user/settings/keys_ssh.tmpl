@@ -76,14 +76,14 @@
 							<input readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
 								{{ctx.Locale.Tr "settings.ssh_token_help"}}
-								<pre class="command-block">echo -n '{{$.TokenToSign}}' | ssh-keygen -Y sign -n gitea -f /path_to_PrivateKey_or_RelatedPublicKey</pre>
+								<pre class="command-block">echo -n '{{$.TokenToSign}}' | ssh-keygen -Y sign -n codenest -f /path_to_PrivateKey_or_RelatedPublicKey</pre>
 								<details>
 									<summary>Windows PowerShell</summary>
-									<pre class="command-block">'{{$.TokenToSign}}' | ssh-keygen -Y sign -n gitea -f /path_to_PrivateKey_or_RelatedPublicKey</pre>
+									<pre class="command-block">'{{$.TokenToSign}}' | ssh-keygen -Y sign -n codenest -f /path_to_PrivateKey_or_RelatedPublicKey</pre>
 								</details>
 								<details>
 									<summary>Windows CMD</summary>
-									<pre class="command-block">echo {{$.TokenToSign}}| ssh-keygen -Y sign -n gitea -f /path_to_PrivateKey_or_RelatedPublicKey</pre>
+									<pre class="command-block">echo {{$.TokenToSign}}| ssh-keygen -Y sign -n codenest -f /path_to_PrivateKey_or_RelatedPublicKey</pre>
 								</details>
 							</div>
 						</div>

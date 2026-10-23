@@ -34,4 +34,4 @@ jobs:
         env:
           TAGS: bindata
           FORCE_COLOR: 1
-          GITEA_TEST_E2E_DEBUG: 1
+          CODENEST_TEST_E2E_DEBUG: 1

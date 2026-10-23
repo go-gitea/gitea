@@ -8,7 +8,7 @@ import (
 	"os/user"
 	"strings"
 
-	"gitea.dev/modules/consts"
+	"codenest.dev/modules/consts"
 )
 
 // CurrentUsername return current login OS username

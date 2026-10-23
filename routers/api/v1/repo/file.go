@@ -14,25 +14,25 @@ import (
 	"strings"
 	"time"
 
-	git_model "gitea.dev/models/git"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/httpcache"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/lfs"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/routers/common"
-	"gitea.dev/services/context"
-	pull_service "gitea.dev/services/pull"
-	files_service "gitea.dev/services/repository/files"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/httpcache"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/lfs"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/routers/common"
+	"codenest.dev/services/context"
+	pull_service "codenest.dev/services/pull"
+	files_service "codenest.dev/services/repository/files"
 )
 
-const giteaObjectTypeHeader = "X-Gitea-Object-Type"
+const codenestObjectTypeHeader = "X-Gitea-Object-Type"
 
 // GetRawFile get a file by path on a repository
 func GetRawFile(ctx *context.APIContext) {
@@ -80,7 +80,7 @@ func GetRawFile(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
+	ctx.RespHeader().Set(codenestObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	if err := common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified); err != nil {
 		ctx.APIErrorInternal(err)
@@ -133,7 +133,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
+	ctx.RespHeader().Set(codenestObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
 	if blob.Size(ctx) > lfs.MetaFileMaxSize {

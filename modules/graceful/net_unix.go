@@ -16,14 +16,14 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 const (
 	listenFDsEnv = "LISTEN_FDS"
 	startFD      = 3
-	unlinkFDsEnv = "GITEA_UNLINK_FDS"
+	unlinkFDsEnv = "CODENEST_UNLINK_FDS"
 
 	notifySocketEnv    = "NOTIFY_SOCKET"
 	watchdogTimeoutEnv = "WATCHDOG_USEC"

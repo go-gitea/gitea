@@ -9,15 +9,15 @@ import (
 	"net/url"
 	"strings"
 
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/session"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/session"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 const (
-	CookieWebBannerDismissed = "gitea_disbnr"
-	CookieTheme              = "gitea_theme"
+	CookieWebBannerDismissed = "codenest_disbnr"
+	CookieTheme              = "codenest_theme"
 	cookieRedirectTo         = "redirect_to"
 )
 
@@ -36,7 +36,7 @@ func DeleteRedirectToCookie(resp http.ResponseWriter) {
 }
 
 func RedirectLinkUserLogin(req *http.Request) string {
-	if httplib.IsGiteaFetchActionRequest(req) {
+	if httplib.IsCodeNestFetchActionRequest(req) {
 		// when building the redirect link for a fetch request, the current link might be a partial page,
 		// so we only redirect to the login page without redirect_to parameter
 		return setting.AppSubURL + "/user/login"

@@ -6,8 +6,8 @@ package private
 import (
 	"testing"
 
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,23 +20,23 @@ func TestInternalAPITLSConfig(t *testing.T) {
 		local    bool
 	}{
 		// HTTPUnix always dials the unix socket (a local target), whatever LOCAL_ROOT_URL says
-		{"unix socket", setting.HTTPUnix, "https://gitea.example.com/", true},
+		{"unix socket", setting.HTTPUnix, "https://codenest.example.com/", true},
 		{"localhost", setting.HTTP, "http://localhost:3000/", true},
 		{"loopback ipv4", setting.HTTPS, "https://127.0.0.1:3000/", true},
 		{"loopback ipv6", setting.HTTPS, "https://[::1]:3000/", true},
 		{"unspecified ipv4", setting.HTTPS, "https://0.0.0.0:3000/", true},
 		{"unspecified ipv6", setting.HTTPS, "https://[::]:3000/", true},
 		// any other LOCAL_ROOT_URL is a real network hop and must be verified
-		{"remote host", setting.HTTPS, "https://gitea.internal:443/", false},
+		{"remote host", setting.HTTPS, "https://codenest.internal:443/", false},
 		{"remote ip", setting.HTTPS, "https://10.0.0.5:3000/", false},
 		// an unparseable LOCAL_ROOT_URL is a hard misconfiguration; fail closed to verification
 		{"invalid url", setting.HTTPS, "://bad", false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			config := internalAPITLSConfig(c.protocol, c.localURL, "gitea.example.com")
+			config := internalAPITLSConfig(c.protocol, c.localURL, "codenest.example.com")
 			assert.Equal(t, c.local, config.InsecureSkipVerify)
-			assert.Equal(t, util.Iif(c.local, "gitea.example.com", ""), config.ServerName)
+			assert.Equal(t, util.Iif(c.local, "codenest.example.com", ""), config.ServerName)
 		})
 	}
 }

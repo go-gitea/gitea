@@ -13,9 +13,9 @@ import (
 	"os"
 	"strings"
 
-	"gitea.dev/modules/egress/policy"
-	"gitea.dev/modules/proxy"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/egress/policy"
+	"codenest.dev/modules/proxy"
+	"codenest.dev/modules/setting"
 
 	"golang.org/x/net/http/httpproxy"
 )

@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	issues_model "gitea.dev/models/issues"
-	project_model "gitea.dev/models/project"
-	"gitea.dev/models/unittest"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	issues_model "codenest.dev/models/issues"
+	project_model "codenest.dev/models/project"
+	"codenest.dev/models/unittest"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

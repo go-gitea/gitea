@@ -29,10 +29,10 @@ local addIssueLabelsOverrides(labels) =
 
   grafanaDashboards+:: {
 
-    local giteaSelector = 'job=~"$job", instance=~"$instance"',
-    local giteaStatsPanel =
+    local codenestSelector = 'job=~"$job", instance=~"$instance"',
+    local codenestStatsPanel =
       grafana.statPanel.new(
-        'Gitea stats',
+        'CodeNest stats',
         datasource='$datasource',
         reducerFunction='lastNotNull',
         graphMode='none',
@@ -40,8 +40,8 @@ local addIssueLabelsOverrides(labels) =
       )
       .addTargets(
         [
-          prometheus.target(expr='%s{%s}' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=10)
-          for metric in $._config.giteaStatMetrics
+          prometheus.target(expr='%s{%s}' % [metric.name, codenestSelector], legendFormat=metric.description, intervalFactor=10)
+          for metric in $._config.codenestStatMetrics
         ]
       )
       + {
@@ -55,7 +55,7 @@ local addIssueLabelsOverrides(labels) =
         },
       },
 
-    local giteaUptimePanel =
+    local codenestUptimePanel =
       grafana.statPanel.new(
         'Uptime',
         datasource='$datasource',
@@ -63,7 +63,7 @@ local addIssueLabelsOverrides(labels) =
         graphMode='area',
         colorMode='value',
       )
-      .addTarget(prometheus.target(expr='time()-process_start_time_seconds{%s}' % giteaSelector, intervalFactor=1))
+      .addTarget(prometheus.target(expr='time()-process_start_time_seconds{%s}' % codenestSelector, intervalFactor=1))
       + {
         fieldConfig+: {
           defaults+: {
@@ -76,12 +76,12 @@ local addIssueLabelsOverrides(labels) =
         },
       },
 
-    local giteaMemoryPanel =
+    local codenestMemoryPanel =
       grafana.graphPanel.new(
         'Memory usage',
         datasource='$datasource'
       )
-      .addTarget(prometheus.target(expr='process_resident_memory_bytes{%s}' % giteaSelector, intervalFactor=2))
+      .addTarget(prometheus.target(expr='process_resident_memory_bytes{%s}' % codenestSelector, intervalFactor=2))
       + {
         type: 'timeseries',
         options+: {
@@ -107,12 +107,12 @@ local addIssueLabelsOverrides(labels) =
         },
       },
 
-    local giteaCpuPanel =
+    local codenestCpuPanel =
       grafana.graphPanel.new(
         'CPU usage',
         datasource='$datasource'
       )
-      .addTarget(prometheus.target(expr='rate(process_cpu_seconds_total{%s}[$__rate_interval])*100' % giteaSelector, intervalFactor=2))
+      .addTarget(prometheus.target(expr='rate(process_cpu_seconds_total{%s}[$__rate_interval])*100' % codenestSelector, intervalFactor=2))
       + {
         type: 'timeseries',
         options+: {
@@ -158,13 +158,13 @@ local addIssueLabelsOverrides(labels) =
         },
       },
 
-    local giteaFileDescriptorsPanel =
+    local codenestFileDescriptorsPanel =
       grafana.graphPanel.new(
         'File descriptors usage',
         datasource='$datasource',
       )
-      .addTarget(prometheus.target(expr='process_open_fds{%s}' % giteaSelector, intervalFactor=2))
-      .addTarget(prometheus.target(expr='process_max_fds{%s}' % giteaSelector, intervalFactor=2))
+      .addTarget(prometheus.target(expr='process_open_fds{%s}' % codenestSelector, intervalFactor=2))
+      .addTarget(prometheus.target(expr='process_max_fds{%s}' % codenestSelector, intervalFactor=2))
       .addSeriesOverride(
         {
           alias: '/process_max_fds.+/',
@@ -226,7 +226,7 @@ local addIssueLabelsOverrides(labels) =
         },
       },
 
-    local giteaChangesPanelPrototype =
+    local codenestChangesPanelPrototype =
       grafana.graphPanel.new(
         '',
         datasource='$datasource',
@@ -264,17 +264,17 @@ local addIssueLabelsOverrides(labels) =
         },
       },
 
-    local giteaChangesPanelAll =
-      giteaChangesPanelPrototype
-      .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__interval]) > 0' % [giteaSelector], legendFormat='Restarts', intervalFactor=1))
+    local codenestChangesPanelAll =
+      codenestChangesPanelPrototype
+      .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__interval]) > 0' % [codenestSelector], legendFormat='Restarts', intervalFactor=1))
       .addTargets(
         [
-          prometheus.target(expr='floor(delta(%s{%s}[$__interval])) > 0' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=1)
-          for metric in $._config.giteaStatMetrics
+          prometheus.target(expr='floor(delta(%s{%s}[$__interval])) > 0' % [metric.name, codenestSelector], legendFormat=metric.description, intervalFactor=1)
+          for metric in $._config.codenestStatMetrics
         ]
       ) + { id: 200 },  // some unique number, beyond the maximum number of panels in the dashboard,
 
-    local giteaChangesPanelTotal =
+    local codenestChangesPanelTotal =
       grafana.statPanel.new(
         'Changes',
         datasource='-- Dashboard --',
@@ -286,7 +286,7 @@ local addIssueLabelsOverrides(labels) =
       + {
         targets+: [
           {
-            panelId: giteaChangesPanelAll.id,
+            panelId: codenestChangesPanelAll.id,
             refId: 'A',
           },
         ],
@@ -301,12 +301,12 @@ local addIssueLabelsOverrides(labels) =
         },
       },
 
-    local giteaChangesByRepositories =
-      giteaChangesPanelPrototype
-      .addTarget(prometheus.target(expr='floor(increase(gitea_issues_by_repository{%s}[$__interval])) > 0' % [giteaSelector], legendFormat='{{ repository }}', intervalFactor=1))
+    local codenestChangesByRepositories =
+      codenestChangesPanelPrototype
+      .addTarget(prometheus.target(expr='floor(increase(codenest_issues_by_repository{%s}[$__interval])) > 0' % [codenestSelector], legendFormat='{{ repository }}', intervalFactor=1))
       + { id: 210 },  // some unique number, beyond the maximum number of panels in the dashboard,
 
-    local giteaChangesByRepositoriesTotal =
+    local codenestChangesByRepositoriesTotal =
       grafana.statPanel.new(
         'Issues by repository',
         datasource='-- Dashboard --',
@@ -319,7 +319,7 @@ local addIssueLabelsOverrides(labels) =
         id: 211,
         targets+: [
           {
-            panelId: giteaChangesByRepositories.id,
+            panelId: codenestChangesByRepositories.id,
             refId: 'A',
           },
         ],
@@ -334,13 +334,13 @@ local addIssueLabelsOverrides(labels) =
         },
       },
 
-    local giteaChangesByLabel =
-      giteaChangesPanelPrototype
-      .addTarget(prometheus.target(expr='floor(increase(gitea_issues_by_label{%s}[$__interval])) > 0' % [giteaSelector], legendFormat='{{ label }}', intervalFactor=1))
+    local codenestChangesByLabel =
+      codenestChangesPanelPrototype
+      .addTarget(prometheus.target(expr='floor(increase(codenest_issues_by_label{%s}[$__interval])) > 0' % [codenestSelector], legendFormat='{{ label }}', intervalFactor=1))
       + addIssueLabelsOverrides($._config.issueLabels)
       + { id: 220 },  // some unique number, beyond the maximum number of panels in the dashboard,
 
-    local giteaChangesByLabelTotal =
+    local codenestChangesByLabelTotal =
       grafana.statPanel.new(
         'Issues by labels',
         datasource='-- Dashboard --',
@@ -354,7 +354,7 @@ local addIssueLabelsOverrides(labels) =
         id: 221,
         targets+: [
           {
-            panelId: giteaChangesByLabel.id,
+            panelId: codenestChangesByLabel.id,
             refId: 'A',
           },
         ],
@@ -369,7 +369,7 @@ local addIssueLabelsOverrides(labels) =
         },
       },
 
-    'gitea-overview.json':
+    'codenest-overview.json':
       grafana.dashboard.new(
         '%s Overview' % $._config.dashboardNamePrefix,
         time_from='%s' % $._config.dashboardPeriod,
@@ -378,7 +378,7 @@ local addIssueLabelsOverrides(labels) =
         timezone='%s' % $._config.dashboardTimezone,
         refresh='%s' % $._config.dashboardRefresh,
         graphTooltip='shared_crosshair',
-        uid='gitea-overview'
+        uid='codenest-overview'
       )
       .addTemplate(
         {
@@ -403,7 +403,7 @@ local addIssueLabelsOverrides(labels) =
           name: 'job',
           options: [],
           datasource: '$datasource',
-          query: 'label_values(gitea_organizations, job)',
+          query: 'label_values(codenest_organizations, job)',
           refresh: 1,
           regex: '',
           type: 'query',
@@ -418,7 +418,7 @@ local addIssueLabelsOverrides(labels) =
           name: 'instance',
           options: [],
           datasource: '$datasource',
-          query: 'label_values(gitea_organizations{job="$job"}, instance)',
+          query: 'label_values(codenest_organizations{job="$job"}, instance)',
           refresh: 1,
           regex: '',
           type: 'query',
@@ -438,28 +438,28 @@ local addIssueLabelsOverrides(labels) =
         },
       )
       .addPanel(grafana.row.new(title='General'), gridPos={ x: 0, y: 0, w: 0, h: 0 },)
-      .addPanel(giteaStatsPanel, gridPos={ x: 0, y: 0, w: 16, h: 4 })
-      .addPanel(giteaUptimePanel, gridPos={ x: 16, y: 0, w: 8, h: 4 })
-      .addPanel(giteaMemoryPanel, gridPos={ x: 0, y: 4, w: 8, h: 6 })
-      .addPanel(giteaCpuPanel, gridPos={ x: 8, y: 4, w: 8, h: 6 })
-      .addPanel(giteaFileDescriptorsPanel, gridPos={ x: 16, y: 4, w: 8, h: 6 })
+      .addPanel(codenestStatsPanel, gridPos={ x: 0, y: 0, w: 16, h: 4 })
+      .addPanel(codenestUptimePanel, gridPos={ x: 16, y: 0, w: 8, h: 4 })
+      .addPanel(codenestMemoryPanel, gridPos={ x: 0, y: 4, w: 8, h: 6 })
+      .addPanel(codenestCpuPanel, gridPos={ x: 8, y: 4, w: 8, h: 6 })
+      .addPanel(codenestFileDescriptorsPanel, gridPos={ x: 16, y: 4, w: 8, h: 6 })
       .addPanel(grafana.row.new(title='Changes', collapse=false), gridPos={ x: 0, y: 10, w: 24, h: 8 })
-      .addPanel(giteaChangesPanelTotal, gridPos={ x: 0, y: 12, w: 6, h: 8 })
+      .addPanel(codenestChangesPanelTotal, gridPos={ x: 0, y: 12, w: 6, h: 8 })
       +  // use patching instead of .addPanel() to keep static ids
       {
         panels+: std.flattenArrays([
           [
-            giteaChangesPanelAll { gridPos: { x: 6, y: 12, w: 18, h: 8 } },
+            codenestChangesPanelAll { gridPos: { x: 6, y: 12, w: 18, h: 8 } },
           ],
           if $._config.showIssuesByRepository then
             [
-              giteaChangesByRepositoriesTotal { gridPos: { x: 0, y: 20, w: 6, h: 8 } },
-              giteaChangesByRepositories { gridPos: { x: 6, y: 20, w: 18, h: 8 } },
+              codenestChangesByRepositoriesTotal { gridPos: { x: 0, y: 20, w: 6, h: 8 } },
+              codenestChangesByRepositories { gridPos: { x: 6, y: 20, w: 18, h: 8 } },
             ] else [],
           if $._config.showIssuesByLabel then
             [
-              giteaChangesByLabelTotal { gridPos: { x: 0, y: 28, w: 6, h: 8 } },
-              giteaChangesByLabel { gridPos: { x: 6, y: 28, w: 18, h: 8 } },
+              codenestChangesByLabelTotal { gridPos: { x: 0, y: 28, w: 6, h: 8 } },
+              codenestChangesByLabel { gridPos: { x: 6, y: 28, w: 18, h: 8 } },
             ] else [],
         ]),
       },

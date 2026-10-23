@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 type requestRecord struct {

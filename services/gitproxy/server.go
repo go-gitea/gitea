@@ -24,19 +24,19 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/egress"
-	"gitea.dev/modules/egress/policy"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/egress"
+	"codenest.dev/modules/egress/policy"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	"github.com/Azure/go-ntlmssp"
 	"golang.org/x/net/proxy"
 )
 
 const (
-	proxyURLEnv  = "GITEA_GIT_PROXY" // tells this binary it runs as git's GIT_PROXY_COMMAND
-	directHeader = "X-Gitea-Direct"  // asks for a CONNECT tunnel that skips the operator's proxy, as git:// remotes never used one
+	proxyURLEnv  = "CODENEST_GIT_PROXY" // tells this binary it runs as git's GIT_PROXY_COMMAND
+	directHeader = "X-Gitea-Direct"     // asks for a CONNECT tunnel that skips the operator's proxy, as git:// remotes never used one
 )
 
 // proxyDialer reaches the operator's proxies, which are configuration rather than user input
@@ -90,7 +90,7 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("git proxy: %w", err)
 	}
-	user := url.UserPassword("gitea", rand.Text())
+	user := url.UserPassword("codenest", rand.Text())
 	handler := newServer(gitPolicy, basicAuth(user), proxyTLS)
 	handler.proxyNTLM = strings.EqualFold(gitOption("http.proxyAuthMethod", "GIT_HTTP_PROXY_AUTHMETHOD"), "ntlm")
 	srv := &http.Server{Handler: handler, ReadHeaderTimeout: 10 * time.Second}
@@ -180,7 +180,7 @@ func basicAuth(user *url.Userinfo) string {
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if subtle.ConstantTimeCompare([]byte(r.Header.Get("Proxy-Authorization")), []byte(s.auth)) != 1 {
-		w.Header().Set("Proxy-Authenticate", `Basic realm="gitea egress proxy"`)
+		w.Header().Set("Proxy-Authenticate", `Basic realm="codenest egress proxy"`)
 		http.Error(w, "egress: proxy authentication required", http.StatusProxyAuthRequired)
 		return
 	}

@@ -7,9 +7,9 @@ import (
 	"errors"
 	"net/http"
 
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/context"
-	contributors_service "gitea.dev/services/repository"
+	"codenest.dev/modules/templates"
+	"codenest.dev/services/context"
+	contributors_service "codenest.dev/services/repository"
 )
 
 const (

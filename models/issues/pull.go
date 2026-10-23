@@ -12,17 +12,17 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	org_model "gitea.dev/models/organization"
-	pull_model "gitea.dev/models/pull"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	org_model "codenest.dev/models/organization"
+	pull_model "codenest.dev/models/pull"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/modules/util"
 
 	"github.com/dlclark/regexp2/v2"
 	"xorm.io/builder"
@@ -88,7 +88,7 @@ type PullRequestType int
 
 // Enumerate all the pull request types
 const (
-	PullRequestGitea PullRequestType = iota
+	PullRequestCodeNest PullRequestType = iota
 	PullRequestGit
 )
 

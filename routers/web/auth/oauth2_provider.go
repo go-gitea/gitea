@@ -13,21 +13,21 @@ import (
 	"strconv"
 	"strings"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/httpauth"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/audit"
-	auth_service "gitea.dev/services/auth"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
-	"gitea.dev/services/oauth2_provider"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/auth"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/auth/httpauth"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/audit"
+	auth_service "codenest.dev/services/auth"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
+	"codenest.dev/services/oauth2_provider"
 
 	jwt "github.com/golang-jwt/jwt/v5"
 )
@@ -95,7 +95,7 @@ type userInfoResponse struct {
 // InfoOAuth manages request for userinfo endpoint
 func InfoOAuth(ctx *context.Context) {
 	if ctx.Doer == nil || ctx.Data["AuthedMethod"] != (&auth_service.OAuth2{}).Name() {
-		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="Gitea OAuth2"`)
+		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="CodeNest OAuth2"`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
@@ -108,7 +108,7 @@ func InfoOAuth(ctx *context.Context) {
 		ctx.ServerError("HasScope", err)
 		return
 	} else if !allowed {
-		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="Gitea OAuth2"`)
+		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="CodeNest OAuth2"`)
 		ctx.PlainText(http.StatusForbidden, "token does not have required scope: read:user")
 		return
 	}
@@ -161,7 +161,7 @@ func IntrospectOAuth(ctx *context.Context) {
 	if introspectingApp == nil {
 		// RFC 7662 requires the caller to authenticate to the introspection endpoint.
 		// https://www.rfc-editor.org/rfc/rfc7662.html#section-2.1
-		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
+		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="CodeNest OAuth2"`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}

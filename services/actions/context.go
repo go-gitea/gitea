@@ -11,32 +11,32 @@ import (
 	"slices"
 	"strconv"
 
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	git_model "codenest.dev/models/git"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/actions/jobparser"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
 	"gitea.dev/actionslib/pkg/expreval"
 	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
 )
 
-type GiteaContext map[string]any
+type CodeNestContext map[string]any
 
-// GenerateGiteaContext generate the gitea context without token and gitea_runtime_token.
+// GenerateCodeNestContext generate the codenest context without token and codenest_runtime_token.
 // attempt and job can be nil when generating a context for parsing workflow-level expressions.
 //
 // The run_attempt value is resolved with the following precedence:
 //  1. attempt.Attempt - the explicit attempt argument, or run.GetLatestAttempt() as a fallback
 //  2. job.Attempt - only used when neither an explicit nor latest attempt is available
 //  3. "1" - when none of the above apply (first-run parse time, before the first attempt exists)
-func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob) GiteaContext {
+func GenerateCodeNestContext(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob) CodeNestContext {
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
 
@@ -64,7 +64,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	}
 	refProtected, err := git_model.IsRefProtected(ctx, run.RepoID, refName)
 	if err != nil {
-		log.Error("GenerateGiteaContext: check protection for ref %q: %v", refName, err)
+		log.Error("GenerateCodeNestContext: check protection for ref %q: %v", refName, err)
 		refProtected = false
 	}
 
@@ -73,7 +73,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		retentionDays = strconv.FormatInt(setting.Actions.ArtifactRetentionDays, 10)
 	}
 
-	gitContext := GiteaContext{
+	gitContext := CodeNestContext{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 		"action":            "",                                       // string, The name of the action currently running, or the id of a step. GitHub removes special characters, and uses the name __run when the current step runs a script without an id. If you use the same action more than once in the same job, the name will include a suffix with the sequence number with underscore before it. For example, the first script you run will have the name __run, and the second script will be named __run_2. Similarly, the second invocation of actions/checkout will be actionscheckout2.
 		"action_path":       "",                                       // string, The path where an action is located. This property is only supported in composite actions. You can use this path to access files located in the same repository as the action.
@@ -115,7 +115,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"workflow_sha":        run.WorkflowCommitSHA,
 
 		// additional contexts
-		"gitea_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
+		"codenest_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
 	}
 
 	if job != nil {
@@ -134,7 +134,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		// Only the trigger user is needed for triggering_actor. attempt.LoadAttributes would also re-load
 		// the run this function already holds as a parameter, on the hot task-dispatch path.
 		if err := attempt.LoadTriggerUser(ctx); err != nil {
-			log.Error("GenerateGiteaContext: load trigger user of attempt %d: %v", attempt.ID, err)
+			log.Error("GenerateCodeNestContext: load trigger user of attempt %d: %v", attempt.ID, err)
 		}
 		if attempt.TriggerUser != nil {
 			gitContext["triggering_actor"] = attempt.TriggerUser.Name
@@ -266,7 +266,7 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 	if err := caller.Run.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
-	gitCtx := GenerateGiteaContext(ctx, caller.Run, nil, caller)
+	gitCtx := GenerateCodeNestContext(ctx, caller.Run, nil, caller)
 	vars, err := actions_model.GetVariablesOfRun(ctx, caller.Run)
 	if err != nil {
 		return nil, err
@@ -327,7 +327,7 @@ func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
 	return ret
 }
 
-func (g *GiteaContext) ToGitHubContext() *model.GithubContext {
+func (g *CodeNestContext) ToGitHubContext() *model.GithubContext {
 	githubCtx := model.GithubContextFromMap(*g)
 	githubCtx.Token = "" // deliberately omitted for security
 	return githubCtx

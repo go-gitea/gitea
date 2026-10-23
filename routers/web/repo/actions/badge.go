@@ -9,12 +9,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/badge"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/badge"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 )
 
 func GetWorkflowBadge(ctx *context.Context) {

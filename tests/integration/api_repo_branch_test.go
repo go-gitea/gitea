@@ -11,20 +11,20 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIRepoBranchesPlain(t *testing.T) {
-	onGiteaRun(t, func(*testing.T, *url.URL) {
+	onCodeNestRun(t, func(*testing.T, *url.URL) {
 		repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		session := loginUser(t, user1.LowerName)

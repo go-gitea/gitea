@@ -6,8 +6,8 @@ package v1_13
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/log"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/modules/log"
 
 	"xorm.io/builder"
 )

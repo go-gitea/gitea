@@ -198,8 +198,8 @@ var (
 	ActionsWorkflowDispatch = define("actions:workflow:dispatch", "Dispatched Actions workflow {workflow} on {ref} in repository {scope}.")
 
 	// Do not change the startup message anymore. We guarantee the stability of this message for
-	// users wanting to parse the log themselves to be able to trace back events across gitea versions.
-	SystemStartup                    = define("system:startup", "System started [Gitea {version}]")
+	// users wanting to parse the log themselves to be able to trace back events across codenest versions.
+	SystemStartup                    = define("system:startup", "System started [CodeNest {version}]")
 	SystemShutdown                   = define("system:shutdown", "System shutdown")
 	SystemWebhookAdd                 = define("system:webhook:add", "Added instance-wide webhook {webhook}.")
 	SystemWebhookUpdate              = define("system:webhook:update", "Updated instance-wide webhook {webhook}.")

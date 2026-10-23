@@ -7,16 +7,16 @@ package repo
 import (
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	git_model "gitea.dev/models/git"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/httpcache"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/lfs"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/routers/common"
-	"gitea.dev/services/context"
+	auth_model "codenest.dev/models/auth"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/httpcache"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/lfs"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/routers/common"
+	"codenest.dev/services/context"
 )
 
 func checkDownloadTokenScope(ctx *context.Context) bool {

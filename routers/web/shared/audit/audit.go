@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"slices"
 
-	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
+	audit_model "codenest.dev/models/audit"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/context"
 )
 
 // ViewOptions configures a scoped audit log listing. The admin view leaves

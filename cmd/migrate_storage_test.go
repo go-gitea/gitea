@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	packages_module "gitea.dev/modules/packages"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	packages_service "gitea.dev/services/packages"
+	"codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	packages_module "codenest.dev/modules/packages"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	packages_service "codenest.dev/services/packages"
 
 	"github.com/stretchr/testify/assert"
 )

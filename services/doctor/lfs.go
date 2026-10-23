@@ -8,9 +8,9 @@ import (
 	"errors"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/repository"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/repository"
 )
 
 func init() {

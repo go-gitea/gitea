@@ -9,17 +9,17 @@ import (
 	"net/http"
 	"time"
 
-	audit_model "gitea.dev/models/audit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/openid"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
+	audit_model "codenest.dev/models/audit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/auth/openid"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/services/audit"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
 )
 
 const openIDAssociationCodeMinutes = 10

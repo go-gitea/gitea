@@ -230,7 +230,7 @@ export default defineConfig(commonViteOpts({
     strictPort: false,
     cors: true,
     fs: {
-      // VITE-DEV-SERVER-SECURITY: the dev server will be exposed to public by Gitea's web server, so we need to strictly limit the access
+      // VITE-DEV-SERVER-SECURITY: the dev server will be exposed to public by CodeNest's web server, so we need to strictly limit the access
       // Otherwise `/@fs/*` will be able to access any file (including app.ini which contains INTERNAL_TOKEN)
       strict: true,
       allow: [

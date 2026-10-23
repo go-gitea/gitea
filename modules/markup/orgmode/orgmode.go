@@ -9,11 +9,11 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/highlight"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/highlight"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/setting"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/niklasfasching/go-org/org"

@@ -12,13 +12,13 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"gitea.dev/modelmigration"
-	"gitea.dev/modelmigration/base"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/doctor"
+	"codenest.dev/modelmigration"
+	"codenest.dev/modelmigration/base"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/doctor"
 
 	"github.com/urfave/cli/v3"
 )
@@ -27,7 +27,7 @@ func newDoctorCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "doctor",
 		Usage:       "Diagnose and optionally fix problems, convert or re-create database tables",
-		Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
+		Description: "A command to diagnose problems with the current CodeNest instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
 		Commands: []*cli.Command{
 			newDoctorCheckCommand(),
 			newRecreateTableCommand(),
@@ -40,7 +40,7 @@ func newDoctorCheckCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "check",
 		Usage:       "Diagnose and optionally fix problems",
-		Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
+		Description: "A command to diagnose problems with the current CodeNest instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
 		Action:      runDoctorCheck,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
@@ -87,7 +87,7 @@ func newRecreateTableCommand() *cli.Command {
 				Usage: "Print SQL commands sent",
 			},
 		},
-		Description: `The database definitions Gitea uses change across versions, sometimes changing default values and leaving old unused columns.
+		Description: `The database definitions CodeNest uses change across versions, sometimes changing default values and leaving old unused columns.
 
 This command will cause Xorm to recreate tables, copying over the data and deleting the old table.
 

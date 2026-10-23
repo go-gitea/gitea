@@ -15,16 +15,16 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	container_module "gitea.dev/modules/packages/container"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	package_service "gitea.dev/services/packages"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	container_module "codenest.dev/modules/packages/container"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	package_service "codenest.dev/services/packages"
+	"codenest.dev/tests"
 
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
@@ -93,7 +93,7 @@ func TestPackageContainer(t *testing.T) {
 		}
 		wwwAuthenticateForRequiredSignIn := []string{
 			`Bearer realm="` + setting.AppURL + `v2/token",service="container_registry",scope="*"`,
-			`Basic realm="Gitea Container Registry"`,
+			`Basic realm="CodeNest Container Registry"`,
 		}
 		t.Run("Anonymous", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
@@ -364,7 +364,7 @@ func TestPackageContainer(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
 				privateBlobDigest := "sha256:6ccce4863b70f258d691f59609d31b4502e1ba5199942d3bc5d35d17a4ce771d"
-				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%sv2/%s/%s/blobs/uploads?digest=%s", setting.AppURL, privateUser.Name, image, privateBlobDigest), strings.NewReader("gitea")).
+				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%sv2/%s/%s/blobs/uploads?digest=%s", setting.AppURL, privateUser.Name, image, privateBlobDigest), strings.NewReader("codenest")).
 					AddBasicAuth(privateUser.Name)
 				MakeRequest(t, req, http.StatusCreated)
 

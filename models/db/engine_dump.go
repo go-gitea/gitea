@@ -4,7 +4,7 @@
 package db
 
 import (
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/setting"
 
 	"xorm.io/xorm/schemas"
 )

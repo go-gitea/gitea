@@ -6,11 +6,11 @@ package org
 import (
 	"net/http"
 
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/context"
-	webhook_service "gitea.dev/services/webhook"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/api/v1/utils"
+	"codenest.dev/services/context"
+	webhook_service "codenest.dev/services/webhook"
 )
 
 // ListHooks list an organization's webhooks

@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/git/foreachref"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/foreachref"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 // TagPrefix tags prefix path on the repository

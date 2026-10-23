@@ -10,8 +10,8 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 )
 
 // TreeEntry the leaf in the git tree

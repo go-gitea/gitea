@@ -11,18 +11,18 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
-	repo_service "gitea.dev/services/repository"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	access_model "codenest.dev/models/perm/access"
+	repo_model "codenest.dev/models/repo"
+	unit_model "codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/cache"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/test"
+	repo_service "codenest.dev/services/repository"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -382,7 +382,7 @@ func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 }
 
 func TestAPIRepoMigrate(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		// migrate from a local fixture repo (user2/repo1) via the live listener so the test runs offline
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		cloneAddr := fmt.Sprintf("%s%s/%s.git", u.String(), repo1.OwnerName, repo1.Name)
@@ -426,7 +426,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 }
 
 func TestAPIRepoMigrateConflict(t *testing.T) {
-	onGiteaRun(t, testAPIRepoMigrateConflict)
+	onCodeNestRun(t, testAPIRepoMigrateConflict)
 }
 
 func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
@@ -511,7 +511,7 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 }
 
 func TestAPIRepoCreateConflict(t *testing.T) {
-	onGiteaRun(t, testAPIRepoCreateConflict)
+	onCodeNestRun(t, testAPIRepoCreateConflict)
 }
 
 func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {

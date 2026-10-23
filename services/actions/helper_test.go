@@ -6,13 +6,13 @@ package actions
 import (
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/json"
-	api "gitea.dev/modules/structs"
-	webhook_module "gitea.dev/modules/webhook"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	actions_module "codenest.dev/modules/actions"
+	"codenest.dev/modules/json"
+	api "codenest.dev/modules/structs"
+	webhook_module "codenest.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,7 +62,7 @@ func TestReusableChildInputs(t *testing.T) {
 
 	t.Run("task context of a nested child keeps the older runners' form and carries the original event", func(t *testing.T) {
 		leaf.Run = dispatchRun
-		gitCtx := GiteaContext{
+		gitCtx := CodeNestContext{
 			"event_name": "workflow_dispatch",
 			"event":      map[string]any{"inputs": map[string]any{"flag": "true", "Shared": "from-dispatch"}},
 		}
@@ -74,17 +74,17 @@ func TestReusableChildInputs(t *testing.T) {
 			"original_event_name":   "workflow_dispatch",
 			"original_event_inputs": map[string]any{"flag": "true", "Shared": "from-dispatch"},
 			"inputs":                inputs,
-		}, gitCtx["gitea_workflow_call"])
+		}, gitCtx["codenest_workflow_call"])
 	})
 
 	t.Run("task context of a non-dispatch run", func(t *testing.T) {
 		mid.Run = pushRun
-		gitCtx := GiteaContext{"event_name": "push", "event": map[string]any{}}
+		gitCtx := CodeNestContext{"event_name": "push", "event": map[string]any{}}
 		require.NoError(t, setCalledWorkflowContext(ctx, mid, gitCtx))
 		inputs := map[string]any{"shared": "from-call", "mid_only": "mid"}
 		assert.Equal(t, "workflow_call", gitCtx["event_name"])
 		assert.Equal(t, map[string]any{"inputs": inputs}, gitCtx["event"])
-		assert.Equal(t, map[string]any{"original_event_name": "push", "inputs": inputs}, gitCtx["gitea_workflow_call"])
+		assert.Equal(t, map[string]any{"original_event_name": "push", "inputs": inputs}, gitCtx["codenest_workflow_call"])
 	})
 }
 

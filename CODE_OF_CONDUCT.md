@@ -1,20 +1,20 @@
-# Gitea Community Code of Conduct
+# CodeNest Community Code of Conduct
 
 ## About
 
-Online communities include people from many different backgrounds. The Gitea contributors are committed to providing a friendly, safe and welcoming environment for all, regardless of gender identity and expression, sexual orientation, disabilities, neurodiversity, physical appearance, body size, ethnicity, nationality, race, age, religion, or similar personal characteristics.
+Online communities include people from many different backgrounds. The CodeNest contributors are committed to providing a friendly, safe and welcoming environment for all, regardless of gender identity and expression, sexual orientation, disabilities, neurodiversity, physical appearance, body size, ethnicity, nationality, race, age, religion, or similar personal characteristics.
 
-The first goal of the Code of Conduct is to specify a baseline standard of behavior so that people with different social values and communication styles can talk about Gitea effectively, productively, and respectfully.
+The first goal of the Code of Conduct is to specify a baseline standard of behavior so that people with different social values and communication styles can talk about CodeNest effectively, productively, and respectfully.
 
 The second goal is to provide a mechanism for resolving conflicts in the community when they arise.
 
-The third goal of the Code of Conduct is to make our community welcoming to people from different backgrounds. Diversity is critical to the project; for Gitea to be successful, it needs contributors and users from all backgrounds.
+The third goal of the Code of Conduct is to make our community welcoming to people from different backgrounds. Diversity is critical to the project; for CodeNest to be successful, it needs contributors and users from all backgrounds.
 
 We believe that healthy debate and disagreement are essential to a healthy project and community. However, it is never ok to be disrespectful. We value diverse opinions, but we value respectful behavior more.
 
 ## Community values
 
-These are the values to which people in the Gitea community should aspire.
+These are the values to which people in the CodeNest community should aspire.
 
 - **Be friendly and welcoming.**
 - **Be patient.**
@@ -80,7 +80,7 @@ We do not believe that all conflict is bad; healthy debate and disagreement ofte
 
 If you see someone violating the code of conduct, you are encouraged to address the behavior directly with those involved. Many issues can be resolved quickly and easily, and this gives people more control over the outcome of their dispute. If you are unable to resolve the matter for any reason, or if the behavior is threatening or harassing, report it. We are dedicated to providing an environment where participants feel welcome and safe.
 
-Reports should be directed to the Gitea Project Stewards at conduct@gitea.com. It is the Project Stewards’ duty to receive and address reported violations of the code of conduct. They will then work with a committee consisting of representatives from the technical-oversight-committee.
+Reports should be directed to the CodeNest Project Stewards at conduct@gitea.com. It is the Project Stewards’ duty to receive and address reported violations of the code of conduct. They will then work with a committee consisting of representatives from the technical-oversight-committee.
 
 We will investigate every complaint, but you may not receive a direct response. We will use our discretion in determining when and how to follow up on reported incidents, which may range from not taking action to permanent expulsion from the project and project-sponsored spaces. Under normal circumstances, we will notify the accused of the report and provide them an opportunity to discuss it before any action is taken. If there is a consensus between maintainers that such an endeavor would be useless (i.e. in case of an obvious spammer), we reserve the right to take action without notifying the accused first. The identity of the reporter will be omitted from the details of the report supplied to the accused. In potentially harmful situations, such as ongoing harassment or threats to anyone’s safety, we may take action without notice.
 

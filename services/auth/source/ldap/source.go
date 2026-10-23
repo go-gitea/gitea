@@ -6,11 +6,11 @@ package ldap
 import (
 	"strings"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/secret"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/auth"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/secret"
+	"codenest.dev/modules/setting"
 )
 
 // .____     ________      _____ __________

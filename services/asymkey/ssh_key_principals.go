@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
+	asymkey_model "codenest.dev/models/asymkey"
+	"codenest.dev/models/db"
+	"codenest.dev/models/perm"
 )
 
 // AddPrincipalKey adds new principal to database and authorized_principals file.

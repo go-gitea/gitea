@@ -11,19 +11,19 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/indexer"
-	"gitea.dev/modules/indexer/code/bleve"
-	"gitea.dev/modules/indexer/code/elasticsearch"
-	"gitea.dev/modules/indexer/code/internal"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/indexer"
+	"codenest.dev/modules/indexer/code/bleve"
+	"codenest.dev/modules/indexer/code/elasticsearch"
+	"codenest.dev/modules/indexer/code/internal"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/queue"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 var (
@@ -161,7 +161,7 @@ func Init() {
 				if err := recover(); err != nil {
 					log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
 					log.Error("The indexer files are likely corrupted and may need to be deleted")
-					log.Error("You can completely remove the \"%s\" directory to make Gitea recreate the indexes", setting.Indexer.RepoPath)
+					log.Error("You can completely remove the \"%s\" directory to make CodeNest recreate the indexes", setting.Indexer.RepoPath)
 				}
 			}()
 
@@ -179,7 +179,7 @@ func Init() {
 				if err := recover(); err != nil {
 					log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
 					log.Error("The indexer files are likely corrupted and may need to be deleted")
-					log.Error("You can completely remove the \"%s\" index to make Gitea recreate the indexes", util.SanitizeCredentialURLs(setting.Indexer.RepoConnStr))
+					log.Error("You can completely remove the \"%s\" index to make CodeNest recreate the indexes", util.SanitizeCredentialURLs(setting.Indexer.RepoConnStr))
 				}
 			}()
 
@@ -279,7 +279,7 @@ func populateRepoIndexer(ctx context.Context) {
 	}
 
 	// start with the maximum existing repo ID and work backwards, so that we
-	// don't include repos that are created after gitea starts; such repos will
+	// don't include repos that are created after codenest starts; such repos will
 	// already be added to the indexer, and we don't need to add them again.
 	for maxRepoID > 0 {
 		select {

@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"sort"
 
-	"gitea.dev/models/db"
-	access_model "gitea.dev/models/perm/access"
-	user_model "gitea.dev/models/user"
+	"codenest.dev/models/db"
+	access_model "codenest.dev/models/perm/access"
+	user_model "codenest.dev/models/user"
 
 	"xorm.io/builder"
 )

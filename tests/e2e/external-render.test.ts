@@ -4,7 +4,7 @@ import {login, apiCreateRepo, apiCreateFiles, assertFlushWithParent, assertNoJsE
 
 test('external file', async ({page, request}) => {
   const repoName = `e2e-external-render-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   await Promise.all([
     apiCreateRepo(request, {name: repoName}),
     login(page),
@@ -22,7 +22,7 @@ test('external file', async ({page, request}) => {
 
 test('openapi file', async ({page, request}) => {
   const repoName = `e2e-openapi-render-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
+  const owner = env.CODENEST_TEST_E2E_USER;
   await Promise.all([
     apiCreateRepo(request, {name: repoName}),
     login(page),

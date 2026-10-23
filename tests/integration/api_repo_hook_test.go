@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/tests"
+	auth_model "codenest.dev/models/auth"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,7 +28,7 @@ func TestAPICreateHook(t *testing.T) {
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/%s", owner.Name, repo.Name, "hooks"), api.CreateHookOption{
-		Type: "gitea",
+		Type: "codenest",
 		Config: api.CreateHookOptionConfig{
 			"content_type": "json",
 			"url":          "http://example.com/",
@@ -63,7 +63,7 @@ func TestAPICreateHook(t *testing.T) {
 
 	// Create with Name field omitted: Name should be ""
 	req2 := NewRequestWithJSON(t, "POST", hooksURL, api.CreateHookOption{
-		Type: "gitea",
+		Type: "codenest",
 		Config: api.CreateHookOptionConfig{
 			"content_type": "json",
 			"url":          "http://example.com/",

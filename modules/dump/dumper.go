@@ -16,9 +16,9 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/modules/consts"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
+	"codenest.dev/modules/consts"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/timeutil"
 
 	"github.com/mholt/archives"
 )
@@ -29,10 +29,10 @@ var SupportedOutputTypes = []string{"zip", "tar", "tar.sz", "tar.gz", "tar.xz", 
 func PrepareFileNameAndType(argFile, argType string) (outFileName, outType string) {
 	if argFile == "" && argType == "" {
 		outType = SupportedOutputTypes[0]
-		outFileName = fmt.Sprintf("gitea-dump-%d.%s", timeutil.TimeStampNow(), outType)
+		outFileName = fmt.Sprintf("codenest-dump-%d.%s", timeutil.TimeStampNow(), outType)
 	} else if argFile == "" {
 		outType = argType
-		outFileName = fmt.Sprintf("gitea-dump-%d.%s", timeutil.TimeStampNow(), outType)
+		outFileName = fmt.Sprintf("codenest-dump-%d.%s", timeutil.TimeStampNow(), outType)
 	} else if argType == "" {
 		if filepath.Ext(outFileName) == "" {
 			outType = SupportedOutputTypes[0]

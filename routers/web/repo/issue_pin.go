@@ -6,11 +6,11 @@ package repo
 import (
 	"net/http"
 
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/services/context"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/services/context"
 )
 
 // IssuePinOrUnpin pin or unpin a Issue

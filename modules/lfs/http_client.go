@@ -13,10 +13,10 @@ import (
 	"net/url"
 	"strings"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/proxy"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/proxy"
+	"codenest.dev/modules/setting"
 
 	"golang.org/x/sync/errgroup"
 )

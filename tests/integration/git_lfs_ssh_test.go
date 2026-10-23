@@ -12,20 +12,20 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/web"
-	"gitea.dev/routers/common"
-	"gitea.dev/services/context"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/modules/web"
+	"codenest.dev/routers/common"
+	"codenest.dev/services/context"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGitLFSSSH(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		localRepoForUpload := filepath.Join(t.TempDir(), "test-upload")
 		localRepoForDownload := filepath.Join(t.TempDir(), "test-download")
 		apiTestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)

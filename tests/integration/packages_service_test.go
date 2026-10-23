@@ -7,12 +7,12 @@ import (
 	"bytes"
 	"testing"
 
-	packages_model "gitea.dev/models/packages"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	packages_module "gitea.dev/modules/packages"
-	packages_service "gitea.dev/services/packages"
-	"gitea.dev/tests"
+	packages_model "codenest.dev/models/packages"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	packages_module "codenest.dev/modules/packages"
+	packages_service "codenest.dev/services/packages"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

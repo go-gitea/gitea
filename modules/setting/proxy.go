@@ -6,7 +6,7 @@ package setting
 import (
 	"net/url"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 // Proxy settings

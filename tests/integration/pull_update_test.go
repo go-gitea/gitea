@@ -10,24 +10,24 @@ import (
 	"testing"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	pull_service "gitea.dev/services/pull"
-	repo_service "gitea.dev/services/repository"
-	files_service "gitea.dev/services/repository/files"
+	auth_model "codenest.dev/models/auth"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/perm"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	pull_service "codenest.dev/services/pull"
+	repo_service "codenest.dev/services/repository"
+	files_service "codenest.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAPIPullUpdate(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		// Create PR to test
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
@@ -90,7 +90,7 @@ func setupOutdatedPRWithConfig(t *testing.T, mutate func(*repo_model.PullRequest
 }
 
 func TestAPIPullUpdateByRebase(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		// Create PR to test
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
@@ -145,7 +145,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 // rebase, an API call with no `style` parameter must still perform a merge
 // update so existing API clients don't silently flip behavior.
 func TestAPIPullUpdateStyleSettings(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, codenestURL *url.URL) {
 		pr := setupOutdatedPRWithConfig(t, func(c *repo_model.PullRequestsConfig) {
 			c.AllowMergeUpdate = false
 			c.AllowRebaseUpdate = true
@@ -270,7 +270,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 		BaseBranch: "master",
 		HeadRepo:   headRepo,
 		BaseRepo:   baseRepo,
-		Type:       issues_model.PullRequestGitea,
+		Type:       issues_model.PullRequestCodeNest,
 	}
 	prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
 	err = pull_service.NewPullRequest(t.Context(), prOpts)

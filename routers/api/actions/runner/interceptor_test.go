@@ -7,8 +7,8 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
 
 	"github.com/stretchr/testify/assert"
 )

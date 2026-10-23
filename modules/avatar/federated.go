@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/cache"
+	"codenest.dev/modules/cache"
 )
 
 // LookupFederatedHost returns the avatar host from the email domain's SRV record. https://wiki.libravatar.org/api/

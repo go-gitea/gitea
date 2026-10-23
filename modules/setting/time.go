@@ -6,7 +6,7 @@ package setting
 import (
 	"time"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 // DefaultUILocation is the location on the UI, so that we can display the time on UI.

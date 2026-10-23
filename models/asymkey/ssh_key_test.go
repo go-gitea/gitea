@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/db"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/setting"
 
 	"github.com/42wim/sshsig"
 	"github.com/stretchr/testify/assert"
@@ -136,7 +136,7 @@ AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf
 		{"---- NOT A REAL KEY ----"},
 		{"bad\nkey"},
 		{"\t\t:)\t\r\n"},
-		{"\r\ntest \r\ngitea\r\n\r\n"},
+		{"\r\ntest \r\ncodenest\r\n\r\n"},
 	} {
 		_, err := CheckPublicKeyString(invalidKeys.content)
 		assert.Error(t, err)

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/modules/git/gitrepo"
+	"codenest.dev/modules/git/gitrepo"
 
 	"github.com/stretchr/testify/assert"
 )

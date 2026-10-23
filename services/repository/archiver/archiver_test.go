@@ -6,13 +6,13 @@ package archiver
 import (
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/contexttest"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/contexttest"
 
-	_ "gitea.dev/models/actions"
+	_ "codenest.dev/models/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

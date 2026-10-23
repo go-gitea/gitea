@@ -15,13 +15,13 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/generate"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/ssh"
-	"gitea.dev/modules/util"
-	"gitea.dev/tests"
+	"codenest.dev/modules/generate"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/ssh"
+	"codenest.dev/modules/util"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -105,7 +105,7 @@ func gitCommitChangesDeprecated(ctx context.Context, repoPath string, opts gitCo
 	return err
 }
 
-func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
+func onCodeNestRun[T testing.TB](t T, callback func(T, *url.URL)) {
 	defer tests.PrepareTestEnv(t, 1)()
 	s := http.Server{
 		Handler: testWebRoutes,

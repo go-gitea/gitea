@@ -27,9 +27,9 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )

@@ -16,15 +16,15 @@ import (
 	"regexp"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/storage"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/typesniffer"
-	sender_service "gitea.dev/services/mailer/sender"
+	repo_model "codenest.dev/models/repo"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/httplib"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/storage"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/typesniffer"
+	sender_service "codenest.dev/services/mailer/sender"
 
 	"golang.org/x/net/html"
 )
@@ -43,7 +43,7 @@ func SendTestMail(email string) error {
 		// No mail service configured
 		return nil
 	}
-	return sender_service.Send(sender, sender_service.NewMessage(email, "Gitea Test Email!", "Gitea Test Email!"))
+	return sender_service.Send(sender, sender_service.NewMessage(email, "CodeNest Test Email!", "CodeNest Test Email!"))
 }
 
 func sanitizeSubject(subject string) string {
@@ -83,7 +83,7 @@ func (b64embedder *mailAttachmentBase64Embedder) Base64InlineImages(ctx context.
 						attachmentSrc := attr.Val
 						dataURI, err := b64embedder.AttachmentSrcToBase64DataURI(ctx, attachmentSrc)
 						if err != nil {
-							// Not an error, just skip. This is probably an image from outside the gitea instance.
+							// Not an error, just skip. This is probably an image from outside the codenest instance.
 							log.Trace("Unable to embed attachment %q to mail body: %v", attachmentSrc, err)
 						} else {
 							n.Attr[i].Val = dataURI
@@ -109,7 +109,7 @@ func (b64embedder *mailAttachmentBase64Embedder) Base64InlineImages(ctx context.
 }
 
 func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ctx context.Context, attachmentSrc string) (string, error) {
-	parsedSrc := httplib.ParseGiteaSiteURL(ctx, attachmentSrc)
+	parsedSrc := httplib.ParseCodeNestSiteURL(ctx, attachmentSrc)
 	var attachmentUUID string
 	if parsedSrc != nil {
 		var ok bool
@@ -185,7 +185,7 @@ func generateMetadataHeaders(repo *repo_model.Repository) map[string]string {
 		// https://datatracker.ietf.org/doc/html/rfc2369
 		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
 
-		"X-Mailer": "Gitea",
+		"X-Mailer": "CodeNest",
 
 		"X-Gitea-Repository":      repo.Name,
 		"X-Gitea-Repository-Path": repo.FullName(),

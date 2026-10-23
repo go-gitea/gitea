@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"gitea.dev/modules/nosql"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"codenest.dev/modules/nosql"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,7 +50,7 @@ func TestStringCacheAdapters(t *testing.T) {
 		{adapter: "memory", conns: func(*testing.T) (string, string) { return "", "" }},
 		{adapter: "twoqueue", conns: func(*testing.T) (string, string) { return "100", `{"size":100}` }},
 		{adapter: "redis", conns: func(t *testing.T) (string, string) {
-			conn := test.PrepareTestRedis(t) + "?prefix=gitea-test-cache-"
+			conn := test.PrepareTestRedis(t) + "?prefix=codenest-test-cache-"
 			return conn + "first:", conn + "second:"
 		}},
 	}

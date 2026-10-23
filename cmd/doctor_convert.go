@@ -6,9 +6,9 @@ package cmd
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )

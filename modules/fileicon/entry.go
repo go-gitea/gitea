@@ -6,7 +6,7 @@ package fileicon
 import (
 	"context"
 
-	"gitea.dev/modules/git"
+	"codenest.dev/modules/git"
 )
 
 type EntryInfo struct {

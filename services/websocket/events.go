@@ -6,9 +6,9 @@ package websocket
 import (
 	"bytes"
 
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/pubsub"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/pubsub"
 )
 
 // Wire contract with web_src/js/user-events.sharedworker.ts — keep in sync.

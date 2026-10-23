@@ -39,7 +39,7 @@ cpu.out
 *.db
 *.log
 
-/gitea
+/codenest
 /debug
 
 /bin
@@ -51,7 +51,7 @@ cpu.out
 /data
 /indexers
 /log
-/tests/integration/gitea-integration-*
+/tests/integration/codenest-integration-*
 /tests/*.ini
 /node_modules
 /yarn.lock

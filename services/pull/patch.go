@@ -12,14 +12,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/glob"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
-	"gitea.dev/modules/util"
+	git_model "codenest.dev/models/git"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/glob"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/process"
+	"codenest.dev/modules/util"
 )
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer

@@ -6,8 +6,8 @@
 package options
 
 import (
-	"gitea.dev/modules/assetfs"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/assetfs"
+	"codenest.dev/modules/setting"
 )
 
 func BuiltinAssets() *assetfs.Layer {

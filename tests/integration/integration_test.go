@@ -20,20 +20,20 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/testlogger"
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/routers"
-	"gitea.dev/routers/common"
-	gitea_context "gitea.dev/services/context"
-	"gitea.dev/tests"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/unittest"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/testlogger"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/web"
+	"codenest.dev/modules/web/middleware"
+	"codenest.dev/routers"
+	"codenest.dev/routers/common"
+	codenest_context "codenest.dev/services/context"
+	"codenest.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -56,7 +56,7 @@ func testMain(m *testing.M) int {
 
 	err = unittest.InitFixtures(
 		unittest.FixturesOptions{
-			Dir: filepath.Join(setting.GetGiteaTestSourceRoot(), "models/fixtures/"),
+			Dir: filepath.Join(setting.GetCodeNestTestSourceRoot(), "models/fixtures/"),
 		},
 	)
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *TestSession) GetSiteCookie(name string) string {
 }
 
 func (s *TestSession) GetCookieFlashMessage() *middleware.Flash {
-	cookie := s.GetSiteCookie(gitea_context.CookieNameFlash)
+	cookie := s.GetSiteCookie(codenest_context.CookieNameFlash)
 	return middleware.ParseCookieFlashMessage(cookie)
 }
 

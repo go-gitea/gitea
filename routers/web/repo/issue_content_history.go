@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"strings"
 
-	"gitea.dev/models/avatars"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	"codenest.dev/models/avatars"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/modules/htmlutil"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/services/context"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )

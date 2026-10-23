@@ -6,9 +6,9 @@ package auth
 import (
 	"net/http"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/session"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/session"
 )
 
 // Ensure the struct implements the interface.

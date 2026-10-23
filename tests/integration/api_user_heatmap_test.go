@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	activities_model "gitea.dev/models/activities"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/timeutil"
-	"gitea.dev/tests"
+	activities_model "codenest.dev/models/activities"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/modules/timeutil"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

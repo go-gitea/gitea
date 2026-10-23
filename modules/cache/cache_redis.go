@@ -6,8 +6,8 @@ package cache
 import (
 	"time"
 
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/nosql"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/nosql"
 
 	"github.com/redis/go-redis/v9"
 )

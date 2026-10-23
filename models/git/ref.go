@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	module_git "gitea.dev/modules/git"
+	module_git "codenest.dev/modules/git"
 )
 
 // IsRefProtected checks whether a branch or tag ref is protected.

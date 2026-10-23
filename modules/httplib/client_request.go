@@ -148,7 +148,7 @@ func (r *ClientRequest) Response() (*http.Response, error) {
 	}
 
 	if r.req.Header.Get("User-Agent") == "" {
-		r.req.Header.Set("User-Agent", "GiteaHttpLib")
+		r.req.Header.Set("User-Agent", "CodeNestHttpLib")
 	}
 
 	return client.Do(r.req)

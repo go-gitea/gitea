@@ -7,16 +7,16 @@ import (
 	"errors"
 	"net/http"
 
-	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/web"
-	shared_user "gitea.dev/routers/web/shared/user"
-	actions_service "gitea.dev/services/actions"
-	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
+	actions_model "codenest.dev/models/actions"
+	"codenest.dev/models/db"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/web"
+	shared_user "codenest.dev/routers/web/shared/user"
+	actions_service "codenest.dev/services/actions"
+	"codenest.dev/services/context"
+	"codenest.dev/services/forms"
 )
 
 const (

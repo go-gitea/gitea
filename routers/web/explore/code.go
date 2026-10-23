@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"slices"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	code_indexer "gitea.dev/modules/indexer/code"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/routers/common"
-	"gitea.dev/services/context"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	code_indexer "codenest.dev/modules/indexer/code"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/routers/common"
+	"codenest.dev/services/context"
 )
 
 const (

@@ -14,32 +14,32 @@ import (
 	"strconv"
 	"strings"
 
-	activities_model "gitea.dev/models/activities"
-	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/organization"
-	"gitea.dev/models/renderhelper"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/base"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/indexer"
-	issue_indexer "gitea.dev/modules/indexer/issues"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
-	"gitea.dev/routers/web/feed"
-	"gitea.dev/routers/web/shared/issue"
-	"gitea.dev/routers/web/shared/user"
-	"gitea.dev/services/context"
-	feed_service "gitea.dev/services/feed"
-	issue_service "gitea.dev/services/issue"
-	pull_service "gitea.dev/services/pull"
+	activities_model "codenest.dev/models/activities"
+	asymkey_model "codenest.dev/models/asymkey"
+	"codenest.dev/models/db"
+	issues_model "codenest.dev/models/issues"
+	"codenest.dev/models/organization"
+	"codenest.dev/models/renderhelper"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unit"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/base"
+	"codenest.dev/modules/container"
+	"codenest.dev/modules/indexer"
+	issue_indexer "codenest.dev/modules/indexer/issues"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/markup/markdown"
+	"codenest.dev/modules/optional"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/templates"
+	"codenest.dev/modules/util"
+	"codenest.dev/routers/web/feed"
+	"codenest.dev/routers/web/shared/issue"
+	"codenest.dev/routers/web/shared/user"
+	"codenest.dev/services/context"
+	feed_service "codenest.dev/services/feed"
+	issue_service "codenest.dev/services/issue"
+	pull_service "codenest.dev/services/pull"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -644,7 +644,7 @@ func ShowSSHKeys(ctx *context.Context) {
 
 	var buf bytes.Buffer
 	// "authorized_keys" file format: "#" followed by comment line per key
-	buf.WriteString("# Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.\n")
+	buf.WriteString("# CodeNest isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.\n")
 	for i := range keys {
 		if keys[i].Type == asymkey_model.KeyTypePrincipal {
 			continue // SSH principal keys are not for signing or authentication
@@ -684,7 +684,7 @@ func ShowGPGKeys(ctx *context.Context) {
 
 	headers := make(map[string]string)
 	// https://www.rfc-editor.org/rfc/rfc4880
-	headers["Comment"] = "Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified."
+	headers["Comment"] = "CodeNest isn't a key server. The keys are exported as the user uploaded and might not have been fully verified."
 	if len(failedEntitiesID) > 0 { // If some key need re-import to be exported
 		headers["Note"] = "The keys with the following IDs couldn't be exported and need to be reuploaded " + strings.Join(failedEntitiesID, ", ")
 	} else if len(entities) == 0 {

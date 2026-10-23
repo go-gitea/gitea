@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/log"
+	"codenest.dev/modules/log"
 )
 
 var (

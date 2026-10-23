@@ -9,9 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
+	"codenest.dev/modules/graceful"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
 )
 
 var tlsVersionStringMap = map[string]uint16{

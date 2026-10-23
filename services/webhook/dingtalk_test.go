@@ -7,10 +7,10 @@ import (
 	"net/url"
 	"testing"
 
-	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/json"
-	api "gitea.dev/modules/structs"
-	webhook_module "gitea.dev/modules/webhook"
+	webhook_model "codenest.dev/models/webhook"
+	"codenest.dev/modules/json"
+	api "codenest.dev/modules/structs"
+	webhook_module "codenest.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

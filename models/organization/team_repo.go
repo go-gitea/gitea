@@ -6,9 +6,9 @@ package organization
 import (
 	"context"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	"gitea.dev/models/unit"
+	"codenest.dev/models/db"
+	"codenest.dev/models/perm"
+	"codenest.dev/models/unit"
 
 	"xorm.io/builder"
 )

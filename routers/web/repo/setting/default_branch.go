@@ -6,12 +6,12 @@ package setting
 import (
 	"net/http"
 
-	git_model "gitea.dev/models/git"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/routers/web/repo"
-	"gitea.dev/services/context"
-	repo_service "gitea.dev/services/repository"
+	git_model "codenest.dev/models/git"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/setting"
+	"codenest.dev/routers/web/repo"
+	"codenest.dev/services/context"
+	repo_service "codenest.dev/services/repository"
 )
 
 // SetDefaultBranchPost set default branch

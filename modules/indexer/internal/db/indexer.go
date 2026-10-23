@@ -6,7 +6,7 @@ package db
 import (
 	"context"
 
-	"gitea.dev/modules/indexer/internal"
+	"codenest.dev/modules/indexer/internal"
 )
 
 var _ internal.Indexer = &Indexer{}
@@ -24,7 +24,7 @@ func (i *Indexer) Init(_ context.Context) (bool, error) {
 // Ping checks if the indexer is available
 func (i *Indexer) Ping(_ context.Context) error {
 	// No need to ping database to check if it is available.
-	// If the database goes down, Gitea will go down, so nobody will care if the indexer is available.
+	// If the database goes down, CodeNest will go down, so nobody will care if the indexer is available.
 	return nil
 }
 

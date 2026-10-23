@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"strconv"
 
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/private"
-	"gitea.dev/modules/setting"
-	"gitea.dev/services/context"
-	"gitea.dev/services/mailer"
-	sender_service "gitea.dev/services/mailer/sender"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/private"
+	"codenest.dev/modules/setting"
+	"codenest.dev/services/context"
+	"codenest.dev/services/mailer"
+	sender_service "codenest.dev/services/mailer/sender"
 )
 
 // SendEmail pushes messages to mail queue

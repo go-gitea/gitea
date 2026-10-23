@@ -6,7 +6,7 @@ package v1_12
 import (
 	"context"
 
-	"gitea.dev/modelmigration/base"
+	"codenest.dev/modelmigration/base"
 )
 
 func AddIsRestricted(_ context.Context, x base.EngineMigration) error {

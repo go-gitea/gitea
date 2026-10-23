@@ -6,7 +6,7 @@ package repo
 import (
 	"strconv"
 
-	"gitea.dev/modules/git/gitrepo"
+	"codenest.dev/modules/git/gitrepo"
 )
 
 func repoCodeGitRepoManagedID(repoID int64) string {

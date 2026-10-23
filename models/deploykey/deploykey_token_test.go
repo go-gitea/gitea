@@ -6,9 +6,9 @@ package deploykey
 import (
 	"testing"
 
-	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	"gitea.dev/models/unittest"
+	"codenest.dev/models/db"
+	"codenest.dev/models/perm"
+	"codenest.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

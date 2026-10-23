@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/git/gitcmd"
+	"codenest.dev/modules/util"
 )
 
 // GetRemoteAddress returns remote url of git repository in the repoPath with special remote name

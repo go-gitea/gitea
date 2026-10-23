@@ -17,7 +17,7 @@ We backport PRs given the following circumstances:
 ### How to backport?
 
 In the past, it was necessary to manually backport your PRs. \
-Now, that's not a requirement anymore as our [backport bot](https://github.com/GiteaBot) tries to create backports automatically once the PR is merged when the PR
+Now, that's not a requirement anymore as our [backport bot](https://github.com/CodeNestBot) tries to create backports automatically once the PR is merged when the PR
 
 - does not have the label `backport/manual`
 - has the label `backport/<version>`
@@ -74,18 +74,18 @@ Also we always try to support the latest on main branch, so if you are using the
 
 ## Versions
 
-Gitea has the `main` branch as a tip branch and has version branches
+CodeNest has the `main` branch as a tip branch and has version branches
 such as `release/v1.19`. `release/v1.19` is a release branch and we will
 tag `v1.19.0` for binary download. If `v1.19.0` has bugs, we will accept
 pull requests on the `release/v1.19` branch and publish a `v1.19.1` tag,
 after bringing the bug fix also to the main branch.
 
-Since the `main` branch is a tip version, if you wish to use Gitea
+Since the `main` branch is a tip version, if you wish to use CodeNest
 in production, please download the latest release tag version. All the
 branches will be protected via GitHub, all the PRs to every branch must
 be reviewed by two maintainers and must pass the automatic tests.
 
-## Releasing Gitea
+## Releasing CodeNest
 
 Track each release using the [release issue template](https://github.com/go-gitea/gitea/issues/new?template=release.yaml).
 

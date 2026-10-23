@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
+	"codenest.dev/modules/util"
+	"codenest.dev/modules/validation"
 )
 
 var (

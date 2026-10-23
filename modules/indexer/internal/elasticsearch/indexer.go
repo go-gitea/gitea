@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/indexer/internal"
-	"gitea.dev/modules/json"
+	"codenest.dev/modules/indexer/internal"
+	"codenest.dev/modules/json"
 )
 
 var _ internal.Indexer = &Indexer{}

@@ -108,17 +108,17 @@ export function easyMDEToolbarActions(easyMde: typeof EasyMDE, editor: ComboMark
       title: 'Side by Side',
     },
 
-    // gitea's custom actions
-    'gitea-checkbox-empty': {
+    // codenest's custom actions
+    'codenest-checkbox-empty': {
       action(e) {
         const cm = e.codemirror;
         cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
         cm.focus();
       },
-      icon: svg('gitea-empty-checkbox'),
+      icon: svg('codenest-empty-checkbox'),
       title: 'Add Checkbox (empty)',
     },
-    'gitea-checkbox-checked': {
+    'codenest-checkbox-checked': {
       action(e) {
         const cm = e.codemirror;
         cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
@@ -127,7 +127,7 @@ export function easyMDEToolbarActions(easyMde: typeof EasyMDE, editor: ComboMark
       icon: svg('octicon-checkbox'),
       title: 'Add Checkbox (checked)',
     },
-    'gitea-switch-to-textarea': {
+    'codenest-switch-to-textarea': {
       action: () => {
         editor.userPreferredEditor = 'textarea';
         editor.switchToTextarea();
@@ -135,7 +135,7 @@ export function easyMDEToolbarActions(easyMde: typeof EasyMDE, editor: ComboMark
       icon: svg('octicon-arrow-switch'),
       title: 'Revert to simple textarea',
     },
-    'gitea-code-inline': {
+    'codenest-code-inline': {
       action(e) {
         const cm = e.codemirror;
         const selection = cm.getSelection();

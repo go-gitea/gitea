@@ -10,9 +10,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"gitea.dev/modules/regexplru"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/regexplru"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/util"
 )
 
 type RunStdError interface {

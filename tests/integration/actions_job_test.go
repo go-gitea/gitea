@@ -13,19 +13,19 @@ import (
 	"testing"
 	"time"
 
+	actions_model "codenest.dev/models/actions"
+	auth_model "codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	"codenest.dev/modules/json"
+	"codenest.dev/modules/setting"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/modules/timeutil"
+	actions_service "codenest.dev/services/actions"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
-	actions_model "gitea.dev/models/actions"
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
-	actions_service "gitea.dev/services/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -130,7 +130,7 @@ jobs:
 			},
 		},
 	}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -313,7 +313,7 @@ jobs:
 			},
 		},
 	}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -352,7 +352,7 @@ jobs:
 }
 
 func TestRunnerDisableEnable(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -465,13 +465,13 @@ func getRepoRunnerID(t *testing.T, authToken, ownerName, repoName string) int64 
 	return runnerList.Entries[0].ID
 }
 
-func TestActionsGiteaContext(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+func TestActionsCodeNestContext(t *testing.T) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
 		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-		apiBaseRepo := createActionsTestRepo(t, user2Token, "actions-gitea-context", false)
+		apiBaseRepo := createActionsTestRepo(t, user2Token, "actions-codenest-context", false)
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
 		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 
@@ -542,20 +542,20 @@ jobs:
 		assert.Equal(t, setting.AppURL, gtCtx["server_url"].GetStringValue())
 		assert.Equal(t, actionRun.CommitSHA, gtCtx["sha"].GetStringValue())
 		assert.Equal(t, actionRun.WorkflowID, gtCtx["workflow"].GetStringValue())
-		assert.Equal(t, setting.Actions.DefaultActionsURL.URL(), gtCtx["gitea_default_actions_url"].GetStringValue())
+		assert.Equal(t, setting.Actions.DefaultActionsURL.URL(), gtCtx["codenest_default_actions_url"].GetStringValue())
 		token := gtCtx["token"].GetStringValue()
 		assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
 	})
 }
 
 // Ephemeral
-func TestActionsGiteaContextEphemeral(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+func TestActionsCodeNestContextEphemeral(t *testing.T) {
+	onCodeNestRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
 		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-		apiBaseRepo := createActionsTestRepo(t, user2Token, "actions-gitea-context", false)
+		apiBaseRepo := createActionsTestRepo(t, user2Token, "actions-codenest-context", false)
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
 		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 
@@ -634,7 +634,7 @@ jobs:
 		assert.Equal(t, setting.AppURL, gtCtx["server_url"].GetStringValue())
 		assert.Equal(t, actionRun.CommitSHA, gtCtx["sha"].GetStringValue())
 		assert.Equal(t, actionRun.WorkflowID, gtCtx["workflow"].GetStringValue())
-		assert.Equal(t, setting.Actions.DefaultActionsURL.URL(), gtCtx["gitea_default_actions_url"].GetStringValue())
+		assert.Equal(t, setting.Actions.DefaultActionsURL.URL(), gtCtx["codenest_default_actions_url"].GetStringValue())
 		token := gtCtx["token"].GetStringValue()
 		assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
 
@@ -759,7 +759,7 @@ func getTaskJobNameByTaskID(t *testing.T, authToken, ownerName, repoName string,
 // TestLegacyRunsInCronTasks verifies that the background cron tasks correctly handle runs/jobs
 // created before migration v331 (legacy data with LatestAttemptID=0 and jobs with RunAttemptID=0).
 func TestLegacyRunsInCronTasks(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)

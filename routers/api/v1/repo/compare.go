@@ -6,12 +6,12 @@ package repo
 import (
 	"net/http"
 
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
-	git_service "gitea.dev/services/git"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/git"
+	api "codenest.dev/modules/structs"
+	"codenest.dev/services/context"
+	"codenest.dev/services/convert"
+	git_service "codenest.dev/services/git"
 )
 
 // CompareDiff compare two branches or commits

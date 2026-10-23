@@ -7,11 +7,11 @@ import (
 	"context"
 	"time"
 
-	packages_model "gitea.dev/models/packages"
-	container_model "gitea.dev/models/packages/container"
-	"gitea.dev/modules/optional"
-	container_module "gitea.dev/modules/packages/container"
-	packages_service "gitea.dev/services/packages"
+	packages_model "codenest.dev/models/packages"
+	container_model "codenest.dev/models/packages/container"
+	"codenest.dev/modules/optional"
+	container_module "codenest.dev/modules/packages/container"
+	packages_service "codenest.dev/services/packages"
 
 	"github.com/opencontainers/go-digest"
 )

@@ -7,10 +7,10 @@ import (
 	"context"
 	"time"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
+	"codenest.dev/models/auth"
+	"codenest.dev/models/db"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/log"
 
 	"github.com/markbates/goth"
 	"golang.org/x/oauth2"

@@ -9,16 +9,16 @@ import (
 	"strings"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/charset"
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/markup/external"
-	"gitea.dev/modules/public"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/tests"
+	repo_model "codenest.dev/models/repo"
+	"codenest.dev/models/unittest"
+	user_model "codenest.dev/models/user"
+	"codenest.dev/modules/charset"
+	"codenest.dev/modules/markup"
+	"codenest.dev/modules/markup/external"
+	"codenest.dev/modules/public"
+	"codenest.dev/modules/setting"
+	"codenest.dev/modules/test"
+	"codenest.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,7 +37,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 	assert.NotEqual(t, binaryContent, strings.ToValidUTF8(binaryContent, "?"))
 	assert.Equal(t, "ISO-8859-2", detectedEncoding) // even if the binary content can be detected as text encoding, it shouldn't affect the raw rendering
 
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onCodeNestRun(t, func(t *testing.T, _ *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		_, err := createFileInBranch(user2, repo1, createFileInBranchOptions{}, map[string]string{
@@ -111,7 +111,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 				assert.Equal(t, "sandbox allow-scripts allow-forms allow-modals allow-popups allow-downloads", respSub.Header().Get("Content-Security-Policy"))
 				// FIXME: actually here is a bug (legacy design problem), the "PostProcess" will escape "<script>" tag, but it indeed is the sanitizer's job
 				assert.Equal(t,
-					`<script nonce crossorigin src="`+public.AssetURI("web_src/js/external-render-helper.ts")+`" id="gitea-external-render-helper" data-render-query-string=""></script>`+
+					`<script nonce crossorigin src="`+public.AssetURI("web_src/js/external-render-helper.ts")+`" id="codenest-external-render-helper" data-render-query-string=""></script>`+
 						`<link rel="stylesheet" href="`+public.AssetURI("web_src/css/themes/theme-gitea-auto.css")+`">`+
 						`<div><any attr="val">&lt;script&gt;&lt;/script&gt;</any></div>`,
 					respSub.Body.String(),
@@ -137,7 +137,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 				req := NewRequest(t, "GET", "/user2/repo1/render/branch/master/html.no-sanitizer?a=1%2f2")
 				respSub := MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t,
-					`<script nonce crossorigin src="`+public.AssetURI("web_src/js/external-render-helper.ts")+`" id="gitea-external-render-helper" data-render-query-string="a=1%2f2"></script>`+
+					`<script nonce crossorigin src="`+public.AssetURI("web_src/js/external-render-helper.ts")+`" id="codenest-external-render-helper" data-render-query-string="a=1%2f2"></script>`+
 						`<link rel="stylesheet" href="`+public.AssetURI("web_src/css/themes/theme-gitea-auto.css")+`">`+
 						`<script>foo("raw")</script>`,
 					respSub.Body.String(),

@@ -12,32 +12,32 @@ import (
 	"runtime"
 	"strings"
 
-	"gitea.dev/modules/auth/password/hash"
-	"gitea.dev/modules/consts"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
+	"codenest.dev/modules/auth/password/hash"
+	"codenest.dev/modules/consts"
+	"codenest.dev/modules/log"
+	"codenest.dev/modules/util"
 
 	"github.com/kballard/go-shellquote"
 )
 
-var giteaTestSourceRoot *string // intentionally use a pointer to make sure the uninitialized access panics
+var codenestTestSourceRoot *string // intentionally use a pointer to make sure the uninitialized access panics
 
-func GetGiteaTestSourceRoot() string {
-	return *giteaTestSourceRoot
+func GetCodeNestTestSourceRoot() string {
+	return *codenestTestSourceRoot
 }
 
-func detectGiteaTestRoot() string {
+func detectCodeNestTestRoot() string {
 	_, filename, _, _ := runtime.Caller(0)
-	giteaRoot := filepath.Dir(filepath.Dir(filepath.Dir(filename)))
-	fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
+	codenestRoot := filepath.Dir(filepath.Dir(filepath.Dir(filename)))
+	fixturesDir := filepath.Join(codenestRoot, "models", "fixtures")
 	if _, err := os.Stat(fixturesDir); err != nil {
-		panic("in gitea source code directory, fixtures directory not found: " + fixturesDir)
+		panic("in codenest source code directory, fixtures directory not found: " + fixturesDir)
 	}
-	return giteaRoot
+	return codenestRoot
 }
 
-func SetupGiteaTestEnv() {
-	if giteaTestSourceRoot != nil {
+func SetupCodeNestTestEnv() {
+	if codenestTestSourceRoot != nil {
 		return // already initialized
 	}
 
@@ -53,47 +53,47 @@ func SetupGiteaTestEnv() {
 		os.Exit(0)
 	}
 
-	initGiteaRoot := func() string {
-		giteaRoot := os.Getenv("GITEA_TEST_ROOT")
-		if giteaRoot == "" {
-			giteaRoot = detectGiteaTestRoot()
+	initCodeNestRoot := func() string {
+		codenestRoot := os.Getenv("CODENEST_TEST_ROOT")
+		if codenestRoot == "" {
+			codenestRoot = detectCodeNestTestRoot()
 		}
-		giteaTestSourceRoot = &giteaRoot
-		return giteaRoot
+		codenestTestSourceRoot = &codenestRoot
+		return codenestRoot
 	}
-	giteaRoot := initGiteaRoot()
+	codenestRoot := initCodeNestRoot()
 
-	initGiteaPaths := func() {
+	initCodeNestPaths := func() {
 		// need to load assets (options, public) from the source code directory for testing
-		StaticRootPath = giteaRoot
-		// during testing, the AppPath must point to the pre-built Gitea binary in the source root
+		StaticRootPath = codenestRoot
+		// during testing, the AppPath must point to the pre-built CodeNest binary in the source root
 		// it needs to be called by git hooks
-		AppPath = filepath.Join(giteaRoot, "gitea") + util.Iif(consts.IsWindows, ".exe", "")
+		AppPath = filepath.Join(codenestRoot, "codenest") + util.Iif(consts.IsWindows, ".exe", "")
 	}
 
-	initGiteaConf := func() string {
-		// giteaConf (GITEA_CONF) must be relative because it is used in the git hooks as "$GITEA_ROOT/$GITEA_CONF"
-		giteaConf := os.Getenv("GITEA_TEST_CONF")
-		if giteaConf == "" {
-			// if no GITEA_TEST_CONF, then it is in unit test, use a temp (non-existing / empty) config file
+	initCodeNestConf := func() string {
+		// codenestConf (CODENEST_CONF) must be relative because it is used in the git hooks as "$CODENEST_ROOT/$CODENEST_CONF"
+		codenestConf := os.Getenv("CODENEST_TEST_CONF")
+		if codenestConf == "" {
+			// if no CODENEST_TEST_CONF, then it is in unit test, use a temp (non-existing / empty) config file
 			// do not really use such config file, the test can run concurrently, using the same config file will cause data-race between tests
-			giteaConf = "custom/conf/app-test-tmp.ini"
-			customConfBuiltin = filepath.Join(AppWorkPath, giteaConf)
+			codenestConf = "custom/conf/app-test-tmp.ini"
+			customConfBuiltin = filepath.Join(AppWorkPath, codenestConf)
 			CustomConf = customConfBuiltin
 			_ = os.Remove(CustomConf)
 		} else {
 			// CustomConf must be absolute path to make tests pass.
-			// At the moment, GITEA_TEST_CONF is always in Gitea's source root
-			CustomConf = filepath.Join(giteaRoot, giteaConf)
+			// At the moment, CODENEST_TEST_CONF is always in CodeNest's source root
+			CustomConf = filepath.Join(codenestRoot, codenestConf)
 		}
-		return giteaConf
+		return codenestConf
 	}
 
 	cleanUpEnv := func() {
-		// also unset unnecessary env vars for testing (only keep "GITEA_TEST_*" ones)
+		// also unset unnecessary env vars for testing (only keep "CODENEST_TEST_*" ones)
 		UnsetUnnecessaryEnvVars()
 		for _, env := range os.Environ() {
-			if strings.HasPrefix(env, "GIT_") || (strings.HasPrefix(env, "GITEA_") && !strings.HasPrefix(env, "GITEA_TEST_")) {
+			if strings.HasPrefix(env, "GIT_") || (strings.HasPrefix(env, "CODENEST_") && !strings.HasPrefix(env, "CODENEST_TEST_")) {
 				k, _, _ := strings.Cut(env, "=")
 				_ = os.Unsetenv(k)
 			}
@@ -114,49 +114,49 @@ func SetupGiteaTestEnv() {
 		PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
 	}
 
-	initGiteaPaths()
-	giteaConf := initGiteaConf()
+	initCodeNestPaths()
+	codenestConf := initCodeNestConf()
 	cleanUpEnv()
 	initWorkPathAndConfig()
 
 	if RepoRootPath == "" || AppDataPath == "" {
-		panic("SetupGiteaTestEnv failed, paths are not initialized")
+		panic("SetupCodeNestTestEnv failed, paths are not initialized")
 	}
 
 	SSH.RootPath = AppDataTempDir("ssh").JoinPath() // prevent tests from writing into ~/.ssh
 
 	// TODO: some git repo hooks (test fixtures) still use these env variables, need to be refactored in the future
-	_ = os.Setenv("GITEA_ROOT", giteaRoot)
-	_ = os.Setenv("GITEA_CONF", giteaConf) // test fixture git hooks use "$GITEA_ROOT/$GITEA_CONF" in their scripts
+	_ = os.Setenv("CODENEST_ROOT", codenestRoot)
+	_ = os.Setenv("CODENEST_CONF", codenestConf) // test fixture git hooks use "$CODENEST_ROOT/$CODENEST_CONF" in their scripts
 }
 
 // PrepareIntegrationTestConfig isolates each process for parallel runs
 func PrepareIntegrationTestConfig() (workPath string, err error) {
-	giteaTestRoot := detectGiteaTestRoot()
+	codenestTestRoot := detectCodeNestTestRoot()
 	isInCI := os.Getenv("CI") != ""
-	testDatabase := os.Getenv("GITEA_TEST_DATABASE")
+	testDatabase := os.Getenv("CODENEST_TEST_DATABASE")
 	if testDatabase == "" {
 		if isInCI {
-			return "", errors.New("GITEA_TEST_DATABASE environment variable not set")
+			return "", errors.New("CODENEST_TEST_DATABASE environment variable not set")
 		}
 		// for local development, default to sqlite. CI needs to explicitly set a database to avoid unexpected results
 		testDatabase = "sqlite"
-		_, _ = fmt.Fprintf(os.Stderr, "Environment variable GITEA_TEST_DATABASE not set - defaulting to %s\n", testDatabase)
+		_, _ = fmt.Fprintf(os.Stderr, "Environment variable CODENEST_TEST_DATABASE not set - defaulting to %s\n", testDatabase)
 	}
 
-	workPath, err = os.MkdirTemp(filepath.Join(giteaTestRoot, "tests/integration"), "gitea-integration-"+testDatabase+"-")
+	workPath, err = os.MkdirTemp(filepath.Join(codenestTestRoot, "tests/integration"), "codenest-integration-"+testDatabase+"-")
 	if err != nil {
 		return "", err
 	}
 	confFile := filepath.Join(workPath, "app.ini")
-	giteaConf, err := filepath.Rel(giteaTestRoot, confFile)
+	codenestConf, err := filepath.Rel(codenestTestRoot, confFile)
 	if err != nil {
 		return "", err
 	}
-	_ = os.Setenv("GITEA_TEST_ROOT", giteaTestRoot)
-	_ = os.Setenv("GITEA_TEST_CONF", giteaConf)
+	_ = os.Setenv("CODENEST_TEST_ROOT", codenestTestRoot)
+	_ = os.Setenv("CODENEST_TEST_CONF", codenestConf)
 
-	tmplBuf, err := os.ReadFile(filepath.Join(giteaTestRoot, "tests", testDatabase+".ini.tmpl"))
+	tmplBuf, err := os.ReadFile(filepath.Join(codenestTestRoot, "tests", testDatabase+".ini.tmpl"))
 	if err != nil {
 		return "", err
 	}
