@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/timeutil"
+	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,6 +43,20 @@ func TestCommitStatusDescription(t *testing.T) {
 		job := &actions_model.ActionRunJob{Status: tc.status, Started: tc.started, Stopped: tc.stopped}
 		assert.Equal(t, tc.want, toCommitStatusDescription(job), tc.status.String())
 	}
+}
+
+func TestGetCommitStatusEventNameAndCommitID_CommitSHAEvents(t *testing.T) {
+	for _, event := range []webhook_module.HookEventType{webhook_module.HookEventRelease, actions_module.GithubEventWorkflowDispatch} {
+		gotEvent, gotCommitID, err := getCommitStatusEventNameAndCommitID(&actions_model.ActionRun{Event: event, CommitSHA: "abc123"})
+		require.NoError(t, err)
+		assert.Equal(t, string(event), gotEvent)
+		assert.Equal(t, "abc123", gotCommitID)
+	}
+
+	gotEvent, gotCommitID, err := getCommitStatusEventNameAndCommitID(&actions_model.ActionRun{Event: webhook_module.HookEventIssues, CommitSHA: "abc123"})
+	require.NoError(t, err)
+	assert.Empty(t, gotEvent)
+	assert.Empty(t, gotCommitID)
 }
 
 func TestCreateCommitStatus_Dedupe(t *testing.T) {
