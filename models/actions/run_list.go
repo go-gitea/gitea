@@ -5,12 +5,15 @@ package actions
 
 import (
 	"context"
+	"maps"
+	"slices"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/translation"
 	webhook_module "gitea.dev/modules/webhook"
 
@@ -39,6 +42,21 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// GetLatestAttempts returns the latest attempts of the runs keyed by attempt ID
+func (runs RunList) GetLatestAttempts(ctx context.Context) (map[int64]*ActionRunAttempt, error) {
+	attemptIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.LatestAttemptID, run.LatestAttemptID != 0
+	})
+	attempts := make(map[int64]*ActionRunAttempt, len(attemptIDs))
+	if len(attemptIDs) == 0 {
+		return attempts, nil
+	}
+	if err := db.GetEngine(ctx).In("id", attemptIDs).Find(&attempts); err != nil {
+		return nil, err
+	}
+	return attempts, ActionRunAttemptList(slices.Collect(maps.Values(attempts))).LoadTriggerUser(ctx)
 }
 
 func (runs RunList) LoadRepos(ctx context.Context) error {
@@ -70,6 +88,10 @@ type FindRunOptions struct {
 	Status           []Status
 	ConcurrencyGroup string
 	CommitSHA        string
+	// AccessibleRepoIDsSubQuery, when non-nil, restricts results to the repo IDs selected by the
+	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
+	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
+	AccessibleRepoIDsSubQuery *builder.Builder
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -101,13 +123,16 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	if opts.CommitSHA != "" {
 		cond = cond.And(builder.Eq{"`action_run`.commit_sha": opts.CommitSHA})
 	}
+	if opts.AccessibleRepoIDsSubQuery != nil {
+		cond = cond.And(builder.In("`action_run`.repo_id", opts.AccessibleRepoIDsSubQuery))
+	}
 	return cond
 }
 
 func (opts FindRunOptions) ToJoins() []db.JoinFunc {
 	if opts.OwnerID > 0 {
 		return []db.JoinFunc{func(sess db.Engine) error {
-			sess.Join("INNER", "repository", "repository.id = repo_id AND repository.owner_id = ?", opts.OwnerID)
+			sess.Join("INNER", "repository", "repository.id = action_run.repo_id AND repository.owner_id = ?", opts.OwnerID)
 			return nil
 		}}
 	}
@@ -195,4 +220,15 @@ func GetActors(ctx context.Context, repoID int64) ([]*user_model.User, error) {
 		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
 		OrderBy(user_model.GetOrderByName()).
 		Find(&actors)
+}
+
+// FindOldestRuns returns up to limit runs in the given statuses created before olderThan, lowest id first.
+func FindOldestRuns(ctx context.Context, statuses []Status, olderThan timeutil.TimeStamp, limit int) ([]*ActionRun, error) {
+	runs := make([]*ActionRun, 0, limit)
+	return runs, db.GetEngine(ctx).
+		Where(builder.In("`action_run`.status", statuses)).
+		And(builder.Lt{"`action_run`.created": olderThan}).
+		OrderBy("`action_run`.`id` ASC").
+		Limit(limit).
+		Find(&runs)
 }

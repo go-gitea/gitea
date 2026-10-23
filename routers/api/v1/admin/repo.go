@@ -43,7 +43,7 @@ func CreateRepo(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateRepoOption)
+	form := web.GetForm[*api.CreateRepoOption](ctx)
 
 	repo.CreateUserRepo(ctx, ctx.ContextUser, *form)
 }

@@ -139,16 +139,9 @@ func Runners(ctx *context.Context) {
 	}
 
 	// ownid=0,repo_id=0,means this token is used for global
-	var token *actions_model.ActionRunnerToken
-	token, err = actions_model.GetLatestRunnerToken(ctx, opts.OwnerID, opts.RepoID)
-	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
-		token, err = actions_model.NewRunnerToken(ctx, opts.OwnerID, opts.RepoID)
-		if err != nil {
-			ctx.ServerError("CreateRunnerToken", err)
-			return
-		}
-	} else if err != nil {
-		ctx.ServerError("GetLatestRunnerToken", err)
+	token, err := actions_model.GetOrCreateActiveRunnerToken(ctx, opts.OwnerID, opts.RepoID)
+	if err != nil {
+		ctx.ServerError("GetOrCreateActiveRunnerToken", err)
 		return
 	}
 
@@ -161,7 +154,7 @@ func Runners(ctx *context.Context) {
 	ctx.Data["SortType"] = opts.Sort
 	ctx.Data["AllowBulkActions"] = rCtx.IsAdmin
 
-	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 
 	ctx.Data["Page"] = pager
 
@@ -222,7 +215,7 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	ctx.Data["Tasks"] = tasks
-	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)
@@ -251,7 +244,7 @@ func RunnersEditPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditRunnerForm)
+	form := web.GetForm[*forms.EditRunnerForm](ctx)
 	runner.Description = form.Description
 
 	err = actions_model.UpdateRunner(ctx, runner, "description")
@@ -373,14 +366,16 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		return
 	}
 
-	var runnerIDs []int64
-	if rCtx.IsAdmin {
-		// ATTENTION: it completely depends on the assumption that the doer is "site admin"
-		// So it doesn't do extra permission check to the runner IDs
-		// In the future, if you need to support such operation on non-admin pages, be careful!
-		runnerIDs = ctx.FormStringInt64s("ids")
-	} else {
+	if !rCtx.IsAdmin {
 		ctx.HTTPError(http.StatusForbidden, "bulk actions are admin-only")
+		return
+	}
+	// ATTENTION: it completely depends on the assumption that the doer is "site admin"
+	// So it doesn't do extra permission check to the runner IDs
+	// In the future, if you need to support such operation on non-admin pages, be careful!
+	runnerIDs := ctx.FormStringInt64s("ids")
+	if len(runnerIDs) == 0 {
+		ctx.HTTPError(http.StatusBadRequest, "missing runner IDs")
 		return
 	}
 

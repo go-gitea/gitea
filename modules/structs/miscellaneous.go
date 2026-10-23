@@ -21,6 +21,7 @@ type SearchError struct {
 
 // MarkupOption markup options
 type MarkupOption struct {
+	FormDefaultValidator
 	// Text markup to render
 	//
 	// in: body

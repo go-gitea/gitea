@@ -10,7 +10,7 @@ import (
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -38,7 +38,7 @@ func init() {
 
 // LoadParsedScopedWorkflows returns the source repo's parsed scoped workflows at its current default-branch HEAD.
 func LoadParsedScopedWorkflows(ctx context.Context, sourceRepo *repo_model.Repository) (sha string, parsed []*actions_module.ParsedScopedWorkflow, err error) {
-	branch, err := git_model.GetBranch(ctx, sourceRepo.ID, sourceRepo.DefaultBranch)
+	branch, err := git_model.GetBranchExisting(ctx, sourceRepo.ID, sourceRepo.DefaultBranch)
 	if err != nil {
 		return "", nil, fmt.Errorf("get source default branch: %w", err)
 	}
@@ -50,17 +50,17 @@ func LoadParsedScopedWorkflows(ctx context.Context, sourceRepo *repo_model.Repos
 	}
 
 	// cache miss: open the source repo at the exact SHA we keyed on
-	sourceGitRepo, err := gitrepo.OpenRepository(ctx, sourceRepo)
+	sourceGitRepo, err := git.OpenRepository(ctx, sourceRepo)
 	if err != nil {
 		return "", nil, fmt.Errorf("open source repo: %w", err)
 	}
 	defer sourceGitRepo.Close()
 
-	sourceCommit, err := sourceGitRepo.GetCommit(sha)
+	sourceCommit, err := sourceGitRepo.GetCommit(ctx, sha)
 	if err != nil {
 		return "", nil, fmt.Errorf("get source commit %s: %w", sha, err)
 	}
-	parsed, err = actions_module.ParseScopedWorkflows(sourceCommit)
+	parsed, err = actions_module.ParseScopedWorkflows(ctx, sourceGitRepo, sourceCommit)
 	if err != nil {
 		return "", nil, err
 	}

@@ -11,6 +11,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,7 +52,7 @@ func TestPullRequestMergeable(t *testing.T) {
 	})
 
 	pr.BaseBranch, pr.HeadBranch = "test-merge-tree-conflict-base", "test-merge-tree-conflict-head"
-	conflictFiles := createConflictBranches(t, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.HeadBranch)
+	conflictFiles := createConflictBranches(t, pr.BaseRepo, pr.BaseBranch, pr.HeadBranch)
 	t.Run("Conflict-MergeTree", func(t *testing.T) {
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusConflict, conflictFiles, nil)
 	})
@@ -60,7 +61,7 @@ func TestPullRequestMergeable(t *testing.T) {
 	})
 
 	pr.BaseBranch, pr.HeadBranch = "test-merge-tree-empty-base", "test-merge-tree-empty-head"
-	createEmptyBranches(t, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.HeadBranch)
+	createEmptyBranches(t, pr.BaseRepo, pr.BaseBranch, pr.HeadBranch)
 	t.Run("Empty-MergeTree", func(t *testing.T) {
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusEmpty, nil, nil)
 	})
@@ -69,7 +70,7 @@ func TestPullRequestMergeable(t *testing.T) {
 	})
 }
 
-func createConflictBranches(t *testing.T, repoPath, baseBranch, headBranch string) []string {
+func createConflictBranches(t *testing.T, repo gitrepo.RepositoryFacade, baseBranch, headBranch string) []string {
 	conflictFile := "conflict.txt"
 	stdin := fmt.Sprintf(
 		`reset refs/heads/%[1]s
@@ -107,12 +108,12 @@ M 100644 inline %[3]s
 data 11
 head change
 `, baseBranch, headBranch, conflictFile)
-	err := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
+	err := gitcmd.NewCommand("fast-import").WithRepo(repo).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
 	require.NoError(t, err)
 	return []string{conflictFile}
 }
 
-func createEmptyBranches(t *testing.T, repoPath, baseBranch, headBranch string) {
+func createEmptyBranches(t *testing.T, repo gitrepo.RepositoryFacade, baseBranch, headBranch string) {
 	emptyFile := "empty.txt"
 	stdin := fmt.Sprintf(`reset refs/heads/%[1]s
 from refs/heads/master
@@ -149,6 +150,6 @@ M 100644 inline %[3]s
 data 4
 base
 `, baseBranch, headBranch, emptyFile)
-	err := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
+	err := gitcmd.NewCommand("fast-import").WithRepo(repo).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
 	require.NoError(t, err)
 }

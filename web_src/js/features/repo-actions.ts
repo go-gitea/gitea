@@ -2,6 +2,8 @@ import {createApp} from 'vue';
 import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
+import {GET} from '../modules/fetch.ts';
+import {activePageTimerRefresh, createElementFromHTML, morphElementWithProtection} from '../utils/dom.ts';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
@@ -27,6 +29,8 @@ function initWorkflowBadgeForm(form: HTMLElement): void {
 export function initRepositoryActions() {
   registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
   initRepositoryActionsView();
+  registerGlobalInitFunc('initActionRunsList', initActionRunsList);
+  registerGlobalInitFunc('initActionJobQueueList', initActionJobQueueList);
 }
 
 function initRepositoryActionsView() {
@@ -67,11 +71,13 @@ function initRepositoryActionsView() {
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),
       artifactExpiresAt: el.getAttribute('data-locale-artifact-expires-at'),
+      artifactExpiredAt: el.getAttribute('data-locale-artifact-expired-at'),
       confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
       downloadLogs: el.getAttribute('data-locale-download-logs'),
+      downloadFile: el.getAttribute('data-locale-download-file'),
       copyOutput: el.getAttribute('data-locale-copy-output'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
@@ -83,6 +89,7 @@ function initRepositoryActionsView() {
         cancelled: el.getAttribute('data-locale-status-cancelled'),
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
+        pending: el.getAttribute('data-locale-status-pending'),
       },
       logsAlwaysAutoScroll: el.getAttribute('data-locale-logs-always-auto-scroll'),
       logsAlwaysExpandRunning: el.getAttribute('data-locale-logs-always-expand-running'),
@@ -102,4 +109,26 @@ function initRepositoryActionsView() {
     },
   });
   view.mount(el);
+}
+
+function initActionRunsList(el: HTMLElement) {
+  activePageTimerRefresh({
+    interval: () => Number(el.getAttribute('data-action-runs-refresh-interval')),
+    async callback() {
+      const resp = await GET(el.getAttribute('data-action-runs-refresh-link')!);
+      if (!resp.ok) return;
+      morphElementWithProtection(el, createElementFromHTML(await resp.text()), {morphStyle: 'outerHTML'});
+    },
+  });
+}
+
+function initActionJobQueueList(el: HTMLElement) {
+  activePageTimerRefresh({
+    interval: () => Number(el.getAttribute('data-job-queue-refresh-interval')),
+    async callback() {
+      const resp = await GET(el.getAttribute('data-job-queue-refresh-link')!);
+      if (!resp.ok) return;
+      morphElementWithProtection(el, createElementFromHTML(await resp.text()), {morphStyle: 'outerHTML'});
+    },
+  });
 }

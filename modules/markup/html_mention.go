@@ -5,6 +5,7 @@ package markup
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"gitea.dev/modules/references"
@@ -26,12 +27,13 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		loc.Start += start
 		loc.End += start
 		mention := node.Data[loc.Start:loc.End]
-		teams, ok := ctx.RenderOptions.Metas["teams"]
+		orgLowerTeams, checkOrgTeams := ctx.RenderOptions.Metas["teams"] // in format ",team1,team2,...,team-n,", always lowercase
 
-		if ok && strings.Contains(mention, "/") {
-			mentionOrgAndTeam := strings.Split(mention, "/")
-			if mentionOrgAndTeam[0][1:] == ctx.RenderOptions.Metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
-				link := fmt.Sprintf("/:root/org/%s/teams/%s", ctx.RenderOptions.Metas["org"], mentionOrgAndTeam[1])
+		if checkOrgTeams && strings.Contains(mention, "/") {
+			mentionOrg, teamName, _ := strings.Cut(mention, "/")
+			orgName := mentionOrg[1:] // remove the '@' prefix
+			if strings.EqualFold(orgName, ctx.RenderOptions.Metas["org"]) && strings.Contains(orgLowerTeams, ","+strings.ToLower(teamName)+",") {
+				link := fmt.Sprintf("/:root/org/%s/teams/%s", url.PathEscape(orgName), url.PathEscape(teamName))
 				replaceContent(node, loc.Start, loc.End, createLink(ctx, link, mention, "" /*mention*/))
 				node = node.NextSibling.NextSibling
 				start = 0
@@ -43,7 +45,7 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		mentionedUsername := mention[1:]
 
 		if DefaultRenderHelperFuncs != nil && DefaultRenderHelperFuncs.IsUsernameMentionable(ctx, mentionedUsername) {
-			link := "/:root/" + mentionedUsername
+			link := "/:root/" + url.PathEscape(mentionedUsername)
 			replaceContent(node, loc.Start, loc.End, createLink(ctx, link, mention, "" /*mention*/))
 			node = node.NextSibling.NextSibling
 			start = 0

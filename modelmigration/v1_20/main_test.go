@@ -1,0 +1,14 @@
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package v1_20
+
+import (
+	"testing"
+
+	"gitea.dev/modelmigration/migrationtest"
+)
+
+func TestMain(m *testing.M) {
+	migrationtest.MainTest(m)
+}

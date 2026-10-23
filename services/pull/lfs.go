@@ -13,6 +13,7 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/pipeline"
 	"gitea.dev/modules/lfs"
@@ -23,8 +24,8 @@ import (
 )
 
 // LFSPush pushes lfs objects referred to in new commits in the head repository from the base repository
-func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string, pr *issues_model.PullRequest) error {
-	// Now we have to implement git lfs push
+func LFSPush(ctx context.Context, tmpBasePath string, tmpRepo git.RepositoryFacade, mergeHeadSHA, mergeBaseSHA string, pr *issues_model.PullRequest) error {
+	// Now we have to implement git-lfs push
 	// git rev-list --objects --filter=blob:limit=1k HEAD --not base
 	// pass blob shas in to git cat-file --batch-check (possibly unnecessary)
 	// ensure only blobs and <=1k size then pass in to git cat-file --batch
@@ -53,7 +54,7 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 
 	// 5. Take the shas of the blobs and batch read them
 	wg.Go(func() error {
-		return pipeline.CatFileBatch(ctx, cmd5BatchContent, tmpBasePath)
+		return pipeline.CatFileBatch(ctx, cmd5BatchContent, tmpRepo)
 	})
 
 	// 4. From the provided objects restrict to blobs <=1k
@@ -63,7 +64,7 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 
 	// 3. Run batch-check on the objects retrieved from rev-list
 	wg.Go(func() error {
-		return pipeline.CatFileBatchCheck(ctx, cmd3BathCheck, tmpBasePath)
+		return pipeline.CatFileBatchCheck(ctx, cmd3BathCheck, tmpRepo)
 	})
 
 	// 2. Check each object retrieved rejecting those without names as they will be commits or trees
@@ -73,7 +74,7 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 
 	// 1. Run rev-list objects from mergeHead to mergeBase
 	wg.Go(func() error {
-		return pipeline.RevListObjects(ctx, cmd1RevList, tmpBasePath, mergeHeadSHA, mergeBaseSHA)
+		return pipeline.RevListObjects(ctx, cmd1RevList, tmpRepo, mergeHeadSHA, mergeBaseSHA)
 	})
 
 	return wg.Wait()

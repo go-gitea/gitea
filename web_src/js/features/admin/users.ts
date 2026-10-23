@@ -9,12 +9,10 @@ export function initAdminUserListSearchForm(): void {
     button.classList.add('active');
   }
 
-  if (searchForm.StatusFilterMap) {
-    for (const [k, v] of Object.entries(searchForm.StatusFilterMap)) {
-      if (!v) continue;
-      for (const input of form.querySelectorAll<HTMLInputElement>(`input[name="status_filter[${CSS.escape(k)}]"][value="${CSS.escape(v)}"]`)) {
-        input.checked = true;
-      }
+  for (const [k, v] of Object.entries(searchForm.StatusFilterMap || {})) {
+    if (!v) continue;
+    for (const input of form.querySelectorAll<HTMLInputElement>(`input[name="status_filter[${CSS.escape(k)}]"][value="${CSS.escape(v)}"]`)) {
+      input.checked = true;
     }
   }
 
@@ -24,7 +22,7 @@ export function initAdminUserListSearchForm(): void {
     });
   }
 
-  const resetButtons = form.querySelectorAll<HTMLAnchorElement>('.j-reset-status-filter');
+  const resetButtons = form.querySelectorAll<HTMLAnchorElement>('.js-reset-status-filter');
   for (const button of resetButtons) {
     button.addEventListener('click', (e) => {
       e.preventDefault();

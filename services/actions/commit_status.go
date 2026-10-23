@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -16,10 +17,12 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
+	pull_service "gitea.dev/services/pull"
 	commitstatus_service "gitea.dev/services/repository/commitstatus"
 )
 
@@ -33,7 +36,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 
 	event, commitID, err := getCommitStatusEventNameAndCommitID(run)
 	if err != nil {
-		log.Error("GetCommitStatusEventNameAndSHA: %v", err)
+		log.Error("getCommitStatusEventNameAndCommitID: %v", err)
 	}
 	if event == "" || commitID == "" {
 		return // unsupported event, or no commit id, or error occurs, do nothing
@@ -50,38 +53,33 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		scopedPrefix = actions_model.ScopedStatusContextPrefix(ctx, run.WorkflowRepoID)
 	}
 
+	var pendingFilter *pendingJobFilter
+	if slices.ContainsFunc(jobs, func(job *actions_model.ActionRunJob) bool { return job.Status.IsPending() && !job.IsMatrixDeferred }) {
+		pendingFilter = newPendingJobFilter(ctx, run)
+	}
 	for _, job := range jobs {
-		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job); err != nil {
+		// A deferred-matrix placeholder's name changes when it expands, so a status created while it
+		// waits would be orphaned. The emitter reloads the jobs after expanding and creates them
+		// then. A placeholder that reached a final status (skipped by its `if:`, cancelled with the
+		// run, or failed to expand) never expands, so it keeps its own name and still deserves a status.
+		if job.IsMatrixDeferred && !job.Status.IsDone() {
+			continue
+		}
+		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job, pendingFilter); err != nil {
 			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
 		}
 	}
 }
 
-func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, error) {
-	runMap := make(map[int64]*actions_model.ActionRun)
+func GetRunsFromCommitStatuses(ctx context.Context, repoID int64, statuses []*git_model.CommitStatus) (runs []*actions_model.ActionRun, _ error) {
+	runIDs := container.Set[int64]{}
 	for _, status := range statuses {
 		runID, _, ok := status.ParseGiteaActionsTargetURL(ctx)
-		if !ok {
-			continue
-		}
-		_, ok = runMap[runID]
-		if !ok {
-			run, err := actions_model.GetRunByRepoAndID(ctx, status.RepoID, runID)
-			if err != nil {
-				if errors.Is(err, util.ErrNotExist) {
-					// the run may be deleted manually, just skip it
-					continue
-				}
-				return nil, fmt.Errorf("GetRunByRepoAndID: %w", err)
-			}
-			runMap[runID] = run
+		if ok {
+			runIDs.Add(runID)
 		}
 	}
-	runs := make([]*actions_model.ActionRun, 0, len(runMap))
-	for _, run := range runMap {
-		runs = append(runs, run)
-	}
-	return runs, nil
+	return actions_model.GetRunsByRepoAndID(ctx, repoID, runIDs.Values())
 }
 
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {
@@ -141,7 +139,7 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 	return event, commitID, nil
 }
 
-func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
+func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob, pendingFilter *pendingJobFilter) error {
 	displayName := actions_module.WorkflowDisplayName(run.WorkflowID, job.WorkflowPayload)
 	ctxName := actions_module.WorkflowStatusContextName(displayName, job.Name, event) // git_model.NewCommitStatus also trims spaces
 	if run.IsScopedRun {
@@ -150,15 +148,78 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, job.Name, event)
 	}
 	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
-	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job))
+	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job), pendingFilter.onlyReplace(job, ctxName))
+}
+
+// pendingJobFilter keeps optional Pending jobs from posting new statuses
+type pendingJobFilter struct {
+	requiredGlobs []glob.Glob
+}
+
+func newPendingJobFilter(ctx context.Context, run *actions_model.ActionRun) *pendingJobFilter {
+	rules, err := git_model.FindRepoProtectedBranchRules(ctx, run.RepoID)
+	if err != nil {
+		log.Error("FindRepoProtectedBranchRules: %v", err)
+		return nil
+	}
+	if slices.ContainsFunc(rules, func(rule *git_model.ProtectedBranch) bool {
+		return rule.EnableStatusCheck && len(rule.StatusCheckContexts) == 0
+	}) {
+		return nil
+	}
+	requiredGlobs, err := requiredStatusContextGlobs(ctx, run.Repo, rules)
+	if err != nil {
+		log.Error("requiredStatusContextGlobs: %v", err)
+		return nil
+	}
+	return &pendingJobFilter{requiredGlobs: requiredGlobs}
+}
+
+func (f *pendingJobFilter) onlyReplace(job *actions_model.ActionRunJob, ctxName string) bool {
+	return f != nil && job.Status.IsPending() && !slices.ContainsFunc(f.requiredGlobs, func(gp glob.Glob) bool { return gp.Match(ctxName) })
+}
+
+// getAllRequiredStatusContextGlobs returns the compiled globs of every status-check context required in the repo:
+// its protected branch rules' contexts and its required scoped workflows' patterns (see EffectiveRequiredContexts).
+func getAllRequiredStatusContextGlobs(ctx context.Context, repo *repo_model.Repository) ([]glob.Glob, error) {
+	rules, err := git_model.FindRepoProtectedBranchRules(ctx, repo.ID)
+	if err != nil {
+		return nil, fmt.Errorf("FindRepoProtectedBranchRules: %w", err)
+	}
+	return requiredStatusContextGlobs(ctx, repo, rules)
+}
+
+func requiredStatusContextGlobs(ctx context.Context, repo *repo_model.Repository, rules git_model.ProtectedBranchRules) ([]glob.Glob, error) {
+	required, err := pull_service.EffectiveRequiredContexts(ctx, repo, rules...)
+	if err != nil {
+		return nil, fmt.Errorf("EffectiveRequiredContexts: %w", err)
+	}
+	globs := make([]glob.Glob, 0, len(required))
+	for _, c := range required {
+		if gp, err := glob.Compile(c); err != nil {
+			log.Error("glob.Compile %q: %v", c, err)
+		} else {
+			globs = append(globs, gp)
+		}
+	}
+	return globs, nil
 }
 
 // CreateSkippedCommitStatusForFilteredWorkflow posts a skipped commit status for each job of a
 // workflow that matched the triggering event but was excluded by a branch/paths filter.
 // This lets a required status check tied to that context be satisfied without the workflow running.
+// Only contexts matching requiredGlobs are posted; a non-required context gets no skipped status.
 // No ActionRun is created, so the status has no target URL (there is no run/job to link to).
 // A non-empty scopedPrefix prefixes each context with its source repo, matching scoped runs.
-func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *repo_model.Repository, event webhook_module.HookEventType, triggerEvent, workflowID string, content []byte, payload api.Payloader, scopedPrefix string) error {
+//
+// TODO: requiredGlobs over-approximates by including every protected branch rule's required contexts.
+// If possible, the set should be narrowed to the required contexts of a specific branch protection rule (and the contexts from required scoped workflows).
+// Currently, a `push` event must keep the repo-wide union since its future pull request base branch is unknown.
+func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *repo_model.Repository, event webhook_module.HookEventType, triggerEvent, workflowID string, content []byte, payload api.Payloader, scopedPrefix string, requiredGlobs []glob.Glob) error {
+	if len(requiredGlobs) == 0 {
+		return nil // nothing is required, so no skipped status is needed
+	}
+
 	// Derive the status event name and target commit from the payload.
 	// TODO: this mirrors getCommitStatusEventNameAndCommitID, which derives the same from a persisted run. Should merge the logic if possible.
 	var statusEvent, commitID string
@@ -195,13 +256,17 @@ func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *rep
 		if job == nil {
 			continue
 		}
-		jobName := util.EllipsisDisplayString(job.Name, 255) // run creation truncates job names the same way
+		jobName := job.DisplayName()
 		ctxName := actions_module.WorkflowStatusContextName(displayName, jobName, statusEvent)
 		if scopedPrefix != "" {
 			ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, jobName, statusEvent)
 		}
+		// Only a required context needs the skipped status.
+		if !slices.ContainsFunc(requiredGlobs, func(gp glob.Glob) bool { return gp.Match(ctxName) }) {
+			continue
+		}
 		// "Skipped" mirrors toCommitStatusDescription for StatusSkipped.
-		if err := createWorkflowCommitStatus(ctx, repo, commitID, ctxName, workflowID, commitstatus.CommitStatusSkipped, "", "Skipped"); err != nil {
+		if err := createWorkflowCommitStatus(ctx, repo, commitID, ctxName, workflowID, commitstatus.CommitStatusSkipped, "", "Skipped", false); err != nil {
 			return err
 		}
 	}
@@ -209,7 +274,7 @@ func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *rep
 }
 
 // createWorkflowCommitStatus posts the commit status for one workflow-job context.
-func createWorkflowCommitStatus(ctx context.Context, repo *repo_model.Repository, commitID, ctxName, workflowID string, state commitstatus.CommitStatusState, targetURL, description string) error {
+func createWorkflowCommitStatus(ctx context.Context, repo *repo_model.Repository, commitID, ctxName, workflowID string, state commitstatus.CommitStatusState, targetURL, description string, onlyReplace bool) error {
 	// Mix the workflow file path into the hash so two workflow files that
 	// share the same `name:` and job name produce distinct commit statuses
 	// even though they render identically — matching GitHub's behavior
@@ -227,18 +292,26 @@ func createWorkflowCommitStatus(ctx context.Context, repo *repo_model.Repository
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 	for _, v := range statuses {
-		if v.ContextHash == legacyHash && v.Context == ctxName {
+		// Only adopt the legacy (Context-only) hash from a row the Actions user itself created before the
+		// #35699 fix, i.e. a pre-upgrade in-flight run. Adopting it from an external integration or the API
+		// would collapse two same-named workflows back into a single check.
+		if v.ContextHash == legacyHash && v.Context == ctxName && v.CreatorID == user_model.ActionsUserID {
 			ctxHash = legacyHash
 			break
 		}
 	}
+	hasPrevious := false
 	for _, v := range statuses {
 		if v.ContextHash == ctxHash {
 			if v.State == state && v.TargetURL == targetURL && v.Description == description {
 				return nil
 			}
+			hasPrevious = true
 			break
 		}
+	}
+	if onlyReplace && !hasPrevious {
+		return nil
 	}
 
 	creator := user_model.NewActionsUser()
@@ -274,6 +347,8 @@ func toCommitStatusDescription(job *actions_model.ActionRunJob) string {
 		return "Waiting to run"
 	case actions_model.StatusBlocked:
 		return "Blocked by required conditions"
+	case actions_model.StatusPending:
+		return "Waiting for needed jobs"
 	default:
 		return fmt.Sprintf("Unknown status: %d", job.Status)
 	}
@@ -285,7 +360,7 @@ func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState 
 		return commitstatus.CommitStatusSuccess
 	case actions_model.StatusFailure, actions_model.StatusCancelled:
 		return commitstatus.CommitStatusFailure
-	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning, actions_model.StatusCancelling:
+	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending, actions_model.StatusRunning, actions_model.StatusCancelling:
 		return commitstatus.CommitStatusPending
 	case actions_model.StatusSkipped:
 		return commitstatus.CommitStatusSkipped

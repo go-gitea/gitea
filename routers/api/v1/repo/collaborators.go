@@ -162,7 +162,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.AddCollaboratorOption)
+	form := web.GetForm[*api.AddCollaboratorOption](ctx)
 
 	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {

@@ -1,4 +1,5 @@
 import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
+import {AnsiLineRenderer} from '../render/ansi.ts';
 
 test('LogLineMessage', () => {
   const cases = {
@@ -14,6 +15,13 @@ test('LogLineMessage', () => {
     '##[debug] foo': '<span class="log-msg log-cmd-debug"><span class="log-msg-label">Debug:</span><span> foo</span></span>',
     '::error::foo': '<span class="log-msg log-cmd-error"><span class="log-msg-label">Error:</span><span> foo</span></span>',
     '::warning file=test.js,line=1::foo': '<span class="log-msg log-cmd-warning"><span class="log-msg-label">Warning:</span><span> foo</span></span>',
+    '::error::foo%0Abar': '<span class="log-msg log-cmd-error"><span class="log-msg-label">Error:</span><span> foo\nbar</span></span>',
+    '::error::foo%0D%0Abar': '<span class="log-msg log-cmd-error"><span class="log-msg-label">Error:</span><span> foo\nbar</span></span>',
+    '::error::100%25 done%250A': '<span class="log-msg log-cmd-error"><span class="log-msg-label">Error:</span><span> 100% done%0A</span></span>',
+    '::error::keep%5Dsemi%3B': '<span class="log-msg log-cmd-error"><span class="log-msg-label">Error:</span><span> keep%5Dsemi%3B</span></span>',
+    '::group::foo%0Abar': '<span class="log-msg log-cmd-group">foo\nbar</span>',
+    '##[error]foo%0Abar%3B%5D': '<span class="log-msg log-cmd-error"><span class="log-msg-label">Error:</span><span> foo\nbar;]</span></span>',
+    '##[command]foo%0Abar': '<span class="log-msg log-cmd-command">foo%0Abar</span>',
     '::notice::foo': '<span class="log-msg log-cmd-notice"><span class="log-msg-label">Notice:</span><span> foo</span></span>',
     '::debug::foo': '<span class="log-msg log-cmd-debug"><span class="log-msg-label">Debug:</span><span> foo</span></span>',
     '##[command] foo': '<span class="log-msg log-cmd-command"> foo</span>',
@@ -24,10 +32,11 @@ test('LogLineMessage', () => {
     '::add-matcher::foo': '<span class="log-msg log-cmd-hidden">foo</span>',
     '::remove-matcher foo::': '<span class="log-msg log-cmd-hidden"> foo::</span>', // not correctly parsed, but we don't need it
   };
+  const ansi = new AnsiLineRenderer();
   for (const [input, html] of Object.entries(cases)) {
     const line = {index: 0, timestamp: 0, message: input};
     const cmd = parseLogLineCommand(line);
-    const el = createLogLineMessage(line, cmd);
+    const el = createLogLineMessage(ansi, line, cmd);
     expect(el.outerHTML).toBe(html);
   }
 });
