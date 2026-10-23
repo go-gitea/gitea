@@ -6,7 +6,7 @@ package rubygems
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -31,6 +31,30 @@ version:
 		rp, err := ParsePackageMetaData(data)
 		assert.NoError(t, err)
 		assert.NotNil(t, rp)
+	})
+
+	t.Run("InvalidName", func(t *testing.T) {
+		// a name carrying a newline would be re-emitted verbatim into the
+		// line-based compact index, letting an upload forge extra entries
+		for _, quotedName := range []string{`"evil\n1.0.0"`, `"a b"`, `"a/b"`, `""`} {
+			content := test.CompressGzip("name: " + quotedName + "\nversion:\n  version: 1\n")
+			rp, err := parseMetadataFile(content)
+			assert.ErrorIs(t, err, ErrInvalidName, "name %s should be rejected", quotedName)
+			assert.Nil(t, rp)
+		}
+	})
+
+	t.Run("LineBreakInIndexedMetadata", func(t *testing.T) {
+		for _, field := range []string{
+			`platform: "ruby\nx"`,
+			`dependencies: [{name: "d\nx"}]`,
+			`dependencies: [{name: d, requirement: {requirements: [[">=", {version: "1\nx"}]]}}]`,
+			`required_ruby_version: {requirements: [[">=", {version: "1\nx"}]]}`,
+		} {
+			rp, err := parseMetadataFile(test.CompressGzip("name: g\nversion:\n  version: 1\n" + field + "\n"))
+			assert.ErrorIs(t, err, ErrInvalidMetadata, field)
+			assert.Nil(t, rp)
+		}
 	})
 }
 

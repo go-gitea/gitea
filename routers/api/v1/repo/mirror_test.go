@@ -1,0 +1,63 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package repo
+
+import (
+	"net/http"
+	"testing"
+
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/contexttest"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestCreatePushMirrorUsesCallerPermission(t *testing.T) {
+	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
+	ctx, resp := contexttest.MockAPIContext(t, "user2/repo1")
+	ctx.Doer = &user_model.User{}
+	ctx.ContextUser = &user_model.User{AllowImportLocal: true}
+
+	CreatePushMirror(ctx, &api.CreatePushMirrorOption{RemoteAddress: "local-mirror", Interval: "0"})
+
+	assert.Equal(t, http.StatusUnauthorized, resp.Code)
+}
+
+func TestAddPushMirrorDisabled(t *testing.T) {
+	defer test.MockVariableValue(&setting.Mirror.DisableNewPush, true)()
+	ctx, resp := contexttest.MockAPIContext(t, "user2/repo1")
+
+	AddPushMirror(ctx)
+
+	assert.Equal(t, http.StatusForbidden, resp.Code)
+	assert.Contains(t, resp.Body.String(), "the site administrator has disabled the creation of new push mirrors")
+}
+
+// TestPushMirrorSync verifies the endpoint attempts every push mirror instead
+// of aborting on the first failure, reporting all failed remotes with a 422.
+// Each remote name is not a configured git remote, so SyncPushMirror fails fast
+// without any network access.
+func TestPushMirrorSync(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	defer test.MockVariableValue(&setting.Mirror.Enabled, true)()
+
+	for _, remoteName := range []string{"broken_remote_1", "broken_remote_2"} {
+		assert.NoError(t, db.Insert(t.Context(), &repo_model.PushMirror{RepoID: 1, RemoteName: remoteName}))
+	}
+
+	ctx, resp := contexttest.MockAPIContext(t, "user2/repo1")
+	contexttest.LoadRepo(t, ctx, 1)
+
+	PushMirrorSync(ctx)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, ctx.Resp.WrittenStatus())
+	assert.Contains(t, resp.Body.String(), "broken_remote_1")
+	assert.Contains(t, resp.Body.String(), "broken_remote_2")
+}

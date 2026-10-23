@@ -6,10 +6,34 @@ package repo
 import (
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/references"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestCombineXRefComments(t *testing.T) {
+	none, closes, neutered := references.XRefActionNone, references.XRefActionCloses, references.XRefActionNeutered
+	xref := func(id, refIssueID, refCommentID int64, action references.XRefAction) *issues_model.Comment {
+		return &issues_model.Comment{ID: id, Type: issues_model.CommentTypeIssueRef, RefIssueID: refIssueID, RefCommentID: refCommentID, RefAction: action}
+	}
+	issue := issues_model.Issue{Comments: issues_model.CommentList{
+		xref(1, 10, 1, neutered),
+		xref(2, 11, 2, none),
+		xref(3, 10, 3, none),
+		xref(4, 11, 4, closes),
+		xref(5, 11, 5, neutered),
+		xref(6, 0, 0, none),
+		xref(7, 0, 0, none),
+	}}
+	combineXRefComments(&issue)
+	assert.Equal(t, issues_model.CommentList{
+		xref(1, 10, 3, none),
+		xref(2, 11, 2, closes),
+		xref(6, 0, 0, none),
+		xref(7, 0, 0, none),
+	}, issue.Comments)
+}
 
 func TestCombineLabelComments(t *testing.T) {
 	kases := []struct {
@@ -195,6 +219,19 @@ func TestCombineLabelComments(t *testing.T) {
 			},
 		},
 		{
+			name: "migrated events of different original authors",
+			beforeCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeComment, PosterID: 1},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "alice", Content: "1", Label: &issues_model.Label{Name: "kind/bug"}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "bob", Content: "1", Label: &issues_model.Label{Name: "kind/ui"}},
+			},
+			afterCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeComment, PosterID: 1},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "alice", Content: "1", Label: &issues_model.Label{Name: "kind/bug"}, AddedLabels: []*issues_model.Label{{Name: "kind/bug"}}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "bob", Content: "1", Label: &issues_model.Label{Name: "kind/ui"}, AddedLabels: []*issues_model.Label{{Name: "kind/ui"}}},
+			},
+		},
+		{
 			name: "kase 4",
 			beforeCombined: []*issues_model.Comment{
 				{
@@ -359,6 +396,17 @@ func TestCombineLabelComments(t *testing.T) {
 					},
 					CreatedUnix: 0,
 				},
+			},
+		},
+		{
+			name: "project workflow",
+			beforeCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "kind/bug"}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "status/done"}, CommentMetaData: &issues_model.CommentMetaData{SpecialDoerName: issues_model.SpecialDoerNameProjectWorkflow}},
+			},
+			afterCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "kind/bug"}, AddedLabels: []*issues_model.Label{{Name: "kind/bug"}}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "status/done"}, AddedLabels: []*issues_model.Label{{Name: "status/done"}}, CommentMetaData: &issues_model.CommentMetaData{SpecialDoerName: issues_model.SpecialDoerNameProjectWorkflow}},
 			},
 		},
 	}

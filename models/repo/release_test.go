@@ -6,9 +6,9 @@ package repo
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,6 +51,18 @@ func TestAddReleaseAttachmentsRejectsDifferentRepo(t *testing.T) {
 	attach, err := GetAttachmentByUUID(t.Context(), uuid)
 	assert.NoError(t, err)
 	assert.Zero(t, attach.ReleaseID, "attachment should not be linked to release on failure")
+}
+
+func TestAddReleaseAttachmentsRejectsIssueAttachment(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	uuid := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+	err := AddReleaseAttachments(t.Context(), 1, []string{uuid})
+	assert.ErrorIs(t, err, util.ErrPermissionDenied)
+
+	attach, err := GetAttachmentByUUID(t.Context(), uuid)
+	assert.NoError(t, err)
+	assert.Zero(t, attach.ReleaseID)
 }
 
 func TestAddReleaseAttachmentsAllowsLegacyMissingRepoID(t *testing.T) {

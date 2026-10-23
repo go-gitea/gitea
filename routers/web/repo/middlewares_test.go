@@ -6,15 +6,15 @@ package repo
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/services/contexttest"
-	"code.gitea.io/gitea/services/gitdiff"
+	"gitea.dev/models/unittest"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/gitdiff"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDiffViewStyle(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("AnonymousUser", func(t *testing.T) {
 		ctx, _ := contexttest.MockContext(t, "/any")

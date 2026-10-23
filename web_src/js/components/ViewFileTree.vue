@@ -3,7 +3,7 @@ import ViewFileTreeItem from './ViewFileTreeItem.vue';
 import {onMounted, useTemplateRef, type ShallowRef} from 'vue';
 import {createViewFileTreeStore} from './ViewFileTreeStore.ts';
 
-const elRoot = useTemplateRef('elRoot') as Readonly<ShallowRef<HTMLDivElement>>;;
+const elRoot = useTemplateRef('elRoot') as Readonly<ShallowRef<HTMLDivElement>>;
 
 const props = defineProps({
   repoLink: {type: String, required: true},

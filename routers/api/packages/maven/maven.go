@@ -19,16 +19,18 @@ import (
 	"strconv"
 	"strings"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/globallock"
-	"code.gitea.io/gitea/modules/json"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	maven_module "code.gitea.io/gitea/modules/packages/maven"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/packages/helper"
-	"code.gitea.io/gitea/services/context"
-	packages_service "code.gitea.io/gitea/services/packages"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/json"
+	packages_module "gitea.dev/modules/packages"
+	maven_module "gitea.dev/modules/packages/maven"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/packages/helper"
+	"gitea.dev/services/context"
+	packages_service "gitea.dev/services/packages"
 )
+
+const maxChecksumSize = sha512.Size*2 + 1
 
 const (
 	mavenMetadataFile = "maven-metadata.xml"
@@ -260,12 +262,21 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer releaser()
 
-	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
+	ext := path.Ext(params.Filename)
+	reader := io.Reader(ctx.Req.Body)
+	if isChecksumExtension(ext) {
+		reader = io.LimitReader(reader, maxChecksumSize+1)
+	}
+	buf, err := packages_module.CreateHashedBufferFromReader(reader)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer buf.Close()
+	if isChecksumExtension(ext) && !isChecksumSizeAllowed(buf.Size()) {
+		apiError(ctx, http.StatusRequestEntityTooLarge, "checksum is too large")
+		return
+	}
 
 	pvci := &packages_service.PackageCreationInfo{
 		PackageInfo: packages_service.PackageInfo{
@@ -290,8 +301,6 @@ func UploadPackageFile(ctx *context.Context) {
 			return
 		}
 	}
-
-	ext := path.Ext(params.Filename)
 
 	// Do not upload checksum files but compare the hashes.
 	if isChecksumExtension(ext) {
@@ -402,6 +411,10 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	ctx.Status(http.StatusCreated)
+}
+
+func isChecksumSizeAllowed(size int64) bool {
+	return size <= maxChecksumSize
 }
 
 func isChecksumExtension(ext string) bool {

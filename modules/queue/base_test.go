@@ -6,13 +6,20 @@ package queue
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error), cfg *BaseConfig, isUnique bool) {
+type testQueueBasicOptions struct {
+	UniqueQueue     bool
+	NotifiableQueue bool
+}
+
+func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error), cfg *BaseConfig, opts testQueueBasicOptions) {
+	isUnique := opts.UniqueQueue
 	t.Run(fmt.Sprintf("testQueueBasic-%s-unique:%v", cfg.ManagedName, isUnique), func(t *testing.T) {
 		q, err := newFn(cfg)
 		assert.NoError(t, err)
@@ -84,6 +91,28 @@ func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error)
 		it, err = q.PopItem(ctxTimed)
 		assert.ErrorIs(t, err, context.Canceled)
 		assert.Nil(t, it)
+
+		t.Run("PushNotify", func(t *testing.T) {
+			defer mockBackoffDuration(5000 * time.Millisecond)()
+			// pop an empty queue, but it can be notified and pop the item immediately
+			wg := sync.WaitGroup{}
+			wg.Go(func() {
+				it, err := q.PopItem(ctx) // it should return immediately after PushItem, no "backoff" waiting
+				assert.NoError(t, err)
+				assert.Equal(t, "item-notify", string(it))
+			})
+			time.Sleep(10 * time.Millisecond)
+			err = q.PushItem(ctx, []byte("item-notify"))
+			wg.Wait()
+			if opts.NotifiableQueue {
+				v, _ := q.(baseQueueNotifiableInterface)
+				assert.Empty(t, v.getNotifySignalChan(), "notify signal should have been read")
+				assert.NoError(t, q.PushItem(ctx, []byte("item-dummy")))
+				assert.Len(t, v.getNotifySignalChan(), 1, "notify signal should exist for newly pushed item")
+				_, err = q.PopItem(ctx)
+				assert.NoError(t, err)
+			}
+		})
 
 		// test blocking push if queue is full
 		for i := 0; i < cfg.Length; i++ {

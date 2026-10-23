@@ -1,9 +1,7 @@
 import {GET} from '../modules/fetch.ts';
 import {matchEmoji, matchMention} from './match.ts';
 
-vi.mock('../modules/fetch.ts', () => ({
-  GET: vi.fn(),
-}));
+vi.mock('../modules/fetch.ts', () => ({GET: vi.fn()}));
 
 const testMentions = [
   {key: 'user1 User 1', value: 'user1', name: 'user1', fullname: 'User 1', avatar: 'https://avatar1.com'},

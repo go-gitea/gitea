@@ -8,13 +8,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/contexttest"
-	"code.gitea.io/gitea/services/pull"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/templates"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/context"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,7 +79,7 @@ func TestRenderConversation(t *testing.T) {
 		ctx.Data["ShowOutdatedComments"] = true
 		renderConversation(ctx, preparedComment, "diff")
 		assert.Equal(t, http.StatusOK, resp.Code)
-		assert.NotContains(t, resp.Body.String(), `status-page-500`)
+		assert.NotContains(t, resp.Body.String(), common.PageInternalServerErrorMark)
 	})
 	run("timeline non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
 		err := db.TruncateBeans(t.Context(), &issues_model.Review{})
@@ -86,6 +87,6 @@ func TestRenderConversation(t *testing.T) {
 		ctx.Data["ShowOutdatedComments"] = true
 		renderConversation(ctx, preparedComment, "timeline")
 		assert.Equal(t, http.StatusOK, resp.Code)
-		assert.NotContains(t, resp.Body.String(), `status-page-500`)
+		assert.NotContains(t, resp.Body.String(), common.PageInternalServerErrorMark)
 	})
 }

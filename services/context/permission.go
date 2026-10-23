@@ -7,10 +7,28 @@ import (
 	"net/http"
 	"slices"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 )
+
+// CheckTokenScopes checks whether the authenticated API token contains any of the given scopes.
+func CheckTokenScopes(ctx *Context, scopes ...auth_model.AccessTokenScope) {
+	scope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
+	if !hasApiTokenScope {
+		return
+	}
+
+	scopeMatched, err := scope.HasAnyScope(scopes...)
+	if err != nil {
+		ctx.ServerError("HasAnyScope", err)
+		return
+	}
+
+	if !scopeMatched {
+		ctx.HTTPError(http.StatusForbidden)
+	}
+}
 
 // RequireRepoAdmin returns a middleware for requiring repository admin permission
 func RequireRepoAdmin() func(ctx *Context) {
@@ -58,38 +76,6 @@ func RequireUnitReader(unitTypes ...unit.Type) func(ctx *Context) {
 }
 
 // CheckRepoScopedToken checks whether the authenticated API token has repo scope.
-func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_model.AccessTokenScopeLevel) {
-	if ctx.Data["IsApiToken"] != true {
-		return
-	}
-
-	scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-	if ok {
-		var scopeMatched bool
-
-		requiredScopes := auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)
-
-		// check if scope only applies to public resources
-		publicOnly, err := scope.PublicOnly()
-		if err != nil {
-			ctx.ServerError("HasScope", err)
-			return
-		}
-
-		if publicOnly && repo != nil && repo.IsPrivate {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-
-		scopeMatched, err = scope.HasScope(requiredScopes...)
-		if err != nil {
-			ctx.ServerError("HasScope", err)
-			return
-		}
-
-		if !scopeMatched {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-	}
+func CheckRepoScopedToken(ctx *Context, level auth_model.AccessTokenScopeLevel) {
+	CheckTokenScopes(ctx, auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)...)
 }

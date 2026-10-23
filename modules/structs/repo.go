@@ -113,11 +113,14 @@ type Repository struct {
 	AllowRebaseMerge              bool             `json:"allow_rebase_explicit"`
 	AllowSquash                   bool             `json:"allow_squash_merge"`
 	AllowFastForwardOnly          bool             `json:"allow_fast_forward_only_merge"`
+	AllowMergeUpdate              bool             `json:"allow_merge_update"`
 	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
 	AllowManualMerge              bool             `json:"allow_manual_merge"`
 	AutodetectManualMerge         bool             `json:"autodetect_manual_merge"`
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
+	DefaultUpdateStyle            string           `json:"default_update_style"`
+	SquashMergeCommitMessage      string           `json:"squash_merge_commit_message"`
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
@@ -152,7 +155,7 @@ type CreateRepoOption struct {
 	// Whether the repository is template
 	Template bool `json:"template"`
 	// Gitignores to use
-	Gitignores string `json:"gitignores"`
+	Gitignores string `json:"gitignores" binding:"MaxSize(1024)"`
 	// License to use
 	License string `json:"license" binding:"MaxSize(100)"`
 	// Readme of the repository to create
@@ -171,7 +174,7 @@ type CreateRepoOption struct {
 type EditRepoOption struct {
 	// name of the repository
 	// unique: true
-	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
+	Name *string `json:"name,omitempty" binding:"AlphaDashDot;MaxSize(100)"`
 	// a short description of the repository.
 	Description *string `json:"description,omitempty" binding:"MaxSize(2048)"`
 	// a URL with more information about the repository.
@@ -224,12 +227,18 @@ type EditRepoOption struct {
 	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
 	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.
 	AutodetectManualMerge *bool `json:"autodetect_manual_merge,omitempty"`
+	// either `true` to allow updating pull request branch by merge, or `false` to prevent it.
+	AllowMergeUpdate *bool `json:"allow_merge_update,omitempty"`
 	// either `true` to allow updating pull request branch by rebase, or `false` to prevent it.
 	AllowRebaseUpdate *bool `json:"allow_rebase_update,omitempty"`
 	// set to `true` to delete pr branch after merge by default
 	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
 	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", "squash", or "fast-forward-only".
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
+	// set to an update style to be used by this repository: "merge" or "rebase".
+	DefaultUpdateStyle *string `json:"default_update_style,omitempty"`
+	// set the default squash merge commit message body: "PR_BODY", "COMMIT_MESSAGES", or "BLANK".
+	SquashMergeCommitMessage *string `json:"squash_merge_commit_message,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
 	// set to `true` to archive this repository.

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +26,7 @@ const (
 )
 
 func TestMain(m *testing.M) {
-	setting.StaticRootPath = "../../"
+	setting.SetupGiteaTestEnv()
 	setting.Names = []string{"english"}
 	setting.Langs = []string{"en-US"}
 	// setup

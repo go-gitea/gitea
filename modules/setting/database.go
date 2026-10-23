@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const defaultSQLiteBusyTimeout = 20 * 1000
+const DefaultSQLiteBusyTimeout = 20 * 1000
 
 var (
 	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by the tag-controlled drivers
@@ -66,11 +66,11 @@ func loadDBSetting(rootCfg ConfigProvider) {
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 
-	Database.SQLiteBusyTimeout = sec.Key("SQLITE_TIMEOUT").MustInt(defaultSQLiteBusyTimeout)
+	Database.SQLiteBusyTimeout = sec.Key("SQLITE_TIMEOUT").MustInt(DefaultSQLiteBusyTimeout)
 	// mattn driver isn't really affected by this timeout, but other drivers are affected
 	// the default value was 500 (0.5s), to avoid breaking existing users, make sure the timeout is long enough (at least, 5 seconds)
 	if Database.SQLiteBusyTimeout < 5000 {
-		Database.SQLiteBusyTimeout = defaultSQLiteBusyTimeout
+		Database.SQLiteBusyTimeout = DefaultSQLiteBusyTimeout
 	}
 	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("")
 

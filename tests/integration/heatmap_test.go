@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,6 +32,12 @@ func TestHeatmapEndpoints(t *testing.T) {
 		assert.Contains(t, result, "heatmapData")
 		assert.Contains(t, result, "totalContributions")
 		assert.Positive(t, result["totalContributions"])
+	})
+
+	t.Run("PrivateUserProfileAnonymous", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequest(t, "GET", "/user31/-/heatmap")
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("OrgDashboard", func(t *testing.T) {

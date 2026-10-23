@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/tests"
+	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +21,7 @@ func TestUserHeatmap(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
-	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeReadUser)
+	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeAll)
 
 	fakeNow := time.Date(2011, 10, 20, 0, 0, 0, 0, time.Local)
 	timeutil.MockSet(fakeNow)

@@ -11,49 +11,50 @@ import (
 	"strings"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/httpauth"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/actions"
-	"code.gitea.io/gitea/services/oauth2_provider"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/httpauth"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/actions"
+	"gitea.dev/services/oauth2_provider"
 )
 
 var _ Method = &OAuth2{}
 
-// GetOAuthAccessTokenScopeAndUserID returns access token scope and user id
-func GetOAuthAccessTokenScopeAndUserID(ctx context.Context, accessToken string) (auth_model.AccessTokenScope, int64) {
+// GetOAuthAccessTokenScopeAndUserID returns access token scope, user id and the
+// grant the token was issued for.
+func GetOAuthAccessTokenScopeAndUserID(ctx context.Context, accessToken string) (_ auth_model.AccessTokenScope, userID, grantID int64) {
 	var accessTokenScope auth_model.AccessTokenScope
 	if !setting.OAuth2.Enabled {
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 
 	// JWT tokens require a ".", if the token isn't like that, return early
 	if !strings.Contains(accessToken, ".") {
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 
 	token, err := oauth2_provider.ParseToken(accessToken, oauth2_provider.DefaultSigningKey)
 	if err != nil {
 		log.Trace("oauth2.ParseToken: %v", err)
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 	var grant *auth_model.OAuth2Grant
 	if grant, err = auth_model.GetOAuth2GrantByID(ctx, token.GrantID); err != nil || grant == nil {
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 	if token.Kind != oauth2_provider.KindAccessToken {
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 	if token.ExpiresAt.Before(time.Now()) || token.IssuedAt.After(time.Now()) {
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 	accessTokenScope = oauth2_provider.GrantAdditionalScopes(grant.Scope)
-	return accessTokenScope, grant.UserID
+	return accessTokenScope, grant.UserID, grant.ID
 }
 
 // CheckTaskIsRunning verifies that the TaskID corresponds to a running task
@@ -106,9 +107,7 @@ func parseToken(req *http.Request) (string, bool) {
 }
 
 // userFromToken returns the user corresponding to the OAuth token.
-// It will set 'IsApiToken' to true if the token is an API token and
-// set 'ApiTokenScope' to the scope of the access token (TODO: this behavior should be fixed, don't set ctx.Data)
-func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataStore) (*user_model.User, error) {
+func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string) (*user_model.User, error) {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
 		// First attempt to decode an actions JWT, returning the actions user
@@ -119,16 +118,17 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 		}
 
 		// Otherwise, check if this is an OAuth access token
-		accessTokenScope, uid := GetOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
-		if uid != 0 {
-			store.GetData()["IsApiToken"] = true
-			store.GetData()["ApiTokenScope"] = accessTokenScope
+		accessTokenScope, uid, grantID := GetOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
+		user, err := user_model.GetUserByID(ctx, uid)
+		if err != nil || !user.IsIndividual() {
+			return nil, err
 		}
-		return user_model.GetUserByID(ctx, uid)
+		user.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialOAuth2Grant, grantID, accessTokenScope)
+		return user, nil
 	}
 	t, err := auth_model.GetAccessTokenBySHA(ctx, tokenSHA)
 	if err != nil {
-		if auth_model.IsErrAccessTokenNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			// check task token
 			if task, err := actions_model.GetRunningTaskByToken(ctx, tokenSHA); err == nil {
 				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
@@ -142,22 +142,25 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 	if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
 		log.Error("UpdateAccessToken: %v", err)
 	}
-	store.GetData()["IsApiToken"] = true
-	store.GetData()["ApiTokenScope"] = t.Scope
-	return user_model.GetUserByID(ctx, t.UID)
+	user, err := user_model.GetUserByID(ctx, t.UID)
+	if err != nil {
+		return nil, err
+	}
+	user.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, t.ID, t.Scope)
+	return user, nil
 }
 
 // Verify extracts the user ID from the OAuth token in the query parameters
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
-func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
+func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, _ DataStore, sess SessionStore) (*user_model.User, error) {
 	token, ok := parseToken(req)
 	if !ok {
 		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
-	user, err := o.userFromToken(req.Context(), token, store)
+	user, err := o.userFromToken(req.Context(), token)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		log.Error("userFromToken: %v", err) // the callers might ignore the error, so log it here
 	}

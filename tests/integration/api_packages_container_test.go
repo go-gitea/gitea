@@ -15,16 +15,16 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	package_service "code.gitea.io/gitea/services/packages"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	container_module "gitea.dev/modules/packages/container"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	package_service "gitea.dev/services/packages"
+	"gitea.dev/tests"
 
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
@@ -427,8 +427,8 @@ func TestPackageContainer(t *testing.T) {
 						assert.ElementsMatch(t, []string{strings.ToLower(user.LowerName + "/" + image)}, getAllByName(pd.PackageProperties, container_module.PropertyRepository))
 						assert.True(t, has(pd.VersionProperties, container_module.PropertyManifestTagged))
 
-						assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
-						metadata := pd.Metadata.(*container_module.Metadata)
+						metadata, ok := pd.Metadata.(*container_module.Metadata)
+						require.True(t, ok)
 						assert.Equal(t, container_module.TypeOCI, metadata.Type)
 						assert.Len(t, metadata.ImageLayers, 2)
 						assert.Empty(t, metadata.Manifests)
@@ -570,8 +570,8 @@ func TestPackageContainer(t *testing.T) {
 
 				assert.ElementsMatch(t, []string{manifestDigest, untaggedManifestDigest}, getAllByName(pd.VersionProperties, container_module.PropertyManifestReference))
 
-				assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
-				metadata := pd.Metadata.(*container_module.Metadata)
+				metadata, ok := pd.Metadata.(*container_module.Metadata)
+				require.True(t, ok)
 				assert.Equal(t, container_module.TypeOCI, metadata.Type)
 				assert.Len(t, metadata.Manifests, 2)
 				assert.Condition(t, func() bool {
@@ -610,33 +610,28 @@ func TestPackageContainer(t *testing.T) {
 			t.Run("HeadBlob", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).
-					AddTokenAuth(userToken)
+				req := NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).AddTokenAuth(userToken)
 				MakeRequest(t, req, http.StatusNotFound)
 
-				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
-					AddTokenAuth(userToken)
+				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusOK)
-
+				assert.Equal(t, "application/octet-stream", resp.Header().Get("Content-Type"))
 				assert.Equal(t, strconv.Itoa(len(blobContent)), resp.Header().Get("Content-Length"))
 				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
 
-				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
-					AddTokenAuth(anonymousToken)
+				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).AddTokenAuth(anonymousToken)
 				MakeRequest(t, req, http.StatusOK)
 			})
 
 			t.Run("GetBlob", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).
-					AddTokenAuth(userToken)
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).AddTokenAuth(userToken)
 				MakeRequest(t, req, http.StatusNotFound)
 
-				req = NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
-					AddTokenAuth(userToken)
+				req = NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusOK)
-
+				assert.Equal(t, "application/octet-stream", resp.Header().Get("Content-Type"))
 				assert.Equal(t, strconv.Itoa(len(blobContent)), resp.Header().Get("Content-Length"))
 				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
 				assert.Equal(t, blobContent, resp.Body.Bytes())
@@ -766,20 +761,16 @@ func TestPackageContainer(t *testing.T) {
 
 		var wg sync.WaitGroup
 		for i := range 10 {
-			wg.Add(1)
-
 			content := []byte{byte(i)}
 			digest := fmt.Sprintf("sha256:%x", sha256.Sum256(content))
 
-			go func() {
-				defer wg.Done()
-
+			wg.Go(func() {
 				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, digest), bytes.NewReader(content)).
 					AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusCreated)
 
 				assert.Equal(t, digest, resp.Header().Get("Docker-Content-Digest"))
-			}()
+			})
 		}
 		wg.Wait()
 	})
