@@ -7,17 +7,20 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddSSHKeyOwnerIDToMirror(_ context.Context, x base.EngineMigration) error {
-	type Mirror struct {
-		SSHKeyOwnerID int64 `xorm:"NOT NULL DEFAULT 0"`
+func AddProjectWorkflow(_ context.Context, x base.EngineMigration) error {
+	type ProjectWorkflow struct {
+		ID              int64 `xorm:"pk autoincr"`
+		ProjectID       int64 `xorm:"INDEX"`
+		WorkflowEvent   string
+		WorkflowFilters string             `xorm:"TEXT JSON"`
+		WorkflowActions string             `xorm:"TEXT JSON"`
+		Enabled         bool               `xorm:"DEFAULT true NOT NULL"`
+		CreatedUnix     timeutil.TimeStamp `xorm:"created"`
+		UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
 	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(Mirror))
-	return err
+
+	return x.Sync(&ProjectWorkflow{})
 }
