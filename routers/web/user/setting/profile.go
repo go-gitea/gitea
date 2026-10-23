@@ -342,6 +342,13 @@ func Appearance(ctx *context.Context) {
 		return forms.IsUserHiddenCommentTypeGroupChecked(commentTypeGroup, hiddenCommentTypes)
 	}
 
+	dashboardTab, err := user_model.GetUserDashboardTab(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetUserSetting", err)
+		return
+	}
+	ctx.Data["DashboardDefaultTab"] = dashboardTab
+
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
 }
 
@@ -402,6 +409,22 @@ func UpdateUserLang(ctx *context.Context) {
 
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
 	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).TrString("settings.update_language_success"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+}
+
+// UpdateUserDashboardTab updates which dashboard tab a user sees by default
+func UpdateUserDashboardTab(ctx *context.Context) {
+	tab := ctx.FormString("dashboard_tab")
+	if !setting.IsValidDashboardTab(tab) {
+		ctx.Flash.Error(ctx.Tr("invalid_data", tab))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+		return
+	}
+	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyDashboardDefaultTab, tab); err != nil {
+		ctx.ServerError("SetUserSetting", err)
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 }
 
