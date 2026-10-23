@@ -196,3 +196,52 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) error 
 
 	return nil
 }
+
+// FilterReadableComments drops comments pointing at issues doer cannot read and loads RefRepo of the rest
+func FilterReadableComments(ctx context.Context, doer *user_model.User, perm access_model.Permission, issue *issues_model.Issue, comments issues_model.CommentList) (issues_model.CommentList, error) {
+	type refTarget struct {
+		repo *repo_model.Repository
+		perm access_model.Permission
+	}
+	targets := map[int64]refTarget{issue.RepoID: {issue.Repo, perm}}
+	readable := comments[:0]
+	for _, c := range comments {
+		var refRepoID int64
+		var refIsPull bool
+		switch {
+		case issues_model.CommentTypeIsRef(c.Type):
+			refRepoID, refIsPull = c.RefRepoID, c.RefIsPull
+		case c.Type == issues_model.CommentTypeAddDependency || c.Type == issues_model.CommentTypeRemoveDependency:
+			if err := c.LoadDepIssueDetails(ctx); err != nil && !issues_model.IsErrIssueNotExist(err) {
+				return nil, err
+			}
+			if c.DependentIssue != nil {
+				refRepoID, refIsPull = c.DependentIssue.RepoID, c.DependentIssue.IsPull
+			}
+		}
+		if refRepoID != 0 {
+			target, ok := targets[refRepoID]
+			if !ok {
+				repo, err := repo_model.GetRepositoryByID(ctx, refRepoID)
+				if err != nil {
+					return nil, err
+				}
+				repoPerm, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
+				if err != nil {
+					return nil, err
+				}
+				target = refTarget{repo, repoPerm}
+				targets[refRepoID] = target
+			}
+			if !target.perm.CanReadIssuesOrPulls(refIsPull) {
+				continue
+			}
+			c.RefRepo = target.repo
+			if c.DependentIssue != nil {
+				c.DependentIssue.Repo = target.repo
+			}
+		}
+		readable = append(readable, c)
+	}
+	return readable, nil
+}

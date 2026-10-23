@@ -144,6 +144,8 @@ func CreateLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.CreateLabelOption](ctx)
 
@@ -206,6 +208,8 @@ func EditLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.EditLabelOption](ctx)
 	l, err := issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
@@ -267,6 +271,8 @@ func DeleteLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	if err := issues_model.DeleteRepoLabel(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id")); err != nil {
 		ctx.APIErrorInternal(err)

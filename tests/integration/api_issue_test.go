@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -654,4 +655,50 @@ func testAPIIssueProjects(t *testing.T) {
 	readerToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteIssue)
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{Title: "issue by a reader", Projects: []int64{1}}).AddTokenAuth(readerToken)
 	assert.Empty(t, DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Issue{}).Projects)
+}
+
+func TestAPIArchivedRepoMutations(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.NoError(t, repo_model.SetArchiveRepoState(t.Context(), repo, true))
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteRepository)
+	for _, route := range []string{
+		"POST /issues/1/times",
+		"DELETE /issues/1/times",
+		"DELETE /issues/1/times/1",
+		"POST /issues/1/deadline",
+		"POST /issues/1/stopwatch/start",
+		"POST /issues/1/reactions",
+		"DELETE /issues/1/reactions",
+		"POST /issues/1/blocks",
+		"DELETE /issues/1/blocks",
+		"POST /issues/1/pin",
+		"DELETE /issues/1/pin",
+		"PATCH /issues/1/pin/1",
+		"PUT /issues/1/lock",
+		"DELETE /issues/1/lock",
+		"PATCH /issues/1/comments/1",
+		"DELETE /issues/1/comments/1",
+		"DELETE /issues/comments/1",
+		"POST /issues/comments/1/reactions",
+		"DELETE /issues/comments/1/reactions",
+		"POST /labels",
+		"PATCH /labels/1",
+		"DELETE /labels/1",
+		"POST /milestones",
+		"PATCH /milestones/1",
+		"DELETE /milestones/1",
+		"POST /releases",
+		"PATCH /releases/1",
+		"DELETE /releases/1",
+		"DELETE /releases/tags/v1.1",
+		"POST /releases/1/assets",
+		"PATCH /releases/1/assets/1",
+		"DELETE /releases/1/assets/1",
+	} {
+		t.Run(route, func(t *testing.T) {
+			method, path, _ := strings.Cut(route, " ")
+			MakeRequest(t, NewRequest(t, method, "/api/v1/repos/user2/repo1"+path).AddTokenAuth(token), http.StatusLocked)
+		})
+	}
 }

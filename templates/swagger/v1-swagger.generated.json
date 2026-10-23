@@ -11483,6 +11483,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -11940,6 +11943,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -11995,6 +12001,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -12747,6 +12756,9 @@
           },
           "404": {
             "description": "the issue does not exist"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -12795,6 +12807,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -12963,6 +12978,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -13029,6 +13047,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -13086,6 +13107,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -13569,6 +13593,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -13617,6 +13644,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -13661,6 +13691,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -13703,6 +13736,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -13755,6 +13791,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -13875,6 +13914,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -13930,6 +13972,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -14036,6 +14081,9 @@
           },
           "409": {
             "description": "Cannot start a stopwatch again if it already exists"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -14517,6 +14565,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -14568,6 +14619,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -14629,6 +14683,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -14966,6 +15023,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -15049,6 +15109,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -15104,6 +15167,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -15381,6 +15447,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -15462,6 +15531,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -15513,6 +15585,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -18886,6 +18961,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -19006,6 +19084,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -19092,6 +19173,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -19144,6 +19228,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -19252,6 +19339,9 @@
           },
           "413": {
             "$ref": "#/responses/error"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -19354,6 +19444,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -19417,6 +19510,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }

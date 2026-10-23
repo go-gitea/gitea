@@ -41,6 +41,8 @@ func PinIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return
@@ -91,6 +93,8 @@ func UnpinIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return
@@ -147,6 +151,8 @@ func MoveIssuePin(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return

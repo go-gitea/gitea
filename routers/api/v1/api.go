@@ -1402,24 +1402,24 @@ func Routes() *web.Router {
 				}, reqToken())
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
-						Post(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
+						Post(reqToken(), reqRepoWriter(unit.TypeReleases), mustNotBeArchived, context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
 					m.Combo("/latest").Get(repo.GetLatestRelease)
 					m.Group("/{id}", func() {
 						m.Combo("").Get(repo.GetRelease).
-							Patch(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
-							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteRelease)
+							Patch(reqToken(), reqRepoWriter(unit.TypeReleases), mustNotBeArchived, context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
+							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), mustNotBeArchived, repo.DeleteRelease)
 						m.Group("/assets", func() {
 							m.Combo("").Get(repo.ListReleaseAttachments).
-								Post(reqToken(), reqRepoWriter(unit.TypeReleases), repo.CreateReleaseAttachment)
+								Post(reqToken(), reqRepoWriter(unit.TypeReleases), mustNotBeArchived, repo.CreateReleaseAttachment)
 							m.Combo("/{attachment_id}").Get(repo.GetReleaseAttachment).
-								Patch(reqToken(), reqRepoWriter(unit.TypeReleases), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
-								Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseAttachment)
+								Patch(reqToken(), reqRepoWriter(unit.TypeReleases), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
+								Delete(reqToken(), reqRepoWriter(unit.TypeReleases), mustNotBeArchived, repo.DeleteReleaseAttachment)
 						})
 					})
 					m.Group("/tags", func() {
 						m.Combo("/{tag}").
 							Get(repo.GetReleaseByTag).
-							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
+							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), mustNotBeArchived, repo.DeleteReleaseByTag)
 					})
 				}, reqRepoReader(unit.TypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
@@ -1576,11 +1576,11 @@ func Routes() *web.Router {
 							m.Combo("").
 								Get(repo.GetIssueComment).
 								Patch(mustNotBeArchived, reqToken(), bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
-								Delete(reqToken(), repo.DeleteIssueComment)
+								Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueComment)
 							m.Combo("/reactions").
 								Get(repo.GetIssueCommentReactions).
-								Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
-								Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
+								Post(reqToken(), mustNotBeArchived, bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
+								Delete(reqToken(), mustNotBeArchived, bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
 							m.Group("/assets", func() {
 								m.Combo("").
 									Get(repo.ListIssueCommentAttachments).
@@ -1603,7 +1603,7 @@ func Routes() *web.Router {
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
-							m.Combo("/{id}", reqToken()).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
+							m.Combo("/{id}", reqToken(), mustNotBeArchived).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
 								Delete(repo.DeleteIssueCommentDeprecated)
 						})
 						m.Get("/timeline", repo.ListIssueCommentsAndTimeline)
@@ -1617,13 +1617,13 @@ func Routes() *web.Router {
 						m.Group("/times", func() {
 							m.Combo("").
 								Get(repo.ListTrackedTimes).
-								Post(bind(api.AddTimeOption{}), repo.AddTime).
-								Delete(repo.ResetIssueTime)
-							m.Delete("/{id}", repo.DeleteTime)
+								Post(mustNotBeArchived, bind(api.AddTimeOption{}), repo.AddTime).
+								Delete(mustNotBeArchived, repo.ResetIssueTime)
+							m.Delete("/{id}", mustNotBeArchived, repo.DeleteTime)
 						}, reqToken())
-						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
+						m.Combo("/deadline").Post(reqToken(), mustNotBeArchived, bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 						m.Group("/stopwatch", func() {
-							m.Post("/start", repo.StartIssueStopwatch)
+							m.Post("/start", mustNotBeArchived, repo.StartIssueStopwatch)
 							m.Post("/stop", repo.StopIssueStopwatch)
 							m.Delete("/delete", repo.DeleteIssueStopwatch)
 						}, reqToken())
@@ -1635,8 +1635,8 @@ func Routes() *web.Router {
 						})
 						m.Combo("/reactions").
 							Get(repo.GetIssueReactions).
-							Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueReaction).
-							Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
+							Post(reqToken(), mustNotBeArchived, bind(api.EditReactionOption{}), repo.PostIssueReaction).
+							Delete(reqToken(), mustNotBeArchived, bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
 						m.Group("/assets", func() {
 							m.Combo("").
 								Get(repo.ListIssueAttachments).
@@ -1652,34 +1652,32 @@ func Routes() *web.Router {
 							Delete(reqToken(), mustNotBeArchived, bind(api.IssueMeta{}), repo.RemoveIssueDependency)
 						m.Combo("/blocks").
 							Get(repo.GetIssueBlocks).
-							Post(reqToken(), bind(api.IssueMeta{}), repo.CreateIssueBlocking).
-							Delete(reqToken(), bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
+							Post(reqToken(), mustNotBeArchived, bind(api.IssueMeta{}), repo.CreateIssueBlocking).
+							Delete(reqToken(), mustNotBeArchived, bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
 						m.Group("/pin", func() {
-							m.Combo("").
-								Post(reqToken(), reqAdmin(), repo.PinIssue).
-								Delete(reqToken(), reqAdmin(), repo.UnpinIssue)
-							m.Patch("/{position}", reqToken(), reqAdmin(), repo.MoveIssuePin)
-						})
+							m.Combo("").Post(repo.PinIssue).Delete(repo.UnpinIssue)
+							m.Patch("/{position}", repo.MoveIssuePin)
+						}, reqToken(), reqAdmin(), mustNotBeArchived)
 						m.Group("/lock", func() {
 							m.Combo("").
 								Put(bind(api.LockIssueOption{}), repo.LockIssue).
 								Delete(repo.UnlockIssue)
-						}, reqToken(), reqAdmin())
+						}, reqToken(), reqAdmin(), mustNotBeArchived)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
-						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateLabelOption{}), repo.CreateLabel)
+						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), mustNotBeArchived, bind(api.CreateLabelOption{}), repo.CreateLabel)
 					m.Combo("/{id}").Get(repo.GetLabel).
-						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
-						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteLabel)
+						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), mustNotBeArchived, bind(api.EditLabelOption{}), repo.EditLabel).
+						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), mustNotBeArchived, repo.DeleteLabel)
 				})
 				m.Group("/milestones", func() {
 					m.Combo("").Get(repo.ListMilestones).
-						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
+						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), mustNotBeArchived, bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
 					m.Combo("/{id}").Get(repo.GetMilestone).
-						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
-						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
+						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), mustNotBeArchived, bind(api.EditMilestoneOption{}), repo.EditMilestone).
+						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), mustNotBeArchived, repo.DeleteMilestone)
 				})
 				m.Group("/projects", func() {
 					addProjectRoutes(m, reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived)

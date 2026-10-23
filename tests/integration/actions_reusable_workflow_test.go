@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -576,6 +577,20 @@ jobs:
 					"on: push\njobs:\n  plain_job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n  call:\n    needs: plain_job\n    uses: ./.gitea/workflows/callee.yml\n")
 				assertInvalidWorkflowRun(t, repo.ID, "caller.yaml", testCase.want)
 			}
+		})
+
+		t.Run("Inline expanded children count toward the job limit", func(t *testing.T) {
+			apiRepo := createActionsTestRepo(t, user2Token, "caller-job-limit", false)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+			var callee strings.Builder
+			callee.WriteString("on: workflow_call\njobs:\n")
+			for i := range actions_model.MaxJobNumPerRun - 1 {
+				fmt.Fprintf(&callee, "  job%d:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n", i)
+			}
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/callee.yml", callee.String())
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yml",
+				"on: push\njobs:\n  call:\n    uses: ./.gitea/workflows/callee.yml\n  trailing:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n")
+			assertInvalidWorkflowRun(t, repo.ID, "caller.yml", "workflow run exceeds the maximum of 256 jobs")
 		})
 
 		t.Run("Nested caller failing to expand fails with the error as summary instead of blocking", func(t *testing.T) {

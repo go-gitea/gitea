@@ -23584,6 +23584,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a comment",
@@ -24080,6 +24083,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Remove a reaction from a comment of an issue",
@@ -24189,6 +24195,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Add a reaction to a comment of an issue",
@@ -24951,6 +24960,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Unblock the issue given in the body by the issue in path",
@@ -25065,6 +25077,9 @@
           },
           "404": {
             "description": "the issue does not exist"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Block the issue given in the body by the issue in path",
@@ -25251,6 +25266,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a comment",
@@ -25322,6 +25340,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Edit a comment",
@@ -25382,6 +25403,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Set an issue deadline. If set to null, the deadline is deleted. If using deadline only the date will be taken into account, and time of day ignored.",
@@ -25894,6 +25918,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Unlock an issue",
@@ -25952,6 +25979,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Lock an issue",
@@ -26002,6 +26032,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Unpin an Issue",
@@ -26050,6 +26083,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Pin an Issue",
@@ -26110,6 +26146,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Moves the Pin to the given Position",
@@ -26170,6 +26209,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Remove a reaction from an issue",
@@ -26295,6 +26337,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Add a reaction to an issue",
@@ -26401,6 +26446,9 @@
           },
           "409": {
             "description": "Cannot start a stopwatch again if it already exists"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Start stopwatch on an issue.",
@@ -26820,6 +26868,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Reset a tracked time of an issue",
@@ -26968,6 +27019,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Add tracked time to a issue",
@@ -27031,6 +27085,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete specific tracked time",
@@ -27394,6 +27451,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Create a label",
@@ -27441,6 +27501,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a label",
@@ -27544,6 +27607,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Update a label",
@@ -27847,6 +27913,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Create a milestone",
@@ -27893,6 +27962,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a milestone",
@@ -27991,6 +28063,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Update a milestone",
@@ -31698,6 +31773,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Create a release",
@@ -31784,6 +31862,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a release by tag name",
@@ -31878,6 +31959,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a release",
@@ -31978,6 +32062,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Update a release",
@@ -32114,6 +32201,9 @@
           },
           "413": {
             "$ref": "#/components/responses/error"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Create a release attachment",
@@ -32171,6 +32261,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a release attachment",
@@ -32294,6 +32387,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Edit a release attachment",

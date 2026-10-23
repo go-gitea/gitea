@@ -199,6 +199,8 @@ func AddTime(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm[*api.AddTimeOption](ctx)
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
@@ -279,6 +281,8 @@ func ResetIssueTime(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
@@ -347,6 +351,8 @@ func DeleteTime(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
