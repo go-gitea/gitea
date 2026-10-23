@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -652,31 +653,48 @@ func testAPIIssueProjects(t *testing.T) {
 	MakeRequest(t, req, http.StatusBadRequest)
 }
 
-func TestAPIIssueArchivedRepoMutations(t *testing.T) {
+func TestAPIArchivedRepoMutations(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	token := getUserToken(t, "user30", auth_model.AccessTokenScopeWriteIssue)
-	base := "/api/v1/repos/user30/repo51/issues/1"
-	reaction := api.EditReactionOption{Reaction: "+1"}
-	for _, c := range []struct {
-		method, path string
-		body         any
-	}{
-		{"POST", "/times", api.AddTimeOption{Time: 60}},
-		{"DELETE", "/times", nil},
-		{"POST", "/deadline", api.EditDeadlineOption{}},
-		{"POST", "/stopwatch/start", nil},
-		{"POST", "/reactions", reaction},
-		{"DELETE", "/reactions", reaction},
-		{"POST", "/blocks", api.IssueMeta{Index: 2, Owner: "user30", Name: "repo51"}},
-		{"DELETE", "/blocks", api.IssueMeta{Index: 2, Owner: "user30", Name: "repo51"}},
-		{"POST", "/pin", nil},
-		{"DELETE", "/pin", nil},
-		{"PUT", "/lock", api.LockIssueOption{}},
-		{"DELETE", "/lock", nil},
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.NoError(t, repo_model.SetArchiveRepoState(t.Context(), repo, true))
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteRepository)
+	for _, route := range []string{
+		"POST /issues/1/times",
+		"DELETE /issues/1/times",
+		"DELETE /issues/1/times/1",
+		"POST /issues/1/deadline",
+		"POST /issues/1/stopwatch/start",
+		"POST /issues/1/reactions",
+		"DELETE /issues/1/reactions",
+		"POST /issues/1/blocks",
+		"DELETE /issues/1/blocks",
+		"POST /issues/1/pin",
+		"DELETE /issues/1/pin",
+		"PATCH /issues/1/pin/1",
+		"PUT /issues/1/lock",
+		"DELETE /issues/1/lock",
+		"PATCH /issues/1/comments/1",
+		"DELETE /issues/1/comments/1",
+		"DELETE /issues/comments/1",
+		"POST /issues/comments/1/reactions",
+		"DELETE /issues/comments/1/reactions",
+		"POST /labels",
+		"PATCH /labels/1",
+		"DELETE /labels/1",
+		"POST /milestones",
+		"PATCH /milestones/1",
+		"DELETE /milestones/1",
+		"POST /releases",
+		"PATCH /releases/1",
+		"DELETE /releases/1",
+		"DELETE /releases/tags/v1.1",
+		"POST /releases/1/assets",
+		"PATCH /releases/1/assets/1",
+		"DELETE /releases/1/assets/1",
 	} {
-		t.Run(c.method+c.path, func(t *testing.T) {
-			req := NewRequestWithJSON(t, c.method, base+c.path, c.body).AddTokenAuth(token)
-			MakeRequest(t, req, http.StatusLocked)
+		t.Run(route, func(t *testing.T) {
+			method, path, _ := strings.Cut(route, " ")
+			MakeRequest(t, NewRequest(t, method, "/api/v1/repos/user2/repo1"+path).AddTokenAuth(token), http.StatusLocked)
 		})
 	}
 }
