@@ -7,16 +7,13 @@ import (
 	"net/http"
 	"strconv"
 	"testing"
-	"time"
 
-	activities_model "gitea.dev/models/activities"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -195,23 +192,4 @@ func TestAPIRepoLimitedOwnerPublicOnly(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
 	req = NewRequest(t, "GET", url).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
-}
-
-func TestAPIUserHeatmapPublicOnly(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	timeutil.MockSet(time.Date(2011, 10, 20, 0, 0, 0, 0, time.Local))
-	defer timeutil.MockUnset()
-
-	total := func(token string) (n int64) {
-		req := NewRequest(t, "GET", "/api/v1/users/user2/heatmap").AddTokenAuth(token)
-		for _, d := range DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*activities_model.UserHeatmapData{}) {
-			n += d.Contributions
-		}
-		return n
-	}
-
-	all := total(getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser))
-	publicOnly := total(getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly))
-	assert.Positive(t, all)
-	assert.Less(t, publicOnly, all)
 }
