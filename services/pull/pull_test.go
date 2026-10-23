@@ -128,13 +128,17 @@ func TestCheckIfPRContentChanged_ForkPR(t *testing.T) {
 	newHeadCommitID := advanceBranch(pr.HeadRepo, pr.HeadBranch, oldHeadCommitID, "fork-pr-head-change.txt")
 
 	// the new base commit only exists in the base repo, so it must be fetched into the head repo
-	assert.False(t, git.IsCommitExist(t.Context(), pr.HeadRepo, newBaseCommitID))
+	exist, err := git.IsCommitInRepo(t.Context(), pr.HeadRepo, newBaseCommitID)
+	require.NoError(t, err)
+	assert.False(t, exist)
 
 	changed, mergeBase, err := checkIfPRContentChanged(t.Context(), pr, oldHeadCommitID, newHeadCommitID)
 	require.NoError(t, err)
 	assert.True(t, changed)
 	assert.Equal(t, oldBaseCommitID, mergeBase)
-	assert.True(t, git.IsCommitExist(t.Context(), pr.HeadRepo, newBaseCommitID))
+	exist, err = git.IsCommitInRepo(t.Context(), pr.HeadRepo, newBaseCommitID)
+	require.NoError(t, err)
+	assert.True(t, exist)
 }
 
 func TestBuildSquashMergeCommitMessages(t *testing.T) {
