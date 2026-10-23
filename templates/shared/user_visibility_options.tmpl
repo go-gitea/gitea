@@ -1,0 +1,6 @@
+{{if not (SliceUtils.Contains .Modes .Value)}}
+	<option value="{{printf "%d" .Value}}" selected hidden>{{ctx.Locale.Tr (print "settings.visibility." .Value.String)}}</option>
+{{end}}
+{{range $mode := .Modes}}
+	<option value="{{printf "%d" $mode}}" {{if eq $.Value $mode}}selected{{end}} title="{{ctx.Locale.Tr (printf "settings.visibility.%s_tooltip" $mode.String)}}">{{ctx.Locale.Tr (print "settings.visibility." $mode.String)}}</option>
+{{end}}

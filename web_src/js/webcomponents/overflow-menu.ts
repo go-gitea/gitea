@@ -186,9 +186,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   }, 100);
 
   init() {
-    // for horizontal menus where fomantic boldens active items, prevent this bold text from
-    // enlarging the menu's active item replacing the text node with a div that renders a
-    // invisible pseudo-element that enlarges the box.
+    // Reserve the width of active text so changing tabs does not resize the menu.
     if (this.matches('.ui.secondary.pointing.menu, .ui.tabular.menu')) {
       for (const item of this.querySelectorAll('.item')) {
         for (const child of item.childNodes) {

@@ -9,7 +9,7 @@
 	<button type="button" class="ui tiny primary button review-box-button" {{if $disabledReviewTooltip}}disabled{{end}}>
 		{{ctx.Locale.Tr "repo.diff.review"}}
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
-		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		{{svg "octicon-triangle-down" 14}}
 	</button>
 </div>
 {{if $.IsShowingAllCommits}}

@@ -61,12 +61,13 @@ test('delete an edit history entry via a confirm over the history modal', async 
     login(page),
   ]);
   await page.goto(`/${owner}/${repoName}/issues/1`);
-  const historyMenu = page.locator('.content-history-menu');
-  await historyMenu.click();
-  await historyMenu.getByRole('menuitem').last().click();
+  await page.getByRole('button', {name: '• edited'}).click();
+  await page.getByRole('menuitem').last().click();
   const history = page.getByRole('dialog');
-  await history.getByText('Options').click();
-  await history.getByRole('menuitem', {name: 'Delete from history'}).click();
+  await history.getByRole('button', {name: 'Options'}).click();
+  await page.getByRole('menuitem', {name: 'Delete from history'}).click();
   await page.getByRole('dialog', {name: 'Delete from history?'}).getByRole('button', {name: 'Confirm'}).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', {name: '• edited'}).click();
+  await expect(page.getByRole('menuitem').filter({hasText: 'deleted'})).toHaveAttribute('aria-disabled', 'true');
 });

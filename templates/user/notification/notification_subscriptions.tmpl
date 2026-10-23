@@ -29,33 +29,27 @@
 					</div>
 					<div class="ui secondary menu tw-m-0">
 							<!-- Type -->
-								<div class="ui dropdown type jump item">
-									<span class="text">
-										{{ctx.Locale.Tr "repo.issues.filter_type"}}
-									</span>
-									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<div class="menu">
-										<a class="{{if or (eq .IssueType "all") (not .IssueType)}}active {{end}}item" href="?sort={{$.SortType}}&state={{$.State}}&issueType=all&labels={{$.Labels}}">{{ctx.Locale.Tr "all"}}</a>
-										<a class="{{if eq .IssueType "issues"}}active {{end}}item" href="?sort={{$.SortType}}&state={{$.State}}&issueType=issues&labels={{$.Labels}}">{{ctx.Locale.Tr "issues"}}</a>
-										<a class="{{if eq .IssueType "pulls"}}active {{end}}item" href="?sort={{$.SortType}}&state={{$.State}}&issueType=pulls&labels={{$.Labels}}">{{ctx.Locale.Tr "pull_requests"}}</a>
+								<div class="dropdown-container">
+									<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "repo.issues.filter_type"}} {{svg "octicon-triangle-down" 14}}</button>
+									<div class="dropdown-popup">
+										<a class="{{if or (eq .IssueType "all") (not .IssueType)}}active {{end}}dropdown-item" href="?sort={{$.SortType}}&state={{$.State}}&issueType=all&labels={{$.Labels}}">{{ctx.Locale.Tr "all"}}</a>
+										<a class="{{if eq .IssueType "issues"}}active {{end}}dropdown-item" href="?sort={{$.SortType}}&state={{$.State}}&issueType=issues&labels={{$.Labels}}">{{ctx.Locale.Tr "issues"}}</a>
+										<a class="{{if eq .IssueType "pulls"}}active {{end}}dropdown-item" href="?sort={{$.SortType}}&state={{$.State}}&issueType=pulls&labels={{$.Labels}}">{{ctx.Locale.Tr "pull_requests"}}</a>
 									</div>
 								</div>
 
 							<!-- Sort -->
-							<div class="ui dropdown type jump item">
-								<span class="text">
-									{{ctx.Locale.Tr "repo.issues.filter_sort"}}
-								</span>
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="menu">
-									<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="?sort=latest&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
-									<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="?sort=oldest&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-									<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="?sort=recentupdate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-									<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="?sort=leastupdate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-									<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="?sort=mostcomment&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-									<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="?sort=leastcomment&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-									<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="?sort=nearduedate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-									<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="?sort=farduedate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
+							<div class="dropdown-container">
+								<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14}}</button>
+								<div class="dropdown-popup">
+									<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}dropdown-item" href="?sort=latest&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
+									<a class="{{if eq .SortType "oldest"}}active {{end}}dropdown-item" href="?sort=oldest&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+									<a class="{{if eq .SortType "recentupdate"}}active {{end}}dropdown-item" href="?sort=recentupdate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+									<a class="{{if eq .SortType "leastupdate"}}active {{end}}dropdown-item" href="?sort=leastupdate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+									<a class="{{if eq .SortType "mostcomment"}}active {{end}}dropdown-item" href="?sort=mostcomment&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+									<a class="{{if eq .SortType "leastcomment"}}active {{end}}dropdown-item" href="?sort=leastcomment&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+									<a class="{{if eq .SortType "nearduedate"}}active {{end}}dropdown-item" href="?sort=nearduedate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+									<a class="{{if eq .SortType "farduedate"}}active {{end}}dropdown-item" href="?sort=farduedate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 								</div>
 							</div>
 						</div>

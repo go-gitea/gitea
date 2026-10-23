@@ -21,7 +21,7 @@ import {
 } from './EditorMarkdown.ts';
 import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
 import {createTippy} from '../../modules/tippy.ts';
-import {initTabSwitcher} from '../../modules/fomantic/tab.ts';
+import {initTabSwitcher} from '../../modules/tab.ts';
 import type EasyMDE from 'easymde';
 import type Dropzone from '@deltablot/dropzone';
 import {localUserSettings} from '../../modules/user-settings.ts';

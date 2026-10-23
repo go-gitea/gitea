@@ -70,44 +70,48 @@
 					{{$addFilePath = ""}}
 				{{end}}
 			{{end}}
-			<button type="button" class="ui dropdown basic compact jump button repo-add-file" {{if not .Repository.CanContentChange}}disabled{{end}}>
-				{{ctx.Locale.Tr "repo.editor.add_file"}}
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="menu">
-					<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{$addFilePath | PathEscapeSegments}}">
+			<div class="dropdown-container">
+				<button type="button" class="dropdown-trigger ui basic compact button repo-add-file" {{if not .Repository.CanContentChange}}disabled{{end}}>
+					{{ctx.Locale.Tr "repo.editor.add_file"}}
+					{{svg "octicon-triangle-down" 14}}
+				</button>
+				<div class="dropdown-popup dropdown-popup-inline repo-file-menu">
+					<a class="dropdown-item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{$addFilePath | PathEscapeSegments}}">
 						{{svg "octicon-file-added" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.editor.new_file"}}
 					</a>
 					{{if .RepositoryUploadEnabled}}
-					<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{$addFilePath | PathEscapeSegments}}">
+					<a class="dropdown-item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{$addFilePath | PathEscapeSegments}}">
 						{{svg "octicon-upload" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.editor.upload_file"}}
 					</a>
 					{{end}}
-					<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{$addFilePath | PathEscapeSegments}}">
+					<a class="dropdown-item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{$addFilePath | PathEscapeSegments}}">
 						{{svg "octicon-diff" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.editor.patch"}}
 					</a>
 				</div>
-			</button>
+			</div>
 
 			{{if and (not .IsViewFile) (not $isTreePathRoot)}}
-			<button type="button" class="ui dropdown basic compact jump button tw-px-3" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
-				{{svg "octicon-kebab-horizontal"}}
-				<div class="menu">
-					<a class="item" data-clipboard-text="{{.Repository.HTMLURL ctx}}/src/commit/{{.CommitID}}/{{PathEscapeSegments .TreePath}}">
+			<div class="dropdown-container" data-placement="bottom-end">
+				<button type="button" class="dropdown-trigger ui basic compact button tw-px-3" aria-label="{{ctx.Locale.Tr "repo.more_operations"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
+					{{svg "octicon-kebab-horizontal"}}
+				</button>
+				<div class="dropdown-popup dropdown-popup-inline repo-file-menu">
+					<a class="dropdown-item" data-clipboard-text="{{.Repository.HTMLURL ctx}}/src/commit/{{.CommitID}}/{{PathEscapeSegments .TreePath}}">
 						{{svg "octicon-link" 16}}{{ctx.Locale.Tr "repo.file_copy_permalink"}}
 					</a>
 					{{if and (not $.DisableDownloadSourceArchives) $.RefFullName}}
-						<div class="divider"></div>
-						<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.zip?path={{.TreePath}}" rel="nofollow">{{svg "octicon-file-zip"}}{{ctx.Locale.Tr "repo.download_directory_as" "ZIP"}}</a>
-						<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.tar.gz?path={{.TreePath}}" rel="nofollow">{{svg "octicon-file-zip"}}{{ctx.Locale.Tr "repo.download_directory_as" "TAR.GZ"}}</a>
+						<div class="dropdown-divider"></div>
+						<a class="dropdown-item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.zip?path={{.TreePath}}" rel="nofollow">{{svg "octicon-file-zip"}}{{ctx.Locale.Tr "repo.download_directory_as" "ZIP"}}</a>
+						<a class="dropdown-item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.tar.gz?path={{.TreePath}}" rel="nofollow">{{svg "octicon-file-zip"}}{{ctx.Locale.Tr "repo.download_directory_as" "TAR.GZ"}}</a>
 					{{end}}
 					{{if and .Repository.CanContentChange (not $isTreePathRoot)}}
-						<div class="divider"></div>
-						<a class="item tw-text-danger" href="{{.RepoLink}}/_delete/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+						<div class="dropdown-divider"></div>
+						<a class="dropdown-item tw-text-danger" href="{{.RepoLink}}/_delete/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
 							{{svg "octicon-trash" 16}}{{ctx.Locale.Tr "repo.editor.delete_this_directory"}}
 						</a>
 					{{end}}
 				</div>
-			</button>
+			</div>
 			{{end}}
 		{{end}}
 		<!-- Only show clone panel in repository home page -->

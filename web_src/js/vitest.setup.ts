@@ -1,5 +1,3 @@
-import './globals.ts';
-
 window.config = {
   appUrl: `${window.location.origin}/`,
   appSubUrl: '',

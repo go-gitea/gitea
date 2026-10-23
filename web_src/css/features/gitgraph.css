@@ -10,17 +10,15 @@
   align-items: center;
 }
 
-#git-graph-container #flow-select-refs-dropdown {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
+#flow-select-refs-dropdown > .dropdown-trigger {
   min-width: 250px;
-  border-right: none;
+  min-height: 32.83px;
+  justify-content: flex-start;
+  padding-left: 0.64285714em;
 }
 
-#git-graph-container #flow-select-refs-dropdown .ui.label {
-  max-width: 180px;
-  display: inline-flex !important;
-  align-items: center;
+#flow-select-refs-dropdown .dropdown-text {
+  line-height: 1.21428571;
 }
 
 #git-graph-container li {

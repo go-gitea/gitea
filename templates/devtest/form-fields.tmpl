@@ -37,54 +37,34 @@
 			<textarea rows="2">value</textarea>
 		</div>
 
-		<h4 class="ui dividing header">Dropdown</h4>
+		<h4 class="ui dividing header">Select</h4>
 		<div class="inline field">
 			<label>Normal</label>
-			<div class="ui selection dropdown">
-				<input type="hidden" value="a">
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="text">Option A</div>
-				<div class="menu">
-					<div class="item" data-value="a">Option A</div>
-					<div class="item" data-value="b">Option B</div>
-				</div>
-			</div>
+			<select>
+				<option value="a" selected>Option A</option>
+				<option value="b">Option B</option>
+			</select>
 		</div>
 		<div class="inline field">
-			<label>Readonly</label>
-			<div class="ui selection dropdown" readonly>
-				<input type="hidden" value="a">
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="text">Option A</div>
-				<div class="menu">
-					<div class="item" data-value="a">Option A</div>
-					<div class="item" data-value="b">Option B</div>
-				</div>
-			</div>
+			<label>Disabled</label>
+			<select disabled>
+				<option value="a" selected>Option A</option>
+				<option value="b">Option B</option>
+			</select>
 		</div>
 		<div class="inline disabled field">
-			<label>Disabled</label>
-			<div class="ui selection dropdown">
-				<input type="hidden" value="a">
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="text">Option A</div>
-				<div class="menu">
-					<div class="item" data-value="a">Option A</div>
-					<div class="item" data-value="b">Option B</div>
-				</div>
-			</div>
+			<label>Disabled field</label>
+			<select disabled>
+				<option value="a" selected>Option A</option>
+				<option value="b">Option B</option>
+			</select>
 		</div>
 		<div class="inline field error">
 			<label>Error</label>
-			<div class="ui selection dropdown">
-				<input type="hidden" value="a">
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="text">Option A</div>
-				<div class="menu">
-					<div class="item" data-value="a">Option A</div>
-					<div class="item" data-value="b">Option B</div>
-				</div>
-			</div>
+			<select>
+				<option value="a" selected>Option A</option>
+				<option value="b">Option B</option>
+			</select>
 		</div>
 
 		<h4 class="ui dividing header">Required</h4>

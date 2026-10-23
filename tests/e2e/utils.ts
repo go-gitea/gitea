@@ -246,7 +246,7 @@ export async function assertFlushWithParent(child: Locator, parent: Locator) {
 }
 
 export async function logout(page: Page) {
-  await page.context().clearCookies(); // workaround issues related to fomantic dropdown
+  await page.context().clearCookies();
   await page.goto('/');
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeVisible();
 }

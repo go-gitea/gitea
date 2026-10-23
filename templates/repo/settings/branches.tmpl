@@ -13,13 +13,16 @@
 				<form class="ui form" action="{{.Link}}" method="post">
 					<input type="hidden" name="action" value="default_branch">
 					<div class="flex-text-block">
-						<div class="ui dropdown selection search tw-flex-1 tw-mr-2 tw-max-w-96">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
-							<div class="default text">{{.Repository.DefaultBranch}}</div>
-							<div class="menu">
+						<div class="dropdown-container tw-flex-1 tw-max-w-96" data-kind="select">
+							<input type="hidden" class="dropdown-value" name="branch" value="{{.Repository.DefaultBranch}}">
+							<button type="button" class="dropdown-trigger dropdown-field">
+								<span class="dropdown-text">{{.Repository.DefaultBranch}}</span>
+								{{svg "octicon-triangle-down" 14}}
+							</button>
+							<div class="dropdown-popup">
+								<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "search.branch_kind"}}">
 								{{range .Branches}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
+									<div class="dropdown-item" data-value="{{.}}">{{.}}</div>
 								{{end}}
 							</div>
 						</div>

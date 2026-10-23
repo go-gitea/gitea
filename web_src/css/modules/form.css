@@ -1,6 +1,7 @@
 .ui.form {
   position: relative;
   max-width: 100%;
+  font-size: 1rem;
 }
 
 .ui.form > p {
@@ -36,6 +37,21 @@
 .ui.form input:not([type="checkbox"], [type="radio"]) {
   width: 100%;
   vertical-align: top;
+}
+
+.ui.form select {
+  width: 100%;
+  min-width: 14em;
+}
+
+.ui.form select,
+.ui.action.input > select {
+  field-sizing: content;
+  min-height: 2.71428571em;
+  padding: 0.43em calc(3.2em - 17px) 0.43em 1em;
+  font: inherit;
+  line-height: var(--line-height-default);
+  border-radius: var(--border-radius);
 }
 
 .ui.form ::-webkit-datetime-edit,
@@ -78,8 +94,8 @@ textarea,
 .ui.input > input,
 .ui.form input:not([type="checkbox"], [type="radio"]),
 .ui.form select,
+.ui.action.input > select,
 .ui.form textarea,
-.ui.selection.dropdown,
 .ui.search > .prompt {
   background: var(--color-input-background);
   border: 1px solid var(--color-input-border);
@@ -91,6 +107,7 @@ textarea:focus,
 .ui.input input:focus,
 .ui.form input:not([type="checkbox"], [type="radio"]):focus,
 .ui.form select:focus,
+.ui.action.input > select:focus,
 .ui.form textarea:focus,
 .ui.search > .prompt:focus {
   background: var(--color-input-background);
@@ -100,8 +117,7 @@ textarea:focus,
 
 .ui.form input:not([type="checkbox"], [type="radio"])[readonly],
 .ui.form textarea[readonly],
-.ui.form select[readonly],
-.ui.form .ui.selection.dropdown[readonly] {
+.ui.form select[readonly] {
   background: var(--color-secondary-bg);
 }
 
@@ -114,19 +130,12 @@ textarea:focus,
   vertical-align: top;
 }
 
-.ui.form .field > .selection.dropdown {
-  min-width: 14em; /* matches the default min width */
-  width: 100%;
-}
-.ui.form .field > .selection.dropdown > .dropdown.icon {
-  float: right;
+.ui.form .field:not(.inline) > .dropdown-container:has(> .dropdown-field) {
+  display: flex;
 }
 
-.ui.form .inline.field > .selection.dropdown {
-  width: auto;
-}
-.ui.form .inline.field > .selection.dropdown > .dropdown.icon {
-  float: none;
+.ui.form .field.error .dropdown-field {
+  border-color: var(--color-error-border);
 }
 
 .ui.form .field .ui.input {
@@ -180,21 +189,6 @@ textarea:focus,
 
 .ui.form .field.error select {
   appearance: menulist-button;
-}
-
-.ui.form .field.error .ui.dropdown {
-  border-color: var(--color-error-border);
-}
-.ui.form .field.error .ui.dropdown:hover {
-  border-color: var(--color-error-border);
-}
-
-.ui.form .field.error .ui.dropdown .menu .item:hover {
-  background-color: var(--color-error-bg-hover);
-}
-
-.ui.form .field.error .ui.dropdown .menu .active.item {
-  background-color: var(--color-error-bg-active) !important;
 }
 
 .ui.form .disabled.fields .field,
@@ -310,12 +304,6 @@ textarea:focus,
   margin: 0;
 }
 
-.ui.form,
-.ui.form .field .dropdown,
-.ui.form .field .dropdown .menu > .item {
-  font-size: 1rem;
-}
-
 /* previously from web_src/css/form.css */
 
 .ui .form .autofill-dummy {
@@ -324,15 +312,6 @@ textarea:focus,
   height: 1px;
   overflow: hidden;
   z-index: -10000;
-}
-
-.ui.form .field.error .ui.dropdown,
-.ui.form .field.error .ui.dropdown:hover {
-  border-color: var(--color-error-border) !important;
-}
-
-.ui.form .field.error .dropdown .menu {
-  border-color: var(--color-error-border) !important;
 }
 
 input:-webkit-autofill,
@@ -374,13 +353,10 @@ input:-webkit-autofill:active {
 }
 
 .ui.form.left-right-form .inline.field input:not([type="checkbox"], [type="radio"]),
-.ui.form.left-right-form .inline.field .ui.dropdown,
+.ui.form.left-right-form .inline.field > select,
+.ui.form.left-right-form .inline.field > .dropdown-container,
 .ui.form.left-right-form .inline.field textarea {
   width: 50%;
-}
-
-.ui.form.left-right-form .inline.field .ui.dropdown input.search {
-  width: 100%;
 }
 
 .ui.form.left-right-form .inline.field .inline-right {
@@ -399,7 +375,8 @@ input:-webkit-autofill:active {
     margin: 0;
   }
   .ui.form.left-right-form .inline.field input:not([type="checkbox"], [type="radio"]),
-  .ui.form.left-right-form .inline.field .ui.dropdown,
+  .ui.form.left-right-form .inline.field > select,
+  .ui.form.left-right-form .inline.field > .dropdown-container,
   .ui.form.left-right-form .inline.field textarea {
     width: 100%;
   }

@@ -1,8 +1,4 @@
-<div class="ui small dropdown selection">
-	<input name="all" type="hidden" value="{{.All}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="text">{{if .All}}{{ctx.Locale.Tr "repo.commits.search_all"}}{{else}}{{ctx.Locale.Tr "repo.commits.search_branch"}}{{end}}</div>
-	<div class="menu">
-		<div class="item" data-value="false">{{ctx.Locale.Tr "repo.commits.search_branch"}}</div>
-		<div class="item" data-value="true">{{ctx.Locale.Tr "repo.commits.search_all"}}</div>
-	</div>
-</div>
+<select name="all" aria-label="{{ctx.Locale.Tr "repo.commits.search.tooltip"}}">
+	<option value="false" {{if not .All}}selected{{end}}>{{ctx.Locale.Tr "repo.commits.search_branch"}}</option>
+	<option value="true" {{if .All}}selected{{end}}>{{ctx.Locale.Tr "repo.commits.search_all"}}</option>
+</select>

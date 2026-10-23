@@ -1,19 +1,19 @@
 <h2 class="ui header activity-header">
 	<span>{{DateUtils.AbsoluteLong .DateFrom}} - {{DateUtils.AbsoluteLong .DateUntil}}</span>
 	<!-- Period -->
-	<div class="ui floating dropdown jump">
-		<div class="ui basic compact button">
+	<div class="dropdown-container" data-placement="bottom-end">
+		<button type="button" class="dropdown-trigger dropdown-button-inline ui basic compact button">
 			{{ctx.Locale.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		</div>
-		<div class="left menu">
-			<a class="{{if eq .Period "daily"}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{ctx.Locale.Tr "repo.activity.period.daily"}}</a>
-			<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/halfweekly">{{ctx.Locale.Tr "repo.activity.period.halfweekly"}}</a>
-			<a class="{{if eq .Period "weekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/weekly">{{ctx.Locale.Tr "repo.activity.period.weekly"}}</a>
-			<a class="{{if eq .Period "monthly"}}active {{end}}item" href="{{$.RepoLink}}/activity/monthly">{{ctx.Locale.Tr "repo.activity.period.monthly"}}</a>
-			<a class="{{if eq .Period "quarterly"}}active {{end}}item" href="{{$.RepoLink}}/activity/quarterly">{{ctx.Locale.Tr "repo.activity.period.quarterly"}}</a>
-			<a class="{{if eq .Period "semiyearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/semiyearly">{{ctx.Locale.Tr "repo.activity.period.semiyearly"}}</a>
-			<a class="{{if eq .Period "yearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/yearly">{{ctx.Locale.Tr "repo.activity.period.yearly"}}</a>
+			{{svg "octicon-triangle-down" 14}}
+		</button>
+		<div class="dropdown-popup">
+			<a class="{{if eq .Period "daily"}}active {{end}}dropdown-item" href="{{$.RepoLink}}/activity/daily">{{ctx.Locale.Tr "repo.activity.period.daily"}}</a>
+			<a class="{{if eq .Period "halfweekly"}}active {{end}}dropdown-item" href="{{$.RepoLink}}/activity/halfweekly">{{ctx.Locale.Tr "repo.activity.period.halfweekly"}}</a>
+			<a class="{{if eq .Period "weekly"}}active {{end}}dropdown-item" href="{{$.RepoLink}}/activity/weekly">{{ctx.Locale.Tr "repo.activity.period.weekly"}}</a>
+			<a class="{{if eq .Period "monthly"}}active {{end}}dropdown-item" href="{{$.RepoLink}}/activity/monthly">{{ctx.Locale.Tr "repo.activity.period.monthly"}}</a>
+			<a class="{{if eq .Period "quarterly"}}active {{end}}dropdown-item" href="{{$.RepoLink}}/activity/quarterly">{{ctx.Locale.Tr "repo.activity.period.quarterly"}}</a>
+			<a class="{{if eq .Period "semiyearly"}}active {{end}}dropdown-item" href="{{$.RepoLink}}/activity/semiyearly">{{ctx.Locale.Tr "repo.activity.period.semiyearly"}}</a>
+			<a class="{{if eq .Period "yearly"}}active {{end}}dropdown-item" href="{{$.RepoLink}}/activity/yearly">{{ctx.Locale.Tr "repo.activity.period.yearly"}}</a>
 		</div>
 	</div>
 </h2>

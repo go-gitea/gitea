@@ -1,15 +1,4 @@
-interface JQuery {
-  fomanticExt: {
-    onDropdownAfterFiltered?: (this: HTMLElement) => void,
-  }; // fomantic extension
-  api: any, // fomantic
-  dropdown: any; // fomantic
-  transition: any, // fomantic
-}
-
-interface JQueryStatic {
-  api: any, // fomantic
-}
+declare module 'jquery'; // untyped, only exposed as window.$ for custom user scripts
 
 interface Element {
   _tippy: import('tippy.js').Instance;
@@ -54,8 +43,6 @@ interface Window {
     i18n: Record<string, string>,
     frontendInited: boolean,
   },
-  $: JQueryStatic,
-  jQuery: JQueryStatic,
   _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,

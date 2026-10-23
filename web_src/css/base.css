@@ -391,15 +391,14 @@ a.label,
   background-color: var(--color-label-bg);
 }
 
-.ui.menu .dropdown.item:hover,
+.ui.menu .dropdown-trigger.item:hover,
 .ui.menu a.item:hover,
 .ui.menu details.item summary:hover {
   color: var(--color-text);
   background: var(--color-hover);
 }
 
-/* slightly more contrast for filters on issue list */
-.ui.ui.menu .dropdown.item.disabled {
+.ui.ui.menu .dropdown-trigger:disabled {
   color: var(--color-text-light-2);
 }
 
@@ -828,7 +827,6 @@ table th[data-sortt-desc] .svg {
 }
 
 .btn,
-.ui.ui.dropdown,
 .flex-text-inline {
   display: inline-flex;
   align-items: center;

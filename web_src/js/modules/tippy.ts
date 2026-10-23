@@ -6,7 +6,7 @@ import {stripTags} from '../utils.ts';
 
 type TippyOpts = {
   role?: string,
-  theme?: 'default' | 'tooltip' | 'menu' | 'box-with-header' | 'bare',
+  theme?: 'default' | 'tooltip' | 'menu' | 'box-with-header' | 'bare' | 'dropdown',
   limitSizeToViewport?: {horizontal?: boolean, vertical?: boolean}, // cap to the viewport and scroll the content
 } & Partial<Props>;
 
@@ -94,8 +94,8 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
-  const {onHide, onShow, onDestroy, role, theme, arrow, limitSizeToViewport, ...other} = opts;
-  // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
+  const {onHide, onHidden, onShow, onDestroy, role, theme, arrow, limitSizeToViewport, ...other} = opts;
+  // CSS theme, either "default", "tooltip", "menu", "box-with-header", "bare" or "dropdown"
   const resolvedTheme = theme || role || 'default';
   const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
 
@@ -111,6 +111,13 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       visibleInstances.delete(instance);
       if (isMenu(instance) && instance.popper.contains(document.activeElement)) (instance.reference as HTMLElement).focus();
       return onHide?.(instance);
+    },
+    onHidden: (instance: Instance) => {
+      for (const el of instance.popper.querySelectorAll('[data-tooltip-content]')) {
+        el._tippy?.clearDelayTimeouts();
+        el._tippy?.hide();
+      }
+      return onHidden?.(instance);
     },
     onDestroy: (instance: Instance) => {
       visibleInstances.delete(instance);
@@ -278,8 +285,8 @@ export function initGlobalTooltips(): void {
 }
 
 export function showTemporaryTooltip(target: Element, content: Content): void {
-  // if the target is inside a dropdown or tippy popup, the menu will be hidden soon
-  // so display the tooltip on the "aria-controls" element or dropdown instead
+  // if the target is inside a tippy popup, the popup will be hidden soon
+  // so display the tooltip on the "aria-controls" element instead
   let refClientRect: DOMRect | undefined;
   const popupTippyId = target.closest(`[data-tippy-root]`)?.id;
   if (popupTippyId) {
@@ -288,8 +295,8 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
     refClientRect = document.querySelector(`[aria-controls="${CSS.escape(popupTippyId)}"]`)?.getBoundingClientRect();
     refClientRect = refClientRect ?? new DOMRect(0, 0, 0, 0); // fallback to empty rect if not found, tippy doesn't accept null
   } else {
-    // for example, the "Copy Link" button in the issue header dropdown menu
-    target = target.closest('.ui.dropdown') ?? target;
+    // a dropdown item click closes its popup first, for example the "Copy Link" item in the issue comment menu
+    target = target.closest('.dropdown-container')?.querySelector(':scope > .dropdown-trigger') ?? target;
     refClientRect = target.getBoundingClientRect();
   }
   const tooltipTippy = target._tippy ?? attachTooltip(target, content);
@@ -306,7 +313,7 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
     },
   });
 
-  // on elements where the tooltip is re-located like "Copy Link" inside fomantic dropdowns, tippy.js gets
+  // on elements where the tooltip is re-located like "Copy Link" inside dropdowns, tippy.js gets
   // no `mouseout` event and the tooltip stays visible, hide it with timeout.
   if (!popupTippyId) {
     setTimeout(() => {

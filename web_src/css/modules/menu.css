@@ -41,8 +41,18 @@
   color: var(--color-text);
   font-weight: var(--font-weight-normal);
 }
-.ui.menu > .item:first-child {
+.ui.menu > .item:first-child,
+.ui.menu > .dropdown-container:first-child > .item {
   border-radius: 0.28571429rem 0 0 0.28571429rem;
+}
+
+.ui.menu > .dropdown-container {
+  align-items: stretch;
+}
+
+.ui.menu .dropdown-trigger.item {
+  border: none;
+  text-align: left;
 }
 
 .ui.menu .item::before {
@@ -89,23 +99,6 @@
   font-weight: var(--font-weight-medium);
 }
 
-.ui.menu .dropdown.item .menu {
-  min-width: calc(100% - 1px);
-  border-radius: 0 0 0.28571429rem 0.28571429rem;
-  background: var(--color-body);
-  margin: 0;
-  flex-direction: column !important;
-}
-
-.ui.menu .ui.dropdown.item .menu .item:not(.filtered) {
-  display: block;
-}
-
-.ui.secondary.menu .dropdown.item > .menu {
-  border-radius: 0.28571429rem;
-  margin-top: 0.35714286em;
-}
-
 .ui.menu .item > .label {
   background: var(--color-label-bg);
   color: var(--color-label-text);
@@ -119,7 +112,7 @@
   }
 }
 
-.ui.menu .dropdown.item:hover,
+.ui.menu .dropdown-trigger.item:hover,
 .ui.menu a.item:hover {
   cursor: pointer;
 }
@@ -345,7 +338,7 @@
   display: none !important;
 }
 
-.ui.secondary.menu .dropdown.item:hover,
+.ui.secondary.menu .dropdown-trigger.item:hover,
 .ui.secondary.menu a.item:hover {
   color: var(--color-text);
   background: var(--color-hover);
@@ -356,6 +349,7 @@
 }
 
 .ui.secondary.menu .active.item,
+.ui.secondary.menu .dropdown-trigger.item[aria-expanded="true"],
 .ui.secondary.menu .active.item:hover {
   color: var(--color-text-dark);
   background: var(--color-active);
@@ -419,6 +413,12 @@
   .ui.stackable.menu > .item,
   .ui.stackable.menu > .menu > .item {
     width: 100% !important;
+  }
+  .ui.stackable.menu > .dropdown-container,
+  .ui.stackable.menu > .dropdown-container > .item,
+  .ui.stackable.menu > .menu > .dropdown-container,
+  .ui.stackable.menu > .menu > .dropdown-container > .item {
+    width: 100%;
   }
   .ui.stackable.menu .left.menu {
     margin-right: 0 !important;
@@ -538,8 +538,7 @@
   font-size: 0.85714286rem;
 }
 .ui.small.menu,
-.ui.small.menu .dropdown,
-.ui.small.menu .dropdown .menu > .item {
+.ui.small.menu .dropdown-container {
   font-size: 0.92857143rem;
 }
 

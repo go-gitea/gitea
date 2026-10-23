@@ -8,14 +8,14 @@
 				<div class="flex-text-block tw-flex-wrap tw-text-18">
 					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
 					{{if $.IsSigned}}{{/* actually the switch also works for anonymous users, GitHub only shows it for sign-in users */}}
-						<div class="ui custom dropdown" data-global-init="initRepoSwitcher" data-current-full-name="{{.FullName}}" data-tooltip-content="{{ctx.Locale.Tr "repo.switch_repository"}}"
+						<div class="dropdown-container" data-global-init="initRepoSwitcher" data-current-full-name="{{.FullName}}"
 							data-query-url="{{AppSubUrl}}/repo/search?q={query}&uid={{.Owner.ID}}&exclusive=true" {{/* only search the repo owned by "uid" */}}
 						>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu flex-items-menu items-width-limit">
-								<div class="ui icon search input">
-									<input type="text" class="search" autocomplete="off" aria-label="{{ctx.Locale.Tr "repo.switch_repository"}}" placeholder="{{ctx.Locale.Tr "repo.switch_repository.search"}}">
-								</div>
+							<button type="button" class="dropdown-trigger btn" aria-label="{{ctx.Locale.Tr "repo.switch_repository"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.switch_repository"}}">
+								{{svg "octicon-triangle-down" 14}}
+							</button>
+							<div class="dropdown-popup tw-min-w-64 tw-max-w-[min(510px,90vw)]">
+								<input type="search" class="dropdown-filter" aria-label="{{ctx.Locale.Tr "repo.switch_repository"}}" placeholder="{{ctx.Locale.Tr "repo.switch_repository.search"}}">
 							</div>
 						</div>
 					{{end}}

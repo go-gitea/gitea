@@ -9,47 +9,45 @@
 			{{template "shared/search/button"}}
 		</div>
 		<!-- Filter -->
-		<div class="item ui small dropdown">
-			<span>{{ctx.Locale.Tr "filter_title"}}</span>
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			<div class="menu flex-items-menu">
-				<label class="item repo-search-filter-reset js-aria-clickable">{{ctx.Locale.Tr "filter.clear"}}</label>
-				<div class="divider"></div>
-				<label class="item"><input type="radio" name="archived" {{if .IsArchived.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
-				<label class="item"><input type="radio" name="archived" {{if (not (.IsArchived.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_archived"}}</label>
-				<div class="divider"></div>
-				<label class="item"><input type="radio" name="fork" {{if .IsFork.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_fork"}}</label>
-				<label class="item"><input type="radio" name="fork" {{if (not (.IsFork.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_fork"}}</label>
-				<div class="divider"></div>
-				<label class="item"><input type="radio" name="mirror" {{if .IsMirror.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_mirror"}}</label>
-				<label class="item"><input type="radio" name="mirror" {{if (not (.IsMirror.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_mirror"}}</label>
-				<div class="divider"></div>
-				<label class="item"><input type="radio" name="template" {{if .IsTemplate.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_template"}}</label>
-				<label class="item"><input type="radio" name="template" {{if (not (.IsTemplate.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_template"}}</label>
-				<div class="divider"></div>
-				<label class="item"><input type="radio" name="private" {{if .IsPrivate.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.private"}}</label>
-				<label class="item"><input type="radio" name="private" {{if (not (.IsPrivate.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.public"}}</label>
+		<div class="dropdown-container" data-keep-open>
+			<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "filter_title"}} {{svg "octicon-triangle-down" 14}}</button>
+			<div class="dropdown-popup dropdown-popup-small">
+				<label class="dropdown-item repo-search-filter-reset">{{ctx.Locale.Tr "filter.clear"}}</label>
+				<div class="dropdown-divider"></div>
+				<label class="dropdown-item"><input type="radio" name="archived" {{if .IsArchived.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
+				<label class="dropdown-item"><input type="radio" name="archived" {{if (not (.IsArchived.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_archived"}}</label>
+				<div class="dropdown-divider"></div>
+				<label class="dropdown-item"><input type="radio" name="fork" {{if .IsFork.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_fork"}}</label>
+				<label class="dropdown-item"><input type="radio" name="fork" {{if (not (.IsFork.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_fork"}}</label>
+				<div class="dropdown-divider"></div>
+				<label class="dropdown-item"><input type="radio" name="mirror" {{if .IsMirror.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_mirror"}}</label>
+				<label class="dropdown-item"><input type="radio" name="mirror" {{if (not (.IsMirror.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_mirror"}}</label>
+				<div class="dropdown-divider"></div>
+				<label class="dropdown-item"><input type="radio" name="template" {{if .IsTemplate.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_template"}}</label>
+				<label class="dropdown-item"><input type="radio" name="template" {{if (not (.IsTemplate.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.not_template"}}</label>
+				<div class="dropdown-divider"></div>
+				<label class="dropdown-item"><input type="radio" name="private" {{if .IsPrivate.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.private"}}</label>
+				<label class="dropdown-item"><input type="radio" name="private" {{if (not (.IsPrivate.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.public"}}</label>
 			</div>
 		</div>
 		<!-- Sort -->
-		<div class="item ui small dropdown">
-			<span>{{ctx.Locale.Tr "repo.issues.filter_sort"}}</span>
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			<div class="menu">
-				<label class="{{if eq .SortType "newest"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "newest"}}checked{{end}} value="newest"> {{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</label>
-				<label class="{{if eq .SortType "oldest"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "oldest"}}checked{{end}} value="oldest"> {{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</label>
-				<label class="{{if eq .SortType "alphabetically"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "alphabetically"}}checked{{end}} value="alphabetically"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</label>
-				<label class="{{if eq .SortType "reversealphabetically"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "reversealphabetically"}}checked{{end}} value="reversealphabetically"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</label>
-				<label class="{{if eq .SortType "recentupdate"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "recentupdate"}}checked{{end}} value="recentupdate"> {{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</label>
-				<label class="{{if eq .SortType "leastupdate"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "leastupdate"}}checked{{end}} value="leastupdate"> {{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</label>
+		<div class="dropdown-container" data-placement="bottom-end" data-keep-open>
+			<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14}}</button>
+			<div class="dropdown-popup dropdown-popup-small">
+				<label class="{{if eq .SortType "newest"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "newest"}}checked{{end}} value="newest"> {{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</label>
+				<label class="{{if eq .SortType "oldest"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "oldest"}}checked{{end}} value="oldest"> {{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</label>
+				<label class="{{if eq .SortType "alphabetically"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "alphabetically"}}checked{{end}} value="alphabetically"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</label>
+				<label class="{{if eq .SortType "reversealphabetically"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "reversealphabetically"}}checked{{end}} value="reversealphabetically"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</label>
+				<label class="{{if eq .SortType "recentupdate"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "recentupdate"}}checked{{end}} value="recentupdate"> {{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</label>
+				<label class="{{if eq .SortType "leastupdate"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "leastupdate"}}checked{{end}} value="leastupdate"> {{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</label>
 				{{if not .DisableStars}}
-					<label class="{{if eq .SortType "moststars"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "moststars"}}checked{{end}} value="moststars"> {{ctx.Locale.Tr "repo.issues.filter_sort.moststars"}}</label>
-					<label class="{{if eq .SortType "feweststars"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "feweststars"}}checked{{end}} value="feweststars"> {{ctx.Locale.Tr "repo.issues.filter_sort.feweststars"}}</label>
+					<label class="{{if eq .SortType "moststars"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "moststars"}}checked{{end}} value="moststars"> {{ctx.Locale.Tr "repo.issues.filter_sort.moststars"}}</label>
+					<label class="{{if eq .SortType "feweststars"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "feweststars"}}checked{{end}} value="feweststars"> {{ctx.Locale.Tr "repo.issues.filter_sort.feweststars"}}</label>
 				{{end}}
-				<label class="{{if eq .SortType "mostforks"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "mostforks"}}checked{{end}} value="mostforks"> {{ctx.Locale.Tr "repo.issues.filter_sort.mostforks"}}</label>
-				<label class="{{if eq .SortType "fewestforks"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "fewestforks"}}checked{{end}} value="fewestforks"> {{ctx.Locale.Tr "repo.issues.filter_sort.fewestforks"}}</label>
-				<label class="{{if eq .SortType "size"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "size"}}checked{{end}} value="size"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.by_size"}}</label>
-				<label class="{{if eq .SortType "reversesize"}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .SortType "reversesize"}}checked{{end}} value="reversesize"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_by_size"}}</label>
+				<label class="{{if eq .SortType "mostforks"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "mostforks"}}checked{{end}} value="mostforks"> {{ctx.Locale.Tr "repo.issues.filter_sort.mostforks"}}</label>
+				<label class="{{if eq .SortType "fewestforks"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "fewestforks"}}checked{{end}} value="fewestforks"> {{ctx.Locale.Tr "repo.issues.filter_sort.fewestforks"}}</label>
+				<label class="{{if eq .SortType "size"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "size"}}checked{{end}} value="size"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.by_size"}}</label>
+				<label class="{{if eq .SortType "reversesize"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "reversesize"}}checked{{end}} value="reversesize"> {{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_by_size"}}</label>
 			</div>
 		</div>
 	</form>

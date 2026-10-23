@@ -6,40 +6,35 @@
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/request_review?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input type="hidden" class="combo-value" name="reviewer_ids">{{/* match CreateIssueForm */}}
-	<div class="ui dropdown full-width {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}">
-		<a class="fixed-text muted">
+	<div class="dropdown-container tw-w-full" data-keep-open>
+		<button type="button" class="dropdown-trigger btn muted tw-w-full tw-justify-between" {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}>
 			<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong> {{if $data.CanChooseReviewer}}{{svg "octicon-gear"}}{{end}}
-		</a>
-		<div class="menu flex-items-menu">
+		</button>
+		<div class="dropdown-popup issue-sidebar-popup">
 			{{if $hasCandidates}}
-				<div class="ui icon search input">
-					<i class="icon">{{svg "octicon-search"}}</i>
-					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_reviewers"}}">
-				</div>
+				<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.issues.filter_reviewers"}}">
 			{{end}}
-			<div class="scrolling menu flex-items-menu">
-				{{range $data.Reviewers}}
-					{{if .User}}
-						<a class="item muted {{if .Requested}}checked{{end}}" href="{{.User.HomeLink}}" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
-							{{if not .CanChange}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+			{{range $data.Reviewers}}
+				{{if .User}}
+					<a class="dropdown-item item muted {{if .Requested}}checked{{end}}" href="{{.User.HomeLink}}" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
+						{{if not .CanChange}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+						<span class="item-check-mark">{{svg "octicon-check"}}</span>
+						{{ctx.AvatarUtils.Avatar .User 20}} {{template "repo/search_name" .User}}
+					</a>
+				{{end}}
+			{{end}}
+			{{if $data.TeamReviewers}}
+				{{if $data.Reviewers}}<div class="dropdown-divider"></div>{{end}}
+				{{range $data.TeamReviewers}}
+					{{if .Team}}
+						<a class="dropdown-item item muted {{if .Requested}}checked{{end}}" href="#" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
+							{{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 							<span class="item-check-mark">{{svg "octicon-check"}}</span>
-							{{ctx.AvatarUtils.Avatar .User 20}} {{template "repo/search_name" .User}}
+							{{svg "octicon-people" 20}} {{$repoOwnerName}}/{{.Team.Name}}
 						</a>
 					{{end}}
 				{{end}}
-				{{if $data.TeamReviewers}}
-					{{if $data.Reviewers}}<div class="divider"></div>{{end}}
-					{{range $data.TeamReviewers}}
-						{{if .Team}}
-							<a class="item muted {{if .Requested}}checked{{end}}" href="#" data-value="{{.ItemID}}" data-can-change="{{.CanChange}}"
-								{{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-								<span class="item-check-mark">{{svg "octicon-check"}}</span>
-								{{svg "octicon-people" 20}} {{$repoOwnerName}}/{{.Team.Name}}
-							</a>
-						{{end}}
-					{{end}}
-				{{end}}
-			</div>
+			{{end}}
 		</div>
 	</div>
 

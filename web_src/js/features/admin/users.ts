@@ -16,7 +16,8 @@ export function initAdminUserListSearchForm(): void {
     }
   }
 
-  for (const radio of form.querySelectorAll<HTMLInputElement>('input[type=radio]')) {
+  const radios = form.querySelectorAll<HTMLInputElement>('input[type=radio]');
+  for (const radio of radios) {
     radio.addEventListener('click', () => {
       form.submit();
     });
@@ -26,7 +27,7 @@ export function initAdminUserListSearchForm(): void {
   for (const button of resetButtons) {
     button.addEventListener('click', (e) => {
       e.preventDefault();
-      for (const input of form.querySelectorAll<HTMLInputElement>('input[type=radio]')) {
+      for (const input of radios) {
         if (input.name.startsWith('status_filter[')) {
           input.checked = false;
         }

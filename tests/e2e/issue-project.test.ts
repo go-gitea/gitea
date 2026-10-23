@@ -19,12 +19,12 @@ test('assign issue to project and change column', async ({page}) => {
     apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Column picker test'}),
   ]);
   await page.goto(`/${user}/${repoName}/issues/1`);
-  await page.locator('.sidebar-project-combo > .ui.dropdown').click();
-  await page.locator('.sidebar-project-combo > .ui.dropdown .item:has-text("Kanban Board")').click();
-  await page.locator('.sidebar-project-combo > .ui.dropdown').click();
-  await page.locator('.sidebar-project-column-combo .ui.dropdown').click();
-  await page.locator('.sidebar-project-column-combo .ui.dropdown .item:has-text("In Progress")').click();
-  await expect(page.locator('.sidebar-project-column-combo .ui.dropdown .fixed-text')).toHaveText('In Progress');
+  await page.getByRole('button', {name: 'Projects', exact: true}).click();
+  await page.getByRole('menuitem', {name: 'Kanban Board', exact: true}).click();
+  await page.getByRole('button', {name: 'Projects', exact: true}).click();
+  await page.locator('.sidebar-project-column-combo').getByRole('button').click();
+  await page.getByRole('menuitem', {name: 'In Progress', exact: true}).click();
+  await expect(page.locator('.sidebar-project-column-combo').getByRole('button')).toHaveText('In Progress');
   await apiDeleteRepo(page.request, user, repoName);
 });
 
@@ -66,12 +66,12 @@ test('assign issue to multiple projects via sidebar', async ({page}) => {
 
   try {
     // Create two projects via UI
-    const project1 = await createProject(page, {
+    await createProject(page, {
       owner: env.GITEA_TEST_E2E_USER,
       repo: repoName,
       title: project1Title,
     });
-    const project2 = await createProject(page, {
+    await createProject(page, {
       owner: env.GITEA_TEST_E2E_USER,
       repo: repoName,
       title: project2Title,
@@ -88,11 +88,11 @@ test('assign issue to multiple projects via sidebar', async ({page}) => {
     await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/${issue.index}`);
 
     // Open the projects dropdown in the sidebar
-    await page.locator('.sidebar-project-combo > .ui.dropdown').click();
+    await page.getByRole('button', {name: 'Projects', exact: true}).click();
 
     // Select both projects
-    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project1.id}"]`).click();
-    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project2.id}"]`).click();
+    await page.getByRole('menuitem', {name: project1Title, exact: true}).click();
+    await page.getByRole('menuitem', {name: project2Title, exact: true}).click();
 
     // Click outside to close the dropdown and trigger the update
     await page.locator('.issue-content-left').click();
@@ -116,12 +116,12 @@ test('create issue with multiple projects pre-selected', async ({page}) => {
 
   try {
     // Create two projects via UI
-    const project1 = await createProject(page, {
+    await createProject(page, {
       owner: env.GITEA_TEST_E2E_USER,
       repo: repoName,
       title: project1Title,
     });
-    const project2 = await createProject(page, {
+    await createProject(page, {
       owner: env.GITEA_TEST_E2E_USER,
       repo: repoName,
       title: project2Title,
@@ -134,11 +134,11 @@ test('create issue with multiple projects pre-selected', async ({page}) => {
     await page.locator('input[name="title"]').fill(issueTitle);
 
     // Open the projects dropdown
-    await page.locator('.sidebar-project-combo > .ui.dropdown').click();
+    await page.getByRole('button', {name: 'Projects', exact: true}).click();
 
     // Select both projects
-    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project1.id}"]`).click();
-    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project2.id}"]`).click();
+    await page.getByRole('menuitem', {name: project1Title, exact: true}).click();
+    await page.getByRole('menuitem', {name: project2Title, exact: true}).click();
 
     // Click outside to close the dropdown
     await page.locator('.issue-content-left').click();
@@ -260,10 +260,10 @@ test('remove issue from one project keeping others', async ({page}) => {
     await expect(page.locator(`.item.sidebar-project-card.item:has-text("${project2Title}")`)).toBeVisible();
 
     // Open the projects dropdown
-    await page.locator('.sidebar-project-combo > .ui.dropdown').click();
+    await page.getByRole('button', {name: 'Projects', exact: true}).click();
 
     // Deselect project2 (click on the already selected item to deselect)
-    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project2.id}"]`).click();
+    await page.getByRole('menuitem', {name: project2Title, exact: true}).click();
 
     // Click outside to close the dropdown and trigger the update
     await page.locator('.issue-content-left').click();
@@ -408,12 +408,12 @@ test('select projects on new issue page shows in sidebar', async ({page}) => {
 
   try {
     // Create two projects
-    const project1 = await createProject(page, {
+    await createProject(page, {
       owner: env.GITEA_TEST_E2E_USER,
       repo: repoName,
       title: project1Title,
     });
-    const project2 = await createProject(page, {
+    await createProject(page, {
       owner: env.GITEA_TEST_E2E_USER,
       repo: repoName,
       title: project2Title,
@@ -423,11 +423,11 @@ test('select projects on new issue page shows in sidebar', async ({page}) => {
     await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/new`);
 
     // Open the projects dropdown in the sidebar
-    await page.locator('.sidebar-project-combo > .ui.dropdown').click();
+    await page.getByRole('button', {name: 'Projects', exact: true}).click();
 
     // Select both projects
-    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project1.id}"]`).click();
-    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project2.id}"]`).click();
+    await page.getByRole('menuitem', {name: project1Title, exact: true}).click();
+    await page.getByRole('menuitem', {name: project2Title, exact: true}).click();
 
     // Click outside to close dropdown
     await page.locator('.issue-content-left').click();

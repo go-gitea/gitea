@@ -10,23 +10,23 @@
 {{$isCommentPoster := and ctx.RootData.IsSigned (eq ctx.RootData.SignedUserID $item.PosterID) -}}
 {{$canEditContent := or ctx.RootData.Permission.IsAdmin ctx.RootData.HasIssuesOrPullsWritePermission $isCommentPoster -}}
 
-<div class="item action ui dropdown jump pointing top right">
-	{{svg "octicon-kebab-horizontal"}}
-	<div class="menu">
-		<div class="item js-aria-clickable" data-clipboard-text="{{$referenceHTMLURL}}">{{ctx.Locale.Tr "copy_link"}}</div>
-		<div class="item js-aria-clickable" data-clipboard-target="#{{$item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</div>
+<div class="dropdown-container" data-placement="bottom-end">
+	<button type="button" class="dropdown-trigger btn interact-fg tw-p-[4px]" aria-label="{{ctx.Locale.Tr "more_items"}}">{{svg "octicon-kebab-horizontal"}}</button>
+	<div class="dropdown-popup dropdown-popup-inline">
+		<button type="button" class="dropdown-item" data-clipboard-text="{{$referenceHTMLURL}}">{{ctx.Locale.Tr "copy_link"}}</button>
+		<button type="button" class="dropdown-item" data-clipboard-target="#{{$item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</button>
 
 		{{if ctx.RootData.IsSigned}}
 			{{if not ctx.RootData.Repository.IsArchived}}
-				<div class="item js-aria-clickable" data-global-click="onConvContentQuoteReply" data-shortcut-keys="r" data-shortcut-handler="quoteSelectedReply" data-target="{{$item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
+				<button type="button" class="dropdown-item" data-global-click="onConvContentQuoteReply" data-shortcut-keys="r" data-shortcut-handler="quoteSelectedReply" data-target="{{$item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</button>
 				{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
-					<div class="item js-aria-clickable reference-issue" data-target="{{$item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{$item.Poster.GetDisplayName}}" data-poster-username="{{$item.Poster.Name}}" data-reference="{{$referenceHTMLURL}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</div>
+					<button type="button" class="dropdown-item reference-issue" data-target="{{$item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{$item.Poster.GetDisplayName}}" data-poster-username="{{$item.Poster.Name}}" data-reference="{{$referenceHTMLURL}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</button>
 				{{end}}
 				{{if $canEditContent}}
-					<div class="divider"></div>
-					<div class="item js-aria-clickable" data-global-click="onConvContentEdit">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
+					<div class="dropdown-divider"></div>
+					<button type="button" class="dropdown-item" data-global-click="onConvContentEdit">{{ctx.Locale.Tr "repo.issues.context.edit"}}</button>
 					{{if $supportDelete}}
-						<div class="item js-aria-clickable" data-global-click="onConvContentDelete" data-comment-hash-tag={{$item.HashTag}} data-url="{{ctx.RootData.RepoLink}}/comments/{{$item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+						<button type="button" class="dropdown-item" data-global-click="onConvContentDelete" data-comment-hash-tag={{$item.HashTag}} data-url="{{ctx.RootData.RepoLink}}/comments/{{$item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</button>
 					{{end}}
 				{{end}}
 			{{end}}
@@ -34,12 +34,12 @@
 			{{$canUserBlock := call ctx.RootData.CanBlockUser ctx.RootData.SignedUser $item.Poster -}}
 			{{$canOrgBlock := and ctx.RootData.Repository.Owner.IsOrganization (call ctx.RootData.CanBlockUser ctx.RootData.Repository.Owner $item.Poster) -}}
 			{{if or $canOrgBlock $canUserBlock}}
-				<div class="divider"></div>
+				<div class="dropdown-divider"></div>
 				{{if $canUserBlock}}
-				<div class="item js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{$item.Poster.Name}}" data-modal-modal-blockee-name="{{$item.Poster.GetDisplayName}}" data-modal-modal-form.url="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.user"}}</div>
+				<button type="button" class="dropdown-item show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{$item.Poster.Name}}" data-modal-modal-blockee-name="{{$item.Poster.GetDisplayName}}" data-modal-modal-form.url="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.user"}}</button>
 				{{end}}
 				{{if $canOrgBlock}}
-				<div class="item js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{$item.Poster.Name}}" data-modal-modal-blockee-name="{{$item.Poster.GetDisplayName}}" data-modal-modal-form.url="{{ctx.RootData.Repository.Owner.OrganisationLink}}/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.org"}}</div>
+				<button type="button" class="dropdown-item show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{$item.Poster.Name}}" data-modal-modal-blockee-name="{{$item.Poster.GetDisplayName}}" data-modal-modal-form.url="{{ctx.RootData.Repository.Owner.OrganisationLink}}/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.org"}}</button>
 				{{end}}
 			{{end}}
 		{{end}}

@@ -25,7 +25,6 @@ import {
 } from '../utils/time.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 
 type ContributionType = 'commits' | 'additions' | 'deletions';
@@ -111,18 +110,13 @@ let xAxisEnd: number | null = null;
 const xAxisMin = shallowRef<number | null>(null);
 const xAxisMax = shallowRef<number | null>(null);
 
-onMounted(() => {
-  fetchGraphData();
+onMounted(fetchGraphData);
 
-  fomanticQuery('#repo-contributors').dropdown({
-    onChange: (val: ContributionType) => {
-      xAxisMin.value = xAxisStart;
-      xAxisMax.value = xAxisEnd;
-      type.value = val;
-      sortContributors();
-    },
-  });
-});
+function changeContributionType() {
+  xAxisMin.value = xAxisStart;
+  xAxisMax.value = xAxisEnd;
+  sortContributors();
+}
 
 function sortContributors() {
   const criteria = `total_${type.value}` as const;
@@ -376,25 +370,15 @@ const contributorCharts = computed(() => sortedContributors.value.map((contribut
           {{ new Date(xAxisMax) }}
         </relative-time>
       </div>
-      <div>
-        <!-- Contribution type -->
-        <div class="ui floating dropdown jump" id="repo-contributors">
-          <div class="ui basic compact button">
-            <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
-            <svg-icon name="octicon-triangle-down" :size="14"/>
-          </div>
-          <div class="left menu">
-            <div :class="['item', {'selected': type === 'commits'}]" data-value="commits">
-              {{ locale.contributionType.commits }}
-            </div>
-            <div :class="['item', {'selected': type === 'additions'}]" data-value="additions">
-              {{ locale.contributionType.additions }}
-            </div>
-            <div :class="['item', {'selected': type === 'deletions'}]" data-value="deletions">
-              {{ locale.contributionType.deletions }}
-            </div>
-          </div>
-        </div>
+      <div class="ui form">
+        <label class="flex-text-block">
+          <span class="not-mobile">{{ locale.filterLabel }}</span>
+          <select v-model="type" @change="changeContributionType()" :aria-label="locale.filterLabel">
+            <option value="commits">{{ locale.contributionType.commits }}</option>
+            <option value="additions">{{ locale.contributionType.additions }}</option>
+            <option value="deletions">{{ locale.contributionType.deletions }}</option>
+          </select>
+        </label>
       </div>
     </div>
     <div class="tw-flex ui segment main-graph">

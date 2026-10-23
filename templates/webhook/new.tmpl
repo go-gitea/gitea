@@ -1,11 +1,11 @@
 <h4 class="ui top attached header">
 	{{.CustomHeaderTitle}}
-	<div class="ui right type dropdown">
-		<div class="text flex-text-inline">
+	<div class="ui right dropdown-container" data-placement="bottom-end">
+		<button type="button" class="dropdown-trigger btn">
 			{{template "shared/webhook/icon" (dict "Size" 20 "HookType" ctx.RootData.HookType)}}
 			{{ctx.Locale.Tr (print "repo.settings.web_hook_name_" ctx.RootData.HookType)}}
-		</div>
-		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			{{svg "octicon-triangle-down" 14}}
+		</button>
 		{{template "repo/settings/webhook/link_menu" ctx.RootData}}
 	</div>
 </h4>

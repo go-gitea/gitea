@@ -1,0 +1,166 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<h2>Menu</h2>
+	<div class="flex-text-block tw-flex-wrap">
+		<div class="dropdown-container">
+			<button type="button" class="dropdown-trigger btn">Text trigger {{svg "octicon-triangle-down" 14}}</button>
+			<div class="dropdown-popup">
+				<div class="dropdown-header">Header</div>
+				<a class="dropdown-item" href="#link">{{svg "octicon-link"}} Link</a>
+				<a class="dropdown-item active" href="#current">{{svg "octicon-check"}} Current page</a>
+				<div class="dropdown-divider"></div>
+				<button type="button" class="dropdown-item" data-tooltip-content="Tooltip on an item">Button with tooltip</button>
+				<div class="dropdown-item" aria-disabled="true">Disabled</div>
+			</div>
+		</div>
+		<div class="dropdown-container" data-placement="bottom-end">
+			<button type="button" class="dropdown-trigger ui small button" data-tooltip-content="Tooltip on the trigger">End placement {{svg "octicon-triangle-down" 14}}</button>
+			<div class="dropdown-popup">
+				<div class="dropdown-item">An item with a long text to align the popup to the end</div>
+				<div class="dropdown-item">Short</div>
+			</div>
+		</div>
+		<div class="ui small buttons">
+			<button type="button" class="ui button">Button group</button>
+			<div class="dropdown-container" data-placement="bottom-end">
+				<button type="button" class="dropdown-trigger ui icon button">{{svg "octicon-triangle-down" 14}}</button>
+				<div class="dropdown-popup">
+					<div class="dropdown-item">Item</div>
+				</div>
+			</div>
+		</div>
+		<div class="dropdown-container" data-keep-open>
+			<button type="button" class="dropdown-trigger ui small button">Keep open {{svg "octicon-triangle-down" 14}}</button>
+			<div class="dropdown-popup">
+				<label class="dropdown-item"><input type="checkbox"> Checkbox 1</label>
+				<label class="dropdown-item"><input type="checkbox"> Checkbox 2</label>
+			</div>
+		</div>
+		<div class="dropdown-container">
+			<button type="button" class="dropdown-trigger ui small button" disabled>Disabled {{svg "octicon-triangle-down" 14}}</button>
+			<div class="dropdown-popup"></div>
+		</div>
+	</div>
+
+	<h2>Select</h2>
+	<div class="ui form">
+		<div class="field">
+			<label>Placeholder and clear item</label>
+			<div class="dropdown-container" data-kind="select">
+				<button type="button" class="dropdown-trigger dropdown-field">
+					<span class="dropdown-text" data-placeholder="Pick a fruit">Pick a fruit</span>
+					{{svg "octicon-triangle-down" 14}}
+				</button>
+				<input type="hidden" class="dropdown-value" name="fruit" value="">
+				<div class="dropdown-popup">
+					<div class="dropdown-item" data-value="">Clear selection</div>
+					<div class="dropdown-divider"></div>
+					<div class="dropdown-item" data-value="apple">Apple</div>
+					<div class="dropdown-item" data-value="banana">Banana</div>
+					<div class="dropdown-item" data-value="cherry" aria-disabled="true">Cherry</div>
+				</div>
+			</div>
+		</div>
+		<div class="field">
+			<label>Filter and rich items</label>
+			<div class="dropdown-container" data-kind="select">
+				<button type="button" class="dropdown-trigger dropdown-field">
+					<span class="dropdown-text">{{svg "octicon-repo"}} Repository 1</span>
+					{{svg "octicon-triangle-down" 14}}
+				</button>
+				<input type="hidden" class="dropdown-value" name="repo" value="1">
+				<div class="dropdown-popup">
+					<input class="dropdown-filter" type="search" placeholder="Filter repositories">
+					{{range $i := 30}}
+					<div class="dropdown-item" data-value="{{$i}}">{{svg "octicon-repo"}} Repository {{$i}}</div>
+					{{end}}
+				</div>
+			</div>
+		</div>
+		<div class="field">
+			<label>Scoped dividers</label>
+			<div class="dropdown-container" data-kind="select">
+				<button type="button" class="dropdown-trigger dropdown-field">
+					<span class="dropdown-text" data-placeholder="Pick a label">Pick a label</span>
+					{{svg "octicon-triangle-down" 14}}
+				</button>
+				<input type="hidden" class="dropdown-value" name="label" value="">
+				<div class="dropdown-popup">
+					<input class="dropdown-filter" type="search" placeholder="Filter labels">
+					<div class="dropdown-item" data-value="bug">bug</div>
+					<div class="dropdown-divider" data-scope="kind"></div>
+					<div class="dropdown-item" data-value="kind/feature" data-scope="kind">kind/feature</div>
+					<div class="dropdown-item" data-value="kind/docs" data-scope="kind">kind/docs</div>
+					<div class="dropdown-divider" data-scope="priority"></div>
+					<div class="dropdown-item" data-value="priority/high" data-scope="priority">priority/high</div>
+					<div class="dropdown-divider"></div>
+					<div class="dropdown-item" data-value="wontfix">wontfix</div>
+				</div>
+			</div>
+		</div>
+		<div class="field">
+			<label>Multiselect</label>
+			<div class="dropdown-container" data-kind="multiselect">
+				<button type="button" class="dropdown-trigger dropdown-field">
+					<span class="dropdown-text" data-placeholder="Pick colors">Red, Blue</span>
+					{{svg "octicon-triangle-down" 14}}
+				</button>
+				<input type="hidden" class="dropdown-value" name="colors" value="red,blue">
+				<div class="dropdown-popup">
+					<input class="dropdown-filter" type="search" placeholder="Filter colors">
+					<div class="dropdown-item" data-value="red">Red</div>
+					<div class="dropdown-item" data-value="green">Green</div>
+					<div class="dropdown-item" data-value="blue">Blue</div>
+				</div>
+			</div>
+		</div>
+		<div class="field">
+			<label>Remote items, type "error" to fail the request</label>
+			<div class="dropdown-container" data-kind="select" data-global-init="initDevtestDropdownRemote">
+				<button type="button" class="dropdown-trigger dropdown-field">
+					<span class="dropdown-text" data-placeholder="Search remote items">Search remote items</span>
+					{{svg "octicon-triangle-down" 14}}
+				</button>
+				<input type="hidden" class="dropdown-value" name="remote" value="">
+				<div class="dropdown-popup">
+					<input class="dropdown-filter" type="search" placeholder="Search">
+				</div>
+			</div>
+		</div>
+		<div class="inline field">
+			<label>Inline field</label>
+			<div class="dropdown-container" data-kind="select">
+				<button type="button" class="dropdown-trigger dropdown-field">
+					<span class="dropdown-text">One</span>
+					{{svg "octicon-triangle-down" 14}}
+				</button>
+				<input type="hidden" class="dropdown-value" name="inline" value="1">
+				<div class="dropdown-popup">
+					<div class="dropdown-item" data-value="1">One</div>
+					<div class="dropdown-item" data-value="2">Two</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<h2>In a modal</h2>
+	<button type="button" class="ui button show-modal" data-modal="#devtest-dropdown-modal">Show modal</button>
+	<dialog class="modal-dialog" id="devtest-dropdown-modal">
+		<div class="header">Modal</div>
+		<div class="content">
+			<div class="dropdown-container" data-kind="select">
+				<button type="button" class="dropdown-trigger dropdown-field">
+					<span class="dropdown-text">One</span>
+					{{svg "octicon-triangle-down" 14}}
+				</button>
+				<input type="hidden" class="dropdown-value" name="modal" value="1">
+				<div class="dropdown-popup">
+					{{range $i := 20}}
+					<div class="dropdown-item" data-value="{{$i}}">Item {{$i}}</div>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	</dialog>
+</div>
+{{template "devtest/devtest-footer"}}

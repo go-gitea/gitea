@@ -1,11 +1,10 @@
-.dashboard.feeds .context.user.menu,
-.dashboard.issues .context.user.menu {
-  z-index: 101;
-  min-width: 200px;
+.dashboard-context-text > .avatar {
+  margin-block: -0.25rem;
 }
 
-.dashboard.issues .context.user.menu .ui.header {
-  font-size: 1rem;
+.context-user-switch,
+.dashboard-team-popup {
+  min-width: 200px;
 }
 
 .dashboard.issues .filter.menu {
@@ -17,19 +16,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-/* Sort */
-.dashboard.issues .filter.menu .jump.item {
-  margin: 1px;
-  padding-right: 0;
-}
-
-.dashboard.issues .filter.menu .menu {
-  max-height: 300px;
-  overflow-x: auto;
-  right: 0 !important;
-  left: auto !important;
 }
 
 @media (max-width: 767.98px) {
@@ -51,10 +37,10 @@
   padding: 1px 12px; /* match .overflow-menu-items in height */
 }
 
-.dashboard .secondary-nav .org-visibility .label {
-  margin-left: 5px;
+.tippy-box[data-theme="dropdown"][data-placement^="bottom"]:has(.context-user-switch, .dashboard-team-popup) {
+  translate: 0 1px;
 }
 
-.dashboard .secondary-nav .ui.dropdown {
-  max-width: 100%;
+.context-user-switch .dropdown-header {
+  margin-bottom: calc(0.75rem + 5px);
 }

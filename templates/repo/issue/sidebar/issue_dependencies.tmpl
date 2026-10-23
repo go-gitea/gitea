@@ -111,11 +111,15 @@
 			<div>
 				<form method="post" action="{{.Issue.Link}}/dependency/add" id="addDependencyForm" class="form-fetch-action">
 					<div class="ui fluid action input">
-						<div class="ui search selection dropdown custom" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}" data-issue-cross-repo-search="{{.AllowCrossRepositoryDependencies}}">
-							<input name="newDependency" type="hidden">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<input type="text" class="search">
-							<div class="default text">{{ctx.Locale.Tr "repo.issues.dependency.add"}}</div>
+						<div class="dropdown-container" data-kind="select" data-placement="top-start" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}" data-issue-cross-repo-search="{{.AllowCrossRepositoryDependencies}}">
+							<button type="button" class="dropdown-trigger dropdown-field">
+								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.issues.dependency.add"}}">{{ctx.Locale.Tr "repo.issues.dependency.add"}}</span>
+								{{svg "octicon-triangle-down" 14}}
+							</button>
+							<input name="newDependency" type="hidden" class="dropdown-value">
+							<div class="dropdown-popup issue-sidebar-popup">
+								<input type="search" class="dropdown-filter" placeholder="{{ctx.Locale.Tr "repo.issues.dependency.add"}}">
+							</div>
 						</div>
 						<button type="submit" class="ui icon button">
 							{{svg "octicon-plus"}}

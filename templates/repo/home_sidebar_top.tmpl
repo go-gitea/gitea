@@ -30,13 +30,16 @@
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
 			<button type="button" id="manage_topic" class="btn interact-fg tw-mb-2 tw-text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>
 			<div class="ui form tw-hidden tw-my-2" id="topic_edit">
-				<div class="ui fluid multiple search selection dropdown tw-flex-wrap tw-flex-1">
-					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
-					{{range .Topics}}
-						{{/* keep the same layout as Fomantic UI generated labels */}}
-						<a class="ui label transition visible tw-cursor-default tw-inline-block repo-topic" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
-					{{end}}
-					<div class="text"></div>
+				<div class="repo-topic-chips flex-text-block tw-flex-wrap tw-gap-1 tw-mb-2"></div>
+				<div class="dropdown-container tw-w-full" data-kind="multiselect">
+					<button type="button" class="dropdown-trigger dropdown-field">
+						{{ctx.Locale.Tr "repo.topic.manage_topics"}}
+						{{svg "octicon-triangle-down" 14}}
+					</button>
+					<input type="hidden" class="dropdown-value" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
+					<div class="dropdown-popup">
+						<input type="search" class="dropdown-filter" aria-label="{{ctx.Locale.Tr "repo.topic.manage_topics"}}" placeholder="{{ctx.Locale.Tr "search.search"}}">
+					</div>
 				</div>
 				<div class="tw-my-2">
 					<button type="button" class="ui primary button" id="save_topic" data-link="{{.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>

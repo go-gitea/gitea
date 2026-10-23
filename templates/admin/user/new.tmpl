@@ -12,53 +12,28 @@
 				</div>
 				<div class="required field">
 					<label for="user_type">{{ctx.Locale.Tr "admin.users.user_type"}}</label>
-					<div class="ui selection type dropdown">
-						<input type="hidden" id="user_type" name="user_type" value="{{.user_type}}" required>
-						<div class="text">{{ctx.Locale.Tr "concept_user_user"}}</div>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							<div class="item" data-value="User">{{ctx.Locale.Tr "concept_user_user"}}</div>
-							<div class="item" data-value="Bot">{{ctx.Locale.Tr "concept_user_bot"}}</div>
-						</div>
-					</div>
+					<select id="user_type" name="user_type" required>
+						<option value="User" {{if eq $.user_type "User"}}selected{{end}}>{{ctx.Locale.Tr "concept_user_user"}}</option>
+						<option value="Bot" {{if eq $.user_type "Bot"}}selected{{end}}>{{ctx.Locale.Tr "concept_user_bot"}}</option>
+					</select>
 				</div>
 				<div class="required field js-non-bot {{if .Err_LoginType}}error{{end}}">
 					<label for="login_type">{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
-					<div class="ui selection type dropdown">
-						<input type="hidden" id="login_type" name="login_type" value="{{.login_type}}" required>
-						<div class="text">{{ctx.Locale.Tr "admin.users.local"}}</div>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							<div class="item" data-value="0-0">{{ctx.Locale.Tr "admin.users.local"}}</div>
-							{{range .Sources}}
-								<div class="item" data-value="{{.Type.Int}}-{{.ID}}">{{.Name}}</div>
-							{{end}}
-						</div>
-					</div>
+					<select id="login_type" name="login_type" required>
+						<option value="0-0" {{if eq $.login_type "0-0"}}selected{{end}}>{{ctx.Locale.Tr "admin.users.local"}}</option>
+						{{range .Sources}}
+							<option value="{{.Type.Int}}-{{.ID}}" {{if eq $.login_type (printf "%d-%d" .Type.Int .ID)}}selected{{end}}>{{.Name}}</option>
+						{{end}}
+					</select>
 				</div>
 
 				<div class="required field {{if .Err_Visibility}}error{{end}}">
 					<label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label>
-					<div class="ui selection type dropdown">
-						<input type="hidden" id="visibility" name="visibility" value="{{if .visibility}}{{printf "%d" .visibility}}{{else}}{{printf "%d" .DefaultUserVisibilityMode}}{{end}}">
-						<div class="text">
-							{{if .DefaultUserVisibilityMode.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
-							{{if .DefaultUserVisibilityMode.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}
-							{{if .DefaultUserVisibilityMode.IsPrivate}}{{ctx.Locale.Tr "settings.visibility.private"}}{{end}}
-						</div>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							{{range $mode := .AllowedUserVisibilityModes}}
-								{{if $mode.IsPublic}}
-									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{ctx.Locale.Tr "settings.visibility.public"}}</div>
-								{{else if $mode.IsLimited}}
-									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{ctx.Locale.Tr "settings.visibility.limited"}}</div>
-								{{else if $mode.IsPrivate}}
-									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{ctx.Locale.Tr "settings.visibility.private"}}</div>
-								{{end}}
-							{{end}}
-						</div>
-					</div>
+					<select id="visibility" name="visibility">
+						{{range $mode := .AllowedUserVisibilityModes}}
+							<option value="{{printf "%d" $mode}}" {{if eq (Iif $.visibility $.visibility $.DefaultUserVisibilityMode) $mode}}selected{{end}} title="{{ctx.Locale.Tr (printf "settings.visibility.%s_tooltip" $mode.String)}}">{{ctx.Locale.Tr (print "settings.visibility." $mode.String)}}</option>
+						{{end}}
+					</select>
 				</div>
 
 				<div class="required js-non-local js-non-bot field {{if .Err_LoginName}}error{{end}} {{if eq .login_type "0-0"}}tw-hidden{{end}}">

@@ -87,12 +87,6 @@ func (source *Source) ToDB() ([]byte, error) {
 	return json.Marshal(source)
 }
 
-// SecurityProtocolName returns the name of configured security
-// protocol.
-func (source *Source) SecurityProtocolName() string {
-	return SecurityProtocolNames[source.SecurityProtocol]
-}
-
 // IsSkipVerify returns if SkipVerify is set
 func (source *Source) IsSkipVerify() bool {
 	return source.SkipVerify

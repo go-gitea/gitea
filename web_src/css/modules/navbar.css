@@ -12,7 +12,8 @@
 }
 
 #navbar > .item,
-#navbar > .navbar-list > .item {
+#navbar > .navbar-list > .item,
+#navbar > .navbar-list > .dropdown-container > .item {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -29,17 +30,23 @@
 }
 
 #navbar > .item.active,
-#navbar > .navbar-list > .item.active {
+#navbar > .navbar-list > .item.active,
+#navbar > .navbar-list > .dropdown-container > .item[aria-expanded="true"] {
   background: var(--color-active);
 }
 
 #navbar > .item:hover,
-#navbar > .navbar-list > .item:hover {
+#navbar > .navbar-list > .item:hover,
+#navbar > .navbar-list > .dropdown-container > .item:hover {
   background: var(--color-nav-hover-bg);
 }
 
-#navbar > .navbar-list > .item.ui.dropdown {
+#navbar > .navbar-list > .dropdown-container > .item {
   padding-right: 5px;
+  gap: var(--gap-block);
+  background: none;
+  border: none;
+  text-align: left;
 }
 
 #navbar > .navbar-left {
@@ -63,6 +70,9 @@
     width: 100%;
     flex-direction: column;
     align-items: stretch;
+  }
+  .navbar-list > .dropdown-container > .item {
+    width: 100%;
   }
   .navbar-left {
     margin-top: 5px;
@@ -126,4 +136,10 @@
 .issue-navbar {
   display: flex;
   justify-content: space-between;
+}
+
+.user-menu .dropdown-header {
+  margin-bottom: 4px;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-secondary);
 }

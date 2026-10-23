@@ -36,16 +36,16 @@
 								<form class="tw-float-right" method="post" action="{{AppSubUrl}}/-/admin/notices/empty">
 									<button type="submit" class="ui red small button">{{ctx.Locale.Tr "admin.notices.delete_all"}}</button>
 								</form>
-								<div class="ui floating upward dropdown small button">
-									<span class="text">{{ctx.Locale.Tr "admin.notices.operations"}}</span>
-									<div class="menu">
-										<div class="item select action" data-action="select-all">
+								<div class="dropdown-container" data-placement="top-start">
+									<button type="button" class="dropdown-trigger ui small button">{{ctx.Locale.Tr "admin.notices.operations"}}</button>
+									<div class="dropdown-popup">
+										<div class="dropdown-item select action" data-action="select-all">
 											{{ctx.Locale.Tr "admin.notices.select_all"}}
 										</div>
-										<div class="item select action" data-action="deselect-all">
+										<div class="dropdown-item select action" data-action="deselect-all">
 											{{ctx.Locale.Tr "admin.notices.deselect_all"}}
 										</div>
-										<div class="item select action" data-action="inverse">
+										<div class="dropdown-item select action" data-action="inverse">
 											{{ctx.Locale.Tr "admin.notices.inverse_selection"}}
 										</div>
 									</div>

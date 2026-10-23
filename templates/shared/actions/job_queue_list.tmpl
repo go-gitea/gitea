@@ -6,42 +6,33 @@
 		<strong>{{ctx.Locale.Tr "actions.job_queue.title"}} ({{ctx.Locale.Tr "admin.total" .JobQueueTotal}})</strong>
 		<div class="ui secondary filter menu flex-text-block tw-m-0" id="actions-job-queue-filter">
 			{{if .ShowRepoColumn}}
-			<div class="ui{{if not .JobQueueFilterOwners}} disabled{{end}} dropdown jump item">
-				<span class="text">{{if .JobQueueFilterOwnerName}}{{.JobQueueFilterOwnerName}}{{else}}{{ctx.Locale.Tr "repo.owner"}}{{end}}</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="menu">
-					<div class="ui icon search input">
-						<i class="icon">{{svg "octicon-search"}}</i>
-						<input type="text" placeholder="{{ctx.Locale.Tr "repo.owner"}}">
-					</div>
-					<a class="item{{if not .JobQueueFilterOwnerID}} selected{{end}}" href="?status={{.JobQueueFilterStatus}}">{{ctx.Locale.Tr "actions.job_queue.filter_owner_no_select"}}</a>
+			<div class="dropdown-container">
+				<button type="button" class="dropdown-trigger item"{{if not .JobQueueFilterOwners}} disabled{{end}}>{{if .JobQueueFilterOwnerName}}{{.JobQueueFilterOwnerName}}{{else}}{{ctx.Locale.Tr "repo.owner"}}{{end}} {{svg "octicon-triangle-down" 14}}</button>
+				<div class="dropdown-popup">
+					<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.owner"}}">
+					<a class="dropdown-item{{if not .JobQueueFilterOwnerID}} active{{end}}" href="?status={{.JobQueueFilterStatus}}">{{ctx.Locale.Tr "actions.job_queue.filter_owner_no_select"}}</a>
 					{{range .JobQueueFilterOwners}}
-						<a class="item{{if eq .ID $.JobQueueFilterOwnerID}} selected{{end}}" href="?owner_id={{.ID}}&status={{$.JobQueueFilterStatus}}">{{.Name}}</a>
+						<a class="dropdown-item{{if eq .ID $.JobQueueFilterOwnerID}} active{{end}}" href="?owner_id={{.ID}}&status={{$.JobQueueFilterStatus}}">{{.Name}}</a>
 					{{end}}
 				</div>
 			</div>
-			<div class="ui{{if not .JobQueueFilterRepos}} disabled{{end}} dropdown jump item">
-				<span class="text">{{if .JobQueueFilterRepoName}}{{.JobQueueFilterRepoName}}{{else}}{{ctx.Locale.Tr "repository"}}{{end}}</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="menu">
-					<div class="ui icon search input">
-						<i class="icon">{{svg "octicon-search"}}</i>
-						<input type="text" placeholder="{{ctx.Locale.Tr "repository"}}">
-					</div>
-					<a class="item{{if not .JobQueueFilterRepoID}} selected{{end}}" href="?owner_id={{.JobQueueFilterOwnerID}}&status={{.JobQueueFilterStatus}}">{{ctx.Locale.Tr "actions.job_queue.filter_repo_no_select"}}</a>
+			<div class="dropdown-container">
+				<button type="button" class="dropdown-trigger item"{{if not .JobQueueFilterRepos}} disabled{{end}}>{{if .JobQueueFilterRepoName}}{{.JobQueueFilterRepoName}}{{else}}{{ctx.Locale.Tr "repository"}}{{end}} {{svg "octicon-triangle-down" 14}}</button>
+				<div class="dropdown-popup">
+					<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repository"}}">
+					<a class="dropdown-item{{if not .JobQueueFilterRepoID}} active{{end}}" href="?owner_id={{.JobQueueFilterOwnerID}}&status={{.JobQueueFilterStatus}}">{{ctx.Locale.Tr "actions.job_queue.filter_repo_no_select"}}</a>
 					{{range .JobQueueFilterRepos}}
-						<a class="item{{if eq .ID $.JobQueueFilterRepoID}} selected{{end}}" href="?repo_id={{.ID}}&status={{$.JobQueueFilterStatus}}">{{.FullName}}</a>
+						<a class="dropdown-item{{if eq .ID $.JobQueueFilterRepoID}} active{{end}}" href="?repo_id={{.ID}}&status={{$.JobQueueFilterStatus}}">{{.FullName}}</a>
 					{{end}}
 				</div>
 			</div>
 			{{end}}
-			<div class="ui dropdown jump item">
-				<span class="text">{{if .JobQueueFilterStatus}}{{ctx.Locale.Tr (printf "actions.status.%s" .JobQueueFilterStatus)}}{{else}}{{ctx.Locale.Tr "actions.runs.status"}}{{end}}</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="menu">
-					<a class="item{{if not .JobQueueFilterStatus}} selected{{end}}" href="?owner_id={{.JobQueueFilterOwnerID}}&repo_id={{.JobQueueFilterRepoID}}">{{ctx.Locale.Tr "actions.runs.status_no_select"}}</a>
+			<div class="dropdown-container">
+				<button type="button" class="dropdown-trigger item">{{if .JobQueueFilterStatus}}{{ctx.Locale.Tr (printf "actions.status.%s" .JobQueueFilterStatus)}}{{else}}{{ctx.Locale.Tr "actions.runs.status"}}{{end}} {{svg "octicon-triangle-down" 14}}</button>
+				<div class="dropdown-popup">
+					<a class="dropdown-item{{if not .JobQueueFilterStatus}} active{{end}}" href="?owner_id={{.JobQueueFilterOwnerID}}&repo_id={{.JobQueueFilterRepoID}}">{{ctx.Locale.Tr "actions.runs.status_no_select"}}</a>
 					{{range $status := .JobQueueFilterStatuses}}
-						<a class="item{{if eq $status $.JobQueueFilterStatus}} selected{{end}}" href="?owner_id={{$.JobQueueFilterOwnerID}}&repo_id={{$.JobQueueFilterRepoID}}&status={{$status}}">
+						<a class="dropdown-item{{if eq $status $.JobQueueFilterStatus}} active{{end}}" href="?owner_id={{$.JobQueueFilterOwnerID}}&repo_id={{$.JobQueueFilterRepoID}}&status={{$status}}">
 							<span class="flex-text-inline tw-gap-2">
 								{{template "repo/icons/action_status" (dict "Status" $status)}}
 								{{ctx.Locale.Tr (printf "actions.status.%s" $status)}}

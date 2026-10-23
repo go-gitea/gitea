@@ -5,14 +5,10 @@
 * SupportArchivedLabel, if true, then it needs "archived_labels" from query string
 */}}
 {{$queryLink := .QueryLink}}
-<div class="item ui dropdown jump {{if not .Labels}}disabled{{end}} label-filter">
-	<span class="text">{{ctx.Locale.Tr "repo.issues.filter_label"}}</span>
-	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu flex-items-menu">
-		<div class="ui icon search input">
-			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_label"}}">
-		</div>
+<div class="dropdown-container label-filter" data-placement="bottom-start">
+	<button type="button" class="dropdown-trigger item btn" {{if not .Labels}}disabled{{end}}>{{ctx.Locale.Tr "repo.issues.filter_label"}} {{svg "octicon-triangle-down" 14}}</button>
+	<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
+		<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.issues.filter_label"}}">
 		{{if .SupportArchivedLabel}}{{/* this checkbox has a hard dependency with the "labels" and "archived_label" query parameter */}}
 		<label class="label-filter-archived-toggle flex-text-block">
 			<input type="checkbox"> {{ctx.Locale.Tr "repo.issues.label_archived_filter"}}
@@ -20,9 +16,9 @@
 		</label>
 		{{end}}
 		<span class="label-filter-exclude-info">{{ctx.Locale.Tr "repo.issues.filter_label_exclude"}}</span>
-		<div class="divider"></div>
-		<a class="item label-filter-query-default" href="{{QueryBuild $queryLink "labels" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_label_no_select"}}</a>
-		<a class="item label-filter-query-not-set" href="{{QueryBuild $queryLink "labels" "0"}}">{{ctx.Locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
+		<div class="dropdown-divider"></div>
+		<a class="dropdown-item label-filter-query-default" href="{{QueryBuild $queryLink "labels" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_label_no_select"}}</a>
+		<a class="dropdown-item label-filter-query-not-set" href="{{QueryBuild $queryLink "labels" "0"}}">{{ctx.Locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
 		{{/* The logic here is not the same as the label selector in the issue sidebar.
 		The one in the issue sidebar renders "repo labels | divider | org labels".
 		Maybe the logic should be updated to be consistent.*/}}
@@ -30,10 +26,10 @@
 		{{range .Labels}}
 			{{$exclusiveScope := .ExclusiveScope}}
 			{{if and (ne $previousExclusiveScope $exclusiveScope)}}
-				<div class="divider" data-scope="{{.ExclusiveScope}}"></div>
+				<div class="dropdown-divider" data-scope="{{.ExclusiveScope}}"></div>
 			{{end}}
 			{{$previousExclusiveScope = $exclusiveScope}}
-			<a class="item label-filter-query-item" data-label-id="{{.ID}}" data-scope="{{.ExclusiveScope}}" {{if .IsArchived}}data-is-archived{{end}}
+			<a class="dropdown-item label-filter-query-item" data-label-id="{{.ID}}" data-scope="{{.ExclusiveScope}}" {{if .IsArchived}}data-is-archived{{end}}
 				href="{{QueryBuild $queryLink "labels" .QueryString}}">
 				{{if .IsExcluded}}
 					{{svg "octicon-circle-slash"}}

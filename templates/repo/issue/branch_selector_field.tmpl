@@ -17,47 +17,39 @@ Still needs to figure out:
 */}}
 {{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
 {{$canChangeRef := or .IsIssuePoster .HasIssuesOrPullsWritePermission}}
-<input id="ref_selector" name="ref" type="hidden" value="{{.Reference}}">
-<div class="ui dropdown select-branch branch-selector-dropdown ellipsis-text-items {{if not $canChangeRef}}disabled{{end}}"
-	data-no-results="{{ctx.Locale.Tr "no_results_found"}}"
+<div class="dropdown-container select-branch" data-kind="select"
 	{{if and .Issue $canChangeRef}}data-url-update-issueref="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref"{{end}}
 >
-	<div class="ui button branch-dropdown-button">
-		<span class="text-branch-name gt-ellipsis">{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
-		{{if $canChangeRef}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}{{end}}
-	</div>
-	<div class="menu">
-		<div class="ui icon search input">
-			<i class="icon">{{svg "octicon-filter" 16}}</i>
-			<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
-		</div>
+	<button type="button" class="dropdown-trigger dropdown-button-inline ui button branch-dropdown-button tw-max-w-full" {{if not $canChangeRef}}disabled{{end}}>
+		<span class="dropdown-text gt-ellipsis tw-text-text" data-placeholder="{{ctx.Locale.Tr "repo.issues.no_ref"}}">{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
+		{{if $canChangeRef}}{{svg "octicon-triangle-down" 14}}{{end}}
+	</button>
+	<input class="dropdown-value" name="ref" type="hidden" value="{{.Reference}}">
+	<div class="dropdown-popup issue-branch-popup">
+		<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 		<div class="branch-tag-tab">
-			<button type="button" class="btn branch-tag-item reference column active" data-target="#branch-list">
+			<button type="button" class="btn branch-tag-item active" data-target=".branch-list">
 				{{svg "octicon-git-branch" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.branches"}}
 			</button>
-			<button type="button" class="btn branch-tag-item reference column" data-target="#tag-list">
+			<button type="button" class="btn branch-tag-item" data-target=".tag-list">
 				{{svg "octicon-tag" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.tags"}}
 			</button>
 		</div>
-		<div class="branch-tag-divider"></div>
-		<div id="branch-list" class="scrolling menu reference-list-menu">
+		<div class="dropdown-divider branch-tag-divider"></div>
+		<div class="reference-list-menu branch-list">
 			{{if or .Reference (not .Issue)}}
-				<div class="item tw-text-xs" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong>{{ctx.Locale.Tr "repo.clear_ref"}}</strong></div>
+				<div class="dropdown-item tw-text-xs" data-value="" data-text="{{ctx.Locale.Tr "repo.issues.no_ref"}}"><strong>{{ctx.Locale.Tr "repo.clear_ref"}}</strong></div>
 			{{end}}
 			{{range .Branches}}
-				<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector" title="{{.}}">{{.}}</div>
-			{{else}}
-				<div class="item disabled">{{ctx.Locale.Tr "no_results_found"}}</div>
+				<div class="dropdown-item" data-value="refs/heads/{{.}}" title="{{.}}">{{.}}</div>
 			{{end}}
 		</div>
-		<div id="tag-list" class="scrolling menu reference-list-menu tw-hidden">
+		<div class="reference-list-menu tag-list tw-hidden">
 			{{if or .Reference (not .Issue)}}
-				<div class="item tw-text-xs" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong>{{ctx.Locale.Tr "repo.clear_ref"}}</strong></div>
+				<div class="dropdown-item tw-text-xs" data-value="" data-text="{{ctx.Locale.Tr "repo.issues.no_ref"}}"><strong>{{ctx.Locale.Tr "repo.clear_ref"}}</strong></div>
 			{{end}}
 			{{range .Tags}}
-				<div class="item" data-id="refs/tags/{{.}}" data-name="tags/{{.}}" data-id-selector="#ref_selector">{{.}}</div>
-			{{else}}
-				<div class="item disabled">{{ctx.Locale.Tr "no_results_found"}}</div>
+				<div class="dropdown-item" data-value="refs/tags/{{.}}" data-text="tags/{{.}}">{{.}}</div>
 			{{end}}
 		</div>
 	</div>

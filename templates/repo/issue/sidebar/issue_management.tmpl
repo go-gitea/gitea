@@ -52,22 +52,17 @@
 					</div>
 
 					<div class="field">
-						<div class="ui fluid dropdown selection">
-							<input type="hidden" name="reason">
-							<div class="text"></div> {{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
-								<div class="item" data-value=""></div>
-								{{range .LockReasons}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
-								{{end}}
-							</div>
-						</div>
+						<select name="reason">
+							<option value=""></option>
+							{{range .LockReasons}}
+								<option value="{{.}}">{{.}}</option>
+							{{end}}
+						</select>
 					</div>
 				{{end}}
 
 				<div class="actions">
 					<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-					{{/* explicitly focus the submit button, otherwise the modal focuses and pops up the dropdown */}}
 					<button type="submit" class="ui red button" autofocus>
 						{{if .Issue.IsLocked}}
 							{{ctx.Locale.Tr "repo.issues.unlock_confirm"}}

@@ -12,7 +12,7 @@
 		<div class="ui field {{if .Required}}required{{end}}">
 			{{if eq .Type "choice"}}
 				<label>{{or .Description .Name}}:</label>
-				<select class="ui search selection dropdown" name="{{.Name}}">
+				<select name="{{.Name}}">
 					{{range .Options}}
 						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}}>{{.}}</option>
 					{{end}}
@@ -32,7 +32,6 @@
 		</div>
 	{{end}}
 	<div class="ui field">
-		{{/* use autofocus here to prevent the "branch selection" dropdown from getting focus, otherwise it will auto popup */}}
 		<button class="ui tiny primary button" autofocus type="submit">{{ctx.Locale.Tr "actions.workflow.run"}}</button>
 	</div>
 {{end}}

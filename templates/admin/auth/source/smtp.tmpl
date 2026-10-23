@@ -1,16 +1,11 @@
 <div class="smtp field {{if not (eq .type 3)}}tw-hidden{{end}}">
 	<div class="inline required field">
-		<label>{{ctx.Locale.Tr "admin.auths.smtp_auth"}}</label>
-		<div class="ui selection type dropdown">
-			<input type="hidden" id="smtp_auth" name="smtp_auth" value="{{.smtp_auth}}">
-			<div class="text">{{.smtp_auth}}</div>
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			<div class="menu">
-				{{range .SMTPAuths}}
-					<div class="item" data-value="{{.}}">{{.}}</div>
-				{{end}}
-			</div>
-		</div>
+		<label for="smtp_auth">{{ctx.Locale.Tr "admin.auths.smtp_auth"}}</label>
+		<select id="smtp_auth" name="smtp_auth">
+			{{range .SMTPAuths}}
+				<option value="{{.}}" {{if eq $.smtp_auth .}}selected{{end}}>{{.}}</option>
+			{{end}}
+		</select>
 	</div>
 	<div class="required field">
 		<label for="smtp_host">{{ctx.Locale.Tr "admin.auths.smtphost"}}</label>

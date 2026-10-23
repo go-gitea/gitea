@@ -38,99 +38,95 @@
 
 	<div class="navbar-list navbar-right">
 		{{if and .IsSigned .MustChangePassword}}
-			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="flex-text-block">
+			<div class="dropdown-container" data-placement="bottom-end">
+				<button type="button" class="dropdown-trigger item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24}}
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
-				</span>
-				<div class="menu user-menu">
-					<div class="header">
+				</button>
+				<div class="dropdown-popup dropdown-popup-inline user-menu">
+					<div class="dropdown-header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
-
-					<div class="divider"></div>
-					<a class="item" href="{{AppSubUrl}}/user/logout">
+					<a class="dropdown-item" href="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
-				</div><!-- end content avatar menu -->
-			</div><!-- end dropdown avatar menu -->
+				</div>
+			</div>
 		{{else if .IsSigned}}
-			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
-				<span class="flex-text-block">
+			<div class="dropdown-container" data-placement="bottom-end">
+				<button type="button" class="dropdown-trigger item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
 					{{svg "octicon-plus"}}
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 					<span class="only-mobile">{{ctx.Locale.Tr "create_new"}}</span>
-				</span>
-				<div class="menu">
-					<a class="item" href="{{AppSubUrl}}/repo/create">
+				</button>
+				<div class="dropdown-popup dropdown-popup-inline">
+					<a class="dropdown-item" href="{{AppSubUrl}}/repo/create">
 						{{svg "octicon-plus"}} {{ctx.Locale.Tr "new_repo"}}
 					</a>
 					{{if not .DisableMigrations}}
-						<a class="item" href="{{AppSubUrl}}/repo/migrate">
+						<a class="dropdown-item" href="{{AppSubUrl}}/repo/migrate">
 							{{svg "octicon-repo-push"}} {{ctx.Locale.Tr "new_migrate"}}
 						</a>
 					{{end}}
 					{{if .SignedUser.CanCreateOrganization}}
-					<a class="item" href="{{AppSubUrl}}/org/create">
+					<a class="dropdown-item" href="{{AppSubUrl}}/org/create">
 						{{svg "octicon-organization"}} {{ctx.Locale.Tr "new_org"}}
 					</a>
 					{{end}}
-				</div><!-- end content create new menu -->
-			</div><!-- end dropdown menu create new -->
+				</div>
+			</div>
 
-			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}" data-signed-in-username="{{.SignedUser.Name}}">
-				<span class="flex-text-block">
+			<div class="dropdown-container" data-signed-in-username="{{.SignedUser.Name}}" data-placement="bottom-end">
+				<button type="button" class="dropdown-trigger item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 					<span class="navbar-avatar">
 						{{ctx.AvatarUtils.Avatar .SignedUser 24}}
 						{{if .IsAdmin}}{{svg "octicon-shield-check" 16 "navbar-admin-badge"}}{{end}}
 					</span>
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
-				</span>
-				<div class="menu user-menu">
-					<div class="header">
+				</button>
+				<div class="dropdown-popup dropdown-popup-inline user-menu">
+					<div class="dropdown-header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
-
-					<div class="divider"></div>
-					<a class="item" href="{{.SignedUser.HomeLink}}">
+					<a class="dropdown-item" href="{{.SignedUser.HomeLink}}">
 						{{svg "octicon-person"}}
 						{{ctx.Locale.Tr "your_profile"}}
 					</a>
 					{{if not .DisableStars}}
-						<a class="item" href="{{.SignedUser.HomeLink}}?tab=stars">
+						<a class="dropdown-item" href="{{.SignedUser.HomeLink}}?tab=stars">
 							{{svg "octicon-star"}}
 							{{ctx.Locale.Tr "your_starred"}}
 						</a>
 					{{end}}
-					<a class="item" href="{{AppSubUrl}}/notifications/subscriptions">
+					<a class="dropdown-item" href="{{AppSubUrl}}/notifications/subscriptions">
 						{{svg "octicon-bell"}}
 						{{ctx.Locale.Tr "notification.subscriptions"}}
 					</a>
-					<a class="{{if .PageIsUserSettings}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
+					<a class="{{if .PageIsUserSettings}}active {{end}}dropdown-item" href="{{AppSubUrl}}/user/settings">
 						{{svg "octicon-tools"}}
 						{{ctx.Locale.Tr "your_settings"}}
 					</a>
-					<a class="item" target="_blank" href="https://docs.gitea.com">
+					<a class="dropdown-item" target="_blank" href="https://docs.gitea.com">
 						{{svg "octicon-question"}}
 						{{ctx.Locale.Tr "help"}}
 					</a>
 					{{if .IsAdmin}}
-					<div class="divider"></div>
-					<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/-/admin">
+					<div class="dropdown-divider"></div>
+					<a class="{{if .PageIsAdmin}}active {{end}}dropdown-item" href="{{AppSubUrl}}/-/admin">
 						{{svg "octicon-server"}}
 						{{ctx.Locale.Tr "admin_panel"}}
 					</a>
 					{{end}}
-					<div class="divider"></div>
-					<a class="item" href="{{AppSubUrl}}/user/logout">
+					<div class="dropdown-divider"></div>
+					<a class="dropdown-item" href="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
-				</div><!-- end content avatar menu -->
-			</div><!-- end dropdown avatar menu -->
+				</div>
+			</div>
 		{{else}}
 			{{if .ShowRegistrationButton}}
 				<a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">

@@ -14,16 +14,18 @@
 					</a>
 				</div>
 				<div class="field">
-					<label>{{ctx.Locale.Tr "settings.ui"}}</label>
-					<div class="ui selection dropdown">
-						<input type="hidden" name="theme" value="{{$.SignedUser.Theme}}">
-						<div class="text"></div> {{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu flex-items-menu">
-							{{range $theme := .AllThemes}}
-								{{$extraIconName := $theme.GetExtraIconName}}
-								<div class="item" data-value="{{$theme.InternalName}}">
-									{{$theme.DisplayName}} {{svg $extraIconName}}
-									<div class="description">{{$theme.GetDescription}}</div>
+					<label for="settings-theme">{{ctx.Locale.Tr "settings.ui"}}</label>
+					<div class="dropdown-container" data-kind="select">
+						<button id="settings-theme" type="button" class="dropdown-trigger dropdown-field">
+							<span class="dropdown-text">{{range .AllThemes}}{{if eq $.SignedUser.Theme .InternalName}}{{.DisplayName}} {{svg .GetExtraIconName}} <span class="tw-text-text-light-2">{{.GetDescription}}</span>{{end}}{{end}}</span>
+							{{svg "octicon-triangle-down" 14}}
+						</button>
+						<input type="hidden" class="dropdown-value" name="theme" value="{{.SignedUser.Theme}}">
+						<div class="dropdown-popup">
+							{{range .AllThemes}}
+								<div class="dropdown-item" data-value="{{.InternalName}}">
+									{{.DisplayName}} {{svg .GetExtraIconName}}
+									<span class="tw-text-text-light-2">{{.GetDescription}}</span>
 								</div>
 							{{end}}
 						</div>
@@ -42,16 +44,9 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/language" method="post">
 				<div class="field">
-					<div class="ui language selection dropdown" id="language">
-						<input name="language" type="hidden" value="{{.SignedUser.Language}}">
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="text">{{range .AllLangs}}{{if eq $.SignedUser.Language .Lang}}{{.Name}}{{end}}{{end}}</div>
-						<div class="menu">
-						{{range .AllLangs}}
-							<div class="item{{if eq $.SignedUser.Language .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
-						{{end}}
-						</div>
-					</div>
+					<select name="language" id="language" aria-label="{{ctx.Locale.Tr "settings.language"}}">
+						{{template "shared/language_options" dict "Languages" .AllLangs "Value" .SignedUser.Language "FallbackLabel" (or .SignedUser.Language ctx.Locale.LangName)}}
+					</select>
 				</div>
 				<div class="field">
 					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.update_language"}}</button>

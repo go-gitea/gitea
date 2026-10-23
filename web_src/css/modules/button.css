@@ -39,6 +39,7 @@
 }
 
 .ui.active.button,
+:where(.dropdown-container) > .ui.button[aria-expanded="true"]:where(:not(.dropdown-button-inline, .branch-dropdown-button)),
 .ui.button:active,
 .ui.active.button:active,
 .ui.active.button:hover {
@@ -100,6 +101,34 @@
   min-height: 38px;
   padding: 0.43em /* around 6px, keeps CJK text within min-height */ 1.43em /* around 20px */;
 }
+.ui.button:not(.icon) > .octicon-triangle-down {
+  opacity: 0.8;
+}
+
+.ui.button.dropdown-trigger {
+  gap: var(--gap-inline);
+}
+
+.ui.button.dropdown-trigger:not(.icon, .dropdown-button-inline):has(> .octicon-triangle-down) {
+  position: relative;
+  padding-right: 22px;
+}
+
+.ui.button.dropdown-trigger:not(.icon, .dropdown-button-inline) > .octicon-triangle-down {
+  position: absolute;
+  right: 0.5em;
+  font-size: 0.85714286em;
+}
+
+.ui.button.dropdown-trigger:is(.mini, .tiny):not(.icon, .dropdown-button-inline):has(> .octicon-triangle-down) {
+  padding-right: 20px;
+}
+
+.ui.button.dropdown-button-inline {
+  gap: var(--gap-block);
+  margin: 0;
+}
+
 .ui.compact.buttons .button,
 .ui.compact.button {
   gap: var(--gap-inline);
@@ -122,8 +151,6 @@
 }
 
 /* reference size: tiny: padding-x=18, height=32 ; compact: padding-x=13, height=28 */
-.ui.tiny.buttons .dropdown,
-.ui.tiny.buttons .dropdown .menu > .item,
 .ui.tiny.buttons .button,
 .ui.ui.ui.ui.tiny.button {
   gap: var(--gap-inline);
@@ -135,8 +162,6 @@
 }
 
 /* reference size: small: padding-x=19, height=34 ; compact: padding-x=14, height=30 */
-.ui.small.buttons .dropdown,
-.ui.small.buttons .dropdown .menu > .item,
 .ui.small.buttons .button,
 .ui.ui.ui.ui.small.button {
   font-size: 13px;
@@ -170,6 +195,7 @@
 
 .ui.basic.button:active,
 .ui.basic.active.button,
+:where(.dropdown-container) > .ui.basic.button[aria-expanded="true"]:where(:not(.dropdown-button-inline, .branch-dropdown-button)),
 .ui.basic.active.button:hover {
   color: var(--color-text);
   background: var(--color-active);
@@ -365,4 +391,16 @@ It needs some tricks to tweak the left/right borders with active state */
 
 .ui.buttons .button.active + .button {
   border-left: none;
+}
+
+.ui.buttons > .dropdown-container:not(:first-child) > .button {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.ui.buttons.dropdown-container > .dropdown-trigger,
+.ui.buttons > .dropdown-container:last-child > .button {
+  border-right: 1px solid var(--color-light-border);
+  border-top-right-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
 }

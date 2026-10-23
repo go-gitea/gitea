@@ -1,14 +1,22 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateBranch, apiCreateRepo, randomString} from './utils.ts';
+import {login, apiCreateBranch, apiCreateOrg, apiCreateRepo, randomString} from './utils.ts';
 
-test('create a repository', async ({page}) => {
+test('create a repository for an organization picked by keyboard', async ({page, request}) => {
   const repoName = `e2e-repo-${randomString(8)}`;
-  await login(page);
+  const orgName = `e2e-repo-org-${randomString(8)}`;
+  await Promise.all([apiCreateOrg(request, orgName), login(page)]);
   await page.goto('/repo/create');
+  const owner = page.locator('#repo_owner_dropdown').getByRole('button');
+  await owner.focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.type(orgName);
+  await page.keyboard.press('Enter');
+  await expect(owner).toContainText(orgName);
+  await expect(owner).toBeFocused();
   await page.locator('input[name="repo_name"]').fill(repoName);
   await page.getByRole('button', {name: 'Create Repository'}).click();
-  await page.waitForURL(new RegExp(`/${env.GITEA_TEST_E2E_USER}/${repoName}$`));
+  await page.waitForURL(new RegExp(`/${orgName}/${repoName}$`));
 });
 
 test('delete a branch via its modal', async ({page, request}) => {

@@ -1,4 +1,4 @@
-import {queryElemSiblings} from '../../utils/dom.ts';
+import {queryElemSiblings} from '../utils/dom.ts';
 
 export function initTabSwitcher(tabItemContainer: Element) {
   // Clicking a `.item[data-tab]` menu item activates the matching `.ui.tab[data-tab=...]` panel

@@ -69,7 +69,6 @@
     "@stylistic/eslint-plugin": "5.10.0",
     "@stylistic/stylelint-plugin": "5.3.1",
     "@types/codemirror": "5.60.18",
-    "@types/jquery": "4.0.1",
     "@types/katex": "0.16.8",
     "@types/node": "26.6.5",
     "@types/pdfobject": "2.2.5",

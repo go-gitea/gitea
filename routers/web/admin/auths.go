@@ -88,8 +88,6 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["type"] = auth.LDAP.Int()
-	ctx.Data["CurrentTypeName"] = auth.Names[auth.LDAP]
-	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
 	ctx.Data["smtp_auth"] = "PLAIN"
 	ctx.Data["is_active"] = true
 	ctx.Data["is_sync_enabled"] = true
@@ -238,8 +236,6 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["CurrentTypeName"] = auth.Type(form.Type).String()
-	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocol(form.SecurityProtocol)]
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
@@ -344,16 +340,6 @@ func EditAuthSource(ctx *context.Context) {
 	}
 	ctx.Data["Source"] = source
 	ctx.Data["HasTLS"] = source.HasTLS()
-
-	if source.IsOAuth2() {
-		oauth2Source := auth.MustSourceCfg[*oauth2.Source](source)
-		for _, provider := range oauth2providers {
-			if provider.Name() == oauth2Source.Name() {
-				ctx.Data["CurrentOAuth2Provider"] = provider
-				break
-			}
-		}
-	}
 
 	ctx.HTML(http.StatusOK, tplAuthEdit)
 }
