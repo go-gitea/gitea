@@ -61,12 +61,13 @@ func serveSetHeaderContentRelated(w http.ResponseWriter, contentType string) {
 	header.Set("X-Content-Type-Options", "nosniff")
 
 	csp := serveHeaderCspDefault
-	mediaType, _, _ := mime.ParseMediaType(contentType) // browsers may read a malformed value like "video/mp4,text/html" as HTML, keep it sandboxed
-	if mediaType == "application/pdf" {
-		csp = serveHeaderCspPdf
-	}
-	if strings.HasPrefix(mediaType, "video/") || strings.HasPrefix(mediaType, "audio/") {
-		csp = serveHeaderCspAudioVideo
+	if mediaType, _, err := mime.ParseMediaType(contentType); err == nil { // relax only for well-formed types, browsers parse malformed ones differently
+		if mediaType == "application/pdf" {
+			csp = serveHeaderCspPdf
+		}
+		if strings.HasPrefix(mediaType, "video/") || strings.HasPrefix(mediaType, "audio/") {
+			csp = serveHeaderCspAudioVideo
+		}
 	}
 	if csp != "" {
 		header.Set("Content-Security-Policy", csp)
