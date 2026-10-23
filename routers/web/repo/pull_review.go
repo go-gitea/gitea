@@ -22,7 +22,6 @@ import (
 	"gitea.dev/services/forms"
 	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
-	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -204,9 +203,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
-	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-	}
+	ctx.Data["CanBlockUser"] = newCachedCanBlockUser(ctx)
 
 	switch origin {
 	case "diff":

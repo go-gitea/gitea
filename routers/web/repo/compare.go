@@ -20,7 +20,6 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/charset"
 	csv_module "gitea.dev/modules/csv"
@@ -39,7 +38,6 @@ import (
 	"gitea.dev/services/context/upload"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
-	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -767,9 +765,7 @@ func ExcerptBlob(ctx *context.Context) {
 		} else if issue.IsPull {
 			// FIXME: DIFF-CONVERSATION-DATA: the following data assignment is fragile
 			ctx.Data["Issue"] = issue
-			ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-				return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-			}
+			ctx.Data["CanBlockUser"] = newCachedCanBlockUser(ctx)
 			// and "diff/comment_form.tmpl" (reply comment) needs them
 			ctx.Data["PageIsPullFiles"] = true
 			ctx.Data["AfterCommitID"] = diffBlobExcerptData.AfterCommitID
