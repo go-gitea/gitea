@@ -54,7 +54,8 @@ type AccessTokenScope string
 // for all categories, write implies read
 const (
 	AccessTokenScopeAll        AccessTokenScope = "all"
-	AccessTokenScopePublicOnly AccessTokenScope = "public-only" // limited to public orgs/repos
+	AccessTokenScopeNone       AccessTokenScope = "no-token-scope" // no token permission scopes, so no API permissions
+	AccessTokenScopePublicOnly AccessTokenScope = "public-only"    // limited to public orgs/repos
 
 	AccessTokenScopeReadActivityPub  AccessTokenScope = "read:activitypub"
 	AccessTokenScopeWriteActivityPub AccessTokenScope = "write:activitypub"
@@ -147,6 +148,7 @@ var allAccessTokenScopes = []AccessTokenScope{
 // allAccessTokenScopeBits contains all access token scopes.
 var allAccessTokenScopeBits = map[AccessTokenScope]accessTokenScopeBitmap{
 	AccessTokenScopeAll:               accessTokenScopeAllBits,
+	AccessTokenScopeNone:              0,
 	AccessTokenScopePublicOnly:        accessTokenScopePublicOnlyBits,
 	AccessTokenScopeReadActivityPub:   accessTokenScopeReadActivityPubBits,
 	AccessTokenScopeWriteActivityPub:  accessTokenScopeWriteActivityPubBits,
@@ -209,11 +211,6 @@ func GetRequiredScopes(level AccessTokenScopeLevel, scopeCategories ...AccessTok
 		scopes = append(scopes, accessTokenScopes[level][cat])
 	}
 	return scopes
-}
-
-// ContainsCategory checks if a list of categories contains a specific category
-func ContainsCategory(categories []AccessTokenScopeCategory, category AccessTokenScopeCategory) bool {
-	return slices.Contains(categories, category)
 }
 
 // GetScopeLevelFromAccessMode converts permission access mode to scope level
@@ -286,12 +283,14 @@ func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 	if err != nil {
 		return "", err
 	}
-
+	if bitmap == 0 && slices.Contains(s.StringSlice(), string(AccessTokenScopeNone)) {
+		return AccessTokenScopeNone, nil
+	}
 	return bitmap.toScope(), nil
 }
 
 func (s AccessTokenScope) HasPermissionScope() bool {
-	return s != "" && s != AccessTokenScopePublicOnly
+	return s != "" && s != AccessTokenScopeNone && s != AccessTokenScopePublicOnly
 }
 
 // PublicOnly checks if this token scope is limited to public resources
@@ -302,6 +301,36 @@ func (s AccessTokenScope) PublicOnly() (bool, error) {
 	}
 
 	return bitmap.hasScope(AccessTokenScopePublicOnly)
+}
+
+// CanCreateChildScope reports whether a request authenticated by this (parent) scope may mint a token
+// carrying the child scope. It rejects any grantable scope the parent does not hold, closing the
+// scope-escalation path. public-only is a restriction rather than a grantable permission, so it is
+// ignored here (a child may always be public-only); EnforcePublicOnlyFrom handles carrying it down.
+func (s AccessTokenScope) CanCreateChildScope(child AccessTokenScope) (bool, error) {
+	requested := child.StringSlice()
+	scopes := make([]AccessTokenScope, 0, len(requested))
+	for _, sc := range requested {
+		childScope := AccessTokenScope(sc)
+		if childScope == AccessTokenScopePublicOnly {
+			continue
+		}
+		scopes = append(scopes, childScope)
+	}
+	return s.HasScope(scopes...)
+}
+
+// EnforcePublicOnlyFrom adds the public-only restriction to s when the authorizing parent scope is
+// public-only, so a public-only token cannot mint a child token that drops the restriction.
+func (s AccessTokenScope) EnforcePublicOnlyFrom(parent AccessTokenScope) (AccessTokenScope, error) {
+	publicOnly, err := parent.PublicOnly()
+	if err != nil {
+		return "", err
+	}
+	if !publicOnly {
+		return s, nil
+	}
+	return AccessTokenScope(string(s) + "," + string(AccessTokenScopePublicOnly)).Normalize()
 }
 
 // HasScope returns true if the string has the given scope

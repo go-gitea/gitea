@@ -17,17 +17,21 @@ var globalVars = sync.OnceValue(func() (ret struct {
 	namePattern, forbiddenPrefixPattern *regexp.Regexp
 },
 ) {
-	ret.namePattern = regexp.MustCompile("(?i)^[A-Z_][A-Z0-9_]*$")
-	ret.forbiddenPrefixPattern = regexp.MustCompile("(?i)^GIT(EA|HUB)_")
+	ret.namePattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+	ret.forbiddenPrefixPattern = regexp.MustCompile("(?i)^(GITEA_|GITHUB_)")
 	return ret
 })
 
 func ValidateName(name string) error {
 	vars := globalVars()
-	if !vars.namePattern.MatchString(name) ||
-		vars.forbiddenPrefixPattern.MatchString(name) ||
-		strings.EqualFold(name, "CI") /* CI is always set to true in GitHub Actions*/ {
-		return util.NewInvalidArgumentErrorf("invalid variable or secret name")
+	if !vars.namePattern.MatchString(name) {
+		return util.NewInvalidArgumentErrorf("name must start with a letter or underscore and contain only letters, numbers, and underscores")
+	}
+	if vars.forbiddenPrefixPattern.MatchString(name) {
+		return util.NewInvalidArgumentErrorf("name cannot start with 'GITEA_' or 'GITHUB_'")
+	}
+	if strings.EqualFold(name, "CI") {
+		return util.NewInvalidArgumentErrorf("'CI' is a reserved name")
 	}
 	return nil
 }

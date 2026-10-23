@@ -5,6 +5,7 @@ package web
 
 import (
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -19,13 +20,17 @@ type RouterPathGroup struct {
 	r         *Router
 	pathParam string
 	matchers  []*routerPathMatcher
+	unescape  bool
 }
 
 func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	chiCtx := chi.RouteContext(req.Context())
 	path := chiCtx.URLParam(g.pathParam)
+	if g.unescape {
+		path, _ = url.PathUnescape(path)
+	}
 	for _, m := range g.matchers {
-		if m.matchPath(chiCtx, path) {
+		if m.matchPath(chiCtx, path, g.unescape) {
 			chiCtx.RoutePatterns = append(chiCtx.RoutePatterns, m.pattern)
 			executeMiddlewaresHandler(resp, req, m.middlewares, m.handlerFunc)
 			return
@@ -53,6 +58,10 @@ func (g *RouterPathGroup) MatchPattern(methods string, pattern *RouterPathGroupP
 	g.matchers = append(g.matchers, newRouterPathMatcher(methods, pattern, h...))
 }
 
+func (g *RouterPathGroup) UseUnescapedPath() {
+	g.unescape = true
+}
+
 type routerPathParam struct {
 	name         string
 	pathSepEnd   bool
@@ -68,7 +77,7 @@ type routerPathMatcher struct {
 	handlerFunc http.HandlerFunc
 }
 
-func (p *routerPathMatcher) matchPath(chiCtx *chi.Context, path string) bool {
+func (p *routerPathMatcher) matchPath(chiCtx *chi.Context, path string, unescaped bool) bool {
 	if !p.methods.Contains(chiCtx.RouteMethod) {
 		return false
 	}
@@ -101,6 +110,9 @@ func (p *routerPathMatcher) matchPath(chiCtx *chi.Context, path string) bool {
 		val := path[pm[groupIdx]:pm[groupIdx+1]]
 		if p.params[i].pathSepEnd {
 			val = strings.TrimSuffix(val, "/")
+		}
+		if unescaped {
+			val = url.PathEscape(val)
 		}
 		chiCtx.URLParams.Add(p.params[i].name, val)
 	}

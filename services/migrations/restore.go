@@ -239,7 +239,7 @@ func (r *RepositoryRestorer) GetPullRequests(_ context.Context, page, perPage in
 		if pr.PatchURL != "" {
 			pr.PatchURL = "file://" + util.FilePathJoinAbs(r.baseDir, pr.PatchURL)
 		}
-		CheckAndEnsureSafePR(pr, "", r)
+		CheckAndEnsureSafePR(pr, "file://"+r.baseDir, r)
 	}
 	return pulls, true, nil
 }

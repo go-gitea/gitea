@@ -216,3 +216,19 @@ func TestUnsafeSplitHighlightedLines(t *testing.T) {
 	assert.Equal(t, "<span>a</span>\n", string(ret[0]))
 	assert.Equal(t, "<span>b\n</span>", string(ret[1]))
 }
+
+func TestCodeBlockAttributes(t *testing.T) {
+	test := func(t *testing.T, lang string, css, attr template.HTML) {
+		t.Helper()
+		cssActual, attrActual := CodeBlockAttributes(lang)
+		assert.Equal(t, css, cssActual)
+		assert.Equal(t, attr, attrActual)
+	}
+	for _, s := range []string{"", "FALLback", "plainTEXT"} {
+		test(t, s, `class="code-block"`, `class="chroma language-text" data-code-language="text"`)
+	}
+	test(t, "math", `class="code-block is-loading"`, `class="chroma language-math" data-code-language="math"`)
+	test(t, "mermaid", `class="code-block is-loading"`, `class="chroma language-mermaid" data-code-language="mermaid"`)
+	test(t, "Visual Basic.NET", `class="code-block"`, `class="chroma language-visual_basic_net" data-code-language="Visual Basic.NET"`)
+	test(t, "c++-x", `class="code-block"`, `class="chroma language-c___x" data-code-language="c++-x"`)
+}

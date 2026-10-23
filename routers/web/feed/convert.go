@@ -15,6 +15,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
@@ -50,12 +51,13 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 }
 
 // renderCommentMarkdown renders the comment markdown to html
-func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
+func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string, feedExcerpt bool) template.HTML {
 	_ = act.LoadRepo(ctx)
 	if act.Repo == nil {
 		return ""
 	}
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, act.Repo).WithUseAbsoluteLink(true)
+	rctx.RenderOptions.FeedExcerpt = feedExcerpt
 	rendered, err := markdown.RenderString(rctx, content)
 	if err != nil {
 		return ""
@@ -222,12 +224,12 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 
 			case activities_model.ActionCreateIssue, activities_model.ActionCreatePullRequest:
 				desc = strings.Join(act.GetIssueInfos(), "#")
-				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx))
+				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx), false)
 			case activities_model.ActionCommentIssue, activities_model.ActionApprovePullRequest, activities_model.ActionRejectPullRequest, activities_model.ActionCommentPull:
 				desc = act.GetIssueTitle(ctx)
 				comment := act.GetIssueInfos()[1]
 				if len(comment) != 0 {
-					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment))
+					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment, true))
 				}
 			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
@@ -275,33 +277,35 @@ func GetFeedType(name string, req *http.Request) (showFeed bool, feedType string
 
 // feedActionsToFeedItems convert gitea's Repo's Releases to feeds Item
 func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (items []*feeds.Item, err error) {
+	canReadReleases := ctx.Repo.Permission.CanRead(unit.TypeReleases)
 	for _, rel := range releases {
 		err := rel.LoadAttributes(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		var title string
 		var content template.HTML
-
-		if rel.IsTag {
-			title = rel.TagName
-		} else {
-			title = rel.Title
-		}
-
+		title := rel.TagName
 		link := &feeds.Link{Href: rel.HTMLURL()}
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
-		content, err = markdown.RenderString(rctx,
-			rel.Note)
-		if err != nil {
-			return nil, err
+
+		if !canReadReleases {
+			// the tags feed only requires code access, so list releases as plain tags like the tags page does
+			link.Href = rel.Repo.HTMLURL() + "/src/tag/" + util.PathEscapeSegments(rel.TagName)
+		} else {
+			if !rel.IsTag {
+				title = rel.Title
+			}
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
+			content, err = markdown.RenderString(rctx, rel.Note)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		items = append(items, &feeds.Item{
 			Title:   title,
 			Link:    link,
-			Created: rel.CreatedUnix.AsTime(),
+			Created: rel.PublishedUnix.AsTime(),
 			Author: &feeds.Author{
 				Name:  rel.Publisher.GetDisplayName(),
 				Email: rel.Publisher.GetEmail(),

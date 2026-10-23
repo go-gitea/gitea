@@ -87,6 +87,7 @@ type Release struct {
 	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
+	PublishedUnix    timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -190,6 +191,10 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 	}
 
 	for i := range attachments {
+		if attachments[i].IssueID != 0 || attachments[i].CommentID != 0 || attachments[i].ReleaseID != 0 {
+			return util.NewPermissionDeniedErrorf("attachment is already linked")
+		}
+
 		if attachments[i].RepoID == 0 && attachments[i].CreatedUnix < LegacyAttachmentMissingRepoIDCutoff {
 			attachments[i].RepoID = rel.RepoID
 			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Cols("repo_id").Update(attachments[i]); err != nil {
@@ -199,10 +204,6 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 
 		if attachments[i].RepoID != rel.RepoID {
 			return util.NewPermissionDeniedErrorf("attachment belongs to different repository")
-		}
-
-		if attachments[i].ReleaseID != 0 {
-			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
@@ -266,6 +267,7 @@ type FindReleasesOptions struct {
 	TagNames      []string
 	HasSha1       optional.Option[bool] // useful to find draft releases which are created with existing tags
 	NamePattern   optional.Option[string]
+	TagFilter     string
 }
 
 func (opts FindReleasesOptions) ToConds() builder.Cond {
@@ -297,7 +299,14 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 	if opts.NamePattern.Has() && opts.NamePattern.Value() != "" {
 		cond = cond.And(builder.Like{"lower_tag_name", strings.ToLower(opts.NamePattern.Value())})
 	}
-
+	if opts.TagFilter != "" {
+		pattern := strings.ToLower(opts.TagFilter)
+		pattern = strings.ReplaceAll(pattern, "\\", "\\\\")
+		pattern = strings.ReplaceAll(pattern, "_", "\\_")
+		pattern = strings.ReplaceAll(pattern, "%", "\\%")
+		pattern = strings.ReplaceAll(pattern, "*", "%")
+		cond = cond.And(builder.Like{"lower_tag_name", pattern})
+	}
 	return cond
 }
 
@@ -348,21 +357,21 @@ func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, erro
 }
 
 type releaseMetaSearch struct {
-	ID  []int64
-	Rel []*Release
+	IDs      []int64
+	Releases []*Release
 }
 
 func (s releaseMetaSearch) Len() int {
-	return len(s.ID)
+	return len(s.IDs)
 }
 
 func (s releaseMetaSearch) Swap(i, j int) {
-	s.ID[i], s.ID[j] = s.ID[j], s.ID[i]
-	s.Rel[i], s.Rel[j] = s.Rel[j], s.Rel[i]
+	s.IDs[i], s.IDs[j] = s.IDs[j], s.IDs[i]
+	s.Releases[i], s.Releases[j] = s.Releases[j], s.Releases[i]
 }
 
 func (s releaseMetaSearch) Less(i, j int) bool {
-	return s.ID[i] < s.ID[j]
+	return s.IDs[i] < s.IDs[j]
 }
 
 func hasDuplicateName(attaches []*Attachment) bool {
@@ -387,19 +396,26 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	//    then merge join them
 
 	// Sort
-	sortedRels := releaseMetaSearch{ID: make([]int64, len(rels)), Rel: make([]*Release, len(rels))}
+	sortedRels := releaseMetaSearch{IDs: make([]int64, 0, len(rels)), Releases: make([]*Release, 0, len(rels))}
 	var attachments []*Attachment
-	for index, element := range rels {
-		element.Attachments = []*Attachment{}
-		sortedRels.ID[index] = element.ID
-		sortedRels.Rel[index] = element
+	for _, rel := range rels {
+		// if a provided "Release" has no ID, don't query it, otherwise, the "IN" query will return all other attachments for the repo
+		if rel.ID == 0 {
+			continue
+		}
+		rel.Attachments = []*Attachment{}
+		sortedRels.IDs = append(sortedRels.IDs, rel.ID)
+		sortedRels.Releases = append(sortedRels.Releases, rel)
+	}
+	if len(sortedRels.IDs) == 0 {
+		return nil
 	}
 	sort.Sort(sortedRels)
 
 	// Select attachments
 	err = db.GetEngine(ctx).
 		Asc("release_id", "name").
-		In("release_id", sortedRels.ID).
+		In("release_id", sortedRels.IDs).
 		Find(&attachments)
 	if err != nil {
 		return err
@@ -408,14 +424,14 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	// merge join
 	currentIndex := 0
 	for _, attachment := range attachments {
-		for sortedRels.ID[currentIndex] < attachment.ReleaseID {
+		for sortedRels.IDs[currentIndex] < attachment.ReleaseID {
 			currentIndex++
 		}
-		sortedRels.Rel[currentIndex].Attachments = append(sortedRels.Rel[currentIndex].Attachments, attachment)
+		sortedRels.Releases[currentIndex].Attachments = append(sortedRels.Releases[currentIndex].Attachments, attachment)
 	}
 
 	// Makes URL's predictable
-	for _, release := range rels {
+	for _, release := range sortedRels.Releases {
 		// If we have no Repo, we don't need to execute this loop
 		if release.Repo == nil {
 			continue
@@ -424,7 +440,7 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 		// If the names unique, use the URL with the Name instead of the UUID
 		if !hasDuplicateName(release.Attachments) {
 			for _, attachment := range release.Attachments {
-				attachment.CustomDownloadURL = release.Repo.HTMLURL() + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
+				attachment.CustomDownloadURL = release.Repo.HTMLURL(ctx) + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
 			}
 		}
 	}
@@ -465,7 +481,7 @@ func PushUpdateDeleteTags(ctx context.Context, repo *Repository, tags []string) 
 	if _, err := db.GetEngine(ctx).
 		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
 		In("lower_tag_name", lowerTags).
-		Cols("is_draft", "num_commits", "sha1").
+		Cols("is_draft", "num_commits", "sha1", "published_unix").
 		Update(&Release{
 			IsDraft: true,
 		}); err != nil {

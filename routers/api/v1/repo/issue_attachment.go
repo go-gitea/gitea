@@ -57,7 +57,7 @@ func GetIssueAttachment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/error"
 
-	issue := getIssueFromContext(ctx)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return
 	}
@@ -67,7 +67,7 @@ func GetIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
+	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attach))
 }
 
 // ListIssueAttachments lists all attachments of the issue
@@ -100,7 +100,7 @@ func ListIssueAttachments(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/error"
 
-	issue := getIssueFromContext(ctx)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return
 	}
@@ -163,7 +163,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	issue := getIssueFromContext(ctx)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return
 	}
@@ -210,7 +210,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attachment))
 }
 
 // EditIssueAttachment updates the given attachment
@@ -265,7 +265,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	}
 
 	// do changes to attachment. only meaningful change is name.
-	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
+	form := web.GetForm[*api.EditAttachmentOptions](ctx)
 	if form.Name != "" {
 		attachment.Name = form.Name
 	}
@@ -279,7 +279,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attachment))
 }
 
 // DeleteIssueAttachment delete a given attachment
@@ -333,20 +333,8 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func getIssueFromContext(ctx *context.APIContext) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return nil
-	}
-
-	issue.Repo = ctx.Repo.Repository
-
-	return issue
-}
-
 func getIssueAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Attachment {
-	issue := getIssueFromContext(ctx)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return nil
 	}
@@ -386,8 +374,8 @@ func attachmentBelongsToRepoOrIssue(ctx *context.APIContext, attachment *repo_mo
 		ctx.APIErrorNotFound("no such attachment in repo")
 		return false
 	}
-	if attachment.IssueID == 0 {
-		log.Debug("Requested attachment[%d] is not in an issue.", attachment.ID)
+	if attachment.IssueID == 0 || attachment.CommentID != 0 {
+		log.Debug("Requested attachment[%d] is not an issue attachment.", attachment.ID)
 		ctx.APIErrorNotFound("no such attachment in issue")
 		return false
 	} else if issue != nil && attachment.IssueID != issue.ID {

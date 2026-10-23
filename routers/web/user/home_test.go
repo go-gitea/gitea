@@ -27,7 +27,7 @@ func TestArchivedIssues(t *testing.T) {
 	ctx.Req.Form.Set("state", "open")
 
 	// Assume: User 30 has access to two Repos with Issues, one of the Repos being archived.
-	repos, _, _ := repo_model.GetUserRepositories(t.Context(), repo_model.SearchRepoOptions{Actor: ctx.Doer})
+	repos, _, _ := repo_model.GetUserRepositories(t.Context(), repo_model.SearchRepoOptions{OwnerID: ctx.Doer.ID})
 	assert.Len(t, repos, 3)
 	IsArchived := make(map[int64]bool)
 	NumIssues := make(map[int64]int)
@@ -117,7 +117,7 @@ func TestMilestonesForSpecificRepo(t *testing.T) {
 
 func TestDashboardPagination(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
-	page := context.NewPagination(10, 3, 1, 3)
+	page := context.NewPagerBuilder(ctx).TotalCount(10).PerPageLimit(3).CurPage(1).NavPageNum(3).Build()
 
 	setting.AppSubURL = "/SubPath"
 	out, err := ctx.RenderToHTML("base/paginate", map[string]any{"Link": setting.AppSubURL, "Page": page})

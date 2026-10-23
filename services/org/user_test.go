@@ -6,9 +6,12 @@ package org
 import (
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -70,4 +73,21 @@ func TestRemoveOrgUser(t *testing.T) {
 	assert.True(t, organization.IsErrLastOrgOwner(err))
 	unittest.AssertExistsAndLoadBean(t, &organization.OrgUser{OrgID: org7.ID, UID: user5.ID})
 	unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
+}
+
+func TestRemoveOrgUserRecordsAudit(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	unittest.AssertExistsAndLoadBean(t, &organization.OrgUser{OrgID: org.ID, UID: user.ID})
+
+	assert.NoError(t, RemoveOrgUser(t.Context(), org, user))
+
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
+		Action:    audit_model.OrganizationMemberRemove,
+		ScopeType: audit_model.ScopeOrganization,
+		ScopeID:   org.ID,
+	})
 }

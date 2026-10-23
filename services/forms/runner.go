@@ -3,22 +3,10 @@
 
 package forms
 
-import (
-	"net/http"
-
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/context"
-
-	"gitea.com/go-chi/binding"
-)
+import "gitea.dev/modules/web/middleware"
 
 // EditRunnerForm form for admin to create runner
 type EditRunnerForm struct {
+	middleware.FormDefaultValidator
 	Description string
-}
-
-// Validate validates form fields
-func (f *EditRunnerForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

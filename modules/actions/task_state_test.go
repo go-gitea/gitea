@@ -6,6 +6,7 @@ package actions
 import (
 	"testing"
 
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 
 	"github.com/stretchr/testify/assert"
@@ -53,6 +54,21 @@ func TestFullSteps(t *testing.T) {
 				{Status: actions_model.StatusFailure, LogIndex: 30, LogLength: 60, Started: 10020, Stopped: 10090},
 				{Status: actions_model.StatusCancelled, LogIndex: 0, LogLength: 0, Started: 0, Stopped: 0},
 				{Name: postStepName, Status: actions_model.StatusFailure, LogIndex: 90, LogLength: 10, Started: 10090, Stopped: 10100},
+			},
+		},
+		{
+			name: "reported by the runner",
+			task: &actions_model.ActionTask{
+				Steps: []*actions_model.ActionTaskStep{
+					{Name: "Set up job", Stage: int64(runnerv1.StepStage_STEP_STAGE_SETUP), Status: actions_model.StatusSuccess, LogLength: 10},
+					{Name: "Run echo", Stage: int64(runnerv1.StepStage_STEP_STAGE_MAIN), Status: actions_model.StatusRunning, LogIndex: 10, LogLength: 5},
+				},
+				Status:    actions_model.StatusRunning,
+				LogLength: 15,
+			},
+			want: []*actions_model.ActionTaskStep{
+				{Name: "Set up job", Stage: int64(runnerv1.StepStage_STEP_STAGE_SETUP), Status: actions_model.StatusSuccess, LogLength: 10},
+				{Name: "Run echo", Stage: int64(runnerv1.StepStage_STEP_STAGE_MAIN), Status: actions_model.StatusRunning, LogIndex: 10, LogLength: 5},
 			},
 		},
 		{
@@ -153,6 +169,27 @@ func TestFullSteps(t *testing.T) {
 				{Name: preStepName, Status: actions_model.StatusSuccess, LogIndex: 0, LogLength: 10, Started: 10000, Stopped: 10010},
 				{Status: actions_model.StatusSkipped, LogIndex: 0, LogLength: 0, Started: 0, Stopped: 0},
 				{Status: actions_model.StatusSuccess, LogIndex: 10, LogLength: 80, Started: 10010, Stopped: 10090},
+				{Name: postStepName, Status: actions_model.StatusSuccess, LogIndex: 90, LogLength: 10, Started: 10090, Stopped: 10100},
+			},
+		},
+		{
+			name: "last step is skipped",
+			task: &actions_model.ActionTask{
+				Steps: []*actions_model.ActionTaskStep{
+					{Status: actions_model.StatusSuccess, LogIndex: 10, LogLength: 20, Started: 10010, Stopped: 10020},
+					{Status: actions_model.StatusSuccess, LogIndex: 30, LogLength: 60, Started: 10020, Stopped: 10090},
+					{Status: actions_model.StatusSkipped, LogIndex: 0, LogLength: 0, Started: 0, Stopped: 0},
+				},
+				Status:    actions_model.StatusSuccess,
+				Started:   10000,
+				Stopped:   10100,
+				LogLength: 100,
+			},
+			want: []*actions_model.ActionTaskStep{
+				{Name: preStepName, Status: actions_model.StatusSuccess, LogIndex: 0, LogLength: 10, Started: 10000, Stopped: 10010},
+				{Status: actions_model.StatusSuccess, LogIndex: 10, LogLength: 20, Started: 10010, Stopped: 10020},
+				{Status: actions_model.StatusSuccess, LogIndex: 30, LogLength: 60, Started: 10020, Stopped: 10090},
+				{Status: actions_model.StatusSkipped, LogIndex: 0, LogLength: 0, Started: 0, Stopped: 0},
 				{Name: postStepName, Status: actions_model.StatusSuccess, LogIndex: 90, LogLength: 10, Started: 10090, Stopped: 10100},
 			},
 		},

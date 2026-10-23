@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -29,6 +30,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
@@ -62,7 +64,39 @@ func TestNoLoginViewIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues")
-	MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	issue := htmlDoc.doc.Find("#issue-list .list-item-large-title[href='/user2/repo1/issues/1']").Closest(".item")
+	assert.Equal(t, "label1", strings.TrimSpace(issue.Find(".labels-list").Text()))
+	assignee := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.Equal(t, assignee.HomeLink(), issue.Find(".assignee").AttrOr("href", ""))
+	assert.Equal(t, assignee.GetDisplayName(), issue.Find(".assignee").AttrOr("data-tooltip-content", ""))
+}
+
+func TestViewIssueListContexts(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	t.Run("dashboard", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/issues")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, "user2/repo1#1", strings.TrimSpace(htmlDoc.doc.Find("#issue-list .index[href='/user2/repo1/issues/1']").Text()))
+	})
+	t.Run("milestone", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/user2/repo1/milestone/1")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, 1, getIssuesSelection(t, htmlDoc).Length())
+		assert.Empty(t, htmlDoc.doc.Find("#issue-list .milestone").Nodes)
+		labels := htmlDoc.doc.Find("#issue-list .labels-list a")
+		assert.Equal(t, 2, labels.Length())
+		labels.Each(func(_ int, label *goquery.Selection) {
+			link, err := url.Parse(label.AttrOr("href", ""))
+			assert.NoError(t, err)
+			assert.NotContains(t, link.Query(), "milestone")
+		})
+	})
 }
 
 func TestViewIssuesSortByType(t *testing.T) {
@@ -90,6 +124,27 @@ func TestViewIssuesSortByType(t *testing.T) {
 	})
 }
 
+func TestIssueIDsSortByLabelScope(t *testing.T) {
+	assert.NoError(t, unittest.LoadFixtures())
+	high := &issues_model.Label{RepoID: 1, Name: "priority/high", Exclusive: true, ExclusiveOrder: 1}
+	low := &issues_model.Label{RepoID: 1, Name: "priority/low", Exclusive: true, ExclusiveOrder: 2}
+	assert.NoError(t, db.Insert(t.Context(), high, low))
+	assert.NoError(t, db.Insert(t.Context(),
+		&issues_model.IssueLabel{IssueID: 1, LabelID: low.ID},
+		&issues_model.IssueLabel{IssueID: 2, LabelID: high.ID},
+	))
+	for page, expectedIDs := range [][]int64{{2, 1, 11}, {5, 3}} {
+		issueIDs, total, err := issues_model.IssueIDs(t.Context(), &issues_model.IssuesOptions{
+			RepoIDs:   []int64{1},
+			SortType:  issues_model.ScopeSortPrefix + "priority",
+			Paginator: &db.ListOptions{Page: page + 1, PageSize: 3},
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, expectedIDs, issueIDs)
+		assert.EqualValues(t, 5, total)
+	}
+}
+
 func TestViewIssuesKeyword(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -99,8 +154,11 @@ func TestViewIssuesKeyword(t *testing.T) {
 		Index:  1,
 	})
 	issues.UpdateIssueIndexer(t.Context(), issue.ID)
-	time.Sleep(time.Second * 1)
 	const keyword = "first"
+	require.Eventually(t, func() bool {
+		issueIDs, _, err := issues.SearchIssues(t.Context(), &issues.SearchOptions{Keyword: keyword, RepoIDs: []int64{repo.ID}})
+		return err == nil && slices.Contains(issueIDs, issue.ID)
+	}, 10*time.Second, 10*time.Millisecond)
 	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.Link(), keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -127,7 +185,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	link, exists := htmlDoc.doc.Find("form#new-issue").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"title":   title,
@@ -343,6 +401,15 @@ func TestIssueReaction(t *testing.T) {
 	req = NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/unreact"), map[string]string{
 		"content": "eyes",
 	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	assert.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: 1, IsLocked: true}, "is_locked"))
+	readerSession := loginUser(t, "user4")
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/1/reactions/react", map[string]string{"content": "eyes"})
+	readerSession.MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/comments/2/reactions/react", map[string]string{"content": "eyes"})
+	readerSession.MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/comments/2/reactions/react", map[string]string{"content": "eyes"})
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
@@ -744,10 +811,9 @@ func TestIssueReferenceURL(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	// the "reference" uses relative URLs, then JS code will convert them to absolute URLs for current origin, in case users are using multiple domains
 	ref, _ := htmlDoc.Find(`.timeline-item.comment.issue-content-comment .reference-issue`).Attr("data-reference")
-	assert.Equal(t, "/user2/repo1/issues/1#issue-1", ref)
+	assert.Equal(t, setting.AppURL+"user2/repo1/issues/1#issue-1", ref)
 
 	ref, _ = htmlDoc.Find(`.timeline-item.comment:not(.issue-content-comment) .reference-issue`).Attr("data-reference")
-	assert.Equal(t, "/user2/repo1/issues/1#issuecomment-2", ref)
+	assert.Equal(t, setting.AppURL+"user2/repo1/issues/1#issuecomment-2", ref)
 }

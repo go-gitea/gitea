@@ -4,6 +4,9 @@
 package migrations
 
 import (
+	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -14,8 +17,23 @@ import (
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
 
+	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestOneDevVersionResponseSizeLimit(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(bytes.Repeat([]byte("1"), maxOneDevVersionResponseSize+1))
+	}))
+	defer server.Close()
+
+	baseURL, err := url.Parse(server.URL)
+	assert.NoError(t, err)
+	download := &OneDevDownloader{baseURL: baseURL, client: server.Client()}
+	var version *version.Version
+	err = download.callAPI(t.Context(), "/~api/version/server", nil, &version)
+	assert.Error(t, err)
+}
 
 func TestOneDevDownloadRepo(t *testing.T) {
 	liveMode := os.Getenv("ONEDEV_LIVE") != ""

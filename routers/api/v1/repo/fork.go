@@ -12,7 +12,6 @@ import (
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -148,7 +147,7 @@ func CreateFork(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateForkOption)
+	form := web.GetForm[*api.CreateForkOption](ctx)
 	forkOwner := ctx.Doer // user/org that will own the fork
 	if form.Organization != nil {
 		org := prepareDoerCreateRepoInOrg(ctx, *form.Organization)
@@ -166,13 +165,7 @@ func CreateFork(ctx *context.APIContext) {
 		Description: repo.Description,
 	})
 	if err != nil {
-		if errors.Is(err, util.ErrAlreadyExist) || repo_model.IsErrReachLimitOfRepo(err) {
-			ctx.APIError(http.StatusConflict, err.Error())
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 

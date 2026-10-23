@@ -10,15 +10,17 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -34,6 +36,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 	assignees := make(map[int64]*user_model.User)
+	var addedProjectIDs []int64
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
 			return err
@@ -52,8 +55,8 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 			assigneeCommentMap[assigneeID] = comment
 		}
 		if len(projectIDs) > 0 {
-			err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs)
-			if err != nil {
+			var err error
+			if addedProjectIDs, _, err = issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs); err != nil {
 				return err
 			}
 		}
@@ -80,6 +83,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assignee.ID])
 		}
 	}
+	notify_service.IssueChangeProjects(ctx, issue.Poster, issue, addedProjectIDs, nil)
 
 	return nil
 }
@@ -98,7 +102,7 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 	}
 
 	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, issue.Repo.OwnerID) {
-		if isAdmin, _ := access_model.IsUserRepoAdmin(ctx, issue.Repo, doer); !isAdmin {
+		if !access_model.IsUserRepoAdmin(ctx, issue.Repo, doer) {
 			return user_model.ErrBlockedUser
 		}
 	}
@@ -171,7 +175,7 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model
 		if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
 			return err
 		}
-		if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
+		if err := git.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
 			return err
 		}
 	}
@@ -309,4 +313,24 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	}
 
 	return attachmentPaths, err
+}
+
+// CanSelfChangeOrAccessContent checks whether the doer can access the content:
+// * If the doer is the content poster, then the doer can access the content if they have read access to issues.
+// * If the doer is not the content poster, then the doer can access the content if they have the required access mode to the unit type (issues or pull requests).
+// * If the issue is locked, then the doer can only access the content if they have write access.
+func CanSelfChangeOrAccessContent(doer *user_model.User, doerPerm access_model.Permission, refIssue *issues_model.Issue, contentPosterID int64, accessMode perm.AccessMode) bool {
+	unitType := util.Iif(refIssue.IsPull, unit.TypePullRequests, unit.TypeIssues)
+	if doer == nil || !doerPerm.CanAccess(perm.AccessModeRead, unitType) {
+		return false
+	}
+	ok := doer.ID == contentPosterID || doerPerm.CanAccess(accessMode, unitType)
+	if !ok {
+		return false
+	}
+	// TODO: the UI can also be updated in the future to hide the "edit" menu
+	if refIssue.IsLocked && !doerPerm.CanWrite(unitType) {
+		return false
+	}
+	return true
 }

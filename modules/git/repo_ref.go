@@ -4,7 +4,9 @@
 package git
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -13,8 +15,8 @@ import (
 )
 
 // GetRefs returns all references of the repository.
-func (repo *Repository) GetRefs() ([]*Reference, error) {
-	return repo.GetRefsFiltered("")
+func (repo *Repository) GetRefs(ctx context.Context) ([]*Reference, error) {
+	return repo.GetRefsFiltered(ctx, "")
 }
 
 // ListOccurrences lists all refs of the given refType the given commit appears in sorted by creation date DESC
@@ -30,7 +32,7 @@ func (repo *Repository) ListOccurrences(ctx context.Context, refType, commitSHA 
 		return nil, util.NewInvalidArgumentErrorf(`can only use "branch" or "tag" for refType, but got %q`, refType)
 	}
 	stdout, _, err := cmd.AddArguments("--no-color", "--sort=-creatordate", "--contains").
-		AddDynamicArguments(commitSHA).WithDir(repo.Path).RunStdString(ctx)
+		AddDynamicArguments(commitSHA).WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -72,19 +74,19 @@ func parseTags(refs []string) []string {
 // * "refs/tags/1234567890" vs commit "1234567890"
 // In most cases, it SHOULD AVOID using this function, unless there is an irresistible reason (eg: make API friendly to end users)
 // If the function is used, the caller SHOULD CHECK the ref type carefully.
-func (repo *Repository) UnstableGuessRefByShortName(shortName string) RefName {
-	if repo.IsBranchExist(shortName) {
+func (repo *Repository) UnstableGuessRefByShortName(ctx context.Context, shortName string) RefName {
+	if repo.IsBranchExist(ctx, shortName) {
 		return RefNameFromBranch(shortName)
 	}
-	if repo.IsTagExist(shortName) {
+	if repo.IsTagExist(ctx, shortName) {
 		return RefNameFromTag(shortName)
 	}
 	if strings.HasPrefix(shortName, "refs/") {
-		if repo.IsReferenceExist(shortName) {
+		if repo.IsReferenceExist(ctx, shortName) {
 			return RefName(shortName)
 		}
 	}
-	commit, err := repo.GetCommit(shortName)
+	commit, err := repo.GetCommit(ctx, shortName)
 	if err == nil {
 		commitIDString := commit.ID.String()
 		// make sure the "shortName" is either partial commit ID, or it is HEAD
@@ -95,4 +97,65 @@ func (repo *Repository) UnstableGuessRefByShortName(shortName string) RefName {
 		}
 	}
 	return ""
+}
+
+// GetRefsFiltered returns all references of the repository that matches patterm exactly or starting with.
+func (repo *Repository) GetRefsFiltered(ctx context.Context, pattern string) ([]*Reference, error) {
+	refs := make([]*Reference, 0)
+	cmd := gitcmd.NewCommand("for-each-ref")
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	err := cmd.WithRepo(repo).
+		WithPipelineFunc(func(context gitcmd.Context) error {
+			bufReader := bufio.NewReader(stdoutReader)
+			for {
+				// The output of for-each-ref is simply a list:
+				// <sha> SP <type> TAB <ref> LF
+				sha, err := bufReader.ReadString(' ')
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					return err
+				}
+				sha = sha[:len(sha)-1]
+
+				typ, err := bufReader.ReadString('\t')
+				if err == io.EOF {
+					// This should not happen, but we'll tolerate it
+					break
+				}
+				if err != nil {
+					return err
+				}
+				typ = typ[:len(typ)-1]
+
+				refName, err := bufReader.ReadString('\n')
+				if err == io.EOF {
+					// This should not happen, but we'll tolerate it
+					break
+				}
+				if err != nil {
+					return err
+				}
+				refName = refName[:len(refName)-1]
+
+				// refName cannot be HEAD but can be remotes or stash
+				if strings.HasPrefix(refName, RemotePrefix) || refName == "/refs/stash" {
+					continue
+				}
+
+				if pattern == "" || strings.HasPrefix(refName, pattern) {
+					r := &Reference{
+						Name:   refName,
+						Object: MustIDFromString(sha),
+						Type:   typ,
+						repo:   repo,
+					}
+					refs = append(refs, r)
+				}
+			}
+			return nil
+		}).RunWithStderr(ctx)
+	return refs, err
 }

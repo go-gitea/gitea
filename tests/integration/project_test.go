@@ -10,12 +10,14 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	project "gitea.dev/services/projects"
 	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -60,7 +62,7 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	columns, err := project1.GetColumns(t.Context())
+	columns, err := project_model.GetColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
 	assert.EqualValues(t, 0, columns[0].Sorting)
@@ -80,7 +82,7 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	})
 	sess.MakeRequest(t, req, http.StatusOK)
 
-	columnsAfter, err := project1.GetColumns(t.Context())
+	columnsAfter, err := project_model.GetColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columnsAfter, 3)
 	assert.Equal(t, columns[1].ID, columnsAfter[0].ID)
@@ -107,6 +109,18 @@ func TestUpdateIssueProject(t *testing.T) {
 		})
 		sess.MakeRequest(t, req, http.StatusOK)
 		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+	})
+
+	t.Run("AssignOnCreationNeedsWriter", func(t *testing.T) {
+		newIssue := func(session *TestSession, title string, status int) {
+			req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/new", map[string]string{"title": title, "project_ids": "1"})
+			session.MakeRequest(t, req, status)
+		}
+		newIssue(sess, "writer issue", http.StatusOK)
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Title: "writer issue"})
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: 1})
+		newIssue(loginUser(t, "user4"), "reader issue", http.StatusNotFound)
+		unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: 1, Title: "reader issue"})
 	})
 }
 
@@ -158,7 +172,7 @@ func TestUpdateIssueProjectColumn(t *testing.T) {
 			Title:     "other column",
 			ProjectID: project2.ID,
 		}))
-		columns, err := project2.GetColumns(t.Context())
+		columns, err := project_model.GetColumns(t.Context(), project2.ID, db.ListOptionsAll)
 		require.NoError(t, err)
 		require.NotEmpty(t, columns)
 
@@ -312,8 +326,10 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 	require.NoError(t, project_model.NewProject(t.Context(), &project))
 
 	// Add issues to the project
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, []int64{project.ID}))
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, []int64{project.ID}))
+	for _, issue := range []*issues_model.Issue{issue16, issue17} {
+		_, _, err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user1, []int64{project.ID})
+		require.NoError(t, err)
+	}
 
 	sess := loginUser(t, "user1")
 	projectURL := fmt.Sprintf("/org3/-/projects/%d", project.ID)
@@ -363,5 +379,30 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		issueIDs = getProjectIssueIDs(t, htmlDoc)
 		assert.Contains(t, issueIDs, issue16.ID)
 		assert.NotContains(t, issueIDs, issue17.ID)
+	})
+}
+
+func TestProjects(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	t.Run("LoadIssuesAssigneesForProject", func(t *testing.T) {
+		_ = db.TruncateBeans(t.Context(), "project_issue", "issue_assignees")
+		_ = db.Insert(t.Context(),
+			&project_model.ProjectIssue{ProjectID: 1, IssueID: 1},
+			&project_model.ProjectIssue{ProjectID: 1, IssueID: 6},
+		)
+		_ = db.Insert(t.Context(),
+			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 1},
+			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 10},
+			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 2},
+			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 2},
+			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 4},
+		)
+		assignees, err := project.LoadIssuesAssigneesForProject(t.Context(), 1)
+		require.NoError(t, err)
+		require.Len(t, assignees, 4)
+		require.Equal(t, "user1", assignees[0].Name)
+		require.Equal(t, "user10", assignees[1].Name)
+		require.Equal(t, "user2", assignees[2].Name)
+		require.Equal(t, "user4", assignees[3].Name)
 	})
 }

@@ -5,13 +5,14 @@ package cache
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
-
-	chi_cache "gitea.com/go-chi/cache" //nolint:depguard // we wrap this package here
 )
 
 type GetJSONError struct {
@@ -30,57 +31,57 @@ type StringCache interface {
 	Ping() error
 
 	Get(key string) (string, bool)
-	Put(key, value string, ttl int64) error
+	Put(key, value string, ttl int64) error // ttl in seconds, 0 never expires, negative removes the key
 	Delete(key string) error
 	IsExist(key string) bool
 
 	PutJSON(key string, v any, ttl int64) error
 	GetJSON(key string, ptr any) (exist bool, err *GetJSONError)
+}
 
-	ChiCache() chi_cache.Cache
+type backend interface {
+	Get(key string) (string, bool)
+	Put(key, value string, ttl int64) error
+	Delete(key string) error
+	IsExist(key string) bool
+	Ping() error
 }
 
 type stringCache struct {
-	chiCache chi_cache.Cache
+	backend
 }
 
 func NewStringCache(cacheConfig setting.Cache) (StringCache, error) {
-	adapter := util.IfZero(cacheConfig.Adapter, "memory")
-	interval := util.IfZero(cacheConfig.Interval, 60)
-	cc, err := chi_cache.NewCacher(chi_cache.Options{
-		Adapter:       adapter,
-		AdapterConfig: cacheConfig.Conn,
-		Interval:      interval,
-	})
+	cacheBackend, err := newBackend(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
-	return &stringCache{chiCache: cc}, nil
+	return &stringCache{backend: cacheBackend}, nil
 }
 
-func (sc *stringCache) Ping() error {
-	return sc.chiCache.Ping()
-}
-
-func (sc *stringCache) Get(key string) (string, bool) {
-	v := sc.chiCache.Get(key)
-	if v == nil {
-		return "", false
+func newBackend(cacheConfig setting.Cache) (backend, error) {
+	gcInterval := time.Duration(util.IfZero(cacheConfig.Interval, 60)) * time.Second
+	switch adapter := util.IfZero(cacheConfig.Adapter, "memory"); adapter {
+	case "memory":
+		// the old "memory" adapter doesn't have a limit, which can lead to OOM
+		// now, use two-queue cache for in-memory cache with items limit, at most a few GB of memory will be used
+		return newTwoQueueCache(strconv.FormatInt(10*1024*1024, 10), gcInterval)
+	case "twoqueue":
+		return newTwoQueueCache(cacheConfig.Conn, gcInterval)
+	case "redis":
+		return newRedisCache(cacheConfig.Conn), nil
+	case "memcache":
+		return newMemcacheCache(cacheConfig.Conn)
+	default:
+		return nil, fmt.Errorf("unknown cache adapter %q", adapter)
 	}
-	s, ok := v.(string)
-	return s, ok
 }
 
 func (sc *stringCache) Put(key, value string, ttl int64) error {
-	return sc.chiCache.Put(key, value, ttl)
-}
-
-func (sc *stringCache) Delete(key string) error {
-	return sc.chiCache.Delete(key)
-}
-
-func (sc *stringCache) IsExist(key string) bool {
-	return sc.chiCache.IsExist(key)
+	if ttl < 0 {
+		return sc.backend.Delete(key)
+	}
+	return sc.backend.Put(key, value, ttl)
 }
 
 const cachedErrorPrefix = "<CACHED-ERROR>:"
@@ -97,7 +98,7 @@ func (sc *stringCache) PutJSON(key string, v any, ttl int64) error {
 		}
 		s = util.UnsafeBytesToString(b)
 	}
-	return sc.chiCache.Put(key, s, ttl)
+	return sc.Put(key, s, ttl)
 }
 
 func (sc *stringCache) GetJSON(key string, ptr any) (exist bool, getErr *GetJSONError) {
@@ -113,8 +114,4 @@ func (sc *stringCache) GetJSON(key string, ptr any) (exist bool, getErr *GetJSON
 		return false, &GetJSONError{err: err}
 	}
 	return true, nil
-}
-
-func (sc *stringCache) ChiCache() chi_cache.Cache {
-	return sc.chiCache
 }

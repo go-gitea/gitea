@@ -7,15 +7,61 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	secret_model "gitea.dev/models/secret"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
+	"go.yaml.in/yaml/v4"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+var (
+	taskPickSem     chan struct{}
+	taskPickSemOnce sync.Once
+)
+
+func taskPickLimiter() chan struct{} {
+	taskPickSemOnce.Do(func() {
+		taskPickSem = make(chan struct{}, max(1, setting.Actions.MaxConcurrentTaskPicks))
+	})
+	return taskPickSem
+}
+
+// TryPickTask attempts to assign a task to the runner, bounding the number of
+// concurrent assignment transactions to avoid a thundering herd when many
+// runners poll at once. When the concurrency limit is reached it returns
+// throttled=true without touching the DB, so the caller can let the runner
+// retry on its next poll instead of advancing its tasks version.
+func TryPickTask(ctx context.Context, runner *actions_model.ActionRunner) (task *runnerv1.Task, ok, throttled bool, err error) {
+	sem := taskPickLimiter()
+	select {
+	case sem <- struct{}{}:
+		defer func() { <-sem }()
+	default:
+		return nil, false, true, nil
+	}
+	task, ok, err = PickTask(ctx, runner)
+	return task, ok, false, err
+}
+
+// releaseTaskForRunnerCleanup releases a claimed task using a fresh, bounded context. The request context
+// is typically already canceled when we reach the release paths below, and a DB transaction on a canceled
+// context fails immediately, which would strand the claimed job in running state.
+func releaseTaskForRunnerCleanup(t *actions_model.ActionTask) {
+	ctx, cancel := context.WithTimeout(graceful.GetManager().ShutdownContext(), 10*time.Second)
+	defer cancel()
+	if relErr := actions_model.ReleaseTaskForRunner(ctx, t); relErr != nil {
+		log.Error("ReleaseTaskForRunner [task_id: %d]: %v", t.ID, relErr)
+	}
+}
 
 func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
 	var (
@@ -61,9 +107,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		// The job was already claimed but assembling its payload failed; release the
 		// claim so the job returns to the waiting queue instead of being stranded in
 		// running state with no runner ever executing it.
-		if relErr := actions_model.ReleaseTaskForRunner(ctx, t); relErr != nil {
-			log.Error("ReleaseTaskForRunner [task_id: %d]: %v", t.ID, relErr)
-		}
+		releaseTaskForRunnerCleanup(t)
 		return nil, false, err
 	}
 	actionTask = t
@@ -74,6 +118,13 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	// so Started is zero only on the very first pick-up of that run.
 	if job.Run.Started.IsZero() {
 		NotifyWorkflowRunStatusUpdateWithReload(ctx, job.RepoID, job.RunID)
+	}
+
+	// The job is claimed and its payload assembled, but if the request context was cancelled meanwhile, response can no longer reach the runner.
+	// Release the claim so another runner can pick the job up.
+	if err := ctx.Err(); err != nil {
+		releaseTaskForRunnerCleanup(t)
+		return nil, false, err
 	}
 
 	return task, true, nil
@@ -107,14 +158,32 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 		return nil, nil, fmt.Errorf("generateTaskContext: %w", err)
 	}
 
+	payload, err := runnerWorkflowPayload(job)
+	if err != nil {
+		return nil, nil, fmt.Errorf("runnerWorkflowPayload: %w", err)
+	}
+
 	return &runnerv1.Task{
 		Id:              t.ID,
-		WorkflowPayload: t.Job.WorkflowPayload,
+		WorkflowPayload: payload,
 		Context:         taskContext,
 		Secrets:         secrets,
 		Vars:            vars,
 		Needs:           needs,
 	}, job, nil
+}
+
+// runnerWorkflowPayload sets the job `if:` to `always()`, as Gitea has decided it and a runner must not re-evaluate it.
+func runnerWorkflowPayload(job *actions_model.ActionRunJob) ([]byte, error) {
+	swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
+	if err != nil {
+		return nil, err
+	}
+	parsedJob.If = yaml.Node{Kind: yaml.ScalarNode, Value: "always()"}
+	if err := swf.SetJob(job.JobID, parsedJob); err != nil {
+		return nil, err
+	}
+	return swf.Marshal()
 }
 
 func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*structpb.Struct, error) {
@@ -124,14 +193,29 @@ func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*str
 	}
 
 	gitCtx := GenerateGiteaContext(ctx, t.Job.Run, nil, t.Job)
+	if t.Job.ParentJobID > 0 {
+		if err := setCalledWorkflowContext(ctx, t.Job, gitCtx); err != nil {
+			return nil, err
+		}
+	}
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
+	if allowed, err := taskAllowsOIDCToken(ctx, t); err != nil {
+		return nil, err
+	} else if allowed {
+		requestToken, err := signActionsClaims(actionsClaims{Scp: idTokenRequestScope, TaskID: t.ID})
+		if err != nil {
+			return nil, err
+		}
+		gitCtx["actions_id_token_request_url"] = OIDCIssuer() + "/token?" // actions/core appends "&audience=..."
+		gitCtx["actions_id_token_request_token"] = requestToken
+	}
 
 	return structpb.NewStruct(gitCtx)
 }
 
 func findTaskNeeds(ctx context.Context, taskJob *actions_model.ActionRunJob) (map[string]*runnerv1.TaskNeed, error) {
-	taskNeeds, err := FindTaskNeeds(ctx, taskJob)
+	taskNeeds, _, err := FindTaskNeeds(ctx, taskJob)
 	if err != nil {
 		return nil, err
 	}
@@ -143,4 +227,23 @@ func findTaskNeeds(ctx context.Context, taskJob *actions_model.ActionRunJob) (ma
 		}
 	}
 	return ret, nil
+}
+
+// setCalledWorkflowContext rewrites the context for older runners, newer runners undo it via `gitea_workflow_call`.
+func setCalledWorkflowContext(ctx context.Context, job *actions_model.ActionRunJob, gitCtx GiteaContext) error {
+	inputs, err := getInputsForJob(ctx, job.Run, job)
+	if err != nil {
+		return err
+	}
+	event, _ := gitCtx["event"].(map[string]any)
+	workflowCall := map[string]any{"original_event_name": gitCtx["event_name"], "inputs": inputs}
+	if eventInputs, ok := event["inputs"]; ok {
+		workflowCall["original_event_inputs"] = eventInputs
+	}
+	gitCtx["gitea_workflow_call"] = workflowCall
+	gitCtx["event_name"] = "workflow_call"
+	if event != nil {
+		event["inputs"] = inputs
+	}
+	return nil
 }

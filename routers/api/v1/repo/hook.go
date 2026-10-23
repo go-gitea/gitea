@@ -177,7 +177,7 @@ func TestHook(ctx *context.APIContext) {
 	commit := convert.ToPayloadCommit(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
 
 	commitID := ctx.Repo.Commit.ID.String()
-	if err := webhook_service.PrepareWebhook(ctx, hook, webhook_module.HookEventPush, &api.PushPayload{
+	if err := webhook_service.PrepareTestWebhook(ctx, hook, webhook_module.HookEventPush, &api.PushPayload{
 		Ref:          ref,
 		Before:       commitID,
 		After:        commitID,
@@ -226,7 +226,7 @@ func CreateHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	utils.AddRepoHook(ctx, web.GetForm(ctx).(*api.CreateHookOption))
+	utils.AddRepoHook(ctx, web.GetForm[*api.CreateHookOption](ctx))
 }
 
 // EditHook modify a hook of a repository
@@ -262,7 +262,7 @@ func EditHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Hook"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditHookOption)
+	form := web.GetForm[*api.EditHookOption](ctx)
 	hookID := ctx.PathParamInt64("id")
 	utils.EditRepoHook(ctx, form, hookID)
 }

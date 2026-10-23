@@ -51,10 +51,10 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 	helper := &RepoComment{opts: util.OptionalArg(opts)}
 	rctx := markup.NewRenderContext(ctx)
 	helper.ctx = rctx
+	helper.commitChecker = newCommitChecker(ctx, repo)
 	var metas map[string]string
 	if repo != nil {
 		helper.repoLink = repo.Link()
-		helper.commitChecker = newCommitChecker(ctx, repo)
 		metas = repo.ComposeCommentMetas(ctx)
 	} else {
 		// repo can be nil when rendering a commit message in user's dashboard feedback whose repository has been deleted

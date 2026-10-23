@@ -16,7 +16,6 @@ import (
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
@@ -70,15 +69,15 @@ func deleteCommitStatusCache(repoID int64, branchName string) error {
 // Requires: Repo, Creator, SHA
 func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creator *user_model.User, sha string, status *git_model.CommitStatus) error {
 	// confirm that commit is exist
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %w", repo.RelativePath(), err)
+		return fmt.Errorf("OpenRepository[%s]: %w", repo.FullName(), err)
 	}
 	defer closer.Close()
 
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 
-	commit, err := gitRepo.GetCommit(sha)
+	commit, err := gitRepo.GetCommit(ctx, sha)
 	if err != nil {
 		return fmt.Errorf("GetCommit[%s]: %w", sha, err)
 	}
@@ -104,7 +103,7 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 
 	notify.CreateCommitStatus(ctx, repo, repo_module.CommitToPushCommit(commit), creator, status)
 
-	defaultBranchCommit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	defaultBranchCommit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
 	if err != nil {
 		return fmt.Errorf("GetBranchCommit[%s]: %w", repo.DefaultBranch, err)
 	}
@@ -125,6 +124,8 @@ func FindReposLatestCommitStatuses(ctx context.Context, repos []*repo_model.Repo
 	for i, repo := range repos {
 		if cv := getCommitStatusCache(repo.ID, repo.DefaultBranch); cv != nil {
 			results[i] = &git_model.CommitStatus{
+				RepoID:    repo.ID,
+				Repo:      repo,
 				State:     commitstatus.CommitStatusState(cv.State),
 				TargetURL: cv.TargetURL,
 			}
@@ -164,6 +165,7 @@ func FindReposLatestCommitStatuses(ctx context.Context, repos []*repo_model.Repo
 	for _, summary := range summaryResults {
 		for i, repo := range repos {
 			if repo.ID == summary.RepoID {
+				summary.Repo = repo
 				results[i] = summary
 				repoSHAs = slices.DeleteFunc(repoSHAs, func(repoSHA git_model.RepoSHA) bool {
 					return repoSHA.RepoID == repo.ID
@@ -191,6 +193,7 @@ func FindReposLatestCommitStatuses(ctx context.Context, repos []*repo_model.Repo
 		if results[i] == nil {
 			results[i] = git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID])
 			if results[i] != nil {
+				results[i].Repo = repo
 				if err := updateCommitStatusCache(repo.ID, repo.DefaultBranch, results[i].State, results[i].TargetURL); err != nil {
 					log.Error("updateCommitStatusCache[%d:%s] failed: %v", repo.ID, repo.DefaultBranch, err)
 				}

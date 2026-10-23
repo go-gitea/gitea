@@ -1,6 +1,13 @@
 import {isDarkTheme} from '../utils.ts';
+import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 export async function initCaptcha() {
+  registerGlobalEventFunc('click', 'onImageCaptchaReload', (img: HTMLImageElement) => {
+    const url = new URL(img.src);
+    url.searchParams.set('reload', String(Date.now()));
+    img.src = url.href;
+  });
+
   const captchaEl = document.querySelector('#captcha');
   if (!captchaEl) return;
 
@@ -12,7 +19,7 @@ export async function initCaptcha() {
     theme: isDark ? 'dark' : 'light',
   };
 
-  switch (captchaEl.getAttribute('data-captcha-type')) {
+  switch (captchaEl.getAttribute('data-captcha-type') ?? '') {
     case 'g-recaptcha': {
       if (window.grecaptcha) {
         window.grecaptcha.ready(() => {

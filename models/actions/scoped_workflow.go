@@ -53,6 +53,10 @@ type FindScopedWorkflowSourceOpts struct {
 	SourceRepoID int64
 }
 
+func (opts FindScopedWorkflowSourceOpts) ToOrders() string {
+	return "id"
+}
+
 func (opts FindScopedWorkflowSourceOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if len(opts.OwnerIDs) > 0 {

@@ -175,6 +175,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, "download", batchRequest.Operation)
+		assert.Equal(t, &Reference{Name: "refs/heads/main"}, batchRequest.Ref)
 		assert.Len(t, batchRequest.Objects, 1)
 		assert.Equal(t, p.Oid, batchRequest.Objects[0].Oid)
 		assert.Equal(t, p.Size, batchRequest.Objects[0].Size)
@@ -248,7 +249,7 @@ func TestHTTPClientDownload(t *testing.T) {
 				},
 			}
 
-			err := client.Download(t.Context(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
+			err := client.Download(t.Context(), "refs/heads/main", []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
 				if objectError != nil {
 					return objectError
 				}
@@ -283,6 +284,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, "upload", batchRequest.Operation)
+		assert.Nil(t, batchRequest.Ref)
 		assert.Len(t, batchRequest.Objects, 1)
 		assert.Equal(t, p.Oid, batchRequest.Objects[0].Oid)
 		assert.Equal(t, p.Size, batchRequest.Objects[0].Size)
