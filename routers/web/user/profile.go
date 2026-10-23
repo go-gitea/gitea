@@ -167,7 +167,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
-		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+		showPrivate := ctx.IsSigned && activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer)
 		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
