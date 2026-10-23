@@ -27,3 +27,8 @@ test('job queue refreshes with filter open', async ({page, request}) => {
   await expect(page.getByRole('link', {name: 'queued #2'})).toBeVisible();
   await expect(waitingFilter).toBeVisible();
 });
+
+test('job log line permalink expands its step', async ({page}) => {
+  await page.goto('/devtest/repo-action-view/runs/10/jobs/1#jobstep-1-23');
+  await expect(page.getByRole('link', {name: '23', exact: true})).toBeInViewport();
+});

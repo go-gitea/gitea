@@ -1555,9 +1555,11 @@ jobs:
 		// wf1-job2 is waiting but no runner will run it
 		assert.Equal(t, actions_model.StatusWaiting, w1j2Job.Status)
 
-		time.Sleep(time.Second)
 		now := time.Now()
-		time.Sleep(time.Second)
+		_, err := db.GetEngine(t.Context()).NoAutoTime().ID(w1j2Job.ID).Cols("updated").Update(&actions_model.ActionRunJob{
+			Updated: timeutil.TimeStamp(now.Unix()).Add(-1),
+		})
+		require.NoError(t, err)
 
 		// push workflow2
 		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf2TreePath, wf2FileContent)

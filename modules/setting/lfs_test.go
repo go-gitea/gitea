@@ -6,6 +6,8 @@ package setting
 import (
 	"testing"
 
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,6 +31,7 @@ PATH = path_used
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
+	applyDeprecatedKeys(cfg)
 	assert.NoError(t, loadLFSFrom(cfg))
 
 	assert.EqualValues(t, "local", LFS.Storage.Type)
@@ -40,6 +43,7 @@ LFS_CONTENT_PATH = deprecatedpath
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
+	applyDeprecatedKeys(cfg)
 	assert.NoError(t, loadLFSFrom(cfg))
 
 	assert.EqualValues(t, "local", LFS.Storage.Type)
@@ -101,6 +105,9 @@ STORAGE_TYPE = minio
 }
 
 func Test_LFSClientServerConfigs(t *testing.T) {
+	defer test.MockVariableValue(&LFS)()
+	defer test.MockVariableValue(&LFSClient)()
+
 	iniStr := `
 [server]
 LFS_MAX_BATCH_SIZE = 100

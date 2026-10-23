@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -29,6 +30,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
@@ -122,6 +124,27 @@ func TestViewIssuesSortByType(t *testing.T) {
 	})
 }
 
+func TestIssueIDsSortByLabelScope(t *testing.T) {
+	assert.NoError(t, unittest.LoadFixtures())
+	high := &issues_model.Label{RepoID: 1, Name: "priority/high", Exclusive: true, ExclusiveOrder: 1}
+	low := &issues_model.Label{RepoID: 1, Name: "priority/low", Exclusive: true, ExclusiveOrder: 2}
+	assert.NoError(t, db.Insert(t.Context(), high, low))
+	assert.NoError(t, db.Insert(t.Context(),
+		&issues_model.IssueLabel{IssueID: 1, LabelID: low.ID},
+		&issues_model.IssueLabel{IssueID: 2, LabelID: high.ID},
+	))
+	for page, expectedIDs := range [][]int64{{2, 1, 11}, {5, 3}} {
+		issueIDs, total, err := issues_model.IssueIDs(t.Context(), &issues_model.IssuesOptions{
+			RepoIDs:   []int64{1},
+			SortType:  issues_model.ScopeSortPrefix + "priority",
+			Paginator: &db.ListOptions{Page: page + 1, PageSize: 3},
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, expectedIDs, issueIDs)
+		assert.EqualValues(t, 5, total)
+	}
+}
+
 func TestViewIssuesKeyword(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -131,8 +154,11 @@ func TestViewIssuesKeyword(t *testing.T) {
 		Index:  1,
 	})
 	issues.UpdateIssueIndexer(t.Context(), issue.ID)
-	time.Sleep(time.Second * 1)
 	const keyword = "first"
+	require.Eventually(t, func() bool {
+		issueIDs, _, err := issues.SearchIssues(t.Context(), &issues.SearchOptions{Keyword: keyword, RepoIDs: []int64{repo.ID}})
+		return err == nil && slices.Contains(issueIDs, issue.ID)
+	}, 10*time.Second, 10*time.Millisecond)
 	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.Link(), keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -375,6 +401,15 @@ func TestIssueReaction(t *testing.T) {
 	req = NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/unreact"), map[string]string{
 		"content": "eyes",
 	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	assert.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: 1, IsLocked: true}, "is_locked"))
+	readerSession := loginUser(t, "user4")
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/1/reactions/react", map[string]string{"content": "eyes"})
+	readerSession.MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/comments/2/reactions/react", map[string]string{"content": "eyes"})
+	readerSession.MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/comments/2/reactions/react", map[string]string{"content": "eyes"})
 	session.MakeRequest(t, req, http.StatusOK)
 }
 

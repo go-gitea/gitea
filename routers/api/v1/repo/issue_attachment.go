@@ -57,7 +57,7 @@ func GetIssueAttachment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/error"
 
-	issue := getIssueFromContext(ctx)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return
 	}
@@ -100,7 +100,7 @@ func ListIssueAttachments(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/error"
 
-	issue := getIssueFromContext(ctx)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return
 	}
@@ -163,7 +163,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	issue := getIssueFromContext(ctx)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return
 	}
@@ -333,20 +333,8 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func getIssueFromContext(ctx *context.APIContext) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return nil
-	}
-
-	issue.Repo = ctx.Repo.Repository
-
-	return issue
-}
-
 func getIssueAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Attachment {
-	issue := getIssueFromContext(ctx)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return nil
 	}
