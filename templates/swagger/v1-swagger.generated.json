@@ -14996,9 +14996,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to get",
+            "type": "string",
+            "description": "id or name of the label to get",
             "name": "id",
             "in": "path",
             "required": true
@@ -15035,9 +15034,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to delete",
+            "type": "string",
+            "description": "id or name of the label to delete",
             "name": "id",
             "in": "path",
             "required": true
@@ -15080,9 +15078,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to edit",
+            "type": "string",
+            "description": "id or name of the label to edit",
             "name": "id",
             "in": "path",
             "required": true
