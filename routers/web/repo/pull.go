@@ -38,7 +38,6 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/utils"
-	shared_user "gitea.dev/routers/web/shared/user"
 	actions_service "gitea.dev/services/actions"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/automerge"
@@ -860,13 +859,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
 		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 
-		assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
-		if err != nil {
-			ctx.ServerError("GetRepoAssignees", err)
-			return
-		}
-		ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
-
 		var numPendingCodeComments int64
 		var currentPendingReview *issues_model.Review
 		if ctx.Doer != nil {
@@ -890,6 +882,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		ctx.Data["CurrentReview"] = currentPendingReview
 		ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
 
+		// For files changed page
 		PrepareBranchList(ctx)
 		if ctx.Written() {
 			return
@@ -939,7 +932,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 					ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
 					ctx.Data["HeadBranchName"] = pull.HeadBranch
-					ctx.Data["BackToLink"] = templates.QueryBuild(setting.AppSubURL+ctx.Req.URL.RequestURI(), "file-only", "")
+					ctx.Data["BackToLink"] = templates.QueryBuild(setting.AppSubURL+ctx.Req.URL.RequestURI(), "file-only", "", "skip-to", "")
 				}
 			}
 		}

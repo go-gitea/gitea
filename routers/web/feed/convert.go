@@ -289,7 +289,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 	canReadReleases := ctx.Repo.Permission.CanRead(unit.TypeReleases)
 	for _, rel := range releases {
 		rel.Repo = ctx.Repo.Repository
-		rel.Publisher = publishers[rel.PublisherID]
+		rel.Publisher = user_model.GetPossibleUserFromMap(rel.PublisherID, publishers)
 		if rel.Publisher == nil {
 			rel.Publisher = user_model.NewGhostUser()
 		}
