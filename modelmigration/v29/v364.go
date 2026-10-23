@@ -7,17 +7,20 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddHashSHA256ToAttachment(_ context.Context, x base.EngineMigration) error {
-	type Attachment struct {
-		HashSHA256 string `xorm:"hash_sha256 char(64) NOT NULL DEFAULT ''"`
+func AddProjectWorkflow(_ context.Context, x base.EngineMigration) error {
+	type ProjectWorkflow struct {
+		ID              int64 `xorm:"pk autoincr"`
+		ProjectID       int64 `xorm:"INDEX"`
+		WorkflowEvent   string
+		WorkflowFilters string             `xorm:"TEXT JSON"`
+		WorkflowActions string             `xorm:"TEXT JSON"`
+		Enabled         bool               `xorm:"DEFAULT true NOT NULL"`
+		CreatedUnix     timeutil.TimeStamp `xorm:"created"`
+		UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
 	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(Attachment))
-	return err
+
+	return x.Sync(&ProjectWorkflow{})
 }

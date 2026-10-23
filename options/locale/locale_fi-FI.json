@@ -1387,7 +1387,6 @@
   "gpg.error.no_committer_account": "Committaajan sähköpostiosoitteeseen ei ole linkitetty tiliä",
   "gpg.error.not_signed_commit": "Ei allekirjoitettu committi",
   "packages.title": "Paketit",
-  "packages.desc": "Hallitse repon paketteja.",
   "packages.empty": "Täällä ei vielä ole paketteja.",
   "packages.filter.type": "Tyyppi",
   "packages.filter.type.all": "Kaikki",

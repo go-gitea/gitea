@@ -3335,7 +3335,6 @@
   "units.error.no_unit_allowed_repo": "Bu deponun hiçbir bölümüne erişme izniniz yok.",
   "units.error.unit_not_allowed": "Bu depo bölümüne erişme izniniz yok.",
   "packages.title": "Paketler",
-  "packages.desc": "Depo paketlerini yönet.",
   "packages.empty": "Henüz hiçbir paket yok.",
   "packages.no_metadata": "Üstveri yok.",
   "packages.empty.documentation": "Paket kütüğü hakkında daha fazla bilgi için, <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://docs.gitea.io/en-us/usage/packages/overview/\">belgeye</a> bakabilirsiniz.",
