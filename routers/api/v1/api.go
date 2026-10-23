@@ -256,14 +256,16 @@ func rejectPublicOnly() func(ctx *context.APIContext) {
 	}
 }
 
-func contextAuthenticatedUser(allowSystemUser bool) func(ctx *context.APIContext) {
+func authenticatedUserAsContextUser(allowSystemUser bool) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !user_model.DoerTokenAllowsOwner(ctx.Doer, ctx.Doer) {
 			ctx.APIError(http.StatusForbidden, "this endpoint is not available for public-only tokens")
 			return
 		}
-		if ctx.Doer.IsOrganization() || ctx.Doer.ID <= 0 && !allowSystemUser { // system users are shared identities, not accounts
-			ctx.APIError(http.StatusForbidden, "this endpoint is only available for user accounts")
+		isIndividualOrBot := ctx.Doer.IsIndividual() || ctx.Doer.IsTypeBot()
+		isSystem := ctx.Doer.ID < 0
+		if isIndividualOrBot || isSystem && !allowSystemUser {
+			ctx.APIError(http.StatusForbidden, "this endpoint is only available for individual user or bot accounts")
 			return
 		}
 		ctx.ContextUser = ctx.Doer
@@ -1096,7 +1098,9 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
-		m.Get("/user", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser(true), user.GetAuthenticatedUser)
+		contextAuthenticatedDoerUser := authenticatedUserAsContextUser(false)
+		contextAuthenticatedDoerWithSystem := authenticatedUserAsContextUser(true)
+		m.Get("/user", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedDoerWithSystem, user.GetAuthenticatedUser)
 		m.Group("/user", func() {
 			m.Get("/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), org.ListMyOrgs)
 			m.Group("/settings", func() {
@@ -1218,7 +1222,7 @@ func Routes() *web.Router {
 					m.Delete("", user.UnblockUser)
 				}, context.UserAssignmentAPI())
 			}, rejectPublicOnly())
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser(false))
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedDoerUser)
 
 		// Repositories (requires repo scope, org scope)
 		m.Post("/org/{org}/repos",
