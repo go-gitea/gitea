@@ -5,9 +5,8 @@
 package pull
 
 import (
-	"os"
-	"os/exec"
-	"path/filepath"
+	"context"
+	"strings"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -15,7 +14,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
@@ -110,56 +109,41 @@ func TestCheckIfPRContentChanged_ForkPR(t *testing.T) {
 	oldHeadCommitID, err := git.GetFullCommitID(t.Context(), pr.HeadRepo, pr.HeadBranch)
 	require.NoError(t, err)
 
-	baseWorktreePath := filepath.Join(t.TempDir(), "base-worktree")
-	runGitCommand(t, "clone", gitrepo.RepoLocalPath(pr.BaseRepo), baseWorktreePath)
-	runGitCommand(t, "-C", baseWorktreePath, "config", "user.name", "Gitea Tests")
-	runGitCommand(t, "-C", baseWorktreePath, "config", "user.email", "tests@gitea.io")
+	// the fixture repos are shared by other tests, restore the branches afterwards
+	t.Cleanup(func() {
+		ctx := context.WithoutCancel(t.Context())
+		assert.NoError(t, git.UpdateRef(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, oldBaseCommitID))
+		assert.NoError(t, git.UpdateRef(ctx, pr.HeadRepo, git.BranchPrefix+pr.HeadBranch, oldHeadCommitID))
+	})
 
-	regressionFilePath := filepath.Join(baseWorktreePath, "fork-pr-regression.txt")
-	require.NoError(t, os.WriteFile(regressionFilePath, []byte("fork PR regression\n"), 0o644))
-	runGitCommand(t, "-C", baseWorktreePath, "add", filepath.Base(regressionFilePath))
-	runGitCommand(t, "-C", baseWorktreePath, "commit", "-m", "Advance base branch for fork PR regression test")
-	runGitCommand(t, "--git-dir", gitrepo.RepoLocalPath(pr.BaseRepo), "fetch", baseWorktreePath, "HEAD:refs/heads/"+pr.BaseBranch)
+	newBaseCommitID := commitFileOnto(t, pr.BaseRepo, oldBaseCommitID, "fork-pr-regression.txt")
+	require.NoError(t, git.UpdateRef(t.Context(), pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, newBaseCommitID))
+	newHeadCommitID := commitFileOnto(t, pr.HeadRepo, oldHeadCommitID, "fork-pr-head-change.txt")
+	require.NoError(t, git.UpdateRef(t.Context(), pr.HeadRepo, git.BranchPrefix+pr.HeadBranch, newHeadCommitID))
 
-	newBaseCommitID, err := git.GetFullCommitID(t.Context(), pr.BaseRepo, pr.BaseBranch)
-	require.NoError(t, err)
-	require.NotEqual(t, oldBaseCommitID, newBaseCommitID)
-
-	headWorktreePath := filepath.Join(t.TempDir(), "head-worktree")
-	runGitCommand(t, "clone", gitrepo.RepoLocalPath(pr.HeadRepo), headWorktreePath)
-	runGitCommand(t, "-C", headWorktreePath, "checkout", pr.HeadBranch)
-	runGitCommand(t, "-C", headWorktreePath, "config", "user.name", "Gitea Tests")
-	runGitCommand(t, "-C", headWorktreePath, "config", "user.email", "tests@gitea.io")
-
-	headChangePath := filepath.Join(headWorktreePath, "fork-pr-head-change.txt")
-	require.NoError(t, os.WriteFile(headChangePath, []byte("new head content\n"), 0o644))
-	runGitCommand(t, "-C", headWorktreePath, "add", filepath.Base(headChangePath))
-	runGitCommand(t, "-C", headWorktreePath, "commit", "-m", "Add head change for fork PR regression test")
-	runGitCommand(t, "--git-dir", gitrepo.RepoLocalPath(pr.HeadRepo), "fetch", headWorktreePath, "HEAD:refs/heads/"+pr.HeadBranch)
-
-	newHeadCommitID, err := git.GetFullCommitID(t.Context(), pr.HeadRepo, pr.HeadBranch)
-	require.NoError(t, err)
-	require.NotEqual(t, oldHeadCommitID, newHeadCommitID)
-
-	_, err = git.MergeBase(t.Context(), pr.HeadRepo, newBaseCommitID, newHeadCommitID)
-	require.Error(t, err)
+	// the new base commit only exists in the base repo, so it must be fetched into the head repo
+	assert.False(t, git.IsCommitExist(t.Context(), pr.HeadRepo, newBaseCommitID))
 
 	changed, mergeBase, err := checkIfPRContentChanged(t.Context(), pr, oldHeadCommitID, newHeadCommitID)
 	require.NoError(t, err)
 	assert.True(t, changed)
 	assert.Equal(t, oldBaseCommitID, mergeBase)
-
-	mergeBaseAfterFetch, err := git.MergeBase(t.Context(), pr.HeadRepo, newBaseCommitID, newHeadCommitID)
-	require.NoError(t, err)
-	assert.Equal(t, oldBaseCommitID, mergeBaseAfterFetch)
+	assert.True(t, git.IsCommitExist(t.Context(), pr.HeadRepo, newBaseCommitID))
 }
 
-func runGitCommand(t *testing.T, args ...string) {
+// commitFileOnto writes a commit (parent + one new file) directly into the repo's object database and returns its ID
+func commitFileOnto(t *testing.T, repo *repo_model.Repository, parentID, fileName string) string {
 	t.Helper()
-
-	cmd := exec.CommandContext(t.Context(), "git", args...)
-	output, err := cmd.CombinedOutput()
-	require.NoErrorf(t, err, "git %v failed: %s", args, output)
+	run := func(cmd *gitcmd.Command, stdin string) string {
+		stdout, _, err := cmd.WithRepo(repo).WithStdinBytes([]byte(stdin)).RunStdString(t.Context())
+		require.NoError(t, err)
+		return strings.TrimSpace(stdout)
+	}
+	blobID := run(gitcmd.NewCommand("hash-object", "-w", "--stdin"), "content of "+fileName+"\n")
+	treeID := run(gitcmd.NewCommand("mktree"), "100644 blob "+blobID+"\t"+fileName+"\n")
+	return run(gitcmd.NewCommand("commit-tree").
+		AddConfig("user.name", "Gitea Tests").AddConfig("user.email", "tests@gitea.io").
+		AddArguments("-p").AddDynamicArguments(parentID, treeID).AddArguments("-m", "test commit"), "")
 }
 
 func TestBuildSquashMergeCommitMessages(t *testing.T) {

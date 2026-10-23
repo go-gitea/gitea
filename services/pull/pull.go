@@ -517,9 +517,9 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, "", fmt.Errorf("GetFullCommitID[%s]: %w", pr.BaseBranch, err)
 	}
 
-	if pr.BaseRepo.ID != pr.HeadRepo.ID && !git.IsReferenceExist(ctx, pr.HeadRepo, baseCommitID) {
+	if pr.BaseRepo.ID != pr.HeadRepo.ID && !git.IsCommitExist(ctx, pr.HeadRepo, baseCommitID) {
 		if err := git.FetchRemoteTempCommit(ctx, pr.HeadRepo, pr.BaseRepo, baseCommitID); err != nil {
-			return false, "", fmt.Errorf("FetchRemoteCommit: %w", err)
+			return false, "", fmt.Errorf("FetchRemoteTempCommit: %w", err)
 		}
 	}
 

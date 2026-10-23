@@ -249,6 +249,12 @@ func GetFullCommitID(ctx context.Context, repo RepositoryFacade, shortID string)
 	return strings.TrimSpace(commitID), nil
 }
 
+// IsCommitExist returns true if the given commit object exists in the repository.
+func IsCommitExist(ctx context.Context, repo RepositoryFacade, commitID string) bool {
+	_, _, err := gitcmd.NewCommand("cat-file", "-e").AddDynamicArguments(commitID + "^{commit}").WithRepo(repo).RunStdString(ctx)
+	return err == nil
+}
+
 func AddObjectMessageArgument(cmd *gitcmd.Command, typ ObjectType, message string) error {
 	if len(message) > 512*1024 {
 		// It doesn't make sense to store very large messages in git objects,
