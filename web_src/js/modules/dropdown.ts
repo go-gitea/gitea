@@ -5,7 +5,7 @@ import type {Instance, Placement} from 'tippy.js';
 
 type DropdownKind = 'menu' | 'select' | 'multiselect';
 
-export type DropdownOptions = {
+type DropdownOptions = {
   loadItems?: (query: string, signal: AbortSignal) => Promise<Element[]>, // remote items, loaded on every open and while filtering
 };
 
@@ -27,6 +27,7 @@ export class Dropdown {
   valueInput: HTMLInputElement | null;
   filterInput: HTMLInputElement | null;
   kind: DropdownKind;
+  delimiter: string;
   loadItems: DropdownOptions['loadItems'];
   tippy: Instance | null = null;
   highlighted: HTMLElement | null = null;
@@ -43,6 +44,7 @@ export class Dropdown {
     this.valueInput = container.querySelector(':scope > .dropdown-value');
     this.filterInput = this.popup.querySelector('.dropdown-filter');
     this.kind = (container.getAttribute('data-kind') || 'menu') as DropdownKind;
+    this.delimiter = container.getAttribute('data-delimiter') || ',';
     this.loadItems = opts.loadItems;
     instances.set(container, this);
     instances.set(this.popup, this);
@@ -55,6 +57,13 @@ export class Dropdown {
     this.trigger.setAttribute('aria-haspopup', isMenu ? 'menu' : 'listbox');
     this.trigger.setAttribute('aria-controls', this.popup.id);
     this.trigger.setAttribute('aria-expanded', 'false');
+    this.trigger.id ||= generateElemId('_dropdown_trigger_');
+    const fieldLabel = container.parentElement!.querySelector(':scope.field > label');
+    if (fieldLabel && !this.trigger.hasAttribute('aria-label')) { // like a native select: the field label, then the value
+      fieldLabel.id ||= generateElemId('_dropdown_label_');
+      this.trigger.setAttribute('aria-labelledby', `${fieldLabel.id} ${this.trigger.id}`);
+    }
+    this.popup.setAttribute('aria-labelledby', this.trigger.getAttribute('aria-labelledby') ?? this.trigger.id);
     if (this.filterInput) {
       this.filterInput.autocomplete = 'off';
       this.filterInput.setAttribute('aria-controls', this.popup.id);
@@ -104,7 +113,7 @@ export class Dropdown {
   values(): string[] {
     const value = this.value;
     if (this.kind !== 'multiselect') return [value];
-    return value ? value.split(',') : [];
+    return value ? value.split(this.delimiter) : [];
   }
 
   isShown(): boolean {
@@ -123,8 +132,8 @@ export class Dropdown {
     return items.filter((item) => isItemEnabled(item) && isElemVisible(item));
   }
 
-  findItem(value: string): HTMLElement | undefined {
-    return this.popup.querySelector<HTMLElement>(`.dropdown-item[data-value="${CSS.escape(value)}"]`) ?? undefined;
+  findItem(value: string): HTMLElement | null {
+    return this.popup.querySelector<HTMLElement>(`.dropdown-item[data-value="${CSS.escape(value)}"]`);
   }
 
   show(highlightDelta = 0) {
@@ -164,16 +173,13 @@ export class Dropdown {
     this.refreshItems();
     if (this.loadItems) this.reload();
     this.tippy.show();
-    this.container.dispatchEvent(new CustomEvent('ce-dropdown-show'));
   }
 
   // tippy has positioned the popup, so focusing and scrolling to an item won't scroll the page
   onMount() {
     this.keyboardOwner.focus();
-    const selected = this.kind === 'select' ? this.findItem(this.value) : undefined;
-    if (selected) {
-      this.highlight(selected);
-    }
+    const selected = this.kind === 'select' ? this.findItem(this.value) : null;
+    if (selected) this.highlight(selected);
     this.updateState();
   }
 
@@ -279,6 +285,7 @@ export class Dropdown {
       return;
     }
     this.loadAbort?.abort();
+    this.highlight(null); // Enter must not pick a result of the previous query
     this.reloadDebounced();
   }
 
@@ -315,7 +322,7 @@ export class Dropdown {
     const values = this.values();
     let newValue = value;
     if (this.kind === 'multiselect' && value) {
-      newValue = (values.includes(value) ? values.filter((selected) => selected !== value) : [...values, value]).join(',');
+      newValue = (values.includes(value) ? values.filter((selected) => selected !== value) : [...values, value]).join(this.delimiter);
     }
     if (newValue === this.value) return;
     this.setValue(newValue);
@@ -323,7 +330,7 @@ export class Dropdown {
   }
 
   setValue(value: string | string[]) {
-    this.valueInput!.value = Array.isArray(value) ? value.join(',') : value;
+    this.valueInput!.value = Array.isArray(value) ? value.join(this.delimiter) : value;
     if (this.tippy) this.refreshItems();
     this.renderLabel();
   }
@@ -333,7 +340,7 @@ export class Dropdown {
     this.renderLabel(item);
   }
 
-  renderLabel(item?: HTMLElement) {
+  renderLabel(item = this.findItem(this.value)) {
     const textEl = this.trigger.querySelector('.dropdown-text');
     if (!textEl) return;
     const placeholder = textEl.getAttribute('data-placeholder') ?? '';
@@ -345,7 +352,6 @@ export class Dropdown {
       textEl.textContent = labels.join(', ') || placeholder;
       return;
     }
-    item ??= this.findItem(this.value);
     const itemText = item?.getAttribute('data-text');
     if (item?.getAttribute('data-value') === '' && textEl.hasAttribute('data-placeholder')) {
       textEl.textContent = placeholder;
@@ -411,6 +417,7 @@ export class Dropdown {
     if (!this.highlighted && (this.filterInput?.value.trim() || this.highlightDelta)) this.moveHighlight(this.highlightDelta || 1, items);
     if (!message && !this.popup.hasAttribute('aria-busy') && !items.length && allItems.every((item) => isItemEnabled(item) || !isElemVisible(item))) message = window.config.i18n.no_results_found;
     if (message) this.popup.append(createElementFromAttrs('div', {class: 'dropdown-message'}, message));
+    this.tippy?.popper.style.removeProperty('--tippy-max-height'); // measure the new content unconstrained to pick the roomier side
     this.tippy?.popperInstance?.update();
   }
 }

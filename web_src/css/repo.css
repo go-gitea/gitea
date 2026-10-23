@@ -699,11 +699,6 @@
   }
 }
 
-.repository.commits .header .search input {
-  font-weight: var(--font-weight-normal);
-  padding: 5px 10px;
-}
-
 .repository #commits-table td:not(.message) {
   white-space: nowrap;
 }

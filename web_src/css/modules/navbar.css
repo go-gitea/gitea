@@ -88,7 +88,7 @@
 #navbar .item:hover .notification_count,
 #navbar .item:hover .header-stopwatch-dot,
 #navbar .item:hover .navbar-admin-badge,
-#navbar .item.active .navbar-admin-badge {
+#navbar .item[aria-expanded="true"] .navbar-admin-badge {
   border-color: var(--color-nav-hover-bg);
 }
 

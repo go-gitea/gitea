@@ -139,7 +139,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
         }
       }
       visibleInstances.add(instance);
-      target.setAttribute('aria-controls', instance.popper.id);
+      if (instance.props.role !== 'tooltip') target.setAttribute('aria-controls', instance.popper.id); // tooltips use aria-describedby
       if (isMenu(instance)) { // focusable by the arrow keys, out of the Tab order
         for (const item of instance.popper.querySelectorAll<HTMLElement>('.item')) item.tabIndex = -1;
       }

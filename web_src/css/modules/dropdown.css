@@ -41,6 +41,7 @@
   position: absolute;
   right: 0.5em;
   font-size: 0.85714286em;
+  opacity: 0.8;
 }
 
 .dropdown-container[data-kind="select"] > .dropdown-field > .dropdown-text[data-placeholder] {
@@ -57,7 +58,7 @@
 
 .dropdown-trigger:disabled {
   opacity: var(--opacity-disabled);
-  cursor: default;
+  pointer-events: none;
 }
 
 .dropdown-field > .dropdown-text {
@@ -84,6 +85,10 @@
 .tippy-box[data-theme="dropdown"] {
   background: none;
   border: none;
+}
+
+.tippy-box[data-theme="dropdown"] .tippy-content {
+  overflow: visible; /* the popup scrolls itself, a scrolling wrapper would clip its shadow */
 }
 
 .dropdown-popup {

@@ -101,7 +101,6 @@
   border-right-color: transparent;
 }
 
-.ui.action.input > select:first-child,
 .ui.action.input > .dropdown-container:first-child > :is(.dropdown-field, .button),
 .ui.action.input > .button:first-child {
   border-radius: 0.28571429rem 0 0 0.28571429rem;
@@ -111,7 +110,6 @@
 .ui.action.input > .button:not(:first-child) {
   border-radius: 0;
 }
-.ui.action.input > select:last-child,
 .ui.action.input > .dropdown-container:last-child > :is(.dropdown-field, .button),
 .ui.action.input > .button:last-child {
   border-radius: 0 0.28571429rem 0.28571429rem 0;
@@ -150,12 +148,9 @@
   border-right: none;
 }
 .ui.action.input:not([class*="left action"]) > input:focus + select,
-.ui.action.input:not([class*="left action"]) > input:focus + .dropdown-container > :is(.dropdown-field, .button),
 .ui.action.input:not([class*="left action"]) > input:focus + .button,
 .ui.action.input:not([class*="left action"]) > input:focus + .button:hover,
-.ui.action.input:not([class*="left action"]) > input:focus + i.icon + .button,
-.ui.action.input:not([class*="left action"]) > input:focus + i.icon + .dropdown-container > .button,
-.ui.action.input:not([class*="left action"]) > input:focus + i.icon + .button:hover {
+.ui.action.input:not([class*="left action"]) > input:focus + i.icon + .dropdown-container > .button {
   border-left-color: var(--color-primary);
 }
 .ui.action.input:not([class*="left action"]) > input:focus {

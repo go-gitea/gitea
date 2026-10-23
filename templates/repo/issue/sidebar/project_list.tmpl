@@ -15,7 +15,7 @@
 			{{if or $data.OpenProjects $data.ClosedProjects}}
 			<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.issues.filter_projects"}}">
 			{{end}}
-			<div class="dropdown-item item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
+			<div class="dropdown-item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
 			<div class="dropdown-divider"></div>
 			{{if $data.OpenProjects}}
 				<div class="dropdown-header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>

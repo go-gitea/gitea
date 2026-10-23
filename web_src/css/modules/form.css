@@ -39,12 +39,12 @@
   vertical-align: top;
 }
 
-.ui.form select {
+.ui.form select:not(.native-select > select) {
   width: 100%;
   min-width: 14em;
 }
 
-.ui.form select,
+.ui.form select:not(.native-select > select),
 .ui.action.input > select {
   field-sizing: content;
   min-height: 2.71428571em;
@@ -140,11 +140,6 @@ textarea:focus,
 
 .ui.form .field .ui.input {
   width: 100%;
-}
-
-.ui.form .inline.field .ui.input {
-  width: auto;
-  vertical-align: middle;
 }
 
 .ui.form .field .ui.input input {

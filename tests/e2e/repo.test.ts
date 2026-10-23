@@ -36,3 +36,18 @@ test('delete a branch via its modal', async ({page, request}) => {
   await modal.getByRole('button', {name: 'Yes'}).click();
   await expect(page.locator('.flash-message')).toContainText('Branch "feature" has been deleted.');
 });
+
+test('add and remove repository topics', async ({page, request}) => {
+  const repoName = `e2e-topics-${randomString(8)}`;
+  const owner = env.GITEA_TEST_E2E_USER;
+  await Promise.all([apiCreateRepo(request, {name: repoName}), login(page)]);
+  await page.goto(`/${owner}/${repoName}`);
+  await page.getByRole('button', {name: 'Manage Topics'}).click();
+  for (const topic of ['e2e-keep', 'e2e-drop']) {
+    await page.keyboard.type(topic);
+    await page.getByRole('option', {name: topic, exact: true}).click();
+  }
+  await page.getByRole('button', {name: 'Remove item "e2e-drop"'}).click();
+  await page.getByRole('button', {name: 'Save', exact: true}).click();
+  await expect(page.locator('#repo-topics').getByRole('link')).toHaveText(['e2e-keep']);
+});

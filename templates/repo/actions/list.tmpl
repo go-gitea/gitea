@@ -74,7 +74,7 @@
 								</div>
 								{{end}}
 								{{if $showEnableDisableWorkflow}}
-								<a class="dropdown-item{{if not .CurWorkflowRequired}} link-action{{end}}"{{if .CurWorkflowRequired}} aria-disabled="true"{{end}}{{if not .CurWorkflowRequired}} data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}"{{end}}>
+								<a class="dropdown-item{{if not .CurWorkflowRequired}} link-action{{end}}"{{if .CurWorkflowRequired}} aria-disabled="true"{{else}} data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}"{{end}}>
 									{{if .CurWorkflowRequired}}{{ctx.Locale.Tr "actions.workflow.disable"}}{{else if .CurWorkflowDisabled}}{{ctx.Locale.Tr "actions.workflow.enable"}}{{else}}{{ctx.Locale.Tr "actions.workflow.disable"}}{{end}}
 								</a>
 								{{end}}

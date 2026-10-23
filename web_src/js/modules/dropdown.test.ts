@@ -8,8 +8,8 @@ function createDropdown(html: string, opts?: Parameters<typeof initDropdown>[1])
   return initDropdown(container, opts);
 }
 
-test('select filters by keyboard and fires change only on a new value', async () => {
-  const dropdown = createDropdown(`<div class="dropdown-container" data-kind="select">
+test('select in a field is named by its label, filters by keyboard and fires change only on a new value', async () => {
+  const field = createElementFromHTML(`<div class="field"><label>Fruit</label><div class="dropdown-container" data-kind="select">
     <button type="button" class="dropdown-trigger"><span class="dropdown-text" data-placeholder="Pick">Apple</span></button>
     <input type="hidden" class="dropdown-value" value="apple">
     <div class="dropdown-popup">
@@ -18,11 +18,15 @@ test('select filters by keyboard and fires change only on a new value', async ()
       <div class="dropdown-item" data-value="apple">Apple</div>
       <div class="dropdown-item" data-value="banana" data-text="Banana!"><b>Banana</b></div>
     </div>
-  </div>`);
+  </div></div>`);
+  document.body.append(field);
+  const dropdown = initDropdown(field.querySelector<HTMLElement>('.dropdown-container')!);
   const changes: string[] = [];
   dropdown.valueInput!.addEventListener('change', () => { changes.push(dropdown.value) });
 
+  await expect.element(dropdown.trigger).toHaveAccessibleName('Fruit Apple');
   await userEvent.click(dropdown.trigger);
+  await expect.element(dropdown.popup).toHaveAccessibleName('Fruit Apple');
   expect(document.activeElement).toBe(dropdown.filterInput);
   expect(dropdown.highlighted!.textContent).toBe('Apple');
   await userEvent.keyboard('ban{Enter}');
@@ -41,22 +45,29 @@ test('select filters by keyboard and fires change only on a new value', async ()
   expect(dropdown.trigger.textContent).toBe('Apple');
   dropdown.setValue('');
   expect(dropdown.trigger.textContent).toBe('Pick');
-  dropdown.container.remove();
+  field.remove();
 });
 
-test('menu closes before item handlers run, on Escape, Tab and container removal', async () => {
+test('menu keeps popup controls in their form, skips disabled items and closes before item handlers, on Escape, Tab and removal', async () => {
   const dropdown = createDropdown(`<div class="dropdown-container">
     <button type="button" class="dropdown-trigger">Menu</button>
     <div class="dropdown-popup">
+      <input type="hidden" name="mode" value="all">
       <button type="button" class="dropdown-item">Item</button>
       <div class="dropdown-item" aria-disabled="true">Disabled</div>
+      <button type="button" class="dropdown-item">Other</button>
     </div>
   </div>`);
-  const [item, disabledItem] = dropdown.items();
+  const form = document.createElement('form');
+  document.body.append(form);
+  form.append(dropdown.container);
+  const [item, disabledItem, otherItem] = dropdown.items();
   let itemContainer: Element | null = null;
   item.addEventListener('click', () => { itemContainer = item.closest('.dropdown-container') });
 
   await userEvent.click(dropdown.trigger);
+  expect(form.contains(dropdown.popup)).toBe(false);
+  expect(new FormData(form).get('mode')).toBe('all');
   expect(closestDropdown(item)).toBe(dropdown);
   disabledItem.click();
   expect(dropdown.isShown()).toBe(true);
@@ -66,13 +77,15 @@ test('menu closes before item handlers run, on Escape, Tab and container removal
 
   await userEvent.keyboard('{ArrowDown}');
   expect(dropdown.highlighted).toBe(item);
+  await userEvent.keyboard('{ArrowDown}');
+  expect(dropdown.highlighted).toBe(otherItem);
   await userEvent.keyboard('{Escape}');
   expect(dropdown.isShown()).toBe(false);
   expect(document.activeElement).toBe(dropdown.trigger);
   await userEvent.keyboard('{ArrowUp}{Tab}');
   expect(dropdown.isShown()).toBe(false);
   await userEvent.click(dropdown.trigger);
-  dropdown.container.remove();
+  form.remove();
   await vi.waitFor(() => expect(dropdown.isShown()).toBe(false));
   expect(dropdown.popup.isConnected).toBe(false);
 });

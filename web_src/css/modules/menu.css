@@ -42,7 +42,7 @@
   font-weight: var(--font-weight-normal);
 }
 .ui.menu > .item:first-child,
-.ui.menu > .dropdown-container:first-child > .item {
+.ui.menu > :where(.dropdown-container):first-child > .item {
   border-radius: 0.28571429rem 0 0 0.28571429rem;
 }
 
@@ -72,9 +72,6 @@
 
 .ui.menu .item > a:not(.ui) {
   line-height: 1.3;
-}
-.ui.menu .item > p:last-child {
-  margin-bottom: 0;
 }
 
 .ui.menu:not(.vertical) .item > .button {
@@ -133,11 +130,6 @@
   background-color: transparent;
   pointer-events: none;
   opacity: var(--opacity-disabled);
-}
-
-.ui.menu:not(.vertical) .left.menu {
-  display: flex;
-  margin-right: auto !important;
 }
 
 .ui.menu:not(.vertical) .right.menu {
@@ -414,20 +406,8 @@
   .ui.stackable.menu > .menu > .item {
     width: 100% !important;
   }
-  .ui.stackable.menu > .dropdown-container,
-  .ui.stackable.menu > .dropdown-container > .item,
-  .ui.stackable.menu > .menu > .dropdown-container,
-  .ui.stackable.menu > .menu > .dropdown-container > .item {
-    width: 100%;
-  }
-  .ui.stackable.menu .left.menu {
-    margin-right: 0 !important;
-  }
   .ui.stackable.menu .right.menu {
     margin-left: 0 !important;
-  }
-  .ui.stackable.menu .right.menu,
-  .ui.stackable.menu .left.menu {
     flex-direction: column;
   }
 }

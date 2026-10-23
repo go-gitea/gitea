@@ -7,7 +7,7 @@ A sidebar combo (dropdown+list) is like this:
     <button type="button" class="dropdown-trigger btn">Select items</button>
     <div class="dropdown-popup issue-sidebar-popup">
       <input class="dropdown-filter" type="search" placeholder="Filter items">
-      <div class="dropdown-item item clear-selection">clear</div>
+      <div class="dropdown-item clear-selection">clear</div>
       <div class="dropdown-item item" data-value="..." data-scope="...">
         <span class="item-check-mark">...</span>
         ...

@@ -25,6 +25,20 @@ test('comment on and close an issue', async ({page, request}) => {
   await expect(page.getByRole('button', {name: 'Reopen Issue'})).toBeVisible();
 });
 
+test('quote reply from the comment menu', async ({page, request}) => {
+  const repoName = `e2e-quote-${randomString(8)}`;
+  const owner = env.GITEA_TEST_E2E_USER;
+  await apiCreateRepo(request, {name: repoName, autoInit: false});
+  await Promise.all([
+    apiCreateIssue(request, {owner, repo: repoName, title: 'Quote test', body: 'quoted text'}),
+    login(page),
+  ]);
+  await page.goto(`/${owner}/${repoName}/issues/1`);
+  await page.getByRole('button', {name: 'More items'}).first().click();
+  await page.getByRole('menuitem', {name: 'Quote reply'}).click();
+  await expect(page.getByPlaceholder('Leave a comment')).toHaveValue('> quoted text\n\n');
+});
+
 test('emoji autocompletion in issue description', async ({page, request}) => {
   const repoName = `e2e-emoji-${randomString(8)}`;
   await Promise.all([apiCreateRepo(request, {name: repoName, autoInit: false}), login(page)]);
