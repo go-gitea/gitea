@@ -87,7 +87,7 @@
 }
 
 .dropdown-popup {
-  max-height: var(--tippy-max-height, 100vh);
+  max-height: min(var(--tippy-max-height, 100vh), 500px);
   overflow: auto;
   overscroll-behavior: contain;
   padding: 4px 0;

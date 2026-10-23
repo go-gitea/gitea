@@ -46,13 +46,21 @@ function sizeModifier(limit: {horizontal?: boolean, vertical?: boolean}): Popper
     phase: 'beforeWrite',
     requires: ['computeStyles'], // runs after "flip" and "offset", so both are final
     fn({state}) {
-      const offset = state.modifiersData.offset?.[state.placement];
-      const isVertical = state.placement.startsWith('top') || state.placement.startsWith('bottom');
-      const available = availableSizeForPlacement(
-        state.elements.reference.getBoundingClientRect(),
-        state.placement,
-        (isVertical ? offset?.y : offset?.x) ?? 0,
-      );
+      const referenceRect = state.elements.reference.getBoundingClientRect();
+      const availableFor = (placement: Placement) => {
+        const offset = state.modifiersData.offset?.[placement];
+        const isVertical = placement.startsWith('top') || placement.startsWith('bottom');
+        return availableSizeForPlacement(referenceRect, placement, (isVertical ? offset?.y : offset?.x) ?? 0);
+      };
+      const available = availableFor(state.placement);
+      // "flip" keeps the preferred side when the popup fits on neither, open towards the roomier one instead
+      const opposite = state.placement.replace(/^(top|bottom)/, (side) => side === 'top' ? 'bottom' : 'top') as Placement;
+      if (limit.vertical && state.rects.popper.height > available.height && availableFor(opposite).height > available.height) {
+        state.placement = opposite;
+        state.modifiersData.flip._skip = true;
+        state.reset = true;
+        return;
+      }
       const {style} = state.elements.popper;
       if (limit.horizontal) style.setProperty('--tippy-max-width', `${Math.max(0, Math.floor(available.width))}px`);
       if (limit.vertical) style.setProperty('--tippy-max-height', `${Math.max(0, Math.floor(available.height))}px`);

@@ -45,7 +45,6 @@
 
 .issue-sidebar-popup {
   max-width: 270px;
-  max-height: min(500px, var(--tippy-max-height, 100vh));
 }
 
 .issue-sidebar-popup .dropdown-item.tw-flex-col {

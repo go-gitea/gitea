@@ -87,11 +87,6 @@
   }
 }
 
-.footer-language-menu,
-.footer-theme-menu {
-  max-height: min(var(--tippy-max-height, 100vh), 500px);
-}
-
 .footer-theme-menu .dropdown-item {
   padding-inline: 16px;
 }
