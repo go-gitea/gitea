@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -190,7 +191,7 @@ func TestWebDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &issues_model.IssueDependency{IssueID: targetIssue.ID, DependencyID: dependencyIssue.ID})
 }
 
-func TestAPIIssueTimelineDependencyCrossRepoPermission(t *testing.T) {
+func TestIssueTimelineDependencyCrossRepoPermission(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	targetIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: 1})
@@ -199,27 +200,22 @@ func TestAPIIssueTimelineDependencyCrossRepoPermission(t *testing.T) {
 	dependencyIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: dependencyRepo.ID, Index: 1})
 	enableRepoDependencies(t, targetIssue.RepoID)
 	enableRepoDependencies(t, dependencyRepo.ID)
-
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	assert.NoError(t, issues_model.CreateIssueDependency(t.Context(), user1, targetIssue, dependencyIssue))
 
-	_, err := db.DeleteByID[access_model.Access](t.Context(), 30)
-	assert.NoError(t, err)
-
-	hasDependentIssue := func(token string) bool {
+	session := loginUser(t, "user40")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
+	assertDependencyVisible := func(visible bool) {
+		t.Helper()
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/issues/1/timeline").AddTokenAuth(token)
-		for _, c := range DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.TimelineComment{}) {
-			if c.DependentIssue != nil {
-				return true
-			}
-		}
-		return false
+		comments := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.TimelineComment{})
+		assert.Equal(t, visible, slices.ContainsFunc(comments, func(c *api.TimelineComment) bool { return c.Type == "add_dependency" }))
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/issues/1"), http.StatusOK)
+		assert.Equal(t, visible, NewHTMLParser(t, resp.Body).Find(`.timeline-item a[href$="/org3/repo3/issues/1"]`).Length() > 0)
 	}
 
+	assertDependencyVisible(false)
 	user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
-	token := getUserToken(t, "user40", auth_model.AccessTokenScopeReadIssue)
-	assert.False(t, hasDependentIssue(token))
-
 	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), dependencyRepo, user40, perm.AccessModeRead))
-	assert.True(t, hasDependentIssue(token))
+	assertDependencyVisible(true)
 }
