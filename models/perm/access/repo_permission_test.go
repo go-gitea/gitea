@@ -272,4 +272,21 @@ func testGetDoerRepoPermission(t *testing.T) {
 	individualPerm, err := GetIndividualUserRepoPermission(ctx, repo1, regularUser)
 	require.NoError(t, err)
 	assert.Equal(t, individualPerm, doerPerm)
+
+	t.Run("PublicOnlyTokenReachesOnlyPublicReposOfPublicOwners", func(t *testing.T) {
+		publicOnlyUser := *regularUser
+		publicOnlyUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,write:repository")
+		publicOnlyAdmin := *unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		publicOnlyAdmin.ExtDoerData = publicOnlyUser.ExtDoerData
+		for _, repoID := range []int64{2, 38} {
+			perm, err := GetDoerRepoPermission(ctx, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}), &publicOnlyAdmin)
+			require.NoError(t, err)
+			assert.False(t, perm.HasAnyUnitAccessOrPublicAccess(), "repo %d", repoID)
+		}
+
+		perm, err := GetDoerRepoPermission(ctx, repo1, &publicOnlyUser)
+		require.NoError(t, err)
+		assert.True(t, perm.CanWrite(unit.TypeCode))
+		assert.NotEqual(t, RepoUserPermissionCacheKey(repo1.ID, regularUser), RepoUserPermissionCacheKey(repo1.ID, &publicOnlyUser))
+	})
 }

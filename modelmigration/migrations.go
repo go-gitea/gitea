@@ -438,7 +438,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(359, "Add stage and number columns to action_task_step", v29.AddStageAndNumberToActionTaskStep),
 		newMigration(360, "Move branch protection settings to JSON", v29.MoveBranchProtectionConfigToJSON),
 		newMigration(361, "Drop legacy commit_id column from comment", v29.DropCommentCommitID),
-		newMigration(362, "Add push mirror config and history", v29.AddPushMirrorConfigAndHistory),
+		newMigration(362, "Add reusable_workflow_ref column to action_run_job", v29.AddReusableWorkflowRefToActionRunJob),
+		newMigration(363, "Add release_id to reaction table", v29.AddReleaseIDToReaction),
+		newMigration(364, "Add push mirror config and history", v29.AddPushMirrorConfigAndHistory),
 	}
 	return preparedMigrations
 }

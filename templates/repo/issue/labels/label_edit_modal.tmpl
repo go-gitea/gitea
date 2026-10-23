@@ -1,4 +1,4 @@
-<div class="ui small modal" id="issue-label-edit-modal" data-global-init="initLabelEditModal"
+<dialog class="modal-dialog" id="issue-label-edit-modal" data-global-init="initLabelEditModal"
 		data-current-page-link="{{$.Link}}"{{/*will be used to construct "new label" and "edit label" URLs*/}}
 		data-text-new-label="{{ctx.Locale.Tr "repo.issues.new_label"}}"
 		data-text-edit-label="{{ctx.Locale.Tr "repo.issues.label_modify"}}"
@@ -66,4 +66,4 @@
 			{{ctx.Locale.Tr "save"}}
 		</button>
 	</div>
-</div>
+</dialog>
