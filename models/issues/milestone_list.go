@@ -66,14 +66,9 @@ func (opts FindMilestoneOptions) ToConds() builder.Cond {
 		cond = cond.And(db.BuildCaseInsensitiveLike("name", opts.Name))
 	}
 	if opts.ProjectID != 0 {
-		// only milestones that have at least one issue linked to the project
-		cond = cond.And(builder.In("id",
-			builder.Select("issue.milestone_id").
-				From("issue").
-				InnerJoin("project_issue", "project_issue.issue_id = issue.id").
-				Where(builder.Eq{"project_issue.project_id": opts.ProjectID}.
-					And(builder.Neq{"issue.milestone_id": 0})),
-		))
+		cond = cond.And(builder.In("id", builder.Select("issue.milestone_id").From("issue").
+			InnerJoin("project_issue", "project_issue.issue_id = issue.id").
+			Where(builder.Eq{"project_issue.project_id": opts.ProjectID})))
 	}
 
 	return cond

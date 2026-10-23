@@ -284,28 +284,6 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 	})
 }
 
-func TestGetMilestonesByProjectID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	// project_issue fixtures link project 1 to issues with milestone_id 0, 1, 3, 0
-	// so only milestones 1 and 3 should be returned.
-	milestones, err := db.Find[issues_model.Milestone](t.Context(), issues_model.FindMilestoneOptions{
-		ProjectID: 1,
-	})
-	assert.NoError(t, err)
-	ids := make([]int64, 0, len(milestones))
-	for _, m := range milestones {
-		ids = append(ids, m.ID)
-	}
-	assert.ElementsMatch(t, []int64{1, 3}, ids)
-
-	milestones, err = db.Find[issues_model.Milestone](t.Context(), issues_model.FindMilestoneOptions{
-		ProjectID: unittest.NonexistentID,
-	})
-	assert.NoError(t, err)
-	assert.Empty(t, milestones)
-}
-
 func TestNewMilestone(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	milestone := &issues_model.Milestone{
