@@ -113,7 +113,7 @@
 </div>
 
 {{if $showCreateWorkflowBadge}}
-<div id="workflow-status-badge-modal" class="ui tiny modal">
+<dialog id="workflow-status-badge-modal" class="modal-dialog">
 	<div class="header">{{ctx.Locale.Tr "actions.workflow.status_badge"}}</div>
 	<div class="content">
 		<div class="ui form" data-global-init="initWorkflowBadgeForm"
@@ -157,7 +157,7 @@
 			</div>
 		</div>
 	</div>
-</div>
+</dialog>
 {{end}}
 
 {{template "base/footer" .}}

@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
@@ -110,7 +111,7 @@ func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) ([
 	jobs, err := CancelPreviousJobs(
 		ctx,
 		repo.ID,
-		repo.DefaultBranch,
+		git.RefNameFromBranch(repo.DefaultBranch).String(),
 		"",
 		webhook_module.HookEventSchedule,
 	)

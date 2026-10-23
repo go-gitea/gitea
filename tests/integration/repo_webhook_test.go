@@ -1600,8 +1600,9 @@ jobs:
 		}
 	}
 
-	// Add this sleep to ensure the func can find the tasks by timestamp.
-	time.Sleep(time.Second)
+	_, err = db_model.GetEngine(ctx).Where("repo_id = ?", testRepo.ID).NoAutoTime().
+		SetExpr("updated", "updated - 2").Update(new(actions_model.ActionRunJob))
+	require.NoError(t, err)
 
 	err = actions.CancelAbandonedJobs(ctx)
 	assert.NoError(t, err)
@@ -1685,7 +1686,9 @@ jobs:
 
 	initialRunEventsLen := len(webhookData.payloads)
 
-	time.Sleep(2 * time.Second)
+	_, err := db_model.GetEngine(t.Context()).In("id", task1.Id, task2.Id).
+		SetExpr("started", "started - 3").Update(new(actions_model.ActionTask))
+	require.NoError(t, err)
 
 	require.NoError(t, actions.StopEndlessTasks(t.Context()))
 

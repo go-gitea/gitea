@@ -1,14 +1,13 @@
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {
-  initRepoCommentFormAndSidebar,
+  initRepoCommentForm,
   initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
-  initRepoIssueComments, initRepoIssueReferenceIssue,
+  initRepoIssueCommentTargetHashReset, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipNewTitle, initRepoIssueWipToggle,
 } from './repo-issue.ts';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
 import {initRepoCloneButtons} from './repo-common.ts';
 import {initRepoCitationPanel} from './citation.ts';
-import {initCompLabelEdit} from './comp/LabelEdit.ts';
 import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoSettings} from './repo-settings.ts';
 import {hideElem, queryElemChildren, queryElems, showElem} from '../utils/dom.ts';
@@ -18,6 +17,7 @@ import {initRepoNew} from './repo-new.ts';
 import {createApp} from 'vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 import {initRepoPullMergeBox, initRepoPullRequestUpdate} from './repo-issue-pull.ts';
+import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 
 function initRepoBranchTagSelector() {
   registerGlobalInitFunc('initRepoBranchTagSelector', (elRoot: HTMLInputElement) => {
@@ -41,35 +41,34 @@ export function initRepository() {
   registerGlobalInitFunc('initRepoPullMergeBox', initRepoPullMergeBox);
   registerGlobalInitFunc('initRepoPullRequestUpdate', initRepoPullRequestUpdate);
   registerGlobalInitFunc('initRepoCitationPanel', initRepoCitationPanel);
+  registerGlobalInitFunc('initRepoNew', initRepoNew);
 
+  // TODO: need to refactor more legacy if-querySelector-based "init" code to "data-global-xxx" framework in the future.
   const pageContent = document.querySelector('.page-content.repository');
   if (!pageContent) return;
 
   initRepoBranchTagSelector();
-  initRepoCommentFormAndSidebar();
+  initRepoIssueSidebar();
+  initRepoCommentForm();
 
-  // Labels
-  initCompLabelEdit('.page-content.repository.labels');
   initRepoMilestone();
-  initRepoNew();
 
   initRepoCloneButtons();
   initRepoSettings();
   initRepoIssueWipNewTitle();
 
-  // Issues
-  if (pageContent.matches('.page-content.repository.view.issue')) {
-    initRepoIssueCommentEdit();
+  initRepoIssueCommentEdit();
+  initRepoIssueCommentDelete();
+  initRepoIssueCodeCommentCancel();
 
+  initCompReactionSelector();
+
+  if (pageContent.matches('.page-content.repository.view.issue')) {
     initRepoIssueTitleEdit();
     initRepoIssueWipToggle();
-    initRepoIssueComments();
+    initRepoIssueCommentTargetHashReset();
 
     initRepoIssueReferenceIssue();
-
-    initRepoIssueCommentDelete();
-    initRepoIssueCodeCommentCancel();
-    initCompReactionSelector();
   }
 
   initUnicodeEscapeButton();

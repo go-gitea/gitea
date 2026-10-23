@@ -401,7 +401,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   background-color: var(--color-markup-code-inline);
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow-kbd);
 }
 
 .markup details.frontmatter-content summary {
