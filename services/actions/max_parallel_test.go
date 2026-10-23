@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,9 +56,8 @@ jobs:
       - run: echo hi
 `
 
-func insertMaxParallelRun(t *testing.T, workflow string, needApproval bool) *actions_model.ActionRun {
-	t.Helper()
-	run := &actions_model.ActionRun{
+func newMaxParallelRun(needApproval bool) *actions_model.ActionRun {
+	return &actions_model.ActionRun{
 		Title:             "max-parallel",
 		RepoID:            4,
 		OwnerID:           1,
@@ -72,6 +72,11 @@ func insertMaxParallelRun(t *testing.T, workflow string, needApproval bool) *act
 		WorkflowRepoID:    4,
 		WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
 	}
+}
+
+func insertMaxParallelRun(t *testing.T, workflow string, needApproval bool) *actions_model.ActionRun {
+	t.Helper()
+	run := newMaxParallelRun(needApproval)
 	require.NoError(t, PrepareRunAndInsert(t.Context(), []byte(workflow), run, nil))
 	return run
 }
@@ -309,22 +314,16 @@ func insertConcurrencyHolder(t *testing.T, index int64, group string) *actions_m
 
 func TestPrepareRunAndInsert_MaxJobNumPerRun(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	workflow := func(n int) string {
+	workflow := func(jobCount int) []byte {
 		var sb strings.Builder
-		sb.WriteString("name: many\non: push\njobs:\n")
-		for i := range n {
-			fmt.Fprintf(&sb, "  job%d:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n", i)
+		sb.WriteString("on: push\njobs:\n")
+		for i := range jobCount {
+			fmt.Fprintf(&sb, "  job%d:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n", i)
 		}
-		return sb.String()
+		return []byte(sb.String())
 	}
-	newRun := func() *actions_model.ActionRun {
-		return &actions_model.ActionRun{
-			Title: "many", RepoID: 4, OwnerID: 1, WorkflowID: "many.yaml", TriggerUserID: 1,
-			Ref: "refs/heads/master", CommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-			Event: "push", TriggerEvent: "push", EventPayload: "{}",
-			WorkflowRepoID: 4, WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		}
-	}
-	require.NoError(t, PrepareRunAndInsert(t.Context(), []byte(workflow(actions_model.MaxJobNumPerRun)), newRun(), nil))
-	assert.ErrorContains(t, PrepareRunAndInsert(t.Context(), []byte(workflow(actions_model.MaxJobNumPerRun+1)), newRun(), nil), "exceeds the maximum")
+	require.NoError(t, PrepareRunAndInsert(t.Context(), workflow(actions_model.MaxJobNumPerRun), newMaxParallelRun(false), nil))
+	err := PrepareRunAndInsert(t.Context(), workflow(actions_model.MaxJobNumPerRun+1), newMaxParallelRun(false), nil)
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	assert.ErrorContains(t, err, "exceeds the maximum")
 }
