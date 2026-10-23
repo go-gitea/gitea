@@ -175,6 +175,40 @@ func TestAPIAddIssueLabelsWithLabelNames(t *testing.T) {
 	MakeRequest(t, req, http.StatusNoContent)
 }
 
+func TestAPIAddIssueLabelsWithSharedRepoAndOrgLabelName(t *testing.T) {
+	assert.NoError(t, unittest.LoadFixtures())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6, RepoID: repo.ID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	repoLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 10, RepoID: repo.ID})
+	orgOnlyLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 4, OrgID: owner.ID})
+
+	assert.NoError(t, issues_model.NewLabel(t.Context(), &issues_model.Label{OrgID: owner.ID, Name: repoLabel.Name, Color: "#abcdef"}))
+
+	token := getTokenForLoggedInUser(t, loginUser(t, "user1"), auth_model.AccessTokenScopeWriteIssue)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels", owner.Name, repo.Name, issue.Index)
+
+	for _, method := range []string{"POST", "PUT"} {
+		t.Run(method, func(t *testing.T) {
+			req := NewRequest(t, "DELETE", urlStr).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNoContent)
+
+			req = NewRequestWithJSON(t, method, urlStr, &api.IssueLabelsOption{
+				Labels: []any{repoLabel.Name, orgOnlyLabel.Name},
+			}).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			apiLabels := DecodeJSON(t, resp, []*api.Label{})
+
+			var apiLabelIDs []int64
+			for _, label := range apiLabels {
+				apiLabelIDs = append(apiLabelIDs, label.ID)
+			}
+			assert.ElementsMatch(t, []int64{repoLabel.ID, orgOnlyLabel.ID}, apiLabelIDs)
+		})
+	}
+}
+
 func TestAPIReplaceIssueLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 

@@ -507,7 +507,6 @@
   "settings.delete_account_title": "පරිශීලක ගිණුම මකන්න",
   "settings.delete_account_desc": "ඔබට මෙම පරිශීලක ගිණුම ස්ථිරවම මකා දැමීමට අවශ්ය බව ඔබට විශ්වාසද?",
   "settings.email_notifications.enable": "වි-තැපැල් දැනුම්දීම් සබල කරන්න",
-  "settings.email_notifications.onmention": "සැඳහුම් සඳහා තැපැල් කරන්න",
   "settings.email_notifications.disable": "වි-තැපැල් දැනුම්දීම් අබල කරන්න",
   "settings.email_notifications.submit": "ඊ-තැපැල් මනාප සකසන්න",
   "settings.visibility": "පරිශීලක දෘශ්යතාව",

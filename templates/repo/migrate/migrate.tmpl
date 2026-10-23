@@ -12,14 +12,14 @@
 							{{svg "gitea-gitlab" 120 "tw-p-4"}}
 						{{else if eq .Name "gitbucket"}}
 							{{svg "gitea-gitbucket" 120 "tw-p-4"}}
-						{{else if eq .Name "bitbucket"}}
+						{{else if or (eq .Name "bitbucket") (eq .Name "bitbucketserver")}}
 							{{svg "gitea-bitbucket" 120 "tw-p-4"}}
 						{{else}}
 							{{svg (printf "gitea-%s" .Name) 120}}
 						{{end}}
 						<div class="content">
 							<div class="header tw-text-center">
-								{{.Title}}
+								{{.ProviderTitle}}
 							</div>
 							<div class="description tw-text-center tw-text-balance">
 								{{ctx.Locale.Tr (printf "repo.migrate.%s.description" .Name)}}

@@ -5,8 +5,10 @@ package project
 
 import (
 	"errors"
+	"net/http"
 
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/web"
@@ -26,7 +28,7 @@ func findProject(ctx *context.Context) *project_model.Project {
 		project, err = project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	}
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProject", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProject", err)
 		return nil
 	}
 	return project
@@ -39,7 +41,7 @@ func findColumn(ctx *context.Context) (*project_model.Project, *project_model.Co
 	}
 	column, err := project_model.GetColumnByIDAndProjectID(ctx, ctx.PathParamInt64("columnID"), project.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetColumnByIDAndProjectID", project_model.IsErrProjectColumnNotExist, err)
+		ctx.ServerError("GetColumnByIDAndProjectID", err)
 		return nil, nil
 	}
 	return project, column
@@ -175,7 +177,7 @@ func MoveIssues(ctx *context.Context) {
 	}
 	movedIssues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
+		ctx.ServerError("GetIssueByID", err)
 		return
 	}
 
@@ -189,9 +191,26 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
+	repoPerms := map[int64]access_model.Permission{}
 	for _, issue := range movedIssues {
 		if !project.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
 			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
+			return
+		}
+		perm, ok := repoPerms[issue.RepoID]
+		if !ok {
+			if perm, err = access_model.GetDoerRepoPermission(ctx, issue.Repo, ctx.Doer); err != nil {
+				ctx.ServerError("GetDoerRepoPermission", err)
+				return
+			}
+			repoPerms[issue.RepoID] = perm
+		}
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+			ctx.NotFound(nil)
+			return
+		}
+		if issue.Repo.IsArchived {
+			ctx.HTTPError(http.StatusLocked, "repo is archived")
 			return
 		}
 	}

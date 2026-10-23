@@ -39,7 +39,9 @@ func TestToGitServiceType(t *testing.T) {
 	}, {
 		typ: "codecommit", enum: 9,
 	}, {
-		typ: "bitbucket", enum: 10,
+		typ: "bitbucketserver", enum: 10,
+	}, {
+		typ: "bitbucket", enum: 11,
 	}}
 	for _, test := range tc {
 		assert.EqualValues(t, test.enum, ToGitServiceType(test.typ))
