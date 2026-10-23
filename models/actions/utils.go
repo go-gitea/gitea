@@ -12,18 +12,15 @@ import (
 	"io"
 	"time"
 
-	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 )
 
-func generateSaltedToken() (string, string, string, string) {
-	salt := util.CryptoRandomString(10)
-	buf := util.CryptoRandomBytes(20)
-	token := hex.EncodeToString(buf)
-	hash := auth_model.HashToken(token, salt)
-	return token, salt, hash, token[len(token)-8:]
+func generateToken() (token, hash, lastEight string) {
+	token = hex.EncodeToString(util.CryptoRandomBytes(20))
+	return token, base.EncodeSha256(token), token[len(token)-8:]
 }
 
 /*

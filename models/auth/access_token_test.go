@@ -9,6 +9,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -73,8 +74,10 @@ func TestGetAccessTokenBySHA(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), token.UID)
 	assert.Equal(t, "Token A", token.Name)
-	assert.Equal(t, "2b3668e11cb82d3af8c6e4524fc7841297668f5008d1626f0ad3417e9fa39af84c268248b78c481daa7e5dc437784003494f", token.TokenHash)
 	assert.Equal(t, "e4efbf36", token.TokenLastEight)
+	upgraded := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 1})
+	assert.Equal(t, base.EncodeSha256("d2c6c1ba3890b309189a8e618c72a162e4efbf36"), upgraded.TokenHash)
+	assert.Empty(t, upgraded.TokenSalt)
 
 	_, err = auth_model.GetAccessTokenBySHA(t.Context(), "notahash")
 	assert.Error(t, err)
@@ -129,7 +132,6 @@ func TestRegenerateAccessToken(t *testing.T) {
 
 	const oldToken = "d2c6c1ba3890b309189a8e618c72a162e4efbf36"
 
-	// prime the successful-lookup cache with the old token value, as a real request would
 	before, err := auth_model.GetAccessTokenBySHA(t.Context(), oldToken)
 	assert.NoError(t, err)
 	assert.Equal(t, "Token A", before.Name)
@@ -142,7 +144,6 @@ func TestRegenerateAccessToken(t *testing.T) {
 	assert.NotEqual(t, before.TokenHash, regenerated.TokenHash)
 	assert.NotEmpty(t, regenerated.Token)
 
-	// the old token value must stop authenticating, even though it was cached as successful above
 	_, err = auth_model.GetAccessTokenBySHA(t.Context(), oldToken)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, util.ErrNotExist)

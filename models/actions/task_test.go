@@ -11,10 +11,12 @@ import (
 	"testing"
 
 	runnerv1 "gitea.dev/actionslib/runner/v1"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -54,10 +56,14 @@ func TestGetTaskRunnerNames(t *testing.T) {
 func TestGetRunningTaskByToken(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
-	task := &ActionTask{Status: StatusRunning}
+	task := &ActionTask{Status: StatusRunning, TokenSalt: "salt"}
 	task.GenerateAndFillToken()
+	task.TokenHash = auth_model.HashToken(task.Token, task.TokenSalt)
 	require.NoError(t, db.Insert(ctx, task))
 	_, err := GetRunningTaskByToken(ctx, task.Token)
+	require.NoError(t, err)
+	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID, TokenHash: base.EncodeSha256(task.Token)}).TokenSalt)
+	_, err = GetRunningTaskByToken(ctx, task.Token)
 	require.NoError(t, err)
 	_, err = db.GetEngine(ctx).ID(task.ID).Cols("status").Update(&ActionTask{Status: StatusSuccess})
 	require.NoError(t, err)

@@ -5,7 +5,6 @@ package runner
 
 import (
 	"context"
-	"crypto/sha256"
 	"errors"
 	"strings"
 	"time"
@@ -18,7 +17,6 @@ import (
 	"gitea.dev/modules/util"
 
 	"connectrpc.com/connect/v2"
-	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,10 +25,6 @@ const (
 	uuidHeaderKey  = protocol.UUIDHeader
 	tokenHeaderKey = protocol.TokenHeader
 )
-
-type runnerTokenHash struct{ salt, hash string }
-
-var verifiedRunnerTokens, _ = lru.New[runnerTokenHash, [sha256.Size]byte](10000) // not auth_model.TokenCache, whose small default size thrashes once more runners poll in turn
 
 // withErrorMessages sends plain errors to runners as CodeUnknown with their message, like connect v1 did.
 func withErrorMessages(next connect.ServerFunc) connect.ServerFunc {
@@ -63,7 +57,7 @@ func withRunner(next connect.ServerFunc) connect.ServerFunc {
 			}
 			return status.Error(codes.Internal, err.Error())
 		}
-		if !verifyRunnerToken(runner, token) {
+		if !auth_model.VerifyToken(ctx, runner, runner.ID, token, runner.TokenSalt, runner.TokenHash) {
 			return errUnregisteredRunner
 		}
 
@@ -92,18 +86,6 @@ func withRunner(next connect.ServerFunc) connect.ServerFunc {
 		ctx = context.WithValue(ctx, runnerCtxKey{}, runner)
 		return next(ctx, spec, stream)
 	}
-}
-
-func verifyRunnerToken(runner *actions_model.ActionRunner, token string) bool {
-	key, digest := runnerTokenHash{runner.TokenSalt, runner.TokenHash}, sha256.Sum256([]byte(token))
-	if cached, ok := verifiedRunnerTokens.Get(key); ok && util.CryptoConstTimeEqual(cached[:], digest[:]) {
-		return true
-	}
-	if !util.CryptoConstTimeEqual(runner.TokenHash, auth_model.HashToken(token, runner.TokenSalt)) {
-		return false
-	}
-	verifiedRunnerTokens.Add(key, digest)
-	return true
 }
 
 func getMethodName(spec connect.Spec) string {
