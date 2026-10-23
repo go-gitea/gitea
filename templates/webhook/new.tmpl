@@ -9,7 +9,7 @@
 		{{template "repo/settings/webhook/link_menu" ctx.RootData}}
 	</div>
 </h4>
-<div class="ui attached segment">
+<div class="ui attached segment" data-global-init="initCompWebHookEditorForm">
 	{{template "repo/settings/webhook/gitea" ctx.RootData}}
 	{{template "repo/settings/webhook/gogs" ctx.RootData}}
 	{{template "repo/settings/webhook/slack" ctx.RootData}}

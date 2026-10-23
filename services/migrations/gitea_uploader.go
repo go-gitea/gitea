@@ -31,6 +31,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/uri"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/gitdiff"
 	"gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 )
@@ -516,6 +517,29 @@ func (g *GiteaLocalUploader) CreateComments(ctx context.Context, comments ...*ba
 				cm.NewRef = fmt.Sprint(comment.Meta["NewRef"])
 				cm.Content = ""
 			}
+		case issues_model.CommentTypeLabel:
+			if name, ok := comment.Meta["LabelName"].(string); ok {
+				if label, ok := g.labels[name]; ok {
+					cm.LabelID = label.ID
+				}
+			}
+			if cm.LabelID == 0 {
+				continue // label_id 0 renders nothing and gitea doctor deletes it
+			}
+		case issues_model.CommentTypeMilestone:
+			if title, ok := comment.Meta["MilestoneTitle"].(string); ok {
+				if removed, _ := comment.Meta["Removed"].(bool); removed {
+					cm.OldMilestoneID = g.milestones[title]
+				} else {
+					cm.MilestoneID = g.milestones[title]
+				}
+			}
+			if cm.MilestoneID == 0 && cm.OldMilestoneID == 0 {
+				continue
+			}
+		case issues_model.CommentTypeDeleteBranch:
+			cm.OldRef = comment.Content
+			cm.Content = ""
 		case issues_model.CommentTypeMergePull:
 			cm.Content = ""
 		case issues_model.CommentTypePRScheduledToAutoMerge, issues_model.CommentTypePRUnScheduledToAutoMerge:
@@ -905,10 +929,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			// SECURITY: The TreePath must be cleaned! use relative path
 			comment.TreePath = util.PathJoinRel(comment.TreePath)
 
-			patch, _ := git.GetFileDiffCutAroundLine(ctx,
-				g.gitRepo, pr.MergeBase, headCommitID, comment.TreePath,
-				int64((&issues_model.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
-			)
+			patch, _ := gitdiff.GetCodeCommentPatch(ctx, g.gitRepo, pr.MergeBase, headCommitID, comment.TreePath, int64(line+comment.Position-1))
 
 			if comment.CreatedAt.IsZero() {
 				comment.CreatedAt = review.CreatedAt
@@ -918,7 +939,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			}
 
 			objectFormat := git.ObjectFormatFromName(g.repo.ObjectFormatName)
-			if !objectFormat.IsValid(comment.CommitID) {
+			if !git.IsStringValidObjectID(objectFormat, comment.CommitID) {
 				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
 				comment.CommitID = headCommitID
 			}
@@ -948,7 +969,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 
 // Rollback when migrating failed, this will rollback all the changes.
 func (g *GiteaLocalUploader) Rollback() error {
-	if g.repo != nil && g.repo.ID > 0 {
+	if g.repo != nil && g.repo.ID > 0 && g.gitRepo != nil {
 		g.gitRepo.Close()
 
 		// do not delete the repository, otherwise the end users won't be able to see the last error message

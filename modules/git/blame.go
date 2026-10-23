@@ -7,19 +7,28 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
 
-func LineBlame(ctx context.Context, repo RepositoryFacade, revision, file string, line uint) (string, error) {
+func LineBlameCommitID(ctx context.Context, repo RepositoryFacade, revision, file string, line uint) (string, error) {
 	stdout, _, err := gitcmd.NewCommand("blame").WithRepo(repo).
 		AddOptionFormat("-L %d,%d", line, line).
 		AddOptionValues("-p", revision).
 		AddDashesAndList(file).
 		RunStdString(ctx)
-	return stdout, err
+	if err != nil {
+		return "", err
+	}
+	commitID, _, _ := strings.Cut(stdout, " ")
+	if !IsStringValidObjectID(nil, commitID) {
+		return "", fmt.Errorf("LineBlameCommitID: invalid commit ID %q", commitID)
+	}
+	return commitID, nil
 }
 
 // BlamePart represents block of blame - continuous lines with one sha
@@ -72,12 +81,14 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 		}
 
 		var objectID string
-		objectFormatLength := r.objectFormat.FullLength()
-
-		if len(lineBytes) > objectFormatLength && lineBytes[objectFormatLength] == ' ' && r.objectFormat.IsValid(string(lineBytes[0:objectFormatLength])) {
-			objectID = string(lineBytes[0:objectFormatLength])
+		if lineField1, _, ok := bytes.Cut(lineBytes, []byte(" ")); ok {
+			lineFieldStr := string(lineField1)
+			if IsStringValidObjectID(r.objectFormat, lineFieldStr) {
+				objectID = lineFieldStr
+			}
 		}
-		if len(objectID) > 0 {
+
+		if objectID != "" {
 			if blamePart == nil {
 				blamePart = &BlamePart{
 					Sha:   objectID,
@@ -99,6 +110,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 		} else if lineBytes[0] == '\t' {
 			blamePart.Lines = append(blamePart.Lines, string(lineBytes[1:]))
 		} else if bytes.HasPrefix(lineBytes, []byte(previousHeader)) {
+			objectFormatLength := r.objectFormat.FullLength()
 			offset := len(previousHeader) // already includes a space
 			blamePart.PreviousSha = string(lineBytes[offset : offset+objectFormatLength])
 			offset += objectFormatLength + 1 // +1 for space

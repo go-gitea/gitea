@@ -8,11 +8,6 @@ import (
 	"os"
 )
 
-type PipeBufferReader interface {
-	Read(p []byte) (n int, err error)
-	Bytes() []byte
-}
-
 type PipeBufferWriter interface {
 	Write(p []byte) (n int, err error)
 	Bytes() []byte

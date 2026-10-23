@@ -13,5 +13,9 @@ test('mermaid diagram in issue', async ({page, request}) => {
   const svg = page.frameLocator('iframe.markup-content-iframe').locator('svg');
   await expect(svg).toContainText(/Alpha[\s\S]*Beta[\s\S]*Gamma/);
 
+  await svg.hover();
+  await page.locator('.code-copy').click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('flowchart LR\n  Alpha --> Beta\n  Beta --> Gamma');
+
   await assertNoJsError(page);
 });

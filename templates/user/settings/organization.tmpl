@@ -17,7 +17,7 @@
 							{{ctx.AvatarUtils.Avatar . 28 "mini"}}
 						</div>
 						<div class="item-main">
-							<div class="item-title">{{template "shared/user/name" .}}</div>
+							<div class="item-title">{{template "shared/user/name" .AsUser}}</div>
 							<div class="flex-text-body">
 								{{.Description}}
 							</div>
@@ -38,14 +38,16 @@
 		</div>
 	</div>
 
-<form class="ui small modal form-fetch-action" method="post" id="leave-organization">
+<dialog class="modal-dialog" id="leave-organization">
 	<div class="header">
 		{{ctx.Locale.Tr "org.members.leave"}}
 	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "org.members.leave.detail" (HTMLFormat `<span class="%s"></span>` "organization-name")}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</form>
+	<form class="form-fetch-action" method="post">
+		<div class="content">
+			<p>{{ctx.Locale.Tr "org.members.leave.detail" (HTMLFormat `<span class="%s"></span>` "organization-name")}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</form>
+</dialog>
 
 {{template "user/settings/layout_footer" .}}

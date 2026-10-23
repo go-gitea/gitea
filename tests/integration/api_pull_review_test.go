@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -160,6 +161,26 @@ func testAPIPullReviewGeneral(t *testing.T) {
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
+	reviewsURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index)
+	pendingComment := []api.CreatePullReviewComment{{Path: "README.md", Body: "pending comment", NewLineNum: 1}}
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Body: "draft"}).AddTokenAuth(token)
+	pendingReviewURL := fmt.Sprintf("%s/%d", reviewsURL, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{}).ID)
+	req = NewRequestWithJSON(t, http.MethodPost, pendingReviewURL, &api.SubmitPullReviewOptions{Event: "COMMENT"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Comments: pendingComment}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+	req = NewRequestWithJSON(t, http.MethodPost, pendingReviewURL, &api.SubmitPullReviewOptions{Event: "COMMENT"}).AddTokenAuth(token)
+	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	assert.EqualValues(t, "COMMENT", review.State)
+	assert.Equal(t, 1, review.CodeCommentsCount)
+
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Comments: pendingComment}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Event: "COMMENT"}).AddTokenAuth(token)
+	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	assert.EqualValues(t, "COMMENT", review.State)
+	assert.Equal(t, 1, review.CodeCommentsCount)
+
 	// test CreatePullReview Comment without body but with comments
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		// Body:  "",
@@ -210,7 +231,17 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
 	errMap := make(map[string]any)
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
-	assert.Equal(t, "review event COMMENT requires a body or a comment", errMap["message"])
+	assert.Equal(t, "review requires a body or a comment", errMap["message"])
+
+	unknownCommitID := strings.Repeat("a", 40)
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{
+		Event:    api.ReviewStateComment,
+		CommitID: unknownCommitID,
+		Comments: []api.CreatePullReviewComment{{Path: "README.md", Body: "inline", NewLineNum: 1}},
+	}).AddTokenAuth(token)
+	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	assert.Equal(t, unknownCommitID, review.CommitID)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeCode, Content: "inline"})
 
 	// test get review requests
 	// to make it simple, use same api with get review

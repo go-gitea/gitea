@@ -103,7 +103,7 @@ func TestStartTasks(t *testing.T) {
 	}
 
 	due := timeutil.TimeStamp(time.Now().Add(-time.Minute).Unix())
-	validWorkflow := "jobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: true\n"
+	validWorkflow := "on:\n  schedule:\n    - cron: '0 0 * * *'\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: true\n"
 
 	// specs are processed by ascending id, so the broken one runs first and used to abort the whole pass
 	broken := insertSchedule(1, 2, "broken.yml", "@every 1m", "this: [is: not: a: workflow", due)

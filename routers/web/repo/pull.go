@@ -370,8 +370,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Conte
 	pull := prInfo.issue.PullRequest
 	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseRef, git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
-		isKnownErrorForBroken := errors.Is(err, util.ErrNotExist) || gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(err, gitcmd.StderrUnknownRevisionOrPath)
-		if !isKnownErrorForBroken {
+		if !errors.Is(err, util.ErrNotExist) && !gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) {
 			log.Error("GetCompareInfo: %v", err)
 		}
 		prInfo.IsPullRequestBroken = true
@@ -438,12 +437,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	// so the status-check section must render when there are any required contexts, not only when enableStatusCheck is on.
 	data.ShowStatusCheck = data.enableStatusCheck || data.hasRequiredStatusContexts || len(statusCheckData.PullCommitStatuses) > 0
 
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, ctx.Repo.Repository.ID, commitStatuses)
 	if err != nil {
 		log.Error("GetRunsFromCommitStatuses: %v", err)
 	}
 	for _, run := range runs {
-		if run.NeedApproval {
+		if run.IsAwaitingApproval() {
 			statusCheckData.RequireApprovalRunCount++
 		}
 	}
@@ -885,35 +884,39 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
-	currentReview, err := issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
-	if err != nil && !issues_model.IsErrReviewNotExist(err) {
-		ctx.ServerError("GetCurrentReview", err)
-		return
-	}
-	numPendingCodeComments := int64(0)
-	if currentReview != nil {
-		numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
-			Type:     issues_model.CommentTypeCode,
-			ReviewID: currentReview.ID,
-			IssueID:  issue.ID,
-		})
-		if err != nil {
-			ctx.ServerError("CountComments", err)
+	var numPendingCodeComments int64
+	var currentPendingReview *issues_model.Review
+	if ctx.Doer != nil {
+		currentPendingReview, err = issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
+		if err != nil && !issues_model.IsErrReviewNotExist(err) {
+			ctx.ServerError("GetCurrentReview", err)
 			return
 		}
+		if currentPendingReview != nil {
+			numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
+				Type:     issues_model.CommentTypeCode,
+				ReviewID: currentPendingReview.ID,
+				IssueID:  issue.ID,
+			})
+			if err != nil {
+				ctx.ServerError("CountComments", err)
+				return
+			}
+		}
 	}
-	ctx.Data["CurrentReview"] = currentReview
+	ctx.Data["CurrentReview"] = currentPendingReview
 	ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
 
 	ctx.Data["IsIssuePoster"] = ctx.Doer != nil && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	// For files changed page
 	PrepareBranchList(ctx)
 	if ctx.Written() {
 		return
 	}
+
+	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
@@ -1097,7 +1100,7 @@ func MergePullRequest(ctx *context.Context) {
 			switch {
 			case pull_service.IsErrInvalidMergeStyle(err):
 				ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
-			case strings.Contains(err.Error(), "Wrong commit ID"):
+			case errors.Is(err, util.ErrInvalidArgument):
 				ctx.JSONError(ctx.Tr("repo.pulls.wrong_commit_id"))
 			default:
 				ctx.ServerError("MergedManually", err)
@@ -1131,7 +1134,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	if form.MergeWhenChecksSucceed {
 		// delete all scheduled auto merges
-		_ = pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
+		_, _ = pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
 		// schedule auto merge
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
 		if err != nil {
@@ -1145,7 +1148,7 @@ func MergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	if err := pull_service.Merge(pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
@@ -1326,7 +1329,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
 		return
 	}
-	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)
+	validateRet := ValidateRepoMetasForCreateIssue(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}

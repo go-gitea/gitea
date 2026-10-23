@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -17,8 +16,8 @@ import (
 	system_model "gitea.dev/models/system"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/egress"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/hostmatcher"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
@@ -28,12 +27,7 @@ import (
 // MigrateOptions is equal to base.MigrateOptions
 type MigrateOptions = base.MigrateOptions
 
-var (
-	factories []base.DownloaderFactory
-
-	allowList *hostmatcher.HostMatchList
-	blockList *hostmatcher.HostMatchList
-)
+var factories []base.DownloaderFactory
 
 // RegisterDownloaderFactory registers a downloader factory
 func RegisterDownloaderFactory(factory base.DownloaderFactory) {
@@ -76,33 +70,9 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 		return &git.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
 	}
 
-	hostName, _, errIgnored := net.SplitHostPort(u.Host)
-	if errIgnored != nil {
-		hostName = u.Host // u.Host can be "host" or "host:port"
+	if err := egress.NewMigrationPolicy().CheckHostIPs(u); err != nil {
+		return &git.ErrInvalidCloneAddr{Host: u.Hostname(), IsPermissionDenied: true}
 	}
-
-	// some users only use proxy, there is no DNS resolver. it's safe to ignore the LookupIP error
-	addrList, _ := net.LookupIP(hostName)
-	return checkByAllowBlockList(hostName, addrList)
-}
-
-func checkByAllowBlockList(hostName string, addrList []net.IP) error {
-	ipAllowed := len(addrList) > 0
-	var ipBlocked bool
-	for _, addr := range addrList {
-		ipAllowed = ipAllowed && allowList.MatchIPAddr(addr)
-		ipBlocked = ipBlocked || blockList.MatchIPAddr(addr)
-	}
-	if blockList.MatchHostName(hostName) || ipBlocked {
-		return &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
-	}
-	// if we have an allow-list, check the allow-list before return to get the more accurate error
-	if !allowList.IsEmpty() {
-		if !allowList.MatchHostName(hostName) && !ipAllowed {
-			return &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
-		}
-	}
-	// otherwise, we always follow the blocked list
 	return nil
 }
 
@@ -130,7 +100,8 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
-		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository (%s/%s) from %s failed: %v", ownerName, opts.RepoName, opts.OriginalURL, err)); err2 != nil {
+		noticeMsg := fmt.Sprintf("Migrate repository (%s/%s) from %s failed: %v", ownerName, opts.RepoName, util.SanitizeCredentialURLs(opts.OriginalURL), util.SanitizeErrorCredentialURLs(err))
+		if err2 := system_model.CreateRepositoryNotice(noticeMsg); err2 != nil {
 			log.Error("create repository notice failed: ", err2)
 		}
 		return nil, err
@@ -507,30 +478,4 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 	}
 
 	return uploader.Finish(ctx)
-}
-
-// Init migrations service
-func Init() error {
-	// TODO: maybe we can deprecate these legacy ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS/BLOCKED_DOMAINS, use ALLOWED_HOST_LIST/BLOCKED_HOST_LIST instead
-
-	blockList = hostmatcher.ParseSimpleMatchList("migrations.BLOCKED_DOMAINS", setting.Migrations.BlockedDomains)
-
-	allowList = hostmatcher.ParseSimpleMatchList("migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS", setting.Migrations.AllowedDomains)
-	if allowList.IsEmpty() {
-		// the default policy is that migration module can access external hosts
-		allowList.AppendBuiltin(hostmatcher.MatchBuiltinExternal)
-	}
-	if setting.Migrations.AllowLocalNetworks {
-		allowList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
-		allowList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
-	} else {
-		blockList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
-		blockList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
-	}
-
-	// reset the shared client so it is rebuilt from the freshly parsed lists on next use; download paths
-	// then reuse one connection pool instead of creating a client (and pool) per request
-	migrationHTTPClient.Reset()
-
-	return nil
 }

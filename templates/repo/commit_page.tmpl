@@ -49,7 +49,7 @@
 										data-modal-cherry-pick-header="{{ctx.Locale.Tr "repo.commit.cherry-pick-header" (ShortSha .CommitID)}}"
 										data-modal-cherry-pick-content="{{ctx.Locale.Tr "repo.commit.cherry-pick-content"}}"
 										data-modal-cherry-pick-submit="{{ctx.Locale.Tr "repo.commit.cherry-pick"}}">{{ctx.Locale.Tr "repo.commit.cherry-pick"}}</div>
-									<div class="ui g-modal-confirm modal" id="cherry-pick-modal">
+									<dialog class="modal-dialog" id="cherry-pick-modal">
 										<div class="header">
 											<span id="cherry-pick-header"></span>
 										</div>
@@ -68,8 +68,8 @@
 												<button type="submit" id="cherry-pick-submit" class="ui primary button"></button>
 											</form>
 										</div>
-									</div>
-									<div class="ui small modal" id="create-branch-modal">
+									</dialog>
+									<dialog class="modal-dialog" id="create-branch-modal">
 										<div class="header">
 											{{ctx.Locale.Tr "repo.branch.new_branch"}}
 										</div>
@@ -91,8 +91,8 @@
 												</div>
 											</form>
 										</div>
-									</div>
-									<div class="ui small modal" id="create-tag-modal">
+									</dialog>
+									<dialog class="modal-dialog" id="create-tag-modal">
 										<div class="header">
 											{{ctx.Locale.Tr "repo.tag.create_tag_operation"}}
 										</div>
@@ -115,7 +115,7 @@
 												</div>
 											</form>
 										</div>
-									</div>
+									</dialog>
 								</div>
 							</div>
 						{{end}}
@@ -135,9 +135,9 @@
 				<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.committed_at" $authors $committedAt}}</span>
 			{{else}}
 				{{$committerAvatar := ""}}{{$committerDisplayName := ""}}
-				{{if .Verification.CommittingUser}}
+				{{if and .Verification .Verification.CommittingUser}}
 					{{$committerAvatar = ctx.AvatarUtils.Avatar .Verification.CommittingUser 20}}
-					{{$committerDisplayName = .Verification.CommittingUser.GetShortDisplayNameLinkHTML}}
+					{{$committerDisplayName = HTMLFormat `%s%s` .Verification.CommittingUser.GetShortDisplayNameLinkHTML (ctx.RenderUtils.UserTypeLabel .Verification.CommittingUser)}}
 				{{else}}
 					{{$committerAvatar = ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Email 20}}
 					{{$committerDisplayName = .Commit.Committer.Name}}

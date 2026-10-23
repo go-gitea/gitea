@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -68,17 +69,10 @@ func ListIssueComments(ctx *context.APIContext) {
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorInternal(err)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIErrorNotFound()
-		return
-	}
-
-	issue.Repo = ctx.Repo.Repository
 
 	opts := &issues_model.FindCommentsOptions{
 		IssueID: issue.ID,
@@ -172,12 +166,10 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorInternal(err)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
-	issue.Repo = ctx.Repo.Repository
 
 	opts := &issues_model.FindCommentsOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -380,14 +372,8 @@ func CreateIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.CreateIssueCommentOption](ctx)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIErrorNotFound()
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -571,8 +557,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		ctx.APIErrorAuto(err)
 		return
 	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeWrite) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -676,11 +661,11 @@ func deleteIssueComment(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeWrite) {
 		ctx.Status(http.StatusForbidden)
 		return
-	} else if !comment.Type.HasContentSupport() {
+	}
+	if !comment.Type.HasContentSupport() {
 		ctx.Status(http.StatusBadRequest)
 		return
 	}

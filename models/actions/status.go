@@ -23,6 +23,7 @@ const (
 	StatusRunning                  // 6, isn't a runnerv1.Result
 	StatusBlocked                  // 7, isn't a runnerv1.Result
 	StatusCancelling               // 8, isn't a runnerv1.Result
+	StatusPending                  // 9, isn't a runnerv1.Result
 )
 
 var statusNames = map[Status]string{
@@ -35,6 +36,7 @@ var statusNames = map[Status]string{
 	StatusCancelling: "cancelling",
 	StatusSkipped:    "skipped",
 	StatusBlocked:    "blocked",
+	StatusPending:    "pending",
 }
 
 // String returns the string name of the Status
@@ -78,10 +80,6 @@ func (s Status) HasRun() bool {
 	return s.In(StatusSuccess, StatusFailure)
 }
 
-func (s Status) IsUnknown() bool {
-	return s == StatusUnknown
-}
-
 func (s Status) IsSuccess() bool {
 	return s == StatusSuccess
 }
@@ -112,6 +110,10 @@ func (s Status) IsBlocked() bool {
 
 func (s Status) IsCancelling() bool {
 	return s == StatusCancelling
+}
+
+func (s Status) IsPending() bool {
+	return s == StatusPending
 }
 
 // In returns whether s is one of the given statuses

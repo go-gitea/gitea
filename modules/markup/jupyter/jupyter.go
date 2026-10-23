@@ -39,18 +39,18 @@ type mimeHandler struct {
 }
 
 func renderCellCodeOutputTextPlain(w htmlutil.HTMLWriter, text string) error {
-	w.WriteFormat(`<div class="cell-output-text"><pre>%s</pre></div>`, text)
+	w.WriteFormatf(`<div class="cell-output-text"><pre>%s</pre></div>`, text)
 	return w.Err()
 }
 
 func renderCellCodeOutputUnsupported(w htmlutil.HTMLWriter, message string) error {
-	w.WriteFormat(`<div class="cell-output-unsupported">%s</div>`, message)
+	w.WriteFormatf(`<div class="cell-output-unsupported">%s</div>`, message)
 	return w.Err()
 }
 
 var dataMimeHandlers = sync.OnceValue(func() []mimeHandler {
 	renderImage := func(w htmlutil.HTMLWriter, subtype, payload string) error {
-		w.WriteFormat(`<div class="cell-output-image"><img src="data:image/%s;base64,%s"></div>`, subtype, payload)
+		w.WriteFormatf(`<div class="cell-output-image"><img src="data:image/%s;base64,%s"></div>`, subtype, payload)
 		return w.Err()
 	}
 	renderUnsupportedOutput := func(message string) func(htmlutil.HTMLWriter, string) error {
@@ -75,11 +75,11 @@ var dataMimeHandlers = sync.OnceValue(func() []mimeHandler {
 			// To future developers:  don't allow custom CSS classes or attributes,
 			// because ".link-action" or "data-fetch-xxx" can send POST requests and lead to XSS.
 			// If you'd really like to support more, do remember to correctly sanitize the values.
-			w.WriteFormat(`<div class="cell-output-html">%s</div>`, markup.Sanitize(d))
+			w.WriteFormatf(`<div class="cell-output-html">%s</div>`, markup.Sanitize(d))
 			return w.Err()
 		}},
 		{"text/latex", func(w htmlutil.HTMLWriter, d string) error {
-			w.WriteFormat(`<div class="cell-output-latex"><pre><code class="language-math display">%s</code></pre></div>`, trimMathDelimiters(d))
+			w.WriteFormatf(`<div class="cell-output-latex"><pre><code class="language-math display">%s</code></pre></div>`, trimMathDelimiters(d))
 			return w.Err()
 		}},
 		{"text/plain", renderCellCodeOutputTextPlain},
@@ -142,14 +142,14 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, outputWriter 
 	// the size is (should be) checked and/or limited by the caller to avoid OOM
 	var notebook Notebook
 	if err := json.NewDecoder(input).Decode(&notebook); err != nil {
-		htmlWriter.WriteFormat(`<div class="ui error message">Failed to parse notebook JSON: %v</div>`, err)
+		htmlWriter.WriteFormatf(`<div class="ui error message">Failed to parse notebook JSON: %v</div>`, err)
 		return htmlWriter.Err()
 	}
 
 	// Check nbformat version
 	if notebook.Nbformat < 4 {
 		msg := htmlutil.HTMLFormat("This notebook uses an older format (nbformat %d). Only nbformat 4+ is supported for rendering. Please upgrade the notebook in Jupyter or view the raw JSON.", notebook.Nbformat)
-		htmlWriter.WriteFormat(`<div class="file-not-rendered-prompt">%s</div>`, msg)
+		htmlWriter.WriteFormatf(`<div class="file-not-rendered-prompt">%s</div>`, msg)
 		return htmlWriter.Err()
 	}
 
@@ -205,7 +205,7 @@ func renderCellCode(output htmlutil.HTMLWriter, cell Cell, language string) erro
 	output.WriteHTML(`<div class="cell-line">`)
 	{
 		if executionCount != nil {
-			output.WriteFormat(`<div class="cell-left cell-prompt">In [%d]:</div>`, *executionCount)
+			output.WriteFormatf(`<div class="cell-left cell-prompt">In [%d]:</div>`, *executionCount)
 		} else {
 			output.WriteHTML(`<div class="cell-left cell-prompt">In [ ]:</div>`)
 		}
@@ -213,7 +213,7 @@ func renderCellCode(output htmlutil.HTMLWriter, cell Cell, language string) erro
 		// Highlight code
 		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)
 		lexer := highlight.DetectChromaLexerByFileName("", language)
-		output.WriteFormat(`<div class="cell-right cell-input"><pre %s><code %s>`, preAttrs, codeAttrs)
+		output.WriteFormatf(`<div class="cell-right cell-input"><pre %s><code %s>`, preAttrs, codeAttrs)
 		output.WriteHTML(highlight.RenderCodeByLexer(lexer, source))
 		output.WriteHTML("</code></pre></div>")
 	}
@@ -232,7 +232,7 @@ func renderCellCode(output htmlutil.HTMLWriter, cell Cell, language string) erro
 		output.WriteHTML(`<div class="cell-line">`)
 		{
 			if hasExecutionResult && executionCount != nil {
-				output.WriteFormat(`<div class="cell-left cell-prompt">Out [%d]:</div>`, *executionCount)
+				output.WriteFormatf(`<div class="cell-left cell-prompt">Out [%d]:</div>`, *executionCount)
 			} else {
 				output.WriteHTML(`<div class="cell-left cell-prompt"></div>`)
 			}
@@ -250,7 +250,7 @@ func renderCellCode(output htmlutil.HTMLWriter, cell Cell, language string) erro
 }
 
 func renderCellPrompt(output htmlutil.HTMLWriter, left, right template.HTML) {
-	output.WriteFormat(`
+	output.WriteFormatf(`
 <div class="notebook-cell">
 	<div class="cell-line">
 		<div class="cell-left cell-prompt">%s</div>
@@ -335,7 +335,7 @@ func renderCellCodeOutput(output htmlutil.HTMLWriter, out Output) {
 	// Stream output
 	if out.OutputType == "stream" && out.Text != nil {
 		streamName := util.Iif(out.Name == "stderr", "stderr", "stdout")
-		output.WriteFormat(`<pre class="cell-output-stream stream-%s">%s</pre>`, streamName, joinSource(out.Text))
+		output.WriteFormatf(`<pre class="cell-output-stream stream-%s">%s</pre>`, streamName, joinSource(out.Text))
 		return
 	}
 
@@ -352,7 +352,7 @@ func renderCellCodeOutput(output htmlutil.HTMLWriter, out Output) {
 		if traceback == "" && out.Ename != "" {
 			traceback = fmt.Sprintf("%s: %s", out.Ename, out.Evalue)
 		}
-		output.WriteFormat(`<pre class="cell-output-error">%s</pre>`, traceback)
+		output.WriteFormatf(`<pre class="cell-output-error">%s</pre>`, traceback)
 		return
 	}
 

@@ -35,7 +35,7 @@
 			{{template "repo/diff/whitespace_dropdown" .}}
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
-				<div id="diff-commit-select" data-merge-base="{{$.CompareInfo.CompareBase}}" data-issuelink="{{$.Issue.Link}}"
+				<div id="diff-commit-select" data-global-init="initDiffCommitSelect" data-merge-base="{{$.CompareInfo.CompareBase}}" data-issuelink="{{$.Issue.Link}}"
 					data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}"
 					data-text-filter-changes-by-commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
 					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
@@ -63,7 +63,7 @@
 	<div id="diff-container">
 		{{if $showFileTree}}
 			{{$.FileIconPoolHTML}}
-			<div id="diff-file-tree" class="tw-hidden not-mobile" data-locale="{{JsonUtils.EncodeToString (dict
+			<div id="diff-file-tree" data-global-init="initDiffFileTree" class="tw-hidden not-mobile" data-locale="{{JsonUtils.EncodeToString (dict
 				"filterFiles" (ctx.Locale.Tr "repo.diff.filter_files")
 				"filterFilesClear" (ctx.Locale.Tr "repo.diff.filter_files_clear")
 				"filterByFileExtension" (ctx.Locale.Tr "repo.diff.filter_by_file_extension")
@@ -86,11 +86,11 @@
 					</div>
 				{{end}}
 				<div id="diff-file-boxes">
-				{{range $i, $file := .Diff.Files}}
+				{{range $file := .Diff.Files}}
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 					{{$isImage:= $file.IsBlobTypeImage}}
 					{{$isCsv := $file.IsBlobTypeCsv}}
-					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
+					{{$showFileViewToggle := $file.CanShowFileViewToggle}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
 						<div class="diff-file-header sticky-2nd-row ui top attached header">
@@ -173,12 +173,8 @@
 								{{if or $file.IsIncomplete $file.IsBin}}
 									<div class="tw-p-3">
 										{{if $file.IsIncomplete}}
-											{{if $file.IsIncompleteLineTooLong}}
-												{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}}
-											{{else}}
-												{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
-												<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
-											{{end}}
+											{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
+											<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
 										{{else}}
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
 										{{end}}
@@ -197,9 +193,9 @@
 								{{else if $file.Sections}}
 									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
 										{{if $.IsSplitStyle}}
-											{{template "repo/diff/section_split" dict "file" . "root" $}}
+											{{template "repo/diff/section_split" dict "file" $file}}
 										{{else}}
-											{{template "repo/diff/section_unified" dict "file" . "root" $}}
+											{{template "repo/diff/section_unified" dict "file" $file}}
 										{{end}}
 									</table>
 								{{else if $file.IsRenamed}}

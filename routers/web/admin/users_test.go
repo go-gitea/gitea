@@ -18,7 +18,7 @@ import (
 )
 
 func TestNewUserPost_MustChangePassword(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx, _ := contexttest.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
@@ -55,7 +55,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 }
 
 func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx, _ := contexttest.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
@@ -92,7 +92,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 }
 
 func TestNewUserPost_InvalidEmail(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx, _ := contexttest.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
@@ -122,7 +122,7 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 }
 
 func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx, _ := contexttest.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
@@ -160,7 +160,7 @@ func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
 }
 
 func TestNewUserPost_VisibilityPrivate(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx, _ := contexttest.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
