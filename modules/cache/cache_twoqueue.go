@@ -4,205 +4,123 @@
 package cache
 
 import (
+	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
 	"gitea.dev/modules/json"
 
-	mc "gitea.com/go-chi/cache" //nolint:depguard // we wrap this package here
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-// TwoQueueCache represents a LRU 2Q cache adapter implementation
-type TwoQueueCache struct {
-	lock     sync.Mutex
-	cache    *lru.TwoQueueCache[string, any]
-	interval int
+const twoQueueDefaultSize = 50000
+
+type twoQueueCache struct {
+	cache *lru.TwoQueueCache[string, memoryItem] // wrap the existing thread-safe 2Q (two-queue) cache directly
 }
 
-// TwoQueueCacheConfig describes the configuration for TwoQueueCache
-type TwoQueueCacheConfig struct {
-	Size        int     `ini:"SIZE" json:"size"`
-	RecentRatio float64 `ini:"RECENT_RATIO" json:"recent_ratio"`
-	GhostRatio  float64 `ini:"GHOST_RATIO" json:"ghost_ratio"`
+type twoQueueCacheConfig struct {
+	Size        int     `json:"size"`
+	RecentRatio float64 `json:"recent_ratio"`
+	GhostRatio  float64 `json:"ghost_ratio"`
 }
 
-// MemoryItem represents a memory cache item.
-type MemoryItem struct {
-	Val     any
-	Created int64
-	Timeout int64
-}
-
-func (item *MemoryItem) hasExpired() bool {
-	return item.Timeout > 0 &&
-		(time.Now().Unix()-item.Created) >= item.Timeout
-}
-
-var _ mc.Cache = &TwoQueueCache{}
-
-// Put puts value into cache with key and expire time.
-func (c *TwoQueueCache) Put(key string, val any, timeout int64) error {
-	item := &MemoryItem{
-		Val:     val,
-		Created: time.Now().Unix(),
-		Timeout: timeout,
+func newTwoQueueCache(conn string, gcInterval time.Duration) (backend, error) {
+	lruCache, err := newTwoQueueLRU(conn)
+	if err != nil {
+		return nil, err
 	}
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	cache := &twoQueueCache{cache: lruCache}
+	startGC(gcInterval, cache.deleteExpired)
+	return cache, nil
+}
+
+func newTwoQueueLRU(conn string) (*lru.TwoQueueCache[string, memoryItem], error) {
+	if conn == "" {
+		return lru.New2Q[string, memoryItem](twoQueueDefaultSize)
+	}
+	if size, err := strconv.Atoi(conn); err == nil {
+		return lru.New2Q[string, memoryItem](size)
+	}
+	if !json.Valid([]byte(conn)) {
+		return nil, fmt.Errorf("invalid two-queue cache HOST %q, expected a size or a JSON config", conn)
+	}
+	config := twoQueueCacheConfig{
+		Size:        twoQueueDefaultSize,
+		RecentRatio: lru.Default2QRecentRatio,
+		GhostRatio:  lru.Default2QGhostEntries,
+	}
+	_ = json.Unmarshal([]byte(conn), &config)
+	return lru.New2QParams[string, memoryItem](config.Size, config.RecentRatio, config.GhostRatio)
+}
+
+func (c *twoQueueCache) Get(key string) (string, bool) {
+	item, ok := c.cache.Get(key)
+	if !ok {
+		return "", false
+	}
+	if item.expired(timeNow()) {
+		c.cache.Remove(key)
+		return "", false
+	}
+	return item.value, true
+}
+
+func (c *twoQueueCache) Put(key, value string, ttl int64) error {
+	item := newMemoryItem(value, ttl)
 	c.cache.Add(key, item)
 	return nil
 }
 
-// Get gets cached value by given key.
-func (c *TwoQueueCache) Get(key string) any {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	cached, ok := c.cache.Get(key)
-	if !ok {
-		return nil
-	}
-	item, ok := cached.(*MemoryItem)
-
-	if !ok || item.hasExpired() {
-		c.cache.Remove(key)
-		return nil
-	}
-
-	return item.Val
-}
-
-// Delete deletes cached value by given key.
-func (c *TwoQueueCache) Delete(key string) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (c *twoQueueCache) Delete(key string) error {
 	c.cache.Remove(key)
 	return nil
 }
 
-// Incr increases cached int-type value by given key as a counter.
-func (c *TwoQueueCache) Incr(key string) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	cached, ok := c.cache.Get(key)
-	if !ok {
-		return nil
-	}
-	item, ok := cached.(*MemoryItem)
-
-	if !ok || item.hasExpired() {
-		c.cache.Remove(key)
-		return nil
-	}
-
-	var err error
-	item.Val, err = mc.Incr(item.Val)
-	return err
+func (c *twoQueueCache) IsExist(key string) bool {
+	item, ok := c.cache.Peek(key)
+	return ok && !item.expired(timeNow())
 }
 
-// Decr decreases cached int-type value by given key as a counter.
-func (c *TwoQueueCache) Decr(key string) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	cached, ok := c.cache.Get(key)
-	if !ok {
-		return nil
-	}
-	item, ok := cached.(*MemoryItem)
-
-	if !ok || item.hasExpired() {
-		c.cache.Remove(key)
-		return nil
-	}
-
-	var err error
-	item.Val, err = mc.Decr(item.Val)
-	return err
-}
-
-// IsExist returns true if cached value exists.
-func (c *TwoQueueCache) IsExist(key string) bool {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	cached, ok := c.cache.Peek(key)
-	if !ok {
-		return false
-	}
-	item, ok := cached.(*MemoryItem)
-	if !ok || item.hasExpired() {
-		c.cache.Remove(key)
-		return false
-	}
-
-	return true
-}
-
-// Flush deletes all cached data.
-func (c *TwoQueueCache) Flush() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	c.cache.Purge()
+func (c *twoQueueCache) Ping() error {
 	return nil
 }
 
-func (c *TwoQueueCache) checkAndInvalidate(key string) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	cached, ok := c.cache.Peek(key)
-	if !ok {
-		return
-	}
-	item, ok := cached.(*MemoryItem)
-	if !ok || item.hasExpired() {
-		c.cache.Remove(key)
-	}
-}
-
-func (c *TwoQueueCache) startGC() {
-	if c.interval < 0 {
-		return
-	}
+func (c *twoQueueCache) deleteExpired() {
+	now := timeNow()
 	for _, key := range c.cache.Keys() {
-		c.checkAndInvalidate(key)
-	}
-	time.AfterFunc(time.Duration(c.interval)*time.Second, c.startGC)
-}
-
-// StartAndGC starts GC routine based on config string settings.
-func (c *TwoQueueCache) StartAndGC(opts mc.Options) error {
-	var err error
-	size := 50000
-	if opts.AdapterConfig != "" {
-		size, err = strconv.Atoi(opts.AdapterConfig)
-	}
-	if err != nil {
-		if !json.Valid([]byte(opts.AdapterConfig)) {
-			return err
+		if item, ok := c.cache.Peek(key); ok && item.expired(now) {
+			// here might be a slight data-race: the item might have been removed or updated by another goroutine between the Peek and Remove calls,
+			// but it's acceptable since the cache is not guaranteed to be 100% accurate and any item can be evicted at any time
+			c.cache.Remove(key)
 		}
+	}
+}
 
-		cfg := &TwoQueueCacheConfig{
-			Size:        50000,
-			RecentRatio: lru.Default2QRecentRatio,
-			GhostRatio:  lru.Default2QGhostEntries,
+type memoryItem struct {
+	value     string
+	expiresAt time.Time
+}
+
+func newMemoryItem(value string, ttl int64) memoryItem {
+	item := memoryItem{value: value}
+	if ttl > 0 {
+		item.expiresAt = timeNow().Add(time.Duration(ttl) * time.Second)
+	}
+	return item
+}
+
+func (item memoryItem) expired(now time.Time) bool {
+	return !item.expiresAt.IsZero() && !now.Before(item.expiresAt)
+}
+
+func startGC(interval time.Duration, deleteExpired func()) {
+	if interval <= 0 {
+		return
+	}
+	go func() {
+		for range time.Tick(interval) {
+			deleteExpired()
 		}
-		_ = json.Unmarshal([]byte(opts.AdapterConfig), cfg)
-		c.cache, err = lru.New2QParams[string, any](cfg.Size, cfg.RecentRatio, cfg.GhostRatio)
-	} else {
-		c.cache, err = lru.New2Q[string, any](size)
-	}
-	c.interval = opts.Interval
-	if c.interval > 0 {
-		go c.startGC()
-	}
-	return err
-}
-
-// Ping tests if the cache is alive.
-func (c *TwoQueueCache) Ping() error {
-	return mc.GenericPing(c)
-}
-
-func init() {
-	mc.Register("twoqueue", &TwoQueueCache{})
+	}()
 }

@@ -6,6 +6,8 @@ package nuget
 import (
 	"archive/zip"
 	"bytes"
+	"maps"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -82,9 +84,9 @@ func TestParsePackageMetaData(t *testing.T) {
 	createArchive := func(files map[string]string) []byte {
 		var buf bytes.Buffer
 		archive := zip.NewWriter(&buf)
-		for name, content := range files {
+		for _, name := range slices.Sorted(maps.Keys(files)) {
 			w, _ := archive.Create(name)
-			w.Write([]byte(content))
+			w.Write([]byte(files[name]))
 		}
 		archive.Close()
 		return buf.Bytes()
@@ -145,6 +147,14 @@ func TestParsePackageMetaData(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, np)
 		assert.Empty(t, np.Metadata.Readme)
+	})
+
+	t.Run("IgnoresNuspecShadowingRootNuspec", func(t *testing.T) {
+		data := createArchive(map[string]string{"/package.nuspec": "", "package.nuspec": nuspecContent})
+
+		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
+		assert.NoError(t, err)
+		assert.Equal(t, id, np.ID)
 	})
 
 	t.Run("Dependency Package", func(t *testing.T) {

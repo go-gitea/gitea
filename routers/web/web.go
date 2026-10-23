@@ -7,11 +7,14 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/imagecaptcha"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/metrics"
 	"gitea.dev/modules/public"
@@ -33,6 +36,7 @@ import (
 	"gitea.dev/routers/web/healthcheck"
 	"gitea.dev/routers/web/misc"
 	"gitea.dev/routers/web/org"
+	org_setting "gitea.dev/routers/web/org/setting"
 	"gitea.dev/routers/web/repo"
 	"gitea.dev/routers/web/repo/actions"
 	repo_setting "gitea.dev/routers/web/repo/setting"
@@ -46,9 +50,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 
-	_ "gitea.dev/modules/session" // to register all internal adapters
-
-	"gitea.com/go-chi/captcha"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/klauspost/compress/gzhttp"
@@ -94,12 +95,14 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 type AuthMiddleware struct {
 	AllowOAuth2       types.PreMiddlewareProvider
 	AllowBasic        types.PreMiddlewareProvider
+	AllowDeployToken  types.PreMiddlewareProvider
 	MiddlewareHandler func(*context.Context)
 }
 
 func newWebAuthMiddleware() *AuthMiddleware {
 	type keyAllowOAuth2 struct{}
 	type keyAllowBasic struct{}
+	type keyAllowDeployToken struct{}
 	webAuth := &AuthMiddleware{}
 
 	middlewareSetContextValue := func(key, val any) types.PreMiddlewareProvider {
@@ -114,11 +117,13 @@ func newWebAuthMiddleware() *AuthMiddleware {
 
 	webAuth.AllowBasic = middlewareSetContextValue(keyAllowBasic{}, true)
 	webAuth.AllowOAuth2 = middlewareSetContextValue(keyAllowOAuth2{}, true)
+	webAuth.AllowDeployToken = middlewareSetContextValue(keyAllowDeployToken{}, true)
 
-	enableSSPI := setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
+	enableSSPI := consts.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
 	webAuth.MiddlewareHandler = func(ctx *context.Context) {
 		allowBasic := ctx.GetContextValue(keyAllowBasic{}) == true
 		allowOAuth2 := ctx.GetContextValue(keyAllowOAuth2{}) == true
+		allowDeployToken := ctx.GetContextValue(keyAllowDeployToken{}) == true
 
 		group := auth_service.NewGroup()
 
@@ -127,13 +132,16 @@ func newWebAuthMiddleware() *AuthMiddleware {
 		if allowOAuth2 {
 			group.Add(&auth_service.OAuth2{})
 		}
+		if allowDeployToken {
+			group.Add(&auth_service.DeployToken{}) // before Basic, which would try the token as a password
+		}
 		if allowBasic {
 			group.Add(&auth_service.Basic{})
 		}
 
 		// Sessionless means the route's auth can be done without web ui, then it doesn't need to create a session
 		// For example: accessing git via http, access rss feeds, downloading attachments, etc
-		isSessionless := allowOAuth2 || allowBasic
+		isSessionless := allowOAuth2 || allowBasic || allowDeployToken
 
 		if setting.Service.EnableReverseProxyAuth {
 			// reverse-proxy should before Session, otherwise the header will be ignored if user has login
@@ -165,39 +173,33 @@ func newWebAuthMiddleware() *AuthMiddleware {
 	return webAuth
 }
 
-func doerMustChangePassword(ctx *context.Context) bool {
-	// an impersonating admin must not be forced to set the impersonated user's password
-	return ctx.Doer != nil && ctx.Doer.MustChangePassword && !ctx.DoerIsImpersonated()
-}
-
-// verifyAuthWithOptions checks authentication according to options
-func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Context) {
+// verifyAuthWithOptionsWeb checks authentication according to options
+func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.Context) {
 	crossOriginProtection := http.NewCrossOriginProtection()
 
 	return func(ctx *context.Context) {
 		// Check prohibit login users.
 		if ctx.IsSigned {
-			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
+			check := common.CheckSignedInUser(ctx.Doer, ctx.Session)
+			if check.NeedActivateAccount {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
-			}
-			if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
-				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
+			} else if check.LoginIsProhibited {
+				// FIXME: there are a lot of "Failed authentication attempt" log messages, and there are many problems:
+				// * Inconsistent log levels: sometimes "info" sometimes "warning"
+				// * Unclear criteria, no context: invalid password, prohibited user, etc.
+				// It was designed for "fail2ban". If it is still really useful, need to improve or clean up.
+				log.Info("Failed authentication attempt for %s from %s (prohibited)", ctx.Doer.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 				return
-			}
-
-			if doerMustChangePassword(ctx) {
+			} else if check.NeedChangePassword {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
 						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
 						return
 					}
-					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
-					ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
-					middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 					ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 					return
 				}
@@ -221,20 +223,14 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			}
 		}
 
-		if options.SignInRequired {
-			if !ctx.IsSigned {
-				ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
-				return
-			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
-				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(http.StatusOK, "user/auth/activate")
-				return
-			}
+		if options.SignInRequired && !ctx.IsSigned {
+			ctx.RedirectForLogin(middleware.RedirectLinkUserLogin(ctx.Req))
+			return
 		}
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
 		if !options.SignOutRequired && !ctx.IsSigned && ctx.GetSiteCookie(setting.CookieRememberName) != "" {
-			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
+			ctx.RedirectForLogin(middleware.RedirectLinkUserLogin(ctx.Req))
 			return
 		}
 
@@ -284,9 +280,8 @@ func Routes() *web.Router {
 		mid = append(mid, wrapper)
 	}
 
-	if setting.Service.EnableCaptcha {
-		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
-		routes.Methods("GET,HEAD", "/captcha/*", append(mid, captcha.Captchaer(context.GetImageCaptcha()))...)
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha {
+		routes.Methods("GET,HEAD", `/captcha`, append(mid, imagecaptcha.ServeImage)...)
 	}
 
 	if setting.Metrics.Enabled {
@@ -295,10 +290,11 @@ func Routes() *web.Router {
 	}
 
 	routes.Methods("GET,HEAD", "/robots.txt", append(mid, misc.RobotsTxt)...)
+	routes.Get("/-/actions/artifacts/{artifact_id}/{expires}/{signature}/*", append(mid, actions.ArtifactsPreviewRawView)...) // no session, the sandboxed frame sends no cookie
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	mid = append(mid, common.MustInitSessioner(), context.Contexter())
+	mid = append(mid, common.MustInitSessioner(), context.Contexter(), common.AuditOrigin(audit_model.OriginUI))
 
 	// Get user from session if logged in.
 	webAuth := newWebAuthMiddleware()
@@ -326,7 +322,13 @@ func Routes() *web.Router {
 //     The CORS mechanism already protects cross-origin requests, and the CrossOriginProtection has no "allowed origin" list, so disable CrossOriginProtection.
 //   - For non-browser client requests: git clone via http, no Sec-Fetch-Site header.
 //     Such requests are not cross-origin requests, so disable CrossOriginProtection.
-var optSignInFromAnyOrigin = verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: true})
+var optSignInFromAnyOrigin = verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: true})
+
+func addProjectWorkflowRoutes(m *web.Router) {
+	m.Post("/workflows", project.CreateWorkflow)
+	m.Post("/workflows/{workflow_id}", project.UpdateWorkflow)
+	m.Post("/workflows/{workflow_id}/delete", project.DeleteWorkflow)
+}
 
 // addProjectBoardRoutes registers a board's column and card routes, shared by the
 // repository and owner mount points.
@@ -345,13 +347,14 @@ func addProjectBoardRoutes(m *web.Router) {
 // registerWebRoutes register routes
 func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// middleware: required to be signed in or signed out
-	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
-	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
+	reqSignIn := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: true})
+	reqSignOut := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignOutRequired: true})
 	// middleware: optional sign in (if signed in, use the user as doer, if not, no doer)
-	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
-	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
+	optSignInHome := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: false}) // site home doesn't need "require sign-in" protection
+	optSignIn := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
+	optExploreSignIn := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
 	// middleware: only apply CrossOriginProtection
-	crossOriginProtect := verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: false})
+	crossOriginProtect := verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: false})
 
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
@@ -523,7 +526,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 
-	m.Get("/", Home)
+	m.Get("/", optSignInHome, Home)
 	m.Get("/sitemap.xml", sitemapEnabled, optExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
@@ -663,6 +666,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("/webauthn", func() {
 				m.Post("/request_register", web.Bind[*forms.WebauthnRegistrationForm](), security.WebAuthnRegister)
 				m.Post("/register", security.WebauthnRegisterPost)
+				m.Post("/rename", security.WebauthnRename)
 				m.Post("/delete", security.WebauthnDelete)
 			})
 			m.Group("/openid", func() {
@@ -686,7 +690,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 			// access token applications
 			m.Combo("").Get(user_setting.Applications).
-				Post(web.Bind[*forms.NewAccessTokenForm](), user_setting.ApplicationsPost)
+				Post(user_setting.ApplicationsPost)
 			m.Post("/delete", user_setting.DeleteApplication)
 			m.Post("/regenerate", user_setting.RegenerateAccessToken)
 		})
@@ -741,6 +745,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addWebhookEditRoutes()
 		}, webhooksEnabled)
 
+		m.Get("/audit_logs", user_setting.ViewAuditLogs)
+
 		m.Group("/blocked_users", func() {
 			m.Get("", user_setting.BlockedUsers)
 			m.Post("", web.Bind[*forms.BlockUserForm](), user_setting.BlockedUsersPost)
@@ -768,7 +774,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Get("/avatar/{hash}", user.AvatarByEmailHash)
 
-	adminReq := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
+	adminReq := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
 	m.Group("/-/admin", func() {
@@ -788,6 +794,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 
 		m.Group("/monitor", func() {
+			m.Get("/audit_logs", admin.ViewAuditLogs)
+			m.Get("/audit_logs/export", admin.ExportAuditLogs)
 			m.Get("/stats", admin.MonitorStats)
 			m.Get("/cron", admin.CronTasks)
 			m.Get("/perftrace", admin.PerfTrace)
@@ -811,6 +819,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind[*forms.AvatarForm](), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
+			m.Post("/{userid}/access_tokens", admin.NewBotTokenPost)
+			m.Post("/{userid}/access_tokens/delete", admin.DeleteBotToken)
+			m.Post("/{userid}/orgs/{org_id}/remove", admin.RemoveUserFromOrg)
+			m.Post("/{userid}/orgs/remove-all", admin.RemoveUserFromAllOrgs)
 		})
 
 		m.Group("/badges", func() {
@@ -889,6 +901,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/runners/bulk", shared_actions.RunnerBulkActionPost)
 			addSettingsVariablesRoutes()
 			addSettingsScopedWorkflowsRoutes()
+			m.Get("/job_queue", shared_actions.JobQueue)
 		})
 	}, adminReq, ctxDataSet(reqctx.ContextData{"EnableOAuth2": setting.OAuth2.Enabled, "EnablePackages": setting.Packages.Enabled}))
 	// ***** END: Admin *****
@@ -923,7 +936,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
-			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
+			if ctx.Package.AccessMode < accessMode {
 				ctx.NotFound(nil)
 			}
 		}
@@ -987,11 +1000,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/teams/{team}/action/repo/{action}", org.TeamsRepoAction)
 		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamMember: true}))
 
-		// require member/team-admin permission (old logic is: requireMember=true, requireTeamAdmin=true)
-		// but it doesn't seem right: requireTeamAdmin does nothing
 		m.Group("/{org}", func() {
 			m.Get("/teams/-/search", org.SearchTeam)
-		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamAdmin: true}))
+		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true}))
 
 		// require owner permission
 		m.Group("/{org}", func() {
@@ -1049,6 +1060,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addSettingsScopedWorkflowsRoutes()
 				}, actions.MustEnableActions)
 
+				m.Get("/audit_logs", org_setting.ViewAuditLogs)
+
 				m.Post("/rename", web.Bind[*forms.RenameOrgForm](), org.SettingsRenamePost)
 				m.Post("/delete", org.SettingsDeleteOrgPost)
 				m.Post("/visibility", org.SettingsChangeVisibilityPost)
@@ -1085,7 +1098,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/create", repo.Create)
 		m.Post("/create", web.Bind[*forms.CreateRepoForm](), repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
-		m.Post("/migrate", web.Bind[*forms.MigrateRepoForm](), repo.MigratePost)
+		m.Post("/migrate", repo.MigratePost)
 		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
 	// end "/repo": create, migrate, search
@@ -1125,6 +1138,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("", func() {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
+				m.Get("/{id}/workflows", org.ProjectWorkflows)
+				m.Get("/{id}/workflows/{workflow_id}", org.ProjectWorkflows)
 			}, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
@@ -1137,6 +1152,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
 					addProjectBoardRoutes(m)
+					addProjectWorkflowRoutes(m)
 				})
 			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
@@ -1225,6 +1241,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/keys", func() {
 			m.Combo("").Get(repo_setting.DeployKeys).
 				Post(repo_setting.DeployKeysPost)
+			m.Post("/generate-token", repo_setting.DeployKeyGenerateToken)
+			m.Post("/regenerate-token", repo_setting.DeployKeyRegenerateToken)
 			m.Post("/delete", repo_setting.DeleteDeployKey)
 		})
 
@@ -1258,6 +1276,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
 			})
 		}, actions.MustEnableActions)
+		m.Get("/audit_logs", repo_setting.ViewAuditLogs)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 		m.Group("/migrate", func() {
 			m.Post("/retry", repo.MigrateRetryPost)
@@ -1494,6 +1513,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, ctxDataSet(reqctx.ContextData{"EnableFeed": setting.Other.EnableFeed}))
 		m.Get("/releases/attachments/{uuid}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)
 		m.Get("/releases/download/{vTag}/{fileName}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.RedirectDownload)
+		m.Post("/releases/{id}/reactions/{action}", reqSignIn, context.RepoMustNotBeArchived(), repo.ChangeReleaseReaction)
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", web.Bind[*forms.NewReleaseForm](), repo.NewReleasePost)
@@ -1514,7 +1534,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Post("/topics", repo.TopicsPost)
-	}, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
+	}, optSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
 
 	m.Group("/{username}/{reponame}", func() {
 		if setting.Packages.Enabled {
@@ -1525,6 +1545,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/{reponame}/projects", func() {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
+		m.Get("/{id}/workflows", repo.ProjectWorkflows)
+		m.Get("/{id}/workflows/{workflow_id}", repo.ProjectWorkflows)
 		m.Group("", func() {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind[*forms.CreateProjectForm](), repo.NewProjectPost)
@@ -1536,6 +1558,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
 				addProjectBoardRoutes(m)
+				addProjectWorkflowRoutes(m)
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 	}, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)
@@ -1543,6 +1566,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}/actions", func() {
 		m.Get("", actions.List)
+		m.Get("/job_queue", actions.JobQueue)
 		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
 		m.Post("/run", reqRepoActionsWriter, actions.Run)
@@ -1574,6 +1598,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 			m.Post("/rerun-failed", reqRepoActionsWriter, actions.RerunFailed)
 		})
+		// signed-in only: previews render user-generated HTML under the instance domain, keep it from anonymous visitors and crawlers
+		m.Group("/artifacts/{artifact_id}/preview", func() {
+			m.Get("", actions.ArtifactsPreviewView)
+			m.Get("/*", actions.ArtifactsPreviewView)
+		}, reqSignIn)
 		m.Group("/workflows/{workflow_name}", func() {
 			m.Get("/badge.svg", webAuth.AllowBasic, webAuth.AllowOAuth2, actions.GetWorkflowBadge)
 		})
@@ -1646,7 +1675,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
 					m.Post("/comments", web.Bind[*forms.CodeCommentForm](), repo.SetShowOutdatedComments, repo.CreateCodeComment)
 					m.Post("/submit", web.Bind[*forms.SubmitReviewForm](), repo.SubmitReview)
-				}, context.RepoMustNotBeArchived())
+				}, reqSignIn, context.RepoMustNotBeArchived())
 			})
 		})
 	}, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader)
@@ -1746,12 +1775,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	// git lfs uses its own jwt key, and it handles the token & auth by itself, it conflicts with the general "OAuth2" auth method
 	// pattern: "/{username}/{reponame}/{lfs-paths}": git-lfs support, see also addOwnerRepoGitHTTPRouters
-	common.AddOwnerRepoGitLFSRoutes(m, lfsServerEnabled, webAuth.AllowBasic, repo.CorsHandler(), optSignInFromAnyOrigin)
+	common.AddOwnerRepoGitLFSRoutes(m, lfsServerEnabled, webAuth.AllowBasic, webAuth.AllowDeployToken, repo.CorsHandler(), optSignInFromAnyOrigin)
 
 	// Some users want to use "web-based git client" to access Gitea's repositories,
 	// so the CORS handler and OPTIONS method are used.
 	// pattern: "/{username}/{reponame}/{git-paths}": git http support
-	addOwnerRepoGitHTTPRouters(m, repo.HTTPGitEnabledHandler, webAuth.AllowBasic, webAuth.AllowOAuth2, repo.CorsHandler(), optSignInFromAnyOrigin, context.UserAssignmentWeb())
+	addOwnerRepoGitHTTPRouters(m, repo.HTTPGitEnabledHandler, webAuth.AllowBasic, webAuth.AllowOAuth2, webAuth.AllowDeployToken, repo.CorsHandler(), optSignInFromAnyOrigin, context.UserAssignmentWeb())
 
 	m.Group("/notifications", func() {
 		m.Get("", user.Notifications)
@@ -1759,6 +1788,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/watching", user.NotificationWatching)
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
+		m.Post("/purge-page", user.NotificationPurgePagePost)
 		m.Get("/new", user.NewAvailable)
 	}, reqSignIn)
 
@@ -1773,8 +1803,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Any("/fetch-action-test", devtest.FetchActionTest)
 			m.Any("/mail-preview", devtest.MailPreview)
 			m.Any("/mail-preview/*", devtest.MailPreviewRender)
+			m.Any("/mail-preview-embed/*", devtest.MailPreviewEmbed)
 			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/runs/{run}", devtest.MockActionsView)
+			m.Get("/repo-action-view/artifacts/{artifact_name}/preview", devtest.MockActionsArtifactPreview)
+			m.Get("/repo-action-view/artifacts/{artifact_name}/preview/*", devtest.MockActionsArtifactPreview)
+			m.Get("/repo-action-view/artifacts/{artifact_name}/raw/*", devtest.MockActionsArtifactPreviewRaw)
 			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}", devtest.MockActionsView)
 			m.Get("/repo-action-view/runs/{run}/jobs/{job}", devtest.MockActionsView)
 			m.Post("/repo-action-view/runs/{run}", web.Bind[*actions.ViewRequest](), devtest.MockActionsRunsJobs)

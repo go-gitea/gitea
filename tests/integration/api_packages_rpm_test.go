@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -25,7 +26,6 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
-	"github.com/sassoftware/go-rpmutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -868,9 +868,9 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 				req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture, rpmFileName))
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				_, sigs, err := rpmutils.Verify(resp.Body, pub)
+				header, signature := rpmHeaderAndSignature(resp.Body.Bytes())
+				_, err = openpgp.CheckDetachedSignature(pub, bytes.NewReader(header), bytes.NewReader(signature), nil)
 				require.NoError(t, err)
-				require.NotEmpty(t, sigs)
 
 				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture)).
 					AddBasicAuth(user.Name)
@@ -878,4 +878,18 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 			})
 		})
 	}
+}
+
+func rpmHeaderAndSignature(content []byte) (header, signature []byte) {
+	const leadSize, introSize, indexEntrySize, sigTagRSA = 96, 16, 16, 268
+	sigHeader := content[leadSize:]
+	sigIndex := sigHeader[introSize : introSize+binary.BigEndian.Uint32(sigHeader[8:])*indexEntrySize]
+	sigStore := sigHeader[introSize+len(sigIndex):]
+	for entry := range slices.Chunk(sigIndex, indexEntrySize) {
+		if binary.BigEndian.Uint32(entry) == sigTagRSA {
+			signature = sigStore[binary.BigEndian.Uint32(entry[8:]):][:binary.BigEndian.Uint32(entry[12:])]
+		}
+	}
+	header = sigStore[(binary.BigEndian.Uint32(sigHeader[12:])+7)/8*8:]
+	return header[:introSize+binary.BigEndian.Uint32(header[8:])*indexEntrySize+binary.BigEndian.Uint32(header[12:])], signature
 }

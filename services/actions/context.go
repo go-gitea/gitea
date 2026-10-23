@@ -4,10 +4,15 @@
 package actions
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 
+	"gitea.dev/actionslib/pkg/expreval"
+	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -20,7 +25,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
 )
 
 type GiteaContext map[string]any
@@ -54,10 +58,19 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	}
 
 	refName := git.RefName(ref)
+	refType := refName.RefType()
+	if refName.IsPull() {
+		refType = git.RefTypeBranch // GitHub reports pull request refs as branches
+	}
 	refProtected, err := git_model.IsRefProtected(ctx, run.RepoID, refName)
 	if err != nil {
 		log.Error("GenerateGiteaContext: check protection for ref %q: %v", refName, err)
 		refProtected = false
+	}
+
+	retentionDays := "" // not "0", v3 artifact uploads would read it as a 0-day limit
+	if setting.Actions.ArtifactRetentionDays > 0 {
+		retentionDays = strconv.FormatInt(setting.Actions.ArtifactRetentionDays, 10)
 	}
 
 	gitContext := GiteaContext{
@@ -80,12 +93,12 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"ref":               ref,                                      // string, The fully-formed ref of the branch or tag that triggered the workflow run. For workflows triggered by push, this is the branch or tag ref that was pushed. For workflows triggered by pull_request, this is the pull request merge branch. For workflows triggered by release, this is the release tag created. For other triggers, this is the branch or tag ref that triggered the workflow run. This is only set if a branch or tag is available for the event type. The ref given is fully-formed, meaning that for branches the format is refs/heads/<branch_name>, for pull requests it is refs/pull/<pr_number>/merge, and for tags it is refs/tags/<tag_name>. For example, refs/heads/feature-branch-1.
 		"ref_name":          refName.ShortName(),                      // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
 		"ref_protected":     refProtected,                             // boolean, true if protection rules are configured for the ref that triggered the workflow run.
-		"ref_type":          string(refName.RefType()),                // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
+		"ref_type":          string(refType),                          // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
 		"path":              "",                                       // string, Path on the runner to the file that sets system PATH variables from workflow commands. This file is unique to the current step and is a different file for each step in a job. For more information, see "Workflow commands for GitHub Actions."
 		"repository":        run.Repo.OwnerName + "/" + run.Repo.Name, // string, The owner and repository name. For example, Codertocat/Hello-World.
 		"repository_owner":  run.Repo.OwnerName,                       // string, The repository owner's name. For example, Codertocat.
 		"repositoryUrl":     run.Repo.HTMLURL(),                       // string, The Git URL to the repository. For example, git://github.com/codertocat/hello-world.git.
-		"retention_days":    "",                                       // string, The number of days that workflow run logs and artifacts are kept.
+		"retention_days":    retentionDays,                            // string, The number of days that artifacts are kept, empty when kept forever.
 		"run_id":            strconv.FormatInt(run.ID, 10),            // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
 		"run_number":        strconv.FormatInt(run.Index, 10),         // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
 		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
@@ -96,6 +109,11 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"workflow":          run.WorkflowID,                           // string, The name of the workflow. If the workflow file doesn't specify a name, the value of this property is the full path of the workflow file in the repository.
 		"workspace":         "",                                       // string, The default working directory on the runner for steps, and the default location of your repository when using the checkout action.
 
+		"actor_id":            strconv.FormatInt(run.TriggerUserID, 10),
+		"repository_id":       strconv.FormatInt(run.RepoID, 10),
+		"repository_owner_id": strconv.FormatInt(run.Repo.OwnerID, 10),
+		"workflow_sha":        run.WorkflowCommitSHA,
+
 		// additional contexts
 		"gitea_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
 	}
@@ -103,31 +121,6 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	if job != nil {
 		gitContext["job"] = job.JobID
 		gitContext["run_attempt"] = strconv.FormatInt(job.Attempt, 10)
-
-		if job.ParentJobID > 0 {
-			// Inject the caller's resolved workflow_call inputs into gitea.event.inputs.
-			// The rest of gitea.event stays as the caller's actual trigger event (push/pull_request/etc.)
-			// to match GitHub's semantics (see https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations#github-context).
-			// FIXME: If the run is triggered by "workflow_dispatch", the original inputs of "workflow_dispatch" will be overridden.
-			// If necessary, the caller can send these values to the called workflow via `with:`.
-			caller, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
-			if err != nil {
-				log.Error("GenerateGiteaContext: load caller job %d of job %d: %v", job.ParentJobID, job.ID, err)
-			} else if caller.CallPayload != "" {
-				var cp api.WorkflowCallPayload
-				if err := json.Unmarshal([]byte(caller.CallPayload), &cp); err != nil {
-					log.Error("GenerateGiteaContext: decode CallPayload of caller %d: %v", caller.ID, err)
-				} else if cp.Inputs != nil {
-					event["inputs"] = cp.Inputs
-				}
-			}
-
-			// Override gitea.event_name to "workflow_call", so that the runner-side `getEvaluatorInputs` can get inputs from event["inputs"].
-			// https://gitea.com/gitea/runner/src/commit/0b9f251b6abb30d5f292a49cfe0c611f7c26d857/act/runner/expression.go#L509
-			// FIXME: The trade-off is that `${{ gitea.event_name }}` inside a reusable workflow's child job reads "workflow_call"
-			// instead of the caller's real trigger event name (push/pull_request/etc.) This is a small deviation from GitHub spec.
-			gitContext["event_name"] = "workflow_call"
-		}
 	}
 
 	if attempt == nil {
@@ -164,9 +157,9 @@ type TaskNeed struct {
 
 // FindTaskNeeds finds the `needs` for the task by the task's job.
 // Lookup is scoped to the same ParentJobID.
-func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*TaskNeed, error) {
+func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*TaskNeed, map[string][]*actions_model.ActionRunJob, error) {
 	if len(job.Needs) == 0 {
-		return nil, nil //nolint:nilnil // return nil when the job has no needs
+		return nil, nil, nil
 	}
 	needs := container.SetOf(job.Needs...)
 
@@ -178,7 +171,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 
 	jobs, err := db.Find[actions_model.ActionRunJob](ctx, findOpts)
 	if err != nil {
-		return nil, fmt.Errorf("FindRunJobs: %w", err)
+		return nil, nil, fmt.Errorf("FindRunJobs: %w", err)
 	}
 
 	jobIDJobs := make(map[string][]*actions_model.ActionRunJob)
@@ -199,9 +192,10 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 		if !needs.Contains(jobID) {
 			continue
 		}
+		sortJobsByCompletion(jobsWithSameID)
 		var jobOutputs map[string]string
 		for _, candidate := range jobsWithSameID {
-			if !candidate.Status.IsDone() {
+			if !candidate.Status.IsDone() || candidate.IsReusableCaller && candidate.Status != actions_model.StatusSuccess {
 				continue
 			}
 			var outputs map[string]string
@@ -212,7 +206,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 				outputs, err = loadJobTaskOutputs(ctx, candidate)
 			}
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if len(jobOutputs) == 0 {
 				jobOutputs = outputs
@@ -225,7 +219,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 			Result:  actions_model.AggregateJobStatus(jobsWithSameID),
 		}
 	}
-	return ret, nil
+	return ret, jobIDJobs, nil
 }
 
 // computeReusableCallerOutputs returns the workflow_call outputs of a reusable caller by recursing into its child subtree.
@@ -240,7 +234,7 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 	if err := caller.LoadRun(ctx); err != nil {
 		return nil, err
 	}
-	wcSpec, err := jobparser.ParseWorkflowCallSpec(caller.ReusableWorkflowContent)
+	wcSpec, err := jobparser.ParseWorkflowCallConfig(caller.ReusableWorkflowContent)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +243,8 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 	}
 
 	// Per-job outputs over the children of this caller.
-	jobOutputs := make(jobparser.JobOutputs, len(directChildren))
+	sortJobsByCompletion(directChildren)
+	jobOutputs := make(map[string]*model.WorkflowCallResult, len(directChildren))
 	for _, child := range directChildren {
 		var outs map[string]string
 		switch {
@@ -262,10 +257,9 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 			return nil, err
 		}
 		if existing, ok := jobOutputs[child.JobID]; ok {
-			jobOutputs[child.JobID] = mergeTwoOutputs(outs, existing)
-		} else {
-			jobOutputs[child.JobID] = outs
+			outs = mergeTwoOutputs(outs, existing.Outputs)
 		}
+		jobOutputs[child.JobID] = &model.WorkflowCallResult{Outputs: outs}
 	}
 
 	// build contexts for evaluating outputs
@@ -277,18 +271,29 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 	if err != nil {
 		return nil, err
 	}
-	inputs := map[string]any{}
-	if caller.CallPayload != "" {
-		var p api.WorkflowCallPayload
-		if err := json.Unmarshal([]byte(caller.CallPayload), &p); err != nil {
-			return nil, fmt.Errorf("decode caller payload: %w", err)
-		}
-		if p.Inputs != nil {
-			inputs = p.Inputs
-		}
+	workflowCallInputs, err := decodeWorkflowCallInputs(caller)
+	if err != nil {
+		return nil, err
 	}
 
-	return jobparser.EvaluateWorkflowCallOutputs(wcSpec, gitCtx.ToGitHubContext(), vars, inputs, jobOutputs)
+	inputs, err := calledWorkflowInputs(ctx, caller.Run, caller, workflowCallInputs)
+	if err != nil {
+		return nil, err
+	}
+
+	// See `on.workflow_call.outputs.<output_id>.value` in https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability
+	return expreval.New(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{
+		Github: gitCtx.ToGitHubContext(),
+		Jobs:   &jobOutputs,
+		Vars:   vars,
+		Inputs: inputs,
+	}, exprparser.Config{}).Evaluate).EvaluateWorkflowCallOutputs(wcSpec)
+}
+
+func sortJobsByCompletion(jobs []*actions_model.ActionRunJob) {
+	slices.SortFunc(jobs, func(left, right *actions_model.ActionRunJob) int {
+		return cmp.Or(cmp.Compare(left.Stopped, right.Stopped), cmp.Compare(left.ID, right.ID))
+	})
 }
 
 // loadJobTaskOutputs returns the task-output map of `job`.
@@ -312,56 +317,18 @@ func loadJobTaskOutputs(ctx context.Context, job *actions_model.ActionRunJob) (m
 // Values with the same output name may be overridden. The user should ensure the output names are unique.
 // See https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#using-job-outputs-in-a-matrix-job
 func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
-	ret := make(map[string]string, len(o1))
+	ret := make(map[string]string, len(o1)+len(o2))
+	maps.Copy(ret, o2)
 	for k1, v1 := range o1 {
-		if len(v1) > 0 {
+		if len(v1) > 0 || ret[k1] == "" {
 			ret[k1] = v1
-		} else {
-			ret[k1] = o2[k1]
 		}
 	}
 	return ret
 }
 
-func contextMapValueOrDefault[T any](m map[string]any, key string, defaultValue T) T {
-	if value, ok := m[key]; ok {
-		if v, ok := value.(T); ok {
-			return v
-		}
-	}
-	return defaultValue
-}
-
 func (g *GiteaContext) ToGitHubContext() *model.GithubContext {
-	return &model.GithubContext{
-		Event:            contextMapValueOrDefault(*g, "event", map[string]any(nil)),
-		EventPath:        contextMapValueOrDefault(*g, "event_path", ""),
-		Workflow:         contextMapValueOrDefault(*g, "workflow", ""),
-		RunID:            contextMapValueOrDefault(*g, "run_id", ""),
-		RunNumber:        contextMapValueOrDefault(*g, "run_number", ""),
-		Actor:            contextMapValueOrDefault(*g, "actor", ""),
-		Repository:       contextMapValueOrDefault(*g, "repository", ""),
-		EventName:        contextMapValueOrDefault(*g, "event_name", ""),
-		Sha:              contextMapValueOrDefault(*g, "sha", ""),
-		Ref:              contextMapValueOrDefault(*g, "ref", ""),
-		RefName:          contextMapValueOrDefault(*g, "ref_name", ""),
-		RefType:          contextMapValueOrDefault(*g, "ref_type", ""),
-		HeadRef:          contextMapValueOrDefault(*g, "head_ref", ""),
-		BaseRef:          contextMapValueOrDefault(*g, "base_ref", ""),
-		Token:            "", // deliberately omitted for security
-		Workspace:        contextMapValueOrDefault(*g, "workspace", ""),
-		Action:           contextMapValueOrDefault(*g, "action", ""),
-		ActionPath:       contextMapValueOrDefault(*g, "action_path", ""),
-		ActionRef:        contextMapValueOrDefault(*g, "action_ref", ""),
-		ActionRepository: contextMapValueOrDefault(*g, "action_repository", ""),
-		Job:              contextMapValueOrDefault(*g, "job", ""),
-		JobName:          "", // not present in GiteaContext
-		RepositoryOwner:  contextMapValueOrDefault(*g, "repository_owner", ""),
-		RetentionDays:    contextMapValueOrDefault(*g, "retention_days", ""),
-		RunnerPerflog:    "", // not present in GiteaContext
-		RunnerTrackingID: "", // not present in GiteaContext
-		ServerURL:        contextMapValueOrDefault(*g, "server_url", ""),
-		APIURL:           contextMapValueOrDefault(*g, "api_url", ""),
-		GraphQLURL:       contextMapValueOrDefault(*g, "graphql_url", ""),
-	}
+	githubCtx := model.GithubContextFromMap(*g)
+	githubCtx.Token = "" // deliberately omitted for security
+	return githubCtx
 }

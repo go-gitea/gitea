@@ -13,8 +13,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
 	asymkey_service "gitea.dev/services/asymkey"
 )
 
@@ -67,14 +67,9 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git commit: %w", err)
 	}
 
-	if err := git.PushFromLocal(ctx, tmpPath, repo, git.PushOptions{
-		LocalRefName: "HEAD",
-		Branch:       repo.DefaultBranch,
-		Env:          repo_module.InternalPushingEnvironment(u, repo),
-	}); err != nil {
-		log.Error("Failed to push back to HEAD Error: %v", err)
-		return fmt.Errorf("git push: %w", err)
+	if err := git.FetchRemoteCommitUpdateRef(ctx, repo, gitrepo.RepositoryUnmanaged(tmpPath), "HEAD", git.BranchPrefix+repo.DefaultBranch); err != nil {
+		log.Error("Failed to fetch initial commit: %v", err)
+		return fmt.Errorf("git fetch: %w", err)
 	}
-
 	return nil
 }

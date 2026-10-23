@@ -45,15 +45,20 @@ func UpdateBlockingNote(ctx context.Context, id int64, note string) error {
 }
 
 func IsUserBlockedBy(ctx context.Context, blockee *User, blockerIDs ...int64) bool {
-	if len(blockerIDs) == 0 {
-		return false
-	}
-
 	if blockee.IsAdmin {
 		return false
 	}
 
-	cond := builder.Eq{"user_blocking.blockee_id": blockee.ID}.
+	return HasBlocking(ctx, blockee.ID, blockerIDs...)
+}
+
+// HasBlocking reports whether a blocking relationship exists regardless of the blockee's admin status.
+func HasBlocking(ctx context.Context, blockeeID int64, blockerIDs ...int64) bool {
+	if len(blockerIDs) == 0 {
+		return false
+	}
+
+	cond := builder.Eq{"user_blocking.blockee_id": blockeeID}.
 		And(builder.In("user_blocking.blocker_id", blockerIDs))
 
 	has, _ := db.GetEngine(ctx).Where(cond).Exist(&Blocking{})

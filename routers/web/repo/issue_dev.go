@@ -53,7 +53,7 @@ func CreateBranchFromIssue(ctx *context.Context) {
 		return
 	}
 
-	canCreateBranch := perm.CanWrite(unit_model.TypeCode) && repo.CanCreateBranch()
+	canCreateBranch := perm.CanWrite(unit_model.TypeCode) && repo.CanContentChange()
 	if !canCreateBranch {
 		ctx.HTTPError(http.StatusForbidden, "No permission to create branch in this repository")
 		return

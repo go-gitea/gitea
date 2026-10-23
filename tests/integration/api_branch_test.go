@@ -18,6 +18,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
@@ -64,7 +65,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPrio
 	}
 }
 
-func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.BranchProtection, expectedHTTPStatus int) {
+func testAPIEditBranchProtection(t *testing.T, branchName string, body any, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/branch_protections/"+branchName, body).
 		AddTokenAuth(token)
@@ -405,6 +406,15 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 
 	// Test branch deletion
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
+	testAPICreateBranchProtection(t, "branch2", 3, http.StatusCreated)
+	testAPIDeleteBranch(t, "branch2", http.StatusForbidden)
+	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
+		EnablePush: new(true), EnableDeletion: new(true), EnableDeletionAllowlist: new(true),
+		DeletionAllowlistUsernames: []string{"user2"},
+	}, http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
+	assert.True(t, bp.EnableDeletion)
+	assert.Equal(t, []string{"user2"}, bp.DeletionAllowlistUsernames)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
 	testAPIDeleteBranch(t, "branch2", http.StatusNotFound)        // deleted branch, there is a record in DB with IsDelete=true
 	testAPIDeleteBranch(t, "no-such-branch", http.StatusNotFound) // non-existing branch, not exist in git or DB
@@ -471,4 +481,79 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, branches, 1)
+}
+
+func TestAPIBranchProtectionDeployKeyAllowlists(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+	path := "/api/v1/repos/user2/repo1/branch_protections"
+	createProtection := func(t *testing.T, ruleName string, deployKeys bool) *api.BranchProtection {
+		t.Helper()
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, &api.CreateBranchProtectionOption{
+			RuleName: ruleName, EnablePush: true, EnablePushWhitelist: true, PushWhitelistDeployKeys: deployKeys,
+			EnableForcePush: true, EnableForcePushAllowlist: true, ForcePushAllowlistDeployKeys: deployKeys,
+		}).AddTokenAuth(token), http.StatusCreated)
+		return DecodeJSON(t, resp, &api.BranchProtection{})
+	}
+
+	t.Run("CreateWithLegacyFlags", func(t *testing.T) {
+		bp := createProtection(t, "legacy-flags", true)
+		assert.True(t, bp.PushWhitelistDeployKeys)
+		assert.True(t, bp.ForcePushAllowlistDeployKeys)
+	})
+
+	t.Run("PreserveDeployKeysWhenUpdatingUsernames", func(t *testing.T) {
+		createProtection(t, "update-usernames", true)
+		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/update-usernames", map[string]any{
+			"push_whitelist_usernames": []string{"user2"}, "force_push_allowlist_usernames": []string{},
+		}).AddTokenAuth(token), http.StatusOK)
+		bp := DecodeJSON(t, resp, &api.BranchProtection{})
+		assert.True(t, bp.PushWhitelistDeployKeys)
+		assert.True(t, bp.ForcePushAllowlistDeployKeys)
+		assert.Equal(t, []string{"user2", "gitea:deploy-key"}, bp.PushWhitelistUsernames)
+	})
+
+	t.Run("LegacyFlagsDisableDeployKeys", func(t *testing.T) {
+		createProtection(t, "disable-deploy-keys", true)
+		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/disable-deploy-keys", map[string]any{
+			"enable_push": true, "enable_push_whitelist": true, "push_whitelist_deploy_keys": false,
+			"enable_force_push": true, "enable_force_push_allowlist": true, "force_push_allowlist_deploy_keys": false,
+			"push_whitelist_usernames": []string{"user2", "gitea:deploy-key"}, "force_push_allowlist_usernames": []string{"gitea:deploy-key"},
+		}).AddTokenAuth(token), http.StatusOK)
+		bp := DecodeJSON(t, resp, &api.BranchProtection{})
+		assert.False(t, bp.PushWhitelistDeployKeys)
+		assert.False(t, bp.ForcePushAllowlistDeployKeys)
+		assert.Equal(t, []string{"user2"}, bp.PushWhitelistUsernames)
+		rule, err := git_model.GetProtectedBranchRuleByName(t.Context(), 1, "disable-deploy-keys")
+		require.NoError(t, err)
+		require.NotNil(t, rule)
+		assert.Equal(t, []int64{2}, rule.WhitelistUserIDs)
+		assert.Empty(t, rule.ForcePushAllowlistUserIDs)
+	})
+
+	t.Run("AddDeployKeysByUsername", func(t *testing.T) {
+		createProtection(t, "add-deploy-keys", false)
+		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/add-deploy-keys", map[string]any{
+			"push_whitelist_usernames": []string{"user2", "gitea:deploy-key"}, "force_push_allowlist_usernames": []string{"gitea:deploy-key"},
+		}).AddTokenAuth(token), http.StatusOK)
+		bp := DecodeJSON(t, resp, &api.BranchProtection{})
+		assert.True(t, bp.PushWhitelistDeployKeys)
+		assert.True(t, bp.ForcePushAllowlistDeployKeys)
+		assert.Equal(t, []string{"user2", "gitea:deploy-key"}, bp.PushWhitelistUsernames)
+		assert.Equal(t, []string{"gitea:deploy-key"}, bp.ForcePushAllowlistUsernames)
+	})
+
+	t.Run("CreateWithDeployKeyUsernames", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, &api.CreateBranchProtectionOption{
+			RuleName: "deploy-key-usernames", EnablePush: true, EnablePushWhitelist: true,
+			PushWhitelistUsernames: []string{"gitea:deploy-key"}, EnableForcePush: true, EnableForcePushAllowlist: true,
+			ForcePushAllowlistUsernames: []string{"gitea:deploy-key"},
+		}).AddTokenAuth(token), http.StatusCreated)
+		bp := DecodeJSON(t, resp, &api.BranchProtection{})
+		assert.True(t, bp.PushWhitelistDeployKeys)
+		assert.True(t, bp.ForcePushAllowlistDeployKeys)
+		assert.Equal(t, []string{"gitea:deploy-key"}, bp.PushWhitelistUsernames)
+		assert.Equal(t, []string{"gitea:deploy-key"}, bp.ForcePushAllowlistUsernames)
+	})
 }

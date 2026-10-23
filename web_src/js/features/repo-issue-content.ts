@@ -4,8 +4,10 @@ import {GET, POST} from '../modules/fetch.ts';
 import {createElementFromHTML, showElem} from '../utils/dom.ts';
 import {parseIssuePageInfo} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
+import {hideModal, showModal} from '../modules/modal.ts';
+import {confirmModal} from './comp/ConfirmModal.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import type {JQueryElem} from '../types.ts';
 
 let i18nTextEdited: string;
 let i18nTextOptions: string;
@@ -13,32 +15,31 @@ let i18nTextDeleteFromHistory: string;
 let i18nTextDeleteFromHistoryConfirm: string;
 
 function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
-  const elDetailDialog = createElementFromHTML(html`
-    <div class="ui modal content-history-detail-dialog">
-      ${svgRaw('octicon-x', 16, 'close icon inside')}
+  const elDetailDialog = createElementFromHTML<HTMLDialogElement>(html`
+    <dialog class="modal-dialog content-history-detail-dialog">
       <div class="header flex-left-right">
         <div>${htmlRaw(itemTitleHtml)}</div>
-        <div class="ui dropdown dialog-header-options tw-mr-8 tw-hidden">
+        <div class="ui dropdown dialog-header-options tw-mx-4 tw-hidden">
           ${i18nTextOptions}
           ${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
           <div class="menu">
             <div class="item tw-text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
           </div>
         </div>
+        <button type="button" class="close-modal"></button>
       </div>
       <div class="comment-diff-data is-loading"></div>
-    </div>
+    </dialog>
   `);
-  document.body.append(elDetailDialog);
   const elOptionsDropdown = elDetailDialog.querySelector('.ui.dropdown.dialog-header-options')!;
   const $fomanticDropdownOptions = fomanticQuery(elOptionsDropdown);
   $fomanticDropdownOptions.dropdown({
     showOnFocus: false,
     allowReselection: true,
-    async onChange(_value: string, _text: string, $item: any) {
+    async onChange(_value: string, _text: string, $item: JQueryElem) {
       const optionItem = $item.data('option-item');
       if (optionItem === 'delete') {
-        if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
+        if (await confirmModal({content: i18nTextDeleteFromHistoryConfirm, confirmButtonColor: 'red'})) {
           try {
             const params = new URLSearchParams();
             params.append('comment_id', commentId);
@@ -48,7 +49,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
             const resp = await response.json();
 
             if (resp.ok) {
-              hideFomanticModal(elDetailDialog);
+              hideModal(elDetailDialog);
             } else {
               showErrorToast(resp.message);
             }
@@ -65,7 +66,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
       $fomanticDropdownOptions.dropdown('clear', true);
     },
   });
-  showFomanticModal(elDetailDialog, {
+  showModal(elDetailDialog, {
     async onShow() {
       try {
         const params = new URLSearchParams();
@@ -116,7 +117,7 @@ function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, co
     onHide() {
       $fomanticDropdown.dropdown('change values', null);
     },
-    onChange(value: string, itemHtml: string, $item: any) {
+    onChange(value: string, itemHtml: string, $item: JQueryElem) {
       if (value && !$item.find('[data-history-is-deleted=1]').length) {
         showContentHistoryDetail(issueBaseUrl, commentId, value, itemHtml);
       }

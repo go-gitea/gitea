@@ -11,10 +11,12 @@ import (
 	"time"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/queue"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testLicenseContent = `
@@ -51,8 +53,7 @@ func TestAPIRepoLicense(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.NotEmpty(t, test.RedirectURL(resp))
 
-		// let gitea update repo license
-		time.Sleep(time.Second)
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 10*time.Second))
 		checkRepoLicense(t, "user2", "repo1", []string{"BSD-2-Clause"})
 
 		// Change default branch
@@ -63,8 +64,7 @@ func TestAPIRepoLicense(t *testing.T) {
 		}).AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusOK)
 
-		// let gitea update repo license
-		time.Sleep(time.Second)
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 10*time.Second))
 		checkRepoLicense(t, "user2", "repo1", []string{"MIT"})
 	})
 }

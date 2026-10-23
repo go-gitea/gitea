@@ -19,7 +19,6 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/htmlutil"
@@ -265,7 +264,7 @@ func (repo *Repository) SizeDetailsString() string {
 	var str strings.Builder
 	sizeDetails := repo.SizeDetails()
 	for _, detail := range sizeDetails {
-		fmt.Fprintf(&str, "%s: %s, ", detail.Name, base.FileSize(detail.Size))
+		fmt.Fprintf(&str, "%s: %s, ", detail.Name, util.FormatByteSize(detail.Size))
 	}
 	return strings.TrimSuffix(str.String(), ", ")
 }
@@ -474,9 +473,13 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 			"repo": repo.Name,
 		}
 
-		unitExternalTracker, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
-		if err == nil {
-			metas["format"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerFormat
+		unitInternalTracker, _ := repo.GetUnit(ctx, unit.TypeIssues)
+		unitExternalTracker, _ := repo.GetUnit(ctx, unit.TypeExternalTracker)
+		if unitInternalTracker != nil {
+			metas["internalTrackerEnabled"] = "true"
+		}
+		if unitExternalTracker != nil {
+			metas["externalTrackerLinkFormat"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerFormat
 			switch unitExternalTracker.ExternalTrackerConfig().ExternalTrackerStyle {
 			case markup.IssueNameStyleAlphanumeric:
 				metas["style"] = markup.IssueNameStyleAlphanumeric
@@ -576,30 +579,18 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
 }
 
-// CanCreateBranch returns true if repository meets the requirements for creating new branches.
-func (repo *Repository) CanCreateBranch() bool {
-	return !repo.IsMirror && !repo.IsArchived
-}
-
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.
 func (repo *Repository) CanEnablePulls() bool {
-	return !repo.IsMirror && !repo.IsEmpty
+	return repo.CanContentChange() && !repo.IsEmpty
+}
+
+func (repo *Repository) CanContentChange() bool {
+	return !repo.IsMirror && !repo.IsArchived
 }
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
 func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 	return repo.CanEnablePulls() && repo.UnitEnabled(ctx, unit.TypePullRequests)
-}
-
-// CanEnableEditor returns true if repository meets the requirements of web editor.
-// FIXME: most CanEnableEditor calls should be replaced with CanContentChange
-// And all other like CanCreateBranch / CanEnablePulls should also be updated
-func (repo *Repository) CanEnableEditor() bool {
-	return repo.CanContentChange()
-}
-
-func (repo *Repository) CanContentChange() bool {
-	return !repo.IsMirror && !repo.IsArchived
 }
 
 // DescriptionHTML does special handles to description and return HTML string.
@@ -625,6 +616,15 @@ func ComposeHTTPSCloneURL(ctx context.Context, owner, repo string) string {
 
 // ComposeSSHCloneURL returns SSH clone URL based on the given owner and repository name.
 func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) string {
+	return composeSSHCloneURL(doer, ownerName, repoName, setting.Repository.UseCompatSSHURI)
+}
+
+// ComposeSSHCloneURI is like ComposeSSHCloneURL but always returns the "ssh://" form, because "go get" rejects scp-style addresses
+func ComposeSSHCloneURI(doer *user_model.User, ownerName, repoName string) string {
+	return composeSSHCloneURL(doer, ownerName, repoName, true)
+}
+
+func composeSSHCloneURL(doer *user_model.User, ownerName, repoName string, useURI bool) string {
 	sshUser := setting.SSH.User
 	sshDomain := setting.SSH.Domain
 
@@ -651,7 +651,7 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) strin
 	if ip := net.ParseIP(sshHost); ip != nil && ip.To4() == nil {
 		sshHost = "[" + sshHost + "]" // for IPv6 address, wrap it with brackets
 	}
-	if setting.Repository.UseCompatSSHURI {
+	if useURI {
 		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 	}
 	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))

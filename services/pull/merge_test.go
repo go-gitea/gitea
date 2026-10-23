@@ -4,9 +4,12 @@
 package pull
 
 import (
-	"path/filepath"
+	"strings"
 	"testing"
 
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
@@ -97,7 +100,7 @@ func TestAddCommitMessageTailer(t *testing.T) {
 
 func TestResolveMergeMessageTemplate(t *testing.T) {
 	t.Run("NoDefault", func(t *testing.T) {
-		repo, err := git.ForceFastImportWithInit(t.Context(), filepath.Join(t.TempDir(), "test-repo"), []git.FastImportCommit{
+		repo, err := git.ForceFastImportWithInit(t.Context(), t.TempDir(), []git.FastImportCommit{
 			{Ref: "refs/heads/master", Files: []git.FastImportFile{
 				{Path: ".gitea/default_merge_message/REBASE_TEMPLATE.md", Content: "rebase template"},
 			}},
@@ -117,7 +120,7 @@ func TestResolveMergeMessageTemplate(t *testing.T) {
 		assert.Equal(t, "rebase template", tmpl)
 	})
 	t.Run("WithDefault", func(t *testing.T) {
-		repo, err := git.ForceFastImportWithInit(t.Context(), filepath.Join(t.TempDir(), "test-repo"), []git.FastImportCommit{
+		repo, err := git.ForceFastImportWithInit(t.Context(), t.TempDir(), []git.FastImportCommit{
 			{Ref: "refs/heads/master", Files: []git.FastImportFile{
 				{Path: ".gitea/default_merge_message/DEFAULT_TEMPLATE.md", Content: "default template"},
 				{Path: ".gitea/default_merge_message/REBASE_TEMPLATE.md", Content: "rebase template"},
@@ -137,4 +140,20 @@ func TestResolveMergeMessageTemplate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "rebase template", tmpl)
 	})
+}
+
+func TestMergeIntentWithMissingCommit(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	require.NoError(t, recordMergeIntent(ctx, pr, &user_model.User{ID: 2}, strings.Repeat("a", 40), false))
+
+	merged, err := hasPullRequestCommitBeenMerged(ctx, pr)
+	require.NoError(t, err)
+	assert.False(t, merged)
+
+	require.NoError(t, clearMergeIntent(ctx, pr))
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.Empty(t, pr.MergedCommitID)
+	assert.Zero(t, pr.MergedUnix)
 }

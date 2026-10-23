@@ -27,7 +27,7 @@ type CommitSignSettings struct {
 	cachedPublicKeyContent atomic.Pointer[string]
 }
 
-func (css *CommitSignSettings) PublicKeyContent() (string, error) {
+func (css *CommitSignSettings) PublicKeyContent(ctx context.Context) (string, error) {
 	cached := css.cachedPublicKeyContent.Load()
 	if cached != nil {
 		return *cached, nil
@@ -43,7 +43,7 @@ func (css *CommitSignSettings) PublicKeyContent() (string, error) {
 		return s, nil
 	}
 
-	content, stderr, err := process.GetManager().Exec("gpg -a --export", "gpg", "-a", "--export", css.KeyID)
+	content, stderr, err := process.CommandContext(ctx, "gpg", "-a", "--export", css.KeyID).OutputString()
 	if err != nil {
 		return "", fmt.Errorf("unable to get default signing key: %s, %s, %w", css.KeyID, stderr, err)
 	}

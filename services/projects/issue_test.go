@@ -111,12 +111,12 @@ func Test_Projects(t *testing.T) {
 
 		// issue 6 belongs to private repo 3 under org 3
 		issue6 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue6, user2, []int64{project1.ID})
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue6, user2, []int64{project1.ID})
 		assert.NoError(t, err)
 
 		// issue 16 belongs to public repo 16 under org 3
 		issue16 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 16})
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, []int64{project1.ID})
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, []int64{project1.ID})
 		assert.NoError(t, err)
 
 		projects, err := db.Find[project_model.Project](t.Context(), project_model.SearchOptions{
@@ -189,7 +189,8 @@ func Test_Projects(t *testing.T) {
 			}()
 		}
 
-		assert.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue11, user2, []int64{projects[0].ID, projects[1].ID}))
+		_, _, err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue11, user2, []int64{projects[0].ID, projects[1].ID})
+		assert.NoError(t, err)
 
 		// the column the issue must stay in for the second project
 		otherColumn, err := projects[1].MustDefaultColumn(t.Context())
