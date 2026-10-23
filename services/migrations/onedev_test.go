@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,9 +22,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOneDevVersionResponseSizeLimit(t *testing.T) {
+func TestOneDevResponseSizeLimit(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write(bytes.Repeat([]byte("1"), maxOneDevVersionResponseSize+1))
+		if r.URL.Path == "/~api/version/server" {
+			_, _ = w.Write(bytes.Repeat([]byte("1"), maxOneDevVersionResponseSize+1))
+			return
+		}
+		_, _ = w.Write([]byte("[" + strings.Repeat(" ", maxOneDevResponseSize) + "]"))
 	}))
 	defer server.Close()
 
@@ -31,8 +36,9 @@ func TestOneDevVersionResponseSizeLimit(t *testing.T) {
 	assert.NoError(t, err)
 	download := &OneDevDownloader{baseURL: baseURL, client: server.Client()}
 	var version *version.Version
-	err = download.callAPI(t.Context(), "/~api/version/server", nil, &version)
-	assert.Error(t, err)
+	assert.ErrorContains(t, download.callAPI(t.Context(), "/~api/version/server", nil, &version), "exceeds")
+	var projects []int
+	assert.ErrorContains(t, download.callAPI(t.Context(), "/~api/projects", nil, &projects), "exceeds")
 }
 
 func TestOneDevDownloadRepo(t *testing.T) {
@@ -169,21 +175,4 @@ func TestOneDevDownloadRepo(t *testing.T) {
 			State:        "PENDING",
 		},
 	}, rvs)
-}
-
-func TestOneDevResponseSizeLimit(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte("["))
-		chunk := bytes.Repeat([]byte("0,"), 1024*1024)
-		for range maxOneDevResponseSize/len(chunk) + 1 {
-			_, _ = w.Write(chunk)
-		}
-	}))
-	defer server.Close()
-
-	baseURL, err := url.Parse(server.URL)
-	assert.NoError(t, err)
-	download := &OneDevDownloader{baseURL: baseURL, client: server.Client()}
-	var result []int
-	assert.Error(t, download.callAPI(t.Context(), "/~api/projects", nil, &result))
 }

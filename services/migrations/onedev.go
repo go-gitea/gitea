@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/structs"
 
 	"github.com/hashicorp/go-version"
@@ -157,8 +158,7 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 		return nil
 	}
 
-	decoder := json.NewDecoder(io.LimitReader(resp.Body, maxOneDevResponseSize))
-	return decoder.Decode(&result)
+	return json.NewDecoder(packages.NewLimitedReader(resp.Body, maxOneDevResponseSize)).Decode(&result)
 }
 
 // GetRepoInfo returns repository information
