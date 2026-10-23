@@ -5,7 +5,7 @@ const signedIn = /^(?!.*\/user\/(login|webauthn))/; // the target of a finished 
 
 async function registerKey(page: Page, nickname: string) {
   await page.goto('/user/settings/security');
-  await page.getByLabel('Nickname').fill(nickname);
+  await page.getByRole('textbox', {name: 'Nickname'}).fill(nickname);
   await page.getByRole('button', {name: 'Add Security Key'}).click();
 }
 

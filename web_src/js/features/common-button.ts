@@ -1,5 +1,5 @@
 import {addDelegatedEventListener, hideElem, isElemVisible, showElem, toggleElem} from '../utils/dom.ts';
-import {showFomanticModal} from '../modules/fomantic/modal.ts';
+import {showModal} from '../modules/modal.ts';
 import {camelize} from 'vue';
 import {applyAutoFocus} from './common-page.ts';
 
@@ -17,6 +17,8 @@ function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
   // if it has "toggle" class, it toggles the panel
   e.preventDefault();
   const sel = el.getAttribute('data-panel')!;
+  const selHide = el.getAttribute('data-panel-hide');
+  if (selHide) hideElem(selHide);
   const elems = el.classList.contains('toggle') ? toggleElem(sel) : showElem(sel);
   for (const elem of elems) {
     if (isElemVisible(elem as HTMLElement)) {
@@ -45,7 +47,7 @@ export type ElementWithAssignableProperties = {
   nodeName: string;
   getAttribute: (name: string) => string | null;
   setAttribute: (name: string, value: string) => void;
-} & Record<string, any>;
+};
 
 export function assignElementProperty(el: ElementWithAssignableProperties, kebabName: string, val: string) {
   if (el.nodeName === 'FORM') {
@@ -57,14 +59,15 @@ export function assignElementProperty(el: ElementWithAssignableProperties, kebab
     if (kebabName === 'url') kebabName = 'action';
   }
   const camelizedName = camelize(kebabName);
-  const old = el[camelizedName];
+  const properties: Record<string, unknown> = el;
+  const old = properties[camelizedName];
   if (typeof old === 'boolean') {
-    el[camelizedName] = val === 'true';
+    properties[camelizedName] = val === 'true';
   } else if (typeof old === 'number') {
-    el[camelizedName] = parseFloat(val);
+    properties[camelizedName] = parseFloat(val);
   } else if (typeof old === 'string') {
-    el[camelizedName] = val;
-  } else if (old?.nodeName) {
+    properties[camelizedName] = val;
+  } else if (old && typeof old === 'object' && 'nodeName' in old) {
     // "form" has an edge case: its "<input name=action>" element overwrites the "action" property, we can only set attribute
     el.setAttribute(kebabName, val);
   } else {
@@ -87,7 +90,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // to make the template variables get correctly escaped in the URL.
   e.preventDefault();
   const modalSelector = el.getAttribute('data-modal')!;
-  const elModal = document.querySelector(modalSelector);
+  const elModal = document.querySelector<HTMLDialogElement>(modalSelector);
   if (!elModal) throw new Error('no modal for this action');
 
   const modalAttrPrefix = 'data-modal-';
@@ -120,11 +123,11 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     }
   }
 
-  showFomanticModal(elModal);
+  showModal(elModal);
 }
 
 export function initGlobalButtons(): void {
-  // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
+  // There are many "cancel button" elements in modal dialogs, they are expected to be button-like elements but never submit a form.
   // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
   // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
   addDelegatedEventListener(document, 'click', 'form button.ui.cancel.button', (_ /* el */, e) => e.preventDefault());

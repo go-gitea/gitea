@@ -81,7 +81,7 @@ type Issue struct {
 	PullRequest       *PullRequest     `xorm:"-"`
 	NumComments       int
 
-	// TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
+	// TODO: ISSUE-SIDEBAR-REF-SELECTOR: see "repo/issue/branch_selector_field.tmpl"
 	Ref string
 
 	PinOrder int `xorm:"-"` // 0 means not loaded, -1 means loaded but not pinned
@@ -225,13 +225,11 @@ func (issue *Issue) loadCommentsByType(ctx context.Context, tp CommentType) (err
 	return err
 }
 
-func (issue *Issue) loadReactions(ctx context.Context) (err error) {
+func (issue *Issue) loadAllReactions(ctx context.Context) (err error) {
 	if issue.Reactions != nil {
 		return nil
 	}
-	reactions, _, err := FindReactions(ctx, FindReactionsOptions{
-		IssueID: issue.ID,
-	})
+	reactions, _, err := FindReactions(ctx, FindReactionsOptions{IssueIDWithComments: issue.ID})
 	if err != nil {
 		return err
 	}
@@ -340,7 +338,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		}
 	}
 
-	return issue.loadReactions(ctx)
+	return issue.loadAllReactions(ctx)
 }
 
 // IsPinned returns if a Issue is pinned

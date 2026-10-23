@@ -18,4 +18,4 @@ type sourceInterface interface {
 	auth.PasswordAuthenticator
 }
 
-var _ (sourceInterface) = &oauth2.Source{}
+var _ sourceInterface = &oauth2.Source{}

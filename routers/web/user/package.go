@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"uuid"
 
 	"gitea.dev/models/db"
 	org_model "gitea.dev/models/organization"
@@ -35,8 +36,6 @@ import (
 	"gitea.dev/services/forms"
 	packages_service "gitea.dev/services/packages"
 	container_service "gitea.dev/services/packages/container"
-
-	"github.com/google/uuid"
 )
 
 const (
@@ -129,8 +128,7 @@ func ListPackages(ctx *context.Context) {
 			ctx.Data["IsOrganizationOwner"] = false
 		}
 	}
-	pager := context.NewPagination(total, setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.PackagesPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplPackagesList)
 }
@@ -305,7 +303,7 @@ func ViewPackageVersion(ctx *context.Context) {
 
 	ctx.Data["PackageVersionViewData"] = viewData
 	ctx.Data["PackageVersionSetupManual"] = pkgSpec.RenderSetupManual(ctx, pd, viewData)
-	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
+	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite
 
 	hasRepositoryAccess := false
 	if pd.Repository != nil {
@@ -401,8 +399,7 @@ func ListPackageVersions(ctx *context.Context) {
 
 	ctx.Data["Total"] = total
 
-	pager := context.NewPagination(total, setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.PackagesPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackageVersionList)
@@ -420,7 +417,7 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
-	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
+	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite
 
 	if pd.Package.RepoID > 0 {
 		repo, err := repo_model.GetRepositoryByID(ctx, pd.Package.RepoID)

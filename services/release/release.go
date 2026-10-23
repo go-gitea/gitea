@@ -11,6 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
@@ -419,6 +420,10 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 
 	if err := repo_model.DeleteAttachmentsByRelease(ctx, rel.ID); err != nil {
 		return fmt.Errorf("DeleteAttachments: %w", err)
+	}
+
+	if _, err := db.DeleteByBean(ctx, &issues_model.Reaction{ReleaseID: rel.ID}); err != nil {
+		return fmt.Errorf("DeleteReleaseByID: %w", err)
 	}
 
 	for i := range rel.Attachments {

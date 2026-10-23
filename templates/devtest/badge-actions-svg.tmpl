@@ -13,7 +13,7 @@
 					<label><input name="style" type="radio" value="{{$style}}" {{Iif (eq $.SelectedStyle $style) "checked"}}>{{$style}}</label>
 				{{end}}
 			</div>
-			<button>submit</button>
+			<button type="submit">submit</button>
 		</form>
 		<div class="flex-text-block tw-flex-wrap">
 		{{range $badgeSVG := .BadgeSVGs}}

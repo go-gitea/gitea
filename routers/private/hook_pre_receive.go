@@ -8,13 +8,9 @@ import (
 	"net/http"
 	"os"
 
-	asymkey_model "gitea.dev/models/asymkey"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
-	perm_model "gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/private"
@@ -27,29 +23,18 @@ import (
 
 type preReceiveContext struct {
 	*gitea_context.PrivateContext
-
-	user                *user_model.User // the "pusher", it's the org user if a DeployKey is used
-	userPerm            access_model.Permission
-	deployKeyAccessMode perm_model.AccessMode
-
-	canCreatePullRequest        bool
-	checkedCanCreatePullRequest bool
-
-	protectedTags    []*git_model.ProtectedTag
-	gotProtectedTags bool
-
-	env []string
-
+	env  []string
 	opts *private.HookOptions
 
 	// this context should only contain shared variables, mutable variables like "current branch name" shouldn't be put here
 	canWriteCodeUnitCached *bool
+	canCreatePullRequest   *bool
+	protectedTags          []*git_model.ProtectedTag
 }
 
 func (ctx *preReceiveContext) canWriteCodeUnit() bool {
 	if ctx.canWriteCodeUnitCached == nil {
-		canWrite := ctx.userPerm.CanWrite(unit.TypeCode) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
-		ctx.canWriteCodeUnitCached = &canWrite
+		ctx.canWriteCodeUnitCached = new(ctx.Repo.Permission.CanWrite(unit.TypeCode))
 	}
 	return *ctx.canWriteCodeUnitCached
 }
@@ -63,7 +48,7 @@ func (ctx *preReceiveContext) canWriteCodeRef(refFullName git.RefName) bool {
 	if !refFullName.IsBranch() {
 		return false
 	}
-	return issues_model.CanMaintainerWriteToBranch(ctx, ctx.userPerm, refFullName.BranchName(), ctx.user)
+	return issues_model.CanMaintainerWriteToBranch(ctx, ctx.Repo.Permission, refFullName.BranchName(), ctx.Doer)
 }
 
 // assertCanWriteRef returns true if pusher can write to the code ref, otherwise it responds with 403 Forbidden and returns false
@@ -80,11 +65,10 @@ func (ctx *preReceiveContext) assertCanWriteRef(refFullName git.RefName) bool {
 
 // CanCreatePullRequest returns true if pusher can create pull requests
 func (ctx *preReceiveContext) CanCreatePullRequest() bool {
-	if !ctx.checkedCanCreatePullRequest {
-		ctx.canCreatePullRequest = ctx.userPerm.CanRead(unit.TypePullRequests)
-		ctx.checkedCanCreatePullRequest = true
+	if ctx.canCreatePullRequest == nil {
+		ctx.canCreatePullRequest = new(ctx.Repo.Permission.CanRead(unit.TypePullRequests))
 	}
-	return ctx.canCreatePullRequest
+	return *ctx.canCreatePullRequest
 }
 
 // AssertCreatePullRequest returns true if can create pull requests
@@ -102,15 +86,14 @@ func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm[*private.HookOptions](ctx)
+	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
+		return
+	}
 
 	ourCtx := &preReceiveContext{
 		PrivateContext: ctx,
 		env:            generateGitEnv(opts), // Generate git environment for checking commits
 		opts:           opts,
-	}
-
-	if !ourCtx.loadPusherAndPermission() {
-		return // if error occurs, loadPusherAndPermission had written the error response
 	}
 
 	// Iterate across the provided old commit IDs
@@ -124,7 +107,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case refFullName.IsTag():
 			preReceiveTag(ourCtx, refFullName)
-		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
+		case refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
 		default:
 			ourCtx.assertCanWriteRef(refFullName)
@@ -147,13 +130,19 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
 	objectFormat := ctx.Repo.GetObjectFormat()
+	isDeletingBranch := newCommitID == objectFormat.EmptyObjectID().String()
 
 	defaultBranch := repo.DefaultBranch
 	if ctx.opts.IsWiki && repo.DefaultWikiBranch != "" {
 		defaultBranch = repo.DefaultWikiBranch
 	}
-	if branchName == defaultBranch && newCommitID == objectFormat.EmptyObjectID().String() {
+
+	if isDeletingBranch && branchName == defaultBranch {
 		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is the default branch and cannot be deleted", branchName)
+		return
+	}
+	if isDeletingBranch && branchName == repo.GetPullRequestTargetBranch(ctx) {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
 		return
 	}
 
@@ -173,9 +162,11 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	//
 	// First of all we need to enforce absolutely:
 	//
-	// 1. Detect and prevent deletion of the branch
-	if newCommitID == objectFormat.EmptyObjectID().String() {
-		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
+	// 1. Enforce branch deletion permissions
+	if isDeletingBranch {
+		if !protectBranch.CanUserDelete(ctx, ctx.Doer, ctx.Repo.Permission) {
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
+		}
 		return
 	}
 
@@ -216,7 +207,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	// Now there are several tests which can be overridden:
 	//
 	// 4. Check protected file patterns - this is overridable from the UI
-	changedProtectedfiles := false
+	changedProtectedFiles := false
 	protectedFilePath := ""
 
 	globs := protectBranch.GetProtectedFilePatterns()
@@ -229,26 +220,17 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 				return
 			}
 
-			changedProtectedfiles = true
+			changedProtectedFiles = true
 			protectedFilePath = errFilePathProtected.Path
 		}
 	}
 
 	// 5. Check if the doer is allowed to push (and force-push if the incoming push is a force-push)
 	var canPush bool
-	if ctx.opts.DeployKeyID != 0 {
-		// This flag is only ever true if protectBranch.CanForcePush is true
-		if isForcePush {
-			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableForcePushAllowlist || protectBranch.ForcePushAllowlistDeployKeys)
-		} else {
-			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
-		}
+	if isForcePush {
+		canPush = !changedProtectedFiles && protectBranch.CanUserForcePush(ctx, ctx.Doer, ctx.Repo.Permission)
 	} else {
-		if isForcePush {
-			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, ctx.user)
-		} else {
-			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.user)
-		}
+		canPush = !changedProtectedFiles && protectBranch.CanUserPush(ctx, ctx.Doer, ctx.Repo.Permission)
 	}
 
 	// 6. If we're not allowed to push directly
@@ -258,7 +240,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			// 6a. If we're not merging from the UI/API then there are two ways we got here:
 			//
 			// We are changing a protected file, and we're not allowed to do that
-			if changedProtectedfiles {
+			if changedProtectedFiles {
 				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
 				return
 			}
@@ -296,7 +278,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 		// Now check if the user is allowed to merge PRs for this repository
 		// Note: we can use ctx.perm and ctx.user directly as they will have been loaded above
-		allowedMerge, err := pull_service.IsUserAllowedToMerge(ctx, pr, ctx.userPerm, ctx.user)
+		allowedMerge, err := pull_service.IsUserAllowedToMerge(ctx, pr, ctx.Repo.Permission, ctx.Doer)
 		if err != nil {
 			ctx.PrivateInternalErrorf("Error calculating if allowed to merge: %v", err)
 			return
@@ -308,12 +290,12 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		}
 
 		// If we can bypass branch protection we can ignore status checks, reviews and protected files
-		if git_model.CanBypassBranchProtection(ctx, protectBranch, ctx.user, ctx.userPerm.IsAdmin()) {
+		if git_model.CanBypassBranchProtection(ctx, protectBranch, ctx.Doer, ctx.Repo.Permission.IsAdmin()) {
 			return
 		}
 
 		// Now if we're not an admin - we can't overwrite protected files so fail now
-		if changedProtectedfiles {
+		if changedProtectedFiles {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
 			return
 		}
@@ -337,14 +319,14 @@ func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
 
 	tagName := refFullName.TagName()
 
-	if !ctx.gotProtectedTags {
+	if ctx.protectedTags == nil {
 		var err error
 		ctx.protectedTags, err = git_model.GetProtectedTags(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			ctx.PrivateInternalErrorf("Unable to get protected tags: %v", err)
 			return
 		}
-		ctx.gotProtectedTags = true
+		ctx.protectedTags = util.SliceNilAsEmpty(ctx.protectedTags)
 	}
 
 	isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, ctx.protectedTags, tagName, ctx.opts.UserID)
@@ -398,46 +380,4 @@ func generateGitEnv(opts *private.HookOptions) (env []string) {
 			private.GitQuarantinePath+"="+opts.GitQuarantinePath)
 	}
 	return env
-}
-
-// loadPusherAndPermission returns false if an error occurs, and it writes the error response
-func (ctx *preReceiveContext) loadPusherAndPermission() bool {
-	if ctx.opts.UserID == user_model.ActionsUserID {
-		taskID := ctx.opts.ActionsTaskID
-		ctx.user = user_model.NewActionsUserWithTaskID(taskID)
-		if taskID == 0 {
-			ctx.PrivateUserErrorf(http.StatusInternalServerError, "ActionsUser with task ID 0")
-			return false
-		}
-
-		userPerm, err := access_model.GetActionsUserRepoPermission(ctx, ctx.Repo.Repository, ctx.user, taskID)
-		if err != nil {
-			ctx.PrivateInternalErrorf("Unable to get Actions user repo permission for task %d Error: %v", taskID, err)
-			return false
-		}
-		ctx.userPerm = userPerm
-	} else {
-		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
-		if err != nil {
-			ctx.PrivateInternalErrorf("Unable to get User id %d Error: %v", ctx.opts.UserID, err)
-			return false
-		}
-		ctx.user = user
-		userPerm, err := access_model.GetDoerRepoPermission(ctx, ctx.Repo.Repository, user)
-		if err != nil {
-			ctx.PrivateInternalErrorf("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
-			return false
-		}
-		ctx.userPerm = userPerm
-	}
-
-	if ctx.opts.DeployKeyID != 0 {
-		deployKey, err := asymkey_model.GetDeployKeyByID(ctx, ctx.Repo.Repository.ID, ctx.opts.DeployKeyID)
-		if err != nil {
-			ctx.PrivateInternalErrorf("Unable to get DeployKey id %d Error: %v", ctx.opts.DeployKeyID, err)
-			return false
-		}
-		ctx.deployKeyAccessMode = deployKey.Mode
-	}
-	return true
 }

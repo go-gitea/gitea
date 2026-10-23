@@ -186,11 +186,11 @@ func (l *Label) ExclusiveScope() string {
 	if !l.Exclusive {
 		return ""
 	}
-	lastIndex := strings.LastIndex(l.Name, "/")
-	if lastIndex == -1 || lastIndex == 0 || lastIndex == len(l.Name)-1 {
+	scope, name, found := strings.CutLast(l.Name, "/")
+	if !found || scope == "" || name == "" {
 		return ""
 	}
-	return l.Name[:lastIndex]
+	return scope
 }
 
 // CompareLabelForDisplay compares labels for displaying them in dropdowns or lists.
@@ -269,27 +269,23 @@ func UpdateLabel(ctx context.Context, l *Label) error {
 	return updateLabelCols(ctx, l, "name", "description", "color", "exclusive", "exclusive_order", "archived_unix")
 }
 
-// DeleteLabel delete a label
-func DeleteLabel(ctx context.Context, id, labelID int64) error {
-	l, err := GetLabelByID(ctx, labelID)
-	if err != nil {
-		if IsErrLabelNotExist(err) {
-			return nil
-		}
-		return err
-	}
+// DeleteRepoLabel deletes a repository label.
+func DeleteRepoLabel(ctx context.Context, repoID, labelID int64) error {
+	return deleteLabel(ctx, labelID, builder.Eq{"repo_id": repoID, "org_id": 0})
+}
 
+// DeleteOrgLabel deletes an organization label.
+func DeleteOrgLabel(ctx context.Context, orgID, labelID int64) error {
+	return deleteLabel(ctx, labelID, builder.Eq{"org_id": orgID, "repo_id": 0})
+}
+
+func deleteLabel(ctx context.Context, labelID int64, ownerCond builder.Cond) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if l.BelongsToOrg() && l.OrgID != id {
-			return nil
-		}
-		if l.BelongsToRepo() && l.RepoID != id {
-			return nil
-		}
-
-		if _, err = db.DeleteByID[Label](ctx, labelID); err != nil {
+		deleted, err := db.GetEngine(ctx).ID(labelID).Where(ownerCond).Delete(new(Label))
+		if err != nil || deleted == 0 {
 			return err
-		} else if _, err = db.GetEngine(ctx).
+		}
+		if _, err = db.GetEngine(ctx).
 			Where("label_id = ?", labelID).
 			Delete(new(IssueLabel)); err != nil {
 			return err
@@ -433,12 +429,13 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 	case "reversealphabetically":
 		sess.Desc("name")
 	case "leastissues":
-		sess.Asc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues ASC")
 	case "mostissues":
-		sess.Desc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues DESC")
 	default:
 		sess.Asc("name")
 	}
+	sess.Asc("id")
 
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)
@@ -508,12 +505,13 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 	case "reversealphabetically":
 		sess.Desc("name")
 	case "leastissues":
-		sess.Asc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues ASC")
 	case "mostissues":
-		sess.Desc("num_issues")
+		sess.OrderBy("num_issues - num_closed_issues DESC")
 	default:
 		sess.Asc("name")
 	}
+	sess.Asc("id")
 
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)

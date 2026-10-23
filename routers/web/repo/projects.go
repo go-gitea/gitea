@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
@@ -23,16 +24,20 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/shared/issue"
+	project_shared "gitea.dev/routers/web/shared/project"
 	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
+	issue_service "gitea.dev/services/issue"
 	project_service "gitea.dev/services/projects"
 )
 
 const (
-	tplProjects     templates.TplName = "repo/projects/list"
-	tplProjectsNew  templates.TplName = "repo/projects/new"
-	tplProjectsView templates.TplName = "repo/projects/view"
+	tplProjects         templates.TplName = "repo/projects/list"
+	tplProjectsNew      templates.TplName = "repo/projects/new"
+	tplProjectsView     templates.TplName = "repo/projects/view"
+	tplProjectWorkflows templates.TplName = "repo/projects/workflows"
 )
 
 // MustEnableRepoProjects check if repo projects are enabled in settings
@@ -103,8 +108,7 @@ func Projects(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
-	pager := context.NewPagination(count, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
@@ -135,7 +139,7 @@ func NewProjectPost(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.NewProject(ctx, &project_model.Project{
+	project := &project_model.Project{
 		RepoID:       ctx.Repo.Repository.ID,
 		Title:        form.Title,
 		Description:  form.Content,
@@ -143,10 +147,12 @@ func NewProjectPost(ctx *context.Context) {
 		TemplateType: form.TemplateType,
 		CardType:     form.CardType,
 		Type:         project_model.TypeRepository,
-	}); err != nil {
+	}
+	if err := project_model.NewProject(ctx, project); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectCreate, ctx.Repo.Repository, "project", project.Title, "project_id", project.ID)
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
 	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
@@ -167,7 +173,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 	id := ctx.PathParamInt64("id")
 
 	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
-		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("ChangeProjectStatusByRepoIDAndID", err)
 		return
 	}
 	ctx.JSONRedirect(project_model.ProjectLinkForRepo(ctx.Repo.Repository, id))
@@ -192,6 +198,7 @@ func DeleteProject(ctx *context.Context) {
 	if err := project_model.DeleteProjectByID(ctx, p.ID); err != nil {
 		ctx.Flash.Error("DeleteProjectByID: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.ProjectDelete, ctx.Repo.Repository, "project", p.Title, "project_id", p.ID)
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
 	}
 
@@ -266,6 +273,7 @@ func EditProjectPost(ctx *context.Context) {
 		ctx.ServerError("UpdateProjects", err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectUpdate, ctx.Repo.Repository, "project", p.Title, "project_id", p.ID)
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
 	if ctx.FormString("redirect") == "project" {
@@ -430,6 +438,12 @@ func ViewProject(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
 
+// ProjectWorkflows renders the workflows page of a repository project
+func ProjectWorkflows(ctx *context.Context) {
+	ctx.Data["IsProjectsPage"] = true
+	project_shared.RenderWorkflows(ctx, ctx.Repo.Permission.CanWrite(unit.TypeProjects) && !ctx.Repo.Repository.IsArchived, tplProjectWorkflows)
+}
+
 // UpdateIssueProject change an issue's project
 func UpdateIssueProject(ctx *context.Context) {
 	issues := getActionIssues(ctx)
@@ -449,7 +463,7 @@ func UpdateIssueProject(ctx *context.Context) {
 	projectIDs := ctx.FormStringInt64s("id")
 	var failedIssues []int64
 	for _, issue := range issues {
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectIDs); err != nil {
+		if err := issue_service.AssignOrRemoveProjects(ctx, issue, ctx.Doer, projectIDs); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) {
 				failedIssues = append(failedIssues, issue.ID)
 				continue
@@ -470,12 +484,16 @@ func UpdateIssueProject(ctx *context.Context) {
 func UpdateIssueProjectColumn(ctx *context.Context) {
 	issue, err := issues_model.GetIssueByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("issue_id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
+		ctx.ServerError("GetIssueByID", err)
+		return
+	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound(nil)
 		return
 	}
 	column, err := project_model.GetColumn(ctx, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		ctx.ServerError("GetColumn", err)
 		return
 	}
 

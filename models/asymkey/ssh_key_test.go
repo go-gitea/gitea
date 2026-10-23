@@ -12,11 +12,13 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
 
 	"github.com/42wim/sshsig"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_SSHParsePublicKey(t *testing.T) {
@@ -479,6 +481,20 @@ func TestPublicKeysAreExternallyManaged(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, externals, 1)
 	assert.False(t, externals[0])
+}
+
+func TestSearchPrincipalKeyIgnoresOtherKeyTypes(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	userKey := unittest.AssertExistsAndLoadBean(t, &PublicKey{ID: 1})
+
+	_, err := SearchPrincipalKey(t.Context(), userKey.Content)
+	assert.True(t, IsErrKeyNotExist(err))
+
+	principal := &PublicKey{OwnerID: 1, Name: userKey.Content, Content: userKey.Content, Type: KeyTypePrincipal}
+	require.NoError(t, db.Insert(t.Context(), principal))
+	key, err := SearchPrincipalKey(t.Context(), userKey.Content)
+	require.NoError(t, err)
+	assert.Equal(t, principal.ID, key.ID)
 }
 
 // TestCheckPublicKeyStringOversized tests if oversized SSH2 public key strings are rejected before triggering costly operations.

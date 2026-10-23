@@ -34,7 +34,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -257,7 +257,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -723,8 +723,8 @@
           },
           {
             "type": "string",
-            "description": "pattern of repositories to search for",
-            "name": "pattern",
+            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
+            "name": "query",
             "in": "query"
           }
         ],
@@ -825,7 +825,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "ID of the user's login source to search for",
+            "description": "ID of the user's login source to search for, 0 means the local users",
             "name": "source_id",
             "in": "query"
           },
@@ -945,6 +945,9 @@
           "403": {
             "$ref": "#/responses/forbidden"
           },
+          "409": {
+            "$ref": "#/responses/error"
+          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -1028,6 +1031,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -2034,7 +2040,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -2286,7 +2292,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -4238,6 +4244,253 @@
         }
       }
     },
+    "/orgs/{org}/projects/{id}/workflows": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List a project's workflows",
+        "operationId": "orgListProjectWorkflows",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectWorkflowList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create a project workflow",
+        "operationId": "orgCreateProjectWorkflow",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateProjectWorkflowOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/ProjectWorkflow"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/projects/{id}/workflows/{workflow_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get a project workflow",
+        "operationId": "orgGetProjectWorkflow",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectWorkflow"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete a project workflow",
+        "operationId": "orgDeleteProjectWorkflow",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Edit a project workflow",
+        "operationId": "orgEditProjectWorkflow",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditProjectWorkflowOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectWorkflow"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/orgs/{org}/public_members": {
       "get": {
         "produces": [
@@ -5778,7 +6031,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6179,7 +6432,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6515,7 +6768,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6684,7 +6937,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -7741,7 +7994,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -9222,6 +9475,18 @@
             "type": "string",
             "description": "return the raw comparison as `diff` or `patch` instead of JSON",
             "name": "output",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
             "in": "query"
           }
         ],
@@ -11852,6 +12117,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -11911,6 +12179,9 @@
           },
           "412": {
             "$ref": "#/responses/error"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -13071,6 +13342,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -13126,6 +13400,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -13171,6 +13448,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -13229,6 +13509,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -14457,6 +14740,55 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/keys/tokens": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add a deploy token to a repository, it authenticates git over HTTPS",
+        "operationId": "repoCreateDeployToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateDeployKeyTokenOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/DeployKey"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/keys/{id}": {
       "get": {
         "produces": [
@@ -14942,6 +15274,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16340,6 +16675,297 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/projects/{id}/workflows": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a project's workflows",
+        "operationId": "repoListProjectWorkflows",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectWorkflowList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a project workflow",
+        "operationId": "repoCreateProjectWorkflow",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateProjectWorkflowOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/ProjectWorkflow"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{id}/workflows/{workflow_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a project workflow",
+        "operationId": "repoGetProjectWorkflow",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectWorkflow"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a project workflow",
+        "operationId": "repoDeleteProjectWorkflow",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a project workflow",
+        "operationId": "repoEditProjectWorkflow",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditProjectWorkflowOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectWorkflow"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls": {
       "get": {
         "produces": [
@@ -16782,6 +17408,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/PullRequest"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -20050,6 +20679,9 @@
           },
           "422": {
             "$ref": "#/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -20096,6 +20728,9 @@
           },
           "422": {
             "$ref": "#/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -20140,6 +20775,9 @@
           },
           "422": {
             "$ref": "#/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -21335,7 +21973,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -21558,7 +22196,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -22214,6 +22852,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/EmailList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -23588,6 +24232,218 @@
           },
           "423": {
             "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
+    "/user/projects/{id}/workflows": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "List a project's workflows",
+        "operationId": "userCurrentListProjectWorkflows",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectWorkflowList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Create a project workflow",
+        "operationId": "userCurrentCreateProjectWorkflow",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateProjectWorkflowOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/ProjectWorkflow"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/user/projects/{id}/workflows/{workflow_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a project workflow",
+        "operationId": "userCurrentGetProjectWorkflow",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectWorkflow"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Delete a project workflow",
+        "operationId": "userCurrentDeleteProjectWorkflow",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Edit a project workflow",
+        "operationId": "userCurrentEditProjectWorkflow",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the workflow",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditProjectWorkflowOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectWorkflow"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -25899,6 +26755,20 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "deletion_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistTeams"
+        },
+        "deletion_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistUsernames"
+        },
         "dismiss_stale_approvals": {
           "type": "boolean",
           "x-go-name": "DismissStaleApprovals"
@@ -25910,6 +26780,14 @@
         "enable_bypass_allowlist": {
           "type": "boolean",
           "x-go-name": "EnableBypassAllowlist"
+        },
+        "enable_deletion": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletion"
+        },
+        "enable_deletion_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletionAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -26782,6 +27660,20 @@
           },
           "x-go-name": "BypassAllowlistUsernames"
         },
+        "deletion_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistTeams"
+        },
+        "deletion_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistUsernames"
+        },
         "dismiss_stale_approvals": {
           "type": "boolean",
           "x-go-name": "DismissStaleApprovals"
@@ -26793,6 +27685,14 @@
         "enable_bypass_allowlist": {
           "type": "boolean",
           "x-go-name": "EnableBypassAllowlist"
+        },
+        "enable_deletion": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletion"
+        },
+        "enable_deletion_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletionAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -26933,6 +27833,26 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "OldRefName"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CreateDeployKeyTokenOption": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "read_only": {
+          "description": "Describe if the token has only read access or read/write",
+          "type": "boolean",
+          "x-go-name": "ReadOnly"
+        },
+        "title": {
+          "description": "Title of the token to add",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Title"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -27190,7 +28110,6 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "CreateKeyOption": {
-      "description": "CreateKeyOption options when creating a key",
       "type": "object",
       "required": [
         "title",
@@ -27434,6 +28353,31 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CreateProjectWorkflowOption": {
+      "description": "CreateProjectWorkflowOption options for creating a project workflow",
+      "type": "object",
+      "required": [
+        "event"
+      ],
+      "properties": {
+        "actions": {
+          "$ref": "#/definitions/ProjectWorkflowActions"
+        },
+        "enabled": {
+          "description": "defaults to true",
+          "type": "boolean",
+          "x-go-name": "Enabled"
+        },
+        "event": {
+          "type": "string",
+          "x-go-name": "Event"
+        },
+        "filters": {
+          "$ref": "#/definitions/ProjectWorkflowFilters"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -28186,11 +29130,10 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "DeployKey": {
-      "description": "DeployKey a deploy key",
       "type": "object",
       "properties": {
         "created_at": {
-          "description": "Created is the time when the deploy key was added",
+          "description": "Created is the time when the deploy-key was added",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -28201,7 +29144,7 @@
           "x-go-name": "Fingerprint"
         },
         "id": {
-          "description": "ID is the unique identifier for the deploy key",
+          "description": "ID is the unique identifier for the deploy-key",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
@@ -28217,6 +29160,15 @@
           "format": "int64",
           "x-go-name": "KeyID"
         },
+        "key_type": {
+          "description": "Type tells whether the key authenticates over SSH or with a token over HTTPS",
+          "type": "string",
+          "enum": [
+            "ssh",
+            "token"
+          ],
+          "x-go-name": "KeyType"
+        },
         "read_only": {
           "description": "ReadOnly indicates if the key has read-only access",
           "type": "boolean",
@@ -28230,8 +29182,13 @@
           "type": "string",
           "x-go-name": "Title"
         },
+        "token": {
+          "description": "Token is the plaintext token of an HTTPS key, only returned when it is created",
+          "type": "string",
+          "x-go-name": "Token"
+        },
         "url": {
-          "description": "URL is the API URL for this deploy key",
+          "description": "URL is the API URL for this deploy-key",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -28331,6 +29288,20 @@
           },
           "x-go-name": "BypassAllowlistUsernames"
         },
+        "deletion_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistTeams"
+        },
+        "deletion_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "DeletionAllowlistUsernames"
+        },
         "dismiss_stale_approvals": {
           "type": "boolean",
           "x-go-name": "DismissStaleApprovals"
@@ -28342,6 +29313,14 @@
         "enable_bypass_allowlist": {
           "type": "boolean",
           "x-go-name": "EnableBypassAllowlist"
+        },
+        "enable_deletion": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletion"
+        },
+        "enable_deletion_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableDeletionAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -28454,13 +29433,11 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "EditDeadlineOption": {
-      "description": "EditDeadlineOption options for creating a deadline",
+      "description": "EditDeadlineOption options for editing a deadline",
       "type": "object",
-      "required": [
-        "due_date"
-      ],
       "properties": {
         "due_date": {
+          "description": "Deadline is the updated due date for the issue or pull request, use null or empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -28565,6 +29542,7 @@
           "x-go-name": "ContentVersion"
         },
         "due_date": {
+          "description": "Deadline is the updated due date for the issue, use null or empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -28644,7 +29622,7 @@
           "x-go-name": "Description"
         },
         "due_on": {
-          "description": "Deadline is the updated due date for the milestone",
+          "description": "Deadline is the due date for the milestone, use null or empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -28765,6 +29743,23 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "EditProjectWorkflowOption": {
+      "description": "EditProjectWorkflowOption options for editing a project workflow, omitted fields are left unchanged",
+      "type": "object",
+      "properties": {
+        "actions": {
+          "$ref": "#/definitions/ProjectWorkflowActions"
+        },
+        "enabled": {
+          "type": "boolean",
+          "x-go-name": "Enabled"
+        },
+        "filters": {
+          "$ref": "#/definitions/ProjectWorkflowFilters"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "EditPullRequestOption": {
       "description": "EditPullRequestOption options when modify pull request",
       "type": "object",
@@ -28804,6 +29799,7 @@
           "x-go-name": "ContentVersion"
         },
         "due_date": {
+          "description": "Deadline is the updated due date for the pull request, use null or empty string to remove the deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -29069,6 +30065,11 @@
           "type": "string",
           "x-go-name": "ProjectsMode"
         },
+        "squash_merge_commit_message": {
+          "description": "set the default squash merge commit message body: \"PR_BODY\", \"COMMIT_MESSAGES\", or \"BLANK\".",
+          "type": "string",
+          "x-go-name": "SquashMergeCommitMessage"
+        },
         "template": {
           "description": "either `true` to make this repository a template or `false` to make it a normal repository",
           "type": "boolean",
@@ -29286,6 +30287,17 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "SourceID"
+        },
+        "type": {
+          "description": "The user type",
+          "type": "string",
+          "enum": [
+            "User",
+            "Organization",
+            "Bot"
+          ],
+          "x-go-enum-desc": "User UserTypeStringUser\nOrganization UserTypeStringOrganization\nBot UserTypeStringBot",
+          "x-go-name": "Type"
         },
         "visibility": {
           "description": "User visibility level: public, limited, or private",
@@ -30379,7 +31391,7 @@
       "type": "object",
       "properties": {
         "labels": {
-          "description": "Labels can be a list of integers representing label IDs\nor a list of strings representing label names",
+          "description": "Labels can be a list of integers representing label IDs\nor a list of strings representing label names.\nIf a repository label and an organization label share a name,\nthe repository label is used.",
           "type": "array",
           "items": {},
           "x-go-name": "Labels"
@@ -30835,7 +31847,7 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "Milestone": {
-      "description": "Milestone milestone is a collection of issues on one repository",
+      "description": "Milestone is a collection of issues on one repository",
       "type": "object",
       "properties": {
         "closed_at": {
@@ -31636,6 +32648,109 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "UpdatedAt"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "ProjectWorkflow": {
+      "description": "ProjectWorkflow represents a project workflow",
+      "type": "object",
+      "properties": {
+        "actions": {
+          "$ref": "#/definitions/ProjectWorkflowActions"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "enabled": {
+          "type": "boolean",
+          "x-go-name": "Enabled"
+        },
+        "event": {
+          "description": "one of item_added_to_project, item_removed_from_project, item_reopened, item_closed, item_column_changed,\ncode_changes_requested, code_review_approved, pull_request_merged",
+          "type": "string",
+          "x-go-name": "Event"
+        },
+        "filters": {
+          "$ref": "#/definitions/ProjectWorkflowFilters"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "ProjectWorkflowActions": {
+      "description": "ProjectWorkflowActions describes what a project workflow does to a matching item",
+      "type": "object",
+      "properties": {
+        "add_label_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "AddLabelIDs"
+        },
+        "column_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ColumnID"
+        },
+        "issue_state": {
+          "description": "\"close\" or \"reopen\"",
+          "type": "string",
+          "x-go-name": "IssueState"
+        },
+        "remove_label_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "RemoveLabelIDs"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "ProjectWorkflowFilters": {
+      "description": "ProjectWorkflowFilters restricts which items a project workflow runs for",
+      "type": "object",
+      "properties": {
+        "issue_type": {
+          "description": "\"issue\" or \"pull_request\", empty matches both",
+          "type": "string",
+          "x-go-name": "IssueType"
+        },
+        "label_ids": {
+          "description": "the item must have all of these labels",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "LabelIDs"
+        },
+        "source_column_id": {
+          "description": "only for item_column_changed",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SourceColumnID"
+        },
+        "target_column_id": {
+          "description": "only for item_column_changed",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TargetColumnID"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -32747,6 +33862,10 @@
           "format": "int64",
           "x-go-name": "Size"
         },
+        "squash_merge_commit_message": {
+          "type": "string",
+          "x-go-name": "SquashMergeCommitMessage"
+        },
         "ssh_url": {
           "type": "string",
           "x-go-name": "SSHURL"
@@ -33648,6 +34767,17 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "StarredRepos"
+        },
+        "type": {
+          "description": "the user type",
+          "type": "string",
+          "enum": [
+            "User",
+            "Organization",
+            "Bot"
+          ],
+          "x-go-enum-desc": "User UserTypeStringUser\nOrganization UserTypeStringOrganization\nBot UserTypeStringBot",
+          "x-go-name": "Type"
         },
         "visibility": {
           "description": "User visibility level option: public, limited, private",
@@ -34617,6 +35747,21 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Project"
+        }
+      }
+    },
+    "ProjectWorkflow": {
+      "description": "ProjectWorkflow",
+      "schema": {
+        "$ref": "#/definitions/ProjectWorkflow"
+      }
+    },
+    "ProjectWorkflowList": {
+      "description": "ProjectWorkflowList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ProjectWorkflow"
         }
       }
     },

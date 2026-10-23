@@ -8,6 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,8 +25,10 @@ func TestRelativePath(t *testing.T) {
 	expected := path.Join("4d", "7a", "214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
 	assert.Equal(t, expected, p.RelativePath())
 
+	defer test.MockVariableValue(&setting.IsProd, true)()
+	defer test.MockVariableValue(&setting.IsInTesting, false)()
 	p2 := Pointer{Oid: "4d7a"}
-	assert.Equal(t, "4d7a", p2.RelativePath())
+	assert.Equal(t, "invalid-lfs-oid-4d7a", p2.RelativePath())
 }
 
 func TestIsValid(t *testing.T) {

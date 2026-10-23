@@ -43,6 +43,8 @@ var (
 		// transaction at once per Gitea instance, to avoid a thundering herd when many
 		// runners poll together. It is a per-process limit, not a cluster-wide one.
 		MaxConcurrentTaskPicks int `ini:"MAX_CONCURRENT_TASK_PICKS"`
+
+		ArtifactPreviewMaxSize int64 `ini:"ARTIFACT_PREVIEW_MAX_SIZE"`
 	}{
 		Enabled:                true,
 		DefaultActionsURL:      defaultActionsURLGitHub,
@@ -51,6 +53,7 @@ var (
 		ScopedWorkflowDirs:     []string{".gitea/scoped_workflows"},
 		MaxRerunAttempts:       defaultMaxRerunAttempts,
 		MaxConcurrentTaskPicks: defaultMaxConcurrentTaskPicks,
+		ArtifactPreviewMaxSize: 10 * 1024 * 1024,
 		LogRetentionDays:       defaultLogRetentionDays,
 		ArtifactRetentionDays:  defaultArtifactRetentionDays,
 		RunRetentionDays:       defaultRunRetentionDays,
@@ -102,7 +105,7 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	}
 
 	if urls := string(Actions.DefaultActionsURL); urls != defaultActionsURLGitHub && urls != defaultActionsURLSelf {
-		url := strings.Split(urls, ",")[0]
+		url, _, _ := strings.Cut(urls, ",")
 		if strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://") {
 			log.Error("[actions] DEFAULT_ACTIONS_URL does not support %q as custom URL any longer, fallback to %q",
 				urls,

@@ -20,10 +20,10 @@
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<button class="{{if eq $.SortType "oldest"}}active {{end}}item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
-							<button class="{{if eq $.SortType "newest"}}active {{end}}item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
-							<button class="{{if eq $.SortType "alphabetically"}}active {{end}}item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
-							<button class="{{if eq $.SortType "reversealphabetically"}}active {{end}}item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
+							<button type="submit" class="{{if eq $.SortType "oldest"}}active {{end}}item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
+							<button type="submit" class="{{if eq $.SortType "newest"}}active {{end}}item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
+							<button type="submit" class="{{if eq $.SortType "alphabetically"}}active {{end}}item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
+							<button type="submit" class="{{if eq $.SortType "reversealphabetically"}}active {{end}}item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
 						</div>
 					</div>
 				</div>
