@@ -9,6 +9,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -72,16 +73,60 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.NoError(t, repo.LoadOwner(t.Context()))
 
+	// the recipient doesn't have permission to access the repo
 	hasAccess, err := access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
 	assert.NoError(t, err)
 	assert.False(t, hasAccess)
 
-	assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
-
-	hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-	assert.NoError(t, err)
-	assert.True(t, hasAccess)
-
+	t.Run("RevokeAccessAfterRejection", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		assert.NoError(t, repo.LoadOwner(t.Context()))
+		assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
+		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
+		assert.NoError(t, err)
+		assert.True(t, hasAccess)
+		assert.NoError(t, RejectRepositoryTransfer(t.Context(), repo, recipient))
+		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
+		assert.NoError(t, err)
+		assert.False(t, hasAccess)
+	})
+	t.Run("RevokeAccessAfterCancel", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		assert.NoError(t, repo.LoadOwner(t.Context()))
+		assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
+		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
+		assert.NoError(t, err)
+		assert.True(t, hasAccess)
+		transfer, err := repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
+		assert.NoError(t, err)
+		assert.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
+		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
+		assert.NoError(t, err)
+		assert.False(t, hasAccess)
+	})
+	t.Run("KeepOriginAccessOnStop", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		assert.NoError(t, repo.LoadOwner(t.Context()))
+		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, recipient, perm.AccessModeWrite))
+		assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
+		assert.NoError(t, RejectRepositoryTransfer(t.Context(), repo, recipient))
+		collaboration, err := repo_model.GetCollaboration(t.Context(), repo.ID, recipient.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, perm.AccessModeWrite, collaboration.Mode)
+		assert.NoError(t, DeleteCollaboration(t.Context(), repo, recipient))
+	})
+	t.Run("KeepNonReadAccessOnStop", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		assert.NoError(t, repo.LoadOwner(t.Context()))
+		assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
+		transfer, err := repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
+		assert.NoError(t, err)
+		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, recipient, perm.AccessModeWrite))
+		assert.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
+		collaboration, err := repo_model.GetCollaboration(t.Context(), repo.ID, recipient.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, perm.AccessModeWrite, collaboration.Mode)
+	})
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{}, &user_model.User{}, &organization.Team{})
 }
 
@@ -105,7 +150,7 @@ func TestRepositoryTransfer(t *testing.T) {
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, user2, repo.ID, nil))
+	assert.NoError(t, repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, user2, repo.ID, nil, false))
 
 	transfer, err = repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
 	assert.NoError(t, err)
@@ -115,13 +160,13 @@ func TestRepositoryTransfer(t *testing.T) {
 	org6 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	// Only transfer can be started at any given time
-	err = repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, org6, repo.ID, nil)
+	err = repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, org6, repo.ID, nil, false)
 	assert.Error(t, err)
 	assert.True(t, repo_model.IsErrRepoTransferInProgress(err))
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	// Unknown user, transfer non-existent transfer repo id = 2
-	err = repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, &user_model.User{ID: 1000, LowerName: "user1000"}, repo2.ID, nil)
+	err = repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, &user_model.User{ID: 1000, LowerName: "user1000"}, repo2.ID, nil, false)
 	assert.Error(t, err)
 
 	// Reject transfer

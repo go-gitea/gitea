@@ -662,10 +662,25 @@ func TestActionsArtifactV4DownloadSinglePublicApi(t *testing.T) {
 	body := strings.Repeat("D", 1024)
 	assert.Equal(t, body, resp.Body.String())
 
-	// confirm artifact can not be downloaded without query
-	req = NewRequestWithBody(t, "GET", blobLocation, nil)
+	req = NewRequestWithBody(t, "GET", blobLocation, nil).AddTokenAuth(token)
 	req.URL.RawQuery = ""
-	_ = MakeRequest(t, req, http.StatusUnauthorized)
+	notFoundResp := MakeRequest(t, req, http.StatusNotFound)
+
+	otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NotEqual(t, repo.ID, otherRepo.ID)
+	for _, testCase := range []struct {
+		name string
+		path string
+	}{
+		{"other repository", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", otherRepo.FullName(), listResp.Entries[0].ID)},
+		{"missing artifact", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/0/zip/raw", repo.FullName())},
+		{"missing repository", fmt.Sprintf("/api/v1/repos/%s/does-not-exist/actions/artifacts/%d/zip/raw", repo.OwnerName, listResp.Entries[0].ID)},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			invalidResp := MakeRequest(t, NewRequestWithBody(t, "GET", testCase.path, nil), http.StatusNotFound)
+			assert.Equal(t, notFoundResp.Body.String(), invalidResp.Body.String())
+		})
+	}
 }
 
 func TestActionsArtifactV4DownloadSinglePublicApiPrivateRepo(t *testing.T) {
@@ -703,7 +718,7 @@ func TestActionsArtifactV4DownloadSinglePublicApiPrivateRepo(t *testing.T) {
 	// confirm artifact can not be downloaded without query
 	req = NewRequestWithBody(t, "GET", blobLocation, nil)
 	req.URL.RawQuery = ""
-	_ = MakeRequest(t, req, http.StatusUnauthorized)
+	_ = MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestActionsArtifactV4ListAndGetPublicApi(t *testing.T) {
@@ -781,20 +796,6 @@ func TestActionsArtifactV4DownloadArtifactCorrectRepoFound(t *testing.T) {
 	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), 22), nil).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusFound)
-}
-
-func TestActionsArtifactV4DownloadRawArtifactCorrectRepoMissingSignatureUnauthorized(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	// confirm cannot use the raw artifact endpoint even with a correct access token
-	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestActionsArtifactV4Delete(t *testing.T) {
@@ -898,7 +899,7 @@ func testActionRunAttemptArtifactV4(t *testing.T, repo *repo_model.Repository, s
 	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "artifact-attempt-1", strings.Repeat("A", 32))
 	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "artifact-shared", strings.Repeat("C", 32))
 	attempt1Names := listArtifactNamesForRunV4(t, run.ID, job1.ID, taskToken1)
-	assert.ElementsMatch(t, []string{"artifact-attempt-1", "artifact-shared"}, attempt1Names)
+	assert.Equal(t, []string{"artifact-attempt-1", "artifact-shared"}, attempt1Names)
 
 	runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 
@@ -914,7 +915,7 @@ func testActionRunAttemptArtifactV4(t *testing.T, repo *repo_model.Repository, s
 	uploadTestArtifactFileV4(t, run.ID, job2.ID, taskToken2, "artifact-attempt-2", strings.Repeat("B", 32))
 	uploadTestArtifactFileV4(t, run.ID, job2.ID, taskToken2, "artifact-shared", strings.Repeat("D", 32))
 	attempt2Names := listArtifactNamesForRunV4(t, run.ID, job2.ID, taskToken2)
-	assert.ElementsMatch(t, []string{"artifact-attempt-2", "artifact-shared"}, attempt2Names)
+	assert.Equal(t, []string{"artifact-attempt-2", "artifact-shared"}, attempt2Names)
 	assert.NotContains(t, attempt2Names, "artifact-attempt-1")
 
 	// "artifact-attempt-1" belongs to the first attempt, so the rerun token cannot access it

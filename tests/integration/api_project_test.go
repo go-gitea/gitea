@@ -30,6 +30,7 @@ type projectScope struct {
 	issueID int64
 	// a second such issue, deliberately left off the board
 	foreignIssueID int64
+	publicReader   string
 }
 
 func TestAPIProjects(t *testing.T) {
@@ -38,15 +39,17 @@ func TestAPIProjects(t *testing.T) {
 	// user2 owns repo1 and is on org3's Owners team, so one token covers all three scopes
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization,
 		auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
-	// user5 is signed in but is neither an org member nor a repo1 collaborator, and is scoped
+	// user8 is signed in but is neither an org member nor a repo1 collaborator, and is scoped
 	// generously so that permissions rather than token scopes are what denies below
-	outsider := getUserToken(t, "user5", auth_model.AccessTokenScopeWriteIssue,
+	outsider := getUserToken(t, "user8", auth_model.AccessTokenScopeWriteIssue,
 		auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeReadUser)
 
+	publicOnlyOutsider := getUserToken(t, "user8", auth_model.AccessTokenScopeReadIssue,
+		auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopePublicOnly)
 	for _, scope := range []projectScope{
-		{"Repository", "/api/v1/repos/user2/repo1/projects", 1, 11},
-		{"Organization", "/api/v1/orgs/org3/projects", 16, 17},
-		{"User", "/api/v1/user/projects", 1, 11},
+		{"Repository", "/api/v1/repos/user2/repo1/projects", 1, 11, ""},
+		{"Organization", "/api/v1/orgs/org3/projects", 16, 17, publicOnlyOutsider},
+		{"User", "/api/v1/user/projects", 1, 11, ""},
 	} {
 		t.Run(scope.name, func(t *testing.T) {
 			testProjectLifecycle(t, scope, token)
@@ -215,6 +218,10 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	issues := *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.Issue{})
 	require.Len(t, issues, 1)
 	assert.Equal(t, scope.issueID, issues[0].ID)
+	if scope.publicReader != "" {
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/columns/%d/issues", projectURL, columnIDs[1])).AddTokenAuth(scope.publicReader)
+		assert.Len(t, *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.Issue{}), 1)
+	}
 
 	// the sibling column must not report the same issue
 	req = NewRequest(t, "GET", fmt.Sprintf("%s/columns/%d/issues", projectURL, columnIDs[0])).AddTokenAuth(token)
@@ -262,8 +269,7 @@ func testAPIProjectPermissions(t *testing.T, ownerToken, outsiderToken string) {
 	// fixture project 1 belongs to repo1, so this needs no project of its own
 	const projectURL = "/api/v1/repos/user2/repo1/projects/1"
 
-	title := "hijacked"
-	req := NewRequestWithJSON(t, "PATCH", projectURL, &api.EditProjectOption{Title: &title}).AddTokenAuth(outsiderToken)
+	req := NewRequestWithJSON(t, "PATCH", projectURL, &api.EditProjectOption{Title: new("hijacked")}).AddTokenAuth(outsiderToken)
 	MakeRequest(t, req, http.StatusForbidden)
 
 	MakeRequest(t, NewRequest(t, "DELETE", projectURL).AddTokenAuth(outsiderToken), http.StatusForbidden)
@@ -289,7 +295,7 @@ func testAPIProjectVisibility(t *testing.T, outsider string) {
 		auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadIssue,
 		auth_model.AccessTokenScopePublicOnly)
 	for _, url := range []string{"/api/v1/orgs/private_org35/projects", "/api/v1/users/private_org35/projects"} {
-		MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(publicOnly), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(publicOnly), http.StatusNotFound)
 	}
 
 	// a public org's board is readable by an outsider but not writable

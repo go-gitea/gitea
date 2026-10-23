@@ -6,6 +6,7 @@ package swift
 import (
 	"archive/zip"
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -54,6 +55,19 @@ func TestParsePackage(t *testing.T) {
 		assert.ErrorIs(t, err, ErrManifestFileTooLarge)
 	})
 
+	t.Run("TooManyManifestFiles", func(t *testing.T) {
+		entries := make([][2]string, 0, maxManifestFiles+1)
+		entries = append(entries, [2]string{"Package.swift", "// swift-tools-version:5.7"})
+		for i := range maxManifestFiles {
+			entries = append(entries, [2]string{fmt.Sprintf("Package@swift-5.%d.swift", i), "// swift-tools-version:5.7"})
+		}
+
+		data := writeOrderedZipArchive(entries)
+		p, err := ParsePackage(bytes.NewReader(data.Bytes()), int64(data.Len()), nil)
+		assert.Nil(t, p)
+		assert.ErrorIs(t, err, ErrManifestFilesTooLarge)
+	})
+
 	t.Run("WithoutMetadata", func(t *testing.T) {
 		content1 := "// swift-tools-version:5.7\n//\n//  Package.swift"
 		content2 := "// swift-tools-version:5.6\n//\n//  Package@swift-5.6.swift"
@@ -85,6 +99,7 @@ func TestParsePackage(t *testing.T) {
 		nestedManifest := "// swift-tools-version:6.3\n//\n//  nested fixture package"
 
 		data := writeOrderedZipArchive([][2]string{
+			{"/Package.swift", nestedManifest},
 			{"Package.swift", rootManifest},
 			{"Package@swift-5.5.swift", rootAltManifest},
 			{"Package@swift-5.7.1.swift", rootPatchAltManifest},

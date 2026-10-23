@@ -12,12 +12,11 @@ import (
 	"fmt"
 	"hash"
 	"strconv"
+	"strings"
 	"time"
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
-
-	"github.com/dustin/go-humanize"
 )
 
 // EncodeSha256 string to sha256 hex value.
@@ -92,11 +91,6 @@ func CreateTimeLimitCode[T time.Time | string](data string, minutes int, startTi
 	return code
 }
 
-// FileSize calculates the file size and generate user-friendly string.
-func FileSize(s int64) string {
-	return humanize.IBytes(uint64(s))
-}
-
 // StringsToInt64s converts a slice of string to a slice of int64.
 func StringsToInt64s(strs []string) ([]int64, error) {
 	if strs == nil {
@@ -123,4 +117,8 @@ func Int64sToStrings(ints []int64) []string {
 		strs[i] = strconv.FormatInt(ints[i], 10)
 	}
 	return strs
+}
+
+func JoinInt64s(ints []int64, sep string) string {
+	return strings.Join(Int64sToStrings(ints), sep)
 }

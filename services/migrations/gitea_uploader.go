@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -30,10 +31,9 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/uri"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/gitdiff"
 	"gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
-
-	"github.com/google/uuid"
 )
 
 var _ base.Uploader = &GiteaLocalUploader{}
@@ -278,17 +278,20 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 			release.TargetCommitish = ""
 		}
 
+		publishedAt := util.Iif(release.Published.IsZero(), release.Created, release.Published)
+
 		rel := repo_model.Release{
-			RepoID:       g.repo.ID,
-			TagName:      release.TagName,
-			LowerTagName: strings.ToLower(release.TagName),
-			Target:       release.TargetCommitish,
-			Title:        release.Name,
-			Note:         release.Body,
-			IsDraft:      release.Draft,
-			IsPrerelease: release.Prerelease,
-			IsTag:        false,
-			CreatedUnix:  timeutil.TimeStamp(release.Created.Unix()),
+			RepoID:        g.repo.ID,
+			TagName:       release.TagName,
+			LowerTagName:  strings.ToLower(release.TagName),
+			Target:        release.TargetCommitish,
+			Title:         release.Name,
+			Note:          release.Body,
+			IsDraft:       release.Draft,
+			IsPrerelease:  release.Prerelease,
+			IsTag:         false,
+			CreatedUnix:   timeutil.TimeStamp(release.Created.Unix()),
+			PublishedUnix: util.Iif(release.Draft, 0, timeutil.TimeStamp(publishedAt.Unix())),
 		}
 
 		if err := g.remapUser(ctx, release, &rel); err != nil {
@@ -903,10 +906,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			// SECURITY: The TreePath must be cleaned! use relative path
 			comment.TreePath = util.PathJoinRel(comment.TreePath)
 
-			patch, _ := git.GetFileDiffCutAroundLine(ctx,
-				g.gitRepo, pr.MergeBase, headCommitID, comment.TreePath,
-				int64((&issues_model.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
-			)
+			patch, _ := gitdiff.GetCodeCommentPatch(ctx, g.gitRepo, pr.MergeBase, headCommitID, comment.TreePath, int64(line+comment.Position-1))
 
 			if comment.CreatedAt.IsZero() {
 				comment.CreatedAt = review.CreatedAt
@@ -916,7 +916,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			}
 
 			objectFormat := git.ObjectFormatFromName(g.repo.ObjectFormatName)
-			if !objectFormat.IsValid(comment.CommitID) {
+			if !git.IsStringValidObjectID(objectFormat, comment.CommitID) {
 				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
 				comment.CommitID = headCommitID
 			}
@@ -946,7 +946,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 
 // Rollback when migrating failed, this will rollback all the changes.
 func (g *GiteaLocalUploader) Rollback() error {
-	if g.repo != nil && g.repo.ID > 0 {
+	if g.repo != nil && g.repo.ID > 0 && g.gitRepo != nil {
 		g.gitRepo.Close()
 
 		// do not delete the repository, otherwise the end users won't be able to see the last error message

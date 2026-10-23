@@ -12,12 +12,17 @@ import (
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
 
-const LockFile = "terraform.lock"
+const (
+	LockFile = "terraform.lock"
+
+	maxLockInfoSize = 64 * 1024
+)
 
 // LockInfo is the metadata for a terraform lock.
 type LockInfo struct {
@@ -36,7 +41,7 @@ func (l *LockInfo) IsLocked() bool {
 
 func ParseLockInfo(r io.Reader) (*LockInfo, error) {
 	var lock LockInfo
-	err := json.NewDecoder(r).Decode(&lock)
+	err := json.NewDecoder(packages.NewLimitedReader(r, maxLockInfoSize)).Decode(&lock)
 	if err != nil {
 		return nil, err
 	}

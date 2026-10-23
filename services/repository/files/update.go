@@ -13,6 +13,7 @@ import (
 	"time"
 
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -667,7 +668,11 @@ func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, gi
 		protectedBranch.Repo = repo
 		globUnprotected := protectedBranch.GetUnprotectedFilePatterns()
 		globProtected := protectedBranch.GetProtectedFilePatterns()
-		canUserPush := protectedBranch.CanUserPush(ctx, doer)
+		perm, err := access.GetDoerRepoPermission(ctx, repo, doer)
+		if err != nil {
+			return err
+		}
+		canUserPush := protectedBranch.CanUserPush(ctx, doer, perm)
 		for _, treePath := range treePaths {
 			isUnprotectedFile := false
 			if len(globUnprotected) != 0 {

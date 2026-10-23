@@ -8,19 +8,20 @@ import (
 	"context"
 	"fmt"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -39,28 +40,27 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 	}
 
 	// wiki's object format should be the same as repository's
-	if err := git.InitRepository(ctx, repo.WikiStorageRepo(), repo.ObjectFormatName); err != nil {
+	if err := git.InitRepository(ctx, repo.WikiStorageRepo(), repo.ObjectFormatName, repo.DefaultWikiBranch); err != nil {
 		return fmt.Errorf("InitRepository: %w", err)
 	} else if err = git.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
-	} else if err = git.SetDefaultBranch(ctx, repo.WikiStorageRepo(), repo.DefaultWikiBranch); err != nil {
-		return fmt.Errorf("unable to set default wiki branch to %q: %w", repo.DefaultWikiBranch, err)
 	}
 	return nil
 }
 
 // prepareGitPath try to find a suitable file path with file name by the given raw wiki name.
+// An empty defaultWikiBranch means the branch doesn't exist yet.
 // return: existence, prepared file path with name, error
 func prepareGitPath(ctx context.Context, gitRepo *git.Repository, defaultWikiBranch string, wikiPath WebPath) (bool, string, error) {
 	unescaped := string(wikiPath) + ".md"
 	gitPath := WebPathToGitPath(wikiPath)
+	if defaultWikiBranch == "" {
+		return false, gitPath, nil
+	}
 
 	// Look for both files
 	filesInIndex, err := gitRepo.LsTree(ctx, defaultWikiBranch, unescaped, gitPath)
 	if err != nil {
-		if gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) {
-			return false, gitPath, nil // branch doesn't exist
-		}
 		log.Error("Wiki LsTree failed, err: %v", err)
 		return false, gitPath, err
 	}
@@ -136,7 +136,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		}
 	}
 
-	isWikiExist, newWikiPath, err := prepareGitPath(ctx, gitRepo, repo.DefaultWikiBranch, newWikiName)
+	isWikiExist, newWikiPath, err := prepareGitPath(ctx, gitRepo, cloneOpts.Branch, newWikiName)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		isOldWikiExist := true
 		oldWikiPath := newWikiPath
 		if oldWikiName != newWikiName {
-			isOldWikiExist, oldWikiPath, err = prepareGitPath(ctx, gitRepo, repo.DefaultWikiBranch, oldWikiName)
+			isOldWikiExist, oldWikiPath, err = prepareGitPath(ctx, gitRepo, cloneOpts.Branch, oldWikiName)
 			if err != nil {
 				return err
 			}
@@ -374,6 +374,8 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
+
+	audit.Record(ctx, audit_model.RepositoryWikiDelete, repo)
 
 	return nil
 }

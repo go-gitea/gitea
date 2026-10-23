@@ -612,10 +612,6 @@ func EditProject(ctx *context.APIContext) {
 	}
 
 	form := web.GetForm[*api.EditProjectOption](ctx)
-	if form.Title != nil && util.IsEmptyString(*form.Title) {
-		ctx.APIError(http.StatusUnprocessableEntity, "title must not be empty")
-		return
-	}
 	opts := project_service.UpdateProjectOptions{
 		Title:       optional.FromPtr(form.Title),
 		Description: optional.FromPtr(form.Description),
@@ -1187,10 +1183,6 @@ func EditProjectColumn(ctx *context.APIContext) {
 
 	form := web.GetForm[*api.EditProjectColumnOption](ctx)
 	if form.Title != nil {
-		if util.IsEmptyString(*form.Title) {
-			ctx.APIError(http.StatusUnprocessableEntity, "title must not be empty")
-			return
-		}
 		column.Title = *form.Title
 	}
 	if form.Color != nil {
@@ -1694,11 +1686,10 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	} else {
 		// an owner-level board spans repositories, so filter to what this doer may see
 		issuesOpts.Owner = scope.Owner
-		issuesOpts.Doer = ctx.Doer
-		issuesOpts.AllPublic = ctx.Doer == nil
-		if ctx.PublicOnly {
+		if user_model.DoerCanViewPrivate(ctx.Doer) {
+			issuesOpts.Doer = ctx.Doer
+		} else {
 			issuesOpts.AllPublic = true
-			issuesOpts.Doer = nil // a public-only token must not reach the doer's private repos
 		}
 	}
 

@@ -1711,6 +1711,21 @@
         },
         "description": "APIString is a string response"
       },
+      "unauthorized": {
+        "description": "APIUnauthorizedError is an unauthorized error response",
+        "headers": {
+          "message": {
+            "schema": {
+              "type": "string"
+            }
+          },
+          "url": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "validationError": {
         "description": "APIValidationError is error format response related to input validation",
         "headers": {
@@ -2902,6 +2917,20 @@
             "type": "string",
             "x-go-name": "Created"
           },
+          "deletion_allowlist_teams": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "DeletionAllowlistTeams"
+          },
+          "deletion_allowlist_usernames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "DeletionAllowlistUsernames"
+          },
           "dismiss_stale_approvals": {
             "type": "boolean",
             "x-go-name": "DismissStaleApprovals"
@@ -2913,6 +2942,14 @@
           "enable_bypass_allowlist": {
             "type": "boolean",
             "x-go-name": "EnableBypassAllowlist"
+          },
+          "enable_deletion": {
+            "type": "boolean",
+            "x-go-name": "EnableDeletion"
+          },
+          "enable_deletion_allowlist": {
+            "type": "boolean",
+            "x-go-name": "EnableDeletionAllowlist"
           },
           "enable_force_push": {
             "type": "boolean",
@@ -3802,6 +3839,20 @@
             "type": "array",
             "x-go-name": "BypassAllowlistUsernames"
           },
+          "deletion_allowlist_teams": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "DeletionAllowlistTeams"
+          },
+          "deletion_allowlist_usernames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "DeletionAllowlistUsernames"
+          },
           "dismiss_stale_approvals": {
             "type": "boolean",
             "x-go-name": "DismissStaleApprovals"
@@ -3813,6 +3864,14 @@
           "enable_bypass_allowlist": {
             "type": "boolean",
             "x-go-name": "EnableBypassAllowlist"
+          },
+          "enable_deletion": {
+            "type": "boolean",
+            "x-go-name": "EnableDeletion"
+          },
+          "enable_deletion_allowlist": {
+            "type": "boolean",
+            "x-go-name": "EnableDeletionAllowlist"
           },
           "enable_force_push": {
             "type": "boolean",
@@ -3954,6 +4013,26 @@
         },
         "required": [
           "new_branch_name"
+        ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CreateDeployKeyTokenOption": {
+        "properties": {
+          "read_only": {
+            "description": "Describe if the token has only read access or read/write",
+            "type": "boolean",
+            "x-go-name": "ReadOnly"
+          },
+          "title": {
+            "description": "Title of the token to add",
+            "type": "string",
+            "uniqueItems": true,
+            "x-go-name": "Title"
+          }
+        },
+        "required": [
+          "title"
         ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
@@ -4212,7 +4291,6 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "CreateKeyOption": {
-        "description": "CreateKeyOption options when creating a key",
         "properties": {
           "key": {
             "description": "An armored SSH key to add",
@@ -4864,7 +4942,12 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/RepoWritePermission"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepoWritePermission"
+              }
+            ],
+            "description": "All units have this permission (read/write/admin)"
           },
           "units": {
             "deprecated": true,
@@ -4941,7 +5024,6 @@
             "x-go-name": "FullName"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
@@ -5176,10 +5258,9 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "DeployKey": {
-        "description": "DeployKey a deploy key",
         "properties": {
           "created_at": {
-            "description": "Created is the time when the deploy key was added",
+            "description": "Created is the time when the deploy-key was added",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -5190,7 +5271,7 @@
             "x-go-name": "Fingerprint"
           },
           "id": {
-            "description": "ID is the unique identifier for the deploy key",
+            "description": "ID is the unique identifier for the deploy-key",
             "format": "int64",
             "type": "integer",
             "x-go-name": "ID"
@@ -5206,6 +5287,15 @@
             "type": "integer",
             "x-go-name": "KeyID"
           },
+          "key_type": {
+            "description": "Type tells whether the key authenticates over SSH or with a token over HTTPS",
+            "enum": [
+              "ssh",
+              "token"
+            ],
+            "type": "string",
+            "x-go-name": "KeyType"
+          },
           "read_only": {
             "description": "ReadOnly indicates if the key has read-only access",
             "type": "boolean",
@@ -5219,8 +5309,13 @@
             "type": "string",
             "x-go-name": "Title"
           },
+          "token": {
+            "description": "Token is the plaintext token of an HTTPS key, only returned when it is created",
+            "type": "string",
+            "x-go-name": "Token"
+          },
           "url": {
-            "description": "URL is the API URL for this deploy key",
+            "description": "URL is the API URL for this deploy-key",
             "format": "uri",
             "type": "string",
             "x-go-name": "URL"
@@ -5321,6 +5416,20 @@
             "type": "array",
             "x-go-name": "BypassAllowlistUsernames"
           },
+          "deletion_allowlist_teams": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "DeletionAllowlistTeams"
+          },
+          "deletion_allowlist_usernames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "DeletionAllowlistUsernames"
+          },
           "dismiss_stale_approvals": {
             "type": "boolean",
             "x-go-name": "DismissStaleApprovals"
@@ -5332,6 +5441,14 @@
           "enable_bypass_allowlist": {
             "type": "boolean",
             "x-go-name": "EnableBypassAllowlist"
+          },
+          "enable_deletion": {
+            "type": "boolean",
+            "x-go-name": "EnableDeletion"
+          },
+          "enable_deletion_allowlist": {
+            "type": "boolean",
+            "x-go-name": "EnableDeletionAllowlist"
           },
           "enable_force_push": {
             "type": "boolean",
@@ -5445,17 +5562,15 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "EditDeadlineOption": {
-        "description": "EditDeadlineOption options for creating a deadline",
+        "description": "EditDeadlineOption options for editing a deadline",
         "properties": {
           "due_date": {
+            "description": "Deadline is the updated due date for the issue or pull request, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
           }
         },
-        "required": [
-          "due_date"
-        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -5556,6 +5671,7 @@
             "x-go-name": "ContentVersion"
           },
           "due_date": {
+            "description": "Deadline is the updated due date for the issue, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -5635,7 +5751,7 @@
             "x-go-name": "Description"
           },
           "due_on": {
-            "description": "Deadline is the updated due date for the milestone",
+            "description": "Deadline is the due date for the milestone, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -5785,6 +5901,7 @@
             "x-go-name": "ContentVersion"
           },
           "due_date": {
+            "description": "Deadline is the updated due date for the pull request, use null or empty string to remove the deadline",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
@@ -6050,6 +6167,11 @@
             "type": "string",
             "x-go-name": "ProjectsMode"
           },
+          "squash_merge_commit_message": {
+            "description": "set the default squash merge commit message body: \"PR_BODY\", \"COMMIT_MESSAGES\", or \"BLANK\".",
+            "type": "string",
+            "x-go-name": "SquashMergeCommitMessage"
+          },
           "template": {
             "description": "either `true` to make this repository a template or `false` to make it a normal repository",
             "type": "boolean",
@@ -6115,7 +6237,12 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/RepoWritePermission"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepoWritePermission"
+              }
+            ],
+            "description": "All units have this permission (read/write/admin)"
           },
           "units": {
             "deprecated": true,
@@ -6219,7 +6346,6 @@
             "x-go-name": "Location"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
@@ -6256,6 +6382,14 @@
             "type": "integer",
             "x-go-name": "SourceID"
           },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserTypeString"
+              }
+            ],
+            "description": "The user type"
+          },
           "visibility": {
             "allOf": [
               {
@@ -6271,8 +6405,7 @@
           }
         },
         "required": [
-          "source_id",
-          "login_name"
+          "source_id"
         ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
@@ -7354,7 +7487,7 @@
         "description": "IssueLabelsOption a collection of labels",
         "properties": {
           "labels": {
-            "description": "Labels can be a list of integers representing label IDs\nor a list of strings representing label names",
+            "description": "Labels can be a list of integers representing label IDs\nor a list of strings representing label names.\nIf a repository label and an organization label share a name,\nthe repository label is used.",
             "items": {},
             "type": "array",
             "x-go-name": "Labels"
@@ -7815,7 +7948,7 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "Milestone": {
-        "description": "Milestone milestone is a collection of issues on one repository",
+        "description": "Milestone is a collection of issues on one repository",
         "properties": {
           "closed_at": {
             "format": "date-time",
@@ -9748,6 +9881,10 @@
             "type": "integer",
             "x-go-name": "Size"
           },
+          "squash_merge_commit_message": {
+            "type": "string",
+            "x-go-name": "SquashMergeCommitMessage"
+          },
           "ssh_url": {
             "format": "uri",
             "type": "string",
@@ -10643,7 +10780,6 @@
             "x-go-name": "UserName"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
@@ -10668,6 +10804,14 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "StarredRepos"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserTypeString"
+              }
+            ],
+            "description": "the user type"
           },
           "visibility": {
             "allOf": [
@@ -10824,6 +10968,14 @@
         },
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
+      },
+      "UserTypeString": {
+        "enum": [
+          "User",
+          "Organization",
+          "Bot"
+        ],
+        "type": "string"
       },
       "VisibilityString": {
         "enum": [
@@ -11051,7 +11203,7 @@
         "operationId": "listAdminWorkflowJobs",
         "parameters": [
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -11278,7 +11430,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -11664,6 +11816,81 @@
         ]
       }
     },
+    "/admin/packages": {
+      "get": {
+        "operationId": "adminListPackages",
+        "parameters": [
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "package type filter",
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "enum": [
+                "alpine",
+                "cargo",
+                "chef",
+                "composer",
+                "conan",
+                "conda",
+                "container",
+                "cran",
+                "debian",
+                "generic",
+                "go",
+                "helm",
+                "maven",
+                "npm",
+                "nuget",
+                "pub",
+                "pypi",
+                "rpm",
+                "rubygems",
+                "swift",
+                "terraform",
+                "vagrant"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "name filter",
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PackageList"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          }
+        },
+        "summary": "List all packages",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/admin/unadopted": {
       "get": {
         "operationId": "adminUnadoptedList",
@@ -11685,9 +11912,9 @@
             }
           },
           {
-            "description": "pattern of repositories to search for",
+            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
             "in": "query",
-            "name": "pattern",
+            "name": "query",
             "schema": {
               "type": "string"
             }
@@ -11787,7 +12014,7 @@
         "operationId": "adminSearchUsers",
         "parameters": [
           {
-            "description": "ID of the user's login source to search for",
+            "description": "ID of the user's login source to search for, 0 means the local users",
             "in": "query",
             "name": "source_id",
             "schema": {
@@ -11930,6 +12157,9 @@
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
+          "409": {
+            "$ref": "#/components/responses/error"
+          },
           "422": {
             "$ref": "#/components/responses/validationError"
           }
@@ -12013,6 +12243,9 @@
           },
           "403": {
             "$ref": "#/components/responses/forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/error"
           },
           "422": {
             "$ref": "#/components/responses/validationError"
@@ -12567,6 +12800,7 @@
           },
           {
             "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned.",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -12574,10 +12808,12 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "filter notifications by subject type",
+            "explode": true,
             "in": "query",
             "name": "subject-type",
             "schema": {
@@ -12591,7 +12827,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
@@ -12660,6 +12897,7 @@
           },
           {
             "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread.",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -12667,7 +12905,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Status to mark notifications as, Defaults to read.",
@@ -12983,7 +13222,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -13247,7 +13486,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -17025,7 +17264,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -17460,7 +17699,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -17832,7 +18071,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -18016,7 +18255,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -19163,7 +19402,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -19335,6 +19574,7 @@
           },
           {
             "description": "subpath of the repository to download",
+            "explode": true,
             "in": "query",
             "name": "path",
             "schema": {
@@ -19342,7 +19582,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           }
         ],
         "responses": {
@@ -20777,6 +21018,22 @@
                 "patch"
               ],
               "type": "string"
+            }
+          },
+          {
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "in": "query",
+            "name": "verification",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "in": "query",
+            "name": "files",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -23585,6 +23842,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete an issue",
@@ -23692,6 +23952,9 @@
           },
           "412": {
             "$ref": "#/components/responses/error"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.",
@@ -24911,6 +25174,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Remove all labels from an issue",
@@ -25014,6 +25280,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Add a label to an issue",
@@ -25072,6 +25341,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Replace an issue's labels",
@@ -25135,6 +25407,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Remove a label from an issue",
@@ -26447,6 +26722,56 @@
         ]
       }
     },
+    "/repos/{owner}/{repo}/keys/tokens": {
+      "post": {
+        "operationId": "repoCreateDeployToken",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeployKeyTokenOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/DeployKey"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Add a deploy token to a repository, it authenticates git over HTTPS",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
     "/repos/{owner}/{repo}/keys/{id}": {
       "delete": {
         "operationId": "repoDeleteKey",
@@ -26971,6 +27296,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/error"
           }
         },
         "summary": "Merge a branch from upstream",
@@ -27346,6 +27674,7 @@
           },
           {
             "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -27353,10 +27682,12 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "filter notifications by subject type",
+            "explode": true,
             "in": "query",
             "name": "subject-type",
             "schema": {
@@ -27370,7 +27701,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
@@ -27448,6 +27780,7 @@
           },
           {
             "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread.",
+            "explode": true,
             "in": "query",
             "name": "status-types",
             "schema": {
@@ -27455,7 +27788,8 @@
                 "type": "string"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Status to mark notifications as. Defaults to read.",
@@ -28583,6 +28917,7 @@
           },
           {
             "description": "Label IDs",
+            "explode": true,
             "in": "query",
             "name": "labels",
             "schema": {
@@ -28591,7 +28926,8 @@
                 "type": "integer"
               },
               "type": "array"
-            }
+            },
+            "style": "form"
           },
           {
             "description": "Filter by pull request author",
@@ -28984,6 +29320,9 @@
         "responses": {
           "201": {
             "$ref": "#/components/responses/PullRequest"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
           },
           "403": {
             "$ref": "#/components/responses/forbidden"
@@ -32223,6 +32562,9 @@
           "204": {
             "$ref": "#/components/responses/empty"
           },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/notFound"
           },
@@ -32319,6 +32661,9 @@
         "responses": {
           "204": {
             "$ref": "#/components/responses/empty"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -32567,6 +32912,9 @@
           },
           "422": {
             "$ref": "#/components/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Replace list of topics for a repository",
@@ -32616,6 +32964,9 @@
           },
           "422": {
             "$ref": "#/components/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a topic from a repository",
@@ -32663,6 +33014,9 @@
           },
           "422": {
             "$ref": "#/components/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Add a topic to a repository",
@@ -33896,7 +34250,7 @@
         "operationId": "getUserWorkflowJobs",
         "parameters": [
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -34123,7 +34477,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -34806,6 +35160,12 @@
           "201": {
             "$ref": "#/components/responses/EmailList"
           },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "409": {
+            "$ref": "#/components/responses/error"
+          },
           "422": {
             "$ref": "#/components/responses/validationError"
           }
@@ -34970,6 +35330,12 @@
           "200": {
             "$ref": "#/components/responses/string"
           },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/notFound"
           }
@@ -34986,6 +35352,12 @@
         "responses": {
           "201": {
             "$ref": "#/components/responses/GPGKey"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -35024,6 +35396,12 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/GPGKeyList"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           }
         },
         "summary": "List the authenticated user's GPG keys",
@@ -35046,6 +35424,12 @@
         "responses": {
           "201": {
             "$ref": "#/components/responses/GPGKey"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -35079,6 +35463,9 @@
           "204": {
             "$ref": "#/components/responses/empty"
           },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
@@ -35108,6 +35495,12 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/GPGKey"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -35290,6 +35683,12 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/PublicKeyList"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           }
         },
         "summary": "List the authenticated user's public keys",
@@ -35312,6 +35711,12 @@
         "responses": {
           "201": {
             "$ref": "#/components/responses/PublicKey"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "422": {
             "$ref": "#/components/responses/validationError"
@@ -35342,6 +35747,9 @@
           "204": {
             "$ref": "#/components/responses/empty"
           },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
@@ -35371,6 +35779,12 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/PublicKey"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"

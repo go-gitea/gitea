@@ -76,7 +76,7 @@
 
 		{{template "base/paginate" .}}
 
-		<div class="ui g-modal-confirm modal" id="change-email-modal">
+		<dialog class="modal-dialog" id="change-email-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "admin.emails.change_email_header"}}
 			</div>
@@ -95,7 +95,7 @@
 
 				{{template "base/modal_actions_confirm" .}}
 			</form>
-		</div>
+		</dialog>
 	</div>
 
 {{template "admin/layout_footer" .}}

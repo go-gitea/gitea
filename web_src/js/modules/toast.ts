@@ -44,12 +44,11 @@ type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast};
 
 /** See https://github.com/apvarun/toastify-js#api for options */
 function showToast(message: string, level: Intent = 'info', {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast | null {
-  const parent = document.querySelector('.ui.dimmer.active') ?? document.body;
   const duplicateKey = preventDuplicates ? (typeof preventDuplicates === 'string' ? preventDuplicates : `${level}-${message}`) : '';
 
   // prevent showing duplicate toasts with the same level and message, and give visual feedback for end users
   if (preventDuplicates) {
-    const toastEl = parent.querySelector(`:scope > .toastify.on[data-toast-unique-key="${CSS.escape(duplicateKey)}"]`);
+    const toastEl = document.body.querySelector(`:scope > .toastify.on[data-toast-unique-key="${CSS.escape(duplicateKey)}"]`);
     if (toastEl) {
       const toastDupNumEl = toastEl.querySelector('.toast-duplicate-number')!;
       showElem(toastDupNumEl);
@@ -62,7 +61,6 @@ function showToast(message: string, level: Intent = 'info', {gravity, position, 
   const {icon, duration: levelDuration} = levels[level];
   const bodyHtml = useHtmlBody ? message : htmlEscape(message);
   const toast = Toastify({
-    selector: parent,
     text: html`
       <div class='toast-icon'>${svgRaw(icon)}</div>
       <div class='toast-body'><span class="toast-duplicate-number tw-hidden">1</span>${htmlRaw(bodyHtml)}</div>
@@ -102,10 +100,6 @@ export function showErrorToast(message: string, opts?: ToastOpts): Toast | null 
 
 function hideToastByElement(el: Element): void {
   (el as ToastifyElement)?._giteaToastifyInstance?.hideToast();
-}
-
-export function hideToastsFrom(parent: Element): void {
-  queryElems(parent, ':scope > .toastify.on', hideToastByElement);
 }
 
 export function hideToastsAll(): void {

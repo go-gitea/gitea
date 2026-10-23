@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/password"
@@ -16,6 +17,8 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
@@ -60,6 +63,9 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Email"] = email
 
 	u, err := user_model.GetUserByEmail(ctx, email)
+	if err == nil && !u.IsIndividual() {
+		err = user_model.ErrUserNotExist{}
+	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
@@ -85,6 +91,10 @@ func ForgotPasswdPost(ctx *context.Context) {
 	}
 
 	mailer.SendResetPasswordMail(u)
+
+	// the request is unauthenticated, so the affected account is the only actor
+	// we can name; the recorded IP address carries the forensic signal
+	audit.RecordAs(ctx, u, audit_model.UserPasswordResetRequest, u)
 
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 		log.Error("Set cache(MailResendLimit) fail: %v", err)
@@ -273,10 +283,9 @@ func MustChangePasswordPost(ctx *context.Context) {
 		return
 	}
 
-	// Make sure only requests for users who are eligible to change their password via
-	// this method passes through
-	if !ctx.Doer.MustChangePassword {
-		ctx.ServerError("MustUpdatePassword", errors.New("cannot update password. Please visit the settings page"))
+	if !common.CheckSignedInUser(ctx.Doer, ctx.Session).NeedChangePassword {
+		log.Debug("User %s attempted to access the must change password page, but they are not required to change their password", ctx.Doer.Name)
+		ctx.NotFound(nil)
 		return
 	}
 

@@ -9,33 +9,50 @@ import (
 	"reflect"
 	"strings"
 
-	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
-
-	"gitea.com/go-chi/binding"
+	"gitea.dev/modules/web/binding"
 )
 
-// ValidateContext is a special context for form validation middleware. It may be different from other contexts.
-type ValidateContext struct {
-	Locale translation.Locale
-	Data   reqctx.ContextData
-	Req    *http.Request
-	Resp   http.ResponseWriter
-}
+type (
+	ValidateContext      = structs.ValidateContext
+	FormDefaultValidator = structs.FormDefaultValidator
+)
 
-// Form form binding interface
 type Form interface {
-	binding.Validator
+	Validate(ctx *ValidateContext, errs validation.BindingErrors) validation.BindingErrors
 }
 
-func init() {
-	binding.SetNameMapper(util.ToSnakeCase)
+// BindFormAny binds the request to the form of type T and returns the pointer to the form and any binding errors.
+// Only the rules defined in the struct field's "binding" tag are applied.
+// It can bind to any struct, doesn't call the struct's "Form.Validate" interface.
+func BindFormAny[T any](req *http.Request, binder *binding.Binder, _ T) (ret *T, _ validation.BindingErrors) {
+	typ := reflect.TypeFor[T]()
+	if typ.Kind() != reflect.Struct {
+		panic("BindFormAny: template type must be a struct and the function returns its pointer")
+	}
+	form := new(T)
+	errs := binder.Bind(req, form)
+	return form, errs
 }
 
-// AssignForm assign form values back to the template data.
+// BindFormValidate binds the request to the form of type T which must be a pointer implementing Form interface
+// After binding, the Form.Validate is also called so we can do more validation checks
+func BindFormValidate[T Form](req *http.Request, binder *binding.Binder) (ret T, _ validation.BindingErrors) {
+	locale := req.Context().Value(translation.ContextKey).(translation.Locale) //nolint:forcetypeassert // must exist
+	ptrType := reflect.TypeFor[T]()
+	structType := ptrType.Elem()
+	ptrVal := reflect.New(structType)
+	form := ptrVal.Interface().(Form) //nolint:forcetypeassert // must implement Form
+	errs := binder.Bind(req, form)
+	errs = form.Validate(&ValidateContext{Locale: locale}, errs)
+	return form.(T), errs //nolint:forcetypeassert // must be type T
+}
+
+// AssignForm assign form values back to the template data, the template variable names are in "snake_case"
 func AssignForm(form any, data map[string]any) {
 	typ := reflect.TypeOf(form)
 	val := reflect.ValueOf(form)
@@ -70,12 +87,7 @@ func getRuleBody(field reflect.StructField, ruleName string) string {
 	return ""
 }
 
-func AddValidationError(errs binding.Errors, fieldName, errorMsg string) binding.Errors {
-	errs.Add([]string{fieldName}, validation.ErrCustomMessage, errorMsg)
-	return errs
-}
-
-func getFieldDisplayNameForMessage(f Form, l translation.Locale, fieldNames []string) (field reflect.StructField, ok bool, displayName string) {
+func getFieldDisplayNameForMessage(f any, l translation.Locale, fieldNames []string) (field reflect.StructField, ok bool, displayName string) {
 	if len(fieldNames) == 0 {
 		return field, false, ""
 	}
@@ -84,9 +96,17 @@ func getFieldDisplayNameForMessage(f Form, l translation.Locale, fieldNames []st
 		typ = typ.Elem()
 	}
 
-	field, fieldExists := typ.FieldByName(fieldNames[0])
+	fieldName := fieldNames[0]
+	field, fieldExists := typ.FieldByName(fieldName)
 	if !fieldExists {
-		return field, false, ""
+		for tryField := range typ.Fields() {
+			if util.ToSnakeCase(tryField.Name) == fieldName || tryField.Tag.Get("form") == fieldName {
+				field, fieldExists = tryField, true
+			}
+		}
+		if !fieldExists {
+			return field, false, ""
+		}
 	}
 
 	if field.Tag.Get("form") == "-" {
@@ -95,15 +115,16 @@ func getFieldDisplayNameForMessage(f Form, l translation.Locale, fieldNames []st
 
 	trKeyFallback := "form." + field.Name
 	trKey := util.IfZero(field.Tag.Get("locale"), trKeyFallback)
-	displayName = l.TrString(trKey)
-	if displayName == trKeyFallback {
+	if l.HasKey(trKey) {
+		displayName = l.TrString(trKey)
+	} else {
 		displayName = field.Name
 	}
 	return field, true, displayName
 }
 
-func BuildValidationErrorForUser(f Form, l translation.Locale, bindingErrs binding.Errors) (errorMessage, errorFieldName string, fieldNames []string) {
-	if bindingErrs.Len() == 0 {
+func BuildValidationErrorForUser(f any, l translation.Locale, bindingErrs validation.BindingErrors) (errorMessage, errorFieldName string, fieldNames []string) {
+	if len(bindingErrs) == 0 {
 		return "", "", nil
 	}
 	bindingErr := bindingErrs[0]
@@ -115,30 +136,28 @@ func BuildValidationErrorForUser(f Form, l translation.Locale, bindingErrs bindi
 
 	errorFieldName = field.Name
 	switch classification {
-	case binding.ERR_REQUIRED:
+	case binding.ErrRequired:
 		errorMessage = l.TrString("form.require_error", fieldDisplayName)
-	case binding.ERR_ALPHA_DASH:
-		errorMessage = l.TrString("form.alpha_dash_error", fieldDisplayName)
-	case binding.ERR_ALPHA_DASH_DOT:
+	case binding.ErrAlphaDashDot:
 		errorMessage = l.TrString("form.alpha_dash_dot_error", fieldDisplayName)
-	case binding.ERR_MIN_SIZE:
+	case binding.ErrMinSize:
 		errorMessage = l.TrString("form.min_size_error", fieldDisplayName, getRuleBody(field, "MinSize"))
-	case binding.ERR_MAX_SIZE:
+	case binding.ErrMaxSize:
 		errorMessage = l.TrString("form.max_size_error", fieldDisplayName, getRuleBody(field, "MaxSize"))
-	case binding.ERR_RANGE:
+	case binding.ErrRange:
 		rangeMin, rangeMax, _ := strings.Cut(getRuleBody(field, "Range"), ",")
 		errorMessage = l.TrString("form.range_error", fieldDisplayName, rangeMin, rangeMax)
-	case binding.ERR_EMAIL:
+	case validation.ErrEmail:
 		errorMessage = l.TrString("form.email_error", fieldDisplayName)
-	case binding.ERR_URL:
+	case validation.ErrURL:
 		errorMessage = l.TrString("form.url_error", fieldDisplayName)
-	case binding.ERR_IN:
+	case binding.ErrIn:
 		ruleBody := getRuleBody(field, "In")
 		if strings.HasPrefix(ruleBody, ",") {
 			ruleBody = "(empty)" + ruleBody
 		}
 		errorMessage = l.TrString("form.in_error", fieldDisplayName, ruleBody)
-	case binding.ERR_INCLUDE:
+	case binding.ErrInclude:
 		errorMessage = l.TrString("form.include_error", fieldDisplayName, getRuleBody(field, "Include"))
 
 	case validation.ErrCustomMessage:
@@ -156,7 +175,7 @@ func BuildValidationErrorForUser(f Form, l translation.Locale, bindingErrs bindi
 	case validation.ErrInvalidBadgeSlug:
 		errorMessage = l.TrString("form.invalid_slug_error", fieldDisplayName)
 	default:
-		setting.PanicInDevOrTesting("unknown binding error classification: %v", classification)
+		setting.PanicInDevOrTesting("unknown binding error classification for field %T.%s: %v, err: %s", f, errorFieldName, classification, bindingErrMsg)
 		var msg string
 		if classification != "" && bindingErrMsg != "" {
 			msg = classification + ": " + bindingErrMsg
@@ -170,34 +189,4 @@ func BuildValidationErrorForUser(f Form, l translation.Locale, bindingErrs bindi
 		errorMessage = l.TrString("form.field_invalid_message", fieldDisplayName, msg)
 	}
 	return errorMessage, errorFieldName, fieldNames
-}
-
-type contextKeySkipTmplFormValidationErrorType struct{}
-
-var contextKeySkipTmplFormValidationError contextKeySkipTmplFormValidationErrorType
-
-func SkipTmplFormValidationError(ctx reqctx.RequestContext) {
-	ctx.SetContextValue(contextKeySkipTmplFormValidationError, true)
-}
-
-func Validate(ctx *ValidateContext, errs binding.Errors, f Form) binding.Errors {
-	if ctx.Req.Context().Value(contextKeySkipTmplFormValidationError) == true {
-		// if it is not using tmpl-based validation error handling, just return the errors
-		// for example: when using "form-fetch-action", the validation error can be handled by GetFetchActionForm
-		return errs
-	}
-	errorMessage, errorFieldName, _ := BuildValidationErrorForUser(f, ctx.Locale, errs)
-	if errorMessage == "" {
-		return errs
-	}
-
-	// Legacy template error handling: try to restore the form's values as much as possible,
-	// especially for RenderWithErrDeprecated to re-render the form with errors.
-	AssignForm(f, ctx.Data)
-	ctx.Data["HasError"] = true
-	ctx.Data["ErrorMsg"] = errorMessage
-	if errorFieldName != "" {
-		ctx.Data["Err_"+errorFieldName] = true
-	}
-	return errs
 }

@@ -151,7 +151,7 @@ func ParsePackageMetaData(r io.ReaderAt, size int64) (*Package, error) {
 			if file.UncompressedSize64 > maxNuspecFileSize {
 				return nil, ErrNuspecFileTooLarge
 			}
-			f, err := archive.Open(file.Name)
+			f, err := file.Open()
 			if err != nil {
 				return nil, err
 			}

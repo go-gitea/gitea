@@ -6,13 +6,13 @@ package util
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	rand2 "math/rand/v2"
 	"slices"
 	"strconv"
-	"strings"
 	"sync"
 
 	"gitea.dev/modules/container"
@@ -20,11 +20,6 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
-
-// IsEmptyString checks if the provided string is empty
-func IsEmptyString(s string) bool {
-	return len(strings.TrimSpace(s)) == 0
-}
 
 // ParseYamlBool parses YAML 1.2 boolean values into bool
 func ParseYamlBool(s string) bool {
@@ -99,6 +94,10 @@ func CryptoRandomBytes(length int64) []byte {
 	return buf
 }
 
+func CryptoConstTimeEqual[T string | []byte](a, b T) bool {
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
+}
+
 var chaCha8RandPool = sync.OnceValue(func() *sync.Pool {
 	return &sync.Pool{
 		New: func() any {
@@ -112,16 +111,37 @@ func FastCryptoRandomBytes(length int) []byte {
 	// ChaCha8 is about 20x times faster than system's crypto/rand.
 	// It is suitable for UUIDs, session IDs, etc
 	pool := chaCha8RandPool()
-	chaCha8Rand := pool.Get().(*rand2.ChaCha8) //nolint:forcetypeassert // the pool's New only ever makes *rand2.ChaCha8
+	chaCha8Rand, _ := pool.Get().(*rand2.ChaCha8)
 	defer pool.Put(chaCha8Rand)
 	buf := make([]byte, length)
 	_, _ = chaCha8Rand.Read(buf)
 	return buf
 }
 
+func FastCryptoRandomString(length int, chars string) string {
+	buf := make([]byte, length)
+	limit := int64(len(chars))
+	for i := range buf {
+		num := FastCryptoRandomInt(limit)
+		buf[i] = chars[num]
+	}
+	return string(buf)
+}
+
 func FastCryptoRandomHex(length int) string {
 	buf := FastCryptoRandomBytes(length / 2)
 	return hex.EncodeToString(buf)
+}
+
+func FastCryptoRandomInt[T int | int64](n T) T {
+	pool := chaCha8RandPool()
+	chaCha8Rand, _ := pool.Get().(*rand2.ChaCha8)
+	defer pool.Put(chaCha8Rand)
+	return rand2.New(chaCha8Rand).N(n)
+}
+
+func FastCryptoRand(seed [32]byte) *rand2.Rand {
+	return rand2.New(rand2.NewChaCha8(seed))
 }
 
 // ToLowerASCII returns s with all ASCII letters mapped to their lower case.
@@ -316,4 +336,10 @@ func DiffSlice[T comparable](oldSlice, newSlice []T) (added, removed []T) {
 		}
 	}
 	return added, removed
+}
+
+func MustNoError(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"uuid"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
@@ -17,10 +19,9 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/auth/source/sspi"
 	gitea_context "gitea.dev/services/context"
-
-	gouuid "github.com/google/uuid"
 )
 
 const (
@@ -118,10 +119,13 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 			log.Error("CreateUser: %v", err)
 			return nil, err
 		}
+	} else if !user.IsIndividual() {
+		log.Trace("SSPI Authorization: user %q is not an individual, ignoring", username)
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	if s.CreateSession {
-		handleSignIn(w, req, sess, user)
+		handleSignInNonInteractive(w, req, sess, user)
 	}
 
 	log.Trace("SSPI Authorization: Logged in user %-v", user)
@@ -156,7 +160,7 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
 func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (*user_model.User, error) {
-	email := gouuid.New().String() + "@localhost.localdomain"
+	email := uuid.New().String() + "@localhost.localdomain"
 	user := &user_model.User{
 		Name:     username,
 		Email:    email,
@@ -171,6 +175,8 @@ func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (
 	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return nil, err
 	}
+
+	audit.RecordAs(ctx, user_model.NewAuthSourceUser(), audit_model.UserCreate, user)
 
 	return user, nil
 }

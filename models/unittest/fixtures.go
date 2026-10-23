@@ -51,12 +51,15 @@ func loadFixtureResetSeqPgsql(e *xorm.Engine) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate sequence update: %w", err)
 	}
-	for _, r := range results {
-		for _, value := range r {
-			_, err = e.Exec(value)
-			if err != nil {
-				return fmt.Errorf("failed to update sequence: %s, error: %w", value, err)
-			}
+	var statements []string
+	for _, result := range results {
+		for _, statement := range result {
+			statements = append(statements, statement)
+		}
+	}
+	if len(statements) > 0 {
+		if _, err := e.Exec(strings.Join(statements, "\n")); err != nil {
+			return fmt.Errorf("loadFixtureResetSeqPgsql: %w", err)
 		}
 	}
 	return nil
@@ -166,9 +169,20 @@ func LoadFixtures() error {
 		return err
 	}
 	// Now if we're running postgres we need to tell it to update the sequences
-	if GetXORMEngine().Dialect().URI().DBType == schemas.POSTGRES {
+	switch GetXORMEngine().Dialect().URI().DBType {
+	case schemas.POSTGRES:
 		if err := loadFixtureResetSeqPgsql(GetXORMEngine()); err != nil {
 			return err
+		}
+	case schemas.SQLITE:
+		hasSequence, err := GetXORMEngine().IsTableExist("sqlite_sequence") // only exists once an AUTOINCREMENT table was created
+		if err != nil {
+			return fmt.Errorf("LoadFixtures: %w", err)
+		}
+		if hasSequence {
+			if _, err := GetXORMEngine().DB().DB.Exec("DELETE FROM sqlite_sequence"); err != nil {
+				return fmt.Errorf("LoadFixtures: %w", err)
+			}
 		}
 	}
 	return nil
