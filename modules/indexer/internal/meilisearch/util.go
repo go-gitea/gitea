@@ -6,7 +6,7 @@ package meilisearch
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 // VersionedIndexName returns the full index name with version

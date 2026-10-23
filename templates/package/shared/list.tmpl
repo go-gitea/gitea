@@ -21,7 +21,10 @@
 			<div class="item-main">
 				<div class="item-title">
 					<a href="{{.VersionWebLink}}">{{.Package.Name}}</a>
-					<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
+					<span class="label-list">
+						{{template "package/shared/visibility_badge" dict "Package" .Package "Owner" .Owner}}
+						<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
+					</span>
 				</div>
 				<div class="item-body">
 					{{$timeStr := DateUtils.TimeSince .Version.CreatedUnix}}

@@ -1,41 +1,35 @@
-import {updateIssuesMeta} from './repo-common.ts';
-import {toggleElem, queryElems, isElemVisible} from '../utils/dom.ts';
+import {toggleElem, queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
-import {errorMessage} from '../modules/errors.ts';
-import {showErrorToast} from '../modules/toast.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {DELETE, POST} from '../modules/fetch.ts';
-import {parseDom} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {performFetchAction} from '../modules/fetch-action.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 import type {SortableEvent} from 'sortablejs';
 
-function initRepoIssueListCheckboxes() {
-  const issueSelectAll = document.querySelector<HTMLInputElement>('.issue-checkbox-all');
-  if (!issueSelectAll) return; // logged out state
-  const issueCheckboxes = document.querySelectorAll<HTMLInputElement>('.issue-checkbox');
+type IssuePoster = {avatar_link: string, full_name: string, username: string};
+type ProcessedIssuePoster = {type: 'html', html: string};
+type IssuePosterResponse = {results: IssuePoster[]};
+
+function initRepoIssueListCheckboxes(issueSelectAll: HTMLInputElement) {
+  const container = issueSelectAll.closest('.page-content')!;
+  const issueCheckboxes = container.querySelectorAll<HTMLInputElement>('.issue-checkbox');
+  const issueFilters = container.querySelector<HTMLElement>('#issue-filters')!;
+  const issueActions = container.querySelector<HTMLElement>('#issue-actions')!;
 
   const syncIssueSelectionState = () => {
     const checkedCheckboxes = Array.from(issueCheckboxes).filter((el) => el.checked);
     const anyChecked = Boolean(checkedCheckboxes.length);
     const allChecked = anyChecked && checkedCheckboxes.length === issueCheckboxes.length;
 
-    if (allChecked) {
-      issueSelectAll.checked = true;
-      issueSelectAll.indeterminate = false;
-    } else if (anyChecked) {
-      issueSelectAll.checked = false;
-      issueSelectAll.indeterminate = true;
-    } else {
-      issueSelectAll.checked = false;
-      issueSelectAll.indeterminate = false;
-    }
+    issueSelectAll.checked = allChecked;
+    issueSelectAll.indeterminate = anyChecked && !allChecked;
     // if any issue is selected, show the action panel, otherwise show the filter panel
-    toggleElem('#issue-filters', !anyChecked);
-    toggleElem('#issue-actions', anyChecked);
+    toggleElem(issueFilters, !anyChecked);
+    toggleElem(issueActions, anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
-    const panels = document.querySelectorAll<HTMLElement>('#issue-filters, #issue-actions');
-    const visiblePanel = Array.from(panels).find((el) => isElemVisible(el))!;
+    const visiblePanel = anyChecked ? issueActions : issueFilters;
     const toolbarLeft = visiblePanel.querySelector('.issue-list-toolbar-left')!;
     toolbarLeft.prepend(issueSelectAll);
   };
@@ -51,27 +45,17 @@ function initRepoIssueListCheckboxes() {
     syncIssueSelectionState();
   });
 
-  queryElems(document, '.issue-action', (el) => el.addEventListener('click',
+  queryElems(container, '.issue-action', (el) => el.addEventListener('click',
     async (e: MouseEvent) => {
       e.preventDefault();
 
       const url = el.getAttribute('data-url')!;
       let action = el.getAttribute('data-action')!;
-      let elementId = el.getAttribute('data-element-id')!;
-      const issueIDList: string[] = [];
-      for (const el of document.querySelectorAll('.issue-checkbox:checked')) {
-        issueIDList.push(el.getAttribute('data-issue-id')!);
-      }
-      const issueIDs = issueIDList.join(',');
+      const elementId = el.getAttribute('data-element-id')!;
+      const issueIDs = Array.from(container.querySelectorAll('.issue-checkbox:checked'), (el) => el.getAttribute('data-issue-id')!).join(',');
       if (!issueIDs) return;
 
-      // for assignee
-      if (elementId === '0' && url.endsWith('/assignee')) {
-        elementId = '';
-        action = 'clear';
-      }
-
-      // for toggle
+      // for label toggle
       if (action === 'toggle' && e.altKey) {
         action = 'toggle-alt';
       }
@@ -84,14 +68,8 @@ function initRepoIssueListCheckboxes() {
         }
       }
 
-      try {
-        await updateIssuesMeta(url, action, issueIDs, elementId);
-        window.location.reload();
-      } catch (err) {
-        // FIXME: this logic (including updateIssuesMeta) is not right, should refactor to our JSONError framework
-        const e = err as {responseJSON?: {error: string}};
-        showErrorToast(e.responseJSON?.error ?? errorMessage(err));
-      }
+      const data = new URLSearchParams({action, issue_ids: issueIDs, id: elementId});
+      await performFetchAction(el, {method: 'post', url, data});
     },
   ));
 }
@@ -109,7 +87,7 @@ function initDropdownUserRemoteSearch(el: Element) {
     fullTextSearch: true,
     selectOnKeydown: false,
     action: (_text: string, value: string) => {
-      window.location.href = actionJumpUrl.replace('{username}', encodeURIComponent(value));
+      window.location.assign(actionJumpUrl.replace('{username}', () => encodeURIComponent(value)));
     },
   });
 
@@ -118,8 +96,7 @@ function initDropdownUserRemoteSearch(el: Element) {
     elMenu.querySelector(`.item[data-value="${CSS.escape(username)}"]`)?.classList.add('selected');
   };
 
-  type ProcessedResult = {value: string, name: string};
-  const processedResults: ProcessedResult[] = []; // to be used by dropdown to generate menu items
+  const processedResults: ProcessedIssuePoster[] = []; // to be used by dropdown to generate menu items
   const syncItemFromInput = () => {
     const inputVal = elSearchInput.value.trim();
     elItemFromInput.setAttribute('data-value', inputVal);
@@ -132,52 +109,29 @@ function initDropdownUserRemoteSearch(el: Element) {
   elSearchInput.value = selectedUsername;
   if (!searchUrl) {
     elSearchInput.addEventListener('input', syncItemFromInput);
-  } else {
-    if (!searchUrl.includes('?')) searchUrl += '?';
-    $searchDropdown.dropdown('setting', 'apiSettings', {
-      cache: false,
+    return;
+  }
+
+  if (!searchUrl.includes('?')) searchUrl += '?';
+  $searchDropdown.dropdown('setting', {
+    onMenuUpdated: () => syncItemFromInput(),
+    apiSettings: {
       url: `${searchUrl}&q={query}`,
-      onResponse(resp: any) {
+      onResponse(resp: IssuePosterResponse) {
         // the content is provided by backend IssuePosters handler
         processedResults.length = 0;
         for (const item of resp.results) {
           const htmlAvatar = html`<img class="ui avatar tw-align-middle" src="${item.avatar_link}" aria-hidden="true" alt width="20" height="20">`;
-          const htmlFullName = item.full_name ? html`<span class="username-fullname gt-ellipsis">(${item.full_name})</span>` : '';
-          const htmlItem = html`<span class="username-display">${htmlRaw(htmlAvatar)}<span>${item.username}</span>${htmlRaw(htmlFullName)}</span>`;
+          const htmlFullName = item.full_name ? html`<span class="username-fullname">(${item.full_name})</span>` : '';
+          const htmlItemInner = html`<span class="username-display">${htmlRaw(htmlAvatar)}<span>${item.username}</span>${htmlRaw(htmlFullName)}</span>`;
           if (selectedUsername.toLowerCase() === item.username.toLowerCase()) selectedUsername = item.username;
-          processedResults.push({value: item.username, name: htmlItem});
+          const htmlItem = html`<div class="item" data-value="${item.username}">${htmlRaw(htmlItemInner)}</div>`;
+          processedResults.push({type: 'html', html: htmlItem});
         }
-        resp.results = processedResults;
-        return resp;
+        return {results: processedResults};
       },
-    });
-    $searchDropdown.dropdown('setting', 'onShow', () => $searchDropdown.dropdown('filter', ' ')); // trigger a search on first show
-  }
-
-  // we want to generate the dropdown menu items by ourselves, replace its internal setup functions
-  const dropdownSetup = {...$searchDropdown.dropdown('internal', 'setup')};
-  const dropdownTemplates = $searchDropdown.dropdown('setting', 'templates');
-  $searchDropdown.dropdown('internal', 'setup', dropdownSetup);
-  dropdownSetup.menu = function (values: any) {
-    // remove old dynamic items
-    for (const el of elMenu.querySelectorAll(':scope > .dynamic-item')) {
-      el.remove();
-    }
-
-    const newMenuHtml = dropdownTemplates.menu(values, $searchDropdown.dropdown('setting', 'fields'), true /* html */, $searchDropdown.dropdown('setting', 'className'));
-    if (newMenuHtml) {
-      const newMenuItems = parseDom(newMenuHtml, 'text/html').querySelectorAll('body > div');
-      for (const newMenuItem of newMenuItems) {
-        newMenuItem.classList.add('dynamic-item');
-      }
-      const div = document.createElement('div');
-      div.classList.add('divider', 'dynamic-item');
-      elMenu.append(div, ...newMenuItems);
-    }
-    $searchDropdown.dropdown('refresh');
-    // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function
-    setTimeout(() => syncItemFromInput(), 0);
-  };
+    },
+  });
 }
 
 function initPinRemoveButton() {
@@ -192,7 +146,7 @@ function initPinRemoveButton() {
         // Delete the tooltip
         el._tippy.destroy();
         // Remove the Card
-        el.closest(`div.issue-card[data-issue-id="${id}"]`)!.remove();
+        el.closest(`div.issue-card[data-issue-id="${CSS.escape(String(id))}"]`)!.remove();
       }
     });
   }
@@ -204,14 +158,7 @@ async function pinMoveEnd(e: SortableEvent) {
   await POST(url, {data: {id, position: e.newIndex! + 1}});
 }
 
-async function initIssuePinSort() {
-  const pinDiv = document.querySelector<HTMLElement>('#issue-pins');
-
-  if (pinDiv === null) return;
-
-  // If the User is not a Repo Admin, we don't need to proceed
-  if (!pinDiv.hasAttribute('data-is-repo-admin')) return;
-
+function initIssuePinSort(pinDiv: HTMLElement) {
   initPinRemoveButton();
 
   // If only one issue pinned, we don't need to make this Sortable
@@ -228,12 +175,7 @@ async function initIssuePinSort() {
 }
 
 export function initRepoIssueList() {
-  if (document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) {
-    initRepoIssueListCheckboxes();
-    queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
-    initIssuePinSort();
-  } else if (document.querySelector('.page-content.dashboard.issues')) {
-    // user or org home: issue list, pull request list
-    queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
-  }
+  registerGlobalInitFunc('initRepoIssueListCheckboxes', initRepoIssueListCheckboxes);
+  registerGlobalInitFunc('initDropdownUserRemoteSearch', initDropdownUserRemoteSearch);
+  registerGlobalInitFunc('initIssuePinSort', initIssuePinSort);
 }

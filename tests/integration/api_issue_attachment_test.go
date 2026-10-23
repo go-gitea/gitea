@@ -10,13 +10,13 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -38,6 +38,11 @@ func TestAPIGetIssueAttachment(t *testing.T) {
 	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, IssueID: issue.ID})
+
+	commentAttachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 3, RepoID: repo.ID})
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d", repoOwner.Name, repo.Name, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: commentAttachment.IssueID}).Index, commentAttachment.ID)).
+		AddTokenAuth(token)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIListIssueAttachments(t *testing.T) {

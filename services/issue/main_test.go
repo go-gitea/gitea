@@ -6,12 +6,16 @@ package issue
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
+	"gitea.dev/models/unittest"
+	notify_service "gitea.dev/services/notify"
 
-	_ "code.gitea.io/gitea/models"
-	_ "code.gitea.io/gitea/models/actions"
+	_ "gitea.dev/models"
+	_ "gitea.dev/models/actions"
 )
 
+var labelChanges = &labelChangeRecorder{}
+
 func TestMain(m *testing.M) {
+	notify_service.RegisterNotifier(labelChanges)
 	unittest.MainTest(m)
 }

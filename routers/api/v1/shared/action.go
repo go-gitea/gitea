@@ -7,19 +7,20 @@ import (
 	"fmt"
 	"net/http"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/webhook"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // ListJobs lists jobs for api route validated ownerID and repoID
@@ -36,11 +37,16 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
 	listOptions := utils.GetListOptions(ctx)
+	orderBy, ok := utils.ResolveSortOrder(ctx, actions_model.JobOrderByMap, actions_model.JobOrderByMap["asc"]["id"])
+	if !ok {
+		return
+	}
 	opts := actions_model.FindRunJobOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
 		RunID:       runID,
 		ListOptions: listOptions,
+		OrderBy:     orderBy,
 	}
 	if runID > 0 {
 		opts.RunAttemptID = runAttemptID
@@ -48,11 +54,13 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
+			ctx.APIError(http.StatusBadRequest, err.Error())
 			return
 		}
 		opts.Statuses = append(opts.Statuses, values...)
 	}
+
+	opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer)
 
 	jobs, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, opts)
 	if err != nil {
@@ -69,27 +77,16 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		return
 	}
 
-	res.Entries = make([]*api.ActionWorkflowJob, len(jobs))
-
-	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
-	for i := range jobs {
-		var repository *repo_model.Repository
-		if isRepoLevel {
-			repository = ctx.Repo.Repository
-		} else {
-			if jobs[i].Run == nil || jobs[i].Run.Repo == nil {
-				ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", jobs[i].ID))
-				return
-			}
-			repository = jobs[i].Run.Repo
-		}
-
-		convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, repository, nil, jobs[i])
-		if err != nil {
-			ctx.APIErrorInternal(err)
+	for _, job := range jobs {
+		if job.Run == nil || job.Run.Repo == nil {
+			ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", job.ID))
 			return
 		}
-		res.Entries[i] = convertedWorkflowJob
+	}
+	res.Entries, err = convert.ToActionWorkflowJobs(ctx, jobs)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
@@ -99,7 +96,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 func convertToInternal(s string) ([]actions_model.Status, error) {
 	switch s {
 	case "pending", "waiting", "requested", "action_required":
-		return []actions_model.Status{actions_model.StatusBlocked}, nil
+		return []actions_model.Status{actions_model.StatusBlocked, actions_model.StatusPending}, nil
 	case "queued":
 		return []actions_model.Status{actions_model.StatusWaiting}, nil
 	case "in_progress":
@@ -120,7 +117,7 @@ func convertToInternal(s string) ([]actions_model.Status, error) {
 	case "cancelled", "timed_out":
 		return []actions_model.Status{actions_model.StatusCancelled}, nil
 	default:
-		return nil, fmt.Errorf("invalid status %s", s)
+		return nil, util.NewInvalidArgumentErrorf("invalid status %s", s)
 	}
 }
 
@@ -129,8 +126,9 @@ func convertToInternal(s string) ([]actions_model.Status, error) {
 // ownerID == 0 and repoID != 0 means all runs for the given repo
 // ownerID != 0 and repoID == 0 means all runs for the given user/org
 // ownerID != 0 and repoID != 0 undefined behavior
+// workflowID filters runs by workflow file name (e.g. "build.yml"), empty means no filter
 // Access rights are checked at the API route level
-func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
+func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
@@ -138,7 +136,13 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	opts := actions_model.FindRunOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
+		WorkflowID:  workflowID,
 		ListOptions: listOptions,
+	}
+	if workflowID != "" {
+		workflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
+		opts.IsScopedRun = optional.Some(workflowSourceRepoID > 0)
+		opts.WorkflowRepoID = workflowSourceRepoID
 	}
 
 	if event := ctx.FormString("event"); event != "" {
@@ -150,7 +154,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
+			ctx.APIError(http.StatusBadRequest, err.Error())
 			return
 		}
 		opts.Status = append(opts.Status, values...)
@@ -158,7 +162,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	if actor := ctx.FormString("actor"); actor != "" {
 		user, err := user_model.GetUserByName(ctx, actor)
 		if err != nil {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 			return
 		}
 		opts.TriggerUserID = user.ID
@@ -166,6 +170,9 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	if headSHA := ctx.FormString("head_sha"); headSHA != "" {
 		opts.CommitSHA = headSHA
 	}
+	excludePullRequests := ctx.FormBool("exclude_pull_requests")
+
+	opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer)
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
@@ -174,7 +181,6 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	}
 
 	res := new(api.ActionWorkflowRunsResponse)
-	res.TotalCount = total
 
 	runList := actions_model.RunList(runs)
 	if err := runList.LoadTriggerUser(ctx); err != nil {
@@ -194,16 +200,28 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 		return
 	}
 
-	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
-	for i := range runs {
-		// TODO: load run attempts in batch
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil)
+	latestAttempts, err := runList.GetLatestAttempts(ctx)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	res.Entries = make([]*api.ActionWorkflowRun, 0, len(runs))
+	for _, run := range runs {
+		if run.Repo == nil {
+			// Orphaned row: drop it rather than failing the page, so total stays an upper bound
+			// until "doctor check --run check-db-consistency" removes it.
+			total--
+			continue
+		}
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, latestAttempts[run.LatestAttemptID], excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		res.Entries[i] = convertedRun
+		res.Entries = append(res.Entries, convertedRun)
 	}
+	res.TotalCount = total
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &res)

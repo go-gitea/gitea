@@ -3,7 +3,9 @@ import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {attachSearchBox} from '../modules/search.ts';
 import {globMatch} from '../utils/glob.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
@@ -17,16 +19,21 @@ function initRepoSettingsCollaboration() {
         dropdownEl.classList.add('is-loading', 'loading-icon-2px');
         const lastValue = dropdownEl.getAttribute('data-last-value')!;
         $dropdown.dropdown('hide');
+        let respOk = false;
         try {
           const uid = dropdownEl.getAttribute('data-uid')!;
-          await POST(dropdownEl.getAttribute('data-url')!, {data: new URLSearchParams({uid, 'mode': value})});
-          textEl.textContent = text;
-          dropdownEl.setAttribute('data-last-value', value);
-        } catch {
-          textEl.textContent = '(error)'; // prevent from misleading users when error occurs
-          dropdownEl.setAttribute('data-last-value', lastValue);
+          const resp = await POST(dropdownEl.getAttribute('data-url')!, {data: new URLSearchParams({uid, 'mode': value})});
+          respOk = resp.ok;
+          if (respOk) {
+            textEl.textContent = text;
+            dropdownEl.setAttribute('data-last-value', value);
+          }
         } finally {
           dropdownEl.classList.remove('is-loading');
+          if (!respOk) {
+            textEl.textContent = '(error)'; // prevent from misleading users when error occurs
+            dropdownEl.setAttribute('data-last-value', lastValue);
+          }
         }
       },
       onHide() {
@@ -45,34 +52,21 @@ function initRepoSettingsCollaboration() {
   }
 }
 
-function initRepoSettingsSearchTeamBox() {
-  const searchTeamBox = document.querySelector('#search-team-box');
-  if (!searchTeamBox) return;
+type TeamSearchResponse = {data: Array<{name: string; permission: string}>};
 
-  fomanticQuery(searchTeamBox).search({
-    minCharacters: 2,
-    searchFields: ['name', 'description'],
-    showNoResults: false,
-    rawResponse: true,
-    apiSettings: {
-      url: `${appSubUrl}/org/${searchTeamBox.getAttribute('data-org-name')}/teams/-/search?q={query}`,
-      onResponse(response: any) {
-        const items: Array<Record<string, any>> = [];
-        for (const item of response.data) {
-          items.push({
-            title: item.name,
-            description: `${item.permission} access`, // TODO: translate this string
-          });
-        }
-        return {results: items};
-      },
-    },
-  });
+function initRepoSettingsSearchTeamBox() {
+  const box = document.querySelector<HTMLElement>('#search-team-box');
+  if (!box) return;
+
+  const url = `${appSubUrl}/org/${box.getAttribute('data-org-name')}/teams/-/search?q={query}`;
+  attachSearchBox(box, url, (response: TeamSearchResponse) => response.data.map((item) => ({
+    title: item.name,
+    description: `${item.permission} access`, // TODO: translate this string
+  })));
 }
 
-function initRepoSettingsGitHook() {
-  if (!document.querySelector('.page-content.repository.settings.edit.githook')) return;
-  createCodeEditor(document.querySelector<HTMLTextAreaElement>('#content')!);
+function initRepoSettingsGitHook(form: HTMLFormElement) {
+  createCodeEditor(form.querySelector<HTMLTextAreaElement>('textarea[name=content]')!);
 }
 
 function initRepoSettingsBranches() {
@@ -143,11 +137,11 @@ function initRepoSettingsOptions() {
 }
 
 export function initRepoSettings() {
+  registerGlobalInitFunc('initRepoSettingsGitHook', initRepoSettingsGitHook);
   if (!document.querySelector('.page-content.repository.settings')) return;
   initRepoSettingsOptions();
   initRepoSettingsBranches();
   initRepoSettingsCollaboration();
   initRepoSettingsSearchTeamBox();
-  initRepoSettingsGitHook();
   initRepoSettingsBranchesDrag();
 }

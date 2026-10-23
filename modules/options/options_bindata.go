@@ -10,7 +10,7 @@ package options
 import (
 	"sync"
 
-	"code.gitea.io/gitea/modules/assetfs"
+	"gitea.dev/modules/assetfs"
 
 	_ "embed"
 )

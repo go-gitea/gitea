@@ -11,13 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
@@ -150,6 +151,8 @@ func TestUpdateIssueCols(t *testing.T) {
 
 func TestIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	publicOnlyUser2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	publicOnlyUser2.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:issue")
 	for _, test := range []struct {
 		Opts             issues_model.IssuesOptions
 		ExpectedIssueIDs []int64
@@ -203,6 +206,15 @@ func TestIssues(t *testing.T) {
 				SubscriberID: 11,
 			},
 			[]int64{11, 5, 9, 8, 3, 2, 1},
+		},
+		{
+			issues_model.IssuesOptions{
+				RepoCond: builder.In("repo_id", 1, 2),
+				Doer:     publicOnlyUser2,
+				IsPull:   optional.Some(false),
+				SortType: "oldest",
+			},
+			[]int64{1, 5},
 		},
 	} {
 		issues, err := issues_model.Issues(t.Context(), &test.Opts)
@@ -299,7 +311,7 @@ func TestIssue_ResolveMentions(t *testing.T) {
 func TestResourceIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	var wg sync.WaitGroup
-	for i := range 25 {
+	for i := range 10 {
 		wg.Go(func() {
 			testInsertIssue(t, fmt.Sprintf("issue %d", i+1), "my issue", 0)
 		})

@@ -9,8 +9,9 @@ import (
 	"io"
 	"regexp"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/validation"
 
 	"github.com/hashicorp/go-version"
 )
@@ -66,6 +67,9 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	var size uint32
 	if err := binary.Read(r, binary.LittleEndian, &size); err != nil {
 		return nil, err
+	}
+	if size > packages.MaxMetadataSize {
+		return nil, packages.ErrContentTooLarge
 	}
 
 	p, err := parsePackage(io.LimitReader(r, int64(size)))

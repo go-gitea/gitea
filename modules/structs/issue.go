@@ -10,7 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"gitea.dev/modules/optional"
+
+	"go.yaml.in/yaml/v4"
 )
 
 // StateType issue state type
@@ -96,7 +98,7 @@ type CreateIssueOption struct {
 	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	// swagger:strfmt date-time
-	Deadline *time.Time `json:"due_date"`
+	Deadline optional.Option[*string] `json:"due_date,omitzero"`
 	// milestone id
 	Milestone int64 `json:"milestone"`
 	// list of label ids
@@ -118,18 +120,24 @@ type EditIssueOption struct {
 	// list of project ids to set (replaces existing projects)
 	Projects *[]int64 `json:"projects"`
 	State    *string  `json:"state"`
+	// Deadline is the updated due date for the issue, use null or empty string to remove the deadline
 	// swagger:strfmt date-time
-	Deadline       *time.Time `json:"due_date"`
-	RemoveDeadline *bool      `json:"unset_due_date"`
+	Deadline       optional.Option[*string] `json:"due_date,omitzero"`
+	RemoveDeadline *bool                    `json:"unset_due_date"`
 	// The current version of the issue content to detect conflicts during editing
 	ContentVersion *int `json:"content_version"`
 }
 
-// EditDeadlineOption options for creating a deadline
+// IssueAssigneesOption options for adding/removing issue assignees
+type IssueAssigneesOption struct {
+	Assignees []string `json:"assignees"`
+}
+
+// EditDeadlineOption options for editing a deadline
 type EditDeadlineOption struct {
-	// required:true
+	// Deadline is the updated due date for the issue or pull request, use null or empty string to remove the deadline
 	// swagger:strfmt date-time
-	Deadline *time.Time `json:"due_date"`
+	Deadline optional.Option[*string] `json:"due_date,omitzero"`
 }
 
 // IssueDeadline represents an issue deadline
@@ -231,7 +239,7 @@ func (l *IssueTemplateStringSlice) UnmarshalYAML(value *yaml.Node) error {
 		*l = labels
 		return nil
 	}
-	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateStringSlice", value.Line, value.ShortTag())
+	return fmt.Errorf("cannot unmarshal %s into IssueTemplateStringSlice", value.ShortTag())
 }
 
 type IssueConfigContactLink struct {

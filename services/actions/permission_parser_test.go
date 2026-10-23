@@ -6,10 +6,10 @@ package actions
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/actions/jobparser"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/actions/jobparser"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,6 +78,7 @@ func TestParseRawPermissions_WriteAll(t *testing.T) {
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeActions])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeProjects])
+	assert.True(t, result.IDToken)
 }
 
 func TestParseRawPermissions_IndividualScopes(t *testing.T) {
@@ -89,6 +90,7 @@ packages: write
 actions: read
 wiki: write
 projects: none
+id-token: write
 `
 	var rawPerms yaml.Node
 	err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
@@ -104,6 +106,7 @@ projects: none
 	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeActions])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
 	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeProjects])
+	assert.True(t, result.IDToken)
 }
 
 func TestParseRawPermissions_Priority(t *testing.T) {

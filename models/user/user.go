@@ -13,7 +13,6 @@ import (
 	"mime"
 	"net/mail"
 	"net/url"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,22 +20,22 @@ import (
 	"time"
 	"unicode"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/auth/openid"
-	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/auth/openid"
+	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
 	_ "image/jpeg" // Needed for jpeg support
 
@@ -68,6 +67,18 @@ const (
 	// UserTypeRemoteUser defines a remote user for federated users
 	UserTypeRemoteUser // 5
 )
+
+// DisplayName returns the English name of the user type for logs and the CLI, the UI translates "concept_user_*" instead
+func (t UserType) DisplayName() string {
+	switch t {
+	case UserTypeOrganization, UserTypeOrganizationReserved:
+		return "Organization"
+	case UserTypeBot:
+		return "Bot"
+	default:
+		return "User"
+	}
+}
 
 const (
 	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications except your own
@@ -145,15 +156,27 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams                  int
-	NumMembers                int
-	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
-	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
+	NumTeams   int
+	NumMembers int
+	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+
+	// Introduced by "Add teams to repo on collaboration page. (#8045)"
+	// Whether a repo admin can add/remove a team to/from the repo on the collaboration page
+	RepoAdminChangeTeamAccess bool `xorm:"NOT NULL DEFAULT false"`
+
+	// FIXME: ORG-REPO-ADMIN-DANGER-ZONE: it needs a new field to decide whether a repo admin can manage the repo's danger zone
+	// Team won't work for this case, because a newly create org repo isn't in any team (same as above)
 
 	// Preferences
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+
+	// When the user model is used as a doer (all existing code does so), the doer can have extra details.
+	// * Actions task doer needs to bind to the task
+	// * Deploy-key doer needs to bind to the key
+	// * API token doer needs to bind to the token and its scope
+	ExtDoerData ExtDoerData `xorm:"-" json:"-"`
 }
 
 // Meta defines the meta information of a user, to be stored in the K/V table
@@ -244,12 +267,15 @@ func (u *User) IsOAuth2() bool {
 	return u.LoginType == auth.OAuth2
 }
 
-// MaxCreationLimit returns the number of repositories a user is allowed to create
+// MaxCreationLimit returns the number of repositories a user or an organization is allowed to create
 func (u *User) MaxCreationLimit() int {
-	if u.MaxRepoCreation <= -1 {
-		return setting.Repository.MaxCreationLimit
+	if u.MaxRepoCreation > -1 {
+		return u.MaxRepoCreation
 	}
-	return u.MaxRepoCreation
+	if u.IsOrganization() {
+		return setting.Repository.OrgMaxCreationLimit
+	}
+	return setting.Repository.UserMaxCreationLimit
 }
 
 // CanCreateRepoIn checks whether the doer(u) can create a repository in the owner
@@ -264,13 +290,11 @@ func (u *User) CanCreateRepoIn(owner *User) bool {
 		return true
 	}
 	const noLimit = -1
-	if owner.MaxRepoCreation == noLimit {
-		if setting.Repository.MaxCreationLimit == noLimit {
-			return true
-		}
-		return owner.NumRepos < setting.Repository.MaxCreationLimit
+	limit := owner.MaxCreationLimit()
+	if limit == noLimit {
+		return true
 	}
-	return owner.NumRepos < owner.MaxRepoCreation
+	return owner.NumRepos < limit
 }
 
 // CanCreateOrganization returns true if user can create organisation.
@@ -307,6 +331,13 @@ func (u *User) DashboardLink() string {
 	return setting.AppSubURL + "/"
 }
 
+func (u *User) SettingsLink() string {
+	if u.IsOrganization() {
+		return u.OrganisationLink() + "/settings"
+	}
+	return setting.AppSubURL + "/user/settings"
+}
+
 // HomeLink returns the user or organization home page link.
 func (u *User) HomeLink() string {
 	return setting.AppSubURL + "/" + url.PathEscape(u.Name)
@@ -332,7 +363,7 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		count, err := sess.FindAndCount(&users)
@@ -354,7 +385,7 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		count, err := sess.FindAndCount(&users)
@@ -405,19 +436,14 @@ func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
 }
 
-// IsIndividual returns true if user is actually a individual user.
+// IsIndividual returns true if user is actually an individual user.
 func (u *User) IsIndividual() bool {
-	return u.Type == UserTypeIndividual
+	return u.ID > 0 && u.Type == UserTypeIndividual
 }
 
 // IsTypeBot returns whether the user is of type bot
 func (u *User) IsTypeBot() bool {
 	return u.Type == UserTypeBot
-}
-
-// IsTokenAccessAllowed returns whether the user is an individual or a bot (which allows for token access)
-func (u *User) IsTokenAccessAllowed() bool {
-	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
 }
 
 // EmailTo returns a string suitable to be put into a e-mail `To:` header.
@@ -439,6 +465,7 @@ func (u *User) EmailTo() string {
 }
 
 // TODO: DefaultShowFullName causes messy logic, there are already too many methods to display a user's "display name", need to refactor them
+// Search this TODO to see more details
 // * user.Name / user.FullName: directly used in templates
 // * user.DisplayName(): always show FullName if it's not empty, otherwise show Name
 // * user.GetDisplayName(): show FullName if it's not empty and DefaultShowFullName is set, otherwise show Name
@@ -461,6 +488,14 @@ func (u *User) GetDisplayName() string {
 		if fullName != "" {
 			return fullName
 		}
+	}
+	return u.Name
+}
+
+// DisplayNameWithFullName returns the username, full name is included if it is not empty
+func (u *User) DisplayNameWithFullName() string {
+	if fullName := strings.TrimSpace(u.FullName); fullName != "" {
+		return fmt.Sprintf("%s (%s)", u.Name, fullName)
 	}
 	return u.Name
 }
@@ -500,9 +535,8 @@ func (u *User) GitName() string {
 }
 
 // IsMailable checks if a user is eligible to receive emails.
-// System users like Ghost and Gitea Actions are excluded.
 func (u *User) IsMailable() bool {
-	return u.IsActive && !u.IsGiteaActions() && !u.IsGhost()
+	return u.ID > 0 && u.IsActive && u.IsIndividual()
 }
 
 // IsUserExist checks if given username exist,
@@ -531,17 +565,17 @@ func GetUserSalt() (string, error) {
 }
 
 type globalVarsStruct struct {
-	customCharsReplacement *strings.Replacer
-	removeCharsRE          *regexp.Regexp
-	transformDiacritics    transform.Transformer
-	replaceCharsHyphenRE   *regexp.Regexp
-	emailToReplacer        *strings.Replacer
-	emailRegexp            *regexp.Regexp
-	systemUserNewFuncs     map[int64]func() *User
+	customCharsReplacement   *strings.Replacer
+	removeCharsRE            *regexp.Regexp
+	transformDiacritics      transform.Transformer
+	replaceCharsHyphenRE     *regexp.Regexp
+	emailToReplacer          *strings.Replacer
+	systemUserNewFuncs       map[int64]func() *User
+	systemUserLowerNameIdMap map[string]int64
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
-	return &globalVarsStruct{
+	ret := &globalVarsStruct{
 		// Note: The set of characters here can safely expand without a breaking change,
 		// but characters removed from this set can cause user account linking to break
 		customCharsReplacement: strings.NewReplacer("Æ", "AE"),
@@ -559,13 +593,17 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 			":", "",
 			";", "",
 		),
-		emailRegexp: regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"),
-
-		systemUserNewFuncs: map[int64]func() *User{
-			GhostUserID:   NewGhostUser,
-			ActionsUserID: NewActionsUser,
-		},
 	}
+
+	userFuncs := []func() *User{NewGhostUser, NewActionsUser, NewDeployKeyUser, NewCliUser, NewAuthSourceUser}
+	ret.systemUserNewFuncs = map[int64]func() *User{}
+	ret.systemUserLowerNameIdMap = map[string]int64{}
+	for _, fn := range userFuncs {
+		u := fn()
+		ret.systemUserNewFuncs[u.ID] = fn
+		ret.systemUserLowerNameIdMap[u.LowerName] = u.ID
+	}
+	return ret
 })
 
 // NormalizeUserName only takes the name part if it is an email address, transforms it diacritics to ASCII characters.
@@ -886,7 +924,7 @@ func GetVerifyUser(ctx context.Context, code string) (user *User) {
 	// use tail hex username query user
 	hexStr := code[base.TimeLimitCodeLength:]
 	if b, err := hex.DecodeString(hexStr); err == nil {
-		if user, err = GetUserByName(ctx, string(b)); user != nil {
+		if user, err = GetUserByName(ctx, string(b)); user != nil && user.IsIndividual() {
 			return user
 		}
 		log.Error("user.getVerifyUser: %v", err)
@@ -941,6 +979,9 @@ func ValidateUser(u *User, cols ...string) error {
 			return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
 		}
 	}
+	if u.IsAdmin && u.IsTypeBot() {
+		return ErrBotCanNotBeAdmin
+	}
 
 	return nil
 }
@@ -985,12 +1026,8 @@ func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, er
 		Find(&users)
 }
 
-// UserPath returns the path absolute path of user repositories.
-func UserPath(userName string) string { //revive:disable-line:exported
-	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)))
-}
-
-// GetUserByID returns the user object by given ID if exists.
+// GetUserByID returns the user object by given ID if exists. TODO: for most cases, this function should be avoided.
+// Use correct GetXxxUser functions instead to handle user types & states correctly.
 func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	u := new(User)
 	has, err := db.GetEngine(ctx).ID(id).Get(u)
@@ -1002,7 +1039,8 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	return u, nil
 }
 
-// GetUserByIDs returns the user objects by given IDs if exists.
+// GetUserByIDs returns the user objects by given IDs if exists. TODO: for most cases, this function should be avoided.
+// Use correct GetXxxUser functions instead to handle user types & states correctly.
 func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	if len(ids) == 0 {
 		return nil, nil
@@ -1015,7 +1053,14 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// GetPossibleUserByID returns the possible user and its ID. If the user  doesn't exist, it returns Ghost user
+// Glossaries for XxxUser:
+// * Possible: The user may or may not exist in the database, but we can still return a valid user object (e.g. Ghost user) for the given ID.
+// * Individual: The user is a real person, not an organization or a bot.
+// * Doer: The user is the one performing an action
+// * Valid: The user is an active user and not prohibited from signing in
+// * System: Negative ID (e.g. Ghost, Actions, DeployKey, etc.) and not a real person, Ghost is not included if there is no "Possible" keyword
+
+// GetPossibleUserByID returns the possible user and its ID. If the user doesn't exist, it returns Ghost user
 func GetPossibleUserByID(ctx context.Context, id int64) (_ int64, u *User, err error) {
 	if id < 0 {
 		if newFunc, ok := globalVars().systemUserNewFuncs[id]; ok {
@@ -1049,6 +1094,23 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	}
 	users = append(users, res...)
 	return users, nil
+}
+
+func GetValidDoerUserByID(ctx context.Context, id int64) (*User, error) {
+	u, err := GetUserByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !u.IsIndividual() && !u.IsTypeBot() {
+		return nil, util.NewNotExistErrorf("user %d is not a doer", id)
+	}
+	if !u.IsActive {
+		return nil, util.NewPermissionDeniedErrorf("user %d is inactive", id)
+	}
+	if u.ProhibitLogin {
+		return nil, util.NewPermissionDeniedErrorf("user %d is prohibited from login", id)
+	}
+	return u, nil
 }
 
 func getUserByNameWithTypes(ctx context.Context, name string, types ...UserType) (*User, error) {
@@ -1117,20 +1179,63 @@ func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]
 		Find(&ous)
 }
 
-// GetUserIDsByNames returns a slice of ids corresponds to names.
-func GetUserIDsByNames(ctx context.Context, names []string, ignoreNonExistent bool) ([]int64, error) {
-	ids := make([]int64, 0, len(names))
-	for _, name := range names {
-		u, err := GetUserByName(ctx, name)
-		if err != nil {
-			if ignoreNonExistent {
-				continue
-			}
-			return nil, err
-		}
+func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer bool) ([]int64, error) {
+	users, err := getDoerUsersByNames(ctx, names, allowSystemDoer)
+	ids := make([]int64, 0, len(users))
+	for _, u := range users {
 		ids = append(ids, u.ID)
 	}
-	return ids, nil
+	return ids, err
+}
+
+func getDoerUsersByNames(ctx context.Context, names []string, allowSystemDoer bool) ([]*User, error) {
+	namesLower := make([]string, 0, len(names))
+	namesMap := make(map[string]*User, len(names))
+	for _, name := range names {
+		nameLower := strings.ToLower(name)
+		namesLower = append(namesLower, nameLower)
+		namesMap[nameLower] = nil
+		if allowSystemDoer {
+			if id, ok := globalVars().systemUserLowerNameIdMap[nameLower]; ok && id != GhostUserID {
+				namesMap[nameLower] = globalVars().systemUserNewFuncs[id]()
+			}
+		}
+	}
+
+	var dbUsers []*User
+	err := db.GetEngine(ctx).In("lower_name", namesLower).Where("`type` IN (?,?)", UserTypeIndividual, UserTypeBot).Find(&dbUsers)
+	if err != nil {
+		return nil, err
+	}
+	for _, user := range dbUsers {
+		namesMap[user.LowerName] = user
+	}
+
+	users := make([]*User, 0, len(names))
+	var errFinal error
+	for _, nameLower := range namesLower {
+		u := namesMap[nameLower]
+		if u == nil {
+			errFinal = ErrUserNotExist{Name: nameLower}
+			continue
+		}
+		users = append(users, u)
+	}
+	return users, errFinal
+}
+
+func GetDoerUsersByNames(ctx context.Context, names []string) ([]*User, error) {
+	return getDoerUsersByNames(ctx, names, false)
+}
+
+func GetDoerUserIDsByNamesWithSystem(ctx context.Context, names []string) ([]int64, error) {
+	return getDoerUserIDsByNames(ctx, names, true)
+}
+
+// GetDoerUserIDsByNames returns a slice of ids corresponds to names.
+// It always returns found user IDs even if some names are not found, but returns an error if any name is not found.
+func GetDoerUserIDsByNames(ctx context.Context, names []string) ([]int64, error) {
+	return getDoerUserIDsByNames(ctx, names, false)
 }
 
 // GetUsersBySource returns a list of Users for a login source
@@ -1140,14 +1245,7 @@ func GetUsersBySource(ctx context.Context, s *auth.Source) ([]*User, error) {
 	return users, err
 }
 
-// UserCommit represents a commit with validation of user.
-type UserCommit struct { //revive:disable-line:exported
-	User *User
-	*git.Commit
-}
-
-// ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
-func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
+func GetUserByGitAuthor(ctx context.Context, c *git.Commit) *User {
 	if c.Author == nil {
 		return nil
 	}
@@ -1156,33 +1254,6 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 		return nil
 	}
 	return u
-}
-
-// ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([]*UserCommit, error) {
-	var (
-		newCommits = make([]*UserCommit, 0, len(oldCommits))
-		emailSet   = make(container.Set[string])
-	)
-	for _, c := range oldCommits {
-		if c.Author != nil {
-			emailSet.Add(c.Author.Email)
-		}
-	}
-
-	emailUserMap, err := GetUsersByEmails(ctx, emailSet.Values())
-	if err != nil {
-		return nil, err
-	}
-
-	for _, c := range oldCommits {
-		user := emailUserMap.GetByEmail(c.Author.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
-		newCommits = append(newCommits, &UserCommit{
-			User:   user,
-			Commit: c,
-		})
-	}
-	return newCommits, nil
 }
 
 type EmailUserMap struct {
@@ -1195,7 +1266,7 @@ func (eum *EmailUserMap) GetByEmail(email string) *User {
 
 func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
 	if len(emails) == 0 {
-		return nil, nil //nolint:nilnil // return nil when there are no emails to look up
+		return &EmailUserMap{}, nil
 	}
 
 	needCheckEmails := make(container.Set[string])
@@ -1204,6 +1275,9 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 	noReplyAddressSuffix := "@" + strings.ToLower(setting.Service.NoReplyAddress)
 	for _, email := range emails {
 		emailLower := strings.ToLower(email)
+		if emailLower == "" {
+			continue // a commit without an author email names no user
+		}
 		needCheckEmails.Add(emailLower)
 		if localPart, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
 			name, id := parseLocalPartToNameID(localPart)
@@ -1302,8 +1376,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 
 	email = strings.ToLower(email)
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{LowerEmail: email, IsActivated: true}
-	has, err := db.GetEngine(ctx).Get(emailAddress)
+	emailAddress, has, err := db.Get[EmailAddress](ctx, builder.Eq{"lower_email": email, "is_activated": true})
 	if err != nil {
 		return nil, err
 	}
@@ -1323,13 +1396,29 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	return nil, ErrUserNotExist{Name: email}
 }
 
-func GetIndividualUser(ctx context.Context, user *User) (bool, error) {
-	// FIXME: the design is wrong, empty User fields won't apply, this function should be removed in the future
-	has, err := db.GetEngine(ctx).Get(user)
+func GetIndividualUserByPrimaryEmail(ctx context.Context, email string) (*User, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if len(email) == 0 {
+		return nil, ErrUserNotExist{Name: email}
+	}
+
+	user, has, err := db.Get[User](ctx, builder.Eq{"email": email, "type": UserTypeIndividual})
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrUserNotExist{Name: email}
+	}
+	return user, nil
+}
+
+func GetIndividualUserByLoginSource(ctx context.Context, loginType auth.Type, loginSource int64, loginName string) (*User, bool, error) {
+	user, has, err := db.Get[User](ctx, builder.Eq{"login_type": loginType, "login_source": loginSource, "login_name": loginName})
 	if has && user.Type != UserTypeIndividual {
 		has = false
+		user = nil
 	}
-	return has, err
+	return user, has, err
 }
 
 // GetUserByOpenID returns the user object by given OpenID if exists.
@@ -1375,11 +1464,11 @@ func GetAdminUser(ctx context.Context) (*User, error) {
 }
 
 func isUserVisibleToViewerCond(viewer *User) builder.Cond {
-	if viewer != nil && viewer.IsAdmin {
+	if DoerIsSiteAdminFullAccess(viewer) {
 		return builder.NewCond()
 	}
 
-	if viewer == nil || viewer.IsRestricted {
+	if !DoerCanViewPrivate(viewer) || viewer.IsRestricted {
 		return builder.Eq{
 			"`user`.visibility": structs.VisibleTypePublic,
 		}
@@ -1413,6 +1502,9 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
+	if !DoerTokenAllowsOwner(viewer, u) {
+		return false
+	}
 	if viewer != nil && (viewer.IsAdmin || viewer.ID == u.ID) {
 		return true
 	}

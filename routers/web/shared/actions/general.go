@@ -8,13 +8,13 @@ import (
 	"slices"
 	"strconv"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 const (
@@ -39,6 +39,7 @@ func ParseMaxTokenPermissions(ctx *context.Context) *repo_model.ActionsTokenPerm
 	for _, ut := range repo_model.ActionsTokenUnitTypes {
 		ret.UnitAccessModes[ut] = parseMaxPerm(ut)
 	}
+	ret.IDToken = ctx.FormString("max_id_token") == "write"
 	return ret
 }
 

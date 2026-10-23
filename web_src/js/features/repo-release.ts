@@ -3,7 +3,7 @@ import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {hideElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
+import {hideModal, showModal} from '../modules/modal.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import {htmlEscape} from '../utils/html.ts';
 import {compareVersions} from 'compare-versions';
@@ -12,7 +12,7 @@ export function initRepoReleaseNew() {
   registerGlobalEventFunc('click', 'onReleaseEditAttachmentDelete', (el) => {
     const uuid = el.getAttribute('data-uuid')!;
     const id = el.getAttribute('data-id')!;
-    document.querySelector<HTMLInputElement>(`input[name='attachment-del-${uuid}']`)!.value = 'true';
+    document.querySelector<HTMLInputElement>(`input[name='attachment-del-${CSS.escape(uuid)}']`)!.value = 'true';
     hideElem(`#attachment-${id}`);
   });
   registerGlobalInitFunc('initReleaseEditForm', (elForm: HTMLFormElement) => {
@@ -84,7 +84,7 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
   const textMissingTag = buttonShowModal.getAttribute('data-text-missing-tag')!;
   const generateUrl = buttonShowModal.getAttribute('data-generate-url')!;
 
-  const elModal = document.querySelector('#generate-release-notes-modal')!;
+  const elModal = document.querySelector<HTMLDialogElement>('#generate-release-notes-modal')!;
 
   const doSubmit = async (tagName: string) => {
     const elPreviousTag = elModal.querySelector<HTMLSelectElement>('[name=previous_tag]')!;
@@ -111,18 +111,18 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
       } else {
         comboEditor.value(data.content);
       }
+      hideModal(elModal);
+      comboEditor.focus();
     } finally {
       elModal.classList.remove('loading', 'disabled');
-      hideFomanticModal(elModal);
-      comboEditor.focus();
     }
   };
 
   let inited = false;
   const doShowModal = () => {
-    hideToastsAll();
     const tagName = tagNameInput.value.trim();
     if (!tagName) {
+      hideToastsAll();
       showErrorToast(textMissingTag, {duration: 3000});
       tagNameInput.focus();
       return;
@@ -132,15 +132,12 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
     const $dropdown = fomanticQuery(elModal.querySelector('[name=previous_tag]')!);
     if (!inited) {
       inited = true;
-      const values = [];
-      for (const tagName of existingTags) {
-        values.push({name: htmlEscape(tagName), value: tagName}); // ATTENTION: dropdown takes the "name" input as raw HTML
-      }
+      const values = existingTags.map((tagName) => ({name: htmlEscape(tagName), value: tagName})); // ATTENTION: dropdown takes the "name" input as raw HTML
       $dropdown.dropdown('change values', values);
     }
     $dropdown.dropdown('set selected', guessPreviousReleaseTag(tagName, existingTags));
 
-    showFomanticModal(elModal, {
+    showModal(elModal, {
       onApprove: () => {
         doSubmit(tagName); // don't await, need to return false to keep the modal
         return false;

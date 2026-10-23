@@ -6,11 +6,11 @@ package actions
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
 
 	"xorm.io/xorm/convert"
 )
@@ -64,7 +64,7 @@ func (cfg *OwnerActionsConfig) GetMaxTokenPermissions() repo_model.ActionsTokenP
 		return *cfg.MaxTokenPermissions
 	}
 	// Default max is write for everything
-	return repo_model.MakeActionsTokenPermissions(perm.AccessModeWrite)
+	return repo_model.MakeWriteAllActionsTokenPermissions()
 }
 
 // ClampPermissions ensures that the given permissions don't exceed the maximum

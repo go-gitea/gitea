@@ -10,8 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/tempdir"
+	"gitea.dev/modules/consts"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/tempdir"
 )
 
 var (
@@ -21,6 +22,10 @@ var (
 	// AppWorkPath is the "working directory" of Gitea. It maps to the: WORK_PATH in app.ini, "--work-path" flag, environment variable GITEA_WORK_DIR.
 	// If that is not set it is the default set here by the linker or failing that the directory of AppPath.
 	// It is used as the base path for several other paths.
+	// Do remember:
+	// * Work path might not be the POSIX current working directory or the Gitea's binary directory, Gitea binary is not FHS-compliant
+	// * Work path sometimes is not writable (e.g.: /usr/local/bin) or not persistent (https://github.com/go-gitea/gitea/pull/35851)
+	// * Work path, custom path and data path, some of them are the same sometimes (e.g.: docker image, some downstream packages, some manual installations)
 	AppWorkPath string
 	CustomPath  string // Custom directory path. Env: GITEA_CUSTOM
 	CustomConf  string
@@ -35,7 +40,7 @@ var (
 func getAppPath() (string, error) {
 	var appPath string
 	var err error
-	if IsWindows && filepath.IsAbs(os.Args[0]) {
+	if consts.IsWindows && filepath.IsAbs(os.Args[0]) {
 		appPath = filepath.Clean(os.Args[0])
 	} else {
 		appPath, err = exec.LookPath(os.Args[0])
