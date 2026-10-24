@@ -21,11 +21,15 @@ test('create a label in the modal with a color from the picker popup', async ({p
 test('exclusive scoped labels replace each other in the issue sidebar', async ({page, request}) => {
   const repoName = `e2e-label-scope-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
-  await apiCreateRepo(request, {name: repoName, autoInit: false});
   await Promise.all([
-    apiCreateLabel(request, owner, repoName, 'kind/bug', {exclusive: true}),
-    apiCreateLabel(request, owner, repoName, 'kind/feature', {exclusive: true}),
-    apiCreateIssue(request, {owner, repo: repoName, title: 'Scoped labels'}),
+    (async () => {
+      await apiCreateRepo(request, {name: repoName, autoInit: false});
+      await Promise.all([
+        apiCreateLabel(request, owner, repoName, 'kind/bug', {exclusive: true}),
+        apiCreateLabel(request, owner, repoName, 'kind/feature', {exclusive: true}),
+        apiCreateIssue(request, {owner, repo: repoName, title: 'Scoped labels'}),
+      ]);
+    })(),
     login(page),
   ]);
   await page.goto(`/${owner}/${repoName}/issues/1`);

@@ -112,6 +112,13 @@ export async function apiCreateLabel(requestContext: APIRequestContext, owner: s
   }), 'apiCreateLabel');
 }
 
+export async function apiSetRepoTopics(requestContext: APIRequestContext, owner: string, repo: string, topics: string[]) {
+  await apiRetry(() => requestContext.put(`${baseUrl()}/api/v1/repos/${owner}/${repo}/topics`, {
+    headers: apiHeaders(),
+    data: {topics},
+  }), 'apiSetRepoTopics');
+}
+
 /** Create a PR via API. Returns the PR index for subsequent operations. */
 export async function apiCreatePR(requestContext: APIRequestContext, owner: string, repo: string, head: string, base: string, title: string, {headers}: {headers?: Record<string, string>} = {}): Promise<number> {
   const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
@@ -219,11 +226,6 @@ export async function apiCreateIssue(
     return response;
   }, 'apiCreateIssue');
   return result;
-}
-
-export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
-  await trigger.click();
-  await page.getByText(itemText).click();
 }
 
 export async function loginUser(page: Page, username: string) {

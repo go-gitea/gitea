@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateBranch, apiCreateOrg, apiCreateRepo, randomString} from './utils.ts';
+import {login, apiCreateBranch, apiCreateOrg, apiCreateRepo, apiSetRepoTopics, randomString} from './utils.ts';
 
 test('create a repository for an organization picked by keyboard', async ({page, request}) => {
   const repoName = `e2e-repo-${randomString(8)}`;
@@ -40,13 +40,17 @@ test('delete a branch via its modal', async ({page, request}) => {
 test('add and remove repository topics', async ({page, request}) => {
   const repoName = `e2e-topics-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
-  await Promise.all([apiCreateRepo(request, {name: repoName}), login(page)]);
+  await Promise.all([
+    (async () => {
+      await apiCreateRepo(request, {name: repoName});
+      await apiSetRepoTopics(request, owner, repoName, ['e2e-drop']);
+    })(),
+    login(page),
+  ]);
   await page.goto(`/${owner}/${repoName}`);
   await page.getByRole('button', {name: 'Manage Topics'}).click();
-  for (const topic of ['e2e-keep', 'e2e-drop']) {
-    await page.keyboard.type(topic);
-    await page.getByRole('option', {name: topic, exact: true}).click();
-  }
+  await page.keyboard.type('e2e-keep');
+  await page.getByRole('option', {name: 'e2e-keep', exact: true}).click();
   await page.getByRole('button', {name: 'Remove item "e2e-drop"'}).click();
   await page.getByRole('button', {name: 'Save', exact: true}).click();
   await expect(page.locator('#repo-topics').getByRole('link')).toHaveText(['e2e-keep']);
