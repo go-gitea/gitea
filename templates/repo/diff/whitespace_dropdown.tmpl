@@ -3,25 +3,25 @@
 		{{svg "gitea-whitespace"}}
 	</button>
 	<div class="dropdown-popup dropdown-popup-button tw-text-12">
-		<a class="dropdown-item {{if eq .WhitespaceBehavior "show-all"}}active{{end}}" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=show-all&show-outdated={{$.ShowOutdatedComments}}">
+		<a class="dropdown-item {{if eq .WhitespaceBehavior "show-all"}}active{{end}}" role="menuitemradio" aria-checked="{{eq .WhitespaceBehavior "show-all"}}" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=show-all&show-outdated={{$.ShowOutdatedComments}}">
 			<label class="tw-pointer-events-none">
 				<input type="radio" class="tw-mr-2" tabindex="-1" aria-hidden="true" {{if eq .WhitespaceBehavior "show-all"}}checked{{end}}>
 				{{ctx.Locale.Tr "repo.diff.whitespace_show_everything"}}
 			</label>
 		</a>
-		<a class="dropdown-item {{if eq .WhitespaceBehavior "ignore-all"}}active{{end}}" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-all&show-outdated={{$.ShowOutdatedComments}}">
+		<a class="dropdown-item {{if eq .WhitespaceBehavior "ignore-all"}}active{{end}}" role="menuitemradio" aria-checked="{{eq .WhitespaceBehavior "ignore-all"}}" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-all&show-outdated={{$.ShowOutdatedComments}}">
 			<label class="tw-pointer-events-none">
 				<input type="radio" class="tw-mr-2" tabindex="-1" aria-hidden="true" {{if eq .WhitespaceBehavior "ignore-all"}}checked{{end}}>
 				{{ctx.Locale.Tr "repo.diff.whitespace_ignore_all_whitespace"}}
 			</label>
 		</a>
-		<a class="dropdown-item {{if eq .WhitespaceBehavior "ignore-change"}}active{{end}}" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change&show-outdated={{$.ShowOutdatedComments}}">
+		<a class="dropdown-item {{if eq .WhitespaceBehavior "ignore-change"}}active{{end}}" role="menuitemradio" aria-checked="{{eq .WhitespaceBehavior "ignore-change"}}" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change&show-outdated={{$.ShowOutdatedComments}}">
 			<label class="tw-pointer-events-none">
 				<input type="radio" class="tw-mr-2" tabindex="-1" aria-hidden="true" {{if eq .WhitespaceBehavior "ignore-change"}}checked{{end}}>
 				{{ctx.Locale.Tr "repo.diff.whitespace_ignore_amount_changes"}}
 			</label>
 		</a>
-		<a class="dropdown-item {{if eq .WhitespaceBehavior "ignore-eol"}}active{{end}}" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-eol&show-outdated={{$.ShowOutdatedComments}}">
+		<a class="dropdown-item {{if eq .WhitespaceBehavior "ignore-eol"}}active{{end}}" role="menuitemradio" aria-checked="{{eq .WhitespaceBehavior "ignore-eol"}}" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-eol&show-outdated={{$.ShowOutdatedComments}}">
 			<label class="tw-pointer-events-none">
 				<input type="radio" class="tw-mr-2" tabindex="-1" aria-hidden="true" {{if eq .WhitespaceBehavior "ignore-eol"}}checked{{end}}>
 				{{ctx.Locale.Tr "repo.diff.whitespace_ignore_at_eol"}}

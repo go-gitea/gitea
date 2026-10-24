@@ -43,8 +43,10 @@ test('add and remove repository topics', async ({page, request}) => {
   await Promise.all([apiCreateRepo(request, {name: repoName}), login(page)]);
   await page.goto(`/${owner}/${repoName}`);
   await page.getByRole('button', {name: 'Manage Topics'}).click();
-  await page.keyboard.type('e2e-keep,e2e-drop');
-  await page.getByRole('option', {name: 'e2e-drop', exact: true}).click();
+  for (const topic of ['e2e-keep', 'e2e-drop']) {
+    await page.keyboard.type(topic);
+    await page.getByRole('option', {name: topic, exact: true}).click();
+  }
   await page.getByRole('button', {name: 'Remove item "e2e-drop"'}).click();
   await page.getByRole('button', {name: 'Save', exact: true}).click();
   await expect(page.locator('#repo-topics').getByRole('link')).toHaveText(['e2e-keep']);

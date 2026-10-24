@@ -69,9 +69,11 @@ export class Dropdown {
       this.filterInput.setAttribute('aria-controls', this.popup.id);
       if (!isMenu) {
         this.filterInput.setAttribute('role', 'combobox');
+        this.filterInput.setAttribute('aria-autocomplete', 'list');
         this.filterInput.setAttribute('aria-expanded', 'true');
       }
     }
+    if (this.valueInput) this.renderLabel(); // the browser may have restored a previous value
 
     this.trigger.addEventListener('click', (e) => {
       if (this.tippy) {
@@ -138,6 +140,7 @@ export class Dropdown {
 
   show(highlightDelta = 0) {
     if (this.tippy || this.trigger.disabled) return;
+    if (this.filterInput?.value && !this.loadItems) this.applyFilter(); // the browser may have restored a previous query
     for (const control of this.popup.querySelectorAll('input:not(.dropdown-filter), button, select, textarea')) {
       const form = control.closest('form');
       if (!form || control.hasAttribute('form')) continue;
@@ -156,6 +159,7 @@ export class Dropdown {
       maxWidth: 'none',
       placement: (this.container.getAttribute('data-placement') || 'bottom-start') as Placement,
       appendTo: this.container.closest('.modal-backdrop') ?? document.body, // outside the backdrop, the page is inert
+      zIndex: 1000, // below --z-index-modal and --z-index-toast
       limitSizeToViewport: {vertical: true},
       onMount: () => this.onMount(),
       onClickOutside: () => this.hide(),
@@ -219,11 +223,6 @@ export class Dropdown {
     } else if (onOwner && !this.filterInput && (e.key === 'Home' || e.key === 'End')) {
       const items = this.navigableItems();
       this.highlight((e.key === 'Home' ? items[0] : items.at(-1)) ?? null);
-    } else if (onOwner && (e.key === 'PageDown' || e.key === 'PageUp')) {
-      const items = this.navigableItems();
-      const pageSize = Math.max(1, Math.floor(this.popup.clientHeight / (items[0]?.offsetHeight || 1)));
-      const index = (this.highlighted ? items.indexOf(this.highlighted) : -1) + (e.key === 'PageDown' ? pageSize : -pageSize);
-      this.highlight(items[Math.min(Math.max(index, 0), items.length - 1)] ?? null);
     } else if (onOwner && this.highlighted && this.popup.contains(this.highlighted) && (e.key === 'Enter' || (e.key === ' ' && !this.filterInput))) {
       this.highlighted.dispatchEvent(new MouseEvent('click', {
         bubbles: true, cancelable: true, view: window,
@@ -249,22 +248,15 @@ export class Dropdown {
       .filter((el) => !(el instanceof HTMLInputElement && el.type === 'radio' && el.name) || radioStops.get(el.name) === el);
     const index = tabbables.indexOf(e.target as HTMLElement);
     if (e.shiftKey ? index > 0 : index < tabbables.length - 1) return;
-    if (this.kind === 'select' && this.highlighted?.hasAttribute('data-value')) this.pick(this.highlighted.getAttribute('data-value')!);
     this.trigger.focus();
     this.hide();
     if (e.shiftKey) e.preventDefault();
   }
 
-  // like a native select: repeating one letter cycles through the items starting with it
   onTypeAhead(key: string) {
-    const char = key.toLowerCase();
-    this.typeAhead += char;
+    this.typeAhead += key.toLowerCase();
     this.resetTypeAhead();
-    const items = this.navigableItems();
-    const isCycling = this.typeAhead === char.repeat(this.typeAhead.length);
-    const start = isCycling && this.highlighted ? items.indexOf(this.highlighted) + 1 : 0;
-    const prefix = isCycling ? char : this.typeAhead;
-    const match = [...items.slice(start), ...items.slice(0, start)].find((item) => item.textContent.trim().toLowerCase().startsWith(prefix));
+    const match = this.navigableItems().find((item) => item.textContent.trim().toLowerCase().startsWith(this.typeAhead));
     if (match) this.highlight(match);
   }
 
@@ -304,7 +296,7 @@ export class Dropdown {
   applyFilter() {
     const query = this.filterInput!.value.trim().toLowerCase();
     for (const item of this.items()) {
-      item.hidden = Boolean(query) && !`${item.textContent}\n${item.getAttribute('data-value') ?? ''}`.toLowerCase().includes(query);
+      item.hidden = Boolean(query) && !item.textContent.toLowerCase().includes(query);
     }
     if (this.tippy) this.updateState();
   }
@@ -421,7 +413,6 @@ export class Dropdown {
   }
 
   updateState(message = '') {
-    this.tippy?.popper.style.removeProperty('--tippy-max-height'); // measure the new content unconstrained to pick the roomier side
     hideScopedEmptyDividers(this.popup);
     this.popup.querySelector(':scope > .dropdown-message')?.remove();
     const allItems = this.items();

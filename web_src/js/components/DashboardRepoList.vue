@@ -415,8 +415,8 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
               <svg-icon name="octicon-filter" :size="16"/>
             </button>
             <div class="dropdown-popup dropdown-popup-button">
-              <div class="dropdown-item" @click="toggleArchivedFilter()" role="menuitemcheckbox" :aria-checked="archivedFilter === 'both' ? 'mixed' : archivedFilter === 'archived'">
-                <span class="ui checkbox tw-pointer-events-none" :title="checkboxArchivedFilterTitle">
+              <div class="dropdown-item" @click="toggleArchivedFilter()" role="menuitemcheckbox" :aria-checked="archivedFilter === 'both' ? 'mixed' : archivedFilter === 'archived'" :title="checkboxArchivedFilterTitle">
+                <span class="ui checkbox tw-pointer-events-none">
                   <input type="checkbox" tabindex="-1" aria-hidden="true" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
                     <svg-icon name="octicon-archive" :size="16" class="tw-mr-1"/>
@@ -424,8 +424,8 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
                   </label>
                 </span>
               </div>
-              <div class="dropdown-item" @click="togglePrivateFilter()" role="menuitemcheckbox" :aria-checked="privateFilter === 'both' ? 'mixed' : privateFilter === 'private'">
-                <span class="ui checkbox tw-pointer-events-none" :title="checkboxPrivateFilterTitle">
+              <div class="dropdown-item" @click="togglePrivateFilter()" role="menuitemcheckbox" :aria-checked="privateFilter === 'both' ? 'mixed' : privateFilter === 'private'" :title="checkboxPrivateFilterTitle">
+                <span class="ui checkbox tw-pointer-events-none">
                   <input type="checkbox" tabindex="-1" aria-hidden="true" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
                     <svg-icon name="octicon-lock" :size="16" class="tw-mr-1"/>

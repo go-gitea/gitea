@@ -1,7 +1,7 @@
 <div class="oauth2 field {{if not (eq .type 6)}}tw-hidden{{end}}">
 	<div class="inline required field">
 		<label for="oauth2_provider">{{ctx.Locale.Tr "admin.auths.oauth2_provider"}}</label>
-		<select id="oauth2_provider" name="oauth2_provider">
+		<select id="oauth2_provider" autocomplete="off" name="oauth2_provider">
 			{{range .OAuth2Providers}}
 				<option value="{{.Name}}" {{if eq $.oauth2_provider .Name}}selected{{end}}>{{.DisplayName}}</option>
 			{{end}}

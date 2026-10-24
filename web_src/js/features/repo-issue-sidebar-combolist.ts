@@ -147,6 +147,7 @@ export class IssueSidebarComboList {
   }
 
   onChange() {
+    this.elComboValue.dispatchEvent(new Event('change', {bubbles: true})); // the portalled popup's input events miss the form's dirty tracking
     if (this.selectionMode === 'single') this.doUpdate();
   }
 

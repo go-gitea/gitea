@@ -243,6 +243,10 @@ progress::-moz-progress-bar {
   progress::-webkit-progress-value {
     background: CanvasText;
   }
+  .dropdown-item[data-highlighted] {
+    outline: 2px solid CanvasText;
+    outline-offset: -2px;
+  }
 }
 
 * {

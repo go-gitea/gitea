@@ -16,7 +16,7 @@
 					<p>{{ctx.Locale.Tr "install.require_db_desc"}}</p>
 					<div class="inline required field {{if .Err_DbType}}error{{end}}">
 						<label for="db_type">{{ctx.Locale.Tr "install.db_type"}}</label>
-						<select id="db_type" name="db_type">
+						<select id="db_type" autocomplete="off" name="db_type">
 							{{range .DbTypeNames}}
 								<option value="{{.type}}" {{if eq $.CurDbType .type}}selected{{end}}>{{.name}}</option>
 							{{end}}

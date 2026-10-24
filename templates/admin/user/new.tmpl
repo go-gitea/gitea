@@ -12,14 +12,14 @@
 				</div>
 				<div class="required field">
 					<label for="user_type">{{ctx.Locale.Tr "admin.users.user_type"}}</label>
-					<select id="user_type" name="user_type" required>
+					<select id="user_type" autocomplete="off" name="user_type" required>
 						<option value="User" {{if eq $.user_type "User"}}selected{{end}}>{{ctx.Locale.Tr "concept_user_user"}}</option>
 						<option value="Bot" {{if eq $.user_type "Bot"}}selected{{end}}>{{ctx.Locale.Tr "concept_user_bot"}}</option>
 					</select>
 				</div>
 				<div class="required field js-non-bot {{if .Err_LoginType}}error{{end}}">
 					<label for="login_type">{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
-					<select id="login_type" name="login_type" required>
+					<select id="login_type" autocomplete="off" name="login_type" required>
 						<option value="0-0" {{if eq $.login_type "0-0"}}selected{{end}}>{{ctx.Locale.Tr "admin.users.local"}}</option>
 						{{range .Sources}}
 							<option value="{{.Type.Int}}-{{.ID}}" {{if eq $.login_type (printf "%d-%d" .Type.Int .ID)}}selected{{end}}>{{.Name}}</option>

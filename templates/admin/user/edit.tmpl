@@ -13,7 +13,7 @@
 				{{if .CanConvertUserType}}
 					<div class="required field">
 						<label for="user_type">{{ctx.Locale.Tr "admin.users.user_type"}}</label>
-						<select id="user_type" name="user_type" required>
+						<select id="user_type" autocomplete="off" name="user_type" required>
 							<option value="User" {{if not .User.IsTypeBot}}selected{{end}}>{{ctx.Locale.Tr "concept_user_user"}}</option>
 							<option value="Bot" {{if .User.IsTypeBot}}selected{{end}}>{{ctx.Locale.Tr "concept_user_bot"}}</option>
 						</select>
@@ -22,7 +22,7 @@
 				{{if not .User.IsTypeBot}}
 					<div class="required js-non-bot field {{if .Err_LoginType}}error{{end}}">
 						<label for="login_type">{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
-						<select id="login_type" name="login_type" required>
+						<select id="login_type" autocomplete="off" name="login_type" required>
 							<option value="0-0" {{if eq .LoginSource.ID 0}}selected{{end}}>{{ctx.Locale.Tr "admin.users.local"}}</option>
 							{{range .Sources}}
 								<option value="{{.Type.Int}}-{{.ID}}" {{if eq $.LoginSource.ID .ID}}selected{{end}}>{{.Name}}</option>
