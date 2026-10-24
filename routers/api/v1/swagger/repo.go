@@ -421,6 +421,13 @@ type swaggerPushMirrorList struct {
 	Body []api.PushMirror `json:"body"`
 }
 
+// PushMirrorHistoryList
+// swagger:response PushMirrorHistoryList
+type swaggerPushMirrorHistoryList struct {
+	// in:body
+	Body []api.PushMirrorHistory `json:"body"`
+}
+
 // RepoCollaboratorPermission
 // swagger:response RepoCollaboratorPermission
 type swaggerRepoCollaboratorPermission struct {
