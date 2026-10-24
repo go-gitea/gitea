@@ -7,8 +7,14 @@ import (
 	"context"
 
 	"gitea.dev/models/db"
+	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
 )
+
+// IsLockedForDoer returns whether the lock keeps doer from commenting
+func (issue *Issue) IsLockedForDoer(perm access_model.Permission, doer *user_model.User) bool {
+	return issue.IsLocked && !perm.CanWriteIssuesOrPulls(issue.IsPull) && !doer.IsAdmin
+}
 
 // IssueLockOptions defines options for locking and/or unlocking an issue/PR
 type IssueLockOptions struct {

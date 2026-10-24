@@ -30228,6 +30228,9 @@
           "400": {
             "$ref": "#/components/responses/validationError"
           },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/notFound"
           },
@@ -30802,6 +30805,9 @@
           "200": {
             "$ref": "#/components/responses/PullReview"
           },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/notFound"
           },
@@ -30985,6 +30991,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/PullReview"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"

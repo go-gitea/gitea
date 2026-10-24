@@ -17551,6 +17551,9 @@
           "400": {
             "$ref": "#/responses/validationError"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           },
@@ -18066,6 +18069,9 @@
           "200": {
             "$ref": "#/responses/PullReview"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           },
@@ -18178,6 +18184,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PullReview"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"

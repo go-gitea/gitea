@@ -72,8 +72,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 		return err
 	}
 
-	// Locked issues require write permissions
-	if issue.IsLocked && !perm.CanWriteIssuesOrPulls(issue.IsPull) && !doer.IsAdmin {
+	if issue.IsLockedForDoer(perm, doer) {
 		log.Debug("can't write issue or pull")
 		return nil
 	}
