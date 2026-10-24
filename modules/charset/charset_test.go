@@ -145,6 +145,8 @@ func TestToUTF8WithFallback(t *testing.T) {
 			assert.Equal(t, []byte{0x00, 0x00, 0x00, 0x00}, res)
 		})
 	}
+
+	assert.Equal(t, "caf ", string(ToUTF8DropErrors([]byte("caf\xe9"))))
 }
 
 func TestDetectEncoding(t *testing.T) {
