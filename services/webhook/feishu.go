@@ -14,6 +14,7 @@ import (
 	"time"
 
 	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
@@ -84,7 +85,7 @@ func (fc feishuConvertor) Push(p *api.PushPayload) (FeishuPayload, error) {
 		if commit.Author != nil {
 			authorName = " - " + commit.Author.Name
 		}
-		text.WriteString(fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
+		text.WriteString(fmt.Sprintf("[%s](%s) %s", base.ShortSha(commit.ID), commit.URL,
 			strings.TrimRight(commit.Message, "\r\n")) + authorName)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {

@@ -26,8 +26,8 @@ func (r *RepoWiki) CleanUp() {
 	_ = r.commitChecker.Close()
 }
 
-func (r *RepoWiki) IsCommitIDExisting(commitID string) bool {
-	return r.commitChecker.IsCommitIDExisting(commitID)
+func (r *RepoWiki) ResolveCommitID(commitID string) string {
+	return r.commitChecker.ResolveCommitID(commitID)
 }
 
 func (r *RepoWiki) ResolveLink(link, preferLinkType string) (finalLink string) {

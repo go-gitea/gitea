@@ -32,7 +32,7 @@ func TestRenderHelperCodePreview(t *testing.T) {
 	assert.Equal(t, `<div class="code-preview-container file-content">
 	<div class="code-preview-header">
 		<a href="http://full" class="tw-font-semibold" rel="nofollow">repo1/README.md</a>
-		repo.code_preview_line_from_to:1,2,<a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" class="muted tw-font-mono tw-text-text" rel="nofollow">65f1bf27bc</a>
+		repo.code_preview_line_from_to:1,2,<a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" class="muted tw-font-mono tw-text-text" rel="nofollow">65f1bf2</a>
 	</div>
 	<table class="file-view">
 		<tbody><tr>
@@ -61,7 +61,7 @@ func TestRenderHelperCodePreview(t *testing.T) {
 	assert.Equal(t, `<div class="code-preview-container file-content">
 	<div class="code-preview-header">
 		<a href="http://full" class="tw-font-semibold" rel="nofollow">repo1/README.md</a>
-		repo.code_preview_line_in:1,<a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" class="muted tw-font-mono tw-text-text" rel="nofollow">65f1bf27bc</a>
+		repo.code_preview_line_in:1,<a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" class="muted tw-font-mono tw-text-text" rel="nofollow">65f1bf2</a>
 	</div>
 	<table class="file-view">
 		<tbody><tr>

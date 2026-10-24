@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -100,7 +101,7 @@ func (t telegramConvertor) Push(p *api.PushPayload) (TelegramPayload, error) {
 
 	var htmlCommits strings.Builder
 	for _, commit := range p.Commits {
-		fmt.Fprintf(&htmlCommits, "\n[%s] %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), html.EscapeString(strings.TrimRight(commit.Message, "\r\n")))
+		fmt.Fprintf(&htmlCommits, "\n[%s] %s", htmlLinkFormatter(commit.URL, base.ShortSha(commit.ID)), html.EscapeString(strings.TrimRight(commit.Message, "\r\n")))
 		if commit.Author != nil {
 			htmlCommits.WriteString(" - " + html.EscapeString(commit.Author.Name))
 		}

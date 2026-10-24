@@ -24,7 +24,7 @@ type RenderHelper interface {
 	// It should make the render choose different processors for different purposes,
 	// but not make processors to guess "is it rendering a comment or a wiki?" or "does it need to check commit ID?"
 
-	IsCommitIDExisting(commitID string) bool
+	ResolveCommitID(commitID string) string // empty if commitID doesn't uniquely name a commit
 	ResolveLink(link, preferLinkType string) string
 }
 
@@ -45,8 +45,8 @@ type SimpleRenderHelper struct{}
 
 func (r *SimpleRenderHelper) CleanUp() {}
 
-func (r *SimpleRenderHelper) IsCommitIDExisting(commitID string) bool {
-	return false
+func (r *SimpleRenderHelper) ResolveCommitID(commitID string) string {
+	return ""
 }
 
 func (r *SimpleRenderHelper) ResolveLink(link, preferLinkType string) string {

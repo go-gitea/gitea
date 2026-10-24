@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
@@ -86,7 +87,7 @@ func (wc wechatworkConvertor) Push(p *api.PushPayload) (WechatworkPayload, error
 		}
 
 		message := strings.ReplaceAll(commit.Message, "\n\n", "\r\n")
-		fmt.Fprintf(&text, " > [%s](%s) \r\n ><font color=\"info\">%s</font> \n ><font color=\"warning\">%s</font>", commit.ID[:7], commit.URL,
+		fmt.Fprintf(&text, " > [%s](%s) \r\n ><font color=\"info\">%s</font> \n ><font color=\"warning\">%s</font>", base.ShortSha(commit.ID), commit.URL,
 			message, authorName)
 
 		// add linebreak to each commit but the last

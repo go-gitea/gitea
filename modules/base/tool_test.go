@@ -23,7 +23,7 @@ func TestEncodeSha256(t *testing.T) {
 }
 
 func TestShortSha(t *testing.T) {
-	assert.Equal(t, "veryverylo", ShortSha("veryverylong"))
+	assert.Equal(t, "veryver", ShortSha("veryverylong"))
 }
 
 func TestVerifyTimeLimitCode(t *testing.T) {
