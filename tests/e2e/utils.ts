@@ -105,13 +105,6 @@ export async function apiCreateBranch(requestContext: APIRequestContext, owner: 
   }), 'apiCreateBranch');
 }
 
-export async function apiCreateLabel(requestContext: APIRequestContext, owner: string, repo: string, name: string, {exclusive = false} = {}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/labels`, {
-    headers: apiHeaders(),
-    data: {name, color: '#ee0701', exclusive},
-  }), 'apiCreateLabel');
-}
-
 export async function apiSetRepoTopics(requestContext: APIRequestContext, owner: string, repo: string, topics: string[]) {
   await apiRetry(() => requestContext.put(`${baseUrl()}/api/v1/repos/${owner}/${repo}/topics`, {
     headers: apiHeaders(),
@@ -142,6 +135,21 @@ export async function createProjectColumn(requestContext: APIRequestContext, own
     headers: apiHeaders(),
     form: {title},
   }), 'createProjectColumn');
+}
+
+export async function apiCreateProject(requestContext: APIRequestContext, owner: string, repo: string, title: string): Promise<number> {
+  const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/projects`, {
+    headers: apiHeaders(),
+    data: {title},
+  }), 'apiCreateProject');
+  return (await response.json()).id;
+}
+
+export async function apiCreateLabel(requestContext: APIRequestContext, owner: string, repo: string, name: string, color: string, {exclusive = false} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/labels`, {
+    headers: apiHeaders(),
+    data: {name, color, exclusive},
+  }), 'apiCreateLabel');
 }
 
 export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {

@@ -25,8 +25,8 @@ test('exclusive scoped labels replace each other in the issue sidebar', async ({
     (async () => {
       await apiCreateRepo(request, {name: repoName, autoInit: false});
       await Promise.all([
-        apiCreateLabel(request, owner, repoName, 'kind/bug', {exclusive: true}),
-        apiCreateLabel(request, owner, repoName, 'kind/feature', {exclusive: true}),
+        apiCreateLabel(request, owner, repoName, 'kind/bug', 'ee0701', {exclusive: true}),
+        apiCreateLabel(request, owner, repoName, 'kind/feature', 'ee0701', {exclusive: true}),
         apiCreateIssue(request, {owner, repo: repoName, title: 'Scoped labels'}),
       ]);
     })(),

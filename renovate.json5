@@ -108,6 +108,11 @@
       "minimumReleaseAgeBehaviour": "timestamp-optional", // registry has no release timestamps, https://github.com/renovatebot/renovate/issues/38656
     },
     {
+      "matchDepTypes": ["engines"],
+      "matchDepNames": ["pnpm"],
+      "rangeStrategy": "bump", // keep in sync with packageManager
+    },
+    {
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
       "matchDepTypes": ["golang", "toolchain"], // fast-track go and toolchain in their own PR

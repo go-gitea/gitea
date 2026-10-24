@@ -110,6 +110,18 @@ func TestUpdateIssueProject(t *testing.T) {
 		sess.MakeRequest(t, req, http.StatusOK)
 		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
 	})
+
+	t.Run("AssignOnCreationNeedsWriter", func(t *testing.T) {
+		newIssue := func(session *TestSession, title string, status int) {
+			req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/new", map[string]string{"title": title, "project_ids": "1"})
+			session.MakeRequest(t, req, status)
+		}
+		newIssue(sess, "writer issue", http.StatusOK)
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Title: "writer issue"})
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: 1})
+		newIssue(loginUser(t, "user4"), "reader issue", http.StatusNotFound)
+		unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: 1, Title: "reader issue"})
+	})
 }
 
 func TestUpdateIssueProjectColumn(t *testing.T) {
@@ -228,6 +240,12 @@ func getProjectIssueIDs(t *testing.T, htmlDoc *HTMLDoc) map[int64]struct{} {
 	return ids
 }
 
+func getProjectMilestoneNames(htmlDoc *HTMLDoc) []string {
+	return htmlDoc.Find(".list-header-filters a:has(.octicon-milestone)").Map(func(_ int, s *goquery.Selection) string {
+		return strings.TrimSpace(s.Text())
+	})
+}
+
 func TestRepoProjectFilterByMilestone(t *testing.T) {
 	// Project 1 is on repo 1 (user2/repo1) and has issues:
 	//   issue 1 (milestone_id=0), issue 2 (milestone_id=1), issue 3 (milestone_id=3), issue 5 (milestone_id=0)
@@ -245,6 +263,7 @@ func TestRepoProjectFilterByMilestone(t *testing.T) {
 		assert.Contains(t, issueIDs, int64(2))
 		assert.Contains(t, issueIDs, int64(3))
 		assert.Contains(t, issueIDs, int64(5))
+		assert.Equal(t, []string{"milestone1", "milestone3"}, getProjectMilestoneNames(htmlDoc))
 	})
 
 	t.Run("FilterByMilestone", func(t *testing.T) {
@@ -300,6 +319,7 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		Name:   "org-test-milestone",
 	}
 	require.NoError(t, issues_model.NewMilestone(t.Context(), milestone))
+	require.NoError(t, issues_model.NewMilestone(t.Context(), &issues_model.Milestone{RepoID: repo.ID, Name: "unlinked-milestone"}))
 
 	issue16.MilestoneID = milestone.ID
 	require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue16, "milestone_id"))
@@ -314,8 +334,10 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 	require.NoError(t, project_model.NewProject(t.Context(), &project))
 
 	// Add issues to the project
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, []int64{project.ID}))
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, []int64{project.ID}))
+	for _, issue := range []*issues_model.Issue{issue16, issue17} {
+		_, _, err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user1, []int64{project.ID})
+		require.NoError(t, err)
+	}
 
 	sess := loginUser(t, "user1")
 	projectURL := fmt.Sprintf("/org3/-/projects/%d", project.ID)
@@ -327,6 +349,7 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		issueIDs := getProjectIssueIDs(t, htmlDoc)
 		assert.Contains(t, issueIDs, issue16.ID)
 		assert.Contains(t, issueIDs, issue17.ID)
+		assert.Equal(t, []string{milestone.Name}, getProjectMilestoneNames(htmlDoc))
 	})
 
 	t.Run("FilterByMilestone", func(t *testing.T) {

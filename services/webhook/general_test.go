@@ -6,10 +6,46 @@ package webhook
 import (
 	"testing"
 
+	webhook_model "gitea.dev/models/webhook"
 	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestToHookDelivery(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		payloadVersion int
+		requestContent string
+		body           string
+	}{
+		{"legacy payload", 1, `{"headers":{"Authorization":"stored credential","authorization":"lowercase credential","Content-Type":"application/json"}}`, "payload"},
+		{"recorded body", 1, `{"body":"sent body"}`, "sent body"},
+		{"empty current body", 2, `{}`, ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			task := &webhook_model.HookTask{
+				PayloadVersion: test.payloadVersion,
+				PayloadContent: "payload",
+				RequestContent: test.requestContent,
+			}
+			task.AfterLoad()
+			delivery := ToHookDelivery(task)
+			require.NotNil(t, delivery.Request)
+			assert.Equal(t, test.body, delivery.Request.Body)
+			if task.RequestInfo.Headers != nil {
+				assert.Equal(t, map[string]string{
+					"Authorization": "******",
+					"authorization": "******",
+					"Content-Type":  "application/json",
+				}, delivery.Request.Headers)
+				assert.Equal(t, "stored credential", task.RequestInfo.Headers["Authorization"])
+				assert.Equal(t, "lowercase credential", task.RequestInfo.Headers["authorization"])
+			}
+		})
+	}
+}
 
 func createTestPayload() *api.CreatePayload {
 	return &api.CreatePayload{
