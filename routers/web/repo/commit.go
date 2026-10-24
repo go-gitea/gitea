@@ -333,12 +333,6 @@ func Diff(ctx *context.Context) {
 		ctx.NotFound(err)
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepo, &diffCommonOptions)
-	if err != nil {
-		ctx.ServerError("GetDiffShortStat", err)
-		return
-	}
-	ctx.Data["DiffShortStat"] = diffShortStat
 
 	parents := make([]string, commit.ParentCount())
 	for i := 0; i < commit.ParentCount(); i++ {
@@ -369,19 +363,29 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
-	if !fileOnly {
-		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, parentCommitID, commitID)
-		if err != nil {
-			ctx.ServerError("GetDiffTree", err)
-			return
-		}
-
-		renderedIconPool := fileicon.NewRenderedIconPool()
-		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, nil)
-		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
-		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
-		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
+	if fileOnly {
+		ctx.HTML(http.StatusOK, tplDiffBox)
+		return
 	}
+
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepo, &diffCommonOptions)
+	if err != nil {
+		ctx.ServerError("GetDiffShortStat", err)
+		return
+	}
+	ctx.Data["DiffShortStat"] = diffShortStat
+
+	diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, parentCommitID, commitID)
+	if err != nil {
+		ctx.ServerError("GetDiffTree", err)
+		return
+	}
+
+	renderedIconPool := fileicon.NewRenderedIconPool()
+	ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, nil)
+	ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
+	ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
+	ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 
 	statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
 	if err != nil {

@@ -38,7 +38,6 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/utils"
-	shared_user "gitea.dev/routers/web/shared/user"
 	actions_service "gitea.dev/services/actions"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/automerge"
@@ -788,46 +787,16 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
 	var reviewState *pull_model.ReviewState
-	var numViewedFiles int
 	if ctx.IsSigned && isShowAllCommits {
 		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions)
 		if err != nil {
 			ctx.ServerError("SyncUserSpecificDiff", err)
 			return
 		}
-		if reviewState != nil {
-			numViewedFiles = reviewState.GetViewedFileCount()
-		}
-	}
-
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, &diffCommonOptions)
-	if err != nil {
-		ctx.ServerError("GetDiffShortStat", err)
-		return
-	}
-	ctx.Data["DiffShortStat"] = diffShortStat
-	ctx.Data["NumViewedFiles"] = numViewedFiles
-
-	ctx.PageData["prReview"] = map[string]any{
-		"numberOfFiles":       diffShortStat.NumFiles,
-		"numberOfViewedFiles": numViewedFiles,
 	}
 
 	if err = diff.LoadComments(ctx, issue, ctx.Doer, GetShowOutdatedComments(ctx)); err != nil {
 		ctx.ServerError("LoadComments", err)
-		return
-	}
-
-	allComments := issues_model.CommentList{}
-	for _, file := range diff.Files {
-		for _, section := range file.Sections {
-			for _, line := range section.Lines {
-				allComments = append(allComments, line.Comments...)
-			}
-		}
-	}
-	if err := allComments.LoadAttachments(ctx); err != nil {
-		ctx.ServerError("LoadAttachments", err)
 		return
 	}
 
@@ -842,6 +811,24 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 
 	if !fileOnly {
+		diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, &diffCommonOptions)
+		if err != nil {
+			ctx.ServerError("GetDiffShortStat", err)
+			return
+		}
+		var numViewedFiles int
+		if reviewState != nil {
+			numViewedFiles = reviewState.GetViewedFileCount()
+		}
+		ctx.Data["DiffShortStat"] = diffShortStat
+		ctx.Data["NumViewedFiles"] = numViewedFiles
+		ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
+		ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
+		ctx.PageData["prReview"] = map[string]any{
+			"numberOfFiles":       diffShortStat.NumFiles,
+			"numberOfViewedFiles": numViewedFiles,
+		}
+
 		// note: use mergeBase is set to false because we already have the merge base from the pull request info
 		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, beforeCommitID, afterCommitID)
 		if err != nil {
@@ -858,6 +845,35 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
 		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
 		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
+
+		var numPendingCodeComments int64
+		var currentPendingReview *issues_model.Review
+		if ctx.Doer != nil {
+			currentPendingReview, err = issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
+			if err != nil && !issues_model.IsErrReviewNotExist(err) {
+				ctx.ServerError("GetCurrentReview", err)
+				return
+			}
+			if currentPendingReview != nil {
+				numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
+					Type:     issues_model.CommentTypeCode,
+					ReviewID: currentPendingReview.ID,
+					IssueID:  issue.ID,
+				})
+				if err != nil {
+					ctx.ServerError("CountComments", err)
+					return
+				}
+			}
+		}
+		ctx.Data["CurrentReview"] = currentPendingReview
+		ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
+
+		// For files changed page
+		PrepareBranchList(ctx)
+		if ctx.Written() {
+			return
+		}
 	}
 
 	ctx.Data["Diff"] = diff
@@ -867,8 +883,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		DiffStyle:      GetDiffViewStyle(ctx),
 		AfterCommitID:  afterCommitID,
 	}
-	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
-	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
 
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
@@ -877,44 +891,8 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	setCompareContext(ctx, beforeCommit, afterCommit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
-	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
-	if err != nil {
-		ctx.ServerError("GetRepoAssignees", err)
-		return
-	}
-	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
-
-	var numPendingCodeComments int64
-	var currentPendingReview *issues_model.Review
-	if ctx.Doer != nil {
-		currentPendingReview, err = issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
-		if err != nil && !issues_model.IsErrReviewNotExist(err) {
-			ctx.ServerError("GetCurrentReview", err)
-			return
-		}
-		if currentPendingReview != nil {
-			numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
-				Type:     issues_model.CommentTypeCode,
-				ReviewID: currentPendingReview.ID,
-				IssueID:  issue.ID,
-			})
-			if err != nil {
-				ctx.ServerError("CountComments", err)
-				return
-			}
-		}
-	}
-	ctx.Data["CurrentReview"] = currentPendingReview
-	ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
-
 	ctx.Data["IsIssuePoster"] = ctx.Doer != nil && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
-
-	// For files changed page
-	PrepareBranchList(ctx)
-	if ctx.Written() {
-		return
-	}
 
 	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
@@ -941,12 +919,16 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 					ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
 					ctx.Data["HeadBranchName"] = pull.HeadBranch
-					ctx.Data["BackToLink"] = setting.AppSubURL + ctx.Req.URL.RequestURI()
+					ctx.Data["BackToLink"] = templates.QueryBuild(setting.AppSubURL+ctx.Req.URL.RequestURI(), "file-only", "", "skip-to", "")
 				}
 			}
 		}
 	}
 
+	if fileOnly {
+		ctx.HTML(http.StatusOK, tplDiffBox)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplPullFiles)
 }
 
