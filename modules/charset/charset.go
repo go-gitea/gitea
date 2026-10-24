@@ -97,9 +97,16 @@ func ToUTF8DropErrors(content []byte) []byte {
 }
 
 func ToUTF8(content []byte, opts ConvertOpts) []byte {
-	charsetLabel, _ := DetectEncoding(content)
-	if charsetLabel == "UTF-8" {
+	if utf8.Valid(content) {
 		return maybeRemoveBOM(content, opts)
+	}
+	charsetLabel, _ := DetectEncoding(content)
+	if charsetLabel == "UTF-8" { // invalid content detected as UTF-8: a truncated last rune or the detection fallback
+		content = maybeRemoveBOM(content, opts)
+		if opts.ErrorReplacement != nil && !opts.ErrorReturnOrigin {
+			return bytes.ToValidUTF8(content, opts.ErrorReplacement)
+		}
+		return content
 	}
 
 	encoding, _ := Lookup(charsetLabel)
