@@ -138,9 +138,11 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string) (*user_mode
 		return nil, err
 	}
 
-	t.UpdatedUnix = timeutil.TimeStampNow()
-	if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
-		log.Error("UpdateAccessToken: %v", err)
+	if auth_model.ShouldPersistTokenUse(t.UpdatedUnix, time.Now()) {
+		t.UpdatedUnix = timeutil.TimeStampNow()
+		if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
+			log.Error("UpdateAccessToken: %v", err)
+		}
 	}
 	user, err := user_model.GetUserByID(ctx, t.UID)
 	if err != nil {
