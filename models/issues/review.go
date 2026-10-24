@@ -129,6 +129,7 @@ type Review struct {
 	ReviewerTeam     *organization.Team `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
+	OriginalID       int64  `xorm:"INDEX"` // the review id on the remote source, only set for synced mirror reviews
 	Issue            *Issue `xorm:"-"`
 	IssueID          int64  `xorm:"index"`
 	Content          string `xorm:"TEXT"`
@@ -651,6 +652,22 @@ func DismissReview(ctx context.Context, review *Review, isDismiss bool) (err err
 	return err
 }
 
+// generateCommentFromReview builds the review's timeline comment; it shares the review's OriginalID so a sync can match it
+func generateCommentFromReview(review *Review) *Comment {
+	return &Comment{
+		Type:             CommentTypeReview,
+		Content:          review.Content,
+		PosterID:         review.ReviewerID,
+		OriginalAuthor:   review.OriginalAuthor,
+		OriginalAuthorID: review.OriginalAuthorID,
+		OriginalID:       review.OriginalID,
+		IssueID:          review.IssueID,
+		ReviewID:         review.ID,
+		CreatedUnix:      review.CreatedUnix,
+		UpdatedUnix:      review.UpdatedUnix,
+	}
+}
+
 // InsertReviews inserts review and review comments
 func InsertReviews(ctx context.Context, reviews []*Review) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
@@ -661,17 +678,7 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 				return err
 			}
 
-			if _, err := sess.NoAutoTime().Insert(&Comment{
-				Type:             CommentTypeReview,
-				Content:          review.Content,
-				PosterID:         review.ReviewerID,
-				OriginalAuthor:   review.OriginalAuthor,
-				OriginalAuthorID: review.OriginalAuthorID,
-				IssueID:          review.IssueID,
-				ReviewID:         review.ID,
-				CreatedUnix:      review.CreatedUnix,
-				UpdatedUnix:      review.UpdatedUnix,
-			}); err != nil {
+			if _, err := sess.NoAutoTime().Insert(generateCommentFromReview(review)); err != nil {
 				return err
 			}
 
@@ -691,6 +698,77 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 		}
 		return nil
 	})
+}
+
+// UpsertReviews inserts new reviews and updates synced ones in place, matched on OriginalID
+func UpsertReviews(ctx context.Context, reviews []*Review) error {
+	if len(reviews) == 0 {
+		return nil
+	}
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
+
+		for _, review := range reviews {
+			existing := &Review{}
+			has, err := sess.Where("original_id = ?", review.OriginalID).Get(existing)
+			if err != nil {
+				return err
+			}
+			if !has {
+				if _, err := sess.NoAutoTime().Insert(review); err != nil {
+					return err
+				}
+			} else {
+				review.ID = existing.ID
+				if _, err := sess.NoAutoTime().ID(review.ID).AllCols().Update(review); err != nil {
+					return err
+				}
+				// NoAutoTime drops `updated` columns even under AllCols, and updated_unix is the sync watermark
+				if _, err := sess.NoAutoTime().ID(review.ID).Cols("updated_unix").Update(&Review{UpdatedUnix: review.UpdatedUnix}); err != nil {
+					return err
+				}
+			}
+
+			// the review mirrored into the comment timeline
+			if err := upsertReviewComment(sess, generateCommentFromReview(review)); err != nil {
+				return err
+			}
+
+			// the review's inline code comments
+			for _, c := range review.Comments {
+				c.ReviewID = review.ID
+				if err := upsertReviewComment(sess, c); err != nil {
+					return err
+				}
+			}
+
+			if err := UpdateIssueNumComments(ctx, review.IssueID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// upsertReviewComment inserts or updates a synced review's comment, matched on (issue_id, review_id, type, original_id)
+func upsertReviewComment(sess db.Engine, comment *Comment) error {
+	existing := &Comment{}
+	has, err := sess.Where("issue_id = ? AND review_id = ? AND `type` = ? AND original_id = ?",
+		comment.IssueID, comment.ReviewID, comment.Type, comment.OriginalID).Get(existing)
+	if err != nil {
+		return err
+	}
+	if !has {
+		_, err := sess.NoAutoTime().Insert(comment)
+		return err
+	}
+	comment.ID = existing.ID
+	if _, err := sess.NoAutoTime().ID(comment.ID).AllCols().Update(comment); err != nil {
+		return err
+	}
+	// NoAutoTime drops `updated` columns even under AllCols, and updated_unix is the sync watermark
+	_, err = sess.NoAutoTime().ID(comment.ID).Cols("updated_unix").Update(&Comment{UpdatedUnix: comment.UpdatedUnix})
+	return err
 }
 
 // AddReviewRequest add a review request from one reviewer

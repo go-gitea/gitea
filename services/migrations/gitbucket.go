@@ -92,3 +92,8 @@ func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, to
 func (g *GitBucketDownloader) SupportGetRepoComments() bool {
 	return false
 }
+
+// SupportSyncing is false: the incremental sync relies on GitHub-only since filtering and updated ordering
+func (g *GitBucketDownloader) SupportSyncing() bool {
+	return false
+}

@@ -6,6 +6,7 @@ package migration
 import (
 	"context"
 	"net/url"
+	"time"
 )
 
 // NullDownloader implements a blank downloader
@@ -82,4 +83,29 @@ func (n NullDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (
 // SupportGetRepoComments return true if it supports get repo comments
 func (n NullDownloader) SupportGetRepoComments() bool {
 	return false
+}
+
+// SupportSyncing returns true if it supports syncing an already-migrated repository
+func (n NullDownloader) SupportSyncing() bool {
+	return false
+}
+
+// GetNewIssues returns issues updated after the given time, paginated
+func (n NullDownloader) GetNewIssues(_ context.Context, page, perPage int, updatedAfter time.Time) ([]*Issue, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "NewIssues"}
+}
+
+// GetNewPullRequests returns pull requests updated after the given time, paginated
+func (n NullDownloader) GetNewPullRequests(_ context.Context, page, perPage int, updatedAfter time.Time) ([]*PullRequest, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "NewPullRequests"}
+}
+
+// GetNewComments returns an issue's or pull request's comments updated after the given time
+func (n NullDownloader) GetNewComments(_ context.Context, commentable Commentable, updatedAfter time.Time) ([]*Comment, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "NewComments"}
+}
+
+// GetNewReviews returns a pull request's reviews updated after the given time
+func (n NullDownloader) GetNewReviews(_ context.Context, reviewable Reviewable, updatedAfter time.Time) ([]*Review, error) {
+	return nil, ErrNotSupported{Entity: "NewReviews"}
 }

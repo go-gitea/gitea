@@ -695,7 +695,12 @@ func mustEnableIssues(ctx *context.APIContext) {
 }
 
 func mustAllowPulls(ctx *context.APIContext) {
-	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.Permission.CanRead(unit.TypePullRequests)) {
+	canShowPulls, err := ctx.Repo.Repository.CanShowPulls(ctx)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !(canShowPulls && ctx.Repo.Permission.CanRead(unit.TypePullRequests)) {
 		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
@@ -718,8 +723,13 @@ func mustAllowPulls(ctx *context.APIContext) {
 }
 
 func mustEnableIssuesOrPulls(ctx *context.APIContext) {
+	canShowPulls, err := ctx.Repo.Repository.CanShowPulls(ctx)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 	if !ctx.Repo.Permission.CanRead(unit.TypeIssues) &&
-		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.Permission.CanRead(unit.TypePullRequests)) {
+		!(canShowPulls && ctx.Repo.Permission.CanRead(unit.TypePullRequests)) {
 		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v and %-v in Repo %-v\n"+

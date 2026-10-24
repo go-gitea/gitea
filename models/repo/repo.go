@@ -593,6 +593,29 @@ func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 	return repo.CanEnablePulls() && repo.UnitEnabled(ctx, unit.TypePullRequests)
 }
 
+// IsMirrorWithMetadata reports whether this pull mirror also syncs its issues or pull requests, read-only
+func (repo *Repository) IsMirrorWithMetadata(ctx context.Context) (bool, error) {
+	if !repo.IsMirror {
+		return false, nil
+	}
+	mirror, err := GetMirrorByRepoID(ctx, repo.ID)
+	if err != nil {
+		if errors.Is(err, ErrMirrorNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+	return mirror.SyncIssues || mirror.SyncPullRequests, nil
+}
+
+// CanShowPulls is CanEnablePulls, plus metadata mirrors, which show their remote's pull requests without accepting new ones
+func (repo *Repository) CanShowPulls(ctx context.Context) (bool, error) {
+	if repo.CanEnablePulls() {
+		return true, nil
+	}
+	return repo.IsMirrorWithMetadata(ctx)
+}
+
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 	return markup.PostProcessDescriptionHTML(markup.NewRenderContext(ctx), htmlutil.EscapeString(repo.Description))

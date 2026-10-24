@@ -65,6 +65,7 @@ type GithubGraphQLDownloader struct {
 	issuesCursor string
 	prCursor     string
 	restFallback bool
+	since        time.Time // incremental sync watermark, zero for a migration
 	// REST restarts from its first page after a fallback, the migration skips what it already imported
 	restIssuePageOffset int
 	restPRPageOffset    int
@@ -367,8 +368,18 @@ func graphQLRateResetWait(header http.Header) time.Duration {
 	return min(wait, graphQLRateResetCap)
 }
 
-// graphQLContentQuery orders by creation since a mutable sort key skips rows, nested comment reactions exceed GitHub's node limit
+// graphQLContentQuery orders by creation since a mutable sort key skips rows, nested comment reactions exceed GitHub's node limit.
+// An incremental sync orders by update instead: issues ascending from the watermark (an update only moves one past the cursor),
+// pull requests descending until the watermark since they have no since filter.
 func (g *GithubGraphQLDownloader) graphQLContentQuery(connection, prFields, prDiscussion string) string {
+	sinceDecl, order := "", "orderBy:{field:CREATED_AT,direction:ASC}"
+	switch {
+	case g.since.IsZero():
+	case connection == "issues":
+		sinceDecl, order = ",$since:DateTime!", "orderBy:{field:UPDATED_AT,direction:ASC},filterBy:{since:$since}"
+	default:
+		order = "orderBy:{field:UPDATED_AT,direction:DESC}"
+	}
 	fields := prFields
 	if !g.SkipReactions {
 		fields += " reactions(first:100){" + gqlPageInfoFields + " nodes{" + gqlReactionFields + "}}"
@@ -377,9 +388,9 @@ func (g *GithubGraphQLDownloader) graphQLContentQuery(connection, prFields, prDi
 		fields += " comments(first:100){" + gqlPageInfoFields + " nodes{id databaseId body createdAt updatedAt author{" + gqlActorFields + "}}}" + prDiscussion
 	}
 	return fmt.Sprintf(`
-query($owner:String!,$name:String!,$cursor:String,$first:Int!){
+query($owner:String!,$name:String!,$cursor:String,$first:Int!%[7]s){
   repository(owner:$owner,name:$name){
-    %[1]s(first:$first,after:$cursor,orderBy:{field:CREATED_AT,direction:ASC}){
+    %[1]s(first:$first,after:$cursor,%[8]s){
       %[2]s
       nodes{
         id number title body state createdAt updatedAt closedAt locked
@@ -391,7 +402,7 @@ query($owner:String!,$name:String!,$cursor:String,$first:Int!){
       }
     }
   }
-}`, connection, gqlPageInfoFields, gqlActorFields, graphQLLabelPageSize, graphQLAssigneePageSize, fields)
+}`, connection, gqlPageInfoFields, gqlActorFields, graphQLLabelPageSize, graphQLAssigneePageSize, fields, sinceDecl, order)
 }
 
 func (g *GithubGraphQLDownloader) graphQLIssuesQuery() string {
@@ -617,6 +628,9 @@ func graphQLPageSize(perPage, maxSize int) int {
 
 func (g *GithubGraphQLDownloader) doGraphQLPage(ctx context.Context, query, cursor string, pageSize int, out any) error {
 	vars := map[string]any{"owner": g.repoOwner, "name": g.repoName}
+	if strings.Contains(query, "$since") {
+		vars["since"] = g.since.Format(time.RFC3339)
+	}
 	if cursor != "" {
 		vars["cursor"] = cursor
 	}

@@ -119,7 +119,7 @@
 						</a>
 					{{end}}
 
-					{{if and .Repository.CanEnablePulls (.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests)}}
+					{{if .Permission.CanRead ctx.Consts.RepoUnitTypePullRequests}}
 						<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls" data-shortcut-keys="g p">
 							{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.pulls"}}
 							{{if .Repository.NumOpenPulls}}

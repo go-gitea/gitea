@@ -9,14 +9,18 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
+	unit "gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	migration "gitea.dev/modules/migration"
 	"gitea.dev/modules/process"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -25,6 +29,8 @@ import (
 	"gitea.dev/services/migrations"
 	notify_service "gitea.dev/services/notify"
 	repo_service "gitea.dev/services/repository"
+
+	"xorm.io/builder"
 )
 
 // UpdateAddress writes new address to Git repository and database
@@ -265,6 +271,82 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	return results, true
 }
 
+func runSyncMetadata(ctx context.Context, m *repo_model.Mirror) bool {
+	repo := m.GetRepository(ctx)
+	log.Info("metadata sync [%s]: starting (sync_issues=%v sync_prs=%v)",
+		repo.FullName(), m.SyncIssues, m.SyncPullRequests)
+
+	remoteURL, err := git.ParseRemoteAddressURL(ctx, repo, m.GetRemoteName())
+	if err != nil {
+		log.Error("SyncMirrors [repo: %-v]: unable to get remote address: %v", m.Repo, err)
+		return false
+	}
+	password, _ := remoteURL.URL.User.Password()
+
+	opts := migration.MigrateOptions{
+		CloneAddr:       repo.OriginalURL,
+		AuthUsername:    remoteURL.URL.User.Username(),
+		AuthPassword:    password,
+		UID:             int(repo.OwnerID),
+		RepoName:        repo.Name,
+		Mirror:          true,
+		LFS:             m.LFS,
+		LFSEndpoint:     m.LFSEndpoint,
+		GitServiceType:  repo.OriginalServiceType,
+		OriginalURL:     repo.OriginalURL,
+		Issues:          m.SyncIssues,
+		PullRequests:    m.SyncPullRequests,
+		Comments:        m.SyncIssues || m.SyncPullRequests,
+		MigrateToRepoID: repo.ID,
+		MirrorInterval:  m.Interval.String(),
+	}
+
+	if err := enableMetadataUnits(ctx, m); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: failed to enable metadata units: %v", m.Repo, err)
+		return false
+	}
+
+	if _, err := migrations.SyncRepository(ctx, repo.MustOwner(ctx), repo, opts, nil); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: failed to sync metadata: %v", m.Repo, err)
+		return false
+	}
+	logMetadataSyncComplete(ctx, repo)
+	return true
+}
+
+func enableMetadataUnits(ctx context.Context, m *repo_model.Mirror) error {
+	repo := m.GetRepository(ctx)
+	if err := repo.LoadUnits(ctx); err != nil {
+		return err
+	}
+	var toEnable []repo_model.RepoUnit
+	wanted := map[unit.Type]bool{
+		unit.TypeIssues:       m.SyncIssues,
+		unit.TypePullRequests: m.SyncPullRequests,
+	}
+	for unitType, want := range wanted {
+		if want && !unitType.UnitGlobalDisabled() && !repo.UnitEnabled(ctx, unitType) {
+			toEnable = append(toEnable, repo_model.RepoUnit{RepoID: repo.ID, Type: unitType})
+		}
+	}
+	if len(toEnable) == 0 {
+		return nil
+	}
+	return repo_service.UpdateRepositoryUnits(ctx, repo, toEnable, nil)
+}
+
+func logMetadataSyncComplete(ctx context.Context, repo *repo_model.Repository) {
+	e := db.GetEngine(ctx)
+	repoIssues := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})
+	repoComments := builder.Select("id").From("comment").Where(builder.In("issue_id", repoIssues))
+	issues, _ := e.Where(builder.Eq{"repo_id": repo.ID}).Count(new(issues_model.Issue))
+	comments, _ := e.Where(builder.In("issue_id", repoIssues)).Count(new(issues_model.Comment))
+	reviews, _ := e.Where(builder.In("issue_id", repoIssues)).Count(new(issues_model.Review))
+	reactions, _ := e.Where(builder.Or(builder.In("issue_id", repoIssues), builder.In("comment_id", repoComments))).Count(new(issues_model.Reaction))
+	log.Info("METADATA_SYNC_COMPLETE %s t=%d issues=%d comments=%d reviews=%d reactions=%d",
+		repo.FullName(), time.Now().Unix(), issues, comments, reviews, reactions)
+}
+
 func getRepoPullMirrorLockKey(repoID int64) string {
 	return fmt.Sprintf("repo_pull_mirror_%d", repoID)
 }
@@ -307,8 +389,19 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
+	if m.SyncsMetadata() {
+		log.Trace("SyncMirrors [repo: %-v]: Running metadata sync", m.Repo)
+		if ok := runSyncMetadata(ctx, m); !ok {
+			if err = repo_model.TouchMirror(ctx, m); err != nil {
+				log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
+			}
+			return false
+		}
+	}
+
 	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
+	m.LastSyncUnix = m.UpdatedUnix
 	m.LastSyncUnix = m.UpdatedUnix
 	if err = repo_model.UpdateMirror(ctx, m); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirror with next update date: %v", m.Repo, err)
