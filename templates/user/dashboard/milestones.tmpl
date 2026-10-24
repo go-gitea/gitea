@@ -134,6 +134,14 @@
 						</div>
 					{{end}}
 
+					{{if not .Milestones}}
+						<div class="empty-placeholder">
+							{{svg "octicon-milestone" 48}}
+							<h2>{{ctx.Locale.Tr "milestones.no_milestones"}}</h2>
+							<p>{{ctx.Locale.Tr "milestones.no_milestones_desc"}}</p>
+						</div>
+					{{end}}
+
 					{{template "base/paginate" .}}
 				</div>
 
