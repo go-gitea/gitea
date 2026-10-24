@@ -122,6 +122,128 @@ func GetHook(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiHook)
 }
 
+func ListDeliveries(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/hooks/{id}/deliveries repository repoListHookDeliveries
+	// ---
+	// summary: List the deliveries of a hook in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the hook
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/HookDeliveryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	hookID := ctx.PathParamInt64("id")
+	if _, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID); err != nil {
+		return
+	}
+
+	listOptions := utils.GetListOptions(ctx)
+	tasks, count, err := db.FindAndCount[webhook.HookTask](ctx, webhook.ListHookTaskOptions{
+		ListOptions: listOptions,
+		HookID:      hookID,
+	})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	deliveries := make([]*api.HookDelivery, len(tasks))
+	for i, task := range tasks {
+		delivery := webhook_service.ToHookDelivery(task)
+		if delivery.Request != nil { // the list omits payloads, they are only returned per delivery
+			delivery.Request.Headers = nil
+			delivery.Request.Body = ""
+		}
+		if delivery.Response != nil {
+			delivery.Response.Headers = nil
+			delivery.Response.Body = ""
+		}
+		deliveries[i] = delivery
+	}
+
+	ctx.SetLinkHeader(count, listOptions.PageSize)
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, deliveries)
+}
+
+func GetDelivery(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/hooks/{id}/deliveries/{uuid} repository repoGetHookDelivery
+	// ---
+	// summary: Get a delivery of a hook in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the hook
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: uuid
+	//   in: path
+	//   description: uuid of the delivery
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/HookDelivery"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	hookID := ctx.PathParamInt64("id")
+	if _, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID); err != nil {
+		return
+	}
+	task, err := webhook.GetHookTaskByUUID(ctx, hookID, ctx.PathParam("uuid"))
+	if err != nil {
+		if webhook.IsErrHookTaskNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, webhook_service.ToHookDelivery(task))
+}
+
 // TestHook tests a hook
 func TestHook(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/hooks/{id}/tests repository repoTestHook
