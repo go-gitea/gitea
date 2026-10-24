@@ -544,6 +544,32 @@ func TestAPIBranchProtectionDeployKeyAllowlists(t *testing.T) {
 		assert.Equal(t, []string{"gitea:deploy-key"}, bp.ForcePushAllowlistUsernames)
 	})
 
+	t.Run("CreateForcePushWithoutPush", func(t *testing.T) {
+		create := func(opts *api.CreateBranchProtectionOption) *api.BranchProtection {
+			resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, opts).AddTokenAuth(token), http.StatusCreated)
+			bp := DecodeJSON(t, resp, &api.BranchProtection{})
+			assert.False(t, bp.EnablePush)
+			return bp
+		}
+
+		bp := create(&api.CreateBranchProtectionOption{
+			RuleName: "force-push-allowlist", EnableForcePush: true, EnableForcePushAllowlist: true,
+			ForcePushAllowlistUsernames: []string{"user2"}, ForcePushAllowlistDeployKeys: true,
+		})
+		assert.True(t, bp.EnableForcePush)
+		assert.True(t, bp.EnableForcePushAllowlist)
+		assert.True(t, bp.ForcePushAllowlistDeployKeys)
+		assert.Equal(t, []string{"user2", "gitea:deploy-key"}, bp.ForcePushAllowlistUsernames)
+
+		bp = create(&api.CreateBranchProtectionOption{RuleName: "force-push-all", EnableForcePush: true})
+		assert.True(t, bp.EnableForcePush)
+		assert.False(t, bp.EnableForcePushAllowlist)
+
+		bp = create(&api.CreateBranchProtectionOption{RuleName: "force-push-allowlist-only", EnableForcePushAllowlist: true})
+		assert.False(t, bp.EnableForcePush)
+		assert.False(t, bp.EnableForcePushAllowlist)
+	})
+
 	t.Run("CreateWithDeployKeyUsernames", func(t *testing.T) {
 		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, &api.CreateBranchProtectionOption{
 			RuleName: "deploy-key-usernames", EnablePush: true, EnablePushWhitelist: true,

@@ -3901,6 +3901,7 @@
             "x-go-name": "EnableForcePush"
           },
           "enable_force_push_allowlist": {
+            "description": "EnableForcePushAllowlist only takes effect when enable_force_push is true",
             "type": "boolean",
             "x-go-name": "EnableForcePushAllowlist"
           },
@@ -5503,6 +5504,7 @@
             "x-go-name": "EnableForcePush"
           },
           "enable_force_push_allowlist": {
+            "description": "EnableForcePushAllowlist only takes effect when enable_force_push is also set to true in the same request",
             "type": "boolean",
             "x-go-name": "EnableForcePushAllowlist"
           },
