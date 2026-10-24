@@ -10,6 +10,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	packages_model "gitea.dev/models/packages"
+	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -335,6 +336,22 @@ func IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues
 
 	for _, notifier := range notifiers {
 		notifier.IssueChangeLabels(ctx, doer, issue, addedLabels, removedLabels)
+	}
+}
+
+func IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.IssueChangeProjects(ctx, doer, issue, addedProjectIDs, removedProjectIDs)
+	}
+}
+
+func IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID int64, newColumn *project_model.Column) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.IssueChangeProjectColumn(ctx, doer, issue, oldColumnID, newColumn)
 	}
 }
 
