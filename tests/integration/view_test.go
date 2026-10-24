@@ -126,6 +126,6 @@ func testViewPageCurrentURL(t *testing.T) {
 		currentURL, _ = ctx.Data["CurrentURL"].(string)
 	})
 	defer web.RouteMockReset()
-	MakeRequest(t, NewRequest(t, "GET", "/any-page?k=v"), http.StatusNotFound)
-	assert.Equal(t, "/subpath/any-page?k=v", currentURL)
+	MakeRequest(t, NewRequest(t, "GET", "/user2?k=v"), http.StatusOK)
+	assert.Equal(t, "/subpath/user2?k=v", currentURL)
 }
