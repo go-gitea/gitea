@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
-	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -73,16 +72,6 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repo *repo_model.Repository, opts migration.MigrateOptions,
 	httpTransport http.RoundTripper,
 ) (*repo_model.Repository, error) {
-	if u.IsOrganization() {
-		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
-		if err != nil {
-			return nil, err
-		}
-		repo.NumWatches = t.NumMembers
-	} else {
-		repo.NumWatches = 1
-	}
-
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
 	if err := git.DeleteRepository(ctx, repo); err != nil {
@@ -216,7 +205,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 
 			repo.IsMirror = true
-			if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "num_watches", "is_empty", "default_branch", "default_wiki_branch", "is_mirror"); err != nil {
+			if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_empty", "default_branch", "default_wiki_branch", "is_mirror"); err != nil {
 				return nil, err
 			}
 

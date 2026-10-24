@@ -6,7 +6,6 @@
   lower_name: repo1
   name: repo1
   default_branch: master
-  num_watches: 4
   num_stars: 0
   num_forks: 0
   num_issues: 2
@@ -37,7 +36,6 @@
   lower_name: repo2
   name: repo2
   default_branch: master
-  num_watches: 0
   num_stars: 1
   num_forks: 0
   num_issues: 2
@@ -68,7 +66,6 @@
   lower_name: repo3
   name: repo3
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 1
@@ -99,7 +96,6 @@
   lower_name: repo4
   name: repo4
   default_branch: master
-  num_watches: 0
   num_stars: 1
   num_forks: 0
   num_issues: 0
@@ -131,7 +127,6 @@
   owner_name: org3
   lower_name: repo5
   name: repo5
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 1
@@ -161,7 +156,6 @@
   owner_name: user10
   lower_name: repo6
   name: repo6
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -191,7 +185,6 @@
   owner_name: user10
   lower_name: repo7
   name: repo7
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -221,7 +214,6 @@
   owner_name: user10
   lower_name: repo8
   name: repo8
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -251,7 +243,6 @@
   owner_name: user11
   lower_name: repo9
   name: repo9
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -282,7 +273,6 @@
   lower_name: repo10
   name: repo10
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 1
   num_issues: 0
@@ -313,7 +303,6 @@
   lower_name: repo11
   name: repo11
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -343,7 +332,6 @@
   owner_name: user14
   lower_name: test_repo_12
   name: test_repo_12
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -373,7 +361,6 @@
   owner_name: user14
   lower_name: test_repo_13
   name: test_repo_13
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -404,7 +391,6 @@
   lower_name: test_repo_14
   name: test_repo_14
   description: test_description_14
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -435,7 +421,6 @@
   lower_name: repo15
   name: repo15
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -466,7 +451,6 @@
   lower_name: repo16
   name: repo16
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -496,7 +480,6 @@
   owner_name: user15
   lower_name: big_test_public_1
   name: big_test_public_1
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -526,7 +509,6 @@
   owner_name: user15
   lower_name: big_test_public_2
   name: big_test_public_2
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -556,7 +538,6 @@
   owner_name: user15
   lower_name: big_test_private_1
   name: big_test_private_1
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -586,7 +567,6 @@
   owner_name: user15
   lower_name: big_test_private_2
   name: big_test_private_2
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -616,7 +596,6 @@
   owner_name: user16
   lower_name: big_test_public_3
   name: big_test_public_3
-  num_watches: 1
   num_stars: 1
   num_forks: 0
   num_issues: 0
@@ -646,7 +625,6 @@
   owner_name: user16
   lower_name: big_test_private_3
   name: big_test_private_3
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -676,7 +654,6 @@
   owner_name: org17
   lower_name: big_test_public_4
   name: big_test_public_4
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -706,7 +683,6 @@
   owner_name: org17
   lower_name: big_test_private_4
   name: big_test_private_4
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -736,7 +712,6 @@
   owner_name: user20
   lower_name: big_test_public_mirror_5
   name: big_test_public_mirror_5
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -766,7 +741,6 @@
   owner_name: user20
   lower_name: big_test_private_mirror_5
   name: big_test_private_mirror_5
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -796,7 +770,6 @@
   owner_name: org19
   lower_name: big_test_public_mirror_6
   name: big_test_public_mirror_6
-  num_watches: 0
   num_stars: 0
   num_forks: 1
   num_issues: 0
@@ -826,7 +799,6 @@
   owner_name: org19
   lower_name: big_test_private_mirror_6
   name: big_test_private_mirror_6
-  num_watches: 0
   num_stars: 0
   num_forks: 1
   num_issues: 0
@@ -856,7 +828,6 @@
   owner_name: user20
   lower_name: big_test_public_fork_7
   name: big_test_public_fork_7
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -886,7 +857,6 @@
   owner_name: user20
   lower_name: big_test_private_fork_7
   name: big_test_private_fork_7
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -917,7 +887,6 @@
   lower_name: repo20
   name: repo20
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -947,7 +916,6 @@
   owner_name: org3
   lower_name: repo21
   name: repo21
-  num_watches: 1
   num_stars: 1
   num_forks: 0
   num_issues: 2
@@ -978,7 +946,6 @@
   lower_name: utf8
   name: utf8
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1008,7 +975,6 @@
   owner_name: user21
   lower_name: golang
   name: golang
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1038,7 +1004,6 @@
   owner_name: user21
   lower_name: graphql
   name: graphql
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1069,7 +1034,6 @@
   lower_name: commits_search_test
   name: commits_search_test
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1100,7 +1064,6 @@
   lower_name: git_hooks_test
   name: git_hooks_test
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1131,7 +1094,6 @@
   lower_name: public_repo_on_limited_org
   name: public_repo_on_limited_org
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1162,7 +1124,6 @@
   lower_name: private_repo_on_limited_org
   name: private_repo_on_limited_org
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1193,7 +1154,6 @@
   lower_name: public_repo_on_private_org
   name: public_repo_on_private_org
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1224,7 +1184,6 @@
   lower_name: private_repo_on_private_org
   name: private_repo_on_private_org
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1255,7 +1214,6 @@
   lower_name: glob
   name: glob
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 1
@@ -1285,7 +1243,6 @@
   owner_name: org26
   lower_name: repo26
   name: repo26
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1316,7 +1273,6 @@
   lower_name: template1
   name: template1
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1346,7 +1302,6 @@
   owner_name: user27
   lower_name: template2
   name: template2
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1377,7 +1332,6 @@
   lower_name: repo_external_tracker
   name: repo_external_tracker
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1408,7 +1362,6 @@
   lower_name: repo_external_tracker_numeric
   name: repo_external_tracker_numeric
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1439,7 +1392,6 @@
   lower_name: repo_external_tracker_alpha
   name: repo_external_tracker_alpha
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1470,7 +1422,6 @@
   lower_name: repo49
   name: repo49
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1501,7 +1452,6 @@
   lower_name: repo50
   name: repo50
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 1
@@ -1532,7 +1482,6 @@
   lower_name: repo51
   name: repo51
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 1
@@ -1563,7 +1512,6 @@
   lower_name: empty
   name: empty
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1603,7 +1551,6 @@
   num_closed_pulls: 0
   num_milestones: 0
   num_closed_milestones: 0
-  num_watches: 0
   num_projects: 0
   num_closed_projects: 0
   status: 0
@@ -1672,7 +1619,6 @@
   lower_name: commitsonpr
   name: commitsonpr
   default_branch: main
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1703,7 +1649,6 @@
   lower_name: repo60
   name: repo60
   default_branch: main
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1734,7 +1679,6 @@
   lower_name: repo61
   name: repo61
   default_branch: main
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -1765,7 +1709,6 @@
   lower_name: search-by-path
   name: search-by-path
   default_branch: master
-  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0

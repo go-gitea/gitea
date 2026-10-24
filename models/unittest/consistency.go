@@ -86,12 +86,7 @@ func init() {
 			AssertExistsAndLoadMap(t, "repository", builder.Eq{"id": repo.int("ForkID")})
 		}
 
-		actual := GetCountByCond(t, "watch", builder.Eq{"repo_id": repo.int("ID")}.
-			And(builder.Neq{"mode": modelsRepoWatchModeDont}))
-		assert.EqualValues(t, repo.int("NumWatches"), actual,
-			"Unexpected number of watches for repo id: %d", repo.int("ID"))
-
-		actual = GetCountByCond(t, "issue", builder.Eq{"is_pull": false, "repo_id": repo.int("ID")})
+		actual := GetCountByCond(t, "issue", builder.Eq{"is_pull": false, "repo_id": repo.int("ID")})
 		assert.EqualValues(t, repo.int("NumIssues"), actual,
 			"Unexpected number of issues for repo id: %d", repo.int("ID"))
 

@@ -125,15 +125,8 @@ func watchRepoByMode(ctx context.Context, watch *Watch, mode WatchMode) (err err
 
 	hadWatchModeSet := watch.Mode != WatchModeNone
 	needSetWatchMode := mode != WatchModeNone
-	repoWatchDelta := 0
 
-	if IsWatchModeWatching(mode) && !IsWatchModeWatching(watch.Mode) {
-		repoWatchDelta = 1
-	} else if !IsWatchModeWatching(mode) && IsWatchModeWatching(watch.Mode) {
-		repoWatchDelta = -1
-	}
-
-	if repoWatchDelta == 1 { // starting to watch resets the options, otherwise a custom selection survives
+	if IsWatchModeWatching(mode) && !IsWatchModeWatching(watch.Mode) { // starting to watch resets the options, otherwise a custom selection survives
 		watch.IncludePullRequests, watch.IncludeIssues, watch.IncludeReleases = true, true, true
 	}
 	watch.Mode = mode
@@ -148,9 +141,6 @@ func watchRepoByMode(ctx context.Context, watch *Watch, mode WatchMode) (err err
 		}
 	} else if _, err = db.DeleteByID[Watch](ctx, watch.ID); err != nil {
 		return err
-	}
-	if repoWatchDelta != 0 {
-		_, err = db.GetEngine(ctx).Exec("UPDATE `repository` SET num_watches = num_watches + ? WHERE id = ?", repoWatchDelta, watch.RepoID)
 	}
 	return err
 }
@@ -307,6 +297,12 @@ func GetRepoWatchers(ctx context.Context, repoID int64, opts db.ListOptions) ([]
 	return users, sess.Find(&users)
 }
 
+func CountRepoWatchers(ctx context.Context, repoID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("repo_id=?", repoID).
+		And("mode<>?", WatchModeDont).
+		Count(new(Watch))
+}
+
 // WatchIfAuto subscribes to repo if AutoWatchOnChanges is set
 func WatchIfAuto(ctx context.Context, userID, repoID int64, isWrite bool) error {
 	if !isWrite || !setting.Service.AutoWatchOnChanges {
@@ -325,9 +321,5 @@ func WatchIfAuto(ctx context.Context, userID, repoID int64, isWrite bool) error 
 // ClearRepoWatches clears all watches for a repository and from the user that watched it.
 // Used when a repository is set to private.
 func ClearRepoWatches(ctx context.Context, repoID int64) error {
-	if _, err := db.Exec(ctx, "UPDATE `repository` SET num_watches = 0 WHERE id = ?", repoID); err != nil {
-		return err
-	}
-
 	return db.DeleteBeans(ctx, Watch{RepoID: repoID})
 }
