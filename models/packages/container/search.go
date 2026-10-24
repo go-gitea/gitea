@@ -5,6 +5,7 @@ package container
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -19,6 +20,20 @@ import (
 
 var ErrContainerBlobNotExist = util.NewNotExistErrorf("container blob does not exist")
 
+// Flatpaks are OCI images too, pushed and pulled through the same registry
+func imageTypeCond() builder.Cond {
+	return builder.In("package.type", packages.TypeContainer, packages.TypeFlatpak)
+}
+
+// GetImagePackage gets the package of an image, which is either a container or a Flatpak
+func GetImagePackage(ctx context.Context, ownerID int64, image string) (*packages.Package, error) {
+	p, err := packages.GetPackageByName(ctx, ownerID, packages.TypeFlatpak, image)
+	if errors.Is(err, packages.ErrPackageNotExist) {
+		return packages.GetPackageByName(ctx, ownerID, packages.TypeContainer, image)
+	}
+	return p, err
+}
+
 type BlobSearchOptions struct {
 	OwnerID    int64
 	Image      string
@@ -30,9 +45,7 @@ type BlobSearchOptions struct {
 }
 
 func (opts *BlobSearchOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{
-		"package.type": packages.TypeContainer,
-	}
+	cond := imageTypeCond()
 
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"package.owner_id": opts.OwnerID})
@@ -126,12 +139,11 @@ func GetImageTags(ctx context.Context, ownerID int64, image string, n int, last 
 		return []string{}, nil
 	}
 
-	var cond builder.Cond = builder.Eq{
-		"package.type":                packages.TypeContainer,
+	cond := imageTypeCond().And(builder.Eq{
 		"package.owner_id":            ownerID,
 		"package.lower_name":          strings.ToLower(image),
 		"package_version.is_internal": false,
-	}
+	})
 
 	var propsCond builder.Cond = builder.Eq{
 		"package_property.ref_type": packages.PropertyTypeVersion,
@@ -172,11 +184,10 @@ type ImageTagsSearchOptions struct {
 }
 
 func (opts *ImageTagsSearchOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{
-		"package.type":                packages.TypeContainer,
+	cond := imageTypeCond().And(builder.Eq{
 		"package.id":                  opts.PackageID,
 		"package_version.is_internal": false,
-	}
+	})
 
 	if opts.Query != "" {
 		cond = cond.And(builder.Like{"package_version.lower_version", strings.ToLower(opts.Query)})
@@ -250,11 +261,10 @@ func SearchExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) ([
 
 // GetRepositories gets a sorted list of all repositories
 func GetRepositories(ctx context.Context, actor *user_model.User, n int, last string) ([]string, error) {
-	var cond builder.Cond = builder.Eq{
-		"package.type":              packages.TypeContainer,
+	cond := imageTypeCond().And(builder.Eq{
 		"package_property.ref_type": packages.PropertyTypePackage,
 		"package_property.name":     container_module.PropertyRepository,
-	}
+	})
 
 	cond = cond.And(builder.Exists(
 		builder.

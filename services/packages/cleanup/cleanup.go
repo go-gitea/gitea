@@ -50,7 +50,7 @@ func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.Packa
 		}
 	}
 	for _, pv := range pvs {
-		if pcr.Type == packages_model.TypeContainer {
+		if pcr.Type == packages_model.TypeContainer || pcr.Type == packages_model.TypeFlatpak {
 			if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
 				return false, fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
 			} else if skip {

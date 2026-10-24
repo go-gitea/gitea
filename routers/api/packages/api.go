@@ -23,6 +23,7 @@ import (
 	"gitea.dev/routers/api/packages/container"
 	"gitea.dev/routers/api/packages/cran"
 	"gitea.dev/routers/api/packages/debian"
+	"gitea.dev/routers/api/packages/flatpak"
 	"gitea.dev/routers/api/packages/generic"
 	"gitea.dev/routers/api/packages/goproxy"
 	"gitea.dev/routers/api/packages/helm"
@@ -301,6 +302,9 @@ func CommonRoutes() *web.Router {
 					r.Delete("/{name}/{version}/{architecture}", debian.DeletePackageFile)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/flatpak", func() {
+			r.Get("/index/static", flatpak.Index)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/go", func() {
 			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), goproxy.UploadPackage)
