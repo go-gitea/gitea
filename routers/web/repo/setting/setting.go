@@ -19,6 +19,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/indexer/code"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/indexer/stats"
@@ -316,7 +317,9 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		handleSettingRemoteAddrError(ctx, err, form)
 		return
 	}
-	if u.User != nil {
+	newAddr, _ := giturl.ParseGitURL(strings.TrimSpace(form.MirrorAddress))
+	// stored credentials were entered for the current host, a new host must not receive them
+	if u.User != nil && newAddr != nil && strings.EqualFold(newAddr.Scheme, u.Scheme) && strings.EqualFold(newAddr.Host, u.Host) {
 		if form.MirrorUsername == "" {
 			form.MirrorUsername = u.User.Username()
 		}
