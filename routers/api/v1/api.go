@@ -399,6 +399,19 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	}
 }
 
+// reqRepoCommitStatusWriter is reqRepoWriter, token requests are checked by tokenRequiresScopes
+func reqRepoCommitStatusWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if _, ok := ctx.Data["ApiTokenScope"]; ok {
+			return
+		}
+		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+			ctx.APIError(http.StatusForbidden, "user should have a permission to write to a repo")
+			return
+		}
+	}
+}
+
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
@@ -1476,10 +1489,6 @@ func Routes() *web.Router {
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
-				m.Group("/statuses", func() { // "/statuses/{sha}" only accepts commit ID
-					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
-						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
-				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Group("", func() {
 						m.Get("", repo.GetAllCommits)
@@ -1552,6 +1561,12 @@ func Routes() *web.Router {
 				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.DownloadArchive)
 			}, repoAssignment())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		// Commit status can be created by write:commitstatus or write:repository token scopes, or by a repository writer
+		m.Group("/repos/{username}/{reponame}/statuses", func() { // "/statuses/{sha}" only accepts commit ID
+			m.Combo("/{sha}").Get(repo.GetCommitStatuses).
+				Post(reqToken(), reqRepoCommitStatusWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+		}, repoAssignment(), checkTokenPublicOnly(), reqRepoReader(unit.TypeCode), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryCommitStatus))
 
 		// Artifacts direct download endpoint authenticates via signed url
 		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
