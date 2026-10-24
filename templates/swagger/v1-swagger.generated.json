@@ -3245,9 +3245,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to get",
+            "type": "string",
+            "description": "id of the label to get, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -3256,6 +3255,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Label"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -3277,9 +3279,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to delete",
+            "type": "string",
+            "description": "id of the label to delete, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -3288,6 +3289,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -3315,9 +3319,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to edit",
+            "type": "string",
+            "description": "id of the label to edit, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -3333,6 +3336,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Label"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -15103,9 +15109,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to get",
+            "type": "string",
+            "description": "id of the label to get, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -15114,6 +15119,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Label"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -15142,9 +15150,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to delete",
+            "type": "string",
+            "description": "id of the label to delete, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -15153,6 +15160,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -15187,9 +15197,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to edit",
+            "type": "string",
+            "description": "id of the label to edit, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -15205,6 +15214,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Label"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"

@@ -14757,19 +14757,21 @@
             }
           },
           {
-            "description": "id of the label to delete",
+            "description": "id of the label to delete, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
         "responses": {
           "204": {
             "$ref": "#/components/responses/empty"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -14793,19 +14795,21 @@
             }
           },
           {
-            "description": "id of the label to get",
+            "description": "id of the label to get, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
             "$ref": "#/components/responses/Label"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -14829,13 +14833,12 @@
             }
           },
           {
-            "description": "id of the label to edit",
+            "description": "id of the label to edit, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -14852,6 +14855,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Label"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -27644,19 +27650,21 @@
             }
           },
           {
-            "description": "id of the label to delete",
+            "description": "id of the label to delete, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
         "responses": {
           "204": {
             "$ref": "#/components/responses/empty"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -27689,19 +27697,21 @@
             }
           },
           {
-            "description": "id of the label to get",
+            "description": "id of the label to get, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
             "$ref": "#/components/responses/Label"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -27734,13 +27744,12 @@
             }
           },
           {
-            "description": "id of the label to edit",
+            "description": "id of the label to edit, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -27757,6 +27766,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Label"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
