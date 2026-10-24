@@ -180,8 +180,10 @@ func (c TemplateContext) WindowConfig() map[string]any {
 			"modal_confirm":    locale.Tr("modal.confirm"),
 			"modal_cancel":     locale.Tr("modal.cancel"),
 			"more_items":       locale.Tr("more_items"),
+			"copy":             locale.Tr("copy"),
 			"copy_success":     locale.Tr("copy_success"),
 			"copy_error":       locale.Tr("copy_error"),
+			"code_toggle_wrap": locale.Tr("code_toggle_wrap"),
 		},
 	}
 }
