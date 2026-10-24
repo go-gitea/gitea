@@ -119,7 +119,7 @@ func TestGetDiffForRender(t *testing.T) {
 
 func TestGetDiffForRenderRenamedFile(t *testing.T) {
 	repoDir := filepath.Join(t.TempDir(), "temp-repo")
-	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, false, git.Sha1ObjectFormat.Name(), ""))
+	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, false, git.Sha1ObjectFormat.Name()))
 
 	gitRepo, err := git.OpenRepositoryLocal(t.Context(), repoDir)
 	require.NoError(t, err)
