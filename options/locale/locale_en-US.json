@@ -2076,6 +2076,7 @@
   "repo.settings": "Settings",
   "repo.settings.desc": "Settings is where you can manage the settings for the repository.",
   "repo.settings.options": "Repository",
+  "repo.settings.access_management": "Access Management",
   "repo.settings.public_access": "Public Access",
   "repo.settings.public_access_desc": "Configure public visitor's access permissions to override the defaults of this repository.",
   "repo.settings.public_access.docs.not_set": "Not Set: no extra public access permission. The visitor's permission follows the repository's visibility and member permissions.",
