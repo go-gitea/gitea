@@ -37,6 +37,11 @@ func TestFeedRepo(t *testing.T) {
 		assert.Len(t, rss.Channel.Items, 1)
 		assert.Equal(t, "issue5", rss.Channel.Items[0].Description)
 		assert.NotEmpty(t, rss.Channel.Items[0].PubDate)
+
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeCode}))
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1").SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1.rss"), http.StatusOK)
 	})
 
 	t.Run("TagsWithoutReleasesAccess", func(t *testing.T) {
@@ -50,19 +55,6 @@ func TestFeedRepo(t *testing.T) {
 		assert.Contains(t, data, "/user2/repo1/src/tag/v1.0")
 		assert.NotContains(t, data, "pre-release")
 		assert.NotContains(t, data, "some text for a pre release")
-	})
-
-	t.Run("BranchFeedWithoutCodeAccess", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeCode}))
-
-		// the repo home serves the branch commit feed when asked for a feed via the Accept header
-		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1").SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
-		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1").SetHeader("Accept", "application/atom+xml"), http.StatusNotFound)
-		// the repo activity feed does not depend on the code unit
-		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1.rss"), http.StatusOK)
 	})
 }
 

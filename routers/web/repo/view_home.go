@@ -349,12 +349,10 @@ func handleRepoHomeFeed(ctx *context.Context) bool {
 	}
 	if ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType) {
 		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
-	} else if !ctx.Repo.Permission.CanRead(unit_model.TypeCode) { // the branch and file feeds list commits, like "/rss/branch/*" which requires the code unit
+	} else if !ctx.Repo.Permission.CanRead(unit_model.TypeCode) && !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) { // the branch and file feeds list commits, gated like "/rss/branch/*"
 		ctx.NotFound(nil)
-	} else if ctx.Repo.TreePath == "" {
-		feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
 	} else {
-		feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+		feed.RenderBranchFeed(ctx, showFeedType)
 	}
 	return true
 }
