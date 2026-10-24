@@ -323,15 +323,12 @@ func ActionUserFollow(ctx *context.Context) {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
-	if ctx.ContextUser.IsIndividual() {
+	// Non-organization users render the same profile page, so they answer with the same card.
+	if !ctx.ContextUser.IsOrganization() {
 		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
 		return
-	} else if ctx.ContextUser.IsOrganization() {
-		ctx.Data["Org"] = ctx.ContextUser
-		ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
-		ctx.HTML(http.StatusOK, tplFollowUnfollow)
-		return
 	}
-	log.Error("Failed to apply action %q: unsupported context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)
-	ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
+	ctx.Data["Org"] = ctx.ContextUser
+	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+	ctx.HTML(http.StatusOK, tplFollowUnfollow)
 }
