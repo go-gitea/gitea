@@ -784,7 +784,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	if form.EnablePush && form.EnablePushWhitelist && form.PushWhitelistDeployKeys {
 		whitelistUsers = legacySetDeployKeyAllowlist(whitelistUsers, true)
 	}
-	if form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist && form.ForcePushAllowlistDeployKeys {
+	if form.EnableForcePush && form.EnableForcePushAllowlist && form.ForcePushAllowlistDeployKeys {
 		forcePushAllowlistUsers = legacySetDeployKeyAllowlist(forcePushAllowlistUsers, true)
 	}
 
@@ -792,8 +792,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ProtectedBranchConfig: git_model.ProtectedBranchConfig{
 			CanPush:                       form.EnablePush,
 			EnableWhitelist:               form.EnablePush && form.EnablePushWhitelist,
-			CanForcePush:                  form.EnablePush && form.EnableForcePush,
-			EnableForcePushAllowlist:      form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist,
+			CanForcePush:                  form.EnableForcePush,
+			EnableForcePushAllowlist:      form.EnableForcePush && form.EnableForcePushAllowlist,
 			CanDelete:                     form.EnablePush && form.EnableDeletion,
 			EnableDeletionAllowlist:       form.EnablePush && form.EnableDeletion && form.EnableDeletionAllowlist,
 			EnableMergeWhitelist:          form.EnableMergeWhitelist,
