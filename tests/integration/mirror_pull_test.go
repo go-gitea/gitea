@@ -26,12 +26,15 @@ import (
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMirrorPull(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Metrics.Enabled, true)()
+	defer test.MockVariableValue(&setting.Metrics.EnabledMirrorSyncDuration, true)()
 
 	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -97,6 +100,28 @@ func TestMirrorPull(t *testing.T) {
 	_, err = repo_model.GetMirrorByRepoID(ctx, mirrorRepo.ID)
 	assert.NoError(t, err)
 
+	syncStepCounts := func() map[string]uint64 {
+		families, err := prometheus.DefaultGatherer.Gather()
+		require.NoError(t, err)
+		counts := map[string]uint64{}
+		for _, family := range families {
+			if family.GetName() != "gitea_mirror_sync_duration_ms" {
+				continue
+			}
+			for _, metric := range family.GetMetric() {
+				labels := map[string]string{}
+				for _, label := range metric.GetLabel() {
+					labels[label.GetName()] = label.GetValue()
+				}
+				if labels["owner"] == mirrorRepo.OwnerName && labels["repo"] == mirrorRepo.Name {
+					counts[labels["step"]] = metric.GetHistogram().GetSampleCount()
+				}
+			}
+		}
+		return counts
+	}
+	before := syncStepCounts()
+
 	ok := mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
 	assert.True(t, ok)
 
@@ -123,6 +148,20 @@ func TestMirrorPull(t *testing.T) {
 
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	lastMirrorSync := mirror.LastSyncUnix
+	after := syncStepCounts()
+	for _, step := range []string{"fetch", "wiki", "total"} {
+		assert.Equal(t, before[step]+2, after[step], step)
+	}
+
+	require.True(t, repo_service.HasWiki(ctx, mirrorRepo))
+	require.NoError(t, git.ManagedRemoteRemove(ctx, mirrorRepo.WikiStorageRepo(), mirror.GetRemoteName()))
+	require.NoError(t, git.ManagedRemoteAdd(ctx, mirrorRepo.WikiStorageRepo(), mirror.GetRemoteName(), repoPath+"-missing", git.RemoteOptionMirrorFetch))
+	assert.False(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
+	after = syncStepCounts()
+	for _, step := range []string{"fetch", "wiki", "total"} {
+		assert.Equal(t, before[step]+3, after[step], step)
+	}
+
 	assert.NoError(t, mirror_service.UpdateAddress(ctx, mirror, repoPath+"-missing"))
 
 	ok = mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
@@ -130,6 +169,10 @@ func TestMirrorPull(t *testing.T) {
 
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	assert.Equal(t, lastMirrorSync, mirror.LastSyncUnix)
+	after = syncStepCounts()
+	assert.Equal(t, before["fetch"]+4, after["fetch"])
+	assert.Equal(t, before["wiki"]+3, after["wiki"])
+	assert.Equal(t, before["total"]+4, after["total"])
 }
 
 // TestMirrorPullSSRFRevalidation ensures a pull mirror re-validates its remote URL against
