@@ -573,8 +573,9 @@ type WikiEditForm struct {
 // AddTimeManuallyForm form that adds spent time manually.
 type AddTimeManuallyForm struct {
 	middleware.FormDefaultValidator
-	Hours   int `binding:"Range(0,1000)"`
-	Minutes int `binding:"Range(0,1000)"`
+	Hours   int    `binding:"Range(0,1000)"`
+	Minutes int    `binding:"Range(0,1000)"`
+	SpentOn string `form:"spent_on" binding:"MaxSize(10)"`
 }
 
 // AddDeployTokenForm form for adding a deploy token to a repository

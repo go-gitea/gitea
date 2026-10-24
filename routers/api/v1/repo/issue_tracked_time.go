@@ -227,12 +227,12 @@ func AddTime(ctx *context.APIContext) {
 		}
 	}
 
-	created := time.Time{}
+	spentOn := time.Time{}
 	if !form.Created.IsZero() {
-		created = form.Created
+		spentOn = form.Created
 	}
 
-	trackedTime, err := issues_model.AddTime(ctx, user, issue, form.Time, created)
+	trackedTime, err := issues_model.AddTime(ctx, user, issue, form.Time, spentOn)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
