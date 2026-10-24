@@ -17,7 +17,7 @@ type TeamUser struct {
 	ID     int64 `xorm:"pk autoincr"`
 	OrgID  int64 `xorm:"INDEX"`
 	TeamID int64 `xorm:"UNIQUE(s)"`
-	UID    int64 `xorm:"UNIQUE(s)"`
+	UID    int64 `xorm:"INDEX UNIQUE(s)"`
 }
 
 // IsTeamMember returns true if given user is a member of team.
