@@ -226,6 +226,7 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 // PushOptions options when push to remote
 type PushOptions struct {
 	Remote         string
+	LocalRefName   string
 	Branch         string
 	Force          bool
 	ForceWithLease string
@@ -247,13 +248,18 @@ func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 	}
 	remoteBranchArgs := []string{opts.Remote}
 	if len(opts.Branch) > 0 {
-		remoteBranchArgs = append(remoteBranchArgs, opts.Branch)
+		refspec := opts.Branch
+		if opts.LocalRefName != "" {
+			refspec = fmt.Sprintf("%s:%s", opts.LocalRefName, opts.Branch)
+		}
+		remoteBranchArgs = append(remoteBranchArgs, refspec)
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
 	stdout, stderr, err := cmd.WithEnv(opts.Env).WithTimeout(opts.Timeout).WithDir(localRepoPath).RunStdString(ctx)
 	if err != nil {
-		if strings.Contains(stderr, "non-fast-forward") {
+		// a rejected --force-with-lease push reports "stale info"
+		if strings.Contains(stderr, "non-fast-forward") || strings.Contains(stderr, "stale info") {
 			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}
 		} else if strings.Contains(stderr, "! [remote rejected]") || strings.Contains(stderr, "! [rejected]") {
 			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}

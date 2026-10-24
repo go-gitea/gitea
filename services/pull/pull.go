@@ -584,11 +584,17 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 }
 
 // UpdateRefForAgit update refs/pull/id/head directly for agit flow pull request
-func UpdateRefForAgit(ctx context.Context, pr *issues_model.PullRequest) (err error) {
+func UpdateRefForAgit(ctx context.Context, pr *issues_model.PullRequest) error {
+	return UpdateRefForAgitWithOldCommit(ctx, pr, "")
+}
+
+// UpdateRefForAgitWithOldCommit updates refs/pull/id/head only when it still points to oldCommitID,
+// an empty oldCommitID updates it unconditionally
+func UpdateRefForAgitWithOldCommit(ctx context.Context, pr *issues_model.PullRequest, oldCommitID string) error {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}
-	if err := git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID); err != nil {
+	if err := git.UpdateRefWithOld(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID, oldCommitID); err != nil {
 		return fmt.Errorf("unable to update ref %s for base repo %s, err: %w", pr.GetGitHeadRefName(), pr.BaseRepo.FullName(), err)
 	}
 	return syncCommitDivergence(ctx, pr)

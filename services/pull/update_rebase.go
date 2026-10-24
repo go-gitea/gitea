@@ -32,6 +32,12 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		WithRepo(mergeCtx.tmpRepo).RunStdString(ctx)
 	oldMergeBase = strings.TrimSpace(oldMergeBase)
 
+	// the head branch tip the rebase is computed on, used as the push lease below
+	oldHeadCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, tmpRepoTrackingBranch)
+	if err != nil {
+		return fmt.Errorf("failed to get head branch commit: %w", err)
+	}
+
 	// Rebase the tracking branch on to the base as the staging branch
 	if err := rebaseTrackingOnToBase(mergeCtx, repo_model.MergeStyleRebaseUpdate); err != nil {
 		return err
@@ -64,43 +70,21 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		headUser = pr.HeadRepo.Owner
 	}
 
-	pushCmd := gitcmd.NewCommand("push", "-f", "head_repo").
-		AddDynamicArguments(tmpRepoStagingBranch + ":" + git.BranchPrefix + pr.HeadBranch)
-
 	// Push back to the head repository.
 	// TODO: this cause an api call to "/api/internal/hook/post-receive/...",
 	//       that prevents us from doint the whole merge in one db transaction
-	mergeCtx.outbuf.Reset()
-
-	if err := pushCmd.
-		WithEnv(repo_module.FullPushingEnvironment(
+	return git.Push(ctx, mergeCtx.tmpBasePath, git.PushOptions{
+		Remote:         "head_repo",
+		LocalRefName:   tmpRepoStagingBranch,
+		Branch:         git.BranchPrefix + pr.HeadBranch,
+		ForceWithLease: fmt.Sprintf("%s:%s", git.BranchPrefix+pr.HeadBranch, oldHeadCommitID),
+		Env: repo_module.FullPushingEnvironment(
 			headUser,
 			doer,
 			pr.HeadRepo,
 			pr.HeadRepo.Name,
 			pr.ID,
 			pr.Index,
-		)).
-		WithRepo(mergeCtx.tmpRepo).
-		WithStdoutBuffer(mergeCtx.outbuf).
-		RunWithStderr(ctx); err != nil {
-		if strings.Contains(err.Stderr(), "non-fast-forward") {
-			return &git.ErrPushOutOfDate{
-				StdOut: mergeCtx.outbuf.String(),
-				StdErr: err.Stderr(),
-				Err:    err,
-			}
-		} else if strings.Contains(err.Stderr(), "! [remote rejected]") {
-			err := &git.ErrPushRejected{
-				StdOut: mergeCtx.outbuf.String(),
-				StdErr: err.Stderr(),
-				Err:    err,
-			}
-			err.GenerateMessage()
-			return err
-		}
-		return fmt.Errorf("git push: %s", err.Stderr())
-	}
-	mergeCtx.outbuf.Reset()
-	return nil
+		),
+	})
 }

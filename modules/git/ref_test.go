@@ -6,8 +6,29 @@ package git
 import (
 	"testing"
 
+	"gitea.dev/modules/git/gitrepo"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestUpdateRefWithOld(t *testing.T) {
+	ctx := t.Context()
+	repoPath := t.TempDir()
+	require.NoError(t, Clone(ctx, testReposDir+"repo1_bare", repoPath, CloneRepoOptions{Bare: true}))
+
+	repo := gitrepo.RepositoryUnmanaged(repoPath)
+	masterCommitID := testBranchCommitID(t, repoPath, "master")
+	branchCommitID := testBranchCommitID(t, repoPath, "branch2")
+	require.NotEqual(t, masterCommitID, branchCommitID)
+
+	require.NoError(t, UpdateRefWithOld(ctx, repo, BranchPrefix+"master", branchCommitID, masterCommitID))
+	assert.Equal(t, branchCommitID, testBranchCommitID(t, repoPath, "master"))
+
+	// the old commit ID does not match anymore, so the ref must be left untouched
+	assert.Error(t, UpdateRefWithOld(ctx, repo, BranchPrefix+"master", masterCommitID, masterCommitID))
+	assert.Equal(t, branchCommitID, testBranchCommitID(t, repoPath, "master"))
+}
 
 func TestRefName(t *testing.T) {
 	// Test branch names (with and without slash).
