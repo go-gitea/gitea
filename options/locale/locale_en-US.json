@@ -3993,6 +3993,8 @@
   "projects.type-2.display_name": "Repository Project",
   "projects.type-3.display_name": "Organization Project",
   "projects.enter_fullscreen": "Fullscreen",
+  "projects.group_by": "Group by",
+  "projects.group_by_none": "None",
   "projects.exit_fullscreen": "Exit Fullscreen",
   "projects.workflows": "Workflows",
   "projects.workflows.event.item_added_to_project": "Item added to project",
