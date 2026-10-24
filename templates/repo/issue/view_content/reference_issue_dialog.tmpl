@@ -6,9 +6,13 @@
 		<form class="ui form form-fetch-action" action="{{.Repository.Link}}/issues/new" method="post">
 			<div class="field">
 				<label><strong>{{ctx.Locale.Tr "repository"}}</strong></label>
-				<div class="ui search selection dropdown issue_reference_repository_search ellipsis-text-items">
-					<div class="default text gt-ellipsis">{{.Repository.FullName}}</div>
-					<div class="menu"></div>
+				<div class="dropdown-container issue_reference_repository_search" data-kind="select">
+					<div class="dropdown-trigger dropdown-field dropdown-search-field">
+						<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "search.search"}}">
+						<span class="dropdown-text gt-ellipsis">{{.Repository.FullName}}</span>
+					</div>
+					<input type="hidden" class="dropdown-value" value="{{.Repository.FullName}}">
+					<div class="dropdown-popup"></div>
 				</div>
 			</div>
 			<div class="field">

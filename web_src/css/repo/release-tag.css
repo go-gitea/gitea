@@ -49,7 +49,7 @@
   #release-list .release-branch-tag-selector {
     margin-left: auto;
   }
-  #release-list .branch-selector-dropdown .menu { /* open menu to left */
+  #release-list .branch-selector-dropdown > .dropdown-popup {
     right: 0;
     left: auto;
   }

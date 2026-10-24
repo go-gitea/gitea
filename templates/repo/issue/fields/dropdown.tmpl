@@ -1,17 +1,26 @@
 <div class="field {{if not .item.VisibleOnForm}}tw-hidden{{end}}">
 	{{template "repo/issue/fields/header" .}}
-	{{/* FIXME: required validation */}}
-	<div class="ui fluid selection dropdown {{if .item.Attributes.multiple}}multiple clearable{{end}}">
-		<input type="hidden" name="form-field-{{.item.ID}}" value="{{.item.Attributes.default}}">
-		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		{{if not .item.Validations.required}}
-		{{svg "octicon-x" 14 "remove icon"}}
-		{{end}}
-		<div class="default text"></div>
-		<div class="menu">
+	{{if .item.Attributes.multiple}}
+	<div class="dropdown-container" data-kind="multiselect">
+		<button type="button" class="dropdown-trigger dropdown-field" aria-label="{{.item.Attributes.label}}">
+			<span class="dropdown-text" data-placeholder=""></span>
+			{{svg "octicon-triangle-down" 14}}
+		</button>
+		<input type="hidden" class="dropdown-value" name="form-field-{{.item.ID}}" value="{{.item.Attributes.default}}">
+		<div class="dropdown-popup">
 			{{range $i, $opt := .item.Attributes.options}}
-				<div class="item" data-value="{{$i}}">{{$opt}}</div>
+				<div class="dropdown-item" data-value="{{$i}}">{{$opt}}</div>
 			{{end}}
 		</div>
 	</div>
+	{{else}}
+	<div class="select-field">
+		<select name="form-field-{{.item.ID}}" aria-label="{{.item.Attributes.label}}" {{if .item.Validations.required}}required{{end}}>
+			<option value="" {{if eq .item.Attributes.default nil}}selected{{end}} {{if .item.Validations.required}}disabled{{end}}></option>
+			{{range $i, $opt := .item.Attributes.options}}
+				<option value="{{$i}}" {{if eq $.item.Attributes.default $i}}selected{{end}}>{{$opt}}</option>
+			{{end}}
+		</select>
+	</div>
+	{{end}}
 </div>

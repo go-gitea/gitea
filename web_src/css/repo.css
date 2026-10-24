@@ -13,8 +13,8 @@
   user-select: none;
 }
 
-.repository .owner.dropdown {
-  min-width: 40% !important;
+.repository .owner.dropdown-container {
+  min-width: 40%;
 }
 
 .issue-content {
@@ -39,24 +39,24 @@
   width: 300px;
 }
 
-.issue-content-right .ui.dropdown.full-width {
-  width: 100%;
+.issue-sidebar-combo .dropdown-trigger:not(:disabled):hover { /* like the former link trigger */
+  color: var(--color-primary);
+  text-decoration-line: underline;
 }
 
-.issue-content-right .ui.dropdown.full-width > .fixed-text {
-  display: flex;
-  flex-grow: 1;
-  justify-content: space-between;
+.issue-sidebar-combo .dropdown-trigger:has(> strong) {
+  align-items: flex-start;
 }
 
-.issue-content-right .ui.dropdown > .menu {
+.issue-sidebar-popup {
   max-width: 270px;
-  min-width: 0;
-  max-height: 500px;
-  overflow-x: auto;
 }
 
-.issue-content-right .ui.dropdown > .menu .item-secondary-info small {
+.issue-sidebar-popup .dropdown-item.tw-flex-col {
+  gap: 0;
+}
+
+.issue-sidebar-popup .item-secondary-info small {
   display: block;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -67,8 +67,24 @@
   max-width: 100%;
 }
 
-.issue-sidebar-combo > .ui.dropdown .item:not(.checked) .item-check-mark {
+.issue-sidebar-popup .dropdown-item:not(.checked) .item-check-mark {
   visibility: hidden;
+}
+
+.issue-branch-popup {
+  max-width: min(400px, 90vw);
+}
+
+.issue-branch-popup[role="listbox"] .reference-list-menu {
+  padding: 4px 0;
+}
+
+.issue-branch-popup[role="listbox"] .dropdown-item {
+  border-top: none;
+}
+
+.tippy-box[data-theme="dropdown"][data-placement^="bottom"]:has(.issue-branch-popup[role="listbox"]) {
+  translate: 0 -2px;
 }
 
 .ui.list.issue-sidebar-project-cards > .item {
@@ -102,22 +118,9 @@
   }
 }
 
-/* make all issue filter dropdown (user dashboard, repo issue list) menus popup leftward, to avoid go out the viewport (right side) */
-.list-header-filters .ui.dropdown .menu,
-.issue-list-toolbar .ui.dropdown .menu {
-  max-height: 500px;
+.issue-filter-popup {
   max-width: 300px;
   overflow-x: hidden;
-  right: 0;
-  left: auto;
-}
-
-/* the label-filter is the first dropdown, it shouldn't be shown leftward, otherwise it may go out the viewport (left side) */
-.list-header-filters .ui.dropdown.label-filter .menu,
-.issue-list-toolbar .ui.dropdown.label-filter .menu {
-  min-width: max-content;
-  right: unset;
-  left: 0;
 }
 
 /* For the secondary pointing menu, respect its own border-bottom */
@@ -686,11 +689,6 @@
   }
 }
 
-.repository.commits .header .search input {
-  font-weight: var(--font-weight-normal);
-  padding: 5px 10px;
-}
-
 .repository #commits-table td:not(.message) {
   white-space: nowrap;
 }
@@ -1140,10 +1138,6 @@
   justify-content: end;
 }
 
-.comment-header-right > .item.action {
-  padding: 4px; /* add some padding to make click area larger for the "item action ... ui dropdown" items */
-}
-
 .comment-body {
   background: var(--color-box-body);
   border: none !important;
@@ -1213,8 +1207,8 @@
   height: 30px;
 }
 
-.repo-button-row .ui.dropdown > .menu {
-  margin-top: 4px;
+.tippy-box[data-theme="dropdown"][data-placement^="bottom"]:has(.repo-file-menu) {
+  translate: 1px -3px;
 }
 
 tbody.commit-list {
@@ -1283,15 +1277,18 @@ tbody.commit-list {
   display: inline-block !important;
 }
 
-#new-dependency-drop-list.ui.selection.dropdown {
-  min-width: 0;
+#new-dependency-drop-list {
   width: 100%;
+}
+
+#new-dependency-drop-list .dropdown-field {
+  min-width: 0;
   border-radius: var(--border-radius) 0 0 var(--border-radius);
   border-right: 0;
   white-space: nowrap;
 }
 
-#new-dependency-drop-list .text {
+#new-dependency-drop-list .dropdown-text {
   width: 100%;
   overflow: hidden;
 }
@@ -1709,31 +1706,38 @@ tbody.commit-list {
   }
 }
 
-#cherry-pick-modal .scrolling.menu {
-  max-height: 200px;
-}
-
 .branch-selector-dropdown {
+  position: relative;
+  display: inline-flex;
   max-width: 100%;
 }
 
-.ui.dropdown.branch-selector-dropdown > .menu {
-  margin-top: 4px;
-}
-
-.ui.dropdown.branch-selector-dropdown .scrolling.menu {
+.branch-selector-dropdown > .dropdown-popup {
+  position: absolute;
+  z-index: 11;
+  top: 100%;
+  left: 0;
+  width: max-content;
+  min-width: min(16.5rem, 90vw);
   max-width: min(400px, 90vw);
+  margin-top: 4px;
+  font-size: 1rem;
+  text-align: left;
 }
 
-.branch-selector-dropdown .ui.button.branch-dropdown-button {
+.branch-selector-dropdown .branch-tag-list {
+  padding: 4px 0;
+  max-height: 20.57142857rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.ui.button.branch-dropdown-button {
   margin: 0;
   max-width: 340px;
   padding: 0 0.5em 0 0.75em;
 }
 
-/* FIXME: These media selectors are not ideal (just keep them from old code).
-    There are many different pages, some need the max-width while some others don't,
-    they should be tested and improved in the future. */
 @media (min-width: 768px) and (max-width: 1235px) {
   .branch-selector-dropdown .branch-dropdown-button {
     max-width: 301px;
@@ -1744,13 +1748,22 @@ tbody.commit-list {
   .branch-selector-dropdown .branch-dropdown-button {
     max-width: 165px;
   }
+  .branch-selector-dropdown .branch-tag-list {
+    max-height: 10.28571429rem;
+  }
 }
 
-.branch-selector-dropdown .branch-tag-tab {
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .branch-selector-dropdown .branch-tag-list {
+    max-height: 15.42857143rem;
+  }
+}
+
+:is(.branch-selector-dropdown, .issue-branch-popup[role="listbox"]) .branch-tag-tab {
   padding: 0 10px;
 }
 
-.branch-selector-dropdown .branch-tag-item {
+:is(.branch-selector-dropdown, .issue-branch-popup[role="listbox"]) .branch-tag-item {
   display: inline-block;
   padding: 10px;
   border: 1px solid transparent;
@@ -1758,32 +1771,37 @@ tbody.commit-list {
   border-radius: 0;
 }
 
-.branch-selector-dropdown .branch-tag-item.active {
+:is(.branch-selector-dropdown, .issue-branch-popup[role="listbox"]) .branch-tag-item.active {
   border-color: var(--color-secondary);
   background: var(--color-menu);
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
 }
 
-.branch-selector-dropdown .branch-tag-divider {
-  margin-top: -1px !important;
-  border-top: 1px solid var(--color-secondary);
+:is(.branch-selector-dropdown, .issue-branch-popup[role="listbox"]) .branch-tag-divider {
+  margin: -1px 0 0;
 }
 
-.branch-selector-dropdown .scrolling.menu {
-  border-top: none !important;
+.branch-selector-dropdown .dropdown-item {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.branch-selector-dropdown .menu .item .rss-icon {
+.branch-selector-dropdown .dropdown-item:hover {
+  background: var(--color-hover);
+}
+
+.branch-selector-dropdown .dropdown-item .rss-icon {
   position: absolute;
   right: 4px;
   visibility: hidden; /* only show RSS icon on hover */
 }
 
-.branch-selector-dropdown .menu .item:hover .rss-icon {
+.branch-selector-dropdown .dropdown-item:is(:hover, :focus-within) .rss-icon {
   visibility: visible;
 }
 
-.branch-selector-dropdown .scrolling.menu .loading-indicator {
+.branch-selector-dropdown .branch-tag-list .loading-indicator {
   height: 4em;
 }

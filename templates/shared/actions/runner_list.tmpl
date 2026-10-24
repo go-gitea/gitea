@@ -3,33 +3,27 @@
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.runners.runner_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		<div class="ui right">
-			<div class="ui top right pointing dropdown jump">
-				<button type="button" class="ui primary tiny button">
+			<div class="dropdown-container" data-placement="bottom-end" data-keep-open>
+				<button type="button" class="dropdown-trigger ui primary tiny button">
 					{{ctx.Locale.Tr "actions.runners.new"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					{{svg "octicon-triangle-down" 14}}
 				</button>
-				<div class="menu">
-					<div class="item">
-						<a href="https://docs.gitea.com/usage/actions/runner" target="_blank">{{ctx.Locale.Tr "actions.runners.new_notice"}}</a>
-					</div>
-					<div class="divider"></div>
-					<div class="header">
+				<div class="dropdown-popup">
+					<a class="dropdown-item" href="https://docs.gitea.com/usage/actions/runner" target="_blank">{{ctx.Locale.Tr "actions.runners.new_notice"}}</a>
+					<div class="dropdown-divider"></div>
+					<div class="dropdown-header">
 						Registration Token
 					</div>
-					<div class="ui action input">
+					<div class="ui action input tw-mx-4">
 						<input type="text" value="{{.RegistrationToken}}" readonly>
 						<button type="button" class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.RegistrationToken}}">
 							{{svg "octicon-copy" 14}}
 						</button>
 					</div>
-					<div class="divider"></div>
-					<div class="item">
-						<a class="link-action" data-url="{{$.Link}}/reset_registration_token"
+					<div class="dropdown-divider"></div>
+					<a class="dropdown-item link-action" data-url="{{$.Link}}/reset_registration_token"
 							data-modal-confirm="{{ctx.Locale.Tr "actions.runners.reset_registration_token_confirm"}}"
-						>
-							{{ctx.Locale.Tr "actions.runners.reset_registration_token"}}
-						</a>
-					</div>
+						>{{ctx.Locale.Tr "actions.runners.reset_registration_token"}}</a>
 				</div>
 			</div>
 

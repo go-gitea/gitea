@@ -18,7 +18,7 @@ test('job queue refreshes with filter open', async ({page, request}) => {
 
   await page.clock.install();
   await page.goto(`/${owner}/${repo}/actions/job_queue`);
-  await page.getByRole('menu').getByText('Status', {exact: true}).click();
+  await page.getByRole('button', {name: 'Status', exact: true}).click();
   const waitingFilter = page.getByRole('menuitem', {name: 'Waiting'});
   await expect(waitingFilter).toBeVisible();
 

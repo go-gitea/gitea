@@ -150,7 +150,7 @@ export function initGlobalShortcut() {
     // Don't trigger shortcuts when typing in input fields or contenteditable areas
     let shouldSkip = target.matches('input, textarea, select') || target.isContentEditable;
     // Skip shortcuts when a modal or dropdown is open (active), to avoid interfering with their own keyboard handling
-    shouldSkip = shouldSkip || Boolean(document.querySelector('.modal-dialog[open], .ui.dropdown.active'));
+    shouldSkip = shouldSkip || Boolean(document.querySelector('.modal-dialog[open], .dropdown-trigger[aria-expanded="true"]'));
     if (shouldSkip) {
       shortcutPresses.length = 0;
       return;

@@ -22,15 +22,15 @@
 		{{if $.ViteModeIsDev}}<span class="ui basic label primary">ViteDevMode</span>{{end}}
 	</div>
 	<div class="right-links" role="group" aria-label="{{ctx.Locale.Tr "aria.footer.links"}}">
-		<div class="ui dropdown custom" id="footer-theme-selector">
-			<span class="default-text">{{ctx.RenderUtils.RenderThemeItem ctx.CurrentWebTheme 16}}</span>
-			<div class="menu theme-menu"></div>
+		<div class="dropdown-container" id="footer-theme-selector" data-placement="top-start">
+			<button type="button" class="dropdown-trigger btn">{{ctx.RenderUtils.RenderThemeItem ctx.CurrentWebTheme 16}}</button>
+			<div class="dropdown-popup footer-theme-menu"></div>
 		</div>
-		<div class="ui dropdown upward">
-			<span class="flex-text-inline">{{svg "octicon-globe" 14}} {{ctx.Locale.LangName}}</span>
-			<div class="menu language-menu">
+		<div class="dropdown-container" data-placement="top-start">
+			<button type="button" class="dropdown-trigger btn">{{svg "octicon-globe" 14}} {{ctx.Locale.LangName}}</button>
+			<div class="dropdown-popup footer-language-menu">
 				{{range .AllLangs -}}
-				<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq ctx.Locale.Lang .Lang}}selected{{end}}">{{.Name}}</a>
+				<div lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="dropdown-item {{if eq ctx.Locale.Lang .Lang}}active{{end}}">{{.Name}}</div>
 				{{end -}}
 			</div>
 		</div>

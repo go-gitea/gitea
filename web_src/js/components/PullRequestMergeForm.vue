@@ -1,7 +1,9 @@
 <script lang="ts" setup>
-import {computed, onMounted, onUnmounted, shallowRef, watch} from 'vue';
+import {computed, onMounted, shallowRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {toggleElem} from '../utils/dom.ts';
+
+const {i18n} = window.config;
 
 type MergeStyle = {
   name: string,
@@ -53,9 +55,6 @@ const autoMergeWhenSucceed = shallowRef(false);
 const mergeStyle = shallowRef('');
 const mergeStyleDetail = shallowRef<MergeStyle>({name: '', allowed: false, textDoMerge: '', hideAutoMerge: false});
 
-const mergeStyleAllowedCount = shallowRef(0);
-
-const showMergeStyleMenu = shallowRef(false);
 const showActionForm = shallowRef(false);
 
 const mergeButtonStyleClass = computed(() => {
@@ -83,22 +82,10 @@ watch(mergeStyle, (val) => {
 });
 
 onMounted(() => {
-  mergeStyleAllowedCount.value = mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
-
   let mergeStyle = mergeForm.mergeStyles.find((e) => e.allowed && e.name === mergeForm.defaultMergeStyle)?.name;
   if (!mergeStyle) mergeStyle = mergeForm.mergeStyles.find((e) => e.allowed)?.name;
   if (mergeStyle) switchMergeStyle(mergeStyle, !mergeForm.canMergeNow);
-
-  document.addEventListener('mouseup', hideMergeStyleMenu);
 });
-
-onUnmounted(() => {
-  document.removeEventListener('mouseup', hideMergeStyleMenu);
-});
-
-function hideMergeStyleMenu() {
-  showMergeStyleMenu.value = false;
-}
 
 function toggleActionForm(show: boolean) {
   showActionForm.value = show;
@@ -177,9 +164,8 @@ function clearMergeMessage() {
     </form>
 
     <div v-if="!showActionForm" class="tw-flex">
-      <!-- the merge button -->
-      <div class="ui buttons merge-button" :class="mergeSelectStyleClass" @click="toggleActionForm(true)">
-        <button class="ui button">
+      <div class="ui buttons merge-button dropdown-container" :class="mergeSelectStyleClass">
+        <button type="button" class="ui button" @click="toggleActionForm(true)">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">
             {{ mergeStyleDetail.textDoMerge }}
@@ -188,31 +174,31 @@ function clearMergeMessage() {
             </template>
           </span>
         </button>
-        <div class="ui dropdown icon button" @click.stop="showMergeStyleMenu = !showMergeStyleMenu">
+        <button type="button" class="dropdown-trigger ui icon button" :aria-label="i18n.more_items">
           <svg-icon name="octicon-triangle-down" :size="14"/>
-          <div class="menu" :class="{'show':showMergeStyleMenu}">
-            <template v-for="msd in mergeForm.mergeStyles">
-              <!-- if can merge now, show one action "merge now", and an action "auto merge when succeed" -->
-              <div class="item" v-if="msd.allowed && mergeForm.canMergeNow" :key="msd.name" @click.stop="switchMergeStyle(msd.name)">
-                <div class="action-text">
-                  {{ msd.textDoMerge }}
-                </div>
-                <div v-if="!msd.hideAutoMerge" class="auto-merge-small" @click.stop="switchMergeStyle(msd.name, true)">
-                  <svg-icon name="octicon-clock" :size="14"/>
-                  <div class="auto-merge-tip">
-                    {{ mergeForm.textAutoMergeWhenSucceed }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- if can NOT merge now, only show one action "auto merge when succeed" -->
-              <div class="item" v-if="msd.allowed && !mergeForm.canMergeNow && !msd.hideAutoMerge" :key="msd.name" @click.stop="switchMergeStyle(msd.name, true)">
-                <div class="action-text">
-                  {{ msd.textDoMerge }} {{ mergeForm.textAutoMergeButtonWhenSucceed }}
-                </div>
-              </div>
-            </template>
-          </div>
+        </button>
+        <div class="dropdown-popup dropdown-popup-button">
+          <template v-for="msd in mergeForm.mergeStyles" :key="msd.name">
+            <div class="merge-style-row" v-if="msd.allowed && mergeForm.canMergeNow">
+              <button type="button" class="dropdown-item action-text" @click="switchMergeStyle(msd.name)">
+                {{ msd.textDoMerge }}
+              </button>
+              <button
+                v-if="!msd.hideAutoMerge" type="button" class="dropdown-item auto-merge-small"
+                :aria-label="msd.textDoMerge + ' ' + mergeForm.textAutoMergeButtonWhenSucceed"
+                :data-tooltip-content="mergeForm.textAutoMergeWhenSucceed"
+                @click="switchMergeStyle(msd.name, true)"
+              >
+                <svg-icon name="octicon-clock" :size="14"/>
+              </button>
+            </div>
+            <button
+              v-if="msd.allowed && !mergeForm.canMergeNow && !msd.hideAutoMerge"
+              type="button" class="dropdown-item" @click="switchMergeStyle(msd.name, true)"
+            >
+              {{ msd.textDoMerge }} {{ mergeForm.textAutoMergeButtonWhenSucceed }}
+            </button>
+          </template>
         </div>
       </div>
 
@@ -227,66 +213,30 @@ function clearMergeMessage() {
 </template>
 
 <style scoped>
-/* to keep UI the same, at the moment we are still using some Fomantic UI styles, but we do not use their scripts, so we need to fine tune some styles */
-.ui.dropdown .menu.show {
-  display: block;
-}
 .ui.checkbox label {
   cursor: pointer;
 }
 
-/* make the dropdown list left-aligned */
-.ui.merge-button {
-  position: relative;
-}
-.ui.merge-button .ui.dropdown {
-  position: static;
-}
-.ui.merge-button > .ui.dropdown:last-child > .menu:not(.left) {
-  left: 0;
-  right: auto;
-}
-.ui.merge-button .ui.dropdown .menu > .item {
+.merge-style-row {
   display: flex;
   align-items: stretch;
-  padding: 0 !important; /* polluted by semantic.css: .ui.dropdown .menu > .item { !important } */
 }
 
-/* merge style list item */
 .action-text {
   padding: 0.8rem;
-  flex: 1
+  flex: 1;
+  width: auto;
+  margin-right: 0;
+}
+
+.action-text:only-child {
+  margin-right: 4px;
 }
 
 .auto-merge-small {
+  flex: 0 0 40px;
   width: 40px;
-  display: flex;
-  align-items: center;
+  margin-left: 0;
   justify-content: center;
-  position: relative;
 }
-.auto-merge-small .auto-merge-tip {
-  display: none;
-  left: 38px;
-  top: -1px;
-  bottom: -1px;
-  position: absolute;
-  align-items: center;
-  color: var(--color-text);
-  background-color: var(--color-info-bg);
-  border: 1px solid var(--color-info-border);
-  border-left: none;
-  padding-right: 1rem;
-}
-
-.auto-merge-small:hover {
-  color: var(--color-text);
-  background-color: var(--color-info-bg);
-  border: 1px solid var(--color-info-border);
-}
-
-.auto-merge-small:hover .auto-merge-tip {
-  display: flex;
-}
-
 </style>

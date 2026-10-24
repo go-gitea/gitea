@@ -10,11 +10,11 @@
 			{{$data.UpdatePrimaryAction.Text}}
 		</button>
 		{{if gt (len $data.UpdateStyleOptions) 1}}
-		<div class="ui dropdown icon button">
-			{{svg "octicon-triangle-down"}}
-			<div class="menu">
+		<div class="dropdown-container">
+			<button type="button" class="dropdown-trigger ui icon button" aria-label="{{ctx.Locale.Tr "more_items"}}">{{svg "octicon-triangle-down"}}</button>
+			<div class="dropdown-popup dropdown-popup-button">
 				{{range $data.UpdateStyleOptions}}
-					<a class="item {{if .Selected}}selected{{end}}" data-update-url="{{.URL}}">{{.Text}}</a>
+					<button type="button" class="dropdown-item {{if .Selected}}active{{end}}" data-update-url="{{.URL}}">{{.Text}}</button>
 				{{end}}
 			</div>
 		</div>

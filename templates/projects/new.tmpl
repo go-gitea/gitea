@@ -31,33 +31,25 @@
 		{{if not .PageIsEditProjects}}
 			<div class="field">
 				<label>{{ctx.Locale.Tr "repo.projects.template.desc"}}</label>
-				<div class="ui selection dropdown">
-					<input type="hidden" name="template_type" value="{{.type}}">
-					<div class="default text">{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</div>
-					<div class="menu">
+				<div class="select-field">
+					<select name="template_type">
+						<option value="" hidden>{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</option>
 						{{range $element := .TemplateConfigs}}
-							<div class="item" data-id="{{$element.TemplateType}}" data-value="{{$element.TemplateType}}">{{ctx.Locale.Tr $element.Translation}}</div>
+							<option value="{{$element.TemplateType}}" {{if eq $.type $element.TemplateType}}selected{{end}}>{{ctx.Locale.Tr $element.Translation}}</option>
 						{{end}}
-					</div>
+					</select>
 				</div>
 			</div>
 		{{end}}
 
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.projects.card_type.desc"}}</label>
-			<div class="ui selection dropdown">
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				{{range $element := .CardTypes}}
-					{{if or (eq $.card_type $element.CardType) (and (not $.PageIsEditProjects) (eq $element.CardType 1))}}
-						<input type="hidden" name="card_type" value="{{$element.CardType}}">
-						<div class="default text">{{ctx.Locale.Tr $element.Translation}}</div>
-					{{end}}
-				{{end}}
-				<div class="menu">
+			<div class="select-field">
+				<select name="card_type">
 					{{range $element := .CardTypes}}
-						<div class="item" data-id="{{$element.CardType}}" data-value="{{$element.CardType}}">{{ctx.Locale.Tr $element.Translation}}</div>
+						<option value="{{$element.CardType}}" {{if eq $element.CardType (Iif (eq $.card_type NIL) 1 $.card_type)}}selected{{end}}>{{ctx.Locale.Tr $element.Translation}}</option>
 					{{end}}
-				</div>
+				</select>
 			</div>
 		</div>
 	</div>

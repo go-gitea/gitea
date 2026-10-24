@@ -6,33 +6,36 @@
 			<h2 class="ui header dividing">
 				{{ctx.Locale.Tr "repo.commit_graph"}}
 				<div class="ui icon buttons tiny color-buttons">
-					<div class="ui multiple selection search dropdown" id="flow-select-refs-dropdown">
-						<input type="hidden" name="flow">
-						<div class="default text">{{ctx.Locale.Tr "repo.commit_graph.select"}}</div>
-						<div class="menu">
-							<div class="item" data-value="...flow-hide-pr-refs">
+					<div class="dropdown-container" data-kind="multiselect" data-delimiter=" " id="flow-select-refs-dropdown">{{/* refs can contain commas but no spaces */}}
+						<div class="dropdown-trigger dropdown-field dropdown-search-field">
+							<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "repo.commit_graph.select"}}">
+							<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.commit_graph.select"}}">{{ctx.Locale.Tr "repo.commit_graph.select"}}</span>
+						</div>
+						<input type="hidden" class="dropdown-value" name="flow">
+						<div class="dropdown-popup flow-select-refs-popup">
+							<div class="dropdown-item" data-value="...flow-hide-pr-refs">
 								{{svg "octicon-eye-closed"}}
 								<span class="gt-ellipsis" title="{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}">{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}</span>
 							</div>
 							{{range .AllRefs}}
 								{{$refGroup := .RefGroup}}
 								{{if eq $refGroup "pull"}}
-									<div class="item" data-value="{{.Name}}">
+									<div class="dropdown-item" data-value="{{.Name}}">
 										{{svg "octicon-git-pull-request"}}
 										<span class="gt-ellipsis" title="{{.ShortName}}">#{{.ShortName}}</span>
 									</div>
 								{{else if eq $refGroup "tags"}}
-									<div class="item" data-value="{{.Name}}">
+									<div class="dropdown-item" data-value="{{.Name}}">
 										{{svg "octicon-tag"}}
 										<span class="gt-ellipsis" title="{{.ShortName}}">{{.ShortName}}</span>
 									</div>
 								{{else if eq $refGroup "remotes"}}
-									<div class="item" data-value="{{.Name}}">
+									<div class="dropdown-item" data-value="{{.Name}}">
 										{{svg "octicon-cross-reference"}}
 										<span class="gt-ellipsis" title="{{.ShortName}}">{{.ShortName}}</span>
 									</div>
 								{{else if eq $refGroup "heads"}}
-									<div class="item" data-value="{{.Name}}">
+									<div class="dropdown-item" data-value="{{.Name}}">
 										{{svg "octicon-git-branch"}}
 										<span class="gt-ellipsis" title="{{.ShortName}}">{{.ShortName}}</span>
 									</div>

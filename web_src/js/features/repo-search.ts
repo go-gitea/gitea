@@ -1,11 +1,11 @@
 import {registerGlobalInitFunc} from '../modules/observer.ts';
-import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 
 export function initRepositorySearch() {
   registerGlobalInitFunc('initRepositorySearch', (form: HTMLFormElement) => {
-    addDelegatedEventListener(form, 'change', 'input[type="radio"]', () => form.submit());
+    const radios = form.querySelectorAll<HTMLInputElement>('input[type="radio"]'); // bind directly, the filter popup leaves the form while open
+    for (const radio of radios) radio.addEventListener('change', () => form.submit());
     form.querySelector('.repo-search-filter-reset')!.addEventListener('click', () => {
-      queryElems(form, 'input[type="radio"]', (el: HTMLInputElement) => el.checked = false);
+      for (const radio of radios) radio.checked = false;
       form.submit();
     });
   });

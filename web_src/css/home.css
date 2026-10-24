@@ -73,29 +73,11 @@
   padding-left: 1em;
 }
 
-/* the theme item is also used for the menu's "default text" display */
-.page-footer .ui.dropdown .theme-menu-item {
+/* the theme item is also used for the trigger's content */
+.theme-menu-item {
   display: flex;
   align-items: center;
   gap: 0.5em;
-}
-
-/* Fomantic UI dropdown "remote items by API" can't change parent "item" element,
-so we use "theme-menu-item" in the "item" and add tooltip to the inner one.
-Then the inner one needs to get padding and parent "item" padding needs to be removed */
-.page-footer .menu.theme-menu > .item {
-  padding: 0 !important;
-}
-
-.page-footer .menu.theme-menu > .item > .theme-menu-item {
-  padding: 11px 16px;
-}
-
-.page-footer .ui.dropdown .menu.language-menu,
-.page-footer .ui.dropdown .menu.theme-menu {
-  max-height: min(500px, calc(100vh - 60px));
-  overflow-y: auto;
-  margin-bottom: 10px;
 }
 
 @media (max-width: 880px) {
@@ -103,4 +85,12 @@ Then the inner one needs to get padding and parent "item" padding needs to be re
     flex-direction: column;
     gap: 0.5em;
   }
+}
+
+.footer-theme-menu .dropdown-item {
+  padding-inline: 16px;
+}
+
+.tippy-box[data-theme="dropdown"][data-placement^="top"]:has(.footer-language-menu, .footer-theme-menu) {
+  translate: 0 -4px;
 }

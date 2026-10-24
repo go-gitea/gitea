@@ -26,7 +26,7 @@ func TestExploreUser(t *testing.T) {
 		req := NewRequest(t, "GET", "/explore/users?sort="+c.sortOrder)
 		resp := MakeRequest(t, req, http.StatusOK)
 		h := NewHTMLParser(t, resp.Body)
-		href, _ := h.Find(`.ui.dropdown .menu a.active.item[href^="?sort="]`).Attr("href")
+		href, _ := h.Find(`.dropdown-popup a.active.dropdown-item[href^="?sort="]`).Attr("href")
 		assert.Equal(t, c.expected, href)
 	}
 

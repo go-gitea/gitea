@@ -18,10 +18,6 @@
 }
 
 @media (max-width: 767.98px) {
-  .issue-list-toolbar-right .dropdown .menu {
-    left: auto !important;
-    right: auto !important;
-  }
   .issue-list-navbar {
     order: 0;
   }
@@ -76,12 +72,8 @@
 
 .label-filter-exclude-info {
   display: inline-block;
-  padding: 0.5rem 0;
+  padding: 0.5rem 8px 0.5rem 10px;
   font-size: 12px;
-  width: 100%;
-  white-space: nowrap;
-  margin-left: 10px;
-  margin-right: 8px;
   text-align: left;
 }
 

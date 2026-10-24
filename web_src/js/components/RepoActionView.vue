@@ -184,12 +184,14 @@ onBeforeUnmount(() => {
               <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun-failed`">
                 {{ locale.rerun_failed }}
               </button>
-              <div class="ui basic small compact dropdown icon button">
-                <SvgIcon name="octicon-triangle-down" :size="14"/>
-                <div class="menu">
-                  <div class="item link-action" :data-url="`${run.link}/rerun`">
+              <div class="dropdown-container" data-placement="bottom-end">
+                <button type="button" class="dropdown-trigger ui basic small compact icon button" :aria-label="locale.rerun">
+                  <SvgIcon name="octicon-triangle-down" :size="14"/>
+                </button>
+                <div class="dropdown-popup dropdown-popup-button tw-text-13">
+                  <button type="button" class="dropdown-item link-action" :data-url="`${run.link}/rerun`">
                     {{ locale.rerun_all }}
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -197,18 +199,18 @@ onBeforeUnmount(() => {
               {{ locale.rerun_all }}
             </button>
           </template>
-          <div v-if="run.attempts.length > 1" class="ui dropdown basic small compact button">
-            <div class="flex-text-inline">
+          <div v-if="run.attempts.length > 1" class="dropdown-container">
+            <button type="button" class="dropdown-trigger ui basic small compact button">
               <SvgIcon name="octicon-history" :size="14"/>
               <span>{{ formatCurrentAttemptTitle(run.attempts.find((attempt) => attempt.current)!) }}</span>
-            </div>
-            <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
-            <div class="menu">
+              <SvgIcon name="octicon-triangle-down" :size="14"/>
+            </button>
+            <div class="dropdown-popup dropdown-popup-button tw-text-13">
               <a
                 v-for="attempt in run.attempts"
                 :key="attempt.attempt"
-                class="item tw-flex tw-flex-col tw-gap-2"
-                :class="attempt.current ? 'selected' : ''"
+                class="dropdown-item tw-flex-col tw-items-start tw-gap-2"
+                :class="{active: attempt.current}"
                 :href="attempt.link"
               >
                 <div class="flex-text-block">
@@ -500,8 +502,6 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-/* begin fomantic button overrides */
-
 .action-view-right-panel .ui.button,
 .action-view-right-panel .ui.button:focus {
   background: transparent;
@@ -517,8 +517,6 @@ onBeforeUnmount(() => {
   background: var(--color-console-active-bg);
   color: var(--color-console-fg);
 }
-
-/* end fomantic button overrides */
 
 @media (max-width: 767.98px) {
   .action-view-body {

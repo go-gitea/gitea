@@ -6,18 +6,16 @@
 * TextFilterTitle
 */}}
 {{$queryLink := .QueryLink}}
-<div class="item ui dropdown custom" data-tooltip-content="{{ctx.Locale.Tr "repo.user_search_tooltip"}}" data-global-init="initDropdownUserRemoteSearch"
+<div class="dropdown-container" data-placement="bottom-end" data-global-init="initDropdownUserRemoteSearch"
 		data-search-url="{{$.UserSearchUrl}}"
-		data-selected-username="{{$.SelectedUsername}}"
 		data-action-jump-url="{{QueryBuild $queryLink $.QueryParamKey NIL}}&{{$.QueryParamKey}}={username}"
 >
-	{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
+	<button type="button" class="dropdown-trigger item btn" data-tooltip-content="{{ctx.Locale.Tr "repo.user_search_tooltip"}}">{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14}}</button>
+	<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}">
+			<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}" value="{{$.SelectedUsername}}">
 		</div>
-		<a class="item" data-value="">{{ctx.Locale.Tr "repo.issues.filter_user_no_select"}}</a>
-		<a class="item item-from-input tw-hidden"></a>
+		<a class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.issues.filter_user_no_select"}}</a>
 	</div>
 </div>

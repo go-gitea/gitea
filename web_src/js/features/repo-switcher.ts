@@ -1,4 +1,6 @@
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {initDropdown} from '../modules/dropdown.ts';
+import {GET} from '../modules/fetch.ts';
+import {createElementFromHTML} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {svg} from '../svg.ts';
 
@@ -11,29 +13,19 @@ function repoIcon(repo: RepoItem): string {
   return svg('octicon-repo', 16);
 }
 
-// quick repo switcher: the caret next to the repo name opens a remote-search dropdown
-// listing the owner's repositories, and navigates to the selected one
 export function initRepoSwitcher(el: HTMLElement) {
   const currentFullName = el.getAttribute('data-current-full-name');
-  const $dropdown = fomanticQuery(el);
-  $dropdown.dropdown({
-    showOnFocus: false, // don't auto popup the dropdown menu, avoid interrupting users keyboard navigation on the page
-    apiSettings: {
-      url: el.getAttribute('data-query-url')!,
-      onResponse: (response: RepoSearchResponse) => ({results: response.data.map(({repository: repo}) => {
-        const svgCheck = repo.full_name === currentFullName ? svg('octicon-check', 16) : '';
-        const svgRepoIcon = repoIcon(repo);
-        return {
-          type: 'html',
-          html: html`
-            <a class="item" href="${repo.html_url}">
-              <span class="tw-w-[16px]">${htmlRaw(svgCheck)}</span>
-              <span>${htmlRaw(svgRepoIcon)}</span>
-              <span class="gt-ellipsis">${repo.full_name.split('/')[1]}</span>
-            </a>
-          `,
-        };
-      })}),
+  initDropdown(el, {
+    async loadItems(query, signal) {
+      const response = await GET(el.getAttribute('data-query-url')!.replace('{query}', () => encodeURIComponent(query)), {signal});
+      const {data} = await response.json() as RepoSearchResponse;
+      return data.map(({repository: repo}) => createElementFromHTML(html`
+        <a class="dropdown-item" href="${repo.html_url}">
+          <span class="tw-w-[16px]">${htmlRaw(repo.full_name === currentFullName ? svg('octicon-check', 16) : '')}</span>
+          <span>${htmlRaw(repoIcon(repo))}</span>
+          <span class="gt-ellipsis">${repo.full_name.split('/')[1]}</span>
+        </a>
+      `));
     },
   });
 }

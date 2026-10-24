@@ -1,8 +1,8 @@
 import {createCodeEditor} from '../modules/codeeditor/main.ts';
-import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {initDropdown} from '../modules/dropdown.ts';
 import {attachSearchBox} from '../modules/search.ts';
 import {globMatch} from '../utils/glob.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
@@ -10,44 +10,24 @@ import {registerGlobalInitFunc} from '../modules/observer.ts';
 const {appSubUrl} = window.config;
 
 function initRepoSettingsCollaboration() {
-  // Change collaborator access mode
-  for (const dropdownEl of queryElems(document, '.page-content.repository .ui.dropdown.access-mode')) {
-    const textEl = dropdownEl.querySelector(':scope > .text')!;
-    const $dropdown = fomanticQuery(dropdownEl);
-    $dropdown.dropdown({
-      async action(text: string, value: string) {
-        dropdownEl.classList.add('is-loading', 'loading-icon-2px');
-        const lastValue = dropdownEl.getAttribute('data-last-value')!;
-        $dropdown.dropdown('hide');
-        let respOk = false;
-        try {
-          const uid = dropdownEl.getAttribute('data-uid')!;
-          const resp = await POST(dropdownEl.getAttribute('data-url')!, {data: new URLSearchParams({uid, 'mode': value})});
-          respOk = resp.ok;
-          if (respOk) {
-            textEl.textContent = text;
-            dropdownEl.setAttribute('data-last-value', value);
-          }
-        } finally {
-          dropdownEl.classList.remove('is-loading');
-          if (!respOk) {
-            textEl.textContent = '(error)'; // prevent from misleading users when error occurs
-            dropdownEl.setAttribute('data-last-value', lastValue);
-          }
-        }
-      },
-      onHide() {
-        // set to the really selected value, defer to next tick to make sure `action` has finished
-        // its work because the calling order might be onHide -> action
-        setTimeout(() => {
-          const $item = $dropdown.dropdown('get item', dropdownEl.getAttribute('data-last-value'));
-          if ($item) {
-            $dropdown.dropdown('set selected', dropdownEl.getAttribute('data-last-value'));
-          } else {
-            textEl.textContent = '(none)'; // prevent from misleading users when the access mode is undefined
-          }
-        }, 0);
-      },
+  for (const dropdownEl of queryElems(document, '.page-content.repository .dropdown-container.access-mode')) {
+    const dropdown = initDropdown(dropdownEl);
+    const textEl = dropdown.trigger.querySelector('.dropdown-text')!;
+    addDelegatedEventListener(dropdown.popup, 'click', '.dropdown-item', async (item) => {
+      dropdown.trigger.disabled = true;
+      dropdown.trigger.classList.add('is-loading', 'loading-icon-2px');
+      let respOk = false;
+      try {
+        const uid = dropdownEl.getAttribute('data-uid')!;
+        const value = item.getAttribute('data-value')!;
+        const resp = await POST(dropdownEl.getAttribute('data-url')!, {data: new URLSearchParams({uid, mode: value})});
+        respOk = resp.ok;
+        if (respOk) dropdown.setActiveItem(item);
+      } finally {
+        dropdown.trigger.disabled = false;
+        dropdown.trigger.classList.remove('is-loading', 'loading-icon-2px');
+        if (!respOk) textEl.textContent = '(error)';
+      }
     });
   }
 }

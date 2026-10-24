@@ -15,6 +15,18 @@ test('update profile biography', async ({page, request}) => {
   await expect(page.getByLabel('Biography')).toHaveValue('');
 });
 
+test('switch the theme from the footer', async ({page, request}) => {
+  const username = `e2e-theme-${randomString(8)}`;
+  await apiCreateUser(request, username);
+  await loginUser(page, username);
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'gitea-auto');
+  await page.locator('#footer-theme-selector').getByRole('button').click();
+  await page.getByRole('menu').locator('.dropdown-item[data-value="gitea-dark"]').click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'gitea-dark');
+  await expect(page.locator('#footer-theme-selector')).toContainText('Dark');
+});
+
 test('select and deselect all webhook events', async ({page}) => {
   await login(page);
   await page.goto('/user/settings/hooks/gitea/new');

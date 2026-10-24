@@ -3,15 +3,17 @@
 		<p>{{ctx.Locale.Tr "repo.issues.label_templates.info"}}</p>
 		<form class="ui form center" action="{{.Link}}/initialize" method="post">
 			<div class="field">
-				<div class="ui selection dropdown">
-					<input type="hidden" name="template_name" value="Default">
-					<div class="default text">{{ctx.Locale.Tr "repo.issues.label_templates.helper"}}</div>
-					<div class="menu">
+				<div class="dropdown-container" data-kind="select">
+					<button type="button" class="dropdown-trigger dropdown-field" aria-label="{{ctx.Locale.Tr "repo.issues.label_templates.helper"}}">
+						<span class="dropdown-text">{{range .LabelTemplateFiles}}{{if eq .DisplayName "Default"}}{{.DisplayName}}<br><i>({{.Description}})</i>{{end}}{{end}}</span>
+						{{svg "octicon-triangle-down" 18}}
+					</button>
+					<input type="hidden" class="dropdown-value" name="template_name" value="Default">
+					<div class="dropdown-popup">
 						{{range .LabelTemplateFiles}}
-							<div class="item" data-value="{{.DisplayName}}">{{.DisplayName}}<br><i>({{.Description}})</i></div>
+							<div class="dropdown-item" data-value="{{.DisplayName}}"><span>{{.DisplayName}}<br><i>({{.Description}})</i></span></div>
 						{{end}}
 					</div>
-					{{svg "octicon-triangle-down" 18 "dropdown icon"}}
 				</div>
 			</div>
 			<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.issues.label_templates.use"}}</button>

@@ -15,16 +15,13 @@
 					<h4 class="ui dividing header">{{ctx.Locale.Tr "install.db_title"}}</h4>
 					<p>{{ctx.Locale.Tr "install.require_db_desc"}}</p>
 					<div class="inline required field {{if .Err_DbType}}error{{end}}">
-						<label>{{ctx.Locale.Tr "install.db_type"}}</label>
-						<div class="ui selection database type dropdown">
-							<input type="hidden" id="db_type" name="db_type" value="{{.CurDbType}}">
-							<div class="text">{{.CurDbType}}</div>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
+						<label for="db_type">{{ctx.Locale.Tr "install.db_type"}}</label>
+						<div class="select-field">
+							<select id="db_type" autocomplete="off" name="db_type">
 								{{range .DbTypeNames}}
-									<div class="item" data-value="{{.type}}">{{.name}}</div>
+									<option value="{{.type}}" {{if eq $.CurDbType .type}}selected{{end}}>{{.name}}</option>
 								{{end}}
-							</div>
+							</select>
 						</div>
 					</div>
 
@@ -49,16 +46,16 @@
 
 					<div class="tw-mt-4 tw-hidden" data-db-setting-for="postgres">
 						<div class="inline required field">
-							<label>{{ctx.Locale.Tr "install.ssl_mode"}}</label>
-							<div class="ui selection database type dropdown">
-								<input type="hidden" name="ssl_mode" value="{{if .ssl_mode}}{{.ssl_mode}}{{else}}disable{{end}}">
-								<div class="default text">disable</div>
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="menu">
-									<div class="item" data-value="disable">Disable</div>
-									<div class="item" data-value="require">Require</div>
-									<div class="item" data-value="verify-full">Verify Full</div>
-								</div>
+							<label for="ssl_mode">{{ctx.Locale.Tr "install.ssl_mode"}}</label>
+							<div class="select-field">
+								<select id="ssl_mode" name="ssl_mode">
+									{{if and .ssl_mode (not (eq .ssl_mode "disable" "require" "verify-full"))}}
+										<option value="{{.ssl_mode}}" selected>{{.ssl_mode}}</option>
+									{{end}}
+									<option value="disable" {{if eq (Iif $.ssl_mode $.ssl_mode "disable") "disable"}}selected{{end}}>Disable</option>
+									<option value="require" {{if eq (Iif $.ssl_mode $.ssl_mode "disable") "require"}}selected{{end}}>Require</option>
+									<option value="verify-full" {{if eq (Iif $.ssl_mode $.ssl_mode "disable") "verify-full"}}selected{{end}}>Verify Full</option>
+								</select>
 							</div>
 						</div>
 						<div class="inline field {{if .Err_DbSetting}}error{{end}}">

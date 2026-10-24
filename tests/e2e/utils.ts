@@ -105,6 +105,13 @@ export async function apiCreateBranch(requestContext: APIRequestContext, owner: 
   }), 'apiCreateBranch');
 }
 
+export async function apiSetRepoTopics(requestContext: APIRequestContext, owner: string, repo: string, topics: string[]) {
+  await apiRetry(() => requestContext.put(`${baseUrl()}/api/v1/repos/${owner}/${repo}/topics`, {
+    headers: apiHeaders(),
+    data: {topics},
+  }), 'apiSetRepoTopics');
+}
+
 /** Create a PR via API. Returns the PR index for subsequent operations. */
 export async function apiCreatePR(requestContext: APIRequestContext, owner: string, repo: string, head: string, base: string, title: string, {headers}: {headers?: Record<string, string>} = {}): Promise<number> {
   const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
@@ -138,10 +145,10 @@ export async function apiCreateProject(requestContext: APIRequestContext, owner:
   return (await response.json()).id;
 }
 
-export async function apiCreateLabel(requestContext: APIRequestContext, owner: string, repo: string, name: string, color: string) {
+export async function apiCreateLabel(requestContext: APIRequestContext, owner: string, repo: string, name: string, color: string, {exclusive = false} = {}) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/labels`, {
     headers: apiHeaders(),
-    data: {name, color},
+    data: {name, color, exclusive},
   }), 'apiCreateLabel');
 }
 
@@ -229,11 +236,6 @@ export async function apiCreateIssue(
   return result;
 }
 
-export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
-  await trigger.click();
-  await page.getByText(itemText).click();
-}
-
 export async function loginUser(page: Page, username: string) {
   return login(page, username, testUserPassword);
 }
@@ -261,7 +263,7 @@ export async function assertFlushWithParent(child: Locator, parent: Locator) {
 }
 
 export async function logout(page: Page) {
-  await page.context().clearCookies(); // workaround issues related to fomantic dropdown
+  await page.context().clearCookies();
   await page.goto('/');
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeVisible();
 }

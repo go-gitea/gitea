@@ -464,29 +464,12 @@
 					<p>
 						{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}
 					</p>
-					<div class="ui dropdown selection">
+					<div class="select-field">
 						<select name="projects_mode">
 							<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
 							<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
 							<option value="all" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</option>
 						</select>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="default text">
-							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}
-								{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}
-							{{end}}
-							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}
-								{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}
-							{{end}}
-							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}
-								{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}
-							{{end}}
-						</div>
-						<div class="menu">
-							<div class="item" data-value="repo">{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</div>
-							<div class="item" data-value="owner">{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</div>
-							<div class="item" data-value="all">{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</div>
-						</div>
 					</div>
 				</div>
 
@@ -571,59 +554,40 @@
 							<p>
 								{{ctx.Locale.Tr "repo.settings.default_merge_style_desc"}}
 							</p>
-							<div class="ui dropdown selection">
+							<div class="select-field">
 								<select name="pulls_default_merge_style">
 									<option value="merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "merge")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}</option>
 									<option value="rebase" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</option>
 									<option value="rebase-merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase-merge")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</option>
 									<option value="squash" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "squash")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}</option>
 									<option value="fast-forward-only" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "fast-forward-only")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}</option>
-								</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="default text">
-									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "merge")}}
-										{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}
-									{{end}}
-									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase")}}
-										{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}
-									{{end}}
-									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase-merge")}}
-										{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
-									{{end}}
-									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "squash")}}
-										{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}
-									{{end}}
-									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "fast-forward-only")}}
-										{{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}
-									{{end}}
-								</div>
-								<div class="menu">
-									<div class="item" data-value="merge">{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}</div>
-									<div class="item" data-value="rebase">{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
-									<div class="item" data-value="rebase-merge">{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
-									<div class="item" data-value="squash">{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}</div>
-									<div class="item" data-value="fast-forward-only">{{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}</div>
-								</div>
+								</select>
 							</div>
 						</div>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message"}}</label>
 							{{$squashMergeMessage := $prUnit.PullRequestsConfig.DefaultSquashMergeMessage}}
-							<select class="ui selection dropdown" name="pulls_default_squash_merge_message">
-								<option value="BLANK" {{if eq $squashMergeMessage "BLANK"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title"}}</option>
-								<option value="COMMIT_MESSAGES" {{if eq $squashMergeMessage "COMMIT_MESSAGES"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title_and_commit_details"}}</option>
-								<option value="PR_BODY" {{if eq $squashMergeMessage "PR_BODY"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title_and_description"}}</option>
-							</select>
+							<div class="select-field">
+								<select name="pulls_default_squash_merge_message">
+									<option value="BLANK" {{if eq $squashMergeMessage "BLANK"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title"}}</option>
+									<option value="COMMIT_MESSAGES" {{if eq $squashMergeMessage "COMMIT_MESSAGES"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title_and_commit_details"}}</option>
+									<option value="PR_BODY" {{if eq $squashMergeMessage "PR_BODY"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title_and_description"}}</option>
+								</select>
+							</div>
 						</div>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch"}}</label>
-							<div class="ui search selection dropdown">
-								<input type="hidden" name="default_target_branch" value="{{$prUnit.PullRequestsConfig.DefaultTargetBranch}}">
-								<div class="default text"></div>
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="menu">
-									<div class="item" data-value="">{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch}}</div>
+							<div class="dropdown-container" data-kind="select">
+								<input type="hidden" class="dropdown-value" name="default_target_branch" value="{{$prUnit.PullRequestsConfig.DefaultTargetBranch}}">
+								<div class="dropdown-trigger dropdown-field dropdown-search-field">
+									<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "search.branch_kind"}}">
+									<span class="dropdown-text">{{or $prUnit.PullRequestsConfig.DefaultTargetBranch (ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch)}}</span>
+									{{svg "octicon-triangle-down" 14}}
+								</div>
+								<div class="dropdown-popup">
+									<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch}}</div>
 									{{range $branchName := $.Branches}}
-										<div class="item" data-value="{{$branchName}}">{{$branchName}}</div>
+										<div class="dropdown-item" data-value="{{$branchName}}">{{$branchName}}</div>
 									{{end}}
 								</div>
 							</div>
@@ -648,20 +612,12 @@
 						</div>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_update_style"}}</label>
-							<div class="ui dropdown selection">
+							<div class="select-field">
 								<select name="pulls_default_update_style">
 									{{range .PullsDefaultUpdateStyleOptions}}
 										<option value="{{.Value}}" {{if .Selected}}selected{{end}}>{{.Text}}</option>
 									{{end}}
-								</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="default text">
-									{{.PullsDefaultUpdateStyleText}}
-								</div>
-								<div class="menu">
-									{{range .PullsDefaultUpdateStyleOptions}}
-										<div class="item" data-value="{{.Value}}">{{.Text}}</div>
-									{{end}}
-								</div>
+								</select>
 							</div>
 						</div>
 						<div class="field">

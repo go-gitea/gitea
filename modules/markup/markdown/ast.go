@@ -86,12 +86,6 @@ func NewTaskCheckBoxListItem(listItem *ast.ListItem) *TaskCheckBoxListItem {
 	}
 }
 
-// Icon is an inline for a Fomantic UI icon
-type Icon struct {
-	ast.BaseInline
-	Name []byte
-}
-
 // ColorPreview is an inline for a color preview
 type ColorPreview struct {
 	ast.BaseInline

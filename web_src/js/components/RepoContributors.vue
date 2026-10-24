@@ -25,7 +25,6 @@ import {
 } from '../utils/time.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 
 type ContributionType = 'commits' | 'additions' | 'deletions';
@@ -111,18 +110,14 @@ let xAxisEnd: number | null = null;
 const xAxisMin = shallowRef<number | null>(null);
 const xAxisMax = shallowRef<number | null>(null);
 
-onMounted(() => {
-  fetchGraphData();
+onMounted(fetchGraphData);
 
-  fomanticQuery('#repo-contributors').dropdown({
-    onChange: (val: ContributionType) => {
-      xAxisMin.value = xAxisStart;
-      xAxisMax.value = xAxisEnd;
-      type.value = val;
-      sortContributors();
-    },
-  });
-});
+function changeContributionType(contributionType: ContributionType) {
+  type.value = contributionType;
+  xAxisMin.value = xAxisStart;
+  xAxisMax.value = xAxisEnd;
+  sortContributors();
+}
 
 function sortContributors() {
   const criteria = `total_${type.value}` as const;
@@ -376,24 +371,18 @@ const contributorCharts = computed(() => sortedContributors.value.map((contribut
           {{ new Date(xAxisMax) }}
         </relative-time>
       </div>
-      <div>
-        <!-- Contribution type -->
-        <div class="ui floating dropdown jump" id="repo-contributors">
-          <div class="ui basic compact button">
-            <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
-            <svg-icon name="octicon-triangle-down" :size="14"/>
-          </div>
-          <div class="left menu">
-            <div :class="['item', {'selected': type === 'commits'}]" data-value="commits">
-              {{ locale.contributionType.commits }}
-            </div>
-            <div :class="['item', {'selected': type === 'additions'}]" data-value="additions">
-              {{ locale.contributionType.additions }}
-            </div>
-            <div :class="['item', {'selected': type === 'deletions'}]" data-value="deletions">
-              {{ locale.contributionType.deletions }}
-            </div>
-          </div>
+      <div class="dropdown-container" data-placement="bottom-end">
+        <button type="button" class="dropdown-trigger dropdown-button-inline ui basic compact button">
+          <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
+          <SvgIcon name="octicon-triangle-down" :size="14"/>
+        </button>
+        <div class="dropdown-popup dropdown-popup-floating">
+          <button
+            v-for="contributionType in (['commits', 'additions', 'deletions'] as const)" :key="contributionType"
+            type="button" class="dropdown-item" :class="{active: type === contributionType}" @click="changeContributionType(contributionType)"
+          >
+            {{ locale.contributionType[contributionType] }}
+          </button>
         </div>
       </div>
     </div>

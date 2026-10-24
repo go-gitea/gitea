@@ -43,7 +43,7 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	link, exists = htmlDoc.doc.Find(`form.ui.form[action*="/fork"]`).Attr("action")
 	assert.True(t, exists, "The template has changed")
-	_, exists = htmlDoc.doc.Find(fmt.Sprintf(".owner.dropdown .item[data-value=\"%d\"]", forkOwner.ID)).Attr("data-value")
+	_, exists = htmlDoc.doc.Find(fmt.Sprintf(".owner.dropdown-container .dropdown-item[data-value=\"%d\"]", forkOwner.ID)).Attr("data-value")
 	assert.True(t, exists, "Fork owner '%s' is not present in select box", forkOwnerName)
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"uid":                strconv.FormatInt(forkOwner.ID, 10),

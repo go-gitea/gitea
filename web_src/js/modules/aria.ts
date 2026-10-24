@@ -1,4 +1,4 @@
-import {generateElemId, queryElems} from '../../utils/dom.ts';
+import {generateElemId, queryElems} from '../utils/dom.ts';
 
 function linkLabelAndInput(label: Element, input: Element) {
   const labelFor = label.getAttribute('for');
@@ -39,9 +39,4 @@ function patchLabels(parent: ParentNode, containerSelector: string, labelSelecto
 export function initAriaLabels(container: ParentNode) {
   patchLabels(container, '.ui.checkbox', 'label', 'input', 'data-checkbox-patched');
   patchLabels(container, '.ui.form .field', ':scope > label', ':scope > input, :scope > select, :scope > textarea', 'data-field-patched');
-}
-
-export function fomanticQuery(s: string | Element | NodeListOf<Element>): ReturnType<typeof $> {
-  // intentionally make it only work for query selector, it isn't used for creating HTML elements (for safety)
-  return typeof s === 'string' ? $(document).find(s) : $(s);
 }

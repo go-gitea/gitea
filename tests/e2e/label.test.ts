@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateRepo, randomString} from './utils.ts';
+import {login, apiCreateIssue, apiCreateLabel, apiCreateRepo, randomString} from './utils.ts';
 
 test('create a label in the modal with a color from the picker popup', async ({page}) => {
   const repoName = `e2e-label-${randomString(8)}`;
@@ -16,4 +16,27 @@ test('create a label in the modal with a color from the picker popup', async ({p
   await expect(colorInput).toHaveValue(/^#[0-9a-f]{6}$/);
   await modal.getByRole('button', {name: 'Save'}).click();
   await expect(page.locator('.issue-label-list')).toContainText('e2e-label');
+});
+
+test('exclusive scoped labels replace each other in the issue sidebar', async ({page, request}) => {
+  const repoName = `e2e-label-scope-${randomString(8)}`;
+  const owner = env.GITEA_TEST_E2E_USER;
+  await Promise.all([
+    (async () => {
+      await apiCreateRepo(request, {name: repoName, autoInit: false});
+      await Promise.all([
+        apiCreateLabel(request, owner, repoName, 'kind/bug', 'ee0701', {exclusive: true}),
+        apiCreateLabel(request, owner, repoName, 'kind/feature', 'ee0701', {exclusive: true}),
+        apiCreateIssue(request, {owner, repo: repoName, title: 'Scoped labels'}),
+      ]);
+    })(),
+    login(page),
+  ]);
+  await page.goto(`/${owner}/${repoName}/issues/1`);
+  const trigger = page.getByRole('button', {name: 'Labels'});
+  await trigger.click();
+  await page.getByRole('menuitem').filter({hasText: 'bug'}).click();
+  await page.getByRole('menuitem').filter({hasText: 'feature'}).click();
+  await trigger.click();
+  await expect(page.locator('.issue-sidebar-combo', {has: trigger}).locator('.labels-list').getByRole('link')).toHaveText([/feature/]);
 });

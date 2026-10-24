@@ -5,7 +5,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {GET} from '../modules/fetch.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
-import {queryElemChildren} from '../utils/dom.ts';
+import {generateElemId, queryElemChildren} from '../utils/dom.ts';
 import type {GitRefType} from '../types.ts';
 import {trString} from '../modules/i18n.ts';
 
@@ -28,6 +28,8 @@ const elDropdown = useTemplateRef('elDropdown') as Readonly<ShallowRef<HTMLDivEl
 const elCreateNewRefForm = useTemplateRef('elCreateNewRefForm') as Readonly<ShallowRef<HTMLFormElement>>;
 const elScrollContainer = useTemplateRef('elScrollContainer') as Readonly<ShallowRef<HTMLDivElement>>;
 const elSearchField = useTemplateRef('elSearchField') as Readonly<ShallowRef<HTMLInputElement>>;
+const elTrigger = useTemplateRef<HTMLButtonElement>('elTrigger');
+const popupId = generateElemId('branch-tag-menu-');
 
 const showTabBranches = props.elRoot.getAttribute('data-show-tab-branches') === 'true';
 
@@ -35,7 +37,7 @@ const allItems = shallowRef<ListItem[]>([]);
 const selectedTab = shallowRef<SelectedTab>(showTabBranches ? 'branches' : 'tags');
 const searchTerm = shallowRef('');
 const menuVisible = shallowRef(false);
-const activeItemIndex = shallowRef(0);
+const activeItemIndex = shallowRef(-1);
 const tabLoadingStates = shallowRef<TabLoadingStates>({branches: '', tags: ''});
 
 const textBranches = props.elRoot.getAttribute('data-text-branches')!;
@@ -76,16 +78,17 @@ const showCreateNewRef = computed(() => {
 
 const filteredItems = computed<ListItem[]>(() => {
   const searchTermLower = searchTerm.value.toLowerCase();
-  const items = allItems.value.filter((item: ListItem) => {
+  return allItems.value.filter((item: ListItem) => {
     const typeMatched = (selectedTab.value === 'branches' && item.refType === 'branch') || (selectedTab.value === 'tags' && item.refType === 'tag');
     if (!typeMatched) return false;
     if (!searchTerm.value) return true; // match all
     return item.refShortName.toLowerCase().includes(searchTermLower);
   });
-
-  activeItemIndex.value = !items.length && showCreateNewRef.value ? 0 : -1; // eslint-disable-line vue/no-side-effects-in-computed-properties -- TODO: move this side effect out of the computed
-  return items;
 });
+
+watch(filteredItems, (items) => {
+  activeItemIndex.value = !items.length && showCreateNewRef.value ? 0 : -1;
+}, {flush: 'sync'});
 
 const showNoResults = computed(() => {
   if (tabLoadingStates.value[selectedTab.value] !== 'done') return false;
@@ -96,10 +99,12 @@ const createNewRefFormActionUrl = computed(() => {
   return `${currentRepoLink}/branches/_new/${currentRefType.value}/${pathEscapeSegments(currentRefShortName.value)}`;
 });
 
-watch(menuVisible, (visible: boolean) => {
+watch(menuVisible, async (visible: boolean) => {
   if (!visible) return;
   focusSearchField();
-  loadTabItems();
+  await loadTabItems();
+  await nextTick();
+  if (menuVisible.value) elScrollContainer.value.closest('.dropdown-popup')!.scrollIntoView({block: 'nearest'});
 });
 
 function onBodyClick(e: MouseEvent) {
@@ -154,8 +159,7 @@ function getSelectedIndexInFiltered() {
 }
 
 function getActiveItem() {
-  // not filteredItems, its getter resets activeItemIndex when dirty
-  return queryElemChildren<HTMLDivElement>(elScrollContainer.value, '.item')[activeItemIndex.value] ?? null;
+  return queryElemChildren<HTMLDivElement>(elScrollContainer.value, '.dropdown-item')[activeItemIndex.value] ?? null;
 }
 
 function keydown(e: KeyboardEvent) {
@@ -181,6 +185,7 @@ function keydown(e: KeyboardEvent) {
   } else if (e.key === 'Escape') {
     e.preventDefault();
     menuVisible.value = false;
+    elTrigger.value!.focus();
   }
 }
 
@@ -214,8 +219,12 @@ async function loadTabItems() {
 }
 </script>
 <template>
-  <div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items" ref="elDropdown">
-    <div tabindex="0" class="ui compact button branch-dropdown-button" @click="menuVisible = !menuVisible">
+  <div class="branch-selector-dropdown" ref="elDropdown">
+    <button
+      type="button" class="ui compact button branch-dropdown-button" ref="elTrigger"
+      aria-haspopup="menu" :aria-expanded="menuVisible" :aria-controls="popupId"
+      @click="menuVisible = !menuVisible" @keydown.down.prevent="menuVisible = true" @keydown.up.prevent="menuVisible = true"
+    >
       <span class="flex-text-block gt-ellipsis">
         <template v-if="dropdownFixedText">{{ dropdownFixedText }}</template>
         <template v-else>
@@ -225,14 +234,14 @@ async function loadTabItems() {
           <strong class="tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
         </template>
       </span>
-      <svg-icon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
-    </div>
-    <div class="menu transition" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
+      <svg-icon name="octicon-triangle-down" :size="14"/>
+    </button>
+    <div class="dropdown-popup" :id="popupId" role="menu" v-show="menuVisible" v-cloak>
       <div class="ui icon search input">
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
-        <input name="search" ref="elSearchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
+        <input type="text" class="dropdown-filter" ref="elSearchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder" :aria-label="searchFieldPlaceholder">
       </div>
-      <div v-if="showTabBranches" class="branch-tag-tab">
+      <div v-if="showTabBranches" class="branch-tag-tab flex-text-block tw-gap-0">
         <button type="button" class="btn branch-tag-item" :class="{active: selectedTab === 'branches'}" @click="handleTabSwitch('branches')">
           <svg-icon name="octicon-git-branch" :size="16" class="tw-mr-1"/>{{ textBranches }}
         </button>
@@ -240,13 +249,13 @@ async function loadTabItems() {
           <svg-icon name="octicon-tag" :size="16" class="tw-mr-1"/>{{ textTags }}
         </button>
       </div>
-      <div class="branch-tag-divider"/>
-      <div class="scrolling menu" ref="elScrollContainer">
+      <div class="dropdown-divider branch-tag-divider"/>
+      <div class="branch-tag-list" ref="elScrollContainer">
         <svg-icon name="octicon-rss" symbol-id="svg-symbol-octicon-rss"/>
         <div class="loading-indicator is-loading" v-if="tabLoadingStates[selectedTab] === 'loading'"/>
-        <div v-for="(item, index) in filteredItems" :key="item.refShortName" class="item" :class="{selected: item.selected, active: activeItemIndex === index}" @click="selectItem(item)">
-          {{ item.refShortName }}
-          <div class="ui label" v-if="item.refType === 'branch' && item.refShortName === currentRepoDefaultBranch">
+        <div v-for="(item, index) in filteredItems" :key="item.refShortName" class="dropdown-item" role="menuitem" :class="{active: item.selected}" :data-highlighted="activeItemIndex === index ? '' : undefined" @click="selectItem(item)">
+          <span class="gt-ellipsis">{{ item.refShortName }}&nbsp;</span>
+          <div class="ui label tw-shrink-0" v-if="item.refType === 'branch' && item.refShortName === currentRepoDefaultBranch">
             {{ textDefaultBranchLabel }}
           </div>
           <a v-if="enableFeed && selectedTab === 'branches'" role="button" class="rss-icon" target="_blank" @click.stop :href="item.rssFeedLink">
@@ -254,13 +263,13 @@ async function loadTabItems() {
             <svg width="14" height="14" class="svg octicon-rss"><use href="#svg-symbol-octicon-rss"/></svg>
           </a>
         </div>
-        <div class="item" v-if="showCreateNewRef" :class="{active: activeItemIndex === filteredItems.length}" @click="createNewRef()">
-          <div v-if="selectedTab === 'tags'">
-            <svg-icon name="octicon-tag" class="tw-mr-1"/>
+        <div class="dropdown-item tw-flex-col tw-items-start tw-gap-1" role="menuitem" v-if="showCreateNewRef" :data-highlighted="activeItemIndex === filteredItems.length ? '' : undefined" @click="createNewRef()">
+          <div v-if="selectedTab === 'tags'" class="flex-text-block">
+            <svg-icon name="octicon-tag"/>
             <span v-text="trString(textCreateTag, searchTerm)"/>
           </div>
-          <div v-else>
-            <svg-icon name="octicon-git-branch" class="tw-mr-1"/>
+          <div v-else class="flex-text-block">
+            <svg-icon name="octicon-git-branch"/>
             <span v-text="trString(textCreateBranch, searchTerm)"/>
           </div>
           <div class="tw-text-xs">
@@ -273,13 +282,13 @@ async function loadTabItems() {
           </form>
         </div>
       </div>
-      <div class="message" v-if="showNoResults">
+      <div class="dropdown-message" v-if="showNoResults">
         {{ textNoResults }}
       </div>
       <template v-if="showViewAllRefsEntry">
-        <div class="divider tw-m-0"/>
-        <a v-if="selectedTab === 'branches'" class="item" :href="currentRepoLink + '/branches'">{{ textViewAllBranches }}</a>
-        <a v-if="selectedTab === 'tags'" class="item" :href="currentRepoLink + '/tags'">{{ textViewAllTags }}</a>
+        <div class="dropdown-divider tw-m-0"/>
+        <a v-if="selectedTab === 'branches'" class="dropdown-item" role="menuitem" :href="currentRepoLink + '/branches'">{{ textViewAllBranches }}</a>
+        <a v-if="selectedTab === 'tags'" class="dropdown-item" role="menuitem" :href="currentRepoLink + '/tags'">{{ textViewAllTags }}</a>
       </template>
     </div>
   </div>
