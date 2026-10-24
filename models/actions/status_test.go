@@ -11,41 +11,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStatusAsResult(t *testing.T) {
+func TestStatusResultConversions(t *testing.T) {
 	cases := []struct {
-		status Status
-		want   runnerv1.Result
+		status     Status
+		result     runnerv1.Result
+		fromResult bool
 	}{
-		{StatusUnknown, runnerv1.Result_RESULT_UNSPECIFIED},
-		{StatusWaiting, runnerv1.Result_RESULT_UNSPECIFIED},
-		{StatusRunning, runnerv1.Result_RESULT_UNSPECIFIED},
-		{StatusBlocked, runnerv1.Result_RESULT_UNSPECIFIED},
-		{StatusSuccess, runnerv1.Result_RESULT_SUCCESS},
-		{StatusFailure, runnerv1.Result_RESULT_FAILURE},
-		{StatusCancelled, runnerv1.Result_RESULT_CANCELLED},
-		{StatusCancelling, runnerv1.Result_RESULT_CANCELLED},
-		{StatusSkipped, runnerv1.Result_RESULT_SKIPPED},
+		{StatusUnknown, runnerv1.Result_RESULT_UNSPECIFIED, true},
+		{StatusWaiting, runnerv1.Result_RESULT_UNSPECIFIED, false},
+		{StatusRunning, runnerv1.Result_RESULT_UNSPECIFIED, false},
+		{StatusBlocked, runnerv1.Result_RESULT_UNSPECIFIED, false},
+		{StatusSuccess, runnerv1.Result_RESULT_SUCCESS, true},
+		{StatusFailure, runnerv1.Result_RESULT_FAILURE, true},
+		{StatusCancelled, runnerv1.Result_RESULT_CANCELLED, true},
+		{StatusCancelling, runnerv1.Result_RESULT_CANCELLED, false},
+		{StatusSkipped, runnerv1.Result_RESULT_SKIPPED, true},
 	}
 
 	for _, tt := range cases {
-		assert.Equal(t, tt.want, tt.status.AsResult(), "status=%s", tt.status)
-	}
-}
-
-func TestStatusFromResult(t *testing.T) {
-	cases := []struct {
-		result runnerv1.Result
-		want   Status
-	}{
-		{runnerv1.Result_RESULT_UNSPECIFIED, StatusUnknown},
-		{runnerv1.Result_RESULT_SUCCESS, StatusSuccess},
-		{runnerv1.Result_RESULT_FAILURE, StatusFailure},
-		{runnerv1.Result_RESULT_CANCELLED, StatusCancelled},
-		{runnerv1.Result_RESULT_SKIPPED, StatusSkipped},
-	}
-
-	for _, tt := range cases {
-		assert.Equal(t, tt.want, StatusFromResult(tt.result), "result=%s", tt.result)
+		assert.Equal(t, tt.result, tt.status.AsResult(), "status=%s", tt.status)
+		if tt.fromResult {
+			assert.Equal(t, tt.status, StatusFromResult(tt.result), "result=%s", tt.result)
+		}
 	}
 }
 

@@ -77,40 +77,18 @@ func TestRenderRepoComment(t *testing.T) {
 	}
 	t.Run("RenderCommitBody", func(t *testing.T) {
 		defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
-		type args struct {
-			msg string
-		}
 		tests := []struct {
 			name string
-			args args
-			want template.HTML
+			msg  string
 		}{
-			{
-				name: "multiple lines",
-				args: args{
-					msg: "first line\nsecond line",
-				},
-				want: "second line",
-			},
-			{
-				name: "multiple lines with leading newlines",
-				args: args{
-					msg: "\n\n\n\nfirst line\nsecond line",
-				},
-				want: "second line",
-			},
-			{
-				name: "multiple lines with trailing newlines",
-				args: args{
-					msg: "first line\nsecond line\n\n\n",
-				},
-				want: "second line",
-			},
+			{"multiple lines", "first line\nsecond line"},
+			{"multiple lines with leading newlines", "\n\n\n\nfirst line\nsecond line"},
+			{"multiple lines with trailing newlines", "first line\nsecond line\n\n\n"},
 		}
 		ut := newTestRenderUtils(t)
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				assert.Equalf(t, tt.want, ut.RenderCommitBody(tt.args.msg, mockRepo), "RenderCommitBody(%v, %v)", tt.args.msg, nil)
+				assert.Equalf(t, template.HTML("second line"), ut.RenderCommitBody(tt.msg, mockRepo), "RenderCommitBody(%v, %v)", tt.msg, nil)
 			})
 		}
 
