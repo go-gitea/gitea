@@ -62,6 +62,7 @@ const (
 	ActionPullReviewDismissed                             // 25
 	ActionPullRequestReadyForReview                       // 26
 	ActionAutoMergePullRequest                            // 27
+	ActionMirrorSyncBackup                                // 28
 )
 
 func (at ActionType) String() string {
@@ -106,6 +107,8 @@ func (at ActionType) String() string {
 		return "mirror_sync_create"
 	case ActionMirrorSyncDelete:
 		return "mirror_sync_delete"
+	case ActionMirrorSyncBackup:
+		return "mirror_sync_backup"
 	case ActionApprovePullRequest:
 		return "approve_pull_request"
 	case ActionRejectPullRequest:

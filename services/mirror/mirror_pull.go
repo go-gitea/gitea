@@ -121,6 +121,12 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
+	staged, err := needsStagedMirrorSync(ctx, m)
+	if err != nil {
+		log.Error("SyncMirrors [repo: %-v]: failed to check backup refs: %v", m.Repo, err)
+		return nil, false
+	}
+
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {
 		cmd := gitcmd.NewCommand("fetch", "--tags")
@@ -130,9 +136,21 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
 	}
 
-	var err error
-	fetchStdout, fetchStderr, err := cmdFetch().WithRepo(m.Repo).RunStdString(ctx)
-	if err != nil {
+	var fetchStdout, fetchStderr string
+	if staged {
+		err = syncStagedMirrorRefs(ctx, m, timeout)
+		if err != nil {
+			errMessage := util.SanitizeCredentialURLs(err.Error())
+			log.Error("SyncMirrors [repo: %-v]: failed to apply staged refs: %s", m.Repo, errMessage)
+			if noticeErr := system_model.CreateRepositoryNotice(fmt.Sprintf("Failed to update mirror repository (%s): %s", m.Repo.FullName(), errMessage)); noticeErr != nil {
+				log.Error("CreateRepositoryNotice: %v", noticeErr)
+			}
+			return nil, false
+		}
+	} else {
+		fetchStdout, fetchStderr, err = cmdFetch().WithRepo(m.Repo).RunStdString(ctx)
+	}
+	if !staged && err != nil {
 		// sanitize the output, since it may contain the remote address, which may contain a password
 		stderrMessage := util.SanitizeCredentialURLs(fetchStderr)
 		stdoutMessage := util.SanitizeCredentialURLs(fetchStdout)
@@ -186,12 +204,14 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing branches...", m.Repo)
 	_, results, err := repo_module.SyncRepoBranchesWithRepo(ctx, m.Repo, gitRepo, 0)
+	branchSyncErr := err
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize branches: %v", m.Repo, err)
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
 	tagResults, err := repo_module.SyncReleasesWithTags(ctx, m.Repo, gitRepo)
+	tagSyncErr := err
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize tags to releases: %v", m.Repo, err)
 	}
@@ -201,6 +221,9 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
 	if err := repo_module.UpdateRepoSize(ctx, m.Repo); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to update size for mirror repository: %v", m.Repo.FullName(), err)
+	}
+	if staged && (branchSyncErr != nil || tagSyncErr != nil) {
+		return nil, false
 	}
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
