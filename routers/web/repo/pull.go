@@ -47,6 +47,7 @@ import (
 	"gitea.dev/services/forms"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
+	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
@@ -1359,7 +1360,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
-		if template, err := issue_template.UnmarshalFromRepo(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+		templateRepo, templateGitRepo := issue_service.TemplateRepoForPaths(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, filename, pullRequestTemplateCandidates)
+		if template, err := issue_template.UnmarshalFromRepo(ctx, templateGitRepo, templateRepo.DefaultBranch, filename); err == nil {
 			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
 		}
 	}

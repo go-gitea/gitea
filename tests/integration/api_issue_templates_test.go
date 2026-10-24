@@ -13,9 +13,11 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIIssueTemplateList(t *testing.T) {
@@ -29,8 +31,28 @@ func TestAPIIssueTemplateList(t *testing.T) {
 		issueTemplates := DecodeJSON(t, resp, []*api.IssueTemplate{})
 		assert.Empty(t, issueTemplates)
 
+		ownerRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{Name: ".gitea", IsPrivate: true})
+		require.NoError(t, err)
+		testCreateFileInBranch(t, user, ownerRepo, createFileInBranchOptions{}, map[string]string{".gitea/ISSUE_TEMPLATE/owner.md": "----\nname: owner\nabout: bar\n----\n"})
+		publicOwnerRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{Name: ".github"})
+		require.NoError(t, err)
+		testCreateFileInBranch(t, user, publicOwnerRepo, createFileInBranchOptions{}, map[string]string{".github/ISSUE_TEMPLATE/public.md": "----\nname: public\nabout: bar\n----\n"})
+		token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadRepository)
+
+		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/issue_templates")
+		resp = MakeRequest(t, req, http.StatusOK)
+		issueTemplates = DecodeJSON(t, resp, []*api.IssueTemplate{})
+		assert.Len(t, issueTemplates, 1)
+		assert.Equal(t, "public", issueTemplates[0].Name)
+
+		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/issue_templates").AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		issueTemplates = DecodeJSON(t, resp, []*api.IssueTemplate{})
+		assert.Len(t, issueTemplates, 1)
+		assert.Equal(t, "owner", issueTemplates[0].Name)
+
 		// one correct issue template and some incorrect issue templates
-		err := createOrReplaceFileInBranch(user, repo, ".gitea/ISSUE_TEMPLATE/tmpl-ok.md", repo.DefaultBranch, `----
+		err = createOrReplaceFileInBranch(user, repo, ".gitea/ISSUE_TEMPLATE/tmpl-ok.md", repo.DefaultBranch, `----
 name: foo
 about: bar
 ----
@@ -43,7 +65,7 @@ about: bar
 		err = createOrReplaceFileInBranch(user, repo, ".gitea/ISSUE_TEMPLATE/tmpl-err2.yml", repo.DefaultBranch, `other: `)
 		assert.NoError(t, err)
 
-		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/issue_templates")
+		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/issue_templates").AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
 		issueTemplates = DecodeJSON(t, resp, []*api.IssueTemplate{})
 		assert.Len(t, issueTemplates, 1)
