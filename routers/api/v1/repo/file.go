@@ -417,6 +417,7 @@ func ChangeFiles(ctx *context.APIContext) {
 			FromTreePath:  file.FromPath,
 			ContentReader: contentReader,
 			SHA:           file.SHA,
+			IsLFSPointer:  file.IsLFSPointer,
 		}
 		opts.Files = append(opts.Files, changeRepoFile)
 	}
@@ -488,6 +489,7 @@ func CreateFile(ctx *context.APIContext) {
 		Operation:     "create",
 		TreePath:      ctx.PathParam("*"),
 		ContentReader: contentReader,
+		IsLFSPointer:  apiOpts.IsLFSPointer,
 	})
 	if opts.Message == "" {
 		opts.Message = changeFilesCommitMessage(ctx, opts.Files)
@@ -561,6 +563,7 @@ func UpdateFile(ctx *context.APIContext) {
 		SHA:           apiOpts.SHA,
 		FromTreePath:  apiOpts.FromPath,
 		TreePath:      ctx.PathParam("*"),
+		IsLFSPointer:  apiOpts.IsLFSPointer,
 	})
 	if opts.Message == "" {
 		opts.Message = changeFilesCommitMessage(ctx, opts.Files)
@@ -585,7 +588,8 @@ func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
 	}
 	if git_model.IsErrBranchAlreadyExists(err) || files_service.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
 		files_service.IsErrFilePathInvalid(err) || files_service.IsErrRepoFileAlreadyExists(err) ||
-		files_service.IsErrCommitIDDoesNotMatch(err) || files_service.IsErrSHAOrCommitIDNotProvided(err) {
+		files_service.IsErrCommitIDDoesNotMatch(err) || files_service.IsErrSHAOrCommitIDNotProvided(err) ||
+		files_service.IsErrLFSPointerObjectMissing(err) {
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
