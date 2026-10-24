@@ -47,7 +47,7 @@ type CreateFileOptions struct {
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type DeleteFileOptions struct {
 	FileOptions
-	// the blob ID (SHA) for the file to delete
+	// the blob ID (SHA) for the file to delete, as returned in `sha` by "Get contents". For Git LFS files, this is the pointer blob's SHA, not `lfs_oid`.
 	// required: true
 	SHA string `json:"sha" binding:"Required"`
 }
@@ -56,7 +56,7 @@ type DeleteFileOptions struct {
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type UpdateFileOptions struct {
 	FileOptions
-	// the blob ID (SHA) for the file that already exists to update, or leave it empty to create a new file
+	// the blob ID (SHA) for the file that already exists to update, as returned in `sha` by "Get contents", or leave it empty to create a new file. For Git LFS files, this is the pointer blob's SHA, not `lfs_oid`.
 	SHA string `json:"sha"`
 	// content must be base64 encoded
 	// required: true
@@ -79,7 +79,7 @@ type ChangeFileOperation struct {
 	Path string `json:"path" binding:"Required;MaxSize(500)"`
 	// new or updated file content, it must be base64 encoded
 	ContentBase64 string `json:"content"`
-	// the blob ID (SHA) for the file that already exists, required for changing existing files
+	// the blob ID (SHA) for the file that already exists, as returned in `sha` by "Get contents", required for changing existing files. For Git LFS files, this is the pointer blob's SHA, not `lfs_oid`.
 	SHA string `json:"sha"`
 	// old path of the file to move
 	FromPath string `json:"from_path"`
@@ -125,7 +125,7 @@ type ContentsResponse struct {
 	Name string `json:"name"`
 	// Path is the full path to the file or directory
 	Path string `json:"path"`
-	// SHA is the Git blob or tree SHA
+	// SHA is the Git blob or tree SHA that the file APIs expect in `sha`. For Git LFS files, this is the pointer blob's SHA, not the LFS object's.
 	SHA string `json:"sha"`
 
 	// LastCommitSHA is the SHA of the last commit that affected this file
