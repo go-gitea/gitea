@@ -17,7 +17,7 @@ runs:
   steps:
     - name: Add hosts to /etc/hosts
       shell: bash
-      run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
+      run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap s3" | sudo tee -a /etc/hosts'
     - shell: bash
       run: make deps-backend
     - shell: bash

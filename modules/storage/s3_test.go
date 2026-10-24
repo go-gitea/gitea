@@ -15,10 +15,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func prepareMinioStorageConfig(t *testing.T, basePath string) *setting.Storage {
+func prepareS3StorageConfig(t *testing.T, basePath string) *setting.Storage {
 	return &setting.Storage{
-		MinioConfig: setting.MinioStorageConfig{
-			Endpoint:        test.ExternalServiceHTTP(t, "TEST_MINIO_ENDPOINT", "minio:9000"),
+		S3Config: setting.S3StorageConfig{
+			Endpoint:        test.ExternalServiceHTTP(t, "TEST_S3_ENDPOINT", "s3:9000"),
 			AccessKeyID:     "123456",
 			SecretAccessKey: "12345678",
 			Bucket:          "gitea",
@@ -28,22 +28,22 @@ func prepareMinioStorageConfig(t *testing.T, basePath string) *setting.Storage {
 	}
 }
 
-func TestMinioStorage(t *testing.T) {
+func TestS3Storage(t *testing.T) {
 	for _, basePath := range []string{"", "test-base-path"} {
-		objStore, err := NewStorage(setting.MinioStorageType, prepareMinioStorageConfig(t, basePath))
+		objStore, err := NewStorage(setting.S3StorageType, prepareS3StorageConfig(t, basePath))
 		require.NoError(t, err)
 		testStorageGeneral(t, objStore)
 	}
 }
 
 func TestS3StorageBadRequest(t *testing.T) {
-	cfg := prepareMinioStorageConfig(t, "")
-	cfg.MinioConfig.SecretAccessKey = "invalid-secret"
-	_, err := NewStorage(setting.MinioStorageType, cfg)
-	assert.ErrorContains(t, err, "ObjectStorage.BucketExists: endpoint="+cfg.MinioConfig.Endpoint)
+	cfg := prepareS3StorageConfig(t, "")
+	cfg.S3Config.SecretAccessKey = "invalid-secret"
+	_, err := NewStorage(setting.S3StorageType, cfg)
+	assert.ErrorContains(t, err, "ObjectStorage.BucketExists: endpoint="+cfg.S3Config.Endpoint)
 }
 
-func TestMinioCredentials(t *testing.T) {
+func TestS3Credentials(t *testing.T) {
 	const (
 		ExpectedAccessKey       = "ExampleAccessKeyID"
 		ExpectedSecretAccessKey = "ExampleSecretAccessKeyID"
@@ -53,12 +53,12 @@ func TestMinioCredentials(t *testing.T) {
 	)
 
 	t.Run("Static Credentials", func(t *testing.T) {
-		cfg := setting.MinioStorageConfig{
+		cfg := setting.S3StorageConfig{
 			AccessKeyID:     ExpectedAccessKey,
 			SecretAccessKey: ExpectedSecretAccessKey,
 			IamEndpoint:     FakeEndpoint,
 		}
-		creds := buildMinioCredentials(cfg)
+		creds := buildS3Credentials(cfg)
 		v, err := creds.Get()
 
 		assert.NoError(t, err)
@@ -67,7 +67,7 @@ func TestMinioCredentials(t *testing.T) {
 	})
 
 	t.Run("Chain", func(t *testing.T) {
-		cfg := setting.MinioStorageConfig{
+		cfg := setting.S3StorageConfig{
 			IamEndpoint: FakeEndpoint,
 		}
 
@@ -75,7 +75,7 @@ func TestMinioCredentials(t *testing.T) {
 			t.Setenv("MINIO_ACCESS_KEY", ExpectedAccessKey+"Minio")
 			t.Setenv("MINIO_SECRET_KEY", ExpectedSecretAccessKey+"Minio")
 
-			creds := buildMinioCredentials(cfg)
+			creds := buildS3Credentials(cfg)
 			v, err := creds.Get()
 
 			assert.NoError(t, err)
@@ -87,7 +87,7 @@ func TestMinioCredentials(t *testing.T) {
 			t.Setenv("AWS_ACCESS_KEY", ExpectedAccessKey+"AWS")
 			t.Setenv("AWS_SECRET_KEY", ExpectedSecretAccessKey+"AWS")
 
-			creds := buildMinioCredentials(cfg)
+			creds := buildS3Credentials(cfg)
 			v, err := creds.Get()
 
 			assert.NoError(t, err)
@@ -97,10 +97,10 @@ func TestMinioCredentials(t *testing.T) {
 
 		t.Run("FileMinio", func(t *testing.T) {
 			// prevent loading any actual credentials files from the user
-			t.Setenv("MINIO_SHARED_CREDENTIALS_FILE", "testdata/minio.json")
+			t.Setenv("MINIO_SHARED_CREDENTIALS_FILE", "testdata/s3.json")
 			t.Setenv("AWS_SHARED_CREDENTIALS_FILE", "testdata/fake")
 
-			creds := buildMinioCredentials(cfg)
+			creds := buildS3Credentials(cfg)
 			v, err := creds.Get()
 
 			assert.NoError(t, err)
@@ -113,7 +113,7 @@ func TestMinioCredentials(t *testing.T) {
 			t.Setenv("MINIO_SHARED_CREDENTIALS_FILE", "testdata/fake.json")
 			t.Setenv("AWS_SHARED_CREDENTIALS_FILE", "testdata/aws_credentials")
 
-			creds := buildMinioCredentials(cfg)
+			creds := buildS3Credentials(cfg)
 			v, err := creds.Get()
 
 			assert.NoError(t, err)
@@ -139,7 +139,7 @@ func TestMinioCredentials(t *testing.T) {
 			defer server.Close()
 
 			// Use the provided EC2 Instance Metadata server
-			creds := buildMinioCredentials(setting.MinioStorageConfig{
+			creds := buildS3Credentials(setting.S3StorageConfig{
 				IamEndpoint: server.URL,
 			})
 			v, err := creds.Get()
