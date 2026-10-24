@@ -280,4 +280,24 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 	password, ok := remoteURL.User.Password()
 	require.True(t, ok)
 	assert.Equal(t, "updated-password", password)
+
+	// moving the mirror to another host must not carry the stored password along
+	ctx, _ = contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
+	contexttest.LoadUser(t, ctx, user.ID)
+	contexttest.LoadRepo(t, ctx, mirrorRepo.ID)
+	web.SetForm(ctx, &forms.RepoSettingForm{
+		Interval:       "8h",
+		MirrorAddress:  "https://other.example.com/user2/repo1.git",
+		MirrorUsername: "existing-user",
+	})
+
+	handleSettingsPostMirror(ctx)
+
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	remoteURL, err = git.ParseRemoteAddressURL(t.Context(), updatedRepo, updatedMirror.GetRemoteName())
+	require.NoError(t, err)
+	assert.Equal(t, "other.example.com", remoteURL.Host)
+	assert.Equal(t, "existing-user", remoteURL.User.Username())
+	password, _ = remoteURL.User.Password()
+	assert.Empty(t, password)
 }
