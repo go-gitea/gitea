@@ -8,7 +8,6 @@ import (
 
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -24,7 +23,6 @@ func SearchCandidates(ctx *context.Context) {
 		Actor:       ctx.Doer,
 		Keyword:     ctx.FormTrim("q"),
 		Types:       searchUserTypes,
-		IsActive:    optional.Some(true),
 		ListOptions: db.ListOptions{PageSize: setting.UI.MembersPagingNum},
 	})
 	if err != nil {

@@ -24,6 +24,7 @@ func TestRepository_AddCollaborator(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	user9 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
 	testSuccess := func(repo *repo_model.Repository, user *user_model.User) {
 		assert.NoError(t, repo.LoadOwner(t.Context()))
 		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, user, perm.AccessModeWrite))
@@ -32,6 +33,7 @@ func TestRepository_AddCollaborator(t *testing.T) {
 	testSuccess(repo1, user4)
 	testSuccess(repo1, user4)
 	testSuccess(repo3, user4)
+	testSuccess(repo1, user9)
 
 	assert.Error(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeOwner))
 	assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeAdmin))
