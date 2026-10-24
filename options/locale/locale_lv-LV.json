@@ -2930,6 +2930,8 @@
   "projects.type-1.display_name": "Individuālais projekts",
   "projects.type-2.display_name": "Repozitorija projekts",
   "projects.type-3.display_name": "Organizācijas projekts",
+  "projects.workflows.actions": "Darbības",
+  "projects.workflows.none": "Nav",
   "git.filemode.directory": "Direktorija",
   "git.filemode.submodule": "Apakšmodulis",
   "actions.general.token_permissions.mode.restricted": "Ierobežots"

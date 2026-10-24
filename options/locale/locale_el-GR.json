@@ -2889,6 +2889,8 @@
   "projects.type-1.display_name": "Ατομικό Έργο",
   "projects.type-2.display_name": "Έργο Αποθετηρίου",
   "projects.type-3.display_name": "Έργο Οργανισμού",
+  "projects.workflows.actions": "Δράσεις",
+  "projects.workflows.none": "Κανένα",
   "git.filemode.directory": "Φάκελος",
   "git.filemode.submodule": "Υπομονάδα",
   "actions.general.token_permissions.mode.restricted": "Περιορισμένος"
