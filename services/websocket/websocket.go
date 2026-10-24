@@ -29,7 +29,6 @@ func Init() error {
 	return nil
 }
 
-// UserData is sent on connect, so clients start in sync.
 func UserData(ctx context.Context, user *user_model.User) (data [][]byte) {
 	for _, event := range [][]byte{notificationCountEvent(ctx, user.ID), stopwatchesEvent(ctx, user)} {
 		if event != nil {
