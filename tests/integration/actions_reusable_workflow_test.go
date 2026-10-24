@@ -168,6 +168,22 @@ jobs:
 				r2Job1AttemptJobID                   int64
 			)
 
+			completeCallerJob3 := func(t *testing.T, expectedOutput string) {
+				callerJob3Task := defaultRunner.fetchTask(t) // for caller_job3
+				_, callerJob3, _ := getTaskAndJobAndRunByTaskID(t, callerJob3Task.Id)
+				assert.Equal(t, "caller_job3", callerJob3.JobID)
+				if assert.Len(t, callerJob3Task.Needs, 1) {
+					assert.Contains(t, callerJob3Task.Needs, "caller_job2")
+					assert.Equal(t, runnerv1.Result_RESULT_SUCCESS, callerJob3Task.Needs["caller_job2"].Result)
+					if assert.Len(t, callerJob3Task.Needs["caller_job2"].Outputs, 1) {
+						assert.Equal(t, expectedOutput, callerJob3Task.Needs["caller_job2"].Outputs["r1_out"])
+					}
+				}
+				defaultRunner.execTask(t, callerJob3Task, &mockTaskOutcome{
+					result: runnerv1.Result_RESULT_SUCCESS,
+				})
+			}
+
 			t.Run("Check initialized jobs", func(t *testing.T) {
 				// run
 				assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
@@ -279,19 +295,7 @@ jobs:
 				callerJob2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: callerJob2ID})
 				assert.Equal(t, actions_model.StatusSuccess, callerJob2.Status)
 
-				callerJob3Task := defaultRunner.fetchTask(t) // for caller_job3
-				_, callerJob3, _ := getTaskAndJobAndRunByTaskID(t, callerJob3Task.Id)
-				assert.Equal(t, "caller_job3", callerJob3.JobID)
-				if assert.Len(t, callerJob3Task.Needs, 1) {
-					assert.Contains(t, callerJob3Task.Needs, "caller_job2")
-					assert.Equal(t, runnerv1.Result_RESULT_SUCCESS, callerJob3Task.Needs["caller_job2"].Result)
-					if assert.Len(t, callerJob3Task.Needs["caller_job2"].Outputs, 1) {
-						assert.Equal(t, "r1j2_out_data", callerJob3Task.Needs["caller_job2"].Outputs["r1_out"])
-					}
-				}
-				defaultRunner.execTask(t, callerJob3Task, &mockTaskOutcome{
-					result: runnerv1.Result_RESULT_SUCCESS,
-				})
+				completeCallerJob3(t, "r1j2_out_data")
 				callerRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
 				assert.Equal(t, actions_model.StatusSuccess, callerRun.Status)
 			})
@@ -349,19 +353,7 @@ jobs:
 				callerJob2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: callerJob2.ID})
 				assert.Equal(t, actions_model.StatusSuccess, callerJob2.Status)
 
-				callerJob3Task := defaultRunner.fetchTask(t)
-				_, callerJob3, _ = getTaskAndJobAndRunByTaskID(t, callerJob3Task.Id)
-				assert.Equal(t, "caller_job3", callerJob3.JobID)
-				if assert.Len(t, callerJob3Task.Needs, 1) {
-					assert.Contains(t, callerJob3Task.Needs, "caller_job2")
-					assert.Equal(t, runnerv1.Result_RESULT_SUCCESS, callerJob3Task.Needs["caller_job2"].Result)
-					if assert.Len(t, callerJob3Task.Needs["caller_job2"].Outputs, 1) {
-						assert.Equal(t, "r1j2_out_data_updated", callerJob3Task.Needs["caller_job2"].Outputs["r1_out"])
-					}
-				}
-				defaultRunner.execTask(t, callerJob3Task, &mockTaskOutcome{
-					result: runnerv1.Result_RESULT_SUCCESS,
-				})
+				completeCallerJob3(t, "r1j2_out_data_updated")
 				attempt2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{RunID: runID, Attempt: 2})
 				assert.Equal(t, actions_model.StatusSuccess, attempt2.Status)
 				run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})

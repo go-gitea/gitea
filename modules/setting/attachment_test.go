@@ -10,7 +10,10 @@ import (
 )
 
 func Test_getStorageCustomType(t *testing.T) {
-	iniStr := `
+	for _, tc := range []struct {
+		iniStr, endpoint, bucket string
+	}{
+		{`
 [attachment]
 STORAGE_TYPE = my_minio
 MINIO_BUCKET = gitea-attachment
@@ -18,20 +21,8 @@ MINIO_BUCKET = gitea-attachment
 [storage.my_minio]
 STORAGE_TYPE = minio
 MINIO_ENDPOINT = my_minio:9000
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadAttachmentFrom(cfg))
-
-	assert.EqualValues(t, "minio", Attachment.Storage.Type)
-	assert.Equal(t, "my_minio:9000", Attachment.Storage.MinioConfig.Endpoint)
-	assert.Equal(t, "gitea-attachment", Attachment.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "attachments/", Attachment.Storage.MinioConfig.BasePath)
-}
-
-func Test_getStorageTypeSectionOverridesStorageSection(t *testing.T) {
-	iniStr := `
+`, "my_minio:9000", "gitea-attachment"},
+		{`
 [attachment]
 STORAGE_TYPE = minio
 
@@ -40,19 +31,8 @@ MINIO_BUCKET = gitea-minio
 
 [storage]
 MINIO_BUCKET = gitea
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadAttachmentFrom(cfg))
-
-	assert.EqualValues(t, "minio", Attachment.Storage.Type)
-	assert.Equal(t, "gitea-minio", Attachment.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "attachments/", Attachment.Storage.MinioConfig.BasePath)
-}
-
-func Test_getStorageSpecificOverridesStorage(t *testing.T) {
-	iniStr := `
+`, "", "gitea-minio"},
+		{`
 [attachment]
 STORAGE_TYPE = minio
 MINIO_BUCKET = gitea-attachment
@@ -62,15 +42,19 @@ MINIO_BUCKET = gitea
 
 [storage]
 STORAGE_TYPE = local
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
+`, "", "gitea-attachment"},
+	} {
+		cfg, err := NewConfigProviderFromData(tc.iniStr)
+		assert.NoError(t, err)
+		assert.NoError(t, loadAttachmentFrom(cfg))
 
-	assert.NoError(t, loadAttachmentFrom(cfg))
-
-	assert.EqualValues(t, "minio", Attachment.Storage.Type)
-	assert.Equal(t, "gitea-attachment", Attachment.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "attachments/", Attachment.Storage.MinioConfig.BasePath)
+		assert.EqualValues(t, "minio", Attachment.Storage.Type)
+		if tc.endpoint != "" {
+			assert.Equal(t, tc.endpoint, Attachment.Storage.MinioConfig.Endpoint)
+		}
+		assert.Equal(t, tc.bucket, Attachment.Storage.MinioConfig.Bucket)
+		assert.Equal(t, "attachments/", Attachment.Storage.MinioConfig.BasePath)
+	}
 }
 
 func Test_getStorageGetDefaults(t *testing.T) {

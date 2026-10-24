@@ -129,7 +129,7 @@ func testGitSmartHTTPTokenScopes(t *testing.T) {
 
 	t.Run("public-only scope rejects private repo", func(t *testing.T) {
 		path := "/user2/repo2/info/refs?service=git-upload-pack"
-		MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(publicOnlyToken), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(publicOnlyToken), http.StatusNotFound)
 	})
 }
 

@@ -47,25 +47,21 @@ func TestPassword(t *testing.T) {
 	assert.ErrorContains(t, err, "password cannot be empty")
 	assert.EqualValues(t, -1, count)
 
-	count, err = client.CheckPassword(ctx, "pwned", false)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, count)
-
-	count, err = client.CheckPassword(ctx, "notpwned", false)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, count)
-
-	count, err = client.CheckPassword(ctx, "paddedpwned", true)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, count)
-
-	count, err = client.CheckPassword(ctx, "paddednotpwned", true)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, count)
-
-	count, err = client.CheckPassword(ctx, "paddednotpwnedzero", true)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, count)
+	for _, test := range []struct {
+		password string
+		padding  bool
+		count    int
+	}{
+		{"pwned", false, 1},
+		{"notpwned", false, 0},
+		{"paddedpwned", true, 1},
+		{"paddednotpwned", true, 0},
+		{"paddednotpwnedzero", true, 0},
+	} {
+		count, err = client.CheckPassword(ctx, test.password, test.padding)
+		assert.NoError(t, err)
+		assert.EqualValues(t, test.count, count)
+	}
 
 	count, err = client.CheckPassword(ctx, "ratelimited", false)
 	assert.Error(t, err)
