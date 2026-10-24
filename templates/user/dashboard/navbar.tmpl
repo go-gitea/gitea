@@ -16,7 +16,7 @@
 						{{ctx.Locale.Tr "home.switch_dashboard_context"}}
 					</div>
 					<div class="scrolling menu">
-						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{else if .PageIsMilestonesDashboard}}milestones{{end}}">
+						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{else if .PageIsMilestonesDashboard}}milestones{{end}}{{if $.PageIsNews}}?tab={{$.DashboardTab}}{{end}}">
 							{{ctx.AvatarUtils.Avatar .SignedUser}}
 							<span class="gt-ellipsis">{{.SignedUser.ShortName 40}}</span>
 							<span class="org-visibility">
@@ -25,7 +25,7 @@
 							</span>
 						</a>
 						{{range .Orgs}}
-							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
+							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}{{if $.PageIsNews}}?tab={{$.DashboardTab}}{{end}}">
 								{{ctx.AvatarUtils.Avatar .}}
 								<span class="gt-ellipsis">{{.ShortName 40}}</span>
 								<span class="org-visibility">
@@ -60,12 +60,12 @@
 							{{ctx.Locale.Tr "home.filter_by_team_repositories"}}
 						</div>
 						<div class="scrolling menu items">
-							<a class="{{if not $.Team}}active selected{{end}} item" title="{{ctx.Locale.Tr "all"}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
+							<a class="{{if not $.Team}}active selected{{end}} item" title="{{ctx.Locale.Tr "all"}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}{{if $.PageIsNews}}?tab={{$.DashboardTab}}{{end}}">
 								{{ctx.Locale.Tr "all"}}
 							</a>
 							{{range .Teams}}
 								{{if not .IncludesAllRepositories}}
-									<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected{{end}}{{end}} item" title="{{.Name}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}/{{.Name}}">
+									<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected{{end}}{{end}} item" title="{{.Name}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}/{{.Name}}{{if $.PageIsNews}}?tab={{$.DashboardTab}}{{end}}">
 										{{.Name}}
 									</a>
 								{{end}}
@@ -76,11 +76,17 @@
 			</div>
 		{{end}}
 
-	{{if .ContextUser.IsOrganization}}
+	{{if or .ContextUser.IsOrganization .PageIsNews}}
+		{{$dashboardLink := .ContextUser.DashboardLink}}
+		{{if .Team}}{{$dashboardLink = print $dashboardLink "/" (PathEscape .Team.Name)}}{{end}}
 		<div class="right menu tw-flex-wrap tw-justify-end">
-			<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
-				{{svg "octicon-rss"}}&nbsp;{{ctx.Locale.Tr "activities"}}
+			<a class="{{if and .PageIsNews .PageIsDashboardOverview}}active {{end}}item tw-ml-auto" href="{{$dashboardLink}}?tab=overview">
+				{{svg "octicon-home"}}&nbsp;{{ctx.Locale.Tr "home.dashboard_tab_overview"}}
 			</a>
+			<a class="{{if and .PageIsNews (not .PageIsDashboardOverview)}}active {{end}}item" href="{{$dashboardLink}}?tab=activity">
+				{{svg "octicon-rss"}}&nbsp;{{ctx.Locale.Tr "home.dashboard_tab_activity"}}
+			</a>
+			{{if .ContextUser.IsOrganization}}
 			{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
 			<a class="{{if .PageIsIssues}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/issues{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
 				{{svg "octicon-issue-opened"}}&nbsp;{{ctx.Locale.Tr "issues"}}
@@ -101,6 +107,7 @@
 					{{ctx.Locale.Tr "home.view_home" (.ContextUser.ShortName 20)}}
 				</a>
 			</div>
+			{{end}}
 		</div>
 	{{end}}
 	</div>
