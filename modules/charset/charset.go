@@ -52,7 +52,7 @@ func Lookup(label string) (e encoding.Encoding, name string) {
 
 type ConvertOpts struct {
 	KeepBOM           bool
-	ErrorReplacement  []byte
+	ErrorReplacement  []byte // leave it empty to remove the invalid bytes
 	ErrorReturnOrigin bool
 }
 
@@ -97,16 +97,14 @@ func ToUTF8DropErrors(content []byte) []byte {
 }
 
 func ToUTF8(content []byte, opts ConvertOpts) []byte {
-	if utf8.Valid(content) {
-		return maybeRemoveBOM(content, opts)
-	}
 	charsetLabel, _ := DetectEncoding(content)
-	if charsetLabel == "UTF-8" { // invalid content detected as UTF-8: a truncated last rune or the detection fallback
+	if charsetLabel == "UTF-8" {
+		// even if the detected charset is UTF-8, the content may contain invalid UTF-8 sequences, so need to convert it to valid UTF-8
 		content = maybeRemoveBOM(content, opts)
-		if opts.ErrorReplacement != nil && !opts.ErrorReturnOrigin {
-			return bytes.ToValidUTF8(content, opts.ErrorReplacement)
+		if opts.ErrorReturnOrigin {
+			return content
 		}
-		return content
+		return bytes.ToValidUTF8(content, opts.ErrorReplacement)
 	}
 
 	encoding, _ := Lookup(charsetLabel)
@@ -130,11 +128,7 @@ func ToUTF8(content []byte, opts ConvertOpts) []byte {
 		if opts.ErrorReturnOrigin {
 			return content
 		}
-		if opts.ErrorReplacement == nil {
-			decoded = append(decoded, content[idx+n])
-		} else {
-			decoded = append(decoded, opts.ErrorReplacement...)
-		}
+		decoded = append(decoded, opts.ErrorReplacement...)
 		idx += n + 1
 	}
 	return maybeRemoveBOM(decoded, opts)
