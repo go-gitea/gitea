@@ -1,6 +1,6 @@
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
-
+HASH := \#
 GO ?= go
 SHASUM ?= shasum -a 256
 
@@ -383,8 +383,6 @@ test-check:
 		exit 1; \
 	fi
 
-# static pattern rules because implicit ones never match goals containing "/"
-HASH := \#
 TEST_BACKEND_GOALS := $(filter test-backend$(HASH)%,$(MAKECMDGOALS))
 .PHONY: $(TEST_BACKEND_GOALS)
 $(TEST_BACKEND_GOALS): test-backend$(HASH)%:
