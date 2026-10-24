@@ -30,3 +30,20 @@ func TestGetUserFork(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, repo)
 }
+
+func TestGetUserForkByName(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// User13 has repo 11 ("repo11") forked from repo10
+	repo, err := repo_model.GetRepositoryByID(t.Context(), 10)
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+
+	fork, err := repo_model.GetUserForkByName(t.Context(), repo.ID, 13, "repo11")
+	assert.NoError(t, err)
+	assert.NotNil(t, fork)
+
+	fork, err = repo_model.GetUserForkByName(t.Context(), repo.ID, 13, "does-not-exist")
+	assert.NoError(t, err)
+	assert.Nil(t, fork)
+}
