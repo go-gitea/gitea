@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strings"
 
+	"gitea.dev/modules/charset"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
@@ -261,6 +262,7 @@ func ParsePackage(r ReadSeekAt, optVersion ...string) (*PackageInfo, error) {
 		cj.Readme = "README.md"
 	}
 	dataReadmeMd, _ := readPackageFile(pkgExt, r, cj.Readme, 10*1024)
+	dataReadmeMd = charset.ToUTF8DropErrors(dataReadmeMd)
 
 	// FIXME: legacy problem, the "Readme" field is abused, it should always be the path to the readme file
 	if len(dataReadmeMd) == 0 {
