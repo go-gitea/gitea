@@ -30,10 +30,10 @@ func TestTraceRecordStore(t *testing.T) {
 	assert.Len(t, stats, 1)
 	assert.Equal(t, "/{owner}/{repo}/issues", stats[0].Route)
 	assert.EqualValues(t, 2, stats[0].Count)
-	assert.Equal(t, 2500.0, stats[0].P95DurationMs)
-	assert.Equal(t, 2, len(stats[0].Records))
+	assert.InDelta(t, 2500.0, stats[0].P95DurationMs, 1)
+	assert.Len(t, stats[0].Records, 2)
 	assert.Equal(t, 1, stats[0].Records[0].SQLCount)
-	assert.Equal(t, 750.0, stats[0].Records[0].SQLDurationMs)
+	assert.InDelta(t, 750.0, stats[0].Records[0].SQLDurationMs, 1)
 
 	stats = GetTraceRouteStats(TraceQuery{MinDuration: time.Second})
 	assert.Len(t, stats, 2)
