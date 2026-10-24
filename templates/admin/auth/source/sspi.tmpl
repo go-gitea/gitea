@@ -27,9 +27,11 @@
 	</div>
 	<div class="field">
 		<label for="sspi_default_language">{{ctx.Locale.Tr "admin.auths.sspi_default_language"}}</label>
-		<select name="sspi_default_language" id="sspi_default_language">
-			{{template "shared/language_options" dict "Languages" .AllLangs "Value" .SSPIDefaultLanguage "EmptyLabel" "-" "FallbackLabel" .SSPIDefaultLanguage}}
-		</select>
+		<div class="select-field">
+			<select name="sspi_default_language" id="sspi_default_language">
+				{{template "shared/language_options" dict "Languages" .AllLangs "Value" .SSPIDefaultLanguage "EmptyLabel" "-" "FallbackLabel" .SSPIDefaultLanguage}}
+			</select>
+		</div>
 		<p class="help">{{ctx.Locale.Tr "admin.auths.sspi_default_language_helper"}}</p>
 	</div>
 </div>

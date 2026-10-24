@@ -37,10 +37,12 @@
   padding: 1px 12px; /* match .overflow-menu-items in height */
 }
 
-.tippy-box[data-theme="dropdown"][data-placement^="bottom"]:has(.context-user-switch, .dashboard-team-popup) {
-  translate: 0 1px;
+.dashboard-context-text .ui.label,
+.context-user-switch .dropdown-item > .ui.label {
+  margin-left: 5px;
 }
 
-.context-user-switch .dropdown-header {
-  margin-bottom: calc(0.75rem + 5px);
+.context-user-switch > .dropdown-list {
+  max-width: 80vw;
+  border-bottom: 1px solid var(--color-secondary);
 }

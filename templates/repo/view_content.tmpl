@@ -75,7 +75,7 @@
 					{{ctx.Locale.Tr "repo.editor.add_file"}}
 					{{svg "octicon-triangle-down" 14}}
 				</button>
-				<div class="dropdown-popup dropdown-popup-inline repo-file-menu">
+				<div class="dropdown-popup dropdown-popup-button repo-file-menu">
 					<a class="dropdown-item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{$addFilePath | PathEscapeSegments}}">
 						{{svg "octicon-file-added" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.editor.new_file"}}
 					</a>
@@ -91,11 +91,11 @@
 			</div>
 
 			{{if and (not .IsViewFile) (not $isTreePathRoot)}}
-			<div class="dropdown-container" data-placement="bottom-end">
+			<div class="dropdown-container">
 				<button type="button" class="dropdown-trigger ui basic compact button tw-px-3" aria-label="{{ctx.Locale.Tr "repo.more_operations"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
 					{{svg "octicon-kebab-horizontal"}}
 				</button>
-				<div class="dropdown-popup dropdown-popup-inline repo-file-menu">
+				<div class="dropdown-popup dropdown-popup-button repo-file-menu">
 					<a class="dropdown-item" data-clipboard-text="{{.Repository.HTMLURL ctx}}/src/commit/{{.CommitID}}/{{PathEscapeSegments .TreePath}}">
 						{{svg "octicon-link" 16}}{{ctx.Locale.Tr "repo.file_copy_permalink"}}
 					</a>

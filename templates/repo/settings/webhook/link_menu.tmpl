@@ -2,7 +2,7 @@
 {{if .Size}}
 	{{$size = .Size}}
 {{end}}
-<div class="dropdown-popup dropdown-popup-inline">
+<div class="dropdown-popup">
 	<a class="dropdown-item" href="{{.BaseLinkNew}}/gitea/new">
 		{{template "shared/webhook/icon" (dict "HookType" "gitea" "Size" $size)}}
 		{{ctx.Locale.Tr "repo.settings.web_hook_name_gitea"}}

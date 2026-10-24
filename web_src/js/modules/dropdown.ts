@@ -1,6 +1,8 @@
 import {createTippy} from './tippy.ts';
-import {createElementFromAttrs, generateElemId, isElemVisible, onInputDebounce} from '../utils/dom.ts';
+import {createElementFromAttrs, createElementFromHTML, generateElemId, isElemVisible, onInputDebounce} from '../utils/dom.ts';
 import {debounce} from '../utils/func.ts';
+import {svg} from '../svg.ts';
+import {trString} from './i18n.ts';
 import type {Instance, Placement} from 'tippy.js';
 
 type DropdownKind = 'menu' | 'select' | 'multiselect';
@@ -26,6 +28,7 @@ export class Dropdown {
   popup: HTMLElement;
   valueInput: HTMLInputElement | null;
   filterInput: HTMLInputElement | null;
+  filterInField: boolean; // a search field: the filter input sits in the trigger and is the combobox
   kind: DropdownKind;
   delimiter: string;
   loadItems: DropdownOptions['loadItems'];
@@ -42,7 +45,8 @@ export class Dropdown {
     this.trigger = container.querySelector(':scope > .dropdown-trigger')!;
     this.popup = container.querySelector(':scope > .dropdown-popup')!;
     this.valueInput = container.querySelector(':scope > .dropdown-value');
-    this.filterInput = this.popup.querySelector('.dropdown-filter');
+    this.filterInput = container.querySelector('.dropdown-filter');
+    this.filterInField = Boolean(this.filterInput && this.trigger.contains(this.filterInput));
     this.kind = (container.getAttribute('data-kind') || 'menu') as DropdownKind;
     this.delimiter = container.getAttribute('data-delimiter') || ',';
     this.loadItems = opts.loadItems;
@@ -52,48 +56,60 @@ export class Dropdown {
     const isMenu = this.kind === 'menu';
     this.popup.id ||= generateElemId('_dropdown_popup_');
     this.popup.tabIndex = -1;
+    if (this.trigger.classList.contains('dropdown-field')) this.popup.classList.add('dropdown-popup-field');
     if (!this.popup.hasAttribute('role')) this.popup.setAttribute('role', isMenu ? 'menu' : 'listbox');
     if (this.kind === 'multiselect') this.popup.setAttribute('aria-multiselectable', 'true');
-    this.trigger.setAttribute('aria-haspopup', isMenu ? 'menu' : 'listbox');
-    this.trigger.setAttribute('aria-controls', this.popup.id);
-    this.trigger.setAttribute('aria-expanded', 'false');
+    const combobox = this.combobox;
+    combobox.setAttribute('aria-haspopup', isMenu ? 'menu' : 'listbox');
+    combobox.setAttribute('aria-controls', this.popup.id);
+    combobox.setAttribute('aria-expanded', 'false');
     this.trigger.id ||= generateElemId('_dropdown_trigger_');
     const fieldLabel = container.parentElement!.querySelector(':scope.field > label');
-    if (fieldLabel && !this.trigger.hasAttribute('aria-label')) { // like a native select: the field label, then the value
+    if (fieldLabel && !combobox.hasAttribute('aria-label')) { // like a native select: the field label, then the value
       fieldLabel.id ||= generateElemId('_dropdown_label_');
-      this.trigger.setAttribute('aria-labelledby', `${fieldLabel.id} ${this.trigger.id}`);
+      combobox.setAttribute('aria-labelledby', `${fieldLabel.id} ${this.trigger.id}`);
     }
-    this.popup.setAttribute('aria-labelledby', this.trigger.getAttribute('aria-labelledby') ?? this.trigger.id);
+    this.popup.setAttribute('aria-labelledby', combobox.getAttribute('aria-labelledby') ?? this.trigger.id);
     if (this.filterInput) {
       this.filterInput.autocomplete = 'off';
       this.filterInput.setAttribute('aria-controls', this.popup.id);
       if (!isMenu) {
         this.filterInput.setAttribute('role', 'combobox');
         this.filterInput.setAttribute('aria-autocomplete', 'list');
-        this.filterInput.setAttribute('aria-expanded', 'true');
+        if (!this.filterInField) this.filterInput.setAttribute('aria-expanded', 'true');
       }
     }
     if (this.valueInput) this.renderLabel(); // the browser may have restored a previous value
 
     this.trigger.addEventListener('click', (e) => {
+      const target = e.target as Element;
+      const label = target.closest<HTMLElement>('.ui.label[data-value]');
+      if (label) {
+        if (target.closest('.delete.icon')) this.pick(label.getAttribute('data-value')!);
+        return;
+      }
       if (this.tippy) {
-        this.hide();
+        if (target !== this.filterInput) this.hide();
       } else {
         this.show(e.detail === 0 ? 1 : 0); // zero clicks means Enter or Space
       }
     });
     this.trigger.addEventListener('keydown', (e) => {
-      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-      e.preventDefault();
-      this.show(e.key === 'ArrowDown' ? 1 : -1);
+      if (e.key === 'Backspace' && this.kind === 'multiselect' && !this.filterInput?.value) {
+        const values = this.values();
+        if (values.length) this.pick(values.at(-1)!);
+      } else if (this.tippy && this.filterInField) {
+        this.onPopupKeyDown(e);
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.popup.setAttribute('data-keyboard-nav', '');
+        this.show(e.key === 'ArrowDown' ? 1 : -1);
+      }
     });
     this.popup.addEventListener('keydown', (e) => this.onPopupKeyDown(e));
     this.popup.addEventListener('click', (e) => this.onPopupClick(e), {capture: true}); // close before item handlers run, so they see the popup in its container
-    this.popup.addEventListener('pointermove', (e) => {
-      const item = (e.target as Element).closest<HTMLElement>('.dropdown-item');
-      if (item && item !== this.highlighted && isItemEnabled(item)) this.highlight(item, false);
-    });
     this.popup.addEventListener('mousedown', (e) => { // keep the focus on the filter input or the popup
+      this.popup.removeAttribute('data-keyboard-nav');
       if (!(e.target as Element).closest('input, textarea, select')) e.preventDefault();
     });
     this.filterInput?.addEventListener('input', () => this.onFilterInput());
@@ -106,6 +122,10 @@ export class Dropdown {
 
   get keyboardOwner(): HTMLElement {
     return this.filterInput ?? this.popup;
+  }
+
+  get combobox(): HTMLElement {
+    return this.filterInField ? this.filterInput! : this.trigger;
   }
 
   get value(): string {
@@ -148,6 +168,7 @@ export class Dropdown {
       control.setAttribute('form', form.id);
     }
     this.highlightDelta = highlightDelta;
+    this.popup.classList.toggle('dropdown-popup-error', Boolean(this.container.closest('.field.error')));
     this.tippy = createTippy(this.container, {
       content: this.popup,
       theme: 'dropdown',
@@ -170,10 +191,13 @@ export class Dropdown {
     });
     if (!shownDropdowns.size) removalObserver.observe(document, {subtree: true, childList: true});
     shownDropdowns.add(this);
-    this.trigger.setAttribute('aria-expanded', 'true');
+    this.combobox.setAttribute('aria-expanded', 'true');
     this.trigger._tippy?.hide();
     this.trigger._tippy?.disable();
-    this.popup.style.minWidth = `min(${this.trigger.offsetWidth}px, 100vw - 32px)`; // the max width of [data-tippy-root]
+    const {clientWidth} = this.trigger; // the min widths of the former menus, relative to their dropdown's padding box
+    const minWidth = this.trigger.classList.contains('dropdown-field') ? clientWidth + 2 : this.popup.classList.contains('dropdown-popup-button') ? clientWidth :
+      this.popup.matches('.dropdown-popup-menu, .dropdown-popup-small') ? clientWidth - 1 : 0;
+    if (minWidth) this.popup.style.minWidth = `min(${minWidth}px, 100vw - 32px)`; // the max width of [data-tippy-root]
     this.refreshItems();
     this.tippy.show();
   }
@@ -182,7 +206,11 @@ export class Dropdown {
   onMount() {
     this.keyboardOwner.focus();
     const selected = this.kind === 'select' ? this.findItem(this.value) : null;
-    if (selected) this.highlight(selected);
+    if (selected) {
+      this.highlight(selected);
+    } else if (this.kind === 'multiselect' && this.popup.classList.contains('dropdown-popup-field')) {
+      this.moveHighlight(1);
+    }
     if (this.loadItems) this.reload();
     this.updateState();
   }
@@ -197,14 +225,17 @@ export class Dropdown {
     this.tippy = null;
     shownDropdowns.delete(this);
     if (!shownDropdowns.size) removalObserver.disconnect();
-    this.trigger.setAttribute('aria-expanded', 'false');
+    this.combobox.setAttribute('aria-expanded', 'false');
     this.trigger._tippy?.enable();
     this.highlight(null);
+    this.popup.removeAttribute('data-keyboard-nav');
+    this.trigger.removeAttribute('data-popup-side');
     this.typeAhead = '';
     this.reloadDebounced.cancel();
     this.loadAbort?.abort();
     if (this.filterInput?.value) {
       this.filterInput.value = '';
+      this.trigger.classList.remove('filtering');
       if (!this.loadItems) this.applyFilter();
     }
     this.container.dispatchEvent(new CustomEvent('ce-dropdown-hide'));
@@ -219,6 +250,7 @@ export class Dropdown {
       this.onTab(e);
       return;
     } else if (onOwner && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      this.popup.setAttribute('data-keyboard-nav', '');
       this.moveHighlight(e.key === 'ArrowDown' ? 1 : -1);
     } else if (onOwner && !this.filterInput && (e.key === 'Home' || e.key === 'End')) {
       const items = this.navigableItems();
@@ -284,6 +316,10 @@ export class Dropdown {
   }
 
   onFilterInput() {
+    if (this.filterInField) {
+      this.trigger.classList.toggle('filtering', Boolean(this.filterInput!.value));
+      if (!this.tippy) this.show();
+    }
     if (!this.loadItems) {
       this.applyFilter();
       return;
@@ -317,7 +353,7 @@ export class Dropdown {
   moveHighlight(delta: number, items = this.navigableItems()) {
     if (!items.length) return;
     const index = this.highlighted ? items.indexOf(this.highlighted) : -1;
-    const next = index === -1 ? (delta > 0 ? 0 : items.length - 1) : (index + delta + items.length) % items.length;
+    const next = index === -1 ? (delta > 0 ? 0 : items.length - 1) : Math.min(Math.max(index + delta, 0), items.length - 1);
     this.highlight(items[next]);
   }
 
@@ -349,11 +385,9 @@ export class Dropdown {
     if (!textEl) return;
     const placeholder = textEl.getAttribute('data-placeholder') ?? '';
     if (this.kind === 'multiselect') {
-      const labels = this.values().map((value) => {
-        const item = this.findItem(value);
-        return item ? item.getAttribute('data-text') ?? item.textContent.trim() : value;
-      });
-      textEl.textContent = labels.join(', ') || placeholder;
+      for (const label of this.trigger.querySelectorAll(':scope > .ui.label[data-value]')) label.remove();
+      (this.filterInField ? this.filterInput! : textEl).before(...this.values().map((value) => this.createValueLabel(value)));
+      textEl.textContent = placeholder;
       return;
     }
     const itemText = item?.getAttribute('data-text');
@@ -366,6 +400,24 @@ export class Dropdown {
     } else if (!this.value) {
       textEl.textContent = placeholder;
     }
+  }
+
+  createValueLabel(value: string): HTMLElement {
+    const item = this.findItem(value);
+    const label = createElementFromAttrs('a', {class: 'ui label', 'data-value': value});
+    if (item?.hasAttribute('data-text')) {
+      label.textContent = item.getAttribute('data-text');
+    } else if (item) {
+      label.innerHTML = item.innerHTML;
+    } else {
+      label.textContent = value;
+    }
+    const deleteIcon = createElementFromHTML(svg('octicon-x', 16, 'delete icon'));
+    deleteIcon.removeAttribute('aria-hidden');
+    deleteIcon.setAttribute('aria-label', trString(window.config.i18n.remove_label_str, value));
+    deleteIcon.setAttribute('role', 'button');
+    label.append(deleteIcon);
+    return label;
   }
 
   refreshItems() {
@@ -413,12 +465,18 @@ export class Dropdown {
   }
 
   updateState(message = '') {
-    hideScopedEmptyDividers(this.popup);
+    hideScopedEmptyDividers(this.popup.querySelector(':scope > .dropdown-list') ?? this.popup);
     this.popup.querySelector(':scope > .dropdown-message')?.remove();
     const allItems = this.items();
     const items = this.navigableItems(allItems);
     if (this.highlighted && !items.includes(this.highlighted)) this.highlight(null);
-    if (!this.highlighted && (this.filterInput?.value.trim() || this.highlightDelta)) this.moveHighlight(this.highlightDelta || 1, items);
+    if (!this.highlighted && (this.highlightDelta || this.loadItems)) { // remote results keep Enter on their active item
+      const active = items.find((item) => item.matches('.active, [aria-selected="true"]'));
+      if (active) this.highlight(active);
+      else if (this.highlightDelta) this.moveHighlight(this.highlightDelta, items);
+    }
+    const side = this.tippy?.popper.firstElementChild?.getAttribute('data-placement')?.split('-')[0];
+    if (side) this.trigger.setAttribute('data-popup-side', side);
     if (!message && !this.popup.hasAttribute('aria-busy') && !items.length && allItems.every((item) => isItemEnabled(item) || !isElemVisible(item))) message = window.config.i18n.no_results_found;
     if (message) this.popup.append(createElementFromAttrs('div', {class: 'dropdown-message'}, message));
     this.tippy?.popperInstance?.update();
@@ -459,7 +517,7 @@ export function hideScopedEmptyDividers(container: Element) {
     curScopeVisibleItems.length = 0;
   };
 
-  for (const item of container.querySelectorAll<HTMLElement>(':scope > :is(.dropdown-item, .dropdown-divider)')) {
+  for (const item of container.querySelectorAll<HTMLElement>(':scope > :not(.dropdown-message)')) {
     if (isDivider(item)) item.hidden = false;
     const itemScope = item.getAttribute('data-scope') || '';
     if (itemScope !== curScope) handleScopeSwitch(itemScope);

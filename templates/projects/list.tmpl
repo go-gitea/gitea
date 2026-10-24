@@ -25,9 +25,9 @@
 
 	<div class="list-header-filters ui secondary menu tw-m-0">
 		<!-- Sort -->
-		<div class="dropdown-container" data-placement="bottom-end">
+		<div class="dropdown-container tw-text-13" data-placement="bottom-end">
 			<button type="button" class="dropdown-trigger item btn">{{ctx.Locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14}}</button>
-			<div class="dropdown-popup issue-filter-popup">
+			<div class="dropdown-popup dropdown-popup-small issue-filter-popup">
 				<a class="{{if eq .SortType "oldest"}}active {{end}}dropdown-item" href="?q={{$.Keyword}}&sort=oldest&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
 				<a class="{{if eq .SortType "alphabetically"}}active {{end}}dropdown-item" href="?q={{$.Keyword}}&sort=alphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
 				<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}dropdown-item" href="?q={{$.Keyword}}&sort=reversealphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>

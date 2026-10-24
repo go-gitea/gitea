@@ -45,11 +45,11 @@
 									<a role="button" class="btn interact-bg tw-p-2" href="{{$.RepoLink}}/rss/branch/{{PathEscapeSegments .DefaultBranchBranch.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss"}}</a>
 								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
-									<div class="dropdown-container" data-placement="bottom-end">
+									<div class="dropdown-container">
 										<button type="button" class="dropdown-trigger btn interact-bg tw-p-2" aria-label="{{ctx.Locale.Tr "repo.branch.download" ($.DefaultBranchBranch.DBBranch.Name)}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.download" ($.DefaultBranchBranch.DBBranch.Name)}}">
 											{{svg "octicon-download"}}
 										</button>
-										<div class="dropdown-popup dropdown-popup-inline">
+										<div class="dropdown-popup">
 											<a class="dropdown-item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}} ZIP</a>
 											<a class="dropdown-item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}} TAR.GZ</a>
 										</div>
@@ -176,11 +176,11 @@
 									<a role="button" class="btn interact-bg tw-p-2" href="{{$.RepoLink}}/rss/branch/{{PathEscapeSegments .DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss"}}</a>
 								{{end}}
 								{{if and (not .DBBranch.IsDeleted) (not $.DisableDownloadSourceArchives)}}
-									<div class="dropdown-container" data-placement="bottom-end">
+									<div class="dropdown-container">
 										<button type="button" class="dropdown-trigger btn interact-bg tw-p-2" aria-label="{{ctx.Locale.Tr "repo.branch.download" (.DBBranch.Name)}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.download" (.DBBranch.Name)}}">
 											{{svg "octicon-download"}}
 										</button>
-										<div class="dropdown-popup dropdown-popup-inline">
+										<div class="dropdown-popup">
 											<a class="dropdown-item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .DBBranch.Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}} ZIP</a>
 											<a class="dropdown-item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .DBBranch.Name}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}} TAR.GZ</a>
 										</div>

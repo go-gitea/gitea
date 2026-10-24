@@ -15,12 +15,12 @@
 							{{ctx.Locale.Tr "repo.diff.browse_source"}}
 						</a>
 						{{if and ($.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
-							<div class="dropdown-container" data-placement="bottom-end">
+							<div class="dropdown-container">
 								<button type="button" class="dropdown-trigger ui tiny button">
 									{{ctx.Locale.Tr "repo.commit.operations"}}
 									{{svg "octicon-triangle-down" 14}}
 								</button>
-								<div class="dropdown-popup">
+								<div class="dropdown-popup dropdown-popup-button">
 									<div class="dropdown-header">{{ctx.Locale.Tr "repo.commit.operations"}}</div>
 									<div class="dropdown-divider"></div>
 									<div class="dropdown-item show-create-branch-modal"

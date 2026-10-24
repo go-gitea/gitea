@@ -6,16 +6,13 @@
 			<h2 class="ui header dividing">
 				{{ctx.Locale.Tr "repo.commit_graph"}}
 				<div class="ui icon buttons tiny color-buttons">
-					<div class="dropdown-container" data-kind="multiselect" data-delimiter=" " data-placement="bottom-end" id="flow-select-refs-dropdown">{{/* refs can contain commas but no spaces */}}
-						<button type="button" class="dropdown-trigger ui basic button">
-							<span class="dropdown-text gt-ellipsis tw-max-w-[250px]" data-placeholder="{{ctx.Locale.Tr "repo.commit_graph.select"}}">{{ctx.Locale.Tr "repo.commit_graph.select"}}</span>
-							{{svg "octicon-triangle-down" 14}}
-						</button>
+					<div class="dropdown-container" data-kind="multiselect" data-delimiter=" " id="flow-select-refs-dropdown">{{/* refs can contain commas but no spaces */}}
+						<div class="dropdown-trigger dropdown-field dropdown-search-field">
+							<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "repo.commit_graph.select"}}">
+							<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.commit_graph.select"}}">{{ctx.Locale.Tr "repo.commit_graph.select"}}</span>
+						</div>
 						<input type="hidden" class="dropdown-value" name="flow">
-						<div class="dropdown-popup dropdown-popup-inline">
-							<input type="search" class="dropdown-filter" aria-label="{{ctx.Locale.Tr "repo.commit_graph.select"}}" placeholder="{{ctx.Locale.Tr "search.search"}}">
-							<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.clear_ref"}}</div>
-							<div class="dropdown-divider"></div>
+						<div class="dropdown-popup flow-select-refs-popup">
 							<div class="dropdown-item" data-value="...flow-hide-pr-refs">
 								{{svg "octicon-eye-closed"}}
 								<span class="gt-ellipsis" title="{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}">{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}</span>

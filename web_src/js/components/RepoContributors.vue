@@ -112,7 +112,8 @@ const xAxisMax = shallowRef<number | null>(null);
 
 onMounted(fetchGraphData);
 
-function changeContributionType() {
+function changeContributionType(contributionType: ContributionType) {
+  type.value = contributionType;
   xAxisMin.value = xAxisStart;
   xAxisMax.value = xAxisEnd;
   sortContributors();
@@ -370,15 +371,19 @@ const contributorCharts = computed(() => sortedContributors.value.map((contribut
           {{ new Date(xAxisMax) }}
         </relative-time>
       </div>
-      <div class="ui form">
-        <label class="flex-text-block">
-          <span class="not-mobile">{{ locale.filterLabel }}</span>
-          <select v-model="type" @change="changeContributionType()" :aria-label="locale.filterLabel">
-            <option value="commits">{{ locale.contributionType.commits }}</option>
-            <option value="additions">{{ locale.contributionType.additions }}</option>
-            <option value="deletions">{{ locale.contributionType.deletions }}</option>
-          </select>
-        </label>
+      <div class="dropdown-container" data-placement="bottom-end">
+        <button type="button" class="dropdown-trigger dropdown-button-inline ui basic compact button">
+          <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
+          <SvgIcon name="octicon-triangle-down" :size="14"/>
+        </button>
+        <div class="dropdown-popup dropdown-popup-floating">
+          <button
+            v-for="contributionType in (['commits', 'additions', 'deletions'] as const)" :key="contributionType"
+            type="button" class="dropdown-item" :class="{active: type === contributionType}" @click="changeContributionType(contributionType)"
+          >
+            {{ locale.contributionType[contributionType] }}
+          </button>
+        </div>
       </div>
     </div>
     <div class="tw-flex ui segment main-graph">

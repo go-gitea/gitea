@@ -23,7 +23,10 @@
 								data-fetch-url="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}"
 					>
 					<div class="dropdown-popup issue-branch-popup">
-						<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
+						<div class="ui icon search input">
+							<i class="icon">{{svg "octicon-filter" 16}}</i>
+							<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
+						</div>
 						<div class="branch-tag-tab flex-text-block">
 							<button type="button" class="btn branch-tag-item active" data-target=".branch-list">
 								{{svg "octicon-git-branch" 16}} {{ctx.Locale.Tr "repo.branches"}}

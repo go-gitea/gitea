@@ -32,14 +32,16 @@
 							<span>@</span>
 							<label class="tw-sr-only" for="release-tag-target">{{ctx.Locale.Tr "repo.release.target"}}</label>
 							<span class="tw-relative tw-inline-flex tw-max-w-full tw-text-input-text">
-								<select id="release-tag-target" class="tw-w-auto tw-max-w-full tw-pl-[33.5px]" name="tag_target">
-									{{if not (SliceUtils.Contains .Branches .tag_target)}}
-										<option value="{{.tag_target}}" selected>{{.tag_target}}</option>
-									{{end}}
-									{{range .Branches}}
-										<option value="{{.}}" {{if eq . $.tag_target}}selected{{end}}>{{.}}</option>
-									{{end}}
-								</select>
+								<div class="select-field">
+									<select id="release-tag-target" class="tw-w-auto tw-max-w-full tw-pl-[33.5px]" name="tag_target">
+										{{if not (SliceUtils.Contains .Branches .tag_target)}}
+											<option value="{{.tag_target}}" selected>{{.tag_target}}</option>
+										{{end}}
+										{{range .Branches}}
+											<option value="{{.}}" {{if eq . $.tag_target}}selected{{end}}>{{.}}</option>
+										{{end}}
+									</select>
+								</div>
 								<span class="tw-pointer-events-none tw-absolute tw-inset-y-0 tw-left-[15px] tw-flex tw-items-center">{{svg "octicon-git-branch"}}</span>
 							</span>
 						</div>
@@ -150,14 +152,11 @@
 			<label for="release-previous-tag">{{ctx.Locale.Tr "repo.release.previous_tag"}}</label>
 			<div class="dropdown-container" data-kind="select">
 				<button type="button" class="dropdown-trigger dropdown-field" id="release-previous-tag">
-					<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.release.previous_tag"}}">{{ctx.Locale.Tr "repo.release.previous_tag"}}</span>
+					<span class="dropdown-text"></span>
 					{{svg "octicon-triangle-down" 14}}
 				</button>
 				<input type="hidden" class="dropdown-value" name="previous_tag" value="">
-				<div class="dropdown-popup">
-					<input type="search" class="dropdown-filter" aria-label="{{ctx.Locale.Tr "repo.release.previous_tag"}}" placeholder="{{ctx.Locale.Tr "search.search"}}">
-					<div class="dropdown-item" data-static data-value="">{{ctx.Locale.Tr "repo.clear_ref"}}</div>
-				</div>
+				<div class="dropdown-popup"></div>
 			</div>
 		</div>
 		<div class="actions">

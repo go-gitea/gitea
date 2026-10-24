@@ -108,8 +108,11 @@
 								</span>
 								{{svg "octicon-triangle-down" 14}}
 							</button>
-							<div class="dropdown-popup" id="branch-select">
-								<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.pulls.filter_branch"}}...">
+							<div class="dropdown-popup dropdown-popup-floating" id="branch-select">
+								<div class="ui icon search input">
+									<i class="icon">{{svg "octicon-filter" 16}}</i>
+									<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.pulls.filter_branch"}}...">
+								</div>
 								{{$differentOwner := ne $baseUserName $headUserName}}
 								{{range $branch := $.Branches}}
 									{{$differentBranch := ne $branch $headBranch}}

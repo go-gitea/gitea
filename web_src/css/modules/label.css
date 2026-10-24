@@ -24,10 +24,28 @@ a.ui.label {
   cursor: pointer;
 }
 
+.ui.label > .icon {
+  width: auto;
+  margin: 0 0.75em 0 0;
+}
+
 .ui.label > .detail {
   font-weight: var(--font-weight-medium);
   margin-left: 0.5em; /* our .ui.label already provides flex gap, so the margin here shouldn't be too large */
   opacity: 0.8;
+}
+
+.ui.label > .delete.icon {
+  cursor: pointer;
+  font-size: 0.92857143em;
+  opacity: 0.5;
+}
+.ui.label > .delete.icon:hover {
+  opacity: 1;
+}
+
+.ui.label:not(.icon) > .delete.icon {
+  margin: 0 0 0 0.5em;
 }
 
 a.ui.label:hover {

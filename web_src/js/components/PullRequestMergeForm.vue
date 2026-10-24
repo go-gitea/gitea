@@ -177,7 +177,7 @@ function clearMergeMessage() {
         <button type="button" class="dropdown-trigger ui icon button" :aria-label="i18n.more_items">
           <svg-icon name="octicon-triangle-down" :size="14"/>
         </button>
-        <div class="dropdown-popup">
+        <div class="dropdown-popup dropdown-popup-button">
           <template v-for="msd in mergeForm.mergeStyles" :key="msd.name">
             <div class="merge-style-row" v-if="msd.allowed && mergeForm.canMergeNow">
               <button type="button" class="dropdown-item action-text" @click="switchMergeStyle(msd.name)">

@@ -39,6 +39,11 @@
   width: 300px;
 }
 
+.issue-sidebar-combo .dropdown-trigger:not(:disabled):hover { /* like the former link trigger */
+  color: var(--color-primary);
+  text-decoration-line: underline;
+}
+
 .issue-sidebar-combo .dropdown-trigger:has(> strong) {
   align-items: flex-start;
 }
@@ -51,26 +56,15 @@
   gap: 0;
 }
 
-.issue-sidebar-popup .dropdown-item:has(> .avatar) {
-  display: block;
-}
-
-.issue-sidebar-popup .dropdown-item > .avatar {
-  margin: -0.25rem 0.78571429rem -0.25rem 0;
-}
-
 .issue-sidebar-popup .item-secondary-info small {
   display: block;
-  white-space: normal;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .issue-content-right .ui.list {
   margin: 0.5em 0;
   max-width: 100%;
-}
-
-.issue-sidebar-popup .item-check-mark {
-  align-self: flex-start;
 }
 
 .issue-sidebar-popup .dropdown-item:not(.checked) .item-check-mark {
@@ -79,10 +73,6 @@
 
 .issue-branch-popup {
   max-width: min(400px, 90vw);
-}
-
-.issue-branch-popup[role="listbox"] {
-  width: 16.5rem;
 }
 
 .issue-branch-popup[role="listbox"] .reference-list-menu {

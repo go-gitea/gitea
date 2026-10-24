@@ -14,8 +14,10 @@
 							<button type="button" class="dropdown-trigger btn" aria-label="{{ctx.Locale.Tr "repo.switch_repository"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.switch_repository"}}">
 								{{svg "octicon-triangle-down" 14}}
 							</button>
-							<div class="dropdown-popup tw-min-w-64 tw-max-w-[min(510px,90vw)] tw-max-h-[var(--tippy-max-height,100vh)]">
-								<input type="search" class="dropdown-filter" aria-label="{{ctx.Locale.Tr "repo.switch_repository"}}" placeholder="{{ctx.Locale.Tr "repo.switch_repository.search"}}">
+							<div class="dropdown-popup dropdown-popup-flex tw-min-w-64 tw-max-w-[min(510px,90vw)] tw-max-h-[var(--tippy-max-height,100vh)]">
+								<div class="ui icon search input">
+									<input type="text" class="dropdown-filter" aria-label="{{ctx.Locale.Tr "repo.switch_repository"}}" placeholder="{{ctx.Locale.Tr "repo.switch_repository.search"}}">
+								</div>
 							</div>
 						</div>
 					{{end}}

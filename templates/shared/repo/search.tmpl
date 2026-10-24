@@ -11,7 +11,7 @@
 		<!-- Filter -->
 		<div class="dropdown-container" data-keep-open>
 			<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "filter_title"}} {{svg "octicon-triangle-down" 14}}</button>
-			<div class="dropdown-popup dropdown-popup-small">
+			<div class="dropdown-popup dropdown-popup-flex dropdown-popup-small">
 				<label class="dropdown-item repo-search-filter-reset">{{ctx.Locale.Tr "filter.clear"}}</label>
 				<div class="dropdown-divider"></div>
 				<label class="dropdown-item"><input type="radio" name="archived" {{if .IsArchived.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
@@ -31,7 +31,7 @@
 			</div>
 		</div>
 		<!-- Sort -->
-		<div class="dropdown-container" data-placement="bottom-end" data-keep-open>
+		<div class="dropdown-container" data-keep-open>
 			<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14}}</button>
 			<div class="dropdown-popup dropdown-popup-small">
 				<label class="{{if eq .SortType "newest"}}active {{end}}dropdown-item"><input hidden type="radio" name="sort" {{if eq .SortType "newest"}}checked{{end}} value="newest"> {{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</label>

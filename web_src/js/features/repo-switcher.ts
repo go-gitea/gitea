@@ -20,7 +20,7 @@ export function initRepoSwitcher(el: HTMLElement) {
       const response = await GET(el.getAttribute('data-query-url')!.replace('{query}', () => encodeURIComponent(query)), {signal});
       const {data} = await response.json() as RepoSearchResponse;
       return data.map(({repository: repo}) => createElementFromHTML(html`
-        <a class="dropdown-item ${repo.full_name === currentFullName ? 'active' : ''}" href="${repo.html_url}">
+        <a class="dropdown-item" href="${repo.html_url}">
           <span class="tw-w-[16px]">${htmlRaw(repo.full_name === currentFullName ? svg('octicon-check', 16) : '')}</span>
           <span>${htmlRaw(repoIcon(repo))}</span>
           <span class="gt-ellipsis">${repo.full_name.split('/')[1]}</span>

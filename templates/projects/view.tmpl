@@ -92,7 +92,7 @@
 						{{if .Default}}{{svg "octicon-star"}} {{end}}{{.Title}}
 					</div>
 					{{if $canWriteProject}}
-						<div class="dropdown-container" data-placement="bottom-end">
+						<div class="dropdown-container">
 							<button type="button" class="dropdown-trigger btn tw-p-1" aria-label="{{ctx.Locale.Tr "more_items"}}">{{svg "octicon-kebab-horizontal"}}</button>
 							<div class="dropdown-popup">
 								<button type="button" class="dropdown-item show-modal show-project-column-modal-edit" data-modal="#project-column-modal-edit"

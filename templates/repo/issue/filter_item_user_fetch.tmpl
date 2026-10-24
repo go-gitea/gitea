@@ -12,7 +12,10 @@
 >
 	<button type="button" class="dropdown-trigger item btn" data-tooltip-content="{{ctx.Locale.Tr "repo.user_search_tooltip"}}">{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14}}</button>
 	<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
-		<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}" value="{{$.SelectedUsername}}">
-		<a class="dropdown-item{{if not $.SelectedUsername}} active{{end}}" data-value="">{{ctx.Locale.Tr "repo.issues.filter_user_no_select"}}</a>
+		<div class="ui icon search input">
+			<i class="icon">{{svg "octicon-search" 16}}</i>
+			<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}" value="{{$.SelectedUsername}}">
+		</div>
+		<a class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.issues.filter_user_no_select"}}</a>
 	</div>
 </div>

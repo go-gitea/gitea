@@ -317,6 +317,10 @@
   border: none;
 }
 
+.ui.secondary.menu > .dropdown-container { /* align like the item trigger it wraps */
+  align-self: center;
+}
+
 .ui.secondary.menu .item {
   align-self: center;
   border: none;

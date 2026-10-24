@@ -31,21 +31,26 @@
 		{{if not .PageIsEditProjects}}
 			<div class="field">
 				<label>{{ctx.Locale.Tr "repo.projects.template.desc"}}</label>
-				<select name="template_type">
-					{{range $element := .TemplateConfigs}}
-						<option value="{{$element.TemplateType}}" {{if eq $.type $element.TemplateType}}selected{{end}}>{{ctx.Locale.Tr $element.Translation}}</option>
-					{{end}}
-				</select>
+				<div class="select-field">
+					<select name="template_type">
+						<option value="" hidden>{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</option>
+						{{range $element := .TemplateConfigs}}
+							<option value="{{$element.TemplateType}}" {{if eq $.type $element.TemplateType}}selected{{end}}>{{ctx.Locale.Tr $element.Translation}}</option>
+						{{end}}
+					</select>
+				</div>
 			</div>
 		{{end}}
 
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.projects.card_type.desc"}}</label>
-			<select name="card_type">
-				{{range $element := .CardTypes}}
-					<option value="{{$element.CardType}}" {{if eq $element.CardType (Iif (eq $.card_type NIL) 1 $.card_type)}}selected{{end}}>{{ctx.Locale.Tr $element.Translation}}</option>
-				{{end}}
-			</select>
+			<div class="select-field">
+				<select name="card_type">
+					{{range $element := .CardTypes}}
+						<option value="{{$element.CardType}}" {{if eq $element.CardType (Iif (eq $.card_type NIL) 1 $.card_type)}}selected{{end}}>{{ctx.Locale.Tr $element.Translation}}</option>
+					{{end}}
+				</select>
+			</div>
 		</div>
 	</div>
 	<div class="divider"></div>

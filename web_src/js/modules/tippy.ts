@@ -149,6 +149,10 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     popperOptions: {modifiers: [
       {name: 'arrow', options: {padding: arrowPadding}},
       ...limitSizeToViewport ? [sizeModifier(limitSizeToViewport)] : [],
+      ...resolvedTheme === 'dropdown' ? [ // like the former menus: move only on a real overflow, at unrounded positions
+        ...['flip', 'preventOverflow'].map((name) => ({name, options: {padding: 0}})),
+        {name: 'computeStyles', options: {roundOffsets: false}},
+      ] : [],
     ]},
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',

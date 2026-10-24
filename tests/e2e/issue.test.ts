@@ -33,7 +33,7 @@ test('add an issue dependency found through the sidebar search', async ({page, r
     login(page),
   ]);
   await page.goto(`/${owner}/${repoName}/issues/1`);
-  await page.getByRole('button', {name: 'Add dependency…'}).click();
+  await page.getByRole('combobox', {name: 'Add dependency…'}).click();
   await page.keyboard.type(blockingTitle);
   await page.getByRole('option', {name: blockingTitle}).click();
   await page.locator('#addDependencyForm button[type="submit"]').click();

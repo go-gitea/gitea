@@ -65,14 +65,13 @@
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.template"}}</label>
 					<div id="repo_template_search" class="dropdown-container" data-kind="select">
-						<button type="button" class="dropdown-trigger dropdown-field">
+						<div class="dropdown-trigger dropdown-field dropdown-search-field">
+							<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "search.repo_kind"}}">
 							<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.template_select"}}">{{.repo_template_name}}</span>
-							{{svg "octicon-triangle-down" 14}}
-						</button>
+						</div>
 						<input type="hidden" class="dropdown-value" id="repo_template" name="repo_template" value="{{or .repo_template ""}}">
 						<div class="dropdown-popup">
-							<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}">
-							<div class="dropdown-item" data-value="" data-static>{{ctx.Locale.Tr "repo.template_select"}}</div>
+							<div class="dropdown-item" data-value="" data-static aria-label="{{ctx.Locale.Tr "repo.template_select"}}"></div>
 						</div>
 					</div>
 				</div>
@@ -125,12 +124,11 @@
 						<label>{{ctx.Locale.Tr "repo.issue_labels"}}</label>
 						<div class="dropdown-container" data-kind="select">
 							<input type="hidden" class="dropdown-value" name="issue_labels" value="{{.issueLabels}}">
-							<button type="button" class="dropdown-trigger dropdown-field">
+							<div class="dropdown-trigger dropdown-field dropdown-search-field">
+								<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "repo.issue_labels_helper"}}">
 								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.issue_labels_helper"}}">{{or .issueLabels (ctx.Locale.Tr "repo.issue_labels_helper")}}</span>
-								{{svg "octicon-triangle-down" 14}}
-							</button>
+							</div>
 							<div class="dropdown-popup">
-								<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.issue_labels_helper"}}">
 								<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.issue_labels_helper"}}</div>
 								{{range .LabelTemplateFiles}}
 									<div class="dropdown-item" data-value="{{.DisplayName}}" data-text="{{.DisplayName}}"><span>{{.DisplayName}}<br><i>({{.Description}})</i></span></div>
@@ -145,12 +143,11 @@
 						<label>.gitignore</label>
 						<div class="dropdown-container" data-kind="multiselect">
 							<input type="hidden" class="dropdown-value" name="gitignores" value="{{.gitignores}}">
-							<button type="button" class="dropdown-trigger dropdown-field">
-								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}">{{or .gitignores (ctx.Locale.Tr "repo.repo_gitignore_helper")}}</span>
-								{{svg "octicon-triangle-down" 14}}
-							</button>
+							<div class="dropdown-trigger dropdown-field dropdown-search-field">
+								<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}">
+								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}">{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}</span>
+							</div>
 							<div class="dropdown-popup">
-								<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}">
 								{{range .Gitignores}}
 									<div class="dropdown-item" data-value="{{.}}">{{.}}</div>
 								{{end}}
@@ -162,12 +159,11 @@
 						<label>{{ctx.Locale.Tr "repo.license"}}</label>
 						<div class="dropdown-container" data-kind="select">
 							<input type="hidden" class="dropdown-value" name="license" value="{{.license}}">
-							<button type="button" class="dropdown-trigger dropdown-field">
+							<div class="dropdown-trigger dropdown-field dropdown-search-field">
+								<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "repo.license_helper"}}">
 								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.license_helper"}}">{{or .license (ctx.Locale.Tr "repo.license_helper")}}</span>
-								{{svg "octicon-triangle-down" 14}}
-							</button>
+							</div>
 							<div class="dropdown-popup">
-								<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.license_helper"}}">
 								<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.license_helper"}}</div>
 								{{range .Licenses}}
 									<div class="dropdown-item" data-value="{{.}}">{{.}}</div>
@@ -179,11 +175,13 @@
 
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.readme"}}</label>
-						<select name="readme">
-							{{range .Readmes}}
-								<option value="{{.}}" {{if eq . $.readme}}selected{{end}}>{{.}}</option>
-							{{end}}
-						</select>
+						<div class="select-field">
+							<select name="readme">
+								{{range .Readmes}}
+									<option value="{{.}}" {{if eq . $.readme}}selected{{end}}>{{.}}</option>
+								{{end}}
+							</select>
+						</div>
 						<span class="help">{{ctx.Locale.Tr "repo.readme_helper_desc"}}</span>
 					</div>
 					<div class="inline field">
@@ -200,15 +198,17 @@
 					</div>
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.object_format"}}</label>
-						<select name="object_format_name">
-							{{$objectFormatFound := false}}
-							{{range .SupportedObjectFormats}}
-								<option value="{{.Name}}" {{if eq .Name (or $.object_format_name $.DefaultObjectFormat.Name)}}{{$objectFormatFound = true}}selected{{end}}>{{.Name}}</option>
-							{{end}}
-							{{if not $objectFormatFound}}
-								<option value="{{or .object_format_name .DefaultObjectFormat.Name}}" selected hidden>{{or .object_format_name .DefaultObjectFormat.Name}}</option>
-							{{end}}
-						</select>
+						<div class="select-field">
+							<select name="object_format_name">
+								{{$objectFormatFound := false}}
+								{{range .SupportedObjectFormats}}
+									<option value="{{.Name}}" {{if eq .Name (or $.object_format_name $.DefaultObjectFormat.Name)}}{{$objectFormatFound = true}}selected{{end}}>{{.Name}}</option>
+								{{end}}
+								{{if not $objectFormatFound}}
+									<option value="{{or .object_format_name .DefaultObjectFormat.Name}}" selected hidden>{{or .object_format_name .DefaultObjectFormat.Name}}</option>
+								{{end}}
+							</select>
+						</div>
 						<span class="help">{{ctx.Locale.Tr "repo.object_format_helper"}}</span>
 					</div>
 					<div class="inline field">

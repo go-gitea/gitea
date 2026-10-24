@@ -1,12 +1,8 @@
 import {stripTags} from '../utils.ts';
-import {
-  createElementFromAttrs, createElementFromHTML, hideElem, queryElemChildren, showElem, toggleElem,
-} from '../utils/dom.ts';
+import {createElementFromAttrs, hideElem, queryElemChildren, showElem, toggleElem} from '../utils/dom.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast, type Toast} from '../modules/toast.ts';
 import {initDropdown} from '../modules/dropdown.ts';
-import {trString} from '../modules/i18n.ts';
-import {svg} from '../svg.ts';
 
 const {appSubUrl} = window.config;
 
@@ -18,7 +14,6 @@ export function initRepoTopicBar() {
 
   const editDiv = document.querySelector('#topic_edit')!;
   const viewDiv = document.querySelector('#repo-topics')!;
-  const topicChips = editDiv.querySelector<HTMLElement>('.repo-topic-chips')!;
   const topicFromInput = createElementFromAttrs('div', {class: 'dropdown-item tw-hidden', 'data-static': ''});
   const topicDropdown = initDropdown(editDiv.querySelector<HTMLElement>('.dropdown-container')!, {
     async loadItems(query, signal) {
@@ -29,27 +24,11 @@ export function initRepoTopicBar() {
       const response = await GET(`${appSubUrl}/explore/topics/search?q=${encodeURIComponent(query)}`, {signal});
       const {topics} = await response.json() as TopicSearchResponse;
       const names = topics.map(({topic_name}) => topic_name).filter((name) => name !== query && !topicDropdown.values().includes(name));
-      names.sort((left, right) => left.localeCompare(right));
+      if (topics.some(({topic_name}) => topic_name.toLowerCase() === query)) names.sort().reverse(); // the server order, unless the exact match comes first
       return names.map((name) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': name}, name));
     },
   });
   topicDropdown.popup.append(topicFromInput);
-  const renderTopicChips = () => {
-    topicChips.replaceChildren(...topicDropdown.values().map((topic) => {
-      const removeButton = createElementFromAttrs<HTMLButtonElement>('button', {
-        type: 'button', class: 'btn interact-fg', 'aria-label': trString(window.config.i18n.remove_label_str, topic),
-      }, createElementFromHTML(svg('octicon-x', 16)));
-      removeButton.addEventListener('click', () => {
-        topicDropdown.setValue(topicDropdown.values().filter((value) => value !== topic));
-        renderTopicChips();
-        if (topicDropdown.isShown()) topicDropdown.reload();
-        topicDropdown.trigger.focus();
-      });
-      return createElementFromAttrs('span', {class: 'ui label repo-topic flex-text-inline', 'data-value': topic}, topic, removeButton);
-    }));
-  };
-  renderTopicChips();
-  topicDropdown.valueInput!.addEventListener('change', renderTopicChips);
   let lastErrorToast: Toast | null = null;
 
   mgrBtn.addEventListener('click', () => {
@@ -99,7 +78,7 @@ export function initRepoTopicBar() {
       lastErrorToast = showErrorToast(responseData.message, {duration: 5000});
       if (responseData.invalidTopics && responseData.invalidTopics.length > 0) {
         const {invalidTopics} = responseData;
-        for (const chip of topicChips.querySelectorAll('[data-value]')) {
+        for (const chip of topicDropdown.trigger.querySelectorAll('.ui.label[data-value]')) {
           chip.classList.toggle('red', invalidTopics.includes(chip.getAttribute('data-value')));
         }
       }

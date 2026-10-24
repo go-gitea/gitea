@@ -12,7 +12,7 @@
 		{{if gt (len $data.UpdateStyleOptions) 1}}
 		<div class="dropdown-container">
 			<button type="button" class="dropdown-trigger ui icon button" aria-label="{{ctx.Locale.Tr "more_items"}}">{{svg "octicon-triangle-down"}}</button>
-			<div class="dropdown-popup">
+			<div class="dropdown-popup dropdown-popup-button">
 				{{range $data.UpdateStyleOptions}}
 					<button type="button" class="dropdown-item {{if .Selected}}active{{end}}" data-update-url="{{.URL}}">{{.Text}}</button>
 				{{end}}

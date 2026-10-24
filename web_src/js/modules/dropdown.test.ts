@@ -30,6 +30,8 @@ test('select in a field is named by its label, shows restored state, filters by 
   expect(document.activeElement).toBe(dropdown.filterInput);
   expect(dropdown.highlighted!.textContent).toBe('Apple');
   await userEvent.keyboard('ban{Enter}');
+  expect(changes).toEqual([]);
+  await userEvent.keyboard('{ArrowDown}{Enter}');
   expect(changes).toEqual(['banana']);
   expect(dropdown.trigger.textContent).toBe('Banana!');
   expect(dropdown.isShown()).toBe(false);
@@ -119,8 +121,8 @@ test('remote items apply the latest query only', async () => {
   await userEvent.click(dropdown.findItem('a2')!);
   await userEvent.click(dropdown.findItem('static')!);
   expect(dropdown.values()).toEqual(['a2', 'static']);
-  expect(dropdown.trigger.textContent).toBe('a2, Static');
-  await userEvent.click(dropdown.findItem('a2')!);
+  expect(Array.from(dropdown.trigger.querySelectorAll('.ui.label'), (el) => el.textContent)).toEqual(['a2', 'Static']);
+  await userEvent.click(dropdown.trigger.querySelector('.ui.label[data-value="a2"] .delete')!);
   expect(dropdown.values()).toEqual(['static']);
   expect(dropdown.isShown()).toBe(true);
   dropdown.container.remove();

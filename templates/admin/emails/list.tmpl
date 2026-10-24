@@ -11,7 +11,7 @@
 				<!-- Sort -->
 				<div class="dropdown-container">
 					<button type="button" class="dropdown-trigger item tw-mr-0">{{ctx.Locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14}}</button>
-					<div class="dropdown-popup">
+					<div class="dropdown-popup dropdown-popup-menu">
 						<a class="{{if or (eq .SortType "email") (not .SortType)}}active {{end}}dropdown-item" href="?sort=email&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email"}}</a>
 						<a class="{{if eq .SortType "reverseemail"}}active {{end}}dropdown-item" href="?sort=reverseemail&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email_reverse"}}</a>
 						<a class="{{if eq .SortType "username"}}active {{end}}dropdown-item" href="?sort=username&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name"}}</a>

@@ -7,14 +7,12 @@
 			<div class="field">
 				<label><strong>{{ctx.Locale.Tr "repository"}}</strong></label>
 				<div class="dropdown-container issue_reference_repository_search" data-kind="select">
-					<button type="button" class="dropdown-trigger dropdown-field">
-						<span class="dropdown-text">{{.Repository.FullName}}</span>
-						{{svg "octicon-triangle-down" 14}}
-					</button>
-					<input type="hidden" class="dropdown-value" value="{{.Repository.FullName}}">
-					<div class="dropdown-popup">
-						<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "search.search"}}">
+					<div class="dropdown-trigger dropdown-field dropdown-search-field">
+						<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "search.search"}}">
+						<span class="dropdown-text gt-ellipsis">{{.Repository.FullName}}</span>
 					</div>
+					<input type="hidden" class="dropdown-value" value="{{.Repository.FullName}}">
+					<div class="dropdown-popup"></div>
 				</div>
 			</div>
 			<div class="field">

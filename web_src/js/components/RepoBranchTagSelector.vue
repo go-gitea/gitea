@@ -236,8 +236,11 @@ async function loadTabItems() {
       </span>
       <svg-icon name="octicon-triangle-down" :size="14"/>
     </button>
-    <div class="dropdown-popup dropdown-popup-inline" :id="popupId" role="menu" v-show="menuVisible" v-cloak>
-      <input type="search" class="dropdown-filter" ref="elSearchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder" :aria-label="searchFieldPlaceholder">
+    <div class="dropdown-popup" :id="popupId" role="menu" v-show="menuVisible" v-cloak>
+      <div class="ui icon search input">
+        <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
+        <input type="text" class="dropdown-filter" ref="elSearchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder" :aria-label="searchFieldPlaceholder">
+      </div>
       <div v-if="showTabBranches" class="branch-tag-tab flex-text-block tw-gap-0">
         <button type="button" class="btn branch-tag-item" :class="{active: selectedTab === 'branches'}" @click="handleTabSwitch('branches')">
           <svg-icon name="octicon-git-branch" :size="16" class="tw-mr-1"/>{{ textBranches }}

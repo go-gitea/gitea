@@ -18,8 +18,11 @@
 						<!-- Actor -->
 						<div class="dropdown-container">
 							<button type="button" class="dropdown-trigger item"{{if not .Actors}} disabled{{end}}>{{ctx.Locale.Tr "actions.runs.actor"}} {{svg "octicon-triangle-down" 14}}</button>
-							<div class="dropdown-popup">
-								<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "actions.runs.actor"}}">
+							<div class="dropdown-popup dropdown-popup-menu">
+								<div class="ui icon search input">
+									<i class="icon">{{svg "octicon-search" 16}}</i>
+									<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "actions.runs.actor"}}">
+								</div>
 								<a class="dropdown-item{{if not $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&status={{$.CurStatus}}&branch={{$.CurBranch}}&actor=0">
 									{{ctx.Locale.Tr "actions.runs.actors_no_select"}}
 								</a>
@@ -33,8 +36,11 @@
 						<!-- Status -->
 						<div class="dropdown-container">
 							<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "actions.runs.status"}} {{svg "octicon-triangle-down" 14}}</button>
-							<div class="dropdown-popup">
-								<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "actions.runs.status"}}">
+							<div class="dropdown-popup dropdown-popup-menu">
+								<div class="ui icon search input">
+									<i class="icon">{{svg "octicon-search" 16}}</i>
+									<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "actions.runs.status"}}">
+								</div>
 								<a class="dropdown-item{{if not $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&branch={{$.CurBranch}}&status=0">
 									{{ctx.Locale.Tr "actions.runs.status_no_select"}}
 								</a>
@@ -51,8 +57,11 @@
 						<!-- Branch -->
 						<div class="dropdown-container" data-test-id="filter-branch">
 							<button type="button" class="dropdown-trigger item"{{if not .RunBranches}} disabled{{end}}>{{ctx.Locale.Tr "actions.runs.branch"}} {{svg "octicon-triangle-down" 14}}</button>
-							<div class="dropdown-popup">
-								<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "actions.runs.branch"}}">
+							<div class="dropdown-popup dropdown-popup-menu">
+								<div class="ui icon search input">
+									<i class="icon">{{svg "octicon-search" 16}}</i>
+									<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "actions.runs.branch"}}">
+								</div>
 								<a class="dropdown-item{{if not $.CurBranch}} active{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
 									{{ctx.Locale.Tr "actions.runs.branches_no_select"}}
 								</a>
@@ -65,7 +74,7 @@
 						</div>
 
 						{{if or $showCreateWorkflowBadge $showEnableDisableWorkflow}}
-						<div class="dropdown-container" data-placement="bottom-end">
+						<div class="dropdown-container">
 							<button type="button" class="dropdown-trigger btn interact-bg tw-p-2" aria-label="{{ctx.Locale.Tr "more_items"}}">{{svg "octicon-kebab-horizontal"}}</button>
 							<div class="dropdown-popup">
 								{{if $showCreateWorkflowBadge}}
@@ -114,14 +123,16 @@
 			</div>
 			<div class="field">
 				<label>{{ctx.Locale.Tr "actions.runs.branch"}}</label>
-				<select data-workflow-badge-branch>
-					<option value="{{.Repository.DefaultBranch}}" selected>{{.Repository.DefaultBranch}}</option>
-					{{range $branchName := .RunBranches}}
-						{{if ne $branchName $.Repository.DefaultBranch}}
-							<option value="{{$branchName}}">{{$branchName}}</option>
+				<div class="select-field">
+					<select data-workflow-badge-branch>
+						<option value="{{.Repository.DefaultBranch}}" selected>{{.Repository.DefaultBranch}}</option>
+						{{range $branchName := .RunBranches}}
+							{{if ne $branchName $.Repository.DefaultBranch}}
+								<option value="{{$branchName}}">{{$branchName}}</option>
+							{{end}}
 						{{end}}
-					{{end}}
-				</select>
+					</select>
+				</div>
 			</div>
 			<div class="field">
 				<label>{{ctx.Locale.Tr "actions.workflow.status_badge_url"}}</label>

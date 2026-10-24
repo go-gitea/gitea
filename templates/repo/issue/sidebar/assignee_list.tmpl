@@ -13,15 +13,20 @@
 			<strong>{{ctx.Locale.Tr "repo.issues.new.assignees"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
 		</button>
 		<div class="dropdown-popup issue-sidebar-popup">
-			<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
-			<div class="dropdown-item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
-			<div class="dropdown-divider"></div>
-			{{range $data.CandidateAssignees}}
-				<a class="dropdown-item item" href="{{$listBaseLink}}?assignee={{.ID}}" data-value="{{.ID}}">
-					<span class="item-check-mark">{{svg "octicon-check"}}</span>
-					{{ctx.AvatarUtils.Avatar . 20}} {{template "repo/search_name" .}}
-				</a>
-			{{end}}
+			<div class="ui icon search input">
+				<i class="icon">{{svg "octicon-search" 16}}</i>
+				<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
+			</div>
+			<div class="dropdown-list">
+				<div class="dropdown-item clear-selection active">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
+				<div class="dropdown-divider"></div>
+				{{range $data.CandidateAssignees}}
+					<a class="dropdown-item item" href="{{$listBaseLink}}?assignee={{.ID}}" data-value="{{.ID}}">
+						<span class="item-check-mark">{{svg "octicon-check"}}</span>
+						{{ctx.AvatarUtils.Avatar . 20}} {{template "repo/search_name" .}}
+					</a>
+				{{end}}
+			</div>
 		</div>
 	</div>
 	<div class="ui relaxed list muted-links flex-items-block">

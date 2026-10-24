@@ -10,8 +10,11 @@
 {{$queryLink := .QueryLink}}
 <div class="dropdown-container" data-placement="bottom-end">
 	<button type="button" class="dropdown-trigger item btn" {{if not .UserSearchList}}disabled{{end}}>{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14}}</button>
-	<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
-		<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}">
+	<div class="dropdown-popup dropdown-popup-flex dropdown-popup-menu issue-filter-popup">
+		<div class="ui icon search input">
+			<i class="icon">{{svg "octicon-search" 16}}</i>
+			<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}">
+		</div>
 		{{if $.TextFilterMatchNone}}
 			{{$isSelected := eq .SelectedUserId "(none)"}}
 			<a class="dropdown-item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL "(none)")}}">

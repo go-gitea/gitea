@@ -13,28 +13,33 @@
 			{{if not $data.AllLabels}}
 				<div class="dropdown-item" aria-disabled="true">{{ctx.Locale.Tr "repo.issues.new.no_items"}}</div>
 			{{else}}
-				<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.issues.filter_labels"}}">
-				<a class="dropdown-item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
-				<div class="dropdown-divider"></div>
-				{{$previousExclusiveScope := "_no_scope"}}
-				{{range $data.RepoLabels}}
-					{{$exclusiveScope := .ExclusiveScope}}
-					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-						<div class="dropdown-divider" data-scope="{{.ExclusiveScope}}"></div>
+				<div class="ui icon search input">
+					<i class="icon">{{svg "octicon-search" 16}}</i>
+					<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_labels"}}">
+				</div>
+				<div class="dropdown-list">
+					<a class="dropdown-item clear-selection active" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
+					<div class="dropdown-divider"></div>
+					{{$previousExclusiveScope := "_no_scope"}}
+					{{range $data.RepoLabels}}
+						{{$exclusiveScope := .ExclusiveScope}}
+						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+							<div class="dropdown-divider" data-scope="{{.ExclusiveScope}}"></div>
+						{{end}}
+						{{$previousExclusiveScope = $exclusiveScope}}
+						{{template "repo/issue/sidebar/label_list_item" dict "Label" . "LabelLink" (print $listBaseLink "?labels=" .ID)}}
 					{{end}}
-					{{$previousExclusiveScope = $exclusiveScope}}
-					{{template "repo/issue/sidebar/label_list_item" dict "Label" . "LabelLink" (print $listBaseLink "?labels=" .ID)}}
-				{{end}}
-				{{if and $data.RepoLabels $data.OrgLabels}}<div class="dropdown-divider"></div>{{end}}
-				{{$previousExclusiveScope = "_no_scope"}}
-				{{range $data.OrgLabels}}
-					{{$exclusiveScope := .ExclusiveScope}}
-					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-						<div class="dropdown-divider" data-scope="{{.ExclusiveScope}}"></div>
+					{{if and $data.RepoLabels $data.OrgLabels}}<div class="dropdown-divider"></div>{{end}}
+					{{$previousExclusiveScope = "_no_scope"}}
+					{{range $data.OrgLabels}}
+						{{$exclusiveScope := .ExclusiveScope}}
+						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+							<div class="dropdown-divider" data-scope="{{.ExclusiveScope}}"></div>
+						{{end}}
+						{{$previousExclusiveScope = $exclusiveScope}}
+						{{template "repo/issue/sidebar/label_list_item" dict "Label" . "LabelLink" (print $listBaseLink "?labels=" .ID)}}
 					{{end}}
-					{{$previousExclusiveScope = $exclusiveScope}}
-					{{template "repo/issue/sidebar/label_list_item" dict "Label" . "LabelLink" (print $listBaseLink "?labels=" .ID)}}
-				{{end}}
+				</div>
 			{{end}}
 		</div>
 	</div>

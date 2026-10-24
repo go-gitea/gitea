@@ -26,7 +26,10 @@ Still needs to figure out:
 	</button>
 	<input class="dropdown-value" name="ref" type="hidden" value="{{.Reference}}">
 	<div class="dropdown-popup issue-branch-popup">
-		<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
+		<div class="ui icon search input">
+			<i class="icon">{{svg "octicon-filter" 16}}</i>
+			<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
+		</div>
 		<div class="branch-tag-tab">
 			<button type="button" class="btn branch-tag-item active" data-target=".branch-list">
 				{{svg "octicon-git-branch" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.branches"}}

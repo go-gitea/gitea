@@ -14,7 +14,7 @@
 				<!-- Sort -->
 				<div class="dropdown-container">
 					<button type="button" class="dropdown-trigger item tw-mr-0">{{ctx.Locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14}}</button>
-					<div class="dropdown-popup">
+					<div class="dropdown-popup dropdown-popup-menu">
 						<a class="{{if or (eq .SortType "oldest") (not .SortType)}}active {{end}}dropdown-item" href="?sort=oldest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
 						<a class="{{if eq .SortType "newest"}}active {{end}}dropdown-item" href="?sort=newest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
 						<a class="{{if eq .SortType "alphabetically"}}active {{end}}dropdown-item" href="?sort=alphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>

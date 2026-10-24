@@ -7,8 +7,11 @@
 {{$queryLink := .QueryLink}}
 <div class="dropdown-container label-filter" data-placement="bottom-start">
 	<button type="button" class="dropdown-trigger item btn" {{if not .Labels}}disabled{{end}}>{{ctx.Locale.Tr "repo.issues.filter_label"}} {{svg "octicon-triangle-down" 14}}</button>
-	<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
-		<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.issues.filter_label"}}">
+	<div class="dropdown-popup dropdown-popup-flex dropdown-popup-menu issue-filter-popup">
+		<div class="ui icon search input">
+			<i class="icon">{{svg "octicon-search" 16}}</i>
+			<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_label"}}">
+		</div>
 		{{if .SupportArchivedLabel}}{{/* this checkbox has a hard dependency with the "labels" and "archived_label" query parameter */}}
 		<label class="label-filter-archived-toggle flex-text-block">
 			<input type="checkbox"> {{ctx.Locale.Tr "repo.issues.label_archived_filter"}}

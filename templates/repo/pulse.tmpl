@@ -6,7 +6,7 @@
 			{{ctx.Locale.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
 			{{svg "octicon-triangle-down" 14}}
 		</button>
-		<div class="dropdown-popup">
+		<div class="dropdown-popup dropdown-popup-floating">
 			<a class="{{if eq .Period "daily"}}active {{end}}dropdown-item" href="{{$.RepoLink}}/activity/daily">{{ctx.Locale.Tr "repo.activity.period.daily"}}</a>
 			<a class="{{if eq .Period "halfweekly"}}active {{end}}dropdown-item" href="{{$.RepoLink}}/activity/halfweekly">{{ctx.Locale.Tr "repo.activity.period.halfweekly"}}</a>
 			<a class="{{if eq .Period "weekly"}}active {{end}}dropdown-item" href="{{$.RepoLink}}/activity/weekly">{{ctx.Locale.Tr "repo.activity.period.weekly"}}</a>

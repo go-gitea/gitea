@@ -53,12 +53,14 @@
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.fork_branch"}}</label>
-					<select id="fork_single_branch" name="fork_single_branch">
-						<option value="">{{ctx.Locale.Tr "repo.all_branches"}}</option>
-						{{range .Branches}}
-							<option value="{{.}}">{{.}}</option>
-						{{end}}
-					</select>
+					<div class="select-field">
+						<select id="fork_single_branch" name="fork_single_branch">
+							<option value="">{{ctx.Locale.Tr "repo.all_branches"}}</option>
+							{{range .Branches}}
+								<option value="{{.}}">{{.}}</option>
+							{{end}}
+						</select>
+					</div>
 				</div>
 				<div class="inline field {{if .Err_Description}}error{{end}}">
 					<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>

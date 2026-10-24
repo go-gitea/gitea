@@ -199,7 +199,7 @@ onBeforeUnmount(() => {
               {{ locale.rerun_all }}
             </button>
           </template>
-          <div v-if="run.attempts.length > 1" class="dropdown-container" data-placement="bottom-end">
+          <div v-if="run.attempts.length > 1" class="dropdown-container">
             <button type="button" class="dropdown-trigger ui basic small compact button">
               <SvgIcon name="octicon-history" :size="14"/>
               <span>{{ formatCurrentAttemptTitle(run.attempts.find((attempt) => attempt.current)!) }}</span>

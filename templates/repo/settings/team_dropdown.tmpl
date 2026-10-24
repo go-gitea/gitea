@@ -1,20 +1,12 @@
-{{$selectedIDs := StringUtils.Split (or .Value "") ","}}
-{{$selectedNames := ""}}
-{{range .Teams}}
-	{{if SliceUtils.Contains $selectedIDs (StringUtils.ToString .ID)}}
-		{{$selectedNames = print $selectedNames (Iif $selectedNames ", " "") .Name}}
-	{{end}}
-{{end}}
 <div class="dropdown-container" data-kind="multiselect">
 	<input type="hidden" class="dropdown-value" name="{{.Name}}" value="{{.Value}}">
-	<button type="button" class="dropdown-trigger dropdown-field">
-		<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "search.team_kind"}}">{{or $selectedNames (ctx.Locale.Tr "search.team_kind")}}</span>
-		{{svg "octicon-triangle-down" 14}}
-	</button>
+	<div class="dropdown-trigger dropdown-field dropdown-search-field">
+		<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "search.team_kind"}}">
+		<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "search.team_kind"}}">{{ctx.Locale.Tr "search.team_kind"}}</span>
+	</div>
 	<div class="dropdown-popup">
-		<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "search.team_kind"}}">
 		{{range .Teams}}
-			<div class="dropdown-item" data-value="{{.ID}}" data-text="{{.Name}}">
+			<div class="dropdown-item" data-value="{{.ID}}">
 				{{svg "octicon-people"}}
 				{{.Name}}
 			</div>

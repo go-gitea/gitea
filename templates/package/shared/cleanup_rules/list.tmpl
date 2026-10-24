@@ -40,9 +40,9 @@
 					{{end}}
 				</div>
 				<div class="item-trailing">
-					<div class="dropdown-container" data-placement="bottom-end">
+					<div class="dropdown-container">
 						<button type="button" class="dropdown-trigger ui tiny basic button" aria-label="{{ctx.Locale.Tr "more_items"}}">{{svg "octicon-kebab-horizontal"}}</button>
-						<div class="dropdown-popup">
+						<div class="dropdown-popup dropdown-popup-button">
 							<a class="dropdown-item" href="{{$.Link}}/rules/{{.ID}}">{{ctx.Locale.Tr "edit"}}</a>
 							<a class="dropdown-item" href="{{$.Link}}/rules/{{.ID}}/preview">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.preview"}}</a>
 						</div>

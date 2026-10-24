@@ -38,13 +38,13 @@
 
 	<div class="navbar-list navbar-right">
 		{{if and .IsSigned .MustChangePassword}}
-			<div class="dropdown-container" data-placement="bottom-end">
+			<div class="dropdown-container">
 				<button type="button" class="dropdown-trigger item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24}}
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 				</button>
-				<div class="dropdown-popup dropdown-popup-inline user-menu">
+				<div class="dropdown-popup user-menu">
 					<div class="dropdown-header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
@@ -55,13 +55,13 @@
 				</div>
 			</div>
 		{{else if .IsSigned}}
-			<div class="dropdown-container" data-placement="bottom-end">
+			<div class="dropdown-container">
 				<button type="button" class="dropdown-trigger item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
 					{{svg "octicon-plus"}}
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 					<span class="only-mobile">{{ctx.Locale.Tr "create_new"}}</span>
 				</button>
-				<div class="dropdown-popup dropdown-popup-inline">
+				<div class="dropdown-popup">
 					<a class="dropdown-item" href="{{AppSubUrl}}/repo/create">
 						{{svg "octicon-plus"}} {{ctx.Locale.Tr "new_repo"}}
 					</a>
@@ -78,7 +78,7 @@
 				</div>
 			</div>
 
-			<div class="dropdown-container" data-signed-in-username="{{.SignedUser.Name}}" data-placement="bottom-end">
+			<div class="dropdown-container" data-signed-in-username="{{.SignedUser.Name}}">
 				<button type="button" class="dropdown-trigger item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 					<span class="navbar-avatar">
 						{{ctx.AvatarUtils.Avatar .SignedUser 24}}
@@ -87,7 +87,7 @@
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 				</button>
-				<div class="dropdown-popup dropdown-popup-inline user-menu">
+				<div class="dropdown-popup user-menu">
 					<div class="dropdown-header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>

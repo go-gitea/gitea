@@ -10,13 +10,18 @@
 						<span>{{ctx.Locale.Tr "repo.wiki.page"}}: <strong>{{$title}}</strong></span>
 						{{svg "octicon-triangle-down" 14}}
 					</button>
-					<div class="dropdown-popup">
-						<input type="search" class="dropdown-filter" aria-label="{{ctx.Locale.Tr "repo.wiki.filter_page"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.filter_page"}}...">
-						<a class="dropdown-item muted" href="{{.RepoLink}}/wiki/?action=_pages">{{ctx.Locale.Tr "repo.wiki.pages"}}</a>
-						<div class="dropdown-divider"></div>
-						{{range .Pages}}
-							<a class="dropdown-item {{if eq $.Title .Name}}active{{end}}" href="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</a>
-						{{end}}
+					<div class="dropdown-popup dropdown-popup-floating">
+						<div class="ui icon search input">
+							<i class="icon">{{svg "octicon-filter" 16}}</i>
+							<input type="text" class="dropdown-filter" aria-label="{{ctx.Locale.Tr "repo.wiki.filter_page"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.filter_page"}}...">
+						</div>
+						<div class="dropdown-list">
+							<a class="dropdown-item muted" href="{{.RepoLink}}/wiki/?action=_pages">{{ctx.Locale.Tr "repo.wiki.pages"}}</a>
+							<div class="dropdown-divider"></div>
+							{{range .Pages}}
+								<a class="dropdown-item {{if eq $.Title .Name}}active{{end}}" href="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</a>
+							{{end}}
+						</div>
 					</div>
 				</div>
 			</div>

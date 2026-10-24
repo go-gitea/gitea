@@ -12,28 +12,34 @@
 				</div>
 				<div class="required field">
 					<label for="user_type">{{ctx.Locale.Tr "admin.users.user_type"}}</label>
-					<select id="user_type" autocomplete="off" name="user_type" required>
-						<option value="User" {{if eq $.user_type "User"}}selected{{end}}>{{ctx.Locale.Tr "concept_user_user"}}</option>
-						<option value="Bot" {{if eq $.user_type "Bot"}}selected{{end}}>{{ctx.Locale.Tr "concept_user_bot"}}</option>
-					</select>
+					<div class="select-field">
+						<select id="user_type" autocomplete="off" name="user_type" required>
+							<option value="User" {{if eq $.user_type "User"}}selected{{end}}>{{ctx.Locale.Tr "concept_user_user"}}</option>
+							<option value="Bot" {{if eq $.user_type "Bot"}}selected{{end}}>{{ctx.Locale.Tr "concept_user_bot"}}</option>
+						</select>
+					</div>
 				</div>
 				<div class="required field js-non-bot {{if .Err_LoginType}}error{{end}}">
 					<label for="login_type">{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
-					<select id="login_type" autocomplete="off" name="login_type" required>
-						<option value="0-0" {{if eq $.login_type "0-0"}}selected{{end}}>{{ctx.Locale.Tr "admin.users.local"}}</option>
-						{{range .Sources}}
-							<option value="{{.Type.Int}}-{{.ID}}" {{if eq $.login_type (printf "%d-%d" .Type.Int .ID)}}selected{{end}}>{{.Name}}</option>
-						{{end}}
-					</select>
+					<div class="select-field">
+						<select id="login_type" autocomplete="off" name="login_type" required>
+							<option value="0-0" {{if eq $.login_type "0-0"}}selected{{end}}>{{ctx.Locale.Tr "admin.users.local"}}</option>
+							{{range .Sources}}
+								<option value="{{.Type.Int}}-{{.ID}}" {{if eq $.login_type (printf "%d-%d" .Type.Int .ID)}}selected{{end}}>{{.Name}}</option>
+							{{end}}
+						</select>
+					</div>
 				</div>
 
 				<div class="required field {{if .Err_Visibility}}error{{end}}">
 					<label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label>
-					<select id="visibility" name="visibility">
-						{{range $mode := .AllowedUserVisibilityModes}}
-							<option value="{{printf "%d" $mode}}" {{if eq (Iif $.visibility $.visibility $.DefaultUserVisibilityMode) $mode}}selected{{end}} title="{{ctx.Locale.Tr (printf "settings.visibility.%s_tooltip" $mode.String)}}">{{ctx.Locale.Tr (print "settings.visibility." $mode.String)}}</option>
-						{{end}}
-					</select>
+					<div class="select-field">
+						<select id="visibility" name="visibility">
+							{{range $mode := .AllowedUserVisibilityModes}}
+								<option value="{{printf "%d" $mode}}" {{if eq (Iif $.visibility $.visibility $.DefaultUserVisibilityMode) $mode}}selected{{end}} title="{{ctx.Locale.Tr (printf "settings.visibility.%s_tooltip" $mode.String)}}">{{ctx.Locale.Tr (print "settings.visibility." $mode.String)}}</option>
+							{{end}}
+						</select>
+					</div>
 				</div>
 
 				<div class="required js-non-local js-non-bot field {{if .Err_LoginName}}error{{end}} {{if eq .login_type "0-0"}}tw-hidden{{end}}">

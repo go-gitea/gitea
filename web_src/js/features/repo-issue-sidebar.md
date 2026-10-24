@@ -6,11 +6,16 @@ A sidebar combo (dropdown+list) is like this:
   <div class="dropdown-container" data-keep-open>
     <button type="button" class="dropdown-trigger btn">Select items</button>
     <div class="dropdown-popup issue-sidebar-popup">
-      <input class="dropdown-filter" type="search" placeholder="Filter items">
-      <div class="dropdown-item clear-selection">clear</div>
-      <div class="dropdown-item item" data-value="..." data-scope="...">
-        <span class="item-check-mark">...</span>
-        ...
+      <div class="ui icon search input">
+        <i class="icon">{{svg "octicon-search" 16}}</i>
+        <input class="dropdown-filter" type="text" placeholder="Filter items">
+      </div>
+      <div class="dropdown-list">
+        <div class="dropdown-item clear-selection active">clear</div>
+        <div class="dropdown-item item" data-value="..." data-scope="...">
+          <span class="item-check-mark">...</span>
+          ...
+        </div>
       </div>
     </div>
   </div>

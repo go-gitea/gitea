@@ -52,12 +52,14 @@
 					</div>
 
 					<div class="field">
-						<select name="reason">
-							<option value=""></option>
-							{{range .LockReasons}}
-								<option value="{{.}}">{{.}}</option>
-							{{end}}
-						</select>
+						<div class="select-field">
+							<select name="reason">
+								<option value=""></option>
+								{{range .LockReasons}}
+									<option value="{{.}}">{{.}}</option>
+								{{end}}
+							</select>
+						</div>
 					</div>
 				{{end}}
 

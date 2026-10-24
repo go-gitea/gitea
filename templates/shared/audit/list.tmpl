@@ -6,20 +6,24 @@
 			{{template "shared/search/button"}}
 		</div>
 		<div class="ui small input">
-			<select name="action">
-				<option value="">{{ctx.Locale.Tr "audit.filter.action"}}</option>
-				{{range $action := .AuditActions}}
-					<option{{if eq $.AuditFilterAction (print $action)}} selected{{end}} value="{{$action}}">{{$action}}</option>
-				{{end}}
-			</select>
+			<div class="select-field">
+				<select name="action">
+					<option value="">{{ctx.Locale.Tr "audit.filter.action"}}</option>
+					{{range $action := .AuditActions}}
+						<option{{if eq $.AuditFilterAction (print $action)}} selected{{end}} value="{{$action}}">{{$action}}</option>
+					{{end}}
+				</select>
+			</div>
 		</div>
 		<div class="ui small input">
-			<select name="origin">
-				<option value="">{{ctx.Locale.Tr "audit.filter.origin"}}</option>
-				{{range $origin := .AuditOrigins}}
-					<option{{if eq $.AuditFilterOrigin (print $origin)}} selected{{end}} value="{{$origin}}">{{$origin}}</option>
-				{{end}}
-			</select>
+			<div class="select-field">
+				<select name="origin">
+					<option value="">{{ctx.Locale.Tr "audit.filter.origin"}}</option>
+					{{range $origin := .AuditOrigins}}
+						<option{{if eq $.AuditFilterOrigin (print $origin)}} selected{{end}} value="{{$origin}}">{{$origin}}</option>
+					{{end}}
+				</select>
+			</div>
 		</div>
 	</form>
 </div>

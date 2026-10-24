@@ -64,13 +64,12 @@
 		<div class="field">
 			<label>Filter and rich items</label>
 			<div class="dropdown-container" data-kind="select">
-				<button type="button" class="dropdown-trigger dropdown-field">
+				<div class="dropdown-trigger dropdown-field dropdown-search-field">
+					<input class="dropdown-filter" type="text" aria-label="Filter repositories">
 					<span class="dropdown-text">{{svg "octicon-repo"}} Repository 1</span>
-					{{svg "octicon-triangle-down" 14}}
-				</button>
+				</div>
 				<input type="hidden" class="dropdown-value" name="repo" value="1">
 				<div class="dropdown-popup">
-					<input class="dropdown-filter" type="search" placeholder="Filter repositories">
 					{{range $i := 30}}
 					<div class="dropdown-item" data-value="{{$i}}">{{svg "octicon-repo"}} Repository {{$i}}</div>
 					{{end}}
@@ -80,13 +79,12 @@
 		<div class="field">
 			<label>Scoped dividers</label>
 			<div class="dropdown-container" data-kind="select">
-				<button type="button" class="dropdown-trigger dropdown-field">
+				<div class="dropdown-trigger dropdown-field dropdown-search-field">
+					<input class="dropdown-filter" type="text" aria-label="Filter labels">
 					<span class="dropdown-text" data-placeholder="Pick a label">Pick a label</span>
-					{{svg "octicon-triangle-down" 14}}
-				</button>
+				</div>
 				<input type="hidden" class="dropdown-value" name="label" value="">
 				<div class="dropdown-popup">
-					<input class="dropdown-filter" type="search" placeholder="Filter labels">
 					<div class="dropdown-item" data-value="bug">bug</div>
 					<div class="dropdown-divider" data-scope="kind"></div>
 					<div class="dropdown-item" data-value="kind/feature" data-scope="kind">kind/feature</div>
@@ -101,13 +99,12 @@
 		<div class="field">
 			<label>Multiselect</label>
 			<div class="dropdown-container" data-kind="multiselect">
-				<button type="button" class="dropdown-trigger dropdown-field">
-					<span class="dropdown-text" data-placeholder="Pick colors">Red, Blue</span>
-					{{svg "octicon-triangle-down" 14}}
-				</button>
+				<div class="dropdown-trigger dropdown-field dropdown-search-field">
+					<input class="dropdown-filter" type="text" aria-label="Filter colors">
+					<span class="dropdown-text" data-placeholder="Pick colors">Pick colors</span>
+				</div>
 				<input type="hidden" class="dropdown-value" name="colors" value="red,blue">
 				<div class="dropdown-popup">
-					<input class="dropdown-filter" type="search" placeholder="Filter colors">
 					<div class="dropdown-item" data-value="red">Red</div>
 					<div class="dropdown-item" data-value="green">Green</div>
 					<div class="dropdown-item" data-value="blue">Blue</div>
@@ -117,13 +114,12 @@
 		<div class="field">
 			<label>Remote items, type "error" to fail the request</label>
 			<div class="dropdown-container" data-kind="select" data-global-init="initDevtestDropdownRemote">
-				<button type="button" class="dropdown-trigger dropdown-field">
+				<div class="dropdown-trigger dropdown-field dropdown-search-field">
+					<input class="dropdown-filter" type="text" aria-label="Search">
 					<span class="dropdown-text" data-placeholder="Search remote items">Search remote items</span>
-					{{svg "octicon-triangle-down" 14}}
-				</button>
+				</div>
 				<input type="hidden" class="dropdown-value" name="remote" value="">
 				<div class="dropdown-popup">
-					<input class="dropdown-filter" type="search" placeholder="Search">
 				</div>
 			</div>
 		</div>

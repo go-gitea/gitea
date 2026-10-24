@@ -18,8 +18,11 @@
 <!-- Project -->
 <div class="dropdown-container project-filter" data-placement="bottom-end">
 	<button type="button" class="dropdown-trigger item btn" {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}}>{{ctx.Locale.Tr "repo.issues.filter_project"}} {{svg "octicon-triangle-down" 14}}</button>
-	<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
-		<input class="dropdown-filter" type="search" placeholder="{{ctx.Locale.Tr "repo.issues.filter_project"}}">
+	<div class="dropdown-popup dropdown-popup-flex dropdown-popup-menu issue-filter-popup">
+		<div class="ui icon search input">
+			<i class="icon">{{svg "octicon-search" 16}}</i>
+			<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_project"}}">
+		</div>
 		<a class="dropdown-item {{if $showAllProjects}}active{{end}}" href="{{QueryBuild $queryLink "project" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_project_all"}}</a>
 		<a class="dropdown-item {{if $showNoProjectSelected}}active{{end}}" href="{{QueryBuild $queryLink "project" -1}}">{{ctx.Locale.Tr "repo.issues.filter_project_none"}}</a>
 		{{if .OpenProjects}}

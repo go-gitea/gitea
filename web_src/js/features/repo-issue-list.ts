@@ -97,9 +97,20 @@ function initDropdownUserRemoteSearch(el: HTMLElement) {
         item.classList.toggle('active', selectedUsername.toLowerCase() === poster.username.toLowerCase());
         return item;
       });
-      if (!query) return [clearItem, ...items];
-      if (!items.length) items.push(createElementFromAttrs('a', {class: 'dropdown-item active', href: getUserUrl(query)}, query));
-      return [...items, clearItem];
+      if (query && !items.length) {
+        const queryItem = createElementFromAttrs('a', {class: 'dropdown-item', href: getUserUrl(query)}, query);
+        if (searchUrl) {
+          queryItem.classList.add('active');
+          clearItem.classList.remove('active');
+          return [clearItem, queryItem];
+        }
+        let matched = 0; // without a search url, "all users" stays while it fuzzy-matches the query
+        for (const char of clearItem.textContent.toLowerCase()) if (char === query.toLowerCase()[matched]) matched++;
+        clearItem.classList.toggle('active', matched === query.length);
+        return matched === query.length ? [clearItem, queryItem] : [queryItem];
+      }
+      clearItem.classList.toggle('active', Boolean(searchUrl) && !selectedUsername);
+      return [clearItem, ...items];
     },
   });
 }
