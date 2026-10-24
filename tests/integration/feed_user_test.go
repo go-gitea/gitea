@@ -46,20 +46,21 @@ func TestFeedUser(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	readUser := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
-	readPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
 	for _, tc := range []struct {
 		link, accept, token, privateMarker string
 		visible                            bool
 	}{
 		{"/user2.rss", "", readUser, "user2/repo2", true},
 		{"/user2", "application/rss+xml", readUser, "user2/repo2", true},
-		{"/user2.rss", "", readPackage, "user2/repo2", false},
 		{"/user2.rss", "", getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly), "user2/repo2", false},
 		{"/org3.rss", "", getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization), "org3/repo3", true},
-		{"/org3.rss", "", readPackage, "org3/repo3", false},
 		{"/user2?tab=activity", "", getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll), "user2/repo2", false},
 	} {
 		req := NewRequest(t, "GET", tc.link).SetHeader("Accept", tc.accept).AddBasicAuth("user2", tc.token)
 		assert.Equal(t, tc.visible, strings.Contains(MakeRequest(t, req, http.StatusOK).Body.String(), tc.privateMarker), tc.link)
+	}
+	readPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
+	for _, link := range []string{"/user2.rss", "/org3.rss"} {
+		MakeRequest(t, NewRequest(t, "GET", link).AddBasicAuth("user2", readPackage), http.StatusForbidden)
 	}
 }

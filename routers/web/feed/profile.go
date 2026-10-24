@@ -33,15 +33,14 @@ func ShowUserFeedAtom(ctx *context.Context) {
 // showUserFeed show user activity as RSS / Atom feed
 func showUserFeed(ctx *context.Context, formatType string) {
 	isOrganisation := ctx.ContextUser.IsOrganization()
-	scope, isToken := user_model.GetDoerTokenScope(ctx.Doer)
-	hasReadScope, _ := scope.HasScope(util.Iif(isOrganisation, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser))
-	if isToken && (!hasReadScope || user_model.IsPublicOnlyDoer(ctx.Doer)) || ctx.Doer != nil && ctx.Doer.ID <= 0 {
-		ctx.Doer, ctx.IsSigned = nil, false // under-scoped tokens and system doers get the anonymous feed, rendering included
-	}
 	if !setting.Other.EnableFeed ||
 		isOrganisation && !organization.HasOrgOrUserVisible(ctx, ctx.ContextUser, ctx.Doer) ||
 		!isOrganisation && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 		ctx.NotFound(nil)
+		return
+	}
+	context.CheckTokenScopes(ctx, util.Iif(isOrganisation, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser))
+	if ctx.Written() {
 		return
 	}
 
