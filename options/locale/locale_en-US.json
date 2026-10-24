@@ -1110,6 +1110,8 @@
   "repo.migrate.invalid_lfs_endpoint": "The LFS endpoint is not valid.",
   "repo.migrate.failed": "Migration failed: %v",
   "repo.migrate.migrate_items_options": "Access Token is required to migrate additional items",
+  "repo.migrate.sync_metadata": "Sync metadata (read-only)",
+  "repo.migrate.sync_metadata_desc": "Keep the selected items in sync with the remote on each mirror update, including their comments, reviews, labels and milestones. Synced issues and pull requests are shown read-only.",
   "repo.migrated_from": "Migrated from <a href=\"%[1]s\">%[2]s</a>",
   "repo.migrated_from_fake": "Migrated From %[1]s",
   "repo.migrate.migrate": "Migrate From %s",

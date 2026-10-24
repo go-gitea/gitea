@@ -68,6 +68,19 @@
 					</div>
 				</div>
 
+				<div id="migrate_sync_items" class="inline field {{if not .mirror}}tw-hidden{{end}}">
+					<label>{{ctx.Locale.Tr "repo.migrate.sync_metadata"}}</label>
+					<div class="ui checkbox">
+						<input name="sync_issues" type="checkbox" {{if .sync_issues}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.migrate_items_issues"}}</label>
+					</div>
+					<div class="ui checkbox">
+						<input name="sync_pull_requests" type="checkbox" {{if .sync_pull_requests}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.migrate_items_pullrequests"}}</label>
+					</div>
+					<span class="help">{{ctx.Locale.Tr "repo.migrate.sync_metadata_desc"}}</span>
+				</div>
+
 				<div class="divider"></div>
 
 				{{template "repo/migrate/common-migrated-repo"}}
