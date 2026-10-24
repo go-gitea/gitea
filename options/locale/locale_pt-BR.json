@@ -3275,6 +3275,8 @@
   "projects.type-3.display_name": "Projeto da Organização",
   "projects.enter_fullscreen": "Tela cheia",
   "projects.exit_fullscreen": "Sair da Tela Cheia",
+  "projects.workflows.actions": "Ações",
+  "projects.workflows.none": "Nenhum",
   "git.filemode.directory": "Diretório",
   "git.filemode.submodule": "Submódulo",
   "actions.general.token_permissions.mode.restricted": "Restrito"

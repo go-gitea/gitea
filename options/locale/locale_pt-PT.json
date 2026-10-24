@@ -3984,6 +3984,8 @@
   "projects.type-3.display_name": "Planeamento da organização",
   "projects.enter_fullscreen": "Ecrã inteiro",
   "projects.exit_fullscreen": "Sair do ecrã inteiro",
+  "projects.workflows.actions": "Operações (Actions)",
+  "projects.workflows.none": "Nenhum",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",
   "git.filemode.directory": "Pasta",
   "git.filemode.normal_file": "Normal",
