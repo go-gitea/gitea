@@ -219,6 +219,11 @@ export class Dropdown {
     } else if (onOwner && !this.filterInput && (e.key === 'Home' || e.key === 'End')) {
       const items = this.navigableItems();
       this.highlight((e.key === 'Home' ? items[0] : items.at(-1)) ?? null);
+    } else if (onOwner && (e.key === 'PageDown' || e.key === 'PageUp')) {
+      const items = this.navigableItems();
+      const pageSize = Math.max(1, Math.floor(this.popup.clientHeight / (items[0]?.offsetHeight || 1)));
+      const index = (this.highlighted ? items.indexOf(this.highlighted) : -1) + (e.key === 'PageDown' ? pageSize : -pageSize);
+      this.highlight(items[Math.min(Math.max(index, 0), items.length - 1)] ?? null);
     } else if (onOwner && this.highlighted && this.popup.contains(this.highlighted) && (e.key === 'Enter' || (e.key === ' ' && !this.filterInput))) {
       this.highlighted.dispatchEvent(new MouseEvent('click', {
         bubbles: true, cancelable: true, view: window,
@@ -240,7 +245,7 @@ export class Dropdown {
       if (!stop || radio === e.target || (radio.checked && stop !== e.target)) radioStops.set(radio.name, radio);
     }
     const tabbables = Array.from(this.popup.querySelectorAll<HTMLElement>('input, button, select, textarea, a[href], [tabindex]'))
-      .filter((el) => el.tabIndex >= 0 && !el.matches(':disabled') && isElemVisible(el))
+      .filter((el) => el.tabIndex >= 0 && !el.matches(':disabled, .dropdown-item') && isElemVisible(el))
       .filter((el) => !(el instanceof HTMLInputElement && el.type === 'radio' && el.name) || radioStops.get(el.name) === el);
     const index = tabbables.indexOf(e.target as HTMLElement);
     if (e.shiftKey ? index > 0 : index < tabbables.length - 1) return;
@@ -249,10 +254,16 @@ export class Dropdown {
     if (e.shiftKey) e.preventDefault();
   }
 
+  // like a native select: repeating one letter cycles through the items starting with it
   onTypeAhead(key: string) {
-    this.typeAhead += key.toLowerCase();
+    const char = key.toLowerCase();
+    this.typeAhead += char;
     this.resetTypeAhead();
-    const match = this.navigableItems().find((item) => item.textContent.trim().toLowerCase().startsWith(this.typeAhead));
+    const items = this.navigableItems();
+    const isCycling = this.typeAhead === char.repeat(this.typeAhead.length);
+    const start = isCycling && this.highlighted ? items.indexOf(this.highlighted) + 1 : 0;
+    const prefix = isCycling ? char : this.typeAhead;
+    const match = [...items.slice(start), ...items.slice(0, start)].find((item) => item.textContent.trim().toLowerCase().startsWith(prefix));
     if (match) this.highlight(match);
   }
 

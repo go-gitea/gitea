@@ -98,8 +98,8 @@ function initDropdownUserRemoteSearch(el: HTMLElement) {
         return item;
       });
       if (!query) return [clearItem, ...items];
-      if (!items.length) return [createElementFromAttrs('a', {class: 'dropdown-item active', href: getUserUrl(query)}, query)];
-      return items;
+      if (!items.length) items.push(createElementFromAttrs('a', {class: 'dropdown-item active', href: getUserUrl(query)}, query));
+      return [...items, clearItem];
     },
   });
 }
