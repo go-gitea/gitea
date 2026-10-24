@@ -40,8 +40,9 @@ func testPullDiffSingleHeadCommitReviewFormAction(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 
-	btn := doc.Find(".js-btn-review")
-	assert.True(t, btn.Length() == 1 && !btn.HasClass("disabled"))
+	btn := doc.Find(".review-box-button")
+	require.Equal(t, 1, btn.Length())
+	assert.False(t, btn.Is("[disabled]"))
 	form := doc.Find(".review-box-panel form")
 	assert.Equal(t, 1, form.Length())
 	assert.Equal(t, "/user2/commitsonpr/pulls/1/files/reviews/submit", form.AttrOr("action", ""))
@@ -70,7 +71,9 @@ func testPullDiffAssertPage(t *testing.T, prDiffURL string, reviewBtnDisabled bo
 	})
 
 	// Ensure the review button is enabled for full PR reviews
-	assert.Equal(t, reviewBtnDisabled, doc.Find(".js-btn-review").HasClass("disabled"))
+	btn := doc.Find(".review-box-button")
+	require.Equal(t, 1, btn.Length())
+	assert.Equal(t, reviewBtnDisabled, btn.Is("[disabled]"))
 }
 
 func TestLongLineDiffRendering(t *testing.T) {

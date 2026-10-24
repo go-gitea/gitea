@@ -437,7 +437,7 @@ type IssuePayload struct {
 	Action HookIssueAction `json:"action"`
 	// The index number of the issue
 	Index int64 `json:"number"`
-	// Changes made to the issue (for edit actions)
+	// Changes made to the issue
 	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The issue that was acted upon
 	Issue *Issue `json:"issue"`
@@ -474,6 +474,10 @@ type ChangesPayload struct {
 	AddedLabels []*Label `json:"added_labels"`
 	// Changes made to the labels removed
 	RemovedLabels []*Label `json:"removed_labels"`
+	// Assignees added
+	AddedAssignees []*User `json:"added_assignees,omitempty"`
+	// Assignees removed
+	RemovedAssignees []*User `json:"removed_assignees,omitempty"`
 }
 
 // PullRequestPayload represents a payload information of pull request event.
@@ -486,7 +490,7 @@ type PullRequestPayload struct {
 	After string `json:"after,omitempty"`
 	// The index number of the pull request
 	Index int64 `json:"number"`
-	// Changes made to the pull request (for edit actions)
+	// Changes made to the pull request
 	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The pull request that was acted upon
 	PullRequest *PullRequest `json:"pull_request"`
@@ -509,7 +513,7 @@ func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
 
 // ReviewPayload FIXME
 type ReviewPayload struct {
-	// The type of review (approved, rejected, comment)
+	// The review event type: pull_request_review_approved, pull_request_review_rejected or pull_request_review_comment
 	Type string `json:"type"`
 	// The content/body of the review
 	Content string `json:"content"`

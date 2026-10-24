@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitea.dev/modules/consts"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -140,6 +142,10 @@ func TestMisc_IsReadmeFileName(t *testing.T) {
 		assert.Equal(t, testCase.expected, ok)
 		assert.Equal(t, testCase.idx, idx)
 	}
+
+	idx, ok := IsReadmeFileExtension("readme", ".md")
+	assert.False(t, ok)
+	assert.Zero(t, idx)
 }
 
 func TestCleanPath(t *testing.T) {
@@ -182,7 +188,7 @@ func TestCleanPath(t *testing.T) {
 	}
 
 	// for POSIX only, but the result is similar on Windows, because the first element must be an absolute path
-	if isOSWindows {
+	if consts.IsWindows {
 		cases = []struct {
 			elems    []string
 			expected string

@@ -16,7 +16,7 @@ function initMermaidViewController(viewController: Element, dragElement: SVGSVGE
 
   for (const el of viewController.querySelectorAll('[data-control-action]')) {
     el.addEventListener('click', () => {
-      switch (el.getAttribute('data-control-action')) {
+      switch (el.getAttribute('data-control-action')!) {
         case 'zoom-in':
           scale *= 1.2;
           break;
@@ -110,7 +110,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       // create an iframe to sandbox the svg with styles, and set correct height by reading svg's viewBox height
       const iframe = document.createElement('iframe');
       iframe.classList.add('markup-content-iframe', 'tw-invisible');
-      iframe.srcdoc = '<style>body { margin: 0; overflow: hidden; } #mermaid { display: block; margin: 0 auto; }</style>';
+      iframe.srcdoc = html`<style>body { margin: 0; overflow: hidden; } #mermaid { display: block; margin: 0 auto; }</style>`;
       const viewBoxHeight = svgNode.viewBox.baseVal?.height;
       if (viewBoxHeight) iframe.style.height = `${Math.max(Math.ceil(viewBoxHeight), 85)}px`; // min-height keeps the buttons from overlapping
 

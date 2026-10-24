@@ -51,6 +51,7 @@ type StandalonePageOptions struct {
 
 type RenderOptions struct {
 	UseAbsoluteLink bool
+	FeedExcerpt     bool
 
 	// relative path from tree root of the branch
 	RelativePath string

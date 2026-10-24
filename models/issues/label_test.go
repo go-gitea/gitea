@@ -191,6 +191,8 @@ func TestGetLabelsInRepoByIDs(t *testing.T) {
 
 func TestGetLabelsByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	_, err := db.GetEngine(t.Context()).ID(2).Cols("num_issues", "num_closed_issues").Update(&issues_model.Label{NumIssues: 3, NumClosedIssues: 3})
+	assert.NoError(t, err)
 	testSuccess := func(repoID int64, sortType string, expectedIssueIDs []int64) {
 		labels, err := issues_model.GetLabelsByRepoID(t.Context(), repoID, sortType, db.ListOptions{})
 		assert.NoError(t, err)
@@ -258,6 +260,8 @@ func TestGetLabelsInOrgByIDs(t *testing.T) {
 
 func TestGetLabelsByOrgID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	_, err := db.GetEngine(t.Context()).ID(3).Cols("num_issues", "num_closed_issues").Update(&issues_model.Label{NumIssues: 3, NumClosedIssues: 3})
+	assert.NoError(t, err)
 	testSuccess := func(orgID int64, sortType string, expectedIssueIDs []int64) {
 		labels, err := issues_model.GetLabelsByOrgID(t.Context(), orgID, sortType, db.ListOptions{})
 		assert.NoError(t, err)
@@ -271,7 +275,7 @@ func TestGetLabelsByOrgID(t *testing.T) {
 	testSuccess(3, "reversealphabetically", []int64{4, 3})
 	testSuccess(3, "default", []int64{3, 4})
 
-	_, err := issues_model.GetLabelsByOrgID(t.Context(), 0, "leastissues", db.ListOptions{})
+	_, err = issues_model.GetLabelsByOrgID(t.Context(), 0, "leastissues", db.ListOptions{})
 	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
 
 	_, err = issues_model.GetLabelsByOrgID(t.Context(), -1, "leastissues", db.ListOptions{})
@@ -320,13 +324,29 @@ func TestUpdateLabel(t *testing.T) {
 func TestDeleteLabel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
-	assert.NoError(t, issues_model.DeleteLabel(t.Context(), label.RepoID, label.ID))
+	orgLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 3})
+	repoLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 10, RepoID: orgLabel.OrgID})
+	assert.NoError(t, issues_model.DeleteOrgLabel(t.Context(), repoLabel.RepoID, repoLabel.ID))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: repoLabel.ID})
+
+	assert.NoError(t, issues_model.DeleteRepoLabel(t.Context(), orgLabel.OrgID, orgLabel.ID))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: orgLabel.ID})
+
+	assert.NoError(t, issues_model.DeleteOrgLabel(t.Context(), unittest.NonexistentID, orgLabel.ID))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: orgLabel.ID})
+	assert.NoError(t, issues_model.DeleteOrgLabel(t.Context(), orgLabel.OrgID, orgLabel.ID))
+	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: orgLabel.ID})
+
+	assert.NoError(t, issues_model.DeleteRepoLabel(t.Context(), unittest.NonexistentID, label.ID))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: label.ID})
+	assert.NoError(t, issues_model.DeleteRepoLabel(t.Context(), label.RepoID, label.ID))
 	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: label.ID, RepoID: label.RepoID})
 
-	assert.NoError(t, issues_model.DeleteLabel(t.Context(), label.RepoID, label.ID))
+	assert.NoError(t, issues_model.DeleteRepoLabel(t.Context(), label.RepoID, label.ID))
 	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: label.ID})
 
-	assert.NoError(t, issues_model.DeleteLabel(t.Context(), unittest.NonexistentID, unittest.NonexistentID))
+	assert.NoError(t, issues_model.DeleteRepoLabel(t.Context(), unittest.NonexistentID, unittest.NonexistentID))
+	assert.NoError(t, issues_model.DeleteOrgLabel(t.Context(), unittest.NonexistentID, unittest.NonexistentID))
 	unittest.CheckConsistencyFor(t, &issues_model.Label{}, &repo_model.Repository{})
 }
 

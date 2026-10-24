@@ -61,6 +61,11 @@ func TestReplacers(t *testing.T) {
 	}
 }
 
+func TestMain(m *testing.M) {
+	setting.SetupGiteaTestEnv()
+	m.Run()
+}
+
 const (
 	testInputWithEmojis = "This is a test string containing some emojis like \U0001f44d and \U0001f37a and some text in between."
 	testInputNoEmojis   = "This is a test string containing no emojis at all, just plain old ASCII text, which should ideally be scanned very quickly by our trie implementation."
@@ -88,6 +93,14 @@ func TestFindEmojiSubmatchIndex(t *testing.T) {
 		{
 			"\u0001\U0001f44d",
 			[]int{1, 1 + len("\U0001f44d")},
+		},
+		{
+			"👩🏿‍❤️‍👩🏿",
+			[]int{0, len("👩🏿‍❤️‍👩🏿")},
+		},
+		{
+			"🏽👍",
+			[]int{len("🏽"), len("🏽👍")},
 		},
 		{
 			// This package can handle keycap emoji if it is registered in the emoji data.
