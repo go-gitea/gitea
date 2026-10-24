@@ -415,7 +415,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 	ctx.Data["AssigneeID"] = assigneeID
 
-	renderMilestones(ctx)
+	renderMilestones(ctx, project.ID)
 	if ctx.Written() {
 		return
 	}

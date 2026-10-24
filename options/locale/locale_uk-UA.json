@@ -3064,6 +3064,8 @@
   "projects.type-3.display_name": "Проєкт організації",
   "projects.enter_fullscreen": "Повноекранний режим",
   "projects.exit_fullscreen": "Вийти з повноекранного режиму",
+  "projects.workflows.actions": "Дії",
+  "projects.workflows.none": "Відсутній",
   "git.filemode.directory": "Тека",
   "git.filemode.submodule": "Підмодуль",
   "actions.general.token_permissions.mode.restricted": "Обмежено"
