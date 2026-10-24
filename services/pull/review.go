@@ -257,7 +257,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			commitID = headCommitID
 		}
 
-		patch, err = gitdiff.GetCodeCommentPatch(ctx, gitRepo, pr.MergeBase, headCommitID, treePath, line)
+		patch, err = gitdiff.GetCodeCommentPatch(ctx, gitRepo, util.IfZero(pr.MergeBase, emptyTreeID(pr)), headCommitID, treePath, line)
 		if err != nil {
 			return nil, err
 		}

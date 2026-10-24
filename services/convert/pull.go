@@ -212,11 +212,7 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			}
 		}
 
-		// Outer scope variables to be used in diff calculation
-		var (
-			startCommitID string
-			endCommitID   string
-		)
+		var endCommitID string
 
 		if !exist {
 			headCommitID, err := headGitRepo.GetRefCommitID(ctx, apiPullRequest.Head.Ref)
@@ -241,10 +237,10 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			}
 		}
 
-		// Calculate diff
-		startCommitID = pr.MergeBase
-
-		diffShortStats, err := gitdiff.GetDiffShortStat(ctx, gitRepo, &gitdiff.DiffCommonOptions{BeforeCommitID: startCommitID, AfterCommitID: endCommitID})
+		diffShortStats, err := gitdiff.GetDiffShortStat(ctx, gitRepo, &gitdiff.DiffCommonOptions{
+			BeforeCommitID: util.IfZero(pr.MergeBase, git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName).EmptyTree().String()),
+			AfterCommitID:  endCommitID,
+		})
 		if err != nil {
 			log.Error("GetDiffShortStat: %v", err)
 		} else {
