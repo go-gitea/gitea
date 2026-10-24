@@ -901,11 +901,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		if err := pull.LoadHeadRepo(ctx); err != nil {
 			log.Error("LoadHeadRepo: %v", err)
 		} else if pull.HeadRepo != nil {
-			perm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
-			if err != nil {
-				ctx.ServerError("GetDoerRepoPermission", err)
-				return
-			}
+			perm := prInfo.headRepoPerm
 			if perm.CanWrite(unit.TypeCode) {
 				if err := repo_service.CanDeleteBranchWithPermission(ctx, pull.HeadRepo, pull.HeadBranch, ctx.Doer, perm); err != nil {
 					if errors.Is(err, util.ErrPermissionDenied) {
@@ -945,7 +941,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	}
 
 	data.ShowMergeInstructions = canWriteToHeadRepo
-	data.ShowPullCommands = pull.HeadRepo != nil && !pull.HasMerged && !issue.IsClosed
+	data.ShowPullCommands = pull.HeadRepo != nil && !prInfo.headRepoHidden && !pull.HasMerged && !issue.IsClosed
 
 	prInfo.prepareMergeBoxProtectionChecks(ctx)
 	if ctx.Written() {

@@ -170,6 +170,12 @@ func TestAPIViewPulls(t *testing.T) {
 
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Index: visible.Index})
 		assert.NotNil(t, convert.ToPayloadPullRequest(t.Context(), pr, nil).Head.Repository)
+
+		for _, link := range []string{fmt.Sprintf("/user2/repo1/pulls/%d", visible.Index), "/user2/repo1/pulls"} {
+			body := MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body.String()
+			assert.Contains(t, body, "branch2")
+			assert.NotContains(t, body, "user31/repo1")
+		}
 	})
 }
 

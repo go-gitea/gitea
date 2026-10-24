@@ -24,6 +24,8 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
@@ -881,6 +883,34 @@ func formatSquashMergeCommitMessages(commits []*git.Commit) string {
 	}
 	buf = append(buf, '\n', '\n')
 	return util.UnsafeBytesToString(buf)
+}
+
+func GetHiddenHeadRepoIssueIDs(ctx context.Context, doer *user_model.User, issues issues_model.IssueList) (container.Set[int64], error) {
+	if err := issues.LoadPullRequests(ctx); err != nil {
+		return nil, err
+	}
+	if _, err := issues.LoadRepositories(ctx); err != nil {
+		return nil, err
+	}
+	hidden := container.Set[int64]{}
+	for _, issue := range issues {
+		pr := issue.PullRequest
+		if pr == nil || pr.HeadRepo == nil || pr.HeadRepoID == pr.BaseRepoID {
+			continue
+		}
+		perm, err := cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(pr.HeadRepoID, doer),
+			func(ctx context.Context, _key string) (access_model.Permission, error) {
+				return access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		if !perm.HasAnyUnitAccessOrPublicAccess() {
+			hidden.Add(issue.ID)
+		}
+	}
+	return hidden, nil
 }
 
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status.

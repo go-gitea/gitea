@@ -556,6 +556,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		ctx.ServerError("GetIssuesLastCommitStatus", err)
 		return
 	}
+	ctx.Data["HiddenHeadRepoIssueIDs"], err = pull_service.GetHiddenHeadRepoIssueIDs(ctx, ctx.Doer, issues)
+	if err != nil {
+		ctx.ServerError("GetHiddenHeadRepoIssueIDs", err)
+		return
+	}
 
 	// -------------------------------
 	// Fill stats to post to ctx.Data.

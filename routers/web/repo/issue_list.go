@@ -571,6 +571,11 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
 	}
+	ctx.Data["HiddenHeadRepoIssueIDs"], err = pull_service.GetHiddenHeadRepoIssueIDs(ctx, ctx.Doer, issues)
+	if err != nil {
+		ctx.ServerError("GetHiddenHeadRepoIssueIDs", err)
+		return
+	}
 
 	if err := issues.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("issues.LoadAttributes", err)
