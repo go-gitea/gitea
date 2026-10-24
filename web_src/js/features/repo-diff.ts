@@ -105,6 +105,7 @@ function initRepoDiffConversationForm() {
     try {
       const response = await POST(url, {data: new URLSearchParams({origin, action, comment_id})});
       const data = await response.text();
+      updateConversationStats(response);
 
       const elConversationHolder = el.closest('.conversation-holder');
       if (elConversationHolder) {
@@ -117,6 +118,29 @@ function initRepoDiffConversationForm() {
       console.error('Error:', error);
     }
   });
+}
+
+function updateConversationStats(response: Response) {
+  const elStats = document.querySelector<HTMLAnchorElement>('#pull-conversation-stats');
+  const resolved = response.headers.get('X-Conversation-Resolved');
+  const total = response.headers.get('X-Conversation-Total');
+  if (!elStats || resolved === null || total === null) return;
+  elStats.querySelector('.js-resolved')!.textContent = resolved;
+  elStats.querySelector('.js-total')!.textContent = total;
+  elStats.classList.toggle('text', resolved === total);
+  elStats.classList.toggle('green', resolved === total);
+  const next = response.headers.get('X-Conversation-Next');
+  if (next && next !== '0') {
+    elStats.setAttribute('href', `#issuecomment-${next}`);
+    const jumpTooltip = elStats.getAttribute('data-jump-tooltip')!;
+    elStats.setAttribute('data-tooltip-content', jumpTooltip);
+    elStats.setAttribute('aria-label', jumpTooltip);
+  } else {
+    elStats.removeAttribute('href');
+    elStats.removeAttribute('data-tooltip-content');
+    elStats.removeAttribute('aria-label');
+    elStats._tippy?.destroy();
+  }
 }
 
 function initRepoDiffConversationNav() {

@@ -973,6 +973,17 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	// Otherwise, there is nothing to do, because the PR view page already contains enough information.
 	data.ShowMergeBox = !pull.HasMerged || data.IsPullBranchDeletable
 
+	if !issue.IsClosed && !pull.HasMerged {
+		stats, err := issues_model.GetConversationStats(ctx, issue.ID)
+		if err != nil {
+			ctx.ServerError("GetConversationStats", err)
+			return
+		}
+		if stats.Total > 0 {
+			data.ConversationStats = stats
+		}
+	}
+
 	isRepoAdmin := ctx.Repo.Permission.IsAdmin()
 
 	// admin can merge without checks, writer can merge when checks succeed

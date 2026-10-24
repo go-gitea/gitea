@@ -258,7 +258,10 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 }
 
 type pullMergeBoxData struct {
-	ShowMergeBox      bool
+	ShowMergeBox bool
+
+	// ConversationStats is only set for open pull requests that have code review conversations
+	ConversationStats *issues_model.ConversationStats
 	ReloadingInterval int
 
 	TimelineIconClass string
