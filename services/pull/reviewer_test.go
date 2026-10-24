@@ -8,6 +8,8 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
 	pull_service "gitea.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
@@ -54,6 +56,40 @@ func TestRepoGetReviewers(t *testing.T) {
 	reviewers, err = pull_service.GetReviewers(ctx, repo3, 2, 2)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 1)
+
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	user4.Visibility = structs.VisibleTypePrivate
+	assert.NoError(t, user_model.UpdateUserCols(ctx, user4, "visibility"))
+
+	reviewers, err = pull_service.GetReviewers(ctx, repo3, 2, 1)
+	assert.NoError(t, err)
+	assertReviewerIDs(t, reviewers, 2)
+
+	reviewers, err = pull_service.GetReviewers(ctx, repo3, 1, 1)
+	assert.NoError(t, err)
+	assertReviewerIDs(t, reviewers, 2, 4)
+
+	user4.Visibility = structs.VisibleTypePublic
+	user4.IsRestricted = true
+	assert.NoError(t, user_model.UpdateUserCols(ctx, user4, "visibility", "is_restricted"))
+
+	reviewers, err = pull_service.GetReviewers(ctx, repo3, 2, 1)
+	assert.NoError(t, err)
+	assertReviewerIDs(t, reviewers, 2)
+
+	reviewers, err = pull_service.GetReviewers(ctx, repo3, 1, 1)
+	assert.NoError(t, err)
+	assertReviewerIDs(t, reviewers, 2, 4)
+}
+
+func assertReviewerIDs(t *testing.T, reviewers []*user_model.User, expectedIDs ...int64) {
+	t.Helper()
+
+	actualIDs := make([]int64, 0, len(reviewers))
+	for _, reviewer := range reviewers {
+		actualIDs = append(actualIDs, reviewer.ID)
+	}
+	assert.ElementsMatch(t, expectedIDs, actualIDs)
 }
 
 func TestRepoGetReviewerTeams(t *testing.T) {
