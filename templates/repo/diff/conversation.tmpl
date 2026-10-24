@@ -1,3 +1,4 @@
+{{/* TODO: ExcerptBlob, the diff pages and a review reply all render this with different "ctx.Data", which makes it fragile */}}
 {{if len .comments}}
 	{{$root := ctx.RootData}}
 	{{$comments := $.comments}}

@@ -1,7 +1,3 @@
-{{/* TODO: At the moment, two kinds of request handler call this template:
-* ExcerptBlob -> blob_excerpt.tmpl -> this
-* Other compare and diff pages -> ... -> {section_unified.tmpl|section_split.tmpl} -> this)
-The variables in "ctx.Data" are different in each case, making this template fragile, hard to read and maintain. */}}
 {{if len .comments}}
 	{{$firstComment := index .comments 0 -}}
 	{{$invalid := $firstComment.Invalidated -}}

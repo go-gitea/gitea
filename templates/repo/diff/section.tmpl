@@ -1,0 +1,6 @@
+{{/* the diff box and ExcerptBlob; the conversation and editor previews are always unified */}}
+{{if ctx.RootData.IsSplitStyle}}
+	{{template "repo/diff/section_split" dict "file" $.file}}
+{{else}}
+	{{template "repo/diff/section_unified" dict "file" $.file}}
+{{end}}
