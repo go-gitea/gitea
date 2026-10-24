@@ -285,7 +285,7 @@ const (
 func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, error) {
 	ix := *globalIndexer.Load()
 
-	if opts.Keyword == "" || opts.IsKeywordNumeric() {
+	if opts.Keyword == "" || opts.IsKeywordNumeric() || opts.TimerTrackerID.Has() { // only the db indexer can filter by stopwatch
 		// This is a conservative shortcut.
 		// If the keyword is empty or an integer, db has better (at least not worse) performance to filter issues.
 		// When the keyword is empty, it tends to listing rather than searching issues.
