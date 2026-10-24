@@ -51,5 +51,5 @@ func Test_ToPullReview(t *testing.T) {
 }
 
 func TestPatch2DiffInvalidUTF8(t *testing.T) {
-	assert.Equal(t, "@@ -1 +1 @@\n+caf?", patch2diff("diff --git a/a b/a\n@@ -1 +1 @@\n+caf\xe9"))
+	assert.Equal(t, "@@ -1 +1 @@\n+caf�", patch2diff("diff --git a/a b/a\n@@ -1 +1 @@\n+caf\xe9"))
 }

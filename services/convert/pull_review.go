@@ -6,6 +6,7 @@ package convert
 import (
 	"context"
 	"strings"
+	"unicode/utf8"
 
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
@@ -129,10 +130,11 @@ func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, doe
 }
 
 func patch2diff(patch string) string {
-	split := strings.Split(patch, "\n@@")
-	if len(split) == 2 {
-		hunk := charset.ToUTF8(util.UnsafeStringToBytes("@@"+split[1]), charset.ConvertOpts{ErrorReplacement: []byte{'?'}})
-		return util.UnsafeBytesToString(hunk)
+	idx := strings.Index(patch, "\n@@")
+	if idx == -1 {
+		return ""
 	}
-	return ""
+	diffContent := patch[idx+1:]
+	hunk := charset.ToUTF8(util.UnsafeStringToBytes(diffContent), charset.ConvertOpts{ErrorReplacement: []byte(string(utf8.RuneError))})
+	return util.UnsafeBytesToString(hunk)
 }
