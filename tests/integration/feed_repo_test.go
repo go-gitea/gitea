@@ -37,6 +37,11 @@ func TestFeedRepo(t *testing.T) {
 		assert.Len(t, rss.Channel.Items, 1)
 		assert.Equal(t, "issue5", rss.Channel.Items[0].Description)
 		assert.NotEmpty(t, rss.Channel.Items[0].PubDate)
+
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeCode}))
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1").SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1.rss"), http.StatusOK)
 	})
 
 	t.Run("TagsWithoutReleasesAccess", func(t *testing.T) {
