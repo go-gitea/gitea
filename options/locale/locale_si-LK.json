@@ -2095,5 +2095,6 @@
   "actions.workflow.scope_owner": "හිමිකරු",
   "actions.workflow.required": "ඇවැසිය",
   "actions.job_queue.filter_repo_no_select": "සියළුම කෝෂ්ඨ",
+  "projects.workflows.none": "කිසිවක් නැත",
   "actions.general.token_permissions.mode.restricted": "සීමා"
 }

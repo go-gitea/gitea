@@ -3979,6 +3979,8 @@
   "projects.type-3.display_name": "組織プロジェクト",
   "projects.enter_fullscreen": "フルスクリーン",
   "projects.exit_fullscreen": "フルスクリーンを終了",
+  "projects.workflows.actions": "Actions",
+  "projects.workflows.none": "なし",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",
   "git.filemode.directory": "ディレクトリ",
   "git.filemode.normal_file": "ノーマルファイル",

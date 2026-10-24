@@ -3984,6 +3984,8 @@
   "projects.type-3.display_name": "Tionscadal Eagrúcháin",
   "projects.enter_fullscreen": "Lánscáileán",
   "projects.exit_fullscreen": "Scoir Lánscáileáin",
+  "projects.workflows.actions": "Gníomhartha",
+  "projects.workflows.none": "Níl aon",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",
   "git.filemode.directory": "Eolaire",
   "git.filemode.normal_file": "Rialta",
