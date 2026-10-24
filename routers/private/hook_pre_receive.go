@@ -345,6 +345,11 @@ func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 		return
 	}
 
+	if !ctx.Repo.Repository.AllowsAgitPullRequests(ctx) {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Pull requests via refs/for are disabled for this repository.")
+		return
+	}
+
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.PrivateUserErrorf(http.StatusForbidden, "Can't create pull request for an empty repository.")
 		return
