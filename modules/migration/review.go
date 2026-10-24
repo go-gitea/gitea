@@ -63,6 +63,7 @@ type ReviewComment struct {
 	Line      int
 	CommitID  string `yaml:"commit_id"`
 	PosterID  int64  `yaml:"poster_id"`
+	Resolved  bool   // the conversation of this (first) comment is resolved
 	Reactions []*Reaction
 	CreatedAt time.Time `yaml:"created_at"`
 	UpdatedAt time.Time `yaml:"updated_at"`

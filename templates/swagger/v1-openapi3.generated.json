@@ -7969,6 +7969,7 @@
               "gitbucket",
               "codebase",
               "codecommit",
+              "bitbucketserver",
               "forgejo"
             ],
             "type": "string",

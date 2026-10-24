@@ -31810,6 +31810,7 @@
             "gitbucket",
             "codebase",
             "codecommit",
+            "bitbucketserver",
             "forgejo"
           ],
           "x-go-name": "Service"
