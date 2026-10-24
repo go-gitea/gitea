@@ -26,12 +26,11 @@ type Source struct {
 	DefaultLanguage      string
 }
 
-// FromDB fills up an SSPIConfig from serialized format.
 func (cfg *Source) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	auth.UnmarshalAuthSourceConfig(bs, cfg)
+	return nil
 }
 
-// ToDB exports an SSPIConfig to a serialized format.
 func (cfg *Source) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }

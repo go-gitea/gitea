@@ -23,12 +23,11 @@ type Source struct {
 	EmailDomain string
 }
 
-// FromDB fills up a PAMConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &source)
+	auth.UnmarshalAuthSourceConfig(bs, source)
+	return nil
 }
 
-// ToDB exports a PAMConfig to a serialized format.
 func (source *Source) ToDB() ([]byte, error) {
 	return json.Marshal(source)
 }
