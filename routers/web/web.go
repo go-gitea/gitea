@@ -1446,7 +1446,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/resolve_conversation", repo.SetShowOutdatedComments, repo.UpdateResolveConversation)
 		}, reqUnitPullsReader)
 		m.Post("/pull/{index}/target_branch", reqUnitPullsReader, repo.UpdatePullRequestTarget)
-	}, reqSignIn, context.RepoAssignment, context.RepoMustNotBeArchived())
+	}, reqSignIn, context.RepoAssignment, context.RepoMustNotBeArchived(), context.RepoMustNotBeReadOnlyMirror())
 	// end "/{username}/{reponame}": create or edit issues, pulls, labels, milestones
 
 	m.Group("/{username}/{reponame}", func() { // repo code (at least "code reader")
@@ -1686,7 +1686,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				}, reqSignIn, context.RepoMustNotBeArchived())
 			})
 		})
-	}, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader)
+	}, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader, context.RepoMustNotBeReadOnlyMirror())
 	// end "/{username}/{reponame}/pulls/{index}": repo pull request
 
 	m.Group("/{username}/{reponame}", func() {

@@ -141,6 +141,23 @@ func RepoMustNotBeArchived() func(ctx *Context) {
 	}
 }
 
+// RepoMustNotBeReadOnlyMirror rejects writes to the issues and pull requests a mirror syncs from its remote
+func RepoMustNotBeReadOnlyMirror() func(ctx *Context) {
+	return func(ctx *Context) {
+		if ctx.Req.Method == http.MethodGet || ctx.Req.Method == http.MethodHead || repo_model.IsPersonalIssueState(ctx.Req.URL.Path) {
+			return
+		}
+		readOnly, err := ctx.Repo.Repository.IsMirrorWithMetadata(ctx)
+		if err != nil {
+			ctx.ServerError("IsMirrorWithMetadata", err)
+			return
+		}
+		if readOnly {
+			ctx.NotFound(repo_model.ErrReadOnlyMirror)
+		}
+	}
+}
+
 type CommitFormOptions struct {
 	NeedFork bool
 

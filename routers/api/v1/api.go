@@ -830,6 +830,21 @@ func mustNotBeArchived(ctx *context.APIContext) {
 	}
 }
 
+// mustNotBeReadOnlyMirror rejects writes to the issues and pull requests a mirror syncs from its remote
+func mustNotBeReadOnlyMirror(ctx *context.APIContext) {
+	if ctx.Req.Method == http.MethodGet || ctx.Req.Method == http.MethodHead || repo_model.IsPersonalIssueState(ctx.Req.URL.Path) {
+		return
+	}
+	readOnly, err := ctx.Repo.Repository.IsMirrorWithMetadata(ctx)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if readOnly {
+		ctx.APIError(http.StatusLocked, "repo is a read-only mirror")
+	}
+}
+
 func mustEnableEditor(ctx *context.APIContext) {
 	if !ctx.Repo.Repository.CanContentChange() {
 		ctx.APIError(http.StatusLocked, "repo is not allowed to edit")
@@ -1485,7 +1500,7 @@ func Routes() *web.Router {
 						m.Post("/comments/{id}/replies", reqToken(), mustNotBeArchived, bind(api.CreatePullReviewCommentReplyOptions{}), repo.CreatePullReviewCommentReply)
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
-				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+				}, mustAllowPulls, reqRepoReader(unit.TypeCode), mustNotBeReadOnlyMirror, context.ReferencesGitRepo())
 				m.Group("/statuses", func() { // "/statuses/{sha}" only accepts commit ID
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
 						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
@@ -1681,21 +1696,21 @@ func Routes() *web.Router {
 								Delete(repo.UnlockIssue)
 						}, reqToken(), reqAdmin())
 					})
-				}, mustEnableIssuesOrPulls)
+				}, mustEnableIssuesOrPulls, mustNotBeReadOnlyMirror)
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
 						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateLabelOption{}), repo.CreateLabel)
 					m.Combo("/{id}").Get(repo.GetLabel).
 						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
 						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteLabel)
-				})
+				}, mustNotBeReadOnlyMirror)
 				m.Group("/milestones", func() {
 					m.Combo("").Get(repo.ListMilestones).
 						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
 					m.Combo("/{id}").Get(repo.GetMilestone).
 						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
 						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
-				})
+				}, mustNotBeReadOnlyMirror)
 				m.Group("/projects", func() {
 					addProjectRoutes(m, reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
 				}, reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)

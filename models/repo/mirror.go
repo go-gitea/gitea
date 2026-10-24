@@ -6,6 +6,7 @@ package repo
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"gitea.dev/models/db"
@@ -20,6 +21,12 @@ import (
 var ErrMirrorNotExist = util.NewNotExistErrorf("Mirror does not exist")
 
 var ErrReadOnlyMirror = util.NewPermissionDeniedErrorf("the repository is a read-only mirror")
+
+// IsPersonalIssueState reports whether a request path only changes the doer's own state on an issue,
+// like watching it or marking files viewed, which stays allowed on a read-only mirror
+func IsPersonalIssueState(path string) bool {
+	return strings.HasSuffix(path, "/watch") || strings.HasSuffix(path, "/viewed-files") || strings.Contains(path, "/subscriptions")
+}
 
 // Mirror represents mirror information of a repository.
 type Mirror struct {

@@ -1009,6 +1009,7 @@
   "repo.mirror_prune_desc": "Remove obsolete remote-tracking references",
   "repo.mirror_interval": "Mirror Interval (valid time units are 'h', 'm', 's'). 0 to disable periodic sync. (Minimum interval: %s)",
   "repo.mirror_interval_invalid": "The mirror interval is not valid.",
+  "repo.mirror_read_only": "This repository is a read-only mirror.",
   "repo.mirror_sync": "synced",
   "repo.mirror_sync_on_commit": "Sync when commits are pushed",
   "repo.mirror_address": "Clone From URL",

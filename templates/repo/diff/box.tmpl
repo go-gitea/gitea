@@ -44,7 +44,7 @@
 					</div>
 				</div>
 			{{end}}
-			{{if and .PageIsPullFiles $.SignedUserID}}
+			{{if and .PageIsPullFiles $.SignedUserID (not $.IsReadOnlyMirror)}}
 				{{template "repo/diff/new_review" .}}
 			{{end}}
 		</div>
@@ -91,7 +91,7 @@
 					{{$isImage:= $file.IsBlobTypeImage}}
 					{{$isCsv := $file.IsBlobTypeCsv}}
 					{{$showFileViewToggle := $file.CanShowFileViewToggle}}
-					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
+					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits (not $.IsReadOnlyMirror)}}
 					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
 						<div class="diff-file-header sticky-2nd-row ui top attached header">
 							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">
@@ -238,7 +238,7 @@
 		{{end}}
 	</div>
 
-	{{if and (not $.Repository.IsArchived) (not .DiffNotAvailable)}}
+	{{if and (not $.Repository.IsArchived) (not .DiffNotAvailable) (not $.IsReadOnlyMirror)}}
 		<template id="issue-comment-editor-template">
 			<form class="ui form comment">
 				<div class="field">
