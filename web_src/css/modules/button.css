@@ -114,12 +114,6 @@
   padding-right: 22px;
 }
 
-.ui.button.dropdown-trigger:not(.icon, .dropdown-button-inline) > .octicon-triangle-down {
-  position: absolute;
-  right: 0.5em;
-  font-size: 0.85714286em;
-}
-
 .ui.button.dropdown-trigger:is(.mini, .tiny):not(.icon, .dropdown-button-inline):has(> .octicon-triangle-down) {
   padding-right: 20px;
 }

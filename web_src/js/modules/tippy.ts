@@ -103,7 +103,6 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
   const {onHide, onHidden, onShow, onDestroy, role, theme, arrow, limitSizeToViewport, ...other} = opts;
-  // CSS theme, either "default", "tooltip", "menu", "box-with-header", "bare" or "dropdown"
   const resolvedTheme = theme || role || 'default';
   const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
 

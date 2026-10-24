@@ -51,15 +51,12 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
     async loadItems(query, signal) {
       const response = await GET(`${issueSearchUrl}&q=${encodeURIComponent(query)}`, {signal});
       const issues = await response.json() as Issue[];
-      return issues.filter((issue) => String(issue.id) !== elDropdown.getAttribute('data-issue-id')).map((issue) => {
-        const item = createElementFromHTML(html`<div class="dropdown-item tw-flex-col tw-items-start">
+      return issues.filter((issue) => String(issue.id) !== elDropdown.getAttribute('data-issue-id')).map((issue) => createElementFromHTML(html`
+        <div class="dropdown-item tw-flex-col tw-items-start" data-value="${issue.id}" data-text="#${issue.number} ${issue.title}">
           <div class="gt-ellipsis tw-w-full">#${issue.number} ${issue.title}</div>
           <div class="text small tw-break-anywhere">${issue.repository.full_name}</div>
-        </div>`);
-        item.setAttribute('data-value', String(issue.id));
-        item.setAttribute('data-text', `#${issue.number} ${issue.title}`);
-        return item;
-      });
+        </div>
+      `));
     },
   });
 }

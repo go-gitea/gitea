@@ -320,10 +320,7 @@ export class Dropdown {
       this.trigger.classList.toggle('filtering', Boolean(this.filterInput!.value));
       if (!this.tippy) this.show();
     }
-    if (!this.loadItems) {
-      this.applyFilter();
-      return;
-    }
+    if (!this.loadItems) return this.applyFilter();
     this.loadAbort?.abort();
     this.highlight(null); // Enter must not pick a result of the previous query
     this.reloadDebounced();
@@ -337,7 +334,7 @@ export class Dropdown {
     if (this.tippy) this.updateState();
   }
 
-  highlight(item: HTMLElement | null, scroll = true) {
+  highlight(item: HTMLElement | null) {
     this.highlighted?.removeAttribute('data-highlighted');
     this.highlighted = item;
     if (!item) {
@@ -347,7 +344,7 @@ export class Dropdown {
     item.id ||= generateElemId('_dropdown_item_');
     item.setAttribute('data-highlighted', '');
     this.keyboardOwner.setAttribute('aria-activedescendant', item.id);
-    if (scroll) item.scrollIntoView({block: 'nearest'});
+    item.scrollIntoView({block: 'nearest'});
   }
 
   moveHighlight(delta: number, items = this.navigableItems()) {
@@ -391,14 +388,12 @@ export class Dropdown {
       return;
     }
     const itemText = item?.getAttribute('data-text');
-    if (item?.getAttribute('data-value') === '' && textEl.hasAttribute('data-placeholder')) {
+    if ((item?.getAttribute('data-value') === '' && textEl.hasAttribute('data-placeholder')) || (!item && !this.value)) {
       textEl.textContent = placeholder;
     } else if (itemText) {
       textEl.textContent = itemText;
     } else if (item) {
       textEl.innerHTML = item.innerHTML;
-    } else if (!this.value) {
-      textEl.textContent = placeholder;
     }
   }
 

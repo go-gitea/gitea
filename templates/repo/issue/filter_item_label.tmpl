@@ -5,7 +5,7 @@
 * SupportArchivedLabel, if true, then it needs "archived_labels" from query string
 */}}
 {{$queryLink := .QueryLink}}
-<div class="dropdown-container label-filter" data-placement="bottom-start">
+<div class="dropdown-container label-filter">
 	<button type="button" class="dropdown-trigger item btn" {{if not .Labels}}disabled{{end}}>{{ctx.Locale.Tr "repo.issues.filter_label"}} {{svg "octicon-triangle-down" 14}}</button>
 	<div class="dropdown-popup dropdown-popup-flex dropdown-popup-menu issue-filter-popup">
 		<div class="ui icon search input">

@@ -37,7 +37,8 @@
   padding-block: 0;
 }
 
-.dropdown-field > .octicon-triangle-down {
+.dropdown-field > .octicon-triangle-down,
+.ui.button.dropdown-trigger:not(.icon, .dropdown-button-inline) > .octicon-triangle-down {
   position: absolute;
   right: 0.5em;
   font-size: 0.85714286em;
@@ -141,7 +142,6 @@
 }
 
 .dropdown-field > .dropdown-text {
-  display: block;
   flex: 1;
   min-width: 0;
   overflow: hidden;

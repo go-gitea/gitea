@@ -58,15 +58,11 @@
 				<div class="issue-sidebar-combo sidebar-project-column-combo" data-selection-mode="single" data-update-algo="all"
 					data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}"
 				>
-					<input class="combo-value" name="column_id" type="hidden" value="{{if $selectedColumn}}{{$selectedColumn.ID}}{{end}}">
+					<input class="combo-value" name="column_id" type="hidden" value="{{$selectedColumn.ID}}">
 					<div class="dropdown-container tw-w-full">
 						<button type="button" class="dropdown-trigger btn interact-bg tw-px-2 tw-py-1 tw-rounded tw-ml-[16px]">
-							{{if $selectedColumn}}
-								{{if $card.SelectedColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$card.SelectedColumn.Color}}"></span>{{end}}
-								<span class="gt-ellipsis">{{$card.SelectedColumn.Title}}</span>
-							{{else}}
-								<span class="gt-ellipsis">{{ctx.Locale.Tr "repo.issues.new.no_column"}}</span>
-							{{end}}
+							{{if $card.SelectedColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$card.SelectedColumn.Color}}"></span>{{end}}
+							<span class="gt-ellipsis">{{$card.SelectedColumn.Title}}</span>
 							{{svg "octicon-triangle-down" 14}}
 						</button>
 						<div class="dropdown-popup dropdown-popup-flex issue-sidebar-popup">

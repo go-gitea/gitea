@@ -264,13 +264,9 @@ async function loadTabItems() {
           </a>
         </div>
         <div class="dropdown-item tw-flex-col tw-items-start tw-gap-1" role="menuitem" v-if="showCreateNewRef" :data-highlighted="activeItemIndex === filteredItems.length ? '' : undefined" @click="createNewRef()">
-          <div v-if="selectedTab === 'tags'" class="flex-text-block">
-            <svg-icon name="octicon-tag"/>
-            <span v-text="trString(textCreateTag, searchTerm)"/>
-          </div>
-          <div v-else class="flex-text-block">
-            <svg-icon name="octicon-git-branch"/>
-            <span v-text="trString(textCreateBranch, searchTerm)"/>
+          <div class="flex-text-block">
+            <svg-icon :name="selectedTab === 'tags' ? 'octicon-tag' : 'octicon-git-branch'"/>
+            <span v-text="trString(selectedTab === 'tags' ? textCreateTag : textCreateBranch, searchTerm)"/>
           </div>
           <div class="tw-text-xs">
             {{ textCreateRefFrom.replace('%s', currentRefShortName) }}

@@ -115,8 +115,7 @@
 								</div>
 								{{$differentOwner := ne $baseUserName $headUserName}}
 								{{range $branch := $.Branches}}
-									{{$differentBranch := ne $branch $headBranch}}
-									{{if or $differentOwner $differentBranch}}
+									{{if or $differentOwner (ne $branch $headBranch)}}
 										<div class="dropdown-item {{if eq $baseBranch $branch}}active{{end}}" data-branch="{{$branch}}">{{$baseUserName}}:{{$branch}}</div>
 									{{end}}
 								{{end}}

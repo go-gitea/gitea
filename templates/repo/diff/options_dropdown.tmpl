@@ -16,19 +16,11 @@
 		<a id="expand-files-btn" class="dropdown-item">{{ctx.Locale.Tr "repo.pulls.expand_files"}}</a>
 		<a id="collapse-files-btn" class="dropdown-item">{{ctx.Locale.Tr "repo.pulls.collapse_files"}}</a>
 		{{if .Issue.Index}}
-			{{if .ShowOutdatedComments}}
-				<a class="dropdown-item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated=false">
-					<label class="tw-pointer-events-none">
-						{{ctx.Locale.Tr "repo.issues.review.option.hide_outdated_comments"}}
-					</label>
-				</a>
-			{{else}}
-				<a class="dropdown-item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated=true">
-					<label class="tw-pointer-events-none">
-						{{ctx.Locale.Tr "repo.issues.review.option.show_outdated_comments"}}
-					</label>
-				</a>
-			{{end}}
+			<a class="dropdown-item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{not .ShowOutdatedComments}}">
+				<label class="tw-pointer-events-none">
+					{{ctx.Locale.Tr (Iif .ShowOutdatedComments "repo.issues.review.option.hide_outdated_comments" "repo.issues.review.option.show_outdated_comments")}}
+				</label>
+			</a>
 		{{end}}
 	</div>
 </div>

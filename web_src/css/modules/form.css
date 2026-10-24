@@ -61,7 +61,8 @@
   color: var(--color-input-text);
 }
 
-.ui.form .field:not(.inline) > .select-field {
+.ui.form .field:not(.inline) > .select-field,
+.ui.form .field:not(.inline) > .dropdown-container:has(> .dropdown-field) {
   display: flex;
 }
 
@@ -165,10 +166,6 @@ textarea:focus,
 .ui.form textarea,
 .ui.form input[type="checkbox"] {
   vertical-align: top;
-}
-
-.ui.form .field:not(.inline) > .dropdown-container:has(> .dropdown-field) {
-  display: flex;
 }
 
 .ui.form .field.error :is(.dropdown-field, .select-field > select) {

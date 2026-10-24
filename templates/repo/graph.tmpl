@@ -17,27 +17,13 @@
 								{{svg "octicon-eye-closed"}}
 								<span class="gt-ellipsis" title="{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}">{{ctx.Locale.Tr "repo.commit_graph.hide_pr_refs"}}</span>
 							</div>
+							{{$refIcons := dict "pull" "octicon-git-pull-request" "tags" "octicon-tag" "remotes" "octicon-cross-reference" "heads" "octicon-git-branch"}}
 							{{range .AllRefs}}
-								{{$refGroup := .RefGroup}}
-								{{if eq $refGroup "pull"}}
+								{{$refIcon := index $refIcons .RefGroup}}
+								{{if $refIcon}}
 									<div class="dropdown-item" data-value="{{.Name}}">
-										{{svg "octicon-git-pull-request"}}
-										<span class="gt-ellipsis" title="{{.ShortName}}">#{{.ShortName}}</span>
-									</div>
-								{{else if eq $refGroup "tags"}}
-									<div class="dropdown-item" data-value="{{.Name}}">
-										{{svg "octicon-tag"}}
-										<span class="gt-ellipsis" title="{{.ShortName}}">{{.ShortName}}</span>
-									</div>
-								{{else if eq $refGroup "remotes"}}
-									<div class="dropdown-item" data-value="{{.Name}}">
-										{{svg "octicon-cross-reference"}}
-										<span class="gt-ellipsis" title="{{.ShortName}}">{{.ShortName}}</span>
-									</div>
-								{{else if eq $refGroup "heads"}}
-									<div class="dropdown-item" data-value="{{.Name}}">
-										{{svg "octicon-git-branch"}}
-										<span class="gt-ellipsis" title="{{.ShortName}}">{{.ShortName}}</span>
+										{{svg $refIcon}}
+										<span class="gt-ellipsis" title="{{.ShortName}}">{{if eq .RefGroup "pull"}}#{{end}}{{.ShortName}}</span>
 									</div>
 								{{end}}
 							{{end}}
