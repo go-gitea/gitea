@@ -743,10 +743,11 @@ func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 	}
 }
 
-func mustEnableWiki(ctx *context.APIContext) {
-	if !ctx.Repo.Permission.CanRead(unit.TypeWiki) {
-		ctx.APIErrorNotFound()
-		return
+func mustEnableUnit(unitType unit.Type) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !ctx.Repo.Permission.CanRead(unitType) {
+			ctx.APIErrorNotFound()
+		}
 	}
 }
 
@@ -1281,6 +1282,10 @@ func Routes() *web.Router {
 							Patch(bind(api.EditHookOption{}), repo.EditHook).
 							Delete(repo.DeleteHook)
 						m.Post("/tests", context.ReferencesGitRepo(), context.RepoRefForAPI, repo.TestHook)
+						m.Group("/deliveries", func() {
+							m.Get("", repo.ListDeliveries)
+							m.Get("/{uuid}", repo.GetDelivery)
+						})
 					})
 				}, reqToken(), reqAdmin(), reqWebhooksEnabled())
 				m.Group("/collaborators", func() {
@@ -1389,7 +1394,7 @@ func Routes() *web.Router {
 					m.Get("/revisions/{pageName}", repo.ListPageRevisions)
 					m.Post("/new", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeWiki), bind(api.CreateWikiPageOptions{}), repo.NewWikiPage)
 					m.Get("/pages", repo.ListWikiPages)
-				}, mustEnableWiki)
+				}, mustEnableUnit(unit.TypeWiki))
 				m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
 				m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
 				m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)
@@ -1421,7 +1426,7 @@ func Routes() *web.Router {
 							Get(repo.GetReleaseByTag).
 							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
-				}, reqRepoReader(unit.TypeReleases))
+				}, mustEnableUnit(unit.TypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
 				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {

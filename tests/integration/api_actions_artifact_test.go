@@ -253,9 +253,11 @@ func TestActionsArtifactUpload(t *testing.T) {
 				req = NewRequestWithBody(t, "PUT", url, strings.NewReader(file.Content)).
 					AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
 					SetHeader("Content-Range", "bytes 0-1023/1024").
+					SetHeader("Content-Encoding", "video/mp4,text/html").
 					SetHeader("x-tfs-filelength", "1024").
 					SetHeader("x-actions-results-md5", file.MD5) // base64(md5(body))
 				MakeRequest(t, req, http.StatusOK)
+				assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{RunID: 791, ArtifactName: test.artifactName, ArtifactPath: file.Path}).ContentEncodingOrType)
 			}
 
 			t.Logf("Create artifact confirm")

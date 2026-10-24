@@ -3980,6 +3980,8 @@
   "projects.type-3.display_name": "Projet d’organisation",
   "projects.enter_fullscreen": "Plein écran",
   "projects.exit_fullscreen": "Quitter le plein écran",
+  "projects.workflows.actions": "Actions",
+  "projects.workflows.none": "Aucun",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",
   "git.filemode.directory": "Dossier",
   "git.filemode.normal_file": "Fichier normal",

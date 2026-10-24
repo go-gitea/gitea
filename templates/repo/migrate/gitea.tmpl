@@ -20,7 +20,7 @@
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "access_token"}}</label>
 					<input name="auth_token" type="password" autocomplete="new-password">
-					<a target="_blank" href="https://docs.gitea.com/development/api-usage">{{svg "octicon-question"}}</a>
+					<span class="help">{{ctx.Locale.Tr "repo.migrate.gitea_token_desc"}}</span>
 				</div>
 
 				{{template "repo/migrate/common-options" .}}
