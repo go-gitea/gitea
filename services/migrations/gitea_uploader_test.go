@@ -5,7 +5,10 @@
 package migrations
 
 import (
+	"errors"
+	"io"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +17,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/graceful"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/optional"
@@ -22,6 +27,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 func TestGiteaUploadRepo(t *testing.T) {
@@ -119,6 +125,28 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, pulls[0].LoadIssue(t.Context()))
 	assert.NoError(t, pulls[0].Issue.LoadDiscussComments(t.Context()))
 	assert.Len(t, pulls[0].Issue.Comments, 2)
+}
+
+func TestCreateReleasesSkipsUnavailableAssets(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	sourceRelease := &base.Release{Name: "assets", Assets: []*base.ReleaseAsset{
+		{Name: "gone", Size: new(0), DownloadCount: new(0), DownloadFunc: func() (io.ReadCloser, error) { return nil, errors.New("gone") }},
+		{Name: "kept", Size: new(0), DownloadCount: new(0), DownloadFunc: func() (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("data")), nil }},
+	}}
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	uploader := NewGiteaLocalUploader(t.Context(), doer, doer.Name, "repo1")
+	uploader.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, uploader.CreateReleases(t.Context(), sourceRelease))
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, Title: "assets"})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ReleaseID: release.ID, Name: "kept", Size: 4})
+	unittest.AssertNotExistsBean(t, &repo_model.Attachment{ReleaseID: release.ID, Name: "gone"})
+
+	dumper := &RepositoryDumper{baseDir: t.TempDir(), opts: base.MigrateOptions{ReleaseAssets: true}}
+	defer dumper.Close()
+	require.NoError(t, dumper.CreateReleases(t.Context(), sourceRelease))
+	require.Len(t, sourceRelease.Assets, 1)
+	assert.Equal(t, "kept", sourceRelease.Assets[0].Name)
 }
 
 func TestGiteaUploadRemapLocalUser(t *testing.T) {
@@ -221,4 +249,118 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	err = uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
 	assert.Equal(t, linkedUser.ID, target.GetUserID())
+}
+
+func TestGiteaUploadReviewCommentResolved(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	require.NoError(t, pull.LoadIssue(ctx))
+
+	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, repo.Name)
+	var err error
+	uploader.repo = repo
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer uploader.Close()
+	uploader.issues[pull.Issue.Index] = pull.Issue
+
+	headCommitID, err := uploader.gitRepo.GetBranchCommitID(ctx, repo.DefaultBranch)
+	require.NoError(t, err)
+	require.NoError(t, git.UpdateRef(ctx, repo, pull.GetGitHeadRefName(), headCommitID))
+
+	require.NoError(t, uploader.CreateReviews(ctx, &base.Review{
+		IssueIndex: pull.Issue.Index,
+		ReviewerID: doer.ID,
+		State:      base.ReviewStateCommented,
+		Comments: []*base.ReviewComment{
+			{Content: "resolved thread", TreePath: "README.md", Line: 1, Resolved: true},
+			{Content: "open thread", TreePath: "README.md", Line: 1},
+		},
+	}))
+
+	comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{IssueID: pull.Issue.ID, Type: issues_model.CommentTypeCode})
+	require.NoError(t, err)
+	resolved := map[string]bool{}
+	for _, c := range comments {
+		if c.Content == "resolved thread" || c.Content == "open thread" {
+			resolved[c.Content] = c.ResolveDoerID == doer.ID
+		}
+	}
+	assert.Equal(t, map[string]bool{"resolved thread": true, "open thread": false}, resolved)
+}
+
+func TestGiteaUploadForkPullRequestHeadInRepository(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, repo.Name)
+	var err error
+	uploader.repo = repo
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer uploader.Close()
+
+	headCommitID, err := uploader.gitRepo.GetBranchCommitID(ctx, repo.DefaultBranch)
+	require.NoError(t, err)
+
+	// the fork cannot be reached, but its head commit is already in the repository
+	pr := &base.PullRequest{
+		Number: 99,
+		State:  "open",
+		Head:   base.PullRequestBranch{OwnerName: "fork-owner", RepoName: "repo", Ref: "feature", SHA: headCommitID, CloneURL: "https://fork.invalid/fork-owner/repo.git"},
+		Base:   base.PullRequestBranch{OwnerName: repo.OwnerName, RepoName: repo.Name, Ref: repo.DefaultBranch},
+	}
+	pr.EnsuredSafe = true
+	require.True(t, pr.IsForkPullRequest())
+
+	head, err := uploader.updateGitForPullRequest(ctx, pr)
+	require.NoError(t, err)
+	assert.Equal(t, "fork-owner/feature", head)
+	assert.True(t, uploader.gitRepo.IsBranchExist(ctx, "fork-owner/feature"))
+	branchCommitID, err := uploader.gitRepo.GetBranchCommitID(ctx, "fork-owner/feature")
+	require.NoError(t, err)
+	assert.Equal(t, headCommitID, branchCommitID)
+	refCommitID, err := uploader.gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
+	require.NoError(t, err)
+	assert.Equal(t, headCommitID, refCommitID)
+	remotes, _, err := gitcmd.NewCommand("remote").WithRepo(repo).RunStdString(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, strings.TrimSpace(remotes), "no remote is added for a local head")
+}
+
+func TestGiteaUploadTimelineLabelAndMilestoneComments(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
+	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
+
+	ctx := t.Context()
+	uploader := NewGiteaLocalUploader(ctx, doer, doer.Name, "migrated")
+	uploader.issues[issue.Index] = issue
+	uploader.labels[label.Name] = label
+	uploader.milestones[milestone.Name] = milestone.ID
+
+	require.NoError(t, uploader.CreateComments(ctx,
+		&base.Comment{IssueIndex: issue.Index, CommentType: "label", Content: "1", Meta: map[string]any{"LabelName": label.Name}},
+		&base.Comment{IssueIndex: issue.Index, CommentType: "label", Meta: map[string]any{"LabelName": "deleted-upstream"}},
+		&base.Comment{IssueIndex: issue.Index, CommentType: "milestone", Meta: map[string]any{"MilestoneTitle": milestone.Name}},
+		&base.Comment{IssueIndex: issue.Index, CommentType: "milestone", Meta: map[string]any{"MilestoneTitle": milestone.Name, "Removed": true}},
+		&base.Comment{IssueIndex: issue.Index, CommentType: "delete_branch", Content: "feature"},
+	))
+
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeLabel, LabelID: label.ID, Content: "1"})
+	unittest.AssertCountByCond(t, "comment", builder.Eq{
+		"issue_id": issue.ID,
+		"type":     issues_model.CommentTypeLabel,
+		"label_id": 0,
+	}, 0)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, MilestoneID: milestone.ID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, OldMilestoneID: milestone.ID})
+	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeDeleteBranch, OldRef: "feature"}).Content)
 }

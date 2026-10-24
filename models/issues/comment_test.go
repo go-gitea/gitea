@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -44,6 +45,26 @@ func TestCreateComment(t *testing.T) {
 
 	updatedIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID})
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
+	assert.Nil(t, comment.CommentMetaData)
+
+	ctx := issues_model.WithProjectWorkflow(t.Context(), project_model.WorkflowEventItemClosed)
+	comment, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+		Type:               issues_model.CommentTypeProjectColumn,
+		Doer:               doer,
+		Repo:               repo,
+		Issue:              issue,
+		ProjectColumnID:    5,
+		ProjectColumnTitle: "Done",
+		ProjectTitle:       "Board",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, &issues_model.CommentMetaData{
+		ProjectColumnID:      5,
+		ProjectColumnTitle:   "Done",
+		ProjectTitle:         "Board",
+		ProjectWorkflowEvent: project_model.WorkflowEventItemClosed,
+		SpecialDoerName:      issues_model.SpecialDoerNameProjectWorkflow,
+	}, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID}).CommentMetaData)
 }
 
 func TestLoadAssigneeUserAndTeam_DeletedTeamBecomesGhostTeam(t *testing.T) {

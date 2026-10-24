@@ -17,15 +17,18 @@ import (
 	"gitea.dev/models/db"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIReleaseRead(t *testing.T) {
@@ -123,6 +126,9 @@ func testAPIListReleasesWithReadToken(t *testing.T) {
 	testAPIListReleasesTagNames(t, link+"?draft=false&pre-release=false", token, []string{"v1.1"}, "exclude drafts and pre-releases")
 	testAPIListReleasesTagNames(t, link+"?pre-release=true", token, []string{"v1.0"}, "only get pre-release")
 	testAPIListReleasesTagNames(t, link+"?draft=true&pre-release=true", token, nil, "there is no pre-release draft")
+
+	require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}), nil, []unit_model.Type{unit_model.TypeReleases}))
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo2/releases").AddTokenAuth(token), http.StatusNotFound)
 }
 
 func testAPIGetDraftRelease(t *testing.T) {

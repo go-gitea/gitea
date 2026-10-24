@@ -2193,7 +2193,6 @@
   "units.error.no_unit_allowed_repo": "Non possiedi il permesso di accedere ad alcuna sezione di questo repository.",
   "units.error.unit_not_allowed": "Non possiedi il permesso di accedere a questa sezione di repository.",
   "packages.title": "Pacchetti",
-  "packages.desc": "Gestisci pacchetti repository.",
   "packages.empty": "Non ci sono ancora pacchetti.",
   "packages.empty.repo": "Hai caricato un pacchetto, ma non è mostrato qui? Vai alle <a href=\"%[1]s\">impostazioni del pacchetto</a> e collegalo a questo repo.",
   "packages.filter.type": "Tipo",
@@ -2284,5 +2283,6 @@
   "actions.workflow.scope_owner": "Proprietario",
   "actions.workflow.required": "Richiesto",
   "actions.job_queue.filter_repo_no_select": "Tutte le repository",
+  "projects.workflows.none": "Nessuno",
   "actions.general.token_permissions.mode.restricted": "Limitato"
 }

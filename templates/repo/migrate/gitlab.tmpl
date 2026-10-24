@@ -21,6 +21,7 @@
 					<label>{{ctx.Locale.Tr "access_token"}}</label>
 					<input name="auth_token" type="password" autocomplete="new-password">
 					<a target="_blank" href="https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html">{{svg "octicon-question"}}</a>
+					<span class="help">{{ctx.Locale.Tr "repo.migrate.gitlab_token_desc"}}</span>
 				</div>
 
 				{{template "repo/migrate/common-options" .}}
