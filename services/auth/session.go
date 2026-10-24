@@ -5,10 +5,13 @@ package auth
 
 import (
 	"net/http"
+	"time"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/web/middleware"
 )
 
 // Ensure the struct implements the interface.
@@ -57,10 +60,38 @@ func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataSto
 	}
 
 	log.Trace("Session Authorization: Logged in user %-v", user)
+	if sess.Get(session.KeyPersistSessionCookie) == true {
+		refreshPersistentSessionCookie(w, sess)
+	}
 	return user, nil
 }
 
+const (
+	keySessionCookieRefreshedSID  = "sessionCookieRefreshedSID"
+	keySessionCookieRefreshedUnix = "sessionCookieRefreshedUnix"
+)
+
+// SSO sessions should outlive the browser like the provider's own session, so the cookie expiry slides with activity
+func refreshPersistentSessionCookie(w http.ResponseWriter, sess SessionStore) {
+	lifetime := time.Duration(setting.SessionConfig.Maxlifetime) * time.Second
+	if lifetime <= 0 {
+		return
+	}
+	refreshInterval := min(lifetime/10, time.Hour)
+	// the data survives a session ID regeneration, but the new ID arrives as a browser-session cookie
+	refreshedSID, _ := sess.Get(keySessionCookieRefreshedSID).(string)
+	refreshedUnix, _ := sess.Get(keySessionCookieRefreshedUnix).(int64)
+	if refreshedSID == sess.ID() && time.Since(time.Unix(refreshedUnix, 0)) < refreshInterval {
+		return
+	}
+	_ = sess.Set(keySessionCookieRefreshedSID, sess.ID())
+	_ = sess.Set(keySessionCookieRefreshedUnix, time.Now().Unix())
+	// outlive the server-side expiry by one interval, it slides on every request while the cookie doesn't
+	middleware.SetSiteCookie(w, setting.SessionConfig.CookieName, sess.ID(), int((lifetime + refreshInterval).Seconds()))
+}
+
 func ClearSessionKeysForSignIn(sess SessionStore) {
+	_ = sess.Delete(session.KeyPersistSessionCookie)
 	_ = sess.Delete("openid_verified_uri")
 	_ = sess.Delete("openid_signin_remember")
 	_ = sess.Delete("openid_determined_email")
