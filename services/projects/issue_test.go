@@ -10,6 +10,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	org_model "gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -167,6 +168,23 @@ func Test_Projects(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Len(t, columnIssues, 1)
 			assert.Len(t, columnIssues[defaultColumn.ID], 2) // owner-team member visits both public and private issues
+		})
+
+		t.Run("Direct collaborator of the private repo", func(t *testing.T) {
+			collaboration := &repo_model.Collaboration{RepoID: issue6.RepoID, UserID: user15.ID, Mode: perm.AccessModeWrite}
+			assert.NoError(t, db.Insert(t.Context(), collaboration))
+			defer func() {
+				_, err := db.DeleteByBean(t.Context(), collaboration)
+				assert.NoError(t, err)
+			}()
+
+			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
+				Owner: org3.AsUser(),
+				Doer:  user15,
+			})
+			assert.NoError(t, err)
+			assert.Len(t, columnIssues, 1)
+			assert.Len(t, columnIssues[defaultColumn.ID], 2) // user15 is a direct collaborator of the private repo3
 		})
 	})
 
