@@ -238,6 +238,7 @@ func testRenameReservedUsername(t *testing.T) {
 
 func testExportUserGPGKeys(t *testing.T) {
 	testExportUserGPGKeys := func(t *testing.T, user, expected string) {
+		t.Helper()
 		session := loginUser(t, user)
 		t.Logf("Testing username %s export gpg keys", user)
 		req := NewRequest(t, "GET", "/"+user+".gpg")
@@ -339,7 +340,8 @@ func testGetUserRss(t *testing.T) {
 	session := loginUser(t, "user2")
 	req = NewRequestf(t, "GET", "/non-existent-user.rss")
 	session.MakeRequest(t, req, http.StatusNotFound)
-	MakeRequest(t, NewRequest(t, "GET", "/").SetHeader("Accept", "application/rss+xml"), http.StatusOK)
+
+	MakeRequest(t, NewRequest(t, "GET", "/").SetHeader("Accept", "application/rss+xml"), http.StatusUnsupportedMediaType)
 
 	defer test.MockVariableValue(&setting.Other.EnableFeed, false)()
 	MakeRequest(t, NewRequestf(t, "GET", "/%s.rss", user34), http.StatusNotFound)

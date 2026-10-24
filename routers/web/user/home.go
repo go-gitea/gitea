@@ -705,40 +705,45 @@ func ShowGPGKeys(ctx *context.Context) {
 
 // UsernamePreRoute rewrites the route path if the username has a suffix, so that the correct handler can be called.
 func UsernamePreRoute(next http.Handler) http.Handler {
+	// HINT: OWNER-NAME-RESERVED-EXT: use the reserved extensions to check and rewrite requests
 	suffixes := container.SetOf(".png", ".keys", ".gpg", feed.ExtNameRss, feed.ExtNameAtom)
-	rewriteRoutePath := func(rctx *chi.Context, r *http.Request) string {
+	rewriteRoutePath := func(rctx *chi.Context, r *http.Request) (ownerPath, rewrittenExt string) {
 		if rctx.RouteMethod != "HEAD" && rctx.RouteMethod != "GET" {
-			return ""
+			return "", ""
 		}
 		// if there is no slash in the path, then it is possible to be a username or a username with a suffix
 		possibleUsernameWithSuffix := rctx.RoutePath != "" && strings.IndexByte(rctx.RoutePath[1:], '/') == -1
 		if !possibleUsernameWithSuffix {
-			return ""
+			return "", ""
 		}
 
 		// HINT: USERNAME-AVATAR-APPLE-TOUCH-ICON: skip rewriting the path if it is an apple touch icon request
 		isAppleTouchIcon := rctx.RoutePath == "/apple-touch-icon.png" || rctx.RoutePath == "/apple-touch-icon-precomposed.png"
 		if isAppleTouchIcon {
-			return ""
+			return "", ""
 		}
 
 		// try to extract the suffix from the path, if it is a valid suffix, then rewrite the path to "/-/ownername.png/{username}"
 		ext := path.Ext(rctx.RoutePath)
 		if suffixes.Contains(ext) {
-			return "/-/ownername" + ext + rctx.RoutePath[:len(rctx.RoutePath)-len(ext)]
+			return rctx.RoutePath[:len(rctx.RoutePath)-len(ext)], ext
 		}
 		// also try to rewrite "/username" to "/-/ownername.rss/{username}" if the Accept header is for RSS or Atom
 		if strings.Contains(r.Header.Get("Accept"), feed.ContentTypeRssXml) {
-			return "/-/ownername" + feed.ExtNameRss + rctx.RoutePath
+			return rctx.RoutePath, feed.ExtNameRss
 		} else if strings.Contains(r.Header.Get("Accept"), feed.ContentTypeAtomXml) {
-			return "/-/ownername" + feed.ExtNameAtom + rctx.RoutePath
+			return rctx.RoutePath, feed.ExtNameAtom
 		}
-		return ""
+		return "", ""
 	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
-		if newPath := rewriteRoutePath(rctx, r); newPath != "" {
-			rctx.RoutePath = newPath
+		if ownerPath, rewrittenExt := rewriteRoutePath(rctx, r); ownerPath != "/" && rewrittenExt != "" {
+			// Owner path can be something like "/" (site home) or "/explore" (endpoint of reserved username)
+			// It's safe to pass the owner path to the handler as is and just let the handler respond 4xx.
+			// Because the server doesn't respond avatar, keys or feeds for these endpoints.
+			rctx.RoutePath = "/-/ownername" + rewrittenExt + ownerPath
 		}
 		next.ServeHTTP(w, r)
 	})
