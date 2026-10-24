@@ -478,7 +478,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 					pieces := strings.Split(opts.Keyword, "/")
 					ownerName := pieces[0]
 					repoName := pieces[1]
-					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"lower_name", strings.ToLower(repoName)}))
+					likes = likes.Or(builder.And(db.BuildCaseInsensitiveLike("owner_name", ownerName), builder.Like{"lower_name", strings.ToLower(repoName)}))
 				}
 
 				if opts.IncludeDescription {
@@ -612,10 +612,12 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", orderBy))
 		args = append(args, opts.PriorityOwnerID)
 	} else if strings.Count(opts.Keyword, "/") == 1 {
-		// With "owner/repo" search times, prioritise results which match the owner field
-		orgName, _, _ := strings.Cut(opts.Keyword, "/")
-		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END, %s", orderBy))
-		args = append(args, orgName)
+		ownerName, repoName, _ := strings.Cut(strings.ToLower(opts.Keyword), "/")
+		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE LOWER(owner_name) WHEN ? THEN CASE lower_name WHEN ? THEN 0 ELSE 1 END ELSE 2 END, %s", orderBy))
+		args = append(args, ownerName, repoName)
+	} else if len(opts.OrderBy) == 0 && opts.Keyword != "" && !strings.ContainsAny(opts.Keyword, ",/") { // unlike "owner/repo", a bare name never overrides an explicit sort
+		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN lower_name = ? THEN 0 ELSE 1 END, %s", orderBy))
+		args = append(args, strings.ToLower(opts.Keyword))
 	}
 
 	sess := db.GetEngine(ctx)
