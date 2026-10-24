@@ -113,8 +113,7 @@ func (repo *Repository) Close() error {
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, _, err := gitcmd.NewCommand("ls-remote", "-q", "-h").AddDynamicArguments(gitcmd.RemoteAddressWithoutCredentials(url), "HEAD").WithRemoteCredentials(url).RunStdString(ctx)
-	return err == nil
+	return gitcmd.NewCommand("ls-remote", "-q", "-h").AddDynamicArguments(gitcmd.RemoteAddressWithoutCredentials(url), "HEAD").WithRemoteCredentials(url).RunWithStderr(ctx) == nil
 }
 
 // InitRepositoryLocal initializes a new Git repository.

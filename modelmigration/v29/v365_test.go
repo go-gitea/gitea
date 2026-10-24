@@ -47,12 +47,12 @@ func TestMoveMirrorCredentialsToDatabase(t *testing.T) {
 	pushA := &PushMirror{RepoID: repo1Row.ID, RemoteName: "remote_mirror_a"}
 	pushB := &PushMirror{RepoID: repo2Row.ID, RemoteName: "remote_mirror_b"}
 	pushMissing := &PushMirror{RepoID: repo2Row.ID, RemoteName: "missing"}
-	_, err = x.Insert(mirror, pushA, pushB, pushMissing)
+	orphan := &Mirror{RepoID: repo2Row.ID + 1}
+	_, err = x.Insert(mirror, pushA, pushB, pushMissing, orphan)
 	require.NoError(t, err)
 
 	setRemote := func(repo gitrepo.RepositoryFacade, name, addr string) {
-		_, _, err := gitcmd.NewCommand("config").AddDynamicArguments("remote."+name+".url", addr).WithRepo(repo).RunStdString(t.Context())
-		require.NoError(t, err)
+		require.NoError(t, gitcmd.NewCommand("config").AddDynamicArguments("remote."+name+".url", addr).WithRepo(repo).RunWithStderr(t.Context()))
 	}
 	getRemote := func(repo gitrepo.RepositoryFacade, name string) string {
 		addr, err := remoteAddress(t.Context(), repo, name)
@@ -82,6 +82,7 @@ func TestMoveMirrorCredentialsToDatabase(t *testing.T) {
 	assert.Equal(t, "https://:token@example.com/o/a.git", encrypted("push_mirror", pushA.ID))
 	assert.Empty(t, encrypted("push_mirror", pushB.ID))
 	assert.Empty(t, encrypted("push_mirror", pushMissing.ID))
+	assert.Empty(t, encrypted("mirror", orphan.ID))
 
 	assert.Equal(t, "https://example.com/o/r.git", getRemote(repo1, "origin"))
 	assert.Equal(t, "https://example.com/o/r.wiki.git", getRemote(wiki1, "origin"))

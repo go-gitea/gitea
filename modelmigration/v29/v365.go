@@ -46,8 +46,12 @@ func MoveMirrorCredentialsToDatabase(ctx context.Context, x base.EngineMigration
 	}
 	move := func(ctx context.Context, table string, id, repoID int64, remoteName string) error {
 		var repo struct{ OwnerName, Name string }
-		if has, err := x.Table("repository").Where("id = ?", repoID).Get(&repo); err != nil || !has {
+		has, err := x.Table("repository").Where("id = ?", repoID).Get(&repo)
+		if err != nil {
 			return err
+		}
+		if !has {
+			return nil // a mirror without repository has nothing to move
 		}
 		// a broken repository must not block the upgrade, its credentials are still used from the git config
 		if err := moveMirrorRemoteCredentials(ctx, x, table, id, repo.OwnerName, repo.Name, remoteName); err != nil {
@@ -78,15 +82,15 @@ func moveMirrorRemoteCredentials(ctx context.Context, x base.EngineMigration, ta
 	if _, err := x.Exec("UPDATE "+table+" SET remote_address_encrypted = ? WHERE id = ?", encrypted, id); err != nil {
 		return err
 	}
-	if err := stripRemoteCredentials(ctx, codeRepo, remoteName, addr); err != nil {
-		return err
-	}
 	wikiRepo := base.LocalWikiGitRepo(ownerName, repoName)
 	wikiAddr, err := remoteAddress(ctx, wikiRepo, remoteName)
 	if err != nil {
 		return err
 	}
-	return stripRemoteCredentials(ctx, wikiRepo, remoteName, wikiAddr)
+	if err := stripRemoteCredentials(ctx, wikiRepo, remoteName, wikiAddr); err != nil {
+		return err
+	}
+	return stripRemoteCredentials(ctx, codeRepo, remoteName, addr) // last, a rerun finds the wiki through the code remote's credentials
 }
 
 func stripRemoteCredentials(ctx context.Context, repo gitrepo.RepositoryFacade, remoteName, addr string) error {
@@ -94,8 +98,7 @@ func stripRemoteCredentials(ctx context.Context, repo gitrepo.RepositoryFacade, 
 	if stripped == addr {
 		return nil
 	}
-	_, _, err := gitcmd.NewCommand("remote", "set-url").AddDynamicArguments(remoteName, stripped).WithRepo(repo).RunStdString(ctx)
-	return err
+	return gitcmd.NewCommand("remote", "set-url").AddDynamicArguments(remoteName, stripped).WithRepo(repo).RunWithStderr(ctx)
 }
 
 // remoteAddress returns an empty address if the repository or the remote does not exist

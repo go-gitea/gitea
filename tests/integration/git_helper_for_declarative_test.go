@@ -140,8 +140,7 @@ func gitCloneWithCredentials(ctx context.Context, u *url.URL, dstLocalPath strin
 	if err := git.Clone(ctx, u.String(), dstLocalPath, opts); err != nil {
 		return err
 	}
-	_, _, err := gitcmd.NewCommand("remote", "set-url", "origin").AddDynamicArguments(u.String()).WithDir(dstLocalPath).RunStdString(ctx)
-	return err
+	return gitcmd.NewCommand("remote", "set-url", "origin").AddDynamicArguments(u.String()).WithDir(dstLocalPath).RunWithStderr(ctx)
 }
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {

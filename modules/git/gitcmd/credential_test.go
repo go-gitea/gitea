@@ -21,9 +21,11 @@ func TestWithRemoteCredentials(t *testing.T) {
 	}
 
 	addr := "https://user:p%40ss@example.com:3000/owner/repo.git"
-	assert.Contains(t, fill(addr, "protocol=https\nhost=example.com:3000\n"), "username=user\npassword=p@ss\n")
+	for _, request := range []string{"protocol=https\nhost=example.com:3000\n", "protocol=https\nhost=EXAMPLE.com:3000\n"} {
+		assert.Contains(t, fill(addr, request), "username=user\npassword=p@ss\n", request)
+	}
 	for _, request := range []string{"protocol=https\nhost=other.com\n", "protocol=https\nhost=example.com\n", "protocol=http\nhost=example.com:3000\n"} {
-		assert.NotContains(t, fill(addr, request), "password=", request)
+		assert.Contains(t, fill(addr, request), "username=other\npassword=other\n", request)
 	}
 	assert.Contains(t, fill("HTTPS://user:token@example.com/owner/repo.git", "protocol=https\nhost=example.com\n"), "username=user\npassword=token\n")
 	assert.Contains(t, fill("https://example.com/owner/repo.git", "protocol=https\nhost=example.com\n"), "password=other\n", "no credentials, no helper")
