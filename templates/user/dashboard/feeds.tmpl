@@ -108,7 +108,7 @@
 					<span class="tw-inline-block tw-truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "comment_issue" "approve_pull_request" "reject_pull_request" "comment_pull"}}
 					<a href="{{.GetCommentLink ctx}}" class="tw-inline-block tw-truncate tw-max-w-full tw-self-start issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
-					{{with index .GetIssueInfos 1}}
+					{{with .GetCommentPreview ctx}}
 						{{with ctx.RenderUtils.FeedExcerptToHtml .}}
 							<div class="render-content markup">{{.}}</div>
 						{{end}}
@@ -119,7 +119,9 @@
 					<span class="tw-inline-block tw-truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "pull_review_dismissed"}}
 				<div class="item-body tw-text-text">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</div>
-				<div class="item-body tw-text-text">{{index .GetIssueInfos 2 | ctx.RenderUtils.RenderEmoji}}</div>
+				{{with ctx.RenderUtils.FeedExcerptToHtml (.GetCommentPreview ctx)}}
+					<div class="item-body tw-text-text render-content markup">{{.}}</div>
+				{{end}}
 				{{end}}
 			</div>
 			<div class="item-trailing">

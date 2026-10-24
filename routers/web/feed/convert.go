@@ -227,7 +227,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx), false)
 			case activities_model.ActionCommentIssue, activities_model.ActionApprovePullRequest, activities_model.ActionRejectPullRequest, activities_model.ActionCommentPull:
 				desc = act.GetIssueTitle(ctx)
-				comment := act.GetIssueInfos()[1]
+				comment := act.GetCommentPreview(ctx)
 				if len(comment) != 0 {
 					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment, true))
 				}
@@ -236,7 +236,10 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			case activities_model.ActionCloseIssue, activities_model.ActionReopenIssue, activities_model.ActionClosePullRequest, activities_model.ActionReopenPullRequest:
 				desc = act.GetIssueTitle(ctx)
 			case activities_model.ActionPullReviewDismissed:
-				desc = ctx.Locale.TrString("action.review_dismissed_reason") + "\n\n" + act.GetIssueInfos()[2]
+				desc = ctx.Locale.TrString("action.review_dismissed_reason")
+				if comment := act.GetCommentPreview(ctx); len(comment) != 0 {
+					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment, true))
+				}
 			}
 		}
 		if len(content) == 0 {

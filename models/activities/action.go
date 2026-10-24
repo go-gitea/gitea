@@ -21,6 +21,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
@@ -148,6 +149,8 @@ type Action struct {
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+
+	useSnapshotPreview bool
 }
 
 func init() {
@@ -372,6 +375,19 @@ func (a *Action) GetIssueInfos() []string {
 		ret = append(ret, "")
 	}
 	return ret
+}
+
+func (a *Action) GetCommentPreview(ctx context.Context) string {
+	var content string
+	switch {
+	case !a.useSnapshotPreview && a.Comment != nil:
+		content = a.Comment.Content
+	case a.OpType == ActionPullReviewDismissed:
+		content = a.GetIssueInfos()[2]
+	default:
+		content = a.GetIssueInfos()[1]
+	}
+	return markdown.FeedExcerpt(ctx, content)
 }
 
 func (a *Action) getIssueIndex() int64 {

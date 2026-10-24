@@ -6,6 +6,7 @@ package activities_test
 import (
 	"fmt"
 	"path"
+	"strings"
 	"testing"
 
 	activities_model "gitea.dev/models/activities"
@@ -156,4 +157,30 @@ func TestDeleteIssueActions(t *testing.T) {
 	unittest.AssertCount(t, &activities_model.Action{}, 2)
 	assert.NoError(t, activities_model.DeleteIssueActions(t.Context(), issue.RepoID, issue.ID, issue.Index))
 	unittest.AssertCount(t, &activities_model.Action{}, 0)
+}
+
+func TestGetCommentPreview(t *testing.T) {
+	for _, entry := range []struct {
+		name     string
+		opType   activities_model.ActionType
+		content  string
+		comment  *issue_model.Comment
+		expected string
+	}{
+		{"live comment preferred over snapshot", activities_model.ActionCommentIssue, "1|stale snapshot", &issue_model.Comment{Content: "fresh content"}, "fresh content"},
+		{"snapshot fallback when comment not loaded", activities_model.ActionCommentIssue, "1|snapshot body", nil, "snapshot body"},
+		{"dismiss review reads field 2 as fallback", activities_model.ActionPullReviewDismissed, "5|reviewer|dismiss reason", nil, "dismiss reason"},
+		{"dismiss review prefers live comment", activities_model.ActionPullReviewDismissed, "5|reviewer|old reason", &issue_model.Comment{Content: "updated reason"}, "updated reason"},
+		{"live comment uses meaningful prose excerpt", activities_model.ActionCommentPull, "1|stale snapshot", &issue_model.Comment{Content: "```suggestion\nreplacement\n```\n\n" + strings.Repeat("a", 300)}, strings.Repeat("a", 197) + "…"},
+		{"empty live comment preferred over snapshot", activities_model.ActionCommentIssue, "1|old content", &issue_model.Comment{}, ""},
+	} {
+		t.Run(entry.name, func(t *testing.T) {
+			action := &activities_model.Action{
+				OpType:  entry.opType,
+				Content: entry.content,
+				Comment: entry.comment,
+			}
+			assert.Equal(t, entry.expected, action.GetCommentPreview(t.Context()))
+		})
+	}
 }
