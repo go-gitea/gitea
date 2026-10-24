@@ -49,7 +49,7 @@ test('add and remove repository topics', async ({page, request}) => {
   ]);
   await page.goto(`/${owner}/${repoName}`);
   await page.getByRole('button', {name: 'Manage Topics'}).click();
-  await page.keyboard.type('e2e-keep');
+  await page.keyboard.insertText('e2e-keep');
   await page.getByRole('option', {name: 'e2e-keep', exact: true}).click();
   await page.getByRole('button', {name: 'Remove item "e2e-drop"'}).click();
   await page.getByRole('button', {name: 'Save', exact: true}).click();
