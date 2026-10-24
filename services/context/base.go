@@ -188,6 +188,10 @@ func (b *Base) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	return b.Locale.TrN(cnt, key1, keyN, args...)
 }
 
+func (b *Base) TrPlural(key string, cnt any, args ...any) template.HTML {
+	return b.Locale.TrPlural(key, cnt, args...)
+}
+
 func CspScriptNonce(ctx reqctx.RequestContext) (ret string) {
 	// Generate a random nonce for each request and cache it in the context to make it usable during the whole rendering process.
 	//

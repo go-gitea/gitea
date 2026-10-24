@@ -617,7 +617,7 @@ func GetPullCommits(ctx *context.Context) {
 	resp.Locale = map[string]any{
 		"lang":                                ctx.Locale.Language(),
 		"show_all_commits":                    ctx.Tr("repo.pulls.show_all_commits"),
-		"stats_num_commits":                   ctx.TrN(len(commits), "repo.activity.git_stats_commit_1", "repo.activity.git_stats_commit_n", len(commits)),
+		"stats_num_commits":                   ctx.TrPlural("repo.activity.git_stats_commit", len(commits), len(commits)),
 		"show_changes_since_your_last_review": ctx.Tr("repo.pulls.show_changes_since_your_last_review"),
 		"select_commit_hold_shift_for_range":  ctx.Tr("repo.pulls.select_commit_hold_shift_for_range"),
 	}

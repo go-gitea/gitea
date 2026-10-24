@@ -81,6 +81,7 @@ func AccountPost(ctx *context.Context) {
 		if err := user.UpdateAuth(ctx, ctx.Doer, opts); err != nil {
 			switch {
 			case errors.Is(err, password.ErrMinLength):
+				// TODO: use TrPlural for the count
 				ctx.Flash.Error(ctx.Tr("auth.password_too_short", setting.MinPasswordLength))
 			case errors.Is(err, password.ErrComplexity):
 				ctx.Flash.Error(password.BuildComplexityError(ctx.Locale))

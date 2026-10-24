@@ -6,7 +6,7 @@
 		{{$thisRepoBranchDisplay := HTMLFormat "%s:%s" .Repository.FullName .BranchName}}
 		{{$upstreamHtml := HTMLFormat `<a href="%s">%s</a>` $upstreamLink $upstreamRepoBranchDisplay}}
 		{{if .UpstreamDivergingInfo.HeadBranchCommitsBehind}}
-			{{ctx.Locale.TrN .UpstreamDivergingInfo.HeadBranchCommitsBehind "repo.pulls.upstream_diverging_prompt_behind_1" "repo.pulls.upstream_diverging_prompt_behind_n" .UpstreamDivergingInfo.HeadBranchCommitsBehind $upstreamHtml}}
+			{{ctx.Locale.TrPlural "repo.pulls.upstream_diverging_prompt_behind" .UpstreamDivergingInfo.HeadBranchCommitsBehind .UpstreamDivergingInfo.HeadBranchCommitsBehind $upstreamHtml}}
 		{{else}}
 			{{ctx.Locale.Tr "repo.pulls.upstream_diverging_prompt_base_newer" $upstreamHtml}}
 		{{end}}

@@ -170,7 +170,7 @@ func handleCreateError(ctx *context.Context, owner *user_model.User, err error, 
 	switch {
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
-		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+		msg := ctx.TrPlural("repo.form.reach_limit_of_creation", maxCreationLimit, maxCreationLimit)
 		ctx.RenderWithErrDeprecated(msg, tpl, form)
 	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
@@ -291,7 +291,7 @@ func handleRepoActionError(ctx *context.Context, err error) {
 		ctx.JSONError(ctx.Tr("repo.action.blocked_user"))
 	case errors.As(err, &errLimitReached):
 		limit := errLimitReached.Limit
-		ctx.JSONError(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit))
+		ctx.JSONError(ctx.TrPlural("repo.form.reach_limit_of_creation", limit, limit))
 	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.JSONError(ctx.Tr("error.permission_denied"))
 	default:

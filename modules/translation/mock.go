@@ -58,6 +58,22 @@ func (l MockLocale) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	return l.Tr(key1, args...)
 }
 
+func (l MockLocale) TrPlural(key string, cnt any, args ...any) template.HTML {
+	return l.Tr(key, args...)
+}
+
+func (l MockLocale) TrPluralString(key string, cnt any, args ...any) string {
+	return l.TrString(key, args...)
+}
+
+func (l MockLocale) TrPluralForms(key string) string {
+	return "{}"
+}
+
+func (l MockLocale) HasPluralKey(key string) bool {
+	return false
+}
+
 func (l MockLocale) PrettyNumber(v any) string {
 	return fmt.Sprint(v)
 }

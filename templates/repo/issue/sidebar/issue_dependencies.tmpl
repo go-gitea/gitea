@@ -42,7 +42,7 @@
 				{{end}}
 				{{if .BlockingDependenciesNotPermitted}}
 					<div class="item gt-ellipsis">
-						<span>{{ctx.Locale.TrN (len .BlockingDependenciesNotPermitted) "repo.issues.dependency.no_permission_1" "repo.issues.dependency.no_permission_n" (len .BlockingDependenciesNotPermitted)}}</span>
+						<span>{{ctx.Locale.TrPlural "repo.issues.dependency.no_permission" (len .BlockingDependenciesNotPermitted) (len .BlockingDependenciesNotPermitted)}}</span>
 					</div>
 				{{end}}
 			</div>
@@ -101,7 +101,7 @@
 					{{end}}
 				{{else if .BlockedByDependenciesNotPermitted}}
 					<div class="item gt-ellipsis">
-						<span>{{ctx.Locale.TrN (len .BlockedByDependenciesNotPermitted) "repo.issues.dependency.no_permission_1" "repo.issues.dependency.no_permission_n" (len .BlockedByDependenciesNotPermitted)}}</span>
+						<span>{{ctx.Locale.TrPlural "repo.issues.dependency.no_permission" (len .BlockedByDependenciesNotPermitted) (len .BlockedByDependenciesNotPermitted)}}</span>
 					</div>
 				{{end}}
 			</div>

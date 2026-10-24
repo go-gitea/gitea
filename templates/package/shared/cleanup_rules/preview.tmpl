@@ -1,6 +1,6 @@
 <h4 class="ui top attached header">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.preview"}}</h4>
 <div class="ui attached segment">
-	<p>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.preview.overview" (len .VersionsToRemove)}}</p>
+	<p>{{/* TODO: use TrPlural for the count */}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.preview.overview" (len .VersionsToRemove)}}</p>
 </div>
 <div class="ui attached table segment">
 	<table class="ui very basic table unstackable">

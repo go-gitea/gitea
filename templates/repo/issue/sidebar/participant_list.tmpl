@@ -1,6 +1,6 @@
 {{if .Participants}}
 	<div class="divider"></div>
-	<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
+	<span class="text"><strong>{{/* TODO: use TrPlural for the count */}}{{ctx.Locale.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
 	<div class="ui list tw-flex tw-flex-wrap">
 		{{range .Participants}}
 			<a {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-tooltip-content="{{.GetDisplayName}}">
