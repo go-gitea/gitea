@@ -311,7 +311,8 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 }
 
 func (opts FindReleasesOptions) ToOrders() string {
-	return "created_unix DESC, id DESC"
+	// created_unix is the commit date, so a patch tagged on an old branch would sort below newer-published releases; list by publication time
+	return "CASE WHEN published_unix = 0 THEN created_unix ELSE published_unix END DESC, id DESC"
 }
 
 // GetTagNamesByRepoID returns a list of release tag names of repository.
