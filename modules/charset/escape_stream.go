@@ -4,116 +4,95 @@
 package charset
 
 import (
-	"bytes"
 	"fmt"
 	"html"
-	"io"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 )
 
-type htmlChunkReader struct {
-	in       io.Reader
-	readErr  error
-	readBuf  []byte
-	curInTag bool
-}
-
-type escapeStreamer struct {
-	htmlChunkReader
-
+type htmlEscaper struct {
 	escaped         *EscapeStatus
 	locale          translation.Locale
 	ambiguousTables []*AmbiguousTable
 	allowed         map[rune]bool
 
-	tagPartial []byte // partial tag content, used to detect if we are in some tags
-
 	inTagMath bool // MathML operators like U+2212 are intended and wrapping them breaks the math layout
 
-	out io.Writer
+	detectResults []detectResult
+	written       int // content before this offset has been written to out
+	out           strings.Builder
 }
 
-func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts ...EscapeOptions) (*EscapeStatus, error) {
-	es := &escapeStreamer{
-		escaped:         &EscapeStatus{},
-		locale:          locale,
-		ambiguousTables: AmbiguousTablesForLocale(locale),
-		htmlChunkReader: htmlChunkReader{
-			in:      in,
-			readBuf: make([]byte, 0, 32*1024),
-		},
-		out: out,
-	}
+const detectWindowRunes = 4096 // bounds the detection results of long text parts
 
-	if len(opts) > 0 {
-		es.allowed = opts[0].Allowed
-	}
-
-	readCount := 0
-	lastIsTag := false
-	for {
-		parts, partInTag, err := es.readRunes()
-		readCount++
-		if err == io.EOF {
-			return es.escaped, nil
-		} else if err != nil {
-			return nil, err
+// escape returns content with the runes of its text parts that need escaping replaced, or content itself if there are none
+func (e *htmlEscaper) escape(content string) string {
+	for pos := 0; pos < len(content); {
+		if content[pos] == '<' {
+			tagEnd := len(content)
+			if idx := strings.IndexByte(content[pos:], '>'); idx != -1 {
+				tagEnd = pos + idx + 1
+			}
+			e.trackHtmlTag(content[pos:tagEnd])
+			pos = tagEnd
+			continue
 		}
-		for i, part := range parts {
-			if partInTag[i] {
-				lastIsTag = true
-				es.trackHtmlTag(part)
-				if _, err := out.Write(part); err != nil {
-					return nil, err
-				}
-			} else {
-				// if last part is tag, then this part is content begin
-				// if the content is the first part of the first read, then it's also content begin
-				isContentBegin := lastIsTag || (readCount == 1 && i == 0)
-				lastIsTag = false
-				if isContentBegin {
-					if part, err = es.trimAndWriteBom(part); err != nil {
-						return nil, err
-					}
-				}
-				if es.inTagMath {
-					if _, err := out.Write(part); err != nil {
-						return nil, err
-					}
-				} else if err = es.detectAndWriteRunes(part); err != nil {
-					return nil, err
-				}
+		textEnd := len(content)
+		if idx := strings.IndexByte(content[pos:], '<'); idx != -1 {
+			textEnd = pos + idx
+		}
+		text, _ := strings.CutPrefix(content[pos:textEnd], "\xef\xbb\xbf") // a leading BOM is kept as is
+		if !e.inTagMath && !isStringAsciiSafe(text) {
+			e.escapeText(content, textEnd-len(text), textEnd)
+		}
+		pos = textEnd
+	}
+	if e.written == 0 {
+		return content
+	}
+	e.out.WriteString(content[e.written:])
+	return e.out.String()
+}
+
+// escapeText analyzes content[start:end] in windows overlapping by the context analyzeDetectResults looks at
+func (e *htmlEscaper) escapeText(content string, start, end int) {
+	for skip := 0; ; skip = longSentenceDetectionLimit {
+		results := e.detectRunes(content[start:end])
+		e.analyzeDetectResults(results)
+		lastResult := results[len(results)-1]
+		isLastWindow := start+lastResult.position+lastResult.runeSize == end
+		emitEnd := len(results)
+		if !isLastWindow {
+			emitEnd -= longSentenceDetectionLimit
+		}
+		for _, res := range results[skip:emitEnd] {
+			if res.needEscape {
+				e.out.WriteString(content[e.written : start+res.position])
+				e.writeEscapedRune(res)
+				e.written = start + res.position + res.runeSize
 			}
 		}
+		if isLastWindow {
+			return
+		}
+		start += results[emitEnd-longSentenceDetectionLimit].position
 	}
 }
 
-// trackHtmlTag receives tag parts, a tag might be split into multiple parts
-func (e *escapeStreamer) trackHtmlTag(part []byte) {
-	const maxHeadLen = 100 // only read the first N bytes of the tag for detection purpose
-	if part[0] == '<' {
-		// start a new tag
-		e.tagPartial = e.tagPartial[:0]
-	}
-	if len(e.tagPartial) >= maxHeadLen {
-		return
-	}
-	e.tagPartial = append(e.tagPartial, part[:min(len(part), maxHeadLen-len(e.tagPartial))]...)
-
+func (e *htmlEscaper) trackHtmlTag(tag string) {
 	isTag := func(prefix string) bool {
-		if len(e.tagPartial) < len(prefix)+1 {
+		if len(tag) < len(prefix)+1 {
 			return false
 		}
-		if !util.AsciiEqualFold(e.tagPartial[:len(prefix)], []byte(prefix)) {
+		if !util.AsciiEqualFold(tag[:len(prefix)], prefix) {
 			return false
 		}
-		return strings.IndexByte(" \t\n\r\f>", e.tagPartial[len(prefix)]) != -1
+		return strings.IndexByte(" \t\n\r\f>", tag[len(prefix)]) != -1
 	}
 	if isTag("<math") {
 		e.inTagMath = true
@@ -122,20 +101,9 @@ func (e *escapeStreamer) trackHtmlTag(part []byte) {
 	}
 }
 
-func (e *escapeStreamer) trimAndWriteBom(part []byte) ([]byte, error) {
-	remaining, ok := bytes.CutPrefix(part, globalVars().utf8Bom)
-	if ok {
-		part = remaining
-		if _, err := e.out.Write(globalVars().utf8Bom); err != nil {
-			return part, err
-		}
-	}
-	return part, nil
-}
-
 const longSentenceDetectionLimit = 20
 
-func (e *escapeStreamer) possibleLongSentence(results []detectResult, pos int) bool {
+func (e *htmlEscaper) possibleLongSentence(results []detectResult, pos int) bool {
 	countBasic := 0
 	countNonASCII := 0
 	for i := max(pos-longSentenceDetectionLimit, 0); i < min(pos+longSentenceDetectionLimit, len(results)); i++ {
@@ -152,214 +120,56 @@ func (e *escapeStreamer) possibleLongSentence(results []detectResult, pos int) b
 	return countChar != 0 && countNonASCII*100/countChar >= 50
 }
 
-func (e *escapeStreamer) analyzeDetectResults(results []detectResult) {
+func (e *htmlEscaper) analyzeDetectResults(results []detectResult) {
 	for i := range results {
 		res := &results[i]
 		if res.runeType == runeTypeInvisible || res.runeType == runeTypeAmbiguous {
 			leftIsNonASCII := i > 0 && (results[i-1].runeType == runeTypeNonASCII || results[i-1].runeType == runeTypeAmbiguous)
 			rightIsNonASCII := i < len(results)-1 && (results[i+1].runeType == runeTypeNonASCII || results[i+1].runeType == runeTypeAmbiguous)
 			surroundingNonASCII := leftIsNonASCII || rightIsNonASCII
-			if !surroundingNonASCII {
-				if len(results) < longSentenceDetectionLimit {
-					res.needEscape = setting.UI.AmbiguousUnicodeDetection
-				} else if !e.possibleLongSentence(results, i) {
-					res.needEscape = setting.UI.AmbiguousUnicodeDetection
-				}
-			}
+			res.needEscape = !surroundingNonASCII && (len(results) < longSentenceDetectionLimit || !e.possibleLongSentence(results, i))
 		}
 	}
 }
 
-func (e *escapeStreamer) detectAndWriteRunes(part []byte) error {
-	results := e.detectRunes(part)
-	e.analyzeDetectResults(results)
-	return e.writeDetectResults(part, results)
+func (e *htmlEscaper) writeEscapedRune(res detectResult) {
+	switch res.runeType {
+	case runeTypeBroken:
+		e.writeBrokenRune()
+	case runeTypeAmbiguous:
+		e.writeAmbiguousRune(res.runeChar, res.confusable)
+	case runeTypeInvisible:
+		e.writeInvisibleRune(res.runeChar)
+	case runeTypeControlChar:
+		e.writeControlRune(res.runeChar)
+	default:
+		panic("unreachable")
+	}
 }
 
-func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error) {
-	// we have read everything, eof
-	if e.readErr != nil && len(e.readBuf) == 0 {
-		return nil, nil, e.readErr
-	}
-
-	// not eof, and the there is space in the buffer, try to read more data
-	if e.readErr == nil && len(e.readBuf) <= cap(e.readBuf)*3/4 {
-		n, err := e.in.Read(e.readBuf[len(e.readBuf):cap(e.readBuf)])
-		e.readErr = err
-		e.readBuf = e.readBuf[:len(e.readBuf)+n]
-	}
-	if len(e.readBuf) == 0 {
-		return nil, nil, e.readErr
-	}
-
-	// try to exact tag parts and content parts
-	pos := 0
-	for pos < len(e.readBuf) {
-		var curPartEnd int
-		nextInTag := e.curInTag
-		if e.curInTag {
-			// if cur part is in tag, try to find the tag close char '>'
-			idx := bytes.IndexByte(e.readBuf[pos:], '>')
-			if idx == -1 {
-				// if no tag close char, then the whole buffer is in tag
-				curPartEnd = len(e.readBuf)
-			} else {
-				// tag part ends, switch to content part
-				curPartEnd = pos + idx + 1
-				nextInTag = !nextInTag
-			}
-		} else {
-			// if cur part is in content, try to find the tag open char '<'
-			idx := bytes.IndexByte(e.readBuf[pos:], '<')
-			if idx == -1 {
-				// if no tag open char, then the whole buffer is in content
-				curPartEnd = len(e.readBuf)
-			} else {
-				// content part ends, switch to tag part
-				curPartEnd = pos + idx
-				nextInTag = !nextInTag
-			}
-		}
-
-		curPartLen := curPartEnd - pos
-		if curPartLen == 0 {
-			// if cur part is empty, only need to switch the part type
-			if e.curInTag == nextInTag {
-				panic("impossible, curPartLen is 0 but the part in tag status is not switched")
-			}
-			e.curInTag = nextInTag
-			continue
-		}
-
-		// now, curPartLen can't be 0
-		curPart := make([]byte, curPartLen)
-		copy(curPart, e.readBuf[pos:curPartEnd])
-		// now we get the curPart bytes, but we can't directly use it, the last rune in it might have been cut
-		// try to decode the last rune, if it's invalid, then we cut the last byte and try again until we get a valid rune or no byte left
-		for i := curPartLen - 1; i >= 0; i-- {
-			last, lastSize := utf8.DecodeRune(curPart[i:])
-			if last == utf8.RuneError && lastSize == 1 {
-				curPartLen--
-			} else {
-				curPartLen += lastSize - 1
-				break
-			}
-		}
-		if curPartLen == 0 {
-			// actually it's impossible that the part doesn't contain any valid rune,
-			// the only case is that the cap(readBuf) is too small, or the origin contain indeed doesn't contain any valid rune
-			// * try to leave the last 4 bytes (possible longest utf-8 encoding) to next round
-			// * at least consume 1 byte to avoid infinite loop
-			curPartLen = max(len(curPart)-utf8.UTFMax, 1)
-		}
-
-		// if curPartLen is not the same as curPart, it means we have cut some bytes,
-		// need to wait for more data if not eof
-		trailingCorrupted := curPartLen != len(curPart)
-
-		// finally, we get the real part we need
-		curPart = curPart[:curPartLen]
-		parts = append(parts, curPart)
-		partInTag = append(partInTag, e.curInTag)
-
-		pos += curPartLen
-		e.curInTag = nextInTag
-
-		if trailingCorrupted && e.readErr == nil {
-			// if the last part is corrupted, and we haven't reach eof, then we need to wait for more data to get the complete part
-			break
-		}
-	}
-
-	copy(e.readBuf, e.readBuf[pos:])
-	e.readBuf = e.readBuf[:len(e.readBuf)-pos]
-	return parts, partInTag, nil
-}
-
-func (e *escapeStreamer) writeDetectResults(data []byte, results []detectResult) error {
-	lastWriteRawIdx := -1
-	for idx := range results {
-		res := &results[idx]
-		if !res.needEscape {
-			if lastWriteRawIdx == -1 {
-				lastWriteRawIdx = idx
-			}
-			continue
-		}
-
-		if lastWriteRawIdx != -1 {
-			if _, err := e.out.Write(data[results[lastWriteRawIdx].position:res.position]); err != nil {
-				return err
-			}
-			lastWriteRawIdx = -1
-		}
-		switch res.runeType {
-		case runeTypeBroken:
-			if err := e.writeBrokenRune(data[res.position : res.position+res.runeSize]); err != nil {
-				return err
-			}
-		case runeTypeAmbiguous:
-			if err := e.writeAmbiguousRune(res.runeChar, res.confusable); err != nil {
-				return err
-			}
-		case runeTypeInvisible:
-			if err := e.writeInvisibleRune(res.runeChar); err != nil {
-				return err
-			}
-		case runeTypeControlChar:
-			if err := e.writeControlRune(res.runeChar); err != nil {
-				return err
-			}
-		default:
-			panic("unreachable")
-		}
-	}
-	if lastWriteRawIdx != -1 {
-		lastResult := results[len(results)-1]
-		if _, err := e.out.Write(data[results[lastWriteRawIdx].position : lastResult.position+lastResult.runeSize]); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (e *escapeStreamer) writeBrokenRune(_ []byte) (err error) {
+func (e *htmlEscaper) writeBrokenRune() {
 	// Although we'd like to use the original bytes to display (show the real broken content to users),
-	// however, when this "escape stream" module is applied to the content, the content has already been processed by other modules.
+	// however, when this escaper is applied to the content, the content has already been processed by other modules.
 	// So the invalid bytes just can't be kept till this step, in most (all) cases, the only thing we see here is utf8.RuneError
-	_, err = io.WriteString(e.out, `<span class="broken-code-point">�</span>`)
-	return err
+	e.out.WriteString(`<span class="broken-code-point">�</span>`)
 }
 
-func (e *escapeStreamer) writeEscapedCharHTML(tag1, attr, tag2, content, tag3 string) (err error) {
-	_, err = io.WriteString(e.out, tag1)
-	if err != nil {
-		return err
-	}
-	_, err = io.WriteString(e.out, html.EscapeString(attr))
-	if err != nil {
-		return err
-	}
-	_, err = io.WriteString(e.out, tag2)
-	if err != nil {
-		return err
-	}
-	_, err = io.WriteString(e.out, html.EscapeString(content))
-	if err != nil {
-		return err
-	}
-	_, err = io.WriteString(e.out, tag3)
-	return err
+func (e *htmlEscaper) writeEscapedCharHTML(tag1, attr, tag2, content, tag3 string) {
+	e.out.WriteString(tag1)
+	e.out.WriteString(html.EscapeString(attr))
+	e.out.WriteString(tag2)
+	e.out.WriteString(html.EscapeString(content))
+	e.out.WriteString(tag3)
 }
 
 func runeToHex(r rune) string {
 	return fmt.Sprintf("[U+%04X]", r)
 }
 
-func (e *escapeStreamer) writeAmbiguousRune(r, c rune) (err error) {
+func (e *htmlEscaper) writeAmbiguousRune(r, c rune) {
 	e.escaped.Escaped = true
 	e.escaped.HasAmbiguous = true
-	return e.writeEscapedCharHTML(
+	e.writeEscapedCharHTML(
 		`<span class="ambiguous-code-point" data-tooltip-content="`,
 		e.locale.TrString("repo.ambiguous_character", string(r)+" "+runeToHex(r), string(c)+" "+runeToHex(c)),
 		`"><span class="char">`,
@@ -368,10 +178,10 @@ func (e *escapeStreamer) writeAmbiguousRune(r, c rune) (err error) {
 	)
 }
 
-func (e *escapeStreamer) writeInvisibleRune(r rune) error {
+func (e *htmlEscaper) writeInvisibleRune(r rune) {
 	e.escaped.Escaped = true
 	e.escaped.HasInvisible = true
-	return e.writeEscapedCharHTML(
+	e.writeEscapedCharHTML(
 		`<span class="escaped-code-point" data-escaped="`,
 		runeToHex(r),
 		`"><span class="char">`,
@@ -380,7 +190,7 @@ func (e *escapeStreamer) writeInvisibleRune(r rune) error {
 	)
 }
 
-func (e *escapeStreamer) writeControlRune(r rune) error {
+func (e *htmlEscaper) writeControlRune(r rune) {
 	var display string
 	if r >= 0 && r <= 0x1f {
 		display = string(0x2400 + r)
@@ -389,7 +199,7 @@ func (e *escapeStreamer) writeControlRune(r rune) error {
 	} else {
 		display = runeToHex(r)
 	}
-	return e.writeEscapedCharHTML(
+	e.writeEscapedCharHTML(
 		`<span class="broken-code-point" data-escaped="`,
 		display,
 		`"><span class="char">`,
@@ -416,42 +226,38 @@ const (
 	runeTypeControlChar
 )
 
-func (e *escapeStreamer) detectRunes(data []byte) []detectResult {
-	runeCount := utf8.RuneCount(data)
-	results := make([]detectResult, runeCount)
+func (e *htmlEscaper) detectRunes(data string) []detectResult {
+	results := slices.Grow(e.detectResults[:0], min(len(data), detectWindowRunes))
 	invisibleRangeTable := globalVars().invisibleRangeTable
-	var i int
-	var confusable rune
-	for pos := 0; pos < len(data); i++ {
-		r, runeSize := utf8.DecodeRune(data[pos:])
-		results[i].runeChar = r
-		results[i].runeSize = runeSize
-		results[i].position = pos
+	for pos := 0; pos < len(data) && len(results) < detectWindowRunes; {
+		r, runeSize := utf8.DecodeRuneInString(data[pos:])
+		res := detectResult{runeChar: r, runeSize: runeSize, position: pos}
 		pos += runeSize
 
 		switch {
+		case r < utf8.RuneSelf && asciiSafeBytes[r]: // basic rune, no table contains printable ASCII
 		case r == utf8.RuneError:
-			results[i].runeType = runeTypeBroken
-			results[i].needEscape = true
-		case r == ' ' || r == '\t' || r == '\n' || e.allowed[r]:
-			results[i].runeType = runeTypeBasic
+			res.runeType = runeTypeBroken
+			res.needEscape = true
+		case e.allowed[r]:
+			res.runeType = runeTypeBasic
 			if r >= 0x80 {
-				results[i].runeType = runeTypeNonASCII
+				res.runeType = runeTypeNonASCII
 			}
 		case r < 0x20 || r == 0x7f:
-			results[i].runeType = runeTypeControlChar
-			results[i].needEscape = true
+			res.runeType = runeTypeControlChar
+			res.needEscape = true
 		case unicode.Is(invisibleRangeTable, r):
-			results[i].runeType = runeTypeInvisible
-			// not sure about results[i].needEscape, will be detected separately
-		case isAmbiguous(r, &confusable, e.ambiguousTables...):
-			results[i].runeType = runeTypeAmbiguous
-			results[i].confusable = confusable
-			// not sure about results[i].needEscape, will be detected separately
-		case r >= 0x80:
-			results[i].runeType = runeTypeNonASCII
-		default: // details to basic runes
+			res.runeType = runeTypeInvisible
+			// not sure about res.needEscape, will be detected separately
+		case isAmbiguous(r, &res.confusable, e.ambiguousTables...):
+			res.runeType = runeTypeAmbiguous
+			// not sure about res.needEscape, will be detected separately
+		default:
+			res.runeType = runeTypeNonASCII
 		}
+		results = append(results, res)
 	}
+	e.detectResults = results
 	return results
 }

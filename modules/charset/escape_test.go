@@ -4,16 +4,15 @@
 package charset
 
 import (
+	"html/template"
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type escapeControlTest struct {
@@ -142,6 +141,17 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 		status: EscapeStatus{Escaped: true, HasAmbiguous: true},
 	},
 	{
+		name:   "long text analyzed in overlapping windows",
+		text:   strings.Repeat("a", 4095) + "\u202e\u0436" + strings.Repeat("a", 5000) + "\u202e",
+		result: strings.Repeat("a", 4095) + "\u202e\u0436" + strings.Repeat("a", 5000) + `<span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">` + "\u202e" + `</span></span>`,
+		status: EscapeStatus{Escaped: true, HasInvisible: true},
+	},
+	{
+		name:   "broken byte before tag",
+		text:   "00\xa9<b>",
+		result: `00<span class="broken-code-point">�</span><b>`,
+	},
+	{
 		name:   "ambiguous in math",
 		text:   "<math><mo>−</mo><mi>b</mi></math> −",
 		result: `<math><mo>−</mo><mi>b</mi></math> <span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character:− [U+2212],- [U+002D]"><span class="char">−</span></span>`,
@@ -149,34 +159,29 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 	},
 }
 
-func TestEscapeControlReader(t *testing.T) {
+func TestEscapeControlHTML(t *testing.T) {
 	for _, tt := range escapeControlTests {
 		t.Run(tt.name, func(t *testing.T) {
-			output := &htmlutil.HTMLBuilder{}
-			status, err := EscapeControlReader(strings.NewReader(tt.text), output, &translation.MockLocale{})
-			assert.NoError(t, err)
+			status, output := EscapeControlHTML(template.HTML(tt.text), &translation.MockLocale{})
 			assert.Equal(t, tt.status, *status)
-			outStr := output.String()
-			assert.Equal(t, tt.result, outStr)
+			assert.EqualValues(t, tt.result, output)
 		})
 	}
 }
 
 func TestTrackHtmlTag(t *testing.T) {
-	e := &escapeStreamer{}
+	e := &htmlEscaper{}
 	for _, tt := range []struct {
-		parts  []string
+		tag    string
 		inMath bool
 	}{
-		{[]string{"<ma", `TH display="block">`}, true},
-		{[]string{"<mo>"}, true},
-		{[]string{"</MA", "th>"}, false},
-		{[]string{"<mathx>"}, false},
+		{`<maTH display="block">`, true},
+		{"<mo>", true},
+		{"</MAth>", false},
+		{"<mathx>", false},
 	} {
-		for _, part := range tt.parts {
-			e.trackHtmlTag([]byte(part))
-		}
-		assert.Equal(t, tt.inMath, e.inTagMath, "%v", tt.parts)
+		e.trackHtmlTag(tt.tag)
+		assert.Equal(t, tt.inMath, e.inTagMath, tt.tag)
 	}
 }
 
@@ -187,51 +192,4 @@ func TestSettingAmbiguousUnicodeDetection(t *testing.T) {
 	setting.UI.AmbiguousUnicodeDetection = false
 	_, out = EscapeControlHTML("a test", &translation.MockLocale{})
 	assert.EqualValues(t, `a test`, out)
-}
-
-func TestHTMLChunkReader(t *testing.T) {
-	type textPart struct {
-		text  string
-		isTag bool
-	}
-	testReadChunks := func(t *testing.T, chunkSize int, input string, expected []textPart) {
-		r := &htmlChunkReader{in: strings.NewReader(input), readBuf: make([]byte, 0, chunkSize)}
-		var results []textPart
-		for {
-			parts, partIsTag, err := r.readRunes()
-			if err != nil {
-				break
-			}
-			for i, part := range parts {
-				results = append(results, textPart{string(part), partIsTag[i]})
-			}
-		}
-		assert.Equal(t, expected, results, "chunk size: %d, input: %s", chunkSize, input)
-	}
-
-	testReadChunks(t, 10, "abc<def>ghi", []textPart{
-		{text: "abc", isTag: false},
-		{text: "<def>", isTag: true},
-		{text: "gh", isTag: false},
-		// -- chunk
-		{text: "i", isTag: false},
-	})
-
-	testReadChunks(t, 10, "<abc><def>ghi", []textPart{
-		{text: "<abc>", isTag: true},
-		{text: "<def>", isTag: true},
-		// -- chunk
-		{text: "ghi", isTag: false},
-	})
-
-	rune1, rune2, rune3, rune4 := "A", "é", "啊", "🌞"
-	require.Len(t, rune1, 1)
-	require.Len(t, rune2, 2)
-	require.Len(t, rune3, 3)
-	require.Len(t, rune4, 4)
-	input := "<" + rune1 + rune2 + rune3 + rune4 + ">" + rune1 + rune2 + rune3 + rune4
-	testReadChunks(t, 4, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞", true}, {">", true}, {"Aé", false}, {"啊", false}, {"🌞", false}})
-	testReadChunks(t, 5, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"Aé", false}, {"啊", false}, {"🌞", false}})
-	testReadChunks(t, 6, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
-	testReadChunks(t, 7, input, []textPart{{"<Aé啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
 }

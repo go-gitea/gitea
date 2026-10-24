@@ -5,10 +5,7 @@ package charset
 
 import (
 	"html/template"
-	"io"
-	"strings"
 
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
 )
@@ -28,21 +25,30 @@ func EscapeOptionsForView() EscapeOptions {
 	}
 }
 
-// EscapeControlHTML escapes the Unicode control sequences in a provided html document
-func EscapeControlHTML(html template.HTML, locale translation.Locale, opts ...EscapeOptions) (escaped *EscapeStatus, output template.HTML) {
-	if !setting.UI.AmbiguousUnicodeDetection {
-		return &EscapeStatus{}, html
+var asciiSafeBytes = func() (ret [256]bool) {
+	for c := range ret {
+		ret[c] = (c >= 0x20 && c < 0x7f) || c == '\t' || c == '\n'
 	}
-	w := &htmlutil.HTMLBuilder{}
-	escaped, _ = EscapeControlReader(strings.NewReader(string(html)), w, locale, opts...)
-	return escaped, w.HTMLString()
+	return ret
+}()
+
+func isStringAsciiSafe(str string) bool {
+	for i := range len(str) {
+		if !asciiSafeBytes[str[i]] {
+			return false
+		}
+	}
+	return true
 }
 
-// EscapeControlReader escapes the Unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
-func EscapeControlReader(reader io.Reader, writer htmlutil.HTMLWriter, locale translation.Locale, opts ...EscapeOptions) (*EscapeStatus, error) {
-	if !setting.UI.AmbiguousUnicodeDetection {
-		_, err := io.Copy(writer.OriginWriter(), reader)
-		return &EscapeStatus{}, err
+// EscapeControlHTML escapes the Unicode control sequences in a provided html document
+func EscapeControlHTML(html template.HTML, locale translation.Locale, opts ...EscapeOptions) (escaped *EscapeStatus, output template.HTML) {
+	if !setting.UI.AmbiguousUnicodeDetection || isStringAsciiSafe(string(html)) { // most code lines, nothing in them can need escaping
+		return &EscapeStatus{}, html
 	}
-	return escapeStream(locale, reader, writer.OriginWriter(), opts...)
+	escaper := &htmlEscaper{escaped: &EscapeStatus{}, locale: locale, ambiguousTables: AmbiguousTablesForLocale(locale)}
+	if len(opts) > 0 {
+		escaper.allowed = opts[0].Allowed
+	}
+	return escaper.escaped, template.HTML(escaper.escape(string(html)))
 }
