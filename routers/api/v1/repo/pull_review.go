@@ -268,7 +268,7 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 		ctx.APIError(http.StatusBadRequest, "comment is not a review comment")
 		return
 	}
-	if isPullLockedForDoer(ctx, parent.Issue) {
+	if isIssueLockedForDoer(ctx, parent.Issue) {
 		return
 	}
 
@@ -515,7 +515,7 @@ func CreatePullReview(ctx *context.APIContext) {
 
 	// determine review type
 	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
-	if isWrong || isPullLockedForDoer(ctx, pr.Issue) {
+	if isWrong || isIssueLockedForDoer(ctx, pr.Issue) {
 		return
 	}
 
@@ -644,7 +644,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 
 	// determine review type
 	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
-	if isWrong || isPullLockedForDoer(ctx, pr.Issue) {
+	if isWrong || isIssueLockedForDoer(ctx, pr.Issue) {
 		return
 	}
 
@@ -680,8 +680,8 @@ func SubmitPullReview(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiReview)
 }
 
-func isPullLockedForDoer(ctx *context.APIContext, issue *issues_model.Issue) bool {
-	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
+func isIssueLockedForDoer(ctx *context.APIContext, issue *issues_model.Issue) bool {
+	if issue.IsLockedForDoer(ctx.Repo.Permission, ctx.Doer) {
 		ctx.APIError(http.StatusForbidden, ctx.Locale.TrString("repo.issues.comment_on_locked"))
 		return true
 	}

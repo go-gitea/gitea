@@ -55,6 +55,7 @@ function initRepoDiffConversationForm() {
       // but on the conversation page, there is no parent "tr"
       const trLineType = form.closest('tr')?.getAttribute('data-line-type');
       const response = await POST(form.getAttribute('action')!, {data: formData});
+      if (!response.ok) throw new Error(await response.text());
       const newConversationHolder = createElementFromHTML(await response.text());
       const path = newConversationHolder.getAttribute('data-path');
       const side = newConversationHolder.getAttribute('data-side');
