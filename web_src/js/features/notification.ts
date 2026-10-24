@@ -26,6 +26,7 @@ export function initNotificationCount() {
 
   let pollerStarted = false;
   onUserEvent('notification-count', (msg) => { receiveUpdateCount(msg.eventData.count) }); // no await
+  onUserEvent('worker-attached', () => { updateNotificationCount(); updateNotificationTable() }); // no await
   onUserEvent('worker-unavailable', () => {
     if (pollerStarted) return;
     pollerStarted = true;

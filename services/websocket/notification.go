@@ -8,15 +8,10 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 )
 
 const eventNotificationCount = "notification-count" // keep in sync with web_src/js/types.ts
-
-func init() {
-	registerUserData(func(ctx context.Context, user *user_model.User) []byte { return notificationCountEvent(ctx, user.ID) })
-}
 
 func (n *wsNotifier) NotificationCountChange(ctx context.Context, userID int64) {
 	publishUserEvent(userID, func() []byte { return notificationCountEvent(ctx, userID) })
@@ -31,7 +26,7 @@ func notificationCountEvent(ctx context.Context, userID int64) []byte {
 		log.Error("websocket: count notifications for user %d: %v", userID, err)
 		return nil
 	}
-	return makeUserEventMessage(eventNotificationCount, struct {
+	return makeEventMessage(eventNotificationCount, "", struct {
 		Count int64 `json:"count"`
 	}{count})
 }

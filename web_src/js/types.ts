@@ -97,7 +97,8 @@ export const serverUserEventTypes = ['notification-count', 'stopwatches', 'logou
 
 export type UserEventMessage = ServerUserEventMessage |
   {eventType: 'worker-unavailable'} |
-  {eventType: 'worker-connected'};
+  {eventType: 'worker-connected'} |
+  {eventType: 'worker-attached'}; // joined an open socket after its connect snapshot
 
 export type UserEventType = UserEventMessage['eventType'];
 

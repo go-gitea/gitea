@@ -11,6 +11,7 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/services/context"
+	"gitea.dev/services/pubsub"
 	websocket_service "gitea.dev/services/websocket"
 
 	gitea_ws "github.com/coder/websocket"
@@ -43,8 +44,7 @@ func Serve(ctx *context.Context) {
 		return
 	}
 
-	// subscribe before the handshake, so no event can fire before we are listening
-	ch, cancel := websocket_service.SubscribeUser(ctx.Doer.ID)
+	ch, cancel := pubsub.DefaultBroker.Subscribe(pubsub.UserTopic(ctx.Doer.ID)) // before the snapshot, so no change falls between them
 	defer cancel()
 
 	conn, err := gitea_ws.Accept(ctx.Resp, ctx.Req, nil)
@@ -68,8 +68,7 @@ func Serve(ctx *context.Context) {
 		if eventDataBytes == nil {
 			return nil
 		}
-		// bound the write so a stalled peer can't starve the ping ticker
-		writeCtx, cancelWrite := gocontext.WithTimeout(wsCtx, writeTimeout)
+		writeCtx, cancelWrite := gocontext.WithTimeout(wsCtx, writeTimeout) // a stalled peer must not starve the ping ticker
 		defer cancelWrite()
 		err := conn.Write(writeCtx, gitea_ws.MessageText, eventDataBytes)
 		if err != nil {
@@ -78,7 +77,7 @@ func Serve(ctx *context.Context) {
 		return err
 	}
 
-	for _, brokerPayload := range websocket_service.UserData(ctx, ctx.Doer) {
+	for _, brokerPayload := range websocket_service.UserData(wsCtx, ctx.Doer) {
 		if err := send(brokerPayload); err != nil {
 			return
 		}

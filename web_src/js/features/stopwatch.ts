@@ -76,6 +76,7 @@ export const initStopwatch = () => registerGlobalInitFunc('initActiveStopwatchNo
 
   let pollerStarted = false;
   onUserEvent('stopwatches', (msg) => updateStopwatchData(msg.eventData));
+  onUserEvent('worker-attached', () => { updateStopwatch() }); // no await
   onUserEvent('worker-unavailable', () => {
     if (pollerStarted) return;
     pollerStarted = true;

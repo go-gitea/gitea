@@ -10,19 +10,21 @@ import (
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/convert"
 )
 
 const eventStopwatches = "stopwatches" // keep in sync with web_src/js/types.ts
 
-func init() { registerUserData(stopwatchesEvent) }
-
 func (n *wsNotifier) StopwatchChanged(ctx context.Context, user *user_model.User) {
 	publishUserEvent(user.ID, func() []byte { return stopwatchesEvent(ctx, user) })
 }
 
 func stopwatchesEvent(ctx context.Context, user *user_model.User) []byte {
+	if !setting.Service.EnableTimetracking {
+		return nil
+	}
 	sws, err := issues_model.GetUserStopwatches(ctx, user.ID, db.ListOptions{})
 	if err != nil {
 		log.Error("websocket: GetUserStopwatches %d: %v", user.ID, err)
@@ -35,5 +37,5 @@ func stopwatchesEvent(ctx context.Context, user *user_model.User) []byte {
 		}
 		return nil
 	}
-	return makeUserEventMessage(eventStopwatches, util.SliceNilAsEmpty(apiStopWatches))
+	return makeEventMessage(eventStopwatches, "", util.SliceNilAsEmpty(apiStopWatches))
 }

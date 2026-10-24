@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEventForSession(t *testing.T) {
-	targeted := makeSessionEventMessage("targeted-event", "sess-A", nil)
+func TestEventForSessionTargetsAndKeepsEmptyData(t *testing.T) {
+	targeted := makeEventMessage("targeted-event", "sess-A", nil)
 	assert.JSONEq(t, `{"eventType":"targeted-event"}`, string(EventForSession(targeted, "sess-A")))
 	assert.Nil(t, EventForSession(targeted, "sess-B"))
 
-	emptyList := makeUserEventMessage("list-event", []int{})
-	assert.JSONEq(t, `{"eventType":"list-event","eventData":[]}`, string(EventForSession(emptyList, "sess-A"))) // must not be omitted
+	broadcast := makeEventMessage("list-event", "", []int{})
+	assert.JSONEq(t, `{"eventType":"list-event","eventData":[]}`, string(EventForSession(broadcast, "sess-A")))
 }

@@ -29,27 +29,16 @@ func Init() error {
 	return nil
 }
 
-func SubscribeUser(userID int64) (<-chan []byte, func()) {
-	return pubsub.DefaultBroker.Subscribe(pubsub.UserTopic(userID))
-}
-
-type userDataEvent func(ctx context.Context, user *user_model.User) []byte
-
-var userDataEvents []userDataEvent
-
-func registerUserData(build userDataEvent) { userDataEvents = append(userDataEvents, build) }
-
-// UserData is what a client receives on connect, so it starts in sync.
+// UserData is sent on connect, so clients start in sync.
 func UserData(ctx context.Context, user *user_model.User) (data [][]byte) {
-	for _, build := range userDataEvents {
-		if event := build(ctx, user); event != nil {
+	for _, event := range [][]byte{notificationCountEvent(ctx, user.ID), stopwatchesEvent(ctx, user)} {
+		if event != nil {
 			data = append(data, event)
 		}
 	}
 	return data
 }
 
-// EventForSession returns the JSON for a connection, nil if targeted elsewhere.
 func EventForSession(brokerPayload []byte, sessionID string) []byte {
 	target, eventData, _ := bytes.Cut(brokerPayload, []byte("\n"))
 	if len(target) > 0 && string(target) != sessionID {
@@ -58,13 +47,8 @@ func EventForSession(brokerPayload []byte, sessionID string) []byte {
 	return eventData
 }
 
-// makeUserEventMessage encodes a broker payload for every connection of a user.
-func makeUserEventMessage(eventType string, eventData any) []byte {
-	return makeSessionEventMessage(eventType, "", eventData)
-}
-
-// makeSessionEventMessage encodes target session, newline, client JSON.
-func makeSessionEventMessage(eventType, targetSession string, eventData any) []byte {
+// makeEventMessage prefixes the client JSON with its target session, empty for all sessions.
+func makeEventMessage(eventType, targetSession string, eventData any) []byte {
 	eventJSON, err := json.Marshal(&struct {
 		EventType string `json:"eventType"`
 		EventData any    `json:"eventData,omitzero"`
@@ -76,7 +60,6 @@ func makeSessionEventMessage(eventType, targetSession string, eventData any) []b
 	return append([]byte(targetSession+"\n"), eventJSON...)
 }
 
-// publishUserEvent publishes to a user, building only if someone is subscribed.
 func publishUserEvent(userID int64, build func() []byte) {
 	topic := pubsub.UserTopic(userID)
 	if !pubsub.DefaultBroker.HasTopicSubscribers(topic) {
