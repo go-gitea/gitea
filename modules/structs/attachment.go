@@ -16,8 +16,8 @@ type Attachment struct {
 	Name string `json:"name"`
 	// Size is the file size in bytes
 	Size int64 `json:"size"`
-	// SHA256 is the hex-encoded SHA-256 digest of the content; empty when it was not recorded at upload
-	SHA256 string `json:"sha256"`
+	// Digest is "sha256:<hex>" of the content, omitted when not recorded at upload
+	Digest string `json:"digest,omitempty"`
 	// DownloadCount is the number of times the attachment has been downloaded
 	DownloadCount int64 `json:"download_count"`
 	// swagger:strfmt date-time

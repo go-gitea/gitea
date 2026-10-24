@@ -5,8 +5,6 @@ package integration
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -22,6 +20,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -433,8 +432,7 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 			attachment := DecodeJSON(t, resp, &api.Attachment{})
 			assert.Equal(t, filename, attachment.Name)
 			assert.EqualValues(t, len(bufImageBytes), attachment.Size)
-			digest := sha256.Sum256(bufImageBytes)
-			assert.Equal(t, hex.EncodeToString(digest[:]), attachment.SHA256)
+			assert.Equal(t, "sha256:"+base.EncodeSha256(string(bufImageBytes)), attachment.Digest)
 		})
 		t.Run("UploadWithName", func(t *testing.T) {
 			resp := performUpload(t, assetURL+"?name=test-asset", bufImageBytes, http.StatusCreated)
