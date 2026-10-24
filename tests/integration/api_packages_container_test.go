@@ -274,12 +274,30 @@ func TestPackageContainer(t *testing.T) {
 				uuid := resp.Header().Get("Docker-Upload-Uuid")
 				assert.NotEmpty(t, uuid)
 
-				pbu, err := packages_model.GetBlobUploadByID(t.Context(), uuid)
+				pbu, err := packages_model.GetBlobUploadByID(t.Context(), uuid, user.ID)
 				assert.NoError(t, err)
 				assert.EqualValues(t, 0, pbu.BytesReceived)
 
 				uploadURL := resp.Header().Get("Location")
 				assert.NotEmpty(t, uploadURL)
+
+				attackerUploadURL := fmt.Sprintf("%sv2/%s/%s/blobs/uploads/%s", setting.AppURL, privateUser.Name, image, uuid)
+
+				req = NewRequest(t, "GET", attackerUploadURL).
+					AddBasicAuth(privateUser.Name)
+				MakeRequest(t, req, http.StatusNotFound)
+
+				req = NewRequestWithBody(t, "PATCH", attackerUploadURL, bytes.NewReader([]byte("x"))).
+					AddBasicAuth(privateUser.Name)
+				MakeRequest(t, req, http.StatusNotFound)
+
+				req = NewRequest(t, "PUT", fmt.Sprintf("%s?digest=%s", attackerUploadURL, blobDigest)).
+					AddBasicAuth(privateUser.Name)
+				MakeRequest(t, req, http.StatusNotFound)
+
+				req = NewRequest(t, "DELETE", attackerUploadURL).
+					AddBasicAuth(privateUser.Name)
+				MakeRequest(t, req, http.StatusNotFound)
 
 				req = NewRequestWithBody(t, "PATCH", setting.AppURL+uploadURL[1:]+"000", bytes.NewReader(blobContent)).
 					AddTokenAuth(userToken)
@@ -318,7 +336,7 @@ func TestPackageContainer(t *testing.T) {
 				assert.Equal(t, uploadURL, resp.Header().Get("Location"))
 				assert.Equal(t, contentRange, resp.Header().Get("Range"))
 
-				pbu, err = packages_model.GetBlobUploadByID(t.Context(), uuid)
+				pbu, err = packages_model.GetBlobUploadByID(t.Context(), uuid, user.ID)
 				assert.NoError(t, err)
 				assert.EqualValues(t, len(blobContent), pbu.BytesReceived)
 
