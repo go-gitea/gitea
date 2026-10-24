@@ -212,9 +212,14 @@ type BitbucketDownloader struct {
 
 // NewBitbucketDownloader creates a bitbucket.org Downloader via API v2.
 func NewBitbucketDownloader(_ context.Context, apiBaseURL, webBaseURL, workspace, repoSlug, userName, password, token string) (*BitbucketDownloader, error) {
+	apiBaseURL = strings.TrimRight(apiBaseURL, "/")
+	authorization := basicAuthorization(userName, password)
+	if token != "" {
+		authorization = "Bearer " + token
+	}
 	return &BitbucketDownloader{
-		client:     newMigrationHTTPClient(),
-		apiBaseURL: strings.TrimRight(apiBaseURL, "/"),
+		client:     newMigrationHTTPClient(apiBaseURL, authorization),
+		apiBaseURL: apiBaseURL,
 		webBaseURL: strings.TrimRight(webBaseURL, "/"),
 		workspace:  workspace,
 		repoSlug:   repoSlug,
@@ -282,11 +287,6 @@ func (b *BitbucketDownloader) doAPI(ctx context.Context, path string, query url.
 			return err
 		}
 		req.Header.Set("Accept", "application/json")
-		if b.token != "" {
-			req.Header.Set("Authorization", "Bearer "+b.token)
-		} else if b.userName != "" || b.password != "" {
-			req.SetBasicAuth(b.userName, b.password)
-		}
 
 		resp, err := b.client.Do(req)
 		if err != nil {

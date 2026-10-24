@@ -380,10 +380,11 @@ func prepareIssueFilterExclusiveOrderScopes(ctx *context.Context, allLabels []*i
 	ctx.Data["ExclusiveLabelScopes"] = scopes
 }
 
-func renderMilestones(ctx *context.Context) {
+func renderMilestones(ctx *context.Context, projectID int64) {
 	// Get milestones
 	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-		RepoID: ctx.Repo.Repository.ID,
+		RepoID:    ctx.Repo.Repository.ID,
+		ProjectID: projectID,
 	})
 	if err != nil {
 		ctx.ServerError("GetAllRepoMilestones", err)
@@ -679,7 +680,7 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	renderMilestones(ctx)
+	renderMilestones(ctx, 0)
 	if ctx.Written() {
 		return
 	}

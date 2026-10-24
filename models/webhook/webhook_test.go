@@ -277,6 +277,23 @@ func TestHookTasks(t *testing.T) {
 	hookTasks, err = HookTasks(t.Context(), unittest.NonexistentID, 1)
 	assert.NoError(t, err)
 	assert.Empty(t, hookTasks)
+
+	tasks, count, err := db.FindAndCount[HookTask](t.Context(), ListHookTaskOptions{HookID: hook.ID})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, count)
+	require.Len(t, tasks, 3)
+
+	task, err := GetHookTaskByUUID(t.Context(), hook.ID, tasks[0].UUID)
+	require.NoError(t, err)
+	assert.Equal(t, tasks[0].ID, task.ID)
+
+	tasks, count, err = db.FindAndCount[HookTask](t.Context(), ListHookTaskOptions{HookID: unittest.NonexistentID})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, count)
+	assert.Empty(t, tasks)
+
+	_, err = GetHookTaskByUUID(t.Context(), hook.ID, "non-existent-uuid")
+	assert.True(t, IsErrHookTaskNotExist(err))
 }
 
 func TestCreateHookTask(t *testing.T) {
