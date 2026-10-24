@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -23,7 +25,7 @@ type AccessToken struct {
 	Name           string
 	Token          string `xorm:"-"`
 	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
-	TokenSalt      string
+	TokenSalt      string // only set for legacy pbkdf2 hashes
 	TokenLastEight string `xorm:"INDEX token_last_eight"`
 	Scope          AccessTokenScope
 
@@ -43,13 +45,10 @@ func init() {
 	db.RegisterModel(new(AccessToken))
 }
 
-// setNewTokenValue generates a fresh random token value and fills in its salt, hash, and last-eight.
+// setNewTokenValue generates a fresh random token value and fills in its hash and last-eight.
 func (t *AccessToken) setNewTokenValue() {
-	salt := util.CryptoRandomString(10)
-	token := util.CryptoRandomBytes(20)
-	t.TokenSalt = salt
-	t.Token = hex.EncodeToString(token)
-	t.TokenHash = HashToken(t.Token, t.TokenSalt)
+	t.Token = hex.EncodeToString(util.CryptoRandomBytes(20))
+	t.TokenHash, t.TokenSalt = base.EncodeSha256(t.Token), ""
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
 }
 
@@ -92,38 +91,32 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 		return nil, util.NewNotExistErrorf("access token not found")
 	}
 
-	cacheKey := "access:" + token
-	lastEight := token[len(token)-8:]
-	if cached, _ := TokenCache().Get(cacheKey); cached != nil {
-		// Re-get the token from the db in case it has been deleted or regenerated in the intervening period
-		accessToken := &AccessToken{}
-		has, err := db.GetEngine(ctx).ID(cached.TokenID).Get(accessToken)
-		if err != nil {
-			return nil, err
-		}
-		if has && util.CryptoConstTimeEqual(accessToken.TokenHash, cached.TokenHash) {
-			return accessToken, nil
-		}
-		// either the token has been deleted or changed, invalidate the cache
-		TokenCache().Remove(cacheKey)
-	}
-
 	var tokens []AccessToken
-	err := db.GetEngine(ctx).Table(&AccessToken{}).Where("token_last_eight = ?", lastEight).Find(&tokens)
-	if err != nil {
+	if err := db.GetEngine(ctx).Where("token_last_eight = ?", token[len(token)-8:]).Find(&tokens); err != nil {
 		return nil, err
-	} else if len(tokens) == 0 {
-		return nil, util.NewNotExistErrorf("access token not found")
 	}
-
 	for _, t := range tokens {
-		tempHash := HashToken(token, t.TokenSalt)
-		if util.CryptoConstTimeEqual(t.TokenHash, tempHash) {
-			TokenCache().Add(cacheKey, &TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
+		if VerifyToken(ctx, &t, token, t.TokenSalt, t.TokenHash) {
 			return &t, nil
 		}
 	}
 	return nil, util.NewNotExistErrorf("access token not found")
+}
+
+// VerifyToken checks a token against its row's hash and replaces a legacy pbkdf2 hash with sha256 unless the token was regenerated meanwhile.
+func VerifyToken(ctx context.Context, bean any, token, salt, hash string) bool {
+	tokenHash := base.EncodeSha256(token)
+	if len(hash) == len(tokenHash) {
+		return util.CryptoConstTimeEqual(hash, tokenHash)
+	}
+	if !util.CryptoConstTimeEqual(hash, HashToken(token, salt)) {
+		return false
+	}
+	if _, err := db.GetEngine(ctx).Table(bean).Where("token_hash = ?", hash).NoAutoTime().
+		Update(map[string]any{"token_hash": tokenHash, "token_salt": ""}); err != nil {
+		log.Error("VerifyToken: %v", err)
+	}
+	return true
 }
 
 // AccessTokenByNameExists checks if a token name has been used already by a user.
@@ -152,9 +145,15 @@ func (opts ListAccessTokensOptions) ToOrders() string {
 	return "created_unix DESC"
 }
 
-// UpdateAccessToken updates information of access token.
-func UpdateAccessToken(ctx context.Context, t *AccessToken) error {
-	_, err := db.GetEngine(ctx).ID(t.ID).AllCols().Update(t)
+// TouchAccessToken records a token use at most once a minute, re-checked in SQL so concurrent stale copies write once.
+func TouchAccessToken(ctx context.Context, t *AccessToken) error {
+	const intervalSeconds = 60
+	now := timeutil.TimeStampNow()
+	if t.UpdatedUnix > t.CreatedUnix && now-t.UpdatedUnix < intervalSeconds {
+		return nil
+	}
+	_, err := db.GetEngine(ctx).Where("id = ? AND (updated_unix <= created_unix OR updated_unix <= ?)", t.ID, now-intervalSeconds).
+		Cols("updated_unix").NoAutoTime().Update(&AccessToken{UpdatedUnix: max(now, t.CreatedUnix+1)})
 	return err
 }
 

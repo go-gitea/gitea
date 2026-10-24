@@ -75,7 +75,7 @@ func (t *TwoFactor) GenerateScratchToken() (string, error) {
 	return token, nil
 }
 
-// HashToken return the hashable salt
+// HashToken returns the pbkdf2 hash of token with salt
 func HashToken(token, salt string) string {
 	tempHash := pbkdf2.Key([]byte(token), []byte(salt), 10000, 50, sha256.New)
 	return hex.EncodeToString(tempHash)

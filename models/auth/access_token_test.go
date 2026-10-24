@@ -5,10 +5,13 @@ package auth_test
 
 import (
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -72,8 +75,10 @@ func TestGetAccessTokenBySHA(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), token.UID)
 	assert.Equal(t, "Token A", token.Name)
-	assert.Equal(t, "2b3668e11cb82d3af8c6e4524fc7841297668f5008d1626f0ad3417e9fa39af84c268248b78c481daa7e5dc437784003494f", token.TokenHash)
 	assert.Equal(t, "e4efbf36", token.TokenLastEight)
+	upgraded := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 1})
+	assert.Equal(t, base.EncodeSha256("d2c6c1ba3890b309189a8e618c72a162e4efbf36"), upgraded.TokenHash)
+	assert.Empty(t, upgraded.TokenSalt)
 
 	_, err = auth_model.GetAccessTokenBySHA(t.Context(), "notahash")
 	assert.Error(t, err)
@@ -107,14 +112,21 @@ func TestListAccessTokens(t *testing.T) {
 	assert.Empty(t, tokens)
 }
 
-func TestUpdateAccessToken(t *testing.T) {
+func TestTouchAccessToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	token, err := auth_model.GetAccessTokenBySHA(t.Context(), "4c6f36e6cf498e2a448662f915d932c09c5a146c")
-	assert.NoError(t, err)
-	token.Name = "Token Z"
-
-	assert.NoError(t, auth_model.UpdateAccessToken(t.Context(), token))
-	unittest.AssertExistsAndLoadBean(t, token)
+	defer timeutil.MockSet(time.Unix(1000000, 0))()
+	now := timeutil.TimeStampNow()
+	touch := func(created, updated, loadedUpdated timeutil.TimeStamp) timeutil.TimeStamp {
+		_, err := db.GetEngine(t.Context()).Exec("UPDATE access_token SET created_unix = ?, updated_unix = ? WHERE id = 1", created, updated)
+		assert.NoError(t, err)
+		token := &auth_model.AccessToken{ID: 1, Name: "Token Z", CreatedUnix: created, UpdatedUnix: loadedUpdated}
+		assert.NoError(t, auth_model.TouchAccessToken(t.Context(), token))
+		return unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 1, Name: "Token A"}).UpdatedUnix
+	}
+	assert.Equal(t, now, touch(now-7200, now-3600, now-3600))
+	assert.Equal(t, now-1, touch(now-7200, now-1, now-1))
+	assert.Equal(t, now+1, touch(now, now, now))
+	assert.Equal(t, now+5, touch(now-7200, now+5, now-3600))
 }
 
 func TestRegenerateAccessToken(t *testing.T) {
@@ -122,7 +134,6 @@ func TestRegenerateAccessToken(t *testing.T) {
 
 	const oldToken = "d2c6c1ba3890b309189a8e618c72a162e4efbf36"
 
-	// prime the successful-lookup cache with the old token value, as a real request would
 	before, err := auth_model.GetAccessTokenBySHA(t.Context(), oldToken)
 	assert.NoError(t, err)
 	assert.Equal(t, "Token A", before.Name)
@@ -135,7 +146,6 @@ func TestRegenerateAccessToken(t *testing.T) {
 	assert.NotEqual(t, before.TokenHash, regenerated.TokenHash)
 	assert.NotEmpty(t, regenerated.Token)
 
-	// the old token value must stop authenticating, even though it was cached as successful above
 	_, err = auth_model.GetAccessTokenBySHA(t.Context(), oldToken)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, util.ErrNotExist)

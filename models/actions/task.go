@@ -44,7 +44,7 @@ type ActionTask struct {
 
 	Token          string `xorm:"-"`
 	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
-	TokenSalt      string
+	TokenSalt      string // only set for legacy pbkdf2 hashes
 	TokenLastEight string `xorm:"index token_last_eight"`
 
 	LogFilename  string     // file name of log
@@ -137,7 +137,7 @@ func (task *ActionTask) LoadAttributes(ctx context.Context) error {
 }
 
 func (task *ActionTask) GenerateAndFillToken() {
-	task.Token, task.TokenSalt, task.TokenHash, task.TokenLastEight = generateSaltedToken()
+	task.Token, task.TokenHash, task.TokenLastEight = generateToken()
 }
 
 func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
@@ -185,11 +185,10 @@ func GetTaskRunnerNames(ctx context.Context, taskIDs []int64) (map[int64]string,
 }
 
 func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
-	errNotExist := fmt.Errorf("task with token %q: %w", token, util.ErrNotExist)
+	errNotExist := util.NewNotExistErrorf("task token not found")
 	if token == "" {
 		return nil, errNotExist
 	}
-	// A token is defined as being SHA1 sum these are 40 hexadecimal bytes long
 	if len(token) != 40 {
 		return nil, errNotExist
 	}
@@ -199,36 +198,14 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 		}
 	}
 
-	cacheKey := "actions:" + token
-	lastEight := token[len(token)-8:]
-	if cached, _ := auth_model.TokenCache().Get(cacheKey); cached != nil {
-		task := &ActionTask{
-			TokenLastEight: lastEight,
-		}
-		// Re-get the task from the db in case it has been deleted in the intervening period
-		has, err := db.GetEngine(ctx).ID(cached.TokenID).Get(task)
-		if err != nil {
-			return nil, err
-		}
-		if has && util.CryptoConstTimeEqual(task.TokenHash, cached.TokenHash) {
-			return task, nil
-		}
-		auth_model.TokenCache().Remove(cacheKey)
-	}
-
 	var tasks []*ActionTask
 	// Cancelling tasks are still authenticating — post-run cleanup steps need API access (artifact uploads, cache saves, etc.) before the runner finalizes the task.
-	err := db.GetEngine(ctx).Where("token_last_eight = ? AND status IN (?, ?)", lastEight, StatusRunning, StatusCancelling).Find(&tasks)
+	err := db.GetEngine(ctx).Where("token_last_eight = ? AND status IN (?, ?)", token[len(token)-8:], StatusRunning, StatusCancelling).Find(&tasks)
 	if err != nil {
 		return nil, err
-	} else if len(tasks) == 0 {
-		return nil, errNotExist
 	}
-
 	for _, t := range tasks {
-		tempHash := auth_model.HashToken(token, t.TokenSalt)
-		if util.CryptoConstTimeEqual(t.TokenHash, tempHash) {
-			auth_model.TokenCache().Add(cacheKey, &auth_model.TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
+		if auth_model.VerifyToken(ctx, t, token, t.TokenSalt, t.TokenHash) {
 			return t, nil
 		}
 	}
