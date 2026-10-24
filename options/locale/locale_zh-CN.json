@@ -3980,6 +3980,8 @@
   "projects.type-3.display_name": "组织项目",
   "projects.enter_fullscreen": "全屏",
   "projects.exit_fullscreen": "退出全屏",
+  "projects.workflows.actions": "工作流",
+  "projects.workflows.none": "无",
   "git.filemode.changed_filemode": "%[1]s -> %[2]s",
   "git.filemode.directory": "目录",
   "git.filemode.normal_file": "普通文件",

@@ -3184,6 +3184,8 @@
   "projects.type-1.display_name": "Samostatný projekt",
   "projects.type-2.display_name": "Projekt repozitíře",
   "projects.type-3.display_name": "Projekt organizace",
+  "projects.workflows.actions": "Akce",
+  "projects.workflows.none": "Žádný",
   "git.filemode.directory": "Adresář",
   "git.filemode.submodule": "Submodul",
   "actions.general.token_permissions.mode.restricted": "Omezený"

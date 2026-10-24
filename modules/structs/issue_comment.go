@@ -19,10 +19,6 @@ type Comment struct {
 	IssueURL string `json:"issue_url"`
 	// Poster is the user who posted the comment
 	Poster *User `json:"user"`
-	// OriginalAuthor is the original author name (for imported comments)
-	OriginalAuthor string `json:"original_author"`
-	// OriginalAuthorID is the original author ID (for imported comments)
-	OriginalAuthorID int64 `json:"original_author_id"`
 	// Body contains the comment text content
 	Body string `json:"body"`
 	// Attachments contains files attached to the comment
