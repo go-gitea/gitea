@@ -23,7 +23,7 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 
 	result := &api.PullReview{
 		ID:                r.ID,
-		Reviewer:          ToUser(ctx, r.Reviewer, doer),
+		Reviewer:          ToAuthor(ctx, r.Reviewer, r.OriginalAuthor, doer),
 		State:             api.ReviewStateUnknown,
 		Body:              r.Content,
 		CommitID:          r.CommitID,
@@ -104,7 +104,7 @@ func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, doe
 	apiComment := &api.PullReviewComment{
 		ID:           comment.ID,
 		Body:         comment.Content,
-		Poster:       ToUser(ctx, comment.Poster, doer),
+		Poster:       ToAuthor(ctx, comment.Poster, comment.OriginalAuthor, doer),
 		Resolver:     ToUser(ctx, comment.ResolveDoer, doer),
 		ReviewID:     comment.ReviewID,
 		Created:      comment.CreatedUnix.AsTime(),
