@@ -698,6 +698,56 @@
         }
       }
     },
+    "/admin/perf/traces": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List slow request traces aggregated by route",
+        "operationId": "adminListPerfTraces",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "only include traces whose duration is at least this many milliseconds",
+            "name": "min_duration",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "only include routes containing this text",
+            "name": "route",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "exclude streams, git transfers and downloads which are slow by design",
+            "name": "exclude_long_running",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "only include traces after this time (RFC 3339)",
+            "name": "since",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PerfTraceRouteList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/admin/unadopted": {
       "get": {
         "produces": [
@@ -34630,6 +34680,126 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "TraceRecord": {
+      "description": "TraceRecord is a slow root span with its summary counters",
+      "type": "object",
+      "properties": {
+        "duration_ms": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "DurationMs"
+        },
+        "git_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "GitCount"
+        },
+        "git_duration_ms": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "GitDurationMs"
+        },
+        "long_running": {
+          "type": "boolean",
+          "x-go-name": "LongRunning"
+        },
+        "root": {
+          "$ref": "#/definitions/TraceSpanRecord"
+        },
+        "route": {
+          "type": "string",
+          "x-go-name": "Route"
+        },
+        "sql_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SQLCount"
+        },
+        "sql_duration_ms": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "SQLDurationMs"
+        },
+        "time": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Time"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/gtprof"
+    },
+    "TraceRouteStat": {
+      "description": "TraceRouteStat is the aggregation of the slow records of one route",
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Count"
+        },
+        "last_time": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "LastTime"
+        },
+        "long_running": {
+          "type": "boolean",
+          "x-go-name": "LongRunning"
+        },
+        "max_duration_ms": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "MaxDurationMs"
+        },
+        "p95_duration_ms": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "P95DurationMs"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TraceRecord"
+          },
+          "x-go-name": "Records"
+        },
+        "route": {
+          "type": "string",
+          "x-go-name": "Route"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/gtprof"
+    },
+    "TraceSpanRecord": {
+      "description": "TraceSpanRecord is the structured (JSON-friendly) form of a finished span",
+      "type": "object",
+      "properties": {
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Attributes"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TraceSpanRecord"
+          },
+          "x-go-name": "Children"
+        },
+        "duration_ms": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "DurationMs"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/gtprof"
+    },
     "TrackedTime": {
       "description": "TrackedTime worked time for an issue / pr",
       "type": "object",
@@ -35916,6 +36086,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Package"
+        }
+      }
+    },
+    "PerfTraceRouteList": {
+      "description": "PerfTraceRouteList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/TraceRouteStat"
         }
       }
     },

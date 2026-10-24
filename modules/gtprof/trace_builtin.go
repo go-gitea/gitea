@@ -77,6 +77,7 @@ func (t *traceBuiltinSpan) end() {
 			sb := &strings.Builder{}
 			t.toString(sb, 0)
 			tailmsg.GetManager().GetTraceRecorder().Record(sb.String())
+			globalTraceStore.add(newTraceRecord(t.ts))
 		}
 	}
 }

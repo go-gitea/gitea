@@ -1816,6 +1816,7 @@ func Routes() *web.Router {
 				m.Get("", admin.ListCronTasks)
 				m.Post("/{task}", admin.PostCronTask)
 			})
+			m.Get("/perf/traces", admin.ListPerfTraces)
 			m.Get("/orgs", admin.GetAllOrgs)
 			m.Get("/packages", admin.ListPackages)
 			m.Group("/users", func() {
