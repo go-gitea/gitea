@@ -1,0 +1,15 @@
+{{/* Template Attributes: see backend pullMergeBoxSection struct */}}
+{{if .Ring}}
+	<svg class="merge-box-status" viewBox="0 0 100 100" fill="none" stroke-width="12" stroke-linecap="round" aria-hidden="true">
+		{{range .Ring}}
+			<circle class="{{.ColorClass}}" cx="50" cy="50" r="44" pathLength="100" stroke-dasharray="{{.Dash}} 100" stroke-dashoffset="{{.Offset}}" transform="rotate(-90 50 50)"/>
+		{{end}}
+	</svg>
+{{else if .Icon}}
+	<span class="merge-box-status {{.IconClass}}">{{svg .Icon}}</span>
+{{end}}
+<span class="item-main">
+	<span class="item-title" role="heading" aria-level="3">{{.Title}}</span>
+	{{range .Details}}<span class="merge-box-detail">{{.}}</span>{{end}}
+	{{range .Files}}<span class="merge-box-file">{{svg "octicon-file"}}{{.}}</span>{{end}}
+</span>

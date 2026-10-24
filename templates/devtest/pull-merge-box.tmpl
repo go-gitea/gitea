@@ -1,0 +1,15 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container repository view issue">
+	<h1>Pull Merge Box</h1>
+	<div class="issue-content">
+		<div class="issue-content-left">
+			<div class="comment-list">
+				{{range .MergeBoxScenarios}}
+					<h2>{{.Title}}</h2>
+					{{template "repo/issue/view_content/pull_merge_box" .}}
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}

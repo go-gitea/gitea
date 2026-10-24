@@ -16,7 +16,7 @@ import {initRepoMilestone} from './repo-milestone.ts';
 import {initRepoNew} from './repo-new.ts';
 import {createApp} from 'vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
-import {initRepoPullMergeBox, initRepoPullRequestUpdate} from './repo-issue-pull.ts';
+import {initRepoPullCloneUrl, initRepoPullMergeBox, initRepoPullRequestUpdate} from './repo-issue-pull.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 
 function initRepoBranchTagSelector() {
@@ -38,6 +38,7 @@ export function initBranchSelectorTabs() {
 }
 
 export function initRepository() {
+  registerGlobalInitFunc('initRepoPullCloneUrl', initRepoPullCloneUrl);
   registerGlobalInitFunc('initRepoPullMergeBox', initRepoPullMergeBox);
   registerGlobalInitFunc('initRepoPullRequestUpdate', initRepoPullRequestUpdate);
   registerGlobalInitFunc('initRepoCitationPanel', initRepoCitationPanel);
