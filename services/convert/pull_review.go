@@ -135,6 +135,8 @@ func patch2diff(patch string) string {
 		return ""
 	}
 	diffContent := patch[idx+1:]
+	// Although there might be an edge case that deleted lines and added lines are in different encodings,
+	// it's not worth to make things more complicated at the moment, and most code in modern codebases should be written in UTF-8.
 	hunk := charset.ToUTF8(util.UnsafeStringToBytes(diffContent), charset.ConvertOpts{ErrorReplacement: []byte(string(utf8.RuneError))})
 	return util.UnsafeBytesToString(hunk)
 }
