@@ -627,7 +627,8 @@ func TestDisabledUserFeatures(t *testing.T) {
 
 	testValues := container.SetOf(setting.UserFeatureDeletion,
 		setting.UserFeatureManageSSHKeys,
-		setting.UserFeatureManageGPGKeys)
+		setting.UserFeatureManageGPGKeys,
+		setting.UserFeatureChangeActivityVisibility)
 	defer test.MockVariableValue(&setting.Admin.ExternalUserDisableFeatures, testValues)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

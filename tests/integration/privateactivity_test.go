@@ -13,7 +13,10 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -412,4 +415,24 @@ func TestPrivateActivityYesHeatmapHasNoContentForAdmin(t *testing.T) {
 	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
 
 	assert.True(t, hasContent, "heatmap should show content for admin")
+}
+
+func TestPrivateActivityVisibilityChangeIgnoredWhenFeatureDisabled(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureChangeActivityVisibility))()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: privateActivityTestUser})
+	assert.False(t, user.KeepActivityPrivate)
+
+	session := loginUser(t, privateActivityTestUser)
+	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+		"name":                  privateActivityTestUser,
+		"email":                 privateActivityTestUser + "@example.com",
+		"language":              "en-US",
+		"keep_activity_private": "1",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: privateActivityTestUser})
+	assert.False(t, user.KeepActivityPrivate, "keep_activity_private should be ignored when the feature is disabled")
 }
