@@ -32,7 +32,7 @@ func ManagedRemoteAdd(ctx context.Context, repo RepositoryFacade, remoteName, re
 				return errors.New("unknown remote option: " + string(options[0]))
 			}
 		}
-		_, _, err := cmd.AddDynamicArguments(remoteName, remoteURL).WithRepo(repo).RunStdString(ctx)
+		_, _, err := cmd.AddDynamicArguments(remoteName, gitcmd.RemoteAddressWithoutCredentials(remoteURL)).WithRepo(repo).RunStdString(ctx) // commands get them with WithRemoteCredentials
 		return err
 	})
 }
