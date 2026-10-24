@@ -35,27 +35,22 @@ func TestSyncMaxResourceIndex(t *testing.T) {
 	xe := unittest.GetXORMEngine()
 	assert.NoError(t, xe.Sync(&TestIndex{}))
 
-	err := db.SyncMaxResourceIndex(t.Context(), "test_index", 10, 51)
-	assert.NoError(t, err)
-
-	// sync new max index
-	maxIndex, err := getCurrentResourceIndex(t.Context(), "test_index", 10)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 51, maxIndex)
-
-	// smaller index doesn't change
-	err = db.SyncMaxResourceIndex(t.Context(), "test_index", 10, 30)
-	assert.NoError(t, err)
-	maxIndex, err = getCurrentResourceIndex(t.Context(), "test_index", 10)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 51, maxIndex)
-
-	// larger index changes
-	err = db.SyncMaxResourceIndex(t.Context(), "test_index", 10, 62)
-	assert.NoError(t, err)
-	maxIndex, err = getCurrentResourceIndex(t.Context(), "test_index", 10)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 62, maxIndex)
+	var maxIndex int64
+	var err error
+	for _, test := range []struct {
+		index    int64
+		expected int
+	}{
+		{51, 51}, // sync new max index
+		{30, 51}, // smaller index doesn't change
+		{62, 62}, // larger index changes
+	} {
+		err = db.SyncMaxResourceIndex(t.Context(), "test_index", 10, test.index)
+		assert.NoError(t, err)
+		maxIndex, err = getCurrentResourceIndex(t.Context(), "test_index", 10)
+		assert.NoError(t, err)
+		assert.EqualValues(t, test.expected, maxIndex)
+	}
 
 	// commit transaction
 	err = db.WithTx(t.Context(), func(ctx context.Context) error {

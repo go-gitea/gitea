@@ -107,49 +107,37 @@ func Test_resolveLicenses(t *testing.T) {
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
-	// 1. repo with no license at all
-	require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{{
-		Ref:     "refs/heads/master",
-		Message: "empty",
-	}}))
-	commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
-	require.NoError(t, err)
+	resolve := func(message string, files ...git.FastImportFile) ([]repo_model.DetectedLicense, error) {
+		require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{{
+			Ref:     "refs/heads/master",
+			Message: message,
+			Files:   files,
+		}}))
+		commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
+		require.NoError(t, err)
+		return resolveLicenses(t.Context(), gitRepo, commit)
+	}
 
-	licenses, err := resolveLicenses(t.Context(), gitRepo, commit)
+	// 1. repo with no license at all
+	licenses, err := resolve("empty")
 	assert.Empty(t, licenses)
 	assert.NoError(t, err)
 
 	// 2. repo with a plain LICENSE file — classifier should detect MIT
-	require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{{
-		Ref:     "refs/heads/master",
-		Message: "add LICENSE",
-		Files: []git.FastImportFile{
-			{Mode: git.EntryModeBlob, Path: "LICENSE", Content: string(mitLicense)},
-		},
-	}}))
-	commit, err = gitRepo.GetBranchCommit(t.Context(), "master")
-	require.NoError(t, err)
-
-	licenses, err = resolveLicenses(t.Context(), gitRepo, commit)
+	licenses, err = resolve("add LICENSE",
+		git.FastImportFile{Mode: git.EntryModeBlob, Path: "LICENSE", Content: string(mitLicense)},
+	)
 	assert.NoError(t, err)
 	assert.Len(t, licenses, 1)
 	assert.Equal(t, "MIT", licenses[0].SPDXID)
 	assert.Equal(t, "LICENSE", licenses[0].LicensePath)
 
 	// 3. repo with REUSE LICENSES/ dir — should take priority over root LICENSE
-	require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{{
-		Ref:     "refs/heads/master",
-		Message: "add LICENSES dir",
-		Files: []git.FastImportFile{
-			{Mode: git.EntryModeBlob, Path: "LICENSE", Content: string(mitLicense)},
-			{Mode: git.EntryModeBlob, Path: "LICENSES/MIT.txt", Content: "MIT license text"},
-			{Mode: git.EntryModeBlob, Path: "LICENSES/Apache-2.0.txt", Content: "Apache license text"},
-		},
-	}}))
-	commit, err = gitRepo.GetBranchCommit(t.Context(), "master")
-	require.NoError(t, err)
-
-	licenses, err = resolveLicenses(t.Context(), gitRepo, commit)
+	licenses, err = resolve("add LICENSES dir",
+		git.FastImportFile{Mode: git.EntryModeBlob, Path: "LICENSE", Content: string(mitLicense)},
+		git.FastImportFile{Mode: git.EntryModeBlob, Path: "LICENSES/MIT.txt", Content: "MIT license text"},
+		git.FastImportFile{Mode: git.EntryModeBlob, Path: "LICENSES/Apache-2.0.txt", Content: "Apache license text"},
+	)
 	assert.NoError(t, err)
 	assert.Len(t, licenses, 2)
 
@@ -161,14 +149,7 @@ func Test_resolveLicenses(t *testing.T) {
 	}
 
 	// 4. remove all licenses — should return not exist
-	require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{{
-		Ref:     "refs/heads/master",
-		Message: "remove licenses",
-	}}))
-	commit, err = gitRepo.GetBranchCommit(t.Context(), "master")
-	require.NoError(t, err)
-
-	licenses, err = resolveLicenses(t.Context(), gitRepo, commit)
+	licenses, err = resolve("remove licenses")
 	assert.Empty(t, licenses)
 	assert.NoError(t, err)
 }

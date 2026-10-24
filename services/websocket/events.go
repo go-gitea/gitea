@@ -38,7 +38,7 @@ func MakeUserEventMessage(eventType string, eventData any) []byte {
 	buf := &bytes.Buffer{}
 	buf.WriteString(eventType)
 	buf.WriteByte('\n')
-	err := json.MarshalWrite(buf, &UserEventMessage[any]{EventType: eventType, EventData: eventData})
+	err := json.MarshalWriteRelaxed(buf, &UserEventMessage[any]{EventType: eventType, EventData: eventData})
 	payloadBytes := bytes.TrimSuffix(buf.Bytes(), []byte("\n")) // json v1 adds extra "\n" but we don't want it
 	if err != nil {
 		setting.PanicInDevOrTesting("websocket: marshal event: %v", err)

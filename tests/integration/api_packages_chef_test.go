@@ -128,29 +128,14 @@ nwIDAQAB
 			req := NewRequest(t, "POST", "/dummy").
 				SetHeader("X-Ops-Userid", user.Name).
 				SetHeader("X-Ops-Timestamp", time.Now().UTC().Format(time.RFC3339))
-			u, err := auth.Verify(req.Request, nil, nil, nil)
-			assert.Nil(t, u)
-			assert.Error(t, err)
-
-			req.SetHeader("X-Ops-Sign", "version=none")
-			u, err = auth.Verify(req.Request, nil, nil, nil)
-			assert.Nil(t, u)
-			assert.Error(t, err)
-
-			req.SetHeader("X-Ops-Sign", "version=1.4")
-			u, err = auth.Verify(req.Request, nil, nil, nil)
-			assert.Nil(t, u)
-			assert.Error(t, err)
-
-			req.SetHeader("X-Ops-Sign", "version=1.0;algorithm=sha2")
-			u, err = auth.Verify(req.Request, nil, nil, nil)
-			assert.Nil(t, u)
-			assert.Error(t, err)
-
-			req.SetHeader("X-Ops-Sign", "version=1.0;algorithm=sha256")
-			u, err = auth.Verify(req.Request, nil, nil, nil)
-			assert.Nil(t, u)
-			assert.Error(t, err)
+			for _, signingVersion := range []string{"", "version=none", "version=1.4", "version=1.0;algorithm=sha2", "version=1.0;algorithm=sha256"} {
+				if signingVersion != "" {
+					req.SetHeader("X-Ops-Sign", signingVersion)
+				}
+				u, err := auth.Verify(req.Request, nil, nil, nil)
+				assert.Nil(t, u)
+				assert.Error(t, err)
+			}
 		})
 
 		t.Run("SignedHeaders", func(t *testing.T) {
@@ -362,105 +347,67 @@ nwIDAQAB
 		assert.Equal(t, fmt.Sprintf("%s%s/cookbooks/%s/versions/%s/download", setting.AppURL, root[1:], packageName, packageVersion), info.DownloadURL)
 	})
 
-	t.Run("Search", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	type listCase struct {
+		Path            string
+		ExpectedTotal   int
+		ExpectedResults int
+	}
 
-		cases := []struct {
-			Query           string
-			Start           int
-			Items           int
-			ExpectedTotal   int
-			ExpectedResults int
-		}{
-			{"", 0, 0, 1, 1},
-			{"", 0, 10, 1, 1},
-			{"gitea", 0, 10, 0, 0},
-			{"test", 0, 10, 1, 1},
-			{"test", 1, 10, 1, 0},
-		}
+	for _, list := range []struct {
+		name  string
+		cases []listCase
+	}{
+		{"Search", []listCase{
+			{"/search?q=&start=0&items=0", 1, 1},
+			{"/search?q=&start=0&items=10", 1, 1},
+			{"/search?q=gitea&start=0&items=10", 0, 0},
+			{"/search?q=test&start=0&items=10", 1, 1},
+			{"/search?q=test&start=1&items=10", 1, 0},
+		}},
+		{"EnumeratePackages", []listCase{
+			{"/cookbooks?start=0&items=0&sort=", 1, 1},
+			{"/cookbooks?start=0&items=10&sort=", 1, 1},
+			{"/cookbooks?start=0&items=10&sort=RECENTLY_ADDED", 1, 1},
+			{"/cookbooks?start=0&items=10&sort=RECENTLY_UPDATED", 1, 1},
+			{"/cookbooks?start=1&items=10&sort=", 1, 0},
+		}},
+	} {
+		t.Run(list.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-		type Item struct {
-			CookbookName        string `json:"cookbook_name"`
-			CookbookMaintainer  string `json:"cookbook_maintainer"`
-			CookbookDescription string `json:"cookbook_description"`
-			Cookbook            string `json:"cookbook"`
-		}
-
-		type Result struct {
-			Start int     `json:"start"`
-			Total int     `json:"total"`
-			Items []*Item `json:"items"`
-		}
-
-		for i, c := range cases {
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/search?q=%s&start=%d&items=%d", root, c.Query, c.Start, c.Items)).
-				AddBasicAuth(user.Name)
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			result := DecodeJSON(t, resp, &Result{})
-
-			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
-			assert.Len(t, result.Items, c.ExpectedResults, "case %d: unexpected result count", i)
-
-			if len(result.Items) == 1 {
-				item := result.Items[0]
-				assert.Equal(t, packageName, item.CookbookName)
-				assert.Equal(t, packageAuthor, item.CookbookMaintainer)
-				assert.Equal(t, packageDescription, item.CookbookDescription)
-				assert.Equal(t, fmt.Sprintf("%s%s/cookbooks/%s", setting.AppURL, root[1:], packageName), item.Cookbook)
+			type Item struct {
+				CookbookName        string `json:"cookbook_name"`
+				CookbookMaintainer  string `json:"cookbook_maintainer"`
+				CookbookDescription string `json:"cookbook_description"`
+				Cookbook            string `json:"cookbook"`
 			}
-		}
-	})
 
-	t.Run("EnumeratePackages", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		cases := []struct {
-			Sort            string
-			Start           int
-			Items           int
-			ExpectedTotal   int
-			ExpectedResults int
-		}{
-			{"", 0, 0, 1, 1},
-			{"", 0, 10, 1, 1},
-			{"RECENTLY_ADDED", 0, 10, 1, 1},
-			{"RECENTLY_UPDATED", 0, 10, 1, 1},
-			{"", 1, 10, 1, 0},
-		}
-
-		type Item struct {
-			CookbookName        string `json:"cookbook_name"`
-			CookbookMaintainer  string `json:"cookbook_maintainer"`
-			CookbookDescription string `json:"cookbook_description"`
-			Cookbook            string `json:"cookbook"`
-		}
-
-		type Result struct {
-			Start int     `json:"start"`
-			Total int     `json:"total"`
-			Items []*Item `json:"items"`
-		}
-
-		for i, c := range cases {
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/cookbooks?start=%d&items=%d&sort=%s", root, c.Start, c.Items, c.Sort)).
-				AddBasicAuth(user.Name)
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			result := DecodeJSON(t, resp, &Result{})
-
-			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
-			assert.Len(t, result.Items, c.ExpectedResults, "case %d: unexpected result count", i)
-
-			if len(result.Items) == 1 {
-				item := result.Items[0]
-				assert.Equal(t, packageName, item.CookbookName)
-				assert.Equal(t, packageAuthor, item.CookbookMaintainer)
-				assert.Equal(t, packageDescription, item.CookbookDescription)
-				assert.Equal(t, fmt.Sprintf("%s%s/cookbooks/%s", setting.AppURL, root[1:], packageName), item.Cookbook)
+			type Result struct {
+				Start int     `json:"start"`
+				Total int     `json:"total"`
+				Items []*Item `json:"items"`
 			}
-		}
-	})
+
+			for i, c := range list.cases {
+				req := NewRequest(t, "GET", root+c.Path).
+					AddBasicAuth(user.Name)
+				resp := MakeRequest(t, req, http.StatusOK)
+
+				result := DecodeJSON(t, resp, &Result{})
+
+				assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
+				assert.Len(t, result.Items, c.ExpectedResults, "case %d: unexpected result count", i)
+
+				if len(result.Items) == 1 {
+					item := result.Items[0]
+					assert.Equal(t, packageName, item.CookbookName)
+					assert.Equal(t, packageAuthor, item.CookbookMaintainer)
+					assert.Equal(t, packageDescription, item.CookbookDescription)
+					assert.Equal(t, fmt.Sprintf("%s%s/cookbooks/%s", setting.AppURL, root[1:], packageName), item.Cookbook)
+				}
+			}
+		})
+	}
 
 	t.Run("PackageMetadata", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

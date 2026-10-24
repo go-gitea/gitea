@@ -660,7 +660,7 @@ var (
 	}
 
 	// These names are reserved for user accounts: user's keys, user's rss feed, user's avatar, etc.
-	// DO NOT add any new stuff! The paths with these names are processed by `/{username}` handler (UsernameSubRoute) manually.
+	// HINT: OWNER-NAME-RESERVED-EXT: DO NOT add any new stuff! The paths with these names are processed by UsernamePreRoute handler manually.
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom", "*.png"}
 )
 
