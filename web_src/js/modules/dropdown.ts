@@ -169,9 +169,8 @@ export class Dropdown {
     this.trigger.setAttribute('aria-expanded', 'true');
     this.trigger._tippy?.hide();
     this.trigger._tippy?.disable();
-    this.popup.style.minWidth = `${this.trigger.offsetWidth}px`;
+    this.popup.style.minWidth = `min(${this.trigger.offsetWidth}px, 100vw - 32px)`; // the max width of [data-tippy-root]
     this.refreshItems();
-    if (this.loadItems) this.reload();
     this.tippy.show();
   }
 
@@ -180,6 +179,7 @@ export class Dropdown {
     this.keyboardOwner.focus();
     const selected = this.kind === 'select' ? this.findItem(this.value) : null;
     if (selected) this.highlight(selected);
+    if (this.loadItems) this.reload();
     this.updateState();
   }
 
@@ -249,6 +249,7 @@ export class Dropdown {
       .filter((el) => !(el instanceof HTMLInputElement && el.type === 'radio' && el.name) || radioStops.get(el.name) === el);
     const index = tabbables.indexOf(e.target as HTMLElement);
     if (e.shiftKey ? index > 0 : index < tabbables.length - 1) return;
+    if (this.kind === 'select' && this.highlighted?.hasAttribute('data-value')) this.pick(this.highlighted.getAttribute('data-value')!);
     this.trigger.focus();
     this.hide();
     if (e.shiftKey) e.preventDefault();
@@ -303,7 +304,7 @@ export class Dropdown {
   applyFilter() {
     const query = this.filterInput!.value.trim().toLowerCase();
     for (const item of this.items()) {
-      item.hidden = Boolean(query) && !item.textContent.toLowerCase().includes(query);
+      item.hidden = Boolean(query) && !`${item.textContent}\n${item.getAttribute('data-value') ?? ''}`.toLowerCase().includes(query);
     }
     if (this.tippy) this.updateState();
   }
@@ -420,6 +421,7 @@ export class Dropdown {
   }
 
   updateState(message = '') {
+    this.tippy?.popper.style.removeProperty('--tippy-max-height'); // measure the new content unconstrained to pick the roomier side
     hideScopedEmptyDividers(this.popup);
     this.popup.querySelector(':scope > .dropdown-message')?.remove();
     const allItems = this.items();
@@ -428,7 +430,6 @@ export class Dropdown {
     if (!this.highlighted && (this.filterInput?.value.trim() || this.highlightDelta)) this.moveHighlight(this.highlightDelta || 1, items);
     if (!message && !this.popup.hasAttribute('aria-busy') && !items.length && allItems.every((item) => isItemEnabled(item) || !isElemVisible(item))) message = window.config.i18n.no_results_found;
     if (message) this.popup.append(createElementFromAttrs('div', {class: 'dropdown-message'}, message));
-    this.tippy?.popper.style.removeProperty('--tippy-max-height'); // measure the new content unconstrained to pick the roomier side
     this.tippy?.popperInstance?.update();
   }
 }

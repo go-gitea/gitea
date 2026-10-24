@@ -15,7 +15,7 @@
 				<div class="dropdown-container select-branch" data-kind="select">
 					<button type="button" class="dropdown-trigger ui button">
 						{{svg "octicon-git-branch" 14}}
-						<span class="dropdown-text">{{index .Branches 0}}</span>
+						<span class="dropdown-text gt-ellipsis">{{index .Branches 0}}</span>
 						{{svg "octicon-triangle-down" 14}}
 					</button>
 					<input type="hidden" class="dropdown-value" name="ref" value="refs/heads/{{index .Branches 0}}"

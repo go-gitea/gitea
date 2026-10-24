@@ -39,12 +39,12 @@
   vertical-align: top;
 }
 
-.ui.form select:not(.native-select > select) {
+.ui.form select:not(:where(.native-select > select)) {
   width: 100%;
   min-width: 14em;
 }
 
-.ui.form select:not(.native-select > select),
+.ui.form select:not(:where(.native-select > select)),
 .ui.action.input > select {
   field-sizing: content;
   min-height: 2.71428571em;

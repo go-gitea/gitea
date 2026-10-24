@@ -91,6 +91,10 @@
   overflow: visible; /* the popup scrolls itself, a scrolling wrapper would clip its shadow */
 }
 
+.tippy-box[data-theme="dropdown"][data-reference-hidden] {
+  visibility: hidden; /* the portalled popup does not inherit its trigger being hidden or scrolled away */
+}
+
 .dropdown-popup {
   max-height: min(var(--tippy-max-height, 100vh), 500px);
   overflow: auto;
@@ -217,6 +221,13 @@
 
 .dropdown-item[data-highlighted] {
   background: var(--color-hover);
+}
+
+@media (forced-colors: active) {
+  .dropdown-item[data-highlighted] {
+    outline: 2px solid;
+    outline-offset: -2px;
+  }
 }
 
 .dropdown-item.active,

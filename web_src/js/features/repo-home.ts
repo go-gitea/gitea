@@ -34,6 +34,15 @@ export function initRepoTopicBar() {
     },
   });
   topicDropdown.popup.append(topicFromInput);
+  const topicInput = topicDropdown.filterInput!;
+  topicInput.addEventListener('keydown', (e) => {
+    if (e.key !== ',') return;
+    e.preventDefault(); // a comma accepts the typed topic
+    const topic = stripTags(topicInput.value).toLowerCase().trim();
+    if (topic && !topicDropdown.values().includes(topic)) topicDropdown.pick(topic);
+    topicInput.value = '';
+    topicDropdown.onFilterInput();
+  });
   const renderTopicChips = () => {
     topicChips.replaceChildren(...topicDropdown.values().map((topic) => {
       const removeButton = createElementFromAttrs<HTMLButtonElement>('button', {

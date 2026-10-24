@@ -8,7 +8,7 @@ function createDropdown(html: string, opts?: Parameters<typeof initDropdown>[1])
   return initDropdown(container, opts);
 }
 
-test('select in a field is named by its label, filters by keyboard and fires change only on a new value', async () => {
+test('select in a field is named by its label, filters texts and values, commits on Enter and Tab and fires change only on a new value', async () => {
   const field = createElementFromHTML(`<div class="field"><label>Fruit</label><div class="dropdown-container" data-kind="select">
     <button type="button" class="dropdown-trigger"><span class="dropdown-text" data-placeholder="Pick">Apple</span></button>
     <input type="hidden" class="dropdown-value" value="apple">
@@ -16,7 +16,7 @@ test('select in a field is named by its label, filters by keyboard and fires cha
       <input class="dropdown-filter">
       <div class="dropdown-item" data-value="">Clear</div>
       <div class="dropdown-item" data-value="apple">Apple</div>
-      <div class="dropdown-item" data-value="banana" data-text="Banana!"><b>Banana</b></div>
+      <div class="dropdown-item" data-value="banana" data-text="Banana!"><b>Yellow</b></div>
     </div>
   </div></div>`);
   document.body.append(field);
@@ -43,6 +43,9 @@ test('select in a field is named by its label, filters by keyboard and fires cha
   dropdown.setValue('apple');
   expect(changes).toEqual(['banana']);
   expect(dropdown.trigger.textContent).toBe('Apple');
+  await userEvent.click(dropdown.trigger);
+  await userEvent.keyboard('ban{Tab}');
+  expect(dropdown.value).toBe('banana');
   dropdown.setValue('');
   expect(dropdown.trigger.textContent).toBe('Pick');
   field.remove();
