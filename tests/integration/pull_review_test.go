@@ -144,33 +144,33 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.Equal(t, "Test Pull Request2", prUpdated2.Issue.Title)
 
 			// ensure it cannot be merged
-			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews := pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.False(t, hasCodeownerReviews)
 
 			_, _, err = issues_model.SubmitReview(t.Context(), user5, pr.Issue, issues_model.ReviewTypeApprove, "Very good", resp.Commit.SHA, false, make([]string, 0))
 			assert.NoError(t, err)
 
 			// should still fail (we also need user8)
-			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews = pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.False(t, hasCodeownerReviews)
 
 			_, _, err = issues_model.SubmitReview(t.Context(), user8, pr.Issue, issues_model.ReviewTypeApprove, "Very good", resp.Commit.SHA, false, make([]string, 0))
 			assert.NoError(t, err)
 
 			// now we should be able to merge
-			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews = pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.True(t, hasCodeownerReviews)
 
-			_, err = issue_service.ReviewRequest(t.Context(), pr.Issue, user5, nil, user5, true)
+			_, err = pull_service.ReviewRequest(t.Context(), pr.Issue, user5, nil, user5, true)
 			assert.NoError(t, err)
-			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews = pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.False(t, hasCodeownerReviews)
 
 			// a later requested-changes review from a required code owner must override
 			// that user's earlier approval and no longer satisfy the requirement
 			_, _, err = issues_model.SubmitReview(t.Context(), user5, pr.Issue, issues_model.ReviewTypeReject, "Needs changes", resp.Commit.SHA, false, make([]string, 0))
 			assert.NoError(t, err)
-			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews = pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.False(t, hasCodeownerReviews)
 		})
 
@@ -193,13 +193,13 @@ func TestPullView_CodeOwner(t *testing.T) {
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-dismiss-branch"})
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 5})
 
-			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews := pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.False(t, hasCodeownerReviews)
 
 			_, _, err = issues_model.SubmitReview(t.Context(), user5, pr.Issue, issues_model.ReviewTypeApprove, " LGTM", "", false, make([]string, 0))
 			assert.NoError(t, err)
 
-			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews = pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.True(t, hasCodeownerReviews)
 
 			review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, ReviewerID: 5, Type: issues_model.ReviewTypeApprove})
@@ -212,7 +212,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, review.Dismissed)
 
-			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews = pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.False(t, hasCodeownerReviews)
 		})
 
@@ -250,7 +250,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8})
 
 			// should need user8 approval only now
-			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews := pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.False(t, hasCodeownerReviews)
 
 			// exercise the real merge-time gate, not just the helper: the persisted
@@ -261,7 +261,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			_, _, err = issues_model.SubmitReview(t.Context(), user8, pr.Issue, issues_model.ReviewTypeApprove, "Very good", resp.Commit.SHA, false, make([]string, 0))
 			assert.NoError(t, err)
 
-			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews = pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.True(t, hasCodeownerReviews)
 
 			// and once the code owner has approved, the merge gate no longer blocks
@@ -320,20 +320,20 @@ func TestPullView_CodeOwner(t *testing.T) {
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8})
 
 			// will also need user8 for this
-			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews := pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.False(t, hasCodeownerReviews)
 
 			_, _, err = issues_model.SubmitReview(t.Context(), user5, pr.Issue, issues_model.ReviewTypeApprove, "Very good", resp.Commit.SHA, false, make([]string, 0))
 			assert.NoError(t, err)
 
 			// should still fail (user5 is not a code owner for this PR)
-			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews = pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.False(t, hasCodeownerReviews)
 
 			_, _, err = issues_model.SubmitReview(t.Context(), user8, pr.Issue, issues_model.ReviewTypeApprove, "Very good", resp.Commit.SHA, false, make([]string, 0))
 			assert.NoError(t, err)
 
-			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			hasCodeownerReviews = pull_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.True(t, hasCodeownerReviews)
 		})
 	})
