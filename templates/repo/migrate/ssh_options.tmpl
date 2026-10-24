@@ -3,11 +3,11 @@
 	<div class="inline-right">
 		<div class="ui radio checkbox">
 			<input class="enable-system-radio" name="ssh_key_owner_id" type="radio" value="{{.SignedUser.ID}}" checked>
-			<label>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}<br><code>{{.SignedUserSSHFingerprint}}</code></label>
+			<label>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}<div class="tw-mt-1"><code>{{.SignedUserSSHFingerprint}}</code></div></label>
 		</div>
 		<div class="ui radio checkbox tw-hidden">
 			<input class="enable-system-radio" name="ssh_key_owner_id" type="radio" value="0">
-			<label>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}<br><code></code></label>
+			<label>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}<div class="tw-mt-1"><code></code></div></label>
 		</div>
 	</div>
 	<span class="help">{{ctx.Locale.Tr "repo.migrate.ssh_helper_desc"}} <a href="{{AppSubUrl}}/user/settings/keys" target="_blank">{{ctx.Locale.Tr "repo.migrate.ssh_key_manage_link"}}</a></span>
