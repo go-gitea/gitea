@@ -8,8 +8,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"slices"
-	"strings"
 
 	admin_model "gitea.dev/models/admin"
 	"gitea.dev/models/db"
@@ -65,35 +63,29 @@ func Migrate(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 	if serviceType == structs.PlainGitService {
-		setManagedSSHKeyFingerprints(ctx, ctxUser)
+		setManagedSSHKeyFingerprints(ctx)
 	}
 
 	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
 }
 
-// setManagedSSHKeyFingerprints lets the migrate form show which managed key an SSH clone will use.
-// It only reads: a missing key is created on its settings page, which the form links to.
-func setManagedSSHKeyFingerprints(ctx *context.Context, ctxUser *user_model.User) {
+// setManagedSSHKeyFingerprints lets the migrate form show which managed key an SSH clone uses, organization keys are offered to their owners
+func setManagedSSHKeyFingerprints(ctx *context.Context) {
 	if kp, err := user_model.GetSSHKeypairByOwner(ctx, ctx.Doer.ID); err == nil {
 		ctx.Data["SignedUserSSHFingerprint"] = kp.Fingerprint
 	}
-
+	orgKeys := map[int64]map[string]string{}
 	orgs, _ := ctx.Data["Orgs"].([]*organization.Organization)
-	if ctxUser.IsOrganization() && !slices.ContainsFunc(orgs, func(org *organization.Organization) bool { return org.ID == ctxUser.ID }) {
-		orgs = append(orgs, organization.OrgFromUser(ctxUser))
-	}
-	fingerprints := map[int64]string{}
-	keysURLs := map[int64]string{}
 	for _, org := range orgs {
-		keysURLs[org.ID] = org.OrganisationLink() + "/settings/ssh_keys"
-		if kp, err := user_model.GetSSHKeypairByOwner(ctx, org.ID); err == nil {
-			fingerprints[org.ID] = kp.Fingerprint
+		kp, err := user_model.GetSSHKeypairByOwner(ctx, org.ID)
+		if err != nil {
+			continue
+		}
+		if isOwner, _ := org.IsOwnedBy(ctx, ctx.Doer.ID); isOwner {
+			orgKeys[org.ID] = map[string]string{"fingerprint": kp.Fingerprint, "link": org.OrganisationLink() + "/settings/ssh_keys"}
 		}
 	}
-	fingerprintsJSON, _ := json.Marshal(fingerprints)
-	keysURLsJSON, _ := json.Marshal(keysURLs)
-	ctx.Data["OwnerSSHFingerprintsJSON"] = string(fingerprintsJSON)
-	ctx.Data["OwnerSSHKeysURLsJSON"] = string(keysURLsJSON)
+	ctx.Data["OrgSSHKeys"] = orgKeys
 }
 
 func handleMigrateError(ctx *context.Context, owner *user_model.User, err error) {
@@ -184,31 +176,30 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
-	// forge migrations authenticate with a token, managed SSH keys only serve the plain Git one
-	if giturl.IsSSH(strings.TrimSpace(form.CloneAddr)) {
-		if form.Service != structs.PlainGitService {
-			ctx.JSONErrorWithField(ctx.Tr("repo.migrate.ssh_not_supported_for_forge"), "clone_addr")
-			return
-		}
-		// a token would be injected into the clone URL and persisted in the remote
-		if form.AuthToken != "" {
-			ctx.JSONError(ctx.Tr("repo.migrate.ssh_token_not_supported"))
-			return
-		}
-	}
-
-	// never authenticate with a third party's managed key
-	if form.SSHKeyOwnerID != 0 && form.SSHKeyOwnerID != ctx.Doer.ID && form.SSHKeyOwnerID != ctxUser.ID {
-		ctx.JSONError(ctx.Tr("repo.migrate.invalid_ssh_key_owner"))
-		return
-	}
-
 	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
 		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
 	}
 	if err != nil {
 		handleMigrateRemoteAddrError(ctx, err, "clone_addr")
+		return
+	}
+
+	// forge migrations authenticate with a token, which must not end up in an SSH remote
+	if giturl.IsSSH(remoteAddr) {
+		if form.Service != structs.PlainGitService {
+			ctx.JSONErrorWithField(ctx.Tr("repo.migrate.ssh_not_supported_for_forge"), "clone_addr")
+			return
+		}
+		if form.AuthToken != "" {
+			ctx.JSONError(ctx.Tr("repo.migrate.ssh_token_not_supported"))
+			return
+		}
+	}
+
+	sshKeyOwnerID, err := repo_service.ManagedSSHKeyOwner(ctx, ctx.Doer, ctxUser, remoteAddr, form.SSHKeyOwnerID)
+	if err != nil {
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
@@ -240,7 +231,7 @@ func MigratePost(ctx *context.Context) {
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
-		SSHKeyOwnerID:  form.SSHKeyOwnerID,
+		SSHKeyOwnerID:  sshKeyOwnerID,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,

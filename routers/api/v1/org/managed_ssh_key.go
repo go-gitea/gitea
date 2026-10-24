@@ -1,23 +1,18 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package org
 
 import (
-	"errors"
-	"net/http"
-
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/v1/shared"
 	"gitea.dev/services/context"
 )
 
-// GetManagedSSHKey gets the SSH public key for organization mirroring
+// GetManagedSSHKey gets the managed SSH key of an organization
 func GetManagedSSHKey(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/managed-ssh-key organization orgGetManagedSSHKey
 	// ---
-	// summary: Get SSH public key for organization mirroring
+	// summary: Get the managed SSH key that authenticates the organization's SSH migrations and mirrors
 	// produces:
 	// - application/json
 	// parameters:
@@ -34,25 +29,14 @@ func GetManagedSSHKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// a GET must not create anything, so look the keypair up read-only
-	keypair, err := user_model.GetSSHKeypairByOwner(ctx, ctx.Org.Organization.ID)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, "SSH keypair not found")
-			return
-		}
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, &api.ManagedSSHKey{PublicKey: keypair.PublicKey, Fingerprint: keypair.Fingerprint})
+	shared.GetManagedSSHKey(ctx, ctx.Org.Organization.AsUser())
 }
 
-// RegenerateManagedSSHKey regenerates the SSH keypair for organization mirroring
+// RegenerateManagedSSHKey generates a new managed SSH key for an organization
 func RegenerateManagedSSHKey(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/managed-ssh-key/regenerate organization orgRegenerateManagedSSHKey
 	// ---
-	// summary: Regenerate SSH keypair for organization mirroring
+	// summary: Generate a new managed SSH key for the organization, replacing the current one
 	// produces:
 	// - application/json
 	// parameters:
@@ -67,11 +51,5 @@ func RegenerateManagedSSHKey(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	keypair, err := user_model.CreateSSHKeypair(ctx, ctx.Org.Organization.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, &api.ManagedSSHKey{PublicKey: keypair.PublicKey, Fingerprint: keypair.Fingerprint})
+	shared.RegenerateManagedSSHKey(ctx, ctx.Org.Organization.AsUser())
 }

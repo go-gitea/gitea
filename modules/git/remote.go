@@ -91,20 +91,17 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 		}
 		return u.URL.String(), nil
 	case "ssh":
-		// SSH uses key-based auth only; the address itself is valid, the credentials are not usable.
-		// A password embedded in the URL is rejected too, otherwise it would be stored in the remote.
+		// managed keys authenticate SSH, a password would be stored in the remote
 		_, urlHasPassword := u.User.Password()
 		if len(authUsername)+len(authPassword) > 0 || urlHasPassword {
 			return "", &ErrInvalidCloneAddr{IsAuthNotSupported: true, Host: remoteAddr}
 		}
-		// Normalize SCP short syntax (git@host:path) into an ssh:// URL so
-		// downstream SSH handling can detect and use it consistently
-		if !strings.HasPrefix(u.Path, "/") {
-			u.Path = "/" + u.Path
+		// git decodes the user and ends the host only at "/", so a decoded separator, "?" or "#" would connect elsewhere than checked
+		if strings.ContainsAny(u.User.Username(), "@:/") || strings.ContainsAny(remoteAddr, "?#") {
+			return "", &ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
 		}
-		return u.URL.String(), nil
+		return remoteAddr, nil
 	default:
-		// Local path or unsupported scheme: pass through unchanged
 		return remoteAddr, nil
 	}
 }

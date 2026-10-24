@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/svg"
+	"gitea.dev/modules/util"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -157,7 +158,7 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 
 	// The URL stored in the git repo could contain authentication,
 	// erase it, or it will be shown in the UI.
-	u.User = nil
+	util.RemoveURLCredentials(u.URL)
 	ret.Address = u.String()
 	// Why not use m.OriginalURL to set ret.Address?
 	// It should be OK to use it, since m.OriginalURL should be the same as the authentication-erased URL from the Git repository.

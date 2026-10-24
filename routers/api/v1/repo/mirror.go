@@ -23,6 +23,7 @@ import (
 	"gitea.dev/services/convert"
 	"gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
+	repo_service "gitea.dev/services/repository"
 )
 
 // MirrorSync adds a mirrored repository to the sync queue
@@ -370,9 +371,15 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 
 	remoteSuffix := util.CryptoRandomString(10)
 
-	remoteAddress, err := util.SanitizeURL(mirrorOption.RemoteAddress)
+	remoteAddress, err := util.SanitizeURL(address)
 	if err != nil {
 		ctx.APIErrorInternal(err)
+		return
+	}
+
+	sshKeyOwnerID, err := repo_service.ManagedSSHKeyOwner(ctx, ctx.Doer, ctx.Repo.Owner, address, 0)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -383,6 +390,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 		Interval:      interval,
 		SyncOnCommit:  mirrorOption.SyncOnCommit,
 		RemoteAddress: remoteAddress,
+		SSHKeyOwnerID: sshKeyOwnerID,
 	}
 
 	if err = db.Insert(ctx, pushMirror); err != nil {

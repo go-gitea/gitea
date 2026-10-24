@@ -1,23 +1,18 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package user
 
 import (
-	"errors"
-	"net/http"
-
-	user_model "gitea.dev/models/user"
-	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/v1/shared"
 	"gitea.dev/services/context"
 )
 
-// GetManagedSSHKey gets the SSH public key for user mirroring
+// GetManagedSSHKey gets the managed SSH key of the authenticated user
 func GetManagedSSHKey(ctx *context.APIContext) {
 	// swagger:operation GET /user/managed-ssh-key user userGetManagedSSHKey
 	// ---
-	// summary: Get SSH public key for user mirroring
+	// summary: Get the managed SSH key that authenticates the user's SSH migrations and mirrors
 	// produces:
 	// - application/json
 	// responses:
@@ -26,36 +21,19 @@ func GetManagedSSHKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// a GET must not create anything, so look the keypair up read-only
-	keypair, err := user_model.GetSSHKeypairByOwner(ctx, ctx.Doer.ID)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, "SSH keypair not found")
-			return
-		}
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, &api.ManagedSSHKey{PublicKey: keypair.PublicKey, Fingerprint: keypair.Fingerprint})
+	shared.GetManagedSSHKey(ctx, ctx.Doer)
 }
 
-// RegenerateManagedSSHKey regenerates the SSH keypair for user mirroring
+// RegenerateManagedSSHKey generates a new managed SSH key for the authenticated user
 func RegenerateManagedSSHKey(ctx *context.APIContext) {
 	// swagger:operation POST /user/managed-ssh-key/regenerate user userRegenerateManagedSSHKey
 	// ---
-	// summary: Regenerate SSH keypair for user mirroring
+	// summary: Generate a new managed SSH key for the user, replacing the current one
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ManagedSSHKey"
 
-	keypair, err := user_model.CreateSSHKeypair(ctx, ctx.Doer.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, &api.ManagedSSHKey{PublicKey: keypair.PublicKey, Fingerprint: keypair.Fingerprint})
+	shared.RegenerateManagedSSHKey(ctx, ctx.Doer)
 }

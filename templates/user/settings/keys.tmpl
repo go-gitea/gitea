@@ -7,7 +7,6 @@
 		{{if not ($.UserDisabledFeatures.Contains "manage_gpg_keys")}}
 		{{template "user/settings/keys_gpg" .}}
 		{{end}}
-		<div class="ui divider"></div>
-		{{template "user/settings/keys_managed_ssh" .}}
+		{{template "user/settings/keys_managed_ssh" (dict "ManagedSSHKey" .ManagedSSHKey "Link" (print .Link "/managed-ssh/regenerate"))}}
 	</div>
 {{template "user/settings/layout_footer" .}}

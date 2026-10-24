@@ -1,22 +1,22 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package org
 
 import (
+	"errors"
 	"net/http"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 )
 
-const (
-	tplSettingsSSHKeys templates.TplName = "org/settings/ssh_keys"
-)
+const tplSettingsSSHKeys templates.TplName = "org/settings/ssh_keys"
 
-// SSHKeys render organization SSH mirror keys page
 func SSHKeys(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings.ssh_keys")
 	ctx.Data["PageIsOrgSettings"] = true
@@ -27,25 +27,22 @@ func SSHKeys(ctx *context.Context) {
 		return
 	}
 
-	keypair, err := user_model.GetOrCreateSSHKeypair(ctx, ctx.Org.Organization.ID)
-	if err != nil {
-		ctx.ServerError("GetOrCreateSSHKeypair", err)
+	keypair, err := user_model.GetSSHKeypairByOwner(ctx, ctx.Org.Organization.ID)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		ctx.ServerError("GetSSHKeypairByOwner", err)
 		return
 	}
-
-	ctx.Data["SSHKeypair"] = keypair
-
+	ctx.Data["ManagedSSHKey"] = keypair
 	ctx.HTML(http.StatusOK, tplSettingsSSHKeys)
 }
 
-// RegenerateSSHKey regenerates the SSH keypair for organization mirror operations
 func RegenerateSSHKey(ctx *context.Context) {
-	_, err := user_model.CreateSSHKeypair(ctx, ctx.Org.Organization.ID)
+	keypair, err := user_model.CreateSSHKeypair(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.ServerError("CreateSSHKeypair", err)
 		return
 	}
-
-	ctx.Flash.Success(ctx.Tr("settings.managed_ssh_regenerated"))
-	ctx.Redirect(ctx.Org.OrgLink + "/settings/ssh_keys")
+	audit.RecordScoped(ctx, ctx.Org.Organization.AsUser(), nil, audit.ManagedSSHKeyGenerate, "fingerprint", keypair.Fingerprint)
+	ctx.Flash.Success(ctx.Tr("settings.managed_ssh_generated"))
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/ssh_keys")
 }

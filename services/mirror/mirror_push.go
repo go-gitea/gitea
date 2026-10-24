@@ -20,7 +20,6 @@ import (
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
-	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/migrations"
@@ -46,8 +45,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		// the agent must exist before probing, otherwise an SSH wiki looks inaccessible
-		envs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, m.Repo.OwnerID, addr)
+		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, m.Repo, m.SSHKeyOwnerID, addr)
 		if err != nil {
 			return err
 		}
@@ -99,10 +97,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		return false
 	}
 
-	if m.GetRepository(ctx) == nil {
-		log.Error("GetRepository [%d]: repository not found", mirrorID)
-		return false
-	}
+	_ = m.GetRepository(ctx)
 
 	m.LastError = ""
 
@@ -139,13 +134,13 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		}
 		// re-validate every sync, the allow/block lists may have changed since the mirror was added
 		switch remoteURL.URL.Scheme {
-		case "http", "https", "git":
+		case "http", "https", "git", "ssh":
 			if err := migrations.IsMigrateURLAllowed(remoteURL.String(), nil); err != nil {
 				return fmt.Errorf("remote address is not allowed: %w", err)
 			}
 		}
 
-		if setting.LFS.StartServer {
+		if setting.LFS.StartServer && remoteURL.Scheme != "ssh" { // an SSH remote's derived HTTPS LFS endpoint has no credentials to upload with
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
 			gitRepo, err := git.OpenRepository(ctx, storageRepo)
@@ -165,9 +160,9 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
-		envs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, m.Repo.OwnerID, remoteURL.String())
+		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, m.Repo, m.SSHKeyOwnerID, remoteURL.String())
 		if err != nil {
-			return fmt.Errorf("SetupManagedSSHAgent failed: %w", err)
+			return fmt.Errorf("managed SSH key: %w", err)
 		}
 		defer cleanup()
 

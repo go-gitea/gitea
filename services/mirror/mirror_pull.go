@@ -11,6 +11,7 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	giturl "gitea.dev/modules/git/url"
@@ -20,7 +21,6 @@ import (
 	"gitea.dev/modules/process"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
-	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/migrations"
@@ -29,22 +29,37 @@ import (
 )
 
 // UpdateAddress writes new address to Git repository and database
-func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
+func UpdateAddress(ctx context.Context, doer *user_model.User, m *repo_model.Mirror, addr string) error {
 	u, err := giturl.ParseGitURL(addr)
 	if err != nil {
 		return fmt.Errorf("invalid addr: %v", err)
 	}
+	util.RemoveURLCredentials(u.URL)
+
+	// a running sync must not fetch the new address with the old key
+	releaser, err := globallock.Lock(ctx, getRepoPullMirrorLockKey(m.RepoID))
+	if err != nil {
+		return err
+	}
+	defer releaser()
 
 	remoteName := m.GetRemoteName()
 	repo := m.GetRepository(ctx)
 
-	// a personal key must not follow the mirror to an address its owner didn't choose
-	if m.SSHKeyOwnerID != 0 {
-		if oldURL, err := git.ParseRemoteAddressURL(ctx, repo, remoteName); err != nil || util.SanitizeCredentialURLs(oldURL.String()) != util.SanitizeCredentialURLs(u.String()) {
-			m.SSHKeyOwnerID = 0
-			if err := repo_model.ResetMirrorSSHKeyOwner(ctx, repo.ID); err != nil {
-				return err
-			}
+	// a key stays bound to the address it was chosen for, a new address takes one doer may use
+	oldURL, err := git.ParseRemoteAddressURL(ctx, repo, remoteName)
+	if err == nil {
+		util.RemoveURLCredentials(oldURL.URL)
+	}
+	if (m.SSHKeyOwnerID != 0 || u.Scheme == "ssh") && (err != nil || oldURL.String() != u.String()) {
+		if err := repo.LoadOwner(ctx); err != nil {
+			return err
+		}
+		if m.SSHKeyOwnerID, err = repo_service.ManagedSSHKeyOwner(ctx, doer, repo.Owner, addr, util.Iif(m.SSHKeyOwnerID == doer.ID, doer.ID, 0)); err != nil {
+			return err
+		}
+		if err := repo_model.UpdateMirrorSSHKeyOwner(ctx, m); err != nil {
+			return err
 		}
 	}
 
@@ -60,14 +75,9 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		// the agent must exist before probing, otherwise an SSH wiki looks inaccessible
-		sshKeyOwnerID, sshErr := pullMirrorSSHKeyOwnerID(ctx, m)
-		if sshErr != nil {
-			return sshErr
-		}
-		envs, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, sshKeyOwnerID, addr)
-		if sshErr != nil {
-			return sshErr
+		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, repo, m.SSHKeyOwnerID, addr)
+		if err != nil {
+			return err
 		}
 		defer cleanup()
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr, envs)
@@ -83,8 +93,6 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		}
 	}
 
-	// erase authentication before storing in database
-	u.User = nil
 	m.Repo.OriginalURL = u.String()
 	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
 }
@@ -133,9 +141,9 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		return nil, false
 	}
 	// re-validate on every sync: the host may now resolve to an internal IP (rebinding) or the
-	// allow/block list may have changed. ssh/file are skipped (not an HTTP SSRF vector).
+	// allow/block list may have changed. file is skipped (no network access).
 	switch remoteURL.URL.Scheme {
-	case "http", "https", "git":
+	case "http", "https", "git", "ssh":
 		if allowErr := migrations.IsMigrateURLAllowed(remoteURL.String(), m.Repo.MustOwner(ctx)); allowErr != nil {
 			log.Error("SyncMirrors [repo: %-v]: remote URL is not allowed: %v", m.Repo, allowErr)
 			return nil, false
@@ -143,14 +151,9 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	sshKeyOwnerID, sshErr := pullMirrorSSHKeyOwnerID(ctx, m)
+	envs, cleanup, sshErr := repo_service.ManagedSSHEnv(ctx, m.Repo, m.SSHKeyOwnerID, remoteURL.String())
 	if sshErr != nil {
-		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, sshErr)
-		return nil, false
-	}
-	envs, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, sshKeyOwnerID, remoteURL.String())
-	if sshErr != nil {
-		log.Error("SyncMirrors [repo: %-v]: SSH setup error %v", m.Repo, sshErr)
+		log.Error("SyncMirrors [repo: %-v]: managed SSH key: %v", m.Repo, sshErr)
 		return nil, false
 	}
 	defer cleanup()
@@ -344,7 +347,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
 	m.LastSyncUnix = m.UpdatedUnix
-	if err = repo_model.UpdateMirror(ctx, m); err != nil {
+	if err = repo_model.UpdateMirrorSyncStatus(ctx, m); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirror with next update date: %v", m.Repo, err)
 		return false
 	}

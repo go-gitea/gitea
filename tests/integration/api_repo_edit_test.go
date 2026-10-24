@@ -459,7 +459,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
 		newPassword := "updated-password"
 
-		require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, "https://existing-user:existing-password@127.0.0.1/user2/repo1.git"))
+		require.NoError(t, mirror_service.UpdateAddress(ctx, user2, mirror, "https://existing-user:existing-password@127.0.0.1/user2/repo1.git"))
 
 		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", mirrorRepo.OwnerName, mirrorRepo.Name), &api.EditRepoOption{
 			MirrorPassword: &newPassword,
@@ -483,7 +483,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		// Test updating mirror token without guessing a username
 		token := "mirror-token-value"
 
-		require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, "https://127.0.0.1/user2/repo1.git"))
+		require.NoError(t, mirror_service.UpdateAddress(ctx, user2, mirror, "https://127.0.0.1/user2/repo1.git"))
 
 		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", mirrorRepo.OwnerName, mirrorRepo.Name), &api.EditRepoOption{
 			MirrorToken: &token,

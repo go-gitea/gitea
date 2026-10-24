@@ -108,9 +108,9 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
-	// never authenticate with a third party's managed key
-	if form.SSHKeyOwnerID != 0 && form.SSHKeyOwnerID != ctx.Doer.ID && form.SSHKeyOwnerID != repoOwner.ID {
-		ctx.APIError(http.StatusForbidden, "ssh_key_owner_id must be 0, the authenticated user, or the repository owner")
+	sshKeyOwnerID, err := repo_service.ManagedSSHKeyOwner(ctx, ctx.Doer, repoOwner, remoteAddr, form.SSHKeyOwnerID)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -165,7 +165,7 @@ func Migrate(ctx *context.APIContext) {
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
-		SSHKeyOwnerID:  form.SSHKeyOwnerID,
+		SSHKeyOwnerID:  sshKeyOwnerID,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,

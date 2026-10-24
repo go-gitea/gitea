@@ -63,6 +63,11 @@ var (
 		User: audit_model.UserOAuth2ApplicationRevoke,
 	}
 
+	ManagedSSHKeyGenerate = ScopedActions{
+		User: audit_model.UserManagedSSHKeyGenerate,
+		Org:  audit_model.OrganizationManagedSSHKeyGenerate,
+	}
+
 	WebhookAdd = ScopedActions{
 		Repo:   audit_model.RepositoryWebhookAdd,
 		Org:    audit_model.OrganizationWebhookAdd,

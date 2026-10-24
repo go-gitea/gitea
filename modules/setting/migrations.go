@@ -7,19 +7,14 @@ import "strings"
 
 // Migrations settings
 var Migrations = struct {
-	MaxAttempts     int
-	RetryBackoff    int
-	EgressMode      string
-	AllowedHostList string
-	BlockedHostList string
-	SkipTLSVerify   bool
-	// SSHHostKeyChecking controls StrictHostKeyChecking for SSH migrations/mirrors:
-	// "accept-new" (default, trust on first use, reject changed keys), "yes" (strict,
-	// host must already be known) or "no" (disable verification).
+	MaxAttempts        int
+	RetryBackoff       int
+	EgressMode         string
+	AllowedHostList    string
+	BlockedHostList    string
+	SkipTLSVerify      bool
 	SSHHostKeyChecking string
-	// SSHCommand is the ssh executable used for SSH migrations/mirrors. Defaults to
-	// "ssh"; set an absolute path when ssh is not on PATH (e.g. on Windows).
-	SSHCommand string
+	SSHCommand         string
 }{
 	MaxAttempts:        3,
 	RetryBackoff:       3,

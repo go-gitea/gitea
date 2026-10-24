@@ -43,12 +43,10 @@ func TestTransferOwnership(t *testing.T) {
 	assert.NoError(t, sourceRepo.LoadOwner(t.Context()))
 	repoTransfer := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoTransfer{ID: 1})
 	assert.NoError(t, repoTransfer.LoadAttributes(t.Context()))
-	require.NoError(t, repo_model.InsertMirror(t.Context(), &repo_model.Mirror{RepoID: 3, SSHKeyOwnerID: 2}))
 	assert.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, doer))
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
-	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 3}).SSHKeyOwnerID)
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{ID: 1})
 
 	exist, err := git.IsRepositoryExist(t.Context(), sourceRepoBak)

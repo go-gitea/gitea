@@ -3351,7 +3351,7 @@
         "tags": [
           "organization"
         ],
-        "summary": "Get SSH public key for organization mirroring",
+        "summary": "Get the managed SSH key that authenticates the organization's SSH migrations and mirrors",
         "operationId": "orgGetManagedSSHKey",
         "parameters": [
           {
@@ -3383,7 +3383,7 @@
         "tags": [
           "organization"
         ],
-        "summary": "Regenerate SSH keypair for organization mirroring",
+        "summary": "Generate a new managed SSH key for the organization, replacing the current one",
         "operationId": "orgRegenerateManagedSSHKey",
         "parameters": [
           {
@@ -23599,7 +23599,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Get SSH public key for user mirroring",
+        "summary": "Get the managed SSH key that authenticates the user's SSH migrations and mirrors",
         "operationId": "userGetManagedSSHKey",
         "responses": {
           "200": {
@@ -23619,7 +23619,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Regenerate SSH keypair for user mirroring",
+        "summary": "Generate a new managed SSH key for the user, replacing the current one",
         "operationId": "userRegenerateManagedSSHKey",
         "responses": {
           "200": {
@@ -31947,7 +31947,7 @@
           "x-go-name": "Service"
         },
         "ssh_key_owner_id": {
-          "description": "SSHKeyOwnerID picks which managed SSH keypair to use for SSH clones.\n0 means use the target repo owner (default).",
+          "description": "SSHKeyOwnerID picks the managed SSH key of an SSH clone address, yours or as its owner the organization's, 0 prefers the organization's",
           "type": "integer",
           "format": "int64",
           "x-go-name": "SSHKeyOwnerID"

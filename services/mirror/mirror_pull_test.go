@@ -6,30 +6,8 @@ package mirror
 import (
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
-	"gitea.dev/modules/util"
-
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
-
-func TestPullMirrorSSHKeyOwnerID(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	m := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5}) // repo owned by org3
-	m.GetRepository(t.Context())
-
-	for keyOwnerID, expected := range map[int64]int64{0: 3, 3: 3, 2: 2} { // 2 is an org3 owner
-		m.SSHKeyOwnerID = keyOwnerID
-		ownerID, err := pullMirrorSSHKeyOwnerID(t.Context(), m)
-		require.NoError(t, err)
-		assert.Equal(t, expected, ownerID)
-	}
-
-	m.SSHKeyOwnerID = 4 // org3 member without admin access
-	_, err := pullMirrorSSHKeyOwnerID(t.Context(), m)
-	assert.ErrorIs(t, err, util.ErrPermissionDenied)
-}
 
 func Test_checkRecoverableSyncError(t *testing.T) {
 	cases := []struct {

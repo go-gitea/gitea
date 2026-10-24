@@ -11,13 +11,16 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddSSHKeyOwnerIDToMirror(_ context.Context, x base.EngineMigration) error {
+func AddSSHKeyOwnerIDToMirrors(_ context.Context, x base.EngineMigration) error {
 	type Mirror struct {
+		SSHKeyOwnerID int64 `xorm:"NOT NULL DEFAULT 0"`
+	}
+	type PushMirror struct {
 		SSHKeyOwnerID int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
-	}, new(Mirror))
+	}, new(Mirror), new(PushMirror))
 	return err
 }

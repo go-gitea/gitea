@@ -288,6 +288,8 @@ func TestIsSSH(t *testing.T) {
 		{"http://github.com/user/repo.git", false},
 		{"git://github.com/user/repo.git", false},
 		{"/srv/git/repo.git", false},
+		{"a:b@c", false},
+		{`C:\repos\me@corp\x`, false},
 		{"", false},
 	}
 	for _, c := range cases {

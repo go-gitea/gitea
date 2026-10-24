@@ -37,11 +37,9 @@ type Mirror struct {
 
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
 
-	// 0 means the repository owner's managed SSH key
-	SSHKeyOwnerID int64 `xorm:"NOT NULL DEFAULT 0"`
+	SSHKeyOwnerID int64 `xorm:"NOT NULL DEFAULT 0"` // whose managed SSH key authenticates an SSH remote, 0 leaves it to the system's ssh setup
 }
 
-// IsSSHRemoteAddress returns true if the mirror's remote address uses SSH.
 func (m *Mirror) IsSSHRemoteAddress() bool {
 	return giturl.IsSSH(m.RemoteAddress)
 }
@@ -98,7 +96,7 @@ func GetMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
 
 // UpdateMirror updates the mirror
 func UpdateMirror(ctx context.Context, m *Mirror) error {
-	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
+	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Omit("ssh_key_owner_id").Update(m) // only UpdateAddress binds a key, together with the remote
 	return err
 }
 
@@ -109,9 +107,13 @@ func TouchMirror(ctx context.Context, m *Mirror) error {
 	return err
 }
 
-// ResetMirrorSSHKeyOwner makes the mirror of the repository authenticate with its owner's managed SSH key again
-func ResetMirrorSSHKeyOwner(ctx context.Context, repoID int64) error {
-	_, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Cols("ssh_key_owner_id").Update(&Mirror{})
+func UpdateMirrorSyncStatus(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("updated_unix", "next_update_unix", "last_sync_unix").Update(m)
+	return err
+}
+
+func UpdateMirrorSSHKeyOwner(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("ssh_key_owner_id").Update(m)
 	return err
 }
 
