@@ -1246,6 +1246,16 @@
         },
         "description": "ReleaseList"
       },
+      "ReleaseNotes": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ReleaseNotes"
+            }
+          }
+        },
+        "description": "ReleaseNotes"
+      },
       "RepoCollaboratorPermission": {
         "content": {
           "application/json": {
@@ -6919,6 +6929,31 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "GenerateReleaseNotesOption": {
+        "description": "GenerateReleaseNotesOption options when generating release notes",
+        "properties": {
+          "previous_tag_name": {
+            "description": "The previous tag to use as the starting point of the changelog range",
+            "type": "string",
+            "x-go-name": "PreviousTagName"
+          },
+          "tag_name": {
+            "description": "The name of the tag to generate release notes for",
+            "type": "string",
+            "x-go-name": "TagName"
+          },
+          "target_commitish": {
+            "description": "The branch or commitish the release targets when tag_name does not exist yet",
+            "type": "string",
+            "x-go-name": "TargetCommitish"
+          }
+        },
+        "required": [
+          "tag_name"
+        ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "GenerateRepoOption": {
         "description": "GenerateRepoOption options when creating a repository using a template",
         "properties": {
@@ -9734,6 +9769,23 @@
             "format": "uri",
             "type": "string",
             "x-go-name": "ZipURL"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "ReleaseNotes": {
+        "description": "ReleaseNotes contains generated release notes content",
+        "properties": {
+          "body": {
+            "description": "The generated release notes body",
+            "type": "string",
+            "x-go-name": "Body"
+          },
+          "name": {
+            "description": "The suggested name of the release",
+            "type": "string",
+            "x-go-name": "Name"
           }
         },
         "type": "object",
@@ -31920,6 +31972,56 @@
           }
         },
         "summary": "Create a release",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/releases/generate-notes": {
+      "post": {
+        "operationId": "repoGenerateReleaseNotes",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateReleaseNotesOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ReleaseNotes"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Generate release notes content for a tag",
         "tags": [
           "repository"
         ]

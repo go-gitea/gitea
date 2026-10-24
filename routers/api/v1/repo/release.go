@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
@@ -13,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
@@ -249,6 +251,36 @@ func CreateRelease(ctx *context.APIContext) {
 		ctx.APIError(http.StatusUnprocessableEntity, "repo is empty")
 		return
 	}
+	if form.GenerateNotes {
+		targetCommitish := form.Target
+		if targetCommitish == "" {
+			targetCommitish = ctx.Repo.Repository.DefaultBranch
+		}
+		previousTag := form.PreviousTagName
+		if previousTag == "" {
+			if latest, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID); err == nil {
+				previousTag = latest.TagName
+			}
+		}
+		content, err := release_service.GenerateReleaseNotes(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, release_service.GenerateReleaseNotesOptions{
+			TagName:     form.TagName,
+			TagTarget:   targetCommitish,
+			PreviousTag: previousTag,
+		})
+		if err != nil {
+			if errors.Is(err, util.ErrNotExist) {
+				ctx.APIErrorNotFound()
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
+		// a caller-provided body goes in front of the generated notes, same as GitHub
+		if form.Note != "" {
+			form.Note += "\n\n"
+		}
+		form.Note += content
+	}
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !repo_model.IsErrReleaseNotExist(err) {
@@ -443,4 +475,60 @@ func DeleteRelease(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+// GenerateReleaseNotes generates release notes content for a tag
+func GenerateReleaseNotes(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/releases/generate-notes repository repoGenerateReleaseNotes
+	// ---
+	// summary: Generate release notes content for a tag
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/GenerateReleaseNotesOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ReleaseNotes"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	form := web.GetForm[*api.GenerateReleaseNotesOption](ctx)
+
+	targetCommitish := form.TargetCommitish
+	if targetCommitish == "" {
+		targetCommitish = ctx.Repo.Repository.DefaultBranch
+	}
+
+	content, err := release_service.GenerateReleaseNotes(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, release_service.GenerateReleaseNotesOptions{
+		TagName:     form.TagName,
+		TagTarget:   targetCommitish,
+		PreviousTag: form.PreviousTagName,
+	})
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, &api.ReleaseNotes{Name: form.TagName, Body: content})
 }
