@@ -48,8 +48,9 @@ func TryPickTask(ctx context.Context, runner *actions_model.ActionRunner) (task 
 	default:
 		return nil, false, true, nil
 	}
-	task, ok, err = PickTask(ctx, runner)
-	return task, ok, false, err
+	task, ok, deferred, err := pickTask(ctx, runner)
+	// a job held back for a higher-priority runner must be retried on the next poll, like a throttled pick
+	return task, ok, deferred, err
 }
 
 // releaseTaskForRunnerCleanup releases a claimed task using a fresh, bounded context. The request context
@@ -64,6 +65,11 @@ func releaseTaskForRunnerCleanup(t *actions_model.ActionTask) {
 }
 
 func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
+	task, ok, _, err := pickTask(ctx, runner)
+	return task, ok, err
+}
+
+func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, bool, error) {
 	var (
 		task       *runnerv1.Task
 		job        *actions_model.ActionRunJob
@@ -71,7 +77,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	)
 
 	if runner.IsDisabled {
-		return nil, false, nil
+		return nil, false, false, nil
 	}
 
 	if runner.Ephemeral {
@@ -79,27 +85,27 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		has, err := db.GetEngine(ctx).Where("runner_id = ?", runner.ID).Get(&task)
 		// Let the runner retry the request, do not allow to proceed
 		if err != nil {
-			return nil, false, err
+			return nil, false, false, err
 		}
 		if has {
 			if task.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked, actions_model.StatusCancelling) {
-				return nil, false, nil
+				return nil, false, false, nil
 			}
 			// task has been finished, remove it
 			_, err = db.DeleteByID[actions_model.ActionRunner](ctx, runner.ID)
 			if err != nil {
-				return nil, false, err
+				return nil, false, false, err
 			}
-			return nil, false, errors.New("runner has been removed")
+			return nil, false, false, errors.New("runner has been removed")
 		}
 	}
 
-	t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
+	t, ok, deferred, err := actions_model.CreateTaskForRunnerWithDeferral(ctx, runner)
 	if err != nil {
-		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
+		return nil, false, false, fmt.Errorf("CreateTaskForRunner: %w", err)
 	}
 	if !ok {
-		return nil, false, nil
+		return nil, false, deferred, nil
 	}
 
 	task, job, err = buildRunnerTask(ctx, t)
@@ -108,7 +114,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		// claim so the job returns to the waiting queue instead of being stranded in
 		// running state with no runner ever executing it.
 		releaseTaskForRunnerCleanup(t)
-		return nil, false, err
+		return nil, false, false, err
 	}
 	actionTask = t
 
@@ -124,10 +130,10 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	// Release the claim so another runner can pick the job up.
 	if err := ctx.Err(); err != nil {
 		releaseTaskForRunnerCleanup(t)
-		return nil, false, err
+		return nil, false, false, err
 	}
 
-	return task, true, nil
+	return task, true, false, nil
 }
 
 // buildRunnerTask assembles the runner-facing task payload for an already-claimed
