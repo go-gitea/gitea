@@ -117,9 +117,10 @@ func TestServeSetHeaderContentRelated(t *testing.T) {
 		{"", serveHeaderCspDefault},
 		{"any", serveHeaderCspDefault},
 		{"application/pdf", serveHeaderCspPdf},
-		{"application/pdf; other", serveHeaderCspPdf},
+		{"application/pdf; charset=binary", serveHeaderCspPdf},
 		{"audio/mp4", serveHeaderCspAudioVideo},
-		{"video/ogg; other", serveHeaderCspAudioVideo},
+		{"video/ogg; codecs=theora", serveHeaderCspAudioVideo},
+		{"video/mp4;,text/html", serveHeaderCspDefault},
 		{typesniffer.MimeTypeImageSvg, serveHeaderCspDefault},
 	}
 	for _, c := range cases {
