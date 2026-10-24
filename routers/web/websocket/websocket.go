@@ -77,7 +77,11 @@ func Serve(ctx *context.Context) {
 		return err
 	}
 
-	for _, brokerPayload := range websocket_service.UserData(wsCtx, ctx.Doer) {
+	var backlog [][]byte // published before the snapshot read, so it must not follow the snapshot
+	for len(ch) > 0 {
+		backlog = append(backlog, <-ch)
+	}
+	for _, brokerPayload := range append(backlog, websocket_service.UserData(wsCtx, ctx.Doer)...) {
 		if err := send(brokerPayload); err != nil {
 			return
 		}
