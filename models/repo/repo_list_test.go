@@ -4,7 +4,6 @@
 package repo_test
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -196,50 +195,24 @@ func TestSearchRepository(t *testing.T) {
 	t.Run("SearchRepositoryWithInDescription", testSearchRepositoryWithInDescription)
 	t.Run("SearchRepositoryNotInDescription", testSearchRepositoryNotInDescription)
 	t.Run("SearchRepositoryCases", testSearchRepositoryCases)
-}
-
-func TestSearchRepositoryPrioritizesExactMatch(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	insertRepo := func(name string) int64 {
-		repo := &repo_model.Repository{
-			OwnerID:          owner.ID,
-			OwnerName:        owner.Name,
-			LowerName:        name,
-			Name:             name,
-			DefaultBranch:    "master",
-			IsFsckEnabled:    true,
-			ObjectFormatName: "sha1",
+	t.Run("SearchRepositoryRanksExactMatchesCaseInsensitivelyUnlessSorted", func(t *testing.T) {
+		afoo := &repo_model.Repository{OwnerID: 2, OwnerName: "User2", LowerName: "afoo", Name: "afoo"}
+		aafoo := &repo_model.Repository{OwnerID: 20, OwnerName: "user20", LowerName: "aafoo", Name: "aafoo"}
+		foo := &repo_model.Repository{OwnerID: 2, OwnerName: "User2", LowerName: "foo", Name: "foo"}
+		require.NoError(t, db.Insert(t.Context(), afoo, aafoo, foo))
+		for _, tc := range []struct {
+			keyword string
+			orderBy db.SearchOrderBy
+			want    []int64
+		}{
+			{"Foo", "", []int64{foo.ID, aafoo.ID, afoo.ID}},
+			{"Foo", db.SearchOrderByID, []int64{afoo.ID, aafoo.ID, foo.ID}},
+			{"user2/foo", "", []int64{foo.ID, afoo.ID, aafoo.ID}},
+		} {
+			repos, _, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{Keyword: tc.keyword, OrderBy: tc.orderBy})
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, repoIDs(repos), "%s %s", tc.keyword, tc.orderBy)
 		}
-		require.NoError(t, db.Insert(t.Context(), repo))
-		t.Cleanup(func() {
-			_, err := db.DeleteByID[repo_model.Repository](context.Background(), repo.ID)
-			assert.NoError(t, err)
-		})
-		return repo.ID
-	}
-
-	insertRepo("afoo")
-	exactID := insertRepo("foo")
-
-	assertExactFirst := func(t *testing.T, keyword string) {
-		repos, _, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{Page: 1, PageSize: 10},
-			OwnerID:     owner.ID,
-			Keyword:     keyword,
-			Collaborate: optional.Some(false),
-		})
-		require.NoError(t, err)
-		require.NotEmpty(t, repos)
-		assert.Equal(t, exactID, repos[0].ID)
-	}
-
-	t.Run("name", func(t *testing.T) {
-		assertExactFirst(t, "foo")
-	})
-	t.Run("owner/name", func(t *testing.T) {
-		assertExactFirst(t, owner.Name+"/foo")
 	})
 }
 
