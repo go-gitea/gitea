@@ -201,6 +201,9 @@ type Package struct {
 
 // TryInsertPackage inserts a package. If a package exists already, ErrDuplicatePackage is returned
 func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
+	if err := assignActionsPackage(ctx, p); err != nil {
+		return nil, err
+	}
 	e := db.GetEngine(ctx)
 
 	existing := &Package{}
@@ -214,6 +217,9 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 		return nil, err
 	}
 	if has {
+		if err := assignActionsPackage(ctx, existing); err != nil {
+			return nil, err
+		}
 		return existing, ErrDuplicatePackage
 	}
 	if _, err = e.Insert(p); err != nil {
@@ -224,23 +230,40 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 
 // DeletePackageByID deletes a package by id
 func DeletePackageByID(ctx context.Context, packageID int64) error {
+	if err := checkActionsPackageAccess(ctx, packageID); err != nil {
+		return err
+	}
 	_, err := db.GetEngine(ctx).ID(packageID).Delete(&Package{})
 	return err
 }
 
 // SetRepositoryLink sets the linked repository
 func SetRepositoryLink(ctx context.Context, packageID, repoID int64) error {
+	if access, ok := ctx.Value(actionsPackageAccessKey{}).(*actionsPackageAccess); ok {
+		if repoID != access.repoID {
+			return util.ErrPermissionDenied
+		}
+		if err := checkActionsPackageAccess(ctx, packageID); err != nil {
+			return err
+		}
+	}
 	_, err := db.GetEngine(ctx).ID(packageID).Cols("repo_id").Update(&Package{RepoID: repoID})
 	return err
 }
 
 func UnlinkRepository(ctx context.Context, packageID int64) error {
+	if ctx.Value(actionsPackageAccessKey{}) != nil {
+		return util.ErrPermissionDenied
+	}
 	_, err := db.GetEngine(ctx).ID(packageID).Cols("repo_id").Update(&Package{RepoID: 0})
 	return err
 }
 
 // UnlinkRepositoryFromAllPackages unlinks every package from the repository
 func UnlinkRepositoryFromAllPackages(ctx context.Context, repoID int64) error {
+	if ctx.Value(actionsPackageAccessKey{}) != nil {
+		return util.ErrPermissionDenied
+	}
 	_, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Cols("repo_id").Update(&Package{})
 	return err
 }
@@ -261,6 +284,9 @@ func GetPackageByID(ctx context.Context, packageID int64) (*Package, error) {
 
 // UpdatePackageNameByID updates the package's name, it is only for internal usage, for example: rename some legacy packages
 func UpdatePackageNameByID(ctx context.Context, ownerID int64, packageType Type, packageID int64, name string) error {
+	if err := checkActionsPackageAccess(ctx, packageID); err != nil {
+		return err
+	}
 	var cond builder.Cond = builder.Eq{
 		"package.id":          packageID,
 		"package.owner_id":    ownerID,

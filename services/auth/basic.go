@@ -110,7 +110,7 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 
 	// check task token
 	task, err := actions_model.GetRunningTaskByToken(req.Context(), authToken)
-	if err == nil && task != nil {
+	if err == nil && task != nil && (task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusCancelling) {
 		log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
 		return user_model.NewActionsUserWithTaskID(task.ID), nil
 	}
@@ -187,6 +187,9 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 }
 
 func GetAccessScope(doer *user_model.User, store DataStore) auth_model.AccessTokenScope {
+	if _, ok := user_model.GetActionsUserTaskID(doer); ok {
+		return auth_model.AccessTokenScopeReadPackage + "," + auth_model.AccessTokenScopeWritePackage
+	}
 	if scope, ok := user_model.GetDoerTokenScope(doer); ok {
 		return scope
 	}
