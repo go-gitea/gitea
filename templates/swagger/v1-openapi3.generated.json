@@ -10917,6 +10917,20 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "UpdatePullReviewOptions": {
+        "description": "UpdatePullReviewOptions are options to update the body of a submitted pull request review",
+        "properties": {
+          "body": {
+            "type": "string",
+            "x-go-name": "Body"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "UpdateRepoAvatarOption": {
         "description": "UpdateRepoAvatarUserOption options when updating the repo avatar",
         "properties": {
@@ -31213,6 +31227,81 @@
           }
         },
         "summary": "Submit a pending review to a pull request",
+        "tags": [
+          "repository"
+        ]
+      },
+      "put": {
+        "operationId": "repoUpdatePullReview",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "index of the pull request",
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "id of the review",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePullReviewOptions"
+              }
+            }
+          },
+          "required": true,
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PullReview"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
+          }
+        },
+        "summary": "Update the body of a submitted review",
         "tags": [
           "repository"
         ]
