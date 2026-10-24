@@ -10,9 +10,12 @@ import (
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 
@@ -285,4 +288,24 @@ func TestCommitStatusesApplyDoerPermission(t *testing.T) {
 	assert.Equal(t, visibleURL, statuses[0].TargetURL)
 	assert.Empty(t, statuses[1].TargetURL)
 	assert.Equal(t, "https://mycicd.org/1", statuses[2].TargetURL)
+	assert.NotNil(t, statuses[0].Repo)
+	assert.Same(t, statuses[0].Repo, statuses[2].Repo) // loaded once per repo
+}
+
+func TestCommitStatusesApplyDoerPermissionSharesRepoOnCachedPermission(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	// like RepoAssignment, publish the readable permission so the loader of the permission cache never runs
+	ctx := cache.WithCacheContext(t.Context())
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
+	assert.NoError(t, err)
+	cache.GetContextCache(ctx).Put(cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(repo.ID, doer), perm)
+
+	statuses := []*git_model.CommitStatus{{RepoID: repo.ID}, {RepoID: repo.ID}}
+	git_model.CommitStatusesApplyDoerPermission(ctx, doer, statuses)
+	assert.NotNil(t, statuses[0].Repo)
+	assert.Same(t, statuses[0].Repo, statuses[1].Repo)
 }

@@ -554,8 +554,18 @@ func HashCommitStatusContext(context string) string {
 // CommitStatusesApplyDoerPermission hides the Gitea Actions url of every status whose repository
 // the doer cannot read the Actions unit of, so the "Details" link does not lead to a 404.
 func CommitStatusesApplyDoerPermission(ctx context.Context, doer *user_model.User, statuses []*CommitStatus) {
+	repos := make(map[int64]*repo_model.Repository)
 	for _, status := range statuses {
-		if status != nil && !statusRepoCanReadActions(ctx, doer, status) {
+		if status == nil {
+			continue
+		}
+		// share one repo per RepoID, independent of the permission cache (it may already hold the entry, so its loader never runs)
+		if status.Repo == nil {
+			if status.Repo = repos[status.RepoID]; status.Repo == nil && status.loadRepository(ctx) == nil {
+				repos[status.RepoID] = status.Repo
+			}
+		}
+		if !statusRepoCanReadActions(ctx, doer, status) {
 			status.hideActionsURL(ctx)
 		}
 	}
