@@ -140,6 +140,10 @@ func TestGetLabelInRepoByName(t *testing.T) {
 
 	_, err = issues_model.GetLabelInRepoByName(t.Context(), unittest.NonexistentID, "nonexistent")
 	assert.ErrorIs(t, err, util.ErrNotExist)
+
+	assert.NoError(t, issues_model.NewLabel(t.Context(), &issues_model.Label{RepoID: 1, Name: "label1", Color: "#000000"}))
+	_, err = issues_model.GetLabelInRepoByName(t.Context(), 1, "label1")
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
 }
 
 func TestGetLabelInRepoByNames(t *testing.T) {

@@ -66,11 +66,11 @@ func ListLabels(ctx *context.APIContext) {
 }
 
 func getRepoLabelByIDOrName(ctx *context.APIContext) (*issues_model.Label, error) {
-	id := ctx.PathParam("id")
-	if labelID, err := strconv.ParseInt(id, 10, 64); err == nil {
+	idOrName := ctx.PathParam("id")
+	if labelID, err := strconv.ParseInt(idOrName, 10, 64); err == nil {
 		return issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, labelID)
 	}
-	return issues_model.GetLabelInRepoByName(ctx, ctx.Repo.Repository.ID, id)
+	return issues_model.GetLabelInRepoByName(ctx, ctx.Repo.Repository.ID, idOrName)
 }
 
 // GetLabel get label by repository and label id or name
@@ -93,12 +93,14 @@ func GetLabel(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id or name of the label to get
+	//   description: id of the label to get, or its name when not numeric
 	//   type: string
 	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Label"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -189,7 +191,7 @@ func EditLabel(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id or name of the label to edit
+	//   description: id of the label to edit, or its name when not numeric
 	//   type: string
 	//   required: true
 	// - name: body
@@ -199,6 +201,8 @@ func EditLabel(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Label"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -255,12 +259,14 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id or name of the label to delete
+	//   description: id of the label to delete, or its name when not numeric
 	//   type: string
 	//   required: true
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 

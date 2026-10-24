@@ -18,43 +18,7 @@ import (
 	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
-
-func TestAPIModifyLabelsByName(t *testing.T) {
-	require.NoError(t, unittest.LoadFixtures())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	labelsURL := fmt.Sprintf("/api/v1/repos/%s/%s/labels", owner.Name, repo.Name)
-	name := "label with spaces"
-	req := NewRequestWithJSON(t, "POST", labelsURL, &api.CreateLabelOption{Name: name, Color: "abcdef"}).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusCreated)
-	created := DecodeJSON(t, resp, &api.Label{})
-	labelURL := labelsURL + "/" + url.PathEscape(name)
-	req = NewRequest(t, "GET", labelURL).AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	assert.Equal(t, created.ID, DecodeJSON(t, resp, &api.Label{}).ID)
-
-	newName := "renamed label"
-	req = NewRequestWithJSON(t, "PATCH", labelURL, &api.EditLabelOption{Name: &newName}).AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	edited := DecodeJSON(t, resp, &api.Label{})
-	assert.Equal(t, created.ID, edited.ID)
-	assert.Equal(t, newName, edited.Name)
-
-	req = NewRequest(t, "DELETE", labelURL).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: created.ID, RepoID: repo.ID, Name: newName})
-
-	labelURL = labelsURL + "/" + url.PathEscape(newName)
-	req = NewRequest(t, "DELETE", labelURL).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: created.ID})
-	req = NewRequest(t, "DELETE", labelURL).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-}
 
 func TestAPIModifyLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
@@ -105,7 +69,7 @@ func TestAPIModifyLabels(t *testing.T) {
 	assert.Equal(t, strings.TrimLeft(dbLabel.Color, "#"), apiLabel.Color)
 
 	// EditLabel
-	newName := "LabelNewName"
+	newName := "scope/new name"
 	newColor := "09876a"
 	newColorWrong := "09g76a"
 	req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
@@ -119,11 +83,16 @@ func TestAPIModifyLabels(t *testing.T) {
 		Color: &newColorWrong,
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	nameURLStr := urlStr + "/" + url.PathEscape(newName)
+	req = NewRequestWithJSON(t, "PATCH", nameURLStr, &api.EditLabelOption{}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, dbLabel.ID, DecodeJSON(t, resp, &api.Label{}).ID)
 
 	// DeleteLabel
-	req = NewRequest(t, "DELETE", singleURLStr).
-		AddTokenAuth(token)
+	req = NewRequest(t, "DELETE", nameURLStr).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
+	req = NewRequest(t, "DELETE", singleURLStr).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIAddIssueLabels(t *testing.T) {
@@ -343,7 +312,7 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 	assert.Equal(t, strings.TrimLeft(dbLabel.Color, "#"), apiLabel.Color)
 
 	// EditLabel
-	newName := "LabelNewName"
+	newName := "scope/new name"
 	newColor := "09876a"
 	newColorWrong := "09g76a"
 	req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
@@ -357,9 +326,14 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 		Color: &newColorWrong,
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	nameURLStr := urlStr + "/" + url.PathEscape(newName)
+	req = NewRequestWithJSON(t, "PATCH", nameURLStr, &api.EditLabelOption{}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, dbLabel.ID, DecodeJSON(t, resp, &api.Label{}).ID)
 
 	// DeleteLabel
-	req = NewRequest(t, "DELETE", singleURLStr).
-		AddTokenAuth(token)
+	req = NewRequest(t, "DELETE", nameURLStr).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
+	req = NewRequest(t, "DELETE", singleURLStr).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }
