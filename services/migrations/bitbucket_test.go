@@ -98,6 +98,71 @@ func TestBitbucketDownloadRepo(t *testing.T) {
 	assert.Empty(t, comments)
 }
 
+// TestBitbucketDownloadMergedPR uses a recorded public PR to cover merged state, merge commit and comments.
+func TestBitbucketDownloadMergedPR(t *testing.T) {
+	liveMode := os.Getenv("BITBUCKET_RECORD") != ""
+
+	_, callerFile, _, _ := runtime.Caller(0)
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestBitbucketDownloadMergedPR")
+	mockServer := unittest.NewMockWebServer(t, "https://api.bitbucket.org", fixtureDir, liveMode, unittest.MockServerOptions{
+		Routes: func(mux *http.ServeMux) {
+			mux.HandleFunc("/2.0/repositories/atlassian/aui/issues", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusGone)
+				_, _ = w.Write([]byte(`{"message":"CHANGE-3071 - Functionality has been deprecated"}`))
+			})
+		},
+	})
+
+	ctx := t.Context()
+	downloader, err := NewBitbucketDownloader(ctx, mockServer.URL+"/2.0", "https://bitbucket.org", "atlassian", "aui", "", "", "")
+	require.NoError(t, err)
+
+	prs, isEnd, err := downloader.GetPullRequests(ctx, 1, 1)
+	require.NoError(t, err)
+	assert.False(t, isEnd)
+	require.Len(t, prs, 1)
+	pr := prs[0]
+	assert.EqualValues(t, 1, pr.Number)
+	assert.Equal(t, "closed", pr.State)
+	assert.True(t, pr.Merged)
+	assert.NotNil(t, pr.MergedTime)
+	assert.Len(t, pr.MergeCommitSHA, 40)
+	assert.Empty(t, pr.Head.SHA) // the source repository/commit of this old PR is gone (null in the API)
+	assert.Len(t, pr.Base.SHA, 40)
+	assert.Equal(t, "https://bitbucket.org/atlassian/aui/pull-requests/1/patch", pr.PatchURL)
+
+	comments, isEnd, err := downloader.GetComments(ctx, pr)
+	require.NoError(t, err)
+	assert.True(t, isEnd)
+	assert.Len(t, comments, 25)
+	for _, c := range comments {
+		assert.NotZero(t, c.Index)
+		assert.NotEmpty(t, c.PosterName)
+	}
+}
+
+// TestBitbucketAuthorization verifies credentials are sent to the API host only, as Bearer or Basic.
+func TestBitbucketAuthorization(t *testing.T) {
+	var got atomic.Value
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got.Store(r.Header.Get("Authorization"))
+		_, _ = w.Write([]byte(`{"slug":"r","mainbranch":{"name":"main"},"links":{"html":{"href":"https://bitbucket.org/w/r"},"clone":[{"name":"https","href":"https://bitbucket.org/w/r.git"}]}}`))
+	}))
+	defer server.Close()
+
+	for _, c := range []struct{ user, password, token, want string }{
+		{"", "", "", ""},
+		{"u", "p", "", "Basic dTpw"},
+		{"u", "p", "tok", "Bearer tok"},
+	} {
+		d, err := NewBitbucketDownloader(t.Context(), server.URL+"/2.0", "https://bitbucket.org", "w", "r", c.user, c.password, c.token)
+		require.NoError(t, err)
+		_, err = d.GetRepoInfo(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, c.want, got.Load(), "user=%q token=%q", c.user, c.token)
+	}
+}
+
 // TestBitbucketRateLimitRetry verifies that doAPI transparently waits and retries when the
 // Bitbucket API answers with HTTP 429 Too Many Requests before eventually succeeding.
 func TestBitbucketRateLimitRetry(t *testing.T) {

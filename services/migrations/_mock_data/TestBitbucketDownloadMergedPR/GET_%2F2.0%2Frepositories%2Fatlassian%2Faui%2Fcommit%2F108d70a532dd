@@ -1,0 +1,38 @@
+Age: 0
+Atl-Request-Id: 3968df58-9125-468e-86da-3a29a62c9b62
+Atl-Traceid: 3968df589125468e86da3a29a62c9b62
+Cache-Control: max-age=900
+Content-Type: application/json; charset=utf-8
+Etag: W/"6980e0b230e2326ca8d60cea378cf745"
+Last-Modified: Sat, 24 Oct 2026 03:10:11 GMT
+Server-Timing: cdn-upstream-layer;desc="EDGE",cdn-upstream-dns;dur=0,cdn-upstream-connect;dur=0,cdn-upstream-fbl;dur=450,atl-edge;dur=389,atl-edge-internal;dur=15,atl-edge-upstream;dur=374,atl-edge-pop;desc="aws-us-east-1",cdn-cache-miss,cdn-pop;desc="SFO53-P3",cdn-rid;desc="YtAi325OwpBw95dmfie0v6Dkzggp3RwaH7IYTSY4VNTMkjVB0TLeLg==",cdn-downstream-fbl;dur=454
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+Vary: Authorization, origin
+Vary: Accept-Encoding
+Via: 1.1 0411d5d346fd898aa3c9b62faaa1fdea.cloudfront.net (CloudFront)
+X-Accepted-Oauth-Scopes: repository
+X-Amz-Cf-Id: YtAi325OwpBw95dmfie0v6Dkzggp3RwaH7IYTSY4VNTMkjVB0TLeLg==
+X-Amz-Cf-Pop: SFO53-P3
+X-Asap-Succeeded: True
+X-B3-Spanid: 492e796544b6f324
+X-B3-Traceid: 3968df589125468e86da3a29a62c9b62
+X-Cache: Miss from cloudfront
+X-Content-Type-Options: nosniff
+X-Credential-Type: unauthenticated_identity
+X-Dc-Location: Micros-3
+X-Envoy-Attempt-Count: 1
+X-Frame-Options: SAMEORIGIN
+X-Render-Time: 0.352494478225708
+X-Request-Count: 602
+X-Served-By: fd366cc74567
+X-Static-Version: 5650276b1ec5
+X-Usage-Input-Ops: 3104
+X-Usage-Output-Ops: 0
+X-Usage-System-Time: 0.014979
+X-Usage-User-Time: 0.145577
+X-Used-Mesh: False
+X-Version: 5650276b1ec5
+X-View-Name: bitbucket.apps.repo2.api.v20.commit.CommitHandler
+X-Xss-Protection: 1; mode=block
+
+{"type": "commit", "hash": "108d70a532dd8b98166237b54a961958e92f8a96", "date": "2011-11-02T05:23:30+00:00", "author": {"type": "author", "raw": "Jaie Wilson <jaie.wilson@gmail.com>", "user": {"display_name": "Jaie Wilson", "links": {"self": {"href": "https://api.bitbucket.org/2.0/users/%7B4035f76b-7370-4a33-86e5-bc906d201811%7D"}, "avatar": {"href": "https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/557058:5271fe35-ce1c-4d9e-bb7c-93d777bf230d/36a76baa-05bc-4e76-a42b-5f3ce2a3fd1c/128"}, "html": {"href": "https://bitbucket.org/%7B4035f76b-7370-4a33-86e5-bc906d201811%7D/"}}, "type": "user", "uuid": "{4035f76b-7370-4a33-86e5-bc906d201811}", "account_id": "557058:5271fe35-ce1c-4d9e-bb7c-93d777bf230d", "nickname": "Jaie Wilson"}}, "message": "Merged in 200ok/aui-archive (pull request #1)", "summary": {"type": "rendered", "raw": "Merged in 200ok/aui-archive (pull request #1)", "markup": "markdown", "html": "<p>Merged in 200ok/aui-archive (<a href=\"https://bitbucket.org/atlassian/aui/pull-requests/1\" rel=\"nofollow\" class=\"ap-connect-link\">pull request #1</a>)</p>"}, "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/commit/108d70a532dd8b98166237b54a961958e92f8a96"}, "html": {"href": "https://bitbucket.org/atlassian/aui/commits/108d70a532dd8b98166237b54a961958e92f8a96"}, "diff": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/diff/108d70a532dd8b98166237b54a961958e92f8a96"}, "approve": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/commit/108d70a532dd8b98166237b54a961958e92f8a96/approve"}, "comments": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/commit/108d70a532dd8b98166237b54a961958e92f8a96/comments"}, "statuses": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/commit/108d70a532dd8b98166237b54a961958e92f8a96/statuses"}}, "parents": [{"hash": "3d83e9aa790ef44d2ed02eb6708bec7b28e410d3", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/commit/3d83e9aa790ef44d2ed02eb6708bec7b28e410d3"}, "html": {"href": "https://bitbucket.org/atlassian/aui/commits/3d83e9aa790ef44d2ed02eb6708bec7b28e410d3"}}, "type": "commit"}, {"hash": "2e1c8b88849e058392a48edd0343cd3574470beb", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/commit/2e1c8b88849e058392a48edd0343cd3574470beb"}, "html": {"href": "https://bitbucket.org/atlassian/aui/commits/2e1c8b88849e058392a48edd0343cd3574470beb"}}, "type": "commit"}], "rendered": {"message": {"type": "rendered", "raw": "Merged in 200ok/aui-archive (pull request #1)", "markup": "markdown", "html": "<p>Merged in 200ok/aui-archive (<a href=\"https://bitbucket.org/atlassian/aui/pull-requests/1\" rel=\"nofollow\" class=\"ap-connect-link\">pull request #1</a>)</p>"}}, "repository": {"type": "repository", "full_name": "atlassian/aui", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui"}, "html": {"href": "https://bitbucket.org/atlassian/aui"}, "avatar": {"href": "https://bytebucket.org/ravatar/%7B585074de-7b60-4fd1-81ed-e0bc7fafbda5%7D?ts=86317"}}, "name": "aui", "uuid": "{585074de-7b60-4fd1-81ed-e0bc7fafbda5}"}, "participants": []}

@@ -1,0 +1,38 @@
+Age: 0
+Atl-Request-Id: 64dd2218-6bf6-4ad1-955a-dc023419cebe
+Atl-Traceid: 64dd22186bf64ad1955adc023419cebe
+Cache-Control: max-age=900
+Content-Type: application/json; charset=utf-8
+Etag: W/"6980e0b230e2326ca8d60cea378cf745"
+Last-Modified: Sat, 24 Oct 2026 03:10:11 GMT
+Server-Timing: cdn-upstream-layer;desc="EDGE",cdn-upstream-dns;dur=0,cdn-upstream-connect;dur=0,cdn-upstream-fbl;dur=359,atl-edge;dur=302,atl-edge-internal;dur=8,atl-edge-upstream;dur=294,atl-edge-pop;desc="aws-us-east-1",cdn-cache-miss,cdn-pop;desc="SFO53-P3",cdn-rid;desc="GvlrZDJqtssBzwUKD8FTNGjTfPmoUtyrMxPo-qia05PCuFqSBh57nA==",cdn-downstream-fbl;dur=364
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+Vary: Authorization, origin
+Vary: Accept-Encoding
+Via: 1.1 0411d5d346fd898aa3c9b62faaa1fdea.cloudfront.net (CloudFront)
+X-Accepted-Oauth-Scopes: repository
+X-Amz-Cf-Id: GvlrZDJqtssBzwUKD8FTNGjTfPmoUtyrMxPo-qia05PCuFqSBh57nA==
+X-Amz-Cf-Pop: SFO53-P3
+X-Asap-Succeeded: True
+X-B3-Spanid: 27b02d6a764d64e8
+X-B3-Traceid: 64dd22186bf64ad1955adc023419cebe
+X-Cache: Miss from cloudfront
+X-Content-Type-Options: nosniff
+X-Credential-Type: unauthenticated_identity
+X-Dc-Location: Micros-3
+X-Envoy-Attempt-Count: 1
+X-Frame-Options: SAMEORIGIN
+X-Render-Time: 0.2706754207611084
+X-Request-Count: 592
+X-Served-By: b8c6e4059736
+X-Static-Version: 5650276b1ec5
+X-Usage-Input-Ops: 488
+X-Usage-Output-Ops: 0
+X-Usage-System-Time: 0.014916
+X-Usage-User-Time: 0.124940
+X-Used-Mesh: False
+X-Version: 5650276b1ec5
+X-View-Name: bitbucket.apps.repo2.api.v20.commit.CommitHandler
+X-Xss-Protection: 1; mode=block
+
+{"type": "commit", "hash": "3d83e9aa790ef44d2ed02eb6708bec7b28e410d3", "date": "2011-10-27T02:59:21+00:00", "author": {"type": "author", "raw": "Jaie Wilson <jwilson@atlassian.com>"}, "message": "Convert svn:ignore properties to .gitignore.\n", "summary": {"type": "rendered", "raw": "Convert svn:ignore properties to .gitignore.\n", "markup": "markdown", "html": "<p>Convert svn:ignore properties to .gitignore.</p>"}, "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/commit/3d83e9aa790ef44d2ed02eb6708bec7b28e410d3"}, "html": {"href": "https://bitbucket.org/atlassian/aui/commits/3d83e9aa790ef44d2ed02eb6708bec7b28e410d3"}, "diff": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/diff/3d83e9aa790ef44d2ed02eb6708bec7b28e410d3"}, "approve": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/commit/3d83e9aa790ef44d2ed02eb6708bec7b28e410d3/approve"}, "comments": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/commit/3d83e9aa790ef44d2ed02eb6708bec7b28e410d3/comments"}, "statuses": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/commit/3d83e9aa790ef44d2ed02eb6708bec7b28e410d3/statuses"}, "patch": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/patch/3d83e9aa790ef44d2ed02eb6708bec7b28e410d3"}}, "parents": [{"hash": "1bff74fc469441fed3fee7a2b9e84620b43039a0", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui/commit/1bff74fc469441fed3fee7a2b9e84620b43039a0"}, "html": {"href": "https://bitbucket.org/atlassian/aui/commits/1bff74fc469441fed3fee7a2b9e84620b43039a0"}}, "type": "commit"}], "rendered": {"message": {"type": "rendered", "raw": "Convert svn:ignore properties to .gitignore.\n", "markup": "markdown", "html": "<p>Convert svn:ignore properties to .gitignore.</p>"}}, "repository": {"type": "repository", "full_name": "atlassian/aui", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/atlassian/aui"}, "html": {"href": "https://bitbucket.org/atlassian/aui"}, "avatar": {"href": "https://bytebucket.org/ravatar/%7B585074de-7b60-4fd1-81ed-e0bc7fafbda5%7D?ts=86317"}}, "name": "aui", "uuid": "{585074de-7b60-4fd1-81ed-e0bc7fafbda5}"}, "participants": []}

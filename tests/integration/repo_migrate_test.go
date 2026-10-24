@@ -16,6 +16,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName string) *httptest.ResponseRecorder {
@@ -53,6 +54,19 @@ func TestRepoMigrate(t *testing.T) {
 		})
 		assert.Equal(t, 1, entries.Length())
 		assert.Equal(t, "Bitbucket", strings.TrimSpace(entries.Text()))
+	})
+
+	t.Run("BitbucketVariants", func(t *testing.T) {
+		for _, service := range []structs.GitServiceType{structs.BitbucketService, structs.BitbucketServerService} {
+			resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d", service)), http.StatusOK)
+			items := NewHTMLParser(t, resp.Body).Find(".ui.compact.menu a.item")
+			require.Equal(t, 2, items.Length())
+			for i, variant := range []structs.GitServiceType{structs.BitbucketService, structs.BitbucketServerService} {
+				href, _ := items.Eq(i).Attr("href")
+				assert.Contains(t, href, fmt.Sprintf("service_type=%d&", variant))
+				assert.Equal(t, variant == service, items.Eq(i).HasClass("active"))
+			}
+		}
 	})
 }
 
