@@ -7,16 +7,20 @@ import "strings"
 
 // Migrations settings
 var Migrations = struct {
-	MaxAttempts     int
-	RetryBackoff    int
-	EgressMode      string
-	AllowedHostList string
-	BlockedHostList string
-	SkipTLSVerify   bool
+	MaxAttempts        int
+	RetryBackoff       int
+	EgressMode         string
+	AllowedHostList    string
+	BlockedHostList    string
+	SkipTLSVerify      bool
+	SSHHostKeyChecking string
+	SSHCommand         string
 }{
-	MaxAttempts:  3,
-	RetryBackoff: 3,
-	EgressMode:   "lax",
+	MaxAttempts:        3,
+	RetryBackoff:       3,
+	EgressMode:         "lax",
+	SSHHostKeyChecking: "accept-new",
+	SSHCommand:         "ssh",
 }
 
 func loadMigrationsFrom(rootCfg ConfigProvider) {
@@ -51,4 +55,6 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 	checkHostList("[migrations] BLOCKED_HOST_LIST", Migrations.BlockedHostList, true)
 
 	Migrations.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool(false)
+	Migrations.SSHHostKeyChecking = sec.Key("SSH_HOST_KEY_CHECKING").In("accept-new", []string{"accept-new", "yes", "no"})
+	Migrations.SSHCommand = sec.Key("SSH_COMMAND").MustString("ssh")
 }

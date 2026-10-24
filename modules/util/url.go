@@ -19,10 +19,22 @@ func PathEscapeSegments(path string) string {
 }
 
 func SanitizeURL(s string) (string, error) {
+	if !strings.Contains(s, "://") {
+		return s, nil // paths and SCP syntax carry no credentials
+	}
 	u, err := url.Parse(s)
 	if err != nil {
 		return "", err
 	}
-	u.User = nil
+	RemoveURLCredentials(u)
 	return u.String(), nil
+}
+
+// RemoveURLCredentials keeps an ssh username, it is needed to connect and isn't a secret
+func RemoveURLCredentials(u *url.URL) {
+	if u.Scheme == "ssh" && u.User != nil {
+		u.User = url.User(u.User.Username())
+	} else {
+		u.User = nil
+	}
 }

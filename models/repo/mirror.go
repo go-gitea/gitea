@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
@@ -35,6 +36,12 @@ type Mirror struct {
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
+
+	SSHKeyOwnerID int64 `xorm:"NOT NULL DEFAULT 0"` // whose managed SSH key authenticates an SSH remote, 0 leaves it to the system's ssh setup
+}
+
+func (m *Mirror) IsSSHRemoteAddress() bool {
+	return giturl.IsSSH(m.RemoteAddress)
 }
 
 func init() {
@@ -89,7 +96,7 @@ func GetMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
 
 // UpdateMirror updates the mirror
 func UpdateMirror(ctx context.Context, m *Mirror) error {
-	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
+	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Omit("ssh_key_owner_id").Update(m) // only UpdateAddress binds a key, together with the remote
 	return err
 }
 
@@ -97,6 +104,16 @@ func UpdateMirror(ctx context.Context, m *Mirror) error {
 func TouchMirror(ctx context.Context, m *Mirror) error {
 	m.UpdatedUnix = timeutil.TimeStampNow()
 	_, err := db.GetEngine(ctx).ID(m.ID).Cols("updated_unix").Update(m)
+	return err
+}
+
+func UpdateMirrorSyncStatus(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("updated_unix", "next_update_unix", "last_sync_unix").Update(m)
+	return err
+}
+
+func UpdateMirrorSSHKeyOwner(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("ssh_key_owner_id").Update(m)
 	return err
 }
 

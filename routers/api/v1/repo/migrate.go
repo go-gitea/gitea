@@ -17,6 +17,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -107,7 +108,25 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
+	sshKeyOwnerID, err := repo_service.ManagedSSHKeyOwner(ctx, ctx.Doer, repoOwner, remoteAddr, form.SSHKeyOwnerID)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+
 	gitServiceType := convert.ToGitServiceType(form.Service)
+
+	if giturl.IsSSH(remoteAddr) {
+		// forge migrations authenticate with a token, which must not end up in an SSH remote
+		if gitServiceType != api.PlainGitService {
+			ctx.APIError(http.StatusUnprocessableEntity, "SSH clone addresses are only supported for the plain Git migration")
+			return
+		}
+		if form.AuthToken != "" {
+			ctx.APIError(http.StatusUnprocessableEntity, "token authentication is not supported for SSH addresses, authentication uses the managed SSH key")
+			return
+		}
+	}
 
 	if form.Mirror && setting.Mirror.DisableNewPull {
 		ctx.APIError(http.StatusForbidden, "the site administrator has disabled the creation of new pull mirrors")
@@ -146,6 +165,7 @@ func Migrate(ctx *context.APIContext) {
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
+		SSHKeyOwnerID:  sshKeyOwnerID,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,
@@ -258,6 +278,8 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 func handleRemoteAddrError(ctx *context.APIContext, err error) {
 	if addrErr, ok := err.(*git.ErrInvalidCloneAddr); ok {
 		switch {
+		case addrErr.IsAuthNotSupported:
+			ctx.APIError(http.StatusUnprocessableEntity, "Username and password are not supported for SSH addresses, authentication uses the managed SSH key.")
 		case addrErr.IsURLError:
 			ctx.APIError(http.StatusUnprocessableEntity, "The provided URL is invalid.")
 		case addrErr.IsPermissionDenied:

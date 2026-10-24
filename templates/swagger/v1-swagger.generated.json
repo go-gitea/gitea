@@ -3343,6 +3343,67 @@
         }
       }
     },
+    "/orgs/{org}/managed-ssh-key": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get the managed SSH key that authenticates the organization's SSH migrations and mirrors",
+        "operationId": "orgGetManagedSSHKey",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ManagedSSHKey"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/managed-ssh-key/regenerate": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Generate a new managed SSH key for the organization, replacing the current one",
+        "operationId": "orgRegenerateManagedSSHKey",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ManagedSSHKey"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/orgs/{org}/members": {
       "get": {
         "produces": [
@@ -23637,6 +23698,43 @@
         }
       }
     },
+    "/user/managed-ssh-key": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get the managed SSH key that authenticates the user's SSH migrations and mirrors",
+        "operationId": "userGetManagedSSHKey",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ManagedSSHKey"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/managed-ssh-key/regenerate": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Generate a new managed SSH key for the user, replacing the current one",
+        "operationId": "userRegenerateManagedSSHKey",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ManagedSSHKey"
+          }
+        }
+      }
+    },
     "/user/orgs": {
       "get": {
         "produces": [
@@ -31788,6 +31886,21 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "ManagedSSHKey": {
+      "description": "ManagedSSHKey is the public half of a Gitea-managed SSH keypair used for SSH mirrors and migrations",
+      "type": "object",
+      "properties": {
+        "fingerprint": {
+          "type": "string",
+          "x-go-name": "Fingerprint"
+        },
+        "public_key": {
+          "type": "string",
+          "x-go-name": "PublicKey"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "MarkdownOption": {
       "description": "MarkdownOption markdown options",
       "type": "object",
@@ -32016,6 +32129,12 @@
             "forgejo"
           ],
           "x-go-name": "Service"
+        },
+        "ssh_key_owner_id": {
+          "description": "SSHKeyOwnerID picks the managed SSH key of an SSH clone address, yours or as its owner the organization's, 0 prefers the organization's",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SSHKeyOwnerID"
         },
         "uid": {
           "description": "deprecated (only for backwards compatibility, use repo_owner instead)",
@@ -35797,6 +35916,12 @@
         "items": {
           "type": "string"
         }
+      }
+    },
+    "ManagedSSHKey": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/ManagedSSHKey"
       }
     },
     "MarkdownRender": {

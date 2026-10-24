@@ -23,6 +23,7 @@ type PushMirror struct {
 	Repo          *Repository `xorm:"-"`
 	RemoteName    string
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
+	SSHKeyOwnerID int64  `xorm:"NOT NULL DEFAULT 0"`
 
 	SyncOnCommit   bool `xorm:"NOT NULL DEFAULT true"`
 	Interval       time.Duration

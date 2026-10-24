@@ -31,3 +31,9 @@ type PublicKey struct {
 	// KeyType indicates the type of the SSH key
 	KeyType string `json:"key_type,omitempty"`
 }
+
+// ManagedSSHKey is the public half of a Gitea-managed SSH keypair used for SSH mirrors and migrations
+type ManagedSSHKey struct {
+	PublicKey   string `json:"public_key"`
+	Fingerprint string `json:"fingerprint"`
+}

@@ -431,6 +431,8 @@ type MigrateRepoOptions struct {
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
 	AuthToken    string `json:"auth_token"`
+	// SSHKeyOwnerID picks the managed SSH key of an SSH clone address, yours or as its owner the organization's, 0 prefers the organization's
+	SSHKeyOwnerID int64 `json:"ssh_key_owner_id"`
 
 	Mirror         bool   `json:"mirror"`
 	LFS            bool   `json:"lfs"`

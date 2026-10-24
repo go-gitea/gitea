@@ -27,6 +27,8 @@ export const initRepoMigration = () => registerGlobalInitFunc('initGitMigrateFor
     showElem(lfsEndpoint!);
   });
   lfs?.addEventListener('change', setLFSSettingsVisibility);
+  const sshKeyField = elForm.querySelector<HTMLElement>('.ssh-key-field');
+  if (sshKeyField) initSSHKeyField(elForm, sshKeyField);
 
   const elCloneAddr = elForm.querySelector<HTMLInputElement>('input[name="clone_addr"]');
   const elRepoName = elForm.querySelector<HTMLInputElement>('input[name="repo_name"]');
@@ -73,3 +75,45 @@ export const initRepoMigration = () => registerGlobalInitFunc('initGitMigrateFor
     hideElem(lfsEndpoint!);
   }
 });
+
+// mirrors giturl.IsSSH: an ssh:// URL or SCP syntax, user@host:path without a slash before the colon
+function isSSHURL(url: string): boolean {
+  if (url.includes('://')) return url.toLowerCase().startsWith('ssh://');
+  const at = url.indexOf('@'), colon = url.indexOf(':');
+  return at !== -1 && colon > at && !url.slice(0, colon).includes('/');
+}
+
+function initSSHKeyField(form: HTMLFormElement, field: HTMLElement) {
+  const cloneAddr = form.querySelector<HTMLInputElement>('input[name="clone_addr"]')!;
+  const uid = form.querySelector<HTMLInputElement>('input[name="uid"]')!;
+  const [personalKey, orgKey] = field.querySelectorAll<HTMLInputElement>('input[name="ssh_key_owner_id"]');
+  const keysLink = field.querySelector<HTMLAnchorElement>('.help a')!;
+  const personalKeysLink = keysLink.href;
+  const orgKeys: Record<string, {fingerprint: string, link: string}> = JSON.parse(field.getAttribute('data-org-keys')!);
+
+  const updateKeysLink = () => {
+    keysLink.href = orgKey.checked ? orgKeys[uid.value].link : personalKeysLink;
+  };
+  // owners of the target organization may use its key, which is then the default
+  const updateOrgKey = () => {
+    const key = orgKeys[uid.value];
+    toggleElem(orgKey.closest('.checkbox')!, Boolean(key));
+    orgKey.nextElementSibling!.querySelector('code')!.textContent = key?.fingerprint ?? '';
+    (key ? orgKey : personalKey).checked = true;
+    updateKeysLink();
+  };
+  const updateSSH = () => {
+    const isSSH = isSSHURL(cloneAddr.value.trim());
+    for (const userpassField of form.querySelectorAll('.auth-userpass-field')) {
+      if (isSSH) for (const input of userpassField.querySelectorAll('input')) input.value = '';
+      toggleElem(userpassField, !isSSH);
+    }
+    toggleElem(field, isSSH);
+  };
+
+  cloneAddr.addEventListener('input', updateSSH);
+  uid.addEventListener('change', updateOrgKey);
+  field.addEventListener('change', updateKeysLink);
+  updateSSH();
+  updateOrgKey();
+}

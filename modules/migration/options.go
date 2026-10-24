@@ -17,6 +17,7 @@ type MigrateOptions struct {
 	AuthPasswordEncrypted string `json:"auth_password_encrypted,omitempty"`
 	AuthToken             string `json:"-"`
 	AuthTokenEncrypted    string `json:"auth_token_encrypted,omitempty"`
+	SSHKeyOwnerID         int64  `json:"ssh_key_owner_id,omitempty"` // whose managed SSH key authenticates an SSH CloneAddr
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true

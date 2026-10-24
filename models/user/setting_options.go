@@ -23,5 +23,7 @@ const (
 	SettingEmailNotificationGiteaActionsFailureOnly = "failure-only" // Default for actions email preference
 	SettingEmailNotificationGiteaActionsDisabled    = "disabled"
 
+	SettingsKeyManagedSSHKey = "managed_ssh.key"
+
 	SettingsKeyActionsConfig = "actions.config"
 )

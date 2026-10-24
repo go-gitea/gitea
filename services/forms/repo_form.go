@@ -50,11 +50,12 @@ type CreateRepoForm struct {
 type MigrateRepoForm struct {
 	middleware.FormDefaultValidator
 	// required: true
-	CloneAddr    string                 `json:"clone_addr" binding:"Required"`
-	Service      structs.GitServiceType `json:"service"`
-	AuthUsername string                 `json:"auth_username"`
-	AuthPassword string                 `json:"auth_password"`
-	AuthToken    string                 `json:"auth_token"`
+	CloneAddr     string                 `json:"clone_addr" binding:"Required"`
+	Service       structs.GitServiceType `json:"service"`
+	AuthUsername  string                 `json:"auth_username"`
+	AuthPassword  string                 `json:"auth_password"`
+	AuthToken     string                 `json:"auth_token"`
+	SSHKeyOwnerID int64                  `json:"ssh_key_owner_id"`
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true

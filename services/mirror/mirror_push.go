@@ -45,7 +45,12 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		wikiRemoteURL := repository.WikiRemoteURL(ctx, addr)
+		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, m.Repo, m.SSHKeyOwnerID, addr)
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+		wikiRemoteURL := repository.WikiRemoteURL(ctx, addr, envs)
 		if len(wikiRemoteURL) > 0 {
 			if err := addRemoteAndConfig(m.Repo.WikiStorageRepo(), wikiRemoteURL); err != nil {
 				return err
@@ -129,13 +134,13 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		}
 		// re-validate every sync, the allow/block lists may have changed since the mirror was added
 		switch remoteURL.URL.Scheme {
-		case "http", "https", "git":
+		case "http", "https", "git", "ssh":
 			if err := migrations.IsMigrateURLAllowed(remoteURL.String(), nil); err != nil {
 				return fmt.Errorf("remote address is not allowed: %w", err)
 			}
 		}
 
-		if setting.LFS.StartServer {
+		if setting.LFS.StartServer && remoteURL.Scheme != "ssh" { // an SSH remote's derived HTTPS LFS endpoint has no credentials to upload with
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
 			gitRepo, err := git.OpenRepository(ctx, storageRepo)
@@ -155,11 +160,18 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
+		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, m.Repo, m.SSHKeyOwnerID, remoteURL.String())
+		if err != nil {
+			return fmt.Errorf("managed SSH key: %w", err)
+		}
+		defer cleanup()
+
 		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
+			Env:     envs,
 		}); err != nil {
 			return fmt.Errorf("PushToExternal failed: %w", err)
 		}

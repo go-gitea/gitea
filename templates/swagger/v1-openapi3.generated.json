@@ -805,6 +805,16 @@
         },
         "description": "LicensesList"
       },
+      "ManagedSSHKey": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ManagedSSHKey"
+            }
+          }
+        },
+        "description": ""
+      },
       "MarkdownRender": {
         "content": {
           "application/json": {
@@ -7870,6 +7880,21 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "ManagedSSHKey": {
+        "description": "ManagedSSHKey is the public half of a Gitea-managed SSH keypair used for SSH mirrors and migrations",
+        "properties": {
+          "fingerprint": {
+            "type": "string",
+            "x-go-name": "Fingerprint"
+          },
+          "public_key": {
+            "type": "string",
+            "x-go-name": "PublicKey"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "MarkdownOption": {
         "description": "MarkdownOption markdown options",
         "properties": {
@@ -8093,6 +8118,12 @@
             ],
             "type": "string",
             "x-go-name": "Service"
+          },
+          "ssh_key_owner_id": {
+            "description": "SSHKeyOwnerID picks the managed SSH key of an SSH clone address, yours or as its owner the organization's, 0 prefers the organization's",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "SSHKeyOwnerID"
           },
           "uid": {
             "deprecated": true,
@@ -14861,6 +14892,65 @@
           }
         },
         "summary": "Update a label",
+        "tags": [
+          "organization"
+        ]
+      }
+    },
+    "/orgs/{org}/managed-ssh-key": {
+      "get": {
+        "operationId": "orgGetManagedSSHKey",
+        "parameters": [
+          {
+            "description": "name of the organization",
+            "in": "path",
+            "name": "org",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ManagedSSHKey"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get the managed SSH key that authenticates the organization's SSH migrations and mirrors",
+        "tags": [
+          "organization"
+        ]
+      }
+    },
+    "/orgs/{org}/managed-ssh-key/regenerate": {
+      "post": {
+        "operationId": "orgRegenerateManagedSSHKey",
+        "parameters": [
+          {
+            "description": "name of the organization",
+            "in": "path",
+            "name": "org",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ManagedSSHKey"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          }
+        },
+        "summary": "Generate a new managed SSH key for the organization, replacing the current one",
         "tags": [
           "organization"
         ]
@@ -36763,6 +36853,37 @@
           }
         },
         "summary": "Get a public key",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/user/managed-ssh-key": {
+      "get": {
+        "operationId": "userGetManagedSSHKey",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ManagedSSHKey"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get the managed SSH key that authenticates the user's SSH migrations and mirrors",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/user/managed-ssh-key/regenerate": {
+      "post": {
+        "operationId": "userRegenerateManagedSSHKey",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ManagedSSHKey"
+          }
+        },
+        "summary": "Generate a new managed SSH key for the user, replacing the current one",
         "tags": [
           "user"
         ]

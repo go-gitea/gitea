@@ -12,10 +12,12 @@ import (
 
 	admin_model "gitea.dev/models/admin"
 	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -61,8 +63,30 @@ func Migrate(ctx *context.Context) {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
+	if serviceType == structs.PlainGitService {
+		setManagedSSHKeyFingerprints(ctx)
+	}
 
 	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
+}
+
+// setManagedSSHKeyFingerprints lets the migrate form show which managed key an SSH clone uses, organization keys are offered to their owners
+func setManagedSSHKeyFingerprints(ctx *context.Context) {
+	if kp, err := user_model.GetSSHKeypairByOwner(ctx, ctx.Doer.ID); err == nil {
+		ctx.Data["SignedUserSSHFingerprint"] = kp.Fingerprint
+	}
+	orgKeys := map[int64]map[string]string{}
+	orgs, _ := ctx.Data["Orgs"].([]*organization.Organization)
+	for _, org := range orgs {
+		kp, err := user_model.GetSSHKeypairByOwner(ctx, org.ID)
+		if err != nil {
+			continue
+		}
+		if isOwner, _ := org.IsOwnedBy(ctx, ctx.Doer.ID); isOwner {
+			orgKeys[org.ID] = map[string]string{"fingerprint": kp.Fingerprint, "link": org.OrganisationLink() + "/settings/ssh_keys"}
+		}
+	}
+	ctx.Data["OrgSSHKeys"] = orgKeys
 }
 
 func handleMigrateError(ctx *context.Context, owner *user_model.User, err error) {
@@ -110,6 +134,8 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, field string)
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.JSONErrorWithField(ctx.Tr("repo.mirror_address_protocol_invalid"), field)
+		case addrErr.IsAuthNotSupported:
+			ctx.JSONErrorWithField(ctx.Tr("repo.migrate.ssh_auth_not_supported"), field)
 		case addrErr.IsURLError:
 			ctx.JSONErrorWithField(ctx.Tr("form.url_error", addrErr.Host), field)
 		case addrErr.IsPermissionDenied:
@@ -160,6 +186,24 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
+	// forge migrations authenticate with a token, which must not end up in an SSH remote
+	if giturl.IsSSH(remoteAddr) {
+		if form.Service != structs.PlainGitService {
+			ctx.JSONErrorWithField(ctx.Tr("repo.migrate.ssh_not_supported_for_forge"), "clone_addr")
+			return
+		}
+		if form.AuthToken != "" {
+			ctx.JSONError(ctx.Tr("repo.migrate.ssh_token_not_supported"))
+			return
+		}
+	}
+
+	sshKeyOwnerID, err := repo_service.ManagedSSHKeyOwner(ctx, ctx.Doer, ctxUser, remoteAddr, form.SSHKeyOwnerID)
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+
 	form.LFS = form.LFS && setting.LFS.StartServer
 
 	if form.LFS && len(form.LFSEndpoint) > 0 {
@@ -188,6 +232,7 @@ func MigratePost(ctx *context.Context) {
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
+		SSHKeyOwnerID:  sshKeyOwnerID,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,
