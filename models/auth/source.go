@@ -60,14 +60,25 @@ var Names = map[Type]string{
 type Config interface {
 	convert.Conversion
 	SetAuthSource(*Source)
+	GetAuthSource() *Source
 }
 
 type ConfigBase struct {
 	AuthSource *Source
 }
 
-func (p *ConfigBase) SetAuthSource(s *Source) {
-	p.AuthSource = s
+func (c *ConfigBase) SetAuthSource(source *Source) {
+	c.AuthSource = source
+}
+
+func (c *ConfigBase) GetAuthSource() *Source {
+	return c.AuthSource
+}
+
+func UnmarshalAuthSourceConfig(bs []byte, v Config) {
+	if !db.UnmarshalFromDB(bs, v) {
+		v.GetAuthSource().IsActive = false
+	}
 }
 
 // SkipVerifiable configurations provide a IsSkipVerify to check if SkipVerify is set
