@@ -99,6 +99,19 @@ type AuthMiddleware struct {
 	MiddlewareHandler func(*context.Context)
 }
 
+func (a *AuthMiddleware) AllowBasicFor(match func(*http.Request) bool) types.PreMiddlewareProvider {
+	return func(next http.Handler) http.Handler {
+		nextWithBasic := a.AllowBasic(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if match(r) {
+				nextWithBasic.ServeHTTP(w, r)
+			} else {
+				next.ServeHTTP(w, r)
+			}
+		})
+	}
+}
+
 func newWebAuthMiddleware() *AuthMiddleware {
 	type keyAllowOAuth2 struct{}
 	type keyAllowBasic struct{}
@@ -907,8 +920,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// ***** END: Admin *****
 
 	m.Group("", func() {
-		// it handles "username.rss" in the handler, so allow basic auth as other rss/atom routes
-		m.Get("/{username}", webAuth.AllowBasic, user.UsernameSubRoute)
+		// tokens only authenticate feeds, the other variants render data outside any token scope
+		m.Get("/{username}", webAuth.AllowBasicFor(func(req *http.Request) bool {
+			isFeed, _ := feed.GetFeedType(req.URL.Path, req)
+			return isFeed
+		}), user.UsernameSubRoute)
 		m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)
 	}, optSignIn)
 

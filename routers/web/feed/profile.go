@@ -7,11 +7,13 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	feed_service "gitea.dev/services/feed"
 
@@ -35,6 +37,10 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		isOrganisation && !organization.HasOrgOrUserVisible(ctx, ctx.ContextUser, ctx.Doer) ||
 		!isOrganisation && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 		ctx.NotFound(nil)
+		return
+	}
+	context.CheckTokenScopes(ctx, util.Iif(isOrganisation, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser))
+	if ctx.Written() {
 		return
 	}
 
