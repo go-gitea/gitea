@@ -28,16 +28,20 @@ import (
 
 var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 
+var pushMirrorRefSpecs = []string{"+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*"}
+
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(storageRepo git.RepositoryFacade, addr string) error {
 		if err := git.ManagedRemoteAdd(ctx, storageRepo, m.RemoteName, addr, git.RemoteOptionMirrorPush); err != nil {
 			return err
 		}
-		if err := git.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*"); err != nil {
-			return err
+		for _, refSpec := range pushMirrorRefSpecs {
+			if err := git.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", refSpec); err != nil {
+				return err
+			}
 		}
-		return git.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*")
+		return nil
 	}
 
 	if err := addRemoteAndConfig(m.Repo.CodeStorageRepo(), addr); err != nil {
@@ -155,7 +159,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
-		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
+		if err := git.PushToExternalWithoutTracking(ctx, storageRepo, pushMirrorRefSpecs, git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
