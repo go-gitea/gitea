@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCanBlockUser(t *testing.T) {
+func TestCanBlockAndUnblockUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
@@ -39,15 +39,8 @@ func TestCanBlockUser(t *testing.T) {
 	assert.True(t, CanBlockUser(t.Context(), user1, user2, user4))
 	assert.True(t, CanBlockUser(t.Context(), user2, user2, user4))
 	assert.True(t, CanBlockUser(t.Context(), user2, org3, user29))
-}
 
-func TestCanUnblockUser(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	user28 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
-	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
 	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
 	// Doer can't self unblock

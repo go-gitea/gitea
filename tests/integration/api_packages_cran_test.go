@@ -44,6 +44,24 @@ func TestPackageCran(t *testing.T) {
 
 	url := fmt.Sprintf("/api/packages/%s/cran", user.Name)
 
+	enumerate := func(t *testing.T, indexURL string) {
+		req := NewRequest(t, "GET", indexURL).
+			AddBasicAuth(user.Name)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		assert.Contains(t, resp.Header().Get("Content-Type"), "text/plain")
+
+		body := resp.Body.String()
+		assert.Contains(t, body, "Package: "+packageName)
+		assert.Contains(t, body, "Version: "+packageVersion)
+
+		req = NewRequest(t, "GET", indexURL+".gz").
+			AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		assert.Contains(t, resp.Header().Get("Content-Type"), "application/x-gzip")
+	}
+
 	t.Run("Source", func(t *testing.T) {
 		t.Run("Upload", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
@@ -105,21 +123,7 @@ func TestPackageCran(t *testing.T) {
 		t.Run("Enumerate", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", url+"/src/contrib/PACKAGES").
-				AddBasicAuth(user.Name)
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			assert.Contains(t, resp.Header().Get("Content-Type"), "text/plain")
-
-			body := resp.Body.String()
-			assert.Contains(t, body, "Package: "+packageName)
-			assert.Contains(t, body, "Version: "+packageVersion)
-
-			req = NewRequest(t, "GET", url+"/src/contrib/PACKAGES.gz").
-				AddBasicAuth(user.Name)
-			resp = MakeRequest(t, req, http.StatusOK)
-
-			assert.Contains(t, resp.Header().Get("Content-Type"), "application/x-gzip")
+			enumerate(t, url+"/src/contrib/PACKAGES")
 		})
 	})
 
@@ -189,21 +193,7 @@ func TestPackageCran(t *testing.T) {
 			req := NewRequest(t, "GET", url+"/bin/windows/contrib/4.1/PACKAGES")
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequest(t, "GET", url+"/bin/windows/contrib/4.2/PACKAGES").
-				AddBasicAuth(user.Name)
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			assert.Contains(t, resp.Header().Get("Content-Type"), "text/plain")
-
-			body := resp.Body.String()
-			assert.Contains(t, body, "Package: "+packageName)
-			assert.Contains(t, body, "Version: "+packageVersion)
-
-			req = NewRequest(t, "GET", url+"/bin/windows/contrib/4.2/PACKAGES.gz").
-				AddBasicAuth(user.Name)
-			resp = MakeRequest(t, req, http.StatusOK)
-
-			assert.Contains(t, resp.Header().Get("Content-Type"), "application/x-gzip")
+			enumerate(t, url+"/bin/windows/contrib/4.2/PACKAGES")
 		})
 	})
 

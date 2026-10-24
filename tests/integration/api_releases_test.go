@@ -33,6 +33,30 @@ import (
 
 func TestAPIReleaseRead(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("CreateProtectedTagRelease", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		writer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		session := loginUser(t, writer.LowerName)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+
+		commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
+		assert.NoError(t, err)
+
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/releases", repo.OwnerName, repo.Name), &api.CreateReleaseOption{
+			TagName:      "v0.0.1",
+			Title:        "v0.0.1",
+			IsDraft:      false,
+			IsPrerelease: false,
+			Target:       commit.ID.String(),
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+	})
 	t.Run("DraftReleaseAttachmentAccess", testAPIDraftReleaseAttachmentAccess)
 	t.Run("ListReleasesWithWriteToken", testAPIListReleasesWithWriteToken)
 	t.Run("ListReleasesWithReadToken", testAPIListReleasesWithReadToken)
@@ -225,76 +249,43 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	assert.Equal(t, rel.Note, newRelease.Note)
 }
 
-func TestAPICreateProtectedTagRelease(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func TestAPICreateRelease(t *testing.T) {
+	for _, scenario := range []string{"InvalidTarget", "DefaultBranch", "ExistingTag"} {
+		t.Run(scenario, func(t *testing.T) {
+			if scenario == "DefaultBranch" {
+				defer tests.PrintCurrentTest(t)()
+			} else {
+				defer tests.PrepareTestEnv(t)()
+			}
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	writer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	session := loginUser(t, writer.LowerName)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+			owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+			session := loginUser(t, owner.LowerName)
+			token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	gitRepo, err := git.OpenRepository(t.Context(), repo)
-	assert.NoError(t, err)
-	defer gitRepo.Close()
+			if scenario == "ExistingTag" {
+				gitRepo, err := git.OpenRepository(t.Context(), repo)
+				assert.NoError(t, err)
+				defer gitRepo.Close()
 
-	commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
-	assert.NoError(t, err)
+				err = gitRepo.CreateTag(t.Context(), "v0.0.1", "master")
+				assert.NoError(t, err)
+			}
 
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/releases", repo.OwnerName, repo.Name), &api.CreateReleaseOption{
-		TagName:      "v0.0.1",
-		Title:        "v0.0.1",
-		IsDraft:      false,
-		IsPrerelease: false,
-		Target:       commit.ID.String(),
-	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
-}
+			if scenario == "InvalidTarget" {
+				urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases", owner.Name, repo.Name)
+				req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
+					TagName: "i-point-to-an-invalid-target",
+					Title:   "Invalid Target",
+					Target:  "invalid-target",
+				}).AddTokenAuth(token)
 
-func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	createNewReleaseUsingAPI(t, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
-}
-
-func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	gitRepo, err := git.OpenRepository(t.Context(), repo)
-	assert.NoError(t, err)
-	defer gitRepo.Close()
-
-	err = gitRepo.CreateTag(t.Context(), "v0.0.1", "master")
-	assert.NoError(t, err)
-
-	createNewReleaseUsingAPI(t, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
-}
-
-func TestAPICreateReleaseGivenInvalidTarget(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases", owner.Name, repo.Name)
-	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
-		TagName: "i-point-to-an-invalid-target",
-		Title:   "Invalid Target",
-		Target:  "invalid-target",
-	}).AddTokenAuth(token)
-
-	MakeRequest(t, req, http.StatusNotFound)
+				MakeRequest(t, req, http.StatusNotFound)
+			} else {
+				createNewReleaseUsingAPI(t, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
+			}
+		})
+	}
 }
 
 func testAPIGetLatestRelease(t *testing.T) {
