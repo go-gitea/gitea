@@ -532,6 +532,11 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	//   description: filter by disabled status (true or false)
 	//   type: boolean
 	//   required: false
+	// - name: with_available
+	//   in: query
+	//   description: also include runners of the repository owner and global runners available to the repository
+	//   type: boolean
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RunnerList"
