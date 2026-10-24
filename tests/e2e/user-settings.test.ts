@@ -1,7 +1,7 @@
 import {test, expect} from '@playwright/test';
 import {login, loginUser, apiCreateUser, randomString} from './utils.ts';
 
-test('update profile biography', async ({page, request}) => {
+test('update profile biography and switch the theme from the footer', async ({page, request}) => {
   const username = `e2e-settings-${randomString(8)}`;
   const bio = `e2e-bio-${randomString(8)}`;
   await apiCreateUser(request, username);
@@ -13,12 +13,6 @@ test('update profile biography', async ({page, request}) => {
   await page.getByLabel('Biography').fill('');
   await page.getByRole('button', {name: 'Update Profile'}).click();
   await expect(page.getByLabel('Biography')).toHaveValue('');
-});
-
-test('switch the theme from the footer', async ({page, request}) => {
-  const username = `e2e-theme-${randomString(8)}`;
-  await apiCreateUser(request, username);
-  await loginUser(page, username);
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'gitea-auto');
   await page.locator('#footer-theme-selector').getByRole('button').click();

@@ -39,7 +39,7 @@
   width: 300px;
 }
 
-.issue-sidebar-combo .dropdown-trigger:not(:disabled):hover { /* like the former link trigger */
+.issue-sidebar-combo .dropdown-trigger:not(:disabled):hover {
   color: var(--color-primary);
   text-decoration-line: underline;
 }

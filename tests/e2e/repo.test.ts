@@ -19,13 +19,16 @@ test('create a repository for an organization picked by keyboard', async ({page,
   await page.waitForURL(new RegExp(`/${orgName}/${repoName}$`));
 });
 
-test('delete a branch via its modal', async ({page, request}) => {
+test('delete a branch via its modal, add and remove repository topics', async ({page, request}) => {
   const repoName = `e2e-branch-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await Promise.all([
     (async () => {
       await apiCreateRepo(request, {name: repoName});
-      await apiCreateBranch(request, owner, repoName, 'feature');
+      await Promise.all([
+        apiCreateBranch(request, owner, repoName, 'feature'),
+        apiSetRepoTopics(request, owner, repoName, ['e2e-drop']),
+      ]);
     })(),
     login(page),
   ]);
@@ -35,18 +38,6 @@ test('delete a branch via its modal', async ({page, request}) => {
   await expect(modal).toContainText('feature');
   await modal.getByRole('button', {name: 'Yes'}).click();
   await expect(page.locator('.flash-message')).toContainText('Branch "feature" has been deleted.');
-});
-
-test('add and remove repository topics', async ({page, request}) => {
-  const repoName = `e2e-topics-${randomString(8)}`;
-  const owner = env.GITEA_TEST_E2E_USER;
-  await Promise.all([
-    (async () => {
-      await apiCreateRepo(request, {name: repoName});
-      await apiSetRepoTopics(request, owner, repoName, ['e2e-drop']);
-    })(),
-    login(page),
-  ]);
   await page.goto(`/${owner}/${repoName}`);
   await page.getByRole('button', {name: 'Manage Topics'}).click();
   await page.keyboard.insertText('e2e-keep');

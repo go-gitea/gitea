@@ -1,5 +1,7 @@
 import {createTippy} from './tippy.ts';
-import {createElementFromAttrs, createElementFromHTML, generateElemId, isElemVisible, onInputDebounce} from '../utils/dom.ts';
+import {
+  addDelegatedEventListener, createElementFromAttrs, createElementFromHTML, generateElemId, isElemVisible, onInputDebounce,
+} from '../utils/dom.ts';
 import {debounce} from '../utils/func.ts';
 import {svg} from '../svg.ts';
 import {trString} from './i18n.ts';
@@ -11,7 +13,7 @@ type DropdownOptions = {
   loadItems?: (query: string, signal: AbortSignal) => Promise<Element[]>, // remote items, loaded on every open and while filtering
 };
 
-const instances = new WeakMap<Element, Dropdown>(); // keyed by both container and popup
+const instances = new WeakMap<Element, Dropdown>();
 const shownDropdowns = new Set<Dropdown>();
 
 const removalObserver = new MutationObserver(() => {
@@ -95,7 +97,12 @@ export class Dropdown {
       }
     });
     this.trigger.addEventListener('keydown', (e) => {
-      if (e.key === 'Backspace' && this.kind === 'multiselect' && !this.filterInput?.value) {
+      const label = (e.target as Element).closest('.ui.label[data-value]');
+      if (label && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        this.pick(label.getAttribute('data-value')!);
+        this.combobox.focus();
+      } else if (e.key === 'Backspace' && this.kind === 'multiselect' && !this.filterInput?.value) {
         const values = this.values();
         if (values.length) this.pick(values.at(-1)!);
       } else if (this.tippy && this.filterInField) {
@@ -107,7 +114,7 @@ export class Dropdown {
       }
     });
     this.popup.addEventListener('keydown', (e) => this.onPopupKeyDown(e));
-    this.popup.addEventListener('click', (e) => this.onPopupClick(e), {capture: true}); // close before item handlers run, so they see the popup in its container
+    addDelegatedEventListener(this.popup, 'click', '.dropdown-item', (item: HTMLElement, e: MouseEvent) => this.onItemClick(item, e), {capture: true}); // close before item handlers run, so they see the popup in its container
     this.popup.addEventListener('mousedown', (e) => { // keep the focus on the filter input or the popup
       this.popup.removeAttribute('data-keyboard-nav');
       if (!(e.target as Element).closest('input, textarea, select')) e.preventDefault();
@@ -150,8 +157,8 @@ export class Dropdown {
     return Array.from(this.popup.querySelectorAll<HTMLElement>('.dropdown-item'));
   }
 
-  navigableItems(items = this.items()): HTMLElement[] {
-    return items.filter((item) => isItemEnabled(item) && isElemVisible(item));
+  navigableItems(): HTMLElement[] {
+    return this.items().filter((item) => isItemEnabled(item) && isElemVisible(item));
   }
 
   findItem(value: string): HTMLElement | null {
@@ -255,11 +262,13 @@ export class Dropdown {
     } else if (onOwner && !this.filterInput && (e.key === 'Home' || e.key === 'End')) {
       const items = this.navigableItems();
       this.highlight((e.key === 'Home' ? items[0] : items.at(-1)) ?? null);
-    } else if (onOwner && this.highlighted && this.popup.contains(this.highlighted) && (e.key === 'Enter' || (e.key === ' ' && !this.filterInput))) {
-      this.highlighted.dispatchEvent(new MouseEvent('click', {
-        bubbles: true, cancelable: true, view: window,
-        altKey: e.altKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey,
-      }));
+    } else if (onOwner && (e.key === 'Enter' || (e.key === ' ' && !this.filterInput))) { // without a highlight, Enter must not submit the form
+      if (this.highlighted && this.popup.contains(this.highlighted)) {
+        this.highlighted.dispatchEvent(new MouseEvent('click', {
+          bubbles: true, cancelable: true, view: window,
+          altKey: e.altKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey,
+        }));
+      }
     } else if (onOwner && !this.filterInput && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       this.onTypeAhead(e.key);
     } else {
@@ -270,6 +279,7 @@ export class Dropdown {
 
   // Tab moves through the controls in the popup, leaving them closes the popup like a native select
   onTab(e: KeyboardEvent) {
+    if (!this.popup.contains(e.target as Node)) return; // tabbing out of a search field closes the popup on focusout
     const radioStops = new Map<string, HTMLInputElement>(); // a radio group is one tab stop: the focused, checked or first radio
     for (const radio of this.popup.querySelectorAll<HTMLInputElement>('input[type="radio"][name]')) {
       const stop = radioStops.get(radio.name);
@@ -292,9 +302,7 @@ export class Dropdown {
     if (match) this.highlight(match);
   }
 
-  onPopupClick(e: MouseEvent) {
-    const item = (e.target as Element).closest<HTMLElement>('.dropdown-item');
-    if (!item || !this.popup.contains(item)) return;
+  onItemClick(item: HTMLElement, e: MouseEvent) {
     if (!isItemEnabled(item)) {
       e.preventDefault();
       e.stopPropagation();
@@ -306,6 +314,8 @@ export class Dropdown {
         if (this.filterInput?.value) {
           this.filterInput.value = '';
           this.onFilterInput();
+        } else {
+          this.updateState(); // the picked item hides, move the highlight off it
         }
         return;
       }
@@ -411,6 +421,7 @@ export class Dropdown {
     deleteIcon.removeAttribute('aria-hidden');
     deleteIcon.setAttribute('aria-label', trString(window.config.i18n.remove_label_str, value));
     deleteIcon.setAttribute('role', 'button');
+    if (!(this.trigger instanceof HTMLButtonElement)) deleteIcon.setAttribute('tabindex', '0'); // a button trigger can't contain focusables
     label.append(deleteIcon);
     return label;
   }
@@ -462,17 +473,17 @@ export class Dropdown {
   updateState(message = '') {
     hideScopedEmptyDividers(this.popup.querySelector(':scope > .dropdown-list') ?? this.popup);
     this.popup.querySelector(':scope > .dropdown-message')?.remove();
-    const allItems = this.items();
-    const items = this.navigableItems(allItems);
+    const visibleItems = this.items().filter((item) => isElemVisible(item));
+    const items = visibleItems.filter(isItemEnabled);
     if (this.highlighted && !items.includes(this.highlighted)) this.highlight(null);
-    if (!this.highlighted && (this.highlightDelta || this.loadItems)) { // remote results keep Enter on their active item
+    if (!this.highlighted && (this.highlightDelta || this.loadItems)) { // remote results keep Enter on their active or first item
       const active = items.find((item) => item.matches('.active, [aria-selected="true"]'));
       if (active) this.highlight(active);
-      else if (this.highlightDelta) this.moveHighlight(this.highlightDelta, items);
+      else if (!this.popup.hasAttribute('aria-busy')) this.moveHighlight(this.highlightDelta || 1, items);
     }
     const side = this.tippy?.popper.firstElementChild?.getAttribute('data-placement')?.split('-')[0];
     if (side) this.trigger.setAttribute('data-popup-side', side);
-    if (!message && !this.popup.hasAttribute('aria-busy') && !items.length && allItems.every((item) => isItemEnabled(item) || !isElemVisible(item))) message = window.config.i18n.no_results_found;
+    if (!message && !this.popup.hasAttribute('aria-busy') && !visibleItems.length) message = window.config.i18n.no_results_found;
     if (message) this.popup.append(createElementFromAttrs('div', {class: 'dropdown-message'}, message));
     this.tippy?.popperInstance?.update();
   }

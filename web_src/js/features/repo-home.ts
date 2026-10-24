@@ -23,7 +23,8 @@ export function initRepoTopicBar() {
       toggleElem(topicFromInput, Boolean(query) && !topicDropdown.values().includes(query));
       const response = await GET(`${appSubUrl}/explore/topics/search?q=${encodeURIComponent(query)}`, {signal});
       const {topics} = await response.json() as TopicSearchResponse;
-      const names = topics.map(({topic_name}) => topic_name).filter((name) => name !== query && !topicDropdown.values().includes(name));
+      const selected = new Set(topicDropdown.values());
+      const names = topics.map(({topic_name}) => topic_name).filter((name) => name !== query && !selected.has(name));
       if (topics.some(({topic_name}) => topic_name.toLowerCase() === query)) names.sort().reverse(); // the server order, unless the exact match comes first
       return names.map((name) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': name}, name));
     },

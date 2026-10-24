@@ -98,34 +98,45 @@ test('menu keeps popup controls in their form, skips disabled items and closes b
   expect(dropdown.popup.isConnected).toBe(false);
 });
 
-test('remote items apply the latest query only', async () => {
+test('remote items in a search field apply the latest query only, Enter picks the first result without submitting and labels are removable by keyboard', async () => {
   const pending: Array<{query: string, resolve: (items: Element[]) => void}> = [];
   const dropdown = createDropdown(`<div class="dropdown-container" data-kind="multiselect">
-    <button type="button" class="dropdown-trigger"><span class="dropdown-text"></span></button>
     <input type="hidden" class="dropdown-value" value="">
+    <div class="dropdown-trigger dropdown-field dropdown-search-field">
+      <input class="dropdown-filter" type="text"><span class="dropdown-text"></span>
+    </div>
     <div class="dropdown-popup">
-      <input class="dropdown-filter">
       <div class="dropdown-item" data-value="static" data-static>Static</div>
     </div>
   </div>`, {
     loadItems: (query) => new Promise((resolve) => { pending.push({query, resolve}) }),
   });
+  const form = document.createElement('form');
+  let submitted = false;
+  form.addEventListener('submit', (e) => { e.preventDefault(); submitted = true });
+  document.body.append(form);
+  form.append(dropdown.container);
   const item = (value: string) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': value}, value);
 
   await userEvent.click(dropdown.trigger);
-  await userEvent.keyboard('a');
+  await userEvent.keyboard('a{Enter}');
   await vi.waitFor(() => expect(pending.at(-1)!.query).toBe('a'));
+  expect(dropdown.values()).toEqual([]);
   pending.at(-1)!.resolve([item('a1'), item('a2')]);
   pending[0].resolve([item('stale')]);
   await vi.waitFor(() => expect(dropdown.items().map((el) => el.textContent)).toEqual(['Static', 'a1', 'a2']));
+  await userEvent.keyboard('{Enter}');
+  expect(submitted).toBe(false);
   await userEvent.click(dropdown.findItem('a2')!);
-  await userEvent.click(dropdown.findItem('static')!);
-  expect(dropdown.values()).toEqual(['a2', 'static']);
-  expect(Array.from(dropdown.trigger.querySelectorAll('.ui.label'), (el) => el.textContent)).toEqual(['a2', 'Static']);
-  await userEvent.click(dropdown.trigger.querySelector('.ui.label[data-value="a2"] .delete')!);
+  expect(dropdown.values()).toEqual(['static', 'a2']);
+  expect(Array.from(dropdown.trigger.querySelectorAll('.ui.label'), (el) => el.textContent)).toEqual(['Static', 'a2']);
+  await userEvent.keyboard('{Shift>}{Tab}{/Shift}{Enter}');
   expect(dropdown.values()).toEqual(['static']);
+  expect(document.activeElement).toBe(dropdown.filterInput);
+  await userEvent.click(dropdown.trigger.querySelector('.ui.label[data-value="static"] .delete')!);
+  expect(dropdown.values()).toEqual([]);
   expect(dropdown.isShown()).toBe(true);
-  dropdown.container.remove();
+  form.remove();
 });
 
 test('hideScopedEmptyDividers', () => {
