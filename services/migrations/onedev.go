@@ -104,10 +104,10 @@ func (d *OneDevDownloader) LogString() string {
 	return fmt.Sprintf("<OneDevDownloader %s [%d]/%s>", d.baseURL, d.repoID, d.repoPath)
 }
 
-func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, parameter map[string]string, result any) error {
+func (d *OneDevDownloader) makeRequest(ctx context.Context, endpoint string, parameter map[string]string) (*http.Response, error) {
 	u, err := d.baseURL.Parse(endpoint)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if parameter != nil {
@@ -120,48 +120,55 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	return d.client.Do(req)
+}
 
-	resp, err := d.client.Do(req)
+func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, parameter map[string]string, result any) error {
+	resp, err := d.makeRequest(ctx, endpoint, parameter)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	// special case to read OneDev server version, which is not valid JSON
-	if presult, ok := result.(**version.Version); ok {
-		if resp.StatusCode < 200 || resp.StatusCode > 299 {
-			return fmt.Errorf("OneDev server version request failed: %s", resp.Status)
-		}
-		// This patch doesn't change the situation, "decoder.Decode(&result)" below still reads the entire body
-		bytes, err := io.ReadAll(io.LimitReader(resp.Body, maxOneDevVersionResponseSize+1))
-		if err != nil {
-			return err
-		}
-		if len(bytes) > maxOneDevVersionResponseSize {
-			return fmt.Errorf("OneDev server version response exceeds %d bytes", maxOneDevVersionResponseSize)
-		}
-		vers, err := version.NewVersion(string(bytes))
-		if err != nil {
-			return err
-		}
-		*presult = vers
-		return nil
-	}
-
 	decoder := json.NewDecoder(resp.Body)
 	return decoder.Decode(&result)
 }
 
+func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpoint string) (*version.Version, error) {
+	resp, err := d.makeRequest(ctx, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("OneDev server version request failed: %s", resp.Status)
+	}
+	// This patch doesn't change the situation, "decoder.Decode(&result)" in callAPI still reads the entire body
+	bytes, err := io.ReadAll(io.LimitReader(resp.Body, maxOneDevVersionResponseSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(bytes) > maxOneDevVersionResponseSize {
+		return nil, fmt.Errorf("OneDev server version response exceeds %d bytes", maxOneDevVersionResponseSize)
+	}
+	ver, err := version.NewVersion(string(bytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse OneDev server version %q: %w", string(bytes), err)
+	}
+	return ver, nil
+}
+
 // getServerVersion reads the OneDev server version.
-func (d *OneDevDownloader) getServerVersion(ctx context.Context) (serverVersion *version.Version, retErr error) {
+func (d *OneDevDownloader) getServerVersion(ctx context.Context) (_ *version.Version, retErr error) {
 	// OneDev moved the endpoint from /~api/version/server to /~api/server/version in 16.8, so both are tried.
 	oneDevVersionEndpoints := []string{"/~api/version/server", "/~api/server/version"}
 	for _, endpoint := range oneDevVersionEndpoints {
-		err := d.callAPI(ctx, endpoint, nil, &serverVersion)
+		ver, err := d.getServerVersionByEndpoint(ctx, endpoint)
 		if err == nil {
-			return serverVersion, nil
+			return ver, nil
 		}
 		retErr = util.IfZero(retErr, err)
 	}
