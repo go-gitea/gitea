@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -272,4 +273,50 @@ func TestBitbucketFormatCloneURL(t *testing.T) {
 	got, err = d.FormatCloneURL(base.MigrateOptions{AuthToken: "tok"}, addr)
 	require.NoError(t, err)
 	assert.Equal(t, "https://x-token-auth:tok@bitbucket.org/gitea/repo", got)
+}
+
+func TestBitbucketReviews(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/2.0/repositories/w/r/pullrequests/3":
+			_, _ = w.Write([]byte(`{"updated_on":"2024-01-03T00:00:00Z","source":{"commit":{"hash":"` + strings.Repeat("a", 40) + `"}},"participants":[
+				{"user":{"nickname":"alice"},"approved":true,"state":"approved","participated_on":"2024-01-02T00:00:00Z"},
+				{"user":{"nickname":"bob"},"approved":false,"state":"changes_requested"},
+				{"user":{"nickname":"carol"},"approved":false,"state":null}]}`))
+		case "/2.0/repositories/w/r/pullrequests/3/comments":
+			_, _ = w.Write([]byte(`{"values":[
+				{"id":1,"content":{"raw":"general"},"user":{"nickname":"alice"},"created_on":"2024-01-01T00:00:00Z"},
+				{"id":2,"content":{"raw":"inline"},"user":{"nickname":"bob"},"created_on":"2024-01-01T00:00:00Z","inline":{"path":"a.txt","to":5,"from":null},"resolution":{}},
+				{"id":3,"content":{"raw":"old side"},"user":{"nickname":"bob"},"created_on":"2024-01-01T00:00:00Z","inline":{"path":"a.txt","to":null,"from":7},"parent":{"id":2}},
+				{"id":4,"content":{"raw":"gone"},"user":{"nickname":"bob"},"created_on":"2024-01-01T00:00:00Z","deleted":true}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	d, err := NewBitbucketDownloader(t.Context(), server.URL+"/2.0", "https://bitbucket.org", "w", "r", "", "", "")
+	require.NoError(t, err)
+	pr := &base.PullRequest{Number: 3, ForeignIndex: 3}
+
+	comments, _, err := d.GetComments(t.Context(), pr)
+	require.NoError(t, err)
+	require.Len(t, comments, 1)
+	assert.Equal(t, "general", comments[0].Content)
+
+	reviews, err := d.GetReviews(t.Context(), pr)
+	require.NoError(t, err)
+	require.Len(t, reviews, 4)
+	var inline, states []string
+	for _, r := range reviews {
+		if len(r.Comments) > 0 {
+			rc := r.Comments[0]
+			inline = append(inline, fmt.Sprintf("%s:%d:%v", rc.TreePath, rc.Line, rc.Resolved))
+			assert.Equal(t, strings.Repeat("a", 40), rc.CommitID)
+		} else {
+			states = append(states, r.ReviewerName+":"+r.State)
+		}
+	}
+	assert.ElementsMatch(t, []string{"a.txt:5:true", "a.txt:-7:false"}, inline)
+	assert.ElementsMatch(t, []string{"alice:APPROVED", "bob:CHANGES_REQUESTED"}, states)
 }

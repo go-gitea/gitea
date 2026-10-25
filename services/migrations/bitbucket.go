@@ -11,6 +11,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -183,12 +184,35 @@ type bitbucketPullRequest struct {
 	Updated     time.Time                 `json:"updated_on"`
 }
 
+type bitbucketInline struct {
+	Path string `json:"path"`
+	From *int64 `json:"from"`
+	To   *int64 `json:"to"`
+}
+
 type bitbucketComment struct {
-	ID      int64            `json:"id"`
-	Content bitbucketContent `json:"content"`
-	User    bitbucketUser    `json:"user"`
-	Created time.Time        `json:"created_on"`
-	Updated time.Time        `json:"updated_on"`
+	ID         int64             `json:"id"`
+	Content    bitbucketContent  `json:"content"`
+	User       bitbucketUser     `json:"user"`
+	Created    time.Time         `json:"created_on"`
+	Updated    time.Time         `json:"updated_on"`
+	Deleted    bool              `json:"deleted"`
+	Inline     *bitbucketInline  `json:"inline"`
+	Parent     *bitbucketComment `json:"parent"`
+	Resolution *struct{}         `json:"resolution"`
+}
+
+type bitbucketParticipant struct {
+	User           bitbucketUser `json:"user"`
+	Approved       bool          `json:"approved"`
+	State          string        `json:"state"`
+	ParticipatedOn *time.Time    `json:"participated_on"`
+}
+
+type bitbucketPullRequestDetail struct {
+	Updated      time.Time              `json:"updated_on"`
+	Source       bitbucketPRSide        `json:"source"`
+	Participants []bitbucketParticipant `json:"participants"`
 }
 
 // BitbucketDownloader implements a Downloader interface to get repository information from bitbucket.org.
@@ -666,7 +690,26 @@ func (b *BitbucketDownloader) GetIssues(ctx context.Context, page, perPage int) 
 	return issues, resp.Next == "", nil
 }
 
-// GetComments returns comments of an issue or PR.
+// fetchComments pages through all comments of an issue or PR endpoint.
+func (b *BitbucketDownloader) fetchComments(ctx context.Context, path string) ([]bitbucketComment, error) {
+	var all []bitbucketComment
+	for page := 1; ; page++ {
+		var resp bitbucketPage[bitbucketComment]
+		query := url.Values{
+			"pagelen": []string{strconv.Itoa(b.maxPerPage)},
+			"page":    []string{strconv.Itoa(page)},
+		}
+		if err := b.doAPI(ctx, path, query, &resp); err != nil {
+			return nil, err
+		}
+		all = append(all, resp.Values...)
+		if resp.Next == "" {
+			return all, nil
+		}
+	}
+}
+
+// GetComments returns comments of an issue or PR; inline PR comments are returned by GetReviews.
 func (b *BitbucketDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
 	var path string
 	switch commentable.(type) {
@@ -676,32 +719,105 @@ func (b *BitbucketDownloader) GetComments(ctx context.Context, commentable base.
 		path = b.apiPath("/issues/%d/comments", commentable.GetForeignIndex())
 	}
 
-	comments := make([]*base.Comment, 0)
-	for page := 1; ; page++ {
-		var resp bitbucketPage[bitbucketComment]
-		query := url.Values{
-			"pagelen": []string{strconv.Itoa(b.maxPerPage)},
-			"page":    []string{strconv.Itoa(page)},
+	all, err := b.fetchComments(ctx, path)
+	if err != nil {
+		return nil, false, err
+	}
+	comments := make([]*base.Comment, 0, len(all))
+	for _, comment := range all {
+		if comment.Deleted || comment.Inline != nil {
+			continue
 		}
-		if err := b.doAPI(ctx, path, query, &resp); err != nil {
-			return nil, false, err
-		}
-		for _, comment := range resp.Values {
-			comments = append(comments, &base.Comment{
-				IssueIndex: commentable.GetLocalIndex(),
-				Index:      comment.ID,
-				PosterID:   bitbucketUserID(comment.User),
-				PosterName: bitbucketUserName(comment.User),
-				Created:    comment.Created,
-				Updated:    comment.Updated,
-				Content:    comment.Content.Raw,
-			})
-		}
-		if resp.Next == "" {
-			break
-		}
+		comments = append(comments, &base.Comment{
+			IssueIndex: commentable.GetLocalIndex(),
+			Index:      comment.ID,
+			PosterID:   bitbucketUserID(comment.User),
+			PosterName: bitbucketUserName(comment.User),
+			Created:    comment.Created,
+			Updated:    comment.Updated,
+			Content:    comment.Content.Raw,
+		})
 	}
 	return comments, true, nil
+}
+
+// GetReviews returns the approvals, change requests and inline code comments of a pull request.
+func (b *BitbucketDownloader) GetReviews(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
+	var pr bitbucketPullRequestDetail
+	if err := b.doAPI(ctx, b.apiPath("/pullrequests/%d", reviewable.GetForeignIndex()), nil, &pr); err != nil {
+		return nil, err
+	}
+	owner, repo := bitbucketOwnerAndRepo(pr.Source.Repository)
+	headSHA := b.fullCommitSHA(ctx, owner, repo, pr.Source.Commit.Hash)
+
+	all, err := b.fetchComments(ctx, b.apiPath("/pullrequests/%d/comments", reviewable.GetForeignIndex()))
+	if err != nil {
+		return nil, err
+	}
+
+	var reviews []*base.Review
+	for _, c := range all {
+		if c.Deleted || c.Inline == nil {
+			continue
+		}
+		line := int64(0)
+		switch {
+		case c.Inline.To != nil:
+			line = *c.Inline.To
+		case c.Inline.From != nil:
+			line = -*c.Inline.From // a negative line addresses the old side of the diff
+		}
+		updated := c.Updated
+		if updated.IsZero() {
+			updated = c.Created
+		}
+		// every comment becomes its own review so that replies keep their author
+		reviews = append(reviews, &base.Review{
+			IssueIndex:   reviewable.GetLocalIndex(),
+			ReviewerID:   bitbucketUserID(c.User),
+			ReviewerName: bitbucketUserName(c.User),
+			CreatedAt:    c.Created,
+			State:        base.ReviewStateCommented,
+			CommitID:     headSHA,
+			Comments: []*base.ReviewComment{{
+				ID:        c.ID,
+				Content:   c.Content.Raw,
+				TreePath:  c.Inline.Path,
+				Line:      int(line),
+				CommitID:  headSHA,
+				PosterID:  bitbucketUserID(c.User),
+				CreatedAt: c.Created,
+				UpdatedAt: updated,
+				Resolved:  c.Parent == nil && c.Resolution != nil,
+			}},
+		})
+	}
+
+	for _, participant := range pr.Participants {
+		var state string
+		switch {
+		case participant.State == "changes_requested":
+			state = base.ReviewStateChangesRequested
+		case participant.Approved || participant.State == "approved":
+			state = base.ReviewStateApproved
+		default:
+			continue
+		}
+		createdAt := pr.Updated
+		if participant.ParticipatedOn != nil {
+			createdAt = *participant.ParticipatedOn
+		}
+		reviews = append(reviews, &base.Review{
+			IssueIndex:   reviewable.GetLocalIndex(),
+			ReviewerID:   bitbucketUserID(participant.User),
+			ReviewerName: bitbucketUserName(participant.User),
+			CreatedAt:    createdAt,
+			State:        state,
+			CommitID:     headSHA,
+		})
+	}
+	slices.SortStableFunc(reviews, func(a, b *base.Review) int { return a.CreatedAt.Compare(b.CreatedAt) })
+	return reviews, nil
 }
 
 // fullCommitSHA expands an abbreviated commit hash; it returns "" when it cannot be resolved,
