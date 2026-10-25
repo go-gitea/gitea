@@ -7,6 +7,7 @@ package migrations
 import (
 	"errors"
 	"io"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,6 +20,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/graceful"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/optional"
@@ -29,6 +31,44 @@ import (
 	"github.com/stretchr/testify/require"
 	"xorm.io/builder"
 )
+
+func TestMigrationForkRemoteRecovery(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
+	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	var err error
+	local.gitRepo, err = git.OpenRepository(t.Context(), local.repo)
+	require.NoError(t, err)
+	defer local.gitRepo.Close()
+	remoteDir := filepath.Join(t.TempDir(), "source.git")
+	require.Error(t, local.gitRepo.AddRemote(t.Context(), "fork", remoteDir, true))
+	require.NoError(t, gitcmd.NewCommand("clone", "--bare").AddDynamicArguments(gitrepo.RepoLocalPath(local.repo), remoteDir).Run(t.Context()))
+	branch, _, err := gitcmd.NewCommand("symbolic-ref", "--short", "HEAD").WithDir(remoteDir).RunStdString(t.Context())
+	require.NoError(t, err)
+	sha, err := local.gitRepo.GetRefCommitID(t.Context(), "HEAD")
+	require.NoError(t, err)
+	pr := &base.PullRequest{Number: 4877, State: "open", EnsuredSafe: true, Head: base.PullRequestBranch{SHA: sha, Ref: strings.TrimSpace(branch), CloneURL: remoteDir, OwnerName: "fork", RepoName: "r"}, Base: base.PullRequestBranch{OwnerName: "o", RepoName: "r"}}
+	head, err := local.updateGitForPullRequest(t.Context(), pr)
+	require.NoError(t, err)
+	assert.NotEqual(t, "unknown repository", head)
+	pr.Number++
+	cachedHead, err := local.updateGitForPullRequest(t.Context(), pr)
+	require.NoError(t, err)
+	assert.Equal(t, head, cachedHead)
+	commit, err := local.gitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
+	require.NoError(t, err)
+	assert.Equal(t, sha, commit)
+	local.prHeadCache = make(map[string]string)
+	pr.Head.OwnerName = "conflict"
+	require.NoError(t, local.gitRepo.AddRemote(t.Context(), "conflict", "https://example.invalid/unrelated.git", false))
+	pr.Number++
+	head, err = local.updateGitForPullRequest(t.Context(), pr)
+	require.NoError(t, err)
+	assert.NotEqual(t, "unknown repository", head)
+	address, err := git.GetRemoteAddress(t.Context(), local.repo, "conflict")
+	require.NoError(t, err)
+	assert.Equal(t, "https://example.invalid/unrelated.git", address)
+}
 
 func TestGiteaUploadRepo(t *testing.T) {
 	// FIXME: Since no accesskey or user/password will trigger rate limit of github, just skip

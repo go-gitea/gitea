@@ -323,6 +323,7 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 			if err := uploader.CreateIssues(ctx, issues...); err != nil {
 				return err
 			}
+			log.Info("migration-issue-persisted downloader=%s page=%d count=%d uniqueTotal=%d end=%t", downloader, i, len(issues), len(mapInsertedIssueIndexes), isEnd)
 
 			if opts.Comments && !supportAllComments {
 				allComments := make([]*base.Comment, 0, commentBatchSize)
@@ -385,6 +386,11 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 			if err := uploader.CreatePullRequests(ctx, prs...); err != nil {
 				return err
 			}
+			indexes := make([]int64, len(prs))
+			for j, pr := range prs {
+				indexes[j] = pr.Number
+			}
+			log.Info("migration-pr-persisted downloader=%s page=%d count=%d uniqueTotal=%d indexes=%v end=%t", downloader, i, len(prs), len(mapInsertedPRIndexes), indexes, isEnd)
 
 			if opts.Comments {
 				if !supportAllComments {
@@ -460,7 +466,9 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 	}
 
 	if opts.Comments && supportAllComments {
-		log.Trace("migrating comments")
+		log.Info("migration-stage stage=comments downloader=%s", downloader)
+		messenger("repo.migrate.migrating_comments")
+		commentCount := 0
 		for i := 1; ; i++ {
 			comments, isEnd, err := downloader.GetAllComments(ctx, i, commentBatchSize)
 			if err != nil {
@@ -473,6 +481,8 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 			if err := uploader.CreateComments(ctx, comments...); err != nil {
 				return err
 			}
+			commentCount += len(comments)
+			log.Info("migration-comment-persisted downloader=%s page=%d count=%d total=%d end=%t", downloader, i, len(comments), commentCount, isEnd)
 
 			if isEnd {
 				break
@@ -480,5 +490,11 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 		}
 	}
 
-	return uploader.Finish(ctx)
+	messenger("repo.migrate.finalizing")
+	log.Info("migration-stage stage=finalizing downloader=%s", downloader)
+	if err := uploader.Finish(ctx); err != nil {
+		return err
+	}
+	log.Info("migration-stage stage=complete downloader=%s", downloader)
+	return nil
 }

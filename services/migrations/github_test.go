@@ -37,7 +37,7 @@ import (
 func TestGithubMissingCommentIssue(t *testing.T) {
 	defer test.MockVariableValue(&setting.Migrations.MaxAttempts, 2)()
 	defer test.MockVariableValue(&setting.Migrations.RetryBackoff, 0)()
-	for _, scenario := range []string{"recover", "forbidden", "not found", "pull request", "wrong number", "wrong repository", "issues disabled"} {
+	for _, scenario := range []string{"recover", "recover open", "forbidden", "unauthorized", "not found", "gone", "moved", "server error", "reactions not found", "pull request", "wrong number", "wrong repository", "issues disabled"} {
 		t.Run(scenario, func(t *testing.T) {
 			unittest.PrepareTestEnv(t)
 			requests := 0
@@ -45,6 +45,10 @@ func TestGithubMissingCommentIssue(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("X-RateLimit-Remaining", "100")
 				if strings.HasSuffix(r.URL.Path, "/reactions") {
+					if scenario == "reactions not found" {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
 					if r.URL.Query().Get("page") == "1" {
 						_, _ = w.Write([]byte(`[{"user":{"id":2,"login":"reviewer"},"content":"+1"}]`))
 					} else {
@@ -54,15 +58,15 @@ func TestGithubMissingCommentIssue(t *testing.T) {
 				}
 				assert.Equal(t, "/api/v3/repos/o/r/issues/4877", r.URL.Path)
 				requests++
-				if scenario == "recover" && requests == 1 {
+				if strings.HasPrefix(scenario, "recover") && requests == 1 {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				if scenario == "forbidden" || scenario == "not found" {
-					status := http.StatusForbidden
-					if scenario == "not found" {
-						status = http.StatusNotFound
-					}
+				if status, ok := map[string]int{
+					"forbidden": http.StatusForbidden, "unauthorized": http.StatusUnauthorized,
+					"not found": http.StatusNotFound, "gone": http.StatusGone,
+					"moved": http.StatusMovedPermanently, "server error": http.StatusInternalServerError,
+				}[scenario]; ok {
 					w.WriteHeader(status)
 					return
 				}
@@ -76,6 +80,8 @@ func TestGithubMissingCommentIssue(t *testing.T) {
 					"milestone": map[string]any{"title": "v1"}, "reactions": map[string]any{"total_count": 1},
 				}
 				switch scenario {
+				case "recover open":
+					issue["state"], issue["closed_at"] = "open", nil
 				case "pull request":
 					issue["pull_request"] = map[string]any{"url": "pulls/4877"}
 				case "wrong number":
@@ -93,9 +99,23 @@ func TestGithubMissingCommentIssue(t *testing.T) {
 			local.gitServiceType = structs.GithubService
 			require.NoError(t, local.CreateIssues(t.Context(), &base.Issue{Number: 4876, Title: "Existing"}))
 			uploader := githubMigrationUploader(local, base.NewRetryDownloader(downloader, 2, 0), base.MigrateOptions{Issues: scenario != "issues disabled"})
-			comments := []*base.Comment{{Index: 1, IssueIndex: 4876}, {Index: 2, IssueIndex: 4877}, {Index: 3, IssueIndex: 4877}}
+			comments := []*base.Comment{{Index: 2, IssueIndex: 4877}, {Index: 1, IssueIndex: 4876}, {Index: 3, IssueIndex: 4877}}
 			err = uploader.CreateComments(t.Context(), comments...)
-			if scenario != "recover" {
+			if scenario == "not found" || scenario == "gone" {
+				require.NoError(t, err)
+				assert.Len(t, local.issues, 1)
+				unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: local.repo.ID, Index: 4877})
+				adapter, ok := uploader.(*githubUploader)
+				require.True(t, ok)
+				require.Len(t, adapter.comments, 1)
+				assert.Equal(t, local.issues[4876].ID, adapter.comments[1].IssueID)
+				assert.Equal(t, 1, unittest.GetCount(t, &issues_model.Comment{IssueID: local.issues[4876].ID}))
+				previousRequests := requests
+				require.NoError(t, uploader.CreateComments(t.Context(), &base.Comment{Index: 4, IssueIndex: 4877}))
+				assert.Equal(t, previousRequests, requests)
+				return
+			}
+			if !strings.HasPrefix(scenario, "recover") {
 				require.Error(t, err)
 				assert.Zero(t, unittest.GetCount(t, &issues_model.Comment{IssueID: local.issues[4876].ID}))
 				assert.Len(t, local.issues, 1)
@@ -109,9 +129,13 @@ func TestGithubMissingCommentIssue(t *testing.T) {
 			require.NotNil(t, issue)
 			assert.Equal(t, "Missing issue", issue.Title)
 			assert.Equal(t, "Original body", issue.Content)
-			assert.True(t, issue.IsClosed)
+			assert.Equal(t, scenario == "recover", issue.IsClosed)
 			assert.Equal(t, "2024-08-12T08:38:46Z", issue.CreatedUnix.AsTime().UTC().Format(time.RFC3339))
-			assert.Equal(t, "2025-01-21T10:05:11Z", issue.ClosedUnix.AsTime().UTC().Format(time.RFC3339))
+			if issue.IsClosed {
+				assert.Equal(t, "2025-01-21T10:05:11Z", issue.ClosedUnix.AsTime().UTC().Format(time.RFC3339))
+			} else {
+				assert.Zero(t, issue.ClosedUnix)
+			}
 			assert.Equal(t, 1, unittest.GetCount(t, &issues_model.Comment{IssueID: local.issues[4876].ID}))
 			assert.Equal(t, 2, unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID}))
 			assert.Equal(t, 1, unittest.GetCount(t, &issues_model.Reaction{IssueID: issue.ID}))

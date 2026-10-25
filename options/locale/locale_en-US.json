@@ -1141,6 +1141,8 @@
   "repo.migrate.migrating_releases": "Migrating Releases",
   "repo.migrate.migrating_issues": "Migrating Issues",
   "repo.migrate.migrating_pulls": "Migrating Pull Requests",
+  "repo.migrate.migrating_comments": "Migrating Comments and Reactions",
+  "repo.migrate.finalizing": "Verifying and Finalizing Migration",
   "repo.migrate.cancel_migrating_title": "Cancel Migration",
   "repo.migrate.cancel_migrating_confirm": "Do you want to cancel this migration?",
   "repo.migration_status": "Migration status",

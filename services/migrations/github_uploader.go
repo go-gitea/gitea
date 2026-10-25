@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
@@ -37,15 +38,14 @@ import (
 
 type githubUploader struct {
 	*GiteaLocalUploader
-	downloader       *GithubDownloaderV3
-	sourceCloneURL   string
-	migrateIssues    bool
-	reviewComments   map[int64]*issues_model.Comment
-	replies          map[int64]int64
-	comments         map[int64]*issues_model.Comment
-	opts             base.MigrateOptions
-	audited          bool
-	preservedCommits map[string]struct{}
+	downloader        *GithubDownloaderV3
+	sourceCloneURL    string
+	migrateIssues     bool
+	reviewComments    map[int64]*issues_model.Comment
+	replies           map[int64]int64
+	comments          map[int64]*issues_model.Comment
+	unavailableIssues map[int64]struct{}
+	preservedCommits  map[string]struct{}
 }
 
 func githubMigrationUploader(uploader *GiteaLocalUploader, downloader base.Downloader, opts base.MigrateOptions) base.Uploader {
@@ -56,7 +56,7 @@ func githubMigrationUploader(uploader *GiteaLocalUploader, downloader base.Downl
 		downloader = graphQL.GithubDownloaderV3
 	}
 	if github, ok := downloader.(*GithubDownloaderV3); ok {
-		return &githubUploader{GiteaLocalUploader: uploader, downloader: github, migrateIssues: opts.Issues, opts: opts}
+		return &githubUploader{GiteaLocalUploader: uploader, downloader: github, migrateIssues: opts.Issues}
 	}
 	return uploader
 }
@@ -105,12 +105,12 @@ func (g *githubUploader) CreateComments(ctx context.Context, comments ...*base.C
 		}
 	}
 	comments = regular
-	if err := g.recoverMissingObjects(ctx); err != nil {
-		return err
-	}
 	if g.migrateIssues {
 		for _, comment := range comments {
 			if _, ok := g.issues[comment.IssueIndex]; ok {
+				continue
+			}
+			if _, ok := g.unavailableIssues[comment.IssueIndex]; ok {
 				continue
 			}
 			var issue *base.Issue
@@ -119,6 +119,14 @@ func (g *githubUploader) CreateComments(ctx context.Context, comments ...*base.C
 				issue, err = g.downloader.GetIssue(ctx, comment.IssueIndex)
 				return err
 			}); err != nil {
+				if response, ok := errors.AsType[*github.ErrorResponse](err); errors.Is(err, errGithubIssueUnavailable) && ok && response.Response != nil {
+					if g.unavailableIssues == nil {
+						g.unavailableIssues = make(map[int64]struct{})
+					}
+					g.unavailableIssues[comment.IssueIndex] = struct{}{}
+					log.Warn("migration-comment-parent-unavailable repo=%s/%s issue=%d status=%d: skipping comments without creating an issue", g.downloader.repoOwner, g.downloader.repoName, comment.IssueIndex, response.Response.StatusCode)
+					continue
+				}
 				return fmt.Errorf("recover missing IssueIndex %d: %w", comment.IssueIndex, err)
 			}
 			if err := g.CreateIssues(ctx, issue); err != nil {
@@ -127,9 +135,13 @@ func (g *githubUploader) CreateComments(ctx context.Context, comments ...*base.C
 		}
 	}
 	rows := make([]*issues_model.Comment, 0, len(comments))
+	indexes := make([]int64, 0, len(comments))
 	for _, c := range comments {
 		issue := g.issues[c.IssueIndex]
 		if issue == nil {
+			if _, ok := g.unavailableIssues[c.IssueIndex]; ok {
+				continue
+			}
 			return fmt.Errorf("comment references non existent IssueIndex %d", c.IssueIndex)
 		}
 		row := &issues_model.Comment{Type: issues_model.CommentTypeComment, IssueID: issue.ID, Content: c.Content, CreatedUnix: timeutil.TimeStamp(c.Created.Unix()), UpdatedUnix: timeutil.TimeStamp(c.Updated.Unix())}
@@ -150,6 +162,10 @@ func (g *githubUploader) CreateComments(ctx context.Context, comments ...*base.C
 			row.Reactions = append(row.Reactions, r)
 		}
 		rows = append(rows, row)
+		indexes = append(indexes, c.Index)
+	}
+	if len(rows) == 0 {
+		return nil
 	}
 	if err := issues_model.InsertIssueComments(ctx, rows); err != nil {
 		return err
@@ -157,8 +173,8 @@ func (g *githubUploader) CreateComments(ctx context.Context, comments ...*base.C
 	if g.comments == nil {
 		g.comments = make(map[int64]*issues_model.Comment)
 	}
-	for i, c := range comments {
-		g.comments[c.Index] = rows[i]
+	for i, index := range indexes {
+		g.comments[index] = rows[i]
 	}
 	return nil
 }
@@ -420,9 +436,6 @@ func (g *githubUploader) CreateReviews(ctx context.Context, reviews ...*base.Rev
 }
 
 func (g *githubUploader) Finish(ctx context.Context) error {
-	if err := g.recoverMissingObjects(ctx); err != nil {
-		return err
-	}
 	for child, parent := range g.replies {
 		c, p := g.reviewComments[child], g.reviewComments[parent]
 		if p == nil || c == nil || c.IssueID != p.IssueID {
@@ -522,83 +535,6 @@ func (g *githubUploader) rewriteLinks(ctx context.Context, content string) strin
 	})
 }
 
-func (g *githubUploader) recoverMissingObjects(ctx context.Context) error {
-	if g.audited || g.downloader == nil || g.downloader.archive == nil || !g.opts.Issues || !g.opts.PullRequests {
-		return nil
-	}
-	maxIndex := int64(0)
-	for index := range g.issues {
-		maxIndex = max(maxIndex, index)
-	}
-	for number := int64(1); number <= maxIndex; number++ {
-		if _, ok := g.issues[number]; ok {
-			continue
-		}
-		var source *github.Issue
-		err := retryGithubMigration(ctx, func() error {
-			g.downloader.waitAndPickClient(ctx)
-			var err error
-			var resp *github.Response
-			source, resp, err = g.downloader.getClient().Issues.Get(ctx, g.downloader.repoOwner, g.downloader.repoName, int(number))
-			if resp != nil {
-				g.downloader.setRate(&resp.Rate)
-			}
-			return err
-		})
-		// A numbering gap may be deleted or inaccessible; never report it as verified absent.
-		if err != nil {
-			return fmt.Errorf("cannot verify missing GitHub item %d: %w", number, err)
-		}
-		if source.GetNumber() != int(number) || !strings.EqualFold(source.GetRepositoryURL(), g.downloader.getClient().BaseURL()+"repos/"+g.downloader.repoOwner+"/"+g.downloader.repoName) {
-			return fmt.Errorf("unexpected GitHub item for %d", number)
-		}
-		if err := g.downloader.archiveSource(ctx, "issues", number, source); err != nil {
-			return err
-		}
-		if !source.IsPullRequest() {
-			issues, err := g.downloader.convertGithubIssues(ctx, []*github.Issue{source}, g.downloader.maxPerPage)
-			if err != nil {
-				return err
-			}
-			if err := g.CreateIssues(ctx, issues...); err != nil {
-				return err
-			}
-			continue
-		}
-		var pr *github.PullRequest
-		if err := retryGithubMigration(ctx, func() error {
-			g.downloader.waitAndPickClient(ctx)
-			var err error
-			var resp *github.Response
-			pr, resp, err = g.downloader.getClient().PullRequests.Get(ctx, g.downloader.repoOwner, g.downloader.repoName, int(number))
-			if resp != nil {
-				g.downloader.setRate(&resp.Rate)
-			}
-			return err
-		}); err != nil {
-			return err
-		}
-		prs, err := g.downloader.convertGithubPullRequests(ctx, []*github.PullRequest{pr}, g.downloader.maxPerPage)
-		if err != nil {
-			return err
-		}
-		if err := g.CreatePullRequests(ctx, prs...); err != nil {
-			return err
-		}
-		if !g.downloader.SkipReviews {
-			var reviews []*base.Review
-			if err := retryGithubMigration(ctx, func() error { var err error; reviews, err = g.downloader.GetReviews(ctx, prs[0]); return err }); err != nil {
-				return err
-			}
-			if err := g.CreateReviews(ctx, reviews...); err != nil {
-				return err
-			}
-		}
-	}
-	g.audited = true
-	return nil
-}
-
 func (g *githubUploader) preserveTimeline(ctx context.Context, issue *issues_model.Issue) error {
 	for page := 1; ; {
 		var events []*github.Timeline
@@ -630,8 +566,6 @@ func (g *githubUploader) preserveTimeline(ctx context.Context, issue *issues_mod
 							return err
 						}
 						link = target.HTMLURL(ctx)
-					} else {
-						return fmt.Errorf("timeline of %d references missing item %d", issue.Index, source.GetNumber())
 					}
 				}
 			} else if event.GetCommitID() != "" {

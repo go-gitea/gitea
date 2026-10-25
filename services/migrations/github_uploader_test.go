@@ -193,7 +193,11 @@ func TestGithubTimelinePreservation(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-RateLimit-Remaining", "100")
 		assert.Equal(t, "/api/v3/repos/o/r/issues/1/timeline", r.URL.Path)
-		assert.NoError(t, json.NewEncoder(w).Encode([]any{map[string]any{"id": 10, "event": "cross-referenced", "created_at": "2024-01-02T03:04:05Z", "source": map[string]any{"issue": map[string]any{"number": 2, "repository_url": "http://" + r.Host + "/api/v3/repos/o/r", "html_url": "https://github.com/o/r/issues/2"}}}}))
+		events := []any{}
+		for id, number := range []int{2, 406} {
+			events = append(events, map[string]any{"id": 10 + id, "event": "cross-referenced", "created_at": "2024-01-02T03:04:05Z", "source": map[string]any{"issue": map[string]any{"number": number, "repository_url": "http://" + r.Host + "/api/v3/repos/o/r", "html_url": fmt.Sprintf("https://github.com/o/r/issues/%d", number)}}})
+		}
+		assert.NoError(t, json.NewEncoder(w).Encode(events))
 	}))
 	defer server.Close()
 	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
@@ -203,7 +207,7 @@ func TestGithubTimelinePreservation(t *testing.T) {
 		assert.Equal(t, "timelines/1", kind)
 		events, ok := value.([]*github.Timeline)
 		require.True(t, ok)
-		require.Len(t, events, 1)
+		require.Len(t, events, 2)
 		assert.Equal(t, int64(10), events[0].GetID())
 		archived = true
 		return nil
@@ -216,6 +220,8 @@ func TestGithubTimelinePreservation(t *testing.T) {
 	require.NoError(t, uploader.preserveTimeline(t.Context(), issue))
 	assert.True(t, archived)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Content: "GitHub event: cross-referenced — [source](" + target.HTMLURL(t.Context()) + ")"})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Content: "GitHub event: cross-referenced — [source](https://github.com/o/r/issues/406)"})
+	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: 1, Index: 406})
 }
 
 func TestGithubReferenceLinks(t *testing.T) {
@@ -235,36 +241,100 @@ func TestGithubReferenceLinks(t *testing.T) {
 	}
 }
 
-func TestGithubMissingIssueAudit(t *testing.T) {
+func TestGithubMigrationNumberingGaps(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	defer test.MockVariableValue(&setting.Migrations.MaxAttempts, 1)()
-	for _, unavailable := range []bool{false, true} {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("X-RateLimit-Remaining", "100")
-			if unavailable {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-			assert.Equal(t, "/api/v3/repos/o/r/issues/2", r.URL.Path)
-			assert.NoError(t, json.NewEncoder(w).Encode(map[string]any{"number": 2, "title": "Missing without comments", "repository_url": "http://" + r.Host + "/api/v3/repos/o/r", "reactions": map[string]int{"total_count": 0}}))
-		}))
-		downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
-		require.NoError(t, err)
-		downloader.archive = func(context.Context, string, int64, any) error { return nil }
-		local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
-		local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		local.repo.Status = repo_model.RepositoryBeingMigrated
-		require.NoError(t, resetGithubMigrationData(t.Context(), local.repo))
-		local.issues[1], local.issues[3] = &issues_model.Issue{}, &issues_model.Issue{}
-		uploader := &githubUploader{GiteaLocalUploader: local, downloader: downloader, opts: base.MigrateOptions{Issues: true, PullRequests: true}}
-		err = uploader.recoverMissingObjects(t.Context())
-		if unavailable {
-			require.ErrorContains(t, err, "cannot verify missing GitHub item 2")
-		} else {
-			require.NoError(t, err)
-			assert.Equal(t, "Missing without comments", local.issues[2].Title)
+	itemRequests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-RateLimit-Remaining", "100")
+		if strings.HasSuffix(r.URL.Path, "/timeline") {
+			_, _ = io.WriteString(w, "[]")
+			return
 		}
-		server.Close()
+		itemRequests++
+		w.WriteHeader(http.StatusMovedPermanently)
+		_, _ = io.WriteString(w, `{"message":"Moved Permanently","url":""}`)
+	}))
+	defer server.Close()
+	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+	require.NoError(t, err)
+	downloader.archive = func(context.Context, string, int64, any) error { return nil }
+	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
+	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	local.repo.Status = repo_model.RepositoryBeingMigrated
+	require.NoError(t, resetGithubMigrationData(t.Context(), local.repo))
+	uploader := githubMigrationUploader(local, downloader, base.MigrateOptions{Issues: true, PullRequests: true})
+	require.NoError(t, uploader.CreateIssues(t.Context(), &base.Issue{Number: 405, Title: "Closed", State: "closed"}, &base.Issue{Number: 407, Title: "Open", State: "open"}))
+	require.NoError(t, uploader.CreateComments(t.Context(), &base.Comment{Index: 1, IssueIndex: 405, Content: "Original comment"}))
+	require.NoError(t, uploader.Finish(t.Context()))
+	assert.Zero(t, itemRequests)
+	assert.Len(t, local.issues, 2)
+	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: local.repo.ID, Index: 406})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: local.issues[405].ID, Content: "Original comment"})
+	assert.True(t, local.issues[405].IsClosed)
+	assert.False(t, local.issues[407].IsClosed)
+	assert.Equal(t, repo_model.RepositoryReady, local.repo.Status)
+}
+
+func TestGithubMigrationPullStates(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	defer test.MockVariableValue(&pull.AddPullRequestToCheckQueue, func(int64) {})()
+	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
+	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	local.gitServiceType = structs.GithubService
+	var err error
+	local.gitRepo, err = git.OpenRepository(t.Context(), local.repo)
+	require.NoError(t, err)
+	defer local.gitRepo.Close()
+	sha, err := local.gitRepo.GetRefCommitID(t.Context(), "HEAD")
+	require.NoError(t, err)
+	downloader, err := NewGithubDownloaderV3(t.Context(), "https://github.com", "", "", "", "o", "r")
+	require.NoError(t, err)
+	downloader.SkipReactions = true
+	uploader := &githubUploader{GiteaLocalUploader: local, downloader: downloader}
+	created := github.Timestamp{Time: time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)}
+	closed := github.Timestamp{Time: created.Add(time.Hour)}
+	for i, example := range []struct {
+		name, state   string
+		merged, draft bool
+	}{
+		{name: "open", state: "open"},
+		{name: "closed", state: "closed"},
+		{name: "merged", state: "closed", merged: true},
+		{name: "draft", state: "open", draft: true},
+	} {
+		t.Run(example.name, func(t *testing.T) {
+			source := &github.PullRequest{
+				Number: new(9000 + i), Title: new("Source PR"), State: new(example.state), Draft: new(example.draft), Locked: new(true),
+				CreatedAt: &created, UpdatedAt: &created,
+				Head: &github.PullRequestBranch{SHA: new(sha), Ref: new("source")},
+				Base: &github.PullRequestBranch{SHA: new(sha), Ref: new("master")},
+			}
+			if example.state == "closed" {
+				source.ClosedAt = &closed
+			}
+			if example.merged {
+				source.MergedAt, source.MergeCommitSHA = &closed, new(sha)
+			}
+			prs, err := downloader.convertGithubPullRequests(t.Context(), []*github.PullRequest{source}, 100)
+			require.NoError(t, err)
+			require.NoError(t, uploader.CreatePullRequests(t.Context(), prs...))
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: local.repo.ID, Index: int64(source.GetNumber())})
+			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: local.repo.ID, Index: issue.Index})
+			assert.Equal(t, example.state == "closed", issue.IsClosed)
+			assert.Equal(t, example.merged, pr.HasMerged)
+			assert.Equal(t, example.draft, issues_model.HasWorkInProgressPrefix(issue.Title))
+			assert.True(t, issue.IsLocked)
+			assert.Equal(t, created.Unix(), int64(issue.CreatedUnix))
+			if example.state == "closed" {
+				assert.Equal(t, closed.Unix(), int64(issue.ClosedUnix))
+			}
+			if example.merged {
+				assert.Equal(t, closed.Unix(), int64(pr.MergedUnix))
+				assert.Equal(t, sha, pr.MergedCommitID)
+			}
+		})
 	}
 }
 
@@ -322,7 +392,8 @@ func TestGithubMigrationPreparedPatch(t *testing.T) {
 
 func TestGithubPullCommitPreservation(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	defer test.MockVariableValue(&pull.AddPullRequestToCheckQueue, func(int64) {})()
+	checks := 0
+	defer test.MockVariableValue(&pull.AddPullRequestToCheckQueue, func(int64) { checks++ })()
 	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
 	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	var err error
@@ -361,6 +432,7 @@ func TestGithubPullCommitPreservation(t *testing.T) {
 	pr.Number, pr.Head.SHA = 4878, ""
 	require.ErrorContains(t, uploader.CreatePullRequests(t.Context(), pr), "has no head or base commit")
 	unittest.AssertNotExistsBean(t, &issues_model.PullRequest{BaseRepoID: local.repo.ID, Index: 4878})
+	assert.Zero(t, checks)
 }
 
 func TestGithubPullHeadFetchRewrittenHistory(t *testing.T) {
@@ -368,6 +440,7 @@ func TestGithubPullHeadFetchRewrittenHistory(t *testing.T) {
 	defer test.MockVariableValue(&pull.AddPullRequestToCheckQueue, func(int64) {})()
 	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
 	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	local.gitServiceType = structs.GithubService
 	var err error
 	local.gitRepo, err = git.OpenRepository(t.Context(), local.repo)
 	require.NoError(t, err)
@@ -387,7 +460,7 @@ func TestGithubPullHeadFetchRewrittenHistory(t *testing.T) {
 	}
 	oldHead := commit(localDir, "old head")
 	newHead := commit(remoteDir, "rewritten head")
-	pr := &base.PullRequest{Number: 11391, Title: "Rewritten PR", State: "closed", EnsuredSafe: true, Head: base.PullRequestBranch{SHA: newHead}, Base: base.PullRequestBranch{SHA: baseSHA}}
+	pr := &base.PullRequest{Number: 11391, Title: "Rewritten PR", State: "open", EnsuredSafe: true, Head: base.PullRequestBranch{SHA: newHead, Ref: "deleted-fork-branch", OwnerName: "fork", RepoName: "r", CloneURL: "https://unavailable.invalid/fork.git"}, Base: base.PullRequestBranch{SHA: baseSHA, Ref: "master", OwnerName: "o", RepoName: "r", CloneURL: "https://github.com/o/r.git"}}
 	require.NoError(t, git.UpdateRef(t.Context(), local.repo, pr.GetGitHeadRefName(), oldHead))
 	require.NoError(t, gitcmd.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), newHead).WithDir(remoteDir).Run(t.Context()))
 	_, err = local.gitRepo.GetCommit(t.Context(), newHead)
@@ -397,7 +470,17 @@ func TestGithubPullHeadFetchRewrittenHistory(t *testing.T) {
 	head, err := local.gitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 	require.NoError(t, err)
 	assert.Equal(t, newHead, head)
-	unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: local.repo.ID, Index: pr.Number})
+	row := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: local.repo.ID, Index: pr.Number})
+	assert.NotEqual(t, "unknown repository", row.HeadBranch)
+	branchSHA, err := local.gitRepo.GetBranchCommitID(t.Context(), row.HeadBranch)
+	require.NoError(t, err)
+	assert.Equal(t, newHead, branchSHA)
+	pr.Number++
+	require.NoError(t, gitcmd.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), newHead).WithDir(remoteDir).Run(t.Context()))
+	require.NoError(t, uploader.CreatePullRequests(t.Context(), pr))
+	head, err = local.gitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
+	require.NoError(t, err)
+	assert.Equal(t, newHead, head)
 }
 
 func TestGithubPreserveCommitFetchesSourceWithoutOrigin(t *testing.T) {
