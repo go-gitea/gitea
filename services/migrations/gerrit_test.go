@@ -38,6 +38,7 @@ type gerritFixture struct {
 	authHeaders  []string
 	listCalls    int
 	commentCalls int
+	htmlCalls    int
 }
 
 func runGit(t *testing.T, dir string, args ...string) string {
@@ -198,6 +199,11 @@ func (f *gerritFixture) handle(w http.ResponseWriter, r *http.Request) {
 	defer f.mu.Unlock()
 	f.authHeaders = append(f.authHeaders, r.Header.Get("Authorization"))
 
+	if r.URL.EscapedPath() == "/projects/gerrit%2Fteam%2Fdemo" {
+		f.htmlCalls++
+		_, _ = w.Write([]byte("<html>not a Gerrit</html>"))
+		return
+	}
 	path, ok := strings.CutPrefix(r.URL.Path, "/gerrit")
 	if !ok {
 		http.NotFound(w, r)
@@ -211,8 +217,6 @@ func (f *gerritFixture) handle(w http.ResponseWriter, r *http.Request) {
 		path = "/" + rest
 	}
 	switch {
-	case path == "/projects/gerrit/team/demo":
-		_, _ = w.Write([]byte("<html>not a Gerrit</html>"))
 	case path == "/projects/team/demo":
 		writeGerritJSON(w, map[string]any{"name": "team/demo", "description": "demo project"})
 	case path == "/projects/team/demo/HEAD":
@@ -296,6 +300,7 @@ func TestGerritRepoInfoAndResolve(t *testing.T) {
 		DefaultBranch: "main",
 	}, repo)
 	assert.Equal(t, "team/demo", d.project)
+	assert.Equal(t, 1, f.htmlCalls, "the HTML answer of the root candidate is skipped")
 	assert.Equal(t, f.server.URL+"/gerrit", d.root)
 	for _, header := range f.authHeaders {
 		assert.Empty(t, header, "public projects are accessed anonymously")
@@ -436,6 +441,25 @@ func TestGerritCommentsAndReviews(t *testing.T) {
 		"Bob: Patch set level comment (patch set 2, revision " + f.shas["c1p2"] + "):\n\npatch set level",
 		"Alice Owner: Needs a rebase later",
 	}, texts)
+}
+
+func TestGerritActivityCache(t *testing.T) {
+	f := newGerritFixture(t)
+	d := newTestGerritDownloader(t, f.cloneAddr(), base.MigrateOptions{})
+	ctx := t.Context()
+	prs, _, err := d.GetPullRequests(ctx, 1, 2)
+	require.NoError(t, err)
+	require.Len(t, prs, 2)
+
+	for _, pr := range prs {
+		_, _, err := d.GetComments(ctx, pr)
+		require.NoError(t, err)
+	}
+	for _, pr := range prs {
+		_, err := d.GetReviews(ctx, pr)
+		require.NoError(t, err)
+	}
+	assert.Equal(t, 2, f.commentCalls, "the comments of each change are requested once")
 }
 
 func TestGerritInvalidChanges(t *testing.T) {
