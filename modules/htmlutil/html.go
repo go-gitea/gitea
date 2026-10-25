@@ -140,6 +140,11 @@ func NewHTMLWriter(w io.Writer) HTMLWriter {
 	return &htmlWriter{w: w}
 }
 
+func NewHTMLStringWriter() (*strings.Builder, HTMLWriter) {
+	sb := &strings.Builder{}
+	return sb, &htmlWriter{w: sb}
+}
+
 type HTMLBuilder struct {
 	sb strings.Builder
 }
@@ -150,6 +155,14 @@ func (b *HTMLBuilder) Err() error {
 
 func (b *HTMLBuilder) OriginWriter() io.Writer {
 	return &b.sb
+}
+
+func (b *HTMLBuilder) Reset() {
+	b.sb.Reset()
+}
+
+func (b *HTMLBuilder) Grow(n int) {
+	b.sb.Grow(n)
 }
 
 func (b *HTMLBuilder) WriteString(s string) HTMLWriter {
@@ -169,4 +182,8 @@ func (b *HTMLBuilder) WriteFormatf(fmt template.HTML, args ...any) HTMLWriter {
 
 func (b *HTMLBuilder) HTMLString() template.HTML {
 	return template.HTML(b.sb.String())
+}
+
+func (b *HTMLBuilder) String() string {
+	return b.sb.String()
 }

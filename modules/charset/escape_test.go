@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
@@ -169,6 +170,18 @@ func TestEscapeControlHTML(t *testing.T) {
 	}
 }
 
+func TestEscapeControlReader(t *testing.T) {
+	for _, tt := range escapeControlTests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := &htmlutil.HTMLBuilder{}
+			status, err := EscapeControlReader(strings.NewReader(tt.text), output, &translation.MockLocale{})
+			assert.NoError(t, err)
+			assert.Equal(t, tt.status, *status)
+			assert.Equal(t, tt.result, output.String())
+		})
+	}
+}
+
 func TestTrackHtmlTag(t *testing.T) {
 	e := &htmlEscaper{}
 	for _, tt := range []struct {
@@ -193,3 +206,4 @@ func TestSettingAmbiguousUnicodeDetection(t *testing.T) {
 	_, out = EscapeControlHTML("a test", &translation.MockLocale{})
 	assert.EqualValues(t, `a test`, out)
 }
+

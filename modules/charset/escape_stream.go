@@ -229,13 +229,14 @@ const (
 func (e *htmlEscaper) detectRunes(data string) []detectResult {
 	results := slices.Grow(e.detectResults[:0], min(len(data), detectWindowRunes))
 	invisibleRangeTable := globalVars().invisibleRangeTable
+	safeBytes := asciiSafeBytes()
 	for pos := 0; pos < len(data) && len(results) < detectWindowRunes; {
 		r, runeSize := utf8.DecodeRuneInString(data[pos:])
 		res := detectResult{runeChar: r, runeSize: runeSize, position: pos}
 		pos += runeSize
 
 		switch {
-		case r < utf8.RuneSelf && asciiSafeBytes[r]: // basic rune, no table contains printable ASCII
+		case r < utf8.RuneSelf && safeBytes[r]: // basic rune, no table contains printable ASCII
 		case r == utf8.RuneError:
 			res.runeType = runeTypeBroken
 			res.needEscape = true
