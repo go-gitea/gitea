@@ -608,7 +608,7 @@ func TestParseGerritVotes(t *testing.T) {
 
 // TestGerritRecordedResponses replays raw responses of https://gerrit-review.googlesource.com, project "gerrit",
 // change 646943. Each fixture is a recorded body, the XSSI prefix included, with the Content-Type header, unmodified.
-// To refresh them, run the test with liveMode set to true, then set it back.
+// To refresh them, pass true as the last argument of NewMockWebServer to record, then restore false to replay.
 func TestGerritRecordedResponses(t *testing.T) {
 	_, callerFile, _, _ := runtime.Caller(0)
 	dataDir := filepath.Join(filepath.Dir(callerFile), "_mock_data", "TestGerritRecordedResponses")
