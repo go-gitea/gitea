@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 )
 
@@ -47,12 +48,18 @@ func (s *ContentStore) Get(pointer Pointer) (storage.Object, error) {
 
 // Put takes a Meta object and an io.Reader and writes the content to the store.
 func (s *ContentStore) Put(pointer Pointer, r io.Reader) (retErr error) {
-	if s.TemporaryPath != "" {
-		if err := os.MkdirAll(s.TemporaryPath, 0o700); err != nil {
-			return err
+	temporaryPath := s.TemporaryPath
+	if temporaryPath == "" {
+		if local, ok := s.ObjectStorage.(*storage.LocalStorage); ok {
+			temporaryPath = local.TemporaryPath()
+		} else {
+			temporaryPath = setting.AppDataTempDir("lfs").JoinPath()
 		}
 	}
-	tmp, err := os.CreateTemp(s.TemporaryPath, "gitea-lfs-*")
+	if err := os.MkdirAll(temporaryPath, 0o700); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(temporaryPath, "gitea-lfs-*")
 	if err != nil {
 		return err
 	}

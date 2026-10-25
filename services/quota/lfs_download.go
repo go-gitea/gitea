@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
 
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
@@ -98,13 +99,16 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		log.Trace("Repo[%-v]: LFS object %-v not present in repository", repo, pointerBlob.Pointer)
 
-		exist, err := contentStore.Exists(pointerBlob.Pointer)
-		if err != nil {
+		info, err := contentStore.Stat(pointerBlob.Pointer)
+		if err != nil && !os.IsNotExist(err) {
 			log.Error("Repo[%-v]: Error checking if LFS object %-v exists: %v", repo, pointerBlob.Pointer, err)
 			return err
 		}
 
-		if exist {
+		if err == nil {
+			if info.Size() != pointerBlob.Size {
+				return lfs.ErrSizeMismatch
+			}
 			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
 			_, err := AssociateLFS(ctx, repo.ID, pointerBlob.Pointer)
 			if err != nil {

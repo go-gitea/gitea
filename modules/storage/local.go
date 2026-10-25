@@ -62,6 +62,10 @@ func (l *LocalStorage) buildLocalPath(p string) string {
 	return util.FilePathJoinAbs(l.dir, p)
 }
 
+func (l *LocalStorage) TemporaryPath() string {
+	return l.tmpdir
+}
+
 // Open a file
 func (l *LocalStorage) Open(path string) (Object, error) {
 	return os.Open(l.buildLocalPath(path))

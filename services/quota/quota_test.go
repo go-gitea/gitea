@@ -23,7 +23,9 @@ import (
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -96,6 +98,47 @@ func importCommit(t *testing.T, repo git.RepositoryFacade, data []byte) {
 	input.Write(data)
 	input.WriteString("\ncommit refs/heads/main\ncommitter Test <test@example.com> 1234567890 +0000\ndata 1\nx\nM 100644 :1 file\n\n")
 	require.NoError(t, gitcmd.NewCommand("fast-import", "--quiet", "--force").WithRepo(repo).WithStdinBytes(input.Bytes()).RunWithStderr(t.Context()))
+}
+
+func TestQuotaImportedLFS(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		size    int64
+		limit   int64
+		wantErr error
+	}{
+		{"understated", 1, 1, lfs.ErrSizeMismatch},
+		{"overstated", 5, 5, lfs.ErrSizeMismatch},
+		{"over-quota", 4, 1, util.ErrUnprocessableContent},
+		{"matching", 4, 4, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, ctx := quotaRepository(t)
+			require.NoError(t, git.InitRepository(ctx, repo, "sha1", "main"))
+			backend, err := storage.NewLocalStorage(ctx, &setting.Storage{Path: t.TempDir()})
+			require.NoError(t, err)
+			defer test.MockVariableValue(&storage.LFS, backend)()
+			data := []byte("data")
+			pointer, err := lfs.GeneratePointer(bytes.NewReader(data))
+			require.NoError(t, err)
+			require.NoError(t, lfs.NewContentStore().Put(pointer, bytes.NewReader(data)))
+			pointer.Size = tc.size
+			importCommit(t, repo, []byte(pointer.StringContent()))
+			require.NoError(t, quota_model.SetPolicy(ctx, &quota_model.Policy{Subject: quota_model.Repository, SubjectID: repo.ID, LFSLimit: &tc.limit}))
+			gitRepo, err := git.OpenRepository(ctx, repo)
+			require.NoError(t, err)
+			defer gitRepo.Close()
+			err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, nil)
+			require.ErrorIs(t, err, tc.wantErr)
+			meta, err := git_model.GetLFSMetaObjectByOid(ctx, repo.ID, pointer.Oid)
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+			} else {
+				require.NoError(t, err)
+				assert.EqualValues(t, len(data), meta.Size)
+			}
+		})
+	}
 }
 
 func TestQuotaStagedCloneAndFetch(t *testing.T) {
