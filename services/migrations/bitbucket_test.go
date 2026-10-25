@@ -260,3 +260,16 @@ func TestBitbucketRetryWait(t *testing.T) {
 	// With no rate-limit headers it falls back to a positive exponential backoff.
 	assert.Positive(t, retryWaitFor(nil))
 }
+
+func TestBitbucketFormatCloneURL(t *testing.T) {
+	d := &BitbucketDownloader{}
+	const addr = "https://bitbucket.org/gitea/repo"
+
+	got, err := d.FormatCloneURL(base.MigrateOptions{AuthUsername: "me@example.com", AuthPassword: "ATATT"}, addr)
+	require.NoError(t, err)
+	assert.Equal(t, "https://x-bitbucket-api-token-auth:ATATT@bitbucket.org/gitea/repo", got)
+
+	got, err = d.FormatCloneURL(base.MigrateOptions{AuthToken: "tok"}, addr)
+	require.NoError(t, err)
+	assert.Equal(t, "https://x-token-auth:tok@bitbucket.org/gitea/repo", got)
+}

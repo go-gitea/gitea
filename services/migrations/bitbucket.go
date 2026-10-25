@@ -255,6 +255,15 @@ func (b *BitbucketDownloader) FormatCloneURL(opts base.MigrateOptions, remoteAdd
 		u.User = url.UserPassword("x-token-auth", opts.AuthToken)
 		return u.String(), nil
 	}
+	if strings.Contains(opts.AuthUsername, "@") && opts.AuthPassword != "" {
+		// Atlassian API tokens use the account email for the REST API but a fixed username for git
+		u, err := url.Parse(remoteAddr)
+		if err != nil {
+			return "", err
+		}
+		u.User = url.UserPassword("x-bitbucket-api-token-auth", opts.AuthPassword)
+		return u.String(), nil
+	}
 	return b.NullDownloader.FormatCloneURL(opts, remoteAddr)
 }
 
