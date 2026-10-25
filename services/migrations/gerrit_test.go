@@ -12,12 +12,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
@@ -602,4 +604,73 @@ func TestParseGerritVotes(t *testing.T) {
 	patchSet, votes = parseGerritVotes("Just a message")
 	assert.Zero(t, patchSet)
 	assert.Empty(t, votes)
+}
+
+// TestGerritRecordedResponses replays raw responses of https://gerrit-review.googlesource.com, project "gerrit",
+// change 646943. Each fixture is a recorded body, the XSSI prefix included, with the Content-Type header, unmodified.
+// To refresh them, run the test with liveMode set to true, then set it back.
+func TestGerritRecordedResponses(t *testing.T) {
+	_, callerFile, _, _ := runtime.Caller(0)
+	dataDir := filepath.Join(filepath.Dir(callerFile), "_mock_data", "TestGerritRecordedResponses")
+	server := unittest.NewMockWebServer(t, "https://gerrit-review.googlesource.com", dataDir, false)
+
+	ctx := t.Context()
+	d := newTestGerritDownloader(t, server.URL+"/gerrit", base.MigrateOptions{})
+
+	repo, err := d.GetRepoInfo(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, "gerrit", repo.Name)
+	assert.Equal(t, "Gerrit Code Review", repo.Description)
+	assert.Equal(t, "master", repo.DefaultBranch)
+
+	pr, err := d.getPullRequest(ctx, 646943)
+	require.NoError(t, err)
+	assert.EqualValues(t, 646943, pr.Number)
+	assert.Equal(t, "Bazel: Build in-tree plugins against the unpublished plugin API", pr.Title)
+	assert.Equal(t, "closed", pr.State)
+	assert.True(t, pr.Merged)
+	assert.False(t, pr.IsDraft)
+	assert.Equal(t, "master", pr.Base.Ref)
+	assert.Equal(t, "5d66555e5eaa3189f0b7956e7ff168110a5652ef", pr.Base.SHA)
+	assert.Equal(t, "refs/changes/43/646943/3", pr.Head.Ref)
+	assert.Equal(t, "497721cb3009183d3c38b0e5e3be5e839d0d690c", pr.Head.SHA)
+	assert.EqualValues(t, 1011323, pr.PosterID)
+	assert.Equal(t, "David Ostrovsky", pr.PosterName)
+	assert.Contains(t, pr.Content, "Change-Id: I7ae8896425044789699051bcc06fd38cc528be47")
+	assert.Equal(t, time.Date(2026, 10, 22, 10, 39, 24, 0, time.UTC), pr.MergedTime.UTC())
+
+	change, ok := pr.Context.(*gerritChange)
+	require.True(t, ok)
+	require.Len(t, change.patchSets, 3)
+	assert.Equal(t, "refs/changes/43/646943/1", change.patchSets[0].Ref)
+	assert.Equal(t, "56a6ac827af5d2180bc18ef5d7cf4aad8baf2cd4", change.patchSets[0].SHA)
+	assert.Equal(t, 3, change.current.Number)
+
+	reviews, err := d.GetReviews(ctx, pr)
+	require.NoError(t, err)
+	states := map[string]int{}
+	for _, review := range reviews {
+		states[review.State]++
+		if review.State == base.ReviewStateApproved {
+			assert.EqualValues(t, 1025452, review.ReviewerID)
+			assert.Equal(t, "497721cb3009183d3c38b0e5e3be5e839d0d690c", review.CommitID)
+			assert.Equal(t, "Patch Set 3: Code-Review+2", review.Content)
+		}
+	}
+	assert.Equal(t, map[string]int{base.ReviewStateApproved: 1, base.ReviewStateCommented: 9}, states)
+
+	comments, _, err := d.GetComments(ctx, pr)
+	require.NoError(t, err)
+	var patchSetLevel, merged int
+	for _, comment := range comments {
+		switch {
+		case strings.HasPrefix(comment.Content, "Patch set level comment (patch set 3, revision 497721cb"):
+			patchSetLevel++
+		case comment.Content == "Change has been successfully merged":
+			merged++
+		}
+	}
+	assert.Len(t, comments, 7)
+	assert.Equal(t, 2, patchSetLevel)
+	assert.Equal(t, 1, merged)
 }
