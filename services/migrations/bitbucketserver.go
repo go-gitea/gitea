@@ -257,6 +257,46 @@ type bbsComment struct {
 	Comments    []*bbsComment `json:"comments"` // replies
 
 	ThreadResolved bool `json:"threadResolved"`
+
+	Properties struct {
+		Reactions []struct {
+			Emoticon struct {
+				Shortcut string `json:"shortcut"`
+			} `json:"emoticon"`
+			Users []bbsUser `json:"users"`
+		} `json:"reactions"`
+	} `json:"properties"`
+}
+
+// bbsReactions maps the emoticon shortcuts of Bitbucket to the reactions of Gitea, other emoticons are dropped
+var bbsReactions = map[string]string{
+	"thumbsup":   "+1",
+	"+1":         "+1",
+	"thumbsdown": "-1",
+	"-1":         "-1",
+	"smile":      "laugh",
+	"smiley":     "laugh",
+	"laughing":   "laugh",
+	"grinning":   "laugh",
+	"tada":       "hooray",
+	"confused":   "confused",
+	"heart":      "heart",
+	"rocket":     "rocket",
+	"eyes":       "eyes",
+}
+
+func (c *bbsComment) reactions() []*base.Reaction {
+	var reactions []*base.Reaction
+	for _, r := range c.Properties.Reactions {
+		content, ok := bbsReactions[r.Emoticon.Shortcut]
+		if !ok {
+			continue
+		}
+		for _, u := range r.Users {
+			reactions = append(reactions, &base.Reaction{UserID: u.ID, UserName: u.login(), Content: content})
+		}
+	}
+	return reactions
 }
 
 func (c *bbsComment) updated() time.Time {
@@ -657,6 +697,7 @@ func (d *BitbucketServerDownloader) GetComments(ctx context.Context, commentable
 			Created:     time.UnixMilli(c.CreatedDate),
 			Updated:     c.updated(),
 			Content:     content,
+			Reactions:   c.reactions(),
 		})
 	})
 	for _, activity := range activities {
@@ -759,6 +800,7 @@ func (c *bbsComment) toReviewComment(anchor *bbsAnchor, isRoot bool) *base.Revie
 		CreatedAt: time.UnixMilli(c.CreatedDate),
 		UpdatedAt: c.updated(),
 		Resolved:  isRoot && c.ThreadResolved,
+		Reactions: c.reactions(),
 	}
 	side := ""
 	if anchor.FileType == "FROM" {

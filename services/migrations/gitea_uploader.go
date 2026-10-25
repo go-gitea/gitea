@@ -968,6 +968,17 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 				return err
 			}
 
+			for _, reaction := range comment.Reactions {
+				res := issues_model.Reaction{
+					Type:        reaction.Content,
+					CreatedUnix: timeutil.TimeStampNow(),
+				}
+				if err := g.remapUser(ctx, reaction, &res); err != nil {
+					return err
+				}
+				c.Reactions = append(c.Reactions, &res)
+			}
+
 			cm.Comments = append(cm.Comments, &c)
 		}
 	}

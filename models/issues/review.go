@@ -679,9 +679,19 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 				c.ReviewID = review.ID
 			}
 
-			if len(review.Comments) > 0 {
-				if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
+			// insert one by one, a batch insert does not report the ids the reactions of the comments refer to
+			for _, c := range review.Comments {
+				if _, err := sess.NoAutoTime().Insert(c); err != nil {
 					return err
+				}
+				for _, reaction := range c.Reactions {
+					reaction.IssueID = c.IssueID
+					reaction.CommentID = c.ID
+				}
+				if len(c.Reactions) > 0 {
+					if err := db.Insert(ctx, c.Reactions); err != nil {
+						return err
+					}
 				}
 			}
 

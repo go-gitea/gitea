@@ -434,3 +434,37 @@ func TestRecalculateReviewsOfficial(t *testing.T) {
 	review = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID})
 	assert.True(t, review.Official)
 }
+
+func TestInsertReviewsWithCommentReactions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+
+	review := &issues_model.Review{
+		Type:       issues_model.ReviewTypeComment,
+		IssueID:    issue.ID,
+		ReviewerID: 1,
+		Comments: []*issues_model.Comment{{
+			Type:     issues_model.CommentTypeCode,
+			PosterID: 1,
+			IssueID:  issue.ID,
+			TreePath: "README.md",
+			Line:     1,
+			Content:  "migrated code comment",
+			Reactions: issues_model.ReactionList{
+				{Type: "+1", UserID: 1},
+				{Type: "heart", UserID: 2},
+			},
+		}},
+	}
+	assert.NoError(t, issues_model.InsertReviews(t.Context(), []*issues_model.Review{review}))
+
+	comment := review.Comments[0]
+	assert.Positive(t, comment.ID)
+	reactions, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{IssueIDWithComments: issue.ID, CommentID: comment.ID})
+	assert.NoError(t, err)
+	assert.Len(t, reactions, 2)
+	for _, r := range reactions {
+		assert.Equal(t, issue.ID, r.IssueID)
+		assert.Equal(t, comment.ID, r.CommentID)
+	}
+}
