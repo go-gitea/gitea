@@ -44,6 +44,8 @@ func ToGitServiceType(value string) structs.GitServiceType {
 		return structs.BitbucketServerService
 	case "forgejo":
 		return structs.ForgejoService
+	case "gerrit":
+		return structs.GerritService
 	default:
 		return structs.PlainGitService
 	}

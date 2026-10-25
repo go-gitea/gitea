@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 )
 
@@ -150,6 +151,13 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 func migrateRepository(ctx context.Context, doer *user_model.User, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
 	if messenger == nil {
 		messenger = base.NilMessenger
+	}
+
+	if opts.GitServiceType == structs.GerritService {
+		if opts.Mirror {
+			return errors.New("migrateRepository: a Gerrit project can only be migrated once, mirroring is not supported")
+		}
+		opts.Comments = opts.PullRequests
 	}
 
 	repo, err := downloader.GetRepoInfo(ctx)

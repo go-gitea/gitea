@@ -8089,7 +8089,8 @@
               "codebase",
               "codecommit",
               "bitbucketserver",
-              "forgejo"
+              "forgejo",
+              "gerrit"
             ],
             "type": "string",
             "x-go-name": "Service"

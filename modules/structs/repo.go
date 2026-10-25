@@ -359,6 +359,7 @@ const (
 	CodeCommitService                            // 9 codecommit service
 	BitbucketServerService                       // 10 bitbucket server (data center) service
 	ForgejoService                               // 11 forgejo service
+	GerritService                                // 12 gerrit service
 )
 
 // Name represents the service type's name
@@ -388,6 +389,8 @@ func (gt GitServiceType) Title() string {
 		return "CodeCommit"
 	case BitbucketServerService:
 		return "Bitbucket Server"
+	case GerritService:
+		return "Gerrit"
 	case ForgejoService:
 		return "Forgejo"
 	case PlainGitService:
@@ -426,7 +429,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit","bitbucketserver","forgejo"]
+	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit","bitbucketserver","forgejo","gerrit"]
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
@@ -471,6 +474,7 @@ var SupportedFullGitService = []GitServiceType{
 	CodebaseService,
 	CodeCommitService,
 	BitbucketServerService,
+	GerritService,
 }
 
 // RepoTransfer represents a pending repo transfer

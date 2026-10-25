@@ -13,6 +13,7 @@ export const initRepoMigration = () => registerGlobalInitFunc('initGitMigrateFor
   const lfsSettings = elForm.querySelector<HTMLElement>('#lfs_settings');
   const lfsEndpoint = elForm.querySelector<HTMLElement>('#lfs_endpoint');
   const items = elForm.querySelectorAll<HTMLInputElement>('#migrate_items input[type=checkbox]');
+  const anonymousItems = elForm.hasAttribute('data-migrate-anonymous');
 
   checkItems(Number(service.value) !== 1); // 1 = plain git service
   setLFSSettingsVisibility();
@@ -53,7 +54,7 @@ export const initRepoMigration = () => registerGlobalInitFunc('initGitMigrateFor
     } else {
       enableItems = user?.value !== '' || pass?.value !== '';
     }
-    if (enableItems && Number(service?.value) > 1) {
+    if ((enableItems || anonymousItems) && Number(service?.value) > 1) {
       if (mirror?.checked) {
         for (const item of items) {
           item.disabled = item.name !== 'wiki';

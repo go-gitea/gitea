@@ -760,6 +760,10 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 
 	milestoneID := g.milestones[pr.Milestone]
 
+	if err := g.verifyGerritChange(ctx, pr); err != nil {
+		return nil, fmt.Errorf("newPullRequest: %w", err)
+	}
+
 	head, err := g.updateGitForPullRequest(ctx, pr)
 	if err != nil {
 		return nil, fmt.Errorf("updateGitForPullRequest: %w", err)
@@ -847,6 +851,11 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 		pullRequest.MergedUnix = timeutil.TimeStamp(pr.MergedTime.Unix())
 		pullRequest.MergedCommitID = pr.MergeCommitSHA
 		pullRequest.MergerID = g.doer.ID
+	}
+
+	// the head of a Gerrit change is a ref, not a branch, like the head of an AGit pull request
+	if _, ok := pr.Context.(*gerritChange); ok {
+		pullRequest.Flow = issues_model.PullRequestFlowAGit
 	}
 
 	// TODO: assignees

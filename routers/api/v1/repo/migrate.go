@@ -98,6 +98,19 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}
 
+	gitServiceType := convert.ToGitServiceType(form.Service)
+
+	if gitServiceType == api.GerritService {
+		if form.Mirror {
+			ctx.APIError(http.StatusUnprocessableEntity, "A Gerrit project can only be migrated once, mirroring is not supported.")
+			return
+		}
+		if err := migrations.ValidateGerritCloneAddr(form.CloneAddr); err != nil {
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+	}
+
 	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
 		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
@@ -106,8 +119,6 @@ func Migrate(ctx *context.APIContext) {
 		handleRemoteAddrError(ctx, err)
 		return
 	}
-
-	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if form.Mirror && setting.Mirror.DisableNewPull {
 		ctx.APIError(http.StatusForbidden, "the site administrator has disabled the creation of new pull mirrors")
