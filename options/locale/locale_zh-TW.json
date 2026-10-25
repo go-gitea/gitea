@@ -3177,6 +3177,7 @@
   "projects.type-1.display_name": "個人專案",
   "projects.type-2.display_name": "儲存庫專案",
   "projects.type-3.display_name": "組織專案",
+  "projects.workflows.none": "無",
   "git.filemode.directory": "目錄",
   "git.filemode.submodule": "子模組",
   "actions.general.token_permissions.mode.restricted": "受限"

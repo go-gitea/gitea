@@ -1091,5 +1091,7 @@
   "actions.runs.branch": "Vetva",
   "actions.workflow.scope_owner": "Vlastník",
   "actions.workflow.scope_global": "Globálne",
-  "actions.job_queue.filter_repo_no_select": "Všetky repozitáre"
+  "actions.job_queue.filter_repo_no_select": "Všetky repozitáre",
+  "projects.workflows.actions": "Akcie",
+  "projects.workflows.none": "Žiadny"
 }

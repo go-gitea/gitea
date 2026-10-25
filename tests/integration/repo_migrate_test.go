@@ -48,7 +48,7 @@ func TestRepoMigrate(t *testing.T) {
 
 	t.Run("ProviderEntries", func(t *testing.T) {
 		resp := session.MakeRequest(t, NewRequest(t, "GET", "/repo/migrate"), http.StatusOK)
-		entries := NewHTMLParser(t, resp.Body).Find(".migrate-entry .header").FilterFunction(func(_ int, s *goquery.Selection) bool {
+		entries := NewHTMLParser(t, resp.Body).Find(".migrate-entry-title").FilterFunction(func(_ int, s *goquery.Selection) bool {
 			return strings.Contains(s.Text(), "Bitbucket")
 		})
 		assert.Equal(t, 1, entries.Length())

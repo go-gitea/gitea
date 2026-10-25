@@ -62,38 +62,32 @@ func TestRepoMergeUpstream(t *testing.T) {
 			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "new-file.txt", "master", "test-content-1"))
 
 			var mergeUpstreamLink string
-			t.Run("DetectDefaultBranch", func(t *testing.T) {
+			for _, test := range []struct{ name, branch string }{
 				// the repo shows a prompt to "sync fork" (defaults to the default branch)
-				require.Eventually(t, func() bool {
-					resp := session.MakeRequest(t, NewRequestf(t, "GET", "/%s/test-repo-fork/src/branch/fork-branch", forkUser.Name), http.StatusOK)
-					htmlDoc := NewHTMLParser(t, resp.Body)
-					mergeUpstreamLink = queryMergeUpstreamButtonLink(htmlDoc)
-					if mergeUpstreamLink == "" {
-						return false
+				{"DetectDefaultBranch", "master"},
+				{"DetectSameBranch", "fork-branch"},
+			} {
+				t.Run(test.name, func(t *testing.T) {
+					if test.branch == "fork-branch" {
+						// if the fork-branch name also exists in the base repo, then use that branch instead
+						req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/_new/branch/master", map[string]string{
+							"new_branch_name": "fork-branch",
+						})
+						sessionBaseUser.MakeRequest(t, req, http.StatusSeeOther)
 					}
-					respMsg, _ := htmlDoc.Find(".ui.message:not(.positive)").Html()
-					return strings.Contains(respMsg, `This branch is 1 commit behind <a href="/user2/repo1/src/branch/master">user2/repo1:master</a>`)
-				}, 5*time.Second, 100*time.Millisecond)
-			})
 
-			t.Run("DetectSameBranch", func(t *testing.T) {
-				// if the fork-branch name also exists in the base repo, then use that branch instead
-				req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/_new/branch/master", map[string]string{
-					"new_branch_name": "fork-branch",
+					require.Eventually(t, func() bool {
+						resp := session.MakeRequest(t, NewRequestf(t, "GET", "/%s/test-repo-fork/src/branch/fork-branch", forkUser.Name), http.StatusOK)
+						htmlDoc := NewHTMLParser(t, resp.Body)
+						mergeUpstreamLink = queryMergeUpstreamButtonLink(htmlDoc)
+						if mergeUpstreamLink == "" {
+							return false
+						}
+						respMsg, _ := htmlDoc.Find(".ui.message:not(.positive)").Html()
+						return strings.Contains(respMsg, fmt.Sprintf(`This branch is 1 commit behind <a href="/user2/repo1/src/branch/%s">user2/repo1:%s</a>`, test.branch, test.branch))
+					}, 5*time.Second, 100*time.Millisecond)
 				})
-				sessionBaseUser.MakeRequest(t, req, http.StatusSeeOther)
-
-				require.Eventually(t, func() bool {
-					resp := session.MakeRequest(t, NewRequestf(t, "GET", "/%s/test-repo-fork/src/branch/fork-branch", forkUser.Name), http.StatusOK)
-					htmlDoc := NewHTMLParser(t, resp.Body)
-					mergeUpstreamLink = queryMergeUpstreamButtonLink(htmlDoc)
-					if mergeUpstreamLink == "" {
-						return false
-					}
-					respMsg, _ := htmlDoc.Find(".ui.message:not(.positive)").Html()
-					return strings.Contains(respMsg, `This branch is 1 commit behind <a href="/user2/repo1/src/branch/fork-branch">user2/repo1:fork-branch</a>`)
-				}, 5*time.Second, 100*time.Millisecond)
-			})
+			}
 
 			// click the "sync fork" button
 			req = NewRequest(t, "POST", mergeUpstreamLink)
