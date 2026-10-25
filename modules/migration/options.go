@@ -36,6 +36,7 @@ type MigrateOptions struct {
 	Comments        bool
 	PullRequests    bool
 	ReleaseAssets   bool
+	Attachments     bool // attachments of pull requests and comments, only supported by some downloaders
 	MigrateToRepoID int64
 	MirrorInterval  string `json:"mirror_interval"`
 

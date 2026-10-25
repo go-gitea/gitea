@@ -52,7 +52,9 @@ func (f *BitbucketServerDownloaderFactory) New(ctx context.Context, opts base.Mi
 		return nil, err
 	}
 	log.Trace("Create Bitbucket Server downloader. BaseURL: %s Project: %s Repo: %s", baseURL, projectKey, repoSlug)
-	return NewBitbucketServerDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, projectKey, repoSlug), nil
+	d := NewBitbucketServerDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, projectKey, repoSlug)
+	d.migrateAttachments = opts.Attachments
+	return d, nil
 }
 
 // GitServiceType returns the type of git service
@@ -113,6 +115,8 @@ type BitbucketServerDownloader struct {
 	activities map[int64][]*bbsActivity
 	// reviewers of the PRs on the last fetched page
 	reviewers map[int64][]bbsReviewer
+	// migrateAttachments copies the files of attachments, otherwise their references point to the source server
+	migrateAttachments bool
 	// id of the repository, 0 until known; attachments of other repositories cannot be resolved
 	repoID int64
 }
@@ -646,7 +650,7 @@ func (d *BitbucketServerDownloader) rewriteAttachments(ctx context.Context, text
 			return m // belongs to another repository
 		}
 		link := d.baseURL + "/rest/api/1.0" + d.repoPath() + "/attachments/" + id
-		if !seen[id] {
+		if d.migrateAttachments && !seen[id] {
 			seen[id] = true
 			attachments = append(attachments, &base.Attachment{
 				Name:         d.attachmentName(ctx, link, label, id),

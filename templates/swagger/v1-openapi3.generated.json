@@ -8000,6 +8000,11 @@
       "MigrateRepoOptions": {
         "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
         "properties": {
+          "attachments": {
+            "description": "migrate the attachments of pull requests and comments, only supported when migrating from bitbucketserver",
+            "type": "boolean",
+            "x-go-name": "Attachments"
+          },
           "auth_password": {
             "type": "string",
             "x-go-name": "AuthPassword"

@@ -432,17 +432,19 @@ type MigrateRepoOptions struct {
 	AuthPassword string `json:"auth_password"`
 	AuthToken    string `json:"auth_token"`
 
-	Mirror         bool   `json:"mirror"`
-	LFS            bool   `json:"lfs"`
-	LFSEndpoint    string `json:"lfs_endpoint"`
-	Private        bool   `json:"private"`
-	Description    string `json:"description" binding:"MaxSize(2048)"`
-	Wiki           bool   `json:"wiki"`
-	Milestones     bool   `json:"milestones"`
-	Labels         bool   `json:"labels"`
-	Issues         bool   `json:"issues"`
-	PullRequests   bool   `json:"pull_requests"`
-	Releases       bool   `json:"releases"`
+	Mirror       bool   `json:"mirror"`
+	LFS          bool   `json:"lfs"`
+	LFSEndpoint  string `json:"lfs_endpoint"`
+	Private      bool   `json:"private"`
+	Description  string `json:"description" binding:"MaxSize(2048)"`
+	Wiki         bool   `json:"wiki"`
+	Milestones   bool   `json:"milestones"`
+	Labels       bool   `json:"labels"`
+	Issues       bool   `json:"issues"`
+	PullRequests bool   `json:"pull_requests"`
+	Releases     bool   `json:"releases"`
+	// migrate the attachments of pull requests and comments, only supported when migrating from bitbucketserver
+	Attachments    bool   `json:"attachments"`
 	MirrorInterval string `json:"mirror_interval"`
 
 	AWSAccessKeyID     string `json:"aws_access_key_id"`

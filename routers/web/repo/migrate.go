@@ -195,6 +195,8 @@ func MigratePost(ctx *context.Context) {
 		Comments:       form.Issues || form.PullRequests,
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
+		// only some services support to migrate attachments, the option is not offered for the others
+		Attachments: form.Attachments && form.Service == structs.BitbucketServerService,
 	}
 	if opts.Mirror {
 		opts.Issues = false
@@ -203,6 +205,7 @@ func MigratePost(ctx *context.Context) {
 		opts.Comments = false
 		opts.PullRequests = false
 		opts.Releases = false
+		opts.Attachments = false
 	}
 	if form.Service == structs.CodeCommitService {
 		opts.AWSAccessKeyID = form.AWSAccessKeyID

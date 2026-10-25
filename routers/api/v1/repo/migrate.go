@@ -153,6 +153,7 @@ func Migrate(ctx *context.APIContext) {
 		Comments:       form.Issues || form.PullRequests,
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
+		Attachments:    form.Attachments,
 		GitServiceType: gitServiceType,
 		MirrorInterval: form.MirrorInterval,
 	}
@@ -163,6 +164,11 @@ func Migrate(ctx *context.APIContext) {
 		opts.Comments = false
 		opts.PullRequests = false
 		opts.Releases = false
+		opts.Attachments = false
+	}
+	if opts.Attachments && gitServiceType != api.BitbucketServerService {
+		ctx.APIError(http.StatusUnprocessableEntity, "Migrating attachments is only supported for bitbucketserver.")
+		return
 	}
 	if gitServiceType == api.CodeCommitService {
 		opts.AWSAccessKeyID = form.AWSAccessKeyID

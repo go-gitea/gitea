@@ -361,8 +361,20 @@ func TestBitbucketServerReviewRequestsAndAttachments(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// without the option the files are not copied, the links point to the source server
 	d := NewBitbucketServerDownloader(t.Context(), srv.URL, "", "", "", "PROJ", "repo")
 	prs, _, err := d.GetPullRequests(t.Context(), 1, 50)
+	require.NoError(t, err)
+	require.Len(t, prs, 1)
+	assert.Empty(t, prs[0].Attachments)
+	assert.Contains(t, prs[0].Content, "/rest/api/1.0/projects/PROJ/repos/repo/attachments/11")
+
+	factory := &BitbucketServerDownloaderFactory{}
+	downloader, err := factory.New(t.Context(), base.MigrateOptions{CloneAddr: srv.URL + "/projects/PROJ/repos/repo", Attachments: true})
+	require.NoError(t, err)
+	d = downloader.(*BitbucketServerDownloader)
+	assert.True(t, d.migrateAttachments)
+	prs, _, err = d.GetPullRequests(t.Context(), 1, 50)
 	require.NoError(t, err)
 	require.Len(t, prs, 1)
 	attachment := func(id string) string { return srv.URL + "/rest/api/1.0/projects/PROJ/repos/repo/attachments/" + id }
