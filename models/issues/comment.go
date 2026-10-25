@@ -1337,6 +1337,10 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 					return err
 				}
 			}
+
+			if err := insertMigratedAttachments(ctx, comment.IssueID, comment.ID, comment.Attachments); err != nil {
+				return err
+			}
 		}
 
 		for _, issueID := range issueIDs {

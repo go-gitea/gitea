@@ -6,9 +6,11 @@ package migrations
 import (
 	"cmp"
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -347,6 +349,12 @@ func TestBitbucketServerReviewRequestsAndAttachments(t *testing.T) {
 {"action":"APPROVED","createdDate":1700000100000,"user":{"id":9,"name":"carol"}},
 {"action":"REVIEWED","createdDate":1700000100000,"user":{"id":10,"name":"dave"}}
 ]}`))
+		case api + "/attachments/11", api + "/attachments/13", api + "/attachments/14":
+			id := path.Base(r.URL.Path)
+			w.Header().Set("Content-Disposition", `inline; filename="file-`+id+`.txt"`)
+			if r.Method == http.MethodGet {
+				_, _ = w.Write([]byte("content " + id))
+			}
 		default:
 			assert.Failf(t, "unexpected request", "%s", r.URL.Path)
 		}
@@ -361,6 +369,22 @@ func TestBitbucketServerReviewRequestsAndAttachments(t *testing.T) {
 	assert.Equal(t, "see [a.png]("+attachment("11")+") and ![](attachment:99/12)", prs[0].Content,
 		"the attachment of the repository is linked, the one of another repository is kept")
 
+	readAttachments := func(attachments []*base.Attachment) map[string]string {
+		got := map[string]string{}
+		for _, a := range attachments {
+			rc, err := a.DownloadFunc()
+			require.NoError(t, err)
+			data, err := io.ReadAll(rc)
+			require.NoError(t, err)
+			require.NoError(t, rc.Close())
+			assert.Contains(t, a.Link, "/attachments/")
+			got[a.Name] = string(data)
+		}
+		return got
+	}
+	assert.Equal(t, map[string]string{"file-11.txt": "content 11"}, readAttachments(prs[0].Attachments),
+		"the file of the other repository is not an attachment")
+
 	comments, _, err := d.GetComments(t.Context(), prs[0])
 	require.NoError(t, err)
 	require.Len(t, comments, 1, "the inline comment belongs to the reviews")
@@ -370,6 +394,7 @@ func TestBitbucketServerReviewRequestsAndAttachments(t *testing.T) {
 		{UserID: 9, UserName: "carol", Content: "+1"},
 		{UserID: 8, UserName: "bob", Content: "hooray"},
 	}, comments[0].Reactions, "unknown emoticons are dropped")
+	assert.Equal(t, map[string]string{"file-13.txt": "content 13"}, readAttachments(comments[0].Attachments))
 
 	reviews, err := d.GetReviews(t.Context(), prs[0])
 	require.NoError(t, err)
@@ -380,6 +405,7 @@ func TestBitbucketServerReviewRequestsAndAttachments(t *testing.T) {
 		if len(r.Comments) > 0 {
 			assert.Equal(t, "inline ![]("+attachment("14")+")", r.Comments[0].Content)
 			assert.Equal(t, []*base.Reaction{{UserID: 9, UserName: "carol", Content: "heart"}}, r.Comments[0].Reactions)
+			assert.Equal(t, map[string]string{"file-14.txt": "content 14"}, readAttachments(r.Comments[0].Attachments))
 		}
 	}
 	assert.ElementsMatch(t, []summary{

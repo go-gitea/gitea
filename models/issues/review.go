@@ -693,6 +693,9 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 						return err
 					}
 				}
+				if err := insertMigratedAttachments(ctx, c.IssueID, c.ID, c.Attachments); err != nil {
+					return err
+				}
 			}
 
 			if err := UpdateIssueNumComments(ctx, review.IssueID); err != nil {

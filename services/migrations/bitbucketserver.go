@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"mime"
 	"net/http"
 	"net/url"
+	"path"
 	"regexp"
 	"slices"
 	"strconv"
@@ -371,7 +373,7 @@ func (d *BitbucketServerDownloader) callAPI(ctx context.Context, path string, qu
 		apiURL += "?" + query.Encode()
 	}
 
-	resp, err := d.doRequest(ctx, apiURL)
+	resp, err := d.doRequest(ctx, http.MethodGet, apiURL, "application/json")
 	for attempt := 1; err == nil && resp.StatusCode == http.StatusTooManyRequests && attempt < bitbucketServerMaxAttempts; attempt++ {
 		wait := bitbucketServerRetryAfter(resp.Header.Get("Retry-After"), attempt)
 		resp.Body.Close()
@@ -379,7 +381,7 @@ func (d *BitbucketServerDownloader) callAPI(ctx context.Context, path string, qu
 		if err := d.sleep(ctx, wait); err != nil {
 			return nil, err
 		}
-		resp, err = d.doRequest(ctx, apiURL)
+		resp, err = d.doRequest(ctx, http.MethodGet, apiURL, "application/json")
 	}
 	if err != nil {
 		return nil, err
@@ -399,12 +401,12 @@ func (d *BitbucketServerDownloader) callAPI(ctx context.Context, path string, qu
 	return resp.Header, json.Unmarshal(data, result)
 }
 
-func (d *BitbucketServerDownloader) doRequest(ctx context.Context, apiURL string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+func (d *BitbucketServerDownloader) doRequest(ctx context.Context, method, apiURL, accept string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, apiURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", accept)
 	if d.token != "" {
 		req.Header.Set("Authorization", "Bearer "+d.token)
 	} else if d.username != "" || d.password != "" {
@@ -541,11 +543,13 @@ func (d *BitbucketServerDownloader) convertPullRequest(ctx context.Context, orig
 		d.repoID = orig.ToRef.Repository.ID
 	}
 	d.reviewers[orig.ID] = orig.Reviewers
+	content, attachments := d.rewriteAttachments(ctx, orig.Description)
 	pr := &base.PullRequest{
 		Number:       orig.ID,
 		ForeignIndex: orig.ID,
 		Title:        orig.Title,
-		Content:      d.rewriteAttachments(orig.Description),
+		Content:      content,
+		Attachments:  attachments,
 		PosterID:     orig.Author.User.ID,
 		PosterName:   orig.Author.User.login(),
 		PosterEmail:  orig.Author.User.EmailAddress,
@@ -625,22 +629,61 @@ func (d *BitbucketServerDownloader) getActivities(ctx context.Context, prID int6
 	return activities, nil
 }
 
-var bbsAttachmentLink = regexp.MustCompile(`attachment:(\d+)/(\d+)`)
+var bbsAttachmentLink = regexp.MustCompile(`(\[([^\]]*)\]\()?attachment:(\d+)/(\d+)`)
 
 // rewriteAttachments turns the attachment references of a markdown text, which only Bitbucket can resolve, into
-// URLs of the REST API, so that the links keep working for users who can read the source repository.
-// The files themselves are not copied, the migration model has no attachments for pull requests and comments.
-func (d *BitbucketServerDownloader) rewriteAttachments(text string) string {
+// URLs of the REST API and returns the files they refer to, so that they are copied by the migration.
+func (d *BitbucketServerDownloader) rewriteAttachments(ctx context.Context, text string) (string, []*base.Attachment) {
 	if !strings.Contains(text, "attachment:") {
-		return text
+		return text, nil
 	}
-	return bbsAttachmentLink.ReplaceAllStringFunc(text, func(m string) string {
+	var attachments []*base.Attachment
+	seen := map[string]bool{}
+	text = bbsAttachmentLink.ReplaceAllStringFunc(text, func(m string) string {
 		parts := bbsAttachmentLink.FindStringSubmatch(m)
-		if repoID, _ := strconv.ParseInt(parts[1], 10, 64); d.repoID != 0 && repoID != d.repoID {
+		label, repoID, id := parts[2], parts[3], parts[4]
+		if n, _ := strconv.ParseInt(repoID, 10, 64); d.repoID != 0 && n != d.repoID {
 			return m // belongs to another repository
 		}
-		return d.baseURL + "/rest/api/1.0" + d.repoPath() + "/attachments/" + parts[2]
+		link := d.baseURL + "/rest/api/1.0" + d.repoPath() + "/attachments/" + id
+		if !seen[id] {
+			seen[id] = true
+			attachments = append(attachments, &base.Attachment{
+				Name:         d.attachmentName(ctx, link, label, id),
+				Link:         link,
+				DownloadFunc: func() (io.ReadCloser, error) { return d.download(ctx, link) },
+			})
+		}
+		if parts[1] != "" {
+			return parts[1] + link // keep the label of the markdown link
+		}
+		return link
 	})
+	return text, attachments
+}
+
+// attachmentName returns the file name the server reports for an attachment, or the best alternative
+func (d *BitbucketServerDownloader) attachmentName(ctx context.Context, link, label, id string) string {
+	if resp, err := d.doRequest(ctx, http.MethodHead, link, "*/*"); err == nil {
+		_ = resp.Body.Close()
+		if _, params, err := mime.ParseMediaType(resp.Header.Get("Content-Disposition")); err == nil && params["filename"] != "" {
+			return path.Base(params["filename"])
+		}
+	}
+	return cmp.Or(label, "attachment-"+id)
+}
+
+// download returns the content of an attachment
+func (d *BitbucketServerDownloader) download(ctx context.Context, link string) (io.ReadCloser, error) {
+	resp, err := d.doRequest(ctx, http.MethodGet, link, "*/*")
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		_ = resp.Body.Close()
+		return nil, &bbsStatusError{Status: resp.StatusCode, URL: link}
+	}
+	return resp.Body, nil
 }
 
 // walkBitbucketServerComments visits each non-empty comment once, with the anchor of its thread.
@@ -684,7 +727,7 @@ func (d *BitbucketServerDownloader) GetComments(ctx context.Context, commentable
 		if anchor.isInline() {
 			return
 		}
-		content := d.rewriteAttachments(c.Text)
+		content, attachments := d.rewriteAttachments(ctx, c.Text)
 		if anchor != nil && anchor.Path != "" {
 			content = fmt.Sprintf("Comment on `%s`:\n\n%s", anchor.Path, content)
 		}
@@ -698,6 +741,7 @@ func (d *BitbucketServerDownloader) GetComments(ctx context.Context, commentable
 			Updated:     c.updated(),
 			Content:     content,
 			Reactions:   c.reactions(),
+			Attachments: attachments,
 		})
 	})
 	for _, activity := range activities {
@@ -738,7 +782,9 @@ func (d *BitbucketServerDownloader) GetReviews(ctx context.Context, reviewable b
 		}
 		// every comment becomes its own review so that replies keep their author
 		rc := c.toReviewComment(anchor, isRoot)
-		rc.Content = d.rewriteAttachments(rc.Content)
+		var attachments []*base.Attachment
+		rc.Content, attachments = d.rewriteAttachments(ctx, rc.Content)
+		rc.Attachments = attachments
 		reviews = append(reviews, &base.Review{
 			IssueIndex:   reviewable.GetLocalIndex(),
 			ReviewerID:   c.Author.ID,

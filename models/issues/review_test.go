@@ -468,3 +468,23 @@ func TestInsertReviewsWithCommentReactions(t *testing.T) {
 		assert.Equal(t, comment.ID, r.CommentID)
 	}
 }
+
+func TestInsertMigratedIssueAttachments(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	issue := &issues_model.Issue{
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Index:    100,
+		Title:    "migrated",
+		PosterID: 1,
+		IsPull:   true,
+		Attachments: []*repo_model.Attachment{
+			{UUID: "00000000-0000-0000-0000-00000000aa01", RepoID: repo.ID, UploaderID: 1, Name: "a.txt"},
+		},
+	}
+	assert.NoError(t, issues_model.InsertIssues(t.Context(), issue))
+
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{UUID: "00000000-0000-0000-0000-00000000aa01", IssueID: issue.ID, CommentID: 0})
+}

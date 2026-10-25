@@ -778,7 +778,19 @@ func insertIssue(ctx context.Context, issue *Issue) error {
 		}
 	}
 
-	return nil
+	return insertMigratedAttachments(ctx, issue.ID, 0, issue.Attachments)
+}
+
+// insertMigratedAttachments stores attachments of a migrated issue (commentID is 0) or comment, their files are saved already
+func insertMigratedAttachments(ctx context.Context, issueID, commentID int64, attachments []*repo_model.Attachment) error {
+	if len(attachments) == 0 {
+		return nil
+	}
+	for _, attach := range attachments {
+		attach.IssueID = issueID
+		attach.CommentID = commentID
+	}
+	return db.Insert(ctx, attachments)
 }
 
 // ChangeIssueTimeEstimate changes the plan time of this issue, as the given user.

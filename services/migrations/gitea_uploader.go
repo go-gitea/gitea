@@ -562,6 +562,12 @@ func (g *GiteaLocalUploader) CreateComments(ctx context.Context, comments ...*ba
 			cm.Reactions = append(cm.Reactions, &res)
 		}
 
+		attachments, err := g.saveAttachments(ctx, &cm.Content, comment.Attachments, cm.PosterID, comment.Created)
+		if err != nil {
+			return err
+		}
+		cm.Attachments = attachments
+
 		cms = append(cms, &cm)
 	}
 
@@ -828,6 +834,10 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 		issue.Reactions = append(issue.Reactions, &res)
 	}
 
+	if issue.Attachments, err = g.saveAttachments(ctx, &issue.Content, pr.Attachments, issue.PosterID, pr.Created); err != nil {
+		return nil, err
+	}
+
 	pullRequest := issues_model.PullRequest{
 		HeadRepoID: g.repo.ID,
 		HeadBranch: head,
@@ -979,11 +989,69 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 				c.Reactions = append(c.Reactions, &res)
 			}
 
+			if c.Attachments, err = g.saveAttachments(ctx, &c.Content, comment.Attachments, c.PosterID, comment.CreatedAt); err != nil {
+				return err
+			}
+
 			cm.Comments = append(cm.Comments, &c)
 		}
 	}
 
 	return issues_model.InsertReviews(ctx, cms)
+}
+
+// saveAttachments stores the files of a pull request or comment and replaces the references to them in content.
+// A file that cannot be downloaded is skipped, its reference is kept.
+func (g *GiteaLocalUploader) saveAttachments(ctx context.Context, content *string, assets []*base.Attachment, uploaderID int64, created time.Time) ([]*repo_model.Attachment, error) {
+	var attachments []*repo_model.Attachment
+	for _, asset := range assets {
+		// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
+		// ... we must assume that they are safe and simply download the attachment
+		var rc io.ReadCloser
+		var err error
+		switch {
+		case asset.DownloadFunc != nil:
+			rc, err = asset.DownloadFunc()
+		case asset.DownloadURL != nil:
+			// use the migration client so the fetch (including any redirect) is validated against the host allow/block list
+			rc, err = uri.OpenWithClient(*asset.DownloadURL, getMigrationHTTPClient())
+		default:
+			continue
+		}
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			WarnAndNotice("Skipped attachment %s: %v", asset.Name, err)
+			continue
+		}
+
+		if asset.Created.IsZero() {
+			asset.Created = created
+		}
+		attach := &repo_model.Attachment{
+			UUID:        uuid.New().String(),
+			RepoID:      g.repo.ID,
+			UploaderID:  uploaderID,
+			Name:        asset.Name,
+			CreatedUnix: timeutil.TimeStamp(asset.Created.Unix()),
+		}
+		size := int64(-1)
+		if asset.Size != nil && *asset.Size > 0 {
+			size = int64(*asset.Size)
+		}
+		attach.Size, err = storage.Attachments.Save(attach.RelativePath(), rc, size)
+		_ = rc.Close()
+		if err != nil {
+			return nil, fmt.Errorf("attachment %s: %w", asset.Name, err)
+		}
+
+		if asset.Link != "" {
+			*content = strings.ReplaceAll(*content, asset.Link, setting.AppSubURL+"/attachments/"+attach.UUID)
+		}
+		attachments = append(attachments, attach)
+	}
+	return attachments, nil
 }
 
 // Rollback when migrating failed, this will rollback all the changes.

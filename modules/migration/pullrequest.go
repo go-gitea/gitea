@@ -34,6 +34,7 @@ type PullRequest struct {
 	Assignees      []string
 	IsLocked       bool `yaml:"is_locked"`
 	Reactions      []*Reaction
+	Attachments    []*Attachment `yaml:"attachments,omitempty"`
 	ForeignIndex   int64
 	Context        DownloaderContext `yaml:"-"`
 	EnsuredSafe    bool              `yaml:"ensured_safe"`
