@@ -134,6 +134,7 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 		if resp.StatusCode < 200 || resp.StatusCode > 299 {
 			return fmt.Errorf("OneDev server version request failed: %s", resp.Status)
 		}
+		// This patch doesn't change the situation, "decoder.Decode(&result)" below still reads the entire body
 		bytes, err := io.ReadAll(io.LimitReader(resp.Body, maxOneDevVersionResponseSize+1))
 		if err != nil {
 			return err
