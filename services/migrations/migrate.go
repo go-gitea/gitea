@@ -39,9 +39,9 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 // IsMigrateURLAllowedForService checks the URL like IsMigrateURLAllowed, and additionally rejects local paths
 // unless it is a plain git migration, because other services are accessed by their remote API.
 func IsMigrateURLAllowedForService(remoteURL string, serviceType structs.GitServiceType, doer *user_model.User) error {
-	if serviceType != structs.NotMigrated && serviceType != structs.PlainGitService {
+	if serviceType != structs.PlainGitService {
 		if u, err := url.Parse(remoteURL); err == nil && (u.Scheme == "file" || u.Scheme == "") {
-			return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true, LocalPath: true}
+			return &git.ErrInvalidCloneAddr{Host: remoteURL, IsProtocolInvalid: true}
 		}
 	}
 	return IsMigrateURLAllowed(remoteURL, doer)

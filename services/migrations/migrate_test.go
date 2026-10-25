@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
@@ -78,10 +79,9 @@ func TestIsMigrateURLAllowedForServiceLocalPath(t *testing.T) {
 	admin := &user_model.User{IsAdmin: true}
 	for _, addr := range []string{"/tmp", "file:///tmp"} {
 		assert.NoError(t, IsMigrateURLAllowedForService(addr, structs.PlainGitService, admin))
-		assert.NoError(t, IsMigrateURLAllowedForService(addr, structs.NotMigrated, admin))
 		for _, svc := range []structs.GitServiceType{structs.GithubService, structs.GiteaService, structs.GitlabService, structs.BitbucketServerService} {
 			err := IsMigrateURLAllowedForService(addr, svc, admin)
-			assert.Error(t, err, "%s %d", addr, svc)
+			assert.ErrorAs(t, err, new(*git.ErrInvalidCloneAddr), "%s %d", addr, svc)
 		}
 	}
 }
