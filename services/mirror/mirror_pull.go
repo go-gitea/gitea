@@ -348,7 +348,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	m.ScheduleNextUpdate()
 	m.LastSyncUnix = m.UpdatedUnix
 	if err = repo_model.UpdateMirrorSyncStatus(ctx, m); err != nil {
-		log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirror with next update date: %v", m.Repo, err)
+		log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirrorSyncStatus with next update date: %v", m.Repo, err)
 		return false
 	}
 
