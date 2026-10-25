@@ -21,27 +21,18 @@ func TestCamoHandleLink(t *testing.T) {
 	setting.Camo.ServerURL = "https://image.proxy"
 	setting.Camo.HMACKey = "geheim"
 	dataURL := "data:image/png;base64,i//V"
-	assert.Equal(t, dataURL, camoHandleLink(dataURL))
+	test := func(expectedHTTPS string) {
+		assert.Equal(t, dataURL, camoHandleLink(dataURL))
+		assert.Equal(t,
+			"https://gitea.com/img.jpg",
+			camoHandleLink("https://gitea.com/img.jpg"))
+		assert.Equal(t, expectedHTTPS, camoHandleLink("https://testimages.org/img.jpg"))
+		assert.Equal(t,
+			"https://image.proxy/eivin43gJwGVIjR9MiYYtFIk0mw/aHR0cDovL3Rlc3RpbWFnZXMub3JnL2ltZy5qcGc",
+			camoHandleLink("http://testimages.org/img.jpg"))
+	}
 
-	assert.Equal(t,
-		"https://gitea.com/img.jpg",
-		camoHandleLink("https://gitea.com/img.jpg"))
-	assert.Equal(t,
-		"https://testimages.org/img.jpg",
-		camoHandleLink("https://testimages.org/img.jpg"))
-	assert.Equal(t,
-		"https://image.proxy/eivin43gJwGVIjR9MiYYtFIk0mw/aHR0cDovL3Rlc3RpbWFnZXMub3JnL2ltZy5qcGc",
-		camoHandleLink("http://testimages.org/img.jpg"))
-
+	test("https://testimages.org/img.jpg")
 	setting.Camo.Always = true
-	assert.Equal(t, dataURL, camoHandleLink(dataURL))
-	assert.Equal(t,
-		"https://gitea.com/img.jpg",
-		camoHandleLink("https://gitea.com/img.jpg"))
-	assert.Equal(t,
-		"https://image.proxy/tkdlvmqpbIr7SjONfHNgEU622y0/aHR0cHM6Ly90ZXN0aW1hZ2VzLm9yZy9pbWcuanBn",
-		camoHandleLink("https://testimages.org/img.jpg"))
-	assert.Equal(t,
-		"https://image.proxy/eivin43gJwGVIjR9MiYYtFIk0mw/aHR0cDovL3Rlc3RpbWFnZXMub3JnL2ltZy5qcGc",
-		camoHandleLink("http://testimages.org/img.jpg"))
+	test("https://image.proxy/tkdlvmqpbIr7SjONfHNgEU622y0/aHR0cHM6Ly90ZXN0aW1hZ2VzLm9yZy9pbWcuanBn")
 }

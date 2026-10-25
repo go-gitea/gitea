@@ -439,32 +439,22 @@ func TestGenerateGiteaContextRefProtected(t *testing.T) {
 		NamePattern: "v*",
 	}))
 
-	gitCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
-		RepoID:      repo.ID,
-		Repo:        repo,
-		TriggerUser: &user_model.User{Name: "test-user"},
-		Ref:         "refs/heads/master",
-	}, nil, nil)
-
-	assert.Equal(t, true, gitCtx["ref_protected"])
-
-	tagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
-		RepoID:      repo.ID,
-		Repo:        repo,
-		TriggerUser: &user_model.User{Name: "test-user"},
-		Ref:         "refs/tags/v1.0.0",
-	}, nil, nil)
-
-	assert.Equal(t, true, tagCtx["ref_protected"])
-
-	unprotectedTagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
-		RepoID:      repo.ID,
-		Repo:        repo,
-		TriggerUser: &user_model.User{Name: "test-user"},
-		Ref:         "refs/tags/other",
-	}, nil, nil)
-
-	assert.Equal(t, false, unprotectedTagCtx["ref_protected"])
+	for _, tc := range []struct {
+		ref       string
+		protected bool
+	}{
+		{"refs/heads/master", true},
+		{"refs/tags/v1.0.0", true},
+		{"refs/tags/other", false},
+	} {
+		gitCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+			RepoID:      repo.ID,
+			Repo:        repo,
+			TriggerUser: &user_model.User{Name: "test-user"},
+			Ref:         tc.ref,
+		}, nil, nil)
+		assert.Equal(t, tc.protected, gitCtx["ref_protected"])
+	}
 }
 
 // TestGenerateGiteaContext_NilAttempt verifies that, with no explicit attempt,

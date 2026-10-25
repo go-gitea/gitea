@@ -78,12 +78,17 @@ func Test_ConvertScopedAccessTokens(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), count)
 
+	session := x.NewSession()
+	defer session.Close()
+	assert.NoError(t, session.Begin())
+
 	for _, tc := range tests {
-		_, err = x.Insert(&AccessToken{
+		_, err = session.Insert(&AccessToken{
 			Scope: string(tc.Old),
 		})
 		assert.NoError(t, err)
 	}
+	assert.NoError(t, session.Commit())
 
 	// migrate the scopes
 	err = ConvertScopedAccessTokens(t.Context(), x)
