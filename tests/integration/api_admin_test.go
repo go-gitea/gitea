@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
@@ -141,14 +142,15 @@ func TestAPIAdminAccessAndSSHKeys(t *testing.T) {
 
 			token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadAdmin)
 
-			req := NewRequest(t, "GET", "/api/v1/admin/cron").
+			req := NewRequest(t, "GET", "/api/v1/admin/cron?limit=50").
 				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, "30", resp.Header().Get("X-Total-Count"))
+			assert.Equal(t, "31", resp.Header().Get("X-Total-Count"))
 
 			crons := DecodeJSON(t, resp, []api.Cron{})
-			assert.Len(t, crons, 30)
+			assert.Len(t, crons, 31)
+			assert.True(t, slices.ContainsFunc(crons, func(task api.Cron) bool { return task.Name == "storage_quota_reconcile" }))
 		})
 
 		t.Run("Execute", func(t *testing.T) {
