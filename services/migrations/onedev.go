@@ -26,6 +26,10 @@ const (
 	maxOneDevVersionResponseSize = 1024
 )
 
+// oneDevVersionEndpoints lists the server version endpoints: the legacy path
+// first, then the one used since OneDev 16.8.
+var oneDevVersionEndpoints = []string{"/~api/version/server", "/~api/server/version"}
+
 var (
 	_ base.Downloader        = &OneDevDownloader{}
 	_ base.DownloaderFactory = &OneDevDownloaderFactory{}
@@ -130,6 +134,9 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 
 	// special case to read OneDev server version, which is not valid JSON
 	if presult, ok := result.(**version.Version); ok {
+		if resp.StatusCode < 200 || resp.StatusCode > 299 {
+			return fmt.Errorf("OneDev server version request failed: %s", resp.Status)
+		}
 		bytes, err := io.ReadAll(io.LimitReader(resp.Body, maxOneDevVersionResponseSize+1))
 		if err != nil {
 			return err
@@ -149,16 +156,27 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 	return decoder.Decode(&result)
 }
 
+// getServerVersion reads the OneDev server version. OneDev moved the endpoint
+// from /~api/version/server to /~api/server/version in 16.8, so both are tried.
+func (d *OneDevDownloader) getServerVersion(ctx context.Context) (*version.Version, error) {
+	var firstErr error
+	for _, endpoint := range oneDevVersionEndpoints {
+		var serverVersion *version.Version
+		err := d.callAPI(ctx, endpoint, nil, &serverVersion)
+		if err == nil {
+			return serverVersion, nil
+		}
+		if firstErr == nil {
+			firstErr = err
+		}
+	}
+	return nil, firstErr
+}
+
 // GetRepoInfo returns repository information
 func (d *OneDevDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, error) {
 	// check OneDev server version
-	var serverVersion *version.Version
-	err := d.callAPI(
-		ctx,
-		"/~api/version/server",
-		nil,
-		&serverVersion,
-	)
+	serverVersion, err := d.getServerVersion(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get OneDev server version; OneDev %s or newer required", OneDevRequiredVersion)
 	}

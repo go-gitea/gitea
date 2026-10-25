@@ -35,6 +35,46 @@ func TestOneDevVersionResponseSizeLimit(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestOneDevServerVersionEndpoints(t *testing.T) {
+	newDownloader := func(t *testing.T, paths map[string]string) (*OneDevDownloader, *[]string) {
+		var requested []string
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requested = append(requested, r.URL.Path)
+			if body, ok := paths[r.URL.Path]; ok {
+				_, _ = w.Write([]byte(body))
+				return
+			}
+			http.NotFound(w, r)
+		}))
+		t.Cleanup(server.Close)
+		baseURL, err := url.Parse(server.URL)
+		assert.NoError(t, err)
+		return &OneDevDownloader{baseURL: baseURL, client: server.Client()}, &requested
+	}
+
+	t.Run("legacy endpoint", func(t *testing.T) {
+		d, requested := newDownloader(t, map[string]string{"/~api/version/server": "12.0.1"})
+		v, err := d.getServerVersion(t.Context())
+		assert.NoError(t, err)
+		assert.Equal(t, "12.0.1", v.String())
+		assert.Equal(t, []string{"/~api/version/server"}, *requested)
+	})
+
+	t.Run("OneDev 16.8+ endpoint", func(t *testing.T) {
+		d, requested := newDownloader(t, map[string]string{"/~api/server/version": "16.9.7"})
+		v, err := d.getServerVersion(t.Context())
+		assert.NoError(t, err)
+		assert.Equal(t, "16.9.7", v.String())
+		assert.Equal(t, []string{"/~api/version/server", "/~api/server/version"}, *requested)
+	})
+
+	t.Run("no endpoint", func(t *testing.T) {
+		d, _ := newDownloader(t, nil)
+		_, err := d.getServerVersion(t.Context())
+		assert.Error(t, err)
+	})
+}
+
 func TestOneDevDownloadRepo(t *testing.T) {
 	liveMode := os.Getenv("ONEDEV_LIVE") != ""
 
