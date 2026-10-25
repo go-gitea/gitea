@@ -99,9 +99,11 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}
 
+	gitServiceType := convert.ToGitServiceType(form.Service)
+
 	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
-		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
+		err = migrations.IsMigrateURLAllowedForService(remoteAddr, gitServiceType, ctx.Doer)
 	}
 	if err != nil {
 		handleRemoteAddrError(ctx, err)
@@ -113,8 +115,6 @@ func Migrate(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-
-	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if giturl.IsSSH(remoteAddr) {
 		// forge migrations authenticate with a token, which must not end up in an SSH remote
