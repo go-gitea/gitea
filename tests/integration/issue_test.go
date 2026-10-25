@@ -720,3 +720,15 @@ func TestIssueRefSelectorEnabledForPoster(t *testing.T) {
 	_, hasURL := sel.Attr("data-url-update-issueref")
 	assert.True(t, hasURL, "data-url-update-issueref must be set for the issue poster")
 }
+
+func TestIssueCommentContent(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	issue := &issues_model.Issue{Title: "title\x00content", Content: "body\x00content"}
+	require.NoError(t, db.Insert(t.Context(), issue))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID, Title: "title content", Content: "body content"})
+
+	comment := &issues_model.Comment{Content: "body\x00content"}
+	require.NoError(t, db.Insert(t.Context(), comment))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID, Content: "body content"})
+}
