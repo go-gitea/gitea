@@ -19,7 +19,9 @@ import (
 	"time"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -396,8 +398,19 @@ func TestGerritCommentsAndReviews(t *testing.T) {
 	require.NoError(t, err)
 	pr := prs[0]
 
+	checker, cleanup := test.NewLogChecker(log.DEFAULT)
+	defer cleanup()
+	checker.Filter(
+		`Gerrit change 1 has the vote label "Verified" with the value +1 on patch set 2`,
+		`Gerrit change 1 has the vote label "Custom-Label" with the value -1 on patch set 2`,
+		`Gerrit change 1 has the vote label "Verified" with the value -1 on patch set 2`,
+	).StopMark("gerrit votes checked")
 	reviews, err := d.GetReviews(ctx, pr)
 	require.NoError(t, err)
+	log.Info("gerrit votes checked")
+	filtered, stopped := checker.Check(time.Second)
+	assert.True(t, stopped)
+	assert.Equal(t, []bool{true, true, true}, filtered, "votes that are not Code-Review are reported")
 	type summary struct {
 		reviewer, state, commit string
 		comments                []string
