@@ -20,7 +20,7 @@ func (g *GiteaLocalUploader) verifyGerritChange(ctx context.Context, pr *base.Pu
 		return nil
 	}
 	if !g.gitRepo.IsBranchExist(ctx, pr.Base.Ref) {
-		return fmt.Errorf("the target branch %q of gerrit change %d does not exist in the migrated repository", pr.Base.Ref, pr.Number)
+		return fmt.Errorf("the target branch %q of gerrit change %d (%s) does not exist in the migrated repository", pr.Base.Ref, pr.Number, change.ChangeID)
 	}
 	for _, patchSet := range change.patchSets {
 		stdout, _, err := gitcmd.NewCommand("rev-parse", "--verify", "--quiet").

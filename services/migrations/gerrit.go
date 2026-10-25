@@ -168,23 +168,33 @@ type GerritDownloader struct {
 	changeNumbers []int64 // all changes of the project, ascending
 	numbersLoaded bool
 
-	activity *gerritActivity // review data of the last requested change
+	activities map[int64]*gerritActivity // review data by change number, of the current page
 }
 
 // NewGerritDownloader creates a Gerrit downloader
 func NewGerritDownloader(_ context.Context, location *gerritLocation, username, password, token string) *GerritDownloader {
 	return &GerritDownloader{
-		client:   &http.Client{Transport: getMigrationTransport()}, // not retrying, callAPI retries rate limits itself
-		sleep:    gerritSleep,
-		location: location,
-		username: username,
-		password: password,
-		token:    token,
+		client:     &http.Client{Transport: getMigrationTransport()}, // not retrying, callAPI retries rate limits itself
+		sleep:      gerritSleep,
+		activities: map[int64]*gerritActivity{},
+		location:   location,
+		username:   username,
+		password:   password,
+		token:      token,
 	}
 }
 
 func (d *GerritDownloader) isAuthenticated() bool {
-	return d.token != "" || d.username != "" || d.password != ""
+	user, password := d.credentials()
+	return user != "" || password != ""
+}
+
+// credentials are used for REST and git alike, a token is a Gerrit HTTP password
+func (d *GerritDownloader) credentials() (user, password string) {
+	if d.token != "" {
+		return cmp.Or(d.username, "token"), d.token
+	}
+	return d.username, d.password
 }
 
 // String implements Stringer
@@ -201,16 +211,13 @@ func (d *GerritDownloader) LogString() string {
 }
 
 // FormatCloneURL adds authentication into the remote URL
-func (d *GerritDownloader) FormatCloneURL(opts base.MigrateOptions, remoteAddr string) (string, error) {
+func (d *GerritDownloader) FormatCloneURL(_ base.MigrateOptions, remoteAddr string) (string, error) {
 	u, err := url.Parse(remoteAddr)
 	if err != nil {
 		return "", err
 	}
-	switch {
-	case opts.AuthToken != "":
-		u.User = url.UserPassword(cmp.Or(opts.AuthUsername, "token"), opts.AuthToken)
-	case opts.AuthUsername != "" || opts.AuthPassword != "":
-		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+	if d.isAuthenticated() {
+		u.User = url.UserPassword(d.credentials())
 	}
 	return u.String(), nil
 }
@@ -348,6 +355,17 @@ func (e *gerritStatusError) Error() string {
 	return msg
 }
 
+type gerritDecodeError struct {
+	URL string
+	Err error
+}
+
+func (e *gerritDecodeError) Error() string {
+	return fmt.Sprintf("gerrit API %s returned an invalid response: %v", e.URL, e.Err)
+}
+
+func (e *gerritDecodeError) Unwrap() error { return e.Err }
+
 func (d *GerritDownloader) apiRoot() string {
 	if d.isAuthenticated() {
 		return d.root + "/a"
@@ -411,7 +429,7 @@ func (d *GerritDownloader) callAPI(ctx context.Context, root, path string, query
 	}
 	data = bytes.TrimPrefix(bytes.TrimSpace(data), []byte(gerritXSSIPrefix))
 	if err := json.Unmarshal(data, result); err != nil {
-		return fmt.Errorf("gerrit API %s returned an invalid response: %w", endpoint, err)
+		return &gerritDecodeError{URL: endpoint, Err: err}
 	}
 	return nil
 }
@@ -427,10 +445,8 @@ func (d *GerritDownloader) doRequest(ctx context.Context, apiURL string) (*http.
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
-	if d.token != "" {
-		req.Header.Set("Authorization", "Bearer "+d.token)
-	} else if d.username != "" || d.password != "" {
-		req.SetBasicAuth(d.username, d.password)
+	if d.isAuthenticated() {
+		req.SetBasicAuth(d.credentials())
 	}
 	return d.client.Do(req)
 }
@@ -458,6 +474,9 @@ func (d *GerritDownloader) resolve(ctx context.Context) error {
 		err := d.callAPI(ctx, apiRoot, "/projects/"+url.PathEscape(candidate.project), nil, &info)
 		if statusErr, ok := errors.AsType[*gerritStatusError](err); ok && statusErr.Status == http.StatusNotFound {
 			continue
+		}
+		if _, ok := errors.AsType[*gerritDecodeError](err); ok {
+			continue // another web application, such as an HTML page, answers on this path
 		}
 		if err != nil {
 			return err
@@ -558,6 +577,7 @@ func (d *GerritDownloader) loadChangeNumbers(ctx context.Context) error {
 
 // GetPullRequests returns a page of changes, oldest first
 func (d *GerritDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
+	d.activities = map[int64]*gerritActivity{}
 	if page < 1 {
 		page = 1
 	}
@@ -704,8 +724,8 @@ type gerritActivity struct {
 }
 
 func (d *GerritDownloader) getActivity(ctx context.Context, foreignIndex int64, downloaderContext base.DownloaderContext) (*gerritActivity, error) {
-	if d.activity != nil && d.activity.number == foreignIndex {
-		return d.activity, nil
+	if activity, ok := d.activities[foreignIndex]; ok {
+		return activity, nil
 	}
 	change, ok := downloaderContext.(*gerritChange)
 	if !ok || change.Number != foreignIndex {
@@ -715,8 +735,9 @@ func (d *GerritDownloader) getActivity(ctx context.Context, foreignIndex int64, 
 	if err := d.get(ctx, d.changePath(foreignIndex)+"/comments", nil, &byPath); err != nil {
 		return nil, err
 	}
-	d.activity = buildGerritActivity(change, byPath)
-	return d.activity, nil
+	activity := buildGerritActivity(change, byPath)
+	d.activities[foreignIndex] = activity
+	return activity, nil
 }
 
 // GetComments returns the messages without a patch set and the inline comments that cannot be anchored

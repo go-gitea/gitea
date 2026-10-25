@@ -34,9 +34,10 @@ type gerritFixture struct {
 	comments map[int64]map[string][]map[string]any
 	shas     map[string]string // by name
 
-	mu          sync.Mutex
-	authHeaders []string
-	listCalls   int
+	mu           sync.Mutex
+	authHeaders  []string
+	listCalls    int
+	commentCalls int
 }
 
 func runGit(t *testing.T, dir string, args ...string) string {
@@ -210,6 +211,8 @@ func (f *gerritFixture) handle(w http.ResponseWriter, r *http.Request) {
 		path = "/" + rest
 	}
 	switch {
+	case path == "/projects/gerrit/team/demo":
+		_, _ = w.Write([]byte("<html>not a Gerrit</html>"))
 	case path == "/projects/team/demo":
 		writeGerritJSON(w, map[string]any{"name": "team/demo", "description": "demo project"})
 	case path == "/projects/team/demo/HEAD":
@@ -230,6 +233,7 @@ func (f *gerritFixture) handle(w http.ResponseWriter, r *http.Request) {
 		numberText, isComments := strings.CutSuffix(rest, "/comments")
 		number, _ := strconv.ParseInt(numberText, 10, 64)
 		if isComments {
+			f.commentCalls++
 			writeGerritJSON(w, f.comments[number])
 		} else if change, ok := f.changes[number]; ok {
 			writeGerritJSON(w, change)
@@ -310,13 +314,22 @@ func TestGerritRepoInfoAndResolve(t *testing.T) {
 	d = newTestGerritDownloader(t, f.cloneAddr(), base.MigrateOptions{AuthToken: "tok"})
 	_, err = d.GetRepoInfo(t.Context())
 	require.NoError(t, err)
-	assert.Equal(t, "Bearer tok", f.authHeaders[len(f.authHeaders)-1])
+	user, password, _ := (&http.Request{Header: http.Header{"Authorization": {f.authHeaders[len(f.authHeaders)-1]}}}).BasicAuth()
+	assert.Equal(t, "token", user, "a token is a Gerrit HTTP password")
+	assert.Equal(t, "tok", password)
+	cloneURL, err = d.FormatCloneURL(base.MigrateOptions{AuthToken: "tok"}, f.server.URL+"/gerrit/a/team/demo")
+	require.NoError(t, err)
+	assert.Equal(t, strings.Replace(f.server.URL, "http://", "http://token:tok@", 1)+"/gerrit/a/team/demo", cloneURL)
 
 	// the credentials of the clone URL are used and never reported
 	d = newTestGerritDownloader(t, strings.Replace(f.cloneAddr(), "http://", "http://bob:hunter2@", 1), base.MigrateOptions{})
 	_, err = d.GetRepoInfo(t.Context())
 	require.NoError(t, err)
 	assert.NotContains(t, d.String()+d.LogString(), "hunter2")
+	assert.Equal(t, "Basic", strings.Fields(f.authHeaders[len(f.authHeaders)-1])[0])
+	cloneURL, err = d.FormatCloneURL(base.MigrateOptions{}, f.server.URL+"/gerrit/a/team/demo")
+	require.NoError(t, err)
+	assert.Equal(t, strings.Replace(f.server.URL, "http://", "http://bob:hunter2@", 1)+"/gerrit/a/team/demo", cloneURL, "the credentials of the clone URL are used for git too")
 
 	d = newTestGerritDownloader(t, f.server.URL+"/gerrit/team/other", base.MigrateOptions{})
 	_, err = d.GetRepoInfo(t.Context())
@@ -409,6 +422,7 @@ func TestGerritCommentsAndReviews(t *testing.T) {
 	comments, isEnd, err := d.GetComments(ctx, pr)
 	require.NoError(t, err)
 	assert.True(t, isEnd)
+	assert.Equal(t, 1, f.commentCalls, "the comments of a change are requested once for comments and reviews")
 	var texts []string
 	for _, c := range comments {
 		assert.EqualValues(t, 1, c.IssueIndex)
