@@ -18,45 +18,69 @@ import (
 func TestSlackPayload(t *testing.T) {
 	sc := slackConvertor{}
 
-	t.Run("Create", func(t *testing.T) {
-		p := createTestPayload()
-
-		pl, err := sc.Create(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>:<http://localhost:3000/test/repo/src/branch/test|test>] branch created by user1", pl.Text)
-	})
-
-	t.Run("Delete", func(t *testing.T) {
-		p := deleteTestPayload()
-
-		pl, err := sc.Delete(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>:test] branch deleted by user1", pl.Text)
-	})
-
-	t.Run("Fork", func(t *testing.T) {
-		p := forkTestPayload()
-
-		pl, err := sc.Fork(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "<http://localhost:3000/test/repo2|test/repo2> is forked to <http://localhost:3000/test/repo|test/repo>", pl.Text)
-	})
-
-	t.Run("Push", func(t *testing.T) {
-		p := pushTestPayload()
-
-		pl, err := sc.Push(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>:<http://localhost:3000/test/repo/src/branch/test|test>] 2 new commits pushed by user1", pl.Text)
-		require.Len(t, pl.Attachments, 1)
-		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
-		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
-		assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
-	})
+	for _, testCase := range []struct {
+		name        string
+		call        func() (SlackPayload, error)
+		text        string
+		attachments bool
+	}{
+		{
+			"Create", func() (SlackPayload, error) { return sc.Create(createTestPayload()) },
+			"[<http://localhost:3000/test/repo|test/repo>:<http://localhost:3000/test/repo/src/branch/test|test>] branch created by user1", false,
+		},
+		{
+			"Delete", func() (SlackPayload, error) { return sc.Delete(deleteTestPayload()) },
+			"[<http://localhost:3000/test/repo|test/repo>:test] branch deleted by user1", false,
+		},
+		{
+			"Fork", func() (SlackPayload, error) { return sc.Fork(forkTestPayload()) },
+			"<http://localhost:3000/test/repo2|test/repo2> is forked to <http://localhost:3000/test/repo|test/repo>", false,
+		},
+		{
+			"Push", func() (SlackPayload, error) { return sc.Push(pushTestPayload()) },
+			"[<http://localhost:3000/test/repo|test/repo>:<http://localhost:3000/test/repo/src/branch/test|test>] 2 new commits pushed by user1", true,
+		},
+		{
+			"IssueComment", func() (SlackPayload, error) { return sc.IssueComment(issueCommentTestPayload()) },
+			"[<http://localhost:3000/test/repo|test/repo>] New comment on issue <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", true,
+		},
+		{
+			"PullRequest", func() (SlackPayload, error) { return sc.PullRequest(pullRequestTestPayload()) },
+			"[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", true,
+		},
+		{
+			"PullRequestComment", func() (SlackPayload, error) { return sc.IssueComment(pullRequestCommentTestPayload()) },
+			"[<http://localhost:3000/test/repo|test/repo>] New comment on pull request <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", false,
+		},
+		{
+			"Review", func() (SlackPayload, error) {
+				p := pullRequestTestPayload()
+				p.Action = api.HookIssueReviewed
+				return sc.Review(p, webhook_module.HookEventPullRequestReviewApproved)
+			},
+			"[<http://localhost:3000/test/repo|test/repo>] Pull request review approved: [#12 Fix bug](http://localhost:3000/test/repo/pulls/12) by <https://try.gitea.io/user1|user1>", false,
+		},
+		{
+			"Package", func() (SlackPayload, error) { return sc.Package(packageTestPayload()) },
+			"Package created: <http://localhost:3000/user1/-/packages/container/GiteaContainer/latest|GiteaContainer:latest> by <https://try.gitea.io/user1|user1>", false,
+		},
+		{
+			"Release", func() (SlackPayload, error) { return sc.Release(pullReleaseTestPayload()) },
+			"[<http://localhost:3000/test/repo|test/repo>] Release created: <http://localhost:3000/test/repo/releases/tag/v1.0|v1.0> by <https://try.gitea.io/user1|user1>", false,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			pl, err := testCase.call()
+			require.NoError(t, err)
+			assert.Equal(t, testCase.text, pl.Text)
+			if testCase.attachments {
+				require.Len(t, pl.Attachments, 1)
+				assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
+				assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
+				assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
+			}
+		})
+	}
 
 	t.Run("Issue", func(t *testing.T) {
 		p := issueTestPayload()
@@ -78,51 +102,6 @@ func TestSlackPayload(t *testing.T) {
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue closed: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
 	})
 
-	t.Run("IssueComment", func(t *testing.T) {
-		p := issueCommentTestPayload()
-
-		pl, err := sc.IssueComment(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on issue <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
-		require.Len(t, pl.Attachments, 1)
-		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
-		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
-		assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
-	})
-
-	t.Run("PullRequest", func(t *testing.T) {
-		p := pullRequestTestPayload()
-
-		pl, err := sc.PullRequest(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", pl.Text)
-		require.Len(t, pl.Attachments, 1)
-		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
-		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
-		assert.Equal(t, "http://localhost:3000/user1", pl.Attachments[0].AuthorLink)
-	})
-
-	t.Run("PullRequestComment", func(t *testing.T) {
-		p := pullRequestCommentTestPayload()
-
-		pl, err := sc.IssueComment(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on pull request <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", pl.Text)
-	})
-
-	t.Run("Review", func(t *testing.T) {
-		p := pullRequestTestPayload()
-		p.Action = api.HookIssueReviewed
-
-		pl, err := sc.Review(p, webhook_module.HookEventPullRequestReviewApproved)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request review approved: [#12 Fix bug](http://localhost:3000/test/repo/pulls/12) by <https://try.gitea.io/user1|user1>", pl.Text)
-	})
-
 	t.Run("Repository", func(t *testing.T) {
 		p := repositoryTestPayload()
 
@@ -138,44 +117,21 @@ func TestSlackPayload(t *testing.T) {
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Repository renamed from old-repo by <https://try.gitea.io/user1|user1>", pl.Text)
 	})
 
-	t.Run("Package", func(t *testing.T) {
-		p := packageTestPayload()
-
-		pl, err := sc.Package(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "Package created: <http://localhost:3000/user1/-/packages/container/GiteaContainer/latest|GiteaContainer:latest> by <https://try.gitea.io/user1|user1>", pl.Text)
-	})
-
 	t.Run("Wiki", func(t *testing.T) {
 		p := wikiTestPayload()
-
-		p.Action = api.HookWikiCreated
-		pl, err := sc.Wiki(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New wiki page '<http://localhost:3000/test/repo/wiki/index|index>' (Wiki change comment) by <https://try.gitea.io/user1|user1>", pl.Text)
-
-		p.Action = api.HookWikiEdited
-		pl, err = sc.Wiki(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Wiki page '<http://localhost:3000/test/repo/wiki/index|index>' edited (Wiki change comment) by <https://try.gitea.io/user1|user1>", pl.Text)
-
-		p.Action = api.HookWikiDeleted
-		pl, err = sc.Wiki(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Wiki page '<http://localhost:3000/test/repo/wiki/index|index>' deleted by <https://try.gitea.io/user1|user1>", pl.Text)
-	})
-
-	t.Run("Release", func(t *testing.T) {
-		p := pullReleaseTestPayload()
-
-		pl, err := sc.Release(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Release created: <http://localhost:3000/test/repo/releases/tag/v1.0|v1.0> by <https://try.gitea.io/user1|user1>", pl.Text)
+		for _, testCase := range []struct {
+			action api.HookWikiAction
+			text   string
+		}{
+			{api.HookWikiCreated, "[<http://localhost:3000/test/repo|test/repo>] New wiki page '<http://localhost:3000/test/repo/wiki/index|index>' (Wiki change comment) by <https://try.gitea.io/user1|user1>"},
+			{api.HookWikiEdited, "[<http://localhost:3000/test/repo|test/repo>] Wiki page '<http://localhost:3000/test/repo/wiki/index|index>' edited (Wiki change comment) by <https://try.gitea.io/user1|user1>"},
+			{api.HookWikiDeleted, "[<http://localhost:3000/test/repo|test/repo>] Wiki page '<http://localhost:3000/test/repo/wiki/index|index>' deleted by <https://try.gitea.io/user1|user1>"},
+		} {
+			p.Action = testCase.action
+			pl, err := sc.Wiki(p)
+			require.NoError(t, err)
+			assert.Equal(t, testCase.text, pl.Text)
+		}
 	})
 }
 

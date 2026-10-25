@@ -25,37 +25,31 @@ func TestParseAgitPushOptionValue(t *testing.T) {
 func TestGetAgitBranchInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	_, _, err := GetAgitBranchInfo(t.Context(), 1, "non-exist-basebranch")
-	assert.ErrorIs(t, err, util.ErrNotExist)
-
-	baseBranch, currentTopicBranch, err := GetAgitBranchInfo(t.Context(), 1, "master")
-	assert.NoError(t, err)
-	assert.Equal(t, "master", baseBranch)
-	assert.Empty(t, currentTopicBranch)
-
-	baseBranch, currentTopicBranch, err = GetAgitBranchInfo(t.Context(), 1, "master/topicbranch")
-	assert.NoError(t, err)
-	assert.Equal(t, "master", baseBranch)
-	assert.Equal(t, "topicbranch", currentTopicBranch)
-
-	baseBranch, currentTopicBranch, err = GetAgitBranchInfo(t.Context(), 1, "master/")
-	assert.NoError(t, err)
-	assert.Equal(t, "master", baseBranch)
-	assert.Empty(t, currentTopicBranch)
-
-	_, _, err = GetAgitBranchInfo(t.Context(), 1, "/")
-	assert.ErrorIs(t, err, util.ErrNotExist)
-
-	_, _, err = GetAgitBranchInfo(t.Context(), 1, "//")
-	assert.ErrorIs(t, err, util.ErrNotExist)
-
-	baseBranch, currentTopicBranch, err = GetAgitBranchInfo(t.Context(), 1, "master/topicbranch/")
-	assert.NoError(t, err)
-	assert.Equal(t, "master", baseBranch)
-	assert.Equal(t, "topicbranch/", currentTopicBranch)
-
-	baseBranch, currentTopicBranch, err = GetAgitBranchInfo(t.Context(), 1, "master/topicbranch/1")
-	assert.NoError(t, err)
-	assert.Equal(t, "master", baseBranch)
-	assert.Equal(t, "topicbranch/1", currentTopicBranch)
+	for _, tc := range []struct {
+		branch  string
+		topic   string
+		missing bool
+	}{
+		{"non-exist-basebranch", "", true},
+		{"master", "", false},
+		{"master/topicbranch", "topicbranch", false},
+		{"master/", "", false},
+		{"/", "", true},
+		{"//", "", true},
+		{"master/topicbranch/", "topicbranch/", false},
+		{"master/topicbranch/1", "topicbranch/1", false},
+	} {
+		baseBranch, currentTopicBranch, err := GetAgitBranchInfo(t.Context(), 1, tc.branch)
+		if tc.missing {
+			assert.ErrorIs(t, err, util.ErrNotExist)
+		} else {
+			assert.NoError(t, err)
+			assert.Equal(t, "master", baseBranch)
+			if tc.topic == "" {
+				assert.Empty(t, currentTopicBranch)
+			} else {
+				assert.Equal(t, tc.topic, currentTopicBranch)
+			}
+		}
+	}
 }
