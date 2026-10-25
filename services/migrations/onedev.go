@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 
 	"github.com/hashicorp/go-version"
 )
@@ -25,10 +26,6 @@ const (
 	OneDevRequiredVersion        = "12.0.1"
 	maxOneDevVersionResponseSize = 1024
 )
-
-// oneDevVersionEndpoints lists the server version endpoints: the legacy path
-// first, then the one used since OneDev 16.8.
-var oneDevVersionEndpoints = []string{"/~api/version/server", "/~api/server/version"}
 
 var (
 	_ base.Downloader        = &OneDevDownloader{}
@@ -156,21 +153,18 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 	return decoder.Decode(&result)
 }
 
-// getServerVersion reads the OneDev server version. OneDev moved the endpoint
-// from /~api/version/server to /~api/server/version in 16.8, so both are tried.
-func (d *OneDevDownloader) getServerVersion(ctx context.Context) (*version.Version, error) {
-	var firstErr error
+// getServerVersion reads the OneDev server version.
+func (d *OneDevDownloader) getServerVersion(ctx context.Context) (serverVersion *version.Version, retErr error) {
+	// OneDev moved the endpoint from /~api/version/server to /~api/server/version in 16.8, so both are tried.
+	oneDevVersionEndpoints := []string{"/~api/version/server", "/~api/server/version"}
 	for _, endpoint := range oneDevVersionEndpoints {
-		var serverVersion *version.Version
 		err := d.callAPI(ctx, endpoint, nil, &serverVersion)
 		if err == nil {
 			return serverVersion, nil
 		}
-		if firstErr == nil {
-			firstErr = err
-		}
+		retErr = util.IfZero(retErr, err)
 	}
-	return nil, firstErr
+	return nil, retErr
 }
 
 // GetRepoInfo returns repository information

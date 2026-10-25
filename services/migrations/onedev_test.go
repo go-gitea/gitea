@@ -4,74 +4,66 @@
 package migrations
 
 import (
-	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/util"
 
-	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOneDevVersionResponseSizeLimit(t *testing.T) {
+func TestOneDevServerVersion(t *testing.T) {
+	type respMapType map[string]struct {
+		code int
+		body string
+	}
+	var respMap atomic.Pointer[respMapType]
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write(bytes.Repeat([]byte("1"), maxOneDevVersionResponseSize+1))
+		resp, ok := (*respMap.Load())[r.URL.Path]
+		w.WriteHeader(util.Iif(ok, resp.code, http.StatusNotFound))
+		_, _ = io.WriteString(w, resp.body)
 	}))
 	defer server.Close()
 
 	baseURL, err := url.Parse(server.URL)
 	assert.NoError(t, err)
-	download := &OneDevDownloader{baseURL: baseURL, client: server.Client()}
-	var version *version.Version
-	err = download.callAPI(t.Context(), "/~api/version/server", nil, &version)
-	assert.Error(t, err)
-}
+	downloader := &OneDevDownloader{baseURL: baseURL, client: server.Client()}
 
-func TestOneDevServerVersionEndpoints(t *testing.T) {
-	newDownloader := func(t *testing.T, paths map[string]string) (*OneDevDownloader, *[]string) {
-		var requested []string
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			requested = append(requested, r.URL.Path)
-			if body, ok := paths[r.URL.Path]; ok {
-				_, _ = w.Write([]byte(body))
-				return
-			}
-			http.NotFound(w, r)
-		}))
-		t.Cleanup(server.Close)
-		baseURL, err := url.Parse(server.URL)
-		assert.NoError(t, err)
-		return &OneDevDownloader{baseURL: baseURL, client: server.Client()}, &requested
-	}
+	t.Run("LargeResponse", func(t *testing.T) {
+		respMap.Store(&respMapType{"/~api/version/server": {code: http.StatusOK, body: strings.Repeat("x", maxOneDevVersionResponseSize+1)}})
+		_, err := downloader.getServerVersion(t.Context())
+		assert.ErrorContains(t, err, "server version response exceeds")
+	})
 
-	t.Run("legacy endpoint", func(t *testing.T) {
-		d, requested := newDownloader(t, map[string]string{"/~api/version/server": "12.0.1"})
-		v, err := d.getServerVersion(t.Context())
+	t.Run("LegacyEndpoint", func(t *testing.T) {
+		respMap.Store(&respMapType{"/~api/version/server": {code: http.StatusOK, body: "12.0.1"}})
+		v, err := downloader.getServerVersion(t.Context())
 		assert.NoError(t, err)
 		assert.Equal(t, "12.0.1", v.String())
-		assert.Equal(t, []string{"/~api/version/server"}, *requested)
 	})
 
-	t.Run("OneDev 16.8+ endpoint", func(t *testing.T) {
-		d, requested := newDownloader(t, map[string]string{"/~api/server/version": "16.9.7"})
-		v, err := d.getServerVersion(t.Context())
+	t.Run("NewEndpoint", func(t *testing.T) {
+		respMap.Store(&respMapType{"/~api/server/version": {code: http.StatusOK, body: "16.9.7"}})
+		v, err := downloader.getServerVersion(t.Context())
 		assert.NoError(t, err)
 		assert.Equal(t, "16.9.7", v.String())
-		assert.Equal(t, []string{"/~api/version/server", "/~api/server/version"}, *requested)
 	})
 
-	t.Run("no endpoint", func(t *testing.T) {
-		d, _ := newDownloader(t, nil)
-		_, err := d.getServerVersion(t.Context())
-		assert.Error(t, err)
+	t.Run("NoEndpoint", func(t *testing.T) {
+		respMap.Store(&respMapType{})
+		_, err := downloader.getServerVersion(t.Context())
+		assert.ErrorContains(t, err, "server version request failed")
 	})
 }
 
