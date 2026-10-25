@@ -21,11 +21,13 @@ func GetStorageQuota(ctx *context.APIContext) {
 	// - application/json
 	// parameters:
 	// - name: subject_type
+	//   description: Type of the quota subject
 	//   in: path
 	//   type: string
 	//   enum: [repository, user, organization]
 	//   required: true
 	// - name: id
+	//   description: ID of the repository, user, or organization
 	//   in: path
 	//   type: integer
 	//   format: int64
@@ -57,11 +59,13 @@ func SetStorageQuota(ctx *context.APIContext) {
 	// - application/json
 	// parameters:
 	// - name: subject_type
+	//   description: Type of the quota subject
 	//   in: path
 	//   type: string
 	//   enum: [repository, user, organization]
 	//   required: true
 	// - name: id
+	//   description: ID of the repository, user, or organization
 	//   in: path
 	//   type: integer
 	//   format: int64

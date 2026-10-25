@@ -12128,6 +12128,7 @@
         "operationId": "adminGetStorageQuota",
         "parameters": [
           {
+            "description": "Type of the quota subject",
             "in": "path",
             "name": "subject_type",
             "required": true,
@@ -12141,6 +12142,7 @@
             }
           },
           {
+            "description": "ID of the repository, user, or organization",
             "in": "path",
             "name": "id",
             "required": true,
@@ -12173,6 +12175,7 @@
         "operationId": "adminSetStorageQuota",
         "parameters": [
           {
+            "description": "Type of the quota subject",
             "in": "path",
             "name": "subject_type",
             "required": true,
@@ -12186,6 +12189,7 @@
             }
           },
           {
+            "description": "ID of the repository, user, or organization",
             "in": "path",
             "name": "id",
             "required": true,

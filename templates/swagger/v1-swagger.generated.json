@@ -692,6 +692,7 @@
               "organization"
             ],
             "type": "string",
+            "description": "Type of the quota subject",
             "name": "subject_type",
             "in": "path",
             "required": true
@@ -699,6 +700,7 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "ID of the repository, user, or organization",
             "name": "id",
             "in": "path",
             "required": true
@@ -739,6 +741,7 @@
               "organization"
             ],
             "type": "string",
+            "description": "Type of the quota subject",
             "name": "subject_type",
             "in": "path",
             "required": true
@@ -746,6 +749,7 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "ID of the repository, user, or organization",
             "name": "id",
             "in": "path",
             "required": true
