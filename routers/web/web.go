@@ -1542,7 +1542,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Post("/topics", repo.TopicsPost)
-	}, optSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
+	}, optSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived(), context.RepoMustNotBeReadOnlyMirror())
 
 	m.Group("/{username}/{reponame}", func() {
 		if setting.Packages.Enabled {

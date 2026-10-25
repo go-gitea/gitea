@@ -16,6 +16,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,11 +42,15 @@ func TestReadOnlyMirrorRejectsIssueWrites(t *testing.T) {
 			NewRequestWithJSON(t, "POST", apiURL("/issues/1/reactions"), &api.EditReactionOption{Reaction: "+1"}),
 			NewRequestWithJSON(t, "POST", apiURL("/labels"), &api.CreateLabelOption{Name: "local", Color: "#000000"}),
 			NewRequestWithJSON(t, "POST", apiURL("/milestones"), &api.CreateMilestoneOption{Title: "local"}),
+			NewRequestWithJSON(t, "PUT", apiURL("/topics"), &api.RepoTopicOptions{Topics: []string{"local"}}),
+			NewRequest(t, "PUT", apiURL("/topics/local")),
+			NewRequest(t, "DELETE", apiURL("/topics/golang")),
 		} {
 			MakeRequest(t, req.AddTokenAuth(token), http.StatusLocked)
 		}
 
 		MakeRequest(t, NewRequest(t, "GET", apiURL("/issues/1")).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "GET", apiURL("/topics")).AddTokenAuth(token), http.StatusOK)
 		// watching a mirrored issue only changes the doer's own state
 		MakeRequest(t, NewRequest(t, "PUT", apiURL("/issues/1/subscriptions/%s", owner.Name)).AddTokenAuth(token), http.StatusCreated)
 	})
@@ -55,7 +60,10 @@ func TestReadOnlyMirrorRejectsIssueWrites(t *testing.T) {
 		issueURL := fmt.Sprintf("/%s/%s/issues/1", owner.Name, repo.Name)
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", issueURL+"/comments", map[string]string{"content": "local"}), http.StatusNotFound)
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", issueURL+"/title", map[string]string{"title": "local"}), http.StatusNotFound)
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/topics", owner.Name, repo.Name), map[string]string{"topics": "local"}), http.StatusNotFound)
 		session.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK)
+		home := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/%s/%s", owner.Name, repo.Name)), http.StatusOK).Body)
+		assert.Zero(t, home.doc.Find("#manage_topic").Length(), "synced topics are not editable")
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", issueURL+"/watch", map[string]string{"watch": "1"}), http.StatusOK)
 	})
 }

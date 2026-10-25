@@ -1561,7 +1561,7 @@ func Routes() *web.Router {
 						m.Combo("").Put(reqToken(), mustNotBeArchived, repo.AddTopic).
 							Delete(reqToken(), mustNotBeArchived, repo.DeleteTopic)
 					}, reqAdmin())
-				}, reqAnyRepoReader())
+				}, reqAnyRepoReader(), mustNotBeReadOnlyMirror)
 				m.Get("/issue_templates", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueTemplates)
 				m.Get("/issue_config", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueConfig)
 				m.Get("/issue_config/validate", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.ValidateIssueConfig)

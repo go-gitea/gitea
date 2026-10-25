@@ -358,9 +358,12 @@ type syncTestDownloader struct {
 	prs      []*base.PullRequest
 	comments []*base.Comment
 	reviews  []*base.Review
+	topics   []string
 }
 
 func (d *syncTestDownloader) SupportSyncing() bool { return true }
+
+func (d *syncTestDownloader) GetTopics(context.Context) ([]string, error) { return d.topics, nil }
 
 func (d *syncTestDownloader) GetNewIssues(_ context.Context, page, _ int, updatedAfter time.Time) ([]*base.Issue, bool, error) {
 	if page > 1 {
@@ -442,6 +445,7 @@ func TestGiteaSyncRepository(t *testing.T) {
 
 	updated := latest.Add(time.Hour)
 	downloader := &syncTestDownloader{
+		topics: []string{"mirror", "sync"},
 		issues: []*base.Issue{{
 			Number:       100,
 			Title:        "sync issue",
@@ -502,6 +506,7 @@ func TestGiteaSyncRepository(t *testing.T) {
 
 	// the first sync inserts the new issue and pull request
 	require.NoError(t, syncRepository(ctx, downloader, uploader, opts, nil, marks))
+	assert.ElementsMatch(t, []string{"mirror", "sync"}, repoTopicNames(t, repo.ID))
 
 	createdIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 100})
 	assert.Equal(t, "sync issue", createdIssue.Title)
@@ -527,8 +532,10 @@ func TestGiteaSyncRepository(t *testing.T) {
 	downloader.comments[0].Updated = updated.Add(time.Hour)
 	downloader.reviews[0].Content = "looks good now"
 	downloader.reviews[0].State = base.ReviewStateApproved
+	downloader.topics = []string{"mirror"}
 
 	require.NoError(t, syncRepository(ctx, downloader, uploader, opts, nil, marks))
+	assert.Equal(t, []string{"mirror"}, repoTopicNames(t, repo.ID))
 
 	assert.Equal(t, issueCountBefore+2, unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}))
 	afterIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 100})
@@ -551,4 +558,14 @@ func TestGiteaSyncRepository(t *testing.T) {
 	assert.Equal(t, issues_model.ReviewTypeApprove, afterReview.Type)
 
 	// no CheckConsistencyFor: it counts only plain comments while NumComments also counts reviews
+}
+
+func repoTopicNames(t *testing.T, repoID int64) []string {
+	topics, err := db.Find[repo_model.Topic](t.Context(), &repo_model.FindTopicOptions{RepoID: repoID})
+	require.NoError(t, err)
+	names := make([]string, 0, len(topics))
+	for _, topic := range topics {
+		names = append(names, topic.Name)
+	}
+	return names
 }
