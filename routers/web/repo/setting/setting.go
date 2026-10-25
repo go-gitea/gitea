@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
+	quota_model "gitea.dev/models/quota"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -38,6 +39,7 @@ import (
 	"gitea.dev/services/forms"
 	"gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
+	"gitea.dev/services/quota"
 	repo_service "gitea.dev/services/repository"
 	wiki_service "gitea.dev/services/wiki"
 
@@ -147,6 +149,15 @@ func preparePullRequestSettings(ctx *context.Context) {
 
 // Settings show a repository's settings page
 func Settings(ctx *context.Context) {
+	storageQuota, limited, quotaErr := quota.StatusIfLimited(ctx, quota_model.Repository, ctx.Repo.Repository.ID)
+	if quotaErr != nil {
+		ctx.ServerError("StorageQuota", quotaErr)
+		return
+	}
+	if limited {
+		ctx.Data["StorageQuota"] = storageQuota
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 

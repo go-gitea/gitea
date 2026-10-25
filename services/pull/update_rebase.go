@@ -16,10 +16,20 @@ import (
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/quota"
 )
 
 // updateHeadByRebaseOnToBase handles updating a PR's head branch by rebasing it on the PR current base branch
 func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) error {
+	quotaRepo, quotaErr := repo_model.GetRepositoryByID(ctx, pr.HeadRepoID)
+	if quotaErr != nil {
+		return quotaErr
+	}
+	ctx, quotaOp, quotaErr := quota.Begin(ctx, quotaRepo)
+	if quotaErr != nil {
+		return quotaErr
+	}
+	defer quotaOp.Finish()
 	// "Clone" base repo and add the cache headers for the head repo and branch
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, "")
 	if err != nil {
@@ -73,14 +83,14 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	mergeCtx.outbuf.Reset()
 
 	if err := pushCmd.
-		WithEnv(repo_module.FullPushingEnvironment(
+		WithEnv(quotaOp.Environment(repo_module.FullPushingEnvironment(
 			headUser,
 			doer,
 			pr.HeadRepo,
 			pr.HeadRepo.Name,
 			pr.ID,
 			pr.Index,
-		)).
+		))).
 		WithRepo(mergeCtx.tmpRepo).
 		WithStdoutBuffer(mergeCtx.outbuf).
 		RunWithStderr(ctx); err != nil {

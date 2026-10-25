@@ -24,8 +24,9 @@ const TagPrefix = "refs/tags/"
 
 // CreateTag create one tag in the repository
 func (repo *Repository) CreateTag(ctx context.Context, name, revision string) error {
-	_, _, err := gitcmd.NewCommand("tag").AddDashesAndList(name, revision).WithRepo(repo).RunStdString(ctx)
-	return err
+	return GuardStorageMutation(ctx, repo, StorageFetch, func(ctx context.Context, target RepositoryFacade, env []string) error {
+		return gitcmd.NewCommand("tag").AddDashesAndList(name, revision).WithRepo(target).WithEnv(env).Run(ctx)
+	})
 }
 
 // CreateAnnotatedTag create one annotated tag in the repository
@@ -34,8 +35,9 @@ func (repo *Repository) CreateAnnotatedTag(ctx context.Context, name, message, r
 	if err := AddObjectMessageArgument(cmd, ObjectTag, message); err != nil {
 		return err
 	}
-	_, _, err := cmd.AddDashesAndList(name, revision).WithRepo(repo).RunStdString(ctx)
-	return err
+	return GuardStorageMutation(ctx, repo, StorageFetch, func(ctx context.Context, target RepositoryFacade, env []string) error {
+		return cmd.AddDashesAndList(name, revision).WithRepo(target).WithEnv(env).Run(ctx)
+	})
 }
 
 // GetTagNameBySHA returns the name of a tag from its tag object SHA or commit SHA

@@ -63,6 +63,10 @@ func newDoctorCheckCommand() *cli.Command {
 				Name:  "fix",
 				Usage: "Automatically fix what we can",
 			},
+			&cli.BoolFlag{
+				Name:  "quota-recovery-offline",
+				Usage: "Confirm all web, SSH, and worker processes sharing storage are stopped before quota recovery",
+			},
 			&cli.StringFlag{
 				Name:  "log-file",
 				Usage: `Name of the log file (no verbose log output by default). Set to "-" to output to stdout`,
@@ -162,6 +166,7 @@ func setupDoctorDefaultLogger(cmd *cli.Command, colorize bool) {
 }
 
 func runDoctorCheck(ctx context.Context, cmd *cli.Command) error {
+	ctx = doctor.WithQuotaRecoveryOffline(ctx, cmd.Bool("quota-recovery-offline"))
 	colorize := log.CanColorStdout
 	if cmd.IsSet("color") {
 		colorize = cmd.Bool("color")

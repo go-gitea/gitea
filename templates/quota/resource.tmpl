@@ -1,0 +1,7 @@
+<div class="flex-text-block tw-justify-between tw-py-2">
+	<strong>{{.Label}}</strong>
+	<span>
+		{{FormatByteSize .Resource.Used}} / {{if lt .Resource.Limit 0}}{{ctx.Locale.Tr "quota.unlimited"}}{{else}}{{FormatByteSize .Resource.Limit}}{{end}}
+		{{if .Resource.Warning}}<span class="ui orange label">{{ctx.Locale.Tr "quota.warning"}}</span>{{end}}
+	</span>
+</div>

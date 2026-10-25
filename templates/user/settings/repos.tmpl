@@ -1,5 +1,6 @@
 {{template "user/settings/layout_head" (dict "pageClass" "user settings repos")}}
 	<div class="user-setting-content">
+		{{if .StorageQuota}}{{template "quota/summary" .StorageQuota}}{{end}}
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "settings.repos"}}
 		</h4>

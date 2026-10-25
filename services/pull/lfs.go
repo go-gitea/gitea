@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/quota"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -131,7 +132,7 @@ func createLFSMetaObjectsFromCatFileBatch(ctx context.Context, catFileBatchReade
 		// OK we have a pointer that is associated with the head repo
 		// and is actually a file in the LFS
 		// Therefore it should be associated with the base repo
-		if _, err := git_model.NewLFSMetaObject(ctx, pr.BaseRepoID, pointer); err != nil {
+		if _, err := quota.AssociateLFS(ctx, pr.BaseRepoID, pointer); err != nil {
 			return err
 		}
 	}

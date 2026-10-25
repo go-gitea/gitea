@@ -1,0 +1,8 @@
+<h4 class="ui top attached header">{{ctx.Locale.Tr "quota.title"}}</h4>
+<div class="ui attached segment">
+	{{if .Git}}{{template "quota/resource" (dict "Label" (ctx.Locale.Tr "quota.git") "Resource" .Git)}}{{end}}
+	{{if .LFS}}{{template "quota/resource" (dict "Label" (ctx.Locale.Tr "quota.lfs") "Resource" .LFS)}}{{end}}
+	{{if .Total}}{{template "quota/resource" (dict "Label" (ctx.Locale.Tr "quota.account") "Resource" .Total)}}{{end}}
+	{{if .Account}}{{template "quota/resource" (dict "Label" (ctx.Locale.Tr "quota.account") "Resource" .Account)}}{{end}}
+	<p class="help">{{ctx.Locale.Tr "quota.recovery"}}</p>
+</div>

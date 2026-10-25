@@ -1,6 +1,8 @@
 {{template "org/settings/layout_head" (dict "pageClass" "organization settings options")}}
 
 <div class="org-setting-content">
+	{{if .IsAdmin}}<p><a href="{{AppSubUrl}}/-/admin/quotas/organization/{{.Org.ID}}">{{ctx.Locale.Tr "quota.manage"}}</a></p>{{end}}
+		{{if .StorageQuota}}{{template "quota/summary" .StorageQuota}}{{end}}
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "org.settings.options"}}
 	</h4>

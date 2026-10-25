@@ -3015,6 +3015,7 @@
   "admin.dashboard.deleted_branches_cleanup": "Clean up deleted branches",
   "admin.dashboard.update_migration_poster_id": "Update migration poster IDs",
   "admin.dashboard.git_gc_repos": "Garbage-collect all repositories",
+  "admin.dashboard.storage_quota_reconcile": "Reconcile storage quota usage",
   "admin.dashboard.resync_all_sshkeys": "Update the '.ssh/authorized_keys' file with Gitea SSH keys",
   "admin.dashboard.resync_all_sshprincipals": "Update the '.ssh/authorized_principals' file with Gitea SSH principals",
   "admin.dashboard.resync_all_hooks": "Resynchronize git hooks of all repositories (pre-receive, update, post-receive, proc-receive, ...)",
@@ -4059,5 +4060,18 @@
   "actions.general.cross_repo_selected": "Selected repositories",
   "actions.general.cross_repo_target_repos": "Target Repositories",
   "actions.general.cross_repo_add": "Add Target Repository",
-  "packages.owner.settings.cleanuprules.type.already_exists": "A cleanup rule for this package type already exists."
+  "packages.owner.settings.cleanuprules.type.already_exists": "A cleanup rule for this package type already exists.",
+  "quota.title": "Storage quota",
+  "quota.git": "Git and wiki storage",
+  "quota.lfs": "Git LFS storage",
+  "quota.account": "Account storage",
+  "quota.unlimited": "Unlimited",
+  "quota.warning": "Quota nearly full or exceeded",
+  "quota.recovery": "Stored Git history continues to count after files or branches are deleted. Safe garbage collection frees quota only when it removes stored objects. Contact your administrator if you need more space.",
+  "quota.override_help": "Leave blank to inherit the configured default. Use -1 for unlimited, 0 to prevent growth, or a size such as 1 GiB. Account limits still apply to repository overrides.",
+  "quota.inherit": "Inherit default",
+  "quota.manage": "Manage storage quota",
+  "quota.gc": "Run safe garbage collection",
+  "quota.gc_rate_limit": "Garbage collection can be requested once per repository per hour.",
+  "quota.gc_unavailable": "No storage quota is configured for this repository or account."
 }

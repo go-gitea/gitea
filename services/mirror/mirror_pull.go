@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/migrations"
 	notify_service "gitea.dev/services/notify"
+	"gitea.dev/services/quota"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -130,8 +131,16 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
 	}
 
+	runFetch := func() (stdout, stderr string, err error) {
+		err = quota.Fetch(ctx, m.Repo, func(fetchCtx context.Context, target git.RepositoryFacade, env []string) error {
+			var runErr error
+			stdout, stderr, runErr = cmdFetch().WithRepo(target).WithEnv(env).RunStdString(fetchCtx)
+			return runErr
+		})
+		return
+	}
 	var err error
-	fetchStdout, fetchStderr, err := cmdFetch().WithRepo(m.Repo).RunStdString(ctx)
+	fetchStdout, fetchStderr, err := runFetch()
 	if err != nil {
 		// sanitize the output, since it may contain the remote address, which may contain a password
 		stderrMessage := util.SanitizeCredentialURLs(fetchStderr)
@@ -145,7 +154,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 			pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName(), m.Repo.CodeStorageRepo(), timeout)
 			if pruneErr == nil {
 				// Successful prune - reattempt mirror
-				fetchStdout, fetchStderr, err = cmdFetch().WithRepo(m.Repo).RunStdString(ctx)
+				fetchStdout, fetchStderr, err = runFetch()
 				if err != nil {
 					// sanitize the output, since it may contain the remote address, which may contain a password
 					stderrMessage = util.SanitizeCredentialURLs(fetchStderr)
@@ -179,7 +188,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		lfsClient, err := lfs.NewClientFromEndpoint(remoteURL.String(), m.LFSEndpoint, migrations.NewMigrationHTTPTransport())
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to initialize LFS client: %v", m.Repo.FullName(), err)
-		} else if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
+		} else if err = quota.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo.FullName(), err)
 		}
 	}
@@ -207,10 +216,19 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
 	}
 
+	runWikiFetch := func() (stdout, stderr string, err error) {
+		err = quota.Fetch(ctx, m.Repo.WikiStorageRepo(), func(fetchCtx context.Context, target git.RepositoryFacade, env []string) error {
+			var runErr error
+			stdout, stderr, runErr = cmdRemoteUpdatePrune().WithRepo(target).WithEnv(env).RunStdString(fetchCtx)
+			return runErr
+		})
+		return
+	}
+
 	if repo_service.HasWiki(ctx, m.Repo) {
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		// the result of "git remote update" is in stderr
-		stdout, stderr, err := cmdRemoteUpdatePrune().WithRepo(m.Repo.WikiStorageRepo()).RunStdString(ctx)
+		stdout, stderr, err := runWikiFetch()
 		if err != nil {
 			// sanitize the output, since it may contain the remote address, which may contain a password
 			stderrMessage := util.SanitizeCredentialURLs(stderr)
@@ -225,7 +243,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 				pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName()+".wiki", m.Repo.WikiStorageRepo(), timeout)
 				if pruneErr == nil {
 					// Successful prune - reattempt mirror
-					stdout, stderr, err = cmdRemoteUpdatePrune().WithRepo(m.Repo.WikiStorageRepo()).RunStdString(ctx)
+					stdout, stderr, err = runWikiFetch()
 					if err != nil {
 						stderrMessage = util.SanitizeCredentialURLs(stderr)
 						stdoutMessage = util.SanitizeCredentialURLs(stdout)
