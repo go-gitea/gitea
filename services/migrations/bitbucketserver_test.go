@@ -372,7 +372,9 @@ func TestBitbucketServerReviewRequestsAndAttachments(t *testing.T) {
 	factory := &BitbucketServerDownloaderFactory{}
 	downloader, err := factory.New(t.Context(), base.MigrateOptions{CloneAddr: srv.URL + "/projects/PROJ/repos/repo", Attachments: true})
 	require.NoError(t, err)
-	d = downloader.(*BitbucketServerDownloader)
+	var ok bool
+	d, ok = downloader.(*BitbucketServerDownloader)
+	require.True(t, ok)
 	assert.True(t, d.migrateAttachments)
 	prs, _, err = d.GetPullRequests(t.Context(), 1, 50)
 	require.NoError(t, err)
