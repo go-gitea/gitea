@@ -20,13 +20,10 @@ import (
 	"time"
 
 	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 
 	"github.com/google/go-github/v92/github"
@@ -39,11 +36,8 @@ func TestGithubMissingCommentIssue(t *testing.T) {
 	defer test.MockVariableValue(&setting.Migrations.RetryBackoff, 0)()
 	for _, scenario := range []string{"recover", "recover open", "forbidden", "unauthorized", "not found", "gone", "moved", "server error", "reactions not found", "pull request", "wrong number", "wrong repository", "issues disabled"} {
 		t.Run(scenario, func(t *testing.T) {
-			unittest.PrepareTestEnv(t)
 			requests := 0
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.Header().Set("X-RateLimit-Remaining", "100")
+			downloader := newGithubTestDownloader(t, func(w http.ResponseWriter, r *http.Request) {
 				if strings.HasSuffix(r.URL.Path, "/reactions") {
 					if scenario == "reactions not found" {
 						w.WriteHeader(http.StatusNotFound)
@@ -90,17 +84,12 @@ func TestGithubMissingCommentIssue(t *testing.T) {
 					issue["repository_url"] = "http://" + r.Host + "/api/v3/repos/other/repo"
 				}
 				assert.NoError(t, json.NewEncoder(w).Encode(issue))
-			}))
-			defer server.Close()
-			downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
-			require.NoError(t, err)
-			local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
-			local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-			local.gitServiceType = structs.GithubService
+			}).GithubDownloaderV3
+			local := newGithubTestUploader(t)
 			require.NoError(t, local.CreateIssues(t.Context(), &base.Issue{Number: 4876, Title: "Existing"}))
 			uploader := githubMigrationUploader(local, base.NewRetryDownloader(downloader, 2, 0), base.MigrateOptions{Issues: scenario != "issues disabled"})
 			comments := []*base.Comment{{Index: 2, IssueIndex: 4877}, {Index: 1, IssueIndex: 4876}, {Index: 3, IssueIndex: 4877}}
-			err = uploader.CreateComments(t.Context(), comments...)
+			err := uploader.CreateComments(t.Context(), comments...)
 			if scenario == "not found" || scenario == "gone" {
 				require.NoError(t, err)
 				assert.Len(t, local.issues, 1)
@@ -167,9 +156,7 @@ func TestGithubReactionRequests(t *testing.T) {
 			}})
 			require.NoError(t, err)
 			reactionRequests := 0
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.Header().Set("X-RateLimit-Remaining", "100")
+			downloader := newGithubTestDownloader(t, func(w http.ResponseWriter, r *http.Request) {
 				if strings.HasSuffix(r.URL.Path, "/reactions") {
 					reactionRequests++
 					if tc.want == 2 && r.URL.Query().Get("page") == "1" {
@@ -183,10 +170,7 @@ func TestGithubReactionRequests(t *testing.T) {
 					return
 				}
 				_, _ = w.Write(payload)
-			}))
-			defer server.Close()
-			downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
-			require.NoError(t, err)
+			}).GithubDownloaderV3
 			downloader.SkipReactions = tc.skip
 			archivedReactions := 0
 			downloader.archive = func(_ context.Context, kind string, _ int64, value any) error {
@@ -232,116 +216,95 @@ func TestGithubReactionRequests(t *testing.T) {
 }
 
 func TestGithubReviewCommentPagination(t *testing.T) {
-	for _, failComments := range []bool{false, true} {
-		t.Run(fmt.Sprintf("failComments=%t", failComments), func(t *testing.T) {
+	for _, mode := range []string{"pagination", "comments unavailable", "recover review", "review unavailable"} {
+		t.Run(mode, func(t *testing.T) {
 			var requests []string
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.Header().Set("X-RateLimit-Remaining", "100")
+			downloader := newGithubTestDownloader(t, func(w http.ResponseWriter, r *http.Request) {
 				requests = append(requests, r.URL.RequestURI())
 				page := r.URL.Query().Get("page")
 				switch r.URL.Path {
 				case "/api/v3/repos/o/r/pulls/1/reviews":
 					if page == "2" {
-						_, _ = w.Write([]byte(`[{"id":30,"state":"APPROVED"}]`))
+						_, _ = io.WriteString(w, `[{"id":30,"state":"APPROVED"}]`)
 					} else {
 						w.Header().Set("Link", `<https://api.github.com/repos/o/r/pulls/1/reviews?page=2>; rel="next"`)
-						_, _ = w.Write([]byte(`[{"id":10,"state":"COMMENTED"},{"id":20,"state":"COMMENTED"}]`))
+						reviews := []*github.PullRequestReview{{ID: new(int64(20)), State: new("COMMENTED")}}
+						if mode == "pagination" || mode == "comments unavailable" {
+							reviews = append(reviews, &github.PullRequestReview{ID: new(int64(10)), State: new("COMMENTED")})
+						}
+						assert.NoError(t, json.NewEncoder(w).Encode(reviews))
 					}
 				case "/api/v3/repos/o/r/pulls/1/comments":
 					if page == "2" {
-						if failComments {
+						if mode == "comments unavailable" {
 							w.WriteHeader(http.StatusInternalServerError)
 							return
 						}
-						_, _ = w.Write([]byte(`[{"id":2,"pull_request_review_id":10,"in_reply_to_id":1,"reactions":{"total_count":0}}]`))
+						_, _ = io.WriteString(w, `[{"id":2,"pull_request_review_id":10,"in_reply_to_id":1,"path":"file.go","line":4,"side":"LEFT","start_line":2,"reactions":{"total_count":0}}]`)
 					} else {
 						w.Header().Set("Link", `<https://api.github.com/repos/o/r/pulls/1/comments?page=2>; rel="next"`)
-						_, _ = w.Write([]byte(`[{"id":1,"pull_request_review_id":20,"reactions":{"total_count":0}}]`))
+						_, _ = io.WriteString(w, `[{"id":1,"pull_request_review_id":20,"reactions":{"total_count":0}}]`)
 					}
-				case "/api/v3/repos/o/r/pulls/1/requested_reviewers":
-					_, _ = w.Write([]byte(`{"users":[{"id":42,"login":"reviewer"}]}`))
-				default:
-					t.Errorf("unexpected request: %s", r.URL)
-					w.WriteHeader(http.StatusNotFound)
-				}
-			}))
-			defer server.Close()
-			downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
-			require.NoError(t, err)
-			reviews, err := downloader.GetReviews(t.Context(), &base.PullRequest{Number: 7, ForeignIndex: 1})
-			if failComments {
-				require.Error(t, err)
-				assert.Nil(t, reviews)
-				return
-			}
-			require.NoError(t, err)
-			require.Len(t, reviews, 4)
-			require.Len(t, reviews[0].Comments, 1)
-			assert.EqualValues(t, 2, reviews[0].Comments[0].ID)
-			assert.EqualValues(t, 1, reviews[0].Comments[0].InReplyTo)
-			require.Len(t, reviews[1].Comments, 1)
-			assert.EqualValues(t, 1, reviews[1].Comments[0].ID)
-			assert.Empty(t, reviews[2].Comments)
-			assert.Equal(t, base.ReviewStateRequestReview, reviews[3].State)
-			assert.EqualValues(t, 42, reviews[3].ReviewerID)
-			for _, review := range reviews {
-				assert.EqualValues(t, 7, review.IssueIndex)
-			}
-			assert.Equal(t, []string{
-				"/api/v3/repos/o/r/pulls/1/reviews?per_page=100",
-				"/api/v3/repos/o/r/pulls/1/reviews?page=2&per_page=100",
-				"/api/v3/repos/o/r/pulls/1/comments?per_page=100",
-				"/api/v3/repos/o/r/pulls/1/comments?page=2&per_page=100",
-				"/api/v3/repos/o/r/pulls/1/requested_reviewers",
-			}, requests)
-		})
-	}
-}
-
-func TestGithubRecoverMissingReview(t *testing.T) {
-	for _, missing := range []bool{false, true} {
-		t.Run(fmt.Sprintf("missing=%t", missing), func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.Header().Set("X-RateLimit-Remaining", "100")
-				switch r.URL.Path {
-				case "/api/v3/repos/o/r/pulls/1/reviews":
-					_, _ = io.WriteString(w, `[]`)
-				case "/api/v3/repos/o/r/pulls/1/comments":
-					_, _ = io.WriteString(w, `[{"id":1,"pull_request_review_id":10,"path":"file.go","line":4,"side":"LEFT","start_line":2,"reactions":{"total_count":0}}]`)
 				case "/api/v3/repos/o/r/pulls/1/reviews/10":
-					if missing {
+					if mode == "review unavailable" {
 						w.WriteHeader(http.StatusNotFound)
 					} else {
 						_, _ = io.WriteString(w, `{"id":10,"state":"COMMENTED"}`)
 					}
 				case "/api/v3/repos/o/r/pulls/1/requested_reviewers":
-					_, _ = io.WriteString(w, `{"users":[]}`)
+					_, _ = io.WriteString(w, `{"users":[{"id":42,"login":"reviewer"}]}`)
 				default:
-					t.Errorf("unexpected URL %s", r.URL.Path)
+					t.Errorf("unexpected request: %s", r.URL)
 					w.WriteHeader(http.StatusNotFound)
 				}
-			}))
-			defer server.Close()
-			downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
-			require.NoError(t, err)
-			archived := make(map[string]any)
-			downloader.archive = func(_ context.Context, kind string, _ int64, value any) error { archived[kind] = value; return nil }
-			reviews, err := downloader.GetReviews(t.Context(), &base.PullRequest{Number: 1, ForeignIndex: 1})
-			if missing {
-				require.ErrorContains(t, err, "recover review 10")
+			}).GithubDownloaderV3
+			archived := make(map[int64]*github.PullRequestComment)
+			downloader.archive = func(_ context.Context, kind string, id int64, value any) error {
+				if kind == "review-comments" {
+					comment, ok := value.(*github.PullRequestComment)
+					require.True(t, ok)
+					archived[id] = comment
+				}
+				return nil
+			}
+			reviews, err := downloader.GetReviews(t.Context(), &base.PullRequest{Number: 7, ForeignIndex: 1})
+			if strings.HasSuffix(mode, "unavailable") {
+				require.Error(t, err)
+				if mode == "review unavailable" {
+					require.ErrorContains(t, err, "recover review 10")
+				}
 				assert.Nil(t, reviews)
 				return
 			}
 			require.NoError(t, err)
-			require.Len(t, reviews, 1)
-			require.Len(t, reviews[0].Comments, 1)
-			assert.Equal(t, -4, reviews[0].Comments[0].Line)
-			source, ok := archived["review-comments"].(*github.PullRequestComment)
-			require.True(t, ok)
-			assert.Equal(t, 2, source.GetStartLine())
-			assert.Equal(t, "LEFT", source.GetSide())
+			require.Len(t, reviews, 4)
+			byID := make(map[int64]*base.Review)
+			for _, review := range reviews {
+				assert.EqualValues(t, 7, review.IssueIndex)
+				byID[review.ID] = review
+			}
+			require.Len(t, byID[10].Comments, 1)
+			assert.EqualValues(t, 2, byID[10].Comments[0].ID)
+			assert.EqualValues(t, 1, byID[10].Comments[0].InReplyTo)
+			assert.Equal(t, -4, byID[10].Comments[0].Line)
+			require.Len(t, byID[20].Comments, 1)
+			assert.EqualValues(t, 1, byID[20].Comments[0].ID)
+			assert.Empty(t, byID[30].Comments)
+			assert.Equal(t, base.ReviewStateRequestReview, reviews[3].State)
+			assert.EqualValues(t, 42, reviews[3].ReviewerID)
+			require.Contains(t, archived, int64(2))
+			assert.Equal(t, 2, archived[2].GetStartLine())
+			assert.Equal(t, "LEFT", archived[2].GetSide())
+			expected := []string{
+				"/api/v3/repos/o/r/pulls/1/reviews?per_page=100",
+				"/api/v3/repos/o/r/pulls/1/reviews?page=2&per_page=100",
+				"/api/v3/repos/o/r/pulls/1/comments?per_page=100",
+				"/api/v3/repos/o/r/pulls/1/comments?page=2&per_page=100",
+			}
+			if mode == "recover review" {
+				expected = append(expected, "/api/v3/repos/o/r/pulls/1/reviews/10")
+			}
+			assert.Equal(t, append(expected, "/api/v3/repos/o/r/pulls/1/requested_reviewers"), requests)
 		})
 	}
 }

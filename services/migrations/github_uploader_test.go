@@ -35,19 +35,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGithubPatchHTTPError(t *testing.T) {
-	defer test.MockVariableValue(&setting.RepoRootPath, t.TempDir())()
-	for _, status := range []int{403, 404, 500} {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(status)
-			_, _ = io.WriteString(w, "error page")
-		}))
-		uploader := &githubUploader{GiteaLocalUploader: &GiteaLocalUploader{repo: &repo_model.Repository{OwnerName: "owner", Name: "repo"}}}
-		require.ErrorContains(t, uploader.downloadPatch(t.Context(), &base.PullRequest{Number: 1, PatchURL: server.URL}), "HTTP")
-		_, err := os.Stat(filepath.Join(gitrepo.RepoLocalPath(uploader.repo), "pulls/1.patch"))
-		require.True(t, os.IsNotExist(err))
-		server.Close()
-	}
+func newGithubTestUploader(t *testing.T) *GiteaLocalUploader {
+	t.Helper()
+	unittest.PrepareTestEnv(t)
+	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
+	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	local.gitServiceType = structs.GithubService
+	return local
+}
+
+func openGithubTestRepository(t *testing.T, local *GiteaLocalUploader) {
+	t.Helper()
+	var err error
+	local.gitRepo, err = git.OpenRepository(t.Context(), local.repo)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, local.gitRepo.Close()) })
 }
 
 func TestGithubPatchTooLarge(t *testing.T) {
@@ -140,10 +142,7 @@ func TestGithubPatchTooLarge(t *testing.T) {
 }
 
 func TestGithubReviewPreservation(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
-	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	local.gitServiceType = structs.GithubService
+	local := newGithubTestUploader(t)
 	require.NoError(t, local.CreateIssues(t.Context(), &base.Issue{Number: 4877, Title: "PR", Content: "See #1"}))
 	uploader := &githubUploader{GiteaLocalUploader: local}
 	created := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
@@ -188,40 +187,49 @@ func TestGithubMissingReplyFails(t *testing.T) {
 }
 
 func TestGithubTimelinePreservation(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("X-RateLimit-Remaining", "100")
-		assert.Equal(t, "/api/v3/repos/o/r/issues/1/timeline", r.URL.Path)
-		events := []any{}
-		for id, number := range []int{2, 406} {
-			events = append(events, map[string]any{"id": 10 + id, "event": "cross-referenced", "created_at": "2024-01-02T03:04:05Z", "source": map[string]any{"issue": map[string]any{"number": number, "repository_url": "http://" + r.Host + "/api/v3/repos/o/r", "html_url": fmt.Sprintf("https://github.com/o/r/issues/%d", number)}}})
+	local := newGithubTestUploader(t)
+	local.repo.Status = repo_model.RepositoryBeingMigrated
+	require.NoError(t, resetGithubMigrationData(t.Context(), local.repo))
+	require.NoError(t, local.CreateIssues(t.Context(), &base.Issue{Number: 405, Title: "Closed", State: "closed"}, &base.Issue{Number: 407, Title: "Open", State: "open"}))
+	downloader := newGithubTestDownloader(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v3/repos/o/r/issues/405/timeline":
+			events := []*github.Timeline{}
+			for id, number := range []int{407, 406} {
+				events = append(events, &github.Timeline{ID: new(int64(10 + id)), Event: new("cross-referenced"), CreatedAt: &github.Timestamp{Time: time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)}, Source: &github.Source{Issue: &github.Issue{Number: new(number), RepositoryURL: new("http://" + r.Host + "/api/v3/repos/o/r"), HTMLURL: new(fmt.Sprintf("https://github.com/o/r/issues/%d", number))}}})
+			}
+			assert.NoError(t, json.NewEncoder(w).Encode(events))
+		case "/api/v3/repos/o/r/issues/407/timeline":
+			_, _ = io.WriteString(w, "[]")
+		default:
+			t.Errorf("unexpected request: %s", r.URL)
+			w.WriteHeader(http.StatusNotFound)
 		}
-		assert.NoError(t, json.NewEncoder(w).Encode(events))
-	}))
-	defer server.Close()
-	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
-	require.NoError(t, err)
+	}).GithubDownloaderV3
 	archived := false
 	downloader.archive = func(_ context.Context, kind string, _ int64, value any) error {
-		assert.Equal(t, "timelines/1", kind)
-		events, ok := value.([]*github.Timeline)
-		require.True(t, ok)
-		require.Len(t, events, 2)
-		assert.Equal(t, int64(10), events[0].GetID())
-		archived = true
+		if kind == "timelines/405" {
+			events, ok := value.([]*github.Timeline)
+			require.True(t, ok)
+			require.Len(t, events, 2)
+			assert.Equal(t, int64(10), events[0].GetID())
+			archived = true
+		}
 		return nil
 	}
-	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: 1})
-	target := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: 2})
-	local.issues[2] = target
-	uploader := &githubUploader{GiteaLocalUploader: local, downloader: downloader}
-	require.NoError(t, uploader.preserveTimeline(t.Context(), issue))
+	uploader := githubMigrationUploader(local, downloader, base.MigrateOptions{Issues: true, PullRequests: true})
+	require.NoError(t, uploader.CreateComments(t.Context(), &base.Comment{Index: 1, IssueIndex: 405, Content: "Original comment"}))
+	require.NoError(t, uploader.Finish(t.Context()))
 	assert.True(t, archived)
+	issue, target := local.issues[405], local.issues[407]
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Content: "Original comment"})
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Content: "GitHub event: cross-referenced — [source](" + target.HTMLURL(t.Context()) + ")"})
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Content: "GitHub event: cross-referenced — [source](https://github.com/o/r/issues/406)"})
-	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: 1, Index: 406})
+	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: local.repo.ID, Index: 406})
+	assert.Len(t, local.issues, 2)
+	assert.True(t, issue.IsClosed)
+	assert.False(t, target.IsClosed)
+	assert.Equal(t, repo_model.RepositoryReady, local.repo.Status)
 }
 
 func TestGithubReferenceLinks(t *testing.T) {
@@ -241,58 +249,23 @@ func TestGithubReferenceLinks(t *testing.T) {
 	}
 }
 
-func TestGithubMigrationNumberingGaps(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	defer test.MockVariableValue(&setting.Migrations.MaxAttempts, 1)()
-	itemRequests := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("X-RateLimit-Remaining", "100")
-		if strings.HasSuffix(r.URL.Path, "/timeline") {
-			_, _ = io.WriteString(w, "[]")
-			return
-		}
-		itemRequests++
-		w.WriteHeader(http.StatusMovedPermanently)
-		_, _ = io.WriteString(w, `{"message":"Moved Permanently","url":""}`)
-	}))
-	defer server.Close()
-	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
-	require.NoError(t, err)
-	downloader.archive = func(context.Context, string, int64, any) error { return nil }
-	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
-	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	local.repo.Status = repo_model.RepositoryBeingMigrated
-	require.NoError(t, resetGithubMigrationData(t.Context(), local.repo))
-	uploader := githubMigrationUploader(local, downloader, base.MigrateOptions{Issues: true, PullRequests: true})
-	require.NoError(t, uploader.CreateIssues(t.Context(), &base.Issue{Number: 405, Title: "Closed", State: "closed"}, &base.Issue{Number: 407, Title: "Open", State: "open"}))
-	require.NoError(t, uploader.CreateComments(t.Context(), &base.Comment{Index: 1, IssueIndex: 405, Content: "Original comment"}))
-	require.NoError(t, uploader.Finish(t.Context()))
-	assert.Zero(t, itemRequests)
-	assert.Len(t, local.issues, 2)
-	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: local.repo.ID, Index: 406})
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: local.issues[405].ID, Content: "Original comment"})
-	assert.True(t, local.issues[405].IsClosed)
-	assert.False(t, local.issues[407].IsClosed)
-	assert.Equal(t, repo_model.RepositoryReady, local.repo.Status)
-}
-
 func TestGithubMigrationPullStates(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	defer test.MockVariableValue(&pull.AddPullRequestToCheckQueue, func(int64) {})()
-	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
-	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	local.gitServiceType = structs.GithubService
-	var err error
-	local.gitRepo, err = git.OpenRepository(t.Context(), local.repo)
-	require.NoError(t, err)
-	defer local.gitRepo.Close()
+	checks := 0
+	defer test.MockVariableValue(&pull.AddPullRequestToCheckQueue, func(int64) { checks++ })()
+	local := newGithubTestUploader(t)
+	openGithubTestRepository(t, local)
 	sha, err := local.gitRepo.GetRefCommitID(t.Context(), "HEAD")
 	require.NoError(t, err)
 	downloader, err := NewGithubDownloaderV3(t.Context(), "https://github.com", "", "", "", "o", "r")
 	require.NoError(t, err)
 	downloader.SkipReactions = true
-	uploader := &githubUploader{GiteaLocalUploader: local, downloader: downloader}
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests++
+		_, _ = io.WriteString(w, "patch")
+	}))
+	defer server.Close()
+	uploader := &githubUploader{GiteaLocalUploader: local}
 	created := github.Timestamp{Time: time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)}
 	closed := github.Timestamp{Time: created.Add(time.Hour)}
 	for i, example := range []struct {
@@ -319,7 +292,20 @@ func TestGithubMigrationPullStates(t *testing.T) {
 			}
 			prs, err := downloader.convertGithubPullRequests(t.Context(), []*github.PullRequest{source}, 100)
 			require.NoError(t, err)
+			prs[0].PatchURL = server.URL
+			previousChecks := checks
 			require.NoError(t, uploader.CreatePullRequests(t.Context(), prs...))
+			if example.state == "closed" {
+				assert.Equal(t, previousChecks, checks)
+			}
+			assert.Equal(t, server.URL, prs[0].PatchURL)
+			assert.Equal(t, i+1, requests)
+			patch, err := os.ReadFile(filepath.Join(gitrepo.RepoLocalPath(local.repo), fmt.Sprintf("pulls/%d.patch", prs[0].Number)))
+			require.NoError(t, err)
+			assert.Equal(t, "patch", string(patch))
+			head, err := local.gitRepo.GetRefCommitID(t.Context(), prs[0].GetGitHeadRefName())
+			require.NoError(t, err)
+			assert.Equal(t, sha, head)
 			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: local.repo.ID, Index: int64(source.GetNumber())})
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: local.repo.ID, Index: issue.Index})
 			assert.Equal(t, example.state == "closed", issue.IsClosed)
@@ -336,6 +322,25 @@ func TestGithubMigrationPullStates(t *testing.T) {
 			}
 		})
 	}
+	preserved, err := local.gitRepo.GetRefCommitID(t.Context(), "refs/migration/github/commits/"+sha)
+	require.NoError(t, err)
+	assert.Equal(t, sha, preserved)
+	assert.Len(t, uploader.preservedCommits, 1)
+	refPath := filepath.Join(gitrepo.RepoLocalPath(local.repo), "refs/migration/github/commits", sha)
+	lock, err := os.Create(refPath + ".lock")
+	require.NoError(t, err)
+	require.NoError(t, lock.Close())
+	defer os.Remove(refPath + ".lock")
+	require.NoError(t, uploader.preserveCommit(t.Context(), sha))
+	uncached := &githubUploader{GiteaLocalUploader: local}
+	require.Error(t, uncached.preserveCommit(t.Context(), sha))
+	assert.Empty(t, uncached.preservedCommits)
+	require.NoError(t, os.Remove(refPath+".lock"))
+	require.NoError(t, uncached.preserveCommit(t.Context(), sha))
+	assert.Contains(t, uncached.preservedCommits, sha)
+	pr := &base.PullRequest{Number: 4878, EnsuredSafe: true, Base: base.PullRequestBranch{SHA: sha}}
+	require.ErrorContains(t, uploader.CreatePullRequests(t.Context(), pr), "has no head or base commit")
+	unittest.AssertNotExistsBean(t, &issues_model.PullRequest{BaseRepoID: local.repo.ID, Index: pr.Number})
 }
 
 func TestGithubMigrationUploaderIsolation(t *testing.T) {
@@ -366,85 +371,10 @@ func TestGithubMigrationRejectsUnsafePatch(t *testing.T) {
 	require.ErrorContains(t, err, "was not checked for safety")
 }
 
-func TestGithubMigrationPreparedPatch(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	defer test.MockVariableValue(&pull.AddPullRequestToCheckQueue, func(int64) {})()
-	defer test.MockVariableValue(&setting.RepoRootPath, t.TempDir())()
-	requests := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		requests++
-		_, _ = io.WriteString(w, "patch")
-	}))
-	defer server.Close()
-	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
-	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	local.gitServiceType = structs.GithubService
-	uploader := &githubUploader{GiteaLocalUploader: local}
-	pr := &base.PullRequest{Number: 4877, Title: "Migrated PR", State: "closed", PatchURL: server.URL, EnsuredSafe: true}
-	require.NoError(t, uploader.CreatePullRequests(t.Context(), pr))
-	assert.Equal(t, server.URL, pr.PatchURL)
-	assert.Equal(t, 1, requests)
-	data, err := os.ReadFile(filepath.Join(gitrepo.RepoLocalPath(local.repo), "pulls/4877.patch"))
-	require.NoError(t, err)
-	assert.Equal(t, "patch", string(data))
-	unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: local.repo.ID, Index: 4877})
-}
-
-func TestGithubPullCommitPreservation(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	checks := 0
-	defer test.MockVariableValue(&pull.AddPullRequestToCheckQueue, func(int64) { checks++ })()
-	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
-	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	var err error
-	local.gitRepo, err = git.OpenRepository(t.Context(), local.repo)
-	require.NoError(t, err)
-	defer local.gitRepo.Close()
-	sha, err := local.gitRepo.GetRefCommitID(t.Context(), "HEAD")
-	require.NoError(t, err)
-	uploader := &githubUploader{GiteaLocalUploader: local}
-	pr := &base.PullRequest{Number: 4877, Title: "PR", State: "closed", EnsuredSafe: true, Head: base.PullRequestBranch{SHA: sha}, Base: base.PullRequestBranch{SHA: sha}}
-	require.NoError(t, uploader.CreatePullRequests(t.Context(), pr))
-	preserved, err := local.gitRepo.GetRefCommitID(t.Context(), "refs/migration/github/commits/"+sha)
-	require.NoError(t, err)
-	assert.Equal(t, sha, preserved)
-	head, err := local.gitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
-	require.NoError(t, err)
-	assert.Equal(t, sha, head)
-	assert.Len(t, uploader.preservedCommits, 1)
-	refPath := filepath.Join(gitrepo.RepoLocalPath(local.repo), "refs/migration/github/commits", sha)
-	lock, err := os.Create(refPath + ".lock")
-	require.NoError(t, err)
-	require.NoError(t, lock.Close())
-	defer os.Remove(refPath + ".lock")
-	require.NoError(t, uploader.preserveCommit(t.Context(), sha))
-	uncached := &githubUploader{GiteaLocalUploader: local}
-	require.Error(t, uncached.preserveCommit(t.Context(), sha))
-	assert.Empty(t, uncached.preservedCommits)
-	require.NoError(t, os.Remove(refPath+".lock"))
-	require.NoError(t, uncached.preserveCommit(t.Context(), sha))
-	assert.Contains(t, uncached.preservedCommits, sha)
-	pr.Number = 4879
-	require.NoError(t, uploader.CreatePullRequests(t.Context(), pr))
-	head, err = local.gitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
-	require.NoError(t, err)
-	assert.Equal(t, sha, head)
-	pr.Number, pr.Head.SHA = 4878, ""
-	require.ErrorContains(t, uploader.CreatePullRequests(t.Context(), pr), "has no head or base commit")
-	unittest.AssertNotExistsBean(t, &issues_model.PullRequest{BaseRepoID: local.repo.ID, Index: 4878})
-	assert.Zero(t, checks)
-}
-
 func TestGithubPullHeadFetchRewrittenHistory(t *testing.T) {
-	unittest.PrepareTestEnv(t)
 	defer test.MockVariableValue(&pull.AddPullRequestToCheckQueue, func(int64) {})()
-	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
-	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	local.gitServiceType = structs.GithubService
-	var err error
-	local.gitRepo, err = git.OpenRepository(t.Context(), local.repo)
-	require.NoError(t, err)
-	defer local.gitRepo.Close()
+	local := newGithubTestUploader(t)
+	openGithubTestRepository(t, local)
 	baseSHA, err := local.gitRepo.GetRefCommitID(t.Context(), "HEAD")
 	require.NoError(t, err)
 	localDir := gitrepo.RepoLocalPath(local.repo)
@@ -457,6 +387,11 @@ func TestGithubPullHeadFetchRewrittenHistory(t *testing.T) {
 		sha, _, err := gitcmd.NewCommand("commit-tree").AddDynamicArguments(strings.TrimSpace(tree)).AddArguments("-p").AddDynamicArguments(baseSHA).AddArguments("-m").AddDynamicArguments(message).AddConfig("user.name", "test").AddConfig("user.email", "test@example.com").WithDir(dir).RunStdString(t.Context())
 		require.NoError(t, err)
 		return strings.TrimSpace(sha)
+	}
+	if _, err := git.GetRemoteAddress(t.Context(), local.repo, "origin"); err == nil {
+		require.NoError(t, git.ManagedRemoteRemove(t.Context(), local.repo, "origin"))
+	} else {
+		require.True(t, git.IsRemoteNotExistError(err))
 	}
 	oldHead := commit(localDir, "old head")
 	newHead := commit(remoteDir, "rewritten head")
@@ -481,59 +416,41 @@ func TestGithubPullHeadFetchRewrittenHistory(t *testing.T) {
 	head, err = local.gitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 	require.NoError(t, err)
 	assert.Equal(t, newHead, head)
-}
-
-func TestGithubPreserveCommitFetchesSourceWithoutOrigin(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	local := NewGiteaLocalUploader(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), "user2", "repo1")
-	local.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	var err error
-	local.gitRepo, err = git.OpenRepository(t.Context(), local.repo)
+	sourceCommit := commit(remoteDir, "source-only commit")
+	require.NoError(t, gitcmd.NewCommand("update-ref").AddDynamicArguments("refs/heads/source-only", sourceCommit).WithDir(remoteDir).Run(t.Context()))
+	require.NoError(t, uploader.preserveCommit(t.Context(), sourceCommit))
+	preserved, err := local.gitRepo.GetRefCommitID(t.Context(), "refs/migration/github/commits/"+sourceCommit)
 	require.NoError(t, err)
-	defer local.gitRepo.Close()
-
-	if remote, err := git.GetRemoteAddress(t.Context(), local.repo, "origin"); err == nil {
-		if remote != "" {
-			require.NoError(t, git.ManagedRemoteRemove(t.Context(), local.repo, "origin"))
-		}
-	} else {
-		require.True(t, git.IsRemoteNotExistError(err))
-	}
-
-	remoteDir := filepath.Join(t.TempDir(), "source.git")
-	sourceDir := filepath.Join(t.TempDir(), "source")
-	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(remoteDir).Run(t.Context()))
-	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(sourceDir).Run(t.Context()))
-	require.NoError(t, os.WriteFile(filepath.Join(sourceDir, "commit.txt"), []byte("source commit"), 0o644))
-	require.NoError(t, gitcmd.NewCommand("add", "--all").WithDir(sourceDir).Run(t.Context()))
-	require.NoError(t, gitcmd.NewCommand("commit", "-m", "source commit").AddConfig("user.name", "test").AddConfig("user.email", "test@example.com").WithDir(sourceDir).Run(t.Context()))
-	sha, _, err := gitcmd.NewCommand("rev-parse", "HEAD").WithDir(sourceDir).RunStdString(t.Context())
-	require.NoError(t, err)
-	sha = strings.TrimSpace(sha)
-	require.NoError(t, gitcmd.NewCommand("push").AddDynamicArguments(remoteDir, "HEAD:refs/heads/main").WithDir(sourceDir).Run(t.Context()))
-
-	uploader := &githubUploader{GiteaLocalUploader: local, sourceCloneURL: remoteDir}
-	require.NoError(t, uploader.preserveCommit(t.Context(), sha))
-	commit, err := local.gitRepo.GetCommit(t.Context(), sha)
-	require.NoError(t, err)
-	assert.Equal(t, sha, commit.ID.String())
-	preserved, err := local.gitRepo.GetRefCommitID(t.Context(), "refs/migration/github/commits/"+sha)
-	require.NoError(t, err)
-	assert.Equal(t, sha, preserved)
+	assert.Equal(t, sourceCommit, preserved)
 }
 
 func TestGithubMigrationPatchRetry(t *testing.T) {
 	defer test.MockVariableValue(&setting.RepoRootPath, t.TempDir())()
 	defer test.MockVariableValue(&setting.Migrations.MaxAttempts, 3)()
 	defer test.MockVariableValue(&setting.Migrations.RetryBackoff, 0)()
-	for _, mode := range []string{"recover", "exhaust", "cancel"} {
-		t.Run(mode, func(t *testing.T) {
+	for _, tc := range []struct {
+		name             string
+		status, attempts int
+	}{
+		{name: "recover", attempts: 3},
+		{name: "exhaust", attempts: 3},
+		{name: "cancel", attempts: 1},
+		{name: "forbidden", status: http.StatusForbidden, attempts: 3},
+		{name: "not found", status: http.StatusNotFound, attempts: 3},
+		{name: "server error", status: http.StatusInternalServerError, attempts: 3},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 			var requests atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				attempt := requests.Add(1)
-				if mode == "cancel" {
+				if tc.status != 0 {
+					w.WriteHeader(tc.status)
+					_, _ = io.WriteString(w, "error page")
+					return
+				}
+				if tc.name == "cancel" {
 					cancel()
 					<-r.Context().Done()
 					return
@@ -546,7 +463,7 @@ func TestGithubMigrationPatchRetry(t *testing.T) {
 					}
 					return
 				}
-				if attempt == 2 || mode == "exhaust" {
+				if attempt == 2 || tc.name == "exhaust" {
 					w.Header().Set("Content-Length", "100")
 					_, _ = io.WriteString(w, "incomplete patch contents")
 					return
@@ -554,11 +471,11 @@ func TestGithubMigrationPatchRetry(t *testing.T) {
 				_, _ = io.WriteString(w, "patch")
 			}))
 			defer server.Close()
-			uploader := &githubUploader{GiteaLocalUploader: &GiteaLocalUploader{repo: &repo_model.Repository{OwnerName: "owner", Name: mode}}}
+			uploader := &githubUploader{GiteaLocalUploader: &GiteaLocalUploader{repo: &repo_model.Repository{OwnerName: "owner", Name: tc.name}}}
 			err := retryGithubMigration(ctx, func() error {
 				return uploader.downloadPatch(ctx, &base.PullRequest{Number: 1, PatchURL: server.URL, EnsuredSafe: true})
 			})
-			switch mode {
+			switch tc.name {
 			case "recover":
 				require.NoError(t, err)
 				data, err := os.ReadFile(filepath.Join(gitrepo.RepoLocalPath(uploader.repo), "pulls/1.patch"))
@@ -568,8 +485,12 @@ func TestGithubMigrationPatchRetry(t *testing.T) {
 				require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 			case "cancel":
 				require.ErrorIs(t, err, context.Canceled)
+			default:
+				require.ErrorContains(t, err, fmt.Sprintf("HTTP %d", tc.status))
+				_, err := os.Stat(filepath.Join(gitrepo.RepoLocalPath(uploader.repo), "pulls/1.patch"))
+				require.True(t, os.IsNotExist(err))
 			}
-			assert.EqualValues(t, map[string]int{"recover": 3, "exhaust": 3, "cancel": 1}[mode], requests.Load())
+			assert.EqualValues(t, tc.attempts, requests.Load())
 		})
 	}
 }
