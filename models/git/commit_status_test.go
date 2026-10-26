@@ -92,116 +92,45 @@ func TestGetCommitStatuses(t *testing.T) {
 
 func Test_CalcCommitStatus(t *testing.T) {
 	kases := []struct {
-		statuses []*git_model.CommitStatus
-		expected *git_model.CommitStatus
+		statuses commitstatus.CommitStatusStates
+		expected commitstatus.CommitStatusState
 	}{
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusPending,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusPending,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusPending},
+			expected: commitstatus.CommitStatusPending,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-				{
-					State: commitstatus.CommitStatusPending,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusPending,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusSuccess, commitstatus.CommitStatusPending},
+			expected: commitstatus.CommitStatusPending,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-				{
-					State: commitstatus.CommitStatusPending,
-				},
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusPending,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusSuccess, commitstatus.CommitStatusPending, commitstatus.CommitStatusSuccess},
+			expected: commitstatus.CommitStatusPending,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusError,
-				},
-				{
-					State: commitstatus.CommitStatusPending,
-				},
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusFailure,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusError, commitstatus.CommitStatusPending, commitstatus.CommitStatusSuccess},
+			expected: commitstatus.CommitStatusFailure,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusWarning,
-				},
-				{
-					State: commitstatus.CommitStatusPending,
-				},
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusFailure,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusWarning, commitstatus.CommitStatusPending, commitstatus.CommitStatusSuccess},
+			expected: commitstatus.CommitStatusFailure,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusSuccess,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusSuccess, commitstatus.CommitStatusSuccess, commitstatus.CommitStatusSuccess},
+			expected: commitstatus.CommitStatusSuccess,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusFailure,
-				},
-				{
-					State: commitstatus.CommitStatusError,
-				},
-				{
-					State: commitstatus.CommitStatusWarning,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusFailure,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusFailure, commitstatus.CommitStatusError, commitstatus.CommitStatusWarning},
+			expected: commitstatus.CommitStatusFailure,
 		},
 	}
 
 	for _, kase := range kases {
-		assert.Equal(t, kase.expected, git_model.CalcCommitStatus(kase.statuses), "statuses: %v", kase.statuses)
+		statuses := make([]*git_model.CommitStatus, len(kase.statuses))
+		for i, state := range kase.statuses {
+			statuses[i] = &git_model.CommitStatus{State: state}
+		}
+		assert.Equal(t, &git_model.CommitStatus{State: kase.expected}, git_model.CalcCommitStatus(statuses), "statuses: %v", statuses)
 	}
 }
 
@@ -226,29 +155,19 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 		assert.NoError(t, err)
 	}()
 
-	err = git_model.NewCommitStatus(t.Context(), git_model.NewCommitStatusOptions{
-		Repo:    repo2,
-		Creator: user2,
-		SHA:     commit.ID,
-		CommitStatus: &git_model.CommitStatus{
-			State:     commitstatus.CommitStatusFailure,
-			TargetURL: "https://example.com/tests/",
-			Context:   "compliance/lint-backend",
-		},
-	})
-	assert.NoError(t, err)
-
-	err = git_model.NewCommitStatus(t.Context(), git_model.NewCommitStatusOptions{
-		Repo:    repo2,
-		Creator: user2,
-		SHA:     commit.ID,
-		CommitStatus: &git_model.CommitStatus{
-			State:     commitstatus.CommitStatusSuccess,
-			TargetURL: "https://example.com/tests/",
-			Context:   "compliance/lint-backend",
-		},
-	})
-	assert.NoError(t, err)
+	for _, state := range []commitstatus.CommitStatusState{commitstatus.CommitStatusFailure, commitstatus.CommitStatusSuccess} {
+		err = git_model.NewCommitStatus(t.Context(), git_model.NewCommitStatusOptions{
+			Repo:    repo2,
+			Creator: user2,
+			SHA:     commit.ID,
+			CommitStatus: &git_model.CommitStatus{
+				State:     state,
+				TargetURL: "https://example.com/tests/",
+				Context:   "compliance/lint-backend",
+			},
+		})
+		assert.NoError(t, err)
+	}
 
 	contexts, err := git_model.FindRepoRecentCommitStatusContexts(t.Context(), repo2.ID, time.Hour)
 	assert.NoError(t, err)
