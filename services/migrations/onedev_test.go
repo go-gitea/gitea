@@ -52,7 +52,7 @@ func TestOneDevServerVersion(t *testing.T) {
 		v, err := d.getServerVersion(t.Context())
 		assert.NoError(t, err)
 		assert.Equal(t, "12.0.1", v.String())
-		respMap.Store(&respMapType{}) // remove the legacy endpoint, then next call should use the cached version
+		respMap.Store(&respMapType{}) // remove the legacy endpoint, next call should still succeed by using cached version
 		v, err = d.getServerVersion(t.Context())
 		assert.NoError(t, err)
 		assert.Equal(t, "12.0.1", v.String())
