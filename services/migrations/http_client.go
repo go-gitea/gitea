@@ -54,6 +54,9 @@ func (t retryAfterTransport) RoundTrip(req *http.Request) (*http.Response, error
 			return resp, nil
 		}
 		delay, ok := parseRetryAfter(resp.Header.Get("Retry-After"))
+		if !ok && resp.StatusCode == http.StatusTooManyRequests {
+			delay, ok = parseRetryAfter(resp.Header.Get("X-RateLimit-Reset")) // Bitbucket Cloud sends seconds until the reset, epoch values exceed the budget
+		}
 		if !ok || delay > time.Hour-waited {
 			return resp, nil
 		}

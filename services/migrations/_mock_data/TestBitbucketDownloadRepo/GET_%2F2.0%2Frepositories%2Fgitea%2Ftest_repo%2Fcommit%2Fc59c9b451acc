@@ -1,40 +1,37 @@
 Age: 0
-Atl-Request-Id: 092f0989-309f-4722-9a18-7879c5f5d253
-Atl-Traceid: 092f0989309f47229a187879c5f5d253
+Atl-Request-Id: 177c62bc-9124-43c7-a7dd-428464e15e55
+Atl-Traceid: 177c62bc912443c7a7dd428464e15e55
 Cache-Control: max-age=900
 Content-Type: application/json; charset=utf-8
 Etag: W/"5b39c2a01bde476127018a621336cefc"
 Last-Modified: Wed, 07 Oct 2026 18:40:40 GMT
-Server-Timing: cdn-upstream-layer;desc="EDGE",cdn-upstream-dns;dur=0,cdn-upstream-connect;dur=0,cdn-upstream-fbl;dur=266,atl-edge;dur=208,atl-edge-internal;dur=8,atl-edge-upstream;dur=200,atl-edge-pop;desc="aws-us-east-1",cdn-cache-miss,cdn-pop;desc="SFO5-P2",cdn-rid;desc="3o-em8bc1ED7YwszXbNL91LpcAPGga_utBjx3VV_eT9jCYJ2v_id6Q==",cdn-downstream-fbl;dur=271
+Server-Timing: cdn-upstream-layer;desc="EDGE",cdn-upstream-dns;dur=0,cdn-upstream-connect;dur=0,cdn-upstream-fbl;dur=337,atl-edge;dur=235,atl-edge-internal;dur=11,atl-edge-upstream;dur=224,atl-edge-pop;desc="aws-us-east-1",cdn-cache-miss,cdn-pop;desc="VIE50-P3",cdn-rid;desc="lWHndhyp6i-kZrJDgyADOO5yf85_4bFEiOOSCY3D8UYqA_xFTgd8sg==",cdn-downstream-fbl;dur=341
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
 Vary: Authorization, origin
 Vary: Accept-Encoding
-Via: 1.1 c07670802688417c8b871124c547eb0a.cloudfront.net (CloudFront)
+Via: 1.1 a07c29f110da488ffcfa82a3b493897c.cloudfront.net (CloudFront)
 X-Accepted-Oauth-Scopes: repository
-X-Amz-Cf-Id: 3o-em8bc1ED7YwszXbNL91LpcAPGga_utBjx3VV_eT9jCYJ2v_id6Q==
-X-Amz-Cf-Pop: SFO5-P2
+X-Amz-Cf-Id: lWHndhyp6i-kZrJDgyADOO5yf85_4bFEiOOSCY3D8UYqA_xFTgd8sg==
+X-Amz-Cf-Pop: VIE50-P3
 X-Asap-Succeeded: True
-X-B3-Spanid: 63483abe4ad9e8f4
-X-B3-Traceid: 092f0989309f47229a187879c5f5d253
+X-B3-Spanid: 377892bc201fdb65
+X-B3-Traceid: 177c62bc912443c7a7dd428464e15e55
 X-Cache: Miss from cloudfront
 X-Content-Type-Options: nosniff
 X-Credential-Type: unauthenticated_identity
 X-Dc-Location: Micros-3
 X-Envoy-Attempt-Count: 1
 X-Frame-Options: SAMEORIGIN
-X-Ratelimit-Limit: 60, 60;w=3600
-X-Ratelimit-Remaining: 33
-X-Ratelimit-Reset: 879
-X-Render-Time: 0.17815184593200684
-X-Request-Count: 2362
-X-Served-By: d0b42d7e4043
-X-Static-Version: cc480b0813c6
+X-Render-Time: 0.20028924942016602
+X-Request-Count: 183
+X-Served-By: fd5c3c8b5dd2
+X-Static-Version: 5650276b1ec5
 X-Usage-Input-Ops: 32
 X-Usage-Output-Ops: 0
-X-Usage-System-Time: 0.012820
-X-Usage-User-Time: 0.085393
+X-Usage-System-Time: 0.006360
+X-Usage-User-Time: 0.089827
 X-Used-Mesh: False
-X-Version: cc480b0813c6
+X-Version: 5650276b1ec5
 X-View-Name: bitbucket.apps.repo2.api.v20.commit.CommitHandler
 X-Xss-Protection: 1; mode=block
 

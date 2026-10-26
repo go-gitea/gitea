@@ -26,6 +26,9 @@ func TestMigrationHTTPTransportRetryAfter(t *testing.T) {
 		case 2:
 			w.Header().Set("Retry-After", time.Now().UTC().Format(http.TimeFormat))
 			w.WriteHeader(http.StatusForbidden)
+		case 3:
+			w.Header().Set("X-RateLimit-Reset", "0")
+			w.WriteHeader(http.StatusTooManyRequests)
 		default:
 			_, _ = io.Copy(w, r.Body)
 		}
@@ -39,7 +42,7 @@ func TestMigrationHTTPTransportRetryAfter(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "payload", string(body))
-	assert.EqualValues(t, 3, requests.Load())
+	assert.EqualValues(t, 4, requests.Load())
 }
 
 func TestAuthTransportSendsCredentialsToSameHostOnly(t *testing.T) {

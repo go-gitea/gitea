@@ -408,15 +408,6 @@ func (gt GitServiceType) Variants() []GitServiceType {
 	return nil
 }
 
-// ProviderTitle returns the title of gt's entry on the migrate page
-func (gt GitServiceType) ProviderTitle() string {
-	switch gt {
-	case BitbucketService, BitbucketServerService:
-		return "Bitbucket"
-	}
-	return gt.Title()
-}
-
 // MigrateRepoOptions options for migrating repository's
 // this is used to interact with api v1
 type MigrateRepoOptions struct {
@@ -455,7 +446,7 @@ type MigrateRepoOptions struct {
 // TokenAuth represents whether a service type supports token-based auth
 func (gt GitServiceType) TokenAuth() bool {
 	switch gt {
-	case GithubService, GiteaService, GitlabService, ForgejoService, BitbucketService:
+	case GithubService, GiteaService, GitlabService, ForgejoService:
 		return true
 	}
 	return false

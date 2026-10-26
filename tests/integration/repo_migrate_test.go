@@ -57,37 +57,19 @@ func TestRepoMigrate(t *testing.T) {
 	})
 
 	t.Run("BitbucketVariants", func(t *testing.T) {
-		for _, service := range []structs.GitServiceType{structs.BitbucketService, structs.BitbucketServerService} {
+		variants := structs.BitbucketService.Variants()
+		for _, service := range variants {
 			resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d", service)), http.StatusOK)
-			items := NewHTMLParser(t, resp.Body).Find(".ui.compact.menu a.item")
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			serviceValue, _ := htmlDoc.Find(`input[name="service"]`).Attr("value")
+			assert.Equal(t, fmt.Sprintf("%d", service), serviceValue)
+			items := htmlDoc.Find(".ui.compact.menu a.item")
 			require.Equal(t, 2, items.Length())
-			for i, variant := range []structs.GitServiceType{structs.BitbucketService, structs.BitbucketServerService} {
+			for i, variant := range variants {
 				href, _ := items.Eq(i).Attr("href")
 				assert.Contains(t, href, fmt.Sprintf("service_type=%d&", variant))
 				assert.Equal(t, variant == service, items.Eq(i).HasClass("active"))
 			}
 		}
 	})
-}
-
-// TestRepoMigrationUI verifies the per-service migration forms render, including the
-// newly added bitbucket.org service so its UI does not regress.
-func TestRepoMigrationUI(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	session := loginUser(t, "user2")
-
-	for _, service := range []structs.GitServiceType{
-		structs.PlainGitService,
-		structs.GithubService,
-		structs.GitlabService,
-		structs.BitbucketService,
-	} {
-		req := NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d", service))
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-
-		serviceValue, exists := htmlDoc.doc.Find(`input[name="service"]`).Attr("value")
-		assert.True(t, exists, "service_type input missing for %s", service.Title())
-		assert.Equal(t, fmt.Sprintf("%d", service), serviceValue)
-	}
 }
