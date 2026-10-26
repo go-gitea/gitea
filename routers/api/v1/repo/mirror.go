@@ -377,20 +377,20 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 		return
 	}
 
-	sshKeyOwnerID, err := repo_service.ManagedSSHKeyOwner(ctx, ctx.Doer, ctx.Repo.Owner, address, 0)
+	useOwnerSSHKey, err := repo_service.UseOwnerSSHKey(ctx, ctx.Doer, ctx.Repo.Owner, address)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
 
 	pushMirror := &repo_model.PushMirror{
-		RepoID:        repo.ID,
-		Repo:          repo,
-		RemoteName:    "remote_mirror_" + remoteSuffix,
-		Interval:      interval,
-		SyncOnCommit:  mirrorOption.SyncOnCommit,
-		RemoteAddress: remoteAddress,
-		SSHKeyOwnerID: sshKeyOwnerID,
+		RepoID:         repo.ID,
+		Repo:           repo,
+		RemoteName:     "remote_mirror_" + remoteSuffix,
+		Interval:       interval,
+		SyncOnCommit:   mirrorOption.SyncOnCommit,
+		RemoteAddress:  remoteAddress,
+		UseOwnerSSHKey: useOwnerSSHKey,
 	}
 
 	if err = db.Insert(ctx, pushMirror); err != nil {

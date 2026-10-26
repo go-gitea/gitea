@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 
 	"gitea.dev/models/organization"
-	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	giturl "gitea.dev/modules/git/url"
@@ -18,54 +17,41 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// ManagedSSHKeyOwner picks the managed SSH key for doer's SSH remote addr of owner's repository: doer's own, or as its owner the organization's, which requestedID 0 prefers
-func ManagedSSHKeyOwner(ctx context.Context, doer, owner *user_model.User, addr string, requestedID int64) (int64, error) {
+// UseOwnerSSHKey reports whether doer's SSH remote addr for owner's repository authenticates with owner's managed SSH key, which only owner itself or an owner of the organization may bind
+func UseOwnerSSHKey(ctx context.Context, doer, owner *user_model.User, addr string) (bool, error) {
 	if !giturl.IsSSH(addr) {
-		return 0, nil
+		return false, nil
 	}
 	if !user_model.DoerCanViewPrivate(doer) {
-		return 0, util.NewPermissionDeniedErrorf("public-only tokens can't use managed SSH keys")
+		return false, util.NewPermissionDeniedErrorf("public-only tokens can't use managed SSH keys")
 	}
-	keyOwnerID := doer.ID
-	if requestedID != doer.ID && owner.IsOrganization() && (requestedID == 0 || requestedID == owner.ID) {
-		isOrgOwner, err := organization.IsOrganizationOwner(ctx, owner.ID, doer.ID)
-		if err != nil {
-			return 0, err
-		}
-		if isOrgOwner {
-			keyOwnerID = owner.ID
+	canUse := doer.ID == owner.ID
+	if !canUse && owner.IsOrganization() {
+		var err error
+		if canUse, err = organization.IsOrganizationOwner(ctx, owner.ID, doer.ID); err != nil {
+			return false, err
 		}
 	}
-	if requestedID != 0 && requestedID != keyOwnerID {
-		return 0, util.ErrorWrapTranslatable(util.NewPermissionDeniedErrorf("the managed SSH key of %d is not available", requestedID), "repo.migrate.invalid_ssh_key_owner")
+	if !canUse {
+		return false, util.ErrorWrapTranslatable(util.NewPermissionDeniedErrorf("%s can't use the managed SSH key of %s", doer.Name, owner.Name), "repo.migrate.ssh_key_not_allowed")
 	}
-	if _, err := user_model.GetSSHKeypairByOwner(ctx, keyOwnerID); errors.Is(err, util.ErrNotExist) {
-		return 0, util.ErrorWrapTranslatable(util.ErrorWrap(util.ErrUnprocessableContent, "the managed SSH key of %d does not exist", keyOwnerID), "repo.migrate.ssh_key_missing")
+	if _, err := user_model.GetSSHKeypairByOwner(ctx, owner.ID); errors.Is(err, util.ErrNotExist) {
+		return false, util.ErrorWrapTranslatable(util.ErrorWrap(util.ErrUnprocessableContent, "the managed SSH key of %s does not exist", owner.Name), "repo.migrate.ssh_key_missing")
 	} else if err != nil {
-		return 0, err
+		return false, err
 	}
-	return keyOwnerID, nil
+	return true, nil
 }
 
-// ManagedSSHEnv authenticates git with keyOwnerID's managed SSH key while it may serve repo, as its organization's owner or a user administering it
-func ManagedSSHEnv(ctx context.Context, repo *repo_model.Repository, keyOwnerID int64, addr string) (envs []string, cleanup func(), err error) {
-	if keyOwnerID == 0 || !giturl.IsSSH(addr) {
+// ManagedSSHEnv authenticates git with the managed SSH key of repo's owner when useOwnerKey is set for an SSH addr
+func ManagedSSHEnv(ctx context.Context, repo *repo_model.Repository, useOwnerKey bool, addr string) (envs []string, cleanup func(), err error) {
+	if !giturl.IsSSH(addr) {
 		return nil, func() {}, nil
 	}
-	if keyOwnerID != repo.OwnerID {
-		keyOwner, err := user_model.GetValidDoerUserByID(ctx, keyOwnerID)
-		if err != nil {
-			return nil, nil, err
-		}
-		perm, err := access_model.GetIndividualUserRepoPermission(ctx, repo, keyOwner)
-		if err != nil {
-			return nil, nil, err
-		}
-		if !perm.IsAdmin() {
-			return nil, nil, util.NewPermissionDeniedErrorf("%s can no longer administer %s", keyOwner.Name, repo.FullName())
-		}
+	if !useOwnerKey { // never fall back to the server's own SSH identity
+		return nil, nil, util.NewPermissionDeniedErrorf("the SSH remote of %s isn't bound to its owner's managed SSH key, save the mirror again", repo.FullName())
 	}
-	keypair, err := user_model.GetSSHKeypairByOwner(ctx, keyOwnerID)
+	keypair, err := user_model.GetSSHKeypairByOwner(ctx, repo.OwnerID)
 	if err != nil {
 		return nil, nil, err
 	}

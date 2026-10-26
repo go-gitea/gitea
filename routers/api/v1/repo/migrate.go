@@ -110,7 +110,7 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
-	sshKeyOwnerID, err := repo_service.ManagedSSHKeyOwner(ctx, ctx.Doer, repoOwner, remoteAddr, form.SSHKeyOwnerID)
+	useOwnerSSHKey, err := repo_service.UseOwnerSSHKey(ctx, ctx.Doer, repoOwner, remoteAddr)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -165,7 +165,7 @@ func Migrate(ctx *context.APIContext) {
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
-		SSHKeyOwnerID:  sshKeyOwnerID,
+		UseOwnerSSHKey: useOwnerSSHKey,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,

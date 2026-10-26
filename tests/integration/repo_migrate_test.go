@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -78,18 +77,8 @@ func TestRepoMigrateMirrorOverSSH(t *testing.T) {
 		session := loginUser(t, user2.Name)
 		cloneAddr := createSSHUrl("/user2/repo1.git", u).String()
 
-		req := NewRequestWithValues(t, "POST", "/repo/migrate", map[string]string{
-			"clone_addr":       cloneAddr,
-			"uid":              "2",
-			"repo_name":        "foreign-ssh-key",
-			"service":          strconv.Itoa(int(structs.PlainGitService)),
-			"ssh_key_owner_id": "1",
-		})
-		resp := session.MakeRequest(t, req, http.StatusBadRequest)
-		assert.Contains(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage, "You can only use your own managed SSH key")
-
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req = NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &structs.MigrateRepoOptions{
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &structs.MigrateRepoOptions{
 			CloneAddr: cloneAddr,
 			RepoOwner: user2.Name,
 			RepoName:  "ssh-mirror",
@@ -98,7 +87,7 @@ func TestRepoMigrateMirrorOverSSH(t *testing.T) {
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 		mirrorRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "ssh-mirror"})
-		assert.Equal(t, user2.ID, unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID}).SSHKeyOwnerID)
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID}).UseOwnerSSHKey)
 		assert.True(t, mirror_service.SyncPullMirror(t.Context(), mirrorRepo.ID))
 
 		srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -108,7 +97,7 @@ func TestRepoMigrateMirrorOverSSH(t *testing.T) {
 		pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
 		require.NoError(t, err)
 		require.Len(t, pushMirrors, 1)
-		assert.Equal(t, user2.ID, pushMirrors[0].SSHKeyOwnerID)
+		assert.True(t, pushMirrors[0].UseOwnerSSHKey)
 		require.True(t, mirror_service.SyncPushMirror(t.Context(), pushMirrors[0].ID))
 
 		srcCommitID, err := git.GetBranchCommitID(t.Context(), srcRepo, "master")

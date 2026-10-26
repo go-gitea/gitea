@@ -46,19 +46,20 @@ func UpdateAddress(ctx context.Context, doer *user_model.User, m *repo_model.Mir
 	remoteName := m.GetRemoteName()
 	repo := m.GetRepository(ctx)
 
-	// a key stays bound to the address it was chosen for, a new address takes one doer may use
+	// a key stays bound to the address it was chosen for, a new or unbound SSH address takes it only from a doer who may use it
 	oldURL, err := git.ParseRemoteAddressURL(ctx, repo, remoteName)
 	if err == nil {
 		util.RemoveURLCredentials(oldURL.URL)
 	}
-	if (m.SSHKeyOwnerID != 0 || u.Scheme == "ssh") && (err != nil || oldURL.String() != u.String()) {
+	changed := err != nil || oldURL.String() != u.String()
+	if changed && m.UseOwnerSSHKey || u.Scheme == "ssh" && (changed || !m.UseOwnerSSHKey) {
 		if err := repo.LoadOwner(ctx); err != nil {
 			return err
 		}
-		if m.SSHKeyOwnerID, err = repo_service.ManagedSSHKeyOwner(ctx, doer, repo.Owner, addr, util.Iif(m.SSHKeyOwnerID == doer.ID, doer.ID, 0)); err != nil {
+		if m.UseOwnerSSHKey, err = repo_service.UseOwnerSSHKey(ctx, doer, repo.Owner, addr); err != nil {
 			return err
 		}
-		if err := repo_model.UpdateMirrorSSHKeyOwner(ctx, m); err != nil {
+		if err := repo_model.UpdateMirrorUseOwnerSSHKey(ctx, m); err != nil {
 			return err
 		}
 	}
@@ -75,7 +76,7 @@ func UpdateAddress(ctx context.Context, doer *user_model.User, m *repo_model.Mir
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, repo, m.SSHKeyOwnerID, addr)
+		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, repo, m.UseOwnerSSHKey, addr)
 		if err != nil {
 			return err
 		}
@@ -151,7 +152,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	envs, cleanup, sshErr := repo_service.ManagedSSHEnv(ctx, m.Repo, m.SSHKeyOwnerID, remoteURL.String())
+	envs, cleanup, sshErr := repo_service.ManagedSSHEnv(ctx, m.Repo, m.UseOwnerSSHKey, remoteURL.String())
 	if sshErr != nil {
 		log.Error("SyncMirrors [repo: %-v]: managed SSH key: %v", m.Repo, sshErr)
 		return nil, false

@@ -37,7 +37,7 @@ type Mirror struct {
 
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
 
-	SSHKeyOwnerID int64 `xorm:"NOT NULL DEFAULT 0"` // whose managed SSH key authenticates an SSH remote, 0 leaves it to the system's ssh setup
+	UseOwnerSSHKey bool `xorm:"NOT NULL DEFAULT false"` // an SSH remote authenticates with the managed SSH key of the repository's current owner
 }
 
 func (m *Mirror) IsSSHRemoteAddress() bool {
@@ -96,7 +96,7 @@ func GetMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
 
 // UpdateMirror updates the mirror
 func UpdateMirror(ctx context.Context, m *Mirror) error {
-	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Omit("ssh_key_owner_id").Update(m) // only UpdateAddress binds a key, together with the remote
+	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Omit("use_owner_ssh_key").Update(m) // only UpdateAddress binds a key, together with the remote
 	return err
 }
 
@@ -112,8 +112,17 @@ func UpdateMirrorSyncStatus(ctx context.Context, m *Mirror) error {
 	return err
 }
 
-func UpdateMirrorSSHKeyOwner(ctx context.Context, m *Mirror) error {
-	_, err := db.GetEngine(ctx).ID(m.ID).Cols("ssh_key_owner_id").Update(m)
+func UpdateMirrorUseOwnerSSHKey(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("use_owner_ssh_key").Update(m)
+	return err
+}
+
+// UnbindOwnerSSHKey stops the repository's mirrors from authenticating with its owner's managed SSH key until a doer allowed to binds it again
+func UnbindOwnerSSHKey(ctx context.Context, repoID int64) error {
+	if _, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Cols("use_owner_ssh_key").Update(&Mirror{}); err != nil {
+		return err
+	}
+	_, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Cols("use_owner_ssh_key").Update(&PushMirror{})
 	return err
 }
 

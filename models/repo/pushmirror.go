@@ -18,12 +18,12 @@ import (
 
 // PushMirror represents mirror information of a repository.
 type PushMirror struct {
-	ID            int64       `xorm:"pk autoincr"`
-	RepoID        int64       `xorm:"INDEX"`
-	Repo          *Repository `xorm:"-"`
-	RemoteName    string
-	RemoteAddress string `xorm:"VARCHAR(2048)"`
-	SSHKeyOwnerID int64  `xorm:"NOT NULL DEFAULT 0"`
+	ID             int64       `xorm:"pk autoincr"`
+	RepoID         int64       `xorm:"INDEX"`
+	Repo           *Repository `xorm:"-"`
+	RemoteName     string
+	RemoteAddress  string `xorm:"VARCHAR(2048)"`
+	UseOwnerSSHKey bool   `xorm:"NOT NULL DEFAULT false"`
 
 	SyncOnCommit   bool `xorm:"NOT NULL DEFAULT true"`
 	Interval       time.Duration

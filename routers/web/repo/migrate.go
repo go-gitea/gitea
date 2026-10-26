@@ -12,7 +12,6 @@ import (
 
 	admin_model "gitea.dev/models/admin"
 	"gitea.dev/models/db"
-	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -63,30 +62,8 @@ func Migrate(ctx *context.Context) {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
-	if serviceType == structs.PlainGitService {
-		setManagedSSHKeyFingerprints(ctx)
-	}
 
 	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
-}
-
-// setManagedSSHKeyFingerprints lets the migrate form show which managed key an SSH clone uses, organization keys are offered to their owners
-func setManagedSSHKeyFingerprints(ctx *context.Context) {
-	if kp, err := user_model.GetSSHKeypairByOwner(ctx, ctx.Doer.ID); err == nil {
-		ctx.Data["SignedUserSSHFingerprint"] = kp.Fingerprint
-	}
-	orgKeys := map[int64]map[string]string{}
-	orgs, _ := ctx.Data["Orgs"].([]*organization.Organization)
-	for _, org := range orgs {
-		kp, err := user_model.GetSSHKeypairByOwner(ctx, org.ID)
-		if err != nil {
-			continue
-		}
-		if isOwner, _ := org.IsOwnedBy(ctx, ctx.Doer.ID); isOwner {
-			orgKeys[org.ID] = map[string]string{"fingerprint": kp.Fingerprint, "link": org.OrganisationLink() + "/settings/ssh_keys"}
-		}
-	}
-	ctx.Data["OrgSSHKeys"] = orgKeys
 }
 
 func handleMigrateError(ctx *context.Context, owner *user_model.User, err error) {
@@ -198,7 +175,7 @@ func MigratePost(ctx *context.Context) {
 		}
 	}
 
-	sshKeyOwnerID, err := repo_service.ManagedSSHKeyOwner(ctx, ctx.Doer, ctxUser, remoteAddr, form.SSHKeyOwnerID)
+	useOwnerSSHKey, err := repo_service.UseOwnerSSHKey(ctx, ctx.Doer, ctxUser, remoteAddr)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -232,7 +209,7 @@ func MigratePost(ctx *context.Context) {
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
-		SSHKeyOwnerID:  sshKeyOwnerID,
+		UseOwnerSSHKey: useOwnerSSHKey,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,

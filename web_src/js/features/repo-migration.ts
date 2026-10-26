@@ -85,23 +85,6 @@ function isSSHURL(url: string): boolean {
 
 function initSSHKeyField(form: HTMLFormElement, field: HTMLElement) {
   const cloneAddr = form.querySelector<HTMLInputElement>('input[name="clone_addr"]')!;
-  const uid = form.querySelector<HTMLInputElement>('input[name="uid"]')!;
-  const [personalKey, orgKey] = field.querySelectorAll<HTMLInputElement>('input[name="ssh_key_owner_id"]');
-  const keysLink = field.querySelector<HTMLAnchorElement>('.help a')!;
-  const personalKeysLink = keysLink.href;
-  const orgKeys: Record<string, {fingerprint: string, link: string}> = JSON.parse(field.getAttribute('data-org-keys')!);
-
-  const updateKeysLink = () => {
-    keysLink.href = orgKey.checked ? orgKeys[uid.value].link : personalKeysLink;
-  };
-  // owners of the target organization may use its key, which is then the default
-  const updateOrgKey = () => {
-    const key = orgKeys[uid.value];
-    toggleElem(orgKey.closest('.checkbox')!, Boolean(key));
-    orgKey.nextElementSibling!.querySelector('code')!.textContent = key?.fingerprint ?? '';
-    (key ? orgKey : personalKey).checked = true;
-    updateKeysLink();
-  };
   const updateSSH = () => {
     const isSSH = isSSHURL(cloneAddr.value.trim());
     for (const userpassField of form.querySelectorAll('.auth-userpass-field')) {
@@ -110,10 +93,6 @@ function initSSHKeyField(form: HTMLFormElement, field: HTMLElement) {
     }
     toggleElem(field, isSSH);
   };
-
   cloneAddr.addEventListener('input', updateSSH);
-  uid.addEventListener('change', updateOrgKey);
-  field.addEventListener('change', updateKeysLink);
   updateSSH();
-  updateOrgKey();
 }

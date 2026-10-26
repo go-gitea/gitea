@@ -90,7 +90,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("failed to remove existing repo dir %q, err: %w", repo.FullName(), err)
 	}
 
-	envs, cleanup, err := ManagedSSHEnv(ctx, repo, opts.SSHKeyOwnerID, opts.CloneAddr)
+	envs, cleanup, err := ManagedSSHEnv(ctx, repo, opts.UseOwnerSSHKey, opts.CloneAddr)
 	if err != nil {
 		return repo, err
 	}
@@ -195,7 +195,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
 				LFS:            opts.LFS,
 				RemoteAddress:  remoteAddress,
-				SSHKeyOwnerID:  opts.SSHKeyOwnerID,
+				UseOwnerSSHKey: opts.UseOwnerSSHKey,
 			}
 			if opts.LFS {
 				mirrorModel.LFSEndpoint = opts.LFSEndpoint

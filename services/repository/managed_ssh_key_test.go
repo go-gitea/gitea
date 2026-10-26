@@ -21,42 +21,35 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func TestManagedSSHKeyOwner(t *testing.T) {
+func TestUseOwnerSSHKey(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	orgOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	orgMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	const sshAddr = "ssh://git@example.com/repo.git"
-	_, err := ManagedSSHKeyOwner(t.Context(), orgOwner, orgOwner, sshAddr, 0)
+	_, err := UseOwnerSSHKey(t.Context(), orgOwner, orgOwner, sshAddr)
 	assert.ErrorIs(t, err, util.ErrUnprocessableContent)
-	for _, keyOwnerID := range []int64{2, 3, 4} {
+	for _, keyOwnerID := range []int64{2, 3} {
 		_, err := user_model.CreateSSHKeypair(t.Context(), keyOwnerID)
 		require.NoError(t, err)
 	}
 
-	for _, c := range []struct {
-		doer, owner         *user_model.User
-		addr                string
-		requested, expected int64
-	}{
-		{orgOwner, org3, "https://example.com/repo.git", 3, 0},
-		{orgOwner, orgOwner, sshAddr, 0, 2},
-		{orgOwner, org3, sshAddr, 0, 3},
-		{orgOwner, org3, sshAddr, 2, 2},
-		{orgMember, org3, sshAddr, 0, 4},
-	} {
-		keyOwnerID, err := ManagedSSHKeyOwner(t.Context(), c.doer, c.owner, c.addr, c.requested)
+	useOwnerKey, err := UseOwnerSSHKey(t.Context(), orgOwner, org3, "https://example.com/repo.git")
+	require.NoError(t, err)
+	assert.False(t, useOwnerKey)
+	for _, owner := range []*user_model.User{orgOwner, org3} {
+		useOwnerKey, err = UseOwnerSSHKey(t.Context(), orgOwner, owner, sshAddr)
 		require.NoError(t, err)
-		assert.Equal(t, c.expected, keyOwnerID)
+		assert.True(t, useOwnerKey)
 	}
 
-	_, err = ManagedSSHKeyOwner(t.Context(), orgMember, org3, sshAddr, 3)
+	_, err = UseOwnerSSHKey(t.Context(), orgMember, org3, sshAddr)
 	assert.ErrorIs(t, err, util.ErrPermissionDenied)
-	_, err = ManagedSSHKeyOwner(t.Context(), orgMember, orgMember, sshAddr, 2)
+	_, err = UseOwnerSSHKey(t.Context(), orgMember, orgOwner, sshAddr)
 	assert.ErrorIs(t, err, util.ErrPermissionDenied)
 	publicOnly, err := user_model.GetDoerPermissionUser(t.Context(), 2, user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,write:repository").EncodeToString())
 	require.NoError(t, err)
-	_, err = ManagedSSHKeyOwner(t.Context(), publicOnly, orgOwner, sshAddr, 0)
+	_, err = UseOwnerSSHKey(t.Context(), publicOnly, orgOwner, sshAddr)
 	assert.ErrorIs(t, err, util.ErrPermissionDenied)
 }
 
@@ -65,26 +58,18 @@ func TestManagedSSHEnv(t *testing.T) {
 	org3Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
 	const sshAddr = "git@example.com:repo.git"
 
-	envs, cleanup, err := ManagedSSHEnv(t.Context(), org3Repo, 3, "https://example.com/repo.git")
+	envs, cleanup, err := ManagedSSHEnv(t.Context(), org3Repo, true, "https://example.com/repo.git")
 	require.NoError(t, err)
 	cleanup()
 	assert.Nil(t, envs)
-	_, _, err = ManagedSSHEnv(t.Context(), org3Repo, 3, sshAddr)
-	assert.ErrorIs(t, err, util.ErrNotExist)
-
-	_, err = user_model.CreateSSHKeypair(t.Context(), 3)
-	require.NoError(t, err)
-	orgOwnerKey, err := user_model.CreateSSHKeypair(t.Context(), 2)
-	require.NoError(t, err)
-	_, cleanup, err = ManagedSSHEnv(t.Context(), org3Repo, 3, sshAddr)
-	require.NoError(t, err)
-	cleanup()
-	_, _, err = ManagedSSHEnv(t.Context(), org3Repo, 4, sshAddr)
+	_, _, err = ManagedSSHEnv(t.Context(), org3Repo, false, sshAddr)
 	assert.ErrorIs(t, err, util.ErrPermissionDenied)
-	_, _, err = ManagedSSHEnv(t.Context(), org3Repo, 6, sshAddr)
+	_, _, err = ManagedSSHEnv(t.Context(), org3Repo, true, sshAddr)
 	assert.ErrorIs(t, err, util.ErrNotExist)
 
-	envs, cleanup, err = ManagedSSHEnv(t.Context(), org3Repo, 2, sshAddr)
+	ownerKey, err := user_model.CreateSSHKeypair(t.Context(), 3)
+	require.NoError(t, err)
+	envs, cleanup, err = ManagedSSHEnv(t.Context(), org3Repo, true, sshAddr)
 	require.NoError(t, err)
 	sshCommand, ok := strings.CutPrefix(envs[len(envs)-1], "GIT_SSH_COMMAND=")
 	require.True(t, ok)
@@ -98,7 +83,7 @@ func TestManagedSSHEnv(t *testing.T) {
 	require.NoError(t, err)
 	signer, err := ssh.ParsePrivateKey(privateKey)
 	require.NoError(t, err)
-	assert.Equal(t, orgOwnerKey.Fingerprint, ssh.FingerprintSHA256(signer.PublicKey()))
+	assert.Equal(t, ownerKey.Fingerprint, ssh.FingerprintSHA256(signer.PublicKey()))
 	cleanup()
 	assert.NoFileExists(t, keyFiles[0])
 

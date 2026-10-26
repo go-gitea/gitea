@@ -531,24 +531,24 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 		return
 	}
 
-	sshKeyOwnerID, err := repo_service.ManagedSSHKeyOwner(ctx, ctx.Doer, ctx.Repo.Owner, address, 0)
+	useOwnerSSHKey, err := repo_service.UseOwnerSSHKey(ctx, ctx.Doer, ctx.Repo.Owner, address)
 	if util.ErrorAsTranslatable(err) != nil {
 		ctx.Data["Err_PushMirrorAddress"] = true
 		ctx.RenderWithErrDeprecated(util.ErrorAsTranslatable(err).Translate(ctx.Locale), tplSettingsOptions, &form)
 		return
 	} else if err != nil {
-		ctx.ServerError("ManagedSSHKeyOwner", err)
+		ctx.ServerError("UseOwnerSSHKey", err)
 		return
 	}
 
 	m := &repo_model.PushMirror{
-		RepoID:        repo.ID,
-		Repo:          repo,
-		RemoteName:    "remote_mirror_" + remoteSuffix,
-		SyncOnCommit:  form.PushMirrorSyncOnCommit,
-		Interval:      interval,
-		RemoteAddress: remoteAddress,
-		SSHKeyOwnerID: sshKeyOwnerID,
+		RepoID:         repo.ID,
+		Repo:           repo,
+		RemoteName:     "remote_mirror_" + remoteSuffix,
+		SyncOnCommit:   form.PushMirrorSyncOnCommit,
+		Interval:       interval,
+		RemoteAddress:  remoteAddress,
+		UseOwnerSSHKey: useOwnerSSHKey,
 	}
 	if err := db.Insert(ctx, m); err != nil {
 		ctx.ServerError("InsertPushMirror", err)

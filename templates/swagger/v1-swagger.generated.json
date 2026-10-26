@@ -32130,12 +32130,6 @@
           ],
           "x-go-name": "Service"
         },
-        "ssh_key_owner_id": {
-          "description": "SSHKeyOwnerID picks the managed SSH key of an SSH clone address, yours or as its owner the organization's, 0 prefers the organization's",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "SSHKeyOwnerID"
-        },
         "uid": {
           "description": "deprecated (only for backwards compatibility, use repo_owner instead)",
           "type": "integer",

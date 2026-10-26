@@ -45,7 +45,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, m.Repo, m.SSHKeyOwnerID, addr)
+		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, m.Repo, m.UseOwnerSSHKey, addr)
 		if err != nil {
 			return err
 		}
@@ -160,7 +160,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
-		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, m.Repo, m.SSHKeyOwnerID, remoteURL.String())
+		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, m.Repo, m.UseOwnerSSHKey, remoteURL.String())
 		if err != nil {
 			return fmt.Errorf("managed SSH key: %w", err)
 		}

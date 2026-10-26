@@ -214,7 +214,8 @@ func TestHandleSettingsPostMirrorKeepsSSHAddress(t *testing.T) {
 	_, err := user_model.CreateSSHKeypair(t.Context(), 3)
 	require.NoError(t, err)
 	require.NoError(t, mirror_service.UpdateAddress(t.Context(), user, mirror, sshAddr))
-	assert.EqualValues(t, 3, unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5}).SSHKeyOwnerID)
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5}).UseOwnerSSHKey)
+	require.NoError(t, repo_model.UnbindOwnerSSHKey(t.Context(), 5)) // as after a transfer, saving binds it again
 
 	ctx, _ := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
 	contexttest.LoadUser(t, ctx, user.ID)
@@ -228,7 +229,7 @@ func TestHandleSettingsPostMirrorKeepsSSHAddress(t *testing.T) {
 
 	updatedMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	assert.Equal(t, sshAddr, updatedMirror.RemoteAddress)
-	assert.EqualValues(t, 3, updatedMirror.SSHKeyOwnerID)
+	assert.True(t, updatedMirror.UseOwnerSSHKey)
 	remoteAddr, err := git.GetRemoteAddress(t.Context(), mirrorRepo, updatedMirror.GetRemoteName())
 	require.NoError(t, err)
 	assert.Equal(t, sshAddr, remoteAddr)

@@ -8119,12 +8119,6 @@
             "type": "string",
             "x-go-name": "Service"
           },
-          "ssh_key_owner_id": {
-            "description": "SSHKeyOwnerID picks the managed SSH key of an SSH clone address, yours or as its owner the organization's, 0 prefers the organization's",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "SSHKeyOwnerID"
-          },
           "uid": {
             "deprecated": true,
             "description": "deprecated (only for backwards compatibility, use repo_owner instead)",
