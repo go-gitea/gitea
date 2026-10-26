@@ -146,6 +146,7 @@ func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpo
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("OneDev server version request failed: %s", resp.Status)
 	}
+	// This patch doesn't change the situation, "decoder.Decode(&result)" in callAPI still reads the entire body
 	bytes, err := io.ReadAll(io.LimitReader(resp.Body, maxOneDevVersionResponseSize+1))
 	if err != nil {
 		return nil, err
@@ -161,18 +162,17 @@ func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpo
 }
 
 // getServerVersion reads the OneDev server version.
-func (d *OneDevDownloader) getServerVersion(ctx context.Context) (*version.Version, error) {
+func (d *OneDevDownloader) getServerVersion(ctx context.Context) (_ *version.Version, retErr error) {
 	// OneDev moved the endpoint from /~api/version/server to /~api/server/version in 16.8, so both are tried, the new first.
 	oneDevVersionEndpoints := []string{"/~api/server/version", "/~api/version/server"}
-	var errs []error
 	for _, endpoint := range oneDevVersionEndpoints {
 		ver, err := d.getServerVersionByEndpoint(ctx, endpoint)
 		if err == nil {
 			return ver, nil
 		}
-		errs = append(errs, fmt.Errorf("%s: %w", endpoint, err))
+		retErr = errors.Join(err, fmt.Errorf("%s: %w", endpoint, err))
 	}
-	return nil, errors.Join(errs...)
+	return nil, retErr
 }
 
 // GetRepoInfo returns repository information
