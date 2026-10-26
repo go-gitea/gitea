@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
@@ -192,6 +193,14 @@ func ToProjectColumnList(ctx context.Context, columns []*project_model.Column, d
 	result := make([]*api.ProjectColumn, len(columns))
 	for i, column := range columns {
 		result[i] = toProjectColumn(ctx, column, doer, creators)
+	}
+	return result
+}
+
+func ToProjectColumnIssueList(ctx context.Context, doer *user_model.User, issues issues_model.IssueList, sortings map[int64]int64) []*api.ProjectColumnIssue {
+	result := make([]*api.ProjectColumnIssue, len(issues))
+	for i, apiIssue := range ToAPIIssueList(ctx, doer, issues) {
+		result[i] = &api.ProjectColumnIssue{Issue: apiIssue, Sorting: sortings[apiIssue.ID]}
 	}
 	return result
 }
