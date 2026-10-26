@@ -41,29 +41,23 @@ func TestManager_AddContext(t *testing.T) {
 func TestManager_Cancel(t *testing.T) {
 	pm := Manager{processMap: make(map[IDType]*process), next: 1}
 
-	ctx, _, finished := pm.AddContext(t.Context(), "foo")
-	defer finished()
+	for _, managerCancel := range []bool{true, false} {
+		ctx, cancel, finished := pm.AddContext(t.Context(), "foo")
+		defer finished()
 
-	pm.Cancel(GetPID(ctx))
+		if managerCancel {
+			pm.Cancel(GetPID(ctx))
+		} else {
+			cancel()
+		}
 
-	select {
-	case <-ctx.Done():
-	default:
-		assert.FailNow(t, "Cancel should cancel the provided context")
+		select {
+		case <-ctx.Done():
+		default:
+			assert.FailNow(t, "Cancel should cancel the provided context")
+		}
+		finished()
 	}
-	finished()
-
-	ctx, cancel, finished := pm.AddContext(t.Context(), "foo")
-	defer finished()
-
-	cancel()
-
-	select {
-	case <-ctx.Done():
-	default:
-		assert.FailNow(t, "Cancel should cancel the provided context")
-	}
-	finished()
 }
 
 func TestManager_Remove(t *testing.T) {

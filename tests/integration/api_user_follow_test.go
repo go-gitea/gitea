@@ -43,53 +43,29 @@ func TestAPIFollow(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 
-	t.Run("ListFollowing", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	for _, list := range []struct {
+		name     string
+		url      string
+		token    string
+		username string
+	}{
+		{"ListFollowing", fmt.Sprintf("/api/v1/users/%s/following", user2), token2, user1},
+		{"ListMyFollowing", "/api/v1/user/following", token2, user1},
+		{"ListFollowers", fmt.Sprintf("/api/v1/users/%s/followers", user1), token1, user2},
+		{"ListMyFollowers", "/api/v1/user/followers", token1, user2},
+	} {
+		t.Run(list.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/following", user2)).
-			AddTokenAuth(token2)
-		resp := MakeRequest(t, req, http.StatusOK)
+			req := NewRequest(t, "GET", list.url).
+				AddTokenAuth(list.token)
+			resp := MakeRequest(t, req, http.StatusOK)
 
-		users := DecodeJSON(t, resp, []api.User{})
-		assert.Len(t, users, 1)
-		assert.Equal(t, user1, users[0].UserName)
-	})
-
-	t.Run("ListMyFollowing", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", "/api/v1/user/following").
-			AddTokenAuth(token2)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		users := DecodeJSON(t, resp, []api.User{})
-		assert.Len(t, users, 1)
-		assert.Equal(t, user1, users[0].UserName)
-	})
-
-	t.Run("ListFollowers", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/followers", user1)).
-			AddTokenAuth(token1)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		users := DecodeJSON(t, resp, []api.User{})
-		assert.Len(t, users, 1)
-		assert.Equal(t, user2, users[0].UserName)
-	})
-
-	t.Run("ListMyFollowers", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", "/api/v1/user/followers").
-			AddTokenAuth(token1)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		users := DecodeJSON(t, resp, []api.User{})
-		assert.Len(t, users, 1)
-		assert.Equal(t, user2, users[0].UserName)
-	})
+			users := DecodeJSON(t, resp, []api.User{})
+			assert.Len(t, users, 1)
+			assert.Equal(t, list.username, users[0].UserName)
+		})
+	}
 
 	t.Run("CheckFollowing", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

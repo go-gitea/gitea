@@ -132,11 +132,10 @@ func TestAddSMTP(t *testing.T) {
 
 func TestUpdateSMTP(t *testing.T) {
 	testCases := []struct {
-		name               string
-		args               []string
-		existingAuthSource *auth_model.Source
-		authSource         *auth_model.Source
-		errMsg             string
+		name       string
+		args       []string
+		authSource *auth_model.Source
+		errMsg     string
 	}{
 		{
 			name: "missing id",
@@ -149,17 +148,6 @@ func TestUpdateSMTP(t *testing.T) {
 		},
 		{
 			name: "valid config",
-			existingAuthSource: &auth_model.Source{
-				ID:       1,
-				Type:     auth_model.SMTP,
-				Name:     "old name",
-				IsActive: true,
-				Cfg: &smtp.Source{
-					Auth: "PLAIN",
-					Host: "old host",
-					Port: 26,
-				},
-			},
 			args: []string{
 				"--id", "1",
 				"--name", "test",
@@ -180,20 +168,6 @@ func TestUpdateSMTP(t *testing.T) {
 		},
 		{
 			name: "valid config with options",
-			existingAuthSource: &auth_model.Source{
-				ID:       1,
-				Type:     auth_model.SMTP,
-				Name:     "old name",
-				IsActive: true,
-				Cfg: &smtp.Source{
-					Auth:           "PLAIN",
-					Host:           "old host",
-					Port:           26,
-					HeloHostname:   "old.example.com",
-					AllowedDomains: "old.example.com",
-				},
-				TwoFactorPolicy: "",
-			},
 			args: []string{
 				"--id", "1",
 				"--name", "test",

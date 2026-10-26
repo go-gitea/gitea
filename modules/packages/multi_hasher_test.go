@@ -18,36 +18,28 @@ const (
 )
 
 func TestMultiHasherSums(t *testing.T) {
-	t.Run("Sums", func(t *testing.T) {
-		h := NewMultiHasher()
-		h.Write([]byte("gitea"))
+	for _, content := range []string{"gitea", "git"} {
+		t.Run(content, func(t *testing.T) {
+			h := NewMultiHasher()
+			h.Write([]byte(content))
 
-		hashMD5, hashSHA1, hashSHA256, hashSHA512 := h.Sums()
+			if content == "git" {
+				state, err := h.MarshalBinary()
+				assert.NoError(t, err)
 
-		assert.Equal(t, expectedMD5, hex.EncodeToString(hashMD5))
-		assert.Equal(t, expectedSHA1, hex.EncodeToString(hashSHA1))
-		assert.Equal(t, expectedSHA256, hex.EncodeToString(hashSHA256))
-		assert.Equal(t, expectedSHA512, hex.EncodeToString(hashSHA512))
-	})
+				h = NewMultiHasher()
+				err = h.UnmarshalBinary(state)
+				assert.NoError(t, err)
 
-	t.Run("State", func(t *testing.T) {
-		h := NewMultiHasher()
-		h.Write([]byte("git"))
+				h.Write([]byte("ea"))
+			}
 
-		state, err := h.MarshalBinary()
-		assert.NoError(t, err)
+			hashMD5, hashSHA1, hashSHA256, hashSHA512 := h.Sums()
 
-		h2 := NewMultiHasher()
-		err = h2.UnmarshalBinary(state)
-		assert.NoError(t, err)
-
-		h2.Write([]byte("ea"))
-
-		hashMD5, hashSHA1, hashSHA256, hashSHA512 := h2.Sums()
-
-		assert.Equal(t, expectedMD5, hex.EncodeToString(hashMD5))
-		assert.Equal(t, expectedSHA1, hex.EncodeToString(hashSHA1))
-		assert.Equal(t, expectedSHA256, hex.EncodeToString(hashSHA256))
-		assert.Equal(t, expectedSHA512, hex.EncodeToString(hashSHA512))
-	})
+			assert.Equal(t, expectedMD5, hex.EncodeToString(hashMD5))
+			assert.Equal(t, expectedSHA1, hex.EncodeToString(hashSHA1))
+			assert.Equal(t, expectedSHA256, hex.EncodeToString(hashSHA256))
+			assert.Equal(t, expectedSHA512, hex.EncodeToString(hashSHA512))
+		})
+	}
 }
