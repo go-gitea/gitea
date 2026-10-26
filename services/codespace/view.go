@@ -102,7 +102,6 @@ type CreatorCodespaceView struct {
 	DetailMode           string
 	BootStageKey         string
 	DisplayStatusKey     string
-	StatusSummary        string
 	StatusSummaryKey     string
 	LastActiveUnix       int64
 	CreatedUnix          int64
@@ -229,11 +228,7 @@ func ListCreatorCodespaces(ctx context.Context, opts CreatorListOptions) (*Creat
 	}
 	result := &CreatorCodespaceList{Rows: make([]*CreatorCodespaceView, 0, len(rows)), Total: total}
 	for _, row := range rows {
-		view, err := creatorCodespaceView(row, cache, false)
-		if err != nil {
-			return nil, err
-		}
-		result.Rows = append(result.Rows, view)
+		result.Rows = append(result.Rows, creatorCodespaceView(row, cache, false))
 	}
 	return result, nil
 }
@@ -261,10 +256,10 @@ func GetCreatorCodespace(ctx context.Context, opts CreatorDetailOptions) (*Creat
 	if err != nil {
 		return nil, err
 	}
-	return creatorCodespaceView(codespace, cache, true)
+	return creatorCodespaceView(codespace, cache, true), nil
 }
 
-func creatorCodespaceView(codespace *codespace_model.Codespace, cache *creatorViewCache, includeDetailData bool) (*CreatorCodespaceView, error) {
+func creatorCodespaceView(codespace *codespace_model.Codespace, cache *creatorViewCache, includeDetailData bool) *CreatorCodespaceView {
 	refDisplayName := codespace.RefName
 	if codespace.RefType == "pull" {
 		if index, err := pullIndexFromCanonicalRef(codespace.RefName); err == nil {
@@ -314,7 +309,7 @@ func creatorCodespaceView(codespace *codespace_model.Codespace, cache *creatorVi
 		}
 	}
 	applyCreatorActions(codespace, view, manager)
-	return view, nil
+	return view
 }
 
 func loadCreatorViewCache(ctx context.Context, codespaces []*codespace_model.Codespace) (*creatorViewCache, error) {
@@ -418,7 +413,6 @@ func applyCreatorDisplayState(codespace *codespace_model.Codespace, view *Creato
 	case DisplayQueued, DisplayBooting, DisplayStopping, DisplayResuming, DisplayDeleting, DisplayMetadataRebuilding, DisplayRecovering:
 		view.RefreshAfterMillis = refreshTransitionMilliseconds
 	}
-	view.StatusSummary = statusSummary(view.DisplayStatus)
 	view.DisplayStatusKey = "codespace.status." + view.DisplayStatus
 	view.StatusSummaryKey = "codespace.status_summary." + view.DisplayStatus
 	if view.DisplayStatus == DisplayStopped && (manager == nil || manager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(manager)) {
@@ -539,33 +533,6 @@ func applyCreatorActions(codespace *codespace_model.Codespace, view *CreatorCode
 	view.CanContinue = codespace.Status == codespace_model.StatusRunning && isQueuedIdleStop(codespace)
 	view.CanStop = codespace.Status == codespace_model.StatusRunning && (!hasActiveOperation(codespace) || isQueuedIdleStop(codespace))
 	view.CanResume = codespace.Status == codespace_model.StatusStopped && !hasActiveOperation(codespace) && view.DisplayStatus == DisplayStopped && manager != nil && manager.RuntimeState == codespace_model.ManagerRuntimeStateOnline && !isManagerOffline(manager)
-}
-
-func statusSummary(displayStatus string) string {
-	switch displayStatus {
-	case DisplayQueued:
-		return "Waiting for a Codespace Manager"
-	case DisplayBooting:
-		return "Creating the runtime"
-	case DisplayRunning:
-		return "Ready"
-	case DisplayStopping:
-		return "Stopping"
-	case DisplayStopped:
-		return "Stopped"
-	case DisplayResuming:
-		return "Resuming"
-	case DisplayDeleting:
-		return "Deleting"
-	case DisplayFailed:
-		return "Failed"
-	case DisplayMetadataRebuilding:
-		return "Runtime metadata is not ready"
-	case DisplayRecovering:
-		return "Waiting for the Manager"
-	default:
-		return displayStatus
-	}
 }
 
 func codespaceDetailPath(codespaceID int64) string {

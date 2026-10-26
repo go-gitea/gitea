@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -73,10 +74,9 @@ type ReportRuntimeMetadataOptions struct {
 }
 
 type runtimeMetadataCacheEntry struct {
-	Metadata         runtimeMetadata `json:"metadata"`
-	Generation       int64           `json:"generation"`
-	ContentHash      string          `json:"content_hash"`
-	LastReportedUnix int64           `json:"last_reported_unix"`
+	Metadata    runtimeMetadata `json:"metadata"`
+	Generation  int64           `json:"generation"`
+	ContentHash string          `json:"content_hash"`
 }
 
 type runtimeMetadata struct {
@@ -144,10 +144,10 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 		return errors.New("manager is required")
 	}
 	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return err
+		return util.NewInvalidArgumentErrorf("%v", err)
 	}
 	if opts.MetadataGeneration <= 0 {
-		return errors.New("metadata_generation must be positive")
+		return util.NewInvalidArgumentErrorf("metadata_generation must be positive")
 	}
 	allowed, err := currentManagerAllowsOnlineOrRecovering(ctx, manager.ID)
 	if err != nil {
@@ -158,7 +158,7 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 	}
 	metadata, contentHash, err := normalizeRuntimeMetadata(opts.Metadata)
 	if err != nil {
-		return err
+		return util.NewInvalidArgumentErrorf("%v", err)
 	}
 
 	return globallock.LockAndDo(ctx, runtimeMetadataLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
@@ -207,10 +207,9 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 		}
 
 		return putRuntimeMetadataEntry(opts.CodespaceUUID, runtimeMetadataCacheEntry{
-			Metadata:         metadata,
-			Generation:       opts.MetadataGeneration,
-			ContentHash:      contentHash,
-			LastReportedUnix: time.Now().Unix(),
+			Metadata:    metadata,
+			Generation:  opts.MetadataGeneration,
+			ContentHash: contentHash,
 		})
 	})
 }

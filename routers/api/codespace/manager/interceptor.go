@@ -38,8 +38,10 @@ func withManager(next connect.ServerFunc) connect.ServerFunc {
 			switch {
 			case errors.Is(err, codespace_service.ErrManagerUnregistered):
 				return failureError(connect.CodeUnauthenticated, "manager_unregistered", err)
-			default:
+			case errors.Is(err, codespace_service.ErrManagerUnauthenticated):
 				return failureError(connect.CodeUnauthenticated, "unauthenticated", err)
+			default:
+				return serviceFailureError(err, "invalid_argument", nil)
 			}
 		}
 		ctx = context.WithValue(ctx, managerCtxKey{}, manager)
@@ -83,7 +85,7 @@ func GetManager(ctx context.Context) *codespace_model.Manager {
 func authenticate(ctx context.Context, header *connect.Header) (*codespace_model.Manager, error) {
 	managerID, err := strconv.ParseInt(header.Get(managerIDHeader), 10, 64)
 	if err != nil {
-		return nil, errors.New("invalid manager id")
+		return nil, codespace_service.ErrManagerUnauthenticated
 	}
 	manager, err := codespace_service.AuthenticateManager(ctx, managerID, header.Get(managerSecretHeader))
 	if err != nil {
@@ -108,24 +110,6 @@ func failureError(code connect.Code, category string, err error) *connect.Error 
 	detail, detailErr := connectproto.NewErrorDetail(&codespacev1.FailureDetail{Category: category})
 	if detailErr == nil {
 		connectErr = connectErr.WithDetail(detail)
-	}
-	return connectErr
-}
-
-func failureErrorWithStaleGeneration(code connect.Code, category string, currentGeneration int64, err error) error {
-	connectErr := failureError(code, category, err)
-	staleDetail, staleDetailErr := connectproto.NewErrorDetail(&codespacev1.StaleGenerationDetail{CurrentGeneration: currentGeneration})
-	if staleDetailErr == nil {
-		connectErr = connectErr.WithDetail(staleDetail)
-	}
-	return connectErr
-}
-
-func failureErrorWithLogOffset(code connect.Code, category string, currentOffset int64, err error) error {
-	connectErr := failureError(code, category, err)
-	offsetDetail, offsetDetailErr := connectproto.NewErrorDetail(&codespacev1.LogOffsetDetail{CurrentOffset: currentOffset})
-	if offsetDetailErr == nil {
-		connectErr = connectErr.WithDetail(offsetDetail)
 	}
 	return connectErr
 }

@@ -250,10 +250,10 @@ func validateRuntimeAccessRequest(manager *codespace_model.Manager, codespaceUUI
 		return errors.New("manager is required")
 	}
 	if err := codespace_model.ValidateUUID(codespaceUUID); err != nil {
-		return err
+		return util.NewInvalidArgumentErrorf("%v", err)
 	}
 	if operationRVersion <= 0 {
-		return errors.New("operation_rversion must be positive")
+		return util.NewInvalidArgumentErrorf("operation_rversion must be positive")
 	}
 	return nil
 }

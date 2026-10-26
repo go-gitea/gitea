@@ -12,6 +12,7 @@ import (
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
+	"gitea.dev/modules/util"
 )
 
 // ErrFinalizeMetadataRequired is returned until current-version ready metadata is available.
@@ -34,17 +35,17 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 		return nil, errors.New("manager is required")
 	}
 	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("%v", err)
 	}
 	if opts.OperationRVersion <= 0 {
-		return nil, errors.New("operation_rversion must be positive")
+		return nil, util.NewInvalidArgumentErrorf("operation_rversion must be positive")
 	}
 	operationType := finalOperationType(opts.OperationType)
 	if operationType == "" {
-		return nil, fmt.Errorf("invalid final operation type %d", opts.OperationType)
+		return nil, util.NewInvalidArgumentErrorf("invalid final operation type %d", opts.OperationType)
 	}
 	if opts.FinalStatus != codespacev1.FinalStatus_FINAL_STATUS_DONE && opts.FinalStatus != codespacev1.FinalStatus_FINAL_STATUS_FAILED {
-		return nil, fmt.Errorf("invalid final status %d", opts.FinalStatus)
+		return nil, util.NewInvalidArgumentErrorf("invalid final status %d", opts.FinalStatus)
 	}
 	response := &codespacev1.FinalizeOperationResponse{}
 	var stateSummary *internalStateSummary
@@ -69,7 +70,7 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 		now := time.Now().Unix()
 		if isConvergentOperation(operationType) {
 			if opts.FinalStatus == codespacev1.FinalStatus_FINAL_STATUS_FAILED {
-				return errors.New("stop and delete operations must converge or let their lease expire")
+				return util.NewInvalidArgumentErrorf("stop and delete operations must converge or let their lease expire")
 			}
 			return applyFinalOperation(ctx, codespace, opts, now)
 		}

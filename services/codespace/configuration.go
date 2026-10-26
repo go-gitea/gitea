@@ -16,11 +16,9 @@ import (
 )
 
 const (
-	// ManagerServiceMaxMessageSize is the fixed request and response limit for the Manager control plane.
-	ManagerServiceMaxMessageSize = 32 * 1024 * 1024
-	openTokenExpire              = 60 * time.Second
-	runtimeMetadataMaxSize       = 256 * 1024
-	devContainerConfigMaxSize    = 64 * 1024
+	openTokenExpire           = 60 * time.Second
+	runtimeMetadataMaxSize    = 256 * 1024
+	devContainerConfigMaxSize = 64 * 1024
 )
 
 // Init validates Codespace runtime entrypoint configuration during web startup.
@@ -151,9 +149,8 @@ func resolveGitTransportCapabilities(protocol string) (*gitTransportCapabilities
 }
 
 // ManagerServiceTimings returns server-selected ManagerService control values.
-func ManagerServiceTimings() (heartbeatMillis, metadataRefreshMillis, maxMessageBytes int64, giteaWebURL string) {
+func ManagerServiceTimings() (heartbeatMillis, metadataRefreshMillis int64, giteaWebURL string) {
 	return int64((setting.Codespace.ManagerOfflineTimeout / 4) / time.Millisecond),
 		int64((setting.Codespace.ManagerOfflineTimeout / 2) / time.Millisecond),
-		ManagerServiceMaxMessageSize,
 		setting.AppURL
 }

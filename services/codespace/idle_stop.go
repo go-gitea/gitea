@@ -11,6 +11,7 @@ import (
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
+	"gitea.dev/modules/util"
 )
 
 var (
@@ -38,10 +39,10 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 		return nil, errors.New("manager is required")
 	}
 	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("%v", err)
 	}
 	if err := validateObservedRuntimeSettings(opts); err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("%v", err)
 	}
 
 	var response *codespacev1.RequestIdleStopResponse

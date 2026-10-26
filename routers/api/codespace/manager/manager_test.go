@@ -5,6 +5,7 @@ package manager
 
 import (
 	"context"
+	"errors"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +20,7 @@ import (
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 	codespace_service "gitea.dev/services/codespace"
 
 	"connectrpc.com/connect/v2"
@@ -83,7 +85,6 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	require.NoError(t, err)
 	assert.Positive(t, declared.GetHeartbeatIntervalMilliseconds())
 	assert.Positive(t, declared.GetRuntimeMetadataRefreshIntervalMilliseconds())
-	assert.Positive(t, declared.GetControlPlaneMaxMessageSizeBytes())
 	assert.NotEmpty(t, declared.GetGiteaWebUrl())
 
 	manager := new(codespace_model.Manager)
@@ -215,7 +216,6 @@ func TestManagerServiceStructuredErrorDetails(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Equal(t, "stale_generation", failureCategory(t, err))
-	assert.EqualValues(t, 3, staleGenerationCurrent(t, err))
 
 	codespaceUUID := "90909090-9090-4909-8909-909090909090"
 	insertManagerTestCodespace(t, manager.ID, &codespace_model.Codespace{
@@ -252,7 +252,6 @@ func TestManagerServiceStructuredErrorDetails(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeAborted, connect.CodeOf(err))
 	assert.Equal(t, "offset_gap", failureCategory(t, err))
-	assert.Equal(t, written.GetNextOffset(), logOffsetCurrent(t, err))
 }
 
 func TestManagerServiceManagerAvailability(t *testing.T) {
@@ -454,36 +453,6 @@ func failureCategory(t *testing.T, err error) string {
 	return ""
 }
 
-func staleGenerationCurrent(t *testing.T, err error) int64 {
-	t.Helper()
-	var connectErr *connect.Error
-	require.ErrorAs(t, err, &connectErr)
-	for _, detail := range connectErr.Details() {
-		value, detailErr := connectproto.UnmarshalErrorDetail(detail)
-		require.NoError(t, detailErr)
-		if stale, ok := value.(*codespacev1.StaleGenerationDetail); ok {
-			return stale.GetCurrentGeneration()
-		}
-	}
-	require.FailNow(t, "missing stale generation detail")
-	return 0
-}
-
-func logOffsetCurrent(t *testing.T, err error) int64 {
-	t.Helper()
-	var connectErr *connect.Error
-	require.ErrorAs(t, err, &connectErr)
-	for _, detail := range connectErr.Details() {
-		value, detailErr := connectproto.UnmarshalErrorDetail(detail)
-		require.NoError(t, detailErr)
-		if offset, ok := value.(*codespacev1.LogOffsetDetail); ok {
-			return offset.GetCurrentOffset()
-		}
-	}
-	require.FailNow(t, "missing log offset detail")
-	return 0
-}
-
 func managerTestRuntimeMetadata(operationRVersion int64) *codespacev1.RuntimeMetadata {
 	return &codespacev1.RuntimeMetadata{
 		Endpoints: []*codespacev1.RuntimeEndpoint{{EndpointId: "workspace", Label: "Workspace"}},
@@ -499,5 +468,27 @@ func managerTestRuntimeMetadata(operationRVersion int64) *codespacev1.RuntimeMet
 			Disk:         &codespacev1.RuntimeDiskUsage{UsedBytes: 512 * 1024 * 1024, LimitBytes: 10 * 1024 * 1024 * 1024},
 			ObservedUnix: 101,
 		},
+	}
+}
+
+func TestServiceFailureError(t *testing.T) {
+	for _, testCase := range []struct {
+		name    string
+		err     error
+		code    connect.Code
+		message string
+	}{
+		{"parameter", util.NewInvalidArgumentErrorf("invalid offset"), connect.CodeInvalidArgument, "invalid offset"},
+		{"internal", errors.New("database credentials and query"), connect.CodeInternal, "internal server error"},
+		{"canceled", context.Canceled, connect.CodeCanceled, context.Canceled.Error()},
+		{"deadline", context.DeadlineExceeded, connect.CodeDeadlineExceeded, context.DeadlineExceeded.Error()},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			err := serviceFailureError(testCase.err, "invalid_argument", nil)
+			require.Equal(t, testCase.code, connect.CodeOf(err))
+			var rpcError *connect.Error
+			require.ErrorAs(t, err, &rpcError)
+			assert.Equal(t, testCase.message, rpcError.Message())
+		})
 	}
 }

@@ -134,10 +134,9 @@ func serviceRuntimeMetadataEntry(t *testing.T, operationRVersion int64, endpoint
 	metadata, hash, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(t, operationRVersion, bootStageReady, endpoints))
 	require.NoError(t, err)
 	return runtimeMetadataCacheEntry{
-		Metadata:         metadata,
-		Generation:       1,
-		ContentHash:      hash,
-		LastReportedUnix: time.Now().Unix(),
+		Metadata:    metadata,
+		Generation:  1,
+		ContentHash: hash,
 	}
 }
 

@@ -25,6 +25,7 @@ import (
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 const (
@@ -65,7 +66,7 @@ func FetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 		return nil, errors.New("manager is required")
 	}
 	if err := validateFetchOptions(opts); err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("%v", err)
 	}
 	waitTimeout := time.Duration(opts.WaitTimeoutMilliseconds) * time.Millisecond
 	deadline := time.Now().Add(waitTimeout)
@@ -105,7 +106,7 @@ func fetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 		}
 		acceptedCreateTags, err := normalizeAcceptedCreateTags(opts.AcceptedCreateTags, managerEnvironments)
 		if err != nil {
-			return err
+			return util.NewInvalidArgumentErrorf("%v", err)
 		}
 		result = &codespacev1.FetchOperationsResponse{}
 		observedVersions, err := validateObservedOperationHistory(ctx, currentManager.ID, opts.ObservedOperations)

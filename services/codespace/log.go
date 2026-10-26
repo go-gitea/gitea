@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 const (
@@ -128,17 +129,17 @@ func UpdateLog(ctx context.Context, manager *codespace_model.Manager, opts Updat
 		return nil, errors.New("manager is required")
 	}
 	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("%v", err)
 	}
 	if opts.OperationRVersion <= 0 {
-		return nil, errors.New("operation_rversion must be positive")
+		return nil, util.NewInvalidArgumentErrorf("operation_rversion must be positive")
 	}
 	if opts.Offset < 0 {
-		return nil, errors.New("offset must not be negative")
+		return nil, util.NewInvalidArgumentErrorf("offset must not be negative")
 	}
 	encoded, err := encodeLogLines(opts.Lines)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("%v", err)
 	}
 
 	var nextOffset int64

@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
 )
 
 var (
@@ -68,7 +69,7 @@ func BindRuntimeIdentity(ctx context.Context, manager *codespace_model.Manager, 
 		return "", ErrBindRuntimeIdentityNotFound
 	}
 	if err := codespace_model.ValidateUUID(opts.RuntimeUUID); err != nil {
-		return "", err
+		return "", util.NewInvalidArgumentErrorf("%v", err)
 	}
 	var updateErr error
 	err := db.WithTx(ctx, func(ctx context.Context) error {
@@ -147,13 +148,13 @@ func DeclareManager(ctx context.Context, manager *codespace_model.Manager, opts 
 	}
 	normalizedOpts, err := normalizeDeclareManagerOptions(opts)
 	if err != nil {
-		return err
+		return util.NewInvalidArgumentErrorf("%v", err)
 	}
 	opts = normalizedOpts
 
 	environments, err := normalizeManagerEnvironments(opts.Environments)
 	if err != nil {
-		return err
+		return util.NewInvalidArgumentErrorf("%v", err)
 	}
 	tagsJSON, err := json.Marshal(environments)
 	if err != nil {

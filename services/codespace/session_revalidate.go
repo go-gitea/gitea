@@ -11,6 +11,7 @@ import (
 	codespace_model "gitea.dev/models/codespace"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 const (
@@ -40,9 +41,24 @@ func RevalidateGatewaySession(ctx context.Context, manager *codespace_model.Mana
 	if !setting.Codespace.Enabled {
 		return denyGatewaySession(SessionDeniedStateUnavailable), nil
 	}
-	userID, codespaceUUID, endpointID, sshSession, err := validateGatewaySessionBinding(request)
-	if err != nil {
-		return nil, err
+	var userID int64
+	var codespaceUUID, endpointID string
+	sshSession := false
+	if endpoint := request.GetEndpoint(); endpoint != nil {
+		userID, codespaceUUID, endpointID = endpoint.UserId, endpoint.RuntimeUuid, endpoint.EndpointId
+		if endpointID != workspaceEndpointID && !endpointIDPattern.MatchString(endpointID) {
+			return nil, util.NewInvalidArgumentErrorf("invalid endpoint_id")
+		}
+	} else if ssh := request.GetSsh(); ssh != nil {
+		userID, codespaceUUID, sshSession = ssh.UserId, ssh.RuntimeUuid, true
+	} else {
+		return nil, util.NewInvalidArgumentErrorf("session is required")
+	}
+	if userID <= 0 {
+		return nil, util.NewInvalidArgumentErrorf("user_id must be positive")
+	}
+	if err := codespace_model.ValidateUUID(codespaceUUID); err != nil {
+		return nil, util.NewInvalidArgumentErrorf("%v", err)
 	}
 
 	access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, codespaceUUID, false)
@@ -87,30 +103,6 @@ func RevalidateGatewaySession(ctx context.Context, manager *codespace_model.Mana
 		}, nil
 	}
 	return denyGatewaySession(SessionDeniedEndpointNotFound), nil
-}
-
-func validateGatewaySessionBinding(request *codespacev1.RevalidateGatewaySessionRequest) (userID int64, codespaceUUID, endpointID string, sshSession bool, err error) {
-	if endpoint := request.GetEndpoint(); endpoint != nil {
-		userID = endpoint.GetUserId()
-		codespaceUUID = endpoint.GetRuntimeUuid()
-		endpointID = endpoint.GetEndpointId()
-		if endpointID != workspaceEndpointID && !endpointIDPattern.MatchString(endpointID) {
-			return 0, "", "", false, errors.New("invalid endpoint_id")
-		}
-	} else if ssh := request.GetSsh(); ssh != nil {
-		userID = ssh.GetUserId()
-		codespaceUUID = ssh.GetRuntimeUuid()
-		sshSession = true
-	} else {
-		return 0, "", "", false, errors.New("session is required")
-	}
-	if userID <= 0 {
-		return 0, "", "", false, errors.New("user_id must be positive")
-	}
-	if err := codespace_model.ValidateUUID(codespaceUUID); err != nil {
-		return 0, "", "", false, err
-	}
-	return userID, codespaceUUID, endpointID, sshSession, nil
 }
 
 func denyGatewaySession(category string) *codespacev1.RevalidateGatewaySessionResponse {

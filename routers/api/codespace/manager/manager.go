@@ -10,6 +10,8 @@ import (
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	"gitea.dev/codespace-proto-go/codespace/v1/codespacev1connect"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 	codespace_service "gitea.dev/services/codespace"
 
 	"connectrpc.com/connect/v2"
@@ -21,7 +23,7 @@ func NewManagerServiceHandler() (string, http.Handler) {
 	server := connect.NewServer(withManager)
 	codespacev1connect.RegisterManagerServiceHandler(server, &Service{})
 	mux := http.NewServeMux()
-	connecthttp.Mount(mux, server, connecthttp.WithCompressMinBytes(1024), connecthttp.WithReadMaxBytes(codespace_service.ManagerServiceMaxMessageSize), connecthttp.WithSendMaxBytes(codespace_service.ManagerServiceMaxMessageSize))
+	connecthttp.Mount(mux, server, connecthttp.WithCompressMinBytes(1024), connecthttp.WithReadMaxBytes(codespacev1.ManagerServiceMaxMessageBytes), connecthttp.WithSendMaxBytes(codespacev1.ManagerServiceMaxMessageBytes))
 	return "/" + codespacev1connect.ManagerServiceName + "/", mux
 }
 
@@ -38,7 +40,7 @@ func (s *Service) CheckManager(
 	_ *codespacev1.CheckManagerRequest,
 ) (*codespacev1.CheckManagerResponse, error) {
 	manager := GetManager(ctx)
-	_, _, _, giteaWebURL := codespace_service.ManagerServiceTimings()
+	_, _, giteaWebURL := codespace_service.ManagerServiceTimings()
 	return &codespacev1.CheckManagerResponse{
 		GiteaWebUrl: giteaWebURL,
 		ManagerName: manager.Name,
@@ -62,12 +64,11 @@ func (s *Service) DeclareManager(
 	}); err != nil {
 		return nil, serviceFailureError(err, "invalid_declaration", nil)
 	}
-	heartbeatMillis, metadataRefreshMillis, maxMessageBytes, giteaWebURL := codespace_service.ManagerServiceTimings()
+	heartbeatMillis, metadataRefreshMillis, giteaWebURL := codespace_service.ManagerServiceTimings()
 	return &codespacev1.DeclareManagerResponse{
 		HeartbeatIntervalMilliseconds:              heartbeatMillis,
 		RuntimeMetadataRefreshIntervalMilliseconds: metadataRefreshMillis,
-		ControlPlaneMaxMessageSizeBytes:            maxMessageBytes,
-		GiteaWebUrl:                                giteaWebURL,
+		GiteaWebUrl: giteaWebURL,
 	}, nil
 }
 
@@ -126,17 +127,10 @@ func (s *Service) ReportInstances(
 		Instances:           req.GetInstances(),
 	})
 	if err != nil {
-		var staleGeneration *codespace_service.StaleGenerationError
-		switch {
-		case errors.As(err, &staleGeneration):
-			return nil, failureErrorWithStaleGeneration(connect.CodeFailedPrecondition, "stale_generation", staleGeneration.CurrentGeneration, err)
-		case errors.Is(err, codespace_service.ErrReportInstancesStateHistoryConflict):
-			return nil, failureError(connect.CodeFailedPrecondition, "state_history_conflict", err)
-		case errors.Is(err, codespace_service.ErrReportInstancesManagerUnavailable):
-			return nil, failureError(connect.CodeUnavailable, "manager_offline", err)
-		default:
-			return nil, failureError(connect.CodeInvalidArgument, "invalid_argument", err)
-		}
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrReportInstancesStateHistoryConflict, code: connect.CodeFailedPrecondition, category: "state_history_conflict"},
+			{target: codespace_service.ErrReportInstancesManagerUnavailable, code: connect.CodeUnavailable, category: "manager_offline"},
+		})
 	}
 	return result, nil
 }
@@ -175,21 +169,13 @@ func (s *Service) UpdateLog(
 		Lines:             req.GetLines(),
 	})
 	if err != nil {
-		var offsetErr *codespace_service.LogOffsetError
-		switch {
-		case errors.As(err, &offsetErr) && errors.Is(err, codespace_service.ErrUpdateLogOffsetConflict):
-			return nil, failureErrorWithLogOffset(connect.CodeAborted, "offset_conflict", offsetErr.CurrentOffset, err)
-		case errors.As(err, &offsetErr) && errors.Is(err, codespace_service.ErrUpdateLogOffsetGap):
-			return nil, failureErrorWithLogOffset(connect.CodeAborted, "offset_gap", offsetErr.CurrentOffset, err)
-		case errors.Is(err, codespace_service.ErrUpdateLogNotFound):
-			return nil, failureError(connect.CodeNotFound, "codespace_not_found", err)
-		case errors.Is(err, codespace_service.ErrUpdateLogStaleOperation):
-			return nil, failureError(connect.CodeFailedPrecondition, "stale_operation", err)
-		case errors.Is(err, codespace_service.ErrUpdateLogSizeExceeded):
-			return nil, failureError(connect.CodeResourceExhausted, "log_size_exceeded", err)
-		default:
-			return nil, failureError(connect.CodeInvalidArgument, "invalid_argument", err)
-		}
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrUpdateLogOffsetConflict, code: connect.CodeAborted, category: "offset_conflict"},
+			{target: codespace_service.ErrUpdateLogOffsetGap, code: connect.CodeAborted, category: "offset_gap"},
+			{target: codespace_service.ErrUpdateLogNotFound, code: connect.CodeNotFound, category: "codespace_not_found"},
+			{target: codespace_service.ErrUpdateLogStaleOperation, code: connect.CodeFailedPrecondition, category: "stale_operation"},
+			{target: codespace_service.ErrUpdateLogSizeExceeded, code: connect.CodeResourceExhausted, category: "log_size_exceeded"},
+		})
 	}
 	return result, nil
 }
@@ -206,23 +192,16 @@ func (s *Service) ReportRuntimeMetadata(
 		MetadataGeneration: req.GetMetadataGeneration(),
 	})
 	if err != nil {
-		return nil, reportRuntimeMetadataError(err)
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrRuntimeMetadataGenerationConflict, code: connect.CodeFailedPrecondition, category: "generation_conflict"},
+			{target: codespace_service.ErrRuntimeMetadataVersionExhausted, code: connect.CodeFailedPrecondition, category: "version_exhausted"},
+			{target: codespace_service.ErrRuntimeMetadataManagerMismatch, code: connect.CodeFailedPrecondition, category: "manager_mismatch"},
+			{target: codespace_service.ErrRuntimeMetadataStaleOperation, code: connect.CodeFailedPrecondition, category: "stale_operation"},
+			{target: codespace_service.ErrRuntimeMetadataManagerOffline, code: connect.CodeUnavailable, category: "manager_offline"},
+			{target: codespace_service.ErrRuntimeMetadataStateUnavailable, code: connect.CodeFailedPrecondition, category: "state_unavailable"},
+		})
 	}
 	return &codespacev1.ReportRuntimeMetadataResponse{}, nil
-}
-
-func reportRuntimeMetadataError(err error) error {
-	if staleGeneration, ok := errors.AsType[*codespace_service.StaleGenerationError](err); ok {
-		return failureErrorWithStaleGeneration(connect.CodeFailedPrecondition, "stale_generation", staleGeneration.CurrentGeneration, err)
-	}
-	return serviceFailureError(err, "invalid_argument", []serviceErrorCase{
-		{target: codespace_service.ErrRuntimeMetadataGenerationConflict, code: connect.CodeFailedPrecondition, category: "generation_conflict"},
-		{target: codespace_service.ErrRuntimeMetadataVersionExhausted, code: connect.CodeFailedPrecondition, category: "version_exhausted"},
-		{target: codespace_service.ErrRuntimeMetadataManagerMismatch, code: connect.CodeFailedPrecondition, category: "manager_mismatch"},
-		{target: codespace_service.ErrRuntimeMetadataStaleOperation, code: connect.CodeFailedPrecondition, category: "stale_operation"},
-		{target: codespace_service.ErrRuntimeMetadataManagerOffline, code: connect.CodeUnavailable, category: "manager_offline"},
-		{target: codespace_service.ErrRuntimeMetadataStateUnavailable, code: connect.CodeFailedPrecondition, category: "state_unavailable"},
-	})
 }
 
 type serviceErrorCase struct {
@@ -237,7 +216,21 @@ func serviceFailureError(err error, fallbackCategory string, cases []serviceErro
 			return failureError(errCase.code, errCase.category, err)
 		}
 	}
-	return failureError(connect.CodeInvalidArgument, fallbackCategory, err)
+	switch {
+	case errors.Is(err, context.Canceled):
+		return connect.NewError(connect.CodeCanceled, context.Canceled.Error()).WithCause(err)
+	case errors.Is(err, context.DeadlineExceeded):
+		return connect.NewError(connect.CodeDeadlineExceeded, context.DeadlineExceeded.Error()).WithCause(err)
+	case errors.Is(err, codespace_service.ErrManagerUnregistered):
+		return failureError(connect.CodeUnauthenticated, "manager_unregistered", err)
+	case errors.Is(err, util.ErrInvalidArgument):
+		return failureError(connect.CodeInvalidArgument, fallbackCategory, err)
+	}
+	if _, ok := errors.AsType[*codespace_service.StaleGenerationError](err); ok {
+		return failureError(connect.CodeFailedPrecondition, "stale_generation", err)
+	}
+	log.Error("Codespace ManagerService failed: %v", err)
+	return failureError(connect.CodeInternal, "internal_error", errors.New("internal server error"))
 }
 
 // RequestRuntimeAccess returns the authenticated Manager's current runtime access material.
@@ -261,7 +254,6 @@ func (s *Service) RequestRuntimeAccess(
 			{target: codespace_service.ErrRuntimeGitSSHKeyLoginRestricted, code: connect.CodeFailedPrecondition, category: "login_restricted"},
 			{target: codespace_service.ErrRuntimeGitSSHKeyInvalidPublicKey, code: connect.CodeInvalidArgument, category: "invalid_public_key"},
 			{target: codespace_service.ErrRuntimeGitSSHKeyConflict, code: connect.CodeFailedPrecondition, category: "key_conflict"},
-			{target: codespace_service.ErrRuntimeGitSSHKeyIntegrity, code: connect.CodeInternal, category: "internal_error"},
 		})
 	}
 	secrets := make([]*codespacev1.RuntimeSecretEnvironmentVariable, 0, len(result.Secrets))
@@ -313,7 +305,7 @@ func (s *Service) ValidatePublicEndpoint(
 		EndpointID:    req.GetEndpointId(),
 	})
 	if err != nil {
-		return nil, failureError(connect.CodeInvalidArgument, "invalid_argument", err)
+		return nil, serviceFailureError(err, "invalid_argument", nil)
 	}
 	return result, nil
 }
@@ -328,7 +320,7 @@ func (s *Service) ValidateOpenToken(
 		Code: req.GetCode(),
 	})
 	if err != nil {
-		return nil, failureError(connect.CodeInternal, "internal_error", err)
+		return nil, serviceFailureError(err, "invalid_argument", nil)
 	}
 	return result, nil
 }
@@ -344,7 +336,7 @@ func (s *Service) VerifySSHPublicKey(
 		PublicKey:     req.GetPublicKey(),
 	})
 	if err != nil {
-		return nil, failureError(connect.CodeInvalidArgument, "invalid_argument", err)
+		return nil, serviceFailureError(err, "invalid_argument", nil)
 	}
 	return result, nil
 }
@@ -357,7 +349,7 @@ func (s *Service) RevalidateGatewaySession(
 	manager := GetManager(ctx)
 	result, err := codespace_service.RevalidateGatewaySession(ctx, manager, req)
 	if err != nil {
-		return nil, failureError(connect.CodeInvalidArgument, "invalid_argument", err)
+		return nil, serviceFailureError(err, "invalid_argument", nil)
 	}
 	return result, nil
 }

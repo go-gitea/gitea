@@ -10,6 +10,7 @@ import (
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 const (
@@ -46,7 +47,7 @@ func ValidatePublicEndpoint(ctx context.Context, manager *codespace_model.Manage
 		return denyPublicEndpoint(PublicEndpointDeniedStateUnavailable), nil
 	}
 	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("%v", err)
 	}
 	if opts.EndpointID == workspaceEndpointID || !endpointIDPattern.MatchString(opts.EndpointID) {
 		return denyPublicEndpoint(PublicEndpointDeniedInvalidEndpoint), nil

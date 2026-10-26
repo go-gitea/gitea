@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -45,11 +46,6 @@ type VerifySSHPublicKeyOptions struct {
 	PublicKey     []byte
 }
 
-type normalizedUserSSHKey struct {
-	Wire        []byte
-	Fingerprint string
-}
-
 // VerifySSHPublicKey authorizes one new Gateway SSH transport using a Gitea user SSH key.
 func VerifySSHPublicKey(ctx context.Context, manager *codespace_model.Manager, opts VerifySSHPublicKeyOptions) (*codespacev1.VerifySSHPublicKeyResponse, error) {
 	if manager == nil || manager.ID <= 0 {
@@ -59,9 +55,9 @@ func VerifySSHPublicKey(ctx context.Context, manager *codespace_model.Manager, o
 		return denySSHAuth(SSHAuthDeniedStateUnavailable), nil
 	}
 	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("%v", err)
 	}
-	key, err := normalizeUserSSHPublicKey(opts.PublicKey)
+	key, err := ssh.ParsePublicKey(opts.PublicKey)
 	if err != nil {
 		return denySSHAuth(SSHAuthDeniedInvalidCredentials), nil
 	}
@@ -144,17 +140,6 @@ func VerifySSHPublicKey(ctx context.Context, manager *codespace_model.Manager, o
 	return result, nil
 }
 
-func normalizeUserSSHPublicKey(raw []byte) (normalizedUserSSHKey, error) {
-	publicKey, err := ssh.ParsePublicKey(raw)
-	if err != nil {
-		return normalizedUserSSHKey{}, err
-	}
-	return normalizedUserSSHKey{
-		Wire:        publicKey.Marshal(),
-		Fingerprint: ssh.FingerprintSHA256(publicKey),
-	}, nil
-}
-
 func codespaceUserCanLogIn(ctx context.Context, user *user_model.User) (bool, error) {
 	if user == nil || !user.IsActive || user.ProhibitLogin || user.MustChangePassword {
 		return false, nil
@@ -169,21 +154,22 @@ func codespaceUserCanLogIn(ctx context.Context, user *user_model.User) (bool, er
 	return has, nil
 }
 
-func userOwnsSSHKey(ctx context.Context, ownerID int64, submitted normalizedUserSSHKey) (bool, error) {
+func userOwnsSSHKey(ctx context.Context, ownerID int64, submitted ssh.PublicKey) (bool, error) {
 	keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
 		OwnerID:     ownerID,
-		Fingerprint: submitted.Fingerprint,
+		Fingerprint: ssh.FingerprintSHA256(submitted),
 		KeyTypes:    []asymkey_model.KeyType{asymkey_model.KeyTypeUser},
 	})
 	if err != nil {
 		return false, err
 	}
+	wire := submitted.Marshal()
 	for _, key := range keys {
 		dbKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key.Content))
 		if err != nil {
 			return false, err
 		}
-		if bytes.Equal(dbKey.Marshal(), submitted.Wire) {
+		if bytes.Equal(dbKey.Marshal(), wire) {
 			return true, nil
 		}
 	}

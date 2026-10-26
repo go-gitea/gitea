@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"time"
 
 	codespace_model "gitea.dev/models/codespace"
@@ -14,6 +16,8 @@ import (
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+
+	"xorm.io/builder"
 )
 
 var (
@@ -27,9 +31,7 @@ var (
 type PermissionAuthorizationView struct {
 	ID               int64
 	SourceRepository string
-	RequestHash      string
 	Revoked          bool
-	CreatedUnix      int64
 	UpdatedUnix      int64
 	CodespaceCount   int64
 	Repositories     []PermissionRepositoryView
@@ -54,42 +56,64 @@ func ListPermissionAuthorizations(ctx context.Context, userID int64) ([]*Permiss
 		return nil, err
 	}
 	views := make([]*PermissionAuthorizationView, 0, len(authorizations))
+	if len(authorizations) == 0 {
+		return views, nil
+	}
+	authorizationQuery := builder.Select("id").From("codespace_permission_authorization").Where(builder.Eq{"user_id": userID})
+	var rules []*codespace_model.PermissionRepository
+	if err := db.GetEngine(ctx).In("authorization_id", authorizationQuery).Asc("target_repo_id", "unit_type").Find(&rules); err != nil {
+		return nil, err
+	}
+	repoIDs := make([]int64, 0, len(authorizations)+len(rules))
 	for _, authorization := range authorizations {
-		sourceRepo, err := repo_model.GetRepositoryByID(ctx, authorization.SourceRepoID)
+		repoIDs = append(repoIDs, authorization.SourceRepoID)
+	}
+	rulesByAuthorization := make(map[int64][]*codespace_model.PermissionRepository, len(authorizations))
+	for _, rule := range rules {
+		repoIDs = append(repoIDs, rule.TargetRepoID)
+		rulesByAuthorization[rule.AuthorizationID] = append(rulesByAuthorization[rule.AuthorizationID], rule)
+	}
+	slices.Sort(repoIDs)
+	repoIDs = slices.Compact(repoIDs)
+	repositories := make(map[int64]*repo_model.Repository, len(repoIDs))
+	for ids := range slices.Chunk(repoIDs, db.DefaultMaxInSize) {
+		batch, err := repo_model.GetRepositoriesMapByIDs(ctx, ids)
 		if err != nil {
-			if repo_model.IsErrRepoNotExist(err) {
-				continue
-			}
 			return nil, err
 		}
-		if err := sourceRepo.LoadOwner(ctx); err != nil {
+		if err := repo_model.RepositoryListOfMap(batch).LoadOwners(ctx); err != nil {
 			return nil, err
 		}
-		var rules []*codespace_model.PermissionRepository
-		if err := db.GetEngine(ctx).Where("authorization_id = ?", authorization.ID).Asc("target_repo_id", "unit_type").Find(&rules); err != nil {
-			return nil, err
+		maps.Copy(repositories, batch)
+	}
+	var counts []struct {
+		PermissionAuthorizationID int64
+		Count                     int64
+	}
+	if err := db.GetEngine(ctx).Table("codespace").In("permission_authorization_id", authorizationQuery).
+		Select("permission_authorization_id, COUNT(*) AS count").GroupBy("permission_authorization_id").Find(&counts); err != nil {
+		return nil, err
+	}
+	countsByAuthorization := make(map[int64]int64, len(counts))
+	for _, count := range counts {
+		countsByAuthorization[count.PermissionAuthorizationID] = count.Count
+	}
+	for _, authorization := range authorizations {
+		sourceRepo := repositories[authorization.SourceRepoID]
+		if sourceRepo == nil {
+			continue
 		}
 		view := &PermissionAuthorizationView{
-			ID: authorization.ID, SourceRepository: sourceRepo.FullName(), RequestHash: authorization.RequestHash,
-			Revoked: authorization.RevokedUnix != 0, CreatedUnix: authorization.CreatedUnix, UpdatedUnix: authorization.UpdatedUnix,
+			ID: authorization.ID, SourceRepository: sourceRepo.FullName(),
+			Revoked: authorization.RevokedUnix != 0, UpdatedUnix: authorization.UpdatedUnix,
 		}
 		if !view.Revoked {
-			count, err := db.GetEngine(ctx).Where("permission_authorization_id = ?", authorization.ID).Count(new(codespace_model.Codespace))
-			if err != nil {
-				return nil, err
-			}
-			view.CodespaceCount = count
+			view.CodespaceCount = countsByAuthorization[authorization.ID]
 		}
-		for _, rule := range rules {
-			targetRepo, err := repo_model.GetRepositoryByID(ctx, rule.TargetRepoID)
-			if err != nil {
-				if repo_model.IsErrRepoNotExist(err) {
-					continue
-				}
-				return nil, err
-			}
-			if err := targetRepo.LoadOwner(ctx); err != nil {
-				return nil, err
+		for _, rule := range rulesByAuthorization[authorization.ID] {
+			targetRepo := repositories[rule.TargetRepoID]
+			if targetRepo == nil {
+				continue
 			}
 			unitName := fmt.Sprintf("unit-%d", rule.UnitType)
 			for name, unitType := range codespacePermissionUnits {
@@ -139,7 +163,10 @@ func ReducePermissionRepository(ctx context.Context, userID, authorizationID, ta
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		authorization, err := getUserPermissionAuthorization(ctx, userID, authorizationID)
-		if err != nil || authorization.RevokedUnix != 0 {
+		if err != nil {
+			return err
+		}
+		if authorization.RevokedUnix != 0 {
 			return ErrPermissionAuthorizationNotFound
 		}
 		rule := new(codespace_model.PermissionRepository)

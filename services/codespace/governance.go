@@ -61,7 +61,6 @@ type GovernanceView struct {
 	UUID                string
 	ShortUUID           string
 	DisplayStatus       string
-	StatusSummary       string
 	UpdatedUnix         int64
 	UserID              int64
 	UserDisplayName     string
@@ -169,7 +168,6 @@ func governanceCodespaceView(ctx context.Context, codespace *codespace_model.Cod
 		ShortUUID:         shortCodespaceUUID(codespace.UUID),
 		DisplayIdentifier: shortCodespaceUUID(codespace.UUID),
 		DisplayStatus:     view.DisplayStatus,
-		StatusSummary:     view.StatusSummary,
 		UpdatedUnix:       codespace.UpdatedUnix,
 		UserID:            codespace.UserID,
 		RepoID:            codespace.RepoID,

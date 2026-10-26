@@ -378,10 +378,9 @@ func TestValidateCodespaceConfigAndTimings(t *testing.T) {
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.AutoStopMaxTimeout, 24*time.Hour))
 
 	require.NoError(t, ValidateCodespaceConfig())
-	heartbeatMillis, metadataRefreshMillis, maxMessageBytes, _ := ManagerServiceTimings()
+	heartbeatMillis, metadataRefreshMillis, _ := ManagerServiceTimings()
 	assert.EqualValues(t, 20_000, heartbeatMillis)
 	assert.EqualValues(t, 40_000, metadataRefreshMillis)
-	assert.EqualValues(t, 32*1024*1024, maxMessageBytes)
 
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.ControlPlaneTimeout, 21*time.Second))
 	require.ErrorContains(t, ValidateCodespaceConfig(), "CONTROL_PLANE_TIMEOUT")
