@@ -2845,6 +2845,8 @@
   "projects.type-1.display_name": "Proyecto individual",
   "projects.type-2.display_name": "Proyecto repositorio",
   "projects.type-3.display_name": "Proyecto de organización",
+  "projects.workflows.actions": "Acciones",
+  "projects.workflows.none": "Ninguno",
   "git.filemode.directory": "Directorio",
   "git.filemode.submodule": "Submódulo",
   "actions.general.token_permissions.mode.restricted": "Restringido"

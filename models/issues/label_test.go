@@ -17,41 +17,190 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLabel_CalOpenIssues(t *testing.T) {
+func TestLabelQueries(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
-	label.CalOpenIssues()
-	assert.Equal(t, 2, label.NumOpenIssues)
-}
+	t.Run("Label_CalOpenIssues", func(t *testing.T) {
+		label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
+		label.CalOpenIssues()
+		assert.Equal(t, 2, label.NumOpenIssues)
+	})
+	t.Run("Label_LoadSelectedLabelsAfterClick", func(t *testing.T) {
+		// Loading the label id:8 which have a scope and an exclusivity
+		label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 8})
 
-func TestLabel_LoadSelectedLabelsAfterClick(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	// Loading the label id:8 which have a scope and an exclusivity
-	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 8})
+		// First test : with negative and scope
+		label.LoadSelectedLabelsAfterClick([]int64{1, -8}, []string{"", "scope"})
+		assert.Equal(t, "1", label.QueryString)
+		assert.True(t, label.IsSelected)
 
-	// First test : with negative and scope
-	label.LoadSelectedLabelsAfterClick([]int64{1, -8}, []string{"", "scope"})
-	assert.Equal(t, "1", label.QueryString)
-	assert.True(t, label.IsSelected)
+		// Second test : with duplicates
+		label.LoadSelectedLabelsAfterClick([]int64{1, 7, 1, 7, 7}, []string{"", "scope", "", "scope", "scope"})
+		assert.Equal(t, "1,8", label.QueryString)
+		assert.False(t, label.IsSelected)
 
-	// Second test : with duplicates
-	label.LoadSelectedLabelsAfterClick([]int64{1, 7, 1, 7, 7}, []string{"", "scope", "", "scope", "scope"})
-	assert.Equal(t, "1,8", label.QueryString)
-	assert.False(t, label.IsSelected)
+		// Third test : empty set
+		label.LoadSelectedLabelsAfterClick([]int64{}, []string{})
+		assert.False(t, label.IsSelected)
+		assert.Equal(t, "8", label.QueryString)
+	})
+	t.Run("Label_ExclusiveScope", func(t *testing.T) {
+		label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 7})
+		assert.Equal(t, "scope", label.ExclusiveScope())
 
-	// Third test : empty set
-	label.LoadSelectedLabelsAfterClick([]int64{}, []string{})
-	assert.False(t, label.IsSelected)
-	assert.Equal(t, "8", label.QueryString)
-}
+		label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 9})
+		assert.Equal(t, "scope/subscope", label.ExclusiveScope())
+	})
+	t.Run("GetLabelByID", func(t *testing.T) {
+		label, err := issues_model.GetLabelByID(t.Context(), 1)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 1, label.ID)
 
-func TestLabel_ExclusiveScope(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 7})
-	assert.Equal(t, "scope", label.ExclusiveScope())
+		_, err = issues_model.GetLabelByID(t.Context(), unittest.NonexistentID)
+		assert.True(t, issues_model.IsErrLabelNotExist(err))
+	})
+	t.Run("GetLabelInRepoByName", func(t *testing.T) {
+		label, err := issues_model.GetLabelInRepoByName(t.Context(), 1, "label1")
+		assert.NoError(t, err)
+		assert.EqualValues(t, 1, label.ID)
+		assert.Equal(t, "label1", label.Name)
 
-	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 9})
-	assert.Equal(t, "scope/subscope", label.ExclusiveScope())
+		_, err = issues_model.GetLabelInRepoByName(t.Context(), 1, "")
+		assert.ErrorIs(t, err, util.ErrNotExist)
+
+		_, err = issues_model.GetLabelInRepoByName(t.Context(), unittest.NonexistentID, "nonexistent")
+		assert.ErrorIs(t, err, util.ErrNotExist)
+	})
+	t.Run("GetLabelInRepoByNames", func(t *testing.T) {
+		for _, names := range [][]string{
+			{"label1", "label2"},
+			// label3 doesn't exists.. See labels.yml
+			{"label1", "label2", "label3"},
+		} {
+			labelIDs, err := issues_model.GetLabelIDsInRepoByNames(t.Context(), 1, names)
+			assert.NoError(t, err)
+			assert.Len(t, labelIDs, 2)
+			assert.Equal(t, int64(1), labelIDs[0])
+			assert.Equal(t, int64(2), labelIDs[1])
+		}
+	})
+	t.Run("GetLabelInRepoByID", func(t *testing.T) {
+		label, err := issues_model.GetLabelInRepoByID(t.Context(), 1, 1)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 1, label.ID)
+
+		_, err = issues_model.GetLabelInRepoByID(t.Context(), 1, -1)
+		assert.ErrorIs(t, err, util.ErrNotExist)
+
+		_, err = issues_model.GetLabelInRepoByID(t.Context(), unittest.NonexistentID, unittest.NonexistentID)
+		assert.ErrorIs(t, err, util.ErrNotExist)
+	})
+	t.Run("GetLabelsInRepoByIDs", func(t *testing.T) {
+		labels, err := issues_model.GetLabelsInRepoByIDs(t.Context(), 1, []int64{1, 2, unittest.NonexistentID})
+		assert.NoError(t, err)
+		if assert.Len(t, labels, 2) {
+			assert.EqualValues(t, 1, labels[0].ID)
+			assert.EqualValues(t, 2, labels[1].ID)
+		}
+	})
+
+	// Org versions
+	t.Run("GetLabelInOrgByName", func(t *testing.T) {
+		label, err := issues_model.GetLabelInOrgByName(t.Context(), 3, "orglabel3")
+		assert.NoError(t, err)
+		assert.EqualValues(t, 3, label.ID)
+		assert.Equal(t, "orglabel3", label.Name)
+
+		_, err = issues_model.GetLabelInOrgByName(t.Context(), 3, "")
+		assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
+
+		_, err = issues_model.GetLabelInOrgByName(t.Context(), 0, "orglabel3")
+		assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
+
+		_, err = issues_model.GetLabelInOrgByName(t.Context(), -1, "orglabel3")
+		assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
+
+		_, err = issues_model.GetLabelInOrgByName(t.Context(), unittest.NonexistentID, "nonexistent")
+		assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
+	})
+	t.Run("GetLabelInOrgByID", func(t *testing.T) {
+		label, err := issues_model.GetLabelInOrgByID(t.Context(), 3, 3)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 3, label.ID)
+
+		_, err = issues_model.GetLabelInOrgByID(t.Context(), 3, -1)
+		assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
+
+		_, err = issues_model.GetLabelInOrgByID(t.Context(), 0, 3)
+		assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
+
+		_, err = issues_model.GetLabelInOrgByID(t.Context(), -1, 3)
+		assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
+
+		_, err = issues_model.GetLabelInOrgByID(t.Context(), unittest.NonexistentID, unittest.NonexistentID)
+		assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
+	})
+	t.Run("GetLabelsInOrgByIDs", func(t *testing.T) {
+		labels, err := issues_model.GetLabelsInOrgByIDs(t.Context(), 3, []int64{3, 4, unittest.NonexistentID})
+		assert.NoError(t, err)
+		if assert.Len(t, labels, 2) {
+			assert.EqualValues(t, 3, labels[0].ID)
+			assert.EqualValues(t, 4, labels[1].ID)
+		}
+	})
+	t.Run("GetLabelsByIssueID", func(t *testing.T) {
+		labels, err := issues_model.GetLabelsByIssueID(t.Context(), 1)
+		assert.NoError(t, err)
+		if assert.Len(t, labels, 1) {
+			assert.EqualValues(t, 1, labels[0].ID)
+		}
+
+		labels, err = issues_model.GetLabelsByIssueID(t.Context(), unittest.NonexistentID)
+		assert.NoError(t, err)
+		assert.Empty(t, labels)
+	})
+	t.Run("HasIssueLabel", func(t *testing.T) {
+		assert.True(t, issues_model.HasIssueLabel(t.Context(), 1, 1))
+		assert.False(t, issues_model.HasIssueLabel(t.Context(), 1, 2))
+		assert.False(t, issues_model.HasIssueLabel(t.Context(), unittest.NonexistentID, unittest.NonexistentID))
+	})
+	t.Run("GetLabelsByRepoID", func(t *testing.T) {
+		_, err := db.GetEngine(t.Context()).ID(2).Cols("num_issues", "num_closed_issues").Update(&issues_model.Label{NumIssues: 3, NumClosedIssues: 3})
+		assert.NoError(t, err)
+		testSuccess := func(repoID int64, sortType string, expectedIssueIDs []int64) {
+			labels, err := issues_model.GetLabelsByRepoID(t.Context(), repoID, sortType, db.ListOptions{})
+			assert.NoError(t, err)
+			assert.Len(t, labels, len(expectedIssueIDs))
+			for i, label := range labels {
+				assert.Equal(t, expectedIssueIDs[i], label.ID)
+			}
+		}
+		testSuccess(1, "leastissues", []int64{2, 1})
+		testSuccess(1, "mostissues", []int64{1, 2})
+		testSuccess(1, "reversealphabetically", []int64{2, 1})
+		testSuccess(1, "default", []int64{1, 2})
+	})
+	t.Run("GetLabelsByOrgID", func(t *testing.T) {
+		_, err := db.GetEngine(t.Context()).ID(3).Cols("num_issues", "num_closed_issues").Update(&issues_model.Label{NumIssues: 3, NumClosedIssues: 3})
+		assert.NoError(t, err)
+		testSuccess := func(orgID int64, sortType string, expectedIssueIDs []int64) {
+			labels, err := issues_model.GetLabelsByOrgID(t.Context(), orgID, sortType, db.ListOptions{})
+			assert.NoError(t, err)
+			assert.Len(t, labels, len(expectedIssueIDs))
+			for i, label := range labels {
+				assert.Equal(t, expectedIssueIDs[i], label.ID)
+			}
+		}
+		testSuccess(3, "leastissues", []int64{3, 4})
+		testSuccess(3, "mostissues", []int64{4, 3})
+		testSuccess(3, "reversealphabetically", []int64{4, 3})
+		testSuccess(3, "default", []int64{3, 4})
+
+		_, err = issues_model.GetLabelsByOrgID(t.Context(), 0, "leastissues", db.ListOptions{})
+		assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
+
+		_, err = issues_model.GetLabelsByOrgID(t.Context(), -1, "leastissues", db.ListOptions{})
+		assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
+	})
 }
 
 func TestSortLabelsForDisplay(t *testing.T) {
@@ -118,185 +267,6 @@ func TestNewLabels(t *testing.T) {
 	unittest.CheckConsistencyFor(t, &issues_model.Label{}, &repo_model.Repository{})
 }
 
-func TestGetLabelByID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	label, err := issues_model.GetLabelByID(t.Context(), 1)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, label.ID)
-
-	_, err = issues_model.GetLabelByID(t.Context(), unittest.NonexistentID)
-	assert.True(t, issues_model.IsErrLabelNotExist(err))
-}
-
-func TestGetLabelInRepoByName(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	label, err := issues_model.GetLabelInRepoByName(t.Context(), 1, "label1")
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, label.ID)
-	assert.Equal(t, "label1", label.Name)
-
-	_, err = issues_model.GetLabelInRepoByName(t.Context(), 1, "")
-	assert.ErrorIs(t, err, util.ErrNotExist)
-
-	_, err = issues_model.GetLabelInRepoByName(t.Context(), unittest.NonexistentID, "nonexistent")
-	assert.ErrorIs(t, err, util.ErrNotExist)
-}
-
-func TestGetLabelInRepoByNames(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	labelIDs, err := issues_model.GetLabelIDsInRepoByNames(t.Context(), 1, []string{"label1", "label2"})
-	assert.NoError(t, err)
-
-	assert.Len(t, labelIDs, 2)
-
-	assert.Equal(t, int64(1), labelIDs[0])
-	assert.Equal(t, int64(2), labelIDs[1])
-}
-
-func TestGetLabelInRepoByNamesDiscardsNonExistentLabels(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	// label3 doesn't exists.. See labels.yml
-	labelIDs, err := issues_model.GetLabelIDsInRepoByNames(t.Context(), 1, []string{"label1", "label2", "label3"})
-	assert.NoError(t, err)
-
-	assert.Len(t, labelIDs, 2)
-
-	assert.Equal(t, int64(1), labelIDs[0])
-	assert.Equal(t, int64(2), labelIDs[1])
-	assert.NoError(t, err)
-}
-
-func TestGetLabelInRepoByID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	label, err := issues_model.GetLabelInRepoByID(t.Context(), 1, 1)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, label.ID)
-
-	_, err = issues_model.GetLabelInRepoByID(t.Context(), 1, -1)
-	assert.ErrorIs(t, err, util.ErrNotExist)
-
-	_, err = issues_model.GetLabelInRepoByID(t.Context(), unittest.NonexistentID, unittest.NonexistentID)
-	assert.ErrorIs(t, err, util.ErrNotExist)
-}
-
-func TestGetLabelsInRepoByIDs(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	labels, err := issues_model.GetLabelsInRepoByIDs(t.Context(), 1, []int64{1, 2, unittest.NonexistentID})
-	assert.NoError(t, err)
-	if assert.Len(t, labels, 2) {
-		assert.EqualValues(t, 1, labels[0].ID)
-		assert.EqualValues(t, 2, labels[1].ID)
-	}
-}
-
-func TestGetLabelsByRepoID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	_, err := db.GetEngine(t.Context()).ID(2).Cols("num_issues", "num_closed_issues").Update(&issues_model.Label{NumIssues: 3, NumClosedIssues: 3})
-	assert.NoError(t, err)
-	testSuccess := func(repoID int64, sortType string, expectedIssueIDs []int64) {
-		labels, err := issues_model.GetLabelsByRepoID(t.Context(), repoID, sortType, db.ListOptions{})
-		assert.NoError(t, err)
-		assert.Len(t, labels, len(expectedIssueIDs))
-		for i, label := range labels {
-			assert.Equal(t, expectedIssueIDs[i], label.ID)
-		}
-	}
-	testSuccess(1, "leastissues", []int64{2, 1})
-	testSuccess(1, "mostissues", []int64{1, 2})
-	testSuccess(1, "reversealphabetically", []int64{2, 1})
-	testSuccess(1, "default", []int64{1, 2})
-}
-
-// Org versions
-
-func TestGetLabelInOrgByName(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	label, err := issues_model.GetLabelInOrgByName(t.Context(), 3, "orglabel3")
-	assert.NoError(t, err)
-	assert.EqualValues(t, 3, label.ID)
-	assert.Equal(t, "orglabel3", label.Name)
-
-	_, err = issues_model.GetLabelInOrgByName(t.Context(), 3, "")
-	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
-
-	_, err = issues_model.GetLabelInOrgByName(t.Context(), 0, "orglabel3")
-	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
-
-	_, err = issues_model.GetLabelInOrgByName(t.Context(), -1, "orglabel3")
-	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
-
-	_, err = issues_model.GetLabelInOrgByName(t.Context(), unittest.NonexistentID, "nonexistent")
-	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
-}
-
-func TestGetLabelInOrgByID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	label, err := issues_model.GetLabelInOrgByID(t.Context(), 3, 3)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 3, label.ID)
-
-	_, err = issues_model.GetLabelInOrgByID(t.Context(), 3, -1)
-	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
-
-	_, err = issues_model.GetLabelInOrgByID(t.Context(), 0, 3)
-	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
-
-	_, err = issues_model.GetLabelInOrgByID(t.Context(), -1, 3)
-	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
-
-	_, err = issues_model.GetLabelInOrgByID(t.Context(), unittest.NonexistentID, unittest.NonexistentID)
-	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
-}
-
-func TestGetLabelsInOrgByIDs(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	labels, err := issues_model.GetLabelsInOrgByIDs(t.Context(), 3, []int64{3, 4, unittest.NonexistentID})
-	assert.NoError(t, err)
-	if assert.Len(t, labels, 2) {
-		assert.EqualValues(t, 3, labels[0].ID)
-		assert.EqualValues(t, 4, labels[1].ID)
-	}
-}
-
-func TestGetLabelsByOrgID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	_, err := db.GetEngine(t.Context()).ID(3).Cols("num_issues", "num_closed_issues").Update(&issues_model.Label{NumIssues: 3, NumClosedIssues: 3})
-	assert.NoError(t, err)
-	testSuccess := func(orgID int64, sortType string, expectedIssueIDs []int64) {
-		labels, err := issues_model.GetLabelsByOrgID(t.Context(), orgID, sortType, db.ListOptions{})
-		assert.NoError(t, err)
-		assert.Len(t, labels, len(expectedIssueIDs))
-		for i, label := range labels {
-			assert.Equal(t, expectedIssueIDs[i], label.ID)
-		}
-	}
-	testSuccess(3, "leastissues", []int64{3, 4})
-	testSuccess(3, "mostissues", []int64{4, 3})
-	testSuccess(3, "reversealphabetically", []int64{4, 3})
-	testSuccess(3, "default", []int64{3, 4})
-
-	_, err = issues_model.GetLabelsByOrgID(t.Context(), 0, "leastissues", db.ListOptions{})
-	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
-
-	_, err = issues_model.GetLabelsByOrgID(t.Context(), -1, "leastissues", db.ListOptions{})
-	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
-}
-
-//
-
-func TestGetLabelsByIssueID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	labels, err := issues_model.GetLabelsByIssueID(t.Context(), 1)
-	assert.NoError(t, err)
-	if assert.Len(t, labels, 1) {
-		assert.EqualValues(t, 1, labels[0].ID)
-	}
-
-	labels, err = issues_model.GetLabelsByIssueID(t.Context(), unittest.NonexistentID)
-	assert.NoError(t, err)
-	assert.Empty(t, labels)
-}
-
 func TestUpdateLabel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
@@ -348,13 +318,6 @@ func TestDeleteLabel(t *testing.T) {
 	assert.NoError(t, issues_model.DeleteRepoLabel(t.Context(), unittest.NonexistentID, unittest.NonexistentID))
 	assert.NoError(t, issues_model.DeleteOrgLabel(t.Context(), unittest.NonexistentID, unittest.NonexistentID))
 	unittest.CheckConsistencyFor(t, &issues_model.Label{}, &repo_model.Repository{})
-}
-
-func TestHasIssueLabel(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	assert.True(t, issues_model.HasIssueLabel(t.Context(), 1, 1))
-	assert.False(t, issues_model.HasIssueLabel(t.Context(), 1, 2))
-	assert.False(t, issues_model.HasIssueLabel(t.Context(), unittest.NonexistentID, unittest.NonexistentID))
 }
 
 func TestNewIssueLabel(t *testing.T) {

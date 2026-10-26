@@ -34,21 +34,15 @@ func TestDismissReview(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
-	issue.IsClosed = true
-	pull.HasMerged = false
-	assert.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "is_closed"))
-	assert.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
-	_, err = pull_service.DismissReview(t.Context(), review.ID, issue.RepoID, "", &user_model.User{}, false, false)
-	assert.Error(t, err)
-	assert.True(t, pull_service.IsErrDismissRequestOnClosedPR(err))
-
-	pull.HasMerged = true
-	pull.Issue.IsClosed = false
-	assert.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "is_closed"))
-	assert.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
-	_, err = pull_service.DismissReview(t.Context(), review.ID, issue.RepoID, "", &user_model.User{}, false, false)
-	assert.Error(t, err)
-	assert.True(t, pull_service.IsErrDismissRequestOnClosedPR(err))
+	for _, hasMerged := range []bool{false, true} {
+		issue.IsClosed = !hasMerged
+		pull.HasMerged = hasMerged
+		assert.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "is_closed"))
+		assert.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
+		_, err = pull_service.DismissReview(t.Context(), review.ID, issue.RepoID, "", &user_model.User{}, false, false)
+		assert.Error(t, err)
+		assert.True(t, pull_service.IsErrDismissRequestOnClosedPR(err))
+	}
 }
 
 func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
