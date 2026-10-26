@@ -70,7 +70,9 @@ endif
 GOTEST_FLAGS ?= -timeout 40m
 
 ifneq ($(filter -race,$(GOTEST_FLAGS)),)
-	GOTEST_FLAGS := -gcflags=modernc.org/sqlite/lib=-race=false $(GOTEST_FLAGS) # race-instrumented SQLite halves test speed
+	# disable race detection for the packages that slow down the tests
+	# only add the flag when `-race` argument exists to share test cache as much as possible
+	GOTEST_FLAGS := -gcflags=modernc.org/sqlite/lib=-race=false $(GOTEST_FLAGS)
 endif
 
 STORED_VERSION_FILE := VERSION
