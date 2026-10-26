@@ -1130,7 +1130,6 @@
   "repo.migrate.gerrit.description": "Migrate a project, its changes and their reviews from Gerrit Code Review instances.",
   "repo.migrate.gerrit.clone_address_desc": "The HTTP(S) clone URL of a project, for example https://gerrit.example.com/my/project. SSH URLs are not supported.",
   "repo.migrate.gerrit.token_desc": "HTTP token. If set, it is used instead of the password above. Leave the credentials empty for projects that can be read anonymously.",
-  "repo.migrate.gerrit.mirror_unsupported": "A Gerrit project can only be migrated once, mirroring is not supported.",
   "repo.migrate.hosting": "Hosting",
   "repo.migrate.bitbucketserver.token_desc": "HTTP access token. If set, it is used instead of the password above. The username defaults to the owner of the token.",
   "repo.migrate.codecommit.description": "Migrate data from AWS CodeCommit.",

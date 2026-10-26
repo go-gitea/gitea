@@ -48,11 +48,6 @@ func Migrate(ctx *context.Context) {
 	if serviceType == 0 {
 		ctx.Data["Org"] = ctx.FormString("org")
 		ctx.Data["Mirror"] = ctx.FormString("mirror")
-		if services, ok := ctx.Data["Services"].([]structs.GitServiceType); ok && ctx.FormBool("mirror") {
-			ctx.Data["Services"] = slices.DeleteFunc(services, func(gt structs.GitServiceType) bool {
-				return gt == structs.GerritService
-			})
-		}
 
 		ctx.HTML(http.StatusOK, tplMigrate)
 		return
@@ -157,10 +152,6 @@ func MigratePost(ctx *context.Context) {
 	}
 
 	if form.Service == structs.GerritService {
-		if form.Mirror {
-			ctx.JSONErrorWithField(ctx.Tr("repo.migrate.gerrit.mirror_unsupported"), "mirror")
-			return
-		}
 		if err := migrations.ValidateGerritCloneAddr(form.CloneAddr); err != nil {
 			ctx.JSONErrorWithField(err.Error(), "clone_addr")
 			return
@@ -245,7 +236,7 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull || serviceType == structs.GerritService
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 
 	// Plain git should be first
 	services := append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)

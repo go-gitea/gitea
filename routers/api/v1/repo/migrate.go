@@ -101,10 +101,6 @@ func Migrate(ctx *context.APIContext) {
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if gitServiceType == api.GerritService {
-		if form.Mirror {
-			ctx.APIError(http.StatusUnprocessableEntity, "A Gerrit project can only be migrated once, mirroring is not supported.")
-			return
-		}
 		if err := migrations.ValidateGerritCloneAddr(form.CloneAddr); err != nil {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return

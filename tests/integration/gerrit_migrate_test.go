@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	issues_model "gitea.dev/models/issues"
@@ -153,15 +154,30 @@ func TestGerritMigrateAPI(t *testing.T) {
 		return MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", options).AddTokenAuth(token), status)
 	}
 
-	t.Run("Rejected", func(t *testing.T) {
-		server := newGerritTestServer(t)
-		resp := migrate(&structs.MigrateRepoOptions{CloneAddr: server.cloneAddr(), RepoName: "gerrit-mirror", Mirror: true, PullRequests: true}, http.StatusUnprocessableEntity)
-		assert.Contains(t, resp.Body.String(), "mirroring is not supported")
-		unittest.AssertNotExistsBean(t, &repo_model.Repository{Name: "gerrit-mirror"})
-
-		resp = migrate(&structs.MigrateRepoOptions{CloneAddr: "ssh://alice@gerrit.example.com:29418/team/demo", RepoName: "gerrit-ssh"}, http.StatusUnprocessableEntity)
+	t.Run("SSHRejected", func(t *testing.T) {
+		resp := migrate(&structs.MigrateRepoOptions{CloneAddr: "ssh://alice@gerrit.example.com:29418/team/demo", RepoName: "gerrit-ssh"}, http.StatusUnprocessableEntity)
 		assert.Contains(t, resp.Body.String(), "SSH clone URLs are not supported")
 		unittest.AssertNotExistsBean(t, &repo_model.Repository{Name: "gerrit-ssh"})
+	})
+
+	t.Run("Mirror", func(t *testing.T) {
+		server := newGerritTestServer(t)
+		migrate(&structs.MigrateRepoOptions{CloneAddr: server.cloneAddr(), RepoName: "gerrit-mirror", Mirror: true, MirrorInterval: "2h", PullRequests: true}, http.StatusCreated)
+
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "gerrit-mirror"})
+		assert.True(t, repo.IsMirror)
+		assert.Equal(t, "main", repo.DefaultBranch)
+		mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: repo.ID})
+		assert.Equal(t, 2*time.Hour, mirror.Interval)
+		assert.Zero(t, unittest.GetCount(t, &issues_model.PullRequest{BaseRepoID: repo.ID}))
+		assert.Zero(t, unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}))
+
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+		branches, _, err := gitRepo.GetBranchNames(t.Context(), 0, 0)
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{"main", "change"}, branches)
 	})
 
 	t.Run("MissingPatchSetRef", func(t *testing.T) {
@@ -236,7 +252,7 @@ func TestGerritMigrateWeb(t *testing.T) {
 	doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/repo/migrate"), http.StatusOK).Body)
 	assert.True(t, hasGerritEntry(doc))
 	doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/repo/migrate?mirror=true"), http.StatusOK).Body)
-	assert.False(t, hasGerritEntry(doc), "a Gerrit project cannot be mirrored")
+	assert.True(t, hasGerritEntry(doc))
 
 	resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d", structs.GerritService)), http.StatusOK)
 	doc = NewHTMLParser(t, resp.Body)
@@ -246,8 +262,14 @@ func TestGerritMigrateWeb(t *testing.T) {
 	assert.Equal(t, 1, form.Find(`input[name="auth_password"]`).Length())
 	assert.Equal(t, 1, form.Find(`input[name="auth_token"]`).Length())
 	assert.Equal(t, 1, form.Find(`input[name="pull_requests"]`).Length())
-	assert.Zero(t, form.Find(`input[name="mirror"]`).Length(), "a Gerrit project is migrated once")
+	assert.Equal(t, 1, form.Find(`input[name="mirror"]`).Length())
+	_, checked := form.Find(`input[name="mirror"]`).Attr("checked")
+	assert.False(t, checked)
 	assert.Zero(t, form.Find(`input[name="issues"]`).Length())
+
+	resp = session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d&mirror=true", structs.GerritService)), http.StatusOK)
+	_, checked = NewHTMLParser(t, resp.Body).Find(`input[name="mirror"]`).Attr("checked")
+	assert.True(t, checked)
 
 	link, _ := form.Attr("action")
 	uid, _ := form.Find(`input[name="uid"]`).Attr("value")
@@ -257,7 +279,6 @@ func TestGerritMigrateWeb(t *testing.T) {
 		resp := session.MakeRequest(t, NewRequestWithValues(t, "POST", link, values), http.StatusBadRequest)
 		return resp.Body.String()
 	}
-	assert.Contains(t, post(map[string]string{"clone_addr": "https://gerrit.example.com/team/demo", "mirror": "on"}), "mirroring is not supported")
 	assert.Contains(t, post(map[string]string{"clone_addr": "ssh://alice@gerrit.example.com:29418/team/demo"}), "SSH clone URLs are not supported")
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{Name: "gerrit-web"})
 }

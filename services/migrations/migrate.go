@@ -154,9 +154,6 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 	}
 
 	if opts.GitServiceType == structs.GerritService {
-		if opts.Mirror {
-			return errors.New("migrateRepository: a Gerrit project can only be migrated once, mirroring is not supported")
-		}
 		opts.Comments = opts.PullRequests
 	}
 
