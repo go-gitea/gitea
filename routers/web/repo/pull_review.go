@@ -69,8 +69,8 @@ func CreateCodeComment(ctx *context.Context) {
 	if !issue.IsPull {
 		return
 	}
-	if issue.IsLockedForDoer(ctx.Repo.Permission, ctx.Doer) {
-		ctx.HTTPError(http.StatusForbidden, ctx.Locale.TrString("repo.issues.comment_on_locked"))
+	if issue.IsLockedForDoer(ctx.Repo.Permission) {
+		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}
 
@@ -232,7 +232,7 @@ func SubmitReview(ctx *context.Context) {
 	if !issue.IsPull {
 		return
 	}
-	if issue.IsLockedForDoer(ctx.Repo.Permission, ctx.Doer) {
+	if issue.IsLockedForDoer(ctx.Repo.Permission) {
 		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}

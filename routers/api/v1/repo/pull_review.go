@@ -681,8 +681,8 @@ func SubmitPullReview(ctx *context.APIContext) {
 }
 
 func isIssueLockedForDoer(ctx *context.APIContext, issue *issues_model.Issue) bool {
-	if issue.IsLockedForDoer(ctx.Repo.Permission, ctx.Doer) {
-		ctx.APIError(http.StatusForbidden, ctx.Locale.TrString("repo.issues.comment_on_locked"))
+	if issue.IsLockedForDoer(ctx.Repo.Permission) {
+		ctx.APIError(http.StatusForbidden, "cannot comment on a locked issue")
 		return true
 	}
 	return false

@@ -50,7 +50,7 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
-	if issue.IsLockedForDoer(ctx.Repo.Permission, ctx.Doer) {
+	if issue.IsLockedForDoer(ctx.Repo.Permission) {
 		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}

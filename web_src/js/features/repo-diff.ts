@@ -11,7 +11,7 @@ import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
-import {performFetchActionTrigger} from '../modules/fetch-action.ts';
+import {handleFetchActionSuccessJson, performFetchActionRequest, performFetchActionTrigger} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
@@ -54,8 +54,12 @@ function initRepoDiffConversationForm() {
       // on the diff page, the form is inside a "tr" and need to get the line-type ahead
       // but on the conversation page, there is no parent "tr"
       const trLineType = form.closest('tr')?.getAttribute('data-line-type');
-      const response = await POST(form.getAttribute('action')!, {data: formData});
-      if (!response.ok) throw new Error(await response.text());
+      const response = await performFetchActionRequest(form, {method: 'POST', url: form.getAttribute('action')!, data: formData});
+      if (!response) return;
+      if (response.headers.get('content-type')?.includes('application/json')) {
+        handleFetchActionSuccessJson(form, await response.json());
+        return;
+      }
       const newConversationHolder = createElementFromHTML(await response.text());
       const path = newConversationHolder.getAttribute('data-path');
       const side = newConversationHolder.getAttribute('data-side');

@@ -397,7 +397,7 @@ func TestPullReviewOnLockedPR(t *testing.T) {
 
 	session := loginUser(t, "user4")
 	testSubmitReview(t, session, "user2", "repo1", "3", "", "comment", http.StatusBadRequest)
-	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/pulls/3/files/reviews/comments", map[string]string{"content": "test"}), http.StatusForbidden)
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/pulls/3/files/reviews/comments", map[string]string{"content": "test"}), http.StatusBadRequest)
 	MakeRequest(t, NewRequestWithJSON(t, "POST", reviewsURL, reviewOptions).AddTokenAuth(token), http.StatusForbidden)
 	MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/%d", reviewsURL, pendingReview.ID), &api.SubmitPullReviewOptions{Event: api.ReviewStateComment, Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
 	MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls/3/comments/7/replies", &api.CreatePullReviewCommentReplyOptions{Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
