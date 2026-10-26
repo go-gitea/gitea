@@ -153,7 +153,7 @@ func MigratePost(ctx *context.Context) {
 
 	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
-		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
+		err = migrations.IsMigrateURLAllowedForService(remoteAddr, form.Service, ctx.Doer)
 	}
 	if err != nil {
 		handleMigrateRemoteAddrError(ctx, err, "clone_addr")
