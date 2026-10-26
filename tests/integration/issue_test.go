@@ -29,6 +29,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
@@ -779,4 +780,16 @@ func TestIssueReferenceURL(t *testing.T) {
 
 	ref, _ = htmlDoc.Find(`.timeline-item.comment:not(.issue-content-comment) .reference-issue`).Attr("data-reference")
 	assert.Equal(t, setting.AppURL+"user2/repo1/issues/1#issuecomment-2", ref)
+}
+
+func TestIssueCommentContent(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	issue := &issues_model.Issue{Title: "title\x00content", Content: "body\x00content"}
+	require.NoError(t, db.Insert(t.Context(), issue))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID, Title: "title content", Content: "body content"})
+
+	comment := &issues_model.Comment{Content: "body\x00content"}
+	require.NoError(t, db.Insert(t.Context(), comment))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID, Content: "body content"})
 }
