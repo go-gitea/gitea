@@ -110,49 +110,22 @@ OvSXaRmpzyTLHvsXg/M9EcwbAAA=`
 		},
 		p.FileMetadata.Provides,
 	)
-	assert.ElementsMatch(
-		t,
-		[]*Entry{
-			{
-				Name: "/bin/sh",
-			},
-			{
-				Name: "/bin/sh",
-			},
-			{
-				Name: "/bin/sh",
-			},
-			{
-				Name:    "rpmlib(CompressedFileNames)",
-				Flags:   "LE",
-				Version: "3.0.4",
-				Epoch:   "0",
-				Release: "1",
-			},
-			{
-				Name:    "rpmlib(FileDigests)",
-				Flags:   "LE",
-				Version: "4.6.0",
-				Epoch:   "0",
-				Release: "1",
-			},
-			{
-				Name:    "rpmlib(PayloadFilesHavePrefix)",
-				Flags:   "LE",
-				Version: "4.0",
-				Epoch:   "0",
-				Release: "1",
-			},
-			{
-				Name:    "rpmlib(PayloadIsXz)",
-				Flags:   "LE",
-				Version: "5.2",
-				Epoch:   "0",
-				Release: "1",
-			},
-		},
-		p.FileMetadata.Requires,
-	)
+	requires := []*Entry{{Name: "/bin/sh"}, {Name: "/bin/sh"}, {Name: "/bin/sh"}}
+	for _, dependency := range []struct{ name, version string }{
+		{"rpmlib(CompressedFileNames)", "3.0.4"},
+		{"rpmlib(FileDigests)", "4.6.0"},
+		{"rpmlib(PayloadFilesHavePrefix)", "4.0"},
+		{"rpmlib(PayloadIsXz)", "5.2"},
+	} {
+		requires = append(requires, &Entry{
+			Name:    dependency.name,
+			Flags:   "LE",
+			Version: dependency.version,
+			Epoch:   "0",
+			Release: "1",
+		})
+	}
+	assert.ElementsMatch(t, requires, p.FileMetadata.Requires)
 	assert.ElementsMatch(
 		t,
 		[]*File{

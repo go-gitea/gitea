@@ -18,61 +18,28 @@ func TestMustChangePassword(t *testing.T) {
 	defer func() {
 		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.User{}))
 	}()
-	err := microcmdUserCreate().Run(t.Context(), []string{"create", "--username", "testuser", "--email", "testuser@gitea.local", "--random-password"})
-	require.NoError(t, err)
-	err = microcmdUserCreate().Run(t.Context(), []string{"create", "--username", "testuserexclude", "--email", "testuserexclude@gitea.local", "--random-password"})
-	require.NoError(t, err)
-	// Reset password change flag
-	err = microcmdUserMustChangePassword().Run(t.Context(), []string{"change-test", "--all", "--unset"})
-	require.NoError(t, err)
-
-	testUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"})
-	assert.False(t, testUser.MustChangePassword)
-	testUserExclude := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuserexclude"})
-	assert.False(t, testUserExclude.MustChangePassword)
-
-	// Make all users change password
-	err = microcmdUserMustChangePassword().Run(t.Context(), []string{"change-test", "--all"})
-	require.NoError(t, err)
-
-	testUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"})
-	assert.True(t, testUser.MustChangePassword)
-	testUserExclude = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuserexclude"})
-	assert.True(t, testUserExclude.MustChangePassword)
-
-	// Reset password change flag but exclude all tested users
-	err = microcmdUserMustChangePassword().Run(t.Context(), []string{"change-test", "--all", "--unset", "--exclude", "testuser,testuserexclude"})
-	require.NoError(t, err)
-
-	testUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"})
-	assert.True(t, testUser.MustChangePassword)
-	testUserExclude = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuserexclude"})
-	assert.True(t, testUserExclude.MustChangePassword)
-
-	// Reset password change flag by listing multiple users
-	err = microcmdUserMustChangePassword().Run(t.Context(), []string{"change-test", "--unset", "testuser", "testuserexclude"})
-	require.NoError(t, err)
-
-	testUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"})
-	assert.False(t, testUser.MustChangePassword)
-	testUserExclude = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuserexclude"})
-	assert.False(t, testUserExclude.MustChangePassword)
-
-	// Exclude a user from all user
-	err = microcmdUserMustChangePassword().Run(t.Context(), []string{"change-test", "--all", "--exclude", "testuserexclude"})
-	require.NoError(t, err)
-
-	testUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"})
-	assert.True(t, testUser.MustChangePassword)
-	testUserExclude = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuserexclude"})
-	assert.False(t, testUserExclude.MustChangePassword)
-
-	// Unset a flag for single user
-	err = microcmdUserMustChangePassword().Run(t.Context(), []string{"change-test", "--unset", "testuser"})
-	require.NoError(t, err)
-
-	testUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"})
-	assert.False(t, testUser.MustChangePassword)
-	testUserExclude = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuserexclude"})
-	assert.False(t, testUserExclude.MustChangePassword)
+	for _, name := range []string{"testuser", "testuserexclude"} {
+		require.NoError(t, microcmdUserCreate().Run(t.Context(), []string{"create", "--username", name, "--email", name + "@gitea.local", "--random-password"}))
+	}
+	for _, tc := range []struct {
+		args                           []string
+		assertUser, assertExcludedUser assert.BoolAssertionFunc
+	}{
+		// Reset password change flag
+		{[]string{"change-test", "--all", "--unset"}, assert.False, assert.False},
+		// Make all users change password
+		{[]string{"change-test", "--all"}, assert.True, assert.True},
+		// Reset password change flag but exclude all tested users
+		{[]string{"change-test", "--all", "--unset", "--exclude", "testuser,testuserexclude"}, assert.True, assert.True},
+		// Reset password change flag by listing multiple users
+		{[]string{"change-test", "--unset", "testuser", "testuserexclude"}, assert.False, assert.False},
+		// Exclude a user from all user
+		{[]string{"change-test", "--all", "--exclude", "testuserexclude"}, assert.True, assert.False},
+		// Unset a flag for single user
+		{[]string{"change-test", "--unset", "testuser"}, assert.False, assert.False},
+	} {
+		require.NoError(t, microcmdUserMustChangePassword().Run(t.Context(), tc.args))
+		tc.assertUser(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"}).MustChangePassword)
+		tc.assertExcludedUser(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuserexclude"}).MustChangePassword)
+	}
 }

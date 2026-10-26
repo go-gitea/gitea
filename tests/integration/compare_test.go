@@ -26,42 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCompareTag(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1...master")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
-	// A dropdown for both base and head.
-	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
-
-	req = NewRequest(t, "GET", "/user2/repo1/compare/v1.1...HEAD")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
-
-	req = NewRequest(t, "GET", "/user2/repo1/compare/v1.1...NotExisting").SetHeader("Accept", "text/html")
-	resp = session.MakeRequest(t, req, http.StatusNotFound)
-	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
-
-	req = NewRequest(t, "GET", "/user2/repo1/compare/invalid").SetHeader("Accept", "text/html")
-	resp = session.MakeRequest(t, req, http.StatusNotFound)
-	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
-}
-
-// Compare with inferred default branch (master)
-func TestCompareDefault(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
-	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
-}
-
 // Ensure the comparison matches what we expect
 func inspectCompare(t *testing.T, htmlDoc *HTMLDoc, diffCount int, diffChanges []string) {
 	selection := htmlDoc.doc.Find("#diff-file-boxes").Children()
@@ -74,154 +38,225 @@ func inspectCompare(t *testing.T, htmlDoc *HTMLDoc, diffCount int, diffChanges [
 	}
 }
 
-// Git commit graph for repo20
-// * 8babce9 (origin/remove-files-b) Add a dummy file
-// * b67e43a Delete test.csv and link_hi
-// | * cfe3b3c (origin/remove-files-a) Delete test.csv and link_hi
-// |/
-// * c8e31bc (origin/add-csv) Add test csv file
-// * 808038d (HEAD -> master, origin/master, origin/HEAD) Added test links
-
-func TestCompareBranches(t *testing.T) {
+func TestCompare(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user2")
+	t.Run("CompareTag", func(t *testing.T) {
+		session := loginUser(t, "user2")
+		req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1...master")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
+		// A dropdown for both base and head.
+		assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 
-	// Indirect compare remove-files-b (head) with add-csv (base) branch
-	//
-	//	'link_hi' and 'test.csv' are deleted, 'test.txt' is added
-	req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
+		req = NewRequest(t, "GET", "/user2/repo1/compare/v1.1...HEAD")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 
-	diffCount := 3
-	diffChanges := []string{"link_hi", "test.csv", "test.txt"}
-
-	inspectCompare(t, htmlDoc, diffCount, diffChanges)
-
-	// Indirect compare remove-files-b (head) with remove-files-a (base) branch
-	//
-	//	'link_hi' and 'test.csv' are deleted, 'test.txt' is added
-
-	req = NewRequest(t, "GET", "/user2/repo20/compare/remove-files-a...remove-files-b")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-
-	diffCount = 3
-	diffChanges = []string{"link_hi", "test.csv", "test.txt"}
-
-	inspectCompare(t, htmlDoc, diffCount, diffChanges)
-
-	// Indirect compare remove-files-a (head) with remove-files-b (base) branch
-	//
-	//	'link_hi' and 'test.csv' are deleted
-
-	req = NewRequest(t, "GET", "/user2/repo20/compare/remove-files-b...remove-files-a")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-
-	diffCount = 2
-	diffChanges = []string{"link_hi", "test.csv"}
-
-	inspectCompare(t, htmlDoc, diffCount, diffChanges)
-
-	// Direct compare remove-files-b (head) with remove-files-a (base) branch
-	//
-	//	'test.txt' is deleted
-
-	req = NewRequest(t, "GET", "/user2/repo20/compare/remove-files-b..remove-files-a")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-
-	diffCount = 1
-	diffChanges = []string{"test.txt"}
-
-	inspectCompare(t, htmlDoc, diffCount, diffChanges)
-
-	req = NewRequest(t, "GET", "/user2/repo20/compare/8babce967f21b9dfa6987f943b91093dac58a4f0..c8e31bc7688741a5287fcde4fbb8fc129ca07027")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-
-	inspectCompare(t, htmlDoc, 3, []string{"link_hi", "test.csv", "test.txt"})
-	assert.NotContains(t, htmlDoc.doc.Text(), translation.NewLocale("en-US").TrString("repo.commits.nothing_to_compare"))
-	commitsHeader := strings.Join(strings.Fields(htmlDoc.doc.Find(".ui.top.attached.header .flex-text-block").First().Text()), " ")
-	assert.Equal(t, "0 "+translation.NewLocale("en-US").TrString("repo.commits.commits"), commitsHeader)
-}
-
-func TestCompareWithRefSuffix(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-
-	// remove-files-b^ resolves to the tip's parent, so the test.txt added by the tip is excluded
-	req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b^")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	inspectCompare(t, htmlDoc, 2, []string{"link_hi", "test.csv"})
-
-	// a suffix resolves to a commit rather than a branch, so the page offers no pull request to create
-	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
-
-	// the same suffix on the direct ".." comparison resolves to the same commit
-	req = NewRequest(t, "GET", "/user2/repo20/compare/add-csv..remove-files-b^")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-	inspectCompare(t, htmlDoc, 2, []string{"link_hi", "test.csv"})
-
-	// a ~N suffix on the base side resolves and renders the compare page, but also
-	// resolves to a commit rather than a branch, so no pull request form is offered
-	req = NewRequest(t, "GET", "/user2/repo20/compare/add-csv~1...remove-files-b")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
-	htmlDoc = NewHTMLParser(t, resp.Body)
-	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
-
-	// the web handler folds an unsupported (^{...}) and an unresolvable (~50) suffix alike into 404
-	for _, basehead := range []string{
-		"add-csv...remove-files-b~50",
-		"add-csv...remove-files-b^{/Add}",
-		"add-csv^{/Add}...remove-files-b",
-	} {
-		req = NewRequest(t, "GET", "/user2/repo20/compare/"+basehead).SetHeader("Accept", "text/html")
+		req = NewRequest(t, "GET", "/user2/repo1/compare/v1.1...NotExisting").SetHeader("Accept", "text/html")
 		resp = session.MakeRequest(t, req, http.StatusNotFound)
 		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
-	}
-}
 
-func TestResolveRefWithSuffixContract(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+		req = NewRequest(t, "GET", "/user2/repo1/compare/invalid").SetHeader("Accept", "text/html")
+		resp = session.MakeRequest(t, req, http.StatusNotFound)
+		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+	})
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 31})
-	gitRepo, err := git.OpenRepository(t.Context(), repo)
-	require.NoError(t, err)
-	defer gitRepo.Close()
+	// Compare with inferred default branch (master)
+	t.Run("CompareDefault", func(t *testing.T) {
+		session := loginUser(t, "user2")
+		req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
+		assert.Lenf(t, selection.Nodes, 2, "The template has changed")
+	})
 
-	// a nil error guarantees a usable RefName
-	ref, err := common.ResolveRefWithSuffix(t.Context(), gitRepo, "add-csv", "^")
-	require.NoError(t, err)
-	assert.NotEmpty(t, ref)
-	// a ref resolved with a suffix must be a commit SHA, not a branch ref
-	// (branch refs would break "New Pull Request" logic)
-	assert.False(t, ref.IsBranch(), "ref with suffix must not resolve to a branch")
+	// Git commit graph for repo20
+	// * 8babce9 (origin/remove-files-b) Add a dummy file
+	// * b67e43a Delete test.csv and link_hi
+	// | * cfe3b3c (origin/remove-files-a) Delete test.csv and link_hi
+	// |/
+	// * c8e31bc (origin/add-csv) Add test csv file
+	// * 808038d (HEAD -> master, origin/master, origin/HEAD) Added test links
+	t.Run("CompareBranches", func(t *testing.T) {
+		session := loginUser(t, "user2")
 
-	// a missing ref and an unresolvable suffix both report not-found instead of an empty RefName
-	for _, tc := range []struct{ oriRef, suffix string }{
-		{"does-not-exist", ""},
-		{"add-csv", "~50"},
-	} {
-		ref, err := common.ResolveRefWithSuffix(t.Context(), gitRepo, tc.oriRef, tc.suffix)
-		assert.ErrorIs(t, err, util.ErrNotExist, "ref %q suffix %q", tc.oriRef, tc.suffix)
-		assert.Empty(t, ref, "ref %q suffix %q", tc.oriRef, tc.suffix)
-	}
-}
+		// Indirect compare remove-files-b (head) with add-csv (base) branch
+		//
+		//	'link_hi' and 'test.csv' are deleted, 'test.txt' is added
+		req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
 
-func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+		diffCount := 3
+		diffChanges := []string{"link_hi", "test.csv", "test.txt"}
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
+		inspectCompare(t, htmlDoc, diffCount, diffChanges)
 
-	_, _, runErr := gitcmd.NewCommand("fast-import").WithRepo(repo1).WithStdinBytes([]byte(strings.TrimSpace(`
+		// Indirect compare remove-files-b (head) with remove-files-a (base) branch
+		//
+		//	'link_hi' and 'test.csv' are deleted, 'test.txt' is added
+
+		req = NewRequest(t, "GET", "/user2/repo20/compare/remove-files-a...remove-files-b")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+
+		diffCount = 3
+		diffChanges = []string{"link_hi", "test.csv", "test.txt"}
+
+		inspectCompare(t, htmlDoc, diffCount, diffChanges)
+
+		// Indirect compare remove-files-a (head) with remove-files-b (base) branch
+		//
+		//	'link_hi' and 'test.csv' are deleted
+
+		req = NewRequest(t, "GET", "/user2/repo20/compare/remove-files-b...remove-files-a")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+
+		diffCount = 2
+		diffChanges = []string{"link_hi", "test.csv"}
+
+		inspectCompare(t, htmlDoc, diffCount, diffChanges)
+
+		// Direct compare remove-files-b (head) with remove-files-a (base) branch
+		//
+		//	'test.txt' is deleted
+
+		req = NewRequest(t, "GET", "/user2/repo20/compare/remove-files-b..remove-files-a")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+
+		diffCount = 1
+		diffChanges = []string{"test.txt"}
+
+		inspectCompare(t, htmlDoc, diffCount, diffChanges)
+
+		req = NewRequest(t, "GET", "/user2/repo20/compare/8babce967f21b9dfa6987f943b91093dac58a4f0..c8e31bc7688741a5287fcde4fbb8fc129ca07027")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+
+		inspectCompare(t, htmlDoc, 3, []string{"link_hi", "test.csv", "test.txt"})
+		assert.NotContains(t, htmlDoc.doc.Text(), translation.NewLocale("en-US").TrString("repo.commits.nothing_to_compare"))
+		commitsHeader := strings.Join(strings.Fields(htmlDoc.doc.Find(".ui.top.attached.header .flex-text-block").First().Text()), " ")
+		assert.Equal(t, "0 "+translation.NewLocale("en-US").TrString("repo.commits.commits"), commitsHeader)
+	})
+
+	t.Run("CompareWithRefSuffix", func(t *testing.T) {
+		session := loginUser(t, "user2")
+
+		// remove-files-b^ resolves to the tip's parent, so the test.txt added by the tip is excluded
+		req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b^")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		inspectCompare(t, htmlDoc, 2, []string{"link_hi", "test.csv"})
+
+		// a suffix resolves to a commit rather than a branch, so the page offers no pull request to create
+		assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
+
+		// the same suffix on the direct ".." comparison resolves to the same commit
+		req = NewRequest(t, "GET", "/user2/repo20/compare/add-csv..remove-files-b^")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		inspectCompare(t, htmlDoc, 2, []string{"link_hi", "test.csv"})
+
+		// a ~N suffix on the base side resolves and renders the compare page, but also
+		// resolves to a commit rather than a branch, so no pull request form is offered
+		req = NewRequest(t, "GET", "/user2/repo20/compare/add-csv~1...remove-files-b")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
+
+		// the web handler folds an unsupported (^{...}) and an unresolvable (~50) suffix alike into 404
+		for _, basehead := range []string{
+			"add-csv...remove-files-b~50",
+			"add-csv...remove-files-b^{/Add}",
+			"add-csv^{/Add}...remove-files-b",
+		} {
+			req = NewRequest(t, "GET", "/user2/repo20/compare/"+basehead).SetHeader("Accept", "text/html")
+			resp = session.MakeRequest(t, req, http.StatusNotFound)
+			assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+		}
+	})
+
+	t.Run("ResolveRefWithSuffixContract", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 31})
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+
+		// a nil error guarantees a usable RefName
+		ref, err := common.ResolveRefWithSuffix(t.Context(), gitRepo, "add-csv", "^")
+		require.NoError(t, err)
+		assert.NotEmpty(t, ref)
+		// a ref resolved with a suffix must be a commit SHA, not a branch ref
+		// (branch refs would break "New Pull Request" logic)
+		assert.False(t, ref.IsBranch(), "ref with suffix must not resolve to a branch")
+
+		// a missing ref and an unresolvable suffix both report not-found instead of an empty RefName
+		for _, tc := range []struct{ oriRef, suffix string }{
+			{"does-not-exist", ""},
+			{"add-csv", "~50"},
+		} {
+			ref, err := common.ResolveRefWithSuffix(t.Context(), gitRepo, tc.oriRef, tc.suffix)
+			assert.ErrorIs(t, err, util.ErrNotExist, "ref %q suffix %q", tc.oriRef, tc.suffix)
+			assert.Empty(t, ref, "ref %q suffix %q", tc.oriRef, tc.suffix)
+		}
+	})
+
+	t.Run("CompareDownloadDiffOrPatch", func(t *testing.T) {
+		session := loginUser(t, "user2")
+
+		t.Run("BranchToBranchDiff", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b.diff")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
+			assert.Contains(t, resp.Body.String(), "diff --git ")
+		})
+
+		t.Run("BranchToBranchPatch", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b.patch")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
+			assert.True(t, strings.HasPrefix(resp.Body.String(), "From "), "patch output should start with a format-patch header")
+		})
+
+		t.Run("SingleRefImplicitBase", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv.diff")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			assert.Contains(t, resp.Body.String(), "diff --git ")
+		})
+
+		t.Run("InvalidBaseRef", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", "/user2/repo20/compare/does-not-exist...remove-files-b.diff")
+			session.MakeRequest(t, req, http.StatusNotFound)
+		})
+
+		t.Run("PrivateRepoAnonymous", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			// repo16 is private; an unauthenticated request must not leak its existence.
+			req := NewRequest(t, "GET", "/user2/repo16/compare/master...good-sign.diff")
+			MakeRequest(t, req, http.StatusNotFound)
+		})
+	})
+
+	t.Run("CompareBranchesNoCommonMergeBase", func(t *testing.T) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
+
+		_, _, runErr := gitcmd.NewCommand("fast-import").WithRepo(repo1).WithStdinBytes([]byte(strings.TrimSpace(`
 commit refs/heads/unrelated-history
 committer User <user@example.com> 1714310400 +0000
 data 13
@@ -230,66 +265,20 @@ M 100644 inline file2.txt
 data 12
 Hello from 2
 `))).RunStdString(t.Context())
-	require.NoError(t, runErr)
+		require.NoError(t, runErr)
 
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user2/repo1/compare/master...unrelated-history")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	body := resp.Body.String()
-	htmlDoc := NewHTMLParser(t, resp.Body)
-
-	selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
-	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
-	assert.Contains(t, body, "These branches do not share a common merge base")
-	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
-	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...master"]`).Length())
-	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
-}
-
-func TestCompareDownloadDiffOrPatch(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-
-	t.Run("BranchToBranchDiff", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b.diff")
+		session := loginUser(t, "user2")
+		req := NewRequest(t, "GET", "/user2/repo1/compare/master...unrelated-history")
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
-		assert.Contains(t, resp.Body.String(), "diff --git ")
-	})
+		body := resp.Body.String()
+		htmlDoc := NewHTMLParser(t, resp.Body)
 
-	t.Run("BranchToBranchPatch", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b.patch")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
-		assert.True(t, strings.HasPrefix(resp.Body.String(), "From "), "patch output should start with a format-patch header")
-	})
-
-	t.Run("SingleRefImplicitBase", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv.diff")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		assert.Contains(t, resp.Body.String(), "diff --git ")
-	})
-
-	t.Run("InvalidBaseRef", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", "/user2/repo20/compare/does-not-exist...remove-files-b.diff")
-		session.MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("PrivateRepoAnonymous", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		// repo16 is private; an unauthenticated request must not leak its existence.
-		req := NewRequest(t, "GET", "/user2/repo16/compare/master...good-sign.diff")
-		MakeRequest(t, req, http.StatusNotFound)
+		selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
+		assert.Lenf(t, selection.Nodes, 2, "The template has changed")
+		assert.Contains(t, body, "These branches do not share a common merge base")
+		assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
+		assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...master"]`).Length())
+		assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
 	})
 }
 
