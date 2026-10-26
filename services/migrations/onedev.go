@@ -163,8 +163,8 @@ func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpo
 
 // getServerVersion reads the OneDev server version.
 func (d *OneDevDownloader) getServerVersion(ctx context.Context) (_ *version.Version, retErr error) {
-	// OneDev moved the endpoint from /~api/version/server to /~api/server/version in 16.8, so both are tried.
-	oneDevVersionEndpoints := []string{"/~api/version/server", "/~api/server/version"}
+	// OneDev moved the endpoint from /~api/version/server to /~api/server/version in 16.8, so both are tried, the new first.
+	oneDevVersionEndpoints := []string{"/~api/server/version", "/~api/version/server"}
 	for _, endpoint := range oneDevVersionEndpoints {
 		ver, err := d.getServerVersionByEndpoint(ctx, endpoint)
 		if err == nil {
