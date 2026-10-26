@@ -66,9 +66,8 @@ else
 	SED_INPLACE := sed -i ''
 endif
 
-# GOTEST_FLAGS is for unit test and integration test
-GOTEST_FLAGS ?= -timeout 40m
-override GOTEST_FLAGS := -gcflags=modernc.org/sqlite/lib=-race=false $(GOTEST_FLAGS) # race-instrumented SQLite halves test speed
+# GOTEST_FLAGS is for unit test and integration test, race-instrumented SQLite halves test speed
+GOTEST_FLAGS := $(if $(filter -race,$(GOTEST_FLAGS)),-gcflags=modernc.org/sqlite/lib=-race=false) $(or $(GOTEST_FLAGS),-timeout 40m)
 
 STORED_VERSION_FILE := VERSION
 
