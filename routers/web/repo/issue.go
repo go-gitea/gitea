@@ -199,7 +199,7 @@ func GetActionIssue(ctx *context.Context) *issues_model.Issue {
 	return issue
 }
 
-func getActionIssues(ctx *context.Context) issues_model.IssueList {
+func getActionIssues(ctx *context.Context, accessMode perm.AccessMode) issues_model.IssueList {
 	commaSeparatedIssueIDs := ctx.FormString("issue_ids")
 	if len(commaSeparatedIssueIDs) == 0 {
 		return nil
@@ -218,15 +218,13 @@ func getActionIssues(ctx *context.Context) issues_model.IssueList {
 		ctx.ServerError("GetIssuesByIDs", err)
 		return nil
 	}
-	// Check access rights for all issues
-	issueUnitEnabled := ctx.Repo.Permission.CanRead(unit.TypeIssues)
-	prUnitEnabled := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
 	for _, issue := range issues {
 		if issue.RepoID != ctx.Repo.Repository.ID {
 			ctx.NotFound(errors.New("some issue's RepoID is incorrect"))
 			return nil
 		}
-		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
+		// the route only checks the access mode on either unit, not on the unit of each item
+		if !ctx.Repo.Permission.CanAccess(accessMode, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues)) {
 			ctx.NotFound(nil)
 			return nil
 		}
@@ -401,7 +399,7 @@ func UpdateIssueDeadline(ctx *context.Context) {
 
 // UpdateIssueMilestone change issue's milestone
 func UpdateIssueMilestone(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeWrite)
 	if ctx.Written() {
 		return
 	}
@@ -434,7 +432,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 
 // UpdateIssueAssignee change issue's or pull's assignee
 func UpdateIssueAssignee(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeWrite)
 	if ctx.Written() {
 		return
 	}
