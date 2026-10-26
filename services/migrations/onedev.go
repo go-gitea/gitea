@@ -5,6 +5,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,7 +18,6 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 
 	"github.com/hashicorp/go-version"
 )
@@ -146,7 +146,6 @@ func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpo
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("OneDev server version request failed: %s", resp.Status)
 	}
-	// This patch doesn't change the situation, "decoder.Decode(&result)" in callAPI still reads the entire body
 	bytes, err := io.ReadAll(io.LimitReader(resp.Body, maxOneDevVersionResponseSize+1))
 	if err != nil {
 		return nil, err
@@ -162,17 +161,18 @@ func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpo
 }
 
 // getServerVersion reads the OneDev server version.
-func (d *OneDevDownloader) getServerVersion(ctx context.Context) (_ *version.Version, retErr error) {
+func (d *OneDevDownloader) getServerVersion(ctx context.Context) (*version.Version, error) {
 	// OneDev moved the endpoint from /~api/version/server to /~api/server/version in 16.8, so both are tried, the new first.
 	oneDevVersionEndpoints := []string{"/~api/server/version", "/~api/version/server"}
+	var errs []error
 	for _, endpoint := range oneDevVersionEndpoints {
 		ver, err := d.getServerVersionByEndpoint(ctx, endpoint)
 		if err == nil {
 			return ver, nil
 		}
-		retErr = util.IfZero(retErr, err)
+		errs = append(errs, fmt.Errorf("%s: %w", endpoint, err))
 	}
-	return nil, retErr
+	return nil, errors.Join(errs...)
 }
 
 // GetRepoInfo returns repository information
@@ -180,7 +180,7 @@ func (d *OneDevDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, e
 	// check OneDev server version
 	serverVersion, err := d.getServerVersion(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get OneDev server version; OneDev %s or newer required", OneDevRequiredVersion)
+		return nil, fmt.Errorf("failed to get OneDev server version; OneDev %s or newer required: %w", OneDevRequiredVersion, err)
 	}
 	requiredVersion, _ := version.NewVersion(OneDevRequiredVersion)
 	if serverVersion.LessThan(requiredVersion) {
