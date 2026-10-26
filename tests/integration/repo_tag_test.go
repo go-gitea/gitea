@@ -203,5 +203,6 @@ func TestProtectedTagSystemUsers(t *testing.T) {
 		assert.Equal(t, 1, menu.Find(fmt.Sprintf(`.item[data-value="%d"]`, user_model.ActionsUserID)).Length())
 		assert.Equal(t, 1, menu.Find(fmt.Sprintf(`.item[data-value="%d"]`, user_model.DeployKeyUserID)).Length())
 		assert.Contains(t, htmlDoc.Find("table").Text(), "gitea-actions")
+		assert.Zero(t, htmlDoc.Find(`table a[href$="/gitea-actions"]`).Length())
 	})
 }
