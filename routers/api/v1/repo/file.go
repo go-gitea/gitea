@@ -299,7 +299,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ec, _, err := ctx.Repo.GetEditorconfig(ctx, ctx.Repo.Commit)
+	ec, _, err := ctx.Repo.GetEditorconfig(ctx)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return

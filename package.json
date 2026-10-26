@@ -3,7 +3,7 @@
   "packageManager": "pnpm@12.13.0",
   "engines": {
     "node": ">= 22.18.0",
-    "pnpm": ">= 11.0.0"
+    "pnpm": ">= 12.13.0"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.3",

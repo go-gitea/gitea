@@ -203,6 +203,7 @@ func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(token), http.StatusForbidden)
 		MakeRequest(t, NewRequestf(t, http.MethodPost, "/api/v1/repos/%s/%s/forks", repo.OwnerName, repo.Name).AddTokenAuth(token), http.StatusForbidden)
 		MakeRequest(t, NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/actions/secrets", repo.OwnerName, repo.Name).AddTokenAuth(token), http.StatusForbidden)
+		MakeRequest(t, NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/hooks/1/deliveries", repo.OwnerName, repo.Name).AddTokenAuth(token), http.StatusForbidden)
 		personalToken := getTokenForLoggedInUser(t, loginUser(t, "user2"), auth_model.AccessTokenScopeWriteRepository)
 		MakeRequest(t, NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/actions/secrets", repo.OwnerName, repo.Name).AddTokenAuth(personalToken), http.StatusOK)
 
@@ -277,6 +278,7 @@ func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, 1, updated)
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2/releases").AddTokenAuth(token), http.StatusForbidden)
 		require.NoError(t, codespace_service.RevokePermissionAuthorization(t.Context(), 2, authorization.ID))
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(token), http.StatusForbidden)
 

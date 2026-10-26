@@ -69,7 +69,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 	hc := &http.Client{Transport: RoundTripFunc(roundTripHandler)}
 	a := &BasicTransferAdapter{hc}
 
-	t.Run("Download", func(t *testing.T) {
+	testOperation := func(t *testing.T, endpoint string, transfer func(*Link) error) {
 		cases := []struct {
 			link          *Link
 			expectederror string
@@ -77,7 +77,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 			// case 0
 			{
 				link: &Link{
-					Href:   "https://download-request.io",
+					Href:   endpoint,
 					Header: map[string]string{"test-header": "test-value"},
 				},
 				expectederror: "",
@@ -93,46 +93,26 @@ func TestBasicTransferAdapter(t *testing.T) {
 		}
 
 		for n, c := range cases {
-			_, err := a.Download(t.Context(), c.link)
+			err := transfer(c.link)
 			if len(c.expectederror) > 0 {
 				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {
 				assert.NoError(t, err, "case %d", n)
 			}
 		}
+	}
+
+	t.Run("Download", func(t *testing.T) {
+		testOperation(t, "https://download-request.io", func(link *Link) error {
+			_, err := a.Download(t.Context(), link)
+			return err
+		})
 	})
 
 	t.Run("Upload", func(t *testing.T) {
-		cases := []struct {
-			link          *Link
-			expectederror string
-		}{
-			// case 0
-			{
-				link: &Link{
-					Href:   "https://upload-request.io",
-					Header: map[string]string{"test-header": "test-value"},
-				},
-				expectederror: "",
-			},
-			// case 1
-			{
-				link: &Link{
-					Href:   "https://error-response.io",
-					Header: map[string]string{"test-header": "test-value"},
-				},
-				expectederror: "Object not found",
-			},
-		}
-
-		for n, c := range cases {
-			err := a.Upload(t.Context(), c.link, p, strings.NewReader("dummy"))
-			if len(c.expectederror) > 0 {
-				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
-			} else {
-				assert.NoError(t, err, "case %d", n)
-			}
-		}
+		testOperation(t, "https://upload-request.io", func(link *Link) error {
+			return a.Upload(t.Context(), link, p, strings.NewReader("dummy"))
+		})
 	})
 
 	t.Run("Upload created", func(t *testing.T) {
@@ -145,35 +125,8 @@ func TestBasicTransferAdapter(t *testing.T) {
 	})
 
 	t.Run("Verify", func(t *testing.T) {
-		cases := []struct {
-			link          *Link
-			expectederror string
-		}{
-			// case 0
-			{
-				link: &Link{
-					Href:   "https://verify-request.io",
-					Header: map[string]string{"test-header": "test-value"},
-				},
-				expectederror: "",
-			},
-			// case 1
-			{
-				link: &Link{
-					Href:   "https://error-response.io",
-					Header: map[string]string{"test-header": "test-value"},
-				},
-				expectederror: "Object not found",
-			},
-		}
-
-		for n, c := range cases {
-			err := a.Verify(t.Context(), c.link, p)
-			if len(c.expectederror) > 0 {
-				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
-			} else {
-				assert.NoError(t, err, "case %d", n)
-			}
-		}
+		testOperation(t, "https://verify-request.io", func(link *Link) error {
+			return a.Verify(t.Context(), link, p)
+		})
 	})
 }

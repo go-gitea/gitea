@@ -198,13 +198,11 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 		session := loginUser(t, user.Name)
 		writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusBadRequest)
-
-		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/jobs/194/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusBadRequest)
+		for _, endpoint := range []string{"runs/793/rerun", "runs/793/jobs/194/rerun"} {
+			req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/%s", repo.FullName(), endpoint)).
+				AddTokenAuth(writeToken)
+			MakeRequest(t, req, http.StatusBadRequest)
+		}
 	})
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
@@ -312,41 +310,30 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, hasLatestAttempt)
 
-		job198 := getLatestAttemptJobByTemplateJobID(t, 795, 198)
-		assert.Equal(t, actions_model.StatusWaiting, job198.Status)
-		assert.Equal(t, latestAttempt.Attempt, job198.Attempt)
-		assert.Equal(t, int64(0), job198.TaskID)
-
-		job199 := getLatestAttemptJobByTemplateJobID(t, 795, 199)
-		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
-		assert.Equal(t, latestAttempt.Attempt, job199.Attempt)
-		assert.Equal(t, int64(0), job199.TaskID)
+		for _, jobID := range []int64{198, 199} {
+			job := getLatestAttemptJobByTemplateJobID(t, 795, jobID)
+			assert.Equal(t, actions_model.StatusWaiting, job.Status)
+			assert.Equal(t, latestAttempt.Attempt, job.Attempt)
+			assert.Equal(t, int64(0), job.TaskID)
+		}
 	})
 
-	t.Run("ForbiddenWithoutWriteScope", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).
-			AddTokenAuth(readToken)
-		MakeRequest(t, req, http.StatusForbidden)
-	})
-
-	t.Run("NotFound", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("NotFoundJob", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/999999/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("NoLogsAfterRerun", func(t *testing.T) {
+	for _, testCase := range []struct {
+		name, method, endpoint, token string
+		status                        int
+	}{
+		{"ForbiddenWithoutWriteScope", "POST", "runs/795/rerun", readToken, http.StatusForbidden},
+		{"NotFound", "POST", "runs/999999/rerun", writeToken, http.StatusNotFound},
+		{"NotFoundJob", "POST", "runs/795/jobs/999999/rerun", writeToken, http.StatusNotFound},
 		// the full rerun above cleared both TaskID and SourceTaskID on every latest-attempt job
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
+		{"NoLogsAfterRerun", "GET", "runs/795/logs", writeToken, http.StatusNotFound},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			req := NewRequest(t, testCase.method, fmt.Sprintf("/api/v1/repos/%s/actions/%s", repo.FullName(), testCase.endpoint)).
+				AddTokenAuth(testCase.token)
+			MakeRequest(t, req, testCase.status)
+		})
+	}
 }
 
 func testAPIActionsCancelWorkflowRun(t *testing.T) {
@@ -744,39 +731,29 @@ func testAPIActionsGetWorkflowJobLogsNotFound(t *testing.T) {
 func TestAPIOrgActionsRunsAccessControl(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	checkAccess := func(token, runMessage, jobMessage string) {
+		req := NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
+		for _, run := range runs.Entries {
+			assert.NotEqual(t, int64(802), run.ID, runMessage)
+		}
+
+		req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
+		for _, job := range jobs.Entries {
+			assert.NotEqual(t, int64(802), job.RunID, jobMessage)
+		}
+	}
+
 	// org3 has action run 802 (and its jobs) in the private repo5; user28 is an org3 member
 	// (teams 12/13) with no access to repo5.
 	token := getUserToken(t, "user28", auth_model.AccessTokenScopeReadOrganization)
-
-	req := NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
-	for _, r := range runs.Entries {
-		assert.NotEqual(t, int64(802), r.ID, "must not leak a run from an inaccessible repo")
-	}
-
-	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
-	for _, j := range jobs.Entries {
-		assert.NotEqual(t, int64(802), j.RunID, "must not leak a job from an inaccessible repo run")
-	}
+	checkAccess(token, "must not leak a run from an inaccessible repo", "must not leak a job from an inaccessible repo run")
 
 	// user1 is a site admin: it normally bypasses the per-repo access filter, but a public-only token
 	// must stay confined to public repos, so the run/job in the private repo5 must not be listed.
 	adminPublicOnly := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopePublicOnly)
-
-	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(adminPublicOnly)
-	resp = MakeRequest(t, req, http.StatusOK)
-	adminRuns := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
-	for _, r := range adminRuns.Entries {
-		assert.NotEqual(t, int64(802), r.ID, "a public-only admin token must not list a private repo's run")
-	}
-
-	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(adminPublicOnly)
-	resp = MakeRequest(t, req, http.StatusOK)
-	adminJobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
-	for _, j := range adminJobs.Entries {
-		assert.NotEqual(t, int64(802), j.RunID, "a public-only admin token must not list a private repo's job")
-	}
+	checkAccess(adminPublicOnly, "a public-only admin token must not list a private repo's run", "a public-only admin token must not list a private repo's job")
 }

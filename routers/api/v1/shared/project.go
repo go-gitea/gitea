@@ -109,8 +109,8 @@ func (s projectScope) findColumnIssue(ctx *context.APIContext) (*project_model.C
 	return column, s.findIssue(ctx)
 }
 
-// findIssue resolves an issue addressable within this scope. Owner-level boards span
-// repositories, so the issue is looked up globally and gated on the doer's read access.
+// findIssue resolves an issue addressable within this scope, gated on the doer's read access.
+// Owner-level boards span repositories, so the issue is looked up globally there.
 func (s projectScope) findIssue(ctx *context.APIContext) *issues_model.Issue {
 	issueID := ctx.PathParamInt64("issue_id")
 	var issue *issues_model.Issue
@@ -124,26 +124,24 @@ func (s projectScope) findIssue(ctx *context.APIContext) *issues_model.Issue {
 		ctx.APIErrorAuto(err)
 		return nil
 	}
-	if s.Repo == nil {
-		if err := issue.LoadRepo(ctx); err != nil {
-			ctx.APIErrorInternal(err)
-			return nil
-		}
-		perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, ctx.Doer)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return nil
-		}
-		// hide the issue's existence rather than reporting it as forbidden
-		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
-			ctx.APIErrorNotFound()
-			return nil
-		}
-		// the repo route group has mustNotBeArchived, owner boards have to check per issue
-		if issue.Repo.IsArchived {
-			ctx.APIError(http.StatusLocked, "repo is archived")
-			return nil
-		}
+	if err := issue.LoadRepo(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return nil
+	}
+	perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil
+	}
+	// hide the issue's existence rather than reporting it as forbidden
+	if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.APIErrorNotFound()
+		return nil
+	}
+	// the repo route group has mustNotBeArchived, owner boards have to check per issue
+	if issue.Repo.IsArchived {
+		ctx.APIError(http.StatusLocked, "repo is archived")
+		return nil
 	}
 	return issue
 }
