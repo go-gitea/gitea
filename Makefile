@@ -68,7 +68,7 @@ endif
 
 # GOTEST_FLAGS is for unit test and integration test
 GOTEST_FLAGS ?= -timeout 40m
-# disable race detection for the packages that slow down the tests, no-op without -race
+# disable race detection for the packages that slow down the tests
 GOTEST_FLAGS := -gcflags=modernc.org/sqlite/lib=-race=false $(GOTEST_FLAGS)
 
 STORED_VERSION_FILE := VERSION
