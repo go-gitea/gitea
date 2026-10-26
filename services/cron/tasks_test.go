@@ -8,8 +8,21 @@ import (
 	"strconv"
 	"testing"
 
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestCheckUnknownTaskSections(t *testing.T) {
+	defer test.MockVariableValue(&tasksMap, map[string]*Task{"repo_maintenance": {}})()
+	defer test.MockVariableValue(&setting.StartupProblems, nil)()
+	cfg, err := setting.NewConfigProviderFromData("[cron]\n[cron.repo_maintenance]\n[cron.git_gc_repos]")
+	require.NoError(t, err)
+	checkUnknownTaskSections(cfg)
+	assert.Equal(t, []string{"Config section [cron.git_gc_repos] doesn't match any available cron task and is ignored"}, setting.StartupProblems)
+}
 
 func TestAddTaskToScheduler(t *testing.T) {
 	assert.Empty(t, scheduler.Jobs())

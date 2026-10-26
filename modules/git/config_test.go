@@ -67,7 +67,6 @@ func TestSyncGitConfig(t *testing.T) {
 	defer test.MockVariableValue(&setting.GitConfig.Options, map[string]string{})()
 	defer test.MockVariableValue(&GlobalConfig)()
 
-	assert.Empty(t, setting.GitConfig.Options)
 	assert.NoError(t, configSet(t.Context(), "gc.reflogExpire", "90"))
 	assert.NoError(t, syncGitConfig(t.Context()))
 	assert.True(t, gitConfigContains("commitGraph = true")) // builtin default config

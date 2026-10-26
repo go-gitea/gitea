@@ -55,6 +55,9 @@ func TestReadingBlameOutput(t *testing.T) {
 		},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
+			if scenario.objectFormat == Sha256ObjectFormat && !DefaultFeatures().SupportHashSha256 {
+				t.Skip("sha256 is not supported")
+			}
 			setting.AppDataPath = t.TempDir()
 			ctx := t.Context()
 

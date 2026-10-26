@@ -183,6 +183,9 @@ signed commit`,
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
+			if testCase.sha.Type() == Sha256ObjectFormat && !DefaultFeatures().SupportHashSha256 {
+				t.Skip("sha256 is not supported")
+			}
 			gitRepo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, testCase.repo))
 			assert.NoError(t, err)
 			assert.NotNil(t, gitRepo)

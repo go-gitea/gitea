@@ -61,6 +61,16 @@ func registerRepoHealthCheck() {
 	})
 }
 
+func registerRepoMaintenance() {
+	RegisterTaskFatal("repo_maintenance", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: false,
+		Schedule:   "@hourly",
+	}, func(ctx context.Context, _doer *user_model.User, _config *BaseConfig) error {
+		return repo_service.MaintainRepositories(ctx)
+	})
+}
+
 func registerCheckRepoStats() {
 	RegisterTaskFatal("check_repo_stats", &BaseConfig{
 		Enabled:    true,
@@ -164,6 +174,7 @@ func initBasicTasks() {
 		registerUpdateMirrorTask()
 	}
 	registerRepoHealthCheck()
+	registerRepoMaintenance()
 	registerCheckRepoStats()
 	registerArchiveCleanup()
 	registerSyncExternalUsers()
