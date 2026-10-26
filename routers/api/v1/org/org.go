@@ -152,6 +152,30 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	}
 
 	org := organization.OrgFromUser(o)
+	canSeeConcealed := false
+	if user_model.DoerCanViewPrivate(ctx.Doer) {
+		canSeeConcealed = ctx.Doer.ID == ctx.ContextUser.ID || ctx.Doer.IsAdmin
+		if !canSeeConcealed {
+			isDoerMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			canSeeConcealed = isDoerMember
+		}
+	}
+	if !canSeeConcealed {
+		isPublic, err := organization.IsPublicMembership(ctx, org.ID, ctx.ContextUser.ID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !isPublic { // a concealed membership must look like no membership
+			ctx.JSON(http.StatusOK, op)
+			return
+		}
+	}
+
 	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)

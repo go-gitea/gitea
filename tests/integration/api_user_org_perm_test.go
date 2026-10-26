@@ -28,6 +28,7 @@ func TestPermissionsAPI(t *testing.T) {
 	t.Run("UnknownOrganization", testUnknownOrganization)
 	t.Run("HiddenMemberPermissionsForbidden", testHiddenMemberPermissionsForbidden)
 	t.Run("PrivateOrgPermissionsNotFound", testPrivateOrgPermissionsNotFound)
+	t.Run("ConcealedMemberPermissionsHidden", testConcealedMemberPermissionsHidden)
 }
 
 type apiUserOrgPermTestCase struct {
@@ -186,4 +187,23 @@ func testPrivateOrgPermissionsNotFound(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/users/user5/orgs/privated_org/permissions").
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
+}
+
+func testConcealedMemberPermissionsHidden(t *testing.T) {
+	// user4 is a concealed member of the public org3, user8 is not a member
+	sampleTest(t, apiUserOrgPermTestCase{
+		LoginUser:                       "user8",
+		User:                            "user4",
+		Organization:                    "org3",
+		ExpectedOrganizationPermissions: api.OrganizationPermissions{},
+	})
+	sampleTest(t, apiUserOrgPermTestCase{
+		LoginUser:    "user2",
+		User:         "user4",
+		Organization: "org3",
+		ExpectedOrganizationPermissions: api.OrganizationPermissions{
+			CanWrite: true,
+			CanRead:  true,
+		},
+	})
 }
