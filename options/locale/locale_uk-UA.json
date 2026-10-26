@@ -2836,7 +2836,6 @@
   "units.error.no_unit_allowed_repo": "У вас немає доступу до жодного розділу цього сховища.",
   "units.error.unit_not_allowed": "У вас немає доступу до жодного розділу цього сховища.",
   "packages.title": "Пакети",
-  "packages.desc": "Керувати пакетами сховища.",
   "packages.empty": "Наразі пакети відсутні.",
   "packages.no_metadata": "Немає метаданих.",
   "packages.empty.documentation": "Для отримання додаткової інформації про реєстр пакетів, дивіться <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%s\">документацію</a>.",
@@ -3065,6 +3064,8 @@
   "projects.type-3.display_name": "Проєкт організації",
   "projects.enter_fullscreen": "Повноекранний режим",
   "projects.exit_fullscreen": "Вийти з повноекранного режиму",
+  "projects.workflows.actions": "Дії",
+  "projects.workflows.none": "Відсутній",
   "git.filemode.directory": "Тека",
   "git.filemode.submodule": "Підмодуль",
   "actions.general.token_permissions.mode.restricted": "Обмежено"
