@@ -14,12 +14,9 @@ function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: a
   if (el instanceof Node) {
     func(el, ...args);
     return [el];
-  } else if (el.length !== undefined) {
-    // this works for: NodeList, HTMLCollection, Array
-    for (const elem of el) func(elem, ...args);
-    return el;
   }
-  throw new Error('invalid argument to be shown/hidden');
+  for (const elem of el) func(elem, ...args);
+  return el;
 }
 
 export function toggleElemClass(el: ElementArg, className: string, force?: boolean): ArrayLikeIterable<Element> {
@@ -425,7 +422,7 @@ export type MorphElementOptions = {
 
 export function morphElementWithProtection(el: Element, newEl: Element, opts: MorphElementOptions): Element {
   const protectedElems = protectMorphElements(newEl);
-  const selectorSkipElems = '.dropdown-container:has(> .dropdown-trigger[aria-expanded="true"])';
+  const selectorSkipElems = '.dropdown-container[data-shown]';
   const nodes = Idiomorph.morph(el, newEl, {
     morphStyle: opts.morphStyle,
     callbacks: {

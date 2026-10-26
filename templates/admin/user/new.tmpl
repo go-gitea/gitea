@@ -35,9 +35,7 @@
 					<label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label>
 					<div class="select-field">
 						<select id="visibility" name="visibility">
-							{{range $mode := .AllowedUserVisibilityModes}}
-								<option value="{{printf "%d" $mode}}" {{if eq (Iif $.visibility $.visibility $.DefaultUserVisibilityMode) $mode}}selected{{end}} title="{{ctx.Locale.Tr (printf "settings.visibility.%s_tooltip" $mode.String)}}">{{ctx.Locale.Tr (print "settings.visibility." $mode.String)}}</option>
-							{{end}}
+							{{template "shared/user_visibility_options" dict "Modes" .AllowedUserVisibilityModes "Value" .visibility}}
 						</select>
 					</div>
 				</div>

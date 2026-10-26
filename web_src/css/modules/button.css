@@ -39,7 +39,7 @@
 }
 
 .ui.active.button,
-:where(.dropdown-container) > .ui.button[aria-expanded="true"]:where(:not(.dropdown-button-inline, .branch-dropdown-button)),
+:where(.dropdown-container) > .ui.button[aria-expanded="true"]:where(:not(.dropdown-button-inline)),
 .ui.button:active,
 .ui.active.button:active,
 .ui.active.button:hover {
@@ -91,7 +91,7 @@
   height: auto;
   opacity: 0.8;
 }
-.ui.button:not(.icon) > .icon:not(.button):not(.dropdown) {
+.ui.button:not(.icon) > .icon:not(.button) {
   margin: 0 0.42857143em 0 -0.21428571em;
 }
 
@@ -189,7 +189,7 @@
 
 .ui.basic.button:active,
 .ui.basic.active.button,
-:where(.dropdown-container) > .ui.basic.button[aria-expanded="true"]:where(:not(.dropdown-button-inline, .branch-dropdown-button)),
+:where(.dropdown-container) > .ui.basic.button[aria-expanded="true"]:where(:not(.dropdown-button-inline)),
 .ui.basic.active.button:hover {
   color: var(--color-text);
   background: var(--color-active);

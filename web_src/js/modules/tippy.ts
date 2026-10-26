@@ -138,7 +138,8 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
         }
       }
       visibleInstances.add(instance);
-      if (instance.props.role !== 'tooltip') target.setAttribute('aria-controls', instance.popper.id); // tooltips use aria-describedby
+      if (!['tooltip', 'presentation'].includes(instance.props.role)) target.setAttribute('aria-controls', instance.popper.id); // tooltips use aria-describedby
+      if (limitSizeToViewport) instance.popper.style.removeProperty('--tippy-max-height'); // flip by the uncapped height
       if (isMenu(instance)) { // focusable by the arrow keys, out of the Tab order
         for (const item of instance.popper.querySelectorAll<HTMLElement>('.item')) item.tabIndex = -1;
       }
@@ -296,20 +297,10 @@ export function initGlobalTooltips(): void {
 }
 
 export function showTemporaryTooltip(target: Element, content: Content): void {
-  // if the target is inside a tippy popup, the popup will be hidden soon
-  // so display the tooltip on the "aria-controls" element instead
-  let refClientRect: DOMRect | undefined;
-  const popupTippyId = target.closest(`[data-tippy-root]`)?.id;
-  if (popupTippyId) {
-    // for example, the "Copy Permalink" button in the "File View" page for the selected lines
-    target = document.body;
-    refClientRect = document.querySelector(`[aria-controls="${CSS.escape(popupTippyId)}"]`)?.getBoundingClientRect();
-    refClientRect = refClientRect ?? new DOMRect(0, 0, 0, 0); // fallback to empty rect if not found, tippy doesn't accept null
-  } else {
-    // a dropdown item click closes its popup first, for example the "Copy Link" item in the issue comment menu
-    target = target.closest('.dropdown-container')?.querySelector(':scope > .dropdown-trigger') ?? target;
-    refClientRect = target.getBoundingClientRect();
-  }
+  // a popup or dropdown item closes on click, so show the tooltip on what opened it
+  const popupTippy = target.closest('[data-tippy-root]')?._tippy;
+  target = popupTippy ? document.body : target.closest('.dropdown-container')?.querySelector(':scope > .dropdown-trigger') ?? target;
+  const refClientRect = (popupTippy?.reference ?? target).getBoundingClientRect();
   const tooltipTippy = target._tippy ?? attachTooltip(target, content);
   tooltipTippy.setContent(content);
   tooltipTippy.setProps({getReferenceClientRect: () => refClientRect});
@@ -326,7 +317,7 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
 
   // on elements where the tooltip is re-located like "Copy Link" inside dropdowns, tippy.js gets
   // no `mouseout` event and the tooltip stays visible, hide it with timeout.
-  if (!popupTippyId) {
+  if (!popupTippy) {
     setTimeout(() => {
       if (tooltipTippy.state.isVisible) tooltipTippy.hide();
     }, 1500);

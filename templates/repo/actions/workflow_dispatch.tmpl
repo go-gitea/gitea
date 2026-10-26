@@ -27,14 +27,15 @@
 							<i class="icon">{{svg "octicon-filter" 16}}</i>
 							<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 						</div>
-						<div class="branch-tag-tab flex-text-block">
+						<div class="branch-tag-tab">
 							<button type="button" class="btn branch-tag-item active" data-target=".branch-list">
-								{{svg "octicon-git-branch" 16}} {{ctx.Locale.Tr "repo.branches"}}
+								{{svg "octicon-git-branch" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.branches"}}
 							</button>
 							<button type="button" class="btn branch-tag-item" data-target=".tag-list">
-								{{svg "octicon-tag" 16}} {{ctx.Locale.Tr "repo.tags"}}
+								{{svg "octicon-tag" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.tags"}}
 							</button>
 						</div>
+						<div class="dropdown-divider branch-tag-divider"></div>
 						<div class="reference-list-menu branch-list">
 							{{range .Branches}}
 								<div class="dropdown-item" data-value="refs/heads/{{.}}" title="{{.}}">{{.}}</div>

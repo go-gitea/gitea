@@ -31,7 +31,6 @@ If there is `data-update-url`, it also calls backend to attach/detach the change
 
 Also, the changed items will be synchronized to the `ui list` items.
 The popup items must have correct `href`, otherwise the links of synchronized (cloned) items would be wrong.
-The controller removes dropdown classes and accessibility attributes from the cloned list items.
 
 The `ui list` is optional, so a single dropdown can also work, to select items and update them to backend.
 
@@ -51,7 +50,6 @@ The dropdown selection could work in 2 modes:
 * single: only one item could be selected, it updates immediately when the item is selected.
 * multiple: multiple items could be selected, it defers the update until the dropdown is hidden.
 
-The controller binds item clicks on `dropdown.popup` because the popup moves into `body` while open.
 Multiple-selection dropdowns use `data-keep-open` and maintain `.checked` items, including exclusive scopes.
 Single-selection dropdowns omit `data-keep-open` and update as soon as an item is selected.
 Items with `data-can-change="false"` retain their selection when clicked.

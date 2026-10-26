@@ -146,7 +146,6 @@ export function initRepoEditor() {
         warningDiv = document.createElement('div');
         warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning', 'space-related');
         warningDiv.innerHTML = html`<p>File path contains leading or trailing whitespace.</p>`;
-        warningDiv.classList.add('tw-block');
         const inputContainer = document.querySelector('.repo-editor-header')!;
         inputContainer.insertAdjacentElement('beforebegin', warningDiv);
       }

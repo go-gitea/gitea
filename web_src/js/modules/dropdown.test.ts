@@ -130,18 +130,22 @@ test('remote items in a search field apply the latest query only, Enter picks th
   await userEvent.click(dropdown.findItem('a2')!);
   expect(dropdown.values()).toEqual(['static', 'a2']);
   expect(Array.from(dropdown.trigger.querySelectorAll('.ui.label'), (el) => el.textContent)).toEqual(['Static', 'a2']);
-  await userEvent.keyboard('{Shift>}{Tab}{/Shift}{Enter}');
-  expect(dropdown.values()).toEqual(['static']);
+  await expect.element(dropdown.trigger.querySelector<SVGElement>('.ui.label[data-value="static"] .delete')).toHaveAccessibleName('Remove item "Static"');
+  await userEvent.keyboard('{Shift>}{Tab}{Tab}{/Shift}{Backspace}');
+  expect(dropdown.values()).toEqual(['a2']);
   expect(document.activeElement).toBe(dropdown.filterInput);
-  await userEvent.click(dropdown.trigger.querySelector('.ui.label[data-value="static"] .delete')!);
+  await userEvent.click(dropdown.trigger.querySelector('.ui.label[data-value="a2"] .delete')!);
   expect(dropdown.values()).toEqual([]);
   expect(dropdown.isShown()).toBe(true);
+  expect(document.activeElement).toBe(dropdown.filterInput);
   form.remove();
 });
 
 test('hideScopedEmptyDividers', () => {
   const container = createElementFromHTML(`<div>
+<div class="dropdown-header">top</div>
 <div class="dropdown-divider"></div>
+<div class="dropdown-header" hidden="">a</div>
 <div class="dropdown-item">a</div>
 <div class="dropdown-divider"></div>
 <div class="dropdown-divider"></div>
@@ -149,12 +153,15 @@ test('hideScopedEmptyDividers', () => {
 <div class="dropdown-divider" data-scope="c"></div>
 <div class="dropdown-item" data-scope="c" hidden="">c</div>
 <div class="dropdown-divider" data-scope=""></div>
+<div class="dropdown-header">d</div>
 <div class="dropdown-item tw-hidden">d</div>
 <div class="dropdown-divider"></div>
 </div>`);
   hideScopedEmptyDividers(container);
   expect(container.innerHTML).toEqual(`
-<div class="dropdown-divider" hidden=""></div>
+<div class="dropdown-header">top</div>
+<div class="dropdown-divider"></div>
+<div class="dropdown-header">a</div>
 <div class="dropdown-item">a</div>
 <div class="dropdown-divider" hidden=""></div>
 <div class="dropdown-divider"></div>
@@ -162,6 +169,7 @@ test('hideScopedEmptyDividers', () => {
 <div class="dropdown-divider" data-scope="c" hidden=""></div>
 <div class="dropdown-item" data-scope="c" hidden="">c</div>
 <div class="dropdown-divider" data-scope="" hidden=""></div>
+<div class="dropdown-header" hidden="">d</div>
 <div class="dropdown-item tw-hidden">d</div>
 <div class="dropdown-divider" hidden=""></div>
 `);

@@ -1,5 +1,5 @@
 <div class="select-field">
-	<select name="all" aria-label="{{ctx.Locale.Tr "repo.commits.search.tooltip"}}">
+	<select name="all" aria-label="{{ctx.Locale.Tr "repo.branches"}}">
 		<option value="false" {{if not .All}}selected{{end}}>{{ctx.Locale.Tr "repo.commits.search_branch"}}</option>
 		<option value="true" {{if .All}}selected{{end}}>{{ctx.Locale.Tr "repo.commits.search_all"}}</option>
 	</select>

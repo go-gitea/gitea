@@ -74,18 +74,18 @@ test('protectMorphElements', () => {
 describe('morphElementWithProtection', () => {
   const newElHtml = '<div><div><span>new</span><div class="dropdown-container">changed</div></div></div>';
   it('morph normal', () => {
-    const el = createElementFromHTML('<div><div><span>old</span><div class="dropdown-container"><button class="dropdown-trigger" aria-expanded="true"></button></div></div></div>');
+    const el = createElementFromHTML('<div><div><span>old</span><div class="dropdown-container" data-shown=""><button class="dropdown-trigger"></button></div></div></div>');
     const newEl = createElementFromHTML(newElHtml);
     morphElementWithProtection(el, newEl, {morphStyle: 'outerHTML'});
     // span is changed, but dropdown is skipped because it is active
-    expect(el.outerHTML).toEqual('<div><div><span>new</span><div class="dropdown-container"><button class="dropdown-trigger" aria-expanded="true"></button></div></div></div>');
+    expect(el.outerHTML).toEqual('<div><div><span>new</span><div class="dropdown-container" data-shown=""><button class="dropdown-trigger"></button></div></div></div>');
   });
   it('morph whole', () => {
-    const el = createElementFromHTML('<div><div data-morph-whole><span>old</span><div class="dropdown-container"><button class="dropdown-trigger" aria-expanded="true"></button></div></div></div>');
+    const el = createElementFromHTML('<div><div data-morph-whole><span>old</span><div class="dropdown-container" data-shown=""><button class="dropdown-trigger"></button></div></div></div>');
     const newEl = createElementFromHTML(newElHtml);
     morphElementWithProtection(el, newEl, {morphStyle: 'outerHTML'});
     // span is not changed, because the parent div is marked as data-morph-whole and there is an active dropdown, so it is skipped
-    expect(el.outerHTML).toEqual('<div><div data-morph-whole=""><span>old</span><div class="dropdown-container"><button class="dropdown-trigger" aria-expanded="true"></button></div></div></div>');
+    expect(el.outerHTML).toEqual('<div><div data-morph-whole=""><span>old</span><div class="dropdown-container" data-shown=""><button class="dropdown-trigger"></button></div></div></div>');
   });
   it('morph protection', () => {
     const el = createElementFromHTML('<div><span></span><div class="dropdown-container"></div></div>');

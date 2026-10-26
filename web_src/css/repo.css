@@ -1283,14 +1283,7 @@ tbody.commit-list {
 
 #new-dependency-drop-list .dropdown-field {
   min-width: 0;
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
   border-right: 0;
-  white-space: nowrap;
-}
-
-#new-dependency-drop-list .dropdown-text {
-  width: 100%;
-  overflow: hidden;
 }
 
 .tag-code {

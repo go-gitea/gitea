@@ -96,7 +96,6 @@ in new code. Never bind user-provided data directly onto DOM nodes.
 Menus and custom selects use the `.dropdown-container` component from
 [`web_src/js/modules/dropdown.ts`](../web_src/js/modules/dropdown.ts), see `/devtest/dropdown` for the markup.
 Plain-text single choices in forms use a native `<select>` inside a `.select-field` wrapper, which draws the field's triangle.
-The dropdown preserves popup controls' form ownership when it moves the popup out of its container.
 
 ## UI component gallery
 

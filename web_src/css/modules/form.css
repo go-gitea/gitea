@@ -70,7 +70,7 @@
   appearance: none;
 }
 
-.select-field > select:has(> option:checked[value=""]) {
+.select-field > select:has(> option:checked[data-placeholder]) {
   color: var(--color-placeholder-text);
 }
 
@@ -202,12 +202,14 @@ textarea:focus,
   display: block;
 }
 .ui.form .field.error textarea,
+.ui.form .field.error .select-field > select,
 .ui.form .field.error input {
   background-color: var(--color-error-bg);
   border-color: var(--color-error-border);
   color: var(--color-input-text);
 }
 .ui.form .field.error textarea:focus,
+.ui.form .field.error .select-field > select:focus,
 .ui.form .field.error input:focus {
   background-color: var(--color-error-bg);
   border-color: var(--color-error-border);

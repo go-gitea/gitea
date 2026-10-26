@@ -66,7 +66,7 @@
 					<label>{{ctx.Locale.Tr "repo.template"}}</label>
 					<div id="repo_template_search" class="dropdown-container" data-kind="select">
 						<div class="dropdown-trigger dropdown-field dropdown-search-field">
-							<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "search.repo_kind"}}">
+							<input class="dropdown-filter" type="text">
 							<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.template_select"}}">{{.repo_template_name}}</span>
 						</div>
 						<input type="hidden" class="dropdown-value" id="repo_template" name="repo_template" value="{{or .repo_template ""}}">
@@ -123,10 +123,10 @@
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.issue_labels"}}</label>
 						<div class="dropdown-container" data-kind="select">
-							<input type="hidden" class="dropdown-value" name="issue_labels" value="{{.issueLabels}}">
+							<input type="hidden" class="dropdown-value" name="issue_labels" value="{{.issue_labels}}">
 							<div class="dropdown-trigger dropdown-field dropdown-search-field">
-								<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "repo.issue_labels_helper"}}">
-								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.issue_labels_helper"}}">{{or .issueLabels (ctx.Locale.Tr "repo.issue_labels_helper")}}</span>
+								<input class="dropdown-filter" type="text">
+								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.issue_labels_helper"}}">{{or .issue_labels (ctx.Locale.Tr "repo.issue_labels_helper")}}</span>
 							</div>
 							<div class="dropdown-popup">
 								<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.issue_labels_helper"}}</div>
@@ -144,7 +144,7 @@
 						<div class="dropdown-container" data-kind="multiselect">
 							<input type="hidden" class="dropdown-value" name="gitignores" value="{{.gitignores}}">
 							<div class="dropdown-trigger dropdown-field dropdown-search-field">
-								<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}">
+								<input class="dropdown-filter" type="text">
 								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}">{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}</span>
 							</div>
 							<div class="dropdown-popup">
@@ -160,7 +160,7 @@
 						<div class="dropdown-container" data-kind="select">
 							<input type="hidden" class="dropdown-value" name="license" value="{{.license}}">
 							<div class="dropdown-trigger dropdown-field dropdown-search-field">
-								<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "repo.license_helper"}}">
+								<input class="dropdown-filter" type="text">
 								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.license_helper"}}">{{or .license (ctx.Locale.Tr "repo.license_helper")}}</span>
 							</div>
 							<div class="dropdown-popup">

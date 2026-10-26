@@ -53,7 +53,7 @@
 
 					<div class="field">
 						<div class="select-field">
-							<select name="reason">
+							<select name="reason" aria-label="{{ctx.Locale.Tr "repo.issues.lock.reason"}}">
 								<option value=""></option>
 								{{range .LockReasons}}
 									<option value="{{.}}">{{.}}</option>

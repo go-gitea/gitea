@@ -222,7 +222,7 @@ async function loadTabItems() {
   <div class="branch-selector-dropdown" ref="elDropdown">
     <button
       type="button" class="ui compact button branch-dropdown-button" ref="elTrigger"
-      aria-haspopup="menu" :aria-expanded="menuVisible" :aria-controls="popupId"
+      :aria-expanded="menuVisible" :aria-controls="popupId"
       @click="menuVisible = !menuVisible" @keydown.down.prevent="menuVisible = true" @keydown.up.prevent="menuVisible = true"
     >
       <span class="flex-text-block gt-ellipsis">
@@ -236,7 +236,7 @@ async function loadTabItems() {
       </span>
       <svg-icon name="octicon-triangle-down" :size="14"/>
     </button>
-    <div class="dropdown-popup" :id="popupId" role="menu" v-show="menuVisible" v-cloak>
+    <div class="dropdown-popup" :id="popupId" v-show="menuVisible" v-cloak>
       <div class="ui icon search input">
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
         <input type="text" class="dropdown-filter" ref="elSearchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder" :aria-label="searchFieldPlaceholder">
@@ -253,9 +253,9 @@ async function loadTabItems() {
       <div class="branch-tag-list" ref="elScrollContainer">
         <svg-icon name="octicon-rss" symbol-id="svg-symbol-octicon-rss"/>
         <div class="loading-indicator is-loading" v-if="tabLoadingStates[selectedTab] === 'loading'"/>
-        <div v-for="(item, index) in filteredItems" :key="item.refShortName" class="dropdown-item" role="menuitem" :class="{active: item.selected}" :data-highlighted="activeItemIndex === index ? '' : undefined" @click="selectItem(item)">
-          <span class="gt-ellipsis">{{ item.refShortName }}&nbsp;</span>
-          <div class="ui label tw-shrink-0" v-if="item.refType === 'branch' && item.refShortName === currentRepoDefaultBranch">
+        <div v-for="(item, index) in filteredItems" :key="item.refShortName" class="dropdown-item" :class="{active: item.selected}" :data-highlighted="activeItemIndex === index ? '' : undefined" @click="selectItem(item)">
+          {{ item.refShortName }}
+          <div class="ui label" v-if="item.refType === 'branch' && item.refShortName === currentRepoDefaultBranch">
             {{ textDefaultBranchLabel }}
           </div>
           <a v-if="enableFeed && selectedTab === 'branches'" role="button" class="rss-icon" target="_blank" @click.stop :href="item.rssFeedLink">
@@ -263,7 +263,7 @@ async function loadTabItems() {
             <svg width="14" height="14" class="svg octicon-rss"><use href="#svg-symbol-octicon-rss"/></svg>
           </a>
         </div>
-        <div class="dropdown-item tw-flex-col tw-items-start tw-gap-1" role="menuitem" v-if="showCreateNewRef" :data-highlighted="activeItemIndex === filteredItems.length ? '' : undefined" @click="createNewRef()">
+        <div class="dropdown-item" v-if="showCreateNewRef" :data-highlighted="activeItemIndex === filteredItems.length ? '' : undefined" @click="createNewRef()">
           <div class="flex-text-block">
             <svg-icon :name="selectedTab === 'tags' ? 'octicon-tag' : 'octicon-git-branch'"/>
             <span v-text="trString(selectedTab === 'tags' ? textCreateTag : textCreateBranch, searchTerm)"/>
@@ -283,8 +283,8 @@ async function loadTabItems() {
       </div>
       <template v-if="showViewAllRefsEntry">
         <div class="dropdown-divider tw-m-0"/>
-        <a v-if="selectedTab === 'branches'" class="dropdown-item" role="menuitem" :href="currentRepoLink + '/branches'">{{ textViewAllBranches }}</a>
-        <a v-if="selectedTab === 'tags'" class="dropdown-item" role="menuitem" :href="currentRepoLink + '/tags'">{{ textViewAllTags }}</a>
+        <a v-if="selectedTab === 'branches'" class="dropdown-item" :href="currentRepoLink + '/branches'">{{ textViewAllBranches }}</a>
+        <a v-if="selectedTab === 'tags'" class="dropdown-item" :href="currentRepoLink + '/tags'">{{ textViewAllTags }}</a>
       </template>
     </div>
   </div>

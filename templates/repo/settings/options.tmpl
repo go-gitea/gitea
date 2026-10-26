@@ -465,7 +465,7 @@
 						{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}
 					</p>
 					<div class="select-field">
-						<select name="projects_mode">
+						<select name="projects_mode" aria-label="{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}">
 							<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
 							<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
 							<option value="all" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</option>
@@ -555,7 +555,7 @@
 								{{ctx.Locale.Tr "repo.settings.default_merge_style_desc"}}
 							</p>
 							<div class="select-field">
-								<select name="pulls_default_merge_style">
+								<select name="pulls_default_merge_style" aria-label="{{ctx.Locale.Tr "repo.settings.default_merge_style_desc"}}">
 									<option value="merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "merge")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}</option>
 									<option value="rebase" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</option>
 									<option value="rebase-merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase-merge")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</option>
@@ -580,7 +580,7 @@
 							<div class="dropdown-container" data-kind="select">
 								<input type="hidden" class="dropdown-value" name="default_target_branch" value="{{$prUnit.PullRequestsConfig.DefaultTargetBranch}}">
 								<div class="dropdown-trigger dropdown-field dropdown-search-field">
-									<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "search.branch_kind"}}">
+									<input class="dropdown-filter" type="text">
 									<span class="dropdown-text">{{or $prUnit.PullRequestsConfig.DefaultTargetBranch (ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch)}}</span>
 									{{svg "octicon-triangle-down" 14}}
 								</div>

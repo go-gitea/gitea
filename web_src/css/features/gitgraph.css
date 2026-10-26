@@ -21,8 +21,6 @@
 
 #flow-select-refs-dropdown .ui.label {
   max-width: 180px;
-  display: inline-flex;
-  align-items: center;
 }
 
 .flow-select-refs-popup > .dropdown-item {

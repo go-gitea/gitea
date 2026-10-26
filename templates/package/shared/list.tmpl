@@ -4,8 +4,8 @@
 	<div class="ui small fluid action input">
 		{{template "shared/search/input" dict "Value" .Query "Placeholder" (ctx.Locale.Tr "search.package_kind")}}
 		<div class="select-field">
-			<select name="type">
-				<option value="">{{ctx.Locale.Tr "packages.filter.type"}}</option>
+			<select name="type" aria-label="{{ctx.Locale.Tr "packages.filter.type"}}">
+				<option value="" data-placeholder>{{ctx.Locale.Tr "packages.filter.type"}}</option>
 				<option value="all">{{ctx.Locale.Tr "packages.filter.type.all"}}</option>
 				{{range $type := .AvailableTypes}}
 				<option{{if eq $.PackageType $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>

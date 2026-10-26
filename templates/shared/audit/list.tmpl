@@ -7,8 +7,8 @@
 		</div>
 		<div class="ui small input">
 			<div class="select-field">
-				<select name="action">
-					<option value="">{{ctx.Locale.Tr "audit.filter.action"}}</option>
+				<select name="action" aria-label="{{ctx.Locale.Tr "audit.filter.action"}}">
+					<option value="" data-placeholder>{{ctx.Locale.Tr "audit.filter.action"}}</option>
 					{{range $action := .AuditActions}}
 						<option{{if eq $.AuditFilterAction (print $action)}} selected{{end}} value="{{$action}}">{{$action}}</option>
 					{{end}}
@@ -17,8 +17,8 @@
 		</div>
 		<div class="ui small input">
 			<div class="select-field">
-				<select name="origin">
-					<option value="">{{ctx.Locale.Tr "audit.filter.origin"}}</option>
+				<select name="origin" aria-label="{{ctx.Locale.Tr "audit.filter.origin"}}">
+					<option value="" data-placeholder>{{ctx.Locale.Tr "audit.filter.origin"}}</option>
 					{{range $origin := .AuditOrigins}}
 						<option{{if eq $.AuditFilterOrigin (print $origin)}} selected{{end}} value="{{$origin}}">{{$origin}}</option>
 					{{end}}

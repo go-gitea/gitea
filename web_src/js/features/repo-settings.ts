@@ -14,7 +14,7 @@ function initRepoSettingsCollaboration() {
     const dropdown = initDropdown(dropdownEl);
     const textEl = dropdown.trigger.querySelector('.dropdown-text')!;
     addDelegatedEventListener(dropdown.popup, 'click', '.dropdown-item', async (item) => {
-      dropdown.trigger.disabled = true;
+      if (dropdown.trigger.classList.contains('is-loading')) return;
       dropdown.trigger.classList.add('is-loading', 'loading-icon-2px');
       let respOk = false;
       try {
@@ -24,7 +24,6 @@ function initRepoSettingsCollaboration() {
         respOk = resp.ok;
         if (respOk) dropdown.setActiveItem(item);
       } finally {
-        dropdown.trigger.disabled = false;
         dropdown.trigger.classList.remove('is-loading', 'loading-icon-2px');
         if (!respOk) textEl.textContent = '(error)';
       }

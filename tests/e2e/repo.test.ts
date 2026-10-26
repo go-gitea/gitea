@@ -43,6 +43,7 @@ test('delete a branch via its modal, add and remove repository topics', async ({
   await page.keyboard.insertText('e2e-keep');
   await page.getByRole('option', {name: 'e2e-keep', exact: true}).click();
   await page.getByRole('button', {name: 'Remove item "e2e-drop"'}).click();
+  await page.keyboard.press('Escape');
   await page.getByRole('button', {name: 'Save', exact: true}).click();
   await expect(page.locator('#repo-topics').getByRole('link')).toHaveText(['e2e-keep']);
 });

@@ -33,9 +33,9 @@
 				<label>{{ctx.Locale.Tr "repo.projects.template.desc"}}</label>
 				<div class="select-field">
 					<select name="template_type">
-						<option value="" hidden>{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</option>
+						<option value="" hidden data-placeholder>{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</option>
 						{{range $element := .TemplateConfigs}}
-							<option value="{{$element.TemplateType}}" {{if eq $.type $element.TemplateType}}selected{{end}}>{{ctx.Locale.Tr $element.Translation}}</option>
+							<option value="{{$element.TemplateType}}" {{if eq $.template_type $element.TemplateType}}selected{{end}}>{{ctx.Locale.Tr $element.Translation}}</option>
 						{{end}}
 					</select>
 				</div>

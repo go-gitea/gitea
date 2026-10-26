@@ -184,7 +184,7 @@ function clearMergeMessage() {
                 {{ msd.textDoMerge }}
               </button>
               <button
-                v-if="!msd.hideAutoMerge" type="button" class="dropdown-item auto-merge-small"
+                v-if="!msd.hideAutoMerge" type="button" class="dropdown-item flex-text-block auto-merge-small"
                 :aria-label="msd.textDoMerge + ' ' + mergeForm.textAutoMergeButtonWhenSucceed"
                 :data-tooltip-content="mergeForm.textAutoMergeWhenSucceed"
                 @click="switchMergeStyle(msd.name, true)"

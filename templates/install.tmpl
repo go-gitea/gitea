@@ -48,13 +48,14 @@
 						<div class="inline required field">
 							<label for="ssl_mode">{{ctx.Locale.Tr "install.ssl_mode"}}</label>
 							<div class="select-field">
+								{{$sslMode := or .ssl_mode "disable"}}
 								<select id="ssl_mode" name="ssl_mode">
-									{{if and .ssl_mode (not (eq .ssl_mode "disable" "require" "verify-full"))}}
-										<option value="{{.ssl_mode}}" selected>{{.ssl_mode}}</option>
+									{{if not (eq $sslMode "disable" "require" "verify-full")}}
+										<option value="{{$sslMode}}" selected>{{$sslMode}}</option>
 									{{end}}
-									<option value="disable" {{if eq (Iif $.ssl_mode $.ssl_mode "disable") "disable"}}selected{{end}}>Disable</option>
-									<option value="require" {{if eq (Iif $.ssl_mode $.ssl_mode "disable") "require"}}selected{{end}}>Require</option>
-									<option value="verify-full" {{if eq (Iif $.ssl_mode $.ssl_mode "disable") "verify-full"}}selected{{end}}>Verify Full</option>
+									<option value="disable" {{if eq $sslMode "disable"}}selected{{end}}>Disable</option>
+									<option value="require" {{if eq $sslMode "require"}}selected{{end}}>Require</option>
+									<option value="verify-full" {{if eq $sslMode "verify-full"}}selected{{end}}>Verify Full</option>
 								</select>
 							</div>
 						</div>

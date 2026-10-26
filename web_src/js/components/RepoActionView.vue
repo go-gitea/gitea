@@ -209,7 +209,7 @@ onBeforeUnmount(() => {
               <a
                 v-for="attempt in run.attempts"
                 :key="attempt.attempt"
-                class="dropdown-item tw-flex-col tw-items-start tw-gap-2"
+                class="dropdown-item tw-flex tw-flex-col tw-items-start tw-gap-2"
                 :class="{active: attempt.current}"
                 :href="attempt.link"
               >

@@ -240,7 +240,7 @@ export class ComboMarkdownEditor {
     });
 
     this.tabPreviewer.addEventListener('click', async () => {
-      // keep the editor's height while the preview loads to avoid flickering
+      // capture: read the editor height before the tab switcher hides it, so the preview does not flicker
       panelPreviewer.style.minHeight = `${panelEditor?.clientHeight}px`;
       this.updateEditorContainerTabPage('previewer');
       const formData = new FormData();

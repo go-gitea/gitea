@@ -411,7 +411,7 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="elSearch" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="dropdown-container">
-            <button type="button" class="dropdown-trigger ui icon button tw-m-0 tw-rounded-l-none" :title="textFilter" :aria-label="textFilter">
+            <button type="button" class="dropdown-trigger ui icon button tw-m-0" :title="textFilter" :aria-label="textFilter">
               <svg-icon name="octicon-filter" :size="16"/>
             </button>
             <div class="dropdown-popup dropdown-popup-button">

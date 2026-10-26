@@ -1385,6 +1385,7 @@
   "repo.projects.type.basic_kanban": "Basic Kanban",
   "repo.projects.type.bug_triage": "Bug Triage",
   "repo.projects.template.desc": "Template",
+  "repo.projects.template.desc_helper": "Select a project template to get started",
   "repo.projects.column.edit": "Edit Column",
   "repo.projects.column.edit_title": "Name",
   "repo.projects.column.new_title": "Name",
