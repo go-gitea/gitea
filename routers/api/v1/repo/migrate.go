@@ -98,16 +98,16 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}
 
+	gitServiceType := convert.ToGitServiceType(form.Service)
+
 	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
-		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
+		err = migrations.IsMigrateURLAllowedForService(remoteAddr, gitServiceType, ctx.Doer)
 	}
 	if err != nil {
 		handleRemoteAddrError(ctx, err)
 		return
 	}
-
-	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if form.Mirror && setting.Mirror.DisableNewPull {
 		ctx.APIError(http.StatusForbidden, "the site administrator has disabled the creation of new pull mirrors")
